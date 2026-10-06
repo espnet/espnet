@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Mapping
 
-from espnet3.components.contract.kinds.base import Kind
+from espnet3.api.inference.kinds.base import Kind
 
 
 class SegmentsKind(Kind):

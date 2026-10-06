@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from espnet3.components.contract.kinds.base import Kind
+from espnet3.api.inference.kinds.base import Kind
 
 
 class NumberKind(Kind):
@@ -10,6 +10,10 @@ class NumberKind(Kind):
 
     What a metric's declared outputs hold: one scalar per result key, such
     as ``{"WER": 4.3}``.
+
+    Examples:
+        >>> NumberKind().check(4.3, Field("WER", "number"), model, output=True)
+        4.3
     """
 
     def check(self, value, field, model, *, output):

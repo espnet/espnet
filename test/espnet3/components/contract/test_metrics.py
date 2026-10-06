@@ -6,7 +6,7 @@ from pathlib import Path
 
 import pytest
 
-from espnet3.components.contract import Field
+from espnet3.api.inference import Field
 from espnet3.components.contract.metrics import (
     MetricContractError,
     check_metric_declaration,

@@ -8,7 +8,7 @@ import os
 from pathlib import Path
 from typing import Any, Mapping, Optional
 
-from espnet3.components.contract import KINDS, Field
+from espnet3.api.inference import KINDS, Field
 
 logger = logging.getLogger(__name__)
 
@@ -21,11 +21,27 @@ class MetricContractError(ValueError):
     Raised when what inference produced does not match a metric's
     declared inputs, or when a metric's return value does not match its
     declared outputs.
+
+    Examples:
+        >>> raise MetricContractError("WER.outputs field 'wer' must be number")
+        Traceback (most recent call last):
+        espnet3.components.contract.metrics.MetricContractError: WER.outputs field ...
     """
 
 
 def strict_contracts_enabled() -> bool:
-    """Whether ``ESPNET3_STRICT_CONTRACTS`` asks for errors instead of warnings."""
+    """Whether ``ESPNET3_STRICT_CONTRACTS`` asks for errors instead of warnings.
+
+    Examples:
+        >>> import os
+        >>> _ = os.environ.pop("ESPNET3_STRICT_CONTRACTS", None)
+        >>> strict_contracts_enabled()
+        False
+        >>> os.environ["ESPNET3_STRICT_CONTRACTS"] = "1"
+        >>> strict_contracts_enabled()
+        True
+        >>> del os.environ["ESPNET3_STRICT_CONTRACTS"]
+    """
     return os.environ.get("ESPNET3_STRICT_CONTRACTS", "") not in ("", "0")
 
 
@@ -33,6 +49,16 @@ def warn_undeclared(cls: type, attr: str) -> None:
     """Warn once per class that it has no ``attr`` contract declaration.
 
     Raises ``TypeError`` instead, under ``ESPNET3_STRICT_CONTRACTS``.
+
+    Examples:
+        >>> import os
+        >>> os.environ["ESPNET3_STRICT_CONTRACTS"] = "1"
+        >>> class Undeclared:
+        ...     pass
+        >>> warn_undeclared(Undeclared, "outputs")
+        Traceback (most recent call last):
+        TypeError: Undeclared does not declare outputs; its inputs/outputs are ...
+        >>> del os.environ["ESPNET3_STRICT_CONTRACTS"]
     """
     message = (
         f"{cls.__qualname__} does not declare {attr}; its inputs/outputs are "
@@ -50,6 +76,13 @@ def check_metric_declaration(cls: type) -> None:
 
     Called in addition to the shared ``check_declaration`` (non-empty
     tuples, distinct names, ...); this is the one rule specific to metrics.
+
+    Examples:
+        >>> class BadMetric:
+        ...     outputs = (Field("transcript", "text"),)
+        >>> check_metric_declaration(BadMetric)
+        Traceback (most recent call last):
+        TypeError: BadMetric.outputs field 'transcript' must have kind 'number', ...
     """
     for f in cls.outputs:
         if f.kind != "number":
@@ -65,6 +98,15 @@ def read_fields_json(test_dir: Path) -> Optional[Mapping[str, Any]]:
     An inference output directory predating this contract (or written by a
     custom runner that does not write ``fields.json``) has no such file;
     callers fall back to checking SCP presence only, not kind.
+
+    Examples:
+        >>> import tempfile
+        >>> test_dir = Path(tempfile.mkdtemp())
+        >>> read_fields_json(test_dir)
+        >>> _ = (test_dir / "fields.json").write_text(
+        ...     '{"fields": {"ref": {"kind": "text"}}}')
+        >>> read_fields_json(test_dir)
+        {'fields': {'ref': {'kind': 'text'}}}
     """
     path = Path(test_dir) / "fields.json"
     if not path.exists():
@@ -143,6 +185,22 @@ def check_metric_inputs(
         MetricContractError: A required input is missing, or its kind
             disagrees with what inference wrote (per ``fields.json``, when
             present).
+
+    Examples:
+        >>> import tempfile
+        >>> from espnet3.components.metrics.base_metric import BaseMetric
+        >>> class ExampleMetric(BaseMetric):
+        ...     inputs = (Field("ref", "text"),)
+        ...     outputs = (Field("score", "number"),)
+        ...     def __call__(self, data, test_name, output_dir):
+        ...         return {"score": 0.0}
+        >>> inference_dir = Path(tempfile.mkdtemp())
+        >>> test_dir = inference_dir / "test"
+        >>> test_dir.mkdir()
+        >>> _ = (test_dir / "ref.scp").write_text("utt1 hello\\n")
+        >>> paths = check_metric_inputs(ExampleMetric(), None, inference_dir, "test")
+        >>> paths["ref"].name
+        'ref.scp'
     """
     input_fields = getattr(metric, "input_fields", None)
     if input_fields is None:
@@ -198,6 +256,18 @@ def check_metric_output(metric: Any, result: Mapping[str, Any]) -> None:
     Raises:
         MetricContractError: A declared output is missing from ``result``,
             or its value is not the declared kind.
+
+    Examples:
+        >>> from espnet3.components.metrics.base_metric import BaseMetric
+        >>> class ExampleMetric(BaseMetric):
+        ...     inputs = (Field("ref", "text"),)
+        ...     outputs = (Field("score", "number"),)
+        ...     def __call__(self, data, test_name, output_dir):
+        ...         return {"score": 0.0}
+        >>> check_metric_output(ExampleMetric(), {"score": 4.3})
+        >>> check_metric_output(ExampleMetric(), {})
+        Traceback (most recent call last):
+        espnet3.components.contract.metrics.MetricContractError: ExampleMetric ...
     """
     outputs = getattr(type(metric), "outputs", None)
     if not outputs:

@@ -8,7 +8,7 @@ from typing import Any, Optional, Sequence
 
 import numpy as np
 
-from espnet3.components.contract.kinds.base import Kind
+from espnet3.api.inference.kinds.base import Kind
 
 
 @dataclass(frozen=True)

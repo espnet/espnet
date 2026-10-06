@@ -6,8 +6,7 @@ conversation, a multichannel signal, video, a JSON document - is a
 or from a recipe's own ``src/``; :class:`~espnet3.api.inference.base.InferenceAPI`
 needs no change for it::
 
-    from espnet3.api.inference import InferenceAPI
-    from espnet3.components.contract import Field, Kind, register_kind
+    from espnet3.api.inference import InferenceAPI, Kind, Field, register_kind
 
     class Messages(Kind):
         def check(self, value, field, model, *, output):
@@ -24,11 +23,11 @@ needs no change for it::
 
 from __future__ import annotations
 
-from espnet3.components.contract.kinds.audio import Audio, AudioKind
-from espnet3.components.contract.kinds.base import Kind
-from espnet3.components.contract.kinds.number import NumberKind
-from espnet3.components.contract.kinds.segments import SegmentsKind
-from espnet3.components.contract.kinds.text import TextKind
+from espnet3.api.inference.kinds.audio import Audio, AudioKind
+from espnet3.api.inference.kinds.base import Kind
+from espnet3.api.inference.kinds.number import NumberKind
+from espnet3.api.inference.kinds.segments import SegmentsKind
+from espnet3.api.inference.kinds.text import TextKind
 
 # What a field can hold, by the name a Field's ``kind`` gives.
 KINDS: dict[str, Kind] = {

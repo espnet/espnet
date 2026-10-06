@@ -1,7 +1,7 @@
 """Shared validation for a class's field declarations."""
 
-from espnet3.components.contract.check import check_declaration
-from espnet3.components.contract.field import Field
+from espnet3.api.inference.check import check_declaration
+from espnet3.api.inference.field import Field
 
 
 def test_check_declaration_accepts_a_good_declaration():

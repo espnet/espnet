@@ -170,6 +170,15 @@ class InferenceRunner(BaseRunner):
         - ``hyp_key`` and ``ref_key`` values may be scalars or lists/tuples.
           If lists are returned, each entry is written to its own SCP file
           (e.g., ``hyp0.scp``, ``hyp1.scp``).
+
+    Examples:
+        >>> runner = InferenceRunner(
+        ...     provider, output_dir="/exp/decode", idx_key="utt_id",
+        ...     hyp_key="hyp", ref_key="ref",
+        ... )
+        >>> runner(range(len(test_dataset)))
+        True
+        >>> # hyp.scp, ref.scp and fields.json are written under /exp/decode
     """
 
     def __init__(
@@ -471,6 +480,10 @@ class InferenceRunner(BaseRunner):
 
         Raises:
             RuntimeError: If no output keys are found across all shards.
+
+        Examples:
+            >>> runner.merge([Path("/exp/decode/shard.0"), Path("/exp/decode/shard.1")])
+            >>> # hyp.scp, ref.scp and fields.json now exist under /exp/decode
         """
         field_keys = []
         seen = set()

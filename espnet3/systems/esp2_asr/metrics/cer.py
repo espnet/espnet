@@ -11,7 +11,7 @@ except ImportError:
     jiwer = None
 
 from espnet2.text.cleaner import TextCleaner
-from espnet3.components.contract import Field
+from espnet3.api.inference import Field
 from espnet3.components.metrics.base_metric import BaseMetric
 
 
@@ -20,6 +20,10 @@ class CER(BaseMetric):
 
     This metric expects hypothesis and reference strings and produces a
     percentage score along with alignment visualization output.
+
+    Examples:
+        >>> CER().inputs[0]
+        Field(name='ref', kind='text', label='Ref', optional=False, channels=1)
     """
 
     inputs = (Field("ref", "text"), Field("hyp", "text"))
@@ -43,7 +47,13 @@ class CER(BaseMetric):
         self.hyp_key = hyp_key
 
     def input_fields(self):
-        """Return the declared inputs, renamed to this instance's ref_key/hyp_key."""
+        """Return the declared inputs, renamed to this instance's ref_key/hyp_key.
+
+        Examples:
+            >>> fields = CER(ref_key="reference", hyp_key="hypothesis").input_fields()
+            >>> [f.name for f in fields]
+            ['reference', 'hypothesis']
+        """
         return (Field(self.ref_key, "text"), Field(self.hyp_key, "text"))
 
     def _clean(self, text: str) -> str:

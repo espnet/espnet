@@ -12,7 +12,7 @@ except ImportError:
 
 from espnet2.text.cleaner import TextCleaner
 from espnet2.text.sentencepiece_tokenizer import SentencepiecesTokenizer
-from espnet3.components.contract import Field
+from espnet3.api.inference import Field
 from espnet3.components.metrics.base_metric import BaseMetric
 
 
@@ -23,6 +23,10 @@ class TER(BaseMetric):
     and hypothesis text are tokenized with a SentencePiece model, then scored
     like WER over the resulting token sequences. This mirrors espnet2's Stage 13
     scoring, which computes ``ter`` at the ``bpe`` token level.
+
+    Examples:
+        >>> TER.inputs[0]
+        Field(name='ref', kind='text', label='Ref', optional=False, channels=1)
     """
 
     inputs = (Field("ref", "text"), Field("hyp", "text"))
@@ -50,7 +54,14 @@ class TER(BaseMetric):
         self.hyp_key = hyp_key
 
     def input_fields(self):
-        """Return the declared inputs, renamed to this instance's ref_key/hyp_key."""
+        """Return the declared inputs, renamed to this instance's ref_key/hyp_key.
+
+        Examples:
+            >>> ter = TER.__new__(TER)  # skip __init__, which needs a bpemodel
+            >>> ter.ref_key, ter.hyp_key = "reference", "hypothesis"
+            >>> [f.name for f in ter.input_fields()]
+            ['reference', 'hypothesis']
+        """
         return (Field(self.ref_key, "text"), Field(self.hyp_key, "text"))
 
     def _tokenize(self, text: str) -> str:

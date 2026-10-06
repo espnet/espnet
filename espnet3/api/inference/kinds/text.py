@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from espnet3.components.contract.kinds.base import Kind
+from espnet3.api.inference.kinds.base import Kind
 
 
 class TextKind(Kind):

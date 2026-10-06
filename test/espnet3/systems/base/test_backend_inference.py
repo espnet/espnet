@@ -7,7 +7,7 @@ from types import SimpleNamespace
 import numpy as np
 import pytest
 
-from espnet3.components.contract import Field
+from espnet3.api.inference import Field
 from espnet3.systems.base.backend_inference import BackendInference
 
 

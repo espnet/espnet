@@ -2,7 +2,7 @@
 
 import pytest
 
-from espnet3.components.contract import KINDS, Field, NumberKind
+from espnet3.api.inference import KINDS, Field, NumberKind
 
 
 def test_number_kind_is_registered():

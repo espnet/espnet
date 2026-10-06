@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
     from espnet3.api.inference.base import InferenceAPI
-    from espnet3.components.contract.field import Field
+    from espnet3.api.inference.field import Field
 
 
 class Kind(ABC):

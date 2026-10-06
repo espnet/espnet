@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from espnet3.components.contract.field import Field
+from espnet3.api.inference.field import Field
 
 
 def check_declaration(

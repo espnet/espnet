@@ -4,7 +4,8 @@ from abc import ABC, abstractmethod
 from pathlib import Path
 from typing import ClassVar, Dict, Iterator, Tuple
 
-from espnet3.components.contract import Field, check_declaration
+from espnet3.api.inference import Field
+from espnet3.api.inference.check import check_declaration
 from espnet3.components.contract.metrics import (
     check_metric_declaration,
     warn_undeclared,
@@ -15,7 +16,7 @@ class BaseMetric(ABC):
     """Base class for metrics that consume inference output paths.
 
     A subclass may declare ``inputs``/``outputs`` class attributes (the
-    same :class:`~espnet3.components.contract.Field` declaration
+    same :class:`~espnet3.api.inference.Field` declaration
     :class:`~espnet3.api.inference.InferenceAPI` uses) to opt into
     contract checking: ``inputs`` names the SCP inputs the metric reads
     (checked against what inference wrote, via
@@ -26,6 +27,15 @@ class BaseMetric(ABC):
     A metric that does not declare them keeps working exactly as today
     (a one-time warning is logged per class; ``ESPNET3_STRICT_CONTRACTS=1``
     turns that into an error instead).
+
+    Examples:
+        >>> class ExampleMetric(BaseMetric):
+        ...     inputs = (Field("ref", "text"), Field("hyp", "text"))
+        ...     outputs = (Field("score", "number"),)
+        ...     def __call__(self, data, test_name, output_dir):
+        ...         return {"score": 0.0}
+        >>> ExampleMetric.inputs[0]
+        Field(name='ref', kind='text', label='Ref', optional=False, channels=1)
     """
 
     #: What this metric reads: one Field per SCP input. The name is the
@@ -51,6 +61,15 @@ class BaseMetric(ABC):
         Defaults to ``type(self).inputs``; override when constructor
         arguments rename an input (e.g. ``WER``'s ``ref_key``/``hyp_key``),
         so contract checking follows the renamed key.
+
+        Examples:
+            >>> class ExampleMetric(BaseMetric):
+            ...     inputs = (Field("ref", "text"), Field("hyp", "text"))
+            ...     outputs = (Field("score", "number"),)
+            ...     def __call__(self, data, test_name, output_dir):
+            ...         return {"score": 0.0}
+            >>> ExampleMetric().input_fields() == ExampleMetric.inputs
+            True
         """
         return getattr(type(self), "inputs", ())
 
