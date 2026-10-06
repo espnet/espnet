@@ -59,6 +59,25 @@ class Enhancer(InferenceAPI):
         }
 
 
+class Segmenter(InferenceAPI):
+    """Only segments come out, a kind with no UI asset."""
+
+    inputs = (Field("speech", "audio"),)
+    outputs = (Field("segments", "segments"),)
+
+    def __init__(self, device="cpu"):
+        self.device = device
+
+    @classmethod
+    def from_pretrained(cls, tag_or_dir, *, device="cpu", **kwargs):
+        return cls(device=device)
+
+    sample_rate = 8000
+
+    def run(self, speech):
+        return {"segments": []}
+
+
 def _write_model_pack(
     demo_dir: Path, target: str = f"{__name__}.Transcriber", **model
 ) -> None:
@@ -319,3 +338,15 @@ def test_build_demo_model_loads_a_tag_through_load(monkeypatch, tmp_path: Path) 
         tmp_path, demo_cfg, model, demo_assets_module.DEFAULT_UI_ASSETS.clone()
     )
     assert session.input_specs[0]["key"] == "speech"
+
+
+def test_a_demo_with_nothing_to_show_says_so(tmp_path):
+    """Not an app that runs the model and shows nothing."""
+    demo_dir = tmp_path / "demo"
+    demo_dir.mkdir()
+    _write_model_pack(demo_dir, target=f"{__name__}.Segmenter")
+    _write_demo(demo_dir, ui="  title: null\n  description: null\n")
+    with pytest.raises(
+        ValueError, match=r"no UI asset is registered for \['segments'\]"
+    ):
+        load_demo_session(demo_dir, demo_dir / "demo.yaml")

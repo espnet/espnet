@@ -1441,3 +1441,29 @@ def test_meta_records_a_system_only_when_the_task_path_names_one():
     for task in ("espnet2.tasks.asr.ASRTask", "", None):
         assert _system_for_meta(OmegaConf.create({"task": task})) is None
     assert _system_for_meta(OmegaConf.create({})) is None
+
+
+def test_the_readme_load_example_asks_for_trust_only_when_the_bundle_needs_it(
+    tmp_path,
+):
+    """A systemless bundle whose model is its own code needs trust_user_code."""
+    out = tmp_path / "pack"
+    (out / "conf").mkdir(parents=True)
+    (out / "conf" / "inference.yaml").write_text(
+        "model:\n  _target_: src.code.Local\noutput_fn: src.code.out\n"
+    )
+    assert publish._load_example("org/m", out, system=None) == 'model = load("org/m")'
+    (out / "src").mkdir()
+    (out / "src" / "code.py").write_text("class Local: pass\n")
+    example = publish._load_example("org/m", out, system=None)
+    assert example.endswith('model = load("org/m", trust_user_code=True)')
+    assert "only if you trust" in example
+    # a system serves it, and the stage's own code is never imported by load()
+    assert publish._load_example("org/m", out, system="esp2_asr") == (
+        'model = load("org/m")'
+    )
+    (out / "conf" / "inference.yaml").write_text(
+        "model:\n  _target_: espnet3.systems.esp2_asr.inference.Inference\n"
+        "output_fn: src.code.out\nprovider:\n  _target_: src.code.Provider\n"
+    )
+    assert publish._load_example("org/m", out, system=None) == 'model = load("org/m")'
