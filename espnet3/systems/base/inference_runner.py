@@ -628,6 +628,11 @@ class InferenceRunner(BaseRunner):
 
 @lru_cache(maxsize=None)
 def _load_output_fn(path: str):
+    """Import a dotted ``module.function`` path for a non-Inference model.
+
+    output_fn is only for a model that is not an Inference: an Inference
+    writes its declared outputs and refuses an output_fn.
+    """
     module_path, func_name = path.rsplit(".", 1)
     module = import_module(module_path)
     return getattr(module, func_name)
