@@ -157,8 +157,10 @@ dataset:
 #   sample_seed           a vocabulary is an artifact of the text it saw, so the
 #                         sample has to be reproducible.
 #   vocab_scaled_shapes   streams whose `<stream>_shape` gets the vocabulary size
-#                         appended, so batch_bins can see the decoder logits.
-#                         Defaults to text and text_prev.
+#                         appended, so a numel batch_bins budget can see the
+#                         decoder logits. Empty by default: a flat batch_size
+#                         needs no shape file beyond feats_shape. Set it to
+#                         [text, text_prev] when switching to numel.
 #
 # vocab_size has a floor above the reserved symbols: SentencePiece also needs one
 # piece per character, and at character_coverage 1.0 across 14 languages that is
@@ -184,9 +186,11 @@ optimizer:
   lr: 0.002
   weight_decay: 0.000001
 
+# Left empty on purpose. OmegaConf.merge cannot remove a key, so any default
+# here leaks into a recipe that picks a different scheduler: a template
+# `warmup_steps` reaches PiecewiseLinearWarmupLR, whose signature has no such
+# argument, and hydra raises. Each recipe states its scheduler in full.
 scheduler:
-  _target_: espnet2.schedulers.warmup_lr.WarmupLR
-  warmup_steps: 15000
 
 # Used only in the single optimizer path.
 scheduler_interval: step   # `step` or `epoch`
@@ -269,48 +273,38 @@ dataloader:
   collate_fn:
     _target_: espnet2.train.collate_fn.CommonCollateFn
     int_pad_value: -1
-  # Training dataloader / iterator settings.
-  train:
-    # `total_shards` is the total number of dataset shards.
-    # `dist_world_size` is the distributed world size used to rotate shards.
-    # Keep `dist_world_size` equal to the runtime world size.
-    total_shards: 1
-    dist_world_size: 1
-    iter_factory:
-      _target_: espnet2.iterators.sequence_iter_factory.SequenceIterFactory
-      shuffle: true
-      collate_fn: ${dataloader.collate_fn}
-      batches:
-        # Typical batch modes include `unsorted`, `sorted`, and task-specific
-        # iterator/batcher setups. Adjust this to match your dataset.
-        # `numel` sums bins over every shape file but sorts on the first, so
-        # feats_shape leads: batches stay bucketed by audio duration while the
-        # text terms bound the decoder logits.
-        type: numel
-        shape_files:
-          - ${stats_dir}/train/feats_shape
-          - ${stats_dir}/train/text_shape
-          - ${stats_dir}/train/text_prev_shape
-        batch_size: 4
-        batch_bins: 4000000
 
-  # Validation dataloader / iterator settings.
-  valid:
-    # Use the same sharding settings as `train`.
-    total_shards: 1
-    dist_world_size: 1
+  # A plain torch DataLoader: `iter_factory` empty selects it, and every other
+  # key below goes straight to torch.utils.data.DataLoader.
+  #
+  # Chosen over an espnet2 iter_factory because `shuffle: true` here draws
+  # samples at random across the whole mixture. A sampler builds its batches
+  # from the shape files once and reuses them every epoch, and since
+  # S2TPreprocessor pads all speech to one 30 s window, feats_shape is constant
+  # and its sort is a no-op -- batches would come out in cache order, putting a
+  # whole corpus, and within MuST-C a whole language pair, in one gradient step.
+  #
+  # It also means collect_stats only has to produce feats_stats.npz for
+  # global_mvn; no *_shape file is read during training.
+  #
+  # multiprocessing_context MUST be spawn. Forked workers inherit a CUDA
+  # context and die with "CUDA error: initialization error".
+  train:
     iter_factory:
-      _target_: espnet2.iterators.sequence_iter_factory.SequenceIterFactory
-      shuffle: false
-      collate_fn: ${dataloader.collate_fn}
-      batches:
-        type: ${dataloader.train.iter_factory.batches.type}
-        shape_files:
-          - ${stats_dir}/valid/feats_shape
-          - ${stats_dir}/valid/text_shape
-          - ${stats_dir}/valid/text_prev_shape
-        batch_size: ${dataloader.train.iter_factory.batches.batch_size}
-        batch_bins: ${dataloader.train.iter_factory.batches.batch_bins}
+    batch_size: 20
+    shuffle: true
+    num_workers: 8
+    multiprocessing_context: spawn
+    pin_memory: true
+    prefetch_factor: 2
+  valid:
+    iter_factory:
+    batch_size: ${dataloader.train.batch_size}
+    shuffle: false
+    num_workers: 4
+    multiprocessing_context: spawn
+    pin_memory: true
+    prefetch_factor: 2
 
 ##########################################################
 #                    TRAINER SETTING                     #
@@ -333,9 +327,28 @@ trainer:
 
   strategy: auto
 
+  # Checkpoint on a step count, not only at epoch end. An OWSM epoch is hours
+  # long, so a job that hits its walltime mid-epoch would otherwise write
+  # nothing and lose the lot. This one has no `monitor`, so it keeps the most
+  # recent rather than the best, and `save_last: link` is what `ckpt_path:
+  # last` below resumes from.
+  callbacks:
+    - _target_: lightning.pytorch.callbacks.ModelCheckpoint
+      dirpath: ${exp_dir}
+      filename: periodic_step{step}
+      auto_insert_metric_name: false
+      every_n_train_steps: 1000
+      save_top_k: 1
+      save_last: link
+
 ##########################################################
 #                      FIT SETTING                       #
 ##########################################################
 # Optional keyword arguments passed directly to `trainer.fit(**fit)`.
 # Leave `{}` for the default flow.
-fit: {}
+# `last` resumes from the periodic checkpoint above when one exists, which is
+# how a run spans several jobs under a walltime cap. Lightning warns rather
+# than fails when there is none, so a first run starts from scratch; delete
+# the checkpoints to force that once a run exists.
+fit:
+  ckpt_path: last

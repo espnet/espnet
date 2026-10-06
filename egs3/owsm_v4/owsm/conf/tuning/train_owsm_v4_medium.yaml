@@ -87,6 +87,23 @@ tokenizer:
       - {corpus: spgispeech, split: train}
       - {corpus: must_c_v1.2, split: train}
 
+# egs2 trains with AdamW and a piecewise warmup; the template sets no
+# scheduler, so both are stated here in full.
+optimizer:
+  _target_: torch.optim.AdamW
+  lr: 2.5e-04
+  betas: [0.9, 0.98]
+  eps: 1.0e-06
+  weight_decay: 0.0
+  # egs2 sets fused: true. Lightning cannot clip gradients on a fused optimizer
+  # under AMP, and the clip matters more than the speed.
+  fused: false
+
+scheduler:
+  _target_: espnet2.schedulers.piecewise_linear_warmup_lr.PiecewiseLinearWarmupLR
+  warmup_steps_list: [0, 30000, 60000]
+  warmup_lr_list: [0., 5.0e-05, 2.5e-04]
+
 # Lifted from egs2/owsm_v4/s2t1/conf/train_conv2d8_size1024_e18_d18_mel128.yaml.
 model:
   # No vocab_size: S2TTask takes it from the token list, which is
