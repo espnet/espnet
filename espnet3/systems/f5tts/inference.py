@@ -1,7 +1,13 @@
-"""F5-TTS inference engine.
+"""F5-TTS inference: the engine and its :mod:`espnet3.api.inference` contract.
 
-Built by a recipe's ``infer`` stage
-(``model._target_: espnet3.systems.f5tts.inference.F5TTSInference``).
+:class:`F5TTSInference` is the engine: it loads a trained model and the
+vocoder and synthesizes waveforms. :class:`Inference` wraps it behind the
+inference contract every ESPnet3 system ships, which is what
+``espnet3.api.inference.load`` returns for a packed ``f5tts`` bundle.
+
+Either is built by a recipe's ``infer`` stage
+(``model._target_: espnet3.systems.f5tts.inference.Inference``, or
+``...F5TTSInference`` for the bare engine).
 For each test sample the runner calls ``model(**{key: data[key] for key in input_key})``
 with ``input_key: [text, reference_speech, reference_text]`` (the cross- and
 same-speaker protocol) and feeds the result to ``src.inference.build_output``
@@ -18,7 +24,7 @@ from __future__ import annotations
 
 import logging
 import re
-from typing import List, Optional, Union
+from typing import Any, List, Mapping, Optional, Union
 
 import numpy as np
 import torch
@@ -29,6 +35,8 @@ from espnet2.text.build_tokenizer import build_tokenizer
 from espnet2.text.cleaner import TextCleaner
 from espnet2.text.token_id_converter import TokenIDConverter
 from espnet2.torch_utils.safe_torch_load import safe_torch_load
+from espnet3.api.inference import Audio, Field
+from espnet3.systems.base.backend_inference import BackendInference
 from espnet3.systems.f5tts import VOCOS_DEFAULT_MODEL
 from espnet3.utils.config_utils import load_config_with_defaults
 
@@ -536,3 +544,121 @@ class F5TTSInference:
             ]
             return {"wav": wavs}
         return {"wav": self.infer_one(text, reference_audio, reference_text)}
+
+
+class Inference(BackendInference):
+    """Synthesize with an F5-TTS model, behind :mod:`espnet3.api.inference`.
+
+    The model behind an ``f5tts`` bundle is :class:`F5TTSInference`, which
+    this class builds, loads and calls; the contract adds what a caller
+    should not have to think about: reading a file, accepting what Gradio
+    hands over and resampling the reference to the model's rate.
+
+    Built three ways, all ending in ``self.backend`` (see
+    :class:`~espnet3.systems.base.backend_inference.BackendInference`):
+
+    - ``Inference.from_pretrained(tag_or_dir, device=...)`` from a
+      ``pack_model`` bundle or Hub tag;
+    - ``Inference(train_config=..., checkpoint_path=..., ...)`` from
+      :class:`F5TTSInference`'s own arguments, which is what
+      ``inference.yaml`` does;
+    - ``Inference(f5tts_inference)`` around one already built.
+
+    Called with the target text and a reference utterance (a path, a
+    ``(rate, samples)`` pair, an array or an
+    :class:`~espnet3.api.inference.Audio`) it returns
+    ``{"wav": Audio}`` at :attr:`sample_rate`. ``reference_text`` is the
+    transcript of the reference; when omitted the reference is treated as
+    a recording of the target text itself.
+
+    Example:
+        .. code-block:: python
+
+            >>> model = Inference.from_pretrained("exp/training/model_pack")
+            >>> output = model("hello world", "prompt.wav", "the prompt transcript")
+            >>> output["wav"].rate, output["wav"].array.ndim
+            (24000, 1)
+            >>> outputs = model.batch(
+            ...     [
+            ...         {"text": "first", "reference_speech": "a.wav"},
+            ...         {"text": "second", "reference_speech": "b.wav"},
+            ...     ]
+            ... )
+            >>> [output["wav"].rate for output in outputs]
+            [24000, 24000]
+
+        In ``inference.yaml``, for the ``infer`` stage:
+
+        .. code-block:: yaml
+
+            model:
+              _target_: espnet3.systems.f5tts.inference.Inference
+              train_config: ${recipe_dir}/conf/training.yaml
+              checkpoint_path: ${exp_dir}/last.ckpt
+              ode_solver_steps: 32
+            input_key: [text, reference_speech, reference_text]
+
+    Note:
+        ``reference_text`` is optional. When it is omitted the reference is
+        treated as a recording of the target text itself, which is right
+        only when it is one.
+    """
+
+    backend_class = "espnet3.systems.f5tts.inference.F5TTSInference"
+    inputs = (
+        Field("text", "text", "Text to synthesize"),
+        Field("reference_speech", "audio", "Reference speech"),
+        Field("reference_text", "text", "Reference transcript", optional=True),
+    )
+    outputs = (Field("wav", "audio", "Synthesized speech"),)
+
+    @property
+    def sample_rate(self) -> int:
+        """Return the rate of the reference the model takes and the audio it gives.
+
+        Returns:
+            The backend's ``target_sample_rate``, the vocoder's rate.
+
+        Note:
+            The reference is resampled to this rate before :meth:`run` sees
+            it, and the synthesized waveform comes back at it.
+        """
+        return int(self.backend.target_sample_rate)
+
+    def run(
+        self,
+        text: str,
+        reference_speech: Audio,
+        reference_text: Optional[str] = None,
+    ) -> Mapping[str, Any]:
+        """Synthesize ``text`` in the voice of ``reference_speech``.
+
+        Args:
+            text: The target text.
+            reference_speech: The voice to clone, mono, at
+                :attr:`sample_rate`.
+            reference_text: Transcript of ``reference_speech``. When
+                omitted, ``text`` is used, which is right only when the
+                reference is a recording of ``text``.
+
+        Returns:
+            ``{"wav": samples}``: the synthesized mono ``float32`` waveform
+            at :attr:`sample_rate`.
+
+        Example:
+            .. code-block:: python
+
+                >>> reference = Audio.read("prompt.wav", rate=model.sample_rate)
+                >>> output = model.run("hello world", reference, "a transcript")
+                >>> output["wav"].dtype, output["wav"].ndim
+                (dtype('float32'), 1)
+
+        Note:
+            This is the hook the contract calls after converting and checking
+            the inputs. Call the model itself, ``model(text, reference)``,
+            which also accepts a path or a ``(rate, samples)`` pair and wraps
+            the result in an :class:`~espnet3.api.inference.Audio`.
+        """
+        return {
+            "wav": self.backend.infer_one(text, reference_speech.array, reference_text)
+        }

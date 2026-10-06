@@ -14,9 +14,12 @@ import pytest
 import torch
 import yaml
 
+from espnet3.api.inference import Audio
+from espnet3.systems.base.inference_runner import InferenceRunner
 from espnet3.systems.f5tts.f5tts import F5TTS
 from espnet3.systems.f5tts.inference import (
     F5TTSInference,
+    Inference,
     _chunk_text,
     _cross_fade,
 )
@@ -589,3 +592,139 @@ def test_a_chunk_that_generates_no_frames_is_dropped(engine, monkeypatch):
     )
 
     np.testing.assert_array_equal(wav, np.zeros(1, dtype=np.float32))
+
+
+# ------------------------------------------- Inference (espnet3.api.inference)
+
+
+class _RecordingEngine:
+    """Stands in for F5TTSInference: remembers what ``infer_one`` was given."""
+
+    target_sample_rate = 24000
+
+    def __init__(self):
+        self.calls = []
+
+    def infer_one(self, target_text, reference_audio, reference_text=None):
+        self.calls.append((target_text, reference_audio, reference_text))
+        return np.full(480, 0.25, dtype=np.float32)
+
+
+def test_inference_declares_the_f5tts_fields():
+    assert [field.name for field in Inference.inputs] == [
+        "text",
+        "reference_speech",
+        "reference_text",
+    ]
+    assert [field.optional for field in Inference.inputs] == [False, False, True]
+    assert [(field.name, field.kind) for field in Inference.outputs] == [
+        ("wav", "audio")
+    ]
+
+
+def test_inference_returns_audio_at_the_vocoder_rate():
+    backend = _RecordingEngine()
+    model = Inference(backend)
+
+    output = model("hello", np.zeros(2400, dtype=np.float32), "a prompt")
+
+    assert model.sample_rate == 24000
+    assert isinstance(output["wav"], Audio)
+    assert output["wav"].rate == 24000
+    assert output["wav"].array.shape == (480,)
+    text, reference_audio, reference_text = backend.calls[0]
+    assert (text, reference_text) == ("hello", "a prompt")
+    assert reference_audio.shape == (2400,)
+
+
+def test_inference_resamples_what_gradio_hands_over():
+    """A ``(rate, int16 samples)`` pair reaches the engine as float at 24 kHz."""
+    backend = _RecordingEngine()
+    model = Inference(backend)
+    one_second_at_48k = (48000, np.full(48000, 16384, dtype=np.int16))
+
+    model(text="hello", reference_speech=one_second_at_48k)
+
+    _, reference_audio, reference_text = backend.calls[0]
+    assert reference_audio.dtype == np.float32
+    assert abs(len(reference_audio) - 24000) <= 1
+    assert abs(float(np.median(reference_audio)) - 0.5) < 0.01
+    # No transcript given: the engine falls back to the target text itself.
+    assert reference_text is None
+
+
+def test_inference_downmixes_a_stereo_reference():
+    backend = _RecordingEngine()
+    stereo = np.zeros((2400, 2), dtype=np.float32)
+
+    Inference(backend)("hello", (24000, stereo))
+
+    assert backend.calls[0][1].ndim == 1
+
+
+def test_inference_requires_text_and_a_reference():
+    model = Inference(_RecordingEngine())
+
+    with pytest.raises(TypeError, match="reference_speech"):
+        model("hello")
+    with pytest.raises(TypeError, match="text"):
+        model(reference_speech=np.zeros(2400, dtype=np.float32))
+
+
+def test_inference_runs_a_batch_item_by_item():
+    backend = _RecordingEngine()
+    model = Inference(backend)
+    reference = np.zeros(2400, dtype=np.float32)
+
+    outputs = model.batch(
+        [
+            {"text": "first", "reference_speech": reference},
+            {"text": "second", "reference_speech": reference, "reference_text": "b"},
+        ]
+    )
+
+    assert [output["wav"].rate for output in outputs] == [24000, 24000]
+    assert [call[0] for call in backend.calls] == ["first", "second"]
+    assert [call[2] for call in backend.calls] == [None, "b"]
+
+
+def test_inference_builds_the_engine_from_its_own_arguments(
+    train_config, checkpoint_path, stub_vocoder
+):
+    """What ``inference.yaml`` does: the class takes the engine's arguments."""
+    model = Inference(
+        train_config=str(train_config),
+        checkpoint_path=str(checkpoint_path),
+        device="cpu",
+        ode_solver_steps=2,
+        cross_fade_duration=0.0,
+        seed=0,
+    )
+
+    assert isinstance(model.backend, F5TTSInference)
+    output = model("abc", np.random.RandomState(0).randn(4800).astype(np.float32))
+    assert output["wav"].array.dtype == np.float32
+    assert output["wav"].array.ndim == 1
+
+
+def test_inference_serves_the_infer_stage_runner(engine):
+    """``InferenceRunner`` calls ``model(**fields)`` with the dataset's fields."""
+    model = Inference(engine)
+    reference = np.random.RandomState(0).randn(4800).astype(np.float32)
+    dataset = {
+        0: {
+            "text": "abc",
+            "reference_speech": reference,
+            "reference_text": "ab",
+            "speaker": "ignored",
+        }
+    }
+
+    output = InferenceRunner.forward(
+        0,
+        dataset=dataset,
+        model=model,
+        input_key=["text", "reference_speech", "reference_text"],
+    )
+
+    assert output["wav"].rate == 24000
