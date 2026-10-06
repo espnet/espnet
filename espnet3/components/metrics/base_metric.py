@@ -5,11 +5,7 @@ from pathlib import Path
 from typing import ClassVar, Dict, Iterator, Tuple
 
 from espnet3.api.inference import Field
-from espnet3.components.contract.check import check_declaration
-from espnet3.components.contract.metrics import (
-    check_metric_declaration,
-    require_metric_declaration,
-)
+from espnet3.components.contract.metrics import check_metric_contract
 
 
 class BaseMetric(ABC):
@@ -86,15 +82,18 @@ class BaseMetric(ABC):
         set before calling this (``super().__init__()``), whichever the
         subclass uses.
 
+        Note:
+            This is a convenience, not the only place the contract is
+            checked: a subclass that overrides ``__init__`` without
+            calling ``super().__init__()`` skips it, so ``measure()``
+            calls ``check_metric_contract`` again on every metric it
+            instantiates, trusting no declaration this never ran on.
+
         Raises:
-            TypeError: Neither is declared, or the declaration is
-                malformed (see ``check_declaration``,
-                ``check_metric_declaration``).
+            TypeError: Neither ``inputs`` nor ``outputs`` is declared, or
+                the declaration is malformed.
         """
-        if not (hasattr(self, "inputs") or hasattr(self, "outputs")):
-            require_metric_declaration(self)
-        check_declaration(self)
-        check_metric_declaration(self)
+        check_metric_contract(self)
 
     def input_sources(self) -> Dict[str, str]:
         """Map each declared input's role (name) to where its value comes from.

@@ -5,7 +5,7 @@ from __future__ import annotations
 from typing import Any, Mapping, Optional
 
 from espnet3.api.inference import KINDS, Field
-from espnet3.components.contract.check import _qualname
+from espnet3.components.contract.check import _qualname, check_declaration
 
 #: A metric input source naming a test-set column instead of an inference
 #: SCP file (``ref_key: dataset:text``); must match
@@ -76,6 +76,42 @@ def check_metric_declaration(cls: type) -> None:
                 f"{_qualname(cls)}.outputs field {f.name!r} must have kind "
                 f"'number', not {f.kind!r}"
             )
+
+
+def check_metric_contract(metric: Any) -> None:
+    """Raise unless ``metric`` declares a valid ``inputs``/``outputs`` contract.
+
+    ``BaseMetric.__init__`` already calls this on construction, but a
+    subclass that overrides ``__init__`` without calling
+    ``super().__init__()`` skips that - so ``measure()`` calls this again
+    on every metric it instantiates, before trusting its declaration for
+    anything. There is no undeclared fallback either way.
+
+    Args:
+        metric: A ``BaseMetric`` instance (or any object exposing
+            ``inputs``/``outputs`` the same way).
+
+    Raises:
+        TypeError: Neither ``inputs`` nor ``outputs`` is declared, or the
+            declaration is malformed (see ``check_declaration``,
+            ``check_metric_declaration``).
+
+    Examples:
+        >>> from espnet3.components.metrics.base_metric import BaseMetric
+        >>> class Undeclared(BaseMetric):
+        ...     def __init__(self):
+        ...         pass  # declares nothing, and skips super().__init__()
+        ...     def __call__(self, data, test_name, output_dir):
+        ...         return {}
+        >>> metric = Undeclared()  # construction alone does not catch it
+        >>> check_metric_contract(metric)
+        Traceback (most recent call last):
+        TypeError: Undeclared does not declare inputs/outputs; declare ...
+    """
+    if not (hasattr(metric, "inputs") or hasattr(metric, "outputs")):
+        require_metric_declaration(metric)
+    check_declaration(metric)
+    check_metric_declaration(metric)
 
 
 def declared_outputs(config: Any) -> Optional[tuple]:

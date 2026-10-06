@@ -306,6 +306,36 @@ def test_metric_requires_test_sets_from_config_or_inference_dir(tmp_path):
 # ---------------------------------------------------------------------------
 
 
+class SkipsSuperInitMetric(BaseMetric):
+    """Declares nothing, and skips super().__init__() - the gap measure() closes."""
+
+    def __init__(self):
+        pass
+
+    def __call__(self, data, test_name, inference_dir):
+        return {}
+
+
+def test_measure_rejects_a_metric_that_skipped_the_init_check(tmp_path):
+    inference_dir = tmp_path / "infer"
+    test_name = "test-clean"
+    (inference_dir / test_name).mkdir(parents=True)
+
+    cfg = OmegaConf.create(
+        {
+            "inference_dir": str(inference_dir),
+            "dataset": {"test": [{"name": test_name}]},
+            "metrics": [{"metric": {"_target_": f"{__name__}.SkipsSuperInitMetric"}}],
+        }
+    )
+
+    # construction alone does not catch it: __init__ never called super().__init__()
+    assert SkipsSuperInitMetric()
+
+    with pytest.raises(TypeError, match="does not declare"):
+        measure(cfg, _INFERENCE_CFG)
+
+
 def test_measure_rejects_metric_whose_input_is_not_a_declared_output(tmp_path):
     inference_dir = tmp_path / "infer"
     test_name = "test-clean"

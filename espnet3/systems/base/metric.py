@@ -7,7 +7,11 @@ from pathlib import Path
 from hydra.utils import get_class, instantiate
 from omegaconf import DictConfig, OmegaConf, open_dict
 
-from espnet3.components.contract.metrics import check_metric_inputs, check_metric_output
+from espnet3.components.contract.metrics import (
+    check_metric_contract,
+    check_metric_inputs,
+    check_metric_output,
+)
 from espnet3.components.metrics.base_metric import BaseMetric
 from espnet3.systems.base.inference_provider import InferenceProvider
 from espnet3.systems.base.inference_runner import _materialize_output_value
@@ -229,6 +233,7 @@ def measure(metrics_config: DictConfig, inference_config: DictConfig | None = No
         metric = instantiate(metric_config.metric)
         if not isinstance(metric, BaseMetric):
             raise TypeError(f"{type(metric)} is not a valid BaseMetric instance")
+        check_metric_contract(metric)
 
         log_component(
             logger,
