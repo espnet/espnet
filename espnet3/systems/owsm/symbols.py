@@ -18,9 +18,7 @@ def load_symbols(spec: Any) -> List[str]:
     list. A recipe owns its own inventory -- which symbols exist depends on
     which languages and tasks its corpora emit -- so there is no default here.
     """
-    if isinstance(spec, DictConfig) or (
-        isinstance(spec, dict) and "_target_" in spec
-    ):
+    if isinstance(spec, DictConfig) or (isinstance(spec, dict) and "_target_" in spec):
         spec = instantiate(spec, _convert_="all")
     if isinstance(spec, (str, os.PathLike)):
         path = Path(spec)
