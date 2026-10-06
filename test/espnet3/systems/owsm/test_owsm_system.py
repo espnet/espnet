@@ -188,7 +188,9 @@ def _write_shapes(tmp_path, mode, streams, body="a 7\n"):
 def test_text_shapes_become_two_dimensional(tmp_path):
     """A bare L contributes L*1 to a numel budget, i.e. nothing."""
     _write_tokens(tmp_path, 50)
-    system = OWSMSystem(training_config=_stats_config(tmp_path))
+    config = _stats_config(tmp_path)
+    config.tokenizer.vocab_scaled_shapes = ["text", "text_prev"]
+    system = OWSMSystem(training_config=config)
     streams = ("text", "text_prev", "text_ctc")
     stats = _write_shapes(tmp_path, "train", streams, "a 7\nb 9\n")
     _write_shapes(tmp_path, "valid", streams, "a 7\nb 9\n")
@@ -208,9 +210,27 @@ def test_text_shapes_become_two_dimensional(tmp_path):
     assert (stats / "feats_shape").read_text() == "a 100,128\nb 200,128\n"
 
 
-def test_appending_vocab_size_is_idempotent(tmp_path):
+def test_no_stream_is_scaled_unless_the_recipe_asks(tmp_path):
+    """The default must stay empty so collect_stats needs only feats_shape.
+
+    A flat batch_size reads no token shapes; defaulting to text and text_prev
+    would make the stage raise wherever those files are not written.
+    """
     _write_tokens(tmp_path, 50)
     system = OWSMSystem(training_config=_stats_config(tmp_path))
+    stats = _write_shapes(tmp_path, "train", ("text",))
+    _write_shapes(tmp_path, "valid", ("text",))
+
+    system._append_vocab_size_to_text_shapes()
+
+    assert (stats / "text_shape").read_text() == "a 7\n"
+
+
+def test_appending_vocab_size_is_idempotent(tmp_path):
+    _write_tokens(tmp_path, 50)
+    config = _stats_config(tmp_path)
+    config.tokenizer.vocab_scaled_shapes = ["text", "text_prev"]
+    system = OWSMSystem(training_config=config)
     _write_shapes(tmp_path, "train", ("text", "text_prev"))
     stats = _write_shapes(tmp_path, "valid", ("text", "text_prev"))
 
