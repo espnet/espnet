@@ -177,6 +177,8 @@ asr = [
 tts = [
   "pyworld>=0.3.4",
   "pypinyin<=0.44.0",
+  "rjieba<=0.2.1",
+  "vocos",
   "espnet_tts_frontend",
   "espnet-g2p-en>=2.1.0.post1",  # fork of Kyubyong/g2p
   "jamo==0.4.1",
@@ -186,6 +188,11 @@ tts = [
 enh = [
   "ci_sdr",
   "fast-bss-eval==0.1.3",
+]
+rst = [
+  "peft",
+  "pyroomacoustics",
+  "transformers",  # the w2v-BERT 2.0 backbone
 ]
 
 asr2 = [
@@ -336,6 +343,7 @@ all = [
   "espnet[asr2]",
   "espnet[tts]",
   "espnet[enh]",
+  "espnet[rst]",
   "espnet[st]",
   "espnet[s2t]",
   "espnet[s2st]",
