@@ -8,13 +8,19 @@ network: downloads belong to `prepare_source()` alone.
 
 import socket
 import subprocess
-import sys
+import tarfile
 import urllib.request
 from pathlib import Path
 
 import pytest
 
-from egs3.libritts.f5tts.dataset.builder import _CFG, LibriTTSBuilder
+from egs3.libritts.f5tts.dataset import builder as builder_module
+from egs3.libritts.f5tts.dataset.builder import (
+    _ARCHIVE_SIZES,
+    _CFG,
+    LibriTTSBuilder,
+    _download_subset,
+)
 from espnet3.components.data.dataset_module import _load_local_dataset_module
 
 RECIPE = Path(__file__).resolve().parents[4] / "egs3" / "libritts" / "f5tts"
@@ -31,15 +37,16 @@ LSPC_CFG = _CFG["librispeech_pc"]
 
 
 def _make_libritts(recipe_dir: Path) -> None:
-    """Create the LibriTTS subset directories, empty but present.
+    """Create the LibriTTS subset directories, empty but marked complete.
 
     `build()` raises on a missing subset directory, and empty subsets simply
-    yield empty split manifests, which is all these tests need.
+    yield empty split manifests, which is all these tests need. The
+    `.complete` marker is what `is_source_prepared` looks at.
     """
     for subset in LIBRITTS_SUBSETS:
-        (recipe_dir / _CFG["dataset_path"] / "LibriTTS" / subset).mkdir(
-            parents=True, exist_ok=True
-        )
+        subset_dir = recipe_dir / _CFG["dataset_path"] / "LibriTTS" / subset
+        subset_dir.mkdir(parents=True, exist_ok=True)
+        (subset_dir / ".complete").touch()
 
 
 def _make_librispeech(recipe_dir: Path) -> Path:
@@ -50,6 +57,7 @@ def _make_librispeech(recipe_dir: Path) -> Path:
         d = root / spk / chap
         d.mkdir(parents=True, exist_ok=True)
         (d / f"{utt}.flac").write_bytes(b"fake")
+    (root / ".complete").touch()
     return root
 
 
@@ -181,13 +189,15 @@ def test_is_source_prepared_requires_librispeech_and_lst(tmp_path):
     _make_librispeech(tmp_path)
     assert not builder.is_source_prepared(recipe_dir=tmp_path)
 
-    # Pair list present, LibriSpeech tree removed.
+    # Pair list present, but LibriSpeech lacks its `.complete` marker: the
+    # directory alone could be the partial tree an interrupted extraction
+    # leaves behind.
     lst = _make_lst(tmp_path)
     test_clean = tmp_path / _CFG["dataset_path"] / LSPC_CFG["test_clean_path"]
-    test_clean.rename(test_clean.with_name("test-clean-hidden"))
+    (test_clean / ".complete").unlink()
     assert not builder.is_source_prepared(recipe_dir=tmp_path)
 
-    test_clean.with_name("test-clean-hidden").rename(test_clean)
+    (test_clean / ".complete").touch()
     assert lst.is_file()
     assert builder.is_source_prepared(recipe_dir=tmp_path)
 
@@ -202,9 +212,8 @@ def test_build_through_the_stage_loader(recipe_dir, no_network):
 
     The training config carries no `data_src`, so `create_dataset` loads
     `dataset/__init__.py` from its file path under a synthetic module name
-    rather than as `egs3.libritts.f5tts.dataset`. `build()` then has to resolve
-    `prepare_librispeech_pc` from inside that synthetic module, which the
-    package-path import used by the rest of this file never exercises.
+    rather than as `egs3.libritts.f5tts.dataset`; the relative import of
+    `librispeech_pc` inside the builder has to resolve under that name too.
     """
     module = _load_local_dataset_module(RECIPE)
     assert module.__name__.startswith("_espnet3_local_dataset_")
@@ -215,28 +224,95 @@ def test_build_through_the_stage_loader(recipe_dir, no_network):
     assert manifest.read_text(encoding="utf-8").count("\n") == 1
 
 
-def test_build_falls_back_when_egs3_is_not_importable(
-    recipe_dir, no_network, monkeypatch
-):
-    """build() still works when the espnet root is off sys.path.
+def _make_archive(path: Path, corpus: str, subset: str, size: int) -> None:
+    """Write a `<corpus>/<subset>/` tarball padded to the published size."""
+    inner = path.parent / "_archive_src" / corpus / subset
+    inner.mkdir(parents=True)
+    (inner / "README").write_text("x", encoding="utf-8")
+    with tarfile.open(path, "w:gz") as tar:
+        tar.add(inner.parent.parent, arcname=".")
+    with path.open("ab") as f:
+        f.write(b"\0" * (size - path.stat().st_size))
 
-    `egs3` is a namespace package, so `egs3.libritts.f5tts.local...` resolves
-    only when the espnet root is on sys.path (path.sh arranges it) and, with
-    several checkouts installed, can even resolve to a different checkout.
-    The fallback loads the file next to dataset/builder.py instead. Setting a
-    sys.modules entry to None is the documented way to make one import fail
-    with ModuleNotFoundError while leaving every other import alone.
-    """
-    monkeypatch.setitem(
-        sys.modules, "egs3.libritts.f5tts.local.prepare_librispeech_pc", None
+
+def test_download_subset_skips_a_completed_subset(tmp_path, no_network):
+    """The `.complete` marker alone decides; nothing is fetched or extracted."""
+    marker = tmp_path / "LibriTTS" / "dev-clean" / ".complete"
+    marker.parent.mkdir(parents=True)
+    marker.touch()
+
+    _download_subset(tmp_path, "dev-clean")
+
+
+def test_download_subset_rejects_unknown_subsets(tmp_path, no_network):
+    with pytest.raises(ValueError, match="Unknown LibriTTS subset"):
+        _download_subset(tmp_path, "train-clean-999")
+    with pytest.raises(ValueError, match="Unknown LibriSpeech subset"):
+        _download_subset(tmp_path, "dev-clean", corpus="LibriSpeech")
+
+
+def test_download_subset_reuses_a_complete_archive(tmp_path, no_network):
+    """An archive of the published size is extracted, not downloaded again."""
+    archive = tmp_path / "test-clean.tar.gz"
+    _make_archive(
+        archive, "LibriTTS", "test-clean", _ARCHIVE_SIZES["LibriTTS"]["test-clean"]
     )
-    with pytest.raises(ModuleNotFoundError):
-        import egs3.libritts.f5tts.local.prepare_librispeech_pc  # noqa: F401
 
-    LibriTTSBuilder().build(recipe_dir=recipe_dir)
+    _download_subset(tmp_path, "test-clean")
 
-    manifest = recipe_dir / _CFG["data_path"] / LSPC_CFG["manifest_path"]
-    assert manifest.read_text(encoding="utf-8").count("\n") == 1
+    assert (tmp_path / "LibriTTS" / "test-clean" / ".complete").is_file()
+    assert (tmp_path / "LibriTTS" / "test-clean" / "README").is_file()
+    assert archive.is_file()
+
+
+def test_download_subset_refetches_a_partial_archive(tmp_path, monkeypatch):
+    """A wrong-sized archive is removed and the subset is downloaded afresh."""
+    archive = tmp_path / "LibriSpeech_test-clean.tar.gz"
+    archive.write_bytes(b"partial")
+    fetched = []
+
+    def fake_download_url(url, dst_path, logger=None):
+        fetched.append(url)
+        _make_archive(
+            dst_path,
+            "LibriSpeech",
+            "test-clean",
+            _ARCHIVE_SIZES["LibriSpeech"]["test-clean"],
+        )
+
+    monkeypatch.setattr(builder_module, "download_url", fake_download_url)
+
+    _download_subset(tmp_path, "test-clean", corpus="LibriSpeech", remove_archive=True)
+
+    # LibriSpeech archives carry a prefix: both corpora publish test-clean.tar.gz.
+    assert fetched == ["https://www.openslr.org/resources/12/test-clean.tar.gz"]
+    assert (tmp_path / "LibriSpeech" / "test-clean" / ".complete").is_file()
+    assert not archive.exists()
+
+
+def test_prepare_source_downloads_what_is_missing(tmp_path, monkeypatch):
+    """Every corpus and the pair list go through the same two helpers."""
+    calls = []
+    monkeypatch.setattr(
+        builder_module,
+        "_download_subset",
+        lambda root, subset, corpus="LibriTTS", remove_archive=False: calls.append(
+            (corpus, subset, remove_archive)
+        ),
+    )
+    monkeypatch.setattr(
+        builder_module,
+        "_download_pair_list",
+        lambda url, dest: calls.append(("lst", url, str(dest))),
+    )
+
+    LibriTTSBuilder().prepare_source(recipe_dir=tmp_path, remove_archive=True)
+
+    assert calls[: len(LIBRITTS_SUBSETS)] == [
+        ("LibriTTS", subset, True) for subset in LIBRITTS_SUBSETS
+    ]
+    assert calls[len(LIBRITTS_SUBSETS)] == ("LibriSpeech", LSPC_CFG["subset"], True)
+    assert calls[-1][:2] == ("lst", LSPC_CFG["lst_url"])
 
 
 def test_lst_url_is_pinned_to_a_commit():

@@ -1,18 +1,52 @@
-"""LibriTTS dataset builder for ESPnet3 TTS recipe."""
+"""LibriTTS dataset builder for the ESPnet3 F5-TTS recipe.
+
+Downloads the LibriTTS subsets listed in ``dataset/config.yaml`` from OpenSLR
+and turns them into the TSV manifests consumed by
+``egs3.libritts.f5tts.dataset.dataset.LibriTTSDataset``. It also downloads
+LibriSpeech ``test-clean`` and the F5-TTS cross-sentence pair list, and
+writes the LibriSpeech-PC eval manifest read by ``conf/inference.yaml``.
+"""
 
 from __future__ import annotations
 
 import logging
-import subprocess
 import urllib.error
-from importlib import resources, util
+from importlib import resources
 from pathlib import Path
 
 from espnet3.components.data.dataset_builder import DatasetBuilder
 from espnet3.utils.config_utils import load_config_with_defaults
-from espnet3.utils.download_utils import download_url
+from espnet3.utils.download_utils import download_url, extract_targz
+
+from .librispeech_pc import build_manifest
 
 logger = logging.getLogger(__name__)
+
+# OpenSLR resource 60 is the LibriTTS corpus, 12 is LibriSpeech. Each archive
+# extracts to `<corpus>/<subset>/`; LibriSpeech archives are stored under a
+# prefixed name because the two corpora publish subsets with identical names
+# (e.g. `test-clean.tar.gz`).
+_CORPORA: dict[str, tuple[str, str]] = {
+    "LibriTTS": ("https://www.openslr.org/resources/60", ""),
+    "LibriSpeech": ("https://www.openslr.org/resources/12", "LibriSpeech_"),
+}
+
+# Size in bytes of each published `<subset>.tar.gz`. A local archive whose
+# size does not match is treated as a partial download and re-fetched.
+_ARCHIVE_SIZES: dict[str, dict[str, int]] = {
+    "LibriTTS": {
+        "dev-clean": 1291469655,
+        "test-clean": 1230670113,
+        "dev-other": 924804676,
+        "test-other": 964502297,
+        "train-clean-100": 7723686890,
+        "train-clean-360": 27504073644,
+        "train-other-500": 44565031479,
+    },
+    "LibriSpeech": {
+        "test-clean": 346663984,
+    },
+}
 
 
 def _load_builder_config() -> dict:
@@ -24,6 +58,101 @@ def _load_builder_config() -> dict:
 _CFG = _load_builder_config()
 
 
+def _required_subsets() -> list[str]:
+    """Return every LibriTTS subset referenced by the split definitions."""
+    required: list[str] = []
+    for subsets in _CFG["split_subsets"].values():
+        required.extend(subsets)
+    return required
+
+
+def _download_subset(
+    dataset_root: Path,
+    subset: str,
+    corpus: str = "LibriTTS",
+    remove_archive: bool = False,
+) -> None:
+    """Download and extract one ``corpus`` subset into ``dataset_root``.
+
+    Idempotent: a subset whose ``<corpus>/<subset>/.complete`` marker already
+    exists is skipped, and an already downloaded archive of the expected size
+    is reused instead of being fetched again.
+    """
+    if corpus not in _CORPORA:
+        raise ValueError(
+            f"Unknown corpus '{corpus}'. Expected one of {sorted(_CORPORA)}"
+        )
+    url_base, archive_prefix = _CORPORA[corpus]
+    sizes = _ARCHIVE_SIZES[corpus]
+    if subset not in sizes:
+        raise ValueError(
+            f"Unknown {corpus} subset '{subset}'. Expected one of {sorted(sizes)}"
+        )
+
+    marker = dataset_root / corpus / subset / ".complete"
+    if marker.is_file():
+        logger.info("%s subset %s already downloaded, skipping.", corpus, subset)
+        return
+
+    archive_path = dataset_root / f"{archive_prefix}{subset}.tar.gz"
+    expected_size = sizes[subset]
+    if archive_path.is_file():
+        actual_size = archive_path.stat().st_size
+        if actual_size == expected_size:
+            logger.info("Reusing existing archive %s", archive_path)
+        else:
+            logger.warning(
+                "Removing incomplete archive %s (%d bytes, expected %d)",
+                archive_path,
+                actual_size,
+                expected_size,
+            )
+            archive_path.unlink()
+
+    if not archive_path.is_file():
+        logger.info("Downloading %s subset: %s", corpus, subset)
+        download_url(
+            f"{url_base}/{subset}.tar.gz",
+            archive_path,
+            logger=logger,
+        )
+
+    extract_targz(archive_path, dataset_root, logger=logger)
+
+    marker.parent.mkdir(parents=True, exist_ok=True)
+    marker.touch()
+    logger.info("Successfully downloaded and extracted %s %s", corpus, subset)
+
+    if remove_archive:
+        archive_path.unlink(missing_ok=True)
+        logger.info("Removed archive %s", archive_path)
+
+
+def _download_pair_list(url: str, dest: Path) -> None:
+    """Download the LibriSpeech-PC pair list to ``dest``.
+
+    The list is a small text file with no published size to check against,
+    so it is downloaded to a temporary sibling and renamed: an interrupted
+    transfer never leaves a truncated file that later runs would treat as
+    complete.
+
+    Raises:
+        RuntimeError: If the download fails.
+    """
+    tmp_path = dest.with_name(dest.name + ".tmp")
+    logger.info("Downloading LibriSpeech-PC pair list from %s", url)
+    try:
+        download_url(url, tmp_path, logger=logger)
+        tmp_path.replace(dest)
+    except (urllib.error.URLError, OSError) as e:
+        tmp_path.unlink(missing_ok=True)
+        raise RuntimeError(
+            f"Failed to download the LibriSpeech-PC pair list from {url}. "
+            f"Check your internet connection, or download the file manually "
+            f"and place it at {dest}."
+        ) from e
+
+
 def _scan_subset_entries(subset_dir: Path) -> list[tuple[str, Path, str, str]]:
     """
     Scan a subset directory and return a list of
@@ -33,7 +162,7 @@ def _scan_subset_entries(subset_dir: Path) -> list[tuple[str, Path, str, str]]:
         subset_dir: Path to the subset directory (e.g., "LibriTTS/train-clean-100")
     Returns:
         List of tuples containing:
-            - utt_id: Unique utterance ID (e.g., "123-456-789")
+            - utt_id: Unique utterance ID (e.g., "123_456_789_000")
             - wav_path: Path to the corresponding WAV file
             - text: Transcription text
             - spk_key: Speaker key (e.g., "speaker_chapter") for speaker ID mapping
@@ -51,14 +180,6 @@ def _scan_subset_entries(subset_dir: Path) -> list[tuple[str, Path, str, str]]:
         spk_key = speaker
         entries.append((utt_id, wav_path.resolve(), text, spk_key))
     return entries
-
-
-def _libritts_subsets() -> list[str]:
-    """Return every LibriTTS subset referenced by ``split_subsets``."""
-    subsets: list[str] = []
-    for split_subsets in _CFG["split_subsets"].values():
-        subsets.extend(split_subsets)
-    return subsets
 
 
 def _librispeech_pc_paths(recipe_root: Path) -> tuple[Path, Path, Path]:
@@ -82,199 +203,136 @@ def _librispeech_pc_paths(recipe_root: Path) -> tuple[Path, Path, Path]:
     )
 
 
-def _is_libritts_prepared(recipe_root: Path) -> bool:
-    """Check whether every required LibriTTS subset is extracted."""
-    libritts_root = recipe_root / _CFG["dataset_path"] / "LibriTTS"
-    return all((libritts_root / subset).is_dir() for subset in _libritts_subsets())
-
-
-def _is_librispeech_pc_prepared(recipe_root: Path) -> bool:
-    """Check whether the LibriSpeech test-clean tree and pair list are present."""
-    test_clean_root, lst_path, _ = _librispeech_pc_paths(recipe_root)
-    return test_clean_root.is_dir() and lst_path.is_file()
-
-
-def _load_build_manifest():
-    """Return ``prepare_librispeech_pc.build_manifest``.
-
-    Returns:
-        The ``build_manifest`` function from ``local/prepare_librispeech_pc.py``.
-
-    Raises:
-        ModuleNotFoundError: If the module cannot be located either way.
-
-    Notes:
-        The package import is the documented entry point and the one the
-        recipe's tests use. It resolves only when the espnet root is on
-        ``sys.path``, which ``path.sh`` arranges; when it is not, load the file
-        sitting next to this one instead. The fallback is not a second copy of
-        the logic, it is the same file, and it is the more precise of the two:
-        ``egs3`` is a namespace package, so with several espnet checkouts
-        installed the package import can resolve to a different checkout's
-        copy. The path is derived from ``__file__`` rather than from
-        ``recipe_dir`` because ``recipe_dir`` points at the working tree the
-        manifests are written into, which need not hold the recipe's source.
-    """
-    try:
-        from egs3.libritts.f5tts.local.prepare_librispeech_pc import build_manifest
-
-        return build_manifest
-    except ModuleNotFoundError:
-        module_path = (
-            Path(__file__).resolve().parents[1] / "local" / "prepare_librispeech_pc.py"
-        )
-        logger.info(
-            f"egs3.libritts.f5tts.local is not importable; loading {module_path} "
-            f"directly. Source path.sh to put the espnet root on PYTHONPATH."
-        )
-        spec = util.spec_from_file_location(
-            "_espnet3_prepare_librispeech_pc", module_path
-        )
-        if spec is None or spec.loader is None:
-            raise ModuleNotFoundError(
-                f"Could not load the LibriSpeech-PC manifest builder from "
-                f"{module_path}."
-            )
-        module = util.module_from_spec(spec)
-        spec.loader.exec_module(module)
-        return module.build_manifest
-
-
-def _download_lst(url: str, dest: Path) -> None:
-    """Download the LibriSpeech-PC pair list to ``dest``.
-
-    Args:
-        url: Pinned URL of ``librispeech_pc_test_clean_cross_sentence.lst``.
-        dest: Destination path.
-
-    Raises:
-        RuntimeError: If the download fails for any reason.
-
-    Notes:
-        Downloads to a temporary sibling and renames, so an interrupted
-        transfer never leaves a truncated file that later runs would treat as
-        complete.
-    """
-    dest.parent.mkdir(parents=True, exist_ok=True)
-    tmp_path = dest.with_name(dest.name + ".tmp")
-    logger.info(f"Downloading LibriSpeech-PC pair list from {url}")
-    try:
-        download_url(url, tmp_path, logger=logger)
-        tmp_path.replace(dest)
-    except (urllib.error.URLError, OSError) as e:
-        tmp_path.unlink(missing_ok=True)
-        raise RuntimeError(
-            f"Failed to download the LibriSpeech-PC pair list from {url}. "
-            f"Check your internet connection, or download the file manually "
-            f"and place it at {dest}."
-        ) from e
-
-
 class LibriTTSBuilder(DatasetBuilder):
-    """Prepare LibriTTS manifests and token list for ESPnet3 TTS."""
+    """Prepare LibriTTS and LibriSpeech-PC manifests for the F5-TTS recipe."""
 
     def is_source_prepared(
         self,
         recipe_dir: str | Path,
         **_kwargs,
     ) -> bool:
-        """Check if the raw source corpora are prepared.
+        """Check if the source corpora are prepared.
+
+        A subset counts as prepared only when ``prepare_source`` finished
+        extracting it, which is recorded by the ``<corpus>/<subset>/.complete``
+        marker. Testing the directory alone would accept the partial tree an
+        interrupted extraction leaves behind, and ``build`` would then write
+        manifests from incomplete source data.
 
         Args:
             recipe_dir: Recipe root directory.
             **_kwargs: Unused extra options for API compatibility.
-        Returns:
-            True if the required LibriTTS subsets, the LibriSpeech test-clean
-            tree, and the LibriSpeech-PC pair list are all present; False
-            otherwise.
-        """
 
+        Returns:
+            True if every required LibriTTS subset and LibriSpeech test-clean
+            carry their ``.complete`` marker and the LibriSpeech-PC pair list
+            is present; False otherwise.
+
+        Note:
+            When a corpus was staged by hand instead of by ``prepare_source``,
+            create the markers so this check passes:
+            ``touch <dataset_path>/<corpus>/<subset>/.complete`` for each
+            configured subset. Without them this returns False and
+            ``prepare_source`` re-downloads the archives.
+
+        Examples:
+            ```python
+            builder = LibriTTSBuilder()
+            if not builder.is_source_prepared(recipe_dir="egs3/libritts/f5tts"):
+                builder.prepare_source(recipe_dir="egs3/libritts/f5tts")
+            ```
+        """
         recipe_root = Path(recipe_dir).resolve()
-        return _is_libritts_prepared(recipe_root) and _is_librispeech_pc_prepared(
-            recipe_root
+        dataset_root = recipe_root / _CFG["dataset_path"]
+        _, lst_path, _ = _librispeech_pc_paths(recipe_root)
+        libritts_ready = all(
+            (dataset_root / "LibriTTS" / subset / ".complete").is_file()
+            for subset in _required_subsets()
         )
+        librispeech_subset = _CFG["librispeech_pc"]["subset"]
+        librispeech_ready = (
+            dataset_root / "LibriSpeech" / librispeech_subset / ".complete"
+        ).is_file()
+        return libritts_ready and librispeech_ready and lst_path.is_file()
 
     def prepare_source(
         self,
         recipe_dir: str | Path,
+        remove_archive: bool = False,
         **_kwargs,
     ) -> None:
-        """Prepare the raw source corpora by downloading whatever is missing.
+        """Download the corpora required by this recipe.
+
+        Each LibriTTS subset listed under ``builder.split_subsets`` in
+        ``dataset/config.yaml`` is fetched from OpenSLR into
+        ``<recipe_dir>/<builder.dataset_path>`` and extracted there, then
+        LibriSpeech ``test-clean`` (the audio of the default eval set) and the
+        F5-TTS cross-sentence pair list. A ``<corpus>/<subset>/.complete``
+        marker makes each download idempotent, so an interrupted run can
+        simply be restarted.
 
         Args:
             recipe_dir: Recipe root directory.
+            remove_archive: Delete each ``.tar.gz`` after a successful
+                extraction. Useful when disk space is tight; the default keeps
+                the archives so a re-run does not download them again.
             **_kwargs: Unused extra options for API compatibility.
 
         Raises:
-            RuntimeError: If any download fails.
+            ValueError: If a configured subset is not a known LibriTTS subset.
+            URLError: If an archive download fails.
+            RuntimeError: If the pair list download fails.
 
-        Notes:
-            Two independent corpora are handled, each gated on its own
-            readiness check so an already-extracted LibriTTS tree is never
-            re-downloaded just because the LibriSpeech side is missing:
+        Examples:
+            Called by the ``create_dataset`` stage, but it can also be driven
+            directly:
+            ```python
+            from egs3.libritts.f5tts.dataset.builder import LibriTTSBuilder
 
-            1. LibriTTS (OpenSLR 60), one download per subset in
-               ``split_subsets``.
-            2. LibriSpeech test-clean (OpenSLR 12) plus the LibriSpeech-PC
-               pair list, the two external inputs of the default eval config.
+            builder = LibriTTSBuilder()
+            builder.prepare_source(recipe_dir="egs3/libritts/f5tts")
+            ```
 
-            All downloads are idempotent: extracted subsets carry a
-            ``.complete`` marker and the pair list is skipped when present, so
-            re-running ``create_dataset`` transfers nothing.
-        """
-        recipe_root = Path(recipe_dir).resolve()
-        dataset_root = recipe_root / _CFG["dataset_path"]
-
-        if _is_libritts_prepared(recipe_root):
-            logger.info("LibriTTS source data is already prepared, skipping download.")
-        else:
-            dataset_root.mkdir(parents=True, exist_ok=True)
-            script_path = recipe_root / "local" / "download_libritts.sh"
-
-            for subset in _libritts_subsets():
-                subset_dir = dataset_root / "LibriTTS" / subset
-                if (subset_dir / ".complete").is_file() or subset_dir.is_dir():
-                    logger.info(f"Subset {subset} already downloaded, skipping.")
-                    continue
-                logger.info(f"Downloading LibriTTS subset: {subset}")
-                try:
-                    subprocess.run(
-                        ["bash", str(script_path), str(dataset_root), subset],
-                        check=True,
-                    )
-                except subprocess.CalledProcessError as e:
-                    raise RuntimeError(
-                        f"Failed to download LibriTTS subset {subset}. "
-                        f"Check internet connection and disk space."
-                    ) from e
-
-        if _is_librispeech_pc_prepared(recipe_root):
-            logger.info(
-                "LibriSpeech-PC source data is already prepared, skipping download."
+            The full recipe download is ~80 GB. To keep only the extracted
+            audio:
+            ```python
+            builder.prepare_source(
+                recipe_dir="egs3/libritts/f5tts",
+                remove_archive=True,
             )
+            ```
+
+            The `create_dataset` stage forwards every key under
+            `create_dataset:` in the training config as a builder kwarg, so
+            the same option is reachable from yaml:
+            ```yaml
+            create_dataset:
+              recipe_dir: ${recipe_dir}
+              remove_archive: true
+            ```
+        """
+        if self.is_source_prepared(recipe_dir=recipe_dir):
+            logger.info("Source data is already prepared, skipping download.")
             return
 
+        recipe_root = Path(recipe_dir).resolve()
+        dataset_root = recipe_root / _CFG["dataset_path"]
         dataset_root.mkdir(parents=True, exist_ok=True)
+        for subset in _required_subsets():
+            _download_subset(dataset_root, subset, remove_archive=remove_archive)
+
         lspc_cfg = _CFG["librispeech_pc"]
-        test_clean_root, lst_path, _ = _librispeech_pc_paths(recipe_root)
-
-        if not test_clean_root.is_dir():
-            subset = lspc_cfg["subset"]
-            script_path = recipe_root / "local" / "download_librispeech.sh"
-            logger.info(f"Downloading LibriSpeech subset: {subset}")
-            try:
-                subprocess.run(
-                    ["bash", str(script_path), str(dataset_root), subset],
-                    check=True,
-                )
-            except subprocess.CalledProcessError as e:
-                raise RuntimeError(
-                    f"Failed to download LibriSpeech subset {subset}. "
-                    f"Check internet connection and disk space."
-                ) from e
-
-        if not lst_path.is_file():
-            _download_lst(lspc_cfg["lst_url"], lst_path)
+        _download_subset(
+            dataset_root,
+            lspc_cfg["subset"],
+            corpus="LibriSpeech",
+            remove_archive=remove_archive,
+        )
+        _, lst_path, _ = _librispeech_pc_paths(recipe_root)
+        if lst_path.is_file():
+            logger.info("LibriSpeech-PC pair list already downloaded, skipping.")
+        else:
+            _download_pair_list(lspc_cfg["lst_url"], lst_path)
 
     def is_libritts_built(self, recipe_dir: str | Path, **_kwargs) -> bool:
         """Check only the LibriTTS split manifests, which training reads.
@@ -282,18 +340,15 @@ class LibriTTSBuilder(DatasetBuilder):
         Args:
             recipe_dir: Recipe root directory.
             **_kwargs: Unused extra options for API compatibility.
+
         Returns:
             True if the LibriTTS split manifests exist; False otherwise.
 
-        Notes:
+        Note:
             Deliberately narrower than :meth:`is_built`. ``LibriTTSDataset``
             guards on this one, so training is not blocked by a missing
-            LibriSpeech-PC eval manifest it never reads. Widening this to the
-            eval manifest would mean an existing checkout whose LibriTTS
-            manifests are already built could no longer start training without
-            first downloading LibriSpeech.
+            LibriSpeech-PC eval manifest it never reads.
         """
-
         data_dir = Path(recipe_dir).resolve() / _CFG["data_path"]
         return all(
             (data_dir / relpath).is_file()
@@ -306,18 +361,23 @@ class LibriTTSBuilder(DatasetBuilder):
         Args:
             recipe_dir: Recipe root directory.
             **_kwargs: Unused extra options for API compatibility.
+
         Returns:
             True if the LibriTTS split manifests and the LibriSpeech-PC eval
             manifest all exist; False otherwise.
 
-        Notes:
+        Note:
             The LibriSpeech-PC manifest is part of this check because
-            ``conf/inference.yaml``, the default eval config, reads it. Were
-            it left out, ``create_dataset`` would report success while the
-            default eval had nothing to read. Use
+            ``conf/inference.yaml``, the default eval config, reads it. Use
             :meth:`is_libritts_built` for the training-only subset.
-        """
 
+        Examples:
+            ```python
+            builder = LibriTTSBuilder()
+            if not builder.is_built(recipe_dir="egs3/libritts/f5tts"):
+                builder.build(recipe_dir="egs3/libritts/f5tts")
+            ```
+        """
         recipe_root = Path(recipe_dir).resolve()
         _, _, lspc_manifest = _librispeech_pc_paths(recipe_root)
         return self.is_libritts_built(recipe_dir=recipe_root) and (
@@ -329,31 +389,47 @@ class LibriTTSBuilder(DatasetBuilder):
         recipe_dir: str | Path,
         **_kwargs,
     ) -> None:
-        """Build the dataset artifacts (manifests).
+        """Write one ``utt_id<TAB>wav_path<TAB>text<TAB>sid`` manifest per split.
+
+        Every subset of a split is scanned for LibriTTS ``*.normalized.txt``
+        files and their sibling ``*.wav``. Speaker IDs are assigned across all
+        splits at once, so the same speaker gets the same integer everywhere.
+        The LibriSpeech-PC eval manifest is then written from the pair list
+        (see :func:`egs3.libritts.f5tts.dataset.librispeech_pc.build_manifest`).
+        This method performs no network I/O: everything it reads is fetched by
+        ``prepare_source``.
 
         Args:
             recipe_dir: Recipe root directory.
-            **_kwargs: Optional keyword arguments for build customization:
+            **_kwargs: Unused extra options for API compatibility.
 
         Returns:
-            None.
+            None. Manifests are written under
+            ``<recipe_dir>/<builder.data_path>/<builder.manifest_paths[split]>``
+            and ``<builder.librispeech_pc.manifest_path>``.
 
         Raises:
-            FileNotFoundError: If a required source tree or the LibriSpeech-PC
-                pair list is missing.
+            FileNotFoundError: If a configured subset directory, the
+                LibriSpeech test-clean tree or the pair list is missing, i.e.
+                ``prepare_source`` has not run successfully.
 
-        Notes:
-            Build flow:
+        Examples:
+            ```python
+            from egs3.libritts.f5tts.dataset.builder import LibriTTSBuilder
 
-            1. Scan the LibriTTS subsets and write the train/valid/test
-               manifests.
-            2. Write the LibriSpeech-PC cross-sentence eval manifest read by
-               ``conf/inference.yaml``.
+            builder = LibriTTSBuilder()
+            builder.prepare_source(recipe_dir="egs3/libritts/f5tts")
+            builder.build(recipe_dir="egs3/libritts/f5tts")
+            ```
 
-            This method performs no network I/O. Everything it reads is
-            fetched by ``prepare_source()``.
+            Each split manifest row is four tab-separated fields, e.g.:
+            ```text
+            1089_134691_000004_000001
+            /abs/path/1089_134691_000004_000001.wav
+            He hoped there would be stew for dinner.
+            0
+            ```
         """
-
         recipe_root = Path(recipe_dir).resolve()
         libritts_root = recipe_root / _CFG["dataset_path"] / "LibriTTS"
         data_dir = recipe_root / _CFG["data_path"]
@@ -383,31 +459,7 @@ class LibriTTSBuilder(DatasetBuilder):
                     sid = speaker_to_id[spk_key]
                     f.write(f"{utt_id}\t{wav_path}\t{text}\t{sid}\n")
 
-        self._build_librispeech_pc_manifest(recipe_root)
-
-    @staticmethod
-    def _build_librispeech_pc_manifest(recipe_root: Path) -> None:
-        """Write the LibriSpeech-PC cross-sentence eval manifest.
-
-        Args:
-            recipe_root: Resolved recipe root directory.
-
-        Raises:
-            FileNotFoundError: If the pair list or the LibriSpeech test-clean
-                tree is missing.
-
-        Notes:
-            Delegates to ``local/prepare_librispeech_pc.py``'s
-            ``build_manifest`` so the standalone CLI and this stage cannot
-            drift apart. The import is deferred to call time: the dataset
-            module is normally loaded from its file path rather than as
-            ``egs3.libritts.f5tts.dataset``, so a module-level import would make
-            even the LibriTTS-only path fail whenever the espnet root is not
-            on ``sys.path``. See ``_load_build_manifest``.
-        """
-        build_manifest = _load_build_manifest()
-
-        test_clean_root, lst_path, manifest_path = _librispeech_pc_paths(recipe_root)
+        test_clean_root, lst_path, lspc_manifest = _librispeech_pc_paths(recipe_root)
         for path, what in (
             (lst_path, "LibriSpeech-PC pair list"),
             (test_clean_root, "LibriSpeech test-clean tree"),
@@ -417,5 +469,5 @@ class LibriTTSBuilder(DatasetBuilder):
                     f"Missing {what}: {path}. Run the create_dataset stage so "
                     f"prepare_source() downloads it."
                 )
-        n_rows = build_manifest(lst_path, test_clean_root, manifest_path)
-        logger.info(f"Wrote {n_rows} LibriSpeech-PC rows to {manifest_path}")
+        n_rows = build_manifest(lst_path, test_clean_root, lspc_manifest)
+        logger.info("Wrote %d LibriSpeech-PC rows to %s", n_rows, lspc_manifest)

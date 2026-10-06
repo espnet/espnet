@@ -1,14 +1,10 @@
 """Tests for the LibriSpeech-PC cross-sentence manifest builder."""
 
-import os
 from pathlib import Path
 
 import pytest
 
-from egs3.libritts.f5tts.local.prepare_librispeech_pc import (
-    build_gt_wav_dir,
-    build_manifest,
-)
+from egs3.libritts.f5tts.dataset.librispeech_pc import build_manifest
 
 LST_ROW = (
     "4992-41806-0009\t4.355\texclaimed Bill Harmon to his wife.\t"
@@ -49,26 +45,3 @@ def test_build_manifest_missing_audio_raises(fake_tree, tmp_path):
     (root / "4992" / "41806" / "4992-41806-0009.flac").unlink()
     with pytest.raises(FileNotFoundError):
         build_manifest(lst, root, tmp_path / "manifest.tsv")
-
-
-def test_build_gt_wav_dir_symlinks_targets(fake_tree, tmp_path):
-    lst, root = fake_tree
-    gt_dir = tmp_path / "gt_wavs"
-    n = build_gt_wav_dir(lst, root, gt_dir)
-    assert n == 1
-    link = gt_dir / "4992-23283-0000.wav"
-    assert link.is_symlink()
-    assert (
-        link.resolve() == (root / "4992" / "23283" / "4992-23283-0000.flac").resolve()
-    )
-    # Test with relative root: it should still resolve correctly
-    rel_root = Path(os.path.relpath(root, Path.cwd()))
-    gt_dir_rel = tmp_path / "gt_wavs_rel"
-    n_rel = build_gt_wav_dir(lst, rel_root, gt_dir_rel)
-    assert n_rel == 1
-    link_rel = gt_dir_rel / "4992-23283-0000.wav"
-    assert link_rel.is_symlink()
-    assert (
-        link_rel.resolve()
-        == (root / "4992" / "23283" / "4992-23283-0000.flac").resolve()
-    )
