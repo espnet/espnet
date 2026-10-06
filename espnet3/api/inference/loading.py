@@ -48,7 +48,10 @@ def locate_pack(tag_or_dir: str | Path) -> Path:
         raise RuntimeError(
             f"{tag_or_dir} is not a pack_model bundle: it has no inference_config"
         )
-    return Path(artifacts["inference_config"]).resolve().parent.parent
+    # Resolve the directory, not the file: in a Hub cache the config is a
+    # symlink into `blobs/`, and resolving it first would walk out of the
+    # snapshot directory that holds `meta.yaml`.
+    return Path(artifacts["inference_config"]).parent.parent.resolve()
 
 
 def load(
