@@ -1,0 +1,48 @@
+##########################################################
+#                      DEMO SETTING                      #
+##########################################################
+# Quick usage:
+#   python run.py --stages pack_demo   --training_config conf/training.yaml \
+#       --demo_config conf/demo.yaml
+#   python run.py --stages upload_demo --training_config conf/training.yaml \
+#       --demo_config conf/demo.yaml
+#
+# Shared default merged under every F5-TTS recipe's demo config.
+# `ui.inputs` / `ui.outputs` are the fields of
+# `espnet3.systems.f5tts.inference.Inference`, bound positionally by
+# `src/app.py`; `ui.app_script` is the recipe's copy of the template's app.
+
+recipe_dir: .
+
+model:
+  dir_or_tag: exp/${exp_tag}/model_pack
+  trust_user_code: false
+  call_args: {}
+
+ui:
+  app_script: src/app.py
+  title: ${set_corpus_and_system:} demo
+  description:
+  inputs:
+    - key: text
+      type: text
+      label: "Text to synthesize"
+    - key: reference_speech
+      type: audio
+      label: "Reference speech (voice to clone)"
+    - key: reference_text
+      type: text
+      label: "Reference transcript"
+  outputs:
+    - key: wav
+      type: audio
+      label: "Synthesized speech"
+
+pack:
+  out_dir:
+  include:
+  exclude:
+  requirements:
+
+upload_demo:
+  hf_repo: espnet/${set_corpus_and_system:}_${exp_tag}

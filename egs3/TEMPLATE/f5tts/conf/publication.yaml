@@ -1,0 +1,27 @@
+##########################################################
+#                  PUBLICATION SETTING                   #
+##########################################################
+# Quick usage:
+#   python run.py --stages pack_model   --training_config conf/training.yaml \
+#       --inference_config conf/inference.yaml --publication_config conf/publication.yaml
+#   python run.py --stages upload_model --training_config conf/training.yaml \
+#       --publication_config conf/publication.yaml
+#
+# Shared default merged under every F5-TTS recipe's publication config.
+# `pack_model.include` must list what the packed inference config needs on
+# another machine: the recipe's `src` and `conf`, and the token list the
+# training config points at.
+
+recipe_dir: .
+exp_tag: ${self_name:}
+exp_dir: ${recipe_dir}/exp/${exp_tag}
+inference_dir: ${exp_dir}/inference
+data_dir: ${recipe_dir}/data
+
+pack_model:
+  out_dir: ${exp_dir}/model_pack
+  include:
+  exclude:
+
+upload_model:
+  hf_repo: espnet/${set_corpus_and_system:}_${exp_tag}
