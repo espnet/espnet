@@ -487,8 +487,11 @@ class DaskShardRunner(BaseRunner):
 
 
 class FailingDaskRunner(DaskShardRunner):
-    """Like DaskShardRunner, but forward() raises for one item -- exercises
-    the client.cancel(futures) cleanup path in BaseRunner._run_parallel_dask."""
+    """A DaskShardRunner whose forward() raises for one item.
+
+    Exercises the client.cancel(futures) cleanup path in
+    BaseRunner._run_parallel_dask.
+    """
 
     @staticmethod
     def forward(idx, **_env):
@@ -500,8 +503,10 @@ class FailingDaskRunner(DaskShardRunner):
 @pytest.mark.skipif(not _DASK_AVAILABLE, reason="Dask is not installed")
 @pytest.mark.execution_timeout(30)
 def test_run_parallel_dask_dispatches_multiple_shards(local_dask_cfg, tmp_path):
-    """The real LocalCluster path must actually split work across shards,
-    not just fall back to the single-shard driver path."""
+    """The real LocalCluster path splits work across multiple shards.
+
+    It must not fall back to the single-shard driver path.
+    """
     set_parallel(local_dask_cfg)
 
     runner = DaskShardRunner(DaskParallelProvider(), output_dir=tmp_path)
@@ -517,8 +522,10 @@ def test_run_parallel_dask_dispatches_multiple_shards(local_dask_cfg, tmp_path):
 def test_run_parallel_dask_cancels_pending_futures_on_worker_exception(
     local_dask_cfg, tmp_path
 ):
-    """A worker exception must propagate and trigger client.cancel(futures)
-    instead of hanging or silently swallowing the failure."""
+    """A worker exception propagates and triggers client.cancel(futures).
+
+    It must not hang or silently swallow the failure.
+    """
     set_parallel(local_dask_cfg)
 
     runner = FailingDaskRunner(

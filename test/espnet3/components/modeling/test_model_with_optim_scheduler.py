@@ -969,8 +969,10 @@ def _make_microbatch(x_values):
 
 
 def test_accum_grad_steps_grad_equals_micro_batch_mean():
-    """(a) accum_grad_steps=2: accumulated grad equals the mean of the two
-    micro-batch grads (single optimizer, no cross-branch contamination)."""
+    """(a) accum_grad_steps=2: accumulated grad equals the micro-batch mean.
+
+    Single optimizer, no cross-branch contamination.
+    """
     module = ESPnetLightningModule(
         DummyMultiModel(["generator"]), make_multi_config(accum_grad_steps=2)
     )
@@ -1083,9 +1085,12 @@ def test_discriminator_grad_has_no_generator_loss_contamination():
 
 
 def test_gradient_clip_val_invokes_clip_grad_norm_with_real_trainer(monkeypatch):
-    """(c) A real trainer.fit() with gradient_clip_val spies on the actual
-    torch.nn.utils.clip_grad_norm_ call, rather than replacing clip_gradients
-    with a recorder (test_clip_gradients_uses_optimizer_spec)."""
+    """(c) A real trainer.fit() with gradient_clip_val spies on clip_grad_norm_.
+
+    Spies on the actual torch.nn.utils.clip_grad_norm_ call, rather than
+    replacing clip_gradients with a recorder
+    (test_clip_gradients_uses_optimizer_spec).
+    """
     import torch.nn.utils as nn_utils
 
     calls = []
