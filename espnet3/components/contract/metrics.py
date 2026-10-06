@@ -197,7 +197,7 @@ def check_metric_inputs(
         >>> inference_dir = Path(tempfile.mkdtemp())
         >>> test_dir = inference_dir / "test"
         >>> test_dir.mkdir()
-        >>> _ = (test_dir / "ref.scp").write_text("utt1 hello\\n")
+        >>> _ = (test_dir / "ref.scp").write_text("utt1 hello")
         >>> paths = check_metric_inputs(ExampleMetric(), None, inference_dir, "test")
         >>> paths["ref"].name
         'ref.scp'
