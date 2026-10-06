@@ -1,4 +1,4 @@
-"""Tests for espnet3.components.metrics.contract and BaseMetric's contract hook."""
+"""Tests for espnet3.components.contract.metrics and BaseMetric's contract hook."""
 
 import json
 import logging
@@ -7,14 +7,14 @@ from pathlib import Path
 import pytest
 
 from espnet3.components.contract import Field
-from espnet3.components.metrics.base_metric import BaseMetric
-from espnet3.components.metrics.contract import (
+from espnet3.components.contract.metrics import (
     MetricContractError,
     check_metric_declaration,
     check_metric_inputs,
     check_metric_output,
     read_fields_json,
 )
+from espnet3.components.metrics.base_metric import BaseMetric
 
 # ---------------------------------------------------------------------------
 # class definition time: BaseMetric.__init_subclass__
