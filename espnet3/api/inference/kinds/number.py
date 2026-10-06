@@ -1,7 +1,5 @@
 """The ``number`` kind: an ``int`` or ``float``, for a metric's result."""
 
-from __future__ import annotations
-
 from espnet3.api.inference.kinds.base import Kind
 
 

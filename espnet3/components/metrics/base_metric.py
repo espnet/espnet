@@ -5,7 +5,7 @@ from pathlib import Path
 from typing import ClassVar, Dict, Iterator, Tuple
 
 from espnet3.api.inference import Field
-from espnet3.api.inference.check import check_declaration
+from espnet3.components.contract.check import check_declaration
 from espnet3.components.contract.metrics import (
     check_metric_declaration,
     warn_undeclared,
