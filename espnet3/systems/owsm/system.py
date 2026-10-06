@@ -144,10 +144,12 @@ class OWSMSystem(BaseSystem):
     def _append_vocab_size_to_text_shapes(self) -> None:
         """Rewrite each ``<stream>_shape`` from ``L`` to ``L,V`` in place."""
         stats_dir = Path(self.training_config.stats_dir)
+        # Empty by default: only a numel batch_bins budget reads these, and
+        # the recipe batches on a flat batch_size.
         streams = getattr(
             self.training_config.tokenizer,
             "vocab_scaled_shapes",
-            ["text", "text_prev"],
+            [],
         )
         vocab = self._vocab_size()
         for mode in ("train", "valid"):
