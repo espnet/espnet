@@ -776,6 +776,38 @@ def test_collect_stats_raises_without_stats_dir(
         model.collect_stats()
 
 
+@pytest.mark.parametrize("configured, expected", [(None, "unset"), (1, 1), (8, 8)])
+def test_collect_stats_batch_size_comes_from_the_config(
+    tmp_path, dummy_model, dummy_dataset_config, monkeypatch, configured, expected
+):
+    """Items per batch decide how many shards the workers can share.
+
+    The component sets no default of its own: an unset value leaves
+    collect_stats' own, and egs3/TEMPLATE is where a recipe's value lives.
+    """
+    import espnet3.components.modeling.lightning_module as module
+
+    seen = []
+    monkeypatch.setattr(
+        module,
+        "collect_stats",
+        lambda **kwargs: seen.append(kwargs.get("batch_size", "unset")),
+    )
+    config = OmegaConf.create(
+        {
+            "exp_dir": str(tmp_path / "exp"),
+            "stats_dir": str(tmp_path / "stats"),
+            "model": {},
+            "dataset": dummy_dataset_config,
+            "dataloader": make_standard_dataloader_config(),
+            "num_device": 1,
+            "collect_stats_batch_size": configured,
+        }
+    )
+    ESPnetLightningModule(dummy_model, config).collect_stats()
+    assert seen == [expected, expected]  # train and valid
+
+
 def test_configure_optimizers_single_path_happy(
     tmp_path, dummy_model, dummy_dataset_config
 ):
