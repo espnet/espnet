@@ -1,0 +1,72 @@
+##########################################################
+#                      DEMO SETTING                      #
+##########################################################
+# Quick usage:
+#   python run.py --stages pack_demo \
+#       --training_config conf/training_small.yaml --demo_config conf/demo.yaml
+#   python run.py --stages upload_demo \
+#       --training_config conf/training_small.yaml --demo_config conf/demo.yaml
+#
+# Pass `--training_config` too: `run.py` copies its `exp_tag` here, which
+# `model.dir_or_tag` and `upload_demo.hf_repo` are built from. `pack_model`
+# must already have written the bundle `model.dir_or_tag` points at.
+recipe_dir: .
+
+# `model.dir_or_tag` is the packed model the demo loads: a local bundle
+# (resolved relative to the packed demo directory at runtime) or a Hugging
+# Face model tag. `trust_user_code` is true because the packed inference
+# config names this recipe's own `src.inference.build_output`, shipped inside
+# the bundle. F5-TTS takes no call-time arguments; sampling settings live in
+# the packed `conf/inference.yaml`.
+model:
+  dir_or_tag: exp/${exp_tag}/model_pack
+  trust_user_code: true
+  call_args: {}
+
+# `ui.inputs` / `ui.outputs` come from the template: the fields of
+# `espnet3.systems.f5tts.inference.Inference`, bound positionally by
+# `src/app.py` (this recipe's copy of the template's launcher). An empty
+# "Reference transcript" box is passed as "not given", and the reference is
+# then treated as a recording of the target text.
+ui:
+  app_script: src/app.py
+  title: ${set_corpus_and_system:} demo
+  description: README.md
+
+# `pack.out_dir` is the packed demo directory; `pack.include` / `pack.exclude`
+# copy extra files into it. `pack.requirements` is written to the demo's
+# requirements.txt: the `train` extra brings in Hydra, which builds the model
+# from the packed configs; the `tts` extra brings in the vocoder (`vocos`) and
+# the pinyin tokenizer dependencies.
+pack:
+  out_dir: demo
+  include: []
+  exclude: []
+  requirements:
+    - "espnet[train,tts] @ git+https://github.com/espnet/espnet.git"
+  readme: ${config_path:../src/hf_demo_readme.md}
+  readme_context:
+    title: ${ui.title}
+    emoji: "\U0001f5e3️"
+    color_from: blue
+    color_to: green
+    sdk: gradio
+    app_file: app.py
+    pinned: "false"
+    license: apache-2.0
+    tags: |-
+      - espnet
+      - espnet3
+      - gradio
+      - text-to-speech
+      - f5-tts
+    hf_repo: ${upload_demo.hf_repo}
+    model_ref: ${model.dir_or_tag}
+
+# `update: false` refuses to overwrite an existing Space; `delete_patterns`
+# applies only when `update: true` (`["*"]` replaces, `[]` adds).
+upload_demo:
+  hf_repo: espnet/${set_corpus_and_system:}_${exp_tag}
+  update: false
+  delete_patterns:
+    - "*"
