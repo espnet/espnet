@@ -10,7 +10,7 @@ from espnet3.utils.config_utils import load_config_with_defaults
 from espnet3.utils.scp_utils import get_class_path
 
 TEMPLATE_METRICS_CONFIG = (
-    Path(__file__).resolve().parents[4] / "egs3/TEMPLATE/asr/conf/metrics.yaml"
+    Path(__file__).resolve().parents[4] / "egs3/TEMPLATE/esp2_asr/conf/metrics.yaml"
 )
 
 
@@ -303,8 +303,8 @@ def test_measure_scores_real_wer_and_cer_from_template_metrics_config(tmp_path):
 
     results = measure(cfg)
 
-    from espnet3.systems.asr.metrics.cer import CER
-    from espnet3.systems.asr.metrics.wer import WER
+    from espnet3.systems.esp2_asr.metrics.cer import CER
+    from espnet3.systems.esp2_asr.metrics.wer import WER
 
     assert results[get_class_path(WER())][test_name] == {"WER": 66.67}
     assert results[get_class_path(CER())][test_name] == {"CER": 14.29}
