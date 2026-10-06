@@ -64,11 +64,13 @@ resume and writers. The contract and that pair divide the work like this:
 2. The ``infer`` stage runs an ``Inference`` through the pair, and needs
    nothing added to it: ``inference.yaml``'s ``model._target_`` names the
    class (its constructor takes the model's own arguments, plus
-   ``device``), ``InferenceProvider.build_model`` instantiates it, and
-   ``InferenceRunner`` calls ``model(**fields)`` for one item or with a
-   list per field for a batch, and writes the mapping it returns. The
-   recipe's ``output_fn`` stays optional, for columns the contract does
-   not produce, such as ``ref`` for scoring.
+   ``device``); ``InferenceProvider.build_model`` builds it through this
+   package's :func:`build_model` - the provider calls the api, and the api
+   never calls a provider back; ``InferenceRunner`` calls
+   ``model(**fields)`` for one item or ``model.batch(items)`` for several,
+   and writes each declared output by its kind. There is no ``output_fn``:
+   the declaration fixes the outputs, and the reference for scoring is
+   read from the data by ``measure`` (``ref_key: dataset:text``).
 3. Parallelism - shards, workers, resume, writers - belongs to the
    runner. Decoding several items together belongs to :meth:`run_batch`.
    Streaming belongs to :meth:`run_stream`; the runner never streams.
