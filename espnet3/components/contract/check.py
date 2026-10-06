@@ -1,6 +1,17 @@
-"""Shared validation for a class's field declarations."""
+"""Shared validation for a class's or an instance's field declarations."""
 
 from __future__ import annotations
+
+
+def _qualname(obj: object) -> str:
+    """Return ``obj``'s own qualified name, or its type's if it has none.
+
+    ``obj`` is usually a class (``cls.__qualname__`` is its own), but a
+    contract may instead be checked on an instance (one whose declaration
+    comes from its own ``__init__``, not its class) - that has no
+    ``__qualname__`` of its own, so its type's is used instead.
+    """
+    return getattr(obj, "__qualname__", None) or type(obj).__qualname__
 
 
 def check_declaration(
@@ -13,7 +24,8 @@ def check_declaration(
     optional output.
 
     Args:
-        cls: The class to check.
+        cls: The class to check, or an instance whose own attributes (set
+            in its ``__init__``) declare a contract its class does not.
         inputs_attr: The name of the inputs attribute to check.
         outputs_attr: The name of the outputs attribute to check.
 
@@ -39,23 +51,24 @@ def check_declaration(
     """
     from espnet3.api.inference.field import Field
 
+    name = _qualname(cls)
     for attr in (inputs_attr, outputs_attr):
         fields = getattr(cls, attr, None)
         if not isinstance(fields, tuple) or not all(
             isinstance(f, Field) for f in fields
         ):
-            raise TypeError(f"{cls.__qualname__}.{attr} must be a tuple of Field")
+            raise TypeError(f"{name}.{attr} must be a tuple of Field")
         if not fields:
-            raise TypeError(f"{cls.__qualname__}.{attr} must name at least one field")
+            raise TypeError(f"{name}.{attr} must name at least one field")
         names = [f.name for f in fields]
         if len(set(names)) != len(names):
-            raise TypeError(f"{cls.__qualname__}.{attr} repeats a name: {names}")
+            raise TypeError(f"{name}.{attr} repeats a name: {names}")
     optional = [f.optional for f in getattr(cls, inputs_attr)]
     if optional != sorted(optional):
         raise TypeError(
-            f"{cls.__qualname__}.{inputs_attr} must list required fields before "
+            f"{name}.{inputs_attr} must list required fields before "
             "optional ones, so a call by position means one thing"
         )
     for f in getattr(cls, outputs_attr):
         if f.optional:
-            raise TypeError(f"{cls.__qualname__}: {outputs_attr} cannot be optional")
+            raise TypeError(f"{name}: {outputs_attr} cannot be optional")

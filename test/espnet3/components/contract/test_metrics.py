@@ -14,49 +14,87 @@ from espnet3.components.contract.metrics import (
 from espnet3.components.metrics.base_metric import BaseMetric
 
 # ---------------------------------------------------------------------------
-# class definition time: BaseMetric.__init_subclass__
+# instantiation time: BaseMetric.__init__
 # ---------------------------------------------------------------------------
 
 
-def test_declared_metric_passes_at_class_definition():
-    class Good(BaseMetric):
-        inputs = (Field("ref", "text"), Field("hyp", "text"))
-        outputs = (Field("WER", "number"),)
+class _Good(BaseMetric):
+    inputs = (Field("ref", "text"), Field("hyp", "text"))
+    outputs = (Field("WER", "number"),)
 
-        def __call__(self, data, test_name, output_dir):
-            return {"WER": 0.0}
-
-    assert Good.outputs[0].kind == "number"
+    def __call__(self, data, test_name, output_dir):
+        return {"WER": 0.0}
 
 
-def test_non_number_output_rejected_at_class_definition():
+def test_declared_metric_passes_at_instantiation():
+    assert _Good().outputs[0].kind == "number"
+
+
+class _Bad(BaseMetric):
+    inputs = (Field("ref", "text"),)
+    outputs = (Field("transcript", "text"),)
+
+    def __call__(self, data, test_name, output_dir):
+        return {}
+
+
+def test_non_number_output_rejected_at_instantiation():
     with pytest.raises(TypeError, match="must have kind 'number'"):
-
-        class Bad(BaseMetric):
-            inputs = (Field("ref", "text"),)
-            outputs = (Field("transcript", "text"),)
-
-            def __call__(self, data, test_name, output_dir):
-                return {}
+        _Bad()
 
 
-def test_undeclared_metric_raises_at_class_definition():
+class _Undeclared(BaseMetric):
+    def __call__(self, data, test_name, output_dir):
+        return {}
+
+
+def test_undeclared_metric_raises_at_instantiation():
+    # the class itself is defined without error; only instantiating it checks
     with pytest.raises(TypeError, match="does not declare"):
+        _Undeclared()
 
-        class Undeclared(BaseMetric):
-            def __call__(self, data, test_name, output_dir):
-                return {}
+
+class _VersaStyle(BaseMetric):
+    """A contract built in __init__ instead of declared on the class."""
+
+    def __init__(self, score_config):
+        self.score_config = score_config
+        self.inputs = (
+            Field("hyp", "text"),
+            Field("ref", "text", optional=True),
+        )
+        self.outputs = tuple(Field(name, "number") for name in score_config)
+        super().__init__()
+
+    def __call__(self, data, test_name, output_dir):
+        return {name: 0.0 for name in self.score_config}
+
+
+def test_instance_declaration_is_checked():
+    metric = _VersaStyle(["mcd", "f0"])
+    assert [f.name for f in metric.outputs] == ["mcd", "f0"]
+    assert metric.inputs[1].optional is True
+
+
+class _BrokenVersaStyle(BaseMetric):
+    """A __init__-built contract with a non-number output, for the rejection test."""
+
+    def __init__(self):
+        self.inputs = (Field("hyp", "text"),)
+        self.outputs = (Field("transcript", "text"),)
+        super().__init__()
+
+    def __call__(self, data, test_name, output_dir):
+        return {}
+
+
+def test_instance_declaration_rejects_bad_contract():
+    with pytest.raises(TypeError, match="must have kind 'number'"):
+        _BrokenVersaStyle()
 
 
 def test_input_sources_defaults_to_identity():
-    class Declared(BaseMetric):
-        inputs = (Field("ref", "text"), Field("hyp", "text"))
-        outputs = (Field("WER", "number"),)
-
-        def __call__(self, data, test_name, output_dir):
-            return {}
-
-    assert Declared().input_sources() == {"ref": "ref", "hyp": "hyp"}
+    assert _Good().input_sources() == {"ref": "ref", "hyp": "hyp"}
 
 
 # ---------------------------------------------------------------------------

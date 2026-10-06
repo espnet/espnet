@@ -5,6 +5,7 @@ from __future__ import annotations
 from typing import Any, Mapping, Optional
 
 from espnet3.api.inference import KINDS, Field
+from espnet3.components.contract.check import _qualname
 
 #: A metric input source naming a test-set column instead of an inference
 #: SCP file (``ref_key: dataset:text``); must match
@@ -29,8 +30,14 @@ class MetricContractError(ValueError):
 def require_metric_declaration(cls: type) -> None:
     """Raise unless ``cls`` declares ``inputs``/``outputs``.
 
-    Every ``BaseMetric`` subclass must opt into the contract; there is no
-    undeclared fallback.
+    Every ``BaseMetric`` instance must opt into the contract - as its
+    class's own attributes, or as the instance's own (set in
+    ``__init__``, for a metric whose contract depends on its own
+    configuration); there is no undeclared fallback.
+
+    Args:
+        cls: The class to check, or an instance whose own attributes (set
+            in its ``__init__``) declare a contract its class does not.
 
     Examples:
         >>> class Undeclared:
@@ -40,8 +47,9 @@ def require_metric_declaration(cls: type) -> None:
         TypeError: Undeclared does not declare inputs/outputs; declare ...
     """
     raise TypeError(
-        f"{cls.__qualname__} does not declare inputs/outputs; declare "
-        "`inputs`/`outputs` class attributes (see BaseMetric)."
+        f"{_qualname(cls)} does not declare inputs/outputs; declare "
+        "`inputs`/`outputs` (class attributes, or set on `self` before "
+        "calling super().__init__())."
     )
 
 
@@ -50,6 +58,10 @@ def check_metric_declaration(cls: type) -> None:
 
     Called in addition to the shared ``check_declaration`` (non-empty
     tuples, distinct names, ...); this is the one rule specific to metrics.
+
+    Args:
+        cls: The class to check, or an instance whose own attributes (set
+            in its ``__init__``) declare a contract its class does not.
 
     Examples:
         >>> class BadMetric:
@@ -61,7 +73,7 @@ def check_metric_declaration(cls: type) -> None:
     for f in cls.outputs:
         if f.kind != "number":
             raise TypeError(
-                f"{cls.__qualname__}.outputs field {f.name!r} must have kind "
+                f"{_qualname(cls)}.outputs field {f.name!r} must have kind "
                 f"'number', not {f.kind!r}"
             )
 

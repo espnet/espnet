@@ -45,6 +45,7 @@ class WER(BaseMetric):
         self.cleaner = TextCleaner(clean_types)
         self.ref_key = ref_key
         self.hyp_key = hyp_key
+        super().__init__()
 
     def input_sources(self):
         """Map the declared ``ref``/``hyp`` roles to this instance's keys.
