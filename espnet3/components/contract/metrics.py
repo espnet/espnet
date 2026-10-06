@@ -5,7 +5,7 @@ from __future__ import annotations
 from typing import Any, Mapping, Optional
 
 from espnet3.api.inference import KINDS, Field
-from espnet3.components.contract.check import _qualname, check_declaration
+from espnet3.components.contract.check import check_declaration
 
 #: A metric input source naming a test-set column instead of an inference
 #: SCP file (``ref_key: dataset:text``); must match
@@ -27,8 +27,8 @@ class MetricContractError(ValueError):
     """
 
 
-def require_metric_declaration(cls: type) -> None:
-    """Raise unless ``cls`` declares ``inputs``/``outputs``.
+def require_metric_declaration(obj) -> None:
+    """Raise unless ``obj`` declares ``inputs``/``outputs``.
 
     Every ``BaseMetric`` instance must opt into the contract - as its
     class's own attributes, or as the instance's own (set in
@@ -36,7 +36,7 @@ def require_metric_declaration(cls: type) -> None:
     configuration); there is no undeclared fallback.
 
     Args:
-        cls: The class to check, or an instance whose own attributes (set
+        obj: The class to check, or an instance whose own attributes (set
             in its ``__init__``) declare a contract its class does not.
 
     Examples:
@@ -46,21 +46,22 @@ def require_metric_declaration(cls: type) -> None:
         Traceback (most recent call last):
         TypeError: Undeclared does not declare inputs/outputs; declare ...
     """
+    cls = obj if isinstance(obj, type) else type(obj)
     raise TypeError(
-        f"{_qualname(cls)} does not declare inputs/outputs; declare "
+        f"{cls.__qualname__} does not declare inputs/outputs; declare "
         "`inputs`/`outputs` (class attributes, or set on `self` before "
         "calling super().__init__())."
     )
 
 
-def check_metric_declaration(cls: type) -> None:
+def check_metric_declaration(obj) -> None:
     """Raise ``TypeError`` unless every declared output has kind ``number``.
 
     Called in addition to the shared ``check_declaration`` (non-empty
     tuples, distinct names, ...); this is the one rule specific to metrics.
 
     Args:
-        cls: The class to check, or an instance whose own attributes (set
+        obj: The class to check, or an instance whose own attributes (set
             in its ``__init__``) declare a contract its class does not.
 
     Examples:
@@ -70,10 +71,11 @@ def check_metric_declaration(cls: type) -> None:
         Traceback (most recent call last):
         TypeError: BadMetric.outputs field 'transcript' must have kind 'number', ...
     """
-    for f in cls.outputs:
+    cls = obj if isinstance(obj, type) else type(obj)
+    for f in obj.outputs:
         if f.kind != "number":
             raise TypeError(
-                f"{_qualname(cls)}.outputs field {f.name!r} must have kind "
+                f"{cls.__qualname__}.outputs field {f.name!r} must have kind "
                 f"'number', not {f.kind!r}"
             )
 
