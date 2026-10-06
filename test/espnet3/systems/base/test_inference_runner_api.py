@@ -53,12 +53,27 @@ class EchoProvider(InferenceProvider):
 class Match(BaseMetric):
     """Pairs the data's `text` with the model's `text`, by alias."""
 
+    inputs = (Field("ref", "text"), Field("hyp", "text"))
+    outputs = (Field("n", "number"),)
+
     ref_key = "dataset:text"
     hyp_key = "text"
+
+    def input_sources(self):
+        return {"ref": self.ref_key, "hyp": self.hyp_key}
 
     def __call__(self, data, test_name, inference_dir):
         rows = [row for _, row in self.iter_inputs(data, "ref", "hyp")]
         return {"n": len(rows), "refs": [r["ref"] for r in rows]}
+
+
+class MatchAudio(Match):
+    """Match, but pairing the data's `speech` with the model's audio `echo`."""
+
+    inputs = (Field("ref", "text"), Field("hyp", "audio"))
+
+    ref_key = "dataset:speech"
+    hyp_key = "echo"
 
 
 def _items(n=3):
@@ -259,9 +274,10 @@ def test_measure_reads_the_reference_from_the_test_set(tmp_path):
         measure(missing, inference_config=inference_cfg)
     # the failed run left nothing a later run would take as finished
     assert not (tmp_path / "test" / "dataset" / "nope.scp").exists()
-    # without the inference config there is no test set to read from
+    # without the inference config the model declares no outputs either,
+    # so the contract check rejects it before the dataset read is reached
     written.unlink()
-    with pytest.raises(ValueError, match="needs the inference config"):
+    with pytest.raises(ValueError, match="declares no outputs"):
         measure(metrics_cfg)
 
 
@@ -289,7 +305,7 @@ def test_measure_writes_a_dataset_waveform_as_an_artifact(tmp_path):
             "dataset_artifacts": {"speech": {"type": "wav", "sample_rate": 8000}},
             "metrics": [
                 {
-                    "metric": {"_target_": f"{__name__}.Match"},
+                    "metric": {"_target_": f"{__name__}.MatchAudio"},
                     "inputs": {"ref": "dataset:speech", "hyp": "echo"},
                 }
             ],

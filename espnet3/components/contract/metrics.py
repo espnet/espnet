@@ -2,25 +2,22 @@
 
 from __future__ import annotations
 
-import json
-import logging
-import os
-from pathlib import Path
 from typing import Any, Mapping, Optional
 
 from espnet3.api.inference import KINDS, Field
 
-logger = logging.getLogger(__name__)
-
-_WARNED_UNDECLARED: set = set()
+#: A metric input source naming a test-set column instead of an inference
+#: SCP file (``ref_key: dataset:text``); must match
+#: ``espnet3.systems.base.metric.DATASET_PREFIX``.
+DATASET_PREFIX = "dataset:"
 
 
 class MetricContractError(ValueError):
     """A metric's declaration does not match reality.
 
-    Raised when what inference produced does not match a metric's
-    declared inputs, or when a metric's return value does not match its
-    declared outputs.
+    Raised when a metric's declared inputs do not match what the
+    configured model declares, or when a metric's return value does not
+    match its declared outputs.
 
     Examples:
         >>> raise MetricContractError("WER.outputs field 'wer' must be number")
@@ -29,46 +26,23 @@ class MetricContractError(ValueError):
     """
 
 
-def strict_contracts_enabled() -> bool:
-    """Whether ``ESPNET3_STRICT_CONTRACTS`` asks for errors instead of warnings.
+def require_metric_declaration(cls: type) -> None:
+    """Raise unless ``cls`` declares ``inputs``/``outputs``.
+
+    Every ``BaseMetric`` subclass must opt into the contract; there is no
+    undeclared fallback.
 
     Examples:
-        >>> import os
-        >>> _ = os.environ.pop("ESPNET3_STRICT_CONTRACTS", None)
-        >>> strict_contracts_enabled()
-        False
-        >>> os.environ["ESPNET3_STRICT_CONTRACTS"] = "1"
-        >>> strict_contracts_enabled()
-        True
-        >>> del os.environ["ESPNET3_STRICT_CONTRACTS"]
-    """
-    return os.environ.get("ESPNET3_STRICT_CONTRACTS", "") not in ("", "0")
-
-
-def warn_undeclared(cls: type, attr: str) -> None:
-    """Warn once per class that it has no ``attr`` contract declaration.
-
-    Raises ``TypeError`` instead, under ``ESPNET3_STRICT_CONTRACTS``.
-
-    Examples:
-        >>> import os
-        >>> os.environ["ESPNET3_STRICT_CONTRACTS"] = "1"
         >>> class Undeclared:
         ...     pass
-        >>> warn_undeclared(Undeclared, "outputs")
+        >>> require_metric_declaration(Undeclared)
         Traceback (most recent call last):
-        TypeError: Undeclared does not declare outputs; its inputs/outputs are ...
-        >>> del os.environ["ESPNET3_STRICT_CONTRACTS"]
+        TypeError: Undeclared does not declare inputs/outputs; declare ...
     """
-    message = (
-        f"{cls.__qualname__} does not declare {attr}; its inputs/outputs are "
-        "not checked. Add `inputs`/`outputs` class attributes to opt in."
+    raise TypeError(
+        f"{cls.__qualname__} does not declare inputs/outputs; declare "
+        "`inputs`/`outputs` class attributes (see BaseMetric)."
     )
-    if strict_contracts_enabled():
-        raise TypeError(message)
-    if cls not in _WARNED_UNDECLARED:
-        _WARNED_UNDECLARED.add(cls)
-        logger.warning(message)
 
 
 def check_metric_declaration(cls: type) -> None:
@@ -92,34 +66,45 @@ def check_metric_declaration(cls: type) -> None:
             )
 
 
-def read_fields_json(test_dir: Path) -> Optional[Mapping[str, Any]]:
-    """Read ``<test_dir>/fields.json``, or ``None`` if it does not exist.
+def declared_outputs(config: Any) -> Optional[tuple]:
+    """Return the configured model's declared outputs, or ``None``.
 
-    An inference output directory predating this contract (or written by a
-    custom runner that does not write ``fields.json``) has no such file;
-    callers fall back to checking SCP presence only, not kind.
+    Mirrors ``espnet3.systems.base.inference_runner.declared_input_names``:
+    the model class is found via ``get_class`` without building it, so
+    this touches no checkpoint and no device. ``None`` means the
+    configured model is not declared at all - unset, unimportable, or not
+    an :class:`~espnet3.api.inference.InferenceAPI` subclass.
 
     Examples:
-        >>> import tempfile
-        >>> test_dir = Path(tempfile.mkdtemp())
-        >>> read_fields_json(test_dir)
-        >>> _ = (test_dir / "fields.json").write_text(
-        ...     '{"fields": {"ref": {"kind": "text"}}}')
-        >>> read_fields_json(test_dir)
-        {'fields': {'ref': {'kind': 'text'}}}
+        >>> from omegaconf import OmegaConf
+        >>> cfg = OmegaConf.create(
+        ...     {"model": {"_target_": "espnet3.systems.esp2_asr.inference.Inference"}}
+        ... )
+        >>> [f.name for f in declared_outputs(cfg)]
+        ['text']
     """
-    path = Path(test_dir) / "fields.json"
-    if not path.exists():
+    from hydra.utils import get_class
+
+    from espnet3.api.inference import InferenceAPI
+
+    target = getattr(getattr(config, "model", None), "_target_", None)
+    if not isinstance(target, str) or not target:
         return None
-    return json.loads(path.read_text(encoding="utf-8"))
+    try:
+        cls = get_class(target)
+    except Exception:
+        return None
+    if isinstance(cls, type) and issubclass(cls, InferenceAPI):
+        return cls.outputs
+    return None
 
 
 def _alias_map(metric_config: Any) -> Mapping[str, str]:
-    """Map declared input name -> SCP file name, from ``metric_config.inputs``.
+    """Map a declared input's name -> the source ``metric_config.inputs`` gives.
 
-    ``metric_config.inputs`` may be a list (alias and file name are the
-    same) or a mapping (alias -> file name); absent entirely, every name
-    maps to itself.
+    ``metric_config.inputs`` may be a list (role and source are the same)
+    or a mapping (role -> source); absent entirely, nothing is overridden,
+    so each role keeps the source :meth:`BaseMetric.input_sources` gives it.
     """
     inputs = (
         getattr(metric_config, "inputs", None) if metric_config is not None else None
@@ -131,123 +116,85 @@ def _alias_map(metric_config: Any) -> Mapping[str, str]:
     return {name: name for name in inputs}
 
 
-def _explain(
-    metric: Any,
-    test_name: str,
-    inference_dir: Path,
-    written: Optional[Mapping[str, Any]],
-    problems: list,
-) -> str:
-    lines = [
-        f"{type(metric).__name__} cannot score test set {test_name!r} from "
-        f"{Path(inference_dir) / test_name}:"
-    ]
-    lines.extend(f"  - {p}" for p in problems)
-    if written is not None:
-        wrote = ", ".join(
-            f"{name} ({info.get('kind')})" for name, info in written["fields"].items()
-        )
-        lines.append(f"  inference wrote: {wrote}")
-    lines.append(
-        "  Fix: make the inference output_fn emit the missing field, or map "
-        "it in the metrics config:\n"
-        "    metrics:\n"
-        "      - metric: {...}\n"
-        "        inputs: {<declared name>: <scp name>}"
-    )
-    return "\n".join(lines)
+def check_metric_inputs(metric: Any, metric_config: Any, inference_config: Any) -> None:
+    """Raise unless each declared input matches what the configured model declares.
 
-
-def check_metric_inputs(
-    metric: Any,
-    metric_config: Any,
-    inference_dir: Path,
-    test_name: str,
-) -> dict:
-    """Map ``metric``'s declared inputs to SCP paths, or explain what is missing.
+    Checked once per metric (not once per test set: the declaration does
+    not vary by test set). A plain source (not ``dataset:<column>``) must
+    name one of the model's declared ``outputs``, of the same kind; a
+    ``dataset:<column>`` source is the test set's own data rather than
+    something inference wrote, so it is not checked here.
 
     Args:
-        metric: A ``BaseMetric`` instance. If it declares ``inputs`` (via
-            ``input_fields()``), each declared :class:`Field` is matched
-            against what inference wrote. A metric with no declaration is
-            left to its own ``ref_key``/``hyp_key`` handling; this function
-            returns ``{}`` for it (callers fall back as today).
-        metric_config: The metric's config node, for its optional ``inputs``
-            alias mapping (declared name -> SCP file name).
-        inference_dir: Base hypothesis/reference directory.
-        test_name: Test set name (a subdirectory of ``inference_dir``).
-
-    Returns:
-        dict[str, Path]: Declared input name -> resolved SCP path, for every
-        declared (and present) input.
+        metric: A ``BaseMetric`` instance.
+        metric_config: The metric's config node, for its optional
+            ``inputs`` mapping (declared name -> source), which overrides
+            :meth:`~espnet3.components.metrics.base_metric.BaseMetric.input_sources`.
+        inference_config: The inference config; only ``model._target_`` is
+            read (see :func:`declared_outputs`).
 
     Raises:
-        MetricContractError: A required input is missing, or its kind
-            disagrees with what inference wrote (per ``fields.json``, when
-            present).
+        MetricContractError: The configured model declares no outputs at
+            all, a plain-source input names none of them, or a kind
+            disagrees.
 
     Examples:
-        >>> import tempfile
         >>> from espnet3.components.metrics.base_metric import BaseMetric
+        >>> from omegaconf import OmegaConf
         >>> class ExampleMetric(BaseMetric):
         ...     inputs = (Field("ref", "text"),)
         ...     outputs = (Field("score", "number"),)
         ...     def __call__(self, data, test_name, output_dir):
         ...         return {"score": 0.0}
-        >>> inference_dir = Path(tempfile.mkdtemp())
-        >>> test_dir = inference_dir / "test"
-        >>> test_dir.mkdir()
-        >>> _ = (test_dir / "ref.scp").write_text("utt1 hello")
-        >>> paths = check_metric_inputs(ExampleMetric(), None, inference_dir, "test")
-        >>> paths["ref"].name
-        'ref.scp'
+        ...     def input_sources(self):
+        ...         return {"ref": "text"}
+        >>> cfg = OmegaConf.create(
+        ...     {"model": {"_target_": "espnet3.systems.esp2_asr.inference.Inference"}}
+        ... )
+        >>> check_metric_inputs(ExampleMetric(), None, cfg)
     """
-    input_fields = getattr(metric, "input_fields", None)
-    if input_fields is None:
-        return {}
-    fields = input_fields()
+    fields = getattr(metric, "inputs", None)
     if not fields:
-        return {}
+        return
 
-    aliases = _alias_map(metric_config)
-    test_dir = Path(inference_dir) / test_name
-    written = read_fields_json(test_dir)
+    sources = metric.input_sources() if hasattr(metric, "input_sources") else {}
+    overrides = _alias_map(metric_config)
+    outputs = None
+    outputs_checked = False
 
-    data: dict = {}
-    problems: list = []
     for f in fields:
-        fname = aliases.get(f.name, f.name)
-        path = test_dir / f"{fname}.scp"
-        if not path.exists():
+        source = overrides.get(f.name, sources.get(f.name, f.name))
+        if str(source).startswith(DATASET_PREFIX):
+            continue
+        if not outputs_checked:
+            outputs = declared_outputs(inference_config)
+            outputs_checked = True
+        if outputs is None:
+            target = getattr(getattr(inference_config, "model", None), "_target_", None)
+            raise MetricContractError(
+                f"inference config model {target!r} declares no outputs; "
+                "name an espnet3.api.inference.InferenceAPI subclass as model"
+            )
+        match = next((o for o in outputs if o.name == source), None)
+        if match is None:
             if f.optional:
                 continue
-            problems.append(f"input {f.name!r} ({f.kind}) -> {fname}.scp is missing")
-            continue
-        if written is not None:
-            kind = written["fields"].get(fname, {}).get("kind")
-            if kind is not None and kind != f.kind:
-                problems.append(
-                    f"input {f.name!r} wants {f.kind} but {fname}.scp holds {kind}"
-                )
-        data[f.name] = path
-
-    if problems:
-        raise MetricContractError(
-            _explain(metric, test_name, inference_dir, written, problems)
-        )
-    if written is None:
-        logger.warning(
-            "%s: no fields.json under %s; input kinds were not checked",
-            type(metric).__name__,
-            test_dir,
-        )
-    return data
+            raise MetricContractError(
+                f"{type(metric).__name__} wants input {f.name!r} -> {source!r}, "
+                "but the inference config's model declares outputs "
+                f"{[o.name for o in outputs]}; set `{f.name}_key` (or add an "
+                f"`inputs: {{{f.name}: <name>}}` mapping) to point it at one"
+            )
+        if match.kind != f.kind:
+            raise MetricContractError(
+                f"{type(metric).__name__} input {f.name!r} wants kind {f.kind!r} "
+                f"but the inference config's model declares {source!r} as "
+                f"{match.kind!r}"
+            )
 
 
 def check_metric_output(metric: Any, result: Mapping[str, Any]) -> None:
     """Raise unless ``result`` has every declared output, each of kind ``number``.
-
-    A metric with no ``outputs`` declaration is not checked (as today).
 
     Args:
         metric: A ``BaseMetric`` instance.
@@ -289,12 +236,12 @@ def check_metric_output(metric: Any, result: Mapping[str, Any]) -> None:
 
 
 __all__ = [
+    "DATASET_PREFIX",
     "Field",
     "MetricContractError",
     "check_metric_declaration",
     "check_metric_inputs",
     "check_metric_output",
-    "read_fields_json",
-    "strict_contracts_enabled",
-    "warn_undeclared",
+    "declared_outputs",
+    "require_metric_declaration",
 ]

@@ -4,13 +4,36 @@ from pathlib import Path
 import pytest
 from omegaconf import OmegaConf
 
-from espnet3.api.inference import Field
+from espnet3.api.inference import Field, InferenceAPI
 from espnet3.components.metrics.base_metric import BaseMetric
 from espnet3.systems.base.metric import _resolve_test_sets, measure
 from espnet3.utils.scp_utils import get_class_path
 
 
+class _DummyInference(InferenceAPI):
+    """A model declaration covering every output name this file's metrics use."""
+
+    inputs = (Field("speech", "audio"),)
+    outputs = (
+        Field("ref", "text"),
+        Field("hyp", "text"),
+        Field("text", "text"),
+        Field("hypothesis", "text"),
+    )
+
+    def run(self, speech):
+        raise NotImplementedError
+
+
+_INFERENCE_CFG = OmegaConf.create(
+    {"model": {"_target_": f"{__name__}._DummyInference"}}
+)
+
+
 class DummyMetric(BaseMetric):
+    inputs = (Field("ref", "text"), Field("hyp", "text"))
+    outputs = (Field("count", "number"),)
+
     ref_key = "ref"
     hyp_key = "hyp"
 
@@ -19,11 +42,17 @@ class DummyMetric(BaseMetric):
 
 
 class NoKeyMetric(BaseMetric):
+    inputs = (Field("ref", "text"), Field("hyp", "text"))
+    outputs = (Field("ok", "number"),)
+
     def __call__(self, data, test_name, inference_dir):
-        return {"ok": True}
+        return {"ok": 1}
 
 
 class PathMetric(BaseMetric):
+    inputs = (Field("ref", "text"), Field("hyp", "text"))
+    outputs = (Field("ok", "number"),)
+
     ref_key = "ref"
     hyp_key = "hyp"
 
@@ -31,7 +60,7 @@ class PathMetric(BaseMetric):
         task_dir = Path(inference_dir) / test_name
         assert data["ref"] == task_dir / "ref.scp"
         assert [row["hyp"] for _, row in self.iter_inputs(data, "hyp")] == ["h1"]
-        return {"ok": True}
+        return {"ok": 1}
 
 
 class NotMetric:
@@ -67,7 +96,7 @@ def test_metric_uses_metric_keys_and_writes_json(tmp_path):
         }
     )
 
-    results = measure(cfg)
+    results = measure(cfg, _INFERENCE_CFG)
 
     expected_key = get_class_path(DummyMetric())
     assert results[expected_key][test_name] == {"count": 2}
@@ -150,10 +179,10 @@ def test_metric_uses_config_inputs_mapping(tmp_path):
         }
     )
 
-    results = measure(cfg)
+    results = measure(cfg, _INFERENCE_CFG)
 
     expected_key = get_class_path(NoKeyMetric())
-    assert results[expected_key][test_name] == {"ok": True}
+    assert results[expected_key][test_name] == {"ok": 1}
 
 
 def test_metric_passes_lazy_scp_inputs(tmp_path):
@@ -172,10 +201,10 @@ def test_metric_passes_lazy_scp_inputs(tmp_path):
         }
     )
 
-    results = measure(cfg)
+    results = measure(cfg, _INFERENCE_CFG)
 
     expected_key = get_class_path(PathMetric())
-    assert results[expected_key][test_name] == {"ok": True}
+    assert results[expected_key][test_name] == {"ok": 1}
 
 
 def test_metric_discovers_test_sets_from_inference_dir(tmp_path):
@@ -194,7 +223,7 @@ def test_metric_discovers_test_sets_from_inference_dir(tmp_path):
     )
 
     assert _resolve_test_sets(cfg) == ["test_a", "test_b"]
-    results = measure(cfg)
+    results = measure(cfg, _INFERENCE_CFG)
 
     expected_key = get_class_path(DummyMetric())
     assert set(results[expected_key]) == {"test_a", "test_b"}
@@ -243,7 +272,7 @@ def test_metric_rejects_non_metric_instance(tmp_path):
     )
 
     with pytest.raises(TypeError, match="not a valid BaseMetric instance"):
-        measure(cfg)
+        measure(cfg, _INFERENCE_CFG)
 
 
 def test_metric_requires_inputs_when_metric_has_no_keys(tmp_path):
@@ -256,7 +285,7 @@ def test_metric_requires_inputs_when_metric_has_no_keys(tmp_path):
     )
 
     with pytest.raises(ValueError, match="requires inputs in config"):
-        measure(cfg)
+        measure(cfg, _INFERENCE_CFG)
 
 
 def test_metric_requires_test_sets_from_config_or_inference_dir(tmp_path):
@@ -269,44 +298,87 @@ def test_metric_requires_test_sets_from_config_or_inference_dir(tmp_path):
 
     (tmp_path / "infer").mkdir()
     with pytest.raises(ValueError, match="No test sets found"):
-        measure(cfg)
+        measure(cfg, _INFERENCE_CFG)
 
 
 # ---------------------------------------------------------------------------
 # declared metric contract, wired through measure()
-#
-# The missing-input test below uses the real WER metric (declared in
-# espnet3/systems/esp2_asr/metrics/wer.py, not redeclared here) rather than a
-# local fixture, specifically so this file stays importable when copied
-# alone onto a tree that predates this change: that tree's wer.py has no
-# contract, so these two tests are the only ones affected, and fail for the
-# predates-this-change reason (a bare "Missing SCP file" assertion) rather
-# than at import time.
 # ---------------------------------------------------------------------------
 
 
-def test_measure_explains_missing_metric_input(tmp_path):
+def test_measure_rejects_metric_whose_input_is_not_a_declared_output(tmp_path):
+    inference_dir = tmp_path / "infer"
+    test_name = "test-clean"
+    (inference_dir / test_name).mkdir(parents=True)
+
+    not_declared = OmegaConf.create({"model": {"_target_": "builtins.dict"}})
+    cfg = OmegaConf.create(
+        {
+            "inference_dir": str(inference_dir),
+            "dataset": {"test": [{"name": test_name}]},
+            "metrics": [{"metric": {"_target_": f"{__name__}.DummyMetric"}}],
+        }
+    )
+
+    with pytest.raises(ValueError, match="declares no outputs"):
+        measure(cfg, not_declared)
+
+
+def test_measure_succeeds_for_declared_metric_with_matching_output(tmp_path):
     inference_dir = tmp_path / "infer"
     test_name = "test-clean"
     task_dir = inference_dir / test_name
     task_dir.mkdir(parents=True)
-    _write_scp(task_dir / "hyp.scp", ["utt1 h1"])  # ref.scp is missing
+    _write_scp(task_dir / "ref.scp", ["utt1 r1"])
+    _write_scp(task_dir / "hyp.scp", ["utt1 h1"])
 
     cfg = OmegaConf.create(
         {
             "inference_dir": str(inference_dir),
             "dataset": {"test": [{"name": test_name}]},
-            "metrics": [
-                {"metric": {"_target_": "espnet3.systems.esp2_asr.metrics.wer.WER"}}
-            ],
+            "metrics": [{"metric": {"_target_": f"{__name__}.DummyMetric"}}],
         }
     )
 
-    with pytest.raises(ValueError, match="input 'ref' .* ref.scp is missing"):
-        measure(cfg)
+    results = measure(cfg, _INFERENCE_CFG)
+
+    expected_key = get_class_path(DummyMetric())
+    assert results[expected_key][test_name] == {"count": 1}
 
 
-def test_measure_succeeds_for_declared_metric_with_all_inputs(tmp_path):
+class BadOutputMetric(BaseMetric):
+    """A declared metric whose __call__ breaks its own output contract."""
+
+    ref_key = "ref"
+    hyp_key = "hyp"
+    inputs = (Field("ref", "text"), Field("hyp", "text"))
+    outputs = (Field("X", "number"),)
+
+    def __call__(self, data, test_name, inference_dir):
+        return {"X": "not-a-number"}
+
+
+def test_measure_rejects_non_number_metric_output(tmp_path):
+    inference_dir = tmp_path / "infer"
+    test_name = "test-clean"
+    task_dir = inference_dir / test_name
+    task_dir.mkdir(parents=True)
+    _write_scp(task_dir / "ref.scp", ["utt1 r1"])
+    _write_scp(task_dir / "hyp.scp", ["utt1 h1"])
+
+    cfg = OmegaConf.create(
+        {
+            "inference_dir": str(inference_dir),
+            "dataset": {"test": [{"name": test_name}]},
+            "metrics": [{"metric": {"_target_": f"{__name__}.BadOutputMetric"}}],
+        }
+    )
+
+    with pytest.raises(ValueError, match="number"):
+        measure(cfg, _INFERENCE_CFG)
+
+
+def test_measure_succeeds_for_wer_against_a_declared_inference_model(tmp_path):
     from espnet3.systems.esp2_asr.metrics.wer import WER
 
     try:
@@ -331,54 +403,7 @@ def test_measure_succeeds_for_declared_metric_with_all_inputs(tmp_path):
         }
     )
 
-    results = measure(cfg)
+    results = measure(cfg, _INFERENCE_CFG)
 
     expected_key = get_class_path(WER())
     assert results[expected_key][test_name] == {"WER": 0.0}
-
-
-# BadOutputMetric's `outputs` is set only when the "number" kind this PR adds
-# is actually registered, so this file still collects (and every other test
-# in it still runs) when copied alone onto a tree that predates this change;
-# there, BadOutputMetric is simply undeclared, like NoKeyMetric above, and
-# measure() does not check its return value at all.
-try:
-    _bad_output_outputs = (Field("X", "number"),)
-except ValueError:
-    _bad_output_outputs = None
-
-
-class BadOutputMetric(BaseMetric):
-    """A declared metric whose __call__ breaks its own output contract."""
-
-    # Also set directly (not just via `inputs`), so the pre-this-change
-    # fallback path in measure() (no input_fields(), no metric_config.inputs)
-    # can still resolve ref.scp/hyp.scp and reach __call__.
-    ref_key = "ref"
-    hyp_key = "hyp"
-    inputs = (Field("ref", "text"), Field("hyp", "text"))
-    if _bad_output_outputs is not None:
-        outputs = _bad_output_outputs
-
-    def __call__(self, data, test_name, inference_dir):
-        return {"X": "not-a-number"}
-
-
-def test_measure_rejects_non_number_metric_output(tmp_path):
-    inference_dir = tmp_path / "infer"
-    test_name = "test-clean"
-    task_dir = inference_dir / test_name
-    task_dir.mkdir(parents=True)
-    _write_scp(task_dir / "ref.scp", ["utt1 r1"])
-    _write_scp(task_dir / "hyp.scp", ["utt1 h1"])
-
-    cfg = OmegaConf.create(
-        {
-            "inference_dir": str(inference_dir),
-            "dataset": {"test": [{"name": test_name}]},
-            "metrics": [{"metric": {"_target_": f"{__name__}.BadOutputMetric"}}],
-        }
-    )
-
-    with pytest.raises(ValueError, match="number"):
-        measure(cfg)

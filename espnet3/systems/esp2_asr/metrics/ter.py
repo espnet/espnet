@@ -53,16 +53,16 @@ class TER(BaseMetric):
         self.ref_key = ref_key
         self.hyp_key = hyp_key
 
-    def input_fields(self):
-        """Return the declared inputs, renamed to this instance's ref_key/hyp_key.
+    def input_sources(self):
+        """Map the declared ``ref``/``hyp`` roles to this instance's keys.
 
         Examples:
             >>> ter = TER.__new__(TER)  # skip __init__, which needs a bpemodel
             >>> ter.ref_key, ter.hyp_key = "reference", "hypothesis"
-            >>> [f.name for f in ter.input_fields()]
-            ['reference', 'hypothesis']
+            >>> ter.input_sources()
+            {'ref': 'reference', 'hyp': 'hypothesis'}
         """
-        return (Field(self.ref_key, "text"), Field(self.hyp_key, "text"))
+        return {"ref": self.ref_key, "hyp": self.hyp_key}
 
     def _tokenize(self, text: str) -> str:
         """Clean text, tokenize into subword pieces, and join with spaces.

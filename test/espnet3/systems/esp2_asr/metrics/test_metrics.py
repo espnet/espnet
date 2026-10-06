@@ -168,17 +168,16 @@ def test_ter_declares_text_inputs_and_number_output():
     assert [f.kind for f in TER.inputs] == ["text", "text"]
 
 
-def test_wer_input_fields_follows_renamed_keys():
+def test_wer_input_sources_follows_renamed_keys():
     metric = WER(ref_key="transcript", hyp_key="prediction")
-    assert [f.name for f in metric.input_fields()] == ["transcript", "prediction"]
-    assert [f.kind for f in metric.input_fields()] == ["text", "text"]
+    assert metric.input_sources() == {"ref": "transcript", "hyp": "prediction"}
 
 
-def test_cer_input_fields_follows_renamed_keys():
+def test_cer_input_sources_follows_renamed_keys():
     metric = CER(ref_key="transcript", hyp_key="prediction")
-    assert [f.name for f in metric.input_fields()] == ["transcript", "prediction"]
+    assert metric.input_sources() == {"ref": "transcript", "hyp": "prediction"}
 
 
-def test_ter_input_fields_follows_renamed_keys(tiny_bpemodel: str):
+def test_ter_input_sources_follows_renamed_keys(tiny_bpemodel: str):
     metric = TER(bpemodel=tiny_bpemodel, ref_key="transcript", hyp_key="prediction")
-    assert [f.name for f in metric.input_fields()] == ["transcript", "prediction"]
+    assert metric.input_sources() == {"ref": "transcript", "hyp": "prediction"}

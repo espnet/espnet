@@ -8,25 +8,22 @@ from espnet3.api.inference import Field
 from espnet3.components.contract.check import check_declaration
 from espnet3.components.contract.metrics import (
     check_metric_declaration,
-    warn_undeclared,
+    require_metric_declaration,
 )
 
 
 class BaseMetric(ABC):
     """Base class for metrics that consume inference output paths.
 
-    A subclass may declare ``inputs``/``outputs`` class attributes (the
+    A subclass must declare ``inputs``/``outputs`` class attributes (the
     same :class:`~espnet3.api.inference.Field` declaration
-    :class:`~espnet3.api.inference.InferenceAPI` uses) to opt into
-    contract checking: ``inputs`` names the SCP inputs the metric reads
-    (checked against what inference wrote, via
+    :class:`~espnet3.api.inference.InferenceAPI` uses): ``inputs`` names
+    what the metric reads (checked against the configured model's own
+    declared outputs, via
     ``espnet3.components.contract.metrics.check_metric_inputs``), and
     ``outputs`` names the keys of the result dict, each of kind
-    ``"number"``.
-
-    A metric that does not declare them keeps working exactly as today
-    (a one-time warning is logged per class; ``ESPNET3_STRICT_CONTRACTS=1``
-    turns that into an error instead).
+    ``"number"``. There is no undeclared fallback: a subclass that
+    declares neither raises ``TypeError`` as soon as it is defined.
 
     Examples:
         >>> class ExampleMetric(BaseMetric):
@@ -47,20 +44,21 @@ class BaseMetric(ABC):
     outputs: ClassVar[Tuple[Field, ...]]
 
     def __init_subclass__(cls, **kwargs) -> None:
-        """Check a declared contract, or warn once that there is none."""
+        """Check a declared contract; require one if neither attr is set."""
         super().__init_subclass__(**kwargs)
-        if hasattr(cls, "inputs") or hasattr(cls, "outputs"):
-            check_declaration(cls)
-            check_metric_declaration(cls)
-        else:
-            warn_undeclared(cls, "inputs/outputs")
+        if not (hasattr(cls, "inputs") or hasattr(cls, "outputs")):
+            require_metric_declaration(cls)
+        check_declaration(cls)
+        check_metric_declaration(cls)
 
-    def input_fields(self) -> Tuple[Field, ...]:
-        """Return the declared inputs as this instance actually reads them.
+    def input_sources(self) -> Dict[str, str]:
+        """Map each declared input's role (name) to where its value comes from.
 
-        Defaults to ``type(self).inputs``; override when constructor
-        arguments rename an input (e.g. ``WER``'s ``ref_key``/``hyp_key``),
-        so contract checking follows the renamed key.
+        Defaults to identity: each declared input's own name is also its
+        source, an inference-written ``<name>.scp`` or a
+        ``dataset:<column>``. Override when constructor arguments rename a
+        role to its own key (e.g. ``WER``'s ``ref_key``/``hyp_key``), so
+        contract checking and input resolution follow the renamed source.
 
         Examples:
             >>> class ExampleMetric(BaseMetric):
@@ -68,10 +66,10 @@ class BaseMetric(ABC):
             ...     outputs = (Field("score", "number"),)
             ...     def __call__(self, data, test_name, output_dir):
             ...         return {"score": 0.0}
-            >>> ExampleMetric().input_fields() == ExampleMetric.inputs
-            True
+            >>> ExampleMetric().input_sources()
+            {'ref': 'ref', 'hyp': 'hyp'}
         """
-        return getattr(type(self), "inputs", ())
+        return {f.name: f.name for f in getattr(type(self), "inputs", ())}
 
     @abstractmethod
     def __call__(

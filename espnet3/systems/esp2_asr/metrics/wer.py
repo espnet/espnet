@@ -46,15 +46,14 @@ class WER(BaseMetric):
         self.ref_key = ref_key
         self.hyp_key = hyp_key
 
-    def input_fields(self):
-        """Return the declared inputs, renamed to this instance's ref_key/hyp_key.
+    def input_sources(self):
+        """Map the declared ``ref``/``hyp`` roles to this instance's keys.
 
         Examples:
-            >>> fields = WER(ref_key="reference", hyp_key="hypothesis").input_fields()
-            >>> [f.name for f in fields]
-            ['reference', 'hypothesis']
+            >>> WER(ref_key="reference", hyp_key="hypothesis").input_sources()
+            {'ref': 'reference', 'hyp': 'hypothesis'}
         """
-        return (Field(self.ref_key, "text"), Field(self.hyp_key, "text"))
+        return {"ref": self.ref_key, "hyp": self.hyp_key}
 
     def _clean(self, text: str) -> str:
         """Clean text and provide a placeholder for empty strings.
