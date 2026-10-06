@@ -36,9 +36,7 @@ def _cer(**kwargs):
 
 def _scp(tmp_path: Path, name: str, rows: list[tuple[str, str]]) -> Path:
     path = tmp_path / f"{name}.scp"
-    path.write_text(
-        "".join(f"{utt} {text}\n" for utt, text in rows), encoding="utf-8"
-    )
+    path.write_text("".join(f"{utt} {text}\n" for utt, text in rows), encoding="utf-8")
     return path
 
 

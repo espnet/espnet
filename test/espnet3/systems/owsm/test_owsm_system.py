@@ -201,7 +201,10 @@ def test_text_shapes_become_two_dimensional(tmp_path):
     # text and text_prev share the decoder logits tensor, so both scale with V.
     for stream in ("text", "text_prev"):
         assert (stats / f"{stream}_shape").read_text().split() == [
-            "a", "7,50", "b", "9,50",
+            "a",
+            "7,50",
+            "b",
+            "9,50",
         ]
     # text_ctc does not: CTC projects the encoder, so its length never meets V.
     assert (stats / "text_ctc_shape").read_text() == "a 7\nb 9\n"
