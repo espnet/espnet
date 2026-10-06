@@ -15,4 +15,3 @@
 #   list ci/test_integration_espnet3.sh runs for this recipe;
 # - this recipe's vocoder is a few seconds of training on a stub encoder, so
 #   the score says nothing about kNN-VC. It checks that the stage runs.
-
