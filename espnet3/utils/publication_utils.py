@@ -442,7 +442,7 @@ def _load_example(target: str, out_dir: Path, system: str | None) -> str:
     """Return the README's ``load(...)`` line for this bundle.
 
     A bundle served by an installed system loads as it is. One that names no
-    system and whose model or provider is Python code shipped in the bundle
+    system and whose model is Python code shipped in the bundle
     is refused by ``load`` unless the caller passes ``trust_user_code=True``,
     so the example passes it, with a line saying what that runs.
 

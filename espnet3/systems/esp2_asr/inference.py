@@ -43,7 +43,6 @@ import inspect
 from typing import Any, Mapping, Optional, Sequence
 
 import numpy as np
-from hydra.utils import get_class
 
 from espnet3.api.inference import Audio, Field
 from espnet3.systems.base.backend_inference import BackendInference, parse_rate
@@ -112,8 +111,8 @@ class Inference(BackendInference):
                 backend that takes it.
         """
         if backend is None:
-            path = backend_class or type(self).backend_class
-            if "return_decoded_hyp" in inspect.signature(get_class(path)).parameters:
+            built = self._backend_type(backend_class)
+            if "return_decoded_hyp" in inspect.signature(built).parameters:
                 if not kwargs.get("return_decoded_hyp", True):
                     raise ValueError(
                         "return_decoded_hyp=False: this class reads the decoded "

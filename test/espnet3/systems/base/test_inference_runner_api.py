@@ -346,3 +346,22 @@ def test_write_record_writes_an_empty_segments_list(tmp_path):
     InferenceRunner.close_writers(writers, {})
     path = (tmp_path / "segments.scp").read_text().split(" ", 1)[1].strip()
     assert json.loads(Path(path).read_text()) == {"segments": []}
+
+
+def test_infer_refuses_an_input_key_for_an_inference(tmp_path):
+    """The declaration gives the inputs; an input_key would be ignored silently."""
+    cfg = OmegaConf.create(
+        {
+            "inference_dir": str(tmp_path),
+            "dataset": {"test": [{"name": "test"}], "size": 1},
+            "model": {"_target_": f"{__name__}.Echo"},
+            "input_key": "speech",
+            "provider": {"_target_": f"{__name__}.EchoProvider"},
+            "runner": {"_target_": RUNNER},
+            "parallel": {"env": "local", "n_workers": 1},
+        }
+    )
+    with pytest.raises(
+        RuntimeError, match=r"declares its own inputs \['speech', 'prompt'\]"
+    ):
+        infer(cfg)

@@ -85,6 +85,7 @@ def _dataset_column_scp(
     Raises:
         ValueError: If no inference config was given, or an id is not a plain
             token.
+        KeyError: If an item of the test set has no ``column``.
     """
     path = inference_dir / test_name / "dataset" / f"{column}.scp"
     if path.exists():

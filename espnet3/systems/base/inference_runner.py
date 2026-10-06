@@ -59,9 +59,10 @@ def _iter_outputs(result: Any) -> List[Dict[str, Any]]:
 def declared_input_names(config) -> Optional[List[str]]:
     """Return the input field names the configured model class declares.
 
-    Lets ``infer()`` default ``input_key`` from the declaration when
-    ``model._target_`` names an :class:`InferenceAPI` subclass, without
-    building the model. ``None`` when it names anything else or nothing.
+    Lets ``infer()`` tell an :class:`InferenceAPI` subclass from a bare
+    model without building it - an ``Inference`` takes no ``input_key`` -
+    and name its inputs in the error when one is set anyway. ``None`` when
+    ``model._target_`` names anything else or nothing.
 
     Args:
         config: The inference config; only ``model._target_`` is read.
@@ -240,8 +241,13 @@ def _materialize_output_value(
 class InferenceRunner(BaseRunner):
     """Inference runner with strict output-format validation.
 
-    This runner implements ``forward`` to call a recipe-provided output
-    function. The key names are configurable via ``idx_key`` and
+    ``forward`` takes one of two paths. For an
+    :class:`~espnet3.api.inference.InferenceAPI` it picks the declared
+    inputs out of each item, calls ``model(**fields)`` or
+    ``model.batch(items)``, and writes each declared output by its kind;
+    no ``input_key`` or ``output_fn`` is used. For any other model it
+    passes the ``input_key`` fields and shapes the result with the
+    recipe's ``output_fn``. The key names are configurable via ``idx_key`` and
     ``hyp_key``/``ref_key``. ``hyp_key`` and ``ref_key`` may be a single
     string or a list of strings to support multiple hypothesis/reference
     fields. ``idx_key`` is the key used to map each inference result to
@@ -347,13 +353,15 @@ class InferenceRunner(BaseRunner):
             idx: Integer index or an iterable of integer indices into the dataset.
             dataset: Dataset providing inference entries.
             model: Inference model callable on the configured input.
-            **kwargs: Expects ``input_key`` and optionally ``output_fn_path``.
-                ``model_kwargs`` may be used to pass extra keyword arguments
-                through to the underlying model callable.
+            **kwargs: For an ``InferenceAPI``, ``idx_key`` only: the
+                declaration gives the inputs and outputs. For any other
+                model, ``input_key`` and optionally ``output_fn_path``;
+                ``model_kwargs`` passes extra keyword arguments to it.
 
         Returns:
             Dict containing ``idx`` and output fields for a single item, or a list
-            of dicts for batched inputs (as returned by ``output_fn``).
+            of dicts for batched inputs: the declared outputs for an
+            ``InferenceAPI``, else what ``output_fn`` returns.
 
         Raises:
             RuntimeError: If required input settings are missing.
@@ -620,7 +628,7 @@ class InferenceRunner(BaseRunner):
             ... )
             >>> runner(range(len(test_dataset)))
             True
-            >>> # hyp.scp and ref.scp are written under /exp/decode
+            >>> # one .scp per output (text.scp for ASR) under /exp/decode
         """
         super().__call__(indices)
         return True

@@ -208,6 +208,14 @@ def read_bundle(
             config.pop(key, None)
     if _uses_bundled_code(config, _bundled_module_names(bundle_root)):
         if not trust_user_code:
+            system = meta.get("system")
+            if system:
+                raise ValueError(
+                    "This inference config references bundled user code, but "
+                    f"meta.yaml names system {system!r}, whose Inference builds "
+                    "the model and never runs a bundle's own code. Re-pack the "
+                    "bundle without it."
+                )
             raise ValueError(
                 "This inference config references bundled user code. "
                 "Set trust_user_code=True to allow imports from the "
@@ -318,6 +326,19 @@ def load_model(
         >>> load_model("exp/old_pack", device="cuda:0")        # a Speech2Text
     """
     config, _ = read_bundle(pack_dir, trust_user_code=trust_user_code, drop=_STAGE_KEYS)
+    return _build_bundle_model(config, device, overrides)
+
+
+def _build_bundle_model(
+    config: DictConfig,
+    device: Optional[str],
+    overrides: Optional[Mapping[str, Any]],
+) -> Any:
+    """Build a read bundle's ``model`` with the caller's overrides applied.
+
+    An override the model does not take is a ``TypeError`` naming it, not
+    hydra's wrapping of the constructor's.
+    """
     apply_overrides(config, overrides)
     if device is not None:
         with open_dict(config):
@@ -431,9 +452,8 @@ def load(
                 trust_user_code=trust_user_code,
                 drop=_STAGE_KEYS,
             )
-            apply_overrides(config, kwargs)
             model = (
-                build_model(config, device=device)
+                _build_bundle_model(config, device, kwargs)
                 if config.get("model", None) is not None
                 else None
             )

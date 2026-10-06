@@ -166,8 +166,7 @@ def load(
         system's ``Inference``: ``model(speech)["text"]`` rather than
         ``Speech2Text``'s n-best list. That contract is where every model
         is headed; for now the two kinds of tag return the two kinds of
-        object. Loading an espnet3 bundle needs omegaconf and hydra-core,
-        which ``pip install "espnet[train]"`` brings.
+        object.
 
         Calling an ``s2t`` object runs a search, which on a CTC-only
         checkpoint such as OWSM-CTC is a CTC prefix beam search and is slow;
@@ -180,8 +179,6 @@ def load(
             model's metadata does not name one.
         ModelTagError: the tag names a model this task cannot load, or an
             espnet3 bundle of a system other than the ``task`` given.
-        ImportError: the tag is an espnet3 bundle and the [train] extra is
-            not installed.
     """
     explicit = task is not None
     if task is None:
@@ -207,10 +204,10 @@ def load(
             f"espnet.load({model_tag!r}, task=...) takes {_task_names()}.",
             **kwargs,
         )
-    except Espnet3BundleError:
+    except Espnet3BundleError as e:
         # found only once downloaded, so this costs no extra request, and
         # espnet3 reads the bundle from the cache the download just filled
-        return _load_espnet3(model_tag, task if explicit else None, device, kwargs)
+        return _load_espnet3(e.model_tag, task if explicit else None, device, kwargs)
 
 
 def _load_espnet3(
@@ -224,19 +221,8 @@ def _load_espnet3(
     bundle's own ``meta.yaml`` says more than the Hub labels it was guessed
     from.
     """
-    try:
-        from espnet3.api.inference import (
-            SYSTEM_ALIASES,
-            load,
-            locate_pack,
-            read_meta,
-        )
-    except ImportError as e:
-        raise ImportError(
-            f"{model_tag} is an espnet3 bundle, and loading one needs omegaconf "
-            f'and hydra-core: pip install "espnet[train]" ({e})'
-        ) from e
     from espnet2.utils.pretrained import ModelTagError
+    from espnet3.api.inference import SYSTEM_ALIASES, load, locate_pack, read_meta
 
     if task is not None:
         system = read_meta(locate_pack(model_tag)).get("system")

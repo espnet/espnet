@@ -84,8 +84,9 @@ def infer(config: DictConfig):
     ``dict`` and let it be serialized as JSON.
 
     When ``model`` names an :class:`espnet3.api.inference.InferenceAPI`
-    subclass, ``input_key`` may be omitted - the declared inputs are used -
-    and no ``output_fn`` is needed: the runner writes the declared outputs
+    subclass, ``input_key`` is not set - the declared inputs are used, and
+    setting one is an error rather than silently ignored - and no
+    ``output_fn`` is needed: the runner writes the declared outputs
     by what they are. A reference for scoring is not written here at all;
     ``measure`` reads it from the data (``ref_key: dataset:text``).
 
@@ -124,13 +125,18 @@ def infer(config: DictConfig):
             _load_output_fn(output_fn_path)
 
         input_key = getattr(config, "input_key", None)
-        if input_key is None:
-            # an Inference declares its inputs; a bare model must be told
-            input_key = declared_input_names(config)
-        if input_key is None:
+        declared = declared_input_names(config)
+        if declared is not None:
+            # an Inference declares its inputs; an input_key would be ignored
+            if input_key is not None:
+                raise RuntimeError(
+                    f"inference_config.input_key is set, but model names an "
+                    f"Inference, which declares its own inputs {declared}; "
+                    "drop input_key"
+                )
+        elif input_key is None:
             raise RuntimeError("inference_config.input_key must be set.")
-
-        if isinstance(input_key, (list, tuple)) and not input_key:
+        elif isinstance(input_key, (list, tuple)) and not input_key:
             raise RuntimeError("inference_config.input_key must not be empty.")
 
         output_keys = getattr(config, "output_keys", None)
