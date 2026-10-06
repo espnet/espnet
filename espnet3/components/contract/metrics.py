@@ -125,6 +125,10 @@ def declared_outputs(config: Any) -> Optional[tuple]:
     configured model is not declared at all - unset, unimportable, or not
     an :class:`~espnet3.api.inference.InferenceAPI` subclass.
 
+    ``outputs`` is read from the class, as the contract declares it
+    (``ClassVar``, checked at class definition): unlike ``BaseMetric``,
+    no ``InferenceAPI`` subclass in ``espnet3`` sets ``self.outputs``.
+
     Examples:
         >>> from omegaconf import OmegaConf
         >>> cfg = OmegaConf.create(
@@ -266,7 +270,7 @@ def check_metric_output(metric: Any, result: Mapping[str, Any]) -> None:
         Traceback (most recent call last):
         espnet3.components.contract.metrics.MetricContractError: ExampleMetric ...
     """
-    outputs = getattr(type(metric), "outputs", None)
+    outputs = getattr(metric, "outputs", None)
     if not outputs:
         return
     missing = [f.name for f in outputs if f.name not in result]

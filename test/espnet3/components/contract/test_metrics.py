@@ -234,3 +234,26 @@ def test_check_metric_output_no_declaration_is_noop():
         pass
 
     check_metric_output(NoOutputs(), {"anything": "goes"})
+
+
+def test_check_metric_output_reads_the_instance_not_the_class():
+    # score_config picks "f0" here; a class-level read would see no
+    # declaration at all (VersaStyle declares nothing on the class)
+    metric = _VersaStyle(["f0"])
+
+    with pytest.raises(MetricContractError, match="missing"):
+        check_metric_output(metric, {})
+
+    check_metric_output(metric, {"f0": 4.3})
+
+
+def test_check_metric_inputs_reads_the_instance_too():
+    metric = _VersaStyle(["mcd"])  # inputs = (hyp (required), ref (optional))
+
+    # default input_sources() is identity: "hyp" names no declared output
+    with pytest.raises(MetricContractError, match="wants input 'hyp'"):
+        check_metric_inputs(metric, None, _INFERENCE_CFG)
+
+    # ref is optional, so a model that declares only hyp's source is enough
+    metric.input_sources = lambda: {"hyp": "text", "ref": "missing"}
+    check_metric_inputs(metric, None, _INFERENCE_CFG)
