@@ -393,8 +393,11 @@ class _OrderRecordingProvider(InferenceProvider):
 
 
 class _SlowFirstShardRunner(BaseRunner):
-    """Runner where shard 0 sleeps, so shard 1 finishes first -- merge()
-    must still return items in original index order, not completion order."""
+    """Runner where shard 0 sleeps, so shard 1 finishes first.
+
+    merge() must still return items in original index order, not
+    completion order.
+    """
 
     @staticmethod
     def forward(idx: int, *, dataset, model, **env) -> int:
@@ -431,8 +434,11 @@ class _SlowFirstShardRunner(BaseRunner):
 
 @pytest.mark.execution_timeout(30)
 def test_run_parallel_dask_merge_preserves_shard_order(tmp_path):
-    """merge() must read shards in shard_id order regardless of which
-    shard's Dask future actually completes first."""
+    """merge() must read shards in shard_id order.
+
+    This holds regardless of which shard's Dask future actually
+    completes first.
+    """
     from espnet3.parallel.parallel import set_parallel
 
     set_parallel(
@@ -461,8 +467,11 @@ def test_run_parallel_dask_merge_preserves_shard_order(tmp_path):
 
 
 class _LockCheckFailingRunner(BaseRunner):
-    """Real-InferenceProvider-driven runner whose forward() raises for one
-    item, to check lock release on a genuine Dask-dispatched failure."""
+    """Real-InferenceProvider-driven runner whose forward() raises.
+
+    Raises for one item, to check lock release on a genuine
+    Dask-dispatched failure.
+    """
 
     @staticmethod
     def forward(idx: int, *, dataset, model, **env) -> int:
@@ -491,9 +500,11 @@ class _LockCheckFailingRunner(BaseRunner):
 
 @pytest.mark.execution_timeout(30)
 def test_run_parallel_dask_releases_lock_for_real_inference_provider(tmp_path):
-    """A worker exception with a real InferenceProvider must still release
-    the failing shard's lock (not just with the toy BaseRunner in
-    test_base_runner_batch.py)."""
+    """A worker exception with a real InferenceProvider releases the lock.
+
+    Must still release the failing shard's lock, not just with the toy
+    BaseRunner in test_base_runner_batch.py.
+    """
     from espnet3.parallel.parallel import set_parallel
 
     set_parallel(
