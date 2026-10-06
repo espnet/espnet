@@ -1,7 +1,7 @@
 """The kinds a field can hold, and the registry a new one is added to.
 
 ``audio``, ``text`` and ``segments`` are built in. A new modality - a
-conversation, a multichannel signal, video, a JSON document - is a
+conversation, video, a JSON document - is a
 :class:`Kind` subclass passed to :func:`register_kind`, from a system
 or from a recipe's own ``src/``; :class:`~espnet3.api.inference.base.InferenceAPI`
 needs no change for it::
@@ -51,8 +51,8 @@ def register_kind(name: str, kind: Kind, *, replace: bool = False) -> None:
 
     Examples:
         >>> register_kind("messages", Messages())
-        >>> Field("messages", "messages")
-        Field(name='messages', kind='messages', label='Messages', optional=False)
+        >>> Field("messages", "messages").kind
+        'messages'
     """
     if not isinstance(kind, Kind):
         raise TypeError(f"a kind is a Kind instance, not {type(kind).__name__}")
