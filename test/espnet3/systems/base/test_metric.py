@@ -4,7 +4,7 @@ from pathlib import Path
 import pytest
 from omegaconf import OmegaConf
 
-from espnet3.api.inference import Field  # re-exported; exists on upstream/master too
+from espnet3.components.contract import Field
 from espnet3.components.metrics.base_metric import BaseMetric
 from espnet3.systems.base.metric import _resolve_test_sets, measure
 from espnet3.utils.scp_utils import get_class_path

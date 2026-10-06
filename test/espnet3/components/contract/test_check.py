@@ -1,29 +1,7 @@
-"""The old api.inference import paths still work, unchanged, through shims."""
+"""Shared validation for a class's field declarations."""
 
-import espnet3.api.inference as old
-import espnet3.api.inference.kinds as old_kinds
-import espnet3.components.contract as new
-import espnet3.components.contract.kinds as new_kinds
 from espnet3.components.contract.check import check_declaration
 from espnet3.components.contract.field import Field
-
-
-def test_field_is_the_same_object():
-    assert old.Field is new.Field
-
-
-def test_kinds_is_the_same_dict():
-    assert old.KINDS is new.KINDS
-    assert old_kinds.KINDS is new_kinds.KINDS
-
-
-def test_kind_classes_are_the_same_objects():
-    assert old.Kind is new.Kind
-    assert old.AudioKind is new.AudioKind
-    assert old.TextKind is new.TextKind
-    assert old.SegmentsKind is new.SegmentsKind
-    assert old.Audio is new.Audio
-    assert old.register_kind is new.register_kind
 
 
 def test_check_declaration_accepts_a_good_declaration():

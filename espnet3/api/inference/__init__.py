@@ -25,24 +25,25 @@ Inference is a stream of chunks in and chunks out; the one-shot call is
 the stream of one chunk, and a batch is several one-shot calls that a
 model may choose to run together.
 
-What a field can hold is a :class:`Kind` registered in :data:`KINDS`
-(``espnet3.api.inference.kinds``); ``audio``, ``text`` and ``segments`` are
-built in, and a new modality is one subclass passed to
-:func:`register_kind` - from a system, or from a recipe's own ``src/``.
+What a field can hold is a ``Kind`` registered in ``KINDS``
+(:mod:`espnet3.components.contract`, shared with whatever else declares
+typed inputs and outputs, such as a metric); ``audio``, ``text`` and
+``segments`` are built in, and a new modality is one subclass passed to
+``register_kind`` - from a system, or from a recipe's own ``src/``.
 
 This package is for whoever calls a model. It asks nothing of the rest
 of ESPnet3 - no recipe, no stage, no dataset, no cluster - and depends on
 none of it; a user who has one file and a model tag needs to read nothing
-else. Its names say what each thing is for - :class:`InferenceAPI`,
-:class:`Kind`, :class:`Field`. (For ESPnet3 developers: the ``Base*``
-spelling of an abstract class belongs to the training and ``infer``
-stage machinery and stops at this package, which that machinery adapts
-to, never the reverse.)
+else. Its names say what each thing is for - :class:`InferenceAPI` here,
+``Field`` and ``Kind`` in :mod:`espnet3.components.contract`. (For ESPnet3
+developers: the ``Base*`` spelling of an abstract class belongs to the
+training and ``infer`` stage machinery and stops at this package, which
+that machinery adapts to, never the reverse.)
 
 The package is laid out by what a reader looks for: :mod:`.base` holds
-:class:`InferenceAPI`, :mod:`.field` the :class:`Field` declaration,
-:mod:`.kinds` the kinds, and :mod:`.loading` :func:`load`. Everything is
-importable from here.
+:class:`InferenceAPI`, :mod:`.loading` :func:`load`. ``Field``, ``Kind``
+and the built-in kinds live in :mod:`espnet3.components.contract`, not
+here; import them from there.
 
 A system says nothing about *what task* it performs; it says what goes in
 and what comes out. A front end that offers ``transcribe`` looks for a
@@ -92,30 +93,12 @@ from __future__ import annotations
 
 from espnet3.api.inference.base import InferenceAPI, check_contract, gather
 from espnet3.api.inference.loading import SYSTEM_ALIASES, load, locate_pack
-from espnet3.components.contract.field import Field
-from espnet3.components.contract.kinds import (
-    KINDS,
-    Audio,
-    AudioKind,
-    Kind,
-    SegmentsKind,
-    TextKind,
-    register_kind,
-)
 
 __all__ = [
-    "KINDS",
     "SYSTEM_ALIASES",
-    "Audio",
-    "AudioKind",
     "InferenceAPI",
-    "Kind",
-    "Field",
-    "SegmentsKind",
-    "TextKind",
     "check_contract",
     "gather",
     "load",
     "locate_pack",
-    "register_kind",
 ]

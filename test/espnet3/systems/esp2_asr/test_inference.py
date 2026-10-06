@@ -8,7 +8,7 @@ import numpy as np
 import pytest
 from omegaconf import OmegaConf
 
-from espnet3.api.inference import Audio
+from espnet3.components.contract import Audio
 from espnet3.systems.base.inference_provider import InferenceProvider
 from espnet3.systems.base.inference_runner import InferenceRunner
 from espnet3.systems.esp2_asr.inference import Inference
@@ -185,7 +185,7 @@ def test_from_pretrained_returns_the_bundles_own_inference(tmp_path, monkeypatch
     monkeypatch.setattr(base, "load_backend", lambda p, *, device=None: ready)
     assert Inference.from_pretrained(tmp_path) is ready
 
-    from espnet3.api.inference import Field
+    from espnet3.components.contract import Field
     from espnet3.systems.base.backend_inference import BackendInference
 
     class Other(BackendInference):

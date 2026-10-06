@@ -58,8 +58,9 @@ class Inference(BackendInference):
     - ``Inference(speech2text)`` around one already built.
 
     Called with one utterance (a path, a ``(rate, samples)`` pair, an array
-    or an :class:`~espnet3.api.inference.Audio`) it returns ``{"text": str}``;
-    ``model.batch(items)`` decodes several in one beam search.
+    or an :class:`~espnet3.components.contract.Audio`) it returns
+    ``{"text": str}``; ``model.batch(items)`` decodes several in one beam
+    search.
 
     Examples:
         >>> model = Inference.from_pretrained("espnet/some_asr_pack")

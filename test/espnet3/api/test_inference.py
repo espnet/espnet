@@ -17,14 +17,13 @@ import torch
 
 import espnet3.api.inference as inference_api
 from espnet3.api.inference import (
-    Audio,
-    Field,
     InferenceAPI,
     check_contract,
     gather,
     load,
     locate_pack,
 )
+from espnet3.components.contract import Audio, Field
 
 
 class Echo(InferenceAPI):
@@ -456,7 +455,7 @@ def test_a_model_with_no_fixed_rate_sees_each_audio_at_its_own(tmp_path):
 
 
 def test_a_new_kind_is_one_registered_subclass(monkeypatch):
-    from espnet3.api.inference import KINDS, Kind, register_kind
+    from espnet3.components.contract import KINDS, Kind, register_kind
 
     class Turns(Kind):
         def check(self, value, field, model, *, output):
