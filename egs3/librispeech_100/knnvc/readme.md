@@ -145,7 +145,8 @@ python run.py --stages measure \
     --metrics_config conf/metrics.yaml
 ```
 
-`conf/metrics.yaml` runs `ASRIntelligibility`: it transcribes the converted
+`measure` runs `ASRIntelligibility`, inherited from the TEMPLATE's
+`metrics.yaml`: it transcribes the converted
 audio `infer` writes to `wav.scp` and scores it against the source transcript
 in `ref.scp`, reporting `ASR_WER` and `ASR_CER`. That is the protocol behind the
 authors' dev-clean numbers (6.29% WER and 2.34% CER for the prematched
