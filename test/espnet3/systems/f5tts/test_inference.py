@@ -720,9 +720,7 @@ def test_inference_builds_the_engine_from_its_own_arguments(
     )
 
     assert isinstance(model.backend, F5TTSInference)
-    output = model(
-        "abc", np.random.RandomState(0).randn(4800).astype(np.float32), "ab"
-    )
+    output = model("abc", np.random.RandomState(0).randn(4800).astype(np.float32), "ab")
     assert output["wav"].array.dtype == np.float32
     assert output["wav"].array.ndim == 1
 
