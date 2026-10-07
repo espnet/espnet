@@ -20,7 +20,7 @@ def resolve_recipe(recipe: str) -> Path:
 
     Args:
         recipe: Recipe identifier in "<dataset>/<task>" format,
-            e.g. ``"mini_an4/asr"``.
+            e.g. ``"mini_an4/esp2_asr"``.
 
     Returns:
         Absolute path to the recipe directory inside egs3/.
@@ -36,9 +36,9 @@ def resolve_recipe(recipe: str) -> Path:
 
     Examples:
         >>> from pathlib import Path
-        >>> path = resolve_recipe("mini_an4/asr")
+        >>> path = resolve_recipe("mini_an4/esp2_asr")
         >>> path.name
-        'asr'
+        'esp2_asr'
         >>> path.parent.name
         'mini_an4'
     """

@@ -11,7 +11,7 @@ def main() -> None:
     Dispatches to subcommands registered under ``espnet3/cli/``.
 
     Examples:
-        >>> # espnet3 clone mini_an4/asr --project my_project
+        >>> # espnet3 clone mini_an4/esp2_asr --project my_project
         >>> # espnet3 --help
     """
     parser = argparse.ArgumentParser(

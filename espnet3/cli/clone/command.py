@@ -19,21 +19,21 @@ Copies the complete recipe package, excluding generated artefacts and caches.
 The destination directory must not already exist.
 
 If --project is omitted, the recipe name is used as the destination
-(e.g. mini_an4/asr is cloned to ./mini_an4/asr/).
+(e.g. mini_an4/esp2_asr is cloned to ./mini_an4/esp2_asr/).
 """
 
 _EPILOG = """\
 examples:
-  Clone using the recipe name as destination (./mini_an4/asr/):
+  Clone using the recipe name as destination (./mini_an4/esp2_asr/):
 
-    espnet3 clone mini_an4/asr
-    cd mini_an4/asr
+    espnet3 clone mini_an4/esp2_asr
+    cd mini_an4/esp2_asr
     python run.py --stages create_dataset train \\
         --training_config conf/training.yaml
 
   Clone into a custom directory:
 
-    espnet3 clone mini_an4/asr --project my_asr
+    espnet3 clone mini_an4/esp2_asr --project my_asr
     cd my_asr
     python run.py --stages create_dataset train \\
         --training_config conf/training.yaml
@@ -44,7 +44,7 @@ examples:
 
   Run all stages end-to-end after cloning:
 
-    espnet3 clone librispeech/asr --project ls_asr
+    espnet3 clone librispeech_100/esp2_asr --project ls_asr
     cd ls_asr
     python run.py --stages all \\
         --training_config conf/training.yaml \\
@@ -62,8 +62,8 @@ recipe argument is required.
   espnet3 clone <dataset>/<task> [--project <dir>]
 
 examples:
-  espnet3 clone mini_an4/asr                    # clones to ./mini_an4/asr/
-  espnet3 clone mini_an4/asr --project my_asr   # clones to ./my_asr/
+  espnet3 clone mini_an4/esp2_asr                    # clones to ./mini_an4/esp2_asr/
+  espnet3 clone mini_an4/esp2_asr --project my_asr   # clones to ./my_asr/
 
 run 'espnet3 clone --list' to see all available recipes.
 run 'espnet3 clone --help' for full usage.\
@@ -97,7 +97,7 @@ def add_arguments(subparsers) -> None:
         metavar="<dataset>/<task>",
         help=(
             "Recipe to clone in <dataset>/<task> format."
-            " Example: mini_an4/asr, librispeech/asr"
+            " Example: mini_an4/esp2_asr, librispeech_100/esp2_asr"
         ),
     )
     parser.add_argument(

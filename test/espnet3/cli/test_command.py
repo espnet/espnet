@@ -142,8 +142,8 @@ def test_inject_corpus_system_skips_missing_config_files(tmp_path):
 
 @pytest.fixture(scope="module")
 def cloned_mini_an4(tmp_path_factory):
-    dest = tmp_path_factory.mktemp("integration") / "mini_an4_asr"
-    run(argparse.Namespace(list=False, recipe="mini_an4/asr", project=str(dest)))
+    dest = tmp_path_factory.mktemp("integration") / "mini_an4_esp2_asr"
+    run(argparse.Namespace(list=False, recipe="mini_an4/esp2_asr", project=str(dest)))
     return dest
 
 
@@ -160,9 +160,9 @@ def test_integration_clone_layout(cloned_mini_an4):
 def test_integration_clone_injects_recipe_identity(cloned_mini_an4):
     publication = (cloned_mini_an4 / "conf" / "publication.yaml").read_text()
     demo = (cloned_mini_an4 / "conf" / "demo.yaml").read_text()
-    assert "hf_repo: espnet/mini_an4_asr_${exp_tag}" in publication
-    assert "title: mini_an4_asr demo" in demo
-    assert "hf_repo: espnet/mini_an4_asr_${exp_tag}" in demo
+    assert "hf_repo: espnet/mini_an4_esp2_asr_${exp_tag}" in publication
+    assert "title: mini_an4_esp2_asr demo" in demo
+    assert "hf_repo: espnet/mini_an4_esp2_asr_${exp_tag}" in demo
 
 
 @pytest.mark.execution_timeout(30)
