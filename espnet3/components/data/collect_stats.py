@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from collections import defaultdict
+from collections.abc import Mapping
 from pathlib import Path
 from typing import Any, Dict, Iterable, List, Optional, Sequence, Tuple
 
@@ -71,6 +72,17 @@ def collect_stats_batch(
             "collect_stats kwargs conflict with batch tensors: " + ", ".join(conflict)
         )
 
+    shape_info = defaultdict(dict)
+    for name, tensor in tensors.items():
+        if name.endswith("_lengths") or isinstance(tensor, Mapping):
+            continue
+        lengths = tensors.get(f"{name}_lengths")
+        for batch_idx, uid in enumerate(list(uids)):
+            row = tensor[batch_idx]
+            if lengths is not None:
+                row = row[: int(lengths[batch_idx])]
+            shape_info[name][uid] = ",".join(map(str, row.shape))
+
     with torch.no_grad():
         feats = model.collect_feats(**{**tensors, **extra_kwargs})
 
@@ -80,8 +92,6 @@ def collect_stats_batch(
     }
 
     stats = defaultdict(lambda: {"sum": 0, "sq": 0, "count": 0})
-    shape_info = defaultdict(dict)
-
     for batch_idx, uid in enumerate(list(uids)):
         for feat_key in list(feats.keys()):
             if f"{feat_key}_lengths" in feats:
