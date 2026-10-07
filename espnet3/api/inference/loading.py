@@ -613,8 +613,10 @@ def _disallowed_targets(model: Any) -> list[str]:
 
     Each must clear three checks, in this order:
 
-    - the name as written is in an allowed namespace, so an untrusted name
-      is never imported at all;
+    - the name as written is in an allowed namespace, so a name outside
+      ``espnet2`` and ``espnet3`` is never imported. A name inside them is
+      imported to be resolved, which runs that module's top-level code -
+      installed ESPnet code, not anything the bundle brought;
     - the object it resolves to comes from an allowed namespace, because a
       written path can leave its namespace through an attribute of an
       allowed module (``espnet3.<module that imports os>.os.system``);
