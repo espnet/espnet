@@ -87,3 +87,28 @@ class Kind(ABC):
         except TypeError:
             return True
         return False
+
+    def accepts(self, value: Any, field: Field) -> bool:
+        """Tell whether ``value`` could hold this kind, with no model.
+
+        For checking a value found with nothing to run - a dataset item,
+        a manifest column - where :meth:`check` is not an option because
+        it may need the model it is never given. Defaults to calling
+        :meth:`check` with ``model=None`` and treating ``TypeError`` as
+        "no"; override when a kind's :meth:`check` needs the model for
+        something a model-free caller cannot supply (``audio`` needs a
+        rate when none is carried).
+
+        Examples:
+            >>> from espnet3.api.inference.field import Field
+            >>> from espnet3.api.inference.kinds.text import TextKind
+            >>> TextKind().accepts("hi", Field("text", "text"))
+            True
+            >>> TextKind().accepts(7, Field("text", "text"))
+            False
+        """
+        try:
+            self.check(value, field, None, output=False)
+        except TypeError:
+            return False
+        return True
