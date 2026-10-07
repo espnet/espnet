@@ -205,7 +205,10 @@ def test_registered_training_and_resume(recipe_tree, name, stage, mixed):
         "valid": "dialogue:valid",
     }
     unregistered = {
-        "train": "dialogue:extra:'/path with spaces/train.json':0.5 text_only:extra_text:'/other path/text.json'",
+        "train": (
+            "dialogue:extra:'/path with spaces/train.json':0.5 "
+            "text_only:extra_text:'/other path/text.json'"
+        ),
         "valid": "dialogue:extra_valid:'/path with spaces/valid.json'",
     }
     data = []
