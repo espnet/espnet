@@ -176,11 +176,11 @@ def _declared_inputs(metric: Any, metric_config: Any) -> Mapping[str, str]:
 
     raw = getattr(metric_config, "inputs", None) if metric_config is not None else None
     if raw is None:
-        example = ", ".join(f"{f.name}: <source>" for f in fields)
+        example = "\n".join(f"  {f.name}: <source>" for f in fields)
         raise MetricContractError(
             f"{type(metric).__name__} declares inputs {sorted(declared)}; bind "
-            f"them in the metrics config's inputs: mapping, one source per "
-            f"name (e.g. {example})"
+            "them in the metrics config, one source per name:\n"
+            f"inputs:\n{example}"
         )
     inputs = dict(raw) if isinstance(raw, Mapping) else {name: name for name in raw}
 
@@ -188,7 +188,7 @@ def _declared_inputs(metric: Any, metric_config: Any) -> Mapping[str, str]:
     if missing:
         raise MetricContractError(
             f"{type(metric).__name__} declares required inputs {sorted(missing)}, "
-            f"missing from config inputs {inputs}"
+            f"missing from the config's inputs: names {sorted(inputs)}"
         )
     extra = set(inputs) - declared
     if extra:
