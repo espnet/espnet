@@ -4,7 +4,6 @@ from argparse import Namespace
 from pathlib import Path
 
 import pytest
-from hydra.utils import get_method
 
 from egs3.TEMPLATE.f5tts.run import DEFAULT_STAGES, build_parser, main
 from espnet3.systems.f5tts.system import F5TTSSystem
@@ -87,8 +86,10 @@ def test_inference_scaffold_names_the_runner_and_leaves_the_model_open() -> None
     config = load_default_config("inference.yaml", PACKAGE)
 
     assert config.model is None
-    assert config.input_key is None
-    assert config.output_fn is None
+    # An Inference declares its inputs and outputs; the runner refuses these.
+    assert "input_key" not in config
+    assert "output_fn" not in config
+    assert "output_artifacts" not in config
     assert (
         config.provider._target_
         == "espnet3.systems.base.inference_provider.InferenceProvider"
@@ -97,12 +98,6 @@ def test_inference_scaffold_names_the_runner_and_leaves_the_model_open() -> None
         config.runner._target_
         == "espnet3.systems.base.inference_runner.InferenceRunner"
     )
-
-
-def test_template_output_fn_is_importable() -> None:
-    """The helper a recipe copies into its ``src/`` is one this template ships."""
-    build_output = get_method("egs3.TEMPLATE.f5tts.src.inference.build_output")
-    assert callable(build_output)
 
 
 def test_metrics_scaffold_enables_no_metric() -> None:

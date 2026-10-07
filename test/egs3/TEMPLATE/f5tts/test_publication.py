@@ -16,7 +16,6 @@ from omegaconf import OmegaConf
 
 from egs3.TEMPLATE.f5tts.run import main
 from espnet3.api.inference import Audio, load
-from espnet3.publication import InferenceModel
 from espnet3.systems.f5tts.system import F5TTSSystem
 from espnet3.utils.config_utils import load_default_config
 
@@ -53,6 +52,12 @@ def _reference():
 PACKAGE = "egs3.TEMPLATE.f5tts"
 
 
+def meta_model_target(bundle: Path) -> str:
+    """Return the ``model._target_`` of the bundle's packed inference config."""
+    packed = yaml.safe_load((bundle / "conf" / "inference.yaml").read_text())
+    return packed["model"]["_target_"]
+
+
 def test_publication_scaffold_leaves_the_bundle_contents_to_the_recipe() -> None:
     config = load_default_config("publication.yaml", PACKAGE)
 
@@ -74,9 +79,10 @@ def test_demo_scaffold_wires_the_inference_contract_fields() -> None:
         (field.name, field.kind) for field in inference_class.outputs
     ]
     assert config.ui.app_script == "src/app.py"
-    # Bundled recipe code is opt-in; a recipe whose inference config names
-    # its own `src.inference` turns it on.
+    # The packed inference config names only the system's Inference, so the
+    # bundle's own code is never imported.
     assert config.model.trust_user_code is False
+    assert "call_args" not in config.model
     assert config.pack.requirements is None
     assert "readme" not in config.pack
 
@@ -86,16 +92,16 @@ def test_pack_model_writes_a_self_contained_bundle(recipe_dir, stub_vocoder):
 
     bundle = recipe_dir / "exp" / "training" / "model_pack"
     meta = yaml.safe_load((bundle / "meta.yaml").read_text(encoding="utf-8"))
-    # The directory name is the system name, which is how
-    # espnet3.api.inference.load finds espnet3.systems.f5tts.inference.
-    assert meta["system"] == "f5tts"
     assert meta["yaml_files"]["inference_config"] == "conf/inference.yaml"
+    # Whether or not meta.yaml names the system, the packed `model` is the
+    # installed espnet3.systems.f5tts Inference, which is what load() builds.
+    assert isinstance(load(bundle), get_class(meta_model_target(bundle)))
 
     for kept in (
         "exp/training/last.ckpt",
         "conf/training.yaml",
         "data/token_list/tokens.txt",
-        "src/inference.py",
+        "src/app.py",
         "README.md",
     ):
         assert (bundle / kept).is_file(), kept
@@ -134,21 +140,22 @@ def test_packed_model_loads_and_synthesizes_after_moving(
     assert output["wav"].array.ndim == 1 and output["wav"].array.size > 0
 
 
-def test_packed_model_serves_the_recipe_output_format(recipe_dir, stub_vocoder):
+def test_packed_model_needs_no_bundled_code(recipe_dir, stub_vocoder):
+    """The packed inference config names only the system's Inference."""
     _pack_model()
     bundle = recipe_dir / "exp" / "training" / "model_pack"
 
-    # The packed config names the bundled src.inference.build_output.
-    with pytest.raises(ValueError, match="trust_user_code"):
-        InferenceModel.from_packed(bundle)
-    model = InferenceModel.from_packed(bundle, trust_user_code=True)
-    output = model(
-        {"text": "a cab", "reference_speech": _reference(), "reference_text": "abba"}
-    )
+    packed = yaml.safe_load((bundle / "conf" / "inference.yaml").read_text())
+    assert packed["model"]["_target_"] == "espnet3.systems.f5tts.inference.Inference"
+    for key in ("input_key", "output_fn", "output_artifacts"):
+        assert key not in packed, key
 
-    assert sorted(output) == ["text", "utt_id", "wav"]
-    assert output["text"] == "a cab"
-    assert output["wav"].dtype == np.float32
+    # Loads with the default trust_user_code=False, and runs as the contract
+    # says: declared inputs in, an Audio out.
+    model = load(bundle)
+    output = model("a cab", _reference(), "abba")
+    assert isinstance(output["wav"], Audio)
+    assert output["wav"].array.dtype == np.float32
 
 
 def test_pack_demo_builds_a_working_demo(recipe_dir, stub_vocoder):

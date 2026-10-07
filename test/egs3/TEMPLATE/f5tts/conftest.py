@@ -180,10 +180,7 @@ INFERENCE_CONFIG = {
         "speed": 1.0,
         "seed": 0,
     },
-    "input_key": ["text", "reference_speech", "reference_text"],
     "batch_size": None,
-    "output_fn": "src.inference.build_output",
-    "output_artifacts": {"wav": {"type": "wav", "sample_rate": 24000}},
 }
 
 # What a recipe's `src/hf_model_readme.md` renders from.
@@ -203,8 +200,6 @@ PUBLICATION_CONFIG = {
 }
 
 DEMO_CONFIG = {
-    # The packed inference config names the recipe's own `src.inference`.
-    "model": {"trust_user_code": True},
     "pack": {
         "out_dir": "demo",
         "requirements": [
@@ -265,7 +260,7 @@ def recipe_dir(tmp_path, monkeypatch):
 
     # src/: the template's helpers, copied as its README tells a recipe to.
     (recipe / "src").mkdir()
-    for name in ("__init__.py", "inference.py", "app.py"):
+    for name in ("__init__.py", "app.py"):
         shutil.copy(template_path("src", name), recipe / "src" / name)
     (recipe / "src" / "hf_model_readme.md").write_text(MODEL_README, encoding="utf-8")
 
