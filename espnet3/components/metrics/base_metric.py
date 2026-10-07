@@ -60,6 +60,46 @@ class BaseMetric(ABC):
         ...         return {name: 0.0 for name in self.score_config}
         >>> [f.name for f in ExampleVersaMetric(["mcd", "f0"]).outputs]
         ['mcd', 'f0']
+
+        A metric scored against more than one reference (BLEU-style):
+        ``inputs:`` does not accept a list of sources for one declared
+        name, so each reference is its own declared input instead; a
+        variable reference count becomes trailing optional fields. Its
+        metrics config binds each one: ``inputs: {hyp: text, ref1:
+        dataset:text, ref2: dataset:text_alt}`` - omitting ``ref2``
+        entirely is fine, since it is optional.
+
+        >>> class ExampleBleuMetric(BaseMetric):
+        ...     inputs = (
+        ...         Field("hyp", "text"),
+        ...         Field("ref1", "text"),
+        ...         Field("ref2", "text", optional=True),
+        ...     )
+        ...     outputs = (Field("score", "number"),)
+        ...     def __call__(self, data, test_name, output_dir):
+        ...         return {"score": 0.0}
+        >>> [f.name for f in ExampleBleuMetric().inputs]
+        ['hyp', 'ref1', 'ref2']
+
+        A metric that reads more than one audio role (a speaker
+        similarity metric that can run without a reference prompt):
+        ``inputs: {target: dataset:prompt_speech, hyp: wav, ref:
+        dataset:speech}``. A ``dataset:`` column of kind ``audio`` is
+        written as a ``.wav`` artifact beside the test set's SCPs, as
+        ``dataset_artifacts: {<column>: {type: wav, sample_rate: ...}}``
+        says (``measure``'s own ``dataset_artifacts`` config key).
+
+        >>> class ExampleSpeakerMetric(BaseMetric):
+        ...     inputs = (
+        ...         Field("target", "audio"),
+        ...         Field("hyp", "audio"),
+        ...         Field("ref", "audio", optional=True),
+        ...     )
+        ...     outputs = (Field("score", "number"),)
+        ...     def __call__(self, data, test_name, output_dir):
+        ...         return {"score": 0.0}
+        >>> [f.name for f in ExampleSpeakerMetric().inputs]
+        ['target', 'hyp', 'ref']
     """
 
     #: What this metric reads: one Field per SCP input. The name is the
