@@ -177,7 +177,21 @@ class TestMainDispatch:
                 for m in ctx_mgrs:
                     m.stop()
 
-    def test_dispatch_deepspeed(self, train_module, tmp_path):
+    @pytest.mark.parametrize(
+        "valid_specifier, expected_paths",
+        [
+            ("text_only:valid:valid.json", ["valid.json"]),
+            (
+                "'dialogue:valid:/space dir/valid.json' text_only:extra:extra.json",
+                ["/space dir/valid.json", "extra.json"],
+            ),
+        ],
+    )
+    def test_dispatch_deepspeed(
+        self, train_module, tmp_path, valid_specifier, expected_paths
+    ):
+        from espnet2.speechlm.dataloader.iterator import _parse_data_specifier
+
         train_cfg = {
             "trainer": {"type": "deepspeed", "max_step": 1},
             "data_loading": {
@@ -189,7 +203,10 @@ class TestMainDispatch:
             "seed": 0,
         }
         argv = self._make_args(tmp_path, train_cfg, "deepspeed")
+        argv[argv.index("--valid-unregistered-specifier") + 1] = valid_specifier
         ctxs = self._patches(train_module)
+        factory = MagicMock()
+        ctxs.append(patch.object(train_module, "DataIteratorFactory", factory))
 
         ds_trainer_cls = MagicMock()
         ds_trainer_cls.return_value.run.return_value = None
@@ -211,6 +228,13 @@ class TestMainDispatch:
 
         ds_trainer_cls.assert_called_once()
         ds_trainer_cls.return_value.run.assert_called_once()
+        # Each validation factory reparses its argument, so quoting must survive
+        # the entrypoint splitting a list into separate validation datasets.
+        paths = []
+        for call in factory.call_args_list[1:]:
+            parsed, _ = _parse_data_specifier(call.kwargs["unregistered_specifier"], "")
+            paths.append(parsed[0][2])
+        assert paths == expected_paths
 
     def test_dispatch_titan_no_pp(self, train_module, tmp_path):
         train_cfg = {

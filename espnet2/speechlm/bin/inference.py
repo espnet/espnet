@@ -17,7 +17,10 @@ import torch
 import torch.multiprocessing as mp
 import yaml
 
-from espnet2.speechlm.dataloader.iterator import DataIteratorFactory
+from espnet2.speechlm.dataloader.iterator import (
+    DataIteratorFactory,
+    _parse_data_specifier,
+)
 from espnet2.speechlm.model import _all_job_types
 from espnet2.speechlm.utils.data import to_device
 from espnet2.torch_utils.safe_torch_load import safe_torch_load
@@ -268,9 +271,14 @@ def main():
             "--test-unregistered-specifier"
         )
 
-    specifier = args.test_registered_specifier or args.test_unregistered_specifier
-    parts = specifier.split(":")
-    output_dir = args.output_dir / "_".join(parts[:2])
+    unregistered, registered = _parse_data_specifier(
+        args.test_unregistered_specifier or "",
+        args.test_registered_specifier or "",
+    )
+    specifiers = unregistered or registered
+    if not specifiers:
+        parser.error("Provide a nonempty test data specifier")
+    output_dir = args.output_dir / "_".join(specifiers[0][:2])
     output_dir.mkdir(parents=True, exist_ok=True)
 
     mp.set_start_method("spawn", force=True)

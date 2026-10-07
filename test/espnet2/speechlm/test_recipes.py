@@ -58,7 +58,7 @@ def recipe_tree(tmp_path):
     weights = tmp_path / "public model.pt"
     weights.write_text("public weights")
 
-    def run(name, *args, success=True):
+    def run(name, *args, success=True, error_match=None):
         calls.write_text("")
         result = subprocess.run(
             [
@@ -75,6 +75,8 @@ def recipe_tree(tmp_path):
             timeout=10,
         )
         assert (result.returncode == 0) == success, result.stdout + result.stderr
+        if error_match is not None:
+            assert error_match in result.stderr, result.stdout + result.stderr
         return [json.loads(line) for line in calls.read_text().splitlines()]
 
     return root, run, stats, weights
@@ -85,9 +87,16 @@ def value(args, key):
 
 
 @pytest.mark.parametrize("name,stage", [("bagpiper", 5), ("bagpiper_tts", 3)])
-def test_published_inference_command(recipe_tree, name, stage):
+@pytest.mark.parametrize("registered", [False, True])
+def test_published_inference_command(recipe_tree, name, stage, registered):
     root, run, _, weights = recipe_tree
     config = root / "egs2" / name / "speechlm1/conf/train.yaml"
+    option = (
+        "--test-registered-specifier" if registered else "--test-unregistered-specifier"
+    )
+    specifier = (
+        "dialogue:test" if registered else "dialogue:test:'/path with spaces/test.json'"
+    )
     calls = run(
         name,
         "--stage",
@@ -98,15 +107,52 @@ def test_published_inference_command(recipe_tree, name, stage):
         weights,
         "--inference-config",
         "inference.yaml",
-        "--test-unregistered-specifier",
-        "dialogue:test:/path with spaces/test.json",
+        option,
+        specifier,
     )
     assert len(calls) == 1
     assert calls[0][:2] == ["-m", "espnet2.speechlm.bin.inference"]
     assert value(calls[0], "--train-config") == str(config)
     assert value(calls[0], "--model-checkpoint") == str(weights)
-    assert value(calls[0], "--test-unregistered-specifier").endswith(
-        "/path with spaces/test.json"
+    assert value(calls[0], option) == specifier
+    other = (
+        "--test-unregistered-specifier" if registered else "--test-registered-specifier"
+    )
+    assert other not in calls[0]
+
+
+@pytest.mark.parametrize("name,stage", [("bagpiper", 5), ("bagpiper_tts", 3)])
+@pytest.mark.parametrize("both_routes", [False, True])
+def test_inference_requires_exactly_one_data_route(
+    recipe_tree, name, stage, both_routes
+):
+    _, run, _, weights = recipe_tree
+    data = (
+        (
+            "--test-registered-specifier",
+            "dialogue:test",
+            "--test-unregistered-specifier",
+            "dialogue:test:/test.json",
+        )
+        if both_routes
+        else ()
+    )
+    assert (
+        run(
+            name,
+            "--stage",
+            stage,
+            "--export-path",
+            weights,
+            "--inference-config",
+            "inference.yaml",
+            *data,
+            success=False,
+            error_match=(
+                "set only one" if both_routes else "set --test-unregistered-specifier"
+            ),
+        )
+        == []
     )
 
 
@@ -146,6 +192,171 @@ def test_initialize_then_resume_training(recipe_tree, name, stage):
     # An explicit initialization must also win when the output has a checkpoint.
     calls = run(name, *args, "--resume-path", weights)
     assert value(calls[0], "--resume-path") == str(weights)
+
+
+@pytest.mark.parametrize(
+    "name,stage", [("bagpiper", 1), ("bagpiper", 3), ("bagpiper_tts", 1)]
+)
+@pytest.mark.parametrize("mixed", [False, True])
+def test_registered_training_and_resume(recipe_tree, name, stage, mixed):
+    _, run, stats, weights = recipe_tree
+    registered = {
+        "train": "dialogue:train:0.5 text_only:text_train",
+        "valid": "dialogue:valid",
+    }
+    unregistered = {
+        "train": "dialogue:extra:'/path with spaces/train.json':0.5 text_only:extra_text:'/other path/text.json'",
+        "valid": "dialogue:extra_valid:'/path with spaces/valid.json'",
+    }
+    data = []
+    for split in ("train", "valid"):
+        data.extend((f"--{split}-registered-specifier", registered[split]))
+        if mixed:
+            data.extend((f"--{split}-unregistered-specifier", unregistered[split]))
+    args = ("--stage", stage, "--stop-stage", stage, "--stats-dir", stats, *data)
+    for initialize in (True, False):
+        initializer = ("--resume-path", weights) if initialize else ()
+        calls = run(name, *args, *initializer)
+        assert len(calls) == 1
+        assert calls[0][:2] == ["-m", "torch.distributed.run"]
+        if initialize:
+            assert value(calls[0], "--resume-path") == str(weights)
+        else:
+            assert "--resume-path" not in calls[0]
+        for split in ("train", "valid"):
+            assert (
+                value(calls[0], f"--{split}-registered-specifier") == registered[split]
+            )
+            if mixed:
+                assert (
+                    value(calls[0], f"--{split}-unregistered-specifier")
+                    == unregistered[split]
+                )
+            else:
+                assert f"--{split}-unregistered-specifier" not in calls[0]
+
+
+@pytest.mark.parametrize(
+    "name,stage", [("bagpiper", 1), ("bagpiper", 3), ("bagpiper_tts", 1)]
+)
+@pytest.mark.parametrize("missing", ["train", "valid"])
+def test_registered_training_requires_both_splits(recipe_tree, name, stage, missing):
+    _, run, stats, weights = recipe_tree
+    provided = "valid" if missing == "train" else "train"
+    error = (
+        ("training specifier" if missing == "train" else "validation specifier")
+        if name == "bagpiper"
+        else f"set --{missing}-unregistered-specifier"
+    )
+    assert (
+        run(
+            name,
+            "--stage",
+            stage,
+            "--stop-stage",
+            stage,
+            "--stats-dir",
+            stats,
+            "--resume-path",
+            weights,
+            f"--{provided}-registered-specifier",
+            f"dialogue:{provided}",
+            success=False,
+            error_match=error,
+        )
+        == []
+    )
+
+
+@pytest.mark.parametrize("split", ["train", "valid"])
+@pytest.mark.parametrize("route", ["registered", "unregistered"])
+def test_standalone_sft_selects_each_split_without_mixing_scopes(
+    recipe_tree, split, route
+):
+    _, run, stats, weights = recipe_tree
+    other_route = "unregistered" if route == "registered" else "registered"
+    specific = (
+        "dialogue:sft"
+        if route == "registered"
+        else "dialogue:sft:'/SFT path/data.json'"
+    )
+    ordinary = (
+        "dialogue:ordinary:/ordinary.json"
+        if route == "registered"
+        else "dialogue:ordinary"
+    )
+    calls = run(
+        "bagpiper",
+        "--stage",
+        3,
+        "--stop-stage",
+        3,
+        "--stats-dir",
+        stats,
+        "--resume-path",
+        weights,
+        f"--train-{other_route}-specifier",
+        ordinary,
+        f"--valid-{other_route}-specifier",
+        ordinary,
+        f"--sft-{split}-{route}-specifier",
+        specific,
+    )
+    assert len(calls) == 1
+    assert value(calls[0], f"--{split}-{route}-specifier") == specific
+    assert f"--{split}-{other_route}-specifier" not in calls[0]
+    fallback_split = "valid" if split == "train" else "train"
+    assert value(calls[0], f"--{fallback_split}-{other_route}-specifier") == ordinary
+    assert f"--{fallback_split}-{route}-specifier" not in calls[0]
+
+
+def test_bagpiper_registered_curriculum_keeps_stage_data_separate(recipe_tree):
+    _, run, stats, weights = recipe_tree
+    calls = run(
+        "bagpiper",
+        "--stats-dir",
+        stats,
+        "--train-registered-specifier",
+        "audio_to_text:pretrain:0.5",
+        "--valid-registered-specifier",
+        "audio_to_text:pretrain_valid",
+        "--sft-stats-dir",
+        stats,
+        "--sft-train-registered-specifier",
+        "dialogue:sft_train",
+        "--sft-valid-registered-specifier",
+        "dialogue:sft_valid",
+        "--sft-train-unregistered-specifier",
+        "dialogue:extra:'/SFT path/extra.json'",
+        "--resume-path",
+        weights,
+        "--inference-config",
+        "inference.yaml",
+        "--test-registered-specifier",
+        "dialogue:test",
+    )
+    assert len(calls) == 5
+    for call in calls[:2]:
+        assert (
+            value(call, "--train-registered-specifier") == "audio_to_text:pretrain:0.5"
+        )
+        assert (
+            value(call, "--valid-registered-specifier")
+            == "audio_to_text:pretrain_valid"
+        )
+        assert "--train-unregistered-specifier" not in call
+    assert value(calls[0], "--resume-path") == str(weights)
+    assert value(calls[1], "--resume-path") == "exp/warmup/checkpoints/step_20"
+    assert value(calls[2], "--resume-path") == "exp/pretrain/checkpoints/step_20"
+    assert value(calls[2], "--train-registered-specifier") == "dialogue:sft_train"
+    assert value(calls[2], "--valid-registered-specifier") == "dialogue:sft_valid"
+    assert (
+        value(calls[2], "--train-unregistered-specifier")
+        == "dialogue:extra:'/SFT path/extra.json'"
+    )
+    assert "--valid-unregistered-specifier" not in calls[2]
+    assert value(calls[4], "--test-registered-specifier") == "dialogue:test"
+    assert "--test-unregistered-specifier" not in calls[4]
 
 
 def test_bagpiper_curriculum_and_resume(recipe_tree):

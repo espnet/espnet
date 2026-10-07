@@ -6,6 +6,7 @@
 import json
 import logging
 import random
+import shlex
 from pathlib import Path
 from typing import Callable, Dict, List, Optional, Tuple, TypeVar, Union
 
@@ -35,6 +36,7 @@ class DataIteratorFactory:
         unregistered_specifier: Space-separated unregistered data specs.
             Format: "task:name:data_json[:factor]"
             Example: "asr:librispeech:train.json:2.0"
+            Quote paths containing whitespace inside the specifier string.
         registered_specifier: Space-separated registered data specs.
             Format: "task:name[:factor]"
             Example: "tts:ljspeech:1.5"
@@ -355,6 +357,8 @@ def _parse_data_specifier(
         task_data_factors: Space-separated unregistered data specifiers.
             Format: "task:name:data_json[:factor]"
             Example: "asr:librispeech:train.json:2.0"
+            Paths containing whitespace must be quoted, for example
+            "dialogue:demo:'/path with spaces/data.json'".
         task_registered_data_factors: Space-separated registered data
             specifiers. Format: "task:name[:factor]"
             Example: "tts:ljspeech:1.5"
@@ -369,7 +373,7 @@ def _parse_data_specifier(
     """
     cache_unregistered = []
     if task_data_factors.strip():
-        for entry in task_data_factors.split():
+        for entry in shlex.split(task_data_factors):
             parts = entry.split(":")
             if len(parts) == 4:
                 task, name, data_json, factor = parts
@@ -386,7 +390,7 @@ def _parse_data_specifier(
 
     cache_registered = []
     if task_registered_data_factors.strip():
-        for entry in task_registered_data_factors.split():
+        for entry in shlex.split(task_registered_data_factors):
             parts = entry.split(":")
             if len(parts) == 3:
                 task, name, factor = parts

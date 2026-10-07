@@ -214,7 +214,38 @@ Pass space-separated `task:name:dataset.json[:factor]` specifiers. Supported
 tasks are `text_to_audio`, `audio_to_text`, `text_only`, and `dialogue`; use
 distinct training and validation names. Registered datasets instead use
 `--train-registered-specifier` / `--valid-registered-specifier` with
-`task:name[:factor]` and `ESPNET_DATASET_REGISTRY`.
+`task:name[:factor]`. Set `ESPNET_DATASET_REGISTRY` to a YAML registry file
+(or colon-separated registry files) whose entries map dataset names to manifest
+paths, for example:
+
+```yaml
+train:
+  path: /path/to/train.json
+valid:
+  path: /path/to/valid.json
+```
+
+Then `--train-registered-specifier "dialogue:train"` and
+`--valid-registered-specifier "dialogue:valid"` select those manifests.
+Each training/validation split requires at least one data option; registered
+and unregistered datasets can be combined by supplying both options for a split.
+
+Quote paths containing spaces **inside** the specifier value, in addition to
+the outer shell quotes. For example:
+
+```bash
+./run.sh --stage 3 --stop-stage 3 --ngpu 8 \
+    --stats-dir /path/to/stats \
+    --train-unregistered-specifier "dialogue:train:'/path with spaces/train.json'" \
+    --valid-unregistered-specifier "dialogue:valid:'/path with spaces/valid.json'"
+```
+
+The inner quotes keep each path within one specifier when several specifiers
+are separated by spaces. Use the same form for inference, such as
+`--test-unregistered-specifier "dialogue:test:'/path with spaces/requests.json'"`.
+Registered inference uses `--test-registered-specifier "dialogue:test"` and
+requires the corresponding registry entry. Inference accepts exactly one
+registered or unregistered test specifier option.
 
 The recipe uses BF16 and TorchTitan FSDP2. The default FlashAttention-3 backend
 targets Hopper GPUs such as H100/H800. On other hardware, select a supported
@@ -285,9 +316,16 @@ with a matching model configuration, by passing it as `--resume-path`.
 select only one training stage when using these overrides.
 
 To run several training stages together, supply separate SFT inputs with
-`--sft-stats-dir`, `--sft-train-specifier`, and `--sft-valid-specifier`.
+`--sft-stats-dir`, `--sft-train-unregistered-specifier`, and
+`--sft-valid-unregistered-specifier`, or their registered counterparts
+`--sft-train-registered-specifier` and `--sft-valid-registered-specifier`.
+The older `--sft-train-specifier` and `--sft-valid-specifier` names remain
+aliases for unregistered inputs. SFT can combine both data routes.
+When starting at stage 3, each split uses its SFT-specific options if supplied;
+otherwise it falls back to that split's ordinary training/validation options.
 Running through stage 5 also needs `--inference-config` and
-`--test-unregistered-specifier`. An explicit `--resume-path` initializes only
+either `--test-unregistered-specifier` or `--test-registered-specifier`.
+An explicit `--resume-path` initializes only
 the first selected training stage; subsequent stages use its checkpoints.
 
 ### Initialize, resume, and export

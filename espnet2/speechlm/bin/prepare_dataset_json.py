@@ -125,7 +125,7 @@ def get_parser():
         help="List of name,path,reader triplets "
         "(e.g., audio1,/path/to/audio,lhotse_audio "
         "or text1,/path/to/text,text "
-        "or dialogue1,/path/to/dialogue_folder,dialogue)",
+        "or dialogue,/path/to/dialogues.jsonl,dialogue)",
     )
     parser.add_argument(
         "--output_json",

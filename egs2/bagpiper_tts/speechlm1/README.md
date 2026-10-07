@@ -245,6 +245,22 @@ checkpoint and replace the example paths with your prepared inputs:
     --valid-unregistered-specifier "dialogue:tts_valid:/path/to/tts_valid.json"
 ```
 
+For registered manifests, set `ESPNET_DATASET_REGISTRY` as described in the
+[Bagpiper input instructions](../../bagpiper/speechlm1/README.md#setup-and-inputs)
+and use `--train-registered-specifier "dialogue:tts_train"` and
+`--valid-registered-specifier "dialogue:tts_valid"`. Each split requires at least
+one data option, and registered and unregistered datasets can be combined by
+supplying both options for that split.
+
+Paths containing spaces need inner quotes within the outer shell-quoted
+specifier value, for example
+`--train-unregistered-specifier "dialogue:tts_train:'/path with spaces/train.json'"`
+and `--valid-unregistered-specifier "dialogue:tts_valid:'/path with spaces/valid.json'"`.
+The same syntax applies to inference:
+`--test-unregistered-specifier "dialogue:test:'/path with spaces/requests.json'"`.
+For a registered test manifest, use `--test-registered-specifier "dialogue:test"`.
+Inference accepts exactly one registered or unregistered test specifier option.
+
 An explicit `--resume-path` accepts complete native `.pt` weights or a Bagpiper
 DCP directory. It initializes the model and starts a fresh optimizer, scheduler,
 and step counter, even when the output already has checkpoints. Use
@@ -260,7 +276,8 @@ complete DCP restores the model, optimizer, scheduler, and step counter. Keep
 gradient accumulation unchanged across resume. `./run.sh --help` lists multi-node
 and logging options; W&B is disabled by default.
 To run through export and inference, omit `--stop-stage` and supply
-`--inference-config` and `--test-unregistered-specifier` as well.
+`--inference-config` and either `--test-unregistered-specifier` or
+`--test-registered-specifier` as well.
 
 ### Export for inference
 
