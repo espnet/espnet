@@ -42,6 +42,7 @@ class BestCheckpointLink(Callback):
             if callback.monitor == self.monitor and callback.best_model_path:
                 target = Path(callback.best_model_path).resolve()
                 link = self.output_dir / f"{self.monitor.replace('/', '.')}.best.pth"
+                self.output_dir.mkdir(parents=True, exist_ok=True)
                 link.unlink(missing_ok=True)
                 link.symlink_to(os.path.relpath(target, link.parent.resolve()))
                 return

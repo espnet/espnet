@@ -570,6 +570,44 @@ def test_iter_factory_drops_tail_batches_for_ddp(monkeypatch, rank):
     assert all(batch[0] != 8 for batch in iterator)
 
 
+@pytest.mark.parametrize("rank", [0, 1])
+def test_category_num_batches_applies_per_rank_after_sharding(monkeypatch, rank):
+    import espnet3.components.data.dataloader as dl
+
+    # 4 batches -> 2 per rank; num_batches=1 keeps one batch on every rank
+    def _fake_build_category_batch_sampler(**kwargs):
+        return [["0", "1"], ["2", "3"], ["4", "5"], ["6", "7"]], kwargs
+
+    monkeypatch.setattr(
+        dl, "build_category_batch_sampler", _fake_build_category_batch_sampler
+    )
+    monkeypatch.setattr(dl.torch.distributed, "get_world_size", lambda: 2)
+    monkeypatch.setattr(dl.torch.distributed, "get_rank", lambda: rank)
+
+    config = OmegaConf.create(
+        {
+            "dataloader": {
+                "train": {
+                    "iter_factory": {
+                        "_target_": (
+                            "test.espnet3.components.data."
+                            "test_dataloader_builder.DummyIterFactory"
+                        ),
+                        "batches": {"type": "catbel", "num_batches": 1},
+                    }
+                }
+            }
+        }
+    )
+
+    organizer = build_organizer(DUMMY_DATASET_TARGET)
+    builder = DataLoaderBuilder(
+        dataset=organizer.train, config=config, collate_fn=None, num_device=2, epoch=0
+    )
+
+    assert list(builder.build("train")) == [[["0", "1"], ["2", "3"]][rank]]
+
+
 # --- Multiple Iterator Mode (Sharded Dataset) ---
 
 

@@ -265,11 +265,13 @@ class DataLoaderBuilder:
         # _maybe_shard_dataset keeps the 0-based convention.
         espnet2_epoch = self.epoch + 1
         batch_config = factory_config.pop("batches")
+        num_batches = None
         if batch_config.get("type") in CATEGORY_BATCH_TYPES:
             batch_config.setdefault("epoch", espnet2_epoch)
             batches, _ = build_category_batch_sampler(**batch_config)
-            if batch_config.get("num_batches") is not None:
-                batches = list(batches)[: batch_config["num_batches"]]
+            # The category samplers ignore num_batches. It is applied after
+            # rank sharding below, so every rank keeps num_batches batches.
+            num_batches = batch_config.get("num_batches")
         else:
             batches = build_batch_sampler(**batch_config)
 
@@ -315,6 +317,9 @@ class DataLoaderBuilder:
                     len(batches),
                 )
                 _LOGGED_DISTRIBUTED_BATCHES.add(mode)
+
+        if num_batches is not None:
+            batches = list(batches)[:num_batches]
 
         iter_factory = instantiate(factory_config, dataset, batches=batches)
         loader = EpochSyncIterator(partial(iter_factory.build_iter, espnet2_epoch))

@@ -113,6 +113,10 @@ def test_parquet_preparation(module, split, rows, tmp_path, monkeypatch):
         organizer.test_sets["prepared"][i]["lid_labels"] == "jpn"
         for i in range(len(organizer.test_sets["prepared"]))
     )
+    # A filter that keeps nothing must fail instead of scoring an empty set.
+    inventory.write_text("eng 0\n")
+    with pytest.raises(RuntimeError, match="no utterances match"):
+        Dataset(manifest, lang2utt=inventory)
 
 
 def test_ml_superb_training_label_rules():

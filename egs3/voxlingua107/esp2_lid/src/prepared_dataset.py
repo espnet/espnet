@@ -22,6 +22,10 @@ class Dataset(VoxLingua107Dataset):
                 languages = {line.split()[0] for line in source if line.strip()}
             total = len(self.examples)
             self.examples = [e for e in self.examples if e.language in languages]
+            if not self.examples:
+                raise RuntimeError(
+                    f"{manifest}: no utterances match the languages in {lang2utt}"
+                )
             logging.info(
                 "%s: retaining %d/%d utterances in the training language inventory",
                 manifest,
