@@ -245,6 +245,12 @@ class F5TTSInference:
     # ------------------------------------------------------------------ build
 
     def _build_model(self, config: dict, checkpoint_path: str, use_ema: bool):
+        """Instantiate ``config.model`` and load the checkpoint, EMA weights first.
+
+        Falls back to the raw ``state_dict`` when the checkpoint has no EMA
+        state or ``use_ema`` is false. Loads with ``strict=False`` and logs
+        the missing/unexpected keys.
+        """
         model_config = config.get("model")
         if not model_config or not model_config.get("_target_"):
             raise ValueError(
@@ -272,6 +278,7 @@ class F5TTSInference:
 
     @staticmethod
     def _log_model_loading(tag: str, checkpoint_path: str, missing, unexpected) -> None:
+        """Log a load summary, warning on missing or unexpected keys."""
         logger.info("Loaded %s weights from %s", tag, checkpoint_path)
         if missing:
             logger.warning("[%s] missing keys (%d): %s", tag, len(missing), missing)
@@ -325,6 +332,7 @@ class F5TTSInference:
         )
 
     def _load_vocoder(self, vocoder_path: Optional[str]):
+        """Load Vocos from ``vocoder_path`` or the default pretrained checkpoint."""
         from vocos import Vocos
 
         if vocoder_path:

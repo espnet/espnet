@@ -50,6 +50,7 @@ _ARCHIVE_SIZES: dict[str, dict[str, int]] = {
 
 
 def _load_builder_config() -> dict:
+    """Return the ``builder`` section of the package's ``config.yaml``."""
     config_resource = resources.files(__package__).joinpath("config.yaml")
     with resources.as_file(config_resource) as config_path:
         return load_config_with_defaults(str(config_path), resolve=False)["builder"]

@@ -30,6 +30,8 @@ _SPLIT_MANIFEST_PATHS: dict[str, str] = {
 
 @dataclass(frozen=True)
 class ManifestEntry:
+    """One row of a LibriTTS manifest: utterance id, audio path, text, speaker id."""
+
     utt_id: str
     wav_path: Path
     text: str
@@ -37,6 +39,7 @@ class ManifestEntry:
 
 
 def _read_manifest(path: Path) -> list[ManifestEntry]:
+    """Parse a four-column TSV manifest, raising if it holds no rows."""
     entries: list[ManifestEntry] = []
     with path.open("r", encoding="utf-8") as f:
         for line in f:
@@ -89,6 +92,7 @@ class LibriTTSDataset(TorchDataset):
         load_speech: bool = True,
         fs: int | None = None,
     ) -> None:
+        """Resolve the manifest for ``split`` and read it into memory."""
         self.split = split
         self.load_speech = load_speech
         self.fs = fs
@@ -129,9 +133,11 @@ class LibriTTSDataset(TorchDataset):
         self._entries = _read_manifest(resolved_manifest)
 
     def __len__(self) -> int:
+        """Return the number of manifest rows."""
         return len(self._entries)
 
     def __getitem__(self, idx: int) -> dict[str, Any]:
+        """Return row ``idx``: its ``text`` and, if enabled, resampled ``speech``."""
         entry = self._entries[int(idx)]
         sample: dict[str, Any] = {
             "text": entry.text,

@@ -75,11 +75,24 @@ def build_manifest(lst_path, test_clean_root, out_tsv) -> int:
 
 
 class LibriSpeechPCDataset(TorchDataset):
+    """Serve the LibriSpeech-PC manifest rows as F5-TTS inference samples.
+
+    Each sample carries the target text plus the pinned prompt: ``utt_id``,
+    ``text``, ``raw_text``, ``reference_speech`` (float32 mono at ``fs``),
+    ``reference_text`` and ``ref_wav_path``.
+
+    Args:
+        manifest_path: TSV written by :func:`build_manifest`.
+        fs: Sampling rate the prompt audio is resampled to; ``None`` keeps
+            the file's own rate.
+    """
+
     def __init__(
         self,
         manifest_path: str | Path,
         fs: int | None = 24000,
     ) -> None:
+        """Read the five-column manifest into memory."""
         self.fs = fs
         self.rows: list[tuple[str, str, str, str, str]] = []
         with Path(manifest_path).open(encoding="utf-8") as f:
@@ -93,9 +106,11 @@ class LibriSpeechPCDataset(TorchDataset):
             raise RuntimeError(f"Empty manifest: {manifest_path}")
 
     def __len__(self) -> int:
+        """Return the number of prompt/target pairs."""
         return len(self.rows)
 
     def __getitem__(self, idx: int) -> dict:
+        """Load the prompt audio of pair ``idx`` and return the inference sample."""
         gen_utt, gen_text, _ref_utt, ref_wav, ref_text = self.rows[idx]
         speech, sr = sf.read(ref_wav, dtype="float32")
         if speech.ndim > 1:

@@ -1,3 +1,8 @@
+"""Entry point of the LibriTTS F5-TTS recipe.
+
+Thin wrapper over the shared runner in ``egs3/TEMPLATE/f5tts/run.py``.
+"""
+
 from egs3.TEMPLATE.f5tts.run import (
     DEFAULT_STAGES,
     build_parser,
