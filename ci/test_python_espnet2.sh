@@ -23,6 +23,26 @@ echo "::group::=== Run pycodestyle tests ==="
 pycodestyle --exclude "${exclude}" --show-source --show-pep8
 echo "::endgroup::"
 
+# test/espnet2/layers/test_create_adapter*.py build an S3prlFrontend at import
+# time, so the hubert_base checkpoint is fetched during pytest collection. When
+# huggingface.co rate limits the download, s3prl writes the HTML error page to
+# the checkpoint path instead of failing, and torch.load then aborts the whole
+# run with exit code 2 rather than failing a single test:
+#
+#   _pickle.UnpicklingError: Weights only load failed ... Unsupported operand 60
+#
+# 60 is 0x3C, '<'. Fetch it here instead, where a failure is visible and named,
+# and delete anything under 1 MB afterwards - the error page is ~3 kB - so that
+# a truncated download is not what actions/cache stores for every later run.
+echo "::group::=== Warm s3prl checkpoint cache ==="
+python3 - <<'PY' || echo "warm-up failed; tests will download on demand"
+from espnet2.asr.frontend.s3prl import S3prlFrontend
+
+S3prlFrontend(frontend_conf={"upstream": "hubert_base"})
+PY
+find "${HOME}/.cache/s3prl/download" -type f -size -1M -delete 2>/dev/null || true
+echo "::endgroup::"
+
 # It will set default timeout to 10.0 seconds for each test.
 # If the test is marked with @pytest.mark.execution_timeout,
 # the value in the mark will be used as the timeout value.

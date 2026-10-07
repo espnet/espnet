@@ -17,6 +17,7 @@ ASVTutorial=espnet_tutorial_asvspoof
 APHASIABANK=
 AR_SC=
 AUDIOSET=downloads
+VGGSOUND=  # local path to VGGSound; the recipe does not download it automatically
 ASVSpoof_CMD=
 BIBLETTS=downloads
 CORAAL=downloads
@@ -105,6 +106,7 @@ KISING=downloads
 KSC=downloads
 KSS=
 QASR_TTS=downloads
+SEOUL_CORPUS= # dir with sound.tgz + label.tgz, or unpacked sound/ + label/
 SNIPS= # smart-light-en-closed-field data path
 SPGISPEECH=
 SPEECH_PROMPT_v2=
@@ -239,6 +241,9 @@ EDACC=downloads
 IPAPACK_PLUS=downloads
 GALAXY=
 EMILIA=downloads
+EARS=  # local path to EARS (48 kHz studio speech)
+VCTK_DEMAND=  # local path to VoiceBank+DEMAND (its clean speech)
+WHAM_NOISE=  # local path to the WHAM! noise corpus
 
 
 # For only CMU TIR environment

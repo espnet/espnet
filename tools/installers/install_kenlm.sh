@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
+# shellcheck source=tools/installers/download_with_retry.sh
+. "$(dirname "$0")"/download_with_retry.sh
 
 if [ $# != 0 ]; then
     echo "Usage: $0"
@@ -10,7 +12,9 @@ boost_version=1.81.0
 
 if [ ! -d boost_${boost_version//./_} ]; then
     if [ ! -e "boost_"${boost_version//./_}".tar.bz2" ]; then
-        wget --no-check-certificate https://sourceforge.net/projects/boost/files/boost/"${boost_version}"/boost_"${boost_version//./_}".tar.bz2
+        download_with_retry \
+            https://sourceforge.net/projects/boost/files/boost/"${boost_version}"/boost_"${boost_version//./_}".tar.bz2 \
+            boost_"${boost_version//./_}".tar.bz2 --no-check-certificate
     fi
     tar xvf boost_"${boost_version//./_}".tar.bz2
 fi

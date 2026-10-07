@@ -22,12 +22,13 @@ from typing import (
 )
 
 import humanfriendly
-import kaldiio
 import numpy as np
 import torch
+from omniio import kaldi as kaldi_io
 from torch.utils.data.dataset import Dataset
 from typeguard import typechecked
 
+from espnet2.fileio.json_scp import JsonScpReader
 from espnet2.fileio.multi_sound_scp import MultiSoundScpReader
 from espnet2.fileio.npy_scp import NpyScpReader
 from espnet2.fileio.rand_gen_dataset import (
@@ -67,8 +68,12 @@ class AdapterForSoundScpReader(collections.abc.Mapping):
     def __iter__(self):
         return iter(self.loader)
 
-    def __getitem__(self, key: str) -> np.ndarray:
-        retval = self.loader[key]
+    def __getitem__(self, key: str) -> Optional[np.ndarray]:
+        # For Kaldi IO to check missing audio cases
+        if hasattr(self.loader, "_dict") and self.loader._dict[key] == "None":
+            retval = None, None
+        else:
+            retval = self.loader[key]
 
         if isinstance(retval, tuple):
             assert len(retval) == 2, len(retval)
@@ -78,6 +83,9 @@ class AdapterForSoundScpReader(collections.abc.Mapping):
             elif isinstance(retval[1], int) and isinstance(retval[0], np.ndarray):
                 # Extended ark format case
                 array, rate = retval
+            # NOTE(jiatong): for missing audio cases
+            elif retval[0] is None or retval[1] is None:
+                array, rate = None, self.rate
             else:
                 raise RuntimeError(
                     f"Unexpected type: {type(retval[0])}, {type(retval[1])}"
@@ -92,7 +100,7 @@ class AdapterForSoundScpReader(collections.abc.Mapping):
             self.rate = rate
             # Multichannel wave fie
             # array: (NSample, Channel) or (Nsample)
-            if self.dtype is not None:
+            if self.dtype is not None and array is not None:
                 array = array.astype(self.dtype)
 
         else:
@@ -102,7 +110,8 @@ class AdapterForSoundScpReader(collections.abc.Mapping):
             if self.dtype is not None:
                 array = array.astype(self.dtype)
 
-        assert isinstance(array, np.ndarray), type(array)
+        if array is not None:
+            assert isinstance(array, np.ndarray), type(array)
         return array
 
 
@@ -234,7 +243,7 @@ def label_loader(path):
 def kaldi_loader(
     path, float_dtype=None, max_cache_fd: int = 0, allow_multi_rates=False
 ):
-    loader = kaldiio.load_scp(path, max_cache_fd=max_cache_fd)
+    loader = kaldi_io.load_scp(path, max_cache_fd=max_cache_fd)
     return AdapterForSoundScpReader(
         loader, float_dtype, allow_multi_rates=allow_multi_rates
     )
@@ -422,7 +431,19 @@ DATA_TYPES = {
         "    END     file1 <NA> 4023 <NA> <NA> <NA> <NA>"
         "   ...",
     ),
+    "json": dict(
+        func=JsonScpReader,
+        kwargs=[],
+        help="Utterance-keyed JSON objects for structured annotations"
+        "\n\n"
+        '   utterance_id_A {"metric": 0.0}\n'
+        '   utterance_id_B {"metric": 0.1}\n'
+        "   ...",
+    ),
 }
+
+# Historical recipes use the metric data-type name.
+DATA_TYPES["metric"] = DATA_TYPES["json"]
 
 
 class AbsDataset(Dataset, ABC):
@@ -565,7 +586,9 @@ class ESPnetDataset(AbsDataset):
         return _mes
 
     @typechecked
-    def __getitem__(self, uid: Union[str, int]) -> Tuple[str, Dict[str, np.ndarray]]:
+    def __getitem__(
+        self, uid: Union[str, int]
+    ) -> Tuple[str, Dict[str, Union[str, np.ndarray, Dict[str, Any]]]]:
 
         # Change integer-id to string-id
         if isinstance(uid, int):
@@ -583,13 +606,27 @@ class ESPnetDataset(AbsDataset):
                 value = loader[uid]
                 if isinstance(value, (list)):
                     value = np.array(value)
+                if value is None:
+                    if self.preprocess is None:
+                        raise ValueError("Missing audio requires a preprocessor")
                 if not isinstance(
-                    value, (np.ndarray, torch.Tensor, str, numbers.Number, tuple)
+                    value,
+                    (
+                        np.ndarray,
+                        torch.Tensor,
+                        str,
+                        numbers.Number,
+                        tuple,
+                        dict,
+                        type(None),
+                    ),
                 ):
                     raise TypeError(
                         (
                             "Must be ndarray, torch.Tensor, "
-                            "str,  Number or tuple: {}".format(type(value))
+                            "str,  Number, tuple, Nonetype, or dict: {}".format(
+                                type(value)
+                            )
                         )
                     )
             except Exception:
@@ -617,14 +654,27 @@ class ESPnetDataset(AbsDataset):
         # 3. Force data-precision
         for name in data:
             value = data[name]
-            if not isinstance(value, np.ndarray):
+            if value is None:
+                raise RuntimeError(f'Missing value for "{name}" after preprocessing.')
+            if not isinstance(value, np.ndarray) and not isinstance(value, dict):
                 raise RuntimeError(
-                    f"All values must be converted to np.ndarray object "
-                    f'by preprocessing, but "{name}" is still {type(value)}.'
+                    f"All values must be converted to np.ndarray or "
+                    "dict object by preprocessing, "
+                    f'but "{name}" is still {type(value)}.'
                 )
 
             # Cast to desired type
-            if value.dtype.kind == "f":
+            if type(value) is dict:
+                # Structured annotation values may contain preprocessed arrays.
+                for k, v in value.items():
+                    if isinstance(v, np.ndarray):
+                        if v.dtype.kind == "f":
+                            value[k] = v.astype(self.float_dtype)
+                        elif v.dtype.kind == "i":
+                            value[k] = v.astype(self.int_dtype)
+                        else:
+                            raise NotImplementedError(f"Not supported dtype: {v.dtype}")
+            elif value.dtype.kind == "f":
                 value = value.astype(self.float_dtype)
             elif value.dtype.kind == "i":
                 value = value.astype(self.int_dtype)

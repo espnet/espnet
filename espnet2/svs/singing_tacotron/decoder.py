@@ -7,7 +7,6 @@
 
 """Singing Tacotron decoder related modules."""
 
-import six
 import torch
 
 from espnet2.legacy.nets.pytorch_backend.rnn.attentions import AttForwardTA
@@ -103,7 +102,7 @@ class Decoder(torch.nn.Module):
         # define lstm network
         prenet_units = prenet_units if prenet_layers != 0 else odim
         self.lstm = torch.nn.ModuleList()
-        for layer in six.moves.range(dlayers):
+        for layer in range(dlayers):
             iunits = idim + prenet_units if layer == 0 else dunits
             lstm = torch.nn.LSTMCell(iunits, dunits)
             if zoneout_rate > 0.0:

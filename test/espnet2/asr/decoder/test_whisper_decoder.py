@@ -1,8 +1,5 @@
-import sys
-
 import pytest
 import torch
-from packaging.version import parse as V
 
 from espnet2.asr.decoder.whisper_decoder import OpenAIWhisperDecoder
 
@@ -12,14 +9,8 @@ pytest.importorskip("whisper")
 
 # NOTE(Shih-Lun): needed for `persistent` param in
 #                 torch.nn.Module.register_buffer()
-is_torch_1_7_plus = V(torch.__version__) >= V("1.7.0")
-is_python_3_8_plus = sys.version_info >= (3, 8)
 
 
-@pytest.mark.skipif(
-    not is_python_3_8_plus or not is_torch_1_7_plus,
-    reason="whisper not supported on python<3.8, torch<1.7",
-)
 @pytest.fixture()
 def whisper_decoder(request):
     return OpenAIWhisperDecoder(
@@ -29,10 +20,6 @@ def whisper_decoder(request):
     )
 
 
-@pytest.mark.skipif(
-    not is_python_3_8_plus or not is_torch_1_7_plus,
-    reason="whisper not supported on python<3.8, torch<1.7",
-)
 @pytest.mark.timeout(50)
 def test_decoder_init(whisper_decoder):
     assert (
@@ -62,10 +49,6 @@ def test_embedding_expanded_decoder(load_origin_token_embedding):
     out.sum().backward()
 
 
-@pytest.mark.skipif(
-    not is_python_3_8_plus or not is_torch_1_7_plus,
-    reason="whisper not supported on python<3.8, torch<1.7",
-)
 @pytest.mark.timeout(50)
 def test_decoder_reinit_emb():
     vocab_size = 1000
@@ -77,10 +60,6 @@ def test_decoder_reinit_emb():
     assert decoder.decoders.token_embedding.num_embeddings == vocab_size
 
 
-@pytest.mark.skipif(
-    not is_python_3_8_plus or not is_torch_1_7_plus,
-    reason="whisper not supported on python<3.8, torch<1.7",
-)
 def test_decoder_invalid_init():
     with pytest.raises(AssertionError):
         decoder = OpenAIWhisperDecoder(
@@ -91,10 +70,6 @@ def test_decoder_invalid_init():
         del decoder
 
 
-@pytest.mark.skipif(
-    not is_python_3_8_plus or not is_torch_1_7_plus,
-    reason="whisper not supported on python<3.8, torch<1.7",
-)
 @pytest.mark.timeout(50)
 def test_decoder_forward_backward(whisper_decoder):
     hs_pad = torch.randn(4, 100, 384, device=next(whisper_decoder.parameters()).device)
@@ -107,10 +82,6 @@ def test_decoder_forward_backward(whisper_decoder):
     out.sum().backward()
 
 
-@pytest.mark.skipif(
-    not is_python_3_8_plus or not is_torch_1_7_plus,
-    reason="whisper not supported on python<3.8, torch<1.7",
-)
 @pytest.mark.timeout(50)
 def test_decoder_scoring(whisper_decoder):
     hs_pad = torch.randn(4, 100, 384, device=next(whisper_decoder.parameters()).device)

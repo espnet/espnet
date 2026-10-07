@@ -7,7 +7,13 @@ from pathlib import Path
 import numpy as np
 import pytest
 
-from espnet2.bin.asr_align import CTCSegmentation, CTCSegmentationTask, get_parser, main
+from espnet2.bin.asr_align import (
+    CTCSegmentation,
+    CTCSegmentationTask,
+    ctc_align,
+    get_parser,
+    main,
+)
 from espnet2.tasks.asr import ASRTask
 
 
@@ -120,3 +126,37 @@ def test_CTCSegmentation(asr_config_file):
     # test the ratio estimation (result: 509)
     ratio = aligner.estimate_samples_to_frames_ratio()
     assert 500 <= ratio <= 520
+
+
+def test_the_script_writes_a_segments_file(asr_config_file, tmp_path):
+    """The path a recipe takes: `ctc_align(**vars(args))`, to a file.
+
+    The library is tested above; this is the other half - reading the audio
+    and the text, and writing the `segments` format out - which is shared
+    with `espnet2.bin.s2t_align` and so has one implementation.
+    """
+    audio = Path(__file__).parents[3] / "test_utils" / "ctc_align_test.wav"
+    text = tmp_path / "text.txt"
+    text.write_text("utt1 THE SALE OF THE HOTELS\nutt2 ON PROPERTY MANAGEMENT\n")
+    out = tmp_path / "segments"
+
+    with text.open() as t, out.open("w") as o:
+        ctc_align(
+            log_level="ERROR",
+            asr_train_config=asr_config_file,
+            asr_model_file=None,
+            audio=audio,
+            text=t,
+            output=o,
+            min_window_size=10,
+        )
+
+    lines = out.read_text().splitlines()
+    assert len(lines) == 2
+    for line, name in zip(lines, ["utt1", "utt2"]):
+        utt, recording, start, end, score, *words = line.split()
+        assert utt == name
+        assert recording == "ctc_align_test"
+        assert 0.0 <= float(start) <= float(end)
+        assert float(score) < 0.0
+        assert words[0] == "THE" if name == "utt1" else words[0] == "ON"

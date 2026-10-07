@@ -81,7 +81,7 @@ install_torch(){
 }
 check_python_version(){
     if $(python_plus $1) || ! $(python_plus 3.7); then
-        log "[ERROR] pytorch=${torch_version} requires python>=$1,<=3.7, but your python is ${python_version}"
+        log "[ERROR] pytorch=${torch_version} requires python>=3.7,<$1, but your python is ${python_version}"
         exit 1
     fi
 }
@@ -106,44 +106,57 @@ if ! python -c "import packaging.version" &> /dev/null; then
     python3 -m pip install packaging
 fi
 
-if $(pytorch_plus 2.11.1); then
+# NOTE: torchaudio's newest release is 2.11.0 and there is no 2.12, 2.13 or
+# 2.14 to match. The pair is no longer lockstep from 2.12 on: torchaudio
+# 2.11.0's native libraries import only PyTorch's stable ABI (the aoti_torch_*
+# C API, no mangled C++ torch symbols), which is what makes one build keep
+# working against a newer torch. Checked, not assumed - torchaudio 2.11.0 on
+# torch 2.13.0 and on 2.14.0 resamples, and MelSpectrogram, Spectrogram and
+# compliance.kaldi.fbank all run. pyproject.toml pins the pair to match:
+# torch<2.15, torchaudio<2.12.
+if $(pytorch_plus 2.14.1); then
+    log "[ERROR] This script doesn't support pytorch=${torch_version}"
+    exit 1
+
+elif $(pytorch_plus 2.14.0); then
+    check_python_version 3.14  # Error if python>=<number>
+    # No 12.9 for this one - 2.14.0 publishes 12.6, 13.0 and 13.2 only.
+    if ! check_cuda_version 12.6 13.0 13.2; then
+        log "[INFO] Fallback: cuda_version=${cuda_version} -> cuda_version=13.0"
+        cuda_version=13.0
+        cuda_version_without_dot="${cuda_version/\./}"
+    fi
+    install_torch 2.11.0  # install_torch <torch-audio-ver>
+
+elif $(pytorch_plus 2.13.1); then
+    log "[ERROR] pytorch=${torch_version} doesn't exist"
+    exit 1
+
+elif $(pytorch_plus 2.13.0); then
+    check_python_version 3.14  # Error if python>=<number>
+    # 12.8 is gone from 2.12 on; 12.9, 13.2 are new. Fall back to 13.0, which
+    # every version in the supported set publishes.
+    if ! check_cuda_version 12.6 12.9 13.0 13.2; then
+        log "[INFO] Fallback: cuda_version=${cuda_version} -> cuda_version=13.0"
+        cuda_version=13.0
+        cuda_version_without_dot="${cuda_version/\./}"
+    fi
+    install_torch 2.11.0  # install_torch <torch-audio-ver>
+
+elif $(pytorch_plus 2.11.1); then
+    # Everything from 2.11.1 to 2.12.1: 2.11.1 and 2.12.2 never existed, and
+    # 2.12.0 and 2.12.1 did but are not in the supported set.
     log "[ERROR] This script doesn't support pytorch=${torch_version}"
     exit 1
 
 elif $(pytorch_plus 2.11.0); then
-    check_python_version 3.13  # Error if python>=<number>
+    check_python_version 3.14  # Error if python>=<number>
     if ! check_cuda_version 12.8 13.0; then
         log "[INFO] Fallback: cuda_version=${cuda_version} -> cuda_version=12.8"
         cuda_version=12.8
         cuda_version_without_dot="${cuda_version/\./}"
     fi
     install_torch 2.11.0  # install_torch <torch-audio-ver>
-
-elif $(pytorch_plus 2.10.1); then
-    log "[ERROR] pytorch=${torch_version} doesn't exist"
-    exit 1
-
-elif $(pytorch_plus 2.10.0); then
-    check_python_version 3.13  # Error if python>=<number>
-    if ! check_cuda_version 12.8 13.0; then
-        log "[INFO] Fallback: cuda_version=${cuda_version} -> cuda_version=12.8"
-        cuda_version=12.8
-        cuda_version_without_dot="${cuda_version/\./}"
-    fi
-    install_torch 2.10.0  # install_torch <torch-audio-ver>
-
-elif $(pytorch_plus 2.9.2); then
-    log "[ERROR] pytorch=${torch_version} doesn't exist"
-    exit 1
-
-elif $(pytorch_plus 2.9.1); then
-    check_python_version 3.13  # Error if python>=<number>
-    if ! check_cuda_version 12.6 12.8 13.0; then
-        log "[INFO] Fallback: cuda_version=${cuda_version} -> cuda_version=12.8"
-        cuda_version=12.8
-        cuda_version_without_dot="${cuda_version/\./}"
-    fi
-    install_torch 2.9.1  # install_torch <torch-audio-ver>
 
 else
     log "[ERROR] This script doesn't support pytorch=${torch_version}"

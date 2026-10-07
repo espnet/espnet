@@ -2,8 +2,10 @@ import ast
 import types
 
 import pytest
+from omegaconf import OmegaConf
 
 from espnet3.parallel.base_runner import BaseRunner
+from espnet3.parallel.parallel import set_parallel
 
 
 class DummyProvider:
@@ -89,6 +91,37 @@ class FailingRunner(BaseRunner):
     open_writers = DummyRunner.open_writers
     write_record = DummyRunner.write_record
     close_writers = DummyRunner.close_writers
+
+
+@pytest.fixture(autouse=True)
+def reset_parallel_config(monkeypatch):
+    """Keep runner tests independent of the process-global parallel config."""
+    monkeypatch.setattr("espnet3.parallel.parallel.parallel_config", None)
+
+
+def test_local_config_uses_workers_and_dask_dispatch(tmp_path, monkeypatch):
+    set_parallel(
+        OmegaConf.create(
+            {
+                "env": "local",
+                "n_workers": 2,
+                "options": {},
+            }
+        )
+    )
+    runner = DummyRunner(DummyProvider(), output_dir=tmp_path)
+    dispatched = []
+
+    monkeypatch.setattr(
+        runner,
+        "_run_parallel_dask",
+        lambda shards: dispatched.extend(shards),
+    )
+    monkeypatch.setattr(runner, "_get_completed_shard_dirs", lambda _shards: [])
+    monkeypatch.setattr(runner, "merge", lambda _shard_dirs: "merged")
+
+    assert runner([0, 1, 2, 3]) == "merged"
+    assert [shard["items"] for shard in dispatched] == [[0, 1], [2, 3]]
 
 
 def test_batch_size_chunks_indices(tmp_path):
@@ -328,6 +361,34 @@ def test_resume_raises_for_locked_shard(tmp_path):
 
     with pytest.raises(RuntimeError, match="already locked"):
         runner([0, 1])
+
+
+def test_parallel_config_can_replace_stale_lock(tmp_path):
+    set_parallel(
+        OmegaConf.create(
+            {
+                "env": "local",
+                "n_workers": 1,
+                "options": {},
+                "allow_overwrite_lock": True,
+            }
+        )
+    )
+    runner = ResumeRunner(
+        TrackingProvider(),
+        batch_size=2,
+        output_dir=tmp_path,
+        shard_subdir="overwrite_lock",
+    )
+    shard_dir = tmp_path / "overwrite_lock" / "split.0"
+    shard_dir.mkdir(parents=True)
+    lock_path = ResumeRunner._get_lock_path(shard_dir)
+    lock_path.write_text("stale\n", encoding="utf-8")
+
+    pending = runner._filter_pending_shards([{"shard_id": 0, "items": [[0, 1]]}])
+
+    assert pending == [{"shard_id": 0, "items": [[0, 1]]}]
+    assert lock_path.read_text(encoding="utf-8") != "stale\n"
 
 
 def test_failed_shard_releases_lock(tmp_path):

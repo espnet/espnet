@@ -16,12 +16,12 @@ Its decoding is much faster than encoder-decoder models, with similar or enhance
 ### Guidelines
 1. Run stage 1-10 in `espnet/egs2/powsm/s2t1`
 2. Train: stage 11
-3. Eval: `espnet2.bin.s2t_inference_ctc` supports batched greedy decoding:
+3. Eval: `espnet2.bin.s2t_inference` decodes on the CTC head with no search:
 
     ```
-    from espnet2.bin.s2t_inference_ctc import Speech2TextGreedySearch
+    from espnet2.bin.s2t_inference import Speech2Text
 
-    s2t = Speech2TextGreedySearch.from_pretrained(
+    s2t = Speech2Text.from_pretrained(
         "espnet/powsm-ctc",
         device="cuda",
         use_flash_attn=True,
@@ -29,14 +29,12 @@ Its decoding is much faster than encoder-decoder models, with similar or enhance
         task_sym='<pr>',
     )
 
-    res = s2t.batch_decode(
-        ["audio1.wav", "audio2.wav"], # a list of audios (path or 1-D array/tensor)
-        batch_size=16,
-        context_len_in_secs=4,
-    )   # res is a list of str
-
+    res = [
+        " ".join(text for _, _, text in s2t.decode_long(path, batch_size=16))
+        for path in ["audio1.wav", "audio2.wav"]
+    ]   # res is a list of str
     ```
-    See [owsm_ctc_v3.1 recipe](https://github.com/espnet/espnet/tree/master/egs2/owsm_ctc_v3.1/s2t1) for more usage of `Speech2TextGreedySearch`.
+    See the [owsm_ctc_v3.1 recipe](https://github.com/espnet/espnet/tree/master/egs2/owsm_ctc_v3.1/s2t1) for more usage of `Speech2Text`.
 
 
 ### Citations

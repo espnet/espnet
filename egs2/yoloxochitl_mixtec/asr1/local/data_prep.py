@@ -77,7 +77,7 @@ def XMLRefine(input_xml, output_xml, readable=False):
     output.close()
 
 
-def XMLProcessing(transcribe):
+def XMLProcessing(transcribe, text_format):
     DOMTree = parse(transcribe)
     trans = DOMTree.documentElement
 
@@ -141,7 +141,7 @@ def XMLProcessing(transcribe):
                     else:
                         text = text.data
 
-                    text = TextRefine(text)
+                    text = TextRefine(text, text_format)
 
                     text = text.translate(trantab)
                     start_time = sync.getAttribute("time")
@@ -323,7 +323,7 @@ def TraverseData(
                 continue
             try:
                 audio_name, speakers, segment_info = XMLProcessing(
-                    annotation_files[afile]
+                    annotation_files[afile], text_format
                 )
             except Exception:
                 print("error process %s" % annotation_files[afile])

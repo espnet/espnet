@@ -19,7 +19,6 @@ import traceback
 from pathlib import Path
 from typing import Dict
 
-import kaldiio
 import soundfile as sf
 
 try:
@@ -32,6 +31,8 @@ except ImportError:
             "at '<root>/tools'."
         )
 
+
+from omniio import kaldi as kaldi_io
 
 from espnet2.text.phoneme_tokenizer import PhonemeTokenizer
 
@@ -412,7 +413,7 @@ def make_labs(args):
         if (dset / "segments").exists():
             wscp = (dset / "wav.scp").as_posix()
             segments = (dset / "segments").as_posix()
-            with kaldiio.ReadHelper(f"scp:{wscp}", segments=segments) as reader:
+            with kaldi_io.ReadHelper(f"scp:{wscp}", segments=segments) as reader:
                 for utt, (rate, array) in reader:
                     try:
                         spk = utt2spk[utt]
@@ -433,7 +434,7 @@ def make_labs(args):
                             dst_file.symlink_to(src_file)
                         else:
                             # Create wav file
-                            rate, array = kaldiio.load_mat(src_file)
+                            rate, array = kaldi_io.load_mat(src_file)
                             sf.write(dst_file.as_posix(), array, rate)
                     except KeyError:
                         logging.warning(f"{utt} is in wav.scp file but not in utt2spk")

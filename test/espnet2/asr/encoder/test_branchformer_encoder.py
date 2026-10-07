@@ -176,3 +176,22 @@ def test_encoder_invalid_stochastic_depth_rate():
             num_blocks=2,
             stochastic_depth_rate=[0.1, 0.1, 0.1],
         )
+
+
+def test_branchformer_output_does_not_depend_on_batch_neighbours():
+    """Padded frames are masked before the cgMLP convolution."""
+    from test.espnet2.asr.encoder.padding_invariance import (
+        COMMON,
+        D_IN,
+        assert_alone_equals_batched,
+    )
+
+    torch.manual_seed(0)
+    assert_alone_equals_batched(
+        BranchformerEncoder(
+            D_IN,
+            cgmlp_linear_units=64,
+            cgmlp_conv_kernel=7,
+            **{k: v for k, v in COMMON.items() if k != "linear_units"},
+        )
+    )

@@ -324,7 +324,7 @@ class BaseSystem:
             "Metrics start | metrics_config=%s",
             self.metrics_config is not None,
         )
-        result = measure(self.metrics_config)
+        result = measure(self.metrics_config, inference_config=self.inference_config)
         logger.info("results: %s", result)
         return result
 

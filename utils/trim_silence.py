@@ -10,11 +10,11 @@ import codecs
 import logging
 import os
 
-import kaldiio
 import librosa
 import matplotlib.pyplot as plt
 import numpy
 import resampy
+from omniio import kaldi as kaldi_io
 
 from espnet2.legacy.utils.cli_utils import get_commandline_args
 
@@ -109,7 +109,7 @@ def main():
     os.makedirs(args.figdir, exist_ok=True)
 
     with (
-        kaldiio.ReadHelper(args.rspecifier) as reader,
+        kaldi_io.ReadHelper(args.rspecifier) as reader,
         codecs.open(args.wspecifier, "w", encoding="utf-8") as f,
     ):
         for utt_id, (rate, array) in reader:
