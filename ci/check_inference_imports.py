@@ -57,6 +57,11 @@ MODULES = [
     # report what is missing.
     "espnet2.bin.demo",
     "espnet2.bin.mcp_server",
+    # espnet3's inference API and the system behind its one published kind
+    # of bundle: `espnet.load` hands an espnet3 bundle to them, so they must
+    # import bare too (hydra-core and omegaconf are core for this reason)
+    "espnet3.api.inference",
+    "espnet3.systems.esp2_asr.inference",
 ]
 
 # Entry points that need one task extra installed on top of the bare package.

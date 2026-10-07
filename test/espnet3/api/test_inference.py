@@ -20,6 +20,7 @@ from espnet3.api.inference import (
     Audio,
     Field,
     InferenceAPI,
+    ModelTagError,
     check_contract,
     gather,
     load,
@@ -577,7 +578,9 @@ def test_load_finds_the_system_named_in_meta(tmp_path, monkeypatch):
 
 def test_load_needs_a_system_name_from_somewhere(tmp_path, monkeypatch):
     _install_fake_system(monkeypatch, "echo", Echo)
-    with pytest.raises(ValueError, match="does not name its system"):
+    with pytest.raises(
+        ModelTagError, match="does not name its system, and the bundle builds no model"
+    ):
         load(_pack(tmp_path, None))
     assert isinstance(load(_pack(tmp_path, None), system="echo"), Echo)
 
@@ -599,7 +602,7 @@ def test_load_rejects_a_system_without_the_class(tmp_path, monkeypatch):
 
 
 def test_load_says_when_the_system_has_no_inference_module(tmp_path, monkeypatch):
-    with pytest.raises(ImportError, match="system 'nosuch' has no Inference yet"):
+    with pytest.raises(ModelTagError, match="system 'nosuch' has no Inference yet"):
         load(_pack(tmp_path, "nosuch"))
 
     import importlib

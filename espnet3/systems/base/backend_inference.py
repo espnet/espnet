@@ -20,13 +20,20 @@ toolkit: what a backend's config looks like is the system's knowledge
 
 That class is built three ways, all ending in ``self.backend``:
 
-- ``Inference.from_pretrained(tag_or_dir)``: the bundle's own
-  ``conf/inference.yaml`` builds the backend, through the bundle's provider
-  and without importing bundled code.
+- ``Inference.from_pretrained(tag_or_dir)``: :func:`load_model` builds
+  the backend from the bundle's ``conf/inference.yaml`` ``model``, without
+  any provider and without importing bundled code.
 - ``Inference(asr_train_config=..., asr_model_file=...)``: the backend's own
   arguments, which is how ``inference.yaml``'s ``model`` names the class
   for the ``infer`` stage (the provider adds ``device``).
 - ``Inference(backend)``: one already built.
+
+A hook receives audio channels-first, as :class:`Audio` keeps it:
+``(samples,)`` for one channel and ``(channels, samples)`` for several. An
+ESPnet2 backend takes several channels the other way round, as
+``soundfile`` reads them, so a system passing several channels to one
+hands it ``speech.array.T``; the ESPnet2 ASR system does this for a model
+whose frontend uses every channel.
 
 A system whose model is not one object - a SpeechLM behind a server, a
 pipeline of several - subclasses :class:`InferenceAPI` directly instead.
@@ -40,8 +47,7 @@ from typing import Any, ClassVar, Optional
 import humanfriendly
 from hydra.utils import get_class
 
-from espnet3.api.inference import InferenceAPI, locate_pack
-from espnet3.publication.inference_model import load_backend
+from espnet3.api.inference import InferenceAPI, ModelTagError, load_model, locate_pack
 
 
 def parse_rate(value: Any) -> int:
@@ -100,19 +106,27 @@ class BackendInference(InferenceAPI):
     ) -> None:
         """Keep a built backend, or build one from its own arguments."""
         if backend is None:
-            path = backend_class or type(self).backend_class
-            if not path:
-                raise TypeError(
-                    f"{type(self).__qualname__} declares no backend_class; "
-                    "pass a built backend or set backend_class"
-                )
-            backend = get_class(path)(device=device, **kwargs)
+            backend = self._backend_type(backend_class)(device=device, **kwargs)
         elif kwargs or backend_class:
             raise TypeError(
                 f"arguments {sorted(kwargs)} given for building a backend, "
                 "but a built one was too"
             )
         self.backend = backend
+
+    def _backend_type(self, backend_class: Optional[str] = None) -> type:
+        """Return the backend class to build: the argument, else the declared one.
+
+        Raises:
+            TypeError: If neither names a class.
+        """
+        path = backend_class or type(self).backend_class
+        if not path:
+            raise TypeError(
+                f"{type(self).__qualname__} declares no backend_class; "
+                "pass a built backend or set backend_class"
+            )
+        return get_class(path)
 
     @classmethod
     def from_pretrained(
@@ -121,8 +135,8 @@ class BackendInference(InferenceAPI):
         """Load a ``pack_model`` bundle by directory or Hub tag.
 
         The bundle's ``conf/inference.yaml`` says how to build the model;
-        it is built through the bundle's provider on ``device``, without
-        importing the recipe's code: the outputs are fixed by the
+        :func:`load_model` builds its ``model`` on ``device``, without any
+        provider and without importing the recipe's code: the outputs are fixed by the
         declaration, so the recipe's ``output_fn`` is never needed. A
         recipe that names this class as its ``model`` builds the
         ``Inference`` itself, which is returned as it is; an older one
@@ -131,25 +145,34 @@ class BackendInference(InferenceAPI):
         Args:
             tag_or_dir: A ``pack_model`` output directory, or a Hub tag.
             device: Where to build the backend.
-            **kwargs: None are taken; a bundle is complete as packed.
+            **kwargs: Any argument the packed model's constructor takes,
+                replacing the packed value, as ESPnet2's ``from_pretrained``
+                takes them. Nothing is singled out: for an ESPnet2 ASR
+                bundle that is every ``Speech2Text`` argument - the
+                decoding ones (``beam_size``, ``ctc_weight``,
+                ``lm_weight``, ``penalty``, ``nbest``, ``maxlenratio``,
+                ...) and the rest (``lm_file``, ``dtype``, ...). An
+                argument the model does not take is a ``TypeError``
+                naming it.
 
         Raises:
-            TypeError: If ``kwargs`` are given, or the bundle builds an
-                ``Inference`` of another class.
+            ModelTagError: If the tag is not a ``pack_model`` bundle, or the
+                bundle builds an ``Inference`` of another class.
             ValueError: If the bundle's model needs the bundle's own code.
 
         Examples:
             >>> Inference.from_pretrained("exp/train/model_pack")
             >>> Inference.from_pretrained("espnet/some_pack", device="cuda:0")
+            >>> Inference.from_pretrained(
+            ...     "espnet/some_pack", beam_size=5, ctc_weight=0.3, nbest=3
+            ... )
         """
-        if kwargs:
-            raise TypeError(f"unexpected arguments {sorted(kwargs)}")
-        built = load_backend(locate_pack(tag_or_dir), device=device)
+        built = load_model(locate_pack(tag_or_dir), device=device, overrides=kwargs)
         if isinstance(built, InferenceAPI):
             # the bundle's inference.yaml names the Inference itself, as a
-            # recipe on the APIRunner does: it is the model, not a backend
+            # recipe names its Inference as the model: it is the model, not a backend
             if not isinstance(built, cls):
-                raise TypeError(
+                raise ModelTagError(
                     f"the bundle builds {type(built).__name__}, not {cls.__name__}"
                 )
             return built
