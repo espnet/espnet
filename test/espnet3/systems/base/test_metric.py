@@ -437,3 +437,67 @@ def test_measure_succeeds_for_wer_against_a_declared_inference_model(tmp_path):
 
     expected_key = get_class_path(WER())
     assert results[expected_key][test_name] == {"WER": 0.0}
+
+
+class _DatasetTextProvider:
+    """A minimal provider whose test set has only a `text` column."""
+
+    @staticmethod
+    def build_dataset(config):
+        return [{"utt_id": "utt1", "text": "hello world"}]
+
+    @staticmethod
+    def build_model(config):
+        raise NotImplementedError
+
+
+def test_measure_succeeds_for_wer_with_renamed_keys_through_config_inputs(tmp_path):
+    """The review's scenario: a renamed WER scored through measure().
+
+    config inputs are keyed by WER's own ref_key/hyp_key (not "ref"/
+    "hyp"), and one of them is a dataset column. This drives the full
+    measure() path - check_metric_inputs, then the actual scoring -
+    not just check_metric_inputs in isolation, so it would also catch
+    the two from drifting out of sync again.
+    """
+    from espnet3.systems.esp2_asr.metrics.wer import WER
+
+    try:
+        import jiwer  # noqa: F401
+    except ImportError:
+        pytest.skip("jiwer not installed")
+
+    inference_dir = tmp_path / "infer"
+    test_name = "test-clean"
+    task_dir = inference_dir / test_name
+    task_dir.mkdir(parents=True)
+    _write_scp(task_dir / "text.scp", ["utt1 hello world"])
+
+    inference_cfg = OmegaConf.create(
+        {
+            "inference_dir": str(inference_dir),
+            "model": {"_target_": f"{__name__}._DummyInference"},
+            "provider": {"_target_": f"{__name__}._DatasetTextProvider"},
+        }
+    )
+    metrics_cfg = OmegaConf.create(
+        {
+            "inference_dir": str(inference_dir),
+            "dataset": {"test": [{"name": test_name}]},
+            "metrics": [
+                {
+                    "metric": {
+                        "_target_": "espnet3.systems.esp2_asr.metrics.wer.WER",
+                        "ref_key": "reference",
+                        "hyp_key": "hypothesis",
+                    },
+                    "inputs": {"reference": "dataset:text", "hypothesis": "text"},
+                }
+            ],
+        }
+    )
+
+    results = measure(metrics_cfg, inference_config=inference_cfg)
+
+    expected_key = get_class_path(WER(ref_key="reference", hyp_key="hypothesis"))
+    assert results[expected_key][test_name] == {"WER": 0.0}
