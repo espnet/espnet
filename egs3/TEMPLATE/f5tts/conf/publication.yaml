@@ -8,8 +8,8 @@
 #       --publication_config conf/publication.yaml
 #
 # Shared default merged under every F5-TTS recipe's publication config. A
-# recipe overrides only what differs: typically `pack_model.include`, to add
-# the directory its `create_token_list` stage writes to.
+# recipe overrides only what differs: `pack_model.include`, to add the
+# directory its `create_token_list` stage writes to.
 #
 # Pass `--inference_config` to `pack_model`: the bundle is loaded back through
 # the `conf/inference.yaml` written from it. If `${inference_dir}` holds the
@@ -25,11 +25,12 @@ data_dir: ${recipe_dir}/data
 # `pack_model` copies `${exp_dir}` (minus `exclude`) and each path in
 # `include`, then writes the configs into `conf/` with paths rewritten to the
 # bundle and `meta.yaml` at the root. What an F5-TTS bundle needs to load on
-# another machine: the checkpoint named by `inference_config.model.checkpoint_path`
-# (`${exp_dir}/last.ckpt`, copied with `${exp_dir}`), the training config it is
-# rebuilt from (`conf`), and the token list that config points at, which the
-# recipe adds to `include` (OmegaConf replaces a list, so restate the whole
-# list: `[src, dataset, conf, ${data_dir}/<token list dir>]`).
+# another machine: the checkpoint and the training config it is rebuilt from
+# (`${exp_dir}/last.ckpt` and `${exp_dir}/config.yaml`, both copied with
+# `${exp_dir}`), and the token list that config points at, which the recipe
+# adds to `include` (OmegaConf replaces a list, so restate the whole list:
+# `[src, ${data_dir}/<token list dir>]`). The recipe's `dataset/` code is not
+# needed to load or run the model and is not shipped.
 pack_model:
   out_dir: ${exp_dir}/model_pack
   allow_overwrite: false
@@ -41,10 +42,6 @@ pack_model:
   include:
     # The demo launcher (`src/app.py`) the packed demo is built from.
     - src
-    # Recipe-local dataset modules for publication smoke checks.
-    - dataset
-    # The training config the model is rebuilt from at load time.
-    - conf
   exclude:
     # Applied only during the bulk copy of `${exp_dir}`. `last.ckpt` is kept:
     # it is what the packed inference config loads.

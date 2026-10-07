@@ -32,16 +32,14 @@ parallel:
   env: local
   n_workers: 1
 
-# The model is the system's `Inference`: the runner reads its declared inputs
-# (`text`, `reference_speech`, `reference_text`) from each manifest row by name
-# and writes its declared output as `wav.scp`. The scoring references (the
-# prompt wav and the target text) stay in the data; `conf/metrics.yaml` reads
-# them as `dataset:<column>`.
+# The model is the template's `Inference`, rebuilt from the training config
+# `train` wrote to `${exp_dir}/config.yaml` and loaded from
+# `${exp_dir}/last.ckpt`; the runner reads its declared inputs (`text`,
+# `reference_speech`, `reference_text`) from each manifest row by name and
+# writes its declared output as `wav.scp`. The scoring references (the prompt
+# wav and the target text) stay in the data; `conf/metrics.yaml` reads them as
+# `dataset:<column>`. Only the sampling settings are this recipe's.
 model:
-  _target_: espnet3.systems.f5tts.inference.Inference
-  train_config: ${recipe_dir}/conf/training.yaml
-  checkpoint_path: ${exp_dir}/last.ckpt
-  use_ema: true
   vocoder_path: null
   target_sample_rate: 24000
   ode_solver_steps: 32

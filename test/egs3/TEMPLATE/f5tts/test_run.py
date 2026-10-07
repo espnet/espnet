@@ -83,10 +83,15 @@ def test_training_scaffold_names_the_keys_and_sets_no_model() -> None:
     assert config.parallel.n_workers == 1
 
 
-def test_inference_scaffold_names_the_runner_and_leaves_the_model_open() -> None:
+def test_inference_scaffold_rebuilds_the_model_from_the_trained_config() -> None:
     config = load_default_config("inference.yaml", PACKAGE)
 
-    assert config.model is None
+    assert config.model._target_ == "espnet3.systems.f5tts.inference.Inference"
+    model = OmegaConf.to_container(config.model, resolve=False)
+    # `train` writes config.yaml beside the checkpoint; no training file is named.
+    assert model["train_config"] == "${exp_dir}/config.yaml"
+    assert model["checkpoint_path"] == "${exp_dir}/last.ckpt"
+    assert model["use_ema"] is True
     # An Inference declares its inputs and outputs; the runner refuses these.
     assert "input_key" not in config
     assert "output_fn" not in config

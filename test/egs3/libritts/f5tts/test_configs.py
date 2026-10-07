@@ -30,9 +30,8 @@ def _raw(name):
     """Return the config as plain dicts with interpolations left unresolved.
 
     OmegaConf resolves interpolations lazily on attribute access, so reading
-    ``cfg.model.train_config`` off a loaded config would hand back the
-    resolved path rather than the literal ``${recipe_dir}/...`` string these
-    tests assert on.
+    a path off a loaded config would hand back the resolved value rather than
+    the literal ``${...}`` string these tests assert on.
     """
     return OmegaConf.to_container(OmegaConf.load(RECIPE / "conf" / name), resolve=False)
 
@@ -78,26 +77,24 @@ def test_default_inference_config_uses_librispeech_pc():
     assert test_sets[0]["data_src_args"]["fs"] == 24000
 
 
-def test_default_inference_config_is_portable():
-    cfg = _raw("inference.yaml")
-    assert cfg["model"]["train_config"] == "${recipe_dir}/conf/training.yaml"
+def test_default_inference_config_is_portable(monkeypatch):
+    """The model is rebuilt from the config `train` left beside the checkpoint.
+
+    Naming a training file here would have to be kept in step with
+    `--training_config` by hand; `${exp_dir}/config.yaml` is whatever trained
+    `exp_dir`, so a second architecture needs no edit to this file.
+    """
+    raw = _raw("inference.yaml")
+    assert "train_config" not in raw["model"]
+    assert "checkpoint_path" not in raw["model"]
+    cfg = OmegaConf.to_container(
+        _load(monkeypatch, "inference.yaml", "inference.yaml"), resolve=False
+    )
+    assert cfg["model"]["train_config"] == "${exp_dir}/config.yaml"
     assert cfg["model"]["checkpoint_path"] == "${exp_dir}/last.ckpt"
     # Empty exp_tag means this config is training-backed: run.py must be given
     # --training_config alongside it.
-    assert not cfg["exp_tag"]
-
-
-def test_inference_config_train_config_exists():
-    """The inference config must point at a training config that is present.
-
-    ``--training_config`` never overrides an inference config's own
-    ``model.train_config``, so a stale value here is not caught at the CLI:
-    it surfaces as a checkpoint shape mismatch part way into a GPU job.
-    """
-    train_config = _raw("inference.yaml")["model"]["train_config"]
-    assert train_config.startswith("${recipe_dir}/")
-    resolved = RECIPE / train_config.removeprefix("${recipe_dir}/")
-    assert resolved.is_file(), f"inference.yaml points at missing {train_config}"
+    assert not raw["exp_tag"]
 
 
 def test_metrics_config_matches_official_protocol(monkeypatch):

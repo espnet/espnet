@@ -20,9 +20,5 @@ pack_model:
   include:
     # The demo launcher (`src/app.py`) the packed demo is built from.
     - src
-    # Recipe-local dataset modules for publication smoke checks.
-    - dataset
-    # The training config the model is rebuilt from at load time.
-    - conf
     # The token list written by `create_token_list`.
     - ${data_dir}/tokens

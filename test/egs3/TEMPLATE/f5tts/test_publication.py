@@ -64,8 +64,9 @@ def test_publication_scaffold_packs_what_an_f5tts_bundle_needs() -> None:
     OmegaConf.resolve(config)
 
     assert config.pack_model.out_dir == "./exp/publication/model_pack"
-    # The checkpoint comes with `${exp_dir}`, the training config with `conf`.
-    assert list(config.pack_model.include) == ["src", "dataset", "conf"]
+    # The checkpoint and the config it was trained with both come with
+    # `${exp_dir}`; the recipe's dataset code is not needed to run the model.
+    assert list(config.pack_model.include) == ["src"]
     assert "last.ckpt" not in config.pack_model.exclude
     assert "inference" in config.pack_model.exclude
     # The model card template ships with the template, not with every recipe.
@@ -109,12 +110,14 @@ def test_pack_model_writes_a_self_contained_bundle(recipe_dir, stub_vocoder):
 
     for kept in (
         "exp/training/last.ckpt",
+        "exp/training/config.yaml",
         "conf/training.yaml",
         "data/token_list/tokens.txt",
         "src/app.py",
         "README.md",
     ):
         assert (bundle / kept).is_file(), kept
+    assert not (bundle / "dataset").exists()
     for excluded in (
         "exp/training/step40000.ckpt",
         "exp/training/train.log",

@@ -18,6 +18,7 @@ from omegaconf import OmegaConf
 import espnet3.parallel.parallel as parallel_module
 from espnet3.systems.f5tts.f5tts import F5TTS
 from espnet3.systems.f5tts.inference import F5TTSInference
+from espnet3.utils.config_utils import load_and_merge_config
 
 PACKAGE = "egs3.TEMPLATE.f5tts"
 TOKENS = ["<blank>", "<unk>", "a", "b", "c", "<space>", "<sos/eos>"]
@@ -166,12 +167,10 @@ TRAINING_CONFIG = {
     "fit": {},
 }
 
+# The template names the Inference and rebuilds it from `${exp_dir}/config.yaml`;
+# a recipe adds the sampling settings.
 INFERENCE_CONFIG = {
     "model": {
-        "_target_": "espnet3.systems.f5tts.inference.Inference",
-        "train_config": "${recipe_dir}/conf/training.yaml",
-        "checkpoint_path": "${exp_dir}/last.ckpt",
-        "use_ema": True,
         "vocoder_path": None,
         "target_sample_rate": 24000,
         "ode_solver_steps": 2,
@@ -186,7 +185,7 @@ INFERENCE_CONFIG = {
 # A recipe overrides only what differs from the template: the directory its
 # token list lives in (OmegaConf replaces the list, so the rest is restated).
 PUBLICATION_CONFIG = {
-    "pack_model": {"include": ["src", "dataset", "conf", "${data_dir}/token_list"]},
+    "pack_model": {"include": ["src", "${data_dir}/token_list"]},
 }
 
 # Nothing to override: the demo wiring, README and requirements are the template's.
@@ -262,6 +261,12 @@ def recipe_dir(tmp_path, monkeypatch):
     token_list.write_text("\n".join(TOKENS) + "\n", encoding="utf-8")
     exp_dir = recipe / "exp" / "training"
     exp_dir.mkdir(parents=True)
+    # What F5TTSSystem.train writes beside the checkpoint: the training config
+    # as run.py loads and resolves it.
+    training_config = load_and_merge_config(
+        recipe / "conf" / "training.yaml", "training.yaml", default_package=PACKAGE
+    )
+    OmegaConf.save(training_config, exp_dir / "config.yaml")
     model = F5TTS(
         token_list=str(token_list),
         feats_extract_config=FEATS_EXTRACT_CONFIG,
