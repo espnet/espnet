@@ -1431,7 +1431,7 @@ def test_upload_model_empty_delete_patterns_passes_none(tmp_path, monkeypatch):
     assert upload_calls[0]["delete_patterns"] is None
 
 
-def test_meta_records_a_system_only_when_a_path_into_systems_names_one():
+def test_meta_records_a_system_only_when_the_task_path_names_one():
     from omegaconf import OmegaConf
 
     from espnet3.utils.publication_utils import _system_for_meta
@@ -1441,23 +1441,6 @@ def test_meta_records_a_system_only_when_a_path_into_systems_names_one():
     for task in ("espnet2.tasks.asr.ASRTask", "", None):
         assert _system_for_meta(OmegaConf.create({"task": task})) is None
     assert _system_for_meta(OmegaConf.create({})) is None
-
-    # A system that instantiates its model directly declares no task; the
-    # model's own path names it. Any other model names no system.
-    direct = OmegaConf.create(
-        {"task": None, "model": {"_target_": "espnet3.systems.f5tts.f5tts.F5TTS"}}
-    )
-    assert _system_for_meta(direct) == "f5tts"
-    other = OmegaConf.create({"model": {"_target_": "torch.nn.Linear"}})
-    assert _system_for_meta(other) is None
-    # The task wins when both are given.
-    both = OmegaConf.create(
-        {
-            "task": "espnet3.systems.esp2_asr.task.ASRTask",
-            "model": {"_target_": "espnet3.systems.f5tts.f5tts.F5TTS"},
-        }
-    )
-    assert _system_for_meta(both) == "esp2_asr"
 
 
 def test_the_readme_load_example_asks_for_trust_only_when_the_bundle_needs_it(
