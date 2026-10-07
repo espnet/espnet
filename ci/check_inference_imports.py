@@ -4,11 +4,11 @@
 `pip install espnet` with no extras is the install a user gets from the README
 quick start, a Hugging Face Space's requirements.txt, or `uvx espnet-mcp`, and
 it must be enough to load a pretrained model and run it. The training stack
-(lightning, wandb, tensorboard, torch_optimizer, matplotlib, nltk, and hydra,
-omegaconf, datasets, dask for espnet3) lives in the [train] extra, so this
-script fails the moment a module on the inference path starts importing one of
-them at module level. test_import_all.py, run with [all] installed, covers
-everything else.
+(lightning, wandb, tensorboard, torch_optimizer, matplotlib, nltk, and datasets,
+dask for espnet3) lives in the [train] extra, so this script fails the moment a
+module on the inference path starts importing one of them at module level.
+hydra-core and omegaconf are core: an espnet3 bundle is loaded through them.
+test_import_all.py, run with [all] installed, covers everything else.
 
 Some entry points need a task extra by design - speechlm's inference imports
 transformers, duckdb, lhotse and liger_kernel at module level - and
@@ -57,6 +57,11 @@ MODULES = [
     # report what is missing.
     "espnet2.bin.demo",
     "espnet2.bin.mcp_server",
+    # espnet3's inference API and the system behind its one published kind
+    # of bundle: `espnet.load` hands an espnet3 bundle to them, so they must
+    # import bare too (hydra-core and omegaconf are core for this reason)
+    "espnet3.api.inference",
+    "espnet3.systems.esp2_asr.inference",
 ]
 
 # Entry points that need one task extra installed on top of the bare package.
