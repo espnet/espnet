@@ -46,8 +46,8 @@ python run.py --stages infer \
 `conf/inference.yaml` leaves `exp_tag` empty so it inherits experiment identity from the training config, and `run.py` rejects an inference config with no experiment identity of its own.
 
 `conf/inference.yaml` runs the paper protocol: LibriSpeech-PC test-clean cross-sentence, 1127 same-speaker prompt/target pairs.
-To evaluate in-domain on the LibriTTS `valid`/`test` splits with cross-speaker prompts instead, swap in `conf/inference_libritts.yaml`.
-Both inference configs pin the same `conf/training_small.yaml`, so either one loads a checkpoint from Section 1 without further edits.
+It is the only evaluation the recipe ships.
+It pins `conf/training_small.yaml`, so it loads a checkpoint from Section 1 without further edits.
 
 If you add a training config for a different architecture, note that `--training_config` only propagates `exp_tag` and `exp_dir` into the inference config (`espnet3/utils/run_utils.py`'s `_TRAINING_CONTEXT_KEYS`); it never overrides `model.train_config`.
 Point the inference config's own `model.train_config` at the matching training config, or the checkpoint will fail to load with a shape mismatch.

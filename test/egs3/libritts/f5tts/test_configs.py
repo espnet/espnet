@@ -18,8 +18,6 @@ from espnet3.utils.config_utils import load_and_merge_config
 RECIPE = Path(__file__).resolve().parents[4] / "egs3" / "libritts" / "f5tts"
 TEMPLATE_PACKAGE = "egs3.TEMPLATE.f5tts"
 
-INFERENCE_CONFIGS = ["inference.yaml", "inference_libritts.yaml"]
-
 
 def _load(monkeypatch, name, config_name):
     """Load a recipe config the way the template's run.py does."""
@@ -63,9 +61,8 @@ def test_training_config_has_one_token_list_path():
     assert cfg["dataset"]["preprocessor"]["token_list"] == "${token_list}"
 
 
-@pytest.mark.parametrize("name", INFERENCE_CONFIGS)
-def test_inference_configs_load(monkeypatch, name):
-    cfg = _load(monkeypatch, name, "inference.yaml")
+def test_inference_config_loads(monkeypatch):
+    cfg = _load(monkeypatch, "inference.yaml", "inference.yaml")
     assert cfg.model._target_ == "espnet3.systems.f5tts.inference.Inference"
     assert list(cfg.input_key) == ["text", "reference_speech", "reference_text"]
     assert cfg.output_fn == "src.inference.build_output"
@@ -88,25 +85,17 @@ def test_default_inference_config_is_portable():
     assert not cfg["exp_tag"]
 
 
-def test_libritts_config_keeps_cross_speaker_protocol():
-    test_sets = _raw("inference_libritts.yaml")["dataset"]["test"]
-    assert [entry["name"] for entry in test_sets] == ["valid", "test"]
-    for entry in test_sets:
-        assert entry["data_src_args"]["ref_mode"] == "cross_speaker"
-
-
-@pytest.mark.parametrize("name", INFERENCE_CONFIGS)
-def test_inference_config_train_config_exists(name):
-    """Every inference config must point at a training config that is present.
+def test_inference_config_train_config_exists():
+    """The inference config must point at a training config that is present.
 
     ``--training_config`` never overrides an inference config's own
     ``model.train_config``, so a stale value here is not caught at the CLI:
     it surfaces as a checkpoint shape mismatch part way into a GPU job.
     """
-    train_config = _raw(name)["model"]["train_config"]
+    train_config = _raw("inference.yaml")["model"]["train_config"]
     assert train_config.startswith("${recipe_dir}/")
     resolved = RECIPE / train_config.removeprefix("${recipe_dir}/")
-    assert resolved.is_file(), f"{name} points at missing {train_config}"
+    assert resolved.is_file(), f"inference.yaml points at missing {train_config}"
 
 
 def test_metrics_config_matches_official_protocol():

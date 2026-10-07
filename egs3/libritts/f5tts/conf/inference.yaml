@@ -9,9 +9,6 @@
 # exp_tag is intentionally empty so this config inherits experiment identity
 # from the training config. That means run.py must always be given
 # --training_config alongside --inference_config.
-#
-# For the in-domain LibriTTS cross-speaker eval instead, use
-# conf/inference_libritts.yaml.
 recipe_dir: .
 
 exp_tag:
@@ -20,7 +17,7 @@ data_dir: ${recipe_dir}/data
 inference_dir: ${exp_dir}/${self_name:}
 
 # Every row of the manifest pins its own prompt, reproducing the paper's fixed
-# pairing rather than sampling a reference like the LibriTTS config does.
+# pairing.
 dataset:
   _target_: espnet3.components.data.data_organizer.DataOrganizer
   recipe_dir: ${recipe_dir}

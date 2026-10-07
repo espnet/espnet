@@ -8,11 +8,10 @@ manifest
 
     gen_utt \t gen_text \t ref_utt \t ref_wav_path \t ref_text
 
-which :class:`LibriSpeechPCDataset` serves. Unlike ``LibriTTSDataset``'s
-``ref_mode`` (random same/cross-speaker prompt selection), every row pins its
-prompt, reproducing the paper's fixed pairing. Output keys mirror the
-``inference + ref_mode`` path of ``dataset/dataset.py`` so ``inference*.yaml``
-input_key wiring and ``src.inference.build_output`` work unchanged.
+which :class:`LibriSpeechPCDataset` serves. Every row pins its prompt,
+reproducing the paper's fixed pairing. The output keys are what
+``conf/inference.yaml``'s ``input_key`` and ``src.inference.build_output``
+read.
 """
 
 from __future__ import annotations
