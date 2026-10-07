@@ -34,7 +34,7 @@ parallel:
 
 model:
   _target_: espnet3.systems.f5tts.inference.Inference
-  train_config: ${recipe_dir}/conf/training_small.yaml
+  train_config: ${recipe_dir}/conf/training.yaml
   checkpoint_path: ${exp_dir}/last.ckpt
   use_ema: true
   vocoder_path: null

@@ -42,7 +42,7 @@ def _raw(name):
 
 
 def test_training_config_loads_over_the_template(monkeypatch):
-    cfg = _load(monkeypatch, "training_small.yaml", "training.yaml")
+    cfg = _load(monkeypatch, "training.yaml", "training.yaml")
     assert cfg.model._target_ == "espnet3.systems.f5tts.f5tts.F5TTS"
     assert cfg.task is None
     # The template's TensorBoard logger is kept, not replaced by a hosted one.
@@ -53,7 +53,7 @@ def test_training_config_loads_over_the_template(monkeypatch):
 
 def test_training_config_has_one_token_list_path():
     """The preprocessor, the model and create_token_list agree on the file."""
-    cfg = _raw("training_small.yaml")
+    cfg = _raw("training.yaml")
     assert cfg["token_list"] == (
         "${create_token_list.save_path}/${create_token_list.filename}"
     )
@@ -78,7 +78,7 @@ def test_default_inference_config_uses_librispeech_pc():
 
 def test_default_inference_config_is_portable():
     cfg = _raw("inference.yaml")
-    assert cfg["model"]["train_config"] == "${recipe_dir}/conf/training_small.yaml"
+    assert cfg["model"]["train_config"] == "${recipe_dir}/conf/training.yaml"
     assert cfg["model"]["checkpoint_path"] == "${exp_dir}/last.ckpt"
     # Empty exp_tag means this config is training-backed: run.py must be given
     # --training_config alongside it.

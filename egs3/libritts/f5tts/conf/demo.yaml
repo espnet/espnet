@@ -3,9 +3,9 @@
 ##########################################################
 # Quick usage:
 #   python run.py --stages pack_demo \
-#       --training_config conf/training_small.yaml --demo_config conf/demo.yaml
+#       --training_config conf/training.yaml --demo_config conf/demo.yaml
 #   python run.py --stages upload_demo \
-#       --training_config conf/training_small.yaml --demo_config conf/demo.yaml
+#       --training_config conf/training.yaml --demo_config conf/demo.yaml
 #
 # Pass `--training_config` too: `run.py` copies its `exp_tag` here, which
 # `model.dir_or_tag` and `upload_demo.hf_repo` are built from. `pack_model`

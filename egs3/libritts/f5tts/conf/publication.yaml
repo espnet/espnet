@@ -3,11 +3,11 @@
 ##########################################################
 # Quick usage:
 #   python run.py --stages pack_model \
-#       --training_config conf/training_small.yaml \
+#       --training_config conf/training.yaml \
 #       --inference_config conf/inference.yaml \
 #       --publication_config conf/publication.yaml
 #   python run.py --stages upload_model \
-#       --training_config conf/training_small.yaml \
+#       --training_config conf/training.yaml \
 #       --publication_config conf/publication.yaml
 #
 # Pass `--inference_config` to `pack_model`: the bundle is loaded back through

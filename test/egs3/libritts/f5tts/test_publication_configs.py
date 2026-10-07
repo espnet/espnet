@@ -36,7 +36,7 @@ def test_publication_config_bundles_the_recipe_token_list(monkeypatch):
     assert "${data_dir}/tokens" in OmegaConf.to_container(
         publication.pack_model.include, resolve=False
     )
-    training = _raw("training_small.yaml")
+    training = _raw("training.yaml")
     assert training["create_token_list"]["save_path"] == "${data_dir}/tokens"
 
 

@@ -7,24 +7,24 @@ It runs `espnet3.systems.f5tts.system.F5TTSSystem` through the shared runner in 
 
 ```bash
 # Download the corpora and build every manifest (run once)
-python run.py --stages create_dataset --training_config conf/training_small.yaml
+python run.py --stages create_dataset --training_config conf/training.yaml
 
 # Filter utterances by duration
-python run.py --stages remove_long_short --training_config conf/training_small.yaml
+python run.py --stages remove_long_short --training_config conf/training.yaml
 
 # Build the token list
-python run.py --stages create_token_list --training_config conf/training_small.yaml
+python run.py --stages create_token_list --training_config conf/training.yaml
 
 # Collect feature statistics
-python run.py --stages collect_stats --training_config conf/training_small.yaml
+python run.py --stages collect_stats --training_config conf/training.yaml
 
 # Train
-python run.py --stages train --training_config conf/training_small.yaml
+python run.py --stages train --training_config conf/training.yaml
 ```
 
-`conf/training_small.yaml` is the recipe's only training config: the F5TTS_Small architecture (hidden size 768, depth 18, 12 attention heads), targeting the LibriTTS rows of arXiv 2410.06885 Table 9.
+`conf/training.yaml` is the recipe's only training config: the F5TTS_Small architecture (hidden size 768, depth 18, 12 attention heads), targeting the LibriTTS rows of arXiv 2410.06885 Table 9.
 It is complete on its own, because the `infer` stage and a packed model rebuild the model and the tokenizer from it alone.
-Training logs go to TensorBoard under `exp/training_small/tensorboard`.
+Training logs go to TensorBoard under `exp/training/tensorboard`.
 
 `create_dataset` prepares both the training data and the eval data.
 It downloads:
@@ -38,7 +38,7 @@ Everything is idempotent: extracted subsets carry a `.complete` marker and the p
 
 ```bash
 python run.py --stages infer \
-    --training_config conf/training_small.yaml \
+    --training_config conf/training.yaml \
     --inference_config conf/inference.yaml
 ```
 
@@ -47,7 +47,7 @@ python run.py --stages infer \
 
 `conf/inference.yaml` runs the paper protocol: LibriSpeech-PC test-clean cross-sentence, 1127 same-speaker prompt/target pairs.
 It is the only evaluation the recipe ships.
-It pins `conf/training_small.yaml`, so it loads a checkpoint from Section 1 without further edits.
+It pins `conf/training.yaml`, so it loads a checkpoint from Section 1 without further edits.
 
 If you add a training config for a different architecture, note that `--training_config` only propagates `exp_tag` and `exp_dir` into the inference config (`espnet3/utils/run_utils.py`'s `_TRAINING_CONTEXT_KEYS`); it never overrides `model.train_config`.
 Point the inference config's own `model.train_config` at the matching training config, or the checkpoint will fail to load with a shape mismatch.
@@ -56,7 +56,7 @@ Point the inference config's own `model.train_config` at the matching training c
 
 ```bash
 python run.py --stages measure \
-    --training_config conf/training_small.yaml \
+    --training_config conf/training.yaml \
     --inference_config conf/inference.yaml \
     --metrics_config conf/metrics.yaml
 ```
@@ -86,16 +86,16 @@ In short: WER and UTMOS are equivalent to the official implementations, but spea
 
 ```bash
 python run.py --stages pack_model \
-    --training_config conf/training_small.yaml \
+    --training_config conf/training.yaml \
     --inference_config conf/inference.yaml \
     --publication_config conf/publication.yaml
 
 python run.py --stages upload_model \
-    --training_config conf/training_small.yaml \
+    --training_config conf/training.yaml \
     --publication_config conf/publication.yaml
 ```
 
-`pack_model` writes a self-contained bundle to `exp/training_small/model_pack`: `last.ckpt`, the training config the model is rebuilt from, the token list under `data/tokens`, the recipe's `src/` and `dataset/` code, and a README rendered from `measure`'s results when they exist.
+`pack_model` writes a self-contained bundle to `exp/training/model_pack`: `last.ckpt`, the training config the model is rebuilt from, the token list under `data/tokens`, the recipe's `src/` and `dataset/` code, and a README rendered from `measure`'s results when they exist.
 `conf/publication.yaml` only overrides the template's `pack_model.include`, because this recipe keeps its token list in `data/tokens`.
 
 The bundle loads back through the inference API without naming the recipe:
@@ -103,21 +103,21 @@ The bundle loads back through the inference API without naming the recipe:
 ```python
 from espnet3.api.inference import load
 
-model = load("exp/training_small/model_pack", device="cuda:0")
+model = load("exp/training/model_pack", device="cuda:0")
 output = model("Hello world.", "prompt.wav", "The transcript of prompt.wav.")
 output["wav"].rate, output["wav"].array.shape
 ```
 
-`upload_model` pushes the bundle to `espnet/libritts_f5tts_training_small` on the Hugging Face Hub (run `hf auth login` first).
+`upload_model` pushes the bundle to `espnet/libritts_f5tts_training` on the Hugging Face Hub (run `hf auth login` first).
 
 ## 5. Pack and upload a demo
 
 ```bash
 python run.py --stages pack_demo \
-    --training_config conf/training_small.yaml --demo_config conf/demo.yaml
+    --training_config conf/training.yaml --demo_config conf/demo.yaml
 
 python run.py --stages upload_demo \
-    --training_config conf/training_small.yaml --demo_config conf/demo.yaml
+    --training_config conf/training.yaml --demo_config conf/demo.yaml
 ```
 
 `pack_demo` copies `src/app.py`, the Gradio launcher, together with the demo config and a Space README into `demo/`, pointing it at the bundle from Section 4.
