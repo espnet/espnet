@@ -82,9 +82,10 @@ class BaseMetric(ABC):
         ['hyp', 'ref1', 'ref2']
 
         A metric that reads more than one audio role (a speaker
-        similarity metric that can run without a reference prompt):
-        ``inputs: {target: dataset:prompt_speech, hyp: wav, ref:
-        dataset:speech}``. A ``dataset:`` column of kind ``audio`` is
+        similarity metric that always needs the target prompt voice and
+        the model's synthesized audio, but can run without a second
+        reference voice): ``inputs: {target: dataset:prompt_speech, hyp:
+        wav, ref: dataset:speech}``. A ``dataset:`` column of kind ``audio`` is
         written as a ``.wav`` artifact beside the test set's SCPs, as
         ``dataset_artifacts: {<column>: {type: wav, sample_rate: ...}}``
         says (``measure``'s own ``dataset_artifacts`` config key).
