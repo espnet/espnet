@@ -15,9 +15,9 @@
 ##########################################################
 #                    METRIC DEFINITION                   #
 ##########################################################
-# ref_key reads the test set's own transcript column directly (the model
-# declares no `ref` output of its own); hyp_key is the model's declared
-# `text` output.
+# `inputs: {ref: dataset:text, hyp: text}` reads the test set's own
+# transcript column directly for `ref` (the model declares no `ref` output
+# of its own); `hyp` is the model's declared `text` output.
 #
 # No clean_types: SPGISpeech transcripts are already normalized by
 # dataset/dataset.py:normalize_text, and egs2 sets no --cleaner for this recipe.
@@ -26,12 +26,10 @@
 metrics:
   - metric:
       _target_: espnet3.systems.esp2_asr.metrics.wer.WER
-      ref_key: dataset:text
-      hyp_key: text
       clean_types:
+    inputs: {ref: dataset:text, hyp: text}
 
   - metric:
       _target_: espnet3.systems.esp2_asr.metrics.cer.CER
-      ref_key: dataset:text
-      hyp_key: text
       clean_types:
+    inputs: {ref: dataset:text, hyp: text}
