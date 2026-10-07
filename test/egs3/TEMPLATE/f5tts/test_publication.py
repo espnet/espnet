@@ -52,12 +52,6 @@ def _reference():
 PACKAGE = "egs3.TEMPLATE.f5tts"
 
 
-def meta_model_target(bundle: Path) -> str:
-    """Return the ``model._target_`` of the bundle's packed inference config."""
-    packed = yaml.safe_load((bundle / "conf" / "inference.yaml").read_text())
-    return packed["model"]["_target_"]
-
-
 def test_publication_scaffold_leaves_the_bundle_contents_to_the_recipe() -> None:
     config = load_default_config("publication.yaml", PACKAGE)
 
@@ -92,10 +86,10 @@ def test_pack_model_writes_a_self_contained_bundle(recipe_dir, stub_vocoder):
 
     bundle = recipe_dir / "exp" / "training" / "model_pack"
     meta = yaml.safe_load((bundle / "meta.yaml").read_text(encoding="utf-8"))
+    # The model's path names the system (training.yaml declares no task), and
+    # that is how espnet3.api.inference.load finds espnet3.systems.f5tts.
+    assert meta["system"] == "f5tts"
     assert meta["yaml_files"]["inference_config"] == "conf/inference.yaml"
-    # Whether or not meta.yaml names the system, the packed `model` is the
-    # installed espnet3.systems.f5tts Inference, which is what load() builds.
-    assert isinstance(load(bundle), get_class(meta_model_target(bundle)))
 
     for kept in (
         "exp/training/last.ckpt",

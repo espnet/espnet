@@ -310,14 +310,19 @@ def _system_for_meta(training_config: DictConfig) -> str | None:
     """Return the system to record in ``meta.yaml``, or ``None`` when there is none.
 
     ``espnet3.api.inference.load`` imports ``espnet3.systems.<system>``
-    from this value, so only a task path that names a system
-    (``espnet3.systems.esp2_asr.task.ASRTask`` → ``esp2_asr``) yields one.
-    The README label :func:`_infer_system_name` falls back to a class or
-    directory name, which is not an import target.
+    from this value, so only a path into that package yields one: the task
+    (``espnet3.systems.esp2_asr.task.ASRTask`` → ``esp2_asr``), or, for a
+    system whose model is instantiated directly and declares no task, the
+    model (``espnet3.systems.f5tts.f5tts.F5TTS`` → ``f5tts``). The README
+    label :func:`_infer_system_name` falls back to a class or directory
+    name, which is not an import target.
     """
-    task_value = getattr(training_config, "task", None)
-    if isinstance(task_value, str) and task_value:
-        parts = task_value.split(".")
+    model = getattr(training_config, "model", None)
+    model_target = getattr(model, "_target_", None) if model is not None else None
+    for value in (getattr(training_config, "task", None), model_target):
+        if not isinstance(value, str) or not value:
+            continue
+        parts = value.split(".")
         if "systems" in parts:
             index = parts.index("systems")
             if index + 1 < len(parts) - 1:
