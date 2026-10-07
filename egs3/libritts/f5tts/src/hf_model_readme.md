@@ -61,9 +61,18 @@ ${train_config}
 
 ### Citing F5-TTS
 
-Yushen Chen, Zhikang Niu, et al.
-"F5-TTS: A Fairytaler that Fakes Fluent and Faithful Speech with Flow Matching"
-https://aclanthology.org/2025.acl-long.313/
+```
+@inproceedings{chen-etal-2025-f5,
+  author={Yushen Chen and Zhikang Niu and Ziyang Ma and Keqi Deng and Chunhui Wang
+    and Jian Zhao and Kai Yu and Xie Chen},
+  title={{F5-TTS}: A Fairytaler that Fakes Fluent and Faithful Speech with Flow Matching},
+  year={2025},
+  booktitle={Proceedings of the 63rd Annual Meeting of the Association for
+    Computational Linguistics (Volume 1: Long Papers)},
+  pages={6255--6271},
+  doi={10.18653/v1/2025.acl-long.313}
+}
+```
 
 ### Citing ESPnet
 
