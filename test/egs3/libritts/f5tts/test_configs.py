@@ -100,9 +100,15 @@ def test_inference_config_train_config_exists():
     assert resolved.is_file(), f"inference.yaml points at missing {train_config}"
 
 
-def test_metrics_config_matches_official_protocol():
-    cfg = _raw("metrics.yaml")
-    assert [entry["name"] for entry in cfg["dataset"]["test"]] == ["librispeech_pc"]
+def test_metrics_config_matches_official_protocol(monkeypatch):
+    """The recipe names its test set; the protocol itself is the template's."""
+    assert [e["name"] for e in _raw("metrics.yaml")["dataset"]["test"]] == [
+        "librispeech_pc"
+    ]
+    assert "metrics" not in _raw("metrics.yaml")
+    cfg = OmegaConf.to_container(
+        _load(monkeypatch, "metrics.yaml", "metrics.yaml"), resolve=False
+    )
 
     score_config = cfg["metrics"][0]["metric"]["score_config"]
     by_name = {entry["name"]: entry for entry in score_config}
@@ -122,13 +128,15 @@ def test_metrics_config_matches_official_protocol():
     assert by_name["speaker"]["model_tag"] == "espnet/voxcelebs12_ecapa_wavlm_joint"
 
 
-def test_metrics_config_reads_the_references_from_the_data():
+def test_metrics_config_reads_the_references_from_the_data(monkeypatch):
     """infer writes only `wav.scp`; the prompt wav and target text come from the data.
 
     `ref_wav_path` is the pinned prompt, which makes the speaker similarity
-    generated-vs-prompt (SIM-o) by construction.
+    generated-vs-prompt (SIM-o) by construction. Both are columns
+    `dataset/librispeech_pc.py` serves.
     """
-    inputs = _raw("metrics.yaml")["metrics"][0]["inputs"]
+    cfg = _load(monkeypatch, "metrics.yaml", "metrics.yaml")
+    inputs = OmegaConf.to_container(cfg.metrics[0].inputs, resolve=False)
     assert inputs == {
         "wav": "wav",
         "ref": "dataset:ref_wav_path",

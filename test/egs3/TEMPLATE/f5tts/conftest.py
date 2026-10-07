@@ -183,31 +183,14 @@ INFERENCE_CONFIG = {
     "batch_size": None,
 }
 
-# What a recipe's `src/hf_model_readme.md` renders from.
-MODEL_README = '# ${hf_repo}\n\n```python\nmodel = load("${hf_repo}")\n```\n'
-
+# A recipe overrides only what differs from the template: the directory its
+# token list lives in (OmegaConf replaces the list, so the rest is restated).
 PUBLICATION_CONFIG = {
-    "pack_model": {
-        "allow_overwrite": False,
-        "inference_dir": "${inference_dir}",
-        "include_model_detail": False,
-        "readme": "${config_path:../src/hf_model_readme.md}",
-        "include": ["src", "dataset", "conf", "${data_dir}/token_list"],
-        # `last.ckpt` is kept: it is what the packed inference config loads.
-        "exclude": ["inference", "inference_*", "stats", "**/step*.ckpt", "**/*.log"],
-    },
-    "upload_model": {"private": False, "update": False, "delete_patterns": ["*"]},
+    "pack_model": {"include": ["src", "dataset", "conf", "${data_dir}/token_list"]},
 }
 
-DEMO_CONFIG = {
-    "pack": {
-        "out_dir": "demo",
-        "requirements": [
-            "espnet[train,tts] @ git+https://github.com/espnet/espnet.git"
-        ],
-    },
-    "upload_demo": {"update": False, "delete_patterns": ["*"]},
-}
+# Nothing to override: the demo wiring, README and requirements are the template's.
+DEMO_CONFIG = {"recipe_dir": "."}
 
 
 class StubVocos:
@@ -262,10 +245,9 @@ def recipe_dir(tmp_path, monkeypatch):
     (recipe / "src").mkdir()
     for name in ("__init__.py", "app.py"):
         shutil.copy(template_path("src", name), recipe / "src" / name)
-    (recipe / "src" / "hf_model_readme.md").write_text(MODEL_README, encoding="utf-8")
 
-    # conf/: complete configs, as a recipe ships them; `run.py` merges them
-    # over the template's scaffolds.
+    # conf/: the recipe's configs, merged by `run.py` over the template's
+    # defaults: training and inference complete, the others overrides.
     for name, content in {
         "training.yaml": TRAINING_CONFIG,
         "inference.yaml": INFERENCE_CONFIG,

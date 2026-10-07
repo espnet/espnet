@@ -4,6 +4,7 @@ from argparse import Namespace
 from pathlib import Path
 
 import pytest
+from omegaconf import OmegaConf
 
 from egs3.TEMPLATE.f5tts.run import DEFAULT_STAGES, build_parser, main
 from espnet3.systems.f5tts.system import F5TTSSystem
@@ -100,9 +101,23 @@ def test_inference_scaffold_names_the_runner_and_leaves_the_model_open() -> None
     )
 
 
-def test_metrics_scaffold_enables_no_metric() -> None:
+def test_metrics_scaffold_is_the_f5tts_protocol() -> None:
+    """WER, speaker similarity and UTMOS through VERSA; the references from the data."""
     config = load_default_config("metrics.yaml", PACKAGE)
-    assert not config.metrics
+
+    assert config.dataset is None  # a recipe names its test sets
+    (entry,) = config.metrics
+    assert entry.metric._target_ == "espnet3.components.metrics.versa.VersaMetric"
+    assert [s.name for s in entry.metric.score_config] == [
+        "fwhisper_wer",
+        "speaker",
+        "pseudo_mos",
+    ]
+    assert OmegaConf.to_container(entry.inputs) == {
+        "wav": "wav",
+        "ref": "dataset:ref_wav_path",
+        "text": "dataset:text",
+    }
 
 
 def test_load_and_merge_config_user_overrides_template_defaults(tmp_path) -> None:

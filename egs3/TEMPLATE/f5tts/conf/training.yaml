@@ -27,6 +27,16 @@ stats_dir: ${exp_dir}/stats
 inference_dir: ${exp_dir}/inference
 
 ##########################################################
+#                 DATASET CREATION SETTING               #
+##########################################################
+# Arguments of the `create_dataset` stage, passed to the recipe's
+# `dataset.DatasetBuilder` (`prepare_source` then `build`). An F5-TTS recipe
+# typically sets `recipe_dir: ${recipe_dir}` so the builder writes its
+# manifests under the recipe's `data/`. Left empty, the builder is called
+# with no arguments.
+create_dataset: {}
+
+##########################################################
 #                    DATASET DEFINITION                  #
 ##########################################################
 dataset:

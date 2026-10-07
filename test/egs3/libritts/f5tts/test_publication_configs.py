@@ -1,7 +1,8 @@
 """Guards for the recipe's publication and demo configs.
 
 Loaded over ``egs3/TEMPLATE/f5tts/conf`` the way the template's ``run.py``
-does; the template scaffolds leave the bundle contents to the recipe.
+does; the template owns the bundle layout and the demo wiring, the recipe
+adds its token list.
 """
 
 from pathlib import Path

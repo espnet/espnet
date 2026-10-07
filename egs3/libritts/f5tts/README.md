@@ -80,7 +80,7 @@ Scoring runs through VERSA and reports WER, speaker similarity, and UTMOS.
 Install all four before running `measure`.
 The stage fails when a configured metric yields no value for any utterance, so a missing package is reported rather than silently dropped from the summary.
 
-`conf/metrics.yaml` documents how each metric maps onto the official F5-TTS scorer, including the one metric that cannot be matched exactly.
+The template's `conf/metrics.yaml` documents how each metric maps onto the official F5-TTS scorer, including the one metric that cannot be matched exactly; this recipe's only names the test set.
 In short: WER and UTMOS are equivalent to the official implementations, but speaker similarity uses an ESPnet-SPK model rather than the official UniSpeech checkpoint, so SIM values are comparable across your own checkpoints but not against the numbers published in the paper.
 
 ## 4. Publish the model

@@ -7,21 +7,34 @@
 #   python run.py --stages upload_demo --training_config conf/training.yaml \
 #       --demo_config conf/demo.yaml
 #
-# Shared default merged under every F5-TTS recipe's demo config.
-# `ui.inputs` / `ui.outputs` are the fields of
-# `espnet3.systems.f5tts.inference.Inference`, bound positionally by
-# `src/app.py`; `ui.app_script` is the recipe's copy of the template's app.
+# Shared default merged under every F5-TTS recipe's demo config. Pass
+# `--training_config` too: `run.py` copies its `exp_tag` here, which
+# `model.dir_or_tag` and `upload_demo.hf_repo` are built from. `pack_model`
+# must already have written the bundle `model.dir_or_tag` points at.
 
 recipe_dir: .
 
+# `model.dir_or_tag` is the packed model the demo loads: a local bundle
+# (resolved relative to the packed demo directory at runtime) or a Hugging
+# Face model tag. The packed inference config names only
+# `espnet3.systems.f5tts.inference.Inference`, so the bundle's own code is
+# never imported and `trust_user_code` stays false. The model takes no
+# call-time arguments; sampling settings live in the packed `conf/inference.yaml`.
 model:
   dir_or_tag: exp/${exp_tag}/model_pack
   trust_user_code: false
 
+# `ui.inputs` / `ui.outputs` are the fields of
+# `espnet3.systems.f5tts.inference.Inference`, bound positionally by
+# `src/app.py` (the recipe's copy of the template's launcher). An empty
+# "Reference transcript" box is passed as "not given", and the reference is
+# then treated as a recording of the target text. `ui.description` is a file
+# `pack_demo` copies into the bundle (the recipe README by default) or inline
+# text.
 ui:
   app_script: src/app.py
   title: ${set_corpus_and_system:} demo
-  description:
+  description: README.md
   inputs:
     - key: text
       type: text
@@ -37,11 +50,41 @@ ui:
       type: audio
       label: "Synthesized speech"
 
+# `pack.out_dir` is the packed demo directory, relative to the recipe
+# directory; `pack.include` / `pack.exclude` copy extra files into it.
+# `pack.requirements` is written to the demo's requirements.txt: the `train`
+# extra brings in Hydra, which builds the model from the packed configs; the
+# `tts` extra brings in the vocoder (`vocos`) and the pinyin tokenizer
+# dependencies. `pack.readme` renders the Space README from `readme_context`.
 pack:
-  out_dir:
-  include:
-  exclude:
+  out_dir: demo
+  include: []
+  exclude: []
   requirements:
+    - "espnet[train,tts] @ git+https://github.com/espnet/espnet.git"
+  readme: ${config_path:../src/hf_demo_readme.md}
+  readme_context:
+    title: ${ui.title}
+    emoji: "\U0001f5e3️"
+    color_from: blue
+    color_to: green
+    sdk: gradio
+    app_file: app.py
+    pinned: "false"
+    license: apache-2.0
+    tags: |-
+      - espnet
+      - espnet3
+      - gradio
+      - text-to-speech
+      - f5-tts
+    hf_repo: ${upload_demo.hf_repo}
+    model_ref: ${model.dir_or_tag}
 
+# `update: false` refuses to overwrite an existing Space; `delete_patterns`
+# applies only when `update: true` (`["*"]` replaces, `[]` adds).
 upload_demo:
   hf_repo: espnet/${set_corpus_and_system:}_${exp_tag}
+  update: false
+  delete_patterns:
+    - "*"

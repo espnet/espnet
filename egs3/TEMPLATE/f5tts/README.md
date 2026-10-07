@@ -16,9 +16,11 @@ See `egs3/libritts/f5tts` for a complete recipe.
   Keep it complete rather than a list of overrides: inference and a packed model rebuild the model and the tokenizer from this one file.
 - `conf/inference.yaml`: `model._target_: espnet3.systems.f5tts.inference.Inference` with its arguments and the `dataset.test` entries.
   The runner reads the `Inference`'s declared inputs out of each test sample by name and writes `wav.scp`; no `input_key`, `output_fn` or `output_artifacts` is declared.
-- `conf/metrics.yaml`: the metrics to compute, with the scoring references read from the test set as `dataset:<column>`.
-- `conf/publication.yaml`: `pack_model.include` (the recipe's `src`, `conf` and token list) and `exclude`, plus the README template to render.
-- `conf/demo.yaml`: `pack.requirements` and the Space README template.
+- `conf/metrics.yaml`: the names of its test sets under `dataset.test`.
+  The F5-TTS protocol (VERSA faster-whisper WER, speaker similarity, UTMOS) is this template's default; it reads `ref_wav_path` and `text` from the test set, so an eval dataset serves those two columns besides the `Inference`'s inputs and `utt_id`.
+- `conf/publication.yaml`: `pack_model.include`, restating the template's `src`, `dataset`, `conf` and adding the directory `create_token_list` writes to.
+  The bundle layout, the model card template (`src/hf_model_readme.md`) and the upload settings are this template's.
+- `conf/demo.yaml`: nothing a recipe has to change; the demo wiring, the Space README template (`src/hf_demo_readme.md`) and the requirements are this template's.
 - `src/app.py`: a copy of this template's demo launcher.
 - `run.py`: the thin re-export below.
 

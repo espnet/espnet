@@ -10,32 +10,15 @@
 #       --training_config conf/training.yaml \
 #       --publication_config conf/publication.yaml
 #
-# Pass `--inference_config` to `pack_model`: the bundle is loaded back through
-# the `conf/inference.yaml` written from it. If `${inference_dir}` holds the
-# `metrics.json` written by `measure`, `pack_model` bundles it and uses it
-# when rendering the README.
-recipe_dir: .
-exp_tag: ${self_name:}
-exp_dir: ${recipe_dir}/exp/${exp_tag}
-inference_dir: ${exp_dir}/inference
-data_dir: ${recipe_dir}/data
-
-# `pack_model` copies `${exp_dir}` (minus `exclude`) and each path in
-# `include`, then writes the configs into `conf/` with paths rewritten to the
-# bundle and `meta.yaml` at the root. What an F5-TTS bundle needs to load on
-# another machine: the checkpoint named by `inference_config.model.checkpoint_path`
-# (`${exp_dir}/last.ckpt`, copied with `${exp_dir}`), the training config it is
-# rebuilt from (`conf`), and the token list that config points at.
+# Merged over `egs3/TEMPLATE/f5tts/conf/publication.yaml`, which holds the
+# bundle layout, the README template and the upload settings. Only the
+# bundle contents differ here: this recipe's `create_token_list` writes its
+# list to `${data_dir}/tokens`, and the packed training config points there.
+# OmegaConf replaces a list rather than extending it, so the template's
+# entries are restated.
 pack_model:
-  out_dir: ${exp_dir}/model_pack
-  allow_overwrite: false
-  inference_dir: ${inference_dir}
-  # Always include static model summary metrics in the README.
-  # Set this true to also include `repr(model)`.
-  include_model_detail: false
-  readme: ${config_path:../src/hf_model_readme.md}
   include:
-    # The demo launcher (`src/app.py`) and the card templates `pack_demo` reads.
+    # The demo launcher (`src/app.py`) the packed demo is built from.
     - src
     # Recipe-local dataset modules for publication smoke checks.
     - dataset
@@ -43,24 +26,3 @@ pack_model:
     - conf
     # The token list written by `create_token_list`.
     - ${data_dir}/tokens
-  exclude:
-    # Applied only during the bulk copy of `${exp_dir}`. `last.ckpt` is kept:
-    # it is what the packed inference config loads.
-    - inference
-    - inference_*
-    - stats
-    - "**/step*.ckpt"
-    - "**/epoch*.ckpt"
-    - "**/*.log"
-    - "**/tensorboard/**"
-
-# Upload uses `huggingface_hub` with your local Hugging Face login
-# (`hf auth login`). `update: false` refuses to overwrite an existing repo.
-upload_model:
-  hf_repo: espnet/${set_corpus_and_system:}_${exp_tag}
-  private: false
-  update: false
-  # Glob patterns of existing repo files to delete before uploading, used only
-  # when `update: true`. `["*"]` replaces the repo contents; `[]` is additive.
-  delete_patterns:
-    - "*"

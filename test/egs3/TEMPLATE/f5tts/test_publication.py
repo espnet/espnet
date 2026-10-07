@@ -6,6 +6,7 @@ result back the way a user of the published model does.
 
 import shutil
 from argparse import Namespace
+from importlib import resources
 from pathlib import Path
 
 import numpy as np
@@ -52,14 +53,25 @@ def _reference():
 PACKAGE = "egs3.TEMPLATE.f5tts"
 
 
-def test_publication_scaffold_leaves_the_bundle_contents_to_the_recipe() -> None:
-    config = load_default_config("publication.yaml", PACKAGE)
+def template_path(*parts) -> Path:
+    """Return the path of a file shipped in the template package."""
+    return Path(str(resources.files(PACKAGE).joinpath(*parts)))
 
-    assert config.pack_model.include is None
-    assert config.pack_model.exclude is None
-    assert "readme" not in config.pack_model
+
+def test_publication_scaffold_packs_what_an_f5tts_bundle_needs() -> None:
+    """The template owns the bundle layout; a recipe only adds its token list."""
+    config = load_default_config("publication.yaml", PACKAGE)
     OmegaConf.resolve(config)
+
     assert config.pack_model.out_dir == "./exp/publication/model_pack"
+    # The checkpoint comes with `${exp_dir}`, the training config with `conf`.
+    assert list(config.pack_model.include) == ["src", "dataset", "conf"]
+    assert "last.ckpt" not in config.pack_model.exclude
+    assert "inference" in config.pack_model.exclude
+    # The model card template ships with the template, not with every recipe.
+    assert Path(config.pack_model.readme) == template_path("src", "hf_model_readme.md")
+    assert config.upload_model.private is False
+    assert config.upload_model["update"] is False  # `.update` is a dict method
 
 
 def test_demo_scaffold_wires_the_inference_contract_fields() -> None:
@@ -77,8 +89,12 @@ def test_demo_scaffold_wires_the_inference_contract_fields() -> None:
     # bundle's own code is never imported.
     assert config.model.trust_user_code is False
     assert "call_args" not in config.model
-    assert config.pack.requirements is None
-    assert "readme" not in config.pack
+    # The demo needs the training stack to rebuild the model and the vocoder.
+    assert any("espnet[train,tts]" in r for r in config.pack.requirements)
+    # `exp_tag` arrives from the training config at run time, so resolve only
+    # the node under test.
+    assert Path(config.pack.readme) == template_path("src", "hf_demo_readme.md")
+    assert "- f5-tts" in config.pack.readme_context.tags
 
 
 def test_pack_model_writes_a_self_contained_bundle(recipe_dir, stub_vocoder):
