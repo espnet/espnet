@@ -27,6 +27,8 @@ from typing import Any, Mapping
 
 from omegaconf import DictConfig, OmegaConf
 
+from espnet3.components.data.base_dataset import BaseDataset
+
 
 def _to_plain_dict(config: Any) -> dict[str, Any]:
 
@@ -227,7 +229,7 @@ def instantiate_dataset_reference(
         AttributeError: If the target module does not expose ``Dataset``.
         ModuleNotFoundError: If dataset module resolution fails.
         TypeError: If ``data_src_args`` is incompatible with dataset
-            constructor.
+            constructor, or ``Dataset`` does not inherit ``BaseDataset``.
 
     Notes:
         Only ``data_src_args`` is forwarded to the dataset constructor.
@@ -247,4 +249,10 @@ def instantiate_dataset_reference(
     data_src, data_src_args = parse_dataset_reference_config(config)
     module = load_dataset_module(data_src=data_src, recipe_dir=recipe_dir)
     dataset_cls = getattr(module, "Dataset")
-    return dataset_cls(**data_src_args)
+    dataset = dataset_cls(**data_src_args)
+    if not isinstance(dataset, BaseDataset):
+        raise TypeError(
+            f"{dataset_cls.__qualname__} does not inherit BaseDataset; a "
+            "recipe's Dataset class must declare `fields` through it"
+        )
+    return dataset
