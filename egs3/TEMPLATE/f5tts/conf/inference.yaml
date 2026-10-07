@@ -21,12 +21,16 @@ parallel:
   # another run may still be writing to the same output directory.
   allow_overwrite_lock: false
 
+# The model is the system's `Inference` (espnet3.api.inference): it declares
+# what it takes (`text`, `reference_speech`, optional `reference_text`) and
+# what it returns (`wav`), so the runner picks those fields out of each test
+# item by name and writes `wav.scp` itself. No `input_key`, `output_fn` or
+# `output_artifacts` is declared for it; `measure` reads the scoring
+# references from the data (`dataset:<column>` in metrics.yaml).
 model:
 
-input_key:
+# One utterance per model call (`null`); an `Inference` is always safe here.
 batch_size:
-output_fn:
-output_artifacts:
 
 provider:
   _target_: espnet3.systems.base.inference_provider.InferenceProvider

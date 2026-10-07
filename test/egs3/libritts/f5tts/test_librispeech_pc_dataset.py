@@ -23,7 +23,6 @@ def test_getitem_returns_pair(tmp_path):
     s = ds[0]
     assert s["utt_id"] == "4992-23283-0000"
     assert s["text"] == "Target text."
-    assert s["raw_text"] == "Target text."
     assert s["reference_text"] == "Prompt text."
     assert s["ref_wav_path"] == str(wav)
     assert s["reference_speech"].dtype == np.float32

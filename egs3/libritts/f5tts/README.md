@@ -48,6 +48,7 @@ python run.py --stages infer \
 `conf/inference.yaml` runs the paper protocol: LibriSpeech-PC test-clean cross-sentence, 1127 same-speaker prompt/target pairs.
 It is the only evaluation the recipe ships.
 It pins `conf/training.yaml`, so it loads a checkpoint from Section 1 without further edits.
+The model is the system's `Inference`, so the stage writes only what it produced, `wav.scp`; the prompt wav and the target text that `measure` scores against stay in the manifest and `conf/metrics.yaml` reads them as `dataset:<column>`.
 
 If you add a training config for a different architecture, note that `--training_config` only propagates `exp_tag` and `exp_dir` into the inference config (`espnet3/utils/run_utils.py`'s `_TRAINING_CONTEXT_KEYS`); it never overrides `model.train_config`.
 Point the inference config's own `model.train_config` at the matching training config, or the checkpoint will fail to load with a shape mismatch.

@@ -5,13 +5,13 @@ vocoder and synthesizes waveforms. :class:`Inference` wraps it behind the
 inference contract every ESPnet3 system ships, which is what
 ``espnet3.api.inference.load`` returns for a packed ``f5tts`` bundle.
 
-Either is built by a recipe's ``infer`` stage
-(``model._target_: espnet3.systems.f5tts.inference.Inference``, or
-``...F5TTSInference`` for the bare engine).
-For each test sample the runner calls ``model(**{key: data[key] for key in input_key})``
-with ``input_key: [text, reference_speech, reference_text]`` (the cross- and
-same-speaker protocol) and feeds the result to ``src.inference.build_output``
-(which needs a ``"wav"`` entry).
+A recipe's ``infer`` stage names :class:`Inference` as its ``model``. The
+runner then reads the declared inputs (``text``, ``reference_speech`` and the
+optional ``reference_text``) out of each test sample by name and writes the
+declared ``wav`` output as ``wav.scp``; no ``input_key`` or ``output_fn`` is
+involved. The bare engine can still be named instead
+(``model._target_: ...F5TTSInference``), in which case the recipe supplies
+``input_key`` and an ``output_fn`` itself.
 
 The model is rebuilt from the *training* config by instantiating that config's
 own ``model`` block (``espnet3.systems.f5tts.f5tts.F5TTS``), so it stays in
@@ -527,8 +527,8 @@ class F5TTSInference:
         reference_audio = reference_speech if reference_speech is not None else speech
         if reference_audio is None:
             raise ValueError(
-                "No reference audio provided: set input_key to include "
-                "'reference_speech' (cross/same-speaker) or 'speech' (self-reference)."
+                "No reference audio provided: pass 'reference_speech' "
+                "(cross/same-speaker) or 'speech' (self-reference)."
             )
 
         if isinstance(text, (list, tuple)):
@@ -604,7 +604,9 @@ class Inference(BackendInference):
               train_config: ${recipe_dir}/conf/training.yaml
               checkpoint_path: ${exp_dir}/last.ckpt
               ode_solver_steps: 32
-            input_key: [text, reference_speech, reference_text]
+
+        The runner picks ``text``, ``reference_speech`` and ``reference_text``
+        out of each test sample by name and writes ``wav.scp``.
 
     Note:
         ``reference_text`` is optional. When it is omitted the reference is

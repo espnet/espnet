@@ -40,8 +40,10 @@ def test_publication_config_bundles_the_recipe_token_list(monkeypatch):
     assert training["create_token_list"]["save_path"] == "${data_dir}/tokens"
 
 
-def test_demo_config_trusts_bundled_recipe_code(monkeypatch):
+def test_demo_config_needs_no_bundled_code(monkeypatch):
+    """The packed inference config names only the system's ``Inference``."""
     cfg = _load(monkeypatch, "demo.yaml", "demo.yaml")
-    assert cfg.model.trust_user_code is True
+    assert cfg.model.trust_user_code is False
+    assert cfg.model.get("call_args") is None
     assert cfg.ui.app_script == "src/app.py"
     assert (RECIPE / "src" / "app.py").is_file()

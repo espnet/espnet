@@ -46,9 +46,11 @@
 #                   comparable to arXiv 2410.06885 Table 9. Paper-comparable
 #                   SIM still requires running the official scorer externally.
 #
-# The SIM comparison is generated-vs-prompt (the SIM-o definition) by
-# construction: src/inference.py's build_output sets `ref` to `ref_wav_path`,
-# which LibriSpeechPCDataset sets to the manifest's pinned prompt wav.
+# `infer` writes only what the model produced (`wav.scp`). The scoring
+# references are read from the test set itself, as `dataset:<column>` of
+# LibriSpeechPCDataset's rows: `ref_wav_path` is the manifest's pinned prompt
+# wav, so the SIM comparison is generated-vs-prompt (the SIM-o definition) by
+# construction, and `text` is the target transcript the WER scores against.
 dataset:
   test:
     - name: librispeech_pc
@@ -74,6 +76,6 @@ metrics:
       text_key: text
       use_gpu:  true
     inputs:
-      wav:  wav
-      ref:  ref
-      text: text
+      wav:  wav                   # the model's output -> <test_name>/wav.scp
+      ref:  dataset:ref_wav_path  # the pinned prompt wav, from the data
+      text: dataset:text          # the target transcript, from the data

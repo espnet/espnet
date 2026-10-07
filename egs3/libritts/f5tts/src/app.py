@@ -27,7 +27,7 @@ def resolve_sample_rate(model) -> int:
     """Return the rate of the waveforms a packed F5-TTS model synthesizes.
 
     Args:
-        model: The backend built from the packed ``conf/inference.yaml``:
+        model: The model the demo session loaded from the packed bundle:
             ``espnet3.systems.f5tts.inference.Inference`` (``sample_rate``)
             or the bare ``F5TTSInference`` engine (``target_sample_rate``).
 
@@ -42,7 +42,7 @@ def resolve_sample_rate(model) -> int:
         .. code-block:: python
 
             session = load_demo_session(demo_dir, demo_dir / "demo.yaml")
-            resolve_sample_rate(session.model.model)  # -> 24000
+            resolve_sample_rate(session.model)  # -> 24000
     """
     for name in ("sample_rate", "target_sample_rate"):
         sample_rate = getattr(model, name, None)
@@ -128,7 +128,7 @@ def build_demo(
         session.input_specs,
         session.output_specs,
     )
-    sample_rate = resolve_sample_rate(session.model.model)
+    sample_rate = resolve_sample_rate(session.model)
     is_audio_output = [spec["type"] == "audio" for spec in session.output_specs]
 
     def synthesize(*values):

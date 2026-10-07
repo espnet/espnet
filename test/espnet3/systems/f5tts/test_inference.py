@@ -708,11 +708,16 @@ def test_inference_builds_the_engine_from_its_own_arguments(
 
 
 def test_inference_serves_the_infer_stage_runner(engine):
-    """``InferenceRunner`` calls ``model(**fields)`` with the dataset's fields."""
+    """``InferenceRunner`` picks the declared inputs out of the item by name.
+
+    No ``input_key`` is given: the declaration says what to read, the item's
+    ``utt_id`` becomes the record's id, and undeclared columns are ignored.
+    """
     model = Inference(engine)
     reference = np.random.RandomState(0).randn(4800).astype(np.float32)
     dataset = {
         0: {
+            "utt_id": "u0",
             "text": "abc",
             "reference_speech": reference,
             "reference_text": "ab",
@@ -720,11 +725,8 @@ def test_inference_serves_the_infer_stage_runner(engine):
         }
     }
 
-    output = InferenceRunner.forward(
-        0,
-        dataset=dataset,
-        model=model,
-        input_key=["text", "reference_speech", "reference_text"],
-    )
+    output = InferenceRunner.forward(0, dataset=dataset, model=model)
 
+    assert output["utt_id"] == "u0"
     assert output["wav"].rate == 24000
+    assert "speaker" not in output

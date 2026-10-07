@@ -17,7 +17,6 @@ recipe_dir: .
 model:
   dir_or_tag: exp/${exp_tag}/model_pack
   trust_user_code: false
-  call_args: {}
 
 ui:
   app_script: src/app.py

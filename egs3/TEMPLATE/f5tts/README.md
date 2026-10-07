@@ -14,11 +14,11 @@ See `egs3/libritts/f5tts` for a complete recipe.
   Inference samples provide `text`, `reference_speech` and `reference_text`.
 - `conf/training.yaml`: the complete training config (`model._target_: espnet3.systems.f5tts.f5tts.F5TTS`, the `remove_long_short` and `create_token_list` blocks, dataset entries, optimizer, scheduler, dataloader, trainer).
   Keep it complete rather than a list of overrides: inference and a packed model rebuild the model and the tokenizer from this one file.
-- `conf/inference.yaml`: `model._target_: espnet3.systems.f5tts.inference.Inference` with its arguments, `input_key: [text, reference_speech, reference_text]`, `output_fn`, `output_artifacts` and the `dataset.test` entries.
-- `conf/metrics.yaml`: the metrics to compute.
+- `conf/inference.yaml`: `model._target_: espnet3.systems.f5tts.inference.Inference` with its arguments and the `dataset.test` entries.
+  The runner reads the `Inference`'s declared inputs out of each test sample by name and writes `wav.scp`; no `input_key`, `output_fn` or `output_artifacts` is declared.
+- `conf/metrics.yaml`: the metrics to compute, with the scoring references read from the test set as `dataset:<column>`.
 - `conf/publication.yaml`: `pack_model.include` (the recipe's `src`, `conf` and token list) and `exclude`, plus the README template to render.
-- `conf/demo.yaml`: `model.trust_user_code` when the packed inference config names recipe code, `pack.requirements` and the Space README template.
-- `src/inference.py`: a copy of this template's `build_output`, extended with the columns the metrics need.
+- `conf/demo.yaml`: `pack.requirements` and the Space README template.
 - `src/app.py`: a copy of this template's demo launcher.
 - `run.py`: the thin re-export below.
 

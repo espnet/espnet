@@ -14,14 +14,13 @@ recipe_dir: .
 
 # `model.dir_or_tag` is the packed model the demo loads: a local bundle
 # (resolved relative to the packed demo directory at runtime) or a Hugging
-# Face model tag. `trust_user_code` is true because the packed inference
-# config names this recipe's own `src.inference.build_output`, shipped inside
-# the bundle. F5-TTS takes no call-time arguments; sampling settings live in
-# the packed `conf/inference.yaml`.
+# Face model tag. The packed inference config names only
+# `espnet3.systems.f5tts.inference.Inference`, so the bundle's own code is
+# never imported and `trust_user_code` stays false. The model takes no
+# call-time arguments; sampling settings live in the packed `conf/inference.yaml`.
 model:
   dir_or_tag: exp/${exp_tag}/model_pack
-  trust_user_code: true
-  call_args: {}
+  trust_user_code: false
 
 # `ui.inputs` / `ui.outputs` come from the template: the fields of
 # `espnet3.systems.f5tts.inference.Inference`, bound positionally by

@@ -9,9 +9,11 @@ manifest
     gen_utt \t gen_text \t ref_utt \t ref_wav_path \t ref_text
 
 which :class:`LibriSpeechPCDataset` serves. Every row pins its prompt,
-reproducing the paper's fixed pairing. The output keys are what
-``conf/inference.yaml``'s ``input_key`` and ``src.inference.build_output``
-read.
+reproducing the paper's fixed pairing. The output keys are the inputs
+``espnet3.systems.f5tts.inference.Inference`` declares (``text``,
+``reference_speech``, ``reference_text``), ``utt_id``, and the two scoring
+references ``conf/metrics.yaml`` reads as ``dataset:<column>``
+(``ref_wav_path`` for speaker similarity, ``text`` for WER).
 """
 
 from __future__ import annotations
@@ -78,8 +80,8 @@ class LibriSpeechPCDataset(TorchDataset):
     """Serve the LibriSpeech-PC manifest rows as F5-TTS inference samples.
 
     Each sample carries the target text plus the pinned prompt: ``utt_id``,
-    ``text``, ``raw_text``, ``reference_speech`` (float32 mono at ``fs``),
-    ``reference_text`` and ``ref_wav_path``.
+    ``text``, ``reference_speech`` (float32 mono at ``fs``), ``reference_text``
+    and ``ref_wav_path``.
 
     Args:
         manifest_path: TSV written by :func:`build_manifest`.
@@ -122,7 +124,6 @@ class LibriSpeechPCDataset(TorchDataset):
         return {
             "utt_id": gen_utt,
             "text": gen_text,
-            "raw_text": gen_text,
             "reference_speech": np.asarray(speech, dtype=np.float32),
             "reference_text": ref_text,
             "ref_wav_path": str(ref_wav),

@@ -35,7 +35,7 @@ pack_model:
   include_model_detail: false
   readme: ${config_path:../src/hf_model_readme.md}
   include:
-    # Recipe code the packed inference config refers to (`output_fn`).
+    # The demo launcher (`src/app.py`) and the card templates `pack_demo` reads.
     - src
     # Recipe-local dataset modules for publication smoke checks.
     - dataset

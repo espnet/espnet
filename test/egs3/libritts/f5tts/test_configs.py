@@ -7,12 +7,8 @@ values the rest of the recipe depends on.
 
 from pathlib import Path
 
-import numpy as np
-import pytest
 from omegaconf import OmegaConf
 
-from egs3.libritts.f5tts.src.inference import build_output
-from espnet3.api.inference import Audio
 from espnet3.utils.config_utils import load_and_merge_config
 
 RECIPE = Path(__file__).resolve().parents[4] / "egs3" / "libritts" / "f5tts"
@@ -62,10 +58,16 @@ def test_training_config_has_one_token_list_path():
 
 
 def test_inference_config_loads(monkeypatch):
+    """The model is the system's ``Inference``, so the declaration drives infer.
+
+    ``input_key`` and ``output_fn`` are refused next to an ``Inference``, and
+    ``output_artifacts`` is unnecessary: the runner writes ``wav`` as audio.
+    """
     cfg = _load(monkeypatch, "inference.yaml", "inference.yaml")
     assert cfg.model._target_ == "espnet3.systems.f5tts.inference.Inference"
-    assert list(cfg.input_key) == ["text", "reference_speech", "reference_text"]
-    assert cfg.output_fn == "src.inference.build_output"
+    assert cfg.get("input_key") is None
+    assert cfg.get("output_fn") is None
+    assert cfg.get("output_artifacts") is None
 
 
 def test_default_inference_config_uses_librispeech_pc():
@@ -120,40 +122,15 @@ def test_metrics_config_matches_official_protocol():
     assert by_name["speaker"]["model_tag"] == "espnet/voxcelebs12_ecapa_wavlm_joint"
 
 
-def test_build_output_keeps_the_metric_columns():
-    """`ref` and `text` feed conf/metrics.yaml; `wav` is the Audio's samples."""
-    output = build_output(
-        {"utt_id": "u1", "raw_text": "hello", "ref_wav_path": "prompt.wav"},
-        {"wav": Audio(np.zeros(4, dtype=np.float32), 24000)},
-        0,
-    )
-    assert output["utt_id"] == "u1"
-    assert output["text"] == "hello"
-    assert output["ref"] == "prompt.wav"
-    assert output["wav"].dtype == np.float32
-    assert output["wav"].shape == (4,)
+def test_metrics_config_reads_the_references_from_the_data():
+    """infer writes only `wav.scp`; the prompt wav and target text come from the data.
 
-
-def test_build_output_falls_back_to_the_ground_truth_wav():
-    output = build_output(
-        {"raw_text": "hello", "wav_path": "gt.wav"},
-        {"wav": np.zeros(2, dtype=np.float32)},
-        3,
-    )
-    assert output["utt_id"] == "3"
-    assert output["ref"] == "gt.wav"
-
-
-def test_build_output_handles_a_batch():
-    outputs = build_output(
-        [{"utt_id": "a", "raw_text": "x"}, {"utt_id": "b", "raw_text": "y"}],
-        [{"wav": np.zeros(1)}, {"wav": np.ones(1)}],
-        [0, 1],
-    )
-    assert [output["utt_id"] for output in outputs] == ["a", "b"]
-    assert outputs[1]["wav"].tolist() == [1.0]
-
-
-def test_build_output_requires_a_waveform():
-    with pytest.raises(RuntimeError, match="wav"):
-        build_output({"utt_id": "a"}, {}, 0)
+    `ref_wav_path` is the pinned prompt, which makes the speaker similarity
+    generated-vs-prompt (SIM-o) by construction.
+    """
+    inputs = _raw("metrics.yaml")["metrics"][0]["inputs"]
+    assert inputs == {
+        "wav": "wav",
+        "ref": "dataset:ref_wav_path",
+        "text": "dataset:text",
+    }
