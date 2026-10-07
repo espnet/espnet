@@ -159,7 +159,7 @@ def _forward_inference(
     ``model(**fields)`` for one item, ``model.batch(items)`` for a batch -
     and the sample id comes from the item (``idx_key``, else the index).
     Only what the model produced is written; a reference for scoring is
-    read from the data by ``measure`` (``ref_key: dataset:text``). A
+    read from the data by ``measure`` (``inputs: {ref: dataset:text}``). A
     configured ``output_fn`` is refused rather than ignored: the
     declaration fixes the outputs.
     """
@@ -172,7 +172,7 @@ def _forward_inference(
         raise TypeError(
             "an Inference writes its declared outputs and applies no output_fn; "
             "drop output_fn (a reference for scoring is read by measure with "
-            "`ref_key: dataset:<column>`)"
+            "`inputs: {ref: dataset:<column>}`)"
         )
     batched = isinstance(idx, (list, tuple))
     indices = list(idx) if batched else [idx]

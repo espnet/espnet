@@ -87,7 +87,7 @@ def infer(config: DictConfig):
     subclass, ``input_key`` may be omitted - the declared inputs are used -
     and no ``output_fn`` is needed: the runner writes the declared outputs
     by what they are. A reference for scoring is not written here at all;
-    ``measure`` reads it from the data (``ref_key: dataset:text``).
+    ``measure`` reads it from the data (``inputs: {ref: dataset:text}``).
 
     Args:
         config: Hydra/OmegaConf configuration containing the dataset,
