@@ -97,6 +97,8 @@ def test_lid_system_collect_stats(tmp_path, extract_features):
     }
     config.trainer.accelerator = "cpu"
     config.trainer.precision = "32-true"
+    # Collect in this process; parallel collection is covered in test_collect_stats.
+    config.parallel = None
     lengths = [640, 800, 960, 1120, 1280]
     for mode, split in (("train", "train"), ("valid", "dev")):
         config.dataset[mode][0].data_src = "egs3.voxlingua107.esp2_lid.dataset"

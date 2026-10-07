@@ -160,7 +160,8 @@ def main():
     args = argparser.parse_args()
     args.source_dir = args.source_dir.expanduser().resolve()
     args.output_dir = args.output_dir.expanduser().resolve()
-    set_parallel(OmegaConf.load(args.parallel_config) if args.parallel_config else None)
+    if args.parallel_config:
+        set_parallel(OmegaConf.load(args.parallel_config))
     tasks = [
         {
             "url": f"{BASE_URL}/annotations/asr/asr_{language}.tsv.gz",

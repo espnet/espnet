@@ -195,6 +195,8 @@ loss_choices = ClassChoices(
 
 
 class LIDTask(AbsTask):
+    """LID task definition for argument wiring and model construction."""
+
     num_optimizers: int = 1
 
     trainer = LIDTrainer
@@ -216,6 +218,7 @@ class LIDTask(AbsTask):
 
     @classmethod
     def add_task_arguments(cls, parser: argparse.ArgumentParser):
+        """Add LID-specific task arguments to the parser."""
         group = parser.add_argument_group("Task related")
 
         group.add_argument(
@@ -301,6 +304,7 @@ class LIDTask(AbsTask):
         [Collection[Tuple[str, Dict[str, np.ndarray]]]],
         Tuple[List[str], Dict[str, torch.Tensor]],
     ]:
+        """Build the collate function for LID batches."""
         return CommonCollateFn(
             not_sequence=["lid_labels"],
         )
@@ -310,6 +314,7 @@ class LIDTask(AbsTask):
     def build_preprocess_fn(
         cls, args: argparse.Namespace, train: bool
     ) -> Optional[Callable[[str, Dict[str, np.array]], Dict[str, np.ndarray]]]:
+        """Build the preprocessing function for LID inputs."""
         if args.use_preprocessor:
             retval = preprocessor_choices.get_class(args.preprocessor)(
                 lang2utt=args.lang2utt,
@@ -325,6 +330,7 @@ class LIDTask(AbsTask):
     def required_data_names(
         cls, train: bool = True, inference: bool = False
     ) -> Tuple[str, ...]:
+        """Return required data field names for the task."""
         if train:
             # train
             retval = ("speech", "lid_labels")
@@ -341,6 +347,7 @@ class LIDTask(AbsTask):
     def optional_data_names(
         cls, train: bool = True, inference: bool = False
     ) -> Tuple[str, ...]:
+        """Return optional data field names for the task."""
         if not train and not inference:
             # validation or plot tsne
             # not required for collect statistics
@@ -354,7 +361,7 @@ class LIDTask(AbsTask):
     @classmethod
     @typechecked
     def build_model(cls, args: argparse.Namespace) -> ESPnetLIDModel:
-
+        """Build the ESPnet LID model from parsed arguments."""
         if args.frontend is not None:
             frontend_class = frontend_choices.get_class(args.frontend)
             frontend = frontend_class(**args.frontend_conf)

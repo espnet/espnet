@@ -34,7 +34,9 @@ def test_collect_speech_shapes_rejects_empty_dataset(tmp_path, monkeypatch, empt
     assert not list(tmp_path.iterdir())
 
 
-@pytest.mark.parametrize("num_workers", [1, 2])
+@pytest.mark.parametrize(
+    "num_workers", [1, pytest.param(2, marks=pytest.mark.execution_timeout(60))]
+)
 def test_combined_category_metadata_matches_shapes(tmp_path, monkeypatch, num_workers):
     """Use global IDs for real collection and sampling across two source datasets."""
     # Exercise real Dask workers without submitting nested scheduler jobs.
@@ -90,12 +92,10 @@ def test_combined_category_metadata_matches_shapes(tmp_path, monkeypatch, num_wo
                 for mode in ("train", "valid")
             },
             "stats_dir": str(tmp_path / "stats"),
-            "parallel": {
-                "env": "pbs" if num_workers > 1 else "local",
-                "n_workers": num_workers,
-            },
         }
     )
+    if num_workers > 1:
+        config.parallel = {"env": "pbs", "n_workers": num_workers}
     stats_module.collect_speech_shapes(config)
 
     for mode in ("train", "valid"):
@@ -134,6 +134,8 @@ def test_combined_category_metadata_matches_shapes(tmp_path, monkeypatch, num_wo
             assert sampled <= set(range(8)), batch_type
 
     # Replacing two datasets with one must discard stale global IDs.
+    config.parallel = None
+    monkeypatch.setattr(parallel_module, "parallel_config", None)
     config.dataset.train = [entries[0]]
     config.dataset.valid = [entries[0]]
     stats_module.collect_speech_shapes(config)

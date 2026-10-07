@@ -128,7 +128,8 @@ def collect_speech_shapes(config) -> None:
 
     Args:
         config: Training configuration with ``dataset``, ``stats_dir`` and optional
-            ``parallel`` settings. Preprocessing is disabled during collection.
+            ``parallel`` settings. Without ``parallel``, collection runs in this
+            process. Preprocessing is disabled during collection.
 
     Returns:
         None. Writes speech_shape, lang2utt, category2utt, dataset2utt,
@@ -142,7 +143,8 @@ def collect_speech_shapes(config) -> None:
         OmegaConf.to_container(config.dataset, resolve=True)
     )
     dataset_config.preprocessor = None
-    set_parallel(config.get("parallel"))
+    if config.get("parallel") is not None:
+        set_parallel(config.parallel)
     providers = {
         mode: LIDCollectStatsProvider(
             OmegaConf.create({"dataset": dataset_config, "mode": mode})

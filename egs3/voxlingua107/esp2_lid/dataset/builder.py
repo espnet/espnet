@@ -348,7 +348,7 @@ class VoxLingua107Builder(DatasetBuilder):
             zip_urls_url: Optional override of the official training ZIP list.
             dev_zip_url: Optional override of the development ZIP URL.
             parallel: ESPnet3 parallel configuration, e.g. ``env`` and
-                ``n_workers``. Defaults to the active or shared default setting.
+                ``n_workers``. When omitted, files are processed in this process.
             **_kwargs: Unused arguments from the common builder interface.
 
         Example:
@@ -382,7 +382,8 @@ class VoxLingua107Builder(DatasetBuilder):
                     "extract_to": str(destination),
                 }
             )
-        set_parallel(parallel)
+        if parallel is not None:
+            set_parallel(parallel)
         DownloadRunner(
             DownloadProvider(tasks), output_dir=source_root / ".download", resume=False
         )(range(len(tasks)))
