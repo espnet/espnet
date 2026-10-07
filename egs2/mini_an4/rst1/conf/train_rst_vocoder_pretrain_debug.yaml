@@ -1,0 +1,45 @@
+# Restoration vocoder for CI, pretraining on ground-truth features: a narrow
+# DAC decoder (same 960x upsampling to 48 kHz) and a small discriminator.
+ssl_encoder: w2v_bert2
+ssl_encoder_conf:
+    model_tag: data/tiny_w2v_bert
+    target_layer: 2
+    freeze_base: true
+lora_rank: 4
+lora_alpha: 8
+lora_dropout: 0.0
+input_sr: 16000
+output_sr: 48000
+
+use_predicted_feat: false
+context_duration: 2.0
+segment_duration: 0.5
+
+vocoder_conf:
+    channels: 64
+    rates: [8, 5, 4, 3, 2]
+discriminator_conf:
+    periods: [2, 3]
+    fft_sizes: [512, 256]
+
+optim: adam
+optim_conf:
+    lr: 1.0e-4
+optim2: adam
+optim2_conf:
+    lr: 1.0e-4
+generator_first: false
+
+max_epoch: 1
+batch_type: unsorted
+batch_size: 2
+valid_batch_size: 2
+num_workers: 0
+seed: 0
+best_model_criterion:
+    -   - valid
+        - loss_mel
+        - min
+keep_nbest_models: 1
+use_amp: false
+num_att_plot: 0

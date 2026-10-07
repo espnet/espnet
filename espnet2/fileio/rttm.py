@@ -8,10 +8,16 @@ from typeguard import typechecked
 
 
 @typechecked
-def load_rttm_text(path: Union[Path, str]) -> Dict[str, List[Tuple[str, float, float]]]:
+def load_rttm_text(
+    path: Union[Path, str],
+) -> Dict[str, Tuple[List[str], List[Tuple[str, int, int]], int]]:
     """Read a RTTM file
 
     Note: only support speaker information now
+
+    Returns:
+        A dict mapping each utterance ID to (speaker IDs,
+        [(speaker ID, start, end), ...], length given by its END line).
     """
 
     data = {}
@@ -49,7 +55,7 @@ class RttmReader(collections.abc.Mapping):
         SPEAKER file1 1 0 1023 <NA> <NA> spk1 <NA>
         SPEAKER file1 2 4000 3023 <NA> <NA> spk2 <NA>
         SPEAKER file1 3 500 4023 <NA> <NA> spk1 <NA>
-        END     file1 <NA> 4023 <NA> <NA> <NA> <NA>
+        END     file1 <NA> <NA> 4023 <NA> <NA> <NA> <NA>
 
         This is an extend version of standard RTTM format for espnet.
         The difference including:
@@ -83,7 +89,7 @@ class RttmReader(collections.abc.Mapping):
         return spk_label
 
     def __contains__(self, item):
-        return item
+        return item in self.data
 
     def __len__(self):
         return len(self.data)

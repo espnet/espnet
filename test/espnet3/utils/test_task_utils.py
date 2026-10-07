@@ -158,14 +158,14 @@ def test_save_espnet_config_handles_split_preprocessor_list_values(tmp_path):
                     "token_type": "char",
                     "train": {
                         "_target_": (
-                            "egs3.mini_an4.asr.src.preprocessor."
+                            "egs3.mini_an4.esp2_asr.src.preprocessor."
                             "MiniAn4TokenizeSpeedPerturbPreprocessor"
                         ),
                         "speed_perturb_factors": [0.95, 1.05],
                     },
                     "valid": {
                         "_target_": (
-                            "egs3.mini_an4.asr.src.preprocessor."
+                            "egs3.mini_an4.esp2_asr.src.preprocessor."
                             "MiniAn4TokenizeSpeedPerturbPreprocessor"
                         ),
                         "speed_perturb_prob": 0.0,
