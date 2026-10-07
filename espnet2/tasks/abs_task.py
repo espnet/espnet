@@ -2524,7 +2524,6 @@ class AbsTask(ABC):
         if device != "mps":
             with torch.device(device):
                 model = cls.build_model(args)
-            model.to(device)
         else:
             model = cls.build_model(args)
             
@@ -2538,6 +2537,9 @@ class AbsTask(ABC):
         if use_adapter:
             create_adapter(model, args.adapter, args.adapter_conf)
 
+        if device != "mps":
+            model.to(device)
+        
         if model_file is not None:
             if device == "cuda":
                 # NOTE(kamo): "cuda" for torch.load always indicates cuda:0
@@ -2560,6 +2562,13 @@ class AbsTask(ABC):
                     strict=False,
                     assign=False
                 )   
+                
+                del state_dict
+
+                gc.collect()
+
+                if torch.cuda.is_available():
+                   torch.cuda.empty_cache() 
                                 
             except UnsafeLoadRefusedError:
                 raise
@@ -2603,13 +2612,7 @@ class AbsTask(ABC):
                         )
                     else:
                         raise
-            finally:
-                del state_dict
-
-                gc.collect()
-
-                if torch.cuda.is_available():
-                   torch.cuda.empty_cache() 
+                    
 
         if device == "mps":
             model.to("mps", dtype=torch.float32)
