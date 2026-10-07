@@ -93,7 +93,8 @@ class InferenceAPI(ABC):
 
                 @classmethod
                 def from_pretrained(cls, tag_or_dir, *, device="cpu", **kwargs):
-                    return cls(load_model(locate_pack(tag_or_dir), device=device))
+                    pack = locate_pack(tag_or_dir)
+                    return cls(load_model(pack, device=device, overrides=kwargs))
 
                 @property
                 def sample_rate(self):
@@ -149,8 +150,11 @@ class InferenceAPI(ABC):
                 ``espnet_model_zoo`` resolves. :func:`locate_pack` turns
                 either into the directory.
             device: Where to build the model, ``"cpu"`` or ``"cuda:0"``.
-            **kwargs: Whatever the system needs beyond that; a system that
-                needs nothing rejects any.
+            **kwargs: Arguments of the packed model's constructor that
+                replace the packed values (``beam_size=5``), as ESPnet2's
+                ``from_pretrained`` takes them; :func:`load_model` applies
+                them with ``overrides=``. A system whose model is not a
+                bundle - a server, an endpoint - may take its own instead.
 
         Returns:
             A ready instance.

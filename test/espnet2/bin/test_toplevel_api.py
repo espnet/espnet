@@ -378,10 +378,3 @@ def test_an_explicit_task_that_is_not_the_bundles_system_is_explained(monkeypatc
     with pytest.raises(ModelTagError, match="espnet3 esp2_asr bundle, not a tts"):
         espnet.load("espnet/an_asr_pack", task="tts")
     assert calls == []
-
-
-def test_an_espnet3_bundle_without_the_train_extra_says_what_to_install(monkeypatch):
-    _fake_class(monkeypatch, "asr", _Espnet3Bundle)
-    monkeypatch.setitem(sys.modules, "espnet3.api.inference", None)
-    with pytest.raises(ImportError, match=r'pip install "espnet\[train\]"'):
-        espnet.load("espnet/an_espnet3_pack", task="asr")

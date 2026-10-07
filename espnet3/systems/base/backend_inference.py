@@ -20,9 +20,9 @@ toolkit: what a backend's config looks like is the system's knowledge
 
 That class is built three ways, all ending in ``self.backend``:
 
-- ``Inference.from_pretrained(tag_or_dir)``: the bundle's own
-  ``conf/inference.yaml`` builds the backend, through the bundle's provider
-  and without importing bundled code.
+- ``Inference.from_pretrained(tag_or_dir)``: :func:`load_model` builds
+  the backend from the bundle's ``conf/inference.yaml`` ``model``, without
+  any provider and without importing bundled code.
 - ``Inference(asr_train_config=..., asr_model_file=...)``: the backend's own
   arguments, which is how ``inference.yaml``'s ``model`` names the class
   for the ``infer`` stage (the provider adds ``device``).
@@ -106,19 +106,27 @@ class BackendInference(InferenceAPI):
     ) -> None:
         """Keep a built backend, or build one from its own arguments."""
         if backend is None:
-            path = backend_class or type(self).backend_class
-            if not path:
-                raise TypeError(
-                    f"{type(self).__qualname__} declares no backend_class; "
-                    "pass a built backend or set backend_class"
-                )
-            backend = get_class(path)(device=device, **kwargs)
+            backend = self._backend_type(backend_class)(device=device, **kwargs)
         elif kwargs or backend_class:
             raise TypeError(
                 f"arguments {sorted(kwargs)} given for building a backend, "
                 "but a built one was too"
             )
         self.backend = backend
+
+    def _backend_type(self, backend_class: Optional[str] = None) -> type:
+        """Return the backend class to build: the argument, else the declared one.
+
+        Raises:
+            TypeError: If neither names a class.
+        """
+        path = backend_class or type(self).backend_class
+        if not path:
+            raise TypeError(
+                f"{type(self).__qualname__} declares no backend_class; "
+                "pass a built backend or set backend_class"
+            )
+        return get_class(path)
 
     @classmethod
     def from_pretrained(
@@ -127,8 +135,8 @@ class BackendInference(InferenceAPI):
         """Load a ``pack_model`` bundle by directory or Hub tag.
 
         The bundle's ``conf/inference.yaml`` says how to build the model;
-        it is built through the bundle's provider on ``device``, without
-        importing the recipe's code: the outputs are fixed by the
+        :func:`load_model` builds its ``model`` on ``device``, without any
+        provider and without importing the recipe's code: the outputs are fixed by the
         declaration, so the recipe's ``output_fn`` is never needed. A
         recipe that names this class as its ``model`` builds the
         ``Inference`` itself, which is returned as it is; an older one

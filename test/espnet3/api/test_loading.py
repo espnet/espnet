@@ -374,3 +374,19 @@ def test_a_provider_that_only_builds_the_dataset_builds_the_model_once(tmp_path)
     )
     for model in (build_model(config), DataOnlyProvider.build_model(config)):
         assert isinstance(model, Backend) and model.prefix == "p:"
+
+
+def test_load_names_an_override_the_bundles_own_inference_does_not_take(tmp_path):
+    """The no-system path builds as load_model does, error included."""
+    root = _pack(tmp_path, model_target=f"{__name__}.Echo")
+    with pytest.raises(TypeError, match="bogus=1: the bundle's model .* takes no"):
+        load(root, bogus=1)
+
+
+def test_a_system_bundle_with_bundled_code_is_told_to_repack(tmp_path):
+    """trust_user_code cannot help it: a system's Inference runs no bundle code."""
+    root = _pack(
+        tmp_path, model_target="src.code.Local", system="esp2_asr", bundled=True
+    )
+    with pytest.raises(ValueError, match="names system 'esp2_asr'.*Re-pack"):
+        read_bundle(root)

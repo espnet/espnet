@@ -118,6 +118,13 @@ class DemoSession:
 
         self.input_specs = self._specs("inputs", model.inputs)
         self.output_specs = self._specs("outputs", model.outputs)
+        if not self.output_specs:
+            kinds = sorted({f.kind for f in model.outputs})
+            raise ValueError(
+                f"{type(model).__name__} declares no output the demo can show: "
+                f"no UI asset is registered for {kinds}. Set ui.outputs in "
+                "demo.yaml, or register an asset for the kind."
+            )
 
     def _specs(self, which: str, fields) -> list[dict[str, Any]]:
         """``ui.<which>`` from the config, or one spec per declared field."""
