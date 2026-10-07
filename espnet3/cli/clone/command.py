@@ -133,6 +133,14 @@ def run(args) -> None:
         FileNotFoundError: If the requested recipe is unavailable locally.
         FileExistsError: If the destination already exists.
         ValueError: If the recipe identifier has an invalid format.
+
+    Examples:
+        ```python
+        import argparse
+
+        run(argparse.Namespace(
+            list=False, recipe="mini_an4/esp2_asr", project="my_asr"))
+        ```
     """
     if args.list:
         from espnet3.cli.clone.resolver import list_recipes
