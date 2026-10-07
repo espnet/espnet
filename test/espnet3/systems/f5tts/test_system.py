@@ -102,9 +102,7 @@ def test_the_other_stages_are_inherited():
         assert getattr(F5TTSSystem, stage) is getattr(BaseSystem, stage)
 
 
-def test_train_writes_the_training_config_beside_the_checkpoints(
-    tmp_path, monkeypatch
-):
+def test_train_writes_the_training_config_beside_the_checkpoints(tmp_path, monkeypatch):
     """``${exp_dir}/config.yaml`` is what inference.yaml's model.train_config reads."""
     config = _build_training_config(tmp_path)
     config.model = {"_target_": "espnet3.systems.f5tts.f5tts.F5TTS"}
