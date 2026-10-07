@@ -1,7 +1,7 @@
 import pytest
 import torch
 
-from espnet2.universa.base.loss import masked_l1_loss, masked_mse_loss
+from espnet2.aqa.base.loss import masked_l1_loss, masked_mse_loss
 
 
 @pytest.mark.parametrize("loss_fn", [masked_l1_loss, masked_mse_loss])

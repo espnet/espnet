@@ -1,6 +1,6 @@
 import pytest
 
-from espnet2.universa.base import UniversaBase
+from espnet2.aqa.base import UniversaBase
 
 
 def _make_model(**kwargs):

@@ -1,22 +1,22 @@
 import importlib
 import json
-from test.espnet2.universa.test_metric_tokenizer import token_info
+from test.espnet2.aqa.test_metric_tokenizer import token_info
 
 import pytest
 import torch
 
-from espnet2.tasks.audio_metric import AudioMetricTask
+from espnet2.aqa.ar_universa.data import ARMetricCollateFn, ARMetricProcessor
+from espnet2.tasks.aqa import AqaTask
 from espnet2.torch_utils.initialize import INITIALIZATIONS
 from espnet2.train.collate_fn import UniversaCollateFn
 from espnet2.train.preprocessor import UniversaProcessor
-from espnet2.universa.ar_universa.data import ARMetricCollateFn, ARMetricProcessor
 
 
 def task_args(tmp_path, *options):
     """Parse CLI options and use a small predictor for task tests."""
     metrics = tmp_path / "metric2id"
     metrics.write_text("mos\nwer\n")
-    args = AudioMetricTask.get_parser().parse_args(
+    args = AqaTask.get_parser().parse_args(
         [
             *options,
             "--metric2id",
@@ -42,9 +42,9 @@ def test_legacy_task_and_portable_vocabulary(tmp_path):
     """Keep historical imports and embed metric names for checkpoint reloads."""
     from espnet2.tasks.universa import UniversaTask
 
-    assert UniversaTask is AudioMetricTask
+    assert UniversaTask is AqaTask
     args = task_args(tmp_path)
-    model = AudioMetricTask.build_model(args)
+    model = AqaTask.build_model(args)
     assert model.universa.metric2id == {"mos": 0, "wer": 1}
     assert args.metric2id == ["mos", "wer"]
 
@@ -53,7 +53,7 @@ def test_legacy_task_and_portable_vocabulary(tmp_path):
 def test_supported_initializations(tmp_path, init):
     """Every advertised initialization can construct a model."""
     args = task_args(tmp_path, "--init", init)
-    model = AudioMetricTask.build_model(args)
+    model = AqaTask.build_model(args)
     assert all(torch.isfinite(p).all() for p in model.parameters())
     assert args.sequential_metric is False
 
@@ -81,46 +81,42 @@ def test_arecho_sequential_default_and_portable_metadata(tmp_path, sequential):
     )
     if sequential is False:
         with pytest.raises(ValueError, match="sequential_metrics is required"):
-            AudioMetricTask.build_model(args)
+            AqaTask.build_model(args)
         assert args.sequential_metric is False
         return
-    model = AudioMetricTask.build_model(args)
+    model = AqaTask.build_model(args)
     assert model.universa.sequential_metrics is True
     assert args.sequential_metric is True
     assert args.metric2type == {"mos": "numerical", "language": "categorical"}
     assert args.metric_token_info == token_info()
     types.unlink()
     info.unlink()
-    rebuilt = AudioMetricTask.build_model(args)
+    rebuilt = AqaTask.build_model(args)
     assert rebuilt.universa.metric2id == model.universa.metric2id
-    assert isinstance(
-        AudioMetricTask.build_preprocess_fn(args, True), ARMetricProcessor
-    )
-    assert isinstance(AudioMetricTask.build_collate_fn(args, True), ARMetricCollateFn)
+    assert isinstance(AqaTask.build_preprocess_fn(args, True), ARMetricProcessor)
+    assert isinstance(AqaTask.build_collate_fn(args, True), ARMetricCollateFn)
 
 
 def test_base_data_setup(tmp_path):
     """Build scalar-metric data helpers before and after metadata normalization."""
     args = task_args(tmp_path)
-    assert isinstance(AudioMetricTask.build_collate_fn(args, True), UniversaCollateFn)
-    AudioMetricTask.build_model(args)
-    assert isinstance(AudioMetricTask.build_collate_fn(args, False), UniversaCollateFn)
-    assert isinstance(
-        AudioMetricTask.build_preprocess_fn(args, True), UniversaProcessor
-    )
+    assert isinstance(AqaTask.build_collate_fn(args, True), UniversaCollateFn)
+    AqaTask.build_model(args)
+    assert isinstance(AqaTask.build_collate_fn(args, False), UniversaCollateFn)
+    assert isinstance(AqaTask.build_preprocess_fn(args, True), UniversaProcessor)
     args.use_preprocessor = False
-    assert AudioMetricTask.build_preprocess_fn(args, False) is None
+    assert AqaTask.build_preprocess_fn(args, False) is None
     for inference in (False, True):
-        assert AudioMetricTask.required_data_names(inference=inference) == (
+        assert AqaTask.required_data_names(inference=inference) == (
             ("audio",) if inference else ("metrics", "audio")
         )
-        assert AudioMetricTask.optional_data_names(inference=inference) == (
+        assert AqaTask.optional_data_names(inference=inference) == (
             "ref_audio",
             "ref_text",
         )
 
 
-@pytest.mark.parametrize("entry", ["audio_metric_train", "universa_train"])
+@pytest.mark.parametrize("entry", ["aqa_train", "universa_train"])
 def test_training_entry_points(entry):
     """Both entry points expose a usable parser and print task configuration."""
     module = importlib.import_module("espnet2.bin." + entry)

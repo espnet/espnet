@@ -2,7 +2,7 @@ import numpy as np
 import pytest
 import torch
 
-from espnet2.universa.base import UniversaBase
+from espnet2.aqa.base import UniversaBase
 
 
 @pytest.mark.parametrize("multi_branch", [False, True])
