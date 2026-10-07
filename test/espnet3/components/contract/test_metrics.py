@@ -171,8 +171,10 @@ def test_check_metric_inputs_rejects_kind_mismatch():
 
 
 def test_check_metric_inputs_uses_config_inputs_override():
+    # metric_config.inputs is keyed by the metric's own data key (what
+    # input_sources() maps "ref" to here), not by the declared Field name.
     metric = _FakeMetric((Field("ref", "text"),), {"ref": "missing"})
-    config = OmegaConf.create({"inputs": {"ref": "text"}})
+    config = OmegaConf.create({"inputs": {"missing": "text"}})
 
     check_metric_inputs(metric, config, _INFERENCE_CFG)
 
@@ -204,6 +206,55 @@ def test_check_metric_inputs_no_declaration_is_noop():
         inputs = ()
 
     check_metric_inputs(_NoInputs(), None, _NON_INFERENCE_CFG)
+
+
+# ---------------------------------------------------------------------------
+# check_metric_inputs: the two-stage lookup (Field name -> data key -> source)
+# a renamed WER exercises, since input_sources() maps "ref"/"hyp" to its own
+# ref_key/hyp_key rather than keeping them identical.
+# ---------------------------------------------------------------------------
+
+
+def test_check_metric_inputs_resolves_renamed_keys_through_config_override():
+    from espnet3.systems.esp2_asr.metrics.wer import WER
+
+    metric = WER(ref_key="reference", hyp_key="hypothesis")
+    config = OmegaConf.create(
+        {"inputs": {"reference": "dataset:text", "hypothesis": "text"}}
+    )
+
+    check_metric_inputs(metric, config, _INFERENCE_CFG)
+
+
+def test_check_metric_inputs_renamed_keys_without_config_inputs():
+    from espnet3.systems.esp2_asr.metrics.wer import WER
+
+    # No `inputs:` override: both roles fall back to their own data key
+    # (ref_key/hyp_key), matching `measure`'s own fallback when
+    # metric_config.inputs is absent.
+    metric = WER(ref_key="text", hyp_key="text")
+
+    check_metric_inputs(metric, None, _INFERENCE_CFG)
+
+
+def test_check_metric_inputs_renamed_keys_with_list_style_inputs():
+    from espnet3.systems.esp2_asr.metrics.wer import WER
+
+    metric = WER(ref_key="text", hyp_key="text")
+    # list form: each entry is both the data key and its own source
+    config = OmegaConf.create({"inputs": ["text"]})
+
+    check_metric_inputs(metric, config, _INFERENCE_CFG)
+
+
+def test_check_metric_inputs_renamed_keys_rejects_unmatched_source():
+    from espnet3.systems.esp2_asr.metrics.wer import WER
+
+    metric = WER(ref_key="reference", hyp_key="hypothesis")
+    config = OmegaConf.create({"inputs": {"reference": "dataset:text"}})
+
+    with pytest.raises(MetricContractError, match="wants input 'hyp' -> 'hypothesis'"):
+        check_metric_inputs(metric, config, _INFERENCE_CFG)
 
 
 # ---------------------------------------------------------------------------

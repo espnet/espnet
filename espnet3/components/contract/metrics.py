@@ -154,11 +154,14 @@ def declared_outputs(config: Any) -> Optional[tuple]:
 
 
 def _alias_map(metric_config: Any) -> Mapping[str, str]:
-    """Map a declared input's name -> the source ``metric_config.inputs`` gives.
+    """Map a metric's data key -> the source ``metric_config.inputs`` gives.
 
-    ``metric_config.inputs`` may be a list (role and source are the same)
-    or a mapping (role -> source); absent entirely, nothing is overridden,
-    so each role keeps the source :meth:`BaseMetric.input_sources` gives it.
+    ``metric_config.inputs`` is keyed by the metric's own data key (what
+    ``measure`` passes as ``data[key]``, e.g. ``WER``'s ``ref_key``), not
+    by the declared ``Field`` name. It may be a list (key and source are
+    the same) or a mapping (key -> source); absent entirely, nothing is
+    overridden, so each key keeps the source
+    :meth:`BaseMetric.input_sources` gives it.
     """
     inputs = (
         getattr(metric_config, "inputs", None) if metric_config is not None else None
@@ -182,7 +185,8 @@ def check_metric_inputs(metric: Any, metric_config: Any, inference_config: Any) 
     Args:
         metric: A ``BaseMetric`` instance.
         metric_config: The metric's config node, for its optional
-            ``inputs`` mapping (declared name -> source), which overrides
+            ``inputs`` mapping (metric's data key -> source), which
+            overrides
             :meth:`~espnet3.components.metrics.base_metric.BaseMetric.input_sources`.
         inference_config: The inference config; only ``model._target_`` is
             read (see :func:`declared_outputs`).
@@ -217,7 +221,8 @@ def check_metric_inputs(metric: Any, metric_config: Any, inference_config: Any) 
     outputs_checked = False
 
     for f in fields:
-        source = overrides.get(f.name, sources.get(f.name, f.name))
+        key = sources.get(f.name, f.name)
+        source = overrides.get(key, key)
         if str(source).startswith(DATASET_PREFIX):
             continue
         if not outputs_checked:
@@ -237,7 +242,7 @@ def check_metric_inputs(metric: Any, metric_config: Any, inference_config: Any) 
                 f"{type(metric).__name__} wants input {f.name!r} -> {source!r}, "
                 "but the inference config's model declares outputs "
                 f"{[o.name for o in outputs]}; set `{f.name}_key` (or add an "
-                f"`inputs: {{{f.name}: <name>}}` mapping) to point it at one"
+                f"`inputs: {{{key}: <name>}}` mapping) to point it at one"
             )
         if match.kind != f.kind:
             raise MetricContractError(
