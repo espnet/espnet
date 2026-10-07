@@ -93,8 +93,8 @@ model:
 
 # Nothing but the model's outputs is written here: `text.scp` is what the
 # model said. The reference for scoring is the dataset's `text` column, and
-# `measure` reads it from the data (`inputs: {ref: dataset:text}` in
-# metrics.yaml), so it is not copied by this stage.
+# `measure` reads it from the data (bind `ref` to `dataset:text` in the
+# metrics config's `inputs:`), so it is not copied by this stage.
 
 # Only for a model that is not an `Inference`: the dataset field(s) passed to
 # it. If `dataset[i]` returns `{"speech": ..., "text": ..., "utt_id": ...}` and

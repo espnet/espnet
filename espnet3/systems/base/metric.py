@@ -207,15 +207,16 @@ def measure(metrics_config: DictConfig, inference_config: DictConfig | None = No
     A metric's inputs are bound by its config's ``inputs:`` (declared name
     -> source; see ``espnet3.components.contract.metrics.check_metric_inputs``),
     required for every metric that declares one. A source is either a
-    ``.scp`` file the ``infer`` stage wrote (``inputs: {hyp: text}`` reads
-    ``<test_name>/text.scp``), or a column of the test set itself, named
-    ``dataset:<column>`` (``inputs: {ref: dataset:text}`` reads the
-    transcript from the data and writes it to
+    ``.scp`` file the ``infer`` stage wrote (binding ``hyp`` to ``text``
+    reads ``<test_name>/text.scp``), or a column of the test set itself,
+    named ``dataset:<column>`` (binding ``ref`` to ``dataset:text`` reads
+    the transcript from the data and writes it to
     ``<test_name>/dataset/text.scp`` on first use). The reference is the
     data's, so it comes from the data, not from what inference wrote. A
     column that is not a scalar - a reference waveform for an audio metric -
-    is written as an artifact beside it, as ``dataset_artifacts:
-    {<column>: {type: wav, sample_rate: ...}}`` says, ``.npy`` by default.
+    is written as an artifact beside it, as a ``dataset_artifacts`` entry
+    for that column (``type: wav``, ``sample_rate: ...``) says, ``.npy``
+    by default.
 
     Args:
         metrics_config: Omegaconf configuration with inference and metric settings.

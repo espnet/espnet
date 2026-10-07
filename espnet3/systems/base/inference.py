@@ -88,7 +88,8 @@ def infer(config: DictConfig):
     setting one is an error rather than silently ignored - and no
     ``output_fn`` is needed: the runner writes the declared outputs
     by what they are. A reference for scoring is not written here at all;
-    ``measure`` reads it from the data (``inputs: {ref: dataset:text}``).
+    ``measure`` reads it from the data (bind ``ref`` to ``dataset:text``
+    in the metrics config's ``inputs:``).
 
     Args:
         config: Hydra/OmegaConf configuration containing the dataset,

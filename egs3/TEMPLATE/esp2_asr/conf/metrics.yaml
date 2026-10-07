@@ -60,12 +60,16 @@ metrics:
   - metric:
       _target_: espnet3.systems.esp2_asr.metrics.wer.WER
       clean_types:        # optional TextCleaner pipeline, e.g. [tacotron]
-    inputs: {ref: dataset:text, hyp: text}  # ref: the test set's transcript; hyp: <test_name>/text.scp
+    inputs:
+      ref: dataset:text  # the test set's transcript
+      hyp: text          # <test_name>/text.scp
 
   - metric:
       _target_: espnet3.systems.esp2_asr.metrics.cer.CER
       clean_types:        # optional TextCleaner pipeline, e.g. [jaconv]
-    inputs: {ref: dataset:text, hyp: text}  # ref: the test set's transcript; hyp: <test_name>/text.scp
+    inputs:
+      ref: dataset:text  # the test set's transcript
+      hyp: text          # <test_name>/text.scp
 
 # TER (token error rate) scores on the model's subword tokens, so it needs the
 # recipe's trained SentencePiece model. It is recipe-specific and off by default.
@@ -74,4 +78,6 @@ metrics:
 #     _target_: espnet3.systems.esp2_asr.metrics.ter.TER
 #     bpemodel: exp/bpe_5000/bpe.model  # path to the trained SentencePiece model
 #     clean_types:        # optional TextCleaner pipeline
-#   inputs: {ref: dataset:text, hyp: text}  # ref: the test set's transcript; hyp: <test_name>/text.scp
+#   inputs:
+#     ref: dataset:text  # the test set's transcript
+#     hyp: text          # <test_name>/text.scp

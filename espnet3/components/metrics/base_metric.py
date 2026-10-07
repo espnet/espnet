@@ -65,9 +65,14 @@ class BaseMetric(ABC):
         ``inputs:`` does not accept a list of sources for one declared
         name, so each reference is its own declared input instead; a
         variable reference count becomes trailing optional fields. Its
-        metrics config binds each one: ``inputs: {hyp: text, ref1:
-        dataset:text, ref2: dataset:text_alt}`` - omitting ``ref2``
-        entirely is fine, since it is optional.
+        metrics config binds each one::
+
+            inputs:
+              hyp: text
+              ref1: dataset:text
+              ref2: dataset:text_alt
+
+        Omitting ``ref2`` entirely is fine, since it is optional.
 
         >>> class ExampleBleuMetric(BaseMetric):
         ...     inputs = (
@@ -84,11 +89,21 @@ class BaseMetric(ABC):
         A metric that reads more than one audio role (a speaker
         similarity metric that always needs the target prompt voice and
         the model's synthesized audio, but can run without a second
-        reference voice): ``inputs: {target: dataset:prompt_speech, hyp:
-        wav, ref: dataset:speech}``. A ``dataset:`` column of kind ``audio`` is
-        written as a ``.wav`` artifact beside the test set's SCPs, as
-        ``dataset_artifacts: {<column>: {type: wav, sample_rate: ...}}``
-        says (``measure``'s own ``dataset_artifacts`` config key).
+        reference voice)::
+
+            inputs:
+              target: dataset:prompt_speech
+              hyp: wav
+              ref: dataset:speech
+
+        A ``dataset:`` column of kind ``audio`` is written as a ``.wav``
+        artifact beside the test set's SCPs, as ``measure``'s own
+        ``dataset_artifacts`` config says::
+
+            dataset_artifacts:
+              prompt_speech:
+                type: wav
+                sample_rate: 16000
 
         >>> class ExampleSpeakerMetric(BaseMetric):
         ...     inputs = (

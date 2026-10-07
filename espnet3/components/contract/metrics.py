@@ -8,8 +8,8 @@ from espnet3.api.inference import KINDS, Field
 from espnet3.components.contract.check import check_declaration
 
 #: A metric input source naming a test-set column instead of an inference
-#: SCP file (``inputs: {ref: dataset:text}``); must match
-#: ``espnet3.systems.base.metric.DATASET_PREFIX``.
+#: SCP file (bind a declared name to ``dataset:text`` in ``inputs:``);
+#: must match ``espnet3.systems.base.metric.DATASET_PREFIX``.
 DATASET_PREFIX = "dataset:"
 
 
@@ -179,7 +179,8 @@ def _declared_inputs(metric: Any, metric_config: Any) -> Mapping[str, str]:
         example = ", ".join(f"{f.name}: <source>" for f in fields)
         raise MetricContractError(
             f"{type(metric).__name__} declares inputs {sorted(declared)}; bind "
-            f"them in the metrics config: inputs: {{{example}}}"
+            f"them in the metrics config's inputs: mapping, one source per "
+            f"name (e.g. {example})"
         )
     inputs = dict(raw) if isinstance(raw, Mapping) else {name: name for name in raw}
 
@@ -271,8 +272,8 @@ def check_metric_inputs(
             raise MetricContractError(
                 f"{type(metric).__name__} wants input {f.name!r} -> {source!r}, "
                 "but the inference config's model declares outputs "
-                f"{[o.name for o in outputs]}; point `inputs: {{{f.name}: "
-                "<name>}}` at one of them, or a `dataset:<column>`"
+                f"{[o.name for o in outputs]}; bind {f.name!r} to one of them "
+                "in the metrics config's inputs:, or to a `dataset:<column>`"
             )
         if match.kind != f.kind:
             raise MetricContractError(

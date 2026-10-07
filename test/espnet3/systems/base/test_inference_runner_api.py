@@ -225,7 +225,7 @@ def test_write_record_refuses_an_id_that_is_a_path_or_breaks_a_line(tmp_path, ut
 
 
 def test_measure_reads_the_reference_from_the_test_set(tmp_path):
-    """`inputs: {ref: dataset:text}` scores against the data, not a copied file."""
+    """Binding `ref` to `dataset:text` scores against the data, not a copied file."""
     inference_cfg = OmegaConf.create(
         {
             "inference_dir": str(tmp_path),

@@ -29,9 +29,13 @@ metrics:
   - metric:
       _target_: espnet3.systems.esp2_asr.metrics.wer.WER
       clean_types:
-    inputs: {ref: dataset:text, hyp: text}  # ref: the test set's transcript; hyp: the model's output
+    inputs:
+      ref: dataset:text  # the test set's transcript
+      hyp: text          # the model's output
 
   - metric:
       _target_: espnet3.systems.esp2_asr.metrics.cer.CER
       clean_types:
-    inputs: {ref: dataset:text, hyp: text}
+    inputs:
+      ref: dataset:text
+      hyp: text
