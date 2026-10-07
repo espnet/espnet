@@ -2,6 +2,7 @@
 
 import argparse
 import functools
+import gc
 import itertools
 import logging
 import os
@@ -11,8 +12,6 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional, Sequence, Set, Tuple, Union
-
-import gc
 
 import humanfriendly
 import numpy as np
@@ -2526,7 +2525,7 @@ class AbsTask(ABC):
                 model = cls.build_model(args)
         else:
             model = cls.build_model(args)
-            
+
         if not isinstance(model, AbsESPnetModel):
             raise RuntimeError(
                 f"model must inherit {AbsESPnetModel.__name__}, but got {type(model)}"
