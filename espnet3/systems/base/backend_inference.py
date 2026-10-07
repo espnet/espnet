@@ -114,16 +114,17 @@ class BackendInference(InferenceAPI):
             )
         self.backend = backend
 
-    def _backend_type(self, backend_class: Optional[str] = None) -> type:
+    @classmethod
+    def _backend_type(cls, backend_class: Optional[str] = None) -> type:
         """Return the backend class to build: the argument, else the declared one.
 
         Raises:
             TypeError: If neither names a class.
         """
-        path = backend_class or type(self).backend_class
+        path = backend_class or cls.backend_class
         if not path:
             raise TypeError(
-                f"{type(self).__qualname__} declares no backend_class; "
+                f"{cls.__qualname__} declares no backend_class; "
                 "pass a built backend or set backend_class"
             )
         return get_class(path)
@@ -155,9 +156,17 @@ class BackendInference(InferenceAPI):
                 argument the model does not take is a ``TypeError``
                 naming it.
 
+        A tag that is not a ``pack_model`` bundle - a model the backend's
+        own toolkit published, such as an ESPnet2 ``Speech2Text`` on the
+        Hub - goes to the backend class's own ``from_pretrained`` when it
+        has one, with the same ``device`` and overrides, and the backend it
+        returns is wrapped. That is the whole of it: which tags a backend
+        can read is the backend's to say, not this class's.
+
         Raises:
-            ModelTagError: If the tag is not a ``pack_model`` bundle, or the
-                bundle builds an ``Inference`` of another class.
+            ModelTagError: If the tag is neither a ``pack_model`` bundle nor
+                a model the backend class reads, or the bundle builds an
+                ``Inference`` of another class.
             ValueError: If the bundle's model needs the bundle's own code.
 
         Examples:
@@ -166,8 +175,16 @@ class BackendInference(InferenceAPI):
             >>> Inference.from_pretrained(
             ...     "espnet/some_pack", beam_size=5, ctc_weight=0.3, nbest=3
             ... )
+            >>> Inference.from_pretrained("espnet/an_espnet2_asr_model")
         """
-        built = load_model(locate_pack(tag_or_dir), device=device, overrides=kwargs)
+        try:
+            pack = locate_pack(tag_or_dir)
+        except ModelTagError:
+            backend = cls._published_backend(str(tag_or_dir), device, kwargs)
+            if backend is None:
+                raise
+            return cls(backend)
+        built = load_model(pack, device=device, overrides=kwargs)
         if isinstance(built, InferenceAPI):
             # the bundle's inference.yaml names the Inference itself, as a
             # recipe names its Inference as the model: it is the model, not a backend
@@ -177,6 +194,30 @@ class BackendInference(InferenceAPI):
                 )
             return built
         return cls(built)
+
+    @classmethod
+    def _published_backend(
+        cls, tag: str, device: str, overrides: dict[str, Any]
+    ) -> Any:
+        """Read a tag the backend class publishes itself, or ``None`` if it cannot.
+
+        Goes through ESPnet2's ``build_pretrained``, so a tag for another
+        kind of model is the same ``ModelTagError`` the command line and
+        ``espnet.load`` give.
+        """
+        backend_type = cls._backend_type() if cls.backend_class else None
+        if not callable(getattr(backend_type, "from_pretrained", None)):
+            return None
+        from espnet2.utils.pretrained import build_pretrained
+
+        return build_pretrained(
+            backend_type,
+            tag,
+            device,
+            f"{cls.__module__}.{cls.__qualname__}.from_pretrained",
+            "Pass a model this system serves, or a pack_model bundle.",
+            **overrides,
+        )
 
     @property
     def sample_rate(self) -> Optional[int]:
