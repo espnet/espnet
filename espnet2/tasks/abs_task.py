@@ -2538,7 +2538,7 @@ class AbsTask(ABC):
 
         if device != "mps":
             model.to(device)
-        
+
         if model_file is not None:
             if device == "cuda":
                 # NOTE(kamo): "cuda" for torch.load always indicates cuda:0
@@ -2556,19 +2556,15 @@ class AbsTask(ABC):
                 if "state_dict" in state_dict:
                     state_dict = state_dict["state_dict"]
 
-                model.load_state_dict(
-                    state_dict,
-                    strict=False,
-                    assign=False
-                )   
-                
+                model.load_state_dict(state_dict, strict=False, assign=False)
+
                 del state_dict
 
                 gc.collect()
 
                 if torch.cuda.is_available():
-                   torch.cuda.empty_cache() 
-                                
+                    torch.cuda.empty_cache()
+
             except UnsafeLoadRefusedError:
                 raise
             except RuntimeError:
@@ -2611,7 +2607,6 @@ class AbsTask(ABC):
                         )
                     else:
                         raise
-                    
 
         if device == "mps":
             model.to("mps", dtype=torch.float32)
