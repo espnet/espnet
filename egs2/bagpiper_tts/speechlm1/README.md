@@ -238,7 +238,7 @@ Run from `egs2/bagpiper_tts/speechlm1`. Initialize from a downloaded Bagpiper-Ba
 checkpoint and replace the example paths with your prepared inputs:
 
 ```bash
-./run.sh --ngpu 8 \
+./run.sh --stage 1 --stop-stage 1 --ngpu 8 \
     --resume-path /path/to/bagpiper-base/base.pt \
     --stats-dir /path/to/tts_stats \
     --train-unregistered-specifier "dialogue:tts_train:/path/to/tts_train.json" \
@@ -247,7 +247,9 @@ checkpoint and replace the example paths with your prepared inputs:
 
 An explicit `--resume-path` accepts complete native `.pt` weights or a Bagpiper
 DCP directory. It initializes the model and starts a fresh optimizer, scheduler,
-and step counter. Use a new output directory for a new stage. Native weights
+and step counter, even when the output already has checkpoints. Use
+`--output-dir` to select a new output directory for a new run, and
+`--train-config` to select its matching training configuration. Native weights
 require a matching model configuration and `pp_degree: 1`; multi-GPU FSDP
 initialization is supported. To continue training the released TTS model, select
 its `model.pt` instead of Base weights with the same compatibility checks.
@@ -257,6 +259,8 @@ configuration, and output directory, **omitting `--resume-path`**. The latest
 complete DCP restores the model, optimizer, scheduler, and step counter. Keep
 gradient accumulation unchanged across resume. `./run.sh --help` lists multi-node
 and logging options; W&B is disabled by default.
+To run through export and inference, omit `--stop-stage` and supply
+`--inference-config` and `--test-unregistered-specifier` as well.
 
 ### Export for inference
 
@@ -267,7 +271,11 @@ The recipe takes the latest complete checkpoint:
 ./run.sh --stage 2 --stop-stage 2
 ```
 
-Name another one with `--checkpoint-dir`, or call the module directly:
+Name another one with `--checkpoint-dir`. Export refuses to overwrite an
+existing file; use a new `--export-path` when exporting updated weights, or
+run stage 3 to decode the existing export. Inference uses the saved training
+configuration when available, unless `--train-config` is supplied.
+You can also call the module directly:
 
 ```bash
 python -m espnet2.speechlm.bin.export_checkpoint \
@@ -277,6 +285,7 @@ python -m espnet2.speechlm.bin.export_checkpoint \
 
 Use this `.pt` with your matching model configuration for native inference,
 or convert it for vLLM serving.
+For multi-node training, export and inference run only on node rank 0.
 
 ## Citation
 
