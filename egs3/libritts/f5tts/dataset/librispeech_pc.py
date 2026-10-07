@@ -1,4 +1,4 @@
-"""LibriSpeech-PC cross-sentence eval set: manifest builder and dataset.
+r"""LibriSpeech-PC cross-sentence eval set: manifest builder and dataset.
 
 The F5-TTS repo's ``librispeech_pc_test_clean_cross_sentence.lst`` has six
 tab-separated columns (ref_utt, ref_dur, ref_txt, gen_utt, gen_dur, gen_txt),

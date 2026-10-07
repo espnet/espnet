@@ -26,9 +26,9 @@ model:
 
 # `ui.inputs` / `ui.outputs` are the fields of
 # `espnet3.systems.f5tts.inference.Inference`, bound positionally by
-# `src/app.py` (the recipe's copy of the template's launcher). An empty
-# "Reference transcript" box is passed as "not given", and the reference is
-# then treated as a recording of the target text. `ui.description` is a file
+# `src/app.py` (the recipe's copy of the template's launcher). All three
+# inputs are required: an empty "Reference transcript" box is reported as
+# missing, not guessed from the target text. `ui.description` is a file
 # `pack_demo` copies into the bundle (the recipe README by default) or inline
 # text.
 ui:

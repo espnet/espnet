@@ -196,8 +196,7 @@ def test_pack_demo_builds_a_working_demo(recipe_dir, stub_vocoder):
         sys.modules.pop("app", None)
 
     (handler,) = [block_function.fn for block_function in blocks.fns.values()]
-    # An empty transcript box means "not given", not an empty transcript.
-    sample_rate, samples = handler("a cab", _reference(), "")
+    sample_rate, samples = handler("a cab", _reference(), "abba")
     assert sample_rate == 24000
     assert samples.dtype == np.float32 and samples.ndim == 1 and samples.size > 0
     # The pair is what the output component plays.
@@ -209,4 +208,7 @@ def test_pack_demo_builds_a_working_demo(recipe_dir, stub_vocoder):
     assert audio_output.postprocess((sample_rate, samples)) is not None
 
     with pytest.raises(gradio.Error, match="reference_speech"):
-        handler("a cab", None, "")
+        handler("a cab", None, "abba")
+    # An empty transcript box means "not given", which is refused by name.
+    with pytest.raises(gradio.Error, match="reference_text"):
+        handler("a cab", _reference(), "")

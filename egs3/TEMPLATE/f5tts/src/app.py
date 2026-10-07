@@ -1,11 +1,12 @@
 """Recipe-local Gradio launcher for ESPnet3 F5-TTS demos.
 
-The generic launcher (``egs3/TEMPLATE/esp2_asr/src/app.py``) hands each model
-output straight to its Gradio component. That is not enough for speech
-synthesis: ``gr.Audio`` plays a ``(sample_rate, samples)`` pair, while the
-packed model returns the samples alone. This launcher adds that pairing, and
-passes an empty text box as "not given" so the optional reference transcript
-can be left blank.
+The generic launcher (``egs3/TEMPLATE/esp2_asr/src/app.py``) binds the demo
+session's inference function straight to the Gradio components; the session
+already turns the model's ``Audio`` into the ``(sample_rate, samples)`` pair
+``gr.Audio`` plays. This launcher adds what a text-to-speech UI needs on top:
+an untouched text box arrives as ``""``, which is passed on as "not given" so
+the contract refuses it by name instead of synthesizing from an empty
+transcript, and that refusal is shown in the UI rather than as a bare error.
 """
 
 from __future__ import annotations
@@ -15,65 +16,11 @@ import logging
 from pathlib import Path
 
 import gradio as gr
-import numpy as np
 
 from espnet3.publication.demo.session import load_demo_session
 from espnet3.utils.logging_utils import configure_logging
 
 logger = logging.getLogger(__name__)
-
-
-def resolve_sample_rate(model) -> int:
-    """Return the rate of the waveforms a packed F5-TTS model synthesizes.
-
-    Args:
-        model: The model the demo session loaded from the packed bundle:
-            ``espnet3.systems.f5tts.inference.Inference`` (``sample_rate``)
-            or the bare ``F5TTSInference`` engine (``target_sample_rate``).
-
-    Returns:
-        int: Samples per second.
-
-    Raises:
-        TypeError: If the model exposes neither attribute, so the rate of its
-            output cannot be told.
-
-    Example:
-        .. code-block:: python
-
-            session = load_demo_session(demo_dir, demo_dir / "demo.yaml")
-            resolve_sample_rate(session.model)  # -> 24000
-    """
-    for name in ("sample_rate", "target_sample_rate"):
-        sample_rate = getattr(model, name, None)
-        if sample_rate:
-            return int(sample_rate)
-    raise TypeError(
-        f"Cannot tell the output sample rate of {type(model).__name__}: it has "
-        "neither `sample_rate` nor `target_sample_rate`."
-    )
-
-
-def build_gradio_audio(wav, sample_rate: int):
-    """Pair a synthesized waveform with its rate, as ``gr.Audio`` expects.
-
-    Args:
-        wav: The model's ``wav`` output: a float array, or an
-            :class:`espnet3.api.inference.Audio`, whose own rate is then used.
-        sample_rate: Rate of a bare array.
-
-    Returns:
-        tuple[int, numpy.ndarray]: ``(sample_rate, float32 samples)``.
-
-    Example:
-        .. code-block:: python
-
-            build_gradio_audio(np.zeros(24000, dtype=np.float32), 24000)
-            # -> (24000, array([0., 0., ...], dtype=float32))
-    """
-    samples = getattr(wav, "array", wav)
-    rate = int(getattr(wav, "rate", sample_rate))
-    return rate, np.asarray(samples, dtype=np.float32)
 
 
 def build_demo(
@@ -128,28 +75,19 @@ def build_demo(
         session.input_specs,
         session.output_specs,
     )
-    sample_rate = resolve_sample_rate(session.model)
-    is_audio_output = [spec["type"] == "audio" for spec in session.output_specs]
 
     def synthesize(*values):
-        """Run the packed model on the UI values and pair audio with its rate."""
+        """Run the packed model on the UI values; the session shapes the outputs."""
         # An untouched Gradio text box holds "", which the model would take
-        # as an empty transcript; None means "not given" instead.
+        # as an empty transcript; None means "not given", which the contract
+        # refuses for a required field with a message naming it.
         values = [None if value == "" else value for value in values]
         try:
-            outputs = inference_fn(*values)
+            return inference_fn(*values)
         except TypeError as error:
-            # A missing or malformed input, e.g. no reference speech: show the
-            # reason in the UI instead of a bare "Error".
+            # A missing or malformed input, e.g. no reference speech or no
+            # transcript: show the reason in the UI instead of a bare "Error".
             raise gr.Error(str(error)) from error
-        # The session returns a bare value for a single output spec.
-        if len(is_audio_output) == 1:
-            outputs = [outputs]
-        outputs = [
-            build_gradio_audio(output, sample_rate) if is_audio else output
-            for output, is_audio in zip(outputs, is_audio_output)
-        ]
-        return outputs[0] if len(outputs) == 1 else outputs
 
     with gr.Blocks(title=session.title) as app:
         if session.title:

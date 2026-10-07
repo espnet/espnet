@@ -155,12 +155,11 @@ def _download_pair_list(url: str, dest: Path) -> None:
 
 
 def _scan_subset_entries(subset_dir: Path) -> list[tuple[str, Path, str, str]]:
-    """
-    Scan a subset directory and return a list of
-    (utt_id, wav_path, text, spk_key) tuples.
+    """Scan a subset directory into ``(utt_id, wav_path, text, spk_key)`` tuples.
 
     Args:
         subset_dir: Path to the subset directory (e.g., "LibriTTS/train-clean-100")
+
     Returns:
         List of tuples containing:
             - utt_id: Unique utterance ID (e.g., "123_456_789_000")
@@ -322,10 +321,10 @@ class LibriTTSBuilder(DatasetBuilder):
         for subset in _required_subsets():
             _download_subset(dataset_root, subset, remove_archive=remove_archive)
 
-        lspc_cfg = _CFG["librispeech_pc"]
+        pair_list_cfg = _CFG["librispeech_pc"]
         _download_subset(
             dataset_root,
-            lspc_cfg["subset"],
+            pair_list_cfg["subset"],
             corpus="LibriSpeech",
             remove_archive=remove_archive,
         )
@@ -333,7 +332,7 @@ class LibriTTSBuilder(DatasetBuilder):
         if lst_path.is_file():
             logger.info("LibriSpeech-PC pair list already downloaded, skipping.")
         else:
-            _download_pair_list(lspc_cfg["lst_url"], lst_path)
+            _download_pair_list(pair_list_cfg["lst_url"], lst_path)
 
     def is_libritts_built(self, recipe_dir: str | Path, **_kwargs) -> bool:
         """Check only the LibriTTS split manifests, which training reads.

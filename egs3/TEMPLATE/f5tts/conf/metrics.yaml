@@ -15,13 +15,19 @@
 # eval_utmos.py, as closely as VERSA allows.
 #
 #   WER   official: faster-whisper large-v3, compute_type float16, beam_size 5,
-#                   then lowercase + strip punctuation before scoring.
+#                   language forced to English, then lowercase + delete
+#                   punctuation; the reported WER is the MEAN of the
+#                   per-utterance WERs (eval_librispeech_test_clean.py).
 #         here:     VERSA fwhisper_wer, which wraps faster-whisper itself, so
-#                   this is engine-identical, not merely model-identical.
-#                   text_cleaner whisper_basic is BasicTextNormalizer
-#                   (lowercase + punctuation removal); it is the closest
-#                   available analogue, but not a line-for-line copy of the
-#                   official normalizer.
+#                   the decoder is identical (language auto-detected). Two
+#                   deviations: text_cleaner whisper_basic is Whisper's
+#                   BasicTextNormalizer, which replaces punctuation with a
+#                   SPACE ("don't" -> "don t", two words) where the official
+#                   script deletes it; and VersaMetric reports the
+#                   corpus-level WER (edit counts summed over all utterances,
+#                   then divided), not the mean of per-utterance WERs. On the
+#                   same hypotheses the two conventions differ by a few tenths
+#                   of a point, so the value is NOT comparable with the paper.
 #         REQUIRES faster-whisper, which is NOT installed by default:
 #         espnet's tools/installers/install_versa.sh installs VERSA with the
 #         "[audio]" extra only. Run VERSA's own tools/install_fwhisper.sh

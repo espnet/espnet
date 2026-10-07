@@ -349,11 +349,13 @@ def test_infer_one_returns_a_waveform(engine):
     assert len(wav) > 1
 
 
-def test_ref_text_defaults_to_the_target_text(engine):
-    """Self-reference: no transcript given, so the target doubles as one."""
-    wav = engine.infer_one("abc", np.zeros(24000 // 2, dtype=np.float32))
-
-    assert wav.ndim == 1
+def test_infer_one_requires_the_reference_transcript(engine):
+    """A missing transcript is refused, not replaced by the target text."""
+    with pytest.raises(TypeError):
+        engine.infer_one("abc", np.zeros(24000 // 2, dtype=np.float32))
+    for empty in ("", "   "):
+        with pytest.raises(ValueError, match="reference_text is required"):
+            engine.infer_one("abc", np.zeros(24000 // 2, dtype=np.float32), empty)
 
 
 def test_a_stereo_reference_is_downmixed(engine):
@@ -365,7 +367,9 @@ def test_a_stereo_reference_is_downmixed(engine):
 
 
 def test_call_returns_a_wav_entry_for_a_single_sample(engine):
-    out = engine(text="abc", speech=np.zeros(24000 // 2, dtype=np.float32))
+    out = engine(
+        text="abc", speech=np.zeros(24000 // 2, dtype=np.float32), reference_text="ab"
+    )
 
     assert set(out) == {"wav"}
     assert isinstance(out["wav"], np.ndarray)
@@ -383,7 +387,15 @@ def test_call_maps_over_a_batch(engine):
 
 def test_call_without_a_reference_is_refused(engine):
     with pytest.raises(ValueError, match="No reference audio"):
-        engine(text="abc")
+        engine(text="abc", reference_text="ab")
+
+
+def test_call_without_a_reference_transcript_is_refused(engine):
+    audio = np.zeros(24000 // 2, dtype=np.float32)
+    with pytest.raises(ValueError, match="No reference transcript"):
+        engine(text="abc", reference_speech=audio)
+    with pytest.raises(ValueError, match="No reference transcript"):
+        engine(text=["abc", "ba"], reference_speech=[audio, audio])
 
 
 # ------------------------------------------------------- vocoder construction
@@ -605,7 +617,7 @@ class _RecordingEngine:
     def __init__(self):
         self.calls = []
 
-    def infer_one(self, target_text, reference_audio, reference_text=None):
+    def infer_one(self, target_text, reference_audio, reference_text):
         self.calls.append((target_text, reference_audio, reference_text))
         return np.full(480, 0.25, dtype=np.float32)
 
@@ -616,7 +628,8 @@ def test_inference_declares_the_f5tts_fields():
         "reference_speech",
         "reference_text",
     ]
-    assert [field.optional for field in Inference.inputs] == [False, False, True]
+    # All required: a missing transcript is refused, not guessed.
+    assert [field.optional for field in Inference.inputs] == [False, False, False]
     assert [(field.name, field.kind) for field in Inference.outputs] == [
         ("wav", "audio")
     ]
@@ -643,32 +656,37 @@ def test_inference_resamples_what_gradio_hands_over():
     model = Inference(backend)
     one_second_at_48k = (48000, np.full(48000, 16384, dtype=np.int16))
 
-    model(text="hello", reference_speech=one_second_at_48k)
+    model(text="hello", reference_speech=one_second_at_48k, reference_text="hi")
 
     _, reference_audio, reference_text = backend.calls[0]
     assert reference_audio.dtype == np.float32
     assert abs(len(reference_audio) - 24000) <= 1
     assert abs(float(np.median(reference_audio)) - 0.5) < 0.01
-    # No transcript given: the engine falls back to the target text itself.
-    assert reference_text is None
+    assert reference_text == "hi"
 
 
 def test_inference_downmixes_a_stereo_reference():
     backend = _RecordingEngine()
     stereo = np.zeros((2400, 2), dtype=np.float32)
 
-    Inference(backend)("hello", (24000, stereo))
+    Inference(backend)("hello", (24000, stereo), "a prompt")
 
     assert backend.calls[0][1].ndim == 1
 
 
-def test_inference_requires_text_and_a_reference():
+def test_inference_requires_text_a_reference_and_its_transcript():
     model = Inference(_RecordingEngine())
+    audio = np.zeros(2400, dtype=np.float32)
 
     with pytest.raises(TypeError, match="reference_speech"):
-        model("hello")
+        model("hello", reference_text="a prompt")
     with pytest.raises(TypeError, match="text"):
-        model(reference_speech=np.zeros(2400, dtype=np.float32))
+        model(reference_speech=audio, reference_text="a prompt")
+    with pytest.raises(TypeError, match="reference_text"):
+        model("hello", audio)
+    # An empty box in the demo arrives as None, which counts as not given.
+    with pytest.raises(TypeError, match="reference_text"):
+        model("hello", audio, None)
 
 
 def test_inference_runs_a_batch_item_by_item():
@@ -678,14 +696,14 @@ def test_inference_runs_a_batch_item_by_item():
 
     outputs = model.batch(
         [
-            {"text": "first", "reference_speech": reference},
+            {"text": "first", "reference_speech": reference, "reference_text": "a"},
             {"text": "second", "reference_speech": reference, "reference_text": "b"},
         ]
     )
 
     assert [output["wav"].rate for output in outputs] == [24000, 24000]
     assert [call[0] for call in backend.calls] == ["first", "second"]
-    assert [call[2] for call in backend.calls] == [None, "b"]
+    assert [call[2] for call in backend.calls] == ["a", "b"]
 
 
 def test_inference_builds_the_engine_from_its_own_arguments(
@@ -702,7 +720,9 @@ def test_inference_builds_the_engine_from_its_own_arguments(
     )
 
     assert isinstance(model.backend, F5TTSInference)
-    output = model("abc", np.random.RandomState(0).randn(4800).astype(np.float32))
+    output = model(
+        "abc", np.random.RandomState(0).randn(4800).astype(np.float32), "ab"
+    )
     assert output["wav"].array.dtype == np.float32
     assert output["wav"].array.ndim == 1
 

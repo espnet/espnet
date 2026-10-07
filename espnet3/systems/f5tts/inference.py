@@ -6,8 +6,8 @@ inference contract every ESPnet3 system ships, which is what
 ``espnet3.api.inference.load`` returns for a packed ``f5tts`` bundle.
 
 A recipe's ``infer`` stage names :class:`Inference` as its ``model``. The
-runner then reads the declared inputs (``text``, ``reference_speech`` and the
-optional ``reference_text``) out of each test sample by name and writes the
+runner then reads the declared inputs (``text``, ``reference_speech`` and
+``reference_text``) out of each test sample by name and writes the
 declared ``wav`` output as ``wav.scp``; no ``input_key`` or ``output_fn`` is
 involved. The bare engine can still be named instead
 (``model._target_: ...F5TTSInference``), in which case the recipe supplies
@@ -357,7 +357,7 @@ class F5TTSInference:
         self,
         target_text: str,
         reference_audio: np.ndarray,
-        reference_text: Optional[str] = None,
+        reference_text: str,
     ) -> np.ndarray:
         """Synthesize ``target_text`` in the voice of ``reference_audio``.
 
@@ -369,12 +369,16 @@ class F5TTSInference:
             target_text: Target text to speak.
             reference_audio: Reference waveform at ``target_sample_rate``. Multi-
                 channel input is averaged down to mono.
-            reference_text: Transcript of ``reference_audio``. Defaults to
-                ``target_text``, treating the reference as self-referential.
+            reference_text: Transcript of ``reference_audio``. Required: the
+                model reads the reference through it, and the output duration
+                is extrapolated from the reference's audio-to-text ratio.
 
         Returns:
             Mono waveform as ``float32`` at ``target_sample_rate``. Returns a
             single zero sample when the text yields no synthesizable chunk.
+
+        Raises:
+            ValueError: If ``reference_text`` is empty.
 
         Example:
             .. code-block:: python
@@ -392,7 +396,12 @@ class F5TTSInference:
             after vocoding, so the result matches the input level rather than
             ``target_rms``.
         """
-        reference_text = target_text if reference_text is None else reference_text
+        if not reference_text or not reference_text.strip():
+            raise ValueError(
+                "reference_text is required: the transcript of reference_audio. "
+                "A wrong or missing transcript misaligns the prompt and skews "
+                "the output duration."
+            )
         sample_rate = self.target_sample_rate
 
         # Reference waveform [1, T]: mono + RMS normalization to target_rms.
@@ -485,21 +494,19 @@ class F5TTSInference:
         reference_text: Optional[Union[str, List[str]]] = None,
         speech: Optional[Union[np.ndarray, List[np.ndarray]]] = None,
     ) -> dict:
-        """Inference entry point used by the runner.
+        """Inference entry point for the bare engine.
 
-        ``text`` is the target text. The reference audio comes from ``reference_speech``
-        (cross/same-speaker protocol, with ``reference_text`` its transcript); if only
-        ``speech`` is given it is used as the reference and ``reference_text`` defaults
-        to ``text`` (self-reference). Supports a single sample (``batch_size:
-        null``) or a list (batched).
+        ``text`` is the target text; the reference audio comes from
+        ``reference_speech`` (or ``speech``, an older name for the same
+        field), and ``reference_text`` is its transcript, which is required.
+        Supports a single sample (``batch_size: null``) or a list (batched).
 
         Args:
             text: Target text, or a list of them for a batched call.
-            reference_speech: Reference waveform(s) for the cross/same-speaker
-                protocol.
-            reference_text: Transcript(s) of ``reference_speech``.
-            speech: Fallback reference used when ``reference_speech`` is absent, which
-                makes the call self-referential.
+            reference_speech: Reference waveform(s), the voice to clone.
+            reference_text: Transcript(s) of the reference. Required.
+            speech: The reference waveform(s) under the dataset column name
+                ``speech``, used when ``reference_speech`` is absent.
 
         Returns:
             ``{"wav": waveform}`` for a single sample, or ``{"wav": [...]}``
@@ -507,13 +514,14 @@ class F5TTSInference:
 
         Raises:
             ValueError: If neither ``reference_speech`` nor ``speech`` is given
-                (F5 is zero-shot and cannot synthesize without a reference), or
-                if the batched inputs have mismatched lengths.
+                (F5 is zero-shot and cannot synthesize without a reference), if
+                ``reference_text`` is missing, or if the batched inputs have
+                mismatched lengths.
 
         Example:
             .. code-block:: python
 
-                >>> tts(text="hello", speech=ref_wave)["wav"].ndim
+                >>> tts(text="hello", speech=ref_wave, reference_text="hi")["wav"].ndim
                 1
                 >>> len(tts(text=["a", "b"], reference_speech=[w1, w2])["wav"])
                 2
@@ -531,10 +539,13 @@ class F5TTSInference:
                 "(cross/same-speaker) or 'speech' (self-reference)."
             )
 
-        if isinstance(text, (list, tuple)):
-            reference_text = (
-                reference_text if reference_text is not None else [None] * len(text)
+        if reference_text is None:
+            raise ValueError(
+                "No reference transcript provided: pass 'reference_text', the "
+                "transcript of the reference audio."
             )
+
+        if isinstance(text, (list, tuple)):
             # zip() would truncate to the shortest input, silently returning
             # fewer waveforms than requested and misaligning them with the
             # runner's test samples.
@@ -609,16 +620,17 @@ class Inference(BackendInference):
         out of each test sample by name and writes ``wav.scp``.
 
     Note:
-        ``reference_text`` is optional. When it is omitted the reference is
-        treated as a recording of the target text itself, which is right
-        only when it is one.
+        All three inputs are required. F5-TTS reads the reference through its
+        transcript and sets the output duration from the reference's
+        audio-to-text ratio, so a missing transcript is refused rather than
+        guessed.
     """
 
     backend_class = "espnet3.systems.f5tts.inference.F5TTSInference"
     inputs = (
         Field("text", "text", "Text to synthesize"),
         Field("reference_speech", "audio", "Reference speech"),
-        Field("reference_text", "text", "Reference transcript", optional=True),
+        Field("reference_text", "text", "Reference transcript"),
     )
     outputs = (Field("wav", "audio", "Synthesized speech"),)
 
@@ -639,7 +651,7 @@ class Inference(BackendInference):
         self,
         text: str,
         reference_speech: Audio,
-        reference_text: Optional[str] = None,
+        reference_text: str,
     ) -> Mapping[str, Any]:
         """Synthesize ``text`` in the voice of ``reference_speech``.
 
@@ -647,9 +659,7 @@ class Inference(BackendInference):
             text: The target text.
             reference_speech: The voice to clone, mono, at
                 :attr:`sample_rate`.
-            reference_text: Transcript of ``reference_speech``. When
-                omitted, ``text`` is used, which is right only when the
-                reference is a recording of ``text``.
+            reference_text: Transcript of ``reference_speech``.
 
         Returns:
             ``{"wav": samples}``: the synthesized mono ``float32`` waveform

@@ -81,7 +81,11 @@ Install all four before running `measure`.
 The stage fails when a configured metric yields no value for any utterance, so a missing package is reported rather than silently dropped from the summary.
 
 The template's `conf/metrics.yaml` documents how each metric maps onto the official F5-TTS scorer, including the one metric that cannot be matched exactly; this recipe's only names the test set.
-In short: WER and UTMOS are equivalent to the official implementations, but speaker similarity uses an ESPnet-SPK model rather than the official UniSpeech checkpoint, so SIM values are comparable across your own checkpoints but not against the numbers published in the paper.
+In short: none of the three numbers is directly comparable with the paper's.
+UTMOS is the same model.
+WER uses the same faster-whisper large-v3 decoder, but VERSA normalizes text with Whisper's `BasicTextNormalizer` (punctuation becomes a space, so `don't` is two words) where the official script only strips punctuation, and `VersaMetric` reports the corpus-level WER (errors summed over all utterances) where the official script averages per-utterance WERs; on the same hypotheses the two conventions differ by a few tenths of a point.
+Speaker similarity uses an ESPnet-SPK model rather than the official UniSpeech checkpoint, so its scale differs outright.
+All three are comparable across your own checkpoints, which is what the recipe's `measure` stage is for.
 
 ## 4. Publish the model
 
