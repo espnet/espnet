@@ -25,6 +25,8 @@ coverage.xml*
 test_utils/bats-core/
 test_utils/bats-support/
 test_utils/bats-assert/
+# written by test/espnet3/components/modeling/test_model_with_optim_scheduler.py
+test_utils/espnet3/tb/
 shellcheck*
 check_shellcheck*
 test_spm.vocab
