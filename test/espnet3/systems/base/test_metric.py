@@ -34,9 +34,6 @@ class DummyMetric(BaseMetric):
     inputs = (Field("ref", "text"), Field("hyp", "text"))
     outputs = (Field("count", "number"),)
 
-    ref_key = "ref"
-    hyp_key = "hyp"
-
     def __call__(self, data, test_name, inference_dir):
         return {"count": sum(1 for _ in self.iter_inputs(data, "ref"))}
 
@@ -52,9 +49,6 @@ class NoKeyMetric(BaseMetric):
 class PathMetric(BaseMetric):
     inputs = (Field("ref", "text"), Field("hyp", "text"))
     outputs = (Field("ok", "number"),)
-
-    ref_key = "ref"
-    hyp_key = "hyp"
 
     def __call__(self, data, test_name, inference_dir):
         task_dir = Path(inference_dir) / test_name
@@ -80,7 +74,7 @@ def _build_inputs(tmp_path: Path, **entries: list[str]) -> dict[str, Path]:
     return data
 
 
-def test_metric_uses_metric_keys_and_writes_json(tmp_path):
+def test_metric_uses_identity_inputs_and_writes_json(tmp_path):
     inference_dir = tmp_path / "infer"
     test_name = "test_a"
     task_dir = inference_dir / test_name
@@ -92,7 +86,12 @@ def test_metric_uses_metric_keys_and_writes_json(tmp_path):
         {
             "inference_dir": str(inference_dir),
             "dataset": {"test": [{"name": test_name}]},
-            "metrics": [{"metric": {"_target_": f"{__name__}.DummyMetric"}}],
+            "metrics": [
+                {
+                    "metric": {"_target_": f"{__name__}.DummyMetric"},
+                    "inputs": {"ref": "ref", "hyp": "hyp"},
+                }
+            ],
         }
     )
 
@@ -197,7 +196,12 @@ def test_metric_passes_lazy_scp_inputs(tmp_path):
         {
             "inference_dir": str(inference_dir),
             "dataset": {"test": [{"name": test_name}]},
-            "metrics": [{"metric": {"_target_": f"{__name__}.PathMetric"}}],
+            "metrics": [
+                {
+                    "metric": {"_target_": f"{__name__}.PathMetric"},
+                    "inputs": {"ref": "ref", "hyp": "hyp"},
+                }
+            ],
         }
     )
 
@@ -218,7 +222,12 @@ def test_metric_discovers_test_sets_from_inference_dir(tmp_path):
     cfg = OmegaConf.create(
         {
             "inference_dir": str(inference_dir),
-            "metrics": [{"metric": {"_target_": f"{__name__}.DummyMetric"}}],
+            "metrics": [
+                {
+                    "metric": {"_target_": f"{__name__}.DummyMetric"},
+                    "inputs": {"ref": "ref", "hyp": "hyp"},
+                }
+            ],
         }
     )
 
@@ -275,7 +284,7 @@ def test_metric_rejects_non_metric_instance(tmp_path):
         measure(cfg, _INFERENCE_CFG)
 
 
-def test_metric_requires_inputs_when_metric_has_no_keys(tmp_path):
+def test_metric_requires_inputs_in_config(tmp_path):
     cfg = OmegaConf.create(
         {
             "inference_dir": str(tmp_path),
@@ -284,7 +293,7 @@ def test_metric_requires_inputs_when_metric_has_no_keys(tmp_path):
         }
     )
 
-    with pytest.raises(ValueError, match="requires inputs in config"):
+    with pytest.raises(ValueError, match="bind them in the metrics config"):
         measure(cfg, _INFERENCE_CFG)
 
 
@@ -346,7 +355,12 @@ def test_measure_rejects_metric_whose_input_is_not_a_declared_output(tmp_path):
         {
             "inference_dir": str(inference_dir),
             "dataset": {"test": [{"name": test_name}]},
-            "metrics": [{"metric": {"_target_": f"{__name__}.DummyMetric"}}],
+            "metrics": [
+                {
+                    "metric": {"_target_": f"{__name__}.DummyMetric"},
+                    "inputs": {"ref": "ref", "hyp": "hyp"},
+                }
+            ],
         }
     )
 
@@ -366,7 +380,12 @@ def test_measure_succeeds_for_declared_metric_with_matching_output(tmp_path):
         {
             "inference_dir": str(inference_dir),
             "dataset": {"test": [{"name": test_name}]},
-            "metrics": [{"metric": {"_target_": f"{__name__}.DummyMetric"}}],
+            "metrics": [
+                {
+                    "metric": {"_target_": f"{__name__}.DummyMetric"},
+                    "inputs": {"ref": "ref", "hyp": "hyp"},
+                }
+            ],
         }
     )
 
@@ -379,8 +398,6 @@ def test_measure_succeeds_for_declared_metric_with_matching_output(tmp_path):
 class BadOutputMetric(BaseMetric):
     """A declared metric whose __call__ breaks its own output contract."""
 
-    ref_key = "ref"
-    hyp_key = "hyp"
     inputs = (Field("ref", "text"), Field("hyp", "text"))
     outputs = (Field("X", "number"),)
 
@@ -400,7 +417,12 @@ def test_measure_rejects_non_number_metric_output(tmp_path):
         {
             "inference_dir": str(inference_dir),
             "dataset": {"test": [{"name": test_name}]},
-            "metrics": [{"metric": {"_target_": f"{__name__}.BadOutputMetric"}}],
+            "metrics": [
+                {
+                    "metric": {"_target_": f"{__name__}.BadOutputMetric"},
+                    "inputs": {"ref": "ref", "hyp": "hyp"},
+                }
+            ],
         }
     )
 
@@ -428,7 +450,10 @@ def test_measure_succeeds_for_wer_against_a_declared_inference_model(tmp_path):
             "inference_dir": str(inference_dir),
             "dataset": {"test": [{"name": test_name}]},
             "metrics": [
-                {"metric": {"_target_": "espnet3.systems.esp2_asr.metrics.wer.WER"}}
+                {
+                    "metric": {"_target_": "espnet3.systems.esp2_asr.metrics.wer.WER"},
+                    "inputs": {"ref": "ref", "hyp": "hyp"},
+                }
             ],
         }
     )
@@ -451,14 +476,13 @@ class _DatasetTextProvider:
         raise NotImplementedError
 
 
-def test_measure_succeeds_for_wer_with_renamed_keys_through_config_inputs(tmp_path):
-    """The review's scenario: a renamed WER scored through measure().
+def test_measure_succeeds_for_wer_with_dataset_and_scp_inputs(tmp_path):
+    """A WER scored through measure() with a mixed-source inputs: mapping.
 
-    config inputs are keyed by WER's own ref_key/hyp_key (not "ref"/
-    "hyp"), and one of them is a dataset column. This drives the full
-    measure() path - check_metric_inputs, then the actual scoring -
-    not just check_metric_inputs in isolation, so it would also catch
-    the two from drifting out of sync again.
+    One declared name binds to a dataset column, the other to an
+    inference-written .scp; this drives the full measure() path -
+    check_metric_inputs, then the actual scoring - not just
+    check_metric_inputs in isolation.
     """
     from espnet3.systems.esp2_asr.metrics.wer import WER
 
@@ -486,12 +510,8 @@ def test_measure_succeeds_for_wer_with_renamed_keys_through_config_inputs(tmp_pa
             "dataset": {"test": [{"name": test_name}]},
             "metrics": [
                 {
-                    "metric": {
-                        "_target_": "espnet3.systems.esp2_asr.metrics.wer.WER",
-                        "ref_key": "reference",
-                        "hyp_key": "hypothesis",
-                    },
-                    "inputs": {"reference": "dataset:text", "hypothesis": "text"},
+                    "metric": {"_target_": "espnet3.systems.esp2_asr.metrics.wer.WER"},
+                    "inputs": {"ref": "dataset:text", "hyp": "text"},
                 }
             ],
         }
@@ -499,5 +519,5 @@ def test_measure_succeeds_for_wer_with_renamed_keys_through_config_inputs(tmp_pa
 
     results = measure(metrics_cfg, inference_config=inference_cfg)
 
-    expected_key = get_class_path(WER(ref_key="reference", hyp_key="hypothesis"))
+    expected_key = get_class_path(WER())
     assert results[expected_key][test_name] == {"WER": 0.0}

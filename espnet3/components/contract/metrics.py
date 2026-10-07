@@ -8,7 +8,7 @@ from espnet3.api.inference import KINDS, Field
 from espnet3.components.contract.check import check_declaration
 
 #: A metric input source naming a test-set column instead of an inference
-#: SCP file (``ref_key: dataset:text``); must match
+#: SCP file (``inputs: {ref: dataset:text}``); must match
 #: ``espnet3.systems.base.metric.DATASET_PREFIX``.
 DATASET_PREFIX = "dataset:"
 
@@ -153,27 +153,54 @@ def declared_outputs(config: Any) -> Optional[tuple]:
     return None
 
 
-def _alias_map(metric_config: Any) -> Mapping[str, str]:
-    """Map a metric's data key -> the source ``metric_config.inputs`` gives.
+def _declared_inputs(metric: Any, metric_config: Any) -> Mapping[str, str]:
+    """Map each declared input's name -> the source ``metric_config.inputs`` gives.
 
-    ``metric_config.inputs`` is keyed by the metric's own data key (what
-    ``measure`` passes as ``data[key]``, e.g. ``WER``'s ``ref_key``), not
-    by the declared ``Field`` name. It may be a list (key and source are
-    the same) or a mapping (key -> source); absent entirely, nothing is
-    overridden, so each key keeps the source
-    :meth:`BaseMetric.input_sources` gives it.
+    The one place a metric's inputs are bound to a source: ``inputs:`` is
+    keyed by the declared :class:`~espnet3.api.inference.Field` name
+    (``WER``'s ``ref``/``hyp``), the same key the metric itself reads
+    ``data`` by - there is no separate renaming step. It may be a mapping
+    (name -> source) or a list (name and source are the same, e.g.
+    ``inputs: [ref, hyp]``). Required for every non-optional declared
+    input; an optional one may be left out.
+
+    Raises:
+        MetricContractError: ``metric_config`` has no ``inputs:`` at all
+            while the metric declares a required input, a required name
+            is missing from it, or it names something the metric does
+            not declare.
     """
-    inputs = (
-        getattr(metric_config, "inputs", None) if metric_config is not None else None
-    )
-    if inputs is None:
-        return {}
-    if isinstance(inputs, Mapping):
-        return dict(inputs)
-    return {name: name for name in inputs}
+    fields = getattr(metric, "inputs", ())
+    declared = {f.name for f in fields}
+    required = {f.name for f in fields if not f.optional}
+
+    raw = getattr(metric_config, "inputs", None) if metric_config is not None else None
+    if raw is None:
+        example = ", ".join(f"{f.name}: <source>" for f in fields)
+        raise MetricContractError(
+            f"{type(metric).__name__} declares inputs {sorted(declared)}; bind "
+            f"them in the metrics config: inputs: {{{example}}}"
+        )
+    inputs = dict(raw) if isinstance(raw, Mapping) else {name: name for name in raw}
+
+    missing = required - set(inputs)
+    if missing:
+        raise MetricContractError(
+            f"{type(metric).__name__} declares required inputs {sorted(missing)}, "
+            f"missing from config inputs {inputs}"
+        )
+    extra = set(inputs) - declared
+    if extra:
+        raise MetricContractError(
+            f"{type(metric).__name__} config inputs {sorted(extra)} are not "
+            f"declared; declares {sorted(declared)}"
+        )
+    return inputs
 
 
-def check_metric_inputs(metric: Any, metric_config: Any, inference_config: Any) -> None:
+def check_metric_inputs(
+    metric: Any, metric_config: Any, inference_config: Any
+) -> Optional[Mapping[str, str]]:
     """Raise unless each declared input matches what the configured model declares.
 
     Checked once per metric (not once per test set: the declaration does
@@ -184,17 +211,22 @@ def check_metric_inputs(metric: Any, metric_config: Any, inference_config: Any) 
 
     Args:
         metric: A ``BaseMetric`` instance.
-        metric_config: The metric's config node, for its optional
-            ``inputs`` mapping (metric's data key -> source), which
-            overrides
-            :meth:`~espnet3.components.metrics.base_metric.BaseMetric.input_sources`.
+        metric_config: The metric's config node, for its ``inputs``
+            mapping (declared name -> source); see :func:`_declared_inputs`.
         inference_config: The inference config; only ``model._target_`` is
             read (see :func:`declared_outputs`).
 
+    Returns:
+        The same name -> source mapping :func:`_declared_inputs` built,
+        for ``measure`` to resolve to files with (no second parse of
+        ``metric_config.inputs``); ``None`` if the metric declares no
+        inputs at all.
+
     Raises:
-        MetricContractError: The configured model declares no outputs at
-            all, a plain-source input names none of them, or a kind
-            disagrees.
+        MetricContractError: ``inputs:`` is missing or does not match the
+            declaration (see :func:`_declared_inputs`), the configured
+            model declares no outputs at all, a plain-source input names
+            none of them, or a kind disagrees.
 
     Examples:
         >>> from espnet3.components.metrics.base_metric import BaseMetric
@@ -204,25 +236,25 @@ def check_metric_inputs(metric: Any, metric_config: Any, inference_config: Any) 
         ...     outputs = (Field("score", "number"),)
         ...     def __call__(self, data, test_name, output_dir):
         ...         return {"score": 0.0}
-        ...     def input_sources(self):
-        ...         return {"ref": "text"}
         >>> cfg = OmegaConf.create(
         ...     {"model": {"_target_": "espnet3.systems.esp2_asr.inference.Inference"}}
         ... )
-        >>> check_metric_inputs(ExampleMetric(), None, cfg)
+        >>> metric_cfg = OmegaConf.create({"inputs": {"ref": "text"}})
+        >>> check_metric_inputs(ExampleMetric(), metric_cfg, cfg)
+        {'ref': 'text'}
     """
     fields = getattr(metric, "inputs", None)
     if not fields:
-        return
+        return None
 
-    sources = metric.input_sources() if hasattr(metric, "input_sources") else {}
-    overrides = _alias_map(metric_config)
+    inputs = _declared_inputs(metric, metric_config)
     outputs = None
     outputs_checked = False
 
     for f in fields:
-        key = sources.get(f.name, f.name)
-        source = overrides.get(key, key)
+        source = inputs.get(f.name)
+        if source is None:
+            continue
         if str(source).startswith(DATASET_PREFIX):
             continue
         if not outputs_checked:
@@ -236,13 +268,11 @@ def check_metric_inputs(metric: Any, metric_config: Any, inference_config: Any) 
             )
         match = next((o for o in outputs if o.name == source), None)
         if match is None:
-            if f.optional:
-                continue
             raise MetricContractError(
                 f"{type(metric).__name__} wants input {f.name!r} -> {source!r}, "
                 "but the inference config's model declares outputs "
-                f"{[o.name for o in outputs]}; set `{f.name}_key` (or add an "
-                f"`inputs: {{{key}: <name>}}` mapping) to point it at one"
+                f"{[o.name for o in outputs]}; point `inputs: {{{f.name}: "
+                "<name>}}` at one of them, or a `dataset:<column>`"
             )
         if match.kind != f.kind:
             raise MetricContractError(
@@ -250,6 +280,7 @@ def check_metric_inputs(metric: Any, metric_config: Any, inference_config: Any) 
                 f"but the inference config's model declares {source!r} as "
                 f"{match.kind!r}"
             )
+    return inputs
 
 
 def check_metric_output(metric: Any, result: Mapping[str, Any]) -> None:

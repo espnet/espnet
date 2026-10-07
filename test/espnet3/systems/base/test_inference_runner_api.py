@@ -56,12 +56,6 @@ class Match(BaseMetric):
     inputs = (Field("ref", "text"), Field("hyp", "text"))
     outputs = (Field("n", "number"),)
 
-    ref_key = "dataset:text"
-    hyp_key = "text"
-
-    def input_sources(self):
-        return {"ref": self.ref_key, "hyp": self.hyp_key}
-
     def __call__(self, data, test_name, inference_dir):
         rows = [row for _, row in self.iter_inputs(data, "ref", "hyp")]
         return {"n": len(rows), "refs": [r["ref"] for r in rows]}
@@ -71,9 +65,6 @@ class MatchAudio(Match):
     """Match, but pairing the data's `speech` with the model's audio `echo`."""
 
     inputs = (Field("ref", "text"), Field("hyp", "audio"))
-
-    ref_key = "dataset:speech"
-    hyp_key = "echo"
 
 
 def _items(n=3):
@@ -234,7 +225,7 @@ def test_write_record_refuses_an_id_that_is_a_path_or_breaks_a_line(tmp_path, ut
 
 
 def test_measure_reads_the_reference_from_the_test_set(tmp_path):
-    """`ref_key: dataset:text` scores against the data, not a copied file."""
+    """`inputs: {ref: dataset:text}` scores against the data, not a copied file."""
     inference_cfg = OmegaConf.create(
         {
             "inference_dir": str(tmp_path),

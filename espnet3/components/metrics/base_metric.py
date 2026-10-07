@@ -95,26 +95,6 @@ class BaseMetric(ABC):
         """
         check_metric_contract(self)
 
-    def input_sources(self) -> Dict[str, str]:
-        """Map each declared input's role (name) to where its value comes from.
-
-        Defaults to identity: each declared input's own name is also its
-        source, an inference-written ``<name>.scp`` or a
-        ``dataset:<column>``. Override when constructor arguments rename a
-        role to its own key (e.g. ``WER``'s ``ref_key``/``hyp_key``), so
-        contract checking and input resolution follow the renamed source.
-
-        Examples:
-            >>> class ExampleMetric(BaseMetric):
-            ...     inputs = (Field("ref", "text"), Field("hyp", "text"))
-            ...     outputs = (Field("score", "number"),)
-            ...     def __call__(self, data, test_name, output_dir):
-            ...         return {"score": 0.0}
-            >>> ExampleMetric().input_sources()
-            {'ref': 'ref', 'hyp': 'hyp'}
-        """
-        return {f.name: f.name for f in getattr(self, "inputs", ())}
-
     @abstractmethod
     def __call__(
         self, data: Dict[str, Path], test_name: str, output_dir: Path

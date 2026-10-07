@@ -166,18 +166,3 @@ def test_ter_declares_text_inputs_and_number_output():
     assert TER.outputs[0].name == "TER"
     assert TER.outputs[0].kind == "number"
     assert [f.kind for f in TER.inputs] == ["text", "text"]
-
-
-def test_wer_input_sources_follows_renamed_keys():
-    metric = WER(ref_key="transcript", hyp_key="prediction")
-    assert metric.input_sources() == {"ref": "transcript", "hyp": "prediction"}
-
-
-def test_cer_input_sources_follows_renamed_keys():
-    metric = CER(ref_key="transcript", hyp_key="prediction")
-    assert metric.input_sources() == {"ref": "transcript", "hyp": "prediction"}
-
-
-def test_ter_input_sources_follows_renamed_keys(tiny_bpemodel: str):
-    metric = TER(bpemodel=tiny_bpemodel, ref_key="transcript", hyp_key="prediction")
-    assert metric.input_sources() == {"ref": "transcript", "hyp": "prediction"}

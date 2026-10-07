@@ -24,6 +24,10 @@ class TER(BaseMetric):
     like WER over the resulting token sequences. This mirrors espnet2's Stage 13
     scoring, which computes ``ter`` at the ``bpe`` token level.
 
+    Reads ``data["ref"]``/``data["hyp"]``, the declared names; the
+    metrics config's ``inputs:`` binds them to a source (see
+    :class:`~espnet3.components.contract.metrics.check_metric_inputs`).
+
     Examples:
         >>> TER.inputs[0]
         Field(name='ref', kind='text', label='Ref', optional=False, channels=1)
@@ -35,8 +39,6 @@ class TER(BaseMetric):
     def __init__(
         self,
         bpemodel: str | Path,
-        ref_key: str = "ref",
-        hyp_key: str = "hyp",
         clean_types: Iterable[str] | None = None,
     ) -> None:
         """Initialize the TER metric.
@@ -44,26 +46,11 @@ class TER(BaseMetric):
         Args:
             bpemodel: Path to the SentencePiece model used to tokenize text into
                 subword tokens (typically the recipe's trained ``bpe.model``).
-            ref_key: Key name for reference text entries.
-            hyp_key: Key name for hypothesis text entries.
             clean_types: Optional cleaner types passed to TextCleaner.
         """
         self.tokenizer = SentencepiecesTokenizer(bpemodel)
         self.cleaner = TextCleaner(clean_types)
-        self.ref_key = ref_key
-        self.hyp_key = hyp_key
         super().__init__()
-
-    def input_sources(self):
-        """Map the declared ``ref``/``hyp`` roles to this instance's keys.
-
-        Examples:
-            >>> ter = TER.__new__(TER)  # skip __init__, which needs a bpemodel
-            >>> ter.ref_key, ter.hyp_key = "reference", "hypothesis"
-            >>> ter.input_sources()
-            {'ref': 'reference', 'hyp': 'hypothesis'}
-        """
-        return {"ref": self.ref_key, "hyp": self.hyp_key}
 
     def _tokenize(self, text: str) -> str:
         """Clean text, tokenize into subword pieces, and join with spaces.
@@ -97,8 +84,8 @@ class TER(BaseMetric):
         """Compute TER, write alignment details, and return the metric.
 
         Args:
-            data (Dict[str, Path]): Mapping with ``data[self.ref_key]`` and
-                ``data[self.hyp_key]`` SCP files aligned by utterance ID.
+            data (Dict[str, Path]): Mapping with ``data["ref"]`` and
+                ``data["hyp"]`` SCP files aligned by utterance ID.
             test_name (str): Test set name used for output directory naming.
             inference_dir (Path): Base directory for alignment outputs.
 
@@ -113,9 +100,9 @@ class TER(BaseMetric):
         self._ensure_jiwer()
         refs = []
         hyps = []
-        for _, row in self.iter_inputs(data, self.ref_key, self.hyp_key):
-            refs.append(self._tokenize(row[self.ref_key]))
-            hyps.append(self._tokenize(row[self.hyp_key]))
+        for _, row in self.iter_inputs(data, "ref", "hyp"):
+            refs.append(self._tokenize(row["ref"]))
+            hyps.append(self._tokenize(row["hyp"]))
 
         score = jiwer.wer(refs, hyps) * 100
         details = jiwer.process_words(refs, hyps)
