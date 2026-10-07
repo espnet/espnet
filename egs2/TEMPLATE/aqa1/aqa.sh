@@ -501,7 +501,7 @@ if ! "${skip_train}"; then
 
         # shellcheck disable=SC2046,SC2086
         ${train_cmd} JOB=1:"${_nj}" "${_logdir}"/stats.JOB.log \
-            ${python} -m "espnet2.bin.audio_metric_train" \
+            ${python} -m "espnet2.bin.aqa_train" \
                 --collect_stats true \
                 --use_preprocessor true \
                 --use_ref_audio "${use_ref_wav}" \
@@ -584,7 +584,7 @@ if ! "${skip_train}"; then
             --num_nodes "${num_nodes}" \
             --init_file_prefix "${aqa_exp}"/.dist_init_ \
             --multiprocessing_distributed true -- \
-            ${python} -m "espnet2.bin.audio_metric_train" \
+            ${python} -m "espnet2.bin.aqa_train" \
                 --use_preprocessor true \
                 --use_ref_audio "${use_ref_wav}" \
                 --use_ref_text "${use_ref_text}" \
@@ -677,7 +677,7 @@ if ! "${skip_eval}"; then
 
             # shellcheck disable=SC2046,SC2086
             ${_cmd} --gpu "${_ngpu}" JOB=1:"${_nj}" "${_logdir}"/aqa_inference.JOB.log \
-                ${python} -m espnet2.bin.audio_metric_inference \
+                ${python} -m espnet2.bin.aqa_inference \
                     --ngpu "${_ngpu}" \
                     --data_path_and_name_and_type ${_data}/${_scp},audio,${_type} \
                     --key_file "${_logdir}"/keys.JOB.scp \
@@ -706,7 +706,7 @@ if ! "${skip_eval}"; then
             log "Begin evaluation on ${dset}, results are written under ${_dir}"
 
             log "Perform utt-level evaluation, results are written in ${_dir}/utt_result.json"
-            "${python}" pyscripts/utils/universa_eval.py \
+            "${python}" pyscripts/utils/aqa_eval.py \
                 --level utt \
                 --ref_metrics "${_ref_metrics}" \
                 --pred_metrics "${_pred_metrics}" \
@@ -718,7 +718,7 @@ if ! "${skip_eval}"; then
 
             if [ -n "${sys_info}" ]; then
                 log "Perform system-level evaluation using ${sys_info}, results are written in ${_dir}/sys_result.json"
-                "${python}" pyscripts/utils/universa_eval.py \
+                "${python}" pyscripts/utils/aqa_eval.py \
                     --level sys \
                     --ref_metrics "${_ref_metrics}" \
                     --pred_metrics "${_pred_metrics}" \
@@ -741,7 +741,7 @@ if [ ${stage} -le 10 ] && [ ${stop_stage} -ge 10 ] && ! "${skip_upload}"; then
     log "Stage 10: Packing model: ${packed_model}"
     if [ -e "${aqa_exp}/${inference_model}" ]; then
         # shellcheck disable=SC2086
-        ${python} -m espnet2.bin.pack audio_metric \
+        ${python} -m espnet2.bin.pack aqa \
             --model_file "${aqa_exp}/${inference_model}" \
             --train_config "${aqa_exp}/config.yaml" \
             --option "${aqa_exp}/images" \

@@ -1,5 +1,6 @@
 """Exercise recipe stages using the real shared utilities."""
 
+import json
 import os
 import subprocess
 import sys
@@ -131,6 +132,7 @@ def test_training_reference_shapes(recipe, audio, text, custom_dirs):
         *(["--aqa_exp", exp, "--aqa_stats_dir", stats] if custom_dirs else []),
     )
     args = (path / "train-args.txt").read_text().splitlines()
+    assert "espnet2.bin.aqa_train" in args
     shapes = [args[i + 1] for i, arg in enumerate(args) if arg == "--train_shape_file"]
     folds = [int(args[i + 1]) for i, arg in enumerate(args) if arg == "--fold_length"]
     assert len(shapes) == len(folds) == 1 + audio + text
@@ -141,3 +143,28 @@ def test_training_reference_shapes(recipe, audio, text, custom_dirs):
     assert args[args.index("--output_dir") + 1] == exp
     assert all(shape.startswith(stats + "/train/") for shape in shapes)
     assert "aqa.sh" in (path / exp / "run.sh").read_text()
+
+
+def test_scoring(recipe):
+    """Score a prepared recipe through the canonical AQA evaluator."""
+    path, run = recipe
+    data = path / "dump/raw/test"
+    output = path / "exp/assessment/predictions/test"
+    data.mkdir(parents=True)
+    output.mkdir(parents=True)
+    (data / "metric.scp").write_text('a {"mos": 1}\nb {"mos": 2}\n')
+    (output / "metric.scp").write_text('a {"mos": 2}\nb {"mos": 3}\n')
+    (path / "systems.scp").write_text("a system1\nb system2\n")
+    run(
+        9,
+        "--test_sets",
+        "test",
+        "--aqa_exp",
+        "exp/assessment",
+        "--inference_tag",
+        "predictions",
+        "--sys_info",
+        "systems.scp",
+    )
+    assert json.loads((output / "utt_result.json").read_text())["utt_mos_mse"] == 1
+    assert json.loads((output / "sys_result.json").read_text())["sys_mos_mse"] == 1
