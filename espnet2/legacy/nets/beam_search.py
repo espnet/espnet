@@ -203,6 +203,10 @@ class BeamSearch(torch.nn.Module):
         """
         self.hyp_primer = hyp_primer
 
+    def _primer_length(self) -> int:
+        """Return how many tokens every hypothesis starts from."""
+        return 1 if self.hyp_primer is None else len(self.hyp_primer)
+
     def init_hyp(self, x: torch.Tensor) -> List[Hypothesis]:
         """Get an initial hypothesis data.
 
@@ -303,8 +307,14 @@ class BeamSearch(torch.nn.Module):
         """
         scores = dict()
         states = dict()
+        # A partial scorer scores the output so far and takes the first token
+        # of the prefix for <sos>. A longer primer -- the language and task
+        # symbols of an S2T model, a text prompt -- is not output either, so
+        # all of it but its last token is dropped: CTC would otherwise count
+        # each primer token as a label the audio has already been spent on.
+        yseq = hyp.yseq[self._primer_length() - 1 :]
         for k, d in self.part_scorers.items():
-            scores[k], states[k] = d.score_partial(hyp.yseq, ids, hyp.states[k], x)
+            scores[k], states[k] = d.score_partial(yseq, ids, hyp.states[k], x)
         return scores, states
 
     def beam(

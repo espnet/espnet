@@ -1,9 +1,11 @@
 from argparse import Namespace
 
+import numpy
 import pytest
 import torch
 
 from espnet2.legacy.nets.beam_search import BeamSearch, Hypothesis
+from espnet2.legacy.nets.scorers.ctc import CTCPrefixScorer
 from espnet2.legacy.nets.scorers.length_bonus import LengthBonus
 from espnet2.lm.transformer_lm import TransformerLM
 from espnet2.tasks.asr import ASRTask
@@ -271,3 +273,67 @@ def test_end_detected_converts_each_ended_hypothesis_once():
     search.end_detected(utts[0][:3], 13)
     search.end_detected(utts[0][:3], 14)
     assert len(search._ended_summaries) == 3
+
+
+class FramePosteriors(torch.nn.Module):
+    """A CTC head whose input is already the frame-level log posteriors."""
+
+    def log_softmax(self, x):
+        return x
+
+
+def ctc_only_search(search_class, n_frames):
+    """Build a search scored by CTC alone, over speech that starts at once.
+
+    Labels 3, 5 and 2 are spoken at frames 0, 4 and 8, the rest is blank.
+    Returns the search, the posteriors to decode, the labels, and their CTC
+    log likelihood as `torch.nn.functional.ctc_loss` computes it.
+    """
+    vocab_size, eos = 8, 7
+    labels = [3, 5, 2]
+    posteriors = torch.full((n_frames, vocab_size), 1e-4, dtype=torch.float64)
+    posteriors[:, 0] = 1.0
+    for frame, label in zip((0, 4, 8), labels):
+        posteriors[frame, 0] = 1e-4
+        posteriors[frame, label] = 1.0
+    x = torch.log(posteriors / posteriors.sum(-1, keepdim=True))
+    log_likelihood = -torch.nn.functional.ctc_loss(
+        x.unsqueeze(1),
+        torch.tensor([labels]),
+        torch.tensor([n_frames]),
+        torch.tensor([len(labels)]),
+        reduction="sum",
+    )
+    search = search_class(
+        scorers={"ctc": CTCPrefixScorer(ctc=FramePosteriors(), eos=eos)},
+        weights={"ctc": 1.0},
+        beam_size=4,
+        vocab_size=vocab_size,
+        sos=eos,
+        eos=eos,
+    )
+    search.eval()
+    return search, x, labels, float(log_likelihood)
+
+
+@pytest.mark.parametrize("n_frames", [12, 40])
+def test_ctc_scores_the_output_not_the_primer(n_frames):
+    """A primer longer than <sos> is not output, so CTC must not count it.
+
+    The language and task symbols of an S2T model, or a text prompt, used to
+    reach `CTCPrefixScorer` along with the output. It took each of them for a
+    label already emitted and put the first real one that many frames into
+    the utterance, so speech in the first frames was dropped, and a
+    hypothesis that grew towards the number of frames raised IndexError.
+    """
+    search, x, labels, log_likelihood = ctc_only_search(BeamSearch, n_frames)
+    for primer in (None, [search.sos, 1, 4, 6]):
+        search.set_hyp_primer(primer)
+        with torch.no_grad():
+            best = search(x)[0]
+        n_primer = 1 if primer is None else len(primer)
+        assert best.yseq.tolist()[n_primer:-1] == labels
+        # the non-batched scorer works in float32
+        numpy.testing.assert_allclose(
+            float(best.scores["ctc"]), log_likelihood, atol=1e-4
+        )

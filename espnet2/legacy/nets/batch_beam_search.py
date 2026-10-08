@@ -445,6 +445,13 @@ class BatchBeamSearch(BeamSearch):
         single = torch.as_tensor(primer, dtype=torch.int64, device=device)
         return [single] * n_utt
 
+    def _primer_length(self) -> int:
+        """Return how many tokens every hypothesis starts from."""
+        if self._is_per_utt_primer(self.hyp_primer):
+            # one primer per utterance, which `_primers` holds to one length
+            return len(self.hyp_primer[0])
+        return super()._primer_length()
+
     # ------------------------------------------------------------------
     # scoring
     # ------------------------------------------------------------------
@@ -532,14 +539,16 @@ class BatchBeamSearch(BeamSearch):
         """
         scores = dict()
         states = dict()
+        # the primer is not output, see `BeamSearch.score_partial`
+        yseq = hyp.yseq[:, self._primer_length() - 1 :]  # (N, L - len(primer) + 1)
         for k, d in self.part_scorers.items():
             if "ctc" in k and pre_x is not None:
                 scores[k], states[k] = d.batch_score_partial(
-                    hyp.yseq, ids, hyp.states[k], pre_x
+                    yseq, ids, hyp.states[k], pre_x
                 )
             else:
                 scores[k], states[k] = d.batch_score_partial(
-                    hyp.yseq, ids, hyp.states[k], x
+                    yseq, ids, hyp.states[k], x
                 )
         return scores, states
 
