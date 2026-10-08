@@ -8,7 +8,6 @@ import subprocess
 from importlib import resources
 from pathlib import Path
 
-from espnet3.api.inference import Field
 from espnet3.components.data.dataset_builder import DatasetBuilder
 from espnet3.utils.config_utils import load_config_with_defaults
 
@@ -57,41 +56,7 @@ def _parse_transcript_line(line: str) -> tuple[str, str, str]:
 
 
 class MiniAn4Builder(DatasetBuilder):
-    """Prepare and build Mini AN4 assets for ESPnet3 recipes.
-
-    Examples:
-        ```python
-        builder = MiniAn4Builder()
-        if not builder.is_source_prepared(recipe_dir="."):
-            builder.prepare_source(recipe_dir=".")
-        if not builder.is_built(recipe_dir="."):
-            builder.build(recipe_dir=".")
-        ```
-    """
-
-    manifest_columns = (
-        Field("utt_id", "text"),
-        Field("wav", "audio"),
-        Field("text", "text"),
-    )
-    manifest_header = False
-
-    def built_manifests(self, recipe_dir: str | Path, **_kwargs) -> dict[str, Path]:
-        """Return the train/valid/test manifest paths ``build()`` writes.
-
-        Args:
-            recipe_dir: Recipe root directory.
-            **_kwargs: Unused extra options for API compatibility.
-
-        Examples:
-            >>> builder = MiniAn4Builder()
-            >>> sorted(builder.built_manifests("egs3/mini_an4/esp2_asr"))
-            ['test', 'train', 'valid']
-        """
-        data = Path(recipe_dir).resolve() / _CFG["data_path"]
-        return {
-            split: data / relpath for split, relpath in _CFG["manifest_paths"].items()
-        }
+    """Prepare and build Mini AN4 assets for ESPnet3 recipes."""
 
     def is_source_prepared(self, recipe_dir: str | Path, **_kwargs) -> bool:
         """Check whether raw AN4 source files are already available.

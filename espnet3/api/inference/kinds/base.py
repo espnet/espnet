@@ -91,9 +91,9 @@ class Kind(ABC):
     def accepts(self, value: Any, field: Field) -> bool:
         """Tell whether ``value`` could hold this kind, with no model.
 
-        For checking a value found with nothing to run - a dataset item,
-        a manifest column - where :meth:`check` is not an option because
-        it may need the model it is never given. Defaults to calling
+        For checking a value found with nothing to run - a dataset item -
+        where :meth:`check` is not an option because it may need the
+        model it is never given. Defaults to calling
         :meth:`check` with ``model=None`` and treating ``TypeError`` as
         "no"; override when a kind's :meth:`check` needs the model for
         something a model-free caller cannot supply (``audio`` needs a

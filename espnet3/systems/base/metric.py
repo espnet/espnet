@@ -7,7 +7,6 @@ from pathlib import Path
 from hydra.utils import get_class, instantiate
 from omegaconf import DictConfig, OmegaConf, open_dict
 
-from espnet3.components.contract.dataset import check_dataset_column_kind, check_fields
 from espnet3.components.contract.metrics import (
     check_metric_contract,
     check_metric_inputs,
@@ -57,7 +56,6 @@ def _dataset_column_scp(
     column: str,
     idx_key: str,
     artifact_config: dict | None = None,
-    wanted_kind: str | None = None,
 ) -> Path:
     """Write a test set's column as ``<inference_dir>/<test>/dataset/<column>.scp``.
 
@@ -80,12 +78,6 @@ def _dataset_column_scp(
             ``infer`` stage's ``output_artifacts`` form: ``type: wav`` with
             ``sample_rate``, ``npy``, ``pickle``, or a custom ``writer``);
             by default an array becomes ``.npy`` and a dict JSON.
-        wanted_kind: The metric's declared kind for this input, when known;
-            checked against the dataset's own declared kind for ``column``
-            (see ``espnet3.components.contract.dataset.check_dataset_column_kind``).
-            Not checked at all when ``None`` (the metric's own input is
-            not declared), or when this ``.scp`` already exists from an
-            earlier run; otherwise the dataset must declare ``column``.
 
     Returns:
         The written ``.scp``, one ``<id> <value>`` line per item in dataset
@@ -98,9 +90,6 @@ def _dataset_column_scp(
     Raises:
         ValueError: If no inference config was given, or an id is not a plain
             token.
-        DatasetContractError: ``wanted_kind`` is given but the dataset
-            declares no ``fields``, its ``fields`` does not name
-            ``column``, or names it with a different kind.
         KeyError: If an item of the test set has no ``column``.
     """
     path = inference_dir / test_name / "dataset" / f"{column}.scp"
@@ -119,14 +108,6 @@ def _dataset_column_scp(
     provider_target = getattr(getattr(config, "provider", None), "_target_", None)
     provider_cls = get_class(provider_target) if provider_target else InferenceProvider
     dataset = provider_cls.build_dataset(config)
-    if wanted_kind is not None:
-        fields = check_fields(getattr(dataset, "dataset", dataset), "fields")
-        check_dataset_column_kind(
-            fields,
-            column,
-            wanted_kind,
-            where=f"{DATASET_PREFIX}{column} in test set {test_name!r}",
-        )
     logger.info(
         "Writing %s from the %s test set (%d items)", path, test_name, len(dataset)
     )
@@ -160,22 +141,11 @@ def _resolve_inputs(
     metrics_config: DictConfig,
     test_name: str,
     inference_config: DictConfig | None,
-    metric: BaseMetric | None = None,
 ) -> dict[str, Path]:
     """Map metric input aliases to files.
 
     An input is an ``.scp`` file the ``infer`` stage wrote, or a
     ``dataset:<column>`` column of the test set, written on demand.
-
-    Args:
-        inputs: Alias -> source mapping (or a list, alias == source).
-        metrics_config: As passed to :func:`measure`.
-        test_name: The test set being scored.
-        inference_config: As passed to :func:`measure`.
-        metric: The ``BaseMetric`` instance, so a ``dataset:<column>``
-            source's declared kind (``metric.inputs``, by alias) can be
-            checked against the dataset's own declaration. Not checked
-            when omitted, or when the metric declares no ``inputs``.
     """
     input_map = {k: k for k in inputs} if isinstance(inputs, list) else dict(inputs)
     inference_dir = Path(metrics_config.inference_dir)
@@ -193,12 +163,10 @@ def _resolve_inputs(
         else "utt_id"
     )
     artifacts = metrics_config.get("dataset_artifacts") or {}
-    metric_fields = getattr(metric, "inputs", None) or ()
     for alias, source in input_map.items():
         if str(source).startswith(DATASET_PREFIX):
             column = str(source)[len(DATASET_PREFIX) :]
             artifact_config = artifacts.get(column)
-            wanted_field = next((f for f in metric_fields if f.name == alias), None)
             data[alias] = _dataset_column_scp(
                 inference_config,
                 inference_dir,
@@ -210,7 +178,6 @@ def _resolve_inputs(
                     if OmegaConf.is_config(artifact_config)
                     else artifact_config
                 ),
-                wanted_field.kind if wanted_field is not None else None,
             )
     return data
 
@@ -283,9 +250,7 @@ def measure(metrics_config: DictConfig, inference_config: DictConfig | None = No
         inputs = check_metric_inputs(metric, metric_config, inference_config) or {}
         results[get_class_path(metric)] = {}
         for test_name in test_sets:
-            data = _resolve_inputs(
-                inputs, metrics_config, test_name, inference_config, metric=metric
-            )
+            data = _resolve_inputs(inputs, metrics_config, test_name, inference_config)
             metric_result = metric(data, test_name, metrics_config.inference_dir)
             check_metric_output(metric, metric_result)
             results[get_class_path(metric)].update({test_name: metric_result})

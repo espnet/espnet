@@ -464,25 +464,12 @@ def test_measure_succeeds_for_wer_against_a_declared_inference_model(tmp_path):
     assert results[expected_key][test_name] == {"WER": 0.0}
 
 
-class _TextOnlyDataset:
-    fields = (Field("text", "text"),)
-
-    def __init__(self):
-        self.items = [{"utt_id": "utt1", "text": "hello world"}]
-
-    def __len__(self):
-        return len(self.items)
-
-    def __getitem__(self, idx):
-        return self.items[idx]
-
-
 class _DatasetTextProvider:
     """A minimal provider whose test set has only a `text` column."""
 
     @staticmethod
     def build_dataset(config):
-        return _TextOnlyDataset()
+        return [{"utt_id": "utt1", "text": "hello world"}]
 
     @staticmethod
     def build_model(config):
@@ -534,60 +521,3 @@ def test_measure_succeeds_for_wer_with_dataset_and_scp_inputs(tmp_path):
 
     expected_key = get_class_path(WER())
     assert results[expected_key][test_name] == {"WER": 0.0}
-
-
-class _WrongKindDataset:
-    fields = (Field("text", "audio"),)
-
-    def __init__(self):
-        self.items = [{"utt_id": "utt1", "text": "hello world"}]
-
-    def __len__(self):
-        return len(self.items)
-
-    def __getitem__(self, idx):
-        return self.items[idx]
-
-
-class _WrongKindProvider:
-    @staticmethod
-    def build_dataset(config):
-        return _WrongKindDataset()
-
-    @staticmethod
-    def build_model(config):
-        raise NotImplementedError
-
-
-def test_measure_rejects_dataset_column_declared_with_wrong_kind(tmp_path):
-    """A dataset:<column> input is checked against the dataset's own kind."""
-    from espnet3.components.contract.dataset import DatasetContractError
-
-    inference_dir = tmp_path / "infer"
-    test_name = "test-clean"
-    task_dir = inference_dir / test_name
-    task_dir.mkdir(parents=True)
-    _write_scp(task_dir / "text.scp", ["utt1 hello world"])
-
-    inference_cfg = OmegaConf.create(
-        {
-            "inference_dir": str(inference_dir),
-            "model": {"_target_": f"{__name__}._DummyInference"},
-            "provider": {"_target_": f"{__name__}._WrongKindProvider"},
-        }
-    )
-    metrics_cfg = OmegaConf.create(
-        {
-            "inference_dir": str(inference_dir),
-            "dataset": {"test": [{"name": test_name}]},
-            "metrics": [
-                {
-                    "metric": {"_target_": "espnet3.systems.esp2_asr.metrics.wer.WER"},
-                    "inputs": {"ref": "dataset:text", "hyp": "text"},
-                }
-            ],
-        }
-    )
-
-    with pytest.raises(DatasetContractError, match="wants 'text'"):
-        measure(metrics_cfg, inference_config=inference_cfg)
