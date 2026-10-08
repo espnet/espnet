@@ -84,12 +84,19 @@ class HuggingFaceFrontend(AbsFrontend):
                 sampling_rate=self.processor.sampling_rate,
                 padding=True,
             ).to(device)
-            if "attention_mask" not in encoded:
-                encoded_lengths = torch.tensor(encoded.input_values.shape)
-            else:
+            if "attention_mask" in encoded:
                 encoded_lengths = torch.sum(encoded.attention_mask, dim=-1)
+            else:
+                # The processor only padded the waveforms.
+                encoded_lengths = input_lengths.to(device)
+            # For a waveform model the lengths so far count samples.
+            counts_samples = "input_values" in encoded
 
         encoded = self.encoder(**encoded).last_hidden_state
+        if counts_samples:
+            encoded_lengths = self.encoder._get_feat_extract_output_lengths(
+                encoded_lengths
+            )
         if torch.max(encoded_lengths) != encoded.size(1):
             # truncate the sequence to the actual length
             # there is a weird bug in conformer encoder
