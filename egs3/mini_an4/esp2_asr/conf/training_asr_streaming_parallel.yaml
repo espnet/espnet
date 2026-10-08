@@ -124,6 +124,12 @@ best_model_criterion:
     - 1
     - min
 
+# Apply the train preprocessor's random augmentation (data_aug_effects, speed
+# perturbation, ...) while collecting statistics. Off by default, as in
+# ESPnet2: the statistics and shape files are then the same on every run and
+# match the unaugmented input seen at inference. Training augments either way.
+collect_stats_train_mode: false
+
 ##########################################################
 #                   DATALOADER SETTING                   #
 ##########################################################
