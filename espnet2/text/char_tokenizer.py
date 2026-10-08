@@ -35,6 +35,10 @@ class CharTokenizer(AbsTokenizer):
             if nonsplit_symbols is None
             else set([sym.split(":")[0] for sym in nonsplit_symbols])
         )
+        # An empty symbol, e.g. from a blank line of the file, matches at every
+        # position and text2tokens would never advance.
+        self.non_linguistic_symbols.discard("")
+        self.nonsplit_symbols.discard("")
 
     def __repr__(self):
         return (
