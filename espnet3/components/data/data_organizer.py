@@ -147,6 +147,12 @@ class DataOrganizer:
         recipe_dir (Optional[str]): Recipe root used to resolve local dataset modules
             when dataset entries omit ``data_src`` and rely on
             ``recipe_dir/dataset``.
+        train_mode (bool): Build the train split's ESPnet preprocessor in
+            training mode (``train=True``: data augmentation and the other
+            train-only steps). ``collect_stats`` passes ``False``, as ESPnet2
+            collects statistics with ``build_preprocess_fn(args, train=False)``:
+            random augmentation would make the statistics and shape files
+            differ from run to run. Valid and test are never in training mode.
 
     Attributes:
         train (CombinedDataset): Combined dataset built from training configurations,
@@ -248,6 +254,7 @@ class DataOrganizer:
         test: Optional[List[Union[DatasetConfig, Dict[str, Any], DictConfig]]] = None,
         preprocessor: Optional[Callable[[dict], dict]] = None,
         recipe_dir: Optional[str] = None,
+        train_mode: bool = True,
     ):
         """Initialize DataOrganizer object."""
         self.recipe_dir = recipe_dir
@@ -297,7 +304,7 @@ class DataOrganizer:
                 valid_cfg = _merge_shared_preprocessor_config(shared_cfg, valid_cfg)
                 test_cfg = _merge_shared_preprocessor_config(shared_cfg, test_cfg)
                 train_preprocessor = self._instantiate_preprocessor_from_config(
-                    train_cfg, True
+                    train_cfg, train_mode
                 )
                 valid_preprocessor = self._instantiate_preprocessor_from_config(
                     valid_cfg, False
@@ -307,7 +314,7 @@ class DataOrganizer:
                 )
             else:
                 train_preprocessor = self._instantiate_preprocessor_from_config(
-                    preprocessor_cfg, True
+                    preprocessor_cfg, train_mode
                 )
                 if isinstance(train_preprocessor, AbsPreprocessor):
                     valid_preprocessor = self._instantiate_preprocessor_from_config(

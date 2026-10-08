@@ -460,3 +460,32 @@ def test_collect_stats_rejects_multiple_iterator(tmp_path: Path, flag):
             write_collected_feats=False,
             batch_size=2,
         )
+
+
+def test_collect_stats_builds_a_data_organizer_without_training_mode(monkeypatch):
+    """The train split is read as ESPnet2 reads it for statistics: train=False."""
+    from test.espnet3.components.data.test_data_organizer import (
+        ESPNET_TRAIN_FLAG_PREPROCESSOR_TARGET,
+        DummyDataset,
+        _entry,
+    )
+
+    import espnet3.components.data.data_organizer as data_organizer_module
+
+    monkeypatch.setattr(
+        data_organizer_module,
+        "instantiate_dataset_reference",
+        lambda config, recipe_dir=None: DummyDataset(),
+    )
+
+    dataset_cfg = OmegaConf.create(
+        {
+            "_target_": "espnet3.components.data.data_organizer.DataOrganizer",
+            "_recursive_": False,  # as recipes write it: the organizer builds
+            "train": [_entry("train_dummy")],
+            "valid": [_entry("valid_dummy")],
+            "preprocessor": {"_target_": ESPNET_TRAIN_FLAG_PREPROCESSOR_TARGET},
+        }
+    )
+    train = _instantiate_dataset(dataset_cfg, "train")
+    assert train[0]["was_train"] is False

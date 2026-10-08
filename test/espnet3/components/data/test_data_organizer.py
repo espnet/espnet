@@ -1151,3 +1151,29 @@ def test_espnet_preprocessor_explicit_train_in_config_warns(caplog):
     # Flag is still auto-set correctly despite the explicit config value.
     assert organizer.train[0]["was_train"] is True
     assert organizer.valid[0]["was_train"] is False
+
+
+@pytest.mark.parametrize("split_configs", [False, True])
+def test_train_mode_false_builds_the_train_preprocessor_out_of_training_mode(
+    split_configs,
+):
+    """collect_stats' organizer: no augmentation on train, as in ESPnet2."""
+    target = {"_target_": ESPNET_TRAIN_FLAG_PREPROCESSOR_TARGET}
+    preprocessor_cfg = OmegaConf.create(
+        {"train": target, "valid": target} if split_configs else target
+    )
+    organizer = DataOrganizer(
+        train=[_entry("train_dummy")],
+        valid=[_entry("valid_dummy")],
+        preprocessor=preprocessor_cfg,
+        train_mode=False,
+    )
+    assert organizer.train[0]["was_train"] is False
+    assert organizer.valid[0]["was_train"] is False
+    # and the default is unchanged: training mode on train only
+    organizer = DataOrganizer(
+        train=[_entry("train_dummy")],
+        valid=[_entry("valid_dummy")],
+        preprocessor=preprocessor_cfg,
+    )
+    assert organizer.train[0]["was_train"] is True

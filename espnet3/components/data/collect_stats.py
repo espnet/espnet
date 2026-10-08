@@ -8,11 +8,12 @@ from typing import Any, Dict, Iterable, List, Optional, Sequence, Tuple
 
 import numpy as np
 import torch
-from hydra.utils import instantiate
+from hydra.utils import get_class, instantiate
 from omegaconf import DictConfig, OmegaConf
 
 from espnet2.fileio.npy_scp import NpyScpWriter
 from espnet2.train.collate_fn import CommonCollateFn
+from espnet3.components.data.data_organizer import DataOrganizer
 from espnet3.parallel.base_runner import BaseRunner, concatenate_shard_files
 from espnet3.parallel.env_provider import EnvironmentProvider
 from espnet3.parallel.parallel import set_parallel
@@ -160,10 +161,23 @@ def _chunk_indices(num_items: int, batch_size: int) -> List[List[int]]:
 
 
 def _instantiate_dataset(dataset_config, mode: str):
+    """Return one split of the configured organizer, built for statistics.
+
+    A ``DataOrganizer`` is built with ``train_mode=False``, so the train
+    split's ESPnet preprocessor applies no random augmentation, as ESPnet2
+    collects statistics (``build_preprocess_fn(args, train=False)``): the
+    feature statistics and the shape files the sampler batches by then do
+    not change from one run to the next. Another organizer is built as
+    configured.
+    """
     if not isinstance(dataset_config, DictConfig):
         dataset_config = OmegaConf.create(dataset_config)
 
-    organizer = instantiate(dataset_config)
+    target = dataset_config.get("_target_", None)
+    is_organizer = target is not None and issubclass(get_class(target), DataOrganizer)
+    organizer = instantiate(
+        dataset_config, **({"train_mode": False} if is_organizer else {})
+    )
     dataset = getattr(organizer, mode, None)
     if dataset is None:
         raise ValueError(f"Dataset organizer does not provide split '{mode}'")
