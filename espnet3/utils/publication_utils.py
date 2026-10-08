@@ -22,6 +22,11 @@ from hydra.utils import instantiate
 from omegaconf import DictConfig, ListConfig, OmegaConf
 
 import espnet2
+from espnet3.api.inference.loading import (
+    _STAGE_KEYS,
+    _bundled_module_names,
+    _uses_bundled_code,
+)
 from espnet3.components.modeling.lightning_module import build_model_summary
 from espnet3.utils.logging_utils import get_git_metadata
 from espnet3.utils.task_utils import get_espnet_model
@@ -301,6 +306,25 @@ def _infer_system_name(training_config: DictConfig, recipe_root: Path) -> str:
     return recipe_root.name
 
 
+def _system_for_meta(training_config: DictConfig) -> str | None:
+    """Return the system to record in ``meta.yaml``, or ``None`` when there is none.
+
+    ``espnet3.api.inference.load`` imports ``espnet3.systems.<system>``
+    from this value, so only a task path that names a system
+    (``espnet3.systems.esp2_asr.task.ASRTask`` → ``esp2_asr``) yields one.
+    The README label :func:`_infer_system_name` falls back to a class or
+    directory name, which is not an import target.
+    """
+    task_value = getattr(training_config, "task", None)
+    if isinstance(task_value, str) and task_value:
+        parts = task_value.split(".")
+        if "systems" in parts:
+            index = parts.index("systems")
+            if index + 1 < len(parts) - 1:
+                return parts[index + 1]
+    return None
+
+
 def _instantiate_publication_model(training_config: DictConfig):
     """Instantiate the training model for README metadata generation."""
     task = training_config.get("task")
@@ -414,6 +438,39 @@ def _build_results_note(results_path: Path | None, results_section: str) -> str:
     )
 
 
+def _load_example(target: str, out_dir: Path, system: str | None) -> str:
+    """Return the README's ``load(...)`` line for this bundle.
+
+    A bundle served by an installed system loads as it is. One that names no
+    system and whose model is Python code shipped in the bundle
+    is refused by ``load`` unless the caller passes ``trust_user_code=True``,
+    so the example passes it, with a line saying what that runs.
+
+    Args:
+        target: The Hub repository, or a placeholder path.
+        out_dir: The bundle being packed, with ``conf/inference.yaml`` and
+            any bundled code already written.
+        system: What ``meta.yaml`` will record, or ``None``.
+
+    Returns:
+        One or two lines of Python for the README's usage block.
+    """
+    call = f'model = load("{target}")'
+    config_path = out_dir / "conf" / "inference.yaml"
+    if system or not config_path.is_file():
+        return call
+    config = OmegaConf.load(config_path)
+    for key in _STAGE_KEYS:  # load() drops the stage's keys before its check
+        config.pop(key, None)
+    if not _uses_bundled_code(config, _bundled_module_names(out_dir)):
+        return call
+    return (
+        "# The model is Python code shipped in this repository, and\n"
+        "# trust_user_code=True runs it: pass it only if you trust that code.\n"
+        f'model = load("{target}", trust_user_code=True)'
+    )
+
+
 def _build_readme_context(
     training_config: DictConfig,
     publication_config: DictConfig,
@@ -426,13 +483,10 @@ def _build_readme_context(
     git_meta = get_git_metadata(recipe_root)
     results_section = _build_results_table(results_path)
     hf_repo = getattr(getattr(publication_config, "upload_model", None), "hf_repo", "")
-    usage_load_call = (
-        f'model = InferenceModel.from_pretrained("{hf_repo}", trust_user_code=True)'
-        if hf_repo
-        else (
-            "model = InferenceModel.from_packed("
-            '"/path/to/packed_model", trust_user_code=True)'
-        )
+    usage_load_call = _load_example(
+        hf_repo or "/path/to/packed_model",
+        out_dir,
+        system=_system_for_meta(training_config),
     )
     model_summary_section = ""
     model_detail_section = ""
@@ -507,9 +561,9 @@ def _write_meta(
     """Write meta.yaml into the bundle output directory.
 
     Called at the end of ``pack_model`` to record all bundled artifact paths
-    and environment versions. ``InferenceModel.from_packed`` reads this file
-    to locate the inference config, and ``espnet3.api.inference.load`` reads
-    ``system`` to find the ``Inference`` class that serves the bundle.
+    and environment versions. ``espnet3.api.inference.load`` reads this file
+    to locate the inference config and the ``system`` whose ``Inference``
+    class serves the bundle.
 
     """
     from espnet3.publication.schema import PACK_SCHEMA_VERSION
@@ -675,7 +729,7 @@ def pack_model(
         out_dir,
         files=files,
         yaml_files=yaml_files,
-        system=_infer_system_name(training_config, recipe_root),
+        system=_system_for_meta(training_config),
     )
     logger.info("Packed model to %s", out_dir)
     return out_dir
