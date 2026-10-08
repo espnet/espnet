@@ -86,7 +86,7 @@ class CodecPackedContents(PackedContents):
     yaml_files = ["train_config"]
 
 
-class AudioMetricPackedContents(PackedContents):
+class AqaPackedContents(PackedContents):
     files = ["model_file"]
     yaml_files = ["train_config"]
 
@@ -120,8 +120,8 @@ def get_parser() -> argparse.ArgumentParser:
         ("lid", LIDPackedContents),
         ("codec", CodecPackedContents),
         ("cls", ClassificationPackedContents),
-        ("audio_metric", AudioMetricPackedContents),
-        ("universa", AudioMetricPackedContents),
+        ("aqa", AqaPackedContents),
+        ("universa", AqaPackedContents),
     ]:
         parser_asr = subparsers.add_parser(
             name,

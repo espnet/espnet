@@ -1273,6 +1273,10 @@ class ESPnetLightningModule(lightning.LightningModule):
         # default when a config says nothing.
         batch_size = self.config.get("collect_stats_batch_size", None)
         extra = {} if batch_size is None else {"batch_size": int(batch_size)}
+        # the train preprocessor's augmentation is off unless the config asks
+        train_mode = self.config.get("collect_stats_train_mode", None)
+        if train_mode is not None:
+            extra["train_mode"] = bool(train_mode)
 
         for mode in ["train", "valid"]:
             collect_stats(

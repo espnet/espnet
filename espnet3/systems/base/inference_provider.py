@@ -9,49 +9,12 @@ import torch
 from hydra.utils import instantiate
 from omegaconf import DictConfig, OmegaConf
 
+from espnet3.api.inference.loading import build_model
 from espnet3.parallel.env_provider import EnvironmentProvider
 from espnet3.utils.logging_utils import log_instance_dict
 
 logger = logging.getLogger(__name__)
 _LOGGED_ENV = False
-
-
-def _convert_relative_paths_to_absolute(obj: Any, seen: set | None = None) -> None:
-    """Recursively rewrite relative file-path strings in an object graph to absolute.
-
-    Must be called while ``os.getcwd()`` is the bundle root so that
-    ``os.path.isfile`` correctly identifies bundle assets.  This prevents
-    lazy-initialized components (e.g. ``SentencePieceTokenizer``) from
-    failing once ``os.chdir`` restores the original working directory.
-    Only string attributes that resolve to an existing file are rewritten;
-    all others are left unchanged.
-    """
-    if seen is None:
-        seen = set()
-    oid = id(obj)
-    if oid in seen:
-        return
-    seen.add(oid)
-    obj_vars = getattr(obj, "__dict__", None)
-    if not obj_vars:
-        return
-    for attr, val in list(obj_vars.items()):
-        if isinstance(val, str):
-            if not os.path.isabs(val):
-                candidate = os.path.abspath(val)
-                if os.path.isfile(candidate):
-                    try:
-                        setattr(obj, attr, candidate)
-                    except (AttributeError, TypeError):
-                        pass
-        elif isinstance(val, dict):
-            for v in val.values():
-                _convert_relative_paths_to_absolute(v, seen)
-        elif isinstance(val, (list, tuple)):
-            for v in val:
-                _convert_relative_paths_to_absolute(v, seen)
-        elif not isinstance(val, (int, float, bool, bytes, type(None))):
-            _convert_relative_paths_to_absolute(val, seen)
 
 
 class InferenceProvider(EnvironmentProvider, ABC):
@@ -216,60 +179,42 @@ class InferenceProvider(EnvironmentProvider, ABC):
 
     @staticmethod
     def build_model(config: DictConfig):
-        """Construct and return the model instance.
+        """Build the model ``config.model`` names, on this worker's device.
 
-        Implemented by subclasses to build a model from ``config``.
-        During parallel or distributed execution, the ``config`` object passed here
-        is the configuration that the user passed when instantiating the class.
+        Resolves the device (:meth:`_resolve_device`: the config's, else a
+        GPU this worker sees, else the CPU) and hands the config to
+        :func:`espnet3.api.inference.build_model`, the one way a model is
+        built, shared with loading a published bundle. An ``Inference``
+        needs nothing more; a subclass overrides this only for a model that
+        is built some other way in the ``infer`` stage.
 
         Args:
-            config (DictConfig): Configuration.
+            config (DictConfig): The inference config, with ``model``.
 
         Returns:
-            Any: Model object (type defined by subclass).
-
-        Raises:
-            NotImplementedError: Always in the base class; implement in subclass.
+            Any: The built model - the system's ``Inference`` when
+            ``model._target_`` names one.
 
         Example:
-            >>> # Minimal sketch; actual keys depend on your subclass
-            >>> from omegaconf import OmegaConf
-            >>> config = OmegaConf.create({
-            >>>     "model": {"checkpoint": "exp/model.pth", "device": "cpu"}
-            >>> })
-            >>> model = MyInferenceProvider.build_model(config)  # doctest: +SKIP
-
-        Notes:
-            - This method should handle **loading weights** and placing the
-              model on the appropriate device.
-            - Do not perform training/optimization here, this is for inference
-              setup only.
+            >>> config = OmegaConf.create({"model": {
+            ...     "_target_": "espnet3.systems.esp2_asr.inference.Inference",
+            ...     "asr_train_config": "exp/config.yaml",
+            ...     "asr_model_file": "exp/valid.acc.ave.pth"}})
+            >>> model = InferenceProvider.build_model(config)  # doctest: +SKIP
         """
         if isinstance(config, dict):
             config = OmegaConf.create(config)
-
         device = InferenceProvider._resolve_device(config)
-        logger.info(
-            "Instantiating model %s on %s (CUDA_VISIBLE_DEVICES=%s, visible_gpus=%s)",
-            getattr(config.model, "_target_", None),
-            device,
+        # build_model logs the model and device; this adds what the worker sees
+        logger.debug(
+            "CUDA_VISIBLE_DEVICES=%s, visible_gpus=%s",
             os.getenv("CUDA_VISIBLE_DEVICES"),
             torch.cuda.device_count() if torch.cuda.is_available() else 0,
         )
-        # Match ESPnet2 packaged-model loading, where bare relative paths in
-        # copied training configs resolve from the bundle root.
-        recipe_dir = getattr(config, "recipe_dir", None)
-        if recipe_dir:
-            cwd = os.getcwd()
-            os.chdir(str(recipe_dir))
-            try:
-                model = instantiate(config.model, device=device)
-                _convert_relative_paths_to_absolute(model)
-                return model
-            finally:
-                os.chdir(cwd)
-        else:
-            return instantiate(config.model, device=device)
+        # One way to build a model from an inference config, shared with
+        # loading a published bundle; it reads only config.model and never
+        # calls a provider, so this cannot be called back.
+        return build_model(config, device=device)
 
     @staticmethod
     def _resolve_device(config: DictConfig) -> str:

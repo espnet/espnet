@@ -16,9 +16,9 @@ class Kind(ABC):
     A kind turns what a caller gives into what a hook receives, checks
     what a hook returns, and says how pieces of a stream join. The
     built-in kinds are ``audio``, ``text`` and ``segments``; a new
-    modality - a conversation, a multichannel signal, video, a JSON
-    document - is a subclass passed to :func:`register_kind`, and needs no
-    change to :class:`InferenceAPI`.
+    modality - a conversation, video, a JSON document - is a subclass
+    passed to :func:`register_kind`, and needs no change to
+    :class:`InferenceAPI`.
 
     Examples:
         >>> class Messages(Kind):
@@ -27,8 +27,8 @@ class Kind(ABC):
         ...             raise TypeError(f"{field.name} must be a list of turns")
         ...         return value
         >>> register_kind("messages", Messages())
-        >>> Field("messages", "messages")
-        Field(name='messages', kind='messages', label='Messages', optional=False)
+        >>> Field("messages", "messages").kind
+        'messages'
     """
 
     @abstractmethod
