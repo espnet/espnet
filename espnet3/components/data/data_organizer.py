@@ -245,6 +245,39 @@ class DataOrganizer:
             ...     test=test_configs,
             ...     preprocessor=config,
             ... )
+
+        The train split without augmentation, as the ``collect_stats`` stage
+        builds it:
+            >>> organizer = DataOrganizer(
+            ...     train=training_configs,
+            ...     valid=valid_configs,
+            ...     preprocessor=config,
+            ...     train_mode=False,
+            ... )
+
+        A recipe does not set ``train_mode``: the same ``dataset:`` block of
+        the training config serves both stages, and its augmentation applies
+        in ``train`` but not in ``collect_stats``:
+
+        .. code-block:: yaml
+
+            dataset:
+              _target_: espnet3.components.data.data_organizer.DataOrganizer
+              train:
+                - data_src_args:
+                    split: train
+              valid:
+                - data_src_args:
+                    split: valid
+              preprocessor:
+                _target_: espnet2.train.preprocessor.CommonPreprocessor
+                data_aug_effects:
+                  - [0.1, "contrast", {"enhancement_amount": 75.0}]
+                data_aug_num: [1, 1]
+                data_aug_prob: 1.0
+                token_type: bpe
+                token_list: ${tokenizer.save_path}/tokens.txt
+                bpemodel: ${tokenizer.save_path}/bpe.model
     """
 
     def __init__(
