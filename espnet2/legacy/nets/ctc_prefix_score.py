@@ -164,7 +164,9 @@ class CTCPrefixScoreTH(object):
         # the part of the utterance the prefix can plausibly be in
         if self.margin <= 0:
             f_min = f_max = 0
-            start = max(output_length, 1)
+            # no further than the last frame: a prefix with more labels than
+            # there are frames is impossible, which is what logzero says
+            start = min(max(output_length, 1), self.input_length)
             end = self.input_length
         elif att_w is not None:
             # espnet1 behaviour: centre the window on the attention peak
@@ -344,11 +346,14 @@ class CTCPrefixScore(object):
         # that corresponds to r_t^n(h) and r_t^b(h).
         r = self.xp.ndarray((self.input_length, 2, len(cs)), dtype=np.float32)
         xs = self.x[:, cs]
+        # no further than the last frame: a prefix with more labels than there
+        # are frames is impossible, which is what logzero says
+        start = min(max(output_length, 1), self.input_length)
         if output_length == 0:
             r[0, 0] = xs[0]
             r[0, 1] = self.logzero
         else:
-            r[output_length - 1] = self.logzero
+            r[start - 1] = self.logzero
 
         # prepare forward probabilities for the last label
         r_sum = self.xp.logaddexp(
@@ -364,7 +369,6 @@ class CTCPrefixScore(object):
 
         # compute forward probabilities log(r_t^n(h)), log(r_t^b(h)),
         # and log prefix probabilities log(psi)
-        start = max(output_length, 1)
         log_psi = r[start - 1, 0]
         for t in range(start, self.input_length):
             r[t, 0] = self.xp.logaddexp(r[t - 1, 0], log_phi[t - 1]) + xs[t]

@@ -342,3 +342,26 @@ def test_unmasked_decoder_is_reported_once(caplog):
         r for r in caplog.records if "do not accept an xs_mask" in r.getMessage()
     ]
     assert len(warnings) == 1, [r.getMessage() for r in warnings]
+
+
+def test_a_short_utterance_decodes_alone_as_it_does_in_a_batch():
+    """A maximum length above the number of frames must not end in IndexError.
+
+    Padded next to a longer utterance, a short one was decoded; alone, its
+    hypotheses outgrew the encoder output and the CTC prefix scorer indexed
+    past its last frame.
+    """
+    encs, common, dtype, device = _build(
+        transformer_args, 0.5, 0.0, 1.0, "cpu", torch.float64
+    )
+    short = encs[1][:3]  # three frames, for up to eight tokens
+    search = BatchBeamSearch(beam_size=3, **common)
+    search.eval()
+    padded, lengths = _pad([short, encs[0]], device, dtype)
+    with torch.no_grad():
+        alone = search(x=short, maxlenratio=-8)
+        together = search(x=padded, x_lengths=lengths, maxlenratio=-8)[0]
+
+    possible = [h for h in alone if float(h.score) > -1e8]
+    assert len(possible) > 0
+    _assert_same_nbest(possible, together, nbest=len(possible), rtol=1e-10)
