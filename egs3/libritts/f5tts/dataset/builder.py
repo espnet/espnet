@@ -59,7 +59,7 @@ def _load_builder_config() -> dict:
 _CFG = _load_builder_config()
 
 
-def _required_subsets() -> list[str]:
+def _list_required_subsets() -> list[str]:
     """Return every LibriTTS subset referenced by the split definitions."""
     required: list[str] = []
     for subsets in _CFG["split_subsets"].values():
@@ -183,7 +183,7 @@ def _scan_subset_entries(subset_dir: Path) -> list[tuple[str, Path, str, str]]:
     return entries
 
 
-def _librispeech_pc_paths(recipe_root: Path) -> tuple[Path, Path, Path]:
+def _resolve_librispeech_pc_paths(recipe_root: Path) -> tuple[Path, Path, Path]:
     """Resolve the three LibriSpeech-PC paths from the builder config.
 
     Args:
@@ -245,10 +245,10 @@ class LibriTTSBuilder(DatasetBuilder):
         """
         recipe_root = Path(recipe_dir).resolve()
         dataset_root = recipe_root / _CFG["dataset_path"]
-        _, lst_path, _ = _librispeech_pc_paths(recipe_root)
+        _, lst_path, _ = _resolve_librispeech_pc_paths(recipe_root)
         libritts_ready = all(
             (dataset_root / "LibriTTS" / subset / ".complete").is_file()
-            for subset in _required_subsets()
+            for subset in _list_required_subsets()
         )
         librispeech_subset = _CFG["librispeech_pc"]["subset"]
         librispeech_ready = (
@@ -322,7 +322,7 @@ class LibriTTSBuilder(DatasetBuilder):
         recipe_root = Path(recipe_dir).resolve()
         dataset_root = recipe_root / _CFG["dataset_path"]
         dataset_root.mkdir(parents=True, exist_ok=True)
-        for subset in _required_subsets():
+        for subset in _list_required_subsets():
             _download_subset(dataset_root, subset, remove_archive=remove_archive)
 
         pair_list_cfg = _CFG["librispeech_pc"]
@@ -332,7 +332,7 @@ class LibriTTSBuilder(DatasetBuilder):
             corpus="LibriSpeech",
             remove_archive=remove_archive,
         )
-        _, lst_path, _ = _librispeech_pc_paths(recipe_root)
+        _, lst_path, _ = _resolve_librispeech_pc_paths(recipe_root)
         if lst_path.is_file():
             logger.info("LibriSpeech-PC pair list already downloaded, skipping.")
         else:
@@ -390,7 +390,7 @@ class LibriTTSBuilder(DatasetBuilder):
                     builder.build(recipe_dir="egs3/libritts/f5tts")
         """
         recipe_root = Path(recipe_dir).resolve()
-        _, _, librispeech_pc_manifest = _librispeech_pc_paths(recipe_root)
+        _, _, librispeech_pc_manifest = _resolve_librispeech_pc_paths(recipe_root)
         return self.is_libritts_built(recipe_dir=recipe_root) and (
             librispeech_pc_manifest.is_file()
         )
@@ -471,8 +471,8 @@ class LibriTTSBuilder(DatasetBuilder):
                     sid = speaker_to_id[speaker]
                     f.write(f"{utt_id}\t{wav_path}\t{text}\t{sid}\n")
 
-        test_clean_root, lst_path, librispeech_pc_manifest = _librispeech_pc_paths(
-            recipe_root
+        test_clean_root, lst_path, librispeech_pc_manifest = (
+            _resolve_librispeech_pc_paths(recipe_root)
         )
         for path, description in (
             (lst_path, "LibriSpeech-PC pair list"),

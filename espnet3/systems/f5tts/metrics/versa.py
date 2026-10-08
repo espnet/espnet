@@ -230,13 +230,13 @@ class VersaMetric(BaseMetric):
 
         averages = self._aggregate(result_file)
         self._reject_partial_results(averages, result_file, failures)
-        avg_path = eval_dir / "avg_result.json"
-        with avg_path.open("w") as f:
+        average_path = eval_dir / "avg_result.json"
+        with average_path.open("w") as f:
             json.dump(averages, f, indent=2)
         logger.info(
             "Wrote VERSA averages for '%s' to %s (%d metrics)",
             test_name,
-            avg_path,
+            average_path,
             len(averages),
         )
         self.summarize(averages, test_name)
@@ -298,7 +298,7 @@ class VersaMetric(BaseMetric):
                     yield record
 
     @staticmethod
-    def _null_only_keys(result_file: Path) -> Set[str]:
+    def _find_null_only_keys(result_file: Path) -> Set[str]:
         """Return keys that were null somewhere and never numeric anywhere.
 
         A metric that loads but throws per utterance leaves its key present
@@ -335,7 +335,7 @@ class VersaMetric(BaseMetric):
         """
         problems = list(failures)
 
-        null_only = VersaMetric._null_only_keys(result_file)
+        null_only = VersaMetric._find_null_only_keys(result_file)
         if null_only:
             problems.append(
                 "computed no value for any utterance: " + ", ".join(sorted(null_only))
@@ -439,14 +439,14 @@ class VersaMetric(BaseMetric):
             # Reference length is delete + replace + equal: insertions are
             # errors but not reference tokens, so they never enter the
             # denominator (VERSA asserts the same identity itself).
-            ref_len = sum(
+            reference_length = sum(
                 scores[f"{prefix}{op}"] for op in ("delete", "replace", "equal")
             )
             errors = sum(
                 scores[f"{prefix}{op}"] for op in ("delete", "replace", "insert")
             )
-            if ref_len > 0:
-                lines.append(f"    {label:<21s} {errors / ref_len * 100:.2f}%")
+            if reference_length > 0:
+                lines.append(f"    {label:<21s} {errors / reference_length * 100:.2f}%")
 
         lines.append("-" * 40)
         logger.info("\n".join(lines))
@@ -496,16 +496,16 @@ class VersaMetric(BaseMetric):
             prefix = VersaMetric._find_prefix(sums, metric)
             if prefix is None:
                 continue
-            ref_len = sum(
+            reference_length = sum(
                 sums[f"{prefix}{op}"] for op in ("delete", "replace", "equal")
             )
-            if ref_len <= 0:
+            if reference_length <= 0:
                 # Empty reference across the whole corpus: the rate is
                 # undefined, so emit nothing rather than divide by zero.
                 continue
             errors = sum(
                 sums[f"{prefix}{op}"] for op in ("delete", "replace", "insert")
             )
-            averages[prefix.rstrip("_")] = round(errors / ref_len * 100, 4)
+            averages[prefix.rstrip("_")] = round(errors / reference_length * 100, 4)
 
         return averages

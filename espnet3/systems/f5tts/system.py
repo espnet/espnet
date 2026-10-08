@@ -101,7 +101,7 @@ class F5TTSSystem(BaseSystem):
         """Write the training config beside the checkpoints, then train.
 
         The config is saved as ``${exp_dir}/config.yaml``, the file the
-        recipe's ``inference.yaml`` names as ``model.train_config``, so the
+        template's ``inference.yaml`` names as ``model.train_config``, so the
         checkpoint and the config it was trained with travel together: a
         second training config needs no edit to the inference config, and a
         packed bundle carries the file with ``exp_dir``.

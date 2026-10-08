@@ -27,7 +27,7 @@ import torchaudio
 from torch.utils.data import Dataset as TorchDataset
 
 
-def _utterance_flac(root: Path, utterance_id: str) -> Path:
+def _find_utterance_flac(root: Path, utterance_id: str) -> Path:
     """Return the ``test-clean`` flac of a LibriSpeech utterance id."""
     speaker, chapter, _ = utterance_id.split("-")
     path = root / speaker / chapter / f"{utterance_id}.flac"
@@ -80,8 +80,10 @@ def build_manifest(lst_path, test_clean_root, out_tsv) -> int:
     rows = _read_lst(lst_path)
     with output_path.open("w", encoding="utf-8") as f:
         for ref_utt, ref_text, gen_utt, gen_text in rows:
-            ref_wav = _utterance_flac(root, ref_utt)
-            _utterance_flac(root, gen_utt)  # fail fast if the target audio is absent
+            ref_wav = _find_utterance_flac(root, ref_utt)
+            _find_utterance_flac(
+                root, gen_utt
+            )  # fail fast if the target audio is absent
             f.write(f"{gen_utt}\t{gen_text}\t{ref_utt}\t{ref_wav}\t{ref_text}\n")
     return len(rows)
 

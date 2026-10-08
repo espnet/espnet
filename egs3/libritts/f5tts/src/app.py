@@ -35,7 +35,7 @@ logger = logging.getLogger(__name__)
 _AUDIO_SUFFIXES = {".wav", ".flac", ".mp3", ".ogg"}
 
 
-def _example_rows(demo_cfg, demo_dir: Path) -> list[list]:
+def _read_example_rows(demo_cfg, demo_dir: Path) -> list[list]:
     """Return ``ui.examples`` as plain rows, audio paths made absolute.
 
     Args:
@@ -54,7 +54,7 @@ def _example_rows(demo_cfg, demo_dir: Path) -> list[list]:
     Example:
         .. code-block:: python
 
-            _example_rows(cfg, Path("demo"))
+            _read_example_rows(cfg, Path("demo"))
             # -> [["Hello.", "/abs/demo/examples/prompt.wav", "the prompt"]]
     """
     ui_cfg = getattr(demo_cfg, "ui", None)
@@ -189,7 +189,7 @@ def build_demo(
         # `ui.examples`: rows of input values in the order of `ui.inputs`; an
         # audio value is a path relative to the demo directory, which is where
         # the app runs from. A click fills the inputs; Synthesize runs them.
-        examples = _example_rows(session.demo_cfg, demo_dir)
+        examples = _read_example_rows(session.demo_cfg, demo_dir)
         if examples:
             logger.info("Adding %d example row(s)", len(examples))
             gr.Examples(examples=examples, inputs=input_components, label="Examples")

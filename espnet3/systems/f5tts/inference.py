@@ -176,9 +176,9 @@ class F5TTSInference:
         """Build the model, tokenizer and vocoder for inference.
 
         Args:
-            train_config: Path to the training YAML (provides the ``model``
-                block + preprocessor tokenization settings, single source of
-                truth).
+            train_config: Path to the training config the checkpoint was
+                trained with; its ``model`` block and its preprocessor
+                tokenization settings rebuild the model and the tokenizer.
             checkpoint_path: Lightning checkpoint (``.ckpt``) from training.
             device: Torch device string.
             use_ema: Load EMA-averaged weights (``ema_model_state_dict``) when
@@ -191,8 +191,20 @@ class F5TTSInference:
                 ``nfe_step`` (number of function evaluations).
             guidance_strength: Classifier-free guidance scale, upstream's
                 ``cfg_strength``.
-            sway_sampling_coefficient / speed / seed: Remaining sampling
-                hyperparameters forwarded to ``CFM.sample``.
+            sway_sampling_coefficient: Sway sampling coefficient of the ODE
+                time steps, upstream's ``sway_sampling_coef``; forwarded to
+                ``CFM.sample``.
+            speed: Speaking-rate factor: the output duration estimated from
+                the reference is divided by it, so above 1 speaks faster, and
+                it scales the text length of each chunk. A chunk shorter than
+                10 bytes always uses 0.3.
+            target_rms: Loudness a quieter reference is raised to before
+                synthesis; the output is scaled back to the reference's own
+                level afterwards.
+            cross_fade_duration: Seconds of linear cross-fade between the
+                waveforms of consecutive text chunks; ``0`` concatenates them.
+            seed: Random seed of the initial noise, for reproducible output;
+                ``None`` leaves it unseeded.
 
         Raises:
             ValueError: If ``train_config`` has no ``model._target_`` or if
@@ -201,20 +213,22 @@ class F5TTSInference:
         Example:
             .. code-block:: yaml
 
-                inference:
+                model:
                   _target_: espnet3.systems.f5tts.inference.F5TTSInference
-                  train_config: ${recipe_dir}/conf/training_f5_tts_small.yaml
+                  train_config: ${exp_dir}/config.yaml
                   checkpoint_path: ${exp_dir}/last.ckpt
                   device: cuda
                   ode_solver_steps: 32
                   guidance_strength: 2.0
 
         Note:
-            ``train_config`` is the recipe's own training YAML, not the
-            ``config.yaml`` written into ``exp_dir``: the model is rebuilt from
-            the ``model:`` block via Hydra, so architecture and tokenizer
-            settings always come from one source of truth. Construction is
-            eager, loading the checkpoint and the vocoder up front.
+            A recipe passes ``${exp_dir}/config.yaml``, the training config
+            ``F5TTSSystem.train`` writes beside the checkpoint, so the model is
+            rebuilt from the exact config it was trained with; its ``model:``
+            block is instantiated via Hydra. A recipe normally names
+            :class:`Inference`, which wraps this engine, rather than the
+            engine itself. Construction is eager, loading the checkpoint and
+            the vocoder up front.
         """
         self.device = torch.device(device)
         self.target_sample_rate = target_sample_rate
