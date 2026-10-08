@@ -11,14 +11,22 @@ transcript, and that refusal is shown in the UI rather than as a bare error.
 
 from __future__ import annotations
 
-import argparse
-import logging
-from pathlib import Path
+# ZeroGPU Spaces kill an app that declares no `@spaces.GPU` function and need
+# `spaces` imported before any package that touches CUDA, so this import comes
+# first. The package exists only on Hugging Face Spaces.
+try:
+    import spaces  # isort: skip
+except ImportError:  # local runs and plain CPU Spaces
+    spaces = None
 
-import gradio as gr
+import argparse  # noqa: E402
+import logging  # noqa: E402
+from pathlib import Path  # noqa: E402
 
-from espnet3.publication.demo.session import load_demo_session
-from espnet3.utils.logging_utils import configure_logging
+import gradio as gr  # noqa: E402
+
+from espnet3.publication.demo.session import load_demo_session  # noqa: E402
+from espnet3.utils.logging_utils import configure_logging  # noqa: E402
 
 logger = logging.getLogger(__name__)
 
@@ -88,6 +96,12 @@ def build_demo(
             # A missing or malformed input, e.g. no reference speech or no
             # transcript: show the reason in the UI instead of a bare "Error".
             raise gr.Error(str(error)) from error
+
+    if spaces is not None:
+        # On ZeroGPU the model runs on a GPU leased per call; the decorated
+        # function is what the Space's scheduler sees.
+        logger.info("ZeroGPU detected; registering the handler with spaces.GPU")
+        synthesize = spaces.GPU(synthesize)
 
     with gr.Blocks(title=session.title) as app:
         if session.title:
