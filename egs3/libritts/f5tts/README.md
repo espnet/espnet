@@ -38,3 +38,8 @@ python run.py --stages pack_demo upload_demo \
 
 See `egs3/TEMPLATE/f5tts/README.md` for the stages, `measure`'s dependencies
 and loading a packed model.
+
+## Pretrained Models
+
+- [`conf/training.yaml`](https://huggingface.co/NewGame/libritts_f5tts_training)
+  ([demo](https://huggingface.co/spaces/NewGame/libritts_f5tts_training))
