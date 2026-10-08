@@ -176,6 +176,38 @@ def test_decode_long_returns_one_segment_for_a_ctc_only_checkpoint(s2t_config_fi
     assert isinstance(text, str)
 
 
+def test_ctc_log_probs_row_i_is_the_audio_at_frame_i(s2t_config_file, monkeypatch):
+    """The language and task positions are not audio, so they are not frames.
+
+    The encoder puts their embeddings in front of the frames. Counted as
+    frames, they put every row two frames late, which `ForcedAligner` reports
+    as time, and they cut the last two frames off the end of the recording.
+    `s2t_align.py` has always dropped them.
+    """
+    speech2text = Speech2TextBase(s2t_train_config=s2t_config_file)
+    # a 4 s window with 0.8 s of context is a whole number of frames throughout
+    monkeypatch.setitem(speech2text.preprocessor_conf, "speech_length", 4)
+    hop = round(speech2text.sample_rate / speech2text.frames_per_sec)
+
+    def encode(speech, prefix, **kwargs):
+        # one position per prefix symbol, then one per frame holding the first
+        # sample of that frame; one frame short, as the convolutions are
+        frames = speech[:, ::hop][:, :-1].unsqueeze(-1)
+        marks = speech.new_full((speech.size(0), prefix.size(1), 1), -1.0)
+        return torch.cat([marks, frames], dim=1), None
+
+    monkeypatch.setattr(speech2text.s2t_model, "encode", encode)
+    monkeypatch.setattr(speech2text.s2t_model.ctc, "log_softmax", lambda enc: enc)
+
+    # every sample says where it is; 0 is what the padding holds
+    seconds = 10
+    speech = np.arange(1, seconds * speech2text.sample_rate + 1, dtype=np.float32)
+    probs = speech2text.ctc_log_probs(speech, batch_size=2, context_len_in_secs=0.8)
+
+    assert len(probs) == round(seconds * speech2text.frames_per_sec)
+    assert probs[:, 0].tolist() == (1 + hop * np.arange(len(probs))).tolist()
+
+
 @pytest.mark.execution_timeout(40)
 def test_the_deprecated_class_decodes_the_same_way(s2t_config_file):
     speech2text = Speech2TextBase(s2t_train_config=s2t_config_file)

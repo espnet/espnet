@@ -1156,6 +1156,7 @@ class Speech2Text:
         batched = torch.tensor(np.array(buffers)).to(getattr(torch, self.dtype))
         buffer_frames = int(self.frames_per_sec * buffer_len_in_secs)
         context_frames = int(self.frames_per_sec * context_len_in_secs)
+        chunk_frames = buffer_frames - 2 * context_frames
 
         kept = []
         for idx in range(0, batched.size(0), batch_size):
@@ -1183,11 +1184,13 @@ class Speech2Text:
             enc, _ = self.s2t_model.encode(**batch)
             if isinstance(enc, tuple):
                 enc = enc[0]
-            # the convolutional front end can return more frames than the
-            # buffer itself, so the tail goes before the context does
-            enc = enc[:, :buffer_frames]
+            # The encoder puts the language and task embeddings in front of
+            # the frames, so the frame for time t is at position t + 2. They
+            # are not audio: counted as frames, they put every posterior two
+            # frames late and cut the last two off the end of the recording.
+            enc = enc[:, prefix.size(1) :]
             frames = self.s2t_model.ctc.log_softmax(enc)
-            kept.append(frames[:, context_frames:-context_frames])
+            kept.append(frames[:, context_frames : context_frames + chunk_frames])
 
         # (buffers, frames, vocab) back into one run of frames, cut to the
         # frames the recording itself covers rather than the padding
