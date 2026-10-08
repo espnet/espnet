@@ -56,6 +56,21 @@ def test_training_config_has_one_token_list_path():
     assert cfg["dataset"]["preprocessor"]["token_list"] == "${token_list}"
 
 
+def test_dataset_blocks_hand_the_preprocessor_to_data_organizer(monkeypatch):
+    """`_recursive_: false` lets DataOrganizer pass `train=` to the preprocessor.
+
+    Without it Hydra instantiates `CommonPreprocessor` first and fails on the
+    missing `train` argument at `collect_stats`.
+    """
+    for name in ("training.yaml", "inference.yaml"):
+        cfg = _load(monkeypatch, name, name)
+        assert cfg.dataset._recursive_ is False, name
+        assert (
+            cfg.dataset._target_
+            == "espnet3.components.data.data_organizer.DataOrganizer"
+        ), name
+
+
 def test_inference_config_loads(monkeypatch):
     """The model is the system's ``Inference``, so the declaration drives infer.
 

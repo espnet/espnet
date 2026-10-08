@@ -20,6 +20,7 @@ inference_dir: ${exp_dir}/${self_name:}
 # pairing.
 dataset:
   _target_: espnet3.components.data.data_organizer.DataOrganizer
+  _recursive_: false
   recipe_dir: ${recipe_dir}
   test:
     - name: librispeech_pc

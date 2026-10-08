@@ -76,9 +76,16 @@ def test_training_scaffold_names_the_keys_and_sets_no_model() -> None:
 
     # No ESPnet2 task bridge: an F5-TTS recipe instantiates `model._target_`.
     assert config.task is None
-    for key in ("dataset", "model", "optimizer", "scheduler", "dataloader"):
+    for key in ("model", "optimizer", "scheduler", "dataloader"):
         assert key in config
         assert config[key] is None
+    # The dataset scaffold hands DataOrganizer its preprocessor as a config, so
+    # it can pass `train=` itself; a recipe fills in the splits.
+    dataset = config.dataset
+    assert dataset._target_ == "espnet3.components.data.data_organizer.DataOrganizer"
+    assert dataset._recursive_ is False
+    for key in ("train", "valid", "test", "preprocessor"):
+        assert dataset[key] is None
     assert config.trainer.accelerator == "auto"
     assert config.parallel.n_workers == 1
 
@@ -160,10 +167,19 @@ def test_main_refuses_a_stage_without_its_config(stage) -> None:
         main(args=_run_arguments(stages=[stage]), system_cls=F5TTSSystem)
 
 
-def test_main_runs_the_data_stages(recipe_dir) -> None:
-    """``run.py`` dispatches the two F5-TTS data stages on a real recipe."""
+def test_main_runs_the_data_and_training_stages(recipe_dir) -> None:
+    """``run.py`` runs the recipe from manifests to a trained checkpoint.
+
+    The stages are given out of order on purpose: execution follows
+    ``DEFAULT_STAGES``. ``collect_stats`` and ``train`` build the data pipeline
+    the way a real run does, so the template's ``dataset`` scaffold has to
+    hand ``DataOrganizer`` the preprocessor as a config (``_recursive_:
+    false``): Hydra would otherwise build ``CommonPreprocessor`` first, without
+    the ``train`` argument it needs.
+    """
     import numpy as np
     import soundfile as sf
+    import yaml
 
     manifest_dir = recipe_dir / "data" / "manifest"
     manifest_dir.mkdir()
@@ -175,11 +191,18 @@ def test_main_runs_the_data_stages(recipe_dir) -> None:
             rows.append(f"{split}_{name}\t{wav_path}\tab cab\tspk\n")
         (manifest_dir / f"{split}.tsv").write_text("".join(rows), encoding="utf-8")
     (recipe_dir / "data" / "token_list" / "tokens.txt").unlink()
+    # One optimizer step is enough to prove the pipeline; the fixture's
+    # checkpoint is replaced by the one this run writes.
+    training_yaml = recipe_dir / "conf" / "training.yaml"
+    config = yaml.safe_load(training_yaml.read_text(encoding="utf-8"))
+    config["trainer"]["max_steps"] = 1
+    config["scheduler"]["warmup_steps"] = 0  # the schedule spans max_steps
+    training_yaml.write_text(yaml.safe_dump(config), encoding="utf-8")
+    (recipe_dir / "exp" / "training" / "last.ckpt").unlink()
 
     main(
         args=_run_arguments(
-            # Given out of order on purpose: execution follows DEFAULT_STAGES.
-            stages=["create_token_list", "remove_long_short"],
+            stages=["train", "collect_stats", "create_token_list", "remove_long_short"],
             training_config=Path("conf/training.yaml"),
         ),
         system_cls=F5TTSSystem,
@@ -197,3 +220,9 @@ def test_main_runs_the_data_stages(recipe_dir) -> None:
         "c",
         "<sos/eos>",
     ]
+    exp_dir = recipe_dir / "exp" / "training"
+    assert (exp_dir / "stats" / "train" / "feats_shape").is_file()
+    assert (exp_dir / "stats" / "valid" / "feats_shape").is_file()
+    # train wrote the config beside the checkpoint it produced.
+    assert (exp_dir / "config.yaml").is_file()
+    assert (exp_dir / "last.ckpt").is_file()

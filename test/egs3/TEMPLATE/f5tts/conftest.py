@@ -54,12 +54,24 @@ TRAINING_CONFIG = {
     "stats_dir": "${exp_dir}/stats",
     "inference_dir": "${exp_dir}/inference",
     "create_dataset": {"recipe_dir": "${recipe_dir}"},
+    # `_recursive_: false` comes from the template, as it does for a recipe.
     "dataset": {
         "_target_": "espnet3.components.data.data_organizer.DataOrganizer",
-        "_recursive_": False,
         "recipe_dir": "${recipe_dir}",
-        "train": None,
-        "valid": None,
+        "train": [
+            {
+                "data_src_args": {
+                    "manifest_path": "${remove_long_short.save_path}/train.tsv"
+                }
+            }
+        ],
+        "valid": [
+            {
+                "data_src_args": {
+                    "manifest_path": "${remove_long_short.save_path}/valid.tsv"
+                }
+            }
+        ],
         "preprocessor": {
             "_target_": "espnet2.train.preprocessor.CommonPreprocessor",
             "token_type": "${create_token_list.token_type}",
@@ -182,6 +194,31 @@ INFERENCE_CONFIG = {
     "batch_size": None,
 }
 
+# The recipe's `dataset` package: what espnet3 imports when a split names no
+# `data_src`. It reads the four-column manifest the data stages write.
+TOY_DATASET = '''"""Toy LibriTTS-shaped dataset for the template tests."""
+
+import numpy as np
+import soundfile as sf
+from torch.utils.data import Dataset as TorchDataset
+
+
+class Dataset(TorchDataset):
+    """Serve ``utt_id<TAB>wav_path<TAB>text<TAB>speaker`` rows."""
+
+    def __init__(self, manifest_path):
+        with open(manifest_path, encoding="utf-8") as f:
+            self.rows = [line.rstrip("\\n").split("\\t") for line in f if line.strip()]
+
+    def __len__(self):
+        return len(self.rows)
+
+    def __getitem__(self, idx):
+        _, wav_path, text, _ = self.rows[idx]
+        speech, _ = sf.read(wav_path, dtype="float32")
+        return {"text": text, "speech": np.asarray(speech, dtype=np.float32)}
+'''
+
 # A recipe overrides only what differs from the template: the directory its
 # token list lives in (OmegaConf replaces the list, so the rest is restated).
 PUBLICATION_CONFIG = {
@@ -238,7 +275,7 @@ def recipe_dir(tmp_path, monkeypatch):
     recipe = tmp_path / "egs3" / "minicorpus" / "f5tts"
     (recipe / "conf").mkdir(parents=True)
     (recipe / "dataset").mkdir()
-    (recipe / "dataset" / "__init__.py").write_text("", encoding="utf-8")
+    (recipe / "dataset" / "__init__.py").write_text(TOY_DATASET, encoding="utf-8")
 
     # src/: the template's helpers, copied as its README tells a recipe to.
     (recipe / "src").mkdir()

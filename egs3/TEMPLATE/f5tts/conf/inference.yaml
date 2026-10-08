@@ -12,7 +12,17 @@ exp_dir: ${recipe_dir}/exp/${exp_tag}
 data_dir: ${recipe_dir}/data
 inference_dir: ${exp_dir}/${self_name:}
 
+# `_recursive_: false` hands `DataOrganizer` the split entries and the
+# `preprocessor` block as configs: it instantiates the preprocessor itself,
+# with `train=False` for the test splits. Without
+# it Hydra would build the preprocessor first, and ESPnet2's
+# `CommonPreprocessor` needs that `train` argument.
 dataset:
+  _target_: espnet3.components.data.data_organizer.DataOrganizer
+  _recursive_: false
+  recipe_dir: ${recipe_dir}
+  test:
+  preprocessor:
 
 parallel:
   env: local
