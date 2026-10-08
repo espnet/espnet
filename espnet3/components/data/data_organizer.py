@@ -149,10 +149,12 @@ class DataOrganizer:
             ``recipe_dir/dataset``.
         train_mode (bool): Build the train split's ESPnet preprocessor in
             training mode (``train=True``: data augmentation and the other
-            train-only steps). ``collect_stats`` passes ``False``, as ESPnet2
+            train-only steps). ``collect_stats`` passes ``False`` by default, as ESPnet2
             collects statistics with ``build_preprocess_fn(args, train=False)``:
             random augmentation would make the statistics and shape files
-            differ from run to run. Valid and test are never in training mode.
+            differ from run to run (a training config can turn it back on
+            with ``collect_stats_train_mode: true``). Valid and test are
+            never in training mode.
 
     Attributes:
         train (CombinedDataset): Combined dataset built from training configurations,
@@ -255,9 +257,11 @@ class DataOrganizer:
             ...     train_mode=False,
             ... )
 
-        A recipe does not set ``train_mode``: the same ``dataset:`` block of
-        the training config serves both stages, and its augmentation applies
-        in ``train`` but not in ``collect_stats``:
+        A recipe does not set ``train_mode`` here: the same ``dataset:`` block
+        of the training config serves both stages, and its augmentation
+        applies in ``train`` but not in ``collect_stats``. The training
+        config's top-level ``collect_stats_train_mode: true`` applies it in
+        ``collect_stats`` too:
 
         .. code-block:: yaml
 

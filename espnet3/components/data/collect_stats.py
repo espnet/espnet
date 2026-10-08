@@ -120,7 +120,9 @@ def _build_collate_fn(dataloader_config):
 
 
 def _build_dataset(config: DictConfig):
-    dataset = _instantiate_dataset(config.dataset_config, config.mode)
+    dataset = _instantiate_dataset(
+        config.dataset_config, config.mode, config.get("train_mode", False)
+    )
     shard_idx = config.get("shard_idx")
     if shard_idx is not None:
         if not hasattr(dataset, "shard"):
@@ -160,15 +162,15 @@ def _chunk_indices(num_items: int, batch_size: int) -> List[List[int]]:
     return [b for b in batches if b]
 
 
-def _instantiate_dataset(dataset_config, mode: str):
+def _instantiate_dataset(dataset_config, mode: str, train_mode: bool = False):
     """Return one split of the configured organizer, built for statistics.
 
-    A ``DataOrganizer`` is built with ``train_mode=False``, so the train
-    split's ESPnet preprocessor applies no random augmentation, as ESPnet2
-    collects statistics (``build_preprocess_fn(args, train=False)``): the
-    feature statistics and the shape files the sampler batches by then do
-    not change from one run to the next. Another organizer is built as
-    configured.
+    A ``DataOrganizer`` is built with ``train_mode`` (``False`` unless asked
+    otherwise), so by default the train split's ESPnet preprocessor applies
+    no random augmentation, as ESPnet2 collects statistics
+    (``build_preprocess_fn(args, train=False)``): the feature statistics and
+    the shape files the sampler batches by then do not change from one run
+    to the next. Another organizer is built as configured.
     """
     if not isinstance(dataset_config, DictConfig):
         dataset_config = OmegaConf.create(dataset_config)
@@ -178,7 +180,7 @@ def _instantiate_dataset(dataset_config, mode: str):
     built = get_object(target) if target is not None else None
     is_organizer = isinstance(built, type) and issubclass(built, DataOrganizer)
     organizer = instantiate(
-        dataset_config, **({"train_mode": False} if is_organizer else {})
+        dataset_config, **({"train_mode": train_mode} if is_organizer else {})
     )
     dataset = getattr(organizer, mode, None)
     if dataset is None:
@@ -187,9 +189,12 @@ def _instantiate_dataset(dataset_config, mode: str):
 
 
 def _get_dataset_length(
-    dataset_config, mode: str, shard_idx: Optional[int] = None
+    dataset_config,
+    mode: str,
+    shard_idx: Optional[int] = None,
+    train_mode: bool = False,
 ) -> int:
-    dataset = _instantiate_dataset(dataset_config, mode)
+    dataset = _instantiate_dataset(dataset_config, mode, train_mode)
     if shard_idx is not None:
         if not hasattr(dataset, "shard"):
             raise RuntimeError("Dataset does not support sharding")
@@ -499,8 +504,9 @@ def _collect_stats_common(
     write_collected_feats: bool,
     batch_size: int,
     shard_idx: Optional[int] = None,
+    train_mode: bool = False,
 ):
-    num_items = _get_dataset_length(dataset_config, mode, shard_idx)
+    num_items = _get_dataset_length(dataset_config, mode, shard_idx, train_mode)
     index_batches = _chunk_indices(num_items, batch_size) if num_items else []
 
     provider = CollectStatsInferenceProvider(
@@ -510,7 +516,10 @@ def _collect_stats_common(
         mode=mode,
         task=task,
         shard_idx=shard_idx,
-        params={"write_collected_feats": write_collected_feats},
+        params={
+            "write_collected_feats": write_collected_feats,
+            "train_mode": train_mode,
+        },
     )
     runner = CollectStatsRunner(
         provider,
@@ -536,6 +545,7 @@ def collect_stats(
     parallel_config: Optional[DictConfig] = None,
     write_collected_feats: bool = False,
     batch_size: int = 4,
+    train_mode: bool = False,
 ):
     """Entry point for collecting dataset statistics used for feature normalization.
 
@@ -557,6 +567,11 @@ def collect_stats(
         parallel_config: Configuration for parallel execution.
         write_collected_feats: Whether to persist the raw collected features.
         batch_size: Number of dataset items processed per batch.
+        train_mode: Build the train split's ESPnet preprocessor in training
+            mode, so its random augmentation is applied. ``False`` by
+            default, as in ESPnet2: the statistics and shape files are then
+            the same on every run and match the unaugmented input the model
+            sees at inference.
 
     Returns:
         None: Aggregated statistics are saved under ``output_dir / mode``.
@@ -580,6 +595,7 @@ def collect_stats(
         task=task,
         write_collected_feats=write_collected_feats,
         batch_size=batch_size,
+        train_mode=train_mode,
     )
 
     mode_dir = output_dir / mode
