@@ -128,9 +128,9 @@ def main(
     """Load the stage configs, build the system, and run the chosen stages.
 
     Each ``--*_config`` is merged over the matching default in this package's
-    ``conf/`` directory. The training config is the exception to rely on
-    that for: F5-TTS inference rebuilds the model from the recipe's training
-    YAML alone, so that file must be complete by itself.
+    ``conf/`` directory, so a recipe config holds only its delta.
+    ``F5TTSSystem.train`` writes the merged training config to
+    ``${exp_dir}/config.yaml``, which inference rebuilds the model from.
 
     Args:
         args: Parsed CLI namespace from :func:`build_parser`.

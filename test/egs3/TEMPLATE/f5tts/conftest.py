@@ -2,9 +2,10 @@
 
 The recipe is laid out under ``egs3/<corpus_name>/f5tts/`` inside a
 temporary directory, the way a real one is, with a freshly initialised model
-saved as its checkpoint. Its configs are complete, as a recipe's must be: the
-template's own configs are scaffolds that only name the keys. Nothing is
-trained and nothing is downloaded: the vocoder is replaced by a stand-in.
+saved as its checkpoint. Its configs are deltas over the template's defaults,
+as a recipe's are; the training one is written out in full so the test reads
+as one file. Nothing is trained and nothing is downloaded: the vocoder is
+replaced by a stand-in.
 """
 
 import shutil
@@ -296,7 +297,7 @@ def recipe_dir(tmp_path, monkeypatch):
         shutil.copy(template_path("src", name), recipe / "src" / name)
 
     # conf/: the recipe's configs, merged by `run.py` over the template's
-    # defaults: training and inference complete, the others overrides.
+    # defaults.
     for name, content in {
         "training.yaml": TRAINING_CONFIG,
         "inference.yaml": INFERENCE_CONFIG,

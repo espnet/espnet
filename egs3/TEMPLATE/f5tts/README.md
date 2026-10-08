@@ -2,11 +2,12 @@
 
 Shared runner, default configs and demo app for recipes that train
 `espnet3.systems.f5tts.f5tts.F5TTS`.
-A recipe adds its `dataset/` package (a `DatasetBuilder` writing
-`utt_id<TAB>wav_path<TAB>text` manifests and a `Dataset` reading them), a
-complete `conf/training.yaml`, the `dataset.test` entries of
-`conf/inference.yaml`, a copy of `src/app.py`, and a thin `run.py`; see
-`egs3/libritts/f5tts`.
+A recipe adds its `dataset/` package (a `DatasetBuilder` writing tab-separated
+manifests whose first three columns are `utt_id`, `wav_path` and `text`, and a
+`Dataset` reading them), its `conf/*.yaml` deltas over this template's
+defaults (the model, data and schedule in `training.yaml`, the `dataset.test`
+entries and sampling settings in `inference.yaml`), a copy of `src/app.py`,
+and a thin `run.py`; see `egs3/libritts/f5tts`.
 
 ## Quick start
 
@@ -46,7 +47,11 @@ python run.py --stages pack_demo upload_demo \
 `measure` needs `versa` (`tools/installers/install_versa.sh`), `faster-whisper`
 (VERSA's `tools/install_fwhisper.sh`), `openai-whisper` (the text cleaner) and
 `s3prl` (the speaker model's front-end); `conf/metrics.yaml` says how the
-scores relate to the official F5-TTS scorer.
+scores relate to the official F5-TTS scorer. Its defaults score on a GPU
+(`use_gpu: true`, faster-whisper `compute_type: float16`); on a CPU-only
+machine override the metric in your recipe's `metrics.yaml` with
+`use_gpu: false` and a CPU `compute_type` (faster-whisper's `int8` or
+`float32`).
 
 ## Using a packed model
 
