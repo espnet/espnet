@@ -561,6 +561,7 @@ class TextOrganizer:
         self.valid = TextDataset(n=n_valid)
 
 
+@pytest.mark.execution_timeout(30)
 @pytest.mark.parametrize("use_parallel", [False, True])
 def test_collect_stats_writes_text_shape_file(tmp_path: Path, use_parallel):
     """The new shape keys survive sharding and aggregation onto disk."""

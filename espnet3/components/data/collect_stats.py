@@ -72,6 +72,9 @@ def collect_stats_batch(
             "collect_stats kwargs conflict with batch tensors: " + ", ".join(conflict)
         )
 
+    # "<name>_lengths" is a naming contract shared with espnet2's collate
+    # functions: it carries the unpadded lengths of "<name>", not a stream of
+    # its own, so it is skipped here and used to trim the padding instead.
     shape_info = defaultdict(dict)
     for name, tensor in tensors.items():
         if name.endswith("_lengths") or isinstance(tensor, Mapping):
