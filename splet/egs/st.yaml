@@ -4,6 +4,8 @@
 # All three are corpus-level. Options are sacrebleu's own keyword arguments
 # (sacrebleu.metrics.BLEU / CHRF / TER), and the summary's metadata carries
 # sacrebleu's signature so the number can be compared with a published one.
+# TER is registered as translation_edit_rate so it cannot be confused with the
+# utterance tier's token_error_rate.
 #
 # st.sh's `sacrebleu -lc` call is `lowercase: true` on bleu only: -lc does not
 # change chrF or TER. st.sh runs remove_punctuation.pl before it, which SPLET
@@ -13,4 +15,4 @@ metrics:
   - name: bleu
     tokenize: 13a     # zh / ja-mecab for targets without spaces between words
   - name: chrf
-  - name: ter
+  - name: translation_edit_rate

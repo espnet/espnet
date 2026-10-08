@@ -117,9 +117,9 @@ METRIC_CHOICES: Dict[str, MetricSpec] = {
         outputs=bleu.OUTPUTS,
         requires=("reference",),
     ),
-    "ter": MetricSpec(
+    "translation_edit_rate": MetricSpec(
         tier="corpus",
-        setup=bleu.ter_setup,
+        setup=bleu.translation_edit_rate_setup,
         metric=bleu.sacrebleu_metric,
         outputs=bleu.OUTPUTS,
         requires=("reference",),

@@ -105,8 +105,10 @@ def chrf_setup(
     return _setup("chrf", CHRF, metric_id, normalize, kwargs)
 
 
-def ter_setup(
-    metric_id: str = "ter", normalize: Optional[list] = None, **kwargs
+def translation_edit_rate_setup(
+    metric_id: str = "translation_edit_rate",
+    normalize: Optional[list] = None,
+    **kwargs,
 ) -> Dict[str, Any]:
     """Prepare corpus TER (translation edit rate; lower is better).
 
@@ -118,7 +120,7 @@ def ter_setup(
     Returns:
         The state passed back into :func:`sacrebleu_metric`.
     """
-    return _setup("ter", TER, metric_id, normalize, kwargs)
+    return _setup("translation_edit_rate", TER, metric_id, normalize, kwargs)
 
 
 def sacrebleu_metric(
@@ -130,7 +132,7 @@ def sacrebleu_metric(
 
     Args:
         state: State from :func:`bleu_setup`, :func:`chrf_setup` or
-            :func:`ter_setup`.
+            :func:`translation_edit_rate_setup`.
         pred_texts: Hypotheses, one per utterance.
         gt_texts: References, in the same order as ``pred_texts``.
 

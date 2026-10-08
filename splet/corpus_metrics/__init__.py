@@ -32,7 +32,12 @@ from splet.corpus_metrics.bleu import (  # noqa: F401
     bleu_setup,
     chrf_setup,
     sacrebleu_metric,
-    ter_setup,
+    translation_edit_rate_setup,
 )
 
-__all__ = ["bleu_setup", "chrf_setup", "sacrebleu_metric", "ter_setup"]
+__all__ = [
+    "bleu_setup",
+    "chrf_setup",
+    "sacrebleu_metric",
+    "translation_edit_rate_setup",
+]

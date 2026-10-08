@@ -7,7 +7,12 @@ import sys
 import pytest
 
 from splet.bin.measure import main
-from splet.corpus_metrics import bleu_setup, chrf_setup, sacrebleu_metric, ter_setup
+from splet.corpus_metrics import (
+    bleu_setup,
+    chrf_setup,
+    sacrebleu_metric,
+    translation_edit_rate_setup,
+)
 from splet.metric_registry import load_corpus_metrics, measure_corpus
 
 pytest.importorskip("sacrebleu")
@@ -64,10 +69,14 @@ def test_matches_st_sh_case_sensitive_pass(tmp_path, capsys):
     """st.sh: sacrebleu ref -i hyp -m bleu chrf ter."""
     expected = _sacrebleu_cli(tmp_path)
     summary = _splet_measure(
-        tmp_path, capsys, "- name: bleu\n- name: chrf\n- name: ter\n"
+        tmp_path, capsys, "- name: bleu\n- name: chrf\n- name: translation_edit_rate\n"
     )
 
-    for key, name in (("bleu", "BLEU"), ("chrf", "chrF2"), ("ter", "TER")):
+    for key, name in (
+        ("bleu", "BLEU"),
+        ("chrf", "chrF2"),
+        ("translation_edit_rate", "TER"),
+    ):
         assert summary[key] == pytest.approx(expected[name]["score"], abs=1e-6)
         signature = summary["metadata"]["metrics"][key]["signature"]
         assert signature == expected[name]["signature"]
@@ -84,10 +93,15 @@ def test_matches_st_sh_lowercased_sacrebleu_call(tmp_path, capsys):
     summary = _splet_measure(
         tmp_path,
         capsys,
-        "- name: bleu\n  lowercase: true\n- name: chrf\n- name: ter\n",
+        "- name: bleu\n  lowercase: true\n"
+        "- name: chrf\n- name: translation_edit_rate\n",
     )
 
-    for key, name in (("bleu", "BLEU"), ("chrf", "chrF2"), ("ter", "TER")):
+    for key, name in (
+        ("bleu", "BLEU"),
+        ("chrf", "chrF2"),
+        ("translation_edit_rate", "TER"),
+    ):
         assert summary[key] == pytest.approx(expected[name]["score"], abs=1e-6)
         signature = summary["metadata"]["metrics"][key]["signature"]
         assert signature == expected[name]["signature"]
@@ -116,7 +130,7 @@ def test_normalization_is_applied_to_both_sides():
     for setup, name, perfect in (
         (bleu_setup, "bleu", 100.0),
         (chrf_setup, "chrf", 100.0),
-        (ter_setup, "ter", 0.0),
+        (translation_edit_rate_setup, "translation_edit_rate", 0.0),
     ):
         result = sacrebleu_metric(setup(normalize=normalize), hyps, refs)
         assert result[name] == pytest.approx(perfect)
@@ -189,5 +203,5 @@ def test_corpus_and_utterance_metrics_in_one_config(tmp_path, capsys):
 def test_list_metrics_shows_the_corpus_tier(capsys):
     assert main(["--list_metrics"]) == 0
     printed = capsys.readouterr().out
-    for name in ("bleu", "chrf", "ter"):
+    for name in ("bleu", "chrf", "translation_edit_rate"):
         assert f"{name}\tcorpus" in printed
