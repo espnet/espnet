@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-"""Inference script for ESPnet Universa model."""
+"""Inference script for ESPnet audio quality assessment."""
 
 import argparse
 import json
@@ -15,7 +15,7 @@ from typeguard import typechecked
 
 from espnet2.fileio.datadir_writer import DatadirWriter
 from espnet2.legacy.utils.cli_utils import get_commandline_args
-from espnet2.tasks.audio_metric import AudioMetricTask
+from espnet2.tasks.aqa import AqaTask
 from espnet2.torch_utils.device_funcs import to_device
 from espnet2.torch_utils.set_all_random_seed import set_all_random_seed
 from espnet2.utils import config_argparse
@@ -23,8 +23,8 @@ from espnet2.utils.pretrained import download_pretrained
 from espnet2.utils.types import str2bool, str2triple_str, str_or_none
 
 
-class UniversaInference:
-    """Inference class for ESPnet Universa model."""
+class AqaInference:
+    """Inference class for ESPnet audio quality assessment."""
 
     @typechecked
     def __init__(
@@ -42,10 +42,10 @@ class UniversaInference:
         fixed_metric_name_order: str = "",
         metric_list: Optional[List[str]] = None,
     ):
-        """Initialize UniversaInference class."""
+        """Initialize AqaInference class."""
 
         # setup model
-        model, train_args = AudioMetricTask.build_model_from_file(
+        model, train_args = AqaTask.build_model_from_file(
             train_config, model_file, device
         )
         model.to(dtype=getattr(torch, dtype)).eval()
@@ -55,7 +55,7 @@ class UniversaInference:
         self.model = model
         self.universa = model.universa
         self.frontend = model.frontend
-        self.preprocess_fn = AudioMetricTask.build_preprocess_fn(train_args, False)
+        self.preprocess_fn = AqaTask.build_preprocess_fn(train_args, False)
         self.seed = seed
         self.always_fix_seed = always_fix_seed
         self.metric_tokenizer = getattr(self.preprocess_fn, "metric_tokenizer", None)
@@ -154,10 +154,10 @@ class UniversaInference:
         model_tag: Optional[str] = None,
         **kwargs: Optional[Any],
     ):
-        """Build UniversaInference from pretrained model."""
+        """Build AqaInference from pretrained model."""
         if model_tag is not None:
             kwargs.update(download_pretrained(model_tag))
-        return UniversaInference(**kwargs)
+        return AqaInference(**kwargs)
 
 
 @typechecked
@@ -205,8 +205,8 @@ def inference(
     # 1. set random seed
     set_all_random_seed(seed)
 
-    # 2. setup UniversaInference (build model)
-    universa_inference = UniversaInference.from_pretrained(
+    # 2. setup AqaInference (build model)
+    universa_inference = AqaInference.from_pretrained(
         model_tag=model_tag,
         train_config=train_config,
         model_file=model_file,
@@ -228,18 +228,14 @@ def inference(
         raise ValueError("ARECHO inference requires batch_size=1.")
 
     # 3. setup data loader
-    loader = AudioMetricTask.build_streaming_iterator(
+    loader = AqaTask.build_streaming_iterator(
         data_path_and_name_and_type,
         dtype=dtype,
         batch_size=batch_size,
         num_workers=num_workers,
         key_file=key_file,
-        preprocess_fn=AudioMetricTask.build_preprocess_fn(
-            universa_inference.train_args, False
-        ),
-        collate_fn=AudioMetricTask.build_collate_fn(
-            universa_inference.train_args, False
-        ),
+        preprocess_fn=AqaTask.build_preprocess_fn(universa_inference.train_args, False),
+        collate_fn=AqaTask.build_collate_fn(universa_inference.train_args, False),
         allow_variable_data_keys=allow_variable_data_keys,
         inference=True,
     )

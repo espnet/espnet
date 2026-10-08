@@ -175,6 +175,24 @@ class TestDiscreteAudioIOInit:
                     codec_choice=None,
                 )
 
+    def test_worker_copy_keeps_original_models_and_preprocessing(self, codec_only_io):
+        io = codec_only_io
+        io.codec_model = torch.nn.Linear(2, 2)
+        original_model = io.codec_model
+        with patch.object(DiscreteAudioIO, "_init_codec", side_effect=AssertionError):
+            worker = io.copy_for_worker()
+        assert io.codec_model is original_model
+        assert list(io.parameters())
+        assert not list(worker.parameters())
+        assert worker.get_vocabulary() == io.get_vocabulary()
+        sample = (np.zeros((1, 1600), dtype=np.float32), 16000)
+        expected = io.preprocess(sample)
+        actual = worker.preprocess(sample)
+        np.testing.assert_array_equal(actual[0], expected[0])
+        np.testing.assert_array_equal(actual[2], expected[2])
+        assert actual[1][0] == expected[1][0]
+        torch.testing.assert_close(actual[1][1], expected[1][1])
+
 
 # ---------------------------------------------------------------------------
 # DiscreteAudioIO — num_stream
@@ -513,9 +531,52 @@ class TestContinuousAudioIO:
         assert io.modality == "audio"
         assert io.is_discrete is False
 
+    def test_worker_copy_keeps_original_encoder(self):
+        io = self._make_continuous_io()
+        io.model = torch.nn.Linear(2, 2)
+        original_model = io.model
+        with patch.object(
+            ContinuousAudioIO, "_init_encoder", side_effect=AssertionError
+        ):
+            worker = io.copy_for_worker()
+        assert io.model is original_model
+        assert list(io.parameters())
+        assert not list(worker.parameters())
+        sample = (np.zeros((1, 1600), dtype=np.float32), 16000)
+        assert worker.find_length(sample) == io.find_length(sample)
+        assert worker.feature_dim() == io.feature_dim()
+
     def test_feature_dim(self):
         io = self._make_continuous_io()
         assert io.feature_dim() == 3584
+
+    @pytest.mark.parametrize(
+        "model_tag", ["Qwen/Qwen2.5-Omni-7B", "Qwen/Qwen3-Omni-30B-A3B-Instruct"]
+    )
+    @pytest.mark.parametrize("structured_output", [False, True])
+    def test_encode_batch_extracts_features(self, model_tag, structured_output):
+        """Preserve features from tensor and structured encoder outputs."""
+        io = self._make_continuous_io(model_tag)
+        lengths = torch.tensor([100, 50])
+        output_lengths = io.find_length(None, before_length=lengths)
+        features = torch.arange(int(output_lengths.sum()) * 4).reshape(-1, 4)
+        batch = torch.randn(2, 100, 80)
+
+        class Encoder(torch.nn.Module):
+            def get_audio_features(self, data, feature_attention_mask):
+                torch.testing.assert_close(data, batch.transpose(1, 2))
+                expected = torch.arange(100).unsqueeze(0) < lengths.unsqueeze(1)
+                torch.testing.assert_close(feature_attention_mask, expected.int())
+                return (
+                    types.SimpleNamespace(last_hidden_state=features)
+                    if structured_output
+                    else features
+                )
+
+        io.model = Encoder()
+        result = io.encode_batch(batch, lengths)
+        assert [value.shape[0] for value in result] == output_lengths.tolist()
+        torch.testing.assert_close(torch.cat(result), features)
 
     def test_find_length_qwen25(self):
         io = self._make_continuous_io("Qwen/Qwen2.5-Omni-7B")

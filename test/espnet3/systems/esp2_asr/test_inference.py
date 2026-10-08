@@ -14,6 +14,22 @@ from espnet3.systems.base.inference_runner import InferenceRunner
 from espnet3.systems.esp2_asr.inference import Inference
 
 
+@pytest.fixture(autouse=True)
+def _test_classes_count_as_installed_espnet_code(monkeypatch):
+    """Let the stand-ins below pass for ESPnet2's own Speech2Text.
+
+    A backend_class argument must resolve to an espnet2/espnet3 class; the
+    tests patch espnet2.bin.*.Speech2Text with classes defined here.
+    """
+    import espnet3.api.inference.loading as loading
+
+    monkeypatch.setattr(
+        loading,
+        "_BUNDLE_TARGET_PREFIXES",
+        loading._BUNDLE_TARGET_PREFIXES + (f"{__name__}.",),
+    )
+
+
 class FakeSpeech2Text:
     """Returns the n-best list Speech2Text does, remembering its input."""
 

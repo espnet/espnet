@@ -26,6 +26,22 @@ from espnet3.publication.schema import PACK_SCHEMA_VERSION
 from espnet3.systems.base.inference_provider import InferenceProvider
 
 
+@pytest.fixture(autouse=True)
+def _test_classes_count_as_installed_espnet_code(monkeypatch):
+    """Let this module's classes stand in for ESPnet's own in bundles.
+
+    A bundle may build only espnet2/espnet3 classes unless trusted; the
+    bundles written here name classes defined in this test module instead.
+    The gate itself is tested with the real namespaces, which
+    ``real_target_policy`` restores.
+    """
+    monkeypatch.setattr(
+        loading,
+        "_BUNDLE_TARGET_PREFIXES",
+        loading._BUNDLE_TARGET_PREFIXES + (f"{__name__}.",),
+    )
+
+
 class Echo(InferenceAPI):
     """An Inference a bundle may name as its model."""
 
@@ -389,4 +405,77 @@ def test_a_system_bundle_with_bundled_code_is_told_to_repack(tmp_path):
         tmp_path, model_target="src.code.Local", system="esp2_asr", bundled=True
     )
     with pytest.raises(ValueError, match="names system 'esp2_asr'.*Re-pack"):
+        read_bundle(root)
+
+
+# --- what an untrusted bundle may build (issue #6828) -----------------------
+
+
+@pytest.fixture
+def real_target_policy(monkeypatch):
+    """The namespaces production uses: espnet2 and espnet3 classes only."""
+    monkeypatch.setattr(loading, "_BUNDLE_TARGET_PREFIXES", ("espnet2.", "espnet3."))
+
+
+ESP2_ASR = "espnet3.systems.esp2_asr.inference.Inference"
+
+
+@pytest.mark.parametrize(
+    "target", ["builtins.dict", "os.system", "pathlib.Path", "torch.load"]
+)
+def test_an_installed_callable_is_refused_without_trust(
+    tmp_path, real_target_policy, target
+):
+    """The bundled-code check never sees these: nothing of them is in the bundle."""
+    with pytest.raises(ValueError, match=f"outside the classes.*{target}"):
+        read_bundle(_pack(tmp_path, model_target=target))
+
+
+def test_a_nested_target_is_refused_before_anything_runs(
+    tmp_path, real_target_policy, capsys
+):
+    """Hydra would call a target buried in an argument as readily as the top one."""
+    root = _pack(
+        tmp_path,
+        model_target=ESP2_ASR,
+        extra="  asr_train_config:\n    _target_: builtins.print\n"
+        "    _args_: ['NESTED TARGET RAN']\n",
+    )
+    with pytest.raises(ValueError, match="builtins.print"):
+        load_model(root)
+    assert "NESTED TARGET RAN" not in capsys.readouterr().out
+
+
+def test_a_written_path_cannot_leave_its_namespace(tmp_path, real_target_policy):
+    """An allowed module that imports os makes `<it>.os.system` reach os.system."""
+    target = "espnet3.systems.base.inference_provider.os.system"
+    with pytest.raises(ValueError, match="resolves to"):
+        read_bundle(_pack(tmp_path, model_target=target))
+
+
+def test_a_function_in_an_allowed_namespace_is_refused(tmp_path, real_target_policy):
+    """Masao's case: espnet2.bin.launch.main starts subprocesses with its args."""
+    with pytest.raises(ValueError, match="launch.main .*not a class"):
+        read_bundle(_pack(tmp_path, model_target="espnet2.bin.launch.main"))
+
+
+@pytest.mark.parametrize("target", [ESP2_ASR, "espnet2.bin.asr_inference.Speech2Text"])
+def test_an_espnet_model_class_is_allowed(tmp_path, real_target_policy, target):
+    config, _ = read_bundle(_pack(tmp_path, model_target=target))
+    assert config.model._target_ == target
+
+
+def test_trust_user_code_lets_a_trusted_publisher_through(tmp_path, real_target_policy):
+    config, _ = read_bundle(
+        _pack(tmp_path, model_target="os.system"), trust_user_code=True
+    )
+    assert config.model._target_ == "os.system"  # read, not built
+
+
+def test_a_system_bundle_with_a_disallowed_target_is_told_to_repack(
+    tmp_path, real_target_policy
+):
+    """load() never passes trust to a system's bundle, so trust is no remedy."""
+    root = _pack(tmp_path, model_target="os.system", system="esp2_asr")
+    with pytest.raises(ValueError, match="names system 'esp2_asr'.*re-pack"):
         read_bundle(root)

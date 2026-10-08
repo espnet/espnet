@@ -8,8 +8,8 @@ import torch
 def test_frontend_wrapper_training_stats_and_checkpoint(
     make_model, multi_branch, references
 ):
+    from espnet2.aqa.espnet_model import ESPnetUniversaModel
     from espnet2.asr.frontend.default import DefaultFrontend
-    from espnet2.universa.espnet_model import ESPnetUniversaModel
 
     predictor = make_model(
         multi_branch=multi_branch,
@@ -65,8 +65,8 @@ def test_frontend_wrapper_training_stats_and_checkpoint(
 
 
 def test_reference_free_predictor_uses_abstract_defaults():
-    from espnet2.universa.abs_universa import AbsUniversa
-    from espnet2.universa.espnet_model import ESPnetUniversaModel
+    from espnet2.aqa.abs_universa import AbsUniversa
+    from espnet2.aqa.espnet_model import ESPnetUniversaModel
 
     class ReferenceFreePredictor(AbsUniversa):
         def forward(self, audio, audio_lengths, metrics, **kwargs):
@@ -89,7 +89,7 @@ def test_reference_free_predictor_uses_abstract_defaults():
 @pytest.mark.parametrize("method", ["forward", "inference"])
 @pytest.mark.parametrize("reference", ["ref_audio", "ref_text"])
 def test_reference_requires_lengths(make_model, method, reference):
-    from espnet2.universa.espnet_model import ESPnetUniversaModel
+    from espnet2.aqa.espnet_model import ESPnetUniversaModel
 
     model = ESPnetUniversaModel(make_model(), None)
     inputs = {

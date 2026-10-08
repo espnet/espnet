@@ -48,6 +48,7 @@ import humanfriendly
 from hydra.utils import get_class
 
 from espnet3.api.inference import InferenceAPI, ModelTagError, load_model, locate_pack
+from espnet3.api.inference.loading import _disallowed_targets
 
 
 def parse_rate(value: Any) -> int:
@@ -118,9 +119,24 @@ class BackendInference(InferenceAPI):
     def _backend_type(cls, backend_class: Optional[str] = None) -> type:
         """Return the backend class to build: the argument, else the declared one.
 
+        The declared ``backend_class`` is the system's own code. One passed
+        as an argument can come from a published bundle's
+        ``conf/inference.yaml``, so it must be an ESPnet2 or ESPnet3 class,
+        checked as a bundle's ``_target_`` is - by name before anything is
+        imported, then by what it resolves to - since importing it runs
+        that module and building it runs its constructor.
+
         Raises:
             TypeError: If neither names a class.
+            ValueError: If the argument names anything but an ESPnet class.
         """
+        if backend_class:
+            disallowed = _disallowed_targets({"_target_": backend_class})
+            if disallowed:
+                raise ValueError(
+                    "backend_class must be an ESPnet2 or ESPnet3 class; "
+                    f"{', '.join(disallowed)} is not"
+                )
         path = backend_class or cls.backend_class
         if not path:
             raise TypeError(
