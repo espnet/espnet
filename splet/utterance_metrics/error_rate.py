@@ -8,7 +8,7 @@
 One implementation over two unit types, because WER and CER are the same
 computation on different tokens. Each result carries its counts next to its
 rate so that the corpus figure is pooled rather than averaged; see
-``splet/metrics.py`` for why that is not cosmetic.
+``splet/summary.py`` for why that is not cosmetic.
 
 This is the one metric the skeleton implements, to pin down the contract
 every other metric follows. Its S/D/I split has not yet been checked against

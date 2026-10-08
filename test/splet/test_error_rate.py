@@ -4,7 +4,8 @@ import random
 
 import pytest
 
-from splet.metric_registry import load_metrics, measure_utterances, summarize
+from splet.metric_registry import load_metrics, measure_utterances
+from splet.summary import summarize
 from splet.utterance_metrics import error_rate_metric, error_rate_setup
 
 

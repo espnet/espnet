@@ -21,8 +21,8 @@ strings::
 
 :class:`splet.structures.Session` is what both sides arrive as. A metric here
 reports its counts (``*_errors``, ``*_ref_len``) alongside its rate, so that
-:func:`splet.metric_registry.summarize` pools them over recordings instead
-of averaging rates -- see ``splet/metrics.py``.
+:func:`splet.summary.summarize` pools them over recordings instead
+of averaging rates -- see ``splet/summary.py``.
 
 Two things are worth settling before the first metric is written here, rather
 than after:

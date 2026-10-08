@@ -118,7 +118,9 @@ include = ["espnet*", "egs3*", "splet*"]
 
 [tool.setuptools.package-data]
 egs3 = ["egs3/TEMPLATE/**/*.yaml"]
-splet = ["egs/*.yaml"]
+# splet/egs/ is deliberately not shipped: it holds one example config to copy
+# out of the repository, nothing loads it through importlib.resources, and it
+# is not a package (no __init__.py).
 
 
 [project.optional-dependencies]

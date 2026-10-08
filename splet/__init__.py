@@ -17,8 +17,8 @@ from splet.metric_registry import (  # noqa: F401
     measure_corpus,
     measure_sessions,
     measure_utterances,
-    summarize,
 )
+from splet.summary import summarize  # noqa: F401
 
 __all__ = [
     "measure_corpus",

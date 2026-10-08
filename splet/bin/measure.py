@@ -30,12 +30,8 @@ from typing import Optional, Sequence
 
 import yaml
 
-from splet.metric_registry import (
-    METRIC_CHOICES,
-    load_metrics,
-    measure_utterances,
-    summarize,
-)
+from splet.metric_registry import METRIC_CHOICES, load_metrics, measure_utterances
+from splet.summary import summarize
 from splet.utils_shared import IO_CHOICES, text_loader_setup
 
 

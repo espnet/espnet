@@ -24,7 +24,6 @@ import json
 import logging
 from typing import Any, Dict, List, Optional, Sequence
 
-from splet import metrics as metric_keys
 from splet.utterance_metrics import error_rate
 
 # name -> how to build it and how to call it.
@@ -91,7 +90,6 @@ def load_metrics(
         modules[name] = {
             "module": choice["metric"],
             "state": choice["setup"](**kwargs),
-            "config": {"name": name, **kwargs},
         }
         logging.info("Initiate %s evaluation successfully.", name)
     return modules
@@ -235,45 +233,3 @@ def measure_corpus(*args, **kwargs):
     raise NotImplementedError(
         "the corpus tier has no metrics yet; see splet/corpus_metrics"
     )
-
-
-def summarize(results: Sequence[Dict[str, Any]]) -> Dict[str, Any]:
-    """Summarize per-utterance results into corpus figures.
-
-    Counts are summed. An error rate is recomputed from the summed counts --
-    ``sum(errors) / sum(ref_len)`` -- which is what SCTK reports and is not
-    the mean of the per-utterance rates unless every utterance is the same
-    length. Anything else numeric is averaged. Text keys are skipped.
-
-    Args:
-        results: Per-utterance results from :func:`measure_utterances`.
-
-    Returns:
-        The corpus figures, plus ``num_utterances``.
-    """
-    if not results:
-        return {"num_utterances": 0}
-
-    keys = [key for key in results[0] if key != "key"]
-    summary: Dict[str, Any] = {"num_utterances": len(results)}
-
-    for key in keys:
-        if metric_keys.is_str_key(key):
-            continue
-        values = [result[key] for result in results if key in result]
-        if metric_keys.is_count_key(key):
-            summary[key] = sum(values)
-        elif (
-            f"{key}{metric_keys.ERROR_SUFFIX}" in keys
-            and f"{key}{metric_keys.REF_LEN_SUFFIX}" in keys
-        ):
-            errors = sum(
-                result[f"{key}{metric_keys.ERROR_SUFFIX}"] for result in results
-            )
-            ref_len = sum(
-                result[f"{key}{metric_keys.REF_LEN_SUFFIX}"] for result in results
-            )
-            summary[key] = errors / ref_len if ref_len else 0.0
-        else:
-            summary[key] = sum(values) / len(values)
-    return summary

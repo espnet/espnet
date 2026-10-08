@@ -5,6 +5,11 @@
 
 """Normalization pipelines.
 
+A step is a ``Callable[[str], str]``, not specifically a function: a step
+that needs state of its own -- a loaded table, a compiled model -- is written
+as a class with ``__call__`` and registers the same way. The setups below
+return plain closures only because none of them needs more than that yet.
+
 A pipeline is configured exactly the way a VERSA metric list is -- a YAML
 list of ``- name: X`` entries with per-entry keyword arguments::
 
