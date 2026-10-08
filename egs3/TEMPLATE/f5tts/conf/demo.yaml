@@ -28,13 +28,18 @@ model:
 # `espnet3.systems.f5tts.inference.Inference`, bound positionally by
 # `src/app.py` (the recipe's copy of the template's launcher). All three
 # inputs are required: an empty "Reference transcript" box is reported as
-# missing, not guessed from the target text. `ui.description` is a file
-# `pack_demo` copies into the bundle (the recipe README by default) or inline
-# text.
+# missing, not guessed from the target text. `ui.description` is shown above
+# the inputs: a file `pack_demo` copies into the bundle, named relative to
+# the recipe or to the repository root (this template's `src/demo_description.md`,
+# which explains the three inputs), or inline text.
+# `ui.examples` fills the inputs at a click: one row per example, the values in
+# the order of `ui.inputs`, an audio value being a path inside the packed demo
+# (list the file under `pack.include` so `pack_demo` copies it there).
 ui:
   app_script: src/app.py
   title: ${set_corpus_and_system:} demo
-  description: README.md
+  description: egs3/TEMPLATE/f5tts/src/demo_description.md
+  examples:
   inputs:
     - key: text
       type: text
@@ -80,6 +85,9 @@ pack:
       - f5-tts
     hf_repo: ${upload_demo.hf_repo}
     model_ref: ${model.dir_or_tag}
+    # Free text for the Space card, e.g. the credit for an example recording;
+    # an empty value drops the line.
+    notes: ""
 
 # `update: false` refuses to overwrite an existing Space; `delete_patterns`
 # applies only when `update: true` (`["*"]` replaces, `[]` adds).

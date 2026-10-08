@@ -9,7 +9,24 @@
 #
 # Merged over `egs3/TEMPLATE/f5tts/conf/demo.yaml`, which wires the demo to
 # the fields of `espnet3.systems.f5tts.inference.Inference`, packs `src/app.py`
-# with this README as its description, and names the Space
-# `espnet/${set_corpus_and_system:}_${exp_tag}`. This recipe changes none of
-# it; override a key here (say `upload_demo.hf_repo`) to publish elsewhere.
+# with the template's input guide as its description, and names the Space
+# `espnet/${set_corpus_and_system:}_${exp_tag}`. This recipe adds one example
+# the visitor can run at a click: the first LibriSpeech-PC pair, whose prompt
+# recording `create_dataset` downloaded into `downloads/` (LibriSpeech is
+# CC BY 4.0; the Space README credits it). `pack.include` copies the file into
+# the packed demo at the same relative path, which the example row names.
 recipe_dir: .
+
+ui:
+  examples:
+    - - "But the more forgetfulness had then prevailed, the more powerful was the force of remembrance when she awoke."
+      - downloads/LibriSpeech/test-clean/4992/41806/4992-41806-0009.flac
+      - "exclaimed Bill Harmon to his wife as they went through the lighted hall."
+
+pack:
+  include:
+    - downloads/LibriSpeech/test-clean/4992/41806/4992-41806-0009.flac
+  readme_context:
+    notes: >-
+      The example prompt is utterance 4992-41806-0009 of LibriSpeech test-clean
+      (Panayotov et al., 2015; CC BY 4.0), a LibriVox reading.

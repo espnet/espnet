@@ -184,6 +184,9 @@ def test_pack_demo_builds_a_working_demo(recipe_dir, stub_vocoder):
     demo_config = yaml.safe_load((demo_dir / "demo.yaml").read_text())
     assert demo_config["ui"]["app_script"] == "src/app.py"
     assert demo_config["upload_demo"]["hf_repo"] == "espnet/minicorpus_f5tts_training"
+    # The template's input guide and the recipe's example prompt travel along.
+    assert (demo_dir / demo_config["ui"]["description"]).is_file()
+    assert (demo_dir / "examples" / "prompt.wav").is_file()
 
     # Import the packed app.py the way a Space runs it: from its own directory.
     sys.path.insert(0, str(demo_dir))
@@ -195,7 +198,18 @@ def test_pack_demo_builds_a_working_demo(recipe_dir, stub_vocoder):
     finally:
         sys.modules.pop("app", None)
 
-    (handler,) = [block_function.fn for block_function in blocks.fns.values()]
+    # The guide is rendered above the inputs; the example row below them.
+    kinds = [type(block).__name__ for block in blocks.blocks.values()]
+    assert kinds.index("Markdown") < kinds.index("Textbox") < kinds.index("Dataset")
+    (dataset,) = [b for b in blocks.blocks.values() if isinstance(b, gradio.Dataset)]
+    assert [row[0] for row in dataset.samples] == ["a cab"]
+
+    # gr.Examples registers a fill-in function of its own; the handler is ours.
+    (handler,) = [
+        block_function.fn
+        for block_function in blocks.fns.values()
+        if getattr(block_function.fn, "__name__", "") == "synthesize"
+    ]
     sample_rate, samples = handler("a cab", _reference(), "abba")
     assert sample_rate == 24000
     assert samples.dtype == np.float32 and samples.ndim == 1 and samples.size > 0

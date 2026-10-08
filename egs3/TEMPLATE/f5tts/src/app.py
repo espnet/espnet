@@ -24,11 +24,58 @@ import logging  # noqa: E402
 from pathlib import Path  # noqa: E402
 
 import gradio as gr  # noqa: E402
+from omegaconf import OmegaConf  # noqa: E402
 
 from espnet3.publication.demo.session import load_demo_session  # noqa: E402
 from espnet3.utils.logging_utils import configure_logging  # noqa: E402
 
 logger = logging.getLogger(__name__)
+
+# Example values with one of these suffixes are files inside the packed demo.
+_AUDIO_SUFFIXES = {".wav", ".flac", ".mp3", ".ogg"}
+
+
+def _example_rows(demo_cfg, demo_dir: Path) -> list[list]:
+    """Return ``ui.examples`` as plain rows, audio paths made absolute.
+
+    Args:
+        demo_cfg: The packed demo config.
+        demo_dir: The packed demo directory the paths are relative to.
+
+    Returns:
+        One list per example, in the order of ``ui.inputs``; empty when the
+        config has no ``ui.examples``.
+
+    Raises:
+        FileNotFoundError: If an example names a file that is not in the
+            packed demo, so a broken example is caught at launch, not on
+            click.
+
+    Example:
+        .. code-block:: python
+
+            _example_rows(cfg, Path("demo"))
+            # -> [["Hello.", "/abs/demo/examples/prompt.wav", "the prompt"]]
+    """
+    ui_cfg = getattr(demo_cfg, "ui", None)
+    raw = ui_cfg.get("examples") if ui_cfg is not None else None
+    if not raw:
+        return []
+    rows = []
+    for row in OmegaConf.to_container(raw, resolve=True):
+        values = []
+        for value in row:
+            if isinstance(value, str) and Path(value).suffix.lower() in _AUDIO_SUFFIXES:
+                path = demo_dir / value
+                if not path.is_file():
+                    raise FileNotFoundError(
+                        f"ui.examples names {value!r}, which is not in the packed "
+                        f"demo {demo_dir}; list it under pack.include"
+                    )
+                value = str(path)
+            values.append(value)
+        rows.append(values)
+    return rows
 
 
 def build_demo(
@@ -106,6 +153,9 @@ def build_demo(
     with gr.Blocks(title=session.title) as app:
         if session.title:
             gr.Markdown(f"# {session.title}")
+        # What the inputs are and what to expect, before the inputs themselves.
+        if session.description:
+            gr.Markdown(session.description)
 
         input_components = []
         with gr.Column():
@@ -124,15 +174,20 @@ def build_demo(
                 logger.info("Building output component | spec=%s", spec)
                 output_components.append(session.build_output_component(spec))
 
-        if session.description:
-            gr.Markdown(session.description)
-
         logger.info("Binding Synthesize button click handler")
         submit_button.click(
             fn=synthesize,
             inputs=input_components,
             outputs=output_components,
         )
+
+        # `ui.examples`: rows of input values in the order of `ui.inputs`; an
+        # audio value is a path relative to the demo directory, which is where
+        # the app runs from. A click fills the inputs; Synthesize runs them.
+        examples = _example_rows(session.demo_cfg, demo_dir)
+        if examples:
+            logger.info("Adding %d example row(s)", len(examples))
+            gr.Examples(examples=examples, inputs=input_components, label="Examples")
 
     logger.info("Recipe demo UI ready")
     return app

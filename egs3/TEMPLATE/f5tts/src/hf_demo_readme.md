@@ -20,6 +20,8 @@ ${description}
 - Model: `${model_ref}`
 - Creator: `${creator}`
 
+${notes}
+
 ## Citation
 
 ```

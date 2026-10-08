@@ -11,7 +11,9 @@ import shutil
 import sys
 from importlib import resources
 
+import numpy as np
 import pytest
+import soundfile as sf
 import torch
 from omegaconf import OmegaConf
 
@@ -225,8 +227,13 @@ PUBLICATION_CONFIG = {
     "pack_model": {"include": ["src", "${data_dir}/token_list"]},
 }
 
-# Nothing to override: the demo wiring, README and requirements are the template's.
-DEMO_CONFIG = {"recipe_dir": "."}
+# The demo wiring, README and requirements are the template's; a recipe adds
+# an example row and the prompt recording it names.
+DEMO_CONFIG = {
+    "recipe_dir": ".",
+    "ui": {"examples": [["a cab", "examples/prompt.wav", "abba"]]},
+    "pack": {"include": ["examples/prompt.wav"]},
+}
 
 
 class StubVocos:
@@ -276,6 +283,12 @@ def recipe_dir(tmp_path, monkeypatch):
     (recipe / "conf").mkdir(parents=True)
     (recipe / "dataset").mkdir()
     (recipe / "dataset" / "__init__.py").write_text(TOY_DATASET, encoding="utf-8")
+
+    # The example prompt `conf/demo.yaml` names, as `create_dataset` would leave it.
+    (recipe / "examples").mkdir()
+    sf.write(
+        recipe / "examples" / "prompt.wav", np.zeros(12000, dtype=np.float32), 24000
+    )
 
     # src/: the template's helpers, copied as its README tells a recipe to.
     (recipe / "src").mkdir()
