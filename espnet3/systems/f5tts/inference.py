@@ -523,7 +523,12 @@ class F5TTSInference:
 
                 >>> tts(text="hello", speech=ref_wave, reference_text="hi")["wav"].ndim
                 1
-                >>> len(tts(text=["a", "b"], reference_speech=[w1, w2])["wav"])
+                >>> wavs = tts(
+                ...     text=["a", "b"],
+                ...     reference_speech=[w1, w2],
+                ...     reference_text=["x", "y"],
+                ... )["wav"]
+                >>> len(wavs)
                 2
 
         Note:
@@ -587,8 +592,8 @@ class Inference(BackendInference):
     ``(rate, samples)`` pair, an array or an
     :class:`~espnet3.api.inference.Audio`) it returns
     ``{"wav": Audio}`` at :attr:`sample_rate`. ``reference_text`` is the
-    transcript of the reference; when omitted the reference is treated as
-    a recording of the target text itself.
+    transcript of the reference and is required, like the other two inputs
+    (see the note below).
 
     Example:
         .. code-block:: python
@@ -599,8 +604,10 @@ class Inference(BackendInference):
             (24000, 1)
             >>> outputs = model.batch(
             ...     [
-            ...         {"text": "first", "reference_speech": "a.wav"},
-            ...         {"text": "second", "reference_speech": "b.wav"},
+            ...         {"text": "first", "reference_speech": "a.wav",
+            ...          "reference_text": "a"},
+            ...         {"text": "second", "reference_speech": "b.wav",
+            ...          "reference_text": "b"},
             ...     ]
             ... )
             >>> [output["wav"].rate for output in outputs]
@@ -612,7 +619,7 @@ class Inference(BackendInference):
 
             model:
               _target_: espnet3.systems.f5tts.inference.Inference
-              train_config: ${recipe_dir}/conf/training.yaml
+              train_config: ${exp_dir}/config.yaml  # written by F5TTSSystem.train
               checkpoint_path: ${exp_dir}/last.ckpt
               ode_solver_steps: 32
 
@@ -675,9 +682,10 @@ class Inference(BackendInference):
 
         Note:
             This is the hook the contract calls after converting and checking
-            the inputs. Call the model itself, ``model(text, reference)``,
-            which also accepts a path or a ``(rate, samples)`` pair and wraps
-            the result in an :class:`~espnet3.api.inference.Audio`.
+            the inputs. Call the model itself,
+            ``model(text, reference, reference_text)``, which also accepts a
+            path or a ``(rate, samples)`` pair for the reference and wraps the
+            result in an :class:`~espnet3.api.inference.Audio`.
         """
         return {
             "wav": self.backend.infer_one(text, reference_speech.array, reference_text)
