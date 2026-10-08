@@ -71,17 +71,21 @@ class LibriTTSDataset(TorchDataset):
     the LibriSpeech-PC manifest via ``dataset/librispeech_pc.py``, whose rows
     pin one prompt per target.
 
-    The dataset consumes the following arguments during initialization:
-        - ``split``: A string key for the dataset split
-        - ``recipe_dir``: Optional path to the recipe root, used to resolve the default
-        - ``manifest_path``: Optional path to the manifest TSV file. If not
-            supplied, the dataset will look for the default manifest path for
-            the given split in the recipe's data directory.
-        - ``load_speech``: Whether to load the speech waveform from disk. If False
-            the sample will not include the "speech" key. Default: True.
-        - ``fs``: Optional target sampling rate for the speech waveform. If supplied,
-            the waveform will be resampled to this rate after loading.
-            Default: None (no resampling).
+    Args:
+        split: Dataset split key, ``train`` or ``valid``.
+        recipe_dir: Optional recipe root used to resolve the default manifest.
+            Defaults to the recipe directory this module lives in.
+        manifest_path: Optional manifest TSV path. When omitted, the split's
+            default manifest under the recipe's data directory is read.
+        load_speech: Whether to load the waveform from disk. When False the
+            sample has no ``speech`` key.
+        fs: Optional target sampling rate; the waveform is resampled to it
+            after loading. ``None`` keeps the file's own rate.
+
+    Raises:
+        RuntimeError: If the LibriTTS manifests have not been built.
+        ValueError: If ``split`` is unknown and no ``manifest_path`` is given.
+        FileNotFoundError: If the resolved manifest does not exist.
     """
 
     def __init__(

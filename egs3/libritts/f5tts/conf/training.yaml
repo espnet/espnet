@@ -11,22 +11,12 @@
 # for a total of 307,200 mel-frames per optimizer update, matching the upstream
 # F5-TTS configuration.
 #
-# This file is complete on its own (see `egs3/TEMPLATE/f5tts/conf/training.yaml`):
-# the infer stage and a packed model rebuild the model and the tokenizer from
-# it alone, without the template defaults `run.py` merges underneath.
+# Merged over `egs3/TEMPLATE/f5tts/conf/training.yaml`, which holds the path
+# scaffold (`recipe_dir`, `data_dir`, `exp_tag`, `exp_dir`, `stats_dir`), the
+# `DataOrganizer` block, `parallel` and the Lightning trainer defaults. Only
+# what this recipe sets differently is here; `train` writes the merged config
+# to `${exp_dir}/config.yaml` for inference and the packed model.
 num_device: 4
-num_nodes: 1
-
-# F5-TTS is an ESPnet3-native model: `model` below is instantiated directly
-# via Hydra, so the ESPnet2 `task` bridge stays unset.
-task:
-
-recipe_dir: .
-data_dir: ${recipe_dir}/data
-exp_tag: ${self_name:}
-exp_dir: ${recipe_dir}/exp/${exp_tag}
-stats_dir: ${exp_dir}/stats
-inference_dir: ${exp_dir}/inference
 
 # Mel / audio front-end settings shared by feats_extract and the model.
 sample_rate: 24000
@@ -39,9 +29,6 @@ create_dataset:
   recipe_dir: ${recipe_dir}
 
 dataset:
-  _target_: espnet3.components.data.data_organizer.DataOrganizer
-  _recursive_: false
-  recipe_dir: ${recipe_dir}
   train:
     - data_src_args:
         split: train
@@ -64,11 +51,10 @@ dataset:
 remove_long_short:
   min_wav_duration: 1.0
   max_wav_duration: 20.0
-  splits: [train, valid, test]
+  splits: [train, valid]
   manifest_paths:
     train: ${data_dir}/manifest/train.tsv
     valid: ${data_dir}/manifest/valid.tsv
-    test: ${data_dir}/manifest/test.tsv
   save_path: ${data_dir}/manifests_filtered
 
 create_token_list:
@@ -91,10 +77,6 @@ create_token_list:
 # Single source of truth for the token-list path used by the preprocessor,
 # the model, and (through the bundled training config) inference.
 token_list: ${create_token_list.save_path}/${create_token_list.filename}
-
-parallel:
-  env: local
-  n_workers: 1
 
 # Model args, instantiated by Hydra. `F5TTS` IS the ESPnet3 model, so there is
 # no espnet2 `task:` and no registry names. The mel dimension is derived from
@@ -138,7 +120,7 @@ optimizer:
 scheduler:
   _target_: espnet3.components.schedulers.linear_warmup_decay.LinearWarmupDecayLR
   warmup_steps: 20000
-  total_steps: 600000
+  total_steps: ${trainer.max_steps}
 scheduler_interval: step
 
 best_model_criterion:
@@ -181,22 +163,10 @@ dataloader:
         batch_bins: ${dataloader.train.iter_factory.batches.batch_bins}
 
 trainer:
-  accelerator: auto
-  devices: ${num_device}
-  num_nodes: ${num_nodes}
   accumulate_grad_batches: 8
   max_steps: 600000
-  check_val_every_n_epoch: 1
-  log_every_n_steps: 50
   max_epochs: 1000
-  gradient_clip_val: 1.0
-  strategy: auto
+  log_every_n_steps: 50
   callbacks:
     - _target_: espnet3.components.callbacks.ema.EMACallback
       decay: 0.9999
-  logger:
-    - _target_: lightning.pytorch.loggers.TensorBoardLogger
-      save_dir: ${exp_dir}/tensorboard
-      name: tb_logger
-
-fit: {}

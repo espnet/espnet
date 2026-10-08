@@ -6,52 +6,25 @@
 # external inputs (LibriSpeech test-clean and the pinned pair list); see
 # dataset/builder.py. No manual preparation step is needed.
 #
-# exp_tag is intentionally empty so this config inherits experiment identity
-# from the training config. That means run.py must always be given
-# --training_config alongside --inference_config.
-recipe_dir: .
-
-exp_tag:
-exp_dir: ${recipe_dir}/exp/${exp_tag}
-data_dir: ${recipe_dir}/data
-inference_dir: ${exp_dir}/${self_name:}
+# Merged over `egs3/TEMPLATE/f5tts/conf/inference.yaml`, which names the model
+# (`espnet3.systems.f5tts.inference.Inference`, rebuilt from the config `train`
+# wrote to `${exp_dir}/config.yaml`) and holds the path scaffold; `run.py`
+# copies `exp_tag` / `exp_dir` from `--training_config`, so pass both. This
+# recipe names its test set and the paper's sampling settings.
 
 # Every row of the manifest pins its own prompt, reproducing the paper's fixed
-# pairing.
+# pairing. The dataset serves `text`, `reference_speech`, `reference_text`
+# (the Inference's inputs), `utt_id` and `ref_wav_path` (read by metrics.yaml).
 dataset:
-  _target_: espnet3.components.data.data_organizer.DataOrganizer
-  _recursive_: false
-  recipe_dir: ${recipe_dir}
   test:
     - name: librispeech_pc
       data_src: egs3.libritts.f5tts.dataset.librispeech_pc
       data_src_args:
         manifest_path: ${data_dir}/librispeech_pc/manifest.tsv
-        fs: 24000
 
-parallel:
-  env: local
-  n_workers: 1
-
-# The model is the template's `Inference`, rebuilt from the training config
-# `train` wrote to `${exp_dir}/config.yaml` and loaded from
-# `${exp_dir}/last.ckpt`; the runner reads its declared inputs (`text`,
-# `reference_speech`, `reference_text`) from each manifest row by name and
-# writes its declared output as `wav.scp`. The scoring references (the prompt
-# wav and the target text) stay in the data; `conf/metrics.yaml` reads them as
-# `dataset:<column>`. Only the sampling settings are this recipe's.
 model:
-  vocoder_path: null
-  target_sample_rate: 24000
-  ode_solver_steps: 32
-  guidance_strength: 2.0
-  sway_sampling_coefficient: -1.0
+  ode_solver_steps: 32              # upstream `nfe_step`
+  guidance_strength: 2.0            # upstream `cfg_strength`
+  sway_sampling_coefficient: -1.0   # upstream `sway_sampling_coef`
   speed: 1.0
   seed: 0
-
-batch_size: null
-
-provider:
-  _target_: espnet3.systems.base.inference_provider.InferenceProvider
-runner:
-  _target_: espnet3.systems.base.inference_runner.InferenceRunner

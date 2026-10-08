@@ -8,12 +8,9 @@ builder:
       - train-other-500
     valid:
       - dev-clean
-    test:
-      - test-clean
   manifest_paths:
     train: manifest/train.tsv
     valid: manifest/valid.tsv
-    test: manifest/test.tsv
   librispeech_pc:
     subset: test-clean
     # Pair list from the F5-TTS repo, pinned to a commit rather than a branch:
@@ -30,4 +27,3 @@ dataset:
   split_manifest_paths:
     train: manifest/train.tsv
     valid: manifest/valid.tsv
-    test: manifest/test.tsv

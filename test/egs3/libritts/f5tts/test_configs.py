@@ -71,6 +71,37 @@ def test_dataset_blocks_hand_the_preprocessor_to_data_organizer(monkeypatch):
         ), name
 
 
+SCAFFOLD_KEYS = (
+    "task",
+    "recipe_dir",
+    "data_dir",
+    "exp_tag",
+    "exp_dir",
+    "stats_dir",
+    "inference_dir",
+    "parallel",
+    "provider",
+    "runner",
+    "fit",
+)
+
+
+def test_recipe_configs_hold_only_their_deltas():
+    """The template owns the scaffold; the recipe files restate none of it.
+
+    `egs3/librispeech_100/esp2_asr` follows the same rule, so a reader who
+    knows one recipe can read the other.
+    """
+    training = _raw("training.yaml")
+    assert not set(training) & set(SCAFFOLD_KEYS)
+    for key in ("_target_", "_recursive_", "recipe_dir"):
+        assert key not in training["dataset"]
+    assert set(_raw("inference.yaml")) == {"dataset", "model"}
+    assert set(_raw("metrics.yaml")) == {"dataset"}
+    assert set(_raw("publication.yaml")) == {"pack_model"}
+    assert set(_raw("demo.yaml")) == {"ui", "pack"}
+
+
 def test_inference_config_loads(monkeypatch):
     """The model is the system's ``Inference``, so the declaration drives infer.
 
@@ -89,7 +120,6 @@ def test_default_inference_config_uses_librispeech_pc():
     assert len(test_sets) == 1
     assert test_sets[0]["name"] == "librispeech_pc"
     assert test_sets[0]["data_src"] == "egs3.libritts.f5tts.dataset.librispeech_pc"
-    assert test_sets[0]["data_src_args"]["fs"] == 24000
 
 
 def test_default_inference_config_is_portable(monkeypatch):
@@ -107,9 +137,9 @@ def test_default_inference_config_is_portable(monkeypatch):
     )
     assert cfg["model"]["train_config"] == "${exp_dir}/config.yaml"
     assert cfg["model"]["checkpoint_path"] == "${exp_dir}/last.ckpt"
-    # Empty exp_tag means this config is training-backed: run.py must be given
-    # --training_config alongside it.
-    assert not raw["exp_tag"]
+    # No exp_tag here: the template leaves it empty and run.py copies it from
+    # --training_config, which must therefore be given alongside this file.
+    assert "exp_tag" not in raw
 
 
 def test_metrics_config_matches_official_protocol(monkeypatch):
