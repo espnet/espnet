@@ -119,7 +119,7 @@ def test_metrics_scaffold_is_the_f5tts_protocol() -> None:
 
     assert config.dataset is None  # a recipe names its test sets
     (entry,) = config.metrics
-    assert entry.metric._target_ == "espnet3.components.metrics.versa.VersaMetric"
+    assert entry.metric._target_ == "espnet3.systems.f5tts.metrics.versa.VersaMetric"
     assert [s.name for s in entry.metric.score_config] == [
         "fwhisper_wer",
         "speaker",
