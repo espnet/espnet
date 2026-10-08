@@ -46,6 +46,7 @@ class CharTokenizer(AbsTokenizer):
         )
 
     def text2tokens(self, line: str) -> List[str]:
+        removed = False
         tokens = []
         while len(line) != 0:
             for w in self.non_linguistic_symbols.union(self.nonsplit_symbols):
@@ -55,6 +56,8 @@ class CharTokenizer(AbsTokenizer):
                         or not self.remove_non_linguistic_symbols
                     ):
                         tokens.append(line[: len(w)])
+                    else:
+                        removed = True
                     line = line[len(w) :]
                     break
             else:
@@ -63,7 +66,22 @@ class CharTokenizer(AbsTokenizer):
                     t = self.space_symbol
                 tokens.append(t)
                 line = line[1:]
+        if removed:
+            # Removing a symbol between two spaces would leave two space tokens,
+            # which a character error rate counts as an error. Word tokenization
+            # ignores such spaces, so do the same here.
+            tokens = self._merge_spaces(tokens)
         return tokens
+
+    def _merge_spaces(self, tokens: List[str]) -> List[str]:
+        merged = []
+        for t in tokens:
+            if t == self.space_symbol and (not merged or merged[-1] == t):
+                continue
+            merged.append(t)
+        if merged and merged[-1] == self.space_symbol:
+            merged.pop()
+        return merged
 
     def tokens2text(self, tokens: Iterable[str]) -> str:
         tokens = [t if t != self.space_symbol else " " for t in tokens]
