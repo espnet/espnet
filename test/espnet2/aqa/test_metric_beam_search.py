@@ -1,8 +1,8 @@
 import pytest
 import torch
 
+from espnet2.aqa.ar_universa.universa_beam_search import ARUniVERSABeamSearch
 from espnet2.legacy.nets.scorer_interface import ScorerInterface
-from espnet2.universa.ar_universa.universa_beam_search import ARUniVERSABeamSearch
 
 
 class Scorer(ScorerInterface):
@@ -149,8 +149,8 @@ def test_skipped_label_pruning_waits_for_value():
 
 
 def test_constraint_supports_batched_utterances_and_hypotheses():
+    from espnet2.aqa.ar_universa.universa_beam_search import MetricConstraintScorer
     from espnet2.legacy.nets.batch_beam_search import BatchBeamSearch
-    from espnet2.universa.ar_universa.universa_beam_search import MetricConstraintScorer
 
     constraint = MetricConstraintScorer(9, [4, 7], {4: (5, 7), 7: (8, 9)}, True)
     search = BatchBeamSearch(

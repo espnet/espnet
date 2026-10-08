@@ -462,6 +462,90 @@ def test_collect_stats_rejects_multiple_iterator(tmp_path: Path, flag):
         )
 
 
+@pytest.mark.parametrize(
+    "train_mode, expected",
+    [(None, False), (False, False), (True, True)],
+)
+def test_collect_stats_builds_a_data_organizer_without_training_mode(
+    monkeypatch, train_mode, expected
+):
+    """The train split is read as ESPnet2 reads it for statistics: train=False.
+
+    Training mode, and with it the augmentation, is applied only on request.
+    """
+    from test.espnet3.components.data.test_data_organizer import (
+        ESPNET_TRAIN_FLAG_PREPROCESSOR_TARGET,
+        DummyDataset,
+        _entry,
+    )
+
+    import espnet3.components.data.data_organizer as data_organizer_module
+
+    monkeypatch.setattr(
+        data_organizer_module,
+        "instantiate_dataset_reference",
+        lambda config, recipe_dir=None: DummyDataset(),
+    )
+
+    dataset_cfg = OmegaConf.create(
+        {
+            "_target_": "espnet3.components.data.data_organizer.DataOrganizer",
+            "_recursive_": False,  # as recipes write it: the organizer builds
+            "train": [_entry("train_dummy")],
+            "valid": [_entry("valid_dummy")],
+            "preprocessor": {"_target_": ESPNET_TRAIN_FLAG_PREPROCESSOR_TARGET},
+        }
+    )
+    args = () if train_mode is None else (train_mode,)
+    train = _instantiate_dataset(dataset_cfg, "train", *args)
+    assert train[0]["was_train"] is expected
+
+
+def build_test_organizer(**kwargs):
+    """A factory function as an organizer target, which hydra allows."""
+    return DummyOrganizer(**kwargs)
+
+
+def test_collect_stats_builds_an_organizer_named_by_a_factory_function():
+    """Only a DataOrganizer class gets train_mode; a factory is built as is."""
+    dataset_cfg = make_dataset_cfg(n_train=2, n_valid=1)
+    dataset_cfg._target_ = f"{__name__}.build_test_organizer"
+    assert len(_instantiate_dataset(dataset_cfg, "train")) == 2
+
+
+@pytest.mark.parametrize("train_mode, expected", [(None, False), (True, True)])
+def test_collect_stats_hands_train_mode_to_every_dataset_build(
+    tmp_path: Path, monkeypatch, train_mode, expected
+):
+    """The length count and the build that feeds the model both see it."""
+    import espnet3.components.data.collect_stats as module
+    import espnet3.parallel.parallel as parallel_module
+
+    # build in this process, where the recording stand-in is installed: an
+    # earlier test may have left a Dask cluster configured
+    monkeypatch.setattr(parallel_module, "parallel_config", None)
+    seen = []
+    real = module._instantiate_dataset
+
+    def recording(dataset_config, mode, train_mode=False):
+        seen.append(train_mode)
+        return real(dataset_config, mode, train_mode)
+
+    monkeypatch.setattr(module, "_instantiate_dataset", recording)
+    collect_stats(
+        model_config=make_model_cfg(scale=1.0),
+        dataset_config=make_dataset_cfg(n_train=4, n_valid=1, base_len=3, dim=4),
+        dataloader_config=make_dataloader_cfg(use_custom_collate=True),
+        mode="train",
+        output_dir=tmp_path / "out",
+        task=None,
+        parallel_config=None,
+        batch_size=2,
+        **({} if train_mode is None else {"train_mode": train_mode}),
+    )
+    assert len(seen) >= 2 and set(seen) == {expected}
+
+
 # ---------------------------------------------------------------
 # Shapes are derived from the batch, not from collect_feats
 # ---------------------------------------------------------------

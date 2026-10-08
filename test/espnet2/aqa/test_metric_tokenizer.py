@@ -1,7 +1,7 @@
 import pytest
 import torch
 
-from espnet2.universa.metric_tokenizer.metric_tokenizer import MetricTokenizer
+from espnet2.aqa.metric_tokenizer.metric_tokenizer import MetricTokenizer
 
 
 def token_info():
