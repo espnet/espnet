@@ -1,9 +1,10 @@
-"""VERSA-based metric wrapper for the `measure` stage.
+"""VERSA-based metric for the F5-TTS `measure` stage.
 
 Wraps `versa.bin.scorer` (https://github.com/wavlab-speech/versa) as an
-ESPnet3 `BaseMetric`, so any generation task -- codec resynthesis, TTS,
-speech enhancement -- can score its `infer` outputs from a recipe config
-without a task-specific wrapper.
+ESPnet3 `BaseMetric`. The F5-TTS evaluation protocol (faster-whisper WER,
+speaker similarity, UTMOS) is a VERSA score config, declared in
+`egs3/TEMPLATE/f5tts/conf/metrics.yaml`; this class runs it over the
+`infer` outputs of a test set and aggregates the per-utterance records.
 """
 
 from __future__ import annotations
@@ -13,7 +14,7 @@ import logging
 import subprocess
 import sys
 from pathlib import Path
-from typing import Dict, List, Set
+from typing import Dict, Iterator, List, Set
 
 import yaml
 from omegaconf import OmegaConf
@@ -80,11 +81,12 @@ class VersaMetric(BaseMetric):
         Args:
             score_config: Path to a versa score-config YAML file, or an
                 inline list of versa metric definitions.
-            wav_key: Input alias for the resynthesized-wav SCP file.
-            ref_key: Input alias for the ground-truth-wav SCP file.
-            text_key: Optional input alias for a transcript SCP file. Codec
-                reconstruction evaluation has no transcript, so this defaults
-                to None and ``--text`` is omitted from the scorer command.
+            wav_key: Input alias for the synthesized-wav SCP file.
+            ref_key: Input alias for the reference-wav SCP file (the prompt
+                each utterance was synthesized from, for speaker similarity).
+            text_key: Optional input alias for the transcript SCP file the
+                recognition metric scores against. ``None`` omits ``--text``
+                from the scorer command, for a score config without one.
             use_gpu: Pass ``--use_gpu`` to the scorer.
             io: Value for the scorer's ``--io`` option.
 
@@ -273,6 +275,25 @@ class VersaMetric(BaseMetric):
         return failures
 
     @staticmethod
+    def _iter_records(result_file: Path) -> Iterator[dict]:
+        """Yield the per-utterance JSON records of the scorer's output file.
+
+        Blank lines and the non-JSON trailer line VERSA may write are
+        skipped, so every reader of ``result.json`` sees the same records.
+        """
+        with result_file.open() as f:
+            for line in f:
+                line = line.strip()
+                if not line:
+                    continue
+                try:
+                    record = json.loads(line)
+                except json.JSONDecodeError:
+                    continue
+                if isinstance(record, dict):
+                    yield record
+
+    @staticmethod
     def _null_only_keys(result_file: Path) -> Set[str]:
         """Return keys that were null somewhere and never numeric anywhere.
 
@@ -282,24 +303,12 @@ class VersaMetric(BaseMetric):
         """
         nulled: Set[str] = set()
         numeric: Set[str] = set()
-        with result_file.open() as f:
-            for line in f:
-                line = line.strip()
-                if not line:
-                    continue
-                try:
-                    record = json.loads(line)
-                except json.JSONDecodeError:
-                    continue  # VERSA writes a non-JSON trailer line
-                if not isinstance(record, dict):
-                    continue
-                for key, value in record.items():
-                    if value is None:
-                        nulled.add(key)
-                    elif isinstance(value, (int, float)) and not isinstance(
-                        value, bool
-                    ):
-                        numeric.add(key)
+        for record in VersaMetric._iter_records(result_file):
+            for key, value in record.items():
+                if value is None:
+                    nulled.add(key)
+                elif isinstance(value, (int, float)) and not isinstance(value, bool):
+                    numeric.add(key)
         return nulled - numeric
 
     @staticmethod
@@ -468,16 +477,11 @@ class VersaMetric(BaseMetric):
         """
         sums: Dict[str, float] = {}
         counts: Dict[str, int] = {}
-        with result_file.open() as f:
-            for line in f:
-                line = line.strip()
-                if not line:
-                    continue
-                record = json.loads(line)
-                for key, value in record.items():
-                    if isinstance(value, (int, float)) and not isinstance(value, bool):
-                        sums[key] = sums.get(key, 0.0) + float(value)
-                        counts[key] = counts.get(key, 0) + 1
+        for record in VersaMetric._iter_records(result_file):
+            for key, value in record.items():
+                if isinstance(value, (int, float)) and not isinstance(value, bool):
+                    sums[key] = sums.get(key, 0.0) + float(value)
+                    counts[key] = counts.get(key, 0) + 1
         averages = {key: round(sums[key] / counts[key], 4) for key in sums}
 
         for metric in ("wer", "cer"):
