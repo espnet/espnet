@@ -37,34 +37,36 @@ class VersaMetric(BaseMetric):
     recognition metric is configured. A metric that fails or yields no value
     raises instead of being dropped from the result.
 
-    Examples:
+    Example:
         Declared from a recipe `conf/metrics.yaml`:
-        ```yaml
-        metrics:
-          - metric:
-              _target_: espnet3.systems.f5tts.metrics.versa.VersaMetric
-              score_config:
-                - name: signal_metric
-                - name: pseudo_mos
-                  predictor_types: [utmos]
-              wav_key: wav
-              ref_key: ref
-              use_gpu: true
-            inputs:
-              wav: wav
-              ref: ref
-        ```
+
+        .. code-block:: yaml
+
+            metrics:
+              - metric:
+                  _target_: espnet3.systems.f5tts.metrics.versa.VersaMetric
+                  score_config:
+                    - name: signal_metric
+                    - name: pseudo_mos
+                      predictor_types: [utmos]
+                  wav_key: wav
+                  ref_key: ref
+                  use_gpu: true
+                inputs:
+                  wav: wav
+                  ref: ref
 
         Or directly, pointing at an existing VERSA config file:
-        ```python
-        metric = VersaMetric(score_config="conf/versa.yaml")
-        scores = metric(
-            {"wav": Path("exp/inference/test/wav.scp"),
-             "ref": Path("exp/inference/test/ref.scp")},
-            test_name="test",
-            output_dir=Path("exp/inference"),
-        )
-        ```
+
+        .. code-block:: python
+
+            metric = VersaMetric(score_config="conf/versa.yaml")
+            scores = metric(
+                {"wav": Path("exp/inference/test/wav.scp"),
+                 "ref": Path("exp/inference/test/ref.scp")},
+                test_name="test",
+                output_dir=Path("exp/inference"),
+            )
     """
 
     def __init__(
@@ -90,14 +92,14 @@ class VersaMetric(BaseMetric):
             use_gpu: Pass ``--use_gpu`` to the scorer.
             io: Value for the scorer's ``--io`` option.
 
-        Examples:
-            ```python
-            # Inline metric list; a versa_config.yaml is written at score time.
-            metric = VersaMetric(score_config=[{"name": "signal_metric"}])
+        Example:
+            .. code-block:: python
 
-            # An existing versa config file, scored on CPU.
-            metric = VersaMetric(score_config="conf/versa.yaml", use_gpu=False)
-            ```
+                # Inline metric list; a versa_config.yaml is written at score time.
+                metric = VersaMetric(score_config=[{"name": "signal_metric"}])
+
+                # An existing versa config file, scored on CPU.
+                metric = VersaMetric(score_config="conf/versa.yaml", use_gpu=False)
         """
         self.score_config = score_config
         self.wav_key = wav_key
@@ -114,11 +116,13 @@ class VersaMetric(BaseMetric):
         ``eval_dir/versa_config.yaml``.
         """
         if isinstance(self.score_config, (str, Path)):
-            p = Path(self.score_config)
-            if not p.is_file():
-                raise FileNotFoundError(f"VERSA score_config path does not exist: {p}")
-            logger.info("Using VERSA config file %s", p)
-            return p
+            config_path = Path(self.score_config)
+            if not config_path.is_file():
+                raise FileNotFoundError(
+                    f"VERSA score_config path does not exist: {config_path}"
+                )
+            logger.info("Using VERSA config file %s", config_path)
+            return config_path
 
         score_config = self.score_config
         if OmegaConf.is_config(score_config):
@@ -126,11 +130,11 @@ class VersaMetric(BaseMetric):
             # containers, which yaml.safe_dump cannot represent.
             score_config = OmegaConf.to_container(score_config, resolve=True)
 
-        out = eval_dir / "versa_config.yaml"
-        with out.open("w", encoding="utf-8") as f:
+        config_path = eval_dir / "versa_config.yaml"
+        with config_path.open("w", encoding="utf-8") as f:
             yaml.safe_dump(score_config, f, sort_keys=False)
-        logger.info("Wrote inline VERSA metric list to %s", out)
-        return out
+        logger.info("Wrote inline VERSA metric list to %s", config_path)
+        return config_path
 
     def __call__(
         self,
@@ -162,17 +166,17 @@ class VersaMetric(BaseMetric):
             RuntimeError: If the scorer exited 0 but a configured metric
                 failed to load or computed no value for any utterance.
 
-        Examples:
-            ```python
-            metric = VersaMetric(score_config=[{"name": "signal_metric"}])
-            scores = metric(
-                {"wav": output_dir / "test" / "wav.scp",
-                 "ref": output_dir / "test" / "ref.scp"},
-                test_name="test",
-                output_dir=output_dir,
-            )
-            # -> {"mcd": 3.1416, "sdr": 12.7, ...}
-            ```
+        Example:
+            .. code-block:: python
+
+                metric = VersaMetric(score_config=[{"name": "signal_metric"}])
+                scores = metric(
+                    {"wav": output_dir / "test" / "wav.scp",
+                     "ref": output_dir / "test" / "ref.scp"},
+                    test_name="test",
+                    output_dir=output_dir,
+                )
+                # -> {"mcd": 3.1416, "sdr": 12.7, ...}
         """
         if self.wav_key not in data:
             raise KeyError(
@@ -256,20 +260,20 @@ class VersaMetric(BaseMetric):
             subprocess.CalledProcessError: If the scorer exits non-zero.
         """
         failures: List[str] = []
-        proc = subprocess.Popen(
+        process = subprocess.Popen(
             cmd,
             stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT,
             text=True,
             bufsize=1,
         )
-        with proc.stdout:
-            for line in proc.stdout:
+        with process.stdout:
+            for line in process.stdout:
                 sys.stdout.write(line)
                 if any(marker in line for marker in _VERSA_FAILURE_MARKERS):
                     failures.append(line.strip())
         sys.stdout.flush()
-        returncode = proc.wait()
+        returncode = process.wait()
         if returncode != 0:
             raise subprocess.CalledProcessError(returncode, cmd)
         return failures
@@ -387,39 +391,41 @@ class VersaMetric(BaseMetric):
             None. The summary is emitted through this module's logger at
             INFO level.
 
-        Examples:
-            ```python
-            VersaMetric.summarize({"mcd": 3.14, "sdr": 12.7}, "test")
-            ```
+        Example:
+            .. code-block:: python
+
+                VersaMetric.summarize({"mcd": 3.14, "sdr": 12.7}, "test")
+
             logs:
-            ```text
-            VERSA scores - test
-            ----------------------------------------
-              mcd                       3.1400
-              sdr                       12.7000
-            ----------------------------------------
-            ```
+
+            .. code-block:: text
+
+                VERSA scores - test
+                ----------------------------------------
+                  mcd                       3.1400
+                  sdr                       12.7000
+                ----------------------------------------
         """
         header = f"VERSA scores - {test_name}" if test_name else "VERSA scores"
 
         wer_prefix = VersaMetric._find_prefix(scores, "wer")
         cer_prefix = VersaMetric._find_prefix(scores, "cer")
-        wer_keys = [k for k in scores if wer_prefix and k.startswith(wer_prefix)]
-        cer_keys = [k for k in scores if cer_prefix and k.startswith(cer_prefix)]
+        wer_keys = [key for key in scores if wer_prefix and key.startswith(wer_prefix)]
+        cer_keys = [key for key in scores if cer_prefix and key.startswith(cer_prefix)]
 
         # The pooled rates _aggregate adds are printed in their own section.
         pooled_keys = {
             prefix.rstrip("_") for prefix in (wer_prefix, cer_prefix) if prefix
         }
         main_keys = [
-            k
-            for k in scores
-            if k not in wer_keys and k not in cer_keys and k not in pooled_keys
+            key
+            for key in scores
+            if key not in wer_keys and key not in cer_keys and key not in pooled_keys
         ]
 
         lines = [header, "-" * 40]
-        for k in main_keys:
-            lines.append(f"  {k:<25s} {scores[k]:.4f}")
+        for key in main_keys:
+            lines.append(f"  {key:<25s} {scores[key]:.4f}")
 
         for label, prefix, keys in (
             ("WER", wer_prefix, wer_keys),
@@ -428,17 +434,19 @@ class VersaMetric(BaseMetric):
             if not (keys and prefix):
                 continue
             lines.append(f"  {label} components (%) [{prefix.rstrip('_')}]:")
-            for k in keys:
-                lines.append(f"    {k.removeprefix(prefix):<21s} {scores[k]:.1f}")
+            for key in keys:
+                lines.append(f"    {key.removeprefix(prefix):<21s} {scores[key]:.1f}")
             # Reference length is delete + replace + equal: insertions are
             # errors but not reference tokens, so they never enter the
             # denominator (VERSA asserts the same identity itself).
             ref_len = sum(
                 scores[f"{prefix}{op}"] for op in ("delete", "replace", "equal")
             )
-            err = sum(scores[f"{prefix}{op}"] for op in ("delete", "replace", "insert"))
+            errors = sum(
+                scores[f"{prefix}{op}"] for op in ("delete", "replace", "insert")
+            )
             if ref_len > 0:
-                lines.append(f"    {label:<21s} {err / ref_len * 100:.2f}%")
+                lines.append(f"    {label:<21s} {errors / ref_len * 100:.2f}%")
 
         lines.append("-" * 40)
         logger.info("\n".join(lines))
@@ -469,7 +477,7 @@ class VersaMetric(BaseMetric):
             Mapping of metric name to its corpus-level value, rounded to four
             decimals. Non-numeric and boolean fields are ignored.
 
-        Examples:
+        Example:
             Two utterances with ``fwhisper_wer_{delete,insert,replace,equal}``
             counts ``(0, 1, 1, 8)`` and ``(1, 0, 0, 9)`` give
             ``fwhisper_wer == 15.7895``: 3 errors over a reference length of

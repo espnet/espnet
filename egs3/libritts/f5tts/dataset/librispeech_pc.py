@@ -27,25 +27,25 @@ import torchaudio
 from torch.utils.data import Dataset as TorchDataset
 
 
-def _utt_to_flac(root: Path, utt: str) -> Path:
+def _utterance_flac(root: Path, utterance_id: str) -> Path:
     """Return the ``test-clean`` flac of a LibriSpeech utterance id."""
-    spk, chap, _ = utt.split("-")
-    path = root / spk / chap / f"{utt}.flac"
+    speaker, chapter, _ = utterance_id.split("-")
+    path = root / speaker / chapter / f"{utterance_id}.flac"
     if not path.exists():
         raise FileNotFoundError(f"Missing LibriSpeech audio: {path}")
     return path
 
 
 def _read_lst(lst_path: Path) -> list[tuple[str, str, str, str]]:
-    """Return ``(ref_utt, ref_txt, gen_utt, gen_txt)`` per pair-list row."""
+    """Return ``(ref_utt, ref_text, gen_utt, gen_text)`` per pair-list row."""
     rows = []
     with Path(lst_path).open(encoding="utf-8") as f:
         for line in f:
             line = line.rstrip("\n")
             if not line:
                 continue
-            ref_utt, _ref_dur, ref_txt, gen_utt, _gen_dur, gen_txt = line.split("\t")
-            rows.append((ref_utt, ref_txt, gen_utt, gen_txt))
+            ref_utt, _ref_dur, ref_text, gen_utt, _gen_dur, gen_text = line.split("\t")
+            rows.append((ref_utt, ref_text, gen_utt, gen_text))
     return rows
 
 
@@ -63,16 +63,26 @@ def build_manifest(lst_path, test_clean_root, out_tsv) -> int:
     Raises:
         FileNotFoundError: If a prompt or target flac named by the pair list
             is missing from ``test_clean_root``.
+
+    Example:
+        .. code-block:: python
+
+            build_manifest(
+                "downloads/librispeech_pc_test_clean_cross_sentence.lst",
+                "downloads/LibriSpeech/test-clean",
+                "data/librispeech_pc/manifest.tsv",
+            )
+            # -> 1127
     """
     root = Path(test_clean_root).resolve()
-    out = Path(out_tsv)
-    out.parent.mkdir(parents=True, exist_ok=True)
+    output_path = Path(out_tsv)
+    output_path.parent.mkdir(parents=True, exist_ok=True)
     rows = _read_lst(lst_path)
-    with out.open("w", encoding="utf-8") as f:
-        for ref_utt, ref_txt, gen_utt, gen_txt in rows:
-            ref_wav = _utt_to_flac(root, ref_utt)
-            _utt_to_flac(root, gen_utt)  # fail fast if the target audio is absent
-            f.write(f"{gen_utt}\t{gen_txt}\t{ref_utt}\t{ref_wav}\t{ref_txt}\n")
+    with output_path.open("w", encoding="utf-8") as f:
+        for ref_utt, ref_text, gen_utt, gen_text in rows:
+            ref_wav = _utterance_flac(root, ref_utt)
+            _utterance_flac(root, gen_utt)  # fail fast if the target audio is absent
+            f.write(f"{gen_utt}\t{gen_text}\t{ref_utt}\t{ref_wav}\t{ref_text}\n")
     return len(rows)
 
 
@@ -114,12 +124,12 @@ class LibriSpeechPCDataset(TorchDataset):
     def __getitem__(self, idx: int) -> dict:
         """Load the prompt audio of pair ``idx`` and return the inference sample."""
         gen_utt, gen_text, _ref_utt, ref_wav, ref_text = self.rows[idx]
-        speech, sr = sf.read(ref_wav, dtype="float32")
+        speech, sample_rate = sf.read(ref_wav, dtype="float32")
         if speech.ndim > 1:
             speech = speech.mean(axis=1)
-        if self.fs is not None and sr != self.fs:
+        if self.fs is not None and sample_rate != self.fs:
             speech = torchaudio.functional.resample(
-                torch.from_numpy(speech), sr, self.fs
+                torch.from_numpy(speech), sample_rate, self.fs
             ).numpy()
         return {
             "utt_id": gen_utt,

@@ -98,6 +98,11 @@ def build_demo(
         gradio.Blocks: App with one component per input/output spec, bound
         positionally to the session's inference function.
 
+    Raises:
+        FileNotFoundError: If ``ui.examples`` names an audio file that is not
+            in the packed demo, so a broken example fails at launch rather
+            than on click.
+
     Example:
         .. code-block:: python
 

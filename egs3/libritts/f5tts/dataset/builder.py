@@ -155,7 +155,7 @@ def _download_pair_list(url: str, dest: Path) -> None:
 
 
 def _scan_subset_entries(subset_dir: Path) -> list[tuple[str, Path, str, str]]:
-    """Scan a subset directory into ``(utt_id, wav_path, text, spk_key)`` tuples.
+    """Scan a subset directory into ``(utt_id, wav_path, text, speaker)`` tuples.
 
     Args:
         subset_dir: Path to the subset directory (e.g., "LibriTTS/train-clean-100")
@@ -165,7 +165,8 @@ def _scan_subset_entries(subset_dir: Path) -> list[tuple[str, Path, str, str]]:
             - utt_id: Unique utterance ID (e.g., "123_456_789_000")
             - wav_path: Path to the corresponding WAV file
             - text: Transcription text
-            - spk_key: Speaker key (e.g., "speaker_chapter") for speaker ID mapping
+            - speaker: LibriTTS speaker directory name (e.g., "1089"), later
+              mapped to an integer speaker ID
     """
     entries = []
     for text_path in sorted(subset_dir.rglob("*.normalized.txt")):
@@ -176,9 +177,9 @@ def _scan_subset_entries(subset_dir: Path) -> list[tuple[str, Path, str, str]]:
         if not text:
             continue
         utt_id = text_path.stem.replace(".normalized", "")
+        # <subset>/<speaker>/<chapter>/<utt_id>.normalized.txt
         speaker = text_path.parent.parent.name
-        spk_key = speaker
-        entries.append((utt_id, wav_path.resolve(), text, spk_key))
+        entries.append((utt_id, wav_path.resolve(), text, speaker))
     return entries
 
 
@@ -235,12 +236,12 @@ class LibriTTSBuilder(DatasetBuilder):
             configured subset. Without them this returns False and
             ``prepare_source`` re-downloads the archives.
 
-        Examples:
-            ```python
-            builder = LibriTTSBuilder()
-            if not builder.is_source_prepared(recipe_dir="egs3/libritts/f5tts"):
-                builder.prepare_source(recipe_dir="egs3/libritts/f5tts")
-            ```
+        Example:
+            .. code-block:: python
+
+                builder = LibriTTSBuilder()
+                if not builder.is_source_prepared(recipe_dir="egs3/libritts/f5tts"):
+                    builder.prepare_source(recipe_dir="egs3/libritts/f5tts")
         """
         recipe_root = Path(recipe_dir).resolve()
         dataset_root = recipe_root / _CFG["dataset_path"]
@@ -283,33 +284,36 @@ class LibriTTSBuilder(DatasetBuilder):
             URLError: If an archive download fails.
             RuntimeError: If the pair list download fails.
 
-        Examples:
+        Example:
             Called by the ``create_dataset`` stage, but it can also be driven
             directly:
-            ```python
-            from egs3.libritts.f5tts.dataset.builder import LibriTTSBuilder
 
-            builder = LibriTTSBuilder()
-            builder.prepare_source(recipe_dir="egs3/libritts/f5tts")
-            ```
+            .. code-block:: python
+
+                from egs3.libritts.f5tts.dataset.builder import LibriTTSBuilder
+
+                builder = LibriTTSBuilder()
+                builder.prepare_source(recipe_dir="egs3/libritts/f5tts")
 
             The full recipe download is ~80 GB. To keep only the extracted
             audio:
-            ```python
-            builder.prepare_source(
-                recipe_dir="egs3/libritts/f5tts",
-                remove_archive=True,
-            )
-            ```
+
+            .. code-block:: python
+
+                builder.prepare_source(
+                    recipe_dir="egs3/libritts/f5tts",
+                    remove_archive=True,
+                )
 
             The `create_dataset` stage forwards every key under
             `create_dataset:` in the training config as a builder kwarg, so
             the same option is reachable from yaml:
-            ```yaml
-            create_dataset:
-              recipe_dir: ${recipe_dir}
-              remove_archive: true
-            ```
+
+            .. code-block:: yaml
+
+                create_dataset:
+                  recipe_dir: ${recipe_dir}
+                  remove_archive: true
         """
         if self.is_source_prepared(recipe_dir=recipe_dir):
             logger.info("Source data is already prepared, skipping download.")
@@ -344,6 +348,13 @@ class LibriTTSBuilder(DatasetBuilder):
         Returns:
             True if the LibriTTS split manifests exist; False otherwise.
 
+        Example:
+            .. code-block:: python
+
+                builder = LibriTTSBuilder()
+                if not builder.is_libritts_built(recipe_dir="egs3/libritts/f5tts"):
+                    raise RuntimeError("Run the create_dataset stage first.")
+
         Note:
             Deliberately narrower than :meth:`is_built`. ``LibriTTSDataset``
             guards on this one, so training is not blocked by a missing
@@ -371,17 +382,17 @@ class LibriTTSBuilder(DatasetBuilder):
             ``conf/inference.yaml``, the default eval config, reads it. Use
             :meth:`is_libritts_built` for the training-only subset.
 
-        Examples:
-            ```python
-            builder = LibriTTSBuilder()
-            if not builder.is_built(recipe_dir="egs3/libritts/f5tts"):
-                builder.build(recipe_dir="egs3/libritts/f5tts")
-            ```
+        Example:
+            .. code-block:: python
+
+                builder = LibriTTSBuilder()
+                if not builder.is_built(recipe_dir="egs3/libritts/f5tts"):
+                    builder.build(recipe_dir="egs3/libritts/f5tts")
         """
         recipe_root = Path(recipe_dir).resolve()
-        _, _, lspc_manifest = _librispeech_pc_paths(recipe_root)
+        _, _, librispeech_pc_manifest = _librispeech_pc_paths(recipe_root)
         return self.is_libritts_built(recipe_dir=recipe_root) and (
-            lspc_manifest.is_file()
+            librispeech_pc_manifest.is_file()
         )
 
     def build(
@@ -413,22 +424,23 @@ class LibriTTSBuilder(DatasetBuilder):
                 LibriSpeech test-clean tree or the pair list is missing, i.e.
                 ``prepare_source`` has not run successfully.
 
-        Examples:
-            ```python
-            from egs3.libritts.f5tts.dataset.builder import LibriTTSBuilder
+        Example:
+            .. code-block:: python
 
-            builder = LibriTTSBuilder()
-            builder.prepare_source(recipe_dir="egs3/libritts/f5tts")
-            builder.build(recipe_dir="egs3/libritts/f5tts")
-            ```
+                from egs3.libritts.f5tts.dataset.builder import LibriTTSBuilder
+
+                builder = LibriTTSBuilder()
+                builder.prepare_source(recipe_dir="egs3/libritts/f5tts")
+                builder.build(recipe_dir="egs3/libritts/f5tts")
 
             Each split manifest row is four tab-separated fields, e.g.:
-            ```text
-            1089_134691_000004_000001
-            /abs/path/1089_134691_000004_000001.wav
-            He hoped there would be stew for dinner.
-            0
-            ```
+
+            .. code-block:: text
+
+                1089_134691_000004_000001
+                /abs/path/1089_134691_000004_000001.wav
+                He hoped there would be stew for dinner.
+                0
         """
         recipe_root = Path(recipe_dir).resolve()
         libritts_root = recipe_root / _CFG["dataset_path"] / "LibriTTS"
@@ -445,29 +457,33 @@ class LibriTTSBuilder(DatasetBuilder):
                 if not subset_dir.is_dir():
                     raise FileNotFoundError(f"Subset directory not found: {subset_dir}")
                 entries.extend(_scan_subset_entries(subset_dir))
-            entries = sorted(entries, key=lambda x: x[0])
+            entries = sorted(entries, key=lambda entry: entry[0])
             split_entries[split] = entries
-            for _, _, _, spk_key in entries:
-                if spk_key not in speaker_to_id:
-                    speaker_to_id[spk_key] = len(speaker_to_id)
+            for _, _, _, speaker in entries:
+                if speaker not in speaker_to_id:
+                    speaker_to_id[speaker] = len(speaker_to_id)
 
         for split, entries in split_entries.items():
             manifest_path = data_dir / _CFG["manifest_paths"][split]
             manifest_path.parent.mkdir(parents=True, exist_ok=True)
             with manifest_path.open("w", encoding="utf-8") as f:
-                for utt_id, wav_path, text, spk_key in entries:
-                    sid = speaker_to_id[spk_key]
+                for utt_id, wav_path, text, speaker in entries:
+                    sid = speaker_to_id[speaker]
                     f.write(f"{utt_id}\t{wav_path}\t{text}\t{sid}\n")
 
-        test_clean_root, lst_path, lspc_manifest = _librispeech_pc_paths(recipe_root)
-        for path, what in (
+        test_clean_root, lst_path, librispeech_pc_manifest = _librispeech_pc_paths(
+            recipe_root
+        )
+        for path, description in (
             (lst_path, "LibriSpeech-PC pair list"),
             (test_clean_root, "LibriSpeech test-clean tree"),
         ):
             if not path.exists():
                 raise FileNotFoundError(
-                    f"Missing {what}: {path}. Run the create_dataset stage so "
+                    f"Missing {description}: {path}. Run the create_dataset stage so "
                     f"prepare_source() downloads it."
                 )
-        n_rows = build_manifest(lst_path, test_clean_root, lspc_manifest)
-        logger.info("Wrote %d LibriSpeech-PC rows to %s", n_rows, lspc_manifest)
+        row_count = build_manifest(lst_path, test_clean_root, librispeech_pc_manifest)
+        logger.info(
+            "Wrote %d LibriSpeech-PC rows to %s", row_count, librispeech_pc_manifest
+        )
