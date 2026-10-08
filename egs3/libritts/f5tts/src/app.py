@@ -188,6 +188,10 @@ def build_demo(
         if examples:
             logger.info("Adding %d example row(s)", len(examples))
             gr.Examples(examples=examples, inputs=input_components, label="Examples")
+            # The first example is filled in when the page opens, so a visitor
+            # can press Synthesize right away; the rows below refill the inputs.
+            first = tuple(examples[0]) if len(input_components) > 1 else examples[0][0]
+            app.load(fn=lambda: first, inputs=None, outputs=input_components)
 
     logger.info("Recipe demo UI ready")
     return app

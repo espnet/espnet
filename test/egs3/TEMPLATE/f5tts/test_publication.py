@@ -203,6 +203,15 @@ def test_pack_demo_builds_a_working_demo(recipe_dir, stub_vocoder):
     assert kinds.index("Markdown") < kinds.index("Textbox") < kinds.index("Dataset")
     (dataset,) = [b for b in blocks.blocks.values() if isinstance(b, gradio.Dataset)]
     assert [row[0] for row in dataset.samples] == ["a cab"]
+    # The page opens with the first example filled in.
+    (on_load,) = [
+        block_function.fn
+        for block_function in blocks.fns.values()
+        if any(event == "load" for _, event in block_function.targets)
+    ]
+    text, prompt, transcript = on_load()
+    assert (text, transcript) == ("a cab", "abba")
+    assert Path(prompt) == (demo_dir / "examples" / "prompt.wav").resolve()
 
     # gr.Examples registers a fill-in function of its own; the handler is ours.
     (handler,) = [

@@ -8,4 +8,4 @@ F5-TTS is a zero-shot text-to-speech model: it speaks the text you give it in th
 
 **Output**: the synthesized speech at 24 kHz.
 
-Click an example below to fill the inputs with a LibriSpeech prompt, then press **Synthesize**. The first call after a pause takes longer while the model loads.
+The inputs open filled with a LibriSpeech prompt and a sentence to speak: press **Synthesize** to hear it, or replace them with your own; the example row at the bottom restores them. The first call after a pause takes longer while the model loads.
