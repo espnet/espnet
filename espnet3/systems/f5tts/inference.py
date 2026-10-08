@@ -540,8 +540,8 @@ class F5TTSInference:
         reference_audio = reference_speech if reference_speech is not None else speech
         if reference_audio is None:
             raise ValueError(
-                "No reference audio provided: pass 'reference_speech' "
-                "(cross/same-speaker) or 'speech' (self-reference)."
+                "No reference audio provided: pass 'reference_speech' (or "
+                "'speech', an older name for the same field)."
             )
 
         if reference_text is None:
