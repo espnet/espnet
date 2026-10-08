@@ -328,7 +328,7 @@ class DataOrganizer:
             # inspect its side effects.
             if train is not None:
                 train_preprocessor = copy.deepcopy(preprocessor_cfg)
-                train_preprocessor.train = True
+                train_preprocessor.train = train_mode
                 valid_preprocessor = preprocessor_cfg
                 valid_preprocessor.train = False
             else:

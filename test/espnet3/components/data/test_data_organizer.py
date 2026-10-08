@@ -1177,3 +1177,15 @@ def test_train_mode_false_builds_the_train_preprocessor_out_of_training_mode(
         preprocessor=preprocessor_cfg,
     )
     assert organizer.train[0]["was_train"] is True
+
+
+def test_train_mode_false_also_applies_to_a_preprocessor_instance():
+    """A ready-made AbsPreprocessor's train copy follows train_mode too."""
+    organizer = DataOrganizer(
+        train=[_entry("train_dummy")],
+        valid=[_entry("valid_dummy")],
+        preprocessor=TrainFlagRecordingPreprocessor(train=True),
+        train_mode=False,
+    )
+    assert organizer.train[0]["was_train"] is False
+    assert organizer.valid[0]["was_train"] is False

@@ -8,7 +8,7 @@ from typing import Any, Dict, Iterable, List, Optional, Sequence, Tuple
 
 import numpy as np
 import torch
-from hydra.utils import get_class, instantiate
+from hydra.utils import get_object, instantiate
 from omegaconf import DictConfig, OmegaConf
 
 from espnet2.fileio.npy_scp import NpyScpWriter
@@ -173,8 +173,10 @@ def _instantiate_dataset(dataset_config, mode: str):
     if not isinstance(dataset_config, DictConfig):
         dataset_config = OmegaConf.create(dataset_config)
 
+    # a target may be a factory function, which hydra also instantiates
     target = dataset_config.get("_target_", None)
-    is_organizer = target is not None and issubclass(get_class(target), DataOrganizer)
+    built = get_object(target) if target is not None else None
+    is_organizer = isinstance(built, type) and issubclass(built, DataOrganizer)
     organizer = instantiate(
         dataset_config, **({"train_mode": False} if is_organizer else {})
     )

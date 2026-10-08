@@ -489,3 +489,15 @@ def test_collect_stats_builds_a_data_organizer_without_training_mode(monkeypatch
     )
     train = _instantiate_dataset(dataset_cfg, "train")
     assert train[0]["was_train"] is False
+
+
+def build_test_organizer(**kwargs):
+    """A factory function as an organizer target, which hydra allows."""
+    return DummyOrganizer(**kwargs)
+
+
+def test_collect_stats_builds_an_organizer_named_by_a_factory_function():
+    """Only a DataOrganizer class gets train_mode; a factory is built as is."""
+    dataset_cfg = make_dataset_cfg(n_train=2, n_valid=1)
+    dataset_cfg._target_ = f"{__name__}.build_test_organizer"
+    assert len(_instantiate_dataset(dataset_cfg, "train")) == 2
