@@ -30,8 +30,9 @@ _VERSA_FAILURE_MARKERS = ("Failed to load metric", "Error computing metric")
 class VersaMetric(BaseMetric):
     """Score `infer` outputs by shelling out to `versa.bin.scorer`.
 
-    One instance scores one test set: `__call__` receives the SCP files the
-    `infer` stage wrote, runs the VERSA scorer over them as a subprocess, and
+    Each call scores one test set (the `measure` stage builds the metric once
+    and calls it per test set): `__call__` receives the SCP files the `infer`
+    stage wrote, runs the VERSA scorer over them as a subprocess, and
     returns the per-utterance average of every numeric field VERSA emitted,
     plus a corpus-level WER/CER pooled from the edit-operation counts when a
     recognition metric is configured. A metric that fails or yields no value

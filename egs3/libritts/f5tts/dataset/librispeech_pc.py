@@ -99,6 +99,9 @@ class LibriSpeechPCDataset(TorchDataset):
         manifest_path: TSV written by :func:`build_manifest`.
         fs: Sampling rate the prompt audio is resampled to; ``None`` keeps
             the file's own rate.
+
+    Raises:
+        RuntimeError: If the manifest holds no rows.
     """
 
     def __init__(

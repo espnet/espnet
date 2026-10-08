@@ -10,8 +10,10 @@ runner then reads the declared inputs (``text``, ``reference_speech`` and
 ``reference_text``) out of each test sample by name and writes the
 declared ``wav`` output as ``wav.scp``; no ``input_key`` or ``output_fn`` is
 involved. The bare engine can still be named instead
-(``model._target_: ...F5TTSInference``), in which case the recipe supplies
-``input_key`` and an ``output_fn`` itself.
+(``model._target_: ...F5TTSInference``); the recipe then has to give
+``input_key``, and ``output_artifacts`` with ``wav: {type: wav, sample_rate:
+24000}`` for the waveform to be written as audio rather than ``.npy``
+(an ``output_fn`` is optional).
 
 The model is rebuilt from the *training* config by instantiating that config's
 own ``model`` block (``espnet3.systems.f5tts.f5tts.F5TTS``), so it stays in
