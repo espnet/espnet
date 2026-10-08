@@ -1,5 +1,5 @@
 import json
-from test.espnet2.universa.test_audio_metric_task import task_args
+from test.espnet2.aqa.test_aqa_task import task_args
 
 import numpy as np
 import pytest
@@ -7,8 +7,8 @@ import soundfile
 import torch
 import yaml
 
-from espnet2.bin.audio_metric_inference import UniversaInference, inference
-from espnet2.tasks.audio_metric import AudioMetricTask
+from espnet2.bin.aqa_inference import AqaInference, inference
+from espnet2.tasks.aqa import AqaTask
 
 
 @pytest.mark.parametrize("use_ref_text", [False, True])
@@ -21,11 +21,11 @@ def test_string_reference_text(tmp_path, use_ref_text):
     args.universa_conf["text_encoder_params"] = dict(
         num_blocks=1, attention_heads=2, linear_units=16, input_layer="linear"
     )
-    model = AudioMetricTask.build_model(args)
+    model = AqaTask.build_model(args)
     config, checkpoint = tmp_path / "config.yaml", tmp_path / "model.pth"
     config.write_text(yaml.safe_dump(vars(args)))
     torch.save(model.state_dict(), checkpoint)
-    predict = UniversaInference(config, checkpoint)
+    predict = AqaInference(config, checkpoint)
     audio = torch.randn(256)
     if not use_ref_text:
         with pytest.raises(
@@ -43,7 +43,7 @@ def test_string_reference_text(tmp_path, use_ref_text):
 def test_legacy_cli():
     from espnet2.bin import universa_inference
 
-    assert universa_inference.UniversaInference is UniversaInference
+    assert universa_inference.UniversaInference is AqaInference
     with pytest.raises(SystemExit) as exc:
         universa_inference.main([])
     assert exc.value.code == 2
@@ -53,7 +53,7 @@ def test_legacy_cli():
 def test_checkpoint_and_cli_inference(tmp_path, multi_branch):
     args = task_args(tmp_path)
     if multi_branch == "ar":
-        from test.espnet2.universa.test_metric_tokenizer import token_info
+        from test.espnet2.aqa.test_metric_tokenizer import token_info
 
         args.universa = "ar_universa"
         args.sequential_metric = True
@@ -65,13 +65,13 @@ def test_checkpoint_and_cli_inference(tmp_path, multi_branch):
         )
     else:
         args.universa_conf["multi_branch"] = multi_branch
-    model = AudioMetricTask.build_model(args)
+    model = AqaTask.build_model(args)
     config, checkpoint = tmp_path / "config.yaml", tmp_path / "model.pth"
     config.write_text(yaml.safe_dump(vars(args)))
     torch.save(model.state_dict(), checkpoint)
     # Inference must not depend on the training directory's metric vocabulary.
     (tmp_path / "metric2id").unlink()
-    predict = UniversaInference(
+    predict = AqaInference(
         config,
         checkpoint,
         save_token_seq=True,
@@ -87,7 +87,7 @@ def test_checkpoint_and_cli_inference(tmp_path, multi_branch):
             predict(torch.randn(2, 256))
     else:
         config.write_text(yaml.safe_dump({**vars(args), "use_preprocessor": False}))
-        no_preprocess = UniversaInference(config, checkpoint)
+        no_preprocess = AqaInference(config, checkpoint)
         with pytest.raises(ValueError, match="provide token IDs"):
             no_preprocess(torch.randn(256), ref_text="reference")
         config.write_text(yaml.safe_dump(vars(args)))

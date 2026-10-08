@@ -10,11 +10,28 @@ import pytest
 from omegaconf import OmegaConf
 
 import egs3.TEMPLATE.esp2_asr.src.app as demo_module
+import espnet3.api.inference.loading as loading
 import espnet3.publication.demo.assets as demo_assets_module
 import espnet3.publication.demo.session as demo_session_module
 from egs3.TEMPLATE.esp2_asr.src.app import build_demo
 from espnet3.api.inference import Audio, Field, InferenceAPI
 from espnet3.publication.demo.session import DemoSession, load_demo_session, to_ui
+
+
+@pytest.fixture(autouse=True)
+def _test_classes_count_as_installed_espnet_code(monkeypatch):
+    """Let this module's classes stand in for ESPnet's own in bundles.
+
+    A bundle may build only espnet2/espnet3 classes unless trusted; the
+    bundles written here name classes defined in this test module instead.
+    The gate itself is tested with the real namespaces, which
+    ``real_target_policy`` restores.
+    """
+    monkeypatch.setattr(
+        loading,
+        "_BUNDLE_TARGET_PREFIXES",
+        loading._BUNDLE_TARGET_PREFIXES + (f"{__name__}.",),
+    )
 
 
 class Transcriber(InferenceAPI):

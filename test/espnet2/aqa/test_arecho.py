@@ -1,11 +1,11 @@
-from test.espnet2.universa.test_metric_tokenizer import token_info
+from test.espnet2.aqa.test_metric_tokenizer import token_info
 
 import numpy as np
 import pytest
 import torch
 
-from espnet2.universa.ar_universa import ARUniversa
-from espnet2.universa.ar_universa.data import ARMetricCollateFn, ARMetricProcessor
+from espnet2.aqa.ar_universa import ARUniversa
+from espnet2.aqa.ar_universa.data import ARMetricCollateFn, ARMetricProcessor
 
 
 @pytest.fixture

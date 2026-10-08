@@ -1,4 +1,4 @@
-"""Test the universa_eval utility."""
+"""Test the aqa_eval utility."""
 
 import importlib.util
 import json
@@ -10,9 +10,7 @@ import pytest
 
 ROOT = Path(__file__).resolve().parents[3]
 UTILS = ROOT / "egs2/TEMPLATE/asr1/pyscripts/utils"
-spec = importlib.util.spec_from_file_location(
-    "universa_eval", UTILS / "universa_eval.py"
-)
+spec = importlib.util.spec_from_file_location("aqa_eval", UTILS / "aqa_eval.py")
 evaluation = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(evaluation)
 
@@ -36,7 +34,7 @@ def test_missing_utterance(tmp_path, skip_missing):
     result = subprocess.run(
         [
             sys.executable,
-            str(UTILS / "universa_eval.py"),
+            str(UTILS / "aqa_eval.py"),
             "--ref_metrics",
             str(reference),
             "--pred_metrics",
@@ -67,7 +65,7 @@ def run_evaluation(tmp_path, reference, prediction, *options):
     result = subprocess.run(
         [
             sys.executable,
-            str(UTILS / "universa_eval.py"),
+            str(UTILS / "aqa_eval.py"),
             "--ref_metrics",
             str(ref),
             "--pred_metrics",
