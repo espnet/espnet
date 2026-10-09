@@ -81,7 +81,7 @@ class CTCSegmentation(AbsCTCSegmentation):
         time_stamps: str = "auto",
         lang_sym: str = "<eng>",
         task_sym: str = "<asr>",
-        context_len_in_secs: float = 4,
+        context_len_in_secs: Optional[float] = None,
         # last, and after every argument this class already had: a caller
         # passing them positionally must keep binding what it bound before
         device: Optional[str] = None,
@@ -99,6 +99,9 @@ class CTCSegmentation(AbsCTCSegmentation):
                 processing on GPU. Multi-GPU aligning is currently not
                 implemented. Default: 0.
             batch_size: Currently, only batch size == 1 is implemented.
+            context_len_in_secs: Context discarded on each side of a buffer.
+                Defaults to four seconds rounded to the nearest encoder frame.
+                Explicit values must cover whole frames.
             dtype: Data type used for inference. Set dtype according to
                 the ASR model.
             kaldi_style_text: A kaldi-style text file includes the name of the
@@ -197,6 +200,9 @@ class CTCSegmentation(AbsCTCSegmentation):
         batch_size = self.batch_size
 
         buffer_len_in_secs = self.s2t_train_args.preprocessor_conf["speech_length"]
+        if context_len_in_secs is None:
+            # Preserve the nominal four-second default on each encoder's grid.
+            context_len_in_secs = round(4 * frames_per_sec) / frames_per_sec
         buffer_frames, context_frames = buffered_frame_counts(
             frames_per_sec, buffer_len_in_secs, context_len_in_secs
         )

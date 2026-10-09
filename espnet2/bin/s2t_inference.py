@@ -1121,7 +1121,7 @@ class Speech2Text:
         self,
         speech: Union[str, Path, torch.Tensor, np.ndarray],
         batch_size: int = 1,
-        context_len_in_secs: float = 2,
+        context_len_in_secs: Optional[float] = None,
         lang_sym: Optional[str] = None,
         task_sym: Optional[str] = None,
     ) -> np.ndarray:
@@ -1137,12 +1137,15 @@ class Speech2Text:
 
         The training buffer and context durations must cover whole encoder
         frames; otherwise a ValueError is raised instead of accumulating drift.
+        An omitted context defaults to two seconds rounded to the nearest frame.
         """
         speech = self.read_audio(speech)
         lang_id = self.converter.token2id[lang_sym or self.lang_sym]
         task_id = self.converter.token2id[task_sym or self.task_sym]
 
         buffer_len_in_secs = self.preprocessor_conf["speech_length"]
+        if context_len_in_secs is None:
+            context_len_in_secs = round(2 * self.frames_per_sec) / self.frames_per_sec
         buffer_frames, context_frames = buffered_frame_counts(
             self.frames_per_sec, buffer_len_in_secs, context_len_in_secs
         )
@@ -1209,7 +1212,7 @@ class Speech2Text:
         self,
         speech: np.ndarray,
         batch_size: int = 1,
-        context_len_in_secs: float = 2,
+        context_len_in_secs: Optional[float] = None,
         lang_sym: Optional[str] = None,
         task_sym: Optional[str] = None,
     ) -> str:
@@ -1233,7 +1236,7 @@ class Speech2Text:
         self,
         speech: Union[str, Path, torch.Tensor, np.ndarray],
         batch_size: int = 1,
-        context_len_in_secs: float = 2,
+        context_len_in_secs: Optional[float] = None,
         condition_on_prev_text: bool = False,
         init_text: Optional[str] = None,
         end_time_threshold: Optional[str] = None,
@@ -1256,7 +1259,9 @@ class Speech2Text:
         Args:
             batch_size: buffers decoded together, on a CTC-only checkpoint.
             context_len_in_secs: context decoded and then dropped on either
-                side of each buffer, on a CTC-only checkpoint.
+                side of each buffer, on a CTC-only checkpoint. Defaults to two
+                seconds rounded to the nearest encoder frame. Explicit values
+                must cover whole frames.
             condition_on_prev_text, init_text, end_time_threshold,
                 skip_last_chunk_threshold: the encoder-decoder path.
                 `end_time_threshold` defaults to one second before the end of

@@ -21,6 +21,29 @@ def test_main():
         main()
 
 
+@pytest.mark.parametrize("s2t_config_file", [("conv2d6", 30)], indirect=True)
+def test_conv2d6_default_context_keeps_contiguous_frames(s2t_config_file, monkeypatch):
+    """The nominal four-second context resolves to 67 complete frames."""
+    aligner = CTCSegmentation(s2t_train_config=s2t_config_file, batch_size=2)
+    hop = 960
+
+    def encode(speech, prefix, **kwargs):
+        frames = speech[:, ::hop][:, :-1].unsqueeze(-1)
+        marks = speech.new_full((speech.size(0), prefix.size(1), 1), -1.0)
+        return torch.cat([marks, frames], dim=1), None
+
+    monkeypatch.setattr(aligner.s2t_model, "encode", encode)
+    monkeypatch.setattr(aligner.ctc, "log_softmax", lambda enc: enc)
+    speech = np.arange(1, 70 * aligner.fs + 1, dtype=np.float32)
+    probs, covered_samples = aligner.get_lpz(speech)
+    expected = 1 + hop * np.arange(round(len(speech) / hop))
+    np.testing.assert_array_equal(probs[: len(expected), 0], expected)
+    assert len(probs) * hop == covered_samples
+    aligner.context_len_in_secs = 4
+    with pytest.raises(ValueError, match="context_len_in_secs.*whole number"):
+        aligner.get_lpz(speech)
+
+
 @pytest.fixture()
 def token_list(tmp_path: Path):
     with (tmp_path / "tokens.txt").open("w") as f:
@@ -44,7 +67,8 @@ def token_list(tmp_path: Path):
 
 
 @pytest.fixture()
-def s2t_config_file(tmp_path: Path, token_list):
+def s2t_config_file(tmp_path: Path, token_list, request):
+    input_layer, window = getattr(request, "param", ("conv2d8", 4))
     # Write default configuration file
     S2TTask.main(
         cmd=[
@@ -61,13 +85,13 @@ def s2t_config_file(tmp_path: Path, token_list):
             "--preprocessor_conf",
             "fs=16000",
             "--preprocessor_conf",
-            "speech_length=4",
+            f"speech_length={window}",
             "--frontend_conf",
             "fs=16k",
             "--frontend_conf",
             "hop_length=160",
             "--encoder_conf",
-            "input_layer=conv2d8",
+            f"input_layer={input_layer}",
         ]
     )
     return tmp_path / "s2t" / "config.yaml"
