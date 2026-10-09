@@ -98,6 +98,7 @@ class CTCPrefixScoreTH(object):
         # which is not worth a synchronisation with an accelerator.
         heard = (xn.argmax(-1) != self.blank).cpu()  # (T, B)
         self.cum_heard = torch.cumsum(heard, 0).t().contiguous()
+        self.end_frames_cpu = self.end_frames.cpu()
 
     def _window_end(self, f_max, end):
         """Return the frame at which the windowed recursion stops.
@@ -116,7 +117,7 @@ class CTCPrefixScoreTH(object):
         wanted = self.cum_heard[:, f_max] + self.WINDOW_LABELS  # (B,)
         # the frame at which each utterance gets there, T if it never does
         reach = torch.searchsorted(self.cum_heard, wanted.unsqueeze(1)).squeeze(1)
-        reach = torch.minimum(reach, self.end_frames.cpu()) + 1
+        reach = torch.minimum(reach, self.end_frames_cpu) + 1
         return min(max(end, int(reach.max())), self.input_length)
 
     def __call__(self, y, state, scoring_ids=None, att_w=None):

@@ -1322,19 +1322,20 @@ def get_parser():
         help="Half-width, in encoder frames, of the window the CTC forward "
         "recursion is restricted to. Without it the recursion walks the whole "
         "utterance at every decoding step, which costs O(duration^2); a window "
-        "makes it linear, so the longer the audio the more it saves. "
+        "reduces that work. Across silence, the window stretches until it "
+        "contains five frames with a nonblank best label, or the utterance ends. "
         "CHANGES DECODING RESULTS: this is an approximation and it is on by "
         "default, so an existing config decodes differently than it did in "
         "earlier versions of espnet. Pass 0 for the previous, exact behaviour. "
         "The unit is encoder frames, so the duration it buys depends on the "
         "model: the default is 4 s each side at a 10 ms frame shift with 4x "
         "subsampling, but only 2 s with 2x subsampling. Too small a window "
-        "loses accuracy, and how small is too small depends on the language "
-        "and the token unit, not just on the audio: on LibriSpeech test-clean "
-        "(English, BPE) 40 frames already reproduced exact decoding, but on "
-        "AISHELL-1 test (Mandarin, characters) 40 still differed on 4 of 50 "
-        "utterances and 20 collapsed to 51% CER. The default is set well "
-        "above both, so lower it only with a measurement on your own data.",
+        "can lose accuracy. With silence-aware windowing, margins of 20, 40 "
+        "and 100 reproduced all exact transcripts on the first 50 AISHELL-1 "
+        "test utterances with espnet/kamo-naoyuki_aishell_conformer, no LM, "
+        "CTC weight 0.3 and beam 10: 3.19% CER as recorded and 4.56% with "
+        "six seconds of trailing silence. These results are model- and "
+        "data-dependent; lower the margin only after measuring on your own data.",
     )
     group.add_argument(
         "--ctc_weight",
