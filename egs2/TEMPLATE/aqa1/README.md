@@ -47,10 +47,13 @@ cd egs2/my_corpus/aqa1
     --use_ref_wav false --use_ref_text false
 ```
 
-Setup copies `cmd.sh`, `conf`, and `local` from the ASR template so each recipe
-can customize them. It links the common runtime scripts to `TEMPLATE/asr1` and
-the task driver to `TEMPLATE/aqa1/aqa.sh`. Run setup from the repository root;
-the target must follow the `egs2/<corpus>/aqa1` layout.
+Setup copies `cmd.sh`, `conf`, and `local` from the ASR template. Customize
+recipe-specific training configurations and local data preparation scripts.
+Keep cluster settings (`cmd.sh`, `conf/slurm.conf`, `conf/queue.conf`, and
+`conf/pbs.conf`) at their defaults in contributed recipes. Setup links the
+common runtime scripts to `TEMPLATE/asr1` and the task driver to
+`TEMPLATE/aqa1/aqa.sh`. Run setup from the repository root; the target must
+follow the `egs2/<corpus>/aqa1` layout.
 
 Stages prepare data, format audio, discover metrics, filter data, tokenize text,
 collect statistics, train, infer, and score. Supply a training configuration with
