@@ -200,10 +200,24 @@ class BeamSearch(torch.nn.Module):
     def set_hyp_primer(self, hyp_primer: List[int] = None) -> None:
         """Set the primer sequence for decoding.
 
-        A primer contains control tokens and optional prompt text, never
-        acoustic output labels. CTC scores only the labels generated after
-        it. Prefix-constrained decoding, where the primer is a transcript
-        already covered by the audio, is not supported by this interface.
+        Every hypothesis starts from this sequence instead of ``[<sos>]``.
+        It contains control tokens and optional prompt text, never acoustic
+        output labels. CTC scores only the labels generated after it.
+
+        Examples in ESPnet:
+            * Whisper ASR (``asr_inference``):
+              ``[<|startoftranscript|>, <|en|>, <|transcribe|>, <|notimestamps|>]``.
+            * OWSM / S2T (``s2t_inference._build_hyp_primer``):
+              ``[<sos>, <lang>, <task>, <notime>]``. A previous-segment prompt
+              adds ``[<sop>] + text_prev`` before those control tokens.
+            * Whisper ST (``st_inference``): language and task control tokens,
+              as in the Whisper ASR primer above, with the translation task.
+            * LM generation (``lm_inference``): the text to continue. There
+              is no CTC scorer in this case.
+
+        Prefix-constrained decoding, where the primer is a transcript already
+        covered by the audio, is not supported by this interface. Such labels
+        would have to be counted by CTC, unlike a decoder prompt.
         """
         self.hyp_primer = hyp_primer
 
