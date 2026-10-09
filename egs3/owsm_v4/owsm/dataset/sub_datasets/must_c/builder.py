@@ -35,6 +35,7 @@ except AttributeError:
 
 
 def _pair_dir(source_root: Path, lang: str, split: str) -> Path:
+    """Return the `en-<lang>` split directory holding the txt and wav trees."""
     return source_root / f"en-{lang}" / "data" / split
 
 

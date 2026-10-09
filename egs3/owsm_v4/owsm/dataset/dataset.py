@@ -67,6 +67,13 @@ class OWSMDataset(TorchDataset):
         recipe_dir: str | Path | None = None,
         cache: dict | None = None,
     ) -> None:
+        """Open one built split of this corpus's cache.
+
+        Args:
+            split: Split name; must be one of the corpus's configured splits.
+            recipe_dir: Recipe root. Defaults to the package's own directory.
+            cache: The recipe's `cache` block, naming where the cache lives.
+        """
         self.split = str(split)
         if self.split not in self.SPLITS:
             raise ValueError(
@@ -88,9 +95,11 @@ class OWSMDataset(TorchDataset):
         self._rows = load_from_disk(str(split_dir))
 
     def __len__(self) -> int:
+        """Return the number of cached utterances; the cache is the order."""
         return len(self._rows)
 
     def __getitem__(self, idx: int) -> dict[str, Any]:
+        """Return one sample, composing the lang/task prefix and reading audio."""
         row = self._rows[int(idx)]
         # The prefix is composed here rather than stored, so the ISO 639-3
         # spelling can change without rebuilding the cache.

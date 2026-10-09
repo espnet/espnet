@@ -1,3 +1,5 @@
+"""Entry point for the OWSM v4 recipe; the stages live in the template."""
+
 from egs3.TEMPLATE.owsm.run import (
     DEFAULT_STAGES,
     build_parser,

@@ -182,6 +182,7 @@ class OWSMSystem(BaseSystem):
                 )
 
     def _has_tokenizer(self) -> bool:
+        """Return whether a trained model and its token list are both present."""
         tokenizer_config = self.training_config.tokenizer
         output_path = Path(tokenizer_config.save_path)
         model = output_path / f"{tokenizer_config.model_type}.model"
@@ -207,6 +208,7 @@ class OWSMSystem(BaseSystem):
         return load_symbols(symbols)
 
     def _training_text_path(self) -> Path:
+        """Return where the gathered tokenizer text goes, honouring train_file."""
         tokenizer_config = self.training_config.tokenizer
         configured = getattr(tokenizer_config, "train_file", None)
         if configured:

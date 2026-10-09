@@ -102,6 +102,7 @@ def main(
     system_cls,
     stages: Sequence[str] = DEFAULT_STAGES,
 ) -> None:
+    """Load every stage config, build the system, and run the chosen stages."""
     stages_to_run = resolve_stages(args.stages, stages)
 
     # -----------------------------------------

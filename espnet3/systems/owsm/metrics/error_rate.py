@@ -80,6 +80,7 @@ class ErrorRate(BaseMetric):
         self.pattern = tag_pattern(load_symbols(nlsyms)) if remove_tags else None
 
     def _ensure_jiwer(self) -> None:
+        """Raise with an install hint rather than an ImportError at scoring time."""
         if jiwer is None:
             raise RuntimeError(
                 "jiwer is required to compute error rates. "

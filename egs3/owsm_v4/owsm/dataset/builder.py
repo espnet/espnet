@@ -168,6 +168,11 @@ class OWSMBuilder(DatasetBuilder):
             failures_path = root / f"{split}.failures.jsonl"
 
             def rows(split=split, failures_path=failures_path):
+                """Yield one validated cache row per readable utterance.
+
+                `split` and `failures_path` are bound as defaults because the
+                generator is consumed after the loop has moved on.
+                """
                 with failures_path.open("w", encoding="utf-8") as failures:
                     for row in self.iter_rows(
                         source_root, split, failures=failures, **row_options
