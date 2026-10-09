@@ -11,6 +11,8 @@ if [ ! -d "${dir}/../../TEMPLATE/asr1" ]; then
     echo "Error: ${dir}/../../TEMPLATE/asr1 must exist" >&2
     exit 1
 fi
+# The generic recipe infrastructure is shared with asr1; only aqa.sh is task-specific.
+# path.sh resolves MAIN_ROOT from the generated recipe directory ($PWD).
 for f in cmd.sh conf local; do
     cp -r "${dir}/../../TEMPLATE/asr1/${f}" "${dir}"
 done

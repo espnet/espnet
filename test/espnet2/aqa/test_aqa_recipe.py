@@ -28,6 +28,7 @@ def recipe(tmp_path):
     )
 
     def run(stage, *options):
+        """Run one recipe stage with the test interpreter and supplied options."""
         env = dict(os.environ, PYTHONPATH=str(ROOT))
         result = subprocess.run(
             [
