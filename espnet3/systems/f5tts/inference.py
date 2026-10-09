@@ -166,7 +166,7 @@ class F5TTSInference:
         device: str = "cpu",
         use_ema: bool = True,
         vocoder_path: Optional[str] = None,
-        target_sample_rate: int = 24000,
+        target_sample_rate: Optional[int] = None,
         ode_solver_steps: int = 32,
         guidance_strength: float = 2.0,
         sway_sampling_coefficient: float = -1.0,
@@ -188,7 +188,10 @@ class F5TTSInference:
             vocoder_path: Local directory holding the Vocos ``config.yaml``
                 and ``pytorch_model.bin``. When unset the default checkpoint is
                 fetched from the Hugging Face Hub.
-            target_sample_rate: Output/vocoder sample rate.
+            target_sample_rate: Rate of the reference audio and of the
+                synthesized waveform. It is fixed by the model's mel front end
+                (``feats_extract_config.fs``), so leave it unset to use that
+                rate; a value that differs is refused.
             ode_solver_steps: Number of ODE solver steps, upstream's
                 ``nfe_step`` (number of function evaluations).
             guidance_strength: Classifier-free guidance scale, upstream's
@@ -210,7 +213,9 @@ class F5TTSInference:
 
         Raises:
             ValueError: If ``train_config`` has no ``model._target_`` or if
-                its ``dataset.preprocessor.token_list`` is missing.
+                its ``dataset.preprocessor.token_list`` is missing; if
+                ``target_sample_rate`` differs from the model's rate; or if
+                the vocoder was trained at a rate other than the model's.
 
         Example:
             .. code-block:: yaml
@@ -233,7 +238,6 @@ class F5TTSInference:
             the vocoder up front.
         """
         self.device = torch.device(device)
-        self.target_sample_rate = target_sample_rate
         self.ode_solver_steps = ode_solver_steps
         self.guidance_strength = guidance_strength
         self.sway_sampling_coefficient = sway_sampling_coefficient
@@ -257,6 +261,7 @@ class F5TTSInference:
 
         self._build_tokenizer(config)
         self.vocoder = self._load_vocoder(vocoder_path)
+        self.target_sample_rate = self._check_sample_rate(target_sample_rate)
 
     # ------------------------------------------------------------------ build
 
@@ -346,6 +351,27 @@ class F5TTSInference:
             token_id_converter.tokens2ids(tokenizer.text2tokens(cleaner(text))),
             dtype=np.int64,
         )
+
+    def _check_sample_rate(self, requested: Optional[int]) -> int:
+        """Return the model's sample rate, refusing a rate that contradicts it.
+
+        The mel front end fixes the rate the model reads the reference at, and
+        the vocoder the rate it writes the waveform at; a different requested
+        rate would resample the reference and label the output wrongly.
+        """
+        model_rate = int(self.feats_extract.fs)
+        vocoder_rate = _vocoder_sample_rate(self.vocoder)
+        if vocoder_rate is not None and vocoder_rate != model_rate:
+            raise ValueError(
+                f"The vocoder produces {vocoder_rate} Hz audio, but the model's "
+                f"mel front end is configured for {model_rate} Hz."
+            )
+        if requested is not None and int(requested) != model_rate:
+            raise ValueError(
+                f"target_sample_rate={requested} does not match the model's "
+                f"{model_rate} Hz (feats_extract_config.fs); leave it unset."
+            )
+        return model_rate
 
     def _load_vocoder(self, vocoder_path: Optional[str]):
         """Load Vocos from ``vocoder_path`` or the default pretrained checkpoint."""
@@ -584,6 +610,17 @@ class F5TTSInference:
             ]
             return {"wav": wavs}
         return {"wav": self.infer_one(text, reference_audio, reference_text)}
+
+
+def _vocoder_sample_rate(vocoder: Any) -> Optional[int]:
+    """Return the rate a Vocos vocoder was trained at, or ``None`` if unknown.
+
+    Vocos exposes it on its mel feature extractor; a vocoder without that
+    attribute is not checked.
+    """
+    feature_extractor = getattr(vocoder, "feature_extractor", None)
+    rate = getattr(getattr(feature_extractor, "mel_spec", None), "sample_rate", None)
+    return int(rate) if rate is not None else None
 
 
 class Inference(BackendInference):

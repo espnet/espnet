@@ -246,6 +246,46 @@ def test_construction_wires_up_the_model_parts(engine):
     assert engine.hop_length == 256
 
 
+def test_sample_rate_defaults_to_the_models(engine):
+    """Unset, the rate is the one the mel front end was configured with."""
+    assert engine.target_sample_rate == FEATS_CONF["fs"]
+
+
+def test_a_sample_rate_other_than_the_models_is_refused(
+    train_config, checkpoint_path, stub_vocoder
+):
+    """A 16 kHz rate on a 24 kHz model would resample and mislabel the audio."""
+    with pytest.raises(ValueError, match="target_sample_rate=16000"):
+        F5TTSInference(
+            train_config=str(train_config),
+            checkpoint_path=str(checkpoint_path),
+            target_sample_rate=16000,
+        )
+    # The model's own rate, given explicitly as older configs do, is accepted.
+    engine = F5TTSInference(
+        train_config=str(train_config),
+        checkpoint_path=str(checkpoint_path),
+        target_sample_rate=FEATS_CONF["fs"],
+    )
+    assert engine.target_sample_rate == FEATS_CONF["fs"]
+
+
+def test_a_vocoder_at_another_rate_is_refused(
+    monkeypatch, train_config, checkpoint_path
+):
+    """Vocos reports its training rate on its mel feature extractor."""
+    vocoder = _StubVocos()
+    vocoder.feature_extractor = types.SimpleNamespace(
+        mel_spec=types.SimpleNamespace(sample_rate=22050)
+    )
+    monkeypatch.setattr(F5TTSInference, "_load_vocoder", lambda self, path: vocoder)
+
+    with pytest.raises(ValueError, match="vocoder produces 22050 Hz"):
+        F5TTSInference(
+            train_config=str(train_config), checkpoint_path=str(checkpoint_path)
+        )
+
+
 def test_checkpoint_weights_are_actually_loaded(engine, reference_model):
     """A silent load failure would leave random weights behind."""
     loaded = dict(engine.model.state_dict())
