@@ -42,6 +42,7 @@ from torch.nn.utils.rnn import pad_sequence
 
 from espnet2.legacy.nets.beam_search import BeamSearch, Hypothesis
 from espnet2.legacy.nets.pytorch_backend.nets_utils import make_pad_mask
+from espnet2.legacy.nets.scorers.ctc import CTCPrefixScorer
 
 logger = logging.getLogger(__name__)
 
@@ -542,7 +543,7 @@ class BatchBeamSearch(BeamSearch):
         # The primer is not CTC output, see `BeamSearch.score_partial`.
         ctc_yseq = hyp.yseq[:, self._primer_length() - 1 :]
         for k, d in self.part_scorers.items():
-            yseq = ctc_yseq if "ctc" in k else hyp.yseq
+            yseq = ctc_yseq if isinstance(d, CTCPrefixScorer) else hyp.yseq
             if "ctc" in k and pre_x is not None:
                 scores[k], states[k] = d.batch_score_partial(
                     yseq, ids, hyp.states[k], pre_x

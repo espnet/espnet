@@ -228,10 +228,13 @@ def test_utt_batch_beam_search_hyp_primer():
             batched(x=padded, x_lengths=lengths, maxlenratio=-5.0)
 
 
-def test_utt_batch_beam_search_ctc_does_not_count_the_primer():
+@pytest.mark.parametrize("scorer_name", ["ctc", "acoustic"])
+def test_utt_batch_beam_search_ctc_does_not_count_the_primer(scorer_name):
     """Per-utterance primers are not CTC output either."""
-    search, short, labels, short_likelihood = ctc_only_search(BatchBeamSearch, 12)
-    _, long, _, long_likelihood = ctc_only_search(BatchBeamSearch, 40)
+    search, short, labels, short_likelihood = ctc_only_search(
+        BatchBeamSearch, 12, scorer_name
+    )
+    _, long, _, long_likelihood = ctc_only_search(BatchBeamSearch, 40, scorer_name)
     padded, lengths = _pad([short, long], "cpu", torch.float64)
 
     primers = [[search.sos, 1, 4, 6], [search.sos, 6, 4, 1]]
@@ -239,12 +242,13 @@ def test_utt_batch_beam_search_ctc_does_not_count_the_primer():
     with torch.no_grad():
         nbests = search(x=padded, x_lengths=lengths)
 
+    assert len(nbests) == len(primers)
     for nbest, primer, likelihood in zip(
         nbests, primers, (short_likelihood, long_likelihood)
     ):
         assert nbest[0].yseq.tolist() == primer + labels + [search.eos]
         numpy.testing.assert_allclose(
-            float(nbest[0].scores["ctc"]), likelihood, rtol=1e-10
+            float(nbest[0].scores[scorer_name]), likelihood, rtol=1e-10
         )
 
 

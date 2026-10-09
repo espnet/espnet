@@ -283,7 +283,7 @@ class FramePosteriors(torch.nn.Module):
         return x
 
 
-def ctc_only_search(search_class, n_frames):
+def ctc_only_search(search_class, n_frames, scorer_name="ctc"):
     """Build a search scored by CTC alone, over speech that starts at once.
 
     Labels 3, 5 and 2 are spoken at frames 0, 4 and 8, the rest is blank.
@@ -306,8 +306,8 @@ def ctc_only_search(search_class, n_frames):
         reduction="sum",
     )
     search = search_class(
-        scorers={"ctc": CTCPrefixScorer(ctc=FramePosteriors(), eos=eos)},
-        weights={"ctc": 1.0},
+        scorers={scorer_name: CTCPrefixScorer(ctc=FramePosteriors(), eos=eos)},
+        weights={scorer_name: 1.0},
         beam_size=4,
         vocab_size=vocab_size,
         sos=eos,
@@ -317,8 +317,9 @@ def ctc_only_search(search_class, n_frames):
     return search, x, labels, float(log_likelihood)
 
 
+@pytest.mark.parametrize("scorer_name", ["ctc", "acoustic"])
 @pytest.mark.parametrize("n_frames", [12, 40])
-def test_ctc_scores_the_output_not_the_primer(n_frames):
+def test_ctc_scores_the_output_not_the_primer(n_frames, scorer_name):
     """A primer longer than <sos> is not output, so CTC must not count it.
 
     The language and task symbols of an S2T model, or a text prompt, used to
@@ -327,7 +328,9 @@ def test_ctc_scores_the_output_not_the_primer(n_frames):
     the utterance, so speech in the first frames was dropped, and a
     hypothesis that grew towards the number of frames raised IndexError.
     """
-    search, x, labels, log_likelihood = ctc_only_search(BeamSearch, n_frames)
+    search, x, labels, log_likelihood = ctc_only_search(
+        BeamSearch, n_frames, scorer_name
+    )
     for primer in (None, [search.sos, 1, 4, 6]):
         search.set_hyp_primer(primer)
         with torch.no_grad():
@@ -336,12 +339,13 @@ def test_ctc_scores_the_output_not_the_primer(n_frames):
         assert best.yseq.tolist()[n_primer:-1] == labels
         # the non-batched scorer works in float32
         numpy.testing.assert_allclose(
-            float(best.scores["ctc"]), log_likelihood, atol=1e-4
+            float(best.scores[scorer_name]), log_likelihood, atol=1e-4
         )
 
 
+@pytest.mark.parametrize("scorer_name", ["ngram", "non_ctc"])
 @pytest.mark.parametrize("primer", [[0], [0, 1], [0, 4]])
-def test_partial_ngram_keeps_the_same_context_as_full_ngram(primer):
+def test_partial_ngram_keeps_the_same_context_as_full_ngram(primer, scorer_name):
     pytest.importorskip("kenlm")
     from espnet2.legacy.nets.scorers.ngram import NgramFullScorer, NgramPartScorer
 
@@ -350,8 +354,8 @@ def test_partial_ngram_keeps_the_same_context_as_full_ngram(primer):
     partial = NgramPartScorer(model, tokens)
     full = NgramFullScorer(model, tokens)
     search = BeamSearch(
-        scorers={"ngram": partial},
-        weights={"ngram": 1.0},
+        scorers={scorer_name: partial},
+        weights={scorer_name: 1.0},
         beam_size=2,
         vocab_size=len(tokens),
         sos=0,
@@ -363,4 +367,4 @@ def test_partial_ngram_keeps_the_same_context_as_full_ngram(primer):
     hyp = search.init_hyp(x)[0]
     scores, _ = search.score_partial(hyp, torch.arange(len(tokens)), x)
     expected, _ = full.score(hyp.yseq, full.init_state(x), x)
-    torch.testing.assert_close(scores["ngram"], expected)
+    torch.testing.assert_close(scores[scorer_name], expected)

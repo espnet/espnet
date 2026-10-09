@@ -199,10 +199,13 @@ def test_batch_beam_search_equal(
         )
 
 
+@pytest.mark.parametrize("scorer_name", ["ctc", "acoustic"])
 @pytest.mark.parametrize("n_frames", [12, 40])
-def test_ctc_scores_the_output_not_the_primer(n_frames):
+def test_ctc_scores_the_output_not_the_primer(n_frames, scorer_name):
     """As in `test_beam_search.py`: the primer is not CTC output."""
-    search, x, labels, log_likelihood = ctc_only_search(BatchBeamSearch, n_frames)
+    search, x, labels, log_likelihood = ctc_only_search(
+        BatchBeamSearch, n_frames, scorer_name
+    )
     for primer in (None, [search.sos, 1, 4, 6]):
         search.set_hyp_primer(primer)
         with torch.no_grad():
@@ -210,5 +213,5 @@ def test_ctc_scores_the_output_not_the_primer(n_frames):
         n_primer = 1 if primer is None else len(primer)
         assert best.yseq.tolist()[n_primer:-1] == labels
         numpy.testing.assert_allclose(
-            float(best.scores["ctc"]), log_likelihood, rtol=1e-10
+            float(best.scores[scorer_name]), log_likelihood, rtol=1e-10
         )

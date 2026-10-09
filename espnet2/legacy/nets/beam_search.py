@@ -8,6 +8,7 @@ import torch
 
 from espnet2.legacy.nets.e2e_asr_common import end_detect
 from espnet2.legacy.nets.scorer_interface import PartialScorerInterface, ScorerInterface
+from espnet2.legacy.nets.scorers.ctc import CTCPrefixScorer
 
 logger = logging.getLogger(__name__)
 
@@ -311,7 +312,7 @@ class BeamSearch(torch.nn.Module):
         # place of <sos>; other partial scorers retain their original context.
         ctc_yseq = hyp.yseq[self._primer_length() - 1 :]
         for k, d in self.part_scorers.items():
-            yseq = ctc_yseq if "ctc" in k else hyp.yseq
+            yseq = ctc_yseq if isinstance(d, CTCPrefixScorer) else hyp.yseq
             scores[k], states[k] = d.score_partial(yseq, ids, hyp.states[k], x)
         return scores, states
 
