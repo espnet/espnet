@@ -539,9 +539,10 @@ class BatchBeamSearch(BeamSearch):
         """
         scores = dict()
         states = dict()
-        # the primer is not output, see `BeamSearch.score_partial`
-        yseq = hyp.yseq[:, self._primer_length() - 1 :]  # (N, L - len(primer) + 1)
+        # The primer is not CTC output, see `BeamSearch.score_partial`.
+        ctc_yseq = hyp.yseq[:, self._primer_length() - 1 :]
         for k, d in self.part_scorers.items():
+            yseq = ctc_yseq if "ctc" in k else hyp.yseq
             if "ctc" in k and pre_x is not None:
                 scores[k], states[k] = d.batch_score_partial(
                     yseq, ids, hyp.states[k], pre_x

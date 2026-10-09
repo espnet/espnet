@@ -307,13 +307,11 @@ class BeamSearch(torch.nn.Module):
         """
         scores = dict()
         states = dict()
-        # A partial scorer scores the output so far and takes the first token
-        # of the prefix for <sos>. A longer primer -- the language and task
-        # symbols of an S2T model, a text prompt -- is not output either, so
-        # all of it but its last token is dropped: CTC would otherwise count
-        # each primer token as a label the audio has already been spent on.
-        yseq = hyp.yseq[self._primer_length() - 1 :]
+        # CTC counts the output labels, not the primer. Keep one token in
+        # place of <sos>; other partial scorers retain their original context.
+        ctc_yseq = hyp.yseq[self._primer_length() - 1 :]
         for k, d in self.part_scorers.items():
+            yseq = ctc_yseq if "ctc" in k else hyp.yseq
             scores[k], states[k] = d.score_partial(yseq, ids, hyp.states[k], x)
         return scores, states
 

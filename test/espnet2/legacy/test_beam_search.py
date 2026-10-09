@@ -1,4 +1,5 @@
 from argparse import Namespace
+from pathlib import Path
 
 import numpy
 import pytest
@@ -337,3 +338,29 @@ def test_ctc_scores_the_output_not_the_primer(n_frames):
         numpy.testing.assert_allclose(
             float(best.scores["ctc"]), log_likelihood, atol=1e-4
         )
+
+
+@pytest.mark.parametrize("primer", [[0], [0, 1], [0, 4]])
+def test_partial_ngram_keeps_the_same_context_as_full_ngram(primer):
+    pytest.importorskip("kenlm")
+    from espnet2.legacy.nets.scorers.ngram import NgramFullScorer, NgramPartScorer
+
+    tokens = ["<eos>", "I", "like", "apple", "you", "love", "coffee"]
+    model = str(Path(__file__).with_name("test.arpa"))
+    partial = NgramPartScorer(model, tokens)
+    full = NgramFullScorer(model, tokens)
+    search = BeamSearch(
+        scorers={"ngram": partial},
+        weights={"ngram": 1.0},
+        beam_size=2,
+        vocab_size=len(tokens),
+        sos=0,
+        eos=0,
+        pre_beam_score_key=None,
+    )
+    search.set_hyp_primer(primer)
+    x = torch.zeros(4, 2)
+    hyp = search.init_hyp(x)[0]
+    scores, _ = search.score_partial(hyp, torch.arange(len(tokens)), x)
+    expected, _ = full.score(hyp.yseq, full.init_state(x), x)
+    torch.testing.assert_close(scores["ngram"], expected)
