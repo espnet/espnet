@@ -1,6 +1,6 @@
 import copy
 import os
-from typing import Iterable, List, Optional, Union
+from typing import Dict, Iterable, List, Optional, Union
 
 import numpy as np
 from typeguard import typechecked
@@ -27,6 +27,7 @@ class OpenAIWhisperTokenIDConverter:
         added_tokens_txt: Optional[str] = None,
         sot: bool = False,
         speaker_change_symbol: str = "<sc>",
+        keep_special_tokens: bool = False,
     ):
 
         try:
@@ -51,17 +52,22 @@ class OpenAIWhisperTokenIDConverter:
             self.tokenizer = whisper.tokenizer.get_tokenizer(
                 multilingual=True, language=language, task=task
             )
-            if added_tokens_txt is not None:
-                _added_tokens = []
-                with open(added_tokens_txt) as f:
-                    lines = f.readlines()
-                    for line in lines:
-                        _added_tokens.append(line.rstrip())
-                self.tokenizer.tokenizer.add_tokens(_added_tokens)
         else:
             raise ValueError("tokenizer unsupported:", model_type)
 
+        # Copy before anything is added. whisper.tokenizer.get_tokenizer is
+        # lru_cached, so the object above is shared with every other caller
+        # in the process; add_tokens on it would follow them all, and the
+        # vocabulary size would then depend on who ran first.
         self.tokenizer = copy.deepcopy(self.tokenizer)
+
+        if model_type == "whisper_multilingual" and added_tokens_txt is not None:
+            _added_tokens = []
+            with open(added_tokens_txt) as f:
+                lines = f.readlines()
+                for line in lines:
+                    _added_tokens.append(line.rstrip())
+            self.tokenizer.tokenizer.add_tokens(_added_tokens)
         timestamps = [f"<|{i * 30 / 1500:.2f}|>" for i in range(0, 1501)]
         sc = [speaker_change_symbol] if sot else []
         # workaround for transformers v5
@@ -79,6 +85,28 @@ class OpenAIWhisperTokenIDConverter:
                 dict(extra_special_tokens=timestamps + sc)
             )
         self.model_type = model_type
+        self.keep_special_tokens = keep_special_tokens
+        self._token2id: Optional[Dict[str, int]] = None
+
+    @property
+    def token2id(self) -> Dict[str, int]:
+        """Return the mapping from token symbol to token id.
+
+        ``TokenIDConverter`` exposes the same attribute, and callers such as
+        ``espnet2.bin.s2t_inference`` use it to resolve prompt symbols such as
+        ``<|en|>`` or ``<|notimestamps|>``. It is built on first use because
+        the vocabulary has tens of thousands of entries.
+
+        Note:
+            Resolve timestamp ids through this mapping rather than through
+            ``whisper.tokenizer.Tokenizer.timestamp_begin``, which no longer
+            matches the vocabulary once the extra special tokens above have
+            been added.
+
+        """
+        if self._token2id is None:
+            self._token2id = dict(self.tokenizer.tokenizer.get_vocab())
+        return self._token2id
 
     def get_num_vocabulary_size(self) -> int:
         if self.model_type == "whisper_en":
@@ -93,7 +121,7 @@ class OpenAIWhisperTokenIDConverter:
 
     def ids2tokens(self, integers: Union[np.ndarray, Iterable[int]]) -> List[str]:
         return self.tokenizer.tokenizer.convert_ids_to_tokens(
-            integers, skip_special_tokens=True
+            integers, skip_special_tokens=not self.keep_special_tokens
         )
 
     def tokens2ids(self, tokens: Iterable[str]) -> List[int]:
