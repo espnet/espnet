@@ -87,11 +87,12 @@ class ConvInput(torch.nn.Module):
 
         Args:
             x: ConvInput input sequences. (B, T, D_feats)
-            mask: Mask of input sequences. (B, 1, T)
+            mask: Padding mask of input sequences. (B, T) or (B, 1, T)
 
         Returns:
             x: ConvInput output sequences. (B, sub(T), D_out)
-            mask: Mask of output sequences. (B, 1, sub(T))
+            mask: Padding mask with the same leading dimensions as the input.
+                (B, sub(T)) or (B, 1, sub(T))
 
         """
         x = self.conv(x.unsqueeze(1))
@@ -105,9 +106,9 @@ class ConvInput(torch.nn.Module):
         if mask is not None:
             # The mask has to follow the subsampling: each utterance keeps only
             # the frames that its own (unpadded) length produces.
-            out_lens = self.get_output_lengths(mask.eq(0).sum(1))
+            out_lens = self.get_output_lengths(mask.eq(0).sum(-1))
             mask = torch.arange(x.size(1), device=x.device).unsqueeze(0) >= (
-                out_lens.unsqueeze(1)
+                out_lens.unsqueeze(-1)
             )
 
         return x, mask
@@ -116,10 +117,10 @@ class ConvInput(torch.nn.Module):
         """Compute the number of output frames for given input lengths.
 
         Args:
-            lengths: Input sequences lengths. (B,)
+            lengths: Input sequences lengths. (B,) or (B, 1)
 
         Returns:
-            : Output sequences lengths. (B,)
+            : Output sequences lengths, with the same shape as lengths.
 
         """
         if self.vgg_like:
