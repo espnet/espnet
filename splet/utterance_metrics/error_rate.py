@@ -55,7 +55,7 @@ TOKENIZER_CHOICES: Dict[str, Callable[..., Callable[[str], List[str]]]] = {
 #: the rate is recomputed from the summed error and reference-length counts,
 #: the counts are summed, the rendered alignment is text.
 OUTPUTS: Dict[str, str] = {
-    "": "pool:_errors/_ref_len",
+    "": "rate",
     "_errors": "sum",
     "_ref_len": "sum",
     "_hyp_len": "sum",

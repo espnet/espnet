@@ -133,7 +133,7 @@ def test_a_metric_that_requires_a_reference_fails_up_front_without_one():
 
 def test_validate_requirements_passes_when_the_reference_is_there():
     modules = load_metrics([{"name": "wer"}])
-    validate_requirements(modules, {"u": "a"}, {"u": "a"})
+    validate_requirements(modules, {"u": "a"})
 
 
 def test_spec_rejects_unknown_tier_and_requirement():
@@ -152,6 +152,14 @@ def test_every_registered_metric_declares_its_outputs_and_a_version():
 
 
 # --- declared reduction -----------------------------------------------------
+
+
+def test_an_unknown_summary_rule_is_rejected():
+    from splet.summary import declared_rules
+
+    spec = MetricSpec(tier="utterance", setup=None, metric=None, outputs={"": "avg"})
+    with pytest.raises(ValueError, match="unknown summary rule 'avg'"):
+        declared_rules({"m": {"spec": spec}})
 
 
 def test_summary_rejects_a_result_key_no_metric_declared():
@@ -233,12 +241,11 @@ def test_accumulator_state_sums_across_workers():
     modules = load_metrics([{"name": "wer"}])
     worker1 = Accumulator(modules).add_all(measure_batch(["a b"], ["a c"], modules))
     worker2 = Accumulator(modules).add_all(measure_batch(["x y z"], ["x y"], modules))
-    merged = {"num_utterances": 0, "sums": {}, "counts": {}}
+    merged = {"num_utterances": 0, "sums": {}}
     for state in (worker1.state(), worker2.state()):
         merged["num_utterances"] += state["num_utterances"]
-        for field in ("sums", "counts"):
-            for key, value in state[field].items():
-                merged[field][key] = merged[field].get(key, 0) + value
+        for key, value in state["sums"].items():
+            merged["sums"][key] = merged["sums"].get(key, 0) + value
     together = Accumulator(modules).load_state(merged).result()
     assert together["wer_errors"] == 2 and together["wer_ref_len"] == 4
     assert together["wer"] == 0.5

@@ -35,7 +35,6 @@ import logging
 from dataclasses import dataclass, field
 from typing import Any, Callable, Dict, List, Mapping, Optional, Sequence, Tuple
 
-from splet.structures import Session
 from splet.utterance_metrics import error_rate
 
 #: The tiers, i.e. which loop runs a metric.
@@ -161,7 +160,7 @@ def load_metrics(
         modules[metric_id] = {
             "name": name,
             "spec": spec,
-            "config": json.loads(json.dumps(kwargs)),
+            "config": kwargs,
             "module": spec.metric,
             "state": spec.setup(metric_id=metric_id, **kwargs),
         }
@@ -194,24 +193,22 @@ def load_corpus_metrics(
 
 
 def validate_requirements(
-    metrics: Mapping[str, Mapping[str, Any]],
-    pred: Mapping[str, Any],
-    gt: Optional[Mapping[str, Any]],
+    metrics: Mapping[str, Mapping[str, Any]], gt: Optional[Mapping[str, Any]]
 ) -> None:
     """Refuse to measure unless every metric's declared requirements are met.
 
-    Checked once, before any item is measured, so a missing reference or a
-    recording without timestamps fails up front with the metric named,
-    rather than as a ``TypeError`` from inside one metric half way through.
+    Checked once, before any item is measured, so a missing reference fails
+    up front with the metric named rather than as a ``TypeError`` from
+    inside one metric half way through.
 
     Args:
         metrics: From :func:`load_metrics`.
-        pred: Utterance id to hypothesis text, or session id to
-            :class:`~splet.structures.Session`.
-        gt: The reference side in the same shape, or None.
+        gt: The reference side, or None when none was given.
 
     Raises:
         ValueError: Naming the metric and the requirement it cannot be given.
+        NotImplementedError: For ``timestamps`` and ``speakers``, which only
+            the session tier can check; it checks them when it exists.
     """
     for metric_id, module in metrics.items():
         for requirement in module["spec"].requires:
@@ -219,26 +216,11 @@ def validate_requirements(
                 raise ValueError(
                     f"metric '{metric_id}' requires a reference; pass --gt"
                 )
-            if requirement in ("timestamps", "speakers"):
-                sides = [("hypothesis", pred)] + ([("reference", gt)] if gt else [])
-                for side, items in sides:
-                    for key, item in items.items():
-                        if not isinstance(item, Session):
-                            raise ValueError(
-                                f"metric '{metric_id}' requires {requirement}, "
-                                f"which only the structured `jsonl` input carries"
-                            )
-                        for turn in item.turns:
-                            missing = (
-                                turn.speaker is None
-                                if requirement == "speakers"
-                                else turn.start is None or turn.end is None
-                            )
-                            if missing:
-                                raise ValueError(
-                                    f"metric '{metric_id}' requires {requirement}, "
-                                    f"but a turn of {side} '{key}' has none"
-                                )
+            if requirement != "reference":
+                raise NotImplementedError(
+                    f"metric '{metric_id}' requires {requirement}; the session "
+                    "tier that checks it does not exist yet"
+                )
 
 
 def require_matching_keys(
@@ -306,7 +288,7 @@ def measure_utterances(
             is not a missing hypothesis: it appears in the hypothesis file with
             an empty text and every reference word counts as deleted.
     """
-    validate_requirements(metrics, pred_texts, gt_texts)
+    validate_requirements(metrics, gt_texts)
     require_matching_keys(pred_texts, gt_texts)
     handle = open(output_file, "w", encoding="utf-8") if output_file else None
     try:
@@ -344,10 +326,7 @@ def measure_batch(
 
     Only the position pairs the two sides, so :func:`require_matching_keys`
     has nothing to check here; a length mismatch is the one error it can
-    catch, and it does. :func:`validate_requirements` is not repeated per
-    batch either: call it once when the metrics are loaded, as
-    :func:`measure_utterances` does, since it depends on the metrics and on
-    whether a reference side exists, not on the batch.
+    catch, and it does.
 
     Args:
         pred_texts: Hypotheses, one per item.

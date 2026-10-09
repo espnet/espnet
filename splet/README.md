@@ -82,7 +82,7 @@ Register it in `METRIC_CHOICES` in `splet/metric_registry.py` as a
 | --- | --- |
 | `tier` | which loop runs it: `utterance`, `session`, `corpus` |
 | `requires` | what it needs beyond the hypothesis: `reference`, `timestamps`, `speakers`; checked before anything is measured |
-| `outputs` | every key it reports (by the suffix after its id) and how the summary reduces it: `sum`, `mean`, `text`, or `pool:_errors/_ref_len` for an error rate |
+| `outputs` | every key it reports (by the suffix after its id) and how the summary reduces it: `sum` for a count, `rate` for `_errors / _ref_len`, `text` for text |
 | `version` | the implementation's version, recorded with every result |
 
 A config entry names the implementation (`name`) and may give the instance

@@ -33,7 +33,6 @@ comparable with a published one.
 
 from __future__ import annotations
 
-import copy
 from typing import Any, Dict, Mapping
 
 from splet import __version__
@@ -59,7 +58,7 @@ def metadata(metrics: Mapping[str, Mapping[str, Any]]) -> Dict[str, Any]:
             "version": spec.version,
             "tier": spec.tier,
             "requires": list(spec.requires),
-            "config": copy.deepcopy(module["config"]),
+            "config": dict(module["config"]),
         }
         state = module["state"]
         if isinstance(state, Mapping):

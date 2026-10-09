@@ -40,16 +40,13 @@ from typing import Any, Dict, Mapping, Sequence, Tuple
 #:
 #: ``sum``
 #:     A raw count, added over the corpus (``wer_errors``, ``wer_ref_len``).
-#: ``mean``
-#:     A per-item number whose corpus figure is its mean. Never an error rate.
+#: ``rate``
+#:     An error rate: recomputed as ``<id>_errors / <id>_ref_len`` from the
+#:     two summed counts with :func:`error_rate_from_counts`, never averaged.
 #: ``text``
 #:     Text carried through to the per-item output and skipped here
 #:     (a rendered alignment, a normalized transcript).
-#: ``pool:<errors suffix>/<reference length suffix>``
-#:     An error rate, recomputed from two summed counts with
-#:     :func:`error_rate_from_counts`; ``pool:_errors/_ref_len`` is what WER
-#:     and CER declare for their headline key.
-RULES = ("sum", "mean", "text", "pool")
+RULES = ("sum", "rate", "text")
 
 
 def error_rate_from_counts(errors: int, ref_len: int) -> float:
@@ -74,32 +71,13 @@ def error_rate_from_counts(errors: int, ref_len: int) -> float:
     return errors / ref_len
 
 
-def _parse_rule(rule: str) -> tuple:
-    """Split a declared rule into its kind and arguments."""
-    kind, _, argument = rule.partition(":")
-    if kind not in RULES:
-        raise ValueError(f"unknown summary rule '{rule}'; expected one of {RULES}")
-    if kind == "pool":
-        errors_suffix, _, ref_len_suffix = argument.partition("/")
-        if not errors_suffix or not ref_len_suffix:
-            raise ValueError(
-                f"a pool rule names its two count suffixes, "
-                f"'pool:_errors/_ref_len'; got '{rule}'"
-            )
-        return kind, errors_suffix, ref_len_suffix
-    if argument:
-        raise ValueError(f"rule '{kind}' takes no argument; got '{rule}'")
-    return (kind,)
-
-
 def declared_rules(
     metrics: Mapping[str, Mapping[str, Any]],
 ) -> Dict[str, Tuple[str, str]]:
     """Map every result key the loaded metrics may produce to its owner and rule.
 
     Args:
-        metrics: From :func:`splet.metric_registry.load_metrics`: configured
-            id to its module, state and spec.
+        metrics: From :func:`splet.metric_registry.load_metrics`.
 
     Returns:
         Result key (``<id><suffix>``) to ``(metric id, rule)``. The owner is
@@ -107,12 +85,13 @@ def declared_rules(
         prefixes of one another (``wer`` and ``wer_norm``).
 
     Raises:
-        ValueError: If two metrics declare the same key, or a rule is malformed.
+        ValueError: If a rule is unknown or two metrics declare the same key.
     """
     rules: Dict[str, Tuple[str, str]] = {}
     for metric_id, module in metrics.items():
         for suffix, rule in module["spec"].outputs.items():
-            _parse_rule(rule)
+            if rule not in RULES:
+                raise ValueError(f"unknown summary rule '{rule}'; expected {RULES}")
             key = f"{metric_id}{suffix}"
             if key in rules:
                 raise ValueError(
@@ -126,45 +105,31 @@ def declared_rules(
 class Accumulator:
     """Corpus figures built up one result at a time.
 
-    The per-item result dicts never have to be kept: ``add`` folds each into
-    the running counts by the rules the metrics declared, and ``result``
-    recomputes every pooled rate from them. That is what a validation loop
-    needs - one call per batch, one at the end of the epoch - and because the
-    state is plain counts (``state()``), it can be summed across workers
-    (``all_reduce``) before the rates are computed.
-
-    Example::
-
-        acc = Accumulator(metrics)
-        for batch in loader:
-            for result in measure_batch(hyps, refs, metrics):
-                acc.add(result)
-        acc.result()   # {"num_utterances": ..., "wer": ..., "wer_errors": ...}
-
+    ``add`` folds a per-item result into the running counts by the rules the
+    metrics declared; ``result`` recomputes every rate from them. That is
+    what a validation loop needs - one call per batch, one at the end of the
+    epoch - and because the state is plain counts (:meth:`state`), it can be
+    summed across workers before the rates are computed.
     :func:`summarize` is this class applied to a complete list.
     """
 
     def __init__(self, metrics: Mapping[str, Mapping[str, Any]]) -> None:
-        """Prepare empty counts for the keys the metrics declare.
-
-        Args:
-            metrics: From :func:`splet.metric_registry.load_metrics`.
-        """
+        """Prepare for the keys the metrics declare."""
         self._rules = declared_rules(metrics)
         self.reset()
 
     def reset(self) -> None:
         """Forget everything added so far."""
         self._num_items = 0
-        self._sums: Dict[str, float] = {}
-        self._counts: Dict[str, int] = {}
+        self._sums: Dict[str, int] = {}
 
     def add(self, result: Mapping[str, Any]) -> "Accumulator":
         """Fold one per-item result into the running counts.
 
         Args:
-            result: One result dict from a ``*_metric`` call (or a row of
-                :func:`measure_utterances`); its ``key`` is ignored.
+            result: One result dict from a ``*_metric`` call or a row of
+                :func:`measure_utterances`; its ``key`` is ignored, and a
+                rate is skipped because it is recomputed from its counts.
 
         Returns:
             ``self``, so calls chain.
@@ -181,12 +146,8 @@ class Accumulator:
                     f"result key '{key}' is not declared by any loaded metric; "
                     "declare it in the metric's spec outputs"
                 )
-            kind = _parse_rule(self._rules[key][1])[0]
-            if kind == "text" or kind == "pool":
-                # a rate is recomputed from its counts, never accumulated
-                continue
-            self._sums[key] = self._sums.get(key, 0) + value
-            self._counts[key] = self._counts.get(key, 0) + 1
+            if self._rules[key][1] == "sum":
+                self._sums[key] = self._sums.get(key, 0) + value
         return self
 
     def add_all(self, results: Sequence[Mapping[str, Any]]) -> "Accumulator":
@@ -198,47 +159,35 @@ class Accumulator:
     def state(self) -> Dict[str, Any]:
         """Return the running counts as plain numbers.
 
-        What a distributed caller sums across workers before :meth:`result`:
-        ``num_utterances`` and, for every ``sum`` and ``mean`` key, its sum
-        and the number of items it was seen in. Load a summed state back
-        with :meth:`load_state`.
+        What a distributed caller sums across workers, field by field, before
+        :meth:`result`; :meth:`load_state` takes the sum back.
         """
-        return {
-            "num_utterances": self._num_items,
-            "sums": dict(self._sums),
-            "counts": dict(self._counts),
-        }
+        return {"num_utterances": self._num_items, "sums": dict(self._sums)}
 
     def load_state(self, state: Mapping[str, Any]) -> "Accumulator":
         """Replace the running counts with ``state`` (from :meth:`state`)."""
         self._num_items = int(state["num_utterances"])
         self._sums = dict(state["sums"])
-        self._counts = dict(state["counts"])
         return self
 
     def result(self) -> Dict[str, Any]:
         """Return the corpus figures for everything added so far.
 
-        Counts are their sums, ``mean`` keys their mean, and every pooled
-        rate is :func:`error_rate_from_counts` of its two summed counts;
-        a pooled rate whose counts were never seen is left out.
+        Counts are their sums and every rate is
+        :func:`error_rate_from_counts` of its metric's summed ``_errors`` and
+        ``_ref_len``; a rate whose counts were never seen is left out.
         """
         summary: Dict[str, Any] = {"num_utterances": self._num_items}
         if self._num_items == 0:
             return summary
         for key, (metric_id, rule) in self._rules.items():
-            parsed = _parse_rule(rule)
-            if parsed[0] == "sum" and key in self._sums:
+            if rule == "sum" and key in self._sums:
                 summary[key] = self._sums[key]
-            elif parsed[0] == "mean" and key in self._sums:
-                summary[key] = self._sums[key] / self._counts[key]
-            elif parsed[0] == "pool":
-                errors_key = f"{metric_id}{parsed[1]}"
-                ref_len_key = f"{metric_id}{parsed[2]}"
-                if errors_key in self._sums and ref_len_key in self._sums:
-                    summary[key] = error_rate_from_counts(
-                        int(self._sums[errors_key]), int(self._sums[ref_len_key])
-                    )
+            elif rule == "rate":
+                errors = self._sums.get(f"{metric_id}_errors")
+                ref_len = self._sums.get(f"{metric_id}_ref_len")
+                if errors is not None and ref_len is not None:
+                    summary[key] = error_rate_from_counts(errors, ref_len)
         return summary
 
 
@@ -247,20 +196,14 @@ def summarize(
 ) -> Dict[str, Any]:
     """Reduce per-item results to corpus figures, by the metrics' own rules.
 
-    :class:`Accumulator` applied to a complete list of results.
-
     Args:
-        results: Per-item results from :func:`measure_utterances`, each with
-            a ``key``.
-        metrics: The loaded metrics the results came from, whose specs
-            declare how every key is reduced.
+        results: Per-item results from :func:`measure_utterances`.
+        metrics: The loaded metrics the results came from.
 
     Returns:
         The corpus figures, plus ``num_utterances``.
 
     Raises:
-        ValueError: If a result holds a key no loaded metric declared. A key
-            without a rule has no defined corpus figure, and guessing one
-            (an average, say) is how an error rate gets averaged.
+        ValueError: If a result holds a key no loaded metric declared.
     """
     return Accumulator(metrics).add_all(results).result()
