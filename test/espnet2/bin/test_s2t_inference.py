@@ -238,6 +238,31 @@ def test_ctc_only_decoding_says_it_is_not_best_path(s2t_config_file, caplog):
     assert "prefix beam search" not in caplog.text
 
 
+def test_decode_window_asks_the_checkpoint_which_way(s2t_config_file):
+    """The kind of checkpoint decides how a window is read, not the caller.
+
+    A CTC-only model is read off its head; one with a decoder is called,
+    because its CTC branch answers what that branch was trained on rather
+    than what the task symbol asks for. `espnet phonemize` and the browser
+    demo both had to know this, and it is the checkpoint that knows.
+    """
+    speech2text = Speech2Text(s2t_train_config=s2t_config_file, beam_size=1)
+    speech = np.random.randn(2000)
+    assert speech2text.ctc_only is False
+
+    called = []
+    speech2text.best_path = lambda *a, **k: called.append("head") or [("ctc",)]
+
+    # a decoder to read the task with: the object, not the head
+    text = speech2text.decode_window(speech, lang_sym="<eng>", task_sym="<asr>")
+    assert isinstance(text, str) and called == []
+
+    # and without one, the head
+    speech2text.ctc_only = True
+    assert speech2text.decode_window(speech) == "ctc"
+    assert called == ["head"]
+
+
 def test_best_path_takes_one_utterance(s2t_config_file):
     speech2text = Speech2Text(s2t_train_config=s2t_config_file, beam_size=1)
     with pytest.raises(ValueError, match="one utterance"):

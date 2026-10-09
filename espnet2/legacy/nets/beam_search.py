@@ -2,7 +2,7 @@
 
 import logging
 from itertools import chain
-from typing import Any, Dict, List, NamedTuple, Tuple, Union
+from typing import Any, Dict, List, NamedTuple, Optional, Tuple, Union
 
 import torch
 
@@ -12,15 +12,43 @@ from espnet2.legacy.nets.scorer_interface import PartialScorerInterface, ScorerI
 logger = logging.getLogger(__name__)
 
 
-class Hypothesis(NamedTuple):
-    """Hypothesis data type."""
+class _Hypothesis(NamedTuple):
+    """Tuple fields shared by hypothesis construction and replacement."""
 
     yseq: torch.Tensor
-    score: Union[float, torch.Tensor] = 0
-    scores: Dict[str, Union[float, torch.Tensor]] = dict()
-    states: Dict[str, Any] = dict()
+    score: Union[float, torch.Tensor]
+    scores: Dict[str, Union[float, torch.Tensor]]
+    states: Dict[str, Any]
     # dec hidden state corresponding to yseq, used for searchable hidden ints
-    hs: List[torch.Tensor] = []
+    hs: List[torch.Tensor]
+
+
+class Hypothesis(_Hypothesis):
+    """Hypothesis tuple with independent default scores, states, and history.
+
+    Keep named-tuple operations such as ``_replace`` and ``_asdict`` used by
+    beam-search consumers while allocating mutable defaults per construction.
+    """
+
+    __slots__ = ()
+
+    def __new__(
+        cls,
+        yseq: torch.Tensor,
+        score: Union[float, torch.Tensor] = 0,
+        scores: Optional[Dict[str, Union[float, torch.Tensor]]] = None,
+        states: Optional[Dict[str, Any]] = None,
+        hs: Optional[List[torch.Tensor]] = None,
+    ):
+        """Create a hypothesis, retaining explicitly supplied containers."""
+        return super().__new__(
+            cls,
+            yseq,
+            score,
+            {} if scores is None else scores,
+            {} if states is None else states,
+            [] if hs is None else hs,
+        )
 
     def asdict(self) -> dict:
         """Convert data to JSON-friendly dict."""
