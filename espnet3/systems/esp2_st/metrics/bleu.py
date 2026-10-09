@@ -18,7 +18,7 @@ from espnet3.systems.esp2_st.normalization import remove_punctuation
 class BLEU(BaseMetric):
     """Score translation hypotheses the way ``egs2/TEMPLATE/st1/st.sh`` does.
 
-    Mirrors ``espnet3.systems.asr.metrics.wer.WER`` in shape: it reads the
+    Mirrors ``espnet3.systems.esp2_asr.metrics.wer.WER`` in shape: it reads the
     ``ref``/``hyp`` SCP files that inference wrote, scores them, and writes a
     human-readable detail file next to them.
 
