@@ -41,7 +41,7 @@ class Conv1d(torch.nn.Module):
         super().__init__()
 
         if causal:
-            self.lorder = kernel_size - 1
+            self.lorder = dilation * (kernel_size - 1)
             stride = 1
         else:
             self.lorder = 0
@@ -89,9 +89,7 @@ class Conv1d(torch.nn.Module):
             device: Device to use for cache tensor.
 
         """
-        self.cache = torch.zeros(
-            (1, self.input_size, self.kernel_size - 1), device=device
-        )
+        self.cache = torch.zeros((1, self.input_size, self.lorder), device=device)
 
     def forward(
         self,
@@ -159,7 +157,7 @@ class Conv1d(torch.nn.Module):
 
         """
         x = torch.cat([self.cache, x.transpose(1, 2)], dim=2)
-        self.cache = x[:, :, -self.lorder :]
+        self.cache = x[:, :, -self.lorder :] if self.lorder > 0 else x[:, :, :0]
 
         x = self.conv(x)
 

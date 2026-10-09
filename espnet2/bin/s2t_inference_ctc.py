@@ -124,7 +124,7 @@ class Speech2TextGreedySearch(Speech2TextBase):
         self,
         speech: Union[torch.Tensor, np.ndarray],
         batch_size: int = 1,
-        context_len_in_secs: float = 2,
+        context_len_in_secs: Optional[float] = None,
         lang_sym: Optional[str] = None,
         task_sym: Optional[str] = None,
     ) -> str:
@@ -147,7 +147,7 @@ class Speech2TextGreedySearch(Speech2TextBase):
             List[Union[str, Path, torch.Tensor, np.ndarray]],
         ],
         batch_size: int = 16,
-        context_len_in_secs: float = 4,
+        context_len_in_secs: Optional[float] = None,
         text_prev: Union[str, List[str]] = "<na>",
         lang_sym: Optional[Union[str, List[str]]] = None,
         task_sym: Optional[Union[str, List[str]]] = None,
@@ -157,7 +157,10 @@ class Speech2TextGreedySearch(Speech2TextBase):
         The buffers of one recording are still decoded in batches; what this
         no longer does is fill a batch with buffers from different
         recordings, which changed nothing but the packing.
+        The default context is four seconds rounded to the nearest encoder frame.
         """
+        if context_len_in_secs is None:
+            context_len_in_secs = round(4 * self.frames_per_sec) / self.frames_per_sec
         one = isinstance(speech, (str, Path, torch.Tensor, np.ndarray))
         audios = [speech] if one else list(speech)
         n = len(audios)
