@@ -330,6 +330,54 @@ def measure_utterances(
             handle.close()
 
 
+def measure_batch(
+    pred_texts: Sequence[str],
+    gt_texts: Optional[Sequence[str]],
+    metrics: Dict[str, Dict[str, Any]],
+) -> List[Dict[str, Any]]:
+    """Measure parallel sequences of hypotheses and references, no ids.
+
+    The entry point for a training loop's validation step: it has the
+    decoded hypotheses and their references as two lists for one batch, no
+    utterance ids and no files. Each item is measured by every loaded
+    metric; the results are fed to :class:`~splet.summary.Accumulator`.
+
+    Only the position pairs the two sides, so :func:`require_matching_keys`
+    has nothing to check here; a length mismatch is the one error it can
+    catch, and it does. :func:`validate_requirements` is not repeated per
+    batch either: call it once when the metrics are loaded, as
+    :func:`measure_utterances` does, since it depends on the metrics and on
+    whether a reference side exists, not on the batch.
+
+    Args:
+        pred_texts: Hypotheses, one per item.
+        gt_texts: References in the same order, or None when no loaded
+            metric requires one.
+        metrics: From :func:`load_metrics`.
+
+    Returns:
+        One result dict per item, in order, without a ``key``.
+
+    Raises:
+        ValueError: If the two sides differ in length, or a metric requires
+            a reference and ``gt_texts`` is None.
+    """
+    if gt_texts is not None and len(gt_texts) != len(pred_texts):
+        raise ValueError(f"{len(pred_texts)} hypotheses but {len(gt_texts)} references")
+    if gt_texts is None:
+        for metric_id, module in metrics.items():
+            if "reference" in module["spec"].requires:
+                raise ValueError(f"metric '{metric_id}' requires a reference")
+    results = []
+    for index, pred in enumerate(pred_texts):
+        gt = gt_texts[index] if gt_texts is not None else None
+        item_result: Dict[str, Any] = {}
+        for module in metrics.values():
+            item_result.update(module["module"](module["state"], pred, gt))
+        results.append(item_result)
+    return results
+
+
 def measure_sessions(*args, **kwargs):
     """Measure every session. No session-tier metric exists yet.
 

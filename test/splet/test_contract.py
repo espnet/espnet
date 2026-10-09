@@ -192,3 +192,74 @@ def test_metadata_records_what_produced_the_result():
     ]
     # It is written out, so it must survive a round trip through JSON.
     assert json.loads(json.dumps(block)) == block
+
+
+# --- batches: the validation-loop path ---------------------------------------
+
+
+def test_accumulator_matches_summarize_batch_by_batch():
+    """Adding a batch at a time gives the corpus figure, not a mean of batches."""
+    from splet.metric_registry import measure_batch
+    from splet.summary import Accumulator
+
+    modules = load_metrics([{"name": "wer"}, {"name": "cer"}])
+    refs = ["a b c d e f g h", "x", "the cat sat", ""]
+    hyps = ["a b c d e f g h", "y", "the cat", "boo"]
+    acc = Accumulator(modules)
+    for start in range(0, len(refs), 2):  # two batches of two
+        acc.add_all(
+            measure_batch(hyps[start : start + 2], refs[start : start + 2], modules)
+        )
+    corpus = acc.result()
+    full = summarize(
+        measure_utterances(
+            {str(i): h for i, h in enumerate(hyps)},
+            modules,
+            {str(i): r for i, r in enumerate(refs)},
+        ),
+        modules,
+    )
+    assert corpus == full
+    assert corpus["wer"] == pytest.approx(3 / 12)  # 1 sub + 1 del + 1 ins over 12 words
+    # The mean of the two batch rates would be a different, wrong, number.
+    assert corpus["wer"] != pytest.approx((1 / 9 + 2 / 3) / 2)
+
+
+def test_accumulator_state_sums_across_workers():
+    """Two workers' counts, summed, give the same figure as one worker."""
+    from splet.metric_registry import measure_batch
+    from splet.summary import Accumulator
+
+    modules = load_metrics([{"name": "wer"}])
+    worker1 = Accumulator(modules).add_all(measure_batch(["a b"], ["a c"], modules))
+    worker2 = Accumulator(modules).add_all(measure_batch(["x y z"], ["x y"], modules))
+    merged = {"num_utterances": 0, "sums": {}, "counts": {}}
+    for state in (worker1.state(), worker2.state()):
+        merged["num_utterances"] += state["num_utterances"]
+        for field in ("sums", "counts"):
+            for key, value in state[field].items():
+                merged[field][key] = merged[field].get(key, 0) + value
+    together = Accumulator(modules).load_state(merged).result()
+    assert together["wer_errors"] == 2 and together["wer_ref_len"] == 4
+    assert together["wer"] == 0.5
+
+
+def test_measure_batch_rejects_mismatched_lengths_and_missing_reference():
+    from splet.metric_registry import measure_batch
+
+    modules = load_metrics([{"name": "wer"}])
+    with pytest.raises(ValueError, match="2 hypotheses but 1 references"):
+        measure_batch(["a", "b"], ["a"], modules)
+    with pytest.raises(ValueError, match="requires a reference"):
+        measure_batch(["a"], None, modules)
+
+
+def test_accumulator_reset_forgets():
+    from splet.metric_registry import measure_batch
+    from splet.summary import Accumulator
+
+    modules = load_metrics([{"name": "wer"}])
+    acc = Accumulator(modules).add_all(measure_batch(["a"], ["b"], modules))
+    assert acc.result()["wer"] == 1.0
+    acc.reset()
+    assert acc.result() == {"num_utterances": 0}

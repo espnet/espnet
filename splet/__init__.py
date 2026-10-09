@@ -20,20 +20,23 @@ from splet.metric_registry import (  # noqa: E402,F401
     load_corpus_metrics,
     load_metrics,
     load_session_metrics,
+    measure_batch,
     measure_corpus,
     measure_sessions,
     measure_utterances,
     validate_requirements,
 )
-from splet.summary import summarize  # noqa: E402,F401
+from splet.summary import Accumulator, summarize  # noqa: E402,F401
 
 __all__ = [
+    "Accumulator",
     "METRIC_CHOICES",
     "MetricSpec",
     "__version__",
     "load_corpus_metrics",
     "load_metrics",
     "load_session_metrics",
+    "measure_batch",
     "measure_corpus",
     "measure_sessions",
     "measure_utterances",

@@ -121,6 +121,16 @@ guess. An empty reference follows one policy at both levels
 1.0 and no error is 0.0, and the counts are reported next to the rate so
 nothing is hidden.
 
+**Corpus figures are accumulated, so a training loop can use them.** The
+summary is `Accumulator`: `add` folds one result's counts in by the declared
+rules, `result` recomputes the pooled rates, `state` hands the counts out as
+plain numbers for an `all_reduce` across workers, and `measure_batch` measures
+two parallel lists without utterance ids. A validation step therefore adds one
+batch and reads the corpus WER at the end of the epoch; `summarize` is the
+same accumulator over a complete list. This is the shape the espnet3 metric
+contract (espnet/espnet#6843) adapts to: `update` is `measure_batch` plus
+`add`, `compute` is `result`, `reset` is `reset`.
+
 **A result carries what produced it.** The printed summary ends with a
 versioned `metadata` block (`splet/metadata.py`): per metric, the
 implementation name and version, its tier and requirements, the resolved
