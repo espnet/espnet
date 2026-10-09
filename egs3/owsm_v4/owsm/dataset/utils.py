@@ -509,6 +509,8 @@ def nlsyms() -> List[str]:
 
 @dataclass
 class Utterance:
+    """One segment as the egs2 prep scripts represent it, before packing."""
+
     utt_id: str
     wav_id: str
     wav_path: str
@@ -522,6 +524,8 @@ class Utterance:
 
 @dataclass
 class LongUtterance(Utterance):
+    """A packed span of up to 30 s, conditioned on the span before it."""
+
     prev_text: str  # previous (target) text as condition
     text_with_time: str  # target text with timestamps
 
