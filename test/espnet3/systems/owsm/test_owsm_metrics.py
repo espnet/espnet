@@ -113,13 +113,37 @@ def test_cer_counts_characters_not_words(tmp_path):
     assert 0 < cer < wer
 
 
+def _tiny_bpe(tmp_path):
+    """Train a throwaway SentencePiece model, so the test needs no artifact.
+
+    The metric strips tags before tokenizing, so the pieces this has to cover
+    are plain words; the vocabulary only needs to be large enough to hold the
+    alphabet.
+    """
+    spm = pytest.importorskip("sentencepiece")
+    corpus = tmp_path / "spm_train.txt"
+    corpus.write_text(
+        "\n".join(
+            f"the quick brown fox number {i} jumps over the lazy dog"
+            for i in range(200)
+        ),
+        encoding="utf-8",
+    )
+    prefix = tmp_path / "bpe"
+    spm.SentencePieceTrainer.Train(
+        input=str(corpus),
+        model_prefix=str(prefix),
+        model_type="bpe",
+        vocab_size=120,
+        character_coverage=1.0,
+    )
+    return prefix.with_suffix(".model")
+
+
 def test_ter_counts_bpe_pieces(tmp_path):
     """s2t.sh's ter is a token error rate over subwords, not sacreBLEU's TER."""
-    pytest.importorskip("sentencepiece")
     pytest.importorskip("jiwer")
-    model = Path("egs3/owsm_v4/owsm/data/bpe_dev_smoke/bpe.model")
-    if not model.is_file():
-        pytest.skip(f"no tokenizer at {model}; run train_tokenizer first")
+    model = _tiny_bpe(tmp_path)
     data = _data(tmp_path, [ASR], ["the quick brown fix"])
 
     ter = TER(bpemodel=model, nlsyms=NLSYMS)(data, "dev", tmp_path)["TER"]
