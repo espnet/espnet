@@ -37,6 +37,7 @@ from espnet2.bin.ctc_segment import (  # noqa: F401
     build_parser,
 )
 from espnet2.legacy.utils.cli_utils import get_commandline_args
+from espnet2.s2t.ctc_utils import buffered_frame_counts
 from espnet2.tasks.s2t_ctc import S2TTask
 from espnet2.torch_utils.device_funcs import to_device
 
@@ -183,6 +184,9 @@ class CTCSegmentation(AbsCTCSegmentation):
 
         Returns:
             lpz: Numpy vector with CTC log posterior probabilities.
+
+        Raises:
+            ValueError: Buffer or context durations do not cover whole encoder frames.
         """
 
         lang_id = self.token_list.index(self.lang_sym)
@@ -193,15 +197,19 @@ class CTCSegmentation(AbsCTCSegmentation):
         batch_size = self.batch_size
 
         buffer_len_in_secs = self.s2t_train_args.preprocessor_conf["speech_length"]
+        buffer_frames, context_frames = buffered_frame_counts(
+            frames_per_sec, buffer_len_in_secs, context_len_in_secs
+        )
+        chunk_frames = buffer_frames - 2 * context_frames
         chunk_len_in_secs = buffer_len_in_secs - 2 * context_len_in_secs
-        buffer_len = int(sample_rate * buffer_len_in_secs)
-        chunk_len = int(sample_rate * chunk_len_in_secs)
+        buffer_len = round(sample_rate * buffer_len_in_secs)
+        chunk_len = round(sample_rate * chunk_len_in_secs)
 
         speech = np.pad(
             speech,
             (
-                int(sample_rate * context_len_in_secs),
-                int(sample_rate * context_len_in_secs),
+                round(sample_rate * context_len_in_secs),
+                round(sample_rate * context_len_in_secs),
             ),
         )
         buffer_list = []
@@ -216,8 +224,6 @@ class CTCSegmentation(AbsCTCSegmentation):
                 buffer_list.append(cur_buffer)
 
         speech = torch.tensor(np.array(buffer_list)).to(getattr(torch, self.dtype))
-        buffer_frames = int(frames_per_sec * buffer_len_in_secs)  # noqa
-        context_frames = int(frames_per_sec * context_len_in_secs)
 
         valid_speech_samples = speech.size(0) * chunk_len
 
@@ -261,12 +267,14 @@ class CTCSegmentation(AbsCTCSegmentation):
             if isinstance(enc, tuple):
                 enc, intermediate_outs = enc
 
-            # enc: (B, T, D), T is 376 in the default setup
-            # The first two frames are language and task symbols
-            enc = enc[:, 2:]  # (B, T', D), T'=buffer_frames-1
-
-            # Remove left and right context
-            enc = enc[:, context_frames:-context_frames]
+            enc = self.s2t_model.frames(enc, prefix)
+            # A buffer is context + chunk + context. Keep exactly its middle
+            # chunk_frames, starting at context_frames. The convolutional
+            # frontend need not return buffer_frames audio positions, so an
+            # end-based slice would shift time at every buffer join.
+            if enc.size(1) < context_frames + chunk_frames:
+                raise ValueError("context is too short for the encoder's edge loss")
+            enc = enc[:, context_frames : context_frames + chunk_frames]
 
             batched_log_p = self.ctc.log_softmax(enc).detach()  # (B, T'', V)
 

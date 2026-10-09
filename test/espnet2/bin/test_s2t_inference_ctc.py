@@ -65,7 +65,7 @@ def s2t_config_file(tmp_path: Path, token_list):
             "--preprocessor_conf",
             "fs=2000",
             "--preprocessor_conf",
-            "speech_length=3",
+            "speech_length=4",
             "--frontend_conf",
             "fs=16k",
             "--frontend_conf",
@@ -167,7 +167,7 @@ def test_decode_long_returns_one_segment_for_a_ctc_only_checkpoint(s2t_config_fi
     speech2text = Speech2TextBase(s2t_train_config=s2t_config_file)
     # longer than the buffer the model was trained on, so it is chunked
     speech = np.random.randn(int(speech2text.sample_rate * 7))
-    segments = speech2text.decode_long(speech, batch_size=2, context_len_in_secs=0.5)
+    segments = speech2text.decode_long(speech, batch_size=2, context_len_in_secs=0.8)
 
     assert len(segments) == 1  # no timestamps in a CTC-only model
     start, end, text = segments[0]
@@ -176,13 +176,16 @@ def test_decode_long_returns_one_segment_for_a_ctc_only_checkpoint(s2t_config_fi
     assert isinstance(text, str)
 
 
-def test_ctc_log_probs_row_i_is_the_audio_at_frame_i(s2t_config_file, monkeypatch):
+@pytest.mark.parametrize("context", [0.56, 0.8, 1.6])
+@pytest.mark.parametrize("batch_size", [1, 3])
+def test_ctc_log_probs_row_i_is_the_audio_at_frame_i(
+    s2t_config_file, monkeypatch, context, batch_size
+):
     """The language and task positions are not audio, so they are not frames.
 
     The encoder puts their embeddings in front of the frames. Counted as
-    frames, they put every row two frames late, which `ForcedAligner` reports
-    as time, and they cut the last two frames off the end of the recording.
-    `s2t_align.py` has always dropped them.
+    frames, they shift every row by the prefix length, which `ForcedAligner`
+    reports as time, and drop that many frames from the recording.
     """
     speech2text = Speech2TextBase(s2t_train_config=s2t_config_file)
     # a 4 s window with 0.8 s of context is a whole number of frames throughout
@@ -202,7 +205,9 @@ def test_ctc_log_probs_row_i_is_the_audio_at_frame_i(s2t_config_file, monkeypatc
     # every sample says where it is; 0 is what the padding holds
     seconds = 10
     speech = np.arange(1, seconds * speech2text.sample_rate + 1, dtype=np.float32)
-    probs = speech2text.ctc_log_probs(speech, batch_size=2, context_len_in_secs=0.8)
+    probs = speech2text.ctc_log_probs(
+        speech, batch_size=batch_size, context_len_in_secs=context
+    )
 
     assert len(probs) == round(seconds * speech2text.frames_per_sec)
     assert probs[:, 0].tolist() == (1 + hop * np.arange(len(probs))).tolist()
@@ -215,17 +220,17 @@ def test_the_deprecated_class_decodes_the_same_way(s2t_config_file):
         old = Speech2TextGreedySearch(s2t_train_config=s2t_config_file)
 
     speech = np.random.randn(int(speech2text.sample_rate * 7))
-    segments = speech2text.decode_long(speech, batch_size=2, context_len_in_secs=0.5)
+    segments = speech2text.decode_long(speech, batch_size=2, context_len_in_secs=0.8)
     assert (
-        old.decode_long_batched_buffered(speech, batch_size=2, context_len_in_secs=0.5)
+        old.decode_long_batched_buffered(speech, batch_size=2, context_len_in_secs=0.8)
         == segments[0][2]
     )
     assert (
-        old.batch_decode(speech, batch_size=2, context_len_in_secs=0.5)
+        old.batch_decode(speech, batch_size=2, context_len_in_secs=0.8)
         == segments[0][2]
     )
     # a list in, a list out
-    assert old.batch_decode([speech], batch_size=2, context_len_in_secs=0.5) == [
+    assert old.batch_decode([speech], batch_size=2, context_len_in_secs=0.8) == [
         segments[0][2]
     ]
 
@@ -330,7 +335,7 @@ def test_Speech2TextGreedy_longform(s2t_config_file):
     speech = np.random.randn(3000)
     result = speech2text.decode_long_batched_buffered(
         speech,
-        context_len_in_secs=1,
+        context_len_in_secs=0.8,
     )
     assert isinstance(result, str)
 
@@ -346,6 +351,35 @@ def test_Speech2TextGreedy_batchdecode(s2t_config_file):
             np.random.randn(7000),
         ],
         batch_size=2,
-        context_len_in_secs=1,
+        context_len_in_secs=0.8,
     )
     assert isinstance(result[0], str) and isinstance(result[1], str)
+
+
+@pytest.mark.parametrize(
+    "context,window,argument",
+    [
+        (0.5, 4, "context_len_in_secs"),
+        (0.8, 3, "speech_length"),
+    ],
+)
+def test_ctc_log_probs_rejects_fractional_frames(
+    s2t_config_file, context, window, argument
+):
+    """A sample step between encoder frames would accumulate timing drift."""
+    speech2text = Speech2TextBase(s2t_train_config=s2t_config_file)
+    speech2text.preprocessor_conf["speech_length"] = window
+    with pytest.raises(ValueError, match=argument + ".*whole number"):
+        speech2text.ctc_log_probs(
+            np.zeros(16000, dtype=np.float32), context_len_in_secs=context
+        )
+
+
+@pytest.mark.parametrize("context", [-0.8, 0, 2, 2.4])
+def test_ctc_log_probs_rejects_missing_chunk_frames(s2t_config_file, context):
+    """Refuse empty steps and contexts too short to preserve complete chunks."""
+    speech2text = Speech2TextBase(s2t_train_config=s2t_config_file)
+    with pytest.raises(ValueError, match="context"):
+        speech2text.ctc_log_probs(
+            np.zeros(16000, dtype=np.float32), context_len_in_secs=context
+        )

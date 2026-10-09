@@ -28,6 +28,7 @@ from espnet2.legacy.nets.scorer_interface import (
 from espnet2.legacy.nets.scorers.ctc import CTCPrefixScorer
 from espnet2.legacy.nets.scorers.length_bonus import LengthBonus
 from espnet2.legacy.utils.cli_utils import get_commandline_args
+from espnet2.s2t.ctc_utils import buffered_frame_counts
 from espnet2.tasks.lm import LMTask
 from espnet2.tasks.s2t import S2TTask
 from espnet2.text.build_tokenizer import build_tokenizer
@@ -1133,16 +1134,23 @@ class Speech2Text:
         Long-form best-path decoding is an argmax over what this returns, and
         a forced alignment (espnet2.bin.align) is a Viterbi path through it:
         one buffering, read two ways.
+
+        The training buffer and context durations must cover whole encoder
+        frames; otherwise a ValueError is raised instead of accumulating drift.
         """
         speech = self.read_audio(speech)
         lang_id = self.converter.token2id[lang_sym or self.lang_sym]
         task_id = self.converter.token2id[task_sym or self.task_sym]
 
         buffer_len_in_secs = self.preprocessor_conf["speech_length"]
+        buffer_frames, context_frames = buffered_frame_counts(
+            self.frames_per_sec, buffer_len_in_secs, context_len_in_secs
+        )
+        chunk_frames = buffer_frames - 2 * context_frames
         chunk_len_in_secs = buffer_len_in_secs - 2 * context_len_in_secs
-        buffer_len = int(self.sample_rate * buffer_len_in_secs)
-        chunk_len = int(self.sample_rate * chunk_len_in_secs)
-        context = int(self.sample_rate * context_len_in_secs)
+        buffer_len = round(self.sample_rate * buffer_len_in_secs)
+        chunk_len = round(self.sample_rate * chunk_len_in_secs)
+        context = round(self.sample_rate * context_len_in_secs)
 
         padded = np.pad(speech, (context, context))
         buffers = []
@@ -1154,9 +1162,6 @@ class Speech2Text:
             buffers.append(buffer)
 
         batched = torch.tensor(np.array(buffers)).to(getattr(torch, self.dtype))
-        buffer_frames = int(self.frames_per_sec * buffer_len_in_secs)
-        context_frames = int(self.frames_per_sec * context_len_in_secs)
-        chunk_frames = buffer_frames - 2 * context_frames
 
         kept = []
         for idx in range(0, batched.size(0), batch_size):
@@ -1184,12 +1189,14 @@ class Speech2Text:
             enc, _ = self.s2t_model.encode(**batch)
             if isinstance(enc, tuple):
                 enc = enc[0]
-            # The encoder puts the language and task embeddings in front of
-            # the frames, so the frame for time t is at position t + 2. They
-            # are not audio: counted as frames, they put every posterior two
-            # frames late and cut the last two off the end of the recording.
-            enc = enc[:, prefix.size(1) :]
+            enc = self.s2t_model.frames(enc, prefix)
             frames = self.s2t_model.ctc.log_softmax(enc)
+            # A buffer is context + chunk + context. Keep exactly its middle
+            # chunk_frames, starting at context_frames. The convolutional
+            # frontend need not return buffer_frames audio positions, so an
+            # end-based slice would shift time at every buffer join.
+            if frames.size(1) < context_frames + chunk_frames:
+                raise ValueError("context is too short for the encoder's edge loss")
             kept.append(frames[:, context_frames : context_frames + chunk_frames])
 
         # (buffers, frames, vocab) back into one run of frames, cut to the

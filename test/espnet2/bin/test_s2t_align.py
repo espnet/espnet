@@ -4,6 +4,7 @@ from pathlib import Path
 
 import numpy as np
 import pytest
+import torch
 
 from espnet2.bin.s2t_align import CTCSegmentation, CTCSegmentationTask, get_parser, main
 from espnet2.tasks.s2t_ctc import S2TTask
@@ -99,7 +100,7 @@ def test_CTCSegmentation(s2t_config_file):
     aligner = CTCSegmentation(
         s2t_train_config=s2t_config_file,
         fs=fs,
-        context_len_in_secs=1,
+        context_len_in_secs=0.8,
         kaldi_style_text=True,
         min_window_size=10,
     )
@@ -153,7 +154,7 @@ def test_the_old_module_name_still_aligns(s2t_config_file):
         aligner = Moved(
             s2t_train_config=s2t_config_file,
             fs=16000,
-            context_len_in_secs=1,
+            context_len_in_secs=0.8,
             kaldi_style_text=True,
             min_window_size=10,
         )
@@ -179,3 +180,62 @@ def test_the_old_script_path_still_runs():
     with pytest.raises(SystemExit):
         with pytest.warns(DeprecationWarning, match="espnet2.bin.s2t_align"):
             s2t_ctc_align.main()
+
+
+@pytest.mark.parametrize("batch_size", [1, 3])
+@pytest.mark.parametrize("context", [0.56, 0.8, 1.6])
+def test_get_lpz_keeps_contiguous_audio_frames(
+    s2t_config_file, monkeypatch, batch_size, context
+):
+    """Buffer joins keep their source time even when the encoder loses an edge."""
+    aligner = CTCSegmentation(
+        s2t_train_config=s2t_config_file,
+        fs=16000,
+        context_len_in_secs=context,
+        batch_size=batch_size,
+    )
+    hop = aligner.samples_to_frames_ratio
+
+    def encode(speech, prefix, **kwargs):
+        frames = speech[:, ::hop][:, :-1].unsqueeze(-1)
+        marks = speech.new_full((speech.size(0), prefix.size(1), 1), -1.0)
+        return torch.cat([marks, frames], dim=1), None
+
+    monkeypatch.setattr(aligner.s2t_model, "encode", encode)
+    monkeypatch.setattr(aligner.ctc, "log_softmax", lambda enc: enc)
+    speech = np.arange(1, 10 * aligner.fs + 1, dtype=np.float32)
+    probs, covered_samples = aligner.get_lpz(speech)
+    wanted = round(len(speech) / hop)
+    assert probs[:wanted, 0].tolist() == (1 + hop * np.arange(wanted)).tolist()
+    assert len(probs) * hop == covered_samples
+
+
+@pytest.mark.parametrize(
+    "context,window,argument",
+    [
+        (0.5, 4, "context_len_in_secs"),
+        (0.8, 3, "speech_length"),
+    ],
+)
+def test_get_lpz_rejects_fractional_frames(s2t_config_file, context, window, argument):
+    """Invalid frame grids fail before encoding or aligning the recording."""
+    aligner = CTCSegmentation(
+        s2t_train_config=s2t_config_file,
+        fs=16000,
+        context_len_in_secs=context,
+    )
+    aligner.s2t_train_args.preprocessor_conf["speech_length"] = window
+    with pytest.raises(ValueError, match=argument + ".*whole number"):
+        aligner.get_lpz(np.zeros(16000, dtype=np.float32))
+
+
+@pytest.mark.parametrize("context", [-0.8, 0, 2, 2.4])
+def test_get_lpz_rejects_missing_chunk_frames(s2t_config_file, context):
+    """Refuse empty steps and contexts too short to preserve complete chunks."""
+    aligner = CTCSegmentation(
+        s2t_train_config=s2t_config_file,
+        fs=16000,
+        context_len_in_secs=context,
+    )
+    with pytest.raises(ValueError, match="context"):
+        aligner.get_lpz(np.zeros(16000, dtype=np.float32))
