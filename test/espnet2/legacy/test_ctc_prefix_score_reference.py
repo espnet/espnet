@@ -18,7 +18,7 @@ import numpy
 import pytest
 import torch
 
-from espnet2.legacy.nets.ctc_prefix_score import CTCPrefixScoreTH
+from espnet2.legacy.nets.ctc_prefix_score import CTCPrefixScore, CTCPrefixScoreTH
 
 BLANK, EOS = 0, 1
 
@@ -103,6 +103,39 @@ def test_reference_is_a_frozen_copy():
     assert "Frozen copy of the loop-based" in source
     # the frozen copy is the one that still walks the hypotheses in Python
     assert "for si in range(n_bh):" in source
+
+
+def test_a_prefix_longer_than_the_input_is_impossible_not_an_error():
+    """More labels than frames has probability zero; it used to raise IndexError.
+
+    A search reaches such a prefix when its maximum length is not tied to the
+    input (a negative `maxlenratio`, or one above 1) and the utterance is
+    short. In a padded batch the same prefix already scored logzero.
+    """
+    frames, vocab = 3, 7
+    x, xlens = _inputs(1, 1, frames, vocab, seed=3, uneven=False)
+    labels = [2, 3, 4, 5, 6]  # five labels for three frames
+
+    batched = CTCPrefixScoreTH(x.clone(), xlens, BLANK, EOS, 0)
+    state, y, checked = None, [EOS], 0
+    for label in labels:
+        _, state = batched(torch.tensor([y]), state, None)
+        if len(y) - 1 > frames:  # the prefix itself cannot have been said
+            assert float(state[1].max()) < batched.logzero / 2
+            checked += 1
+        state = batched.index_select_state(state, torch.tensor([[label]]))
+        y.append(label)
+
+    single = CTCPrefixScore(x[0].numpy(), BLANK, EOS, numpy)
+    r, y = single.initial_state(), [EOS]
+    for label in labels:
+        log_psi, rs = single(y, numpy.arange(vocab), r)
+        if len(y) - 1 > frames:
+            assert float(log_psi.max()) < single.logzero / 2
+            checked += 1
+        r = rs[label]
+        y.append(label)
+    assert checked == 2
 
 
 @pytest.mark.parametrize("n_utt, beam, frames, vocab", [(1, 3, 20, 9), (3, 2, 24, 7)])
