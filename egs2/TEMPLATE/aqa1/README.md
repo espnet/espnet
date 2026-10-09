@@ -43,7 +43,8 @@ Create a recipe under `egs2/<corpus>/aqa1` with the shared setup script:
 ./egs2/TEMPLATE/aqa1/setup.sh egs2/my_corpus/aqa1
 cd egs2/my_corpus/aqa1
 # Implement local/data.sh to prepare the splits described above, then run:
-./aqa.sh --ngpu 0 --train_set train --valid_set dev --test_sets test
+./aqa.sh --ngpu 0 --train_set train --valid_set dev --test_sets test \
+    --use_ref_wav false --use_ref_text false
 ```
 
 Setup copies `cmd.sh`, `conf`, and `local` from the ASR template so each recipe
