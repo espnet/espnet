@@ -22,6 +22,7 @@ from espnet3.utils.config_utils import load_default_config
 
 
 def _run(stages, **configs):
+    """Run ``stages`` through the template's ``main`` with the given configs."""
     arguments = {
         "stages": stages,
         "training_config": Path("conf/training.yaml"),
@@ -37,6 +38,7 @@ def _run(stages, **configs):
 
 
 def _pack_model():
+    """Run ``pack_model`` with the recipe's inference and publication configs."""
     _run(
         ["pack_model"],
         inference_config="conf/inference.yaml",
@@ -76,6 +78,7 @@ def test_publication_scaffold_packs_what_an_f5tts_bundle_needs() -> None:
 
 
 def test_demo_scaffold_wires_the_inference_contract_fields() -> None:
+    """The demo inputs and outputs are the fields ``Inference`` declares."""
     config = load_default_config("demo.yaml", PACKAGE)
     inference_class = get_class("espnet3.systems.f5tts.inference.Inference")
 
@@ -99,6 +102,7 @@ def test_demo_scaffold_wires_the_inference_contract_fields() -> None:
 
 
 def test_pack_model_writes_a_self_contained_bundle(recipe_dir, stub_vocoder):
+    """The bundle holds the checkpoint, configs and token list, and no recipe paths."""
     _pack_model()
 
     bundle = recipe_dir / "exp" / "training" / "model_pack"
@@ -133,6 +137,7 @@ def test_pack_model_writes_a_self_contained_bundle(recipe_dir, stub_vocoder):
 def test_packed_model_loads_and_synthesizes_after_moving(
     recipe_dir, stub_vocoder, tmp_path, monkeypatch
 ):
+    """A bundle copied elsewhere loads and synthesizes without the recipe."""
     _pack_model()
     moved = tmp_path / "elsewhere" / "model_pack"
     shutil.copytree(recipe_dir / "exp" / "training" / "model_pack", moved)
@@ -169,6 +174,7 @@ def test_packed_model_needs_no_bundled_code(recipe_dir, stub_vocoder):
 
 
 def test_pack_demo_builds_a_working_demo(recipe_dir, stub_vocoder):
+    """The packed demo builds its Gradio app, example row and handler."""
     gradio = pytest.importorskip("gradio")
     import sys
 

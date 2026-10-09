@@ -241,6 +241,7 @@ class StubVocos:
     """Stands in for Vocos: exposes ``decode``, upsamples by the hop length."""
 
     def decode(self, mel):
+        """Return silence one hop length long per mel frame."""
         return torch.zeros(1, mel.shape[-1] * 256)
 
 
@@ -258,6 +259,7 @@ def isolated_process_state(monkeypatch):
     monkeypatch.setattr(sys, "path", list(sys.path))
 
     def forget_bundled_modules():
+        """Drop any imported ``src`` or ``dataset`` package from ``sys.modules``."""
         for name in list(sys.modules):
             if name.split(".")[0] in ("src", "dataset"):
                 del sys.modules[name]
@@ -269,6 +271,7 @@ def isolated_process_state(monkeypatch):
 
 @pytest.fixture
 def stub_vocoder(monkeypatch):
+    """Replace the Vocos download with :class:`StubVocos`."""
     monkeypatch.setattr(F5TTSInference, "_load_vocoder", lambda self, path: StubVocos())
 
 

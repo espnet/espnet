@@ -14,6 +14,7 @@ PACKAGE = "egs3.TEMPLATE.f5tts"
 
 
 def _run_arguments(**overrides):
+    """Return a ``run.py`` argument namespace with ``overrides`` applied."""
     arguments = {
         "stages": ["all"],
         "training_config": None,
@@ -46,11 +47,13 @@ def test_default_stages_run_manifest_consumers_after_create_dataset() -> None:
 
 
 def test_every_default_stage_is_a_system_method() -> None:
+    """Every stage ``run.py`` offers is a method of ``F5TTSSystem``."""
     for stage in DEFAULT_STAGES:
         assert callable(getattr(F5TTSSystem, stage))
 
 
 def test_parser_accepts_the_stage_names_and_config_options() -> None:
+    """The parser takes the F5-TTS stage names and the config paths."""
     parser = build_parser(stages=DEFAULT_STAGES)
     args = parser.parse_args(
         [
@@ -91,6 +94,7 @@ def test_training_scaffold_names_the_keys_and_sets_no_model() -> None:
 
 
 def test_inference_scaffold_rebuilds_the_model_from_the_trained_config() -> None:
+    """Template inference builds ``Inference`` from ``${exp_dir}/config.yaml``."""
     config = load_default_config("inference.yaml", PACKAGE)
 
     assert config.model._target_ == "espnet3.systems.f5tts.inference.Inference"
@@ -133,6 +137,7 @@ def test_metrics_scaffold_is_the_f5tts_protocol() -> None:
 
 
 def test_load_and_merge_config_user_overrides_template_defaults(tmp_path) -> None:
+    """A recipe config overrides the template's values and keeps the rest."""
     user = tmp_path / "training_small.yaml"
     user.write_text(
         "model:\n"
@@ -155,6 +160,7 @@ def test_load_and_merge_config_user_overrides_template_defaults(tmp_path) -> Non
 
 
 def test_load_and_merge_config_none_path_returns_none() -> None:
+    """No config path gives no config."""
     assert load_and_merge_config(None, "demo.yaml", default_package=PACKAGE) is None
 
 
@@ -163,6 +169,7 @@ def test_load_and_merge_config_none_path_returns_none() -> None:
     ["remove_long_short", "create_token_list", "train", "infer", "pack_model"],
 )
 def test_main_refuses_a_stage_without_its_config(stage) -> None:
+    """``main`` refuses a stage whose config was not passed."""
     with pytest.raises(ValueError, match="Config not provided"):
         main(args=_run_arguments(stages=[stage]), system_cls=F5TTSSystem)
 
