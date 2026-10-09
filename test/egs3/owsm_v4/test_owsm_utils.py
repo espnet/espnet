@@ -31,11 +31,17 @@ PACKING_SEED = 0
 # generate_nlsyms.py spells languages with the two-letter Whisper keys, and the
 # ISO 639-3 spellings only appear after owsm_v3's local/filter_lang_id.py
 # rewrites the prepared data. The published model is the only complete oracle.
-OWSM_BPE_URL = (
-    "https://huggingface.co/espnet/owsm_v4_medium_1B/resolve/main"
-    "/data/token_list/bpe_unigram50000/bpe.model"
-)
-OWSM_BPE_CACHE = Path.home() / ".cache" / "espnet3" / "owsm_v4_bpe.model"
+# Frozen beside this file so the suite needs no network. Regenerate with:
+#
+#   python -c "import sentencepiece as spm; \
+#     p = spm.SentencePieceProcessor(model_file='bpe.model'); \
+#     print('\\n'.join(x for x in (p.id_to_piece(i) \
+#         for i in range(p.get_piece_size())) \
+#         if x.startswith('<') and x.endswith('>')))" > owsm_v4_release_symbols.txt
+#
+# taking bpe.model from
+# huggingface.co/espnet/owsm_v4_medium_1B/data/token_list/bpe_unigram50000.
+OWSM_RELEASE_SYMBOLS = Path(__file__).parent / "owsm_v4_release_symbols.txt"
 
 # Everything the wired-up sub-datasets can emit: SPGISpeech is English ASR,
 # MuST-C is English ASR plus its 14 translation directions.
@@ -84,22 +90,8 @@ _RELEASE_ORDER: dict = {}
 
 @pytest.fixture(scope="module")
 def released_symbols():
-    """Special symbols of the published OWSM v4 model, cached between runs."""
-    spm = pytest.importorskip("sentencepiece")
-    if not OWSM_BPE_CACHE.is_file():
-        import urllib.error
-        import urllib.request
-
-        OWSM_BPE_CACHE.parent.mkdir(parents=True, exist_ok=True)
-        try:
-            urllib.request.urlretrieve(OWSM_BPE_URL, OWSM_BPE_CACHE)
-        except (urllib.error.URLError, OSError) as error:
-            OWSM_BPE_CACHE.unlink(missing_ok=True)
-            pytest.skip(f"cannot fetch {OWSM_BPE_URL}: {error}")
-
-    processor = spm.SentencePieceProcessor(model_file=str(OWSM_BPE_CACHE))
-    pieces = [processor.id_to_piece(i) for i in range(processor.get_piece_size())]
-    tagged = [p for p in pieces if p.startswith("<") and p.endswith(">")]
+    """Special symbols of the published OWSM v4 model, in release order."""
+    tagged = OWSM_RELEASE_SYMBOLS.read_text(encoding="utf-8").split()
     _RELEASE_ORDER.update({p: i for i, p in enumerate(tagged)})
     # <s>, </s> and <unk> are SentencePiece's own, not OWSM symbols.
     return set(tagged) - {"<s>", "</s>", "<unk>"}
