@@ -417,3 +417,43 @@ def test_wrong_subsampling_factor(input_conf, body_conf):
 def test_wrong_block_io(body_conf):
     with pytest.raises(ValueError):
         _ = Encoder(8, body_conf)
+
+
+@pytest.mark.parametrize(
+    "input_conf",
+    [
+        {"subsampling_factor": 2, "conv_size": 4},
+        {"subsampling_factor": 4, "conv_size": 4},
+        {"subsampling_factor": 6, "conv_size": 4},
+        {"vgg_like": True, "subsampling_factor": 4, "conv_size": 4},
+        {"vgg_like": True, "subsampling_factor": 6, "conv_size": 4},
+    ],
+)
+def test_input_block_output_lengths(input_conf):
+    body_conf = [
+        {
+            "block_type": "conformer",
+            "hidden_size": 4,
+            "linear_size": 2,
+            "conv_mod_kernel_size": 3,
+        }
+    ]
+    encoder = Encoder(20, body_conf, input_conf).eval()
+
+    feat_lens = [60, 47, 33]
+
+    x = torch.randn(len(feat_lens), max(feat_lens), 20)
+    for i, feat_len in enumerate(feat_lens):
+        x[i, feat_len:] = 0.0
+
+    with torch.no_grad():
+        batch_out, batch_lens = encoder(x, torch.tensor(feat_lens))
+
+        for i, feat_len in enumerate(feat_lens):
+            # The output length of an utterance does not depend on its batch.
+            out, out_len = encoder(x[i : i + 1, :feat_len], torch.tensor([feat_len]))
+
+            assert out.size(1) == out_len.item()
+            assert batch_lens[i].item() == out_len.item()
+
+    assert batch_out.size(1) == batch_lens.max().item()
