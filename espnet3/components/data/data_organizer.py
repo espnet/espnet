@@ -147,6 +147,14 @@ class DataOrganizer:
         recipe_dir (Optional[str]): Recipe root used to resolve local dataset modules
             when dataset entries omit ``data_src`` and rely on
             ``recipe_dir/dataset``.
+        train_mode (bool): Build the train split's ESPnet preprocessor in
+            training mode (``train=True``: data augmentation and the other
+            train-only steps). ``collect_stats`` passes ``False`` by default, as ESPnet2
+            collects statistics with ``build_preprocess_fn(args, train=False)``:
+            random augmentation would make the statistics and shape files
+            differ from run to run (a training config can turn it back on
+            with ``collect_stats_train_mode: true``). Valid and test are
+            never in training mode.
 
     Attributes:
         train (CombinedDataset): Combined dataset built from training configurations,
@@ -239,6 +247,41 @@ class DataOrganizer:
             ...     test=test_configs,
             ...     preprocessor=config,
             ... )
+
+        The train split without augmentation, as the ``collect_stats`` stage
+        builds it:
+            >>> organizer = DataOrganizer(
+            ...     train=training_configs,
+            ...     valid=valid_configs,
+            ...     preprocessor=config,
+            ...     train_mode=False,
+            ... )
+
+        A recipe does not set ``train_mode`` here: the same ``dataset:`` block
+        of the training config serves both stages, and its augmentation
+        applies in ``train`` but not in ``collect_stats``. The training
+        config's top-level ``collect_stats_train_mode: true`` applies it in
+        ``collect_stats`` too:
+
+        .. code-block:: yaml
+
+            dataset:
+              _target_: espnet3.components.data.data_organizer.DataOrganizer
+              train:
+                - data_src_args:
+                    split: train
+              valid:
+                - data_src_args:
+                    split: valid
+              preprocessor:
+                _target_: espnet2.train.preprocessor.CommonPreprocessor
+                data_aug_effects:
+                  - [0.1, "contrast", {"enhancement_amount": 75.0}]
+                data_aug_num: [1, 1]
+                data_aug_prob: 1.0
+                token_type: bpe
+                token_list: ${tokenizer.save_path}/tokens.txt
+                bpemodel: ${tokenizer.save_path}/bpe.model
     """
 
     def __init__(
@@ -248,6 +291,7 @@ class DataOrganizer:
         test: Optional[List[Union[DatasetConfig, Dict[str, Any], DictConfig]]] = None,
         preprocessor: Optional[Callable[[dict], dict]] = None,
         recipe_dir: Optional[str] = None,
+        train_mode: bool = True,
     ):
         """Initialize DataOrganizer object."""
         self.recipe_dir = recipe_dir
@@ -297,7 +341,7 @@ class DataOrganizer:
                 valid_cfg = _merge_shared_preprocessor_config(shared_cfg, valid_cfg)
                 test_cfg = _merge_shared_preprocessor_config(shared_cfg, test_cfg)
                 train_preprocessor = self._instantiate_preprocessor_from_config(
-                    train_cfg, True
+                    train_cfg, train_mode
                 )
                 valid_preprocessor = self._instantiate_preprocessor_from_config(
                     valid_cfg, False
@@ -307,7 +351,7 @@ class DataOrganizer:
                 )
             else:
                 train_preprocessor = self._instantiate_preprocessor_from_config(
-                    preprocessor_cfg, True
+                    preprocessor_cfg, train_mode
                 )
                 if isinstance(train_preprocessor, AbsPreprocessor):
                     valid_preprocessor = self._instantiate_preprocessor_from_config(
@@ -321,7 +365,7 @@ class DataOrganizer:
             # inspect its side effects.
             if train is not None:
                 train_preprocessor = copy.deepcopy(preprocessor_cfg)
-                train_preprocessor.train = True
+                train_preprocessor.train = train_mode
                 valid_preprocessor = preprocessor_cfg
                 valid_preprocessor.train = False
             else:

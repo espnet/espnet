@@ -3,7 +3,7 @@
 import numpy as np
 import pytest
 
-from espnet2.universa.ar_universa.data import ARMetricCollateFn
+from espnet2.aqa.ar_universa.data import ARMetricCollateFn
 
 
 @pytest.mark.parametrize("randomize", [False, True])

@@ -42,12 +42,17 @@ class PiecewiseLinearWarmupLR(_LRScheduler, AbsBatchStepScheduler):
 
     def get_lr(self):
         step_num = self.last_epoch + 1
+        # float() is required: np.interp returns numpy.float64, which reaches the
+        # checkpoint through param_groups["lr"] and _last_lr, and torch>=2.6
+        # refuses to unpickle it under the weights_only=True default.
         return [
-            np.interp(
-                step_num,
-                self.warmup_steps_list,
-                self.warmup_lr_list,
-                right=lr * self.warmup_steps_list[-1] ** 0.5 * step_num**-0.5,
+            float(
+                np.interp(
+                    step_num,
+                    self.warmup_steps_list,
+                    self.warmup_lr_list,
+                    right=lr * self.warmup_steps_list[-1] ** 0.5 * step_num**-0.5,
+                )
             )
             for lr in self.base_lrs
         ]

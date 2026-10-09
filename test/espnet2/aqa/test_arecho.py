@@ -1,11 +1,11 @@
-from test.espnet2.universa.test_metric_tokenizer import token_info
+from test.espnet2.aqa.test_metric_tokenizer import token_info
 
 import numpy as np
 import pytest
 import torch
 
-from espnet2.universa.ar_universa import ARUniversa
-from espnet2.universa.ar_universa.data import ARMetricCollateFn, ARMetricProcessor
+from espnet2.aqa.ar_universa import ARUniversa
+from espnet2.aqa.ar_universa.data import ARMetricCollateFn, ARMetricProcessor
 
 
 @pytest.fixture
@@ -148,6 +148,32 @@ def test_empty_metric_targets(make_arecho, labels):
     assert torch.isfinite(loss) and loss > 0
     assert stats["value_ar_decoder"] == 0
     loss.backward()
+
+
+@pytest.mark.parametrize("metrics_list", [["mos"], []])
+def test_filtered_metric_targets(make_arecho, metrics_list):
+    """Train EOS when metric selection removes every metric."""
+    processor = ARMetricProcessor(
+        metric_token_info=token_info(), metrics_list=metrics_list, train=True
+    )
+    samples = []
+    for uid, length in [("a", 5), ("b", 3)]:
+        sample = processor(
+            uid,
+            dict(audio=np.ones(length, dtype=np.float32), metrics={"language": "eng"}),
+        )
+        assert sample["metrics"] == {}
+        sample["audio"] = np.random.randn(length, 8).astype(np.float32)
+        samples.append((uid, sample))
+    _, batch = ARMetricCollateFn()(samples)
+    model = make_arecho()
+    loss, stats, _ = model(**batch)
+    assert torch.isfinite(loss) and loss > 0
+    assert stats["value_ar_decoder"] == 0
+    loss.backward()
+    assert all(
+        torch.isfinite(p.grad).all() for p in model.parameters() if p.grad is not None
+    )
 
 
 def test_target_padding_uses_lengths(make_arecho):

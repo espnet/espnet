@@ -9,6 +9,7 @@ import torch
 from espnet2.bin.s2t_inference import Speech2Text, get_parser, main
 from espnet2.legacy.nets.beam_search import Hypothesis
 from espnet2.tasks.s2t import S2TTask
+from espnet2.tasks.s2t_ctc import S2TTask as S2TCTCTask
 
 
 def test_get_parser():
@@ -415,3 +416,126 @@ def test_Speech2Text_quantized(s2t_config_file):
         assert isinstance(token_int[0], int)
         assert isinstance(text_nospecial, str)
         assert isinstance(hyp, Hypothesis)
+
+
+@pytest.fixture()
+def ctc_config_file(tmp_path: Path, token_list, request):
+    input_layer, window = getattr(request, "param", ("conv2d8", 4))
+    ctc_tokens = tmp_path / "ctc_tokens.txt"
+    ctc_tokens.write_text(token_list.read_text() + "<nolang>\n")
+    S2TCTCTask.main(
+        cmd=[
+            "--dry_run",
+            "true",
+            "--output_dir",
+            str(tmp_path / "ctc"),
+            "--token_list",
+            str(ctc_tokens),
+            "--token_type",
+            "char",
+            "--promptencoder_conf",
+            "output_size=4",
+            "--preprocessor_conf",
+            "fs=16000",
+            "--preprocessor_conf",
+            f"speech_length={window}",
+            "--frontend_conf",
+            "fs=16k",
+            "--frontend_conf",
+            "hop_length=160",
+            "--encoder_conf",
+            f"input_layer={input_layer}",
+        ]
+    )
+    return tmp_path / "ctc" / "config.yaml"
+
+
+@pytest.mark.parametrize("context", [0.56, 0.8, 1.6])
+@pytest.mark.parametrize("batch_size", [1, 3])
+def test_ctc_log_probs_row_i_is_the_audio_at_frame_i(
+    ctc_config_file, monkeypatch, context, batch_size
+):
+    """The language and task positions are not audio, so they are not frames.
+
+    The encoder puts their embeddings in front of the frames. Counted as
+    frames, they shift every row by the prefix length, which `ForcedAligner`
+    reports as time, and drop that many frames from the recording.
+    """
+    speech2text = Speech2Text(s2t_train_config=ctc_config_file)
+    # a 4 s window with 0.8 s of context is a whole number of frames throughout
+    monkeypatch.setitem(speech2text.preprocessor_conf, "speech_length", 4)
+    hop = round(speech2text.sample_rate / speech2text.frames_per_sec)
+
+    def encode(speech, prefix, **kwargs):
+        # one position per prefix symbol, then one per frame holding the first
+        # sample of that frame; one frame short, as the convolutions are
+        frames = speech[:, ::hop][:, :-1].unsqueeze(-1)
+        marks = speech.new_full((speech.size(0), prefix.size(1), 1), -1.0)
+        return torch.cat([marks, frames], dim=1), None
+
+    monkeypatch.setattr(speech2text.s2t_model, "encode", encode)
+    monkeypatch.setattr(speech2text.s2t_model.ctc, "log_softmax", lambda enc: enc)
+
+    # every sample says where it is; 0 is what the padding holds
+    seconds = 10
+    speech = np.arange(1, seconds * speech2text.sample_rate + 1, dtype=np.float32)
+    probs = speech2text.ctc_log_probs(
+        speech, batch_size=batch_size, context_len_in_secs=context
+    )
+
+    assert len(probs) == round(seconds * speech2text.frames_per_sec)
+    assert probs[:, 0].tolist() == (1 + hop * np.arange(len(probs))).tolist()
+
+
+@pytest.mark.parametrize(
+    "context,window,argument",
+    [
+        (0.5, 4, "context_len_in_secs"),
+        (0.8, 3, "speech_length"),
+    ],
+)
+def test_ctc_log_probs_rejects_fractional_frames(
+    ctc_config_file, context, window, argument
+):
+    """A sample step between encoder frames would accumulate timing drift."""
+    speech2text = Speech2Text(s2t_train_config=ctc_config_file)
+    speech2text.preprocessor_conf["speech_length"] = window
+    with pytest.raises(ValueError, match=argument + ".*whole number"):
+        speech2text.ctc_log_probs(
+            np.zeros(16000, dtype=np.float32), context_len_in_secs=context
+        )
+
+
+@pytest.mark.parametrize("context", [-0.8, 0, 2, 2.4])
+def test_ctc_log_probs_rejects_missing_chunk_frames(ctc_config_file, context):
+    """Refuse empty steps and contexts too short to preserve complete chunks."""
+    speech2text = Speech2Text(s2t_train_config=ctc_config_file)
+    with pytest.raises(ValueError, match="context"):
+        speech2text.ctc_log_probs(
+            np.zeros(16000, dtype=np.float32), context_len_in_secs=context
+        )
+
+
+@pytest.mark.parametrize("ctc_config_file", [("conv2d6", 30)], indirect=True)
+def test_conv2d6_default_context_keeps_contiguous_frames(ctc_config_file, monkeypatch):
+    """Omitted two-second context becomes 33 frames, without changing the stride."""
+    speech2text = Speech2Text(s2t_train_config=ctc_config_file)
+    hop = 960  # 160-sample frontend hop, subsampled six times
+
+    def encode(speech, prefix, **kwargs):
+        frames = speech[:, ::hop][:, :-1].unsqueeze(-1)
+        marks = speech.new_full((speech.size(0), prefix.size(1), 1), -1.0)
+        return torch.cat([marks, frames], dim=1), None
+
+    monkeypatch.setattr(speech2text.s2t_model, "encode", encode)
+    monkeypatch.setattr(speech2text.s2t_model.ctc, "log_softmax", lambda enc: enc)
+    speech = np.arange(1, 70 * speech2text.sample_rate + 1, dtype=np.float32)
+    probs = speech2text.ctc_log_probs(speech, batch_size=2)
+    expected = 1 + hop * np.arange(round(len(speech) / hop))
+    np.testing.assert_array_equal(probs[:, 0], expected)
+    # The decoding wrapper also preserves an omitted context; one output
+    # column makes every best-path label blank.
+    assert speech2text.decode_long(speech, batch_size=2) == [(0.0, 70.0, "")]
+    for decode in (speech2text.ctc_log_probs, speech2text.decode_long):
+        with pytest.raises(ValueError, match="context_len_in_secs.*whole number"):
+            decode(speech, context_len_in_secs=2)

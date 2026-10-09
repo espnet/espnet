@@ -141,19 +141,34 @@ def test_matches_reference_single_utterance(
     _assert_identical(expected, actual)
 
 
+class _ReferenceWithoutPrimerInPartialScorers(ReferenceBatchBeamSearch):
+    """The frozen search, except that it keeps the primer from partial scorers.
+
+    The frozen copy hands the whole prefix, primer included, to
+    `CTCPrefixScorer`, which counts the primer as output. That was changed on
+    purpose (`test_ctc_scores_the_output_not_the_primer`), and this is the one
+    change applied to the reference here, in the test and not in the frozen file.
+    """
+
+    def score_partial(self, hyp, ids, x, pre_x=None):
+        n_primer = 1 if self.hyp_primer is None else len(self.hyp_primer)
+        # not `hyp._replace`: `BatchHypothesis.__len__` is the number of
+        # hypotheses, and `_replace` takes it for the number of fields
+        fields = {name: getattr(hyp, name) for name in hyp._fields}
+        fields["yseq"] = hyp.yseq[:, n_primer - 1 :]
+        return super().score_partial(type(hyp)(**fields), ids, x, pre_x)
+
+
 @pytest.mark.parametrize("ctc_weight", [0.0, 0.5])
 def test_matches_reference_with_hyp_primer(ctc_weight):
     """A shared `hyp_primer` must be honoured the same way as before."""
     enc, kwargs, dtype = _setup(
         transformer_args, ctc_weight, "transformer", 0.1, torch.float64, False
     )
-    # NOTE: kept short on purpose. `CTCPrefixScoreTH` cannot score a prefix
-    # longer than the encoder output, and the primer counts towards it, so a
-    # longer primer makes *both* implementations raise IndexError on this toy
-    # model. That is pre-existing behaviour, not something this test is for.
     primer = [kwargs["sos"], 1]
 
-    reference = ReferenceBatchBeamSearch(**kwargs)
+    # With CTC the frozen copy differs on purpose, see the class.
+    reference = _ReferenceWithoutPrimerInPartialScorers(**kwargs)
     reference.eval()
     reference.set_hyp_primer(primer)
     current = BatchBeamSearch(**kwargs)
