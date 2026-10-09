@@ -35,14 +35,10 @@ pack_model:
   include:
     - ${recipe_dir}/src
     - ${recipe_dir}/dataset
-    # target-side vocabulary (ST decoder / ST-CTC)
-    - ${data_dir}/bpe_tgt_4000/tokens.txt
-    - ${data_dir}/bpe_tgt_4000/bpe.model
-    - ${data_dir}/bpe_tgt_4000/bpe.vocab
-    # source-side vocabulary (auxiliary ASR decoder / ASR-CTC)
-    - ${data_dir}/bpe_src_4000/tokens.txt
-    - ${data_dir}/bpe_src_4000/bpe.model
-    - ${data_dir}/bpe_src_4000/bpe.vocab
+    # Globbed, so the vocabulary size lives only in the training config.
+    # `_expand_pack_paths` warns if a pattern matches nothing.
+    - ${data_dir}/bpe_tgt_*   # target side (ST decoder / ST-CTC)
+    - ${data_dir}/bpe_src_*   # source side (auxiliary ASR decoder / ASR-CTC)
     # global_mvn statistics referenced by model.normalize_conf.stats_file
     - ${recipe_dir}/exp/stats/train/feats_stats.npz
   exclude:

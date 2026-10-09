@@ -24,7 +24,6 @@
 ##########################################################
 #                  SYSTEM AND PATH SETTING               #
 ##########################################################
-system: espnet3.systems.esp2_st.system.STSystem
 task: espnet2.tasks.st.STTask
 
 cache:
@@ -43,13 +42,12 @@ create_dataset:
 #       test_sets="tst-COMMON.en-de tst-HE.en-de"
 dataset:
   train:
-    - data_src: must_c/esp2_st
-      # `&pair_args` names this block so the valid/test entries below can say
-      # `<<: *pair_args` and override only `split`. It is plain YAML anchor /
-      # merge-key syntax, not an espnet3 feature: every split shares one
-      # language pair and one set of case conventions, and repeating them is
-      # how they drift apart.
-      data_src_args: &pair_args
+    # `&pair_args` names this block so the valid/test entries below can say
+    # `<<: *pair_args` and override only `split`. It is plain YAML anchor /
+    # merge-key syntax, not an espnet3 feature: every split shares one
+    # language pair and one set of case conventions, and repeating them is
+    # how they drift apart.
+    - data_src_args: &pair_args
         split: train
         recipe_dir: ${recipe_dir}
         source_dir: ${data_dir}
@@ -59,18 +57,15 @@ dataset:
         src_case: lc.rm
         tgt_case: tc
   valid:
-    - data_src: must_c/esp2_st
-      data_src_args:
+    - data_src_args:
         <<: *pair_args
         split: dev
   test:
     - name: tst-COMMON
-      data_src: must_c/esp2_st
       data_src_args:
         <<: *pair_args
         split: test
     - name: tst-HE
-      data_src: must_c/esp2_st
       data_src_args:
         <<: *pair_args
         split: tst-HE
@@ -303,5 +298,5 @@ trainer:
 
 parallel:
   env: local
-  n_workers: 16
+  n_workers: 1
   options: {}

@@ -116,6 +116,13 @@ class STSystem(BaseSystem):
         return super().train()
 
     def _has_tokenizer_side(self, side_config) -> bool:
+        """Whether one side's SentencePiece model and token list both exist.
+
+        Args:
+            side_config: One entry of ``training_config.tokenizer`` -- the
+                ``tgt`` or ``src`` block, carrying ``save_path`` and
+                ``model_type``.
+        """
         model = Path(side_config.save_path) / f"{side_config.model_type}.model"
         tokens = Path(side_config.save_path) / "tokens.txt"
         return model.is_file() and tokens.is_file()
@@ -144,6 +151,16 @@ class STSystem(BaseSystem):
 
     def _gather_texts(self, side: str, side_config) -> tuple[Path, List[str]]:
         """Return the gathered tokenizer text for one side, writing it if new.
+
+        Args:
+            side: ``tgt`` or ``src``; used only in the error messages.
+            side_config: That side's ``training_config.tokenizer`` block. Read
+                for ``train_file`` (where the gathered text is written and
+                reused from) and ``text_builder`` (the Hydra target that
+                yields the lines).
+
+        Returns:
+            The text file's path and the lines it holds.
 
         Raises:
             RuntimeError: If the side declares no ``train_file``, or its text

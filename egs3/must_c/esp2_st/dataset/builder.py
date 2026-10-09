@@ -44,11 +44,33 @@ LANG_PAIR = f"{SRC_LANG}-{TGT_LANG}"
 REQUIRED_SPLITS: tuple[str, ...] = tuple(str(s) for s in _CFG["required_splits"])
 SOURCE_ENV_VAR = str(_CFG["source_env_var"])
 DATASET_PATH = str(_CFG.get("dataset_path", "download"))
+DOWNLOAD_URL = str(_CFG.get("download_url", ""))
 
 # "test" is the logical name; tst-COMMON is the directory on disk.
 SPLIT_ALIASES: dict[str, str] = {
     str(k): str(v) for k, v in _CONFIG["dataset"]["split_aliases"].items()
 }
+
+
+def setup_instructions(recipe_dir: str | Path) -> str:
+    """Return how to obtain MuST-C and point this recipe at it.
+
+    MuST-C cannot be fetched non-interactively: the download is behind a
+    licence acceptance form, so there is no script to run. Raising this text
+    instead of a bare "not found" is what turns a missing corpus into
+    something the reader can act on.
+    """
+    recipe_root = Path(recipe_dir).resolve()
+    return (
+        f"MuST-C is not downloadable without accepting its licence, so fetch "
+        f"it by hand from {DOWNLOAD_URL} (MUSTC_v1.0_{SRC_LANG}-<tgt>.tar.gz) "
+        f"and unpack it so each pair sits at "
+        f"<root>/{SRC_LANG}-<tgt>/data/<split>/.\n"
+        f"Then point this recipe at <root> in any one of these ways:\n"
+        f"  export {SOURCE_ENV_VAR}=/path/to/must-c\n"
+        f"  ln -s /path/to/must-c {recipe_root / DATASET_PATH}\n"
+        f"  pass source_dir=/path/to/must-c in data_src_args"
+    )
 
 
 def _resolve_tgt_lang(tgt_lang: str | None) -> str:
@@ -134,9 +156,7 @@ def resolve_source_root(
         "Checked these locations:\n"
         + "\n".join(f"  - {path}/{SRC_LANG}-{tgt_lang}" for path in checked)
         + "\n"
-        f"Unpack the corpus under '{DATASET_PATH}/' in the recipe, set "
-        f"{SOURCE_ENV_VAR} to the raw corpus root (the directory that "
-        f"contains '{LANG_PAIR}/'), or pass source_dir explicitly."
+        + setup_instructions(recipe_root)
     )
 
 
@@ -200,14 +220,19 @@ class MustCSTBuilder(DatasetBuilder):
     ) -> None:
         """Validate that the raw MuST-C source tree is already available.
 
+        There is nothing to download: MuST-C is behind a licence form, so a
+        missing corpus raises ``setup_instructions`` rather than fetching it.
+
         Args:
             recipe_dir: Recipe root directory.
             source_dir: Optional override pointing at the raw corpus root.
+            tgt_lang: Target language, or ``all`` for every installed pair.
             **_kwargs: Unused extra options for API compatibility.
 
         Raises:
             FileNotFoundError: If the language-pair directory or required
-                splits are missing.
+                splits are missing. The message carries the download URL and
+                the three ways to point the recipe at an existing copy.
         """
         recipe_root = Path(recipe_dir).resolve()
         selected = _resolve_tgt_lang(tgt_lang)
@@ -218,7 +243,8 @@ class MustCSTBuilder(DatasetBuilder):
         )
         if not targets:
             raise FileNotFoundError(
-                f"No complete MuST-C {SRC_LANG}-<target> pairs found"
+                f"No complete MuST-C {SRC_LANG}-<target> pairs found.\n"
+                + setup_instructions(recipe_root)
             )
         # Validate the pinned target too: without this, prepare_source could
         # return while is_source_prepared stayed False.
@@ -228,7 +254,8 @@ class MustCSTBuilder(DatasetBuilder):
             if missing:
                 raise FileNotFoundError(
                     f"MuST-C {SRC_LANG}-{target} is missing required splits "
-                    f"{missing} under {lang_pair_root}"
+                    f"{missing} under {lang_pair_root}.\n"
+                    + setup_instructions(recipe_root)
                 )
 
     def is_built(self, recipe_dir, cache=None, **kwargs):

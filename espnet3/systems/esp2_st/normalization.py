@@ -82,7 +82,7 @@ _QUOTE_LETTER_APOS = (
 
 
 def normalize_punctuation(text: str, language: str = "en") -> str:
-    """Port of Moses' ``normalize-punctuation.perl``.
+    r"""Port of Moses' ``normalize-punctuation.perl``.
 
     Args:
         text: One line of raw corpus text.
@@ -92,6 +92,43 @@ def normalize_punctuation(text: str, language: str = "en") -> str:
 
     Returns:
         The normalized line.
+
+    Conversions, in the order they are applied. ``U+00A0`` is a no-break
+    space, indistinguishable from an ordinary space on screen:
+
+        | In                       | Out             | Note                  |
+        |---                       |---              |---                    |
+        | carriage return          | (removed)       |                       |
+        | `( x )`                  | `(x)`           | inner spaces dropped  |
+        | `) .`                    | `).`            | any of `.!:?;,`       |
+        | `5 %`                    | `5%`            | digit before `%`      |
+        | ` :` ` ;`                | `:` `;`         |                       |
+        | `` ` ``                  | `'`             |                       |
+        | `''`                     | `"`             | spaces added around it |
+        | `„` `“` `”` `´´`         | `"`             |                       |
+        | `–`                      | `-`             | en dash               |
+        | `—`                      | ` - `           | em dash               |
+        | `´`                      | `'`             |                       |
+        | `it‘s` `it’s`            | `it's`          | only between two letters |
+        | `‘` `‚` `’`              | `"`             | everywhere else       |
+        | `…`                      | `...`           |                       |
+        | `«` `»`                  | `"`             | adjacent `U+00A0` too |
+        | `U+00A0%`                | `%`             |                       |
+        | `U+00A0` before `: ? ! ;`| `:` `?` `!` `;` | no-break space dropped |
+        | `U+00A0ºC` `U+00A0cm`    | ` ºC` ` cm`     | no-break space to space |
+        | `nº` + `U+00A0`          | `nº `           |                       |
+        | `,` + `U+00A0`           | `, `            |                       |
+
+    Runs of spaces are squeezed to one after several of these, though a line
+    starting with `(` keeps a leading space, as it does under Moses. Two rules
+    depend on ``language``:
+
+        | Language                 | Rule                                 |
+        |---                       |---                                   |
+        | `en`                     | `",` to `,"`, `".` to `."`           |
+        | not `en`, `cs` or `cz`   | `,"` to `",`, `."` to `".`           |
+        | `de` `es` `cs` `cz` `fr` | `1 000` to `1,000`                   |
+        | any other                | `1 000` to `1.000`                   |
     """
     text = text.replace("\r", "")
 

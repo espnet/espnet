@@ -4,6 +4,8 @@ builder:
   # downloadable without accepting its licence, so this directory is populated
   # by hand; $MUST_C or an explicit source_dir overrides it.
   dataset_path: download
+  # Named in the setup instructions raised when the corpus is absent.
+  download_url: https://mt.fbk.eu/must-c-release-v1-0/
   version: v1
   src_lang: en
   # Aggregate all installed English-to-target language pairs.

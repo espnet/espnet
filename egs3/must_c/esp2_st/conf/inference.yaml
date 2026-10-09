@@ -33,7 +33,6 @@ cache:
 dataset:
   test:
     - name: tst-COMMON
-      data_src: must_c/esp2_st
       data_src_args: &infer_args
         split: test
         cache: ${cache}
@@ -42,7 +41,6 @@ dataset:
         tgt_lang: de
         return_utt_id: true
     - name: tst-HE
-      data_src: must_c/esp2_st
       data_src_args:
         <<: *infer_args
         split: tst-HE

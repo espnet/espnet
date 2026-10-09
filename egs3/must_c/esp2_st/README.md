@@ -83,7 +83,8 @@ no Kaldi data preparation (`egs2/must_c/st1/local/data.sh`) is required.
 
 ## Results
 
-MuST-C en-de, conformer ST (`conf/tuning/train_st_conformer.yaml`), decoded with
+MuST-C en-de, conformer ST (`conf/tuning/train_st_conformer.yaml`), trained on
+the **v1** release (`dataset/config.yaml: version: v1`), decoded with
 `conf/inference.yaml` (beam 10) and scored with `conf/metrics.yaml`
 (sacreBLEU, `tok:13a`). This is both passes `st.sh` runs: case-sensitive, and
 case-insensitive after `remove_punctuation.pl` (suffix `_lc`). All twelve

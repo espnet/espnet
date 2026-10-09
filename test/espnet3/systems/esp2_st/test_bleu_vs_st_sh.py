@@ -6,7 +6,7 @@ not enough, so these tests run the shell pipeline itself -- the real
 `utils/remove_punctuation.pl` and the `sacrebleu` CLI -- over shared fixtures
 and require the numbers to agree exactly.
 
-The fixtures in ``test_utils/espnet3/st`` are one reference and two hypothesis
+The fixtures in ``test_utils/espnet3/esp2_st`` are one reference and two hypothesis
 sets, a close one and a poor one, so the comparison covers both a high and a
 low score rather than a single operating point.
 """
@@ -21,7 +21,7 @@ import pytest
 from espnet3.systems.esp2_st.metrics.bleu import BLEU
 
 REPO_ROOT = Path(__file__).resolve().parents[4]
-FIXTURES = REPO_ROOT / "test_utils" / "espnet3" / "st"
+FIXTURES = REPO_ROOT / "test_utils" / "espnet3" / "esp2_st"
 REMOVE_PUNCTUATION_PL = REPO_ROOT / "utils" / "remove_punctuation.pl"
 
 try:
