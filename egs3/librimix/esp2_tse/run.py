@@ -1,4 +1,4 @@
-from egs3.TEMPLATE.tse.run import (
+from egs3.TEMPLATE.esp2_tse.run import (
     DEFAULT_STAGES,
     build_parser,
     main,

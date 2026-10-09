@@ -30,7 +30,7 @@ model:
 ##########################################################
 # Recipe-local app script copied to `<demo_dir>/app.py` during `pack_demo`.
 ui:
-  app_script: ../../TEMPLATE/tse/src/app.py
+  app_script: ../../TEMPLATE/esp2_tse/src/app.py
   title: Demo page for the TSE model trained on Libri2Mix (16 kHz)
   description: README.md
   inputs:
