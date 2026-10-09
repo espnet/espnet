@@ -20,6 +20,11 @@ class CTCPrefixScoreTH(object):
     Speech Recognition," In INTERSPEECH (pp. 3825-3829), 2019.
     """
 
+    # How many frames with a label in them the window holds beyond the frame
+    # the prefix has reached, however long the silence before them. See
+    # `_window_end`.
+    WINDOW_LABELS = 5
+
     def __init__(self, x, xlens, blank, eos, margin=0):
         """Construct CTC prefix scorer.
 
@@ -36,6 +41,8 @@ class CTCPrefixScoreTH(object):
             config with a decoder that supplies no attention weights, for
             instance -- gets approximate scores where it used to get exact
             ones. Set margin=0 to keep the exact behaviour.
+            Across a silence the window is longer than the margin: see
+            `_window_end`.
         """
         # In the comment lines,
         # we assume T: input_length, B: batch size, W: beam width, O: output dim.
@@ -67,14 +74,51 @@ class CTCPrefixScoreTH(object):
 
         # Setup CTC windowing
         self.margin = margin
-        if margin > 0:  # only the attention-based window needs these
+        if margin > 0:  # only the window needs these
             self.frame_ids = torch.arange(
                 self.input_length, dtype=self.dtype, device=self.device
             )
+            self._prepare_window()
         # Base indices for index conversion
         self.idx_bh = None
         self.idx_b = torch.arange(self.batch, device=self.device)
         self.idx_bo = (self.idx_b * self.odim).unsqueeze(1)
+
+    def _prepare_window(self):
+        """Sum up, frame by frame, what the window needs to know of silence."""
+        xn = self.x[0]  # (T, B, O)
+        # What staying silent up to each frame costs. At least float32:
+        # float16 cannot hold a sum over this many frames. A padded frame is
+        # a certain blank, so it costs nothing.
+        dtype = torch.promote_types(self.dtype, torch.float32)
+        self.cum_log_blank = torch.cumsum(xn[:, :, self.blank].to(dtype), 0)  # (T, B)
+        # How many frames up to each one the CTC head takes for a label
+        # rather than for silence, laid out (B, T) for `searchsorted`. Kept on
+        # the CPU: `_window_end` looks one number up in it per decoding step,
+        # which is not worth a synchronisation with an accelerator.
+        heard = (xn.argmax(-1) != self.blank).cpu()  # (T, B)
+        self.cum_heard = torch.cumsum(heard, 0).t().contiguous()
+        self.end_frames_cpu = self.end_frames.cpu()
+
+    def _window_end(self, f_max, end):
+        """Return the frame at which the windowed recursion stops.
+
+        That is `end`, `margin` frames past `f_max`, as a rule. But a
+        hypothesis only advances inside the window, so the window has to hold
+        the labels that come next, and in a silence longer than `margin` it
+        holds none: the search can then neither reach the speech after the
+        silence nor end, and fills the gap with labels nobody said. So the
+        window is stretched until it holds `WINDOW_LABELS` frames at which
+        the most likely label is not blank, or the rest of the utterance when
+        fewer are left.
+        """
+        if end >= self.input_length:
+            return self.input_length
+        wanted = self.cum_heard[:, f_max] + self.WINDOW_LABELS  # (B,)
+        # the frame at which each utterance gets there, T if it never does
+        reach = torch.searchsorted(self.cum_heard, wanted.unsqueeze(1)).squeeze(1)
+        reach = torch.minimum(reach, self.end_frames_cpu) + 1
+        return min(max(end, int(reach.max())), self.input_length)
 
     def __call__(self, y, state, scoring_ids=None, att_w=None):
         """Compute CTC prefix scores for next labels.
@@ -172,7 +216,7 @@ class CTCPrefixScoreTH(object):
             f_min = max(int(f_arg.min().cpu()), f_min_prev)
             f_max = max(int(f_arg.max().cpu()), f_max_prev)
             start = min(f_max_prev, max(f_min - self.margin, output_length, 1))
-            end = min(f_max + self.margin, self.input_length)
+            end = self._window_end(f_max, f_max + self.margin)
         else:
             # centre it on the frame where the prefix's own forward
             # probability peaks, i.e. where this hypothesis has got to. That
@@ -182,7 +226,7 @@ class CTCPrefixScoreTH(object):
             f_min = max(int(peak.min()), f_min_prev)
             f_max = max(int(peak.max()), f_max_prev)
             start = min(f_max_prev, max(f_min - self.margin, output_length, 1))
-            end = min(f_max + self.margin + 1, self.input_length)
+            end = self._window_end(f_max, f_max + self.margin + 1)
 
         # compute forward probabilities log(r_t^n(h)) and log(r_t^b(h))
         for t in range(start, end):
@@ -191,6 +235,14 @@ class CTCPrefixScoreTH(object):
                 2, 2, n_bh, snum
             )
             r[t] = torch.logsumexp(rr, 1) + x_[:, t]
+        if end < self.input_length:
+            # Past the window a hypothesis can still stay silent, which is all
+            # that <eos> asks of it. Carry what it has reached at the edge on
+            # through the blank frames rather than leave logzero there, or no
+            # hypothesis can end until the window gets to the last frame.
+            tail = self.cum_log_blank[end:] - self.cum_log_blank[end - 1]  # (T', B)
+            tail = tail.repeat_interleave(n_hyps, dim=1).to(self.dtype)  # (T', BW)
+            r[end:, 1] = torch.logsumexp(r[end - 1], 0) + tail.unsqueeze(2)
 
         # compute log prefix probabilities log(psi)
         log_phi_x = torch.cat((log_phi[0].unsqueeze(0), log_phi[:-1]), dim=0) + x_[0]
@@ -271,6 +323,8 @@ class CTCPrefixScoreTH(object):
             self.x[:, : tmp_x.shape[1], :, :] = tmp_x
             self.input_length = x.size(1)
             self.end_frames = torch.as_tensor(xlens) - 1
+            if self.margin > 0:
+                self._prepare_window()
 
     def extend_state(self, state):
         """Compute CTC prefix state.

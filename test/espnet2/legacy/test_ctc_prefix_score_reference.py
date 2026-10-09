@@ -164,3 +164,137 @@ def test_a_narrow_window_really_narrows_the_recursion():
 
     exact, windowed = logsumexp_calls(0), logsumexp_calls(6)
     assert windowed < exact / 2, (windowed, exact)
+
+
+def _silence_and_labels(layouts):
+    """Peaked posteriors: per utterance, a label id per frame, 0 for silence."""
+    vocab = 6
+    post = torch.full((len(layouts), max(map(len, layouts)), vocab), 1e-4)
+    for b, layout in enumerate(layouts):
+        for t, label in enumerate(layout):
+            post[b, t, label] = 1.0
+    x = torch.log(post.double() / post.double().sum(-1, keepdim=True))
+    xlens = torch.tensor([len(layout) for layout in layouts])
+    return x, xlens, [[c for c in layout if c != BLANK] for layout in layouts]
+
+
+def _follow(scorer, labels, attention=None):
+    """Score each utterance's labels and then <eos>, one hypothesis each."""
+    n_utt = len(labels)
+    state, y, scores = None, torch.full((n_utt, 1), EOS), []
+    for n, step in enumerate(zip(*[utt + [EOS] for utt in labels])):
+        step = torch.tensor(step)
+        local, state = scorer(y, state, None, attention and attention[n])
+        scores.append(local[torch.arange(n_utt), step])
+        state = scorer.index_select_state(state, step.unsqueeze(1))
+        y = torch.cat([y, step.unsqueeze(1)], dim=1)
+    return torch.stack(scores).numpy()
+
+
+PAUSE = [0, 2, 0, 3] + [0] * 30 + [4, 0, 5, 0]
+LEADING = [0] * 30 + [2, 0, 3, 0, 4, 0, 5, 0]
+TRAILING = [0, 2, 0, 3, 0, 4, 0, 5] + [0] * 30
+
+
+@pytest.mark.parametrize(
+    "layouts",
+    [[PAUSE], [LEADING], [TRAILING], [PAUSE, TRAILING, LEADING[20:]]],
+    ids=["pause", "leading", "trailing", "batch"],
+)
+def test_a_window_is_not_stopped_by_silence_longer_than_itself(layouts):
+    """Silence is free to cross, so no length of it may hide what follows.
+
+    A hypothesis advances only inside the window. When the window ended in
+    the middle of a silence it held nothing to advance to, and <eos> was
+    impossible until it reached the last frame, so the label after a pause
+    and the end of an utterance both scored as if they could not happen.
+    The long silences here are three times the margin.
+    """
+    margin = 10
+    x, xlens, labels = _silence_and_labels(layouts)
+    exact = _follow(CTCPrefixScoreTH(x.clone(), xlens, BLANK, EOS, 0), labels)
+    windowed = _follow(CTCPrefixScoreTH(x.clone(), xlens, BLANK, EOS, margin), labels)
+    numpy.testing.assert_allclose(windowed, exact, atol=1e-6)
+
+
+@pytest.mark.parametrize(
+    "layout", [PAUSE, LEADING, TRAILING], ids=["pause", "leading", "trailing"]
+)
+def test_a_window_placed_by_attention_is_not_stopped_by_silence_either(layout):
+    """Attention weights say where the window is, not what it has to hold.
+
+    The attention here rests on the label that was scored last, which is a
+    whole silence before the next one.
+    """
+    margin = 10
+    x, xlens, labels = _silence_and_labels([layout])
+    spoken = [0] + [t for t, label in enumerate(layout) if label != BLANK]
+    attention = [
+        torch.nn.functional.one_hot(torch.tensor([t]), len(layout)).to(x.dtype)
+        for t in spoken
+    ]
+    exact = _follow(CTCPrefixScoreTH(x.clone(), xlens, BLANK, EOS, 0), labels)
+    windowed = _follow(
+        CTCPrefixScoreTH(x.clone(), xlens, BLANK, EOS, margin), labels, attention
+    )
+    numpy.testing.assert_allclose(windowed, exact, atol=1e-6)
+
+
+def test_a_hypothesis_can_end_where_the_window_stops():
+    """Noise the model half takes for labels stops the window before the end.
+
+    The window is not stretched over frames whose most likely label is not
+    blank, so after the speech it ends in the noise. A hypothesis that ends
+    there has to stay silent through the rest, which costs what the blanks
+    cost and is not impossible.
+    """
+    margin, vocab = 10, 6
+    speech, noise = [0, 2, 0, 3, 0, 4, 0, 5], 60
+    post = torch.full((1, len(speech) + noise, vocab), 1e-4, dtype=torch.float64)
+    for t, label in enumerate(speech):
+        post[0, t, label] = 1.0
+    for t in range(len(speech), len(speech) + noise):
+        post[0, t, BLANK] = 1.0
+        if (t - len(speech)) % 3 == 0:  # every third frame leans to a label
+            post[0, t, BLANK], post[0, t, 2 + t % 4] = 0.4, 0.6
+    x = torch.log(post / post.sum(-1, keepdim=True))
+    xlens = torch.tensor([x.size(1)])
+    labels = [[c for c in speech if c != BLANK]]
+
+    exact = _follow(CTCPrefixScoreTH(x.clone(), xlens, BLANK, EOS, 0), labels)
+    windowed = _follow(CTCPrefixScoreTH(x.clone(), xlens, BLANK, EOS, margin), labels)
+    assert -30 < exact[-1, 0] < -10  # ending is costly here, and possible
+    # not to 1e-6: the window leaves out the alignments that put the last
+    # label somewhere in the noise, which is its approximation
+    numpy.testing.assert_allclose(windowed, exact, atol=1e-2)
+
+
+def _follow_in_two_blocks(x, labels, first, margin):
+    """Score `labels` as the online search does: a first block, then the rest."""
+    scorer = CTCPrefixScoreTH(
+        x[:, :first].clone(), torch.tensor([first]), BLANK, EOS, margin
+    )
+    state, y, scores = None, [EOS], []
+    for n, label in enumerate(labels + [EOS]):
+        if n == 2:  # the rest of the recording arrives
+            scorer.extend_prob(x.clone())
+            r, s, f_min, f_max = scorer.extend_state(
+                (state[0][:, :, 0], state[1][0], *state[2:])
+            )
+            state = (r.unsqueeze(2), s.unsqueeze(0), f_min, f_max)
+        local, state = scorer(torch.tensor([y]), state, None)
+        scores.append(float(local[0, label]))
+        state = scorer.index_select_state(state, torch.tensor([[label]]))
+        y.append(label)
+    return scores
+
+
+def test_a_window_follows_the_posteriors_when_they_are_extended():
+    """What the window knows of the silence has to grow with the posteriors.
+
+    The online search extends the posteriors block by block.
+    """
+    x, _, labels = _silence_and_labels([PAUSE])
+    exact = _follow_in_two_blocks(x, labels[0], first=6, margin=0)
+    windowed = _follow_in_two_blocks(x, labels[0], first=6, margin=10)
+    numpy.testing.assert_allclose(windowed, exact, atol=1e-6)
