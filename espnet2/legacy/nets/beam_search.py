@@ -200,7 +200,10 @@ class BeamSearch(torch.nn.Module):
     def set_hyp_primer(self, hyp_primer: List[int] = None) -> None:
         """Set the primer sequence for decoding.
 
-        Used for OpenAI Whisper models.
+        A primer contains control tokens and optional prompt text, never
+        acoustic output labels. CTC scores only the labels generated after
+        it. Prefix-constrained decoding, where the primer is a transcript
+        already covered by the audio, is not supported by this interface.
         """
         self.hyp_primer = hyp_primer
 

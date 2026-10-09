@@ -544,7 +544,7 @@ class BatchBeamSearch(BeamSearch):
         ctc_yseq = hyp.yseq[:, self._primer_length() - 1 :]
         for k, d in self.part_scorers.items():
             yseq = ctc_yseq if isinstance(d, CTCPrefixScorer) else hyp.yseq
-            if "ctc" in k and pre_x is not None:
+            if isinstance(d, CTCPrefixScorer) and pre_x is not None:
                 scores[k], states[k] = d.batch_score_partial(
                     yseq, ids, hyp.states[k], pre_x
                 )
