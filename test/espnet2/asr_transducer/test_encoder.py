@@ -220,6 +220,35 @@ def test_encoder(input_conf, body_conf, main_conf):
 
 
 @pytest.mark.parametrize(
+    "conv_conf",
+    [
+        {"kernel_size": 3},
+        {"kernel_size": 2, "dilation": 2},
+        {"kernel_size": 3, "stride": 2},
+    ],
+)
+def test_conv1d_block_output_lengths(conv_conf):
+    body_conf = [
+        {"block_type": "conv1d", "output_size": 4, **conv_conf},
+        {
+            "block_type": "conformer",
+            "hidden_size": 4,
+            "linear_size": 2,
+            "conv_mod_kernel_size": 3,
+        },
+    ]
+    encoder = Encoder(20, body_conf, {"conv_size": 4}).eval()
+
+    x = torch.randn(2, 60, 20)
+
+    with torch.no_grad():
+        out, out_lens = encoder(x, torch.tensor([60, 60]))
+
+    # The lengths cannot be larger than the number of frames that were produced.
+    assert out_lens.tolist() == [out.size(1)] * 2
+
+
+@pytest.mark.parametrize(
     "input_conf, body_conf",
     [
         ({}, [{}]),
