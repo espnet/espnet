@@ -62,6 +62,14 @@ def test_measures_a_corpus(tmp_path, corpus, capsys):
     assert summary["wer_del"] == 3
     assert summary["wer_sub"] == 1
     assert summary["wer"] == pytest.approx(4 / 9)
+    # The summary says what produced it: the shared normalization pipeline
+    # reached both metrics, and the block is versioned.
+    assert summary["metadata"]["format"] == 1
+    assert summary["metadata"]["metrics"]["wer"]["config"]["normalize"] == [
+        {"name": "lowercase"},
+        {"name": "remove_punctuation"},
+    ]
+    assert summary["metadata"]["metrics"]["cer"]["name"] == "cer"
 
     lines = [json.loads(line) for line in output.read_text().splitlines()]
     assert [line["key"] for line in lines] == ["utt1", "utt2", "utt3"]
@@ -111,8 +119,8 @@ def test_bare_list_config_is_accepted(tmp_path, corpus, capsys):
 def test_list_metrics(capsys):
     assert main(["--list_metrics"]) == 0
     printed = capsys.readouterr().out
-    assert "wer\tutterance" in printed
-    assert "cer\tutterance" in printed
+    assert "wer\tutterance\treference" in printed
+    assert "cer\tutterance\treference" in printed
 
 
 def test_missing_arguments_exit_nonzero(tmp_path, corpus):

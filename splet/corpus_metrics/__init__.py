@@ -15,6 +15,9 @@ The contract mirrors VERSA's corpus tier::
 For SacreBLEU, chrF and TER the implementation should call sacrebleu rather
 than reimplement it, and record the signature sacrebleu reports -- the
 signature is what makes the number comparable with a published one, and a
-BLEU without it is not reproducible. See the discussion in
-espnet/espnet#6735.
+BLEU without it is not reproducible. The state returned by ``*_setup`` holds
+it under ``"signature"`` and :func:`splet.metadata.metadata` writes it into
+the summary. The spec registers ``tier="corpus"``, ``requires=("reference",)``
+and ``outputs`` whose headline key uses the ``mean`` rule over the single
+corpus result. See the discussion in espnet/espnet#6735.
 """

@@ -40,6 +40,8 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import List, Optional, Sequence, Tuple
 
+from splet.summary import error_rate_from_counts
+
 try:
     from rapidfuzz.distance import Levenshtein as _RapidfuzzLevenshtein
 except ImportError:  # pragma: no cover - exercised by the no-extras CI job
@@ -71,13 +73,11 @@ class AlignmentResult:
     def error_rate(self) -> float:
         """Return errors divided by reference length.
 
-        An empty reference with a non-empty hypothesis has an undefined rate;
-        this returns 1.0 for it, matching what every toolkit does in practice,
-        and 0.0 when both sides are empty.
+        The zero-denominator policy is :func:`splet.summary.error_rate_from_counts`,
+        the same function the corpus summary uses, so one utterance and the
+        corpus it belongs to cannot disagree about an empty reference.
         """
-        if self.ref_len == 0:
-            return 1.0 if self.hyp_len > 0 else 0.0
-        return self.errors / self.ref_len
+        return error_rate_from_counts(self.errors, self.ref_len)
 
     def to_string(self, width: int = 0) -> str:
         """Render the alignment as three aligned lines: REF, HYP, and ops."""

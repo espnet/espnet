@@ -19,7 +19,7 @@ def test_wer_counts_one_substitution():
 
 
 def test_cer_counts_characters_including_spaces():
-    state = error_rate_setup(name="cer", tokenizer="char")
+    state = error_rate_setup(metric_id="cer", tokenizer="char")
     result = error_rate_metric(state, "ab cd", "ab cd")
     assert result["cer_ref_len"] == 5
     assert result["cer"] == 0.0
@@ -27,7 +27,7 @@ def test_cer_counts_characters_including_spaces():
 
 def test_cer_can_ignore_spaces():
     state = error_rate_setup(
-        name="cer", tokenizer="char", tokenizer_conf={"remove_space": True}
+        metric_id="cer", tokenizer="char", tokenizer_conf={"remove_space": True}
     )
     result = error_rate_metric(state, "ab cd", "ab cd")
     assert result["cer_ref_len"] == 4
@@ -59,7 +59,7 @@ def test_summary_pools_counts_rather_than_averaging_rates():
         modules,
         {"short": "y", "long": "a b c d e f g h"},
     )
-    summary = summarize(results)
+    summary = summarize(results, modules)
     assert summary["wer_errors"] == 1
     assert summary["wer_ref_len"] == 9
     assert summary["wer"] == pytest.approx(1 / 9)
@@ -67,7 +67,7 @@ def test_summary_pools_counts_rather_than_averaging_rates():
 
 
 def test_summary_of_nothing():
-    assert summarize([]) == {"num_utterances": 0}
+    assert summarize([], load_metrics([{"name": "wer"}])) == {"num_utterances": 0}
 
 
 def test_missing_reference_is_an_error_not_a_skipped_utterance():
@@ -129,7 +129,7 @@ def test_matches_jiwer(unit):
         modules,
         {str(i): reference for i, reference in enumerate(references)},
     )
-    summary = summarize(results)
+    summary = summarize(results, modules)
 
     expected = (
         jiwer.wer(references, hypotheses)

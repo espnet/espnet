@@ -75,7 +75,21 @@ def wer_setup(**kwargs) -> Any: ...            # build whatever state it needs
 def wer_metric(state, pred, gt) -> dict: ...  # measure one item, flat dict out
 ```
 
-Register it in `METRIC_CHOICES` in `splet/metric_registry.py` with its tier.
+Register it in `METRIC_CHOICES` in `splet/metric_registry.py` as a
+`MetricSpec`, which declares four things nothing else should have to guess:
+
+| Field | Says |
+| --- | --- |
+| `tier` | which loop runs it: `utterance`, `session`, `corpus` |
+| `requires` | what it needs beyond the hypothesis: `reference`, `timestamps`, `speakers`; checked before anything is measured |
+| `outputs` | every key it reports (by the suffix after its id) and how the summary reduces it: `sum`, `mean`, `text`, or `pool:_errors/_ref_len` for an error rate |
+| `version` | the implementation's version, recorded with every result |
+
+A config entry names the implementation (`name`) and may give the instance
+its own `id`; the id prefixes every key the instance reports, so one
+implementation can run twice in one config (`wer` normalized, `wer_raw` on
+the raw text) without one overwriting the other. A repeated id is an error.
+
 VERSA dispatches with a long `if config["name"] == ...` chain instead; the
 config, the function signatures and the output are the same either way.
 
@@ -100,7 +114,19 @@ its rate (`wer`, `wer_errors`, `wer_ref_len`, `wer_sub`, `wer_del`, `wer_ins`),
 and the summary recomputes `sum(errors) / sum(ref_len)`. That is what SCTK
 reports, and it is not the mean of the per-utterance rates unless every
 utterance is the same length — in `test_error_rate.py` the two differ by more
-than a factor of two on three utterances.
+than a factor of two on three utterances. The summary applies the rule each
+metric *declares* in its spec; a key no metric declared is an error, never a
+guess. An empty reference follows one policy at both levels
+(`error_rate_from_counts`): with no reference tokens, any error is a rate of
+1.0 and no error is 0.0, and the counts are reported next to the rate so
+nothing is hidden.
+
+**A result carries what produced it.** The printed summary ends with a
+versioned `metadata` block (`splet/metadata.py`): per metric, the
+implementation name and version, its tier and requirements, the resolved
+configuration it was built from (normalization pipeline included), the
+alignment backend, and the reference tool's signature where there is one.
+A number without that block cannot be reproduced or compared.
 
 **Compatibility with an existing implementation is the requirement, not a
 nice-to-have.** Every metric here has an implementation that recipes and
@@ -111,8 +137,13 @@ against the tool it replaces, and any unavoidable difference gets written down.
 
 **Missing is an error; empty is a deletion.** A reference with no hypothesis,
 or a hypothesis with no reference, stops the run with a `KeyError` naming the
-utterance (`require_matching_keys`, which every tier calls first). Dropping either side would change the denominator and improve the
-result without anyone asking for it. An utterance the system produced nothing
+utterance (`require_matching_keys`, which every tier calls first). Dropping
+either side would change the denominator and improve the result without
+anyone asking for it. A duplicate id in either input is an error for the same
+reason: whichever line won, the other's words would vanish from the count.
+A metric's declared requirements are checked first of all
+(`validate_requirements`): WER without a reference fails naming the metric,
+not half way through with a `TypeError`. An utterance the system produced nothing
 for is not missing: it appears in the hypothesis file as its ID with an empty
 text (the Kaldi reader accepts that line), and every reference word counts as
 a deletion. The two cases are deliberately told apart.

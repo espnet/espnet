@@ -16,8 +16,15 @@ normalize:
   - name: whitespace
 
 metrics:
-  # word error rate
+  # word error rate, under the shared normalization above
   - name: wer
+
+  # the same implementation on the raw text, under its own id. `name` is
+  # the implementation, `id` the instance; every key this entry reports is
+  # prefixed `wer_raw`, so the two never overwrite each other.
+  - name: wer
+    id: wer_raw
+    normalize: []
 
   # character error rate
   #  -- spaces are counted as characters, matching jiwer.cer and the current

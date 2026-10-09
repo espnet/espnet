@@ -12,38 +12,96 @@ per utterance, summarize. A metric is a pair of plain functions --
 returns a flat dict -- which is VERSA's contract unchanged.
 
 One thing is deliberately not copied. VERSA dispatches with a long
-``if config["name"] == ...`` chain; SPLET uses the table below. The config
-file, the metric function signatures and the output are identical either
-way, and a table is what lets ``splet --list-metrics`` and the tests
-enumerate what exists.
+``if config["name"] == ...`` chain; SPLET registers each metric as a
+:class:`MetricSpec` in :data:`METRIC_CHOICES`. The config file, the metric
+function signatures and the output are identical either way, and a table is
+what lets ``splet-measure --list_metrics`` and the tests enumerate what
+exists.
+
+A spec says four things about a metric that nothing else should have to
+guess: which **tier** runs it, what input it **requires** beyond the
+hypothesis, how each result key it reports is **reduced** over the corpus,
+and which **version** of the implementation produced a number. A config
+entry names the implementation (``name``) and may give the instance its own
+``id``; the id is the prefix of every key the instance reports, so the same
+implementation can run twice in one config, raw and normalized, say,
+without one overwriting the other.
 """
 
 from __future__ import annotations
 
 import json
 import logging
-from typing import Any, Dict, List, Optional, Sequence
+from dataclasses import dataclass, field
+from typing import Any, Callable, Dict, List, Mapping, Optional, Sequence, Tuple
 
+from splet.structures import Session
 from splet.utterance_metrics import error_rate
 
-# name -> how to build it and how to call it.
-#   tier:     which loop runs it (utterance, session or corpus)
-#   setup:    factory called with the config entry's keyword arguments
-#   metric:   state called per item
-#   defaults: keyword arguments implied by the name itself
-METRIC_CHOICES: Dict[str, Dict[str, Any]] = {
-    "wer": {
-        "tier": "utterance",
-        "setup": error_rate.error_rate_setup,
-        "metric": error_rate.error_rate_metric,
-        "defaults": {"name": "wer", "tokenizer": "word"},
-    },
-    "cer": {
-        "tier": "utterance",
-        "setup": error_rate.error_rate_setup,
-        "metric": error_rate.error_rate_metric,
-        "defaults": {"name": "cer", "tokenizer": "char"},
-    },
+#: The tiers, i.e. which loop runs a metric.
+TIER_CHOICES = ("utterance", "session", "corpus")
+
+#: What a metric may require of its input beyond the hypothesis text.
+#:
+#: ``reference``
+#:     A reference on the ``--gt`` side, matched to the hypotheses by id.
+#: ``timestamps``
+#:     Every turn carries ``start`` and ``end`` (DER, JER; session tier).
+#: ``speakers``
+#:     Every turn carries a ``speaker`` (cpWER, DER, JER; session tier).
+REQUIREMENT_CHOICES = ("reference", "timestamps", "speakers")
+
+
+@dataclass(frozen=True)
+class MetricSpec:
+    """Everything the registry knows about one metric implementation."""
+
+    #: Which loop runs it: ``utterance``, ``session`` or ``corpus``.
+    tier: str
+    #: Factory called with the config entry's keyword arguments.
+    setup: Callable[..., Any]
+    #: Called per item with the state ``setup`` returned.
+    metric: Callable[..., Dict[str, Any]]
+    #: Result key suffix (after the configured id) -> reduction rule; see
+    #: ``splet/summary.py``. Every key the metric reports must be here.
+    outputs: Mapping[str, str]
+    #: Inputs the metric needs beyond the hypothesis; see
+    #: :data:`REQUIREMENT_CHOICES`. Checked before anything is measured.
+    requires: Tuple[str, ...] = ()
+    #: Keyword arguments implied by the registered name itself.
+    defaults: Dict[str, Any] = field(default_factory=dict)
+    #: Version of the implementation; bump it when the computation changes,
+    #: so a saved result says which one produced it.
+    version: str = "1"
+
+    def __post_init__(self) -> None:
+        """Reject a spec that names a tier or requirement that does not exist."""
+        if self.tier not in TIER_CHOICES:
+            raise ValueError(f"unknown tier '{self.tier}'; expected {TIER_CHOICES}")
+        unknown = [r for r in self.requires if r not in REQUIREMENT_CHOICES]
+        if unknown:
+            raise ValueError(
+                f"unknown requirements {unknown}; expected {REQUIREMENT_CHOICES}"
+            )
+
+
+METRIC_CHOICES: Dict[str, MetricSpec] = {
+    "wer": MetricSpec(
+        tier="utterance",
+        setup=error_rate.error_rate_setup,
+        metric=error_rate.error_rate_metric,
+        outputs=error_rate.OUTPUTS,
+        requires=("reference",),
+        defaults={"tokenizer": "word"},
+    ),
+    "cer": MetricSpec(
+        tier="utterance",
+        setup=error_rate.error_rate_setup,
+        metric=error_rate.error_rate_metric,
+        outputs=error_rate.OUTPUTS,
+        requires=("reference",),
+        defaults={"tokenizer": "char"},
+    ),
 }
 
 
@@ -56,7 +114,9 @@ def load_metrics(
 
     Args:
         metrics_config: The parsed config: a list of ``{"name": ..., **kwargs}``
-            entries, as in VERSA.
+            entries, as in VERSA. An entry may add ``id`` to run one
+            implementation under its own identifier (``name: wer, id:
+            wer_norm``); without it the id is the name.
         tier: Which tier to build. Entries belonging to another tier are
             skipped, so the same config drives all three loops.
         normalize: A normalization pipeline applied to every metric that does
@@ -65,10 +125,15 @@ def load_metrics(
             and a different one to BLEU without anyone noticing.
 
     Returns:
-        Metric name to its callable and state.
+        Configured id to ``{"name", "spec", "config", "module", "state"}``:
+        the implementation name, its spec, the resolved keyword arguments
+        the state was built from (what the summary's ``metadata`` reports),
+        the metric callable and the state to pass it.
 
     Raises:
-        ValueError: If an entry has no name, or names an unknown metric.
+        ValueError: If an entry has no name, names an unknown metric, or
+            repeats an id. Two instances under one id would report into the
+            same keys and the later would silently replace the earlier.
     """
     modules: Dict[str, Dict[str, Any]] = {}
     for entry in metrics_config:
@@ -80,18 +145,27 @@ def load_metrics(
             raise ValueError(
                 f"unknown metric '{name}'. Available: {sorted(METRIC_CHOICES)}"
             )
-        choice = METRIC_CHOICES[name]
-        if choice["tier"] != tier:
+        spec = METRIC_CHOICES[name]
+        metric_id = str(entry.pop("id", name))
+        if spec.tier != tier:
             continue
+        if metric_id in modules:
+            raise ValueError(
+                f"metric id '{metric_id}' is configured twice; give the second "
+                "entry its own `id:` so the two do not report into the same keys"
+            )
 
-        kwargs = {**choice["defaults"], **entry}
+        kwargs = {**spec.defaults, **entry}
         kwargs.setdefault("normalize", list(normalize) if normalize else None)
-        logging.info("Loading %s evaluation...", name)
-        modules[name] = {
-            "module": choice["metric"],
-            "state": choice["setup"](**kwargs),
+        logging.info("Loading %s evaluation as '%s'...", name, metric_id)
+        modules[metric_id] = {
+            "name": name,
+            "spec": spec,
+            "config": json.loads(json.dumps(kwargs)),
+            "module": spec.metric,
+            "state": spec.setup(metric_id=metric_id, **kwargs),
         }
-        logging.info("Initiate %s evaluation successfully.", name)
+        logging.info("Initiate %s evaluation successfully.", metric_id)
     return modules
 
 
@@ -119,8 +193,56 @@ def load_corpus_metrics(
     return load_metrics(metrics_config, tier="corpus", normalize=normalize)
 
 
+def validate_requirements(
+    metrics: Mapping[str, Mapping[str, Any]],
+    pred: Mapping[str, Any],
+    gt: Optional[Mapping[str, Any]],
+) -> None:
+    """Refuse to measure unless every metric's declared requirements are met.
+
+    Checked once, before any item is measured, so a missing reference or a
+    recording without timestamps fails up front with the metric named,
+    rather than as a ``TypeError`` from inside one metric half way through.
+
+    Args:
+        metrics: From :func:`load_metrics`.
+        pred: Utterance id to hypothesis text, or session id to
+            :class:`~splet.structures.Session`.
+        gt: The reference side in the same shape, or None.
+
+    Raises:
+        ValueError: Naming the metric and the requirement it cannot be given.
+    """
+    for metric_id, module in metrics.items():
+        for requirement in module["spec"].requires:
+            if requirement == "reference" and gt is None:
+                raise ValueError(
+                    f"metric '{metric_id}' requires a reference; pass --gt"
+                )
+            if requirement in ("timestamps", "speakers"):
+                sides = [("hypothesis", pred)] + ([("reference", gt)] if gt else [])
+                for side, items in sides:
+                    for key, item in items.items():
+                        if not isinstance(item, Session):
+                            raise ValueError(
+                                f"metric '{metric_id}' requires {requirement}, "
+                                f"which only the structured `jsonl` input carries"
+                            )
+                        for turn in item.turns:
+                            missing = (
+                                turn.speaker is None
+                                if requirement == "speakers"
+                                else turn.start is None or turn.end is None
+                            )
+                            if missing:
+                                raise ValueError(
+                                    f"metric '{metric_id}' requires {requirement}, "
+                                    f"but a turn of {side} '{key}' has none"
+                                )
+
+
 def require_matching_keys(
-    pred_texts: Dict[str, str], gt_texts: Optional[Dict[str, str]]
+    pred_texts: Mapping[str, Any], gt_texts: Optional[Mapping[str, Any]]
 ) -> None:
     """Refuse to measure unless every utterance is on both sides.
 
@@ -175,6 +297,8 @@ def measure_utterances(
         One result dict per utterance, each carrying its ``key``.
 
     Raises:
+        ValueError: If a metric requires a reference and none was given
+            (:func:`validate_requirements`).
         KeyError: If a hypothesis has no reference, or a reference has no
             hypothesis. Measuring the utterances that happen to match and
             reporting the average would silently answer a different question
@@ -182,13 +306,14 @@ def measure_utterances(
             is not a missing hypothesis: it appears in the hypothesis file with
             an empty text and every reference word counts as deleted.
     """
+    validate_requirements(metrics, pred_texts, gt_texts)
     require_matching_keys(pred_texts, gt_texts)
     handle = open(output_file, "w", encoding="utf-8") if output_file else None
     try:
         results = []
         for key in pred_texts:
             utt_result: Dict[str, Any] = {"key": key}
-            for name, module in metrics.items():
+            for metric_id, module in metrics.items():
                 utt_result.update(
                     module["module"](
                         module["state"],
@@ -208,8 +333,8 @@ def measure_utterances(
 def measure_sessions(*args, **kwargs):
     """Measure every session. No session-tier metric exists yet.
 
-    When it exists it starts with :func:`require_matching_keys`, as the
-    utterance tier does.
+    When it exists it starts with :func:`validate_requirements` and
+    :func:`require_matching_keys`, as the utterance tier does.
 
     Raises:
         NotImplementedError: Always. See :mod:`splet.session_metrics` for the
@@ -223,8 +348,8 @@ def measure_sessions(*args, **kwargs):
 def measure_corpus(*args, **kwargs):
     """Measure the corpus as a whole. No corpus-tier metric exists yet.
 
-    When it exists it starts with :func:`require_matching_keys`, as the
-    utterance tier does.
+    When it exists it starts with :func:`validate_requirements` and
+    :func:`require_matching_keys`, as the utterance tier does.
 
     Raises:
         NotImplementedError: Always. See :mod:`splet.corpus_metrics` for the

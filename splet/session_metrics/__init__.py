@@ -20,9 +20,13 @@ strings::
         '''Return a flat dict of result keys for one session.'''
 
 :class:`splet.structures.Session` is what both sides arrive as. A metric here
-reports its counts (``*_errors``, ``*_ref_len``) alongside its rate, so that
-:func:`splet.summary.summarize` pools them over recordings instead
-of averaging rates -- see ``splet/summary.py``.
+registers a :class:`~splet.metric_registry.MetricSpec` with
+``tier="session"``, ``requires`` naming what its sessions must carry
+(``speakers`` for cpWER, ``timestamps`` and ``speakers`` for DER and JER;
+checked before anything is measured), and ``outputs`` declaring its counts
+(``_errors``, ``_ref_len``, or the DER numerator and scored time) with the
+rule that pools them over recordings -- see ``splet/summary.py``. A rate is
+never averaged over sessions.
 
 Two things are worth settling before the first metric is written here, rather
 than after:

@@ -8,7 +8,9 @@
 Deliberately the same shape as ``versa-score``: ``--pred`` and ``--gt``
 carry the two sides, ``--metrics_config`` names a YAML list of metrics,
 ``--output_file`` receives one JSON object per utterance, and ``--io``
-selects how the inputs are read. A recipe that already knows how to call
+selects how the inputs are read. The printed summary ends with a
+``metadata`` block (``splet/metadata.py``) recording the configuration that
+produced it. A recipe that already knows how to call
 VERSA for its audio can call SPLET for its text without learning a second
 convention.
 
@@ -30,6 +32,7 @@ from typing import Optional, Sequence
 
 import yaml
 
+from splet.metadata import metadata
 from splet.metric_registry import METRIC_CHOICES, load_metrics, measure_utterances
 from splet.summary import summarize
 from splet.utils_shared import IO_CHOICES, text_loader_setup
@@ -111,8 +114,9 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     _configure_logging(args.verbose)
 
     if args.list_metrics:
-        for name, choice in sorted(METRIC_CHOICES.items()):
-            print(f"{name}\t{choice['tier']}")
+        for name, spec in sorted(METRIC_CHOICES.items()):
+            requires = ",".join(spec.requires) or "-"
+            print(f"{name}\t{spec.tier}\t{requires}")
         return 0
 
     if args.pred is None or args.metrics_config is None:
@@ -141,8 +145,11 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     results = measure_utterances(
         pred_texts, metrics, gt_texts, output_file=args.output_file
     )
-    summary = summarize(results)
+    summary = summarize(results, metrics)
     logging.info("Summary: %s", summary)
+    # The summary carries what produced it: a number without its
+    # normalization, tokenizer and backend cannot be reproduced or compared.
+    summary["metadata"] = metadata(metrics)
     print(json.dumps(summary, ensure_ascii=False, indent=2))
     return 0
 

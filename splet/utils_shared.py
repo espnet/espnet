@@ -35,23 +35,26 @@ def text_loader_setup(path: str, io: str = "kaldi") -> Dict[str, str]:
         Utterance id to text.
 
     Raises:
-        ValueError: If ``io`` is unknown or a line cannot be parsed.
+        ValueError: If ``io`` is unknown, a line cannot be parsed, or an
+            utterance id occurs twice. A duplicate is never resolved by
+            keeping one of the two: whichever won, the other's words would
+            vanish from the count without anyone asking.
     """
     if io == "kaldi":
-        entries = {}
+        entries: Dict[str, str] = {}
         with open(path, encoding="utf-8") as handle:
             for number, line in enumerate(handle, start=1):
                 line = line.rstrip("\n")
                 if not line.strip():
                     continue
                 parts = line.split(maxsplit=1)
-                if len(parts) == 1:
-                    # An utterance the system produced nothing for. Dropping
-                    # it would quietly remove its reference words from the
-                    # denominator and improve the result.
-                    entries[parts[0]] = ""
-                else:
-                    entries[parts[0]] = parts[1]
+                key = parts[0]
+                if key in entries:
+                    raise ValueError(f"{path}:{number}: duplicate utterance id '{key}'")
+                # A line with only an id is an utterance the system produced
+                # nothing for. Dropping it would quietly remove its reference
+                # words from the denominator and improve the result.
+                entries[key] = parts[1] if len(parts) > 1 else ""
         return entries
 
     if io == "jsonl":
@@ -60,11 +63,19 @@ def text_loader_setup(path: str, io: str = "kaldi") -> Dict[str, str]:
         }
 
     if io == "dir":
-        return {
-            child.stem: child.read_text(encoding="utf-8").strip()
-            for child in sorted(Path(path).iterdir())
-            if child.is_file()
-        }
+        entries = {}
+        sources: Dict[str, Path] = {}
+        for child in sorted(Path(path).iterdir()):
+            if not child.is_file():
+                continue
+            if child.stem in sources:
+                raise ValueError(
+                    f"{path}: '{sources[child.stem].name}' and '{child.name}' "
+                    f"both name utterance '{child.stem}'"
+                )
+            sources[child.stem] = child
+            entries[child.stem] = child.read_text(encoding="utf-8").strip()
+        return entries
 
     raise ValueError(f"unknown io '{io}': expected one of {IO_CHOICES}")
 
@@ -88,7 +99,8 @@ def session_loader_setup(path: str) -> Dict[str, Session]:
         Session key to session.
 
     Raises:
-        ValueError: If a line has no key or is neither shape.
+        ValueError: If a line has no key, is neither shape, or repeats a key
+            an earlier line used.
     """
     sessions: Dict[str, Session] = {}
     with open(path, encoding="utf-8") as handle:
@@ -99,6 +111,8 @@ def session_loader_setup(path: str) -> Dict[str, Session]:
             key = record.get("key", record.get("id", record.get("utt_id")))
             if key is None:
                 raise ValueError(f"{path}:{number}: record has no 'key'")
+            if key in sessions:
+                raise ValueError(f"{path}:{number}: duplicate key '{key}'")
             if "turns" in record:
                 turns = [
                     Turn(

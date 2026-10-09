@@ -50,9 +50,25 @@ TOKENIZER_CHOICES: Dict[str, Callable[..., Callable[[str], List[str]]]] = {
     "char": _char_tokenizer,
 }
 
+#: The result keys an error rate reports, by the suffix after its configured
+#: id, and how each is reduced over the corpus (see ``splet/summary.py``):
+#: the rate is recomputed from the summed error and reference-length counts,
+#: the counts are summed, the rendered alignment is text.
+OUTPUTS: Dict[str, str] = {
+    "": "pool:_errors/_ref_len",
+    "_errors": "sum",
+    "_ref_len": "sum",
+    "_hyp_len": "sum",
+    "_sub": "sum",
+    "_del": "sum",
+    "_ins": "sum",
+    "_hit": "sum",
+    "_alignment": "text",
+}
+
 
 def error_rate_setup(
-    name: str = "wer",
+    metric_id: str = "wer",
     tokenizer: str = "word",
     tokenizer_conf: Optional[Dict[str, Any]] = None,
     normalize: Optional[list] = None,
@@ -62,8 +78,12 @@ def error_rate_setup(
     """Prepare an error-rate state.
 
     Args:
-        name: Prefix for the reported keys. ``wer`` reports ``wer``,
-            ``wer_errors``, ``wer_ref_len`` and the S/D/I/C counts.
+        metric_id: The configured id, and so the prefix of every reported
+            key: ``wer`` reports ``wer``, ``wer_errors``, ``wer_ref_len``,
+            the S/D/I/C counts and ``wer_alignment``. The registry passes the
+            config entry's ``id`` (its ``name`` when no id is given), so two
+            configurations of this one implementation - raw and normalized,
+            say - report under two ids and never overwrite each other.
         tokenizer: Unit to count: ``word`` for WER, ``char`` for CER.
         tokenizer_conf: Keyword arguments for the tokenizer.
         normalize: Normalization pipeline config, applied to both sides.
@@ -86,7 +106,7 @@ def error_rate_setup(
             f"unknown tokenizer '{tokenizer}'. Available: {sorted(TOKENIZER_CHOICES)}"
         )
     return {
-        "name": name,
+        "metric_id": metric_id,
         "tokenizer": TOKENIZER_CHOICES[tokenizer](**(tokenizer_conf or {})),
         "normalizer": build_normalizer(normalize),
         "backend": backend,
@@ -108,9 +128,10 @@ def error_rate_metric(
 
     Returns:
         The rate, the counts it was computed from, and optionally the
-        rendered alignment. Every key is prefixed with the state's name.
+        rendered alignment. Every key is prefixed with the configured id,
+        as :data:`OUTPUTS` declares.
     """
-    name: str = state["name"]
+    name: str = state["metric_id"]
     normalizer = state["normalizer"]
     tokenize = state["tokenizer"]
 
@@ -131,5 +152,5 @@ def error_rate_metric(
         f"{name}_hit": alignment.hits,
     }
     if state["keep_alignment"]:
-        result["alignment"] = alignment.to_string()
+        result[f"{name}_alignment"] = alignment.to_string()
     return result

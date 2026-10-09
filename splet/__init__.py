@@ -10,22 +10,34 @@ own repository and PyPI distribution without changing a single import path.
 See ``splet/README.md``.
 """
 
-from splet.metric_registry import (  # noqa: F401
+#: The package version, recorded in every summary's ``metadata`` block.
+__version__ = "0.1.0"
+
+from splet.metadata import metadata  # noqa: E402,F401
+from splet.metric_registry import (  # noqa: E402,F401
+    METRIC_CHOICES,
+    MetricSpec,
     load_corpus_metrics,
     load_metrics,
     load_session_metrics,
     measure_corpus,
     measure_sessions,
     measure_utterances,
+    validate_requirements,
 )
-from splet.summary import summarize  # noqa: F401
+from splet.summary import summarize  # noqa: E402,F401
 
 __all__ = [
-    "measure_corpus",
-    "measure_utterances",
+    "METRIC_CHOICES",
+    "MetricSpec",
+    "__version__",
     "load_corpus_metrics",
     "load_metrics",
     "load_session_metrics",
-    "summarize",
+    "measure_corpus",
     "measure_sessions",
+    "measure_utterances",
+    "metadata",
+    "summarize",
+    "validate_requirements",
 ]
