@@ -1,0 +1,1 @@
+../../../libritts_r/rst1/local/prepare_rir_pool.py
