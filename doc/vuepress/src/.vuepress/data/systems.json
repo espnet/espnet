@@ -1,0 +1,168 @@
+[
+  {
+    "key": "asr",
+    "name": "Automatic Speech Recognition",
+    "desc": "End-to-end ASR with CTC, attention, and hybrid decoding. Includes WER evaluation and CTC segmentation.",
+    "group": "espnet[asr]",
+    "pkgs": [
+      {
+        "name": "ctc-segmentation",
+        "src": "github"
+      },
+      {
+        "name": "editdistance",
+        "src": "pypi"
+      },
+      {
+        "name": "opt_einsum",
+        "src": "pypi"
+      },
+      {
+        "name": "jiwer",
+        "src": "pypi"
+      }
+    ]
+  },
+  {
+    "key": "tts",
+    "name": "Text-to-Speech",
+    "desc": "Neural TTS with support for multiple languages and frontend systems including G2P and pitch extraction.",
+    "group": "espnet[tts]",
+    "pkgs": [
+      {
+        "name": "pyworld",
+        "src": "pypi"
+      },
+      {
+        "name": "pypinyin",
+        "src": "pypi"
+      },
+      {
+        "name": "espnet_tts_frontend",
+        "src": "pypi"
+      },
+      {
+        "name": "g2p_en",
+        "src": "github"
+      },
+      {
+        "name": "jamo",
+        "src": "pypi"
+      },
+      {
+        "name": "jaconv",
+        "src": "pypi"
+      }
+    ]
+  },
+  {
+    "key": "enh",
+    "name": "Speech Enhancement",
+    "desc": "Speech separation and enhancement. Includes BSS evaluation metrics like SI-SDR and fast-bss-eval.",
+    "group": "espnet[enh]",
+    "pkgs": [
+      {
+        "name": "ci_sdr",
+        "src": "pypi"
+      },
+      {
+        "name": "fast-bss-eval",
+        "src": "pypi"
+      }
+    ]
+  },
+  {
+    "key": "st",
+    "name": "Speech Translation",
+    "desc": "Speech-to-text translation across languages.",
+    "group": "espnet[st]",
+    "pkgs": [
+      {
+        "name": "editdistance",
+        "src": "pypi"
+      }
+    ]
+  },
+  {
+    "key": "s2st",
+    "name": "Speech-to-Speech Translation",
+    "desc": "Direct speech-to-speech translation with S3PRL integration for self-supervised representations.",
+    "group": "espnet[s2st]",
+    "pkgs": [
+      {
+        "name": "editdistance",
+        "src": "pypi"
+      },
+      {
+        "name": "s3prl",
+        "src": "github"
+      }
+    ]
+  },
+  {
+    "key": "s2t",
+    "name": "Speech-to-Text (general)",
+    "desc": "General speech-to-text framework covering tasks beyond standard ASR.",
+    "group": "espnet[s2t]",
+    "pkgs": [
+      {
+        "name": "editdistance",
+        "src": "pypi"
+      }
+    ]
+  },
+  {
+    "key": "spk",
+    "name": "Speaker",
+    "desc": "Speaker diarization and identification. Supports x-vector, ECAPA-TDNN and more.",
+    "group": "espnet[spk]",
+    "pkgs": [
+      {
+        "name": "asteroid_filterbanks",
+        "src": "pypi"
+      }
+    ]
+  },
+  {
+    "key": "speechlm",
+    "name": "Speech LM",
+    "desc": "LLM integration for speech tasks. Includes Transformers, torchtitan (Linux/CUDA), and Liger kernel.",
+    "group": "espnet[speechlm]",
+    "pkgs": [
+      {
+        "name": "psutil",
+        "src": "pypi"
+      },
+      {
+        "name": "transformers",
+        "src": "pypi"
+      },
+      {
+        "name": "huggingface-hub",
+        "src": "pypi"
+      },
+      {
+        "name": "joblib",
+        "src": "pypi"
+      },
+      {
+        "name": "polars",
+        "src": "pypi"
+      },
+      {
+        "name": "duckdb",
+        "src": "pypi"
+      },
+      {
+        "name": "torchtitan",
+        "src": "pypi",
+        "note": "Linux only"
+      },
+      {
+        "name": "liger-kernel",
+        "src": "pypi",
+        "note": "Linux only"
+      }
+    ]
+  }
+]
