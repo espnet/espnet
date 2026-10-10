@@ -157,7 +157,7 @@ https://github.com/espnet/espnet, or use the Pull Request button in your forked 
 If you are not familiar with the process, see
 [GitHub's guide to creating a pull request](https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/proposing-changes-to-your-work-with-pull-requests/creating-a-pull-request).
 
-**Keep pull requests small** — no more than 20 files and fewer than 1000 lines changed.
+**Keep pull requests small** — no more than 30 files and fewer than 1500 lines changed.
 Large PRs may be rejected unless they involve necessary refactoring or reformatting. Split
 your work into smaller PRs where you can.
 
