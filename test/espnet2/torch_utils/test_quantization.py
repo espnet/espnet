@@ -3,7 +3,17 @@ import torch
 from espnet2.torch_utils.quantization import ensure_quantized_engine, quantize_dynamic
 
 
-def test_ensure_quantized_engine_picks_an_available_engine():
+def test_ensure_quantized_engine_picks_an_available_engine(monkeypatch):
+    class FakeEngine:
+        current = "none"
+
+        def __get__(self, obj, objtype):
+            return self.current
+
+        def __set__(self, obj, val):
+            self.current = val
+
+    monkeypatch.setattr(type(torch.backends.quantized), "engine", FakeEngine())
     engine = ensure_quantized_engine()
     supported = [e for e in torch.backends.quantized.supported_engines if e != "none"]
     if supported:
