@@ -26,6 +26,7 @@ from espnet2.tasks.asr_transducer import ASRTransducerTask
 from espnet2.tasks.lm import LMTask
 from espnet2.text.build_tokenizer import build_tokenizer
 from espnet2.text.token_id_converter import TokenIDConverter
+from espnet2.torch_utils.quantization import quantize_dynamic
 from espnet2.torch_utils.set_all_random_seed import set_all_random_seed
 from espnet2.utils import config_argparse
 from espnet2.utils.pretrained import download_pretrained
@@ -104,9 +105,7 @@ class Speech2Text:
 
             q_dtype = getattr(torch, quantize_dtype)
 
-            asr_model = torch.quantization.quantize_dynamic(
-                asr_model, q_config, dtype=q_dtype
-            ).eval()
+            asr_model = quantize_dynamic(asr_model, q_config, dtype=q_dtype).eval()
         else:
             asr_model.to(dtype=getattr(torch, dtype)).eval()
 
