@@ -79,16 +79,20 @@ def test_run_stages_missing_method_raises():
         run_stages(system, ["stage_c"])
 
 
-def test_run_stages_typeerror_wrapped():
+def test_run_stages_reraises_typeerror():
+    """Internal TypeErrors must surface as-is, not as a CLI-arguments message.
+
+    collect_stats can raise TypeError (e.g. unhashable dict in collation). The
+    previous wrapper rewrote every TypeError into a misleading
+    "does not accept CLI arguments" error.
+    """
+
     class BadSystem(BaseSystem):
-        def stage_a(self, arg):
-            return arg
+        def stage_a(self):
+            raise TypeError("unhashable type: 'dict'")
 
     system = BadSystem()
-    with pytest.raises(
-        TypeError,
-        match="Stage 'stage_a' does not accept CLI arguments",
-    ):
+    with pytest.raises(TypeError, match="unhashable type: 'dict'"):
         run_stages(system, ["stage_a"])
 
 

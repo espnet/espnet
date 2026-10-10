@@ -1,0 +1,12 @@
+builder:
+  # Environment variable holding the VCTK-DEMAND root, i.e. the directory with
+  # the four official wav folders listed below:
+  #   export VCTK_DEMAND=/path/to/vctk_noisy
+  # conf/training.yaml and conf/inference.yaml can still override it per run
+  # with dataset_dir.
+  source_env_var: VCTK_DEMAND
+  required_dirs:
+    - clean_trainset_28spk_wav
+    - noisy_trainset_28spk_wav
+    - clean_testset_wav
+    - noisy_testset_wav

@@ -1,0 +1,51 @@
+##########################################################
+#             VCTK-NOISY INFERENCE OVERRIDES             #
+##########################################################
+# Common usage:
+#   python run.py --stages infer \
+#       --training_config conf/training.yaml \
+#       --inference_config conf/inference.yaml
+
+##########################################################
+#                    PATHS AND INPUTS                    #
+##########################################################
+# VCTK-DEMAND root. Leave empty to use $VCTK_DEMAND, the same way
+# conf/training.yaml does.
+dataset_dir:
+
+# Experiment trained with conf/training.yaml. run.py replaces both with the
+# training config values when --training_config is passed.
+exp_tag: training
+exp_dir: ${recipe_dir}/exp/${exp_tag}
+
+##########################################################
+#                    DATASET DEFINITION                  #
+##########################################################
+# ESPnet3 loads ${recipe_dir}/dataset/__init__.py.
+# Both valid and test splits are evaluated.
+dataset:
+  test:
+    - name: valid
+      data_src_args:
+        split: valid
+        data_path: ${dataset_dir}
+        inference: true
+    - name: test
+      data_src_args:
+        split: test
+        data_path: ${dataset_dir}
+        inference: true
+
+##########################################################
+#                    MODEL AND OUTPUT                    #
+##########################################################
+model:
+  _target_: src.inference.SeparateSpeechWrapper
+  train_config: ${exp_dir}/config.yaml
+  model_file: ${exp_dir}/last.ckpt
+  normalize_output_wav: true
+
+output_fn: src.inference.build_output
+
+runner:
+  batch_size: 4

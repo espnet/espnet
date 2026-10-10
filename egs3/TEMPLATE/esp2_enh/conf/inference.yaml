@@ -1,0 +1,81 @@
+##########################################################
+#                   INFERENCE SETTING                    #
+##########################################################
+# Quick usage:
+#   python run.py --stages infer \
+#       --training_config conf/training.yaml \
+#       --inference_config conf/inference.yaml
+#
+# Outputs:
+# - `${inference_dir}/<test_name>/*.scp` (and matching wav artifacts)
+# - each SCP stores `utt_id value` pairs for one inference field
+
+##########################################################
+#                    PATHS AND INPUTS                    #
+##########################################################
+recipe_dir: .
+# Common case:
+# - pass both `--training_config` and `--inference_config`
+# - `run.py` copies `training_config.exp_tag` / `training_config.exp_dir` here
+# - `${self_name:}` resolves to the stem of the config file passed to
+#   `--inference_config`
+exp_tag:
+exp_dir: ${recipe_dir}/exp/${exp_tag}
+data_dir: ${recipe_dir}/data
+inference_dir: ${exp_dir}/${self_name:}
+
+# Test split definitions are required for inference.
+# Each item in `dataset.test` is a dataset reference entry.
+# - `name` becomes the output subdirectory name under `${inference_dir}`
+# - omit `data_src` to load `${recipe_dir}/dataset/__init__.py`
+# - `data_src_args` is forwarded to `Dataset(...)`
+#
+# Example:
+# dataset:
+#   test:
+#     - name: test
+#       data_src_args:
+#         split: test
+#         data_path: ${dataset_dir}
+#         inference: true
+dataset:
+  _target_: espnet3.components.data.data_organizer.DataOrganizer
+  _recursive_: false
+  recipe_dir: ${recipe_dir}
+  test:
+  preprocessor:
+
+##########################################################
+#                  PARALLELIZATION SETTING               #
+##########################################################
+parallel:
+  env: local
+  n_workers: 1
+
+##########################################################
+#                    MODEL AND OUTPUT                    #
+##########################################################
+# `model` is usually filled by the concrete recipe (e.g. SeparateSpeechWrapper).
+# `input_key` selects the sample field passed to the model callable.
+# `output_fn` turns model outputs into the dictionaries written as artifacts.
+model:
+
+input_key: speech_mix
+output_fn:
+output_keys:
+  - reference
+  - enhanced
+
+output_artifacts:
+  reference:
+    type: wav
+    sample_rate: 16000
+  enhanced:
+    type: wav
+    sample_rate: 16000
+
+provider:
+  _target_: espnet3.systems.base.inference_provider.InferenceProvider
+runner:
+  _target_: espnet3.systems.base.inference_runner.InferenceRunner
+  batch_size: 1

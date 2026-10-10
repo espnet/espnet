@@ -181,13 +181,10 @@ def run_stages(
             start = time.perf_counter()
             log.info("=== [START] stage: %s ===", stage)
             try:
+                # Stages are invoked with no CLI args; any TypeError here is an
+                # internal failure (e.g. stats collation), not a bad-arguments
+                # error from the stage signature.
                 fn()
-            except TypeError as e:
-                log.exception("Stage '%s' failed (bad arguments)", stage)
-                raise TypeError(
-                    f"Stage '{stage}' does not accept CLI arguments; "
-                    "put all settings in the YAML config."
-                ) from e
             except Exception:
                 elapsed = time.perf_counter() - start
                 log.exception("Stage '%s' failed after %.2fs", stage, elapsed)
