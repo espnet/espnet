@@ -8,7 +8,6 @@ from espnet2.layers.houlsby_adapter_layer import HoulsbyTransformerSentenceEncod
 
 pytest.importorskip("transformers")
 pytest.importorskip("s3prl")
-pytest.importorskip("loralib")
 
 
 def init_S3prl_model():

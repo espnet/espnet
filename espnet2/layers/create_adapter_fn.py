@@ -1,9 +1,9 @@
+import logging
 from typing import List, Optional
 
 import torch
 from typeguard import typechecked
 
-from espnet2.asr.frontend.s3prl import S3prlFrontend
 from espnet2.layers.create_adapter_utils import (
     check_target_module_exists,
     get_submodules,
@@ -13,6 +13,9 @@ from espnet2.layers.houlsby_adapter_layer import (
     Houlsby_Adapter,
     HoulsbyTransformerSentenceEncoderLayer,
 )
+from espnet2.layers.lora import LINEAR_BACKENDS
+from espnet2.layers.lora import Embedding as LoraEmbedding
+from espnet2.layers.lora import LoRALayer
 
 try:
     from transformers.models.wav2vec2.modeling_wav2vec2 import (
@@ -30,13 +33,6 @@ try:
     is_s3prl_available = True
 except ImportError:
     is_s3prl_available = False
-
-try:
-    import loralib as lora
-
-    is_lora_available = True
-except ImportError:
-    is_lora_available = False
 
 
 @typechecked
@@ -56,6 +52,11 @@ def create_houlsby_adapter(
             "Error: S3PRL is not properly installed."
             "Please install S3PRL: cd ${MAIN_ROOT}/tools && make s3prl.done"
         )
+    # Deferred import: ESPnet's S3prlFrontend pulls in a heavy dependency tree
+    # that breaks `create_lora_adapter` if it fails to import. Only the
+    # Houlsby path needs it.
+    from espnet2.asr.frontend.s3prl import S3prlFrontend
+
     assert hasattr(model, "frontend") and isinstance(
         model.frontend, S3prlFrontend
     ), "Only support S3PRL frontend now !!"
@@ -90,33 +91,37 @@ def create_lora_adapter(
     dropout_rate: float = 0.0,
     target_modules: List[str] = ["query"],
     bias_type: Optional[str] = "none",
+    adapter_type: str = "lora",
+    **kwargs,
 ):
-    """Create LoRA adapter for the base model.
+    """Create a LoRA-family adapter for the base model.
 
-    See: https://arxiv.org/pdf/2106.09685.pdf
+    The backend used for ``torch.nn.Linear`` modules is selected by
+    ``adapter_type``. Supported values (see :mod:`espnet2.layers.lora`):
+
+        * ``"lora"``  -- vanilla LoRA (Hu et al., 2021).
+        * ``"dora"``  -- DoRA (Liu et al., 2024).
+        * ``"pissa"`` -- PiSSA (Meng et al., 2024).
+        * ``"svft"``  -- SVFT (Lingam et al., 2024).
+        * ``"ssvd"``  -- SSVD (Wang et al., ASRU 2025).
+
+    ``nn.Embedding`` modules always receive the plain LoRA embedding
+    adapter.
 
     Args:
-        model (torch.nn.Module): Base model to be adapted.
-        rank (int): Rank of LoRA matrices. Defaults to 8.
-        alpha (int): Constant number for LoRA scaling. Defaults to 8.
-        dropout_rate (float): Dropout probability for LoRA layers. Defaults to 0.0.
-        target_modules (List[str]): List of module(s) to apply LoRA adaptation.
-            e.g. ["query", "key", "value"] for all layers,
-            while ["encoder.encoders.blocks.0.attn.key"] for a specific layer.
-        bias_type (str): Bias training type for LoRA adaptaion, can be
-            one of ["none", "all", "lora_only"].
-            "none" means not training any bias vectors;
-            "all" means training all bias vectors, include LayerNorm biases;
-            "lora_only" means only training bias vectors in LoRA adapted modules.
-
-
+        model: Base model to be adapted (mutated in place).
+        rank: Rank of the LoRA matrices. Defaults to 8.
+        alpha: Scaling constant for LoRA updates. Defaults to 8.
+        dropout_rate: Dropout probability for LoRA layers.
+        target_modules: List of module suffix strings to apply the adapter to,
+            e.g. ``["linear_q"]`` or ``["encoder.encoders.0.attn.linear_q"]``.
+        bias_type: Bias-training policy. One of ``"none"``, ``"all"``,
+            ``"lora_only"``.
+        adapter_type: Backend selector for adapted Linear modules.
+        **kwargs: Backend-specific keyword arguments forwarded to the layer
+            constructor (e.g. ``rotation_ratio`` for ``"ssvd"`` or
+            ``off_diag`` for ``"svft"``).
     """
-
-    if not is_lora_available:
-        raise ImportError(
-            "Requiring loralib. Install loralib following: "
-            "https://github.com/microsoft/LoRA"
-        )
 
     is_traget_module_exists = False
     key_list = [key for key, _ in model.named_modules()]
@@ -125,29 +130,24 @@ def create_lora_adapter(
         if not check_target_module_exists(key, target_modules):
             continue
 
-        # TODO(gituser) is this a good way to check the target module?
-        # check_target_module_exists needs only one of the target modules
-        # to be in the key, but what if one key exists and another doesn't?
-        # Should this case raise an error?
         is_traget_module_exists = True
 
         parent_module, target_name, target_module = get_submodules(model, key)
-        if not isinstance(target_module, lora.LoRALayer):
-            new_module = create_new_lora_module(
-                target_module, rank, alpha, dropout_rate
-            )
-            replace_module(parent_module, target_name, target_module, new_module)
-        else:
+        if isinstance(target_module, LoRALayer):
             continue
+        new_module = create_new_lora_module(
+            target_module, rank, alpha, dropout_rate, adapter_type, **kwargs
+        )
+        replace_module(parent_module, target_name, target_module, new_module)
 
     if not is_traget_module_exists:
         raise ValueError(
             f"Target modules {target_modules} not found in the base model."
         )
 
-    # Set the model (originally in train mode) to eval mode
+    # Set the model (originally in train mode) to eval mode.
     # This step can avoid merging LoRA weights again
-    # when loading pre-trained checkpoints
+    # when loading pre-trained checkpoints.
     model.eval()
 
 
@@ -222,32 +222,58 @@ def create_new_houlsby_module(target_module: torch.nn.Module, bottleneck: int):
 
 @typechecked
 def create_new_lora_module(
-    target_module: torch.nn.Module, rank: int, alpha: int, dropout_rate: float
+    target_module: torch.nn.Module,
+    rank: int,
+    alpha: int,
+    dropout_rate: float,
+    adapter_type: str = "lora",
+    **backend_kwargs,
 ):
-    """Create a new lora module for the given target module."""
+    """Create a new LoRA-family module for the given target module."""
     bias = hasattr(target_module, "bias") and target_module.bias is not None
 
     if isinstance(target_module, torch.nn.Embedding):
-        new_module = lora.Embedding(
+        # Only the vanilla LoRA embedding adapter exists; the SVD-based
+        # backends are defined for Linear layers only. Say so instead of
+        # silently applying a different adapter than the one requested.
+        if adapter_type.lower() != "lora":
+            logging.warning(
+                f"adapter_type='{adapter_type}' has no torch.nn.Embedding "
+                f"implementation; falling back to the vanilla LoRA embedding "
+                f"adapter for this module. Drop the embedding from "
+                f"`target_modules` if that is not what you want."
+            )
+        if backend_kwargs:
+            logging.warning(
+                f"Ignoring backend kwargs {sorted(backend_kwargs)} for the "
+                f"torch.nn.Embedding adapter."
+            )
+        return LoraEmbedding(
             target_module.num_embeddings,
             target_module.embedding_dim,
             r=rank,
             lora_alpha=alpha,
         )
-    elif isinstance(target_module, torch.nn.Linear):
-        new_module = lora.Linear(
+
+    if isinstance(target_module, torch.nn.Linear):
+        adapter_type_lower = adapter_type.lower()
+        if adapter_type_lower not in LINEAR_BACKENDS:
+            raise ValueError(
+                f"Unsupported adapter_type '{adapter_type}' for torch.nn.Linear. "
+                f"Available types: {sorted(LINEAR_BACKENDS.keys())}."
+            )
+        backend_cls = LINEAR_BACKENDS[adapter_type_lower]
+        return backend_cls(
             target_module.in_features,
             target_module.out_features,
             bias=bias,
             r=rank,
             lora_alpha=alpha,
             lora_dropout=dropout_rate,
-        )
-    else:
-        raise ValueError(
-            f"Target module {target_module} is not supported. "
-            f"Currently, only `torch.nn.Embedding`, `torch.nn.Conv2d` "
-            f"`torch.nn.Linear` and are supported."
+            **backend_kwargs,
         )
 
-    return new_module
+    raise ValueError(
+        f"Target module {target_module} is not supported. "
+        f"Currently, only `torch.nn.Embedding` and `torch.nn.Linear` are supported."
+    )
