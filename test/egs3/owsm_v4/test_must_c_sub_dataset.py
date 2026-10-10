@@ -126,7 +126,9 @@ def test_language_order_does_not_depend_on_the_argument_order(tmp_path):
     forward = _rows(root, languages=["de", "fr"])
     backward = _rows(root, languages=["fr", "de"])
 
-    key = lambda rows: sorted((r["utt_id"], r["text"]) for r in rows)  # noqa: E731
+    def key(rows):
+        return sorted((r["utt_id"], r["text"]) for r in rows)
+
     assert key(forward) == key(backward)
 
 

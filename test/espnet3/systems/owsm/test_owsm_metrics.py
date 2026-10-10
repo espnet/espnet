@@ -54,14 +54,20 @@ def test_markup_is_stripped_before_scoring():
 
 
 def test_a_longer_symbol_wins_over_a_prefix_of_it():
-    """The inventory nests: <na> is a prefix of <nan>, a language in its own
-    right, so a shortest-first alternation would leave "n>" behind."""
+    """A longer symbol wins over a prefix of it.
+
+    The inventory nests: <na> is a prefix of <nan>, a language in its own
+    right, so a shortest-first alternation would leave "n>" behind.
+    """
     assert strip_tags("<nan> hi", PATTERN) == "hi"
 
 
 def test_nlsyms_is_required_to_remove_tags():
-    """There is no default inventory here -- which symbols exist is the
-    recipe's business, exactly as for tokenizer.nlsyms."""
+    """nlsyms is required whenever tags are removed.
+
+    There is no default inventory here -- which symbols exist is the
+    recipe's business, exactly as for tokenizer.nlsyms.
+    """
     with pytest.raises(RuntimeError, match="nlsyms is required"):
         WER()
 
