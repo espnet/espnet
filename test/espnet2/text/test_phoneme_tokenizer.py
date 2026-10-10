@@ -551,3 +551,29 @@ def test_text2tokens(phoneme_tokenizer: PhonemeTokenizer):
 
 def test_token2text(phoneme_tokenizer: PhonemeTokenizer):
     assert phoneme_tokenizer.tokens2text(["a", "b", "c"]) == "abc"
+
+
+@pytest.mark.execution_timeout(5)
+@pytest.mark.parametrize("from_file", [True, False])
+@pytest.mark.parametrize("remove", [True, False])
+def test_empty_non_linguistic_symbol(tmp_path, from_file, remove):
+    if from_file:
+        symbols = tmp_path / "nlsyms.txt"
+        symbols.write_text("[foo]\n\n \t\n", encoding="utf-8")
+    else:
+        symbols = ["[foo]", ""]
+    tokenizer = PhonemeTokenizer(
+        g2p_type=None,
+        non_linguistic_symbols=symbols,
+        remove_non_linguistic_symbols=remove,
+    )
+    assert tokenizer.text2tokens("A[foo]B") == (["AB"] if remove else ["A[foo]B"])
+
+
+def test_longer_symbol_wins_over_its_prefix():
+    tokenizer = PhonemeTokenizer(
+        g2p_type=None,
+        non_linguistic_symbols=["<unk>", "<"],
+        remove_non_linguistic_symbols=True,
+    )
+    assert tokenizer.text2tokens("<unk>a") == ["a"]
