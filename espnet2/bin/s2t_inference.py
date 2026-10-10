@@ -129,13 +129,24 @@ class ScoreFilter(BatchScorerInterface, torch.nn.Module):
 
         return score, None
 
+    def _batch_score_loop(
+        self, ys: torch.Tensor, states: List[Any], xs: torch.Tensor
+    ) -> Tuple[torch.Tensor, List[Any]]:
+        """Original reference implementation: evaluate :meth:`score` in a loop."""
+        scores = []
+        for y in ys:
+            score, _ = self.score(y, None, xs)
+            scores.append(score)
+        return torch.stack(scores), states
+
     def batch_score(
         self, ys: torch.Tensor, states: List[Any], xs: torch.Tensor
     ) -> Tuple[torch.Tensor, List[Any]]:
         """Score new token batch (required).
 
-        The same rules as :meth:`score`, applied to every hypothesis at once
-        with tensor operations instead of a Python loop over the batch.
+        The same rules as :meth:`score` and :meth:`_batch_score_loop`, expanded
+        into vectorized tensor operations over the entire batch rather than a
+        Python loop.
 
         Args:
             ys (torch.Tensor): torch.int64 prefix tokens (n_batch, ylen).
@@ -174,7 +185,7 @@ class ScoreFilter(BatchScorerInterface, torch.nn.Module):
         last_token = ys[:, -1:]  # (n, 1)
 
         scores = torch.zeros(
-            n_batch, self.vocab_size, dtype=self.param.dtype, device=self.param.device
+            n_batch, self.vocab_size, dtype=self.param.dtype, device=device
         )
         # the only per-row masks are inside the timestamp range
         time_cols = torch.arange(self.first_time, self.last_time + 1, device=device)
@@ -183,17 +194,15 @@ class ScoreFilter(BatchScorerInterface, torch.nn.Module):
             | (odd.unsqueeze(1) & (time_cols <= last_time_value))
             | (closing.unsqueeze(1) & (time_cols < last_token))
         )
-        scores[:, self.first_time : self.last_time + 1].masked_fill_(
-            time_block.to(scores.device), neg
-        )
+        scores[:, self.first_time : self.last_time + 1].masked_fill_(time_block, neg)
         # everything outside the range is banned right after the prompt and after
         # a closed pair; eos stays allowed after a closed pair
-        outside = (at_start | closing).to(scores.device)
+        outside = at_start | closing
         scores[outside, : self.first_time] = neg
         scores[outside, self.last_time + 1 :] = neg
-        scores[closing.to(scores.device), self.eos] = 0.0
-        scores[odd.to(scores.device), self.eos] = neg
-        scores[illegal.to(scores.device)] = neg
+        scores[closing, self.eos] = 0.0
+        scores[odd, self.eos] = neg
+        scores[illegal] = neg
         return scores, [None] * n_batch
 
 
