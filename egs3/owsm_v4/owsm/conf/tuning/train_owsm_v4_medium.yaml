@@ -1,0 +1,180 @@
+# OWSM v4 medium (1B) on SPGISpeech + MuST-C v1.2.
+#
+# Defaults come from egs3/TEMPLATE/owsm/conf/training.yaml; this file supplies
+# the corpora and the mixture.
+#
+# Still to come (steps 0-7 cover create_dataset through collect_stats):
+#   tokenizer   one shared BPE vocabulary; nlsyms from dataset/utils.py:nlsyms()
+#   model       the S2TTask encoder/decoder configuration
+#   batch_bins  has to be calibrated by running it: CTC's own T_enc x V logits
+#               are modelled by no shape file
+
+# The environment variables path.sh documents win; download/ is the fallback for
+# a recipe-local copy, matching how the other recipes lay out a corpus.
+create_dataset:
+  corpora:
+    spgispeech:
+      source_dir: ${oc.env:SPGISPEECH,${recipe_dir}/download/spgispeech}
+    must_c:
+      source_dir: ${oc.env:MUST_C,${recipe_dir}/download/must_c}
+
+# Entries are POSITIONAL -- see the banner in the template. Append; do not
+# reorder, or every shape key after the change is invalidated.
+dataset:
+  train:
+    - data_src: egs3.owsm_v4.owsm.dataset.sub_datasets.spgispeech
+      data_src_args:
+        split: train
+        recipe_dir: ${recipe_dir}
+        cache: ${cache}
+    - data_src: egs3.owsm_v4.owsm.dataset.sub_datasets.must_c
+      data_src_args:
+        split: train
+        recipe_dir: ${recipe_dir}
+        cache: ${cache}
+  valid:
+    - data_src: egs3.owsm_v4.owsm.dataset.sub_datasets.spgispeech
+      data_src_args:
+        split: val
+        recipe_dir: ${recipe_dir}
+        cache: ${cache}
+    - data_src: egs3.owsm_v4.owsm.dataset.sub_datasets.must_c
+      data_src_args:
+        split: dev
+        recipe_dir: ${recipe_dir}
+        cache: ${cache}
+
+# S2TPreprocessor turns the cached strings into token ids and pads speech to a
+# fixed 30 s window. The randomised fields -- text_prev_apply_prob,
+# time_apply_prob -- are the augmentation OWSM trains with, not a filter.
+  preprocessor:
+    _target_: espnet2.train.preprocessor.S2TPreprocessor
+    train: true
+    token_type: bpe
+    token_list: ${tokenizer.save_path}/tokens.txt
+    bpemodel: ${tokenizer.save_path}/${tokenizer.model_type}.model
+    non_linguistic_symbols: null
+    text_prev_name: text_prev
+    text_ctc_name: text_ctc
+    fs: 16000
+    na_symbol: "<na>"
+    speech_length: 30
+    speech_resolution: 0.02
+    speech_init_silence: 30
+    text_prev_apply_prob: 0.5
+    time_apply_prob: 0.5
+    notime_symbol: "<notimestamps>"
+    first_time_symbol: "<0.00>"
+    last_time_symbol: "<30.00>"
+
+# One shared vocabulary over the whole mixture. nbpe follows egs2/owsm_v3.
+tokenizer:
+  vocab_size: 50000
+  model_type: bpe
+  save_path: ${data_dir}/bpe_50000
+  train_file: ${data_dir}/train_tokenizer/train.txt
+  # The 1703 OWSM special symbols
+  nlsyms:
+    _target_: egs3.owsm_v4.owsm.dataset.utils.nlsyms
+  # null keeps every line.
+  sample_size: null
+  sample_seed: 0
+  text_builder:
+    _target_: egs3.owsm_v4.owsm.dataset.dataset.iter_text
+    recipe_dir: ${recipe_dir}
+    cache: ${cache}
+    entries:
+      - {corpus: spgispeech, split: train}
+      - {corpus: must_c_v1.2, split: train}
+
+# egs2 trains with AdamW and a piecewise warmup; the template sets no
+# scheduler, so both are stated here in full.
+optimizer:
+  _target_: torch.optim.AdamW
+  lr: 2.5e-04
+  betas: [0.9, 0.98]
+  eps: 1.0e-06
+  weight_decay: 0.0
+  # egs2 sets fused: true. Lightning cannot clip gradients on a fused optimizer
+  # under AMP, and the clip matters more than the speed.
+  fused: false
+
+scheduler:
+  _target_: espnet2.schedulers.piecewise_linear_warmup_lr.PiecewiseLinearWarmupLR
+  warmup_steps_list: [0, 30000, 60000]
+  warmup_lr_list: [0., 5.0e-05, 2.5e-04]
+
+# Lifted from egs2/owsm_v4/s2t1/conf/train_conv2d8_size1024_e18_d18_mel128.yaml.
+model:
+  # No vocab_size: S2TTask takes it from the token list, which is
+  # tokenizer.vocab_size + 2 once <sos>, <eos> and <sop> are appended and the
+  # three SentencePiece control pieces dropped.
+  token_list: ${tokenizer.save_path}/tokens.txt
+
+  # hop_length 160 at 16 kHz => 100 frames/s, n_mels 128. These two set the
+  # speech term of the batch_bins budget: a frame costs n_mels bins.
+  frontend: default
+  frontend_conf:
+    n_fft: 512
+    win_length: 400
+    hop_length: 160
+    n_mels: 128
+
+  normalize: global_mvn
+  normalize_conf:
+    stats_file: ${stats_dir}/train/feats_stats.npz
+
+  specaug: specaug
+  specaug_conf:
+    apply_time_warp: false
+    time_warp_window: 5
+    time_warp_mode: bicubic
+    apply_freq_mask: true
+    freq_mask_width_range: [0, 27]
+    num_freq_mask: 2
+    apply_time_mask: true
+    time_mask_width_ratio_range: [0., 0.05]
+    num_time_mask: 10
+
+  encoder: e_branchformer
+  encoder_conf:
+    output_size: 1024
+    attention_heads: 16
+    attention_layer_type: selfattn
+    pos_enc_layer_type: abs_pos
+    rel_pos_type: latest
+    cgmlp_linear_units: 4096
+    cgmlp_conv_kernel: 31
+    use_linear_after_conv: false
+    gate_activation: identity
+    num_blocks: 18
+    dropout_rate: 0.1
+    positional_dropout_rate: 0.1
+    attention_dropout_rate: 0.0
+    input_layer: conv2d8
+    layer_drop_rate: 0.0
+    linear_units: 4096
+    positionwise_layer_type: linear
+    use_ffn: true
+    macaron_ffn: true
+    merge_conv_kernel: 31
+    use_flash_attn: true
+    gradient_checkpoint_layers: [0, 3, 6, 9, 12, 15, 18]
+
+  decoder: transformer
+  decoder_conf:
+    attention_heads: 16
+    linear_units: 4096
+    num_blocks: 18
+    dropout_rate: 0.1
+    positional_dropout_rate: 0.1
+    self_attention_dropout_rate: 0.0
+    src_attention_dropout_rate: 0.0
+    use_flash_attn: true
+    gradient_checkpoint_layers: [1, 3, 5, 7, 9, 11, 13, 15, 17]
+
+  model_conf:
+    ctc_weight: 0.3
+    lsm_weight: 0.1
+    length_normalized_loss: false
+    sym_na: "<na>"

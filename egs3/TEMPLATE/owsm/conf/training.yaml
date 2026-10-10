@@ -1,0 +1,354 @@
+##########################################################
+#                    TRAINING SETTING                    #
+##########################################################
+# Quick usage:
+#   python run.py --stages create_dataset --training_config conf/training.yaml
+#   python run.py --stages train          --training_config conf/training.yaml
+#
+# Main stages and what this config is used for:
+# - `create_dataset`: uses `create_dataset`
+# - `train_tokenizer`: uses `tokenizer`
+# - `collect_stats`: uses `dataset`, `dataloader`, `model`, and `parallel`
+# - `train`: uses most fields in this file
+
+##########################################################
+#                  SYSTEM AND PATH SETTING               #
+##########################################################
+num_device: 1
+num_nodes: 1
+
+# OWSM trains through S2TTask, whose sample keys are speech / text /
+# text_prev / text_ctc.
+task: espnet2.tasks.s2t.S2TTask
+
+# Path scaffold relative to the recipe root.
+recipe_dir: .
+data_dir: ${recipe_dir}/data
+exp_tag: ${self_name:}
+exp_dir: ${recipe_dir}/exp/${exp_tag}
+stats_dir: ${recipe_dir}/exp/stats
+
+# Where the built caches go. Defaults under the recipe so a fresh clone works
+# with no setup, but the full mixture is far too large for that, so OWSM_CACHE
+# relocates it without editing a committed file:
+#
+#   export OWSM_CACHE=/shared/scratch/owsm_cache
+#
+# writes /shared/scratch/owsm_cache/<corpus>/hf_audio_index/<split> instead of
+# ./data/hf/<corpus>/... -- pointing the build at a large shared filesystem
+# rather than the checkout.
+cache:
+  cache_dir: ${oc.env:OWSM_CACHE,${recipe_dir}/data/hf}
+
+##########################################################
+#                 DATASET CREATION SETTING               #
+##########################################################
+# `create_dataset` dedupes builders by `data_src` and hands this whole block
+# to each one, with nothing in it naming the corpus. Per-corpus options
+# therefore ride on `corpora.<key>`, keyed by the builder's CORPUS attribute,
+# and each builder builds all of its own splits in one call.
+#
+# Every key under a corpus except `source_dir` and `splits` is forwarded to that
+# builder's `iter_rows`, so the available options are whatever it accepts.
+#
+# Example:
+# create_dataset:
+#   corpora:
+#     spgispeech:
+#       # Where the corpus lives. Omitting the key entirely falls back to the
+#       # environment variable the sub-dataset's config.yaml names (SPGISPEECH),
+#       # which is what path.sh documents; spelling it out like this adds a
+#       # recipe-local default for when that variable is unset.
+#       source_dir: ${oc.env:SPGISPEECH,${recipe_dir}/download/spgispeech}
+#       # Which splits to build. Defaults to every split the corpus has;
+#       # narrowing it is useful for a dev-only run.
+#       splits: [val]
+#       # Open every file to confirm the sample rate and width, rather than
+#       # only checking its size against the manifest. Thorough and far slower.
+#       read_headers: true
+#     must_c:
+#       source_dir: ${oc.env:MUST_C,${recipe_dir}/download/must_c}
+#       # Which en-X pairs to read. Defaults to the list in the sub-dataset's
+#       # config.yaml.
+#       languages: [de, ja, zh]
+create_dataset:
+  recipe_dir: ${recipe_dir}
+  cache: ${cache}
+  corpora:
+
+##########################################################
+#                    DATASET DEFINITION                  #
+##########################################################
+# Dataset organizer used across collect_stats/train/infer/measure.
+# Fill `train`, `valid`, and optionally `test` with dataset reference entries.
+#
+# Each dataset entry supports:
+# - `data_src`: optional dataset source reference.
+#   - `<recipe>/<task>` tag, e.g. `mini_an4/asr`
+#   - dotted module path, e.g. `my_project.datasets.foo`
+#   - omitted: load `${recipe_dir}/dataset/__init__.py`
+# - `data_src_args`: kwargs forwarded to `Dataset(...)`
+# - `transform`: optional Hydra-instantiated per-sample transform applied before
+#   `preprocessor`
+# - `name`: mainly useful for `test`; inference uses it as the output
+#   subdirectory name
+#
+# Only `data_src_args` is passed to the recipe `Dataset` constructor.
+# Top-level fields such as `name` and `transform` stay in organizer space.
+#
+# `data_src` is a dotted module path naming one sub-dataset. It cannot be
+# omitted: a mixture has several, and `${recipe_dir}/dataset/` is the shared
+# layer rather than a dataset of its own.
+#
+# Example:
+# dataset:
+#   _target_: espnet3.components.data.data_organizer.DataOrganizer
+#   recipe_dir: ${recipe_dir}
+#   train:
+#     - data_src: egs3.owsm_v4.owsm.dataset.sub_datasets.spgispeech
+#       data_src_args:
+#         split: train
+#         recipe_dir: ${recipe_dir}
+#         cache: ${cache}
+#     - data_src: egs3.owsm_v4.owsm.dataset.sub_datasets.must_c
+#       data_src_args:
+#         split: train
+#         recipe_dir: ${recipe_dir}
+#         cache: ${cache}
+#   valid:
+#     - data_src: egs3.owsm_v4.owsm.dataset.sub_datasets.spgispeech
+#       data_src_args:
+#         split: val
+#         recipe_dir: ${recipe_dir}
+#         cache: ${cache}
+#     - data_src: egs3.owsm_v4.owsm.dataset.sub_datasets.must_c
+#       data_src_args:
+#         split: dev
+#         recipe_dir: ${recipe_dir}
+#         cache: ${cache}
+#   preprocessor:
+# Entries are POSITIONAL. `collect_stats` keys its shape files by position in
+# the combined dataset, so inserting, removing or reordering an entry silently
+# invalidates every shape key after it. Append; do not reorder.
+dataset:
+  _target_: espnet3.components.data.data_organizer.DataOrganizer
+  _recursive_: false
+  recipe_dir: ${recipe_dir}
+  train:
+  valid:
+  test:
+  preprocessor:
+
+##########################################################
+#                   TOKENIZER SETTING                    #
+##########################################################
+# One shared vocabulary over the whole mixture, trained by
+# `espnet3.systems.owsm.system.OWSMSystem`.
+#   nlsyms                the OWSM special symbols, as a list, a file, or a
+#                         callable. Without them SentencePiece splits <eng> into
+#                         '<','e','n','g','>'.
+#   text_builder._target_ a callable returning a path or an iterable of strings.
+#                         Return a generator: the mixture's text does not fit in
+#                         memory, and only the sample below is written to disk.
+#   sample_size           lines to keep, reservoir-sampled while streaming. null
+#                         keeps every line. Set it once writing the full text
+#                         costs more than the vocabulary gains -- the text runs
+#                         about 210 bytes a line, so 60M rows is ~12 GB.
+#   sample_seed           a vocabulary is an artifact of the text it saw, so the
+#                         sample has to be reproducible.
+#   vocab_scaled_shapes   streams whose `<stream>_shape` gets the vocabulary size
+#                         appended, so a numel batch_bins budget can see the
+#                         decoder logits. Empty by default: a flat batch_size
+#                         needs no shape file beyond feats_shape. Set it to
+#                         [text, text_prev] when switching to numel.
+#
+# vocab_size has a floor above the reserved symbols: SentencePiece also needs one
+# piece per character, and at character_coverage 1.0 across 14 languages that is
+# another ~1700. 1703 symbols + 3000 vocab_size fails; 50000 is well clear.
+tokenizer:
+
+##########################################################
+#                      MODEL SETTING                     #
+##########################################################
+# Training model definition.
+# If `task` is set, this block is passed to `get_espnet_model(task, model_conf)`.
+# Thus, you can reuse ESPnet2-style model configs here by setting `task` and
+# filling this block with the per-model config that ESPnet2 used.
+# If `task` is not set, this block is instantiated directly via Hydra.
+model:
+
+##########################################################
+#            OPTIMIZER & SCHEDULER SETTING               #
+##########################################################
+# Single optimizer path:
+optimizer:
+  _target_: torch.optim.Adam
+  lr: 0.002
+  weight_decay: 0.000001
+
+# Left empty on purpose. OmegaConf.merge cannot remove a key, so any default
+# here leaks into a recipe that picks a different scheduler: a template
+# `warmup_steps` reaches PiecewiseLinearWarmupLR, whose signature has no such
+# argument, and hydra raises. Each recipe states its scheduler in full.
+scheduler:
+
+# Used only in the single optimizer path.
+scheduler_interval: step   # `step` or `epoch`
+scheduler_monitor:         # e.g. `valid/loss` for monitored epoch schedulers
+
+# Multiple-loss / multiple-optimizer path:
+# optimizers:
+#   generator:
+#     optimizer:
+#       _target_: torch.optim.Adam
+#       lr: 0.0002                 # optimizer config for `generator`
+#     params: generator            # substring used to select parameters
+#     accum_grad_steps: 1          # number of backward passes before optimizer.step()
+#     step_every_n_iters: 1        # only step on every N-th training iteration
+#     gradient_clip_val: 1.0       # per-optimizer gradient clipping value
+#     gradient_clip_algorithm: norm  # `norm` or `value`
+#
+#   discriminator:
+#     optimizer:
+#       _target_: torch.optim.Adam
+#       lr: 0.0002                 # optimizer config for `discriminator`
+#     params: discriminator        # substring used to select parameters
+#     accum_grad_steps: 1          # number of backward passes before optimizer.step()
+#     step_every_n_iters: 1        # only step on every N-th training iteration
+#
+# schedulers:
+#   generator:
+#     scheduler:
+#       _target_: torch.optim.lr_scheduler.LinearLR
+#       start_factor: 1.0          # scheduler-specific argument
+#       end_factor: 0.5            # scheduler-specific argument
+#       total_iters: 1000          # scheduler-specific argument
+#     interval: step               # `step` schedulers run after optimizer updates
+#
+#   discriminator:
+#     scheduler:
+#       _target_: torch.optim.lr_scheduler.ReduceLROnPlateau
+#       patience: 2                # scheduler-specific argument
+#       factor: 0.5                # scheduler-specific argument
+#     interval: epoch              # `epoch` schedulers run in `on_train_epoch_end()`
+#     monitor: valid/discriminator/loss  # required for monitored epoch schedulers
+#
+# Note:
+# - In the multiple-optimizer path, do not use trainer-level
+#   `trainer.gradient_clip_val` or `trainer.gradient_clip_algorithm`.
+#   Configure clipping per optimizer as shown above.
+
+##########################################################
+#                OTHER TRAINING SETTING                  #
+##########################################################
+# Checkpoint selection criteria passed to ESPnet3 callbacks.
+# Each item is:
+#   - monitor key
+#   - number of best checkpoints to keep
+#   - direction (`min` or `max`)
+best_model_criterion:
+  - - valid/loss
+    - 3
+    - min
+
+# Optional random seed used by collect_stats/train.
+seed:
+
+# Extra model initialization mode forwarded to ESPnet's initializer.
+# Example: xavier_uniform
+init:
+
+##########################################################
+#                   PARALLELIZATION SETTING              #
+##########################################################
+# Parallel backend used by collect_stats/train.
+parallel:
+  env: local
+  n_workers: 16
+
+##########################################################
+#                   DATALOADER SETTING                   #
+##########################################################
+dataloader:
+  collate_fn:
+    _target_: espnet2.train.collate_fn.CommonCollateFn
+    int_pad_value: -1
+
+  # A plain torch DataLoader: `iter_factory` empty selects it, and every other
+  # key below goes straight to torch.utils.data.DataLoader.
+  #
+  # Chosen over an espnet2 iter_factory because `shuffle: true` here draws
+  # samples at random across the whole mixture. A sampler builds its batches
+  # from the shape files once and reuses them every epoch, and since
+  # S2TPreprocessor pads all speech to one 30 s window, feats_shape is constant
+  # and its sort is a no-op -- batches would come out in cache order, putting a
+  # whole corpus, and within MuST-C a whole language pair, in one gradient step.
+  #
+  # It also means collect_stats only has to produce feats_stats.npz for
+  # global_mvn; no *_shape file is read during training.
+  #
+  # multiprocessing_context MUST be spawn. Forked workers inherit a CUDA
+  # context and die with "CUDA error: initialization error".
+  train:
+    iter_factory:
+    batch_size: 20
+    shuffle: true
+    num_workers: 8
+    multiprocessing_context: spawn
+    pin_memory: true
+    prefetch_factor: 2
+  valid:
+    iter_factory:
+    batch_size: ${dataloader.train.batch_size}
+    shuffle: false
+    num_workers: 4
+    multiprocessing_context: spawn
+    pin_memory: true
+    prefetch_factor: 2
+
+##########################################################
+#                    TRAINER SETTING                     #
+##########################################################
+# These settings map to `lightning.Trainer(...)`.
+trainer:
+  accelerator: auto
+  devices: ${num_device}
+  num_nodes: ${num_nodes}
+  accumulate_grad_batches: 1
+  check_val_every_n_epoch: 1
+  gradient_clip_val: 1.0
+  log_every_n_steps: 100
+  max_epochs: 100
+
+  logger:
+    - _target_: lightning.pytorch.loggers.TensorBoardLogger
+      save_dir: ${exp_dir}/tensorboard
+      name: tb_logger
+
+  strategy: auto
+
+  # Checkpoint on a step count, not only at epoch end. An OWSM epoch is hours
+  # long, so a job that hits its walltime mid-epoch would otherwise write
+  # nothing and lose the lot. This one has no `monitor`, so it keeps the most
+  # recent rather than the best, and `save_last: link` is what `ckpt_path:
+  # last` below resumes from.
+  callbacks:
+    - _target_: lightning.pytorch.callbacks.ModelCheckpoint
+      dirpath: ${exp_dir}
+      filename: periodic_step{step}
+      auto_insert_metric_name: false
+      every_n_train_steps: 1000
+      save_top_k: 1
+      save_last: link
+
+##########################################################
+#                      FIT SETTING                       #
+##########################################################
+# Optional keyword arguments passed directly to `trainer.fit(**fit)`.
+# Leave `{}` for the default flow.
+# `last` resumes from the periodic checkpoint above when one exists, which is
+# how a run spans several jobs under a walltime cap. Lightning warns rather
+# than fails when there is none, so a first run starts from scratch; delete
+# the checkpoints to force that once a run exists.
+fit:
+  ckpt_path: last

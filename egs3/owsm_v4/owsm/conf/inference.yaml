@@ -1,0 +1,36 @@
+# Decoding SPGISpeech val + MuST-C v1.2 dev.
+#
+# Defaults come from egs3/TEMPLATE/owsm/conf/inference.yaml.
+
+model:
+  _target_: src.inference.Speech2TextOWSM
+  s2t_train_config: ${exp_dir}/config.yaml
+  s2t_model_file: ${exp_dir}/valid.acc.ave.pth
+  device: cuda
+  beam_size: 5
+  ctc_weight: 0.0
+  maxlenratio: 0.0
+  nbest: 1
+
+# speech is decoded; text supplies the <lang><task> prompt.
+input_key: [speech, text]
+
+output_fn: src.inference.build_output
+
+cache:
+  cache_dir: ${oc.env:OWSM_CACHE,${recipe_dir}/data/hf}
+
+dataset:
+  test:
+    - name: spgispeech_val
+      data_src: egs3.owsm_v4.owsm.dataset.sub_datasets.spgispeech
+      data_src_args:
+        split: val
+        recipe_dir: ${recipe_dir}
+        cache: ${cache}
+    - name: must_c_dev
+      data_src: egs3.owsm_v4.owsm.dataset.sub_datasets.must_c
+      data_src_args:
+        split: dev
+        recipe_dir: ${recipe_dir}
+        cache: ${cache}
