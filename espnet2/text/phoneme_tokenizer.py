@@ -636,6 +636,11 @@ class PhonemeTokenizer(AbsTokenizer):
         # An empty symbol, e.g. from a blank line of the file, matches at every
         # position and text2tokens would never advance.
         self.non_linguistic_symbols.discard("")
+        # A shorter symbol can be a prefix of a longer one. Set order is not
+        # stable, so the longer symbol is tried first.
+        self._ordered_symbols = tuple(
+            sorted(self.non_linguistic_symbols, key=len, reverse=True)
+        )
         self.remove_non_linguistic_symbols = remove_non_linguistic_symbols
 
     def __repr__(self):
@@ -650,11 +655,19 @@ class PhonemeTokenizer(AbsTokenizer):
     def text2tokens(self, line: str) -> List[str]:
         tokens = []
         while len(line) != 0:
-            for w in self.non_linguistic_symbols:
+            for w in self._ordered_symbols:
                 if line.startswith(w):
-                    if not self.remove_non_linguistic_symbols:
-                        tokens.append(line[: len(w)])
                     line = line[len(w) :]
+                    if not self.remove_non_linguistic_symbols:
+                        tokens.append(w)
+                    elif line.startswith(" "):
+                        # Take the space that separated the symbol from the
+                        # next word with it, or the no-g2p path splits the
+                        # doubled space into an empty token.
+                        line = line[1:]
+                    elif not line and tokens and tokens[-1] == " ":
+                        # The same for a symbol that ended the line.
+                        tokens.pop()
                     break
             else:
                 t = line[0]
