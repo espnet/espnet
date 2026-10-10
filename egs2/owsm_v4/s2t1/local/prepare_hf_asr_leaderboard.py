@@ -78,9 +78,12 @@ def get_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--dataset",
         required=True,
-        help="leaderboard config, e.g. " + ", ".join(sorted(LEADERBOARD_CONFIGS.keys())),
+        help="leaderboard config, e.g. "
+        + ", ".join(sorted(LEADERBOARD_CONFIGS.keys())),
     )
-    parser.add_argument("--split", default="test", help="e.g. test, test.clean, test.other")
+    parser.add_argument(
+        "--split", default="test", help="e.g. test, test.clean, test.other"
+    )
     parser.add_argument(
         "--n",
         type=int,
