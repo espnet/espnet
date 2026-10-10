@@ -1,0 +1,53 @@
+##########################################################
+#                   INFERENCE SETTING                    #
+##########################################################
+# Inference for the Quechua (quy) AmericasNLP 2022 model.
+#
+# Common usage:
+#   python run.py --stages infer \
+#       --training_config conf/tuning/training_quy.yaml \
+#       --inference_config conf/tuning/inference_quy.yaml
+#
+# Notes:
+# - This recipe omits `exp_tag`, `exp_dir`, and `inference_dir` on purpose.
+#   `run.py` copies `training_config.exp_tag` / `training_config.exp_dir`
+#   here before resolving `${exp_dir}`, so inference follows the experiment
+#   of the training config passed alongside.
+# - `lang` is restated here because `run.py` only propagates
+#   exp_tag/exp_dir/inference_dir between configs.
+# - `input_key: speech` and `batch_size: 4` are TEMPLATE defaults and are
+#   not repeated here.
+##########################################################
+lang: quy
+
+##########################################################
+#                    DATASET DEFINITION                  #
+##########################################################
+# The corpus has no test split; like the ESPnet2 recipe, the dev set is
+# scored. `data_src` is omitted, so ESPnet3 loads
+# `${recipe_dir}/dataset/__init__.py`.
+# No preprocessor: samples stay raw so `output_fn` receives the original
+# transcript as the reference (Speech2Text tokenizes hypotheses itself).
+dataset:
+  test:
+    - name: dev_quy
+      data_src_args:
+        lang: ${lang}
+        split: dev
+
+##########################################################
+#                    MODEL AND OUTPUT                    #
+##########################################################
+# Search settings from the egs2 recipe's conf/decode_asr.yaml (lm_weight 0.0,
+# ctc_weight 1.0, beam_size 5) with the checkpoint selected by `valid/cer_ctc`
+# (min). ESPnet3 callbacks save the selected checkpoint as
+# `valid.cer_ctc.ave_1best.pth` (top-1 average == the best checkpoint).
+model:
+  _target_: espnet2.bin.asr_inference.Speech2Text
+  asr_train_config: ${exp_dir}/config.yaml
+  asr_model_file: ${exp_dir}/valid.cer_ctc.ave_1best.pth
+  beam_size: 5
+  ctc_weight: 1.0
+  lm_weight: 0.0
+
+output_fn: src.inference.build_output
