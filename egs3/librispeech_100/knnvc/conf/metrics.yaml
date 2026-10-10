@@ -1,0 +1,14 @@
+##########################################################
+#         METRIC SCORING FOR THE kNN-VC RECIPE           #
+##########################################################
+# Quick usage:
+#   python run.py --stages measure \
+#       --training_config conf/training.yaml \
+#       --inference_config conf/inference.yaml \
+#       --metrics_config conf/metrics.yaml
+#
+# The metric comes from egs3/TEMPLATE/knnvc/conf/metrics.yaml: ASR
+# intelligibility (WER/CER) of the converted audio against the source
+# transcript, the protocol behind the kNN-VC authors' dev-clean numbers (6.29%
+# WER and 2.34% CER for the prematched vocoder). Set `metrics:` here to score
+# with something else.

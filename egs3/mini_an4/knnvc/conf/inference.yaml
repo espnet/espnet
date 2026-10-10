@@ -1,0 +1,36 @@
+##########################################################
+#           kNN-VC smoke inference on mini_an4           #
+##########################################################
+#   python run.py --stages infer \
+#       --training_config conf/training.yaml \
+#       --inference_config conf/inference.yaml
+
+dataset:
+  test:
+    - name: test
+      data_src_args:
+        kind: conversion
+        recipe_dir: ${recipe_dir}
+        num_pairs: 2
+        seed: 0
+
+model:
+  _target_: espnet3.systems.knnvc.model.KNNVCModel
+  vocoder_checkpoint: ${exp_dir}/last.ckpt
+  encoder:
+    _target_: src.stub_encoder.StubEncoder
+    output_dim: 32
+  generator:
+    in_channels: 32
+    projection_channels: 8
+    channels: 16
+    kernel_size: 3
+    upsample_scales: [10, 8]
+    upsample_kernel_sizes: [20, 16]
+    resblock_kernel_sizes: [3]
+    resblock_dilations: [[1, 2]]
+  topk: 2
+  tgt_loudness_db:
+
+device: cpu
+input_key: [speech, reference_speech, target_speaker]
