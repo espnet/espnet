@@ -565,4 +565,3 @@ def test_Speech2Text_batch_decode_accepts_numpy_and_lists(s2t_config_file_transf
             np.testing.assert_allclose(
                 float(exp[0][4].score), float(act[0][4].score), rtol=1e-4
             )
-
