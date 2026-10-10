@@ -104,7 +104,7 @@ class ErrorRate(BaseMetric):
 
     @staticmethod
     def _blank_safe(text: str) -> str:
-        """jiwer rejects an empty reference, so stand in for one."""
+        """Return the stripped text, or a dot if jiwer would reject it as empty."""
         stripped = text.strip()
         return stripped if stripped else "."
 
