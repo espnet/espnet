@@ -657,9 +657,17 @@ class PhonemeTokenizer(AbsTokenizer):
         while len(line) != 0:
             for w in self._ordered_symbols:
                 if line.startswith(w):
-                    if not self.remove_non_linguistic_symbols:
-                        tokens.append(line[: len(w)])
                     line = line[len(w) :]
+                    if not self.remove_non_linguistic_symbols:
+                        tokens.append(w)
+                    elif line.startswith(" "):
+                        # Take the space that separated the symbol from the
+                        # next word with it, or the no-g2p path splits the
+                        # doubled space into an empty token.
+                        line = line[1:]
+                    elif not line and tokens and tokens[-1] == " ":
+                        # The same for a symbol that ended the line.
+                        tokens.pop()
                     break
             else:
                 t = line[0]

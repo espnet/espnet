@@ -577,3 +577,25 @@ def test_longer_symbol_wins_over_its_prefix():
         remove_non_linguistic_symbols=True,
     )
     assert tokenizer.text2tokens("<unk>a") == ["a"]
+
+
+@pytest.mark.parametrize(
+    "text, expected",
+    [
+        ("<unk> a b", ["a", "b"]),
+        ("a <noise_long> b <noise>", ["a", "b"]),
+        ("<noise> hello <noise>", ["hello"]),
+        ("a <noise><noise> b", ["a", "b"]),
+        ("hel<noise>lo", ["hello"]),
+    ],
+)
+def test_remove_non_linguistic_symbols_leaves_no_empty_token(text, expected):
+    tokenizer = PhonemeTokenizer(
+        g2p_type=None,
+        non_linguistic_symbols=["<noise>", "<noise_long>", "<unk>", "<"],
+        remove_non_linguistic_symbols=True,
+    )
+    assert tokenizer.text2tokens(text) == expected
+    # only the space next to the symbol goes: a triple space, which the no-g2p
+    # path turns into an explicit space token, is left as it is
+    assert tokenizer.text2tokens("<noise> a   b") == tokenizer.text2tokens("a   b")
