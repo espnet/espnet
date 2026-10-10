@@ -120,7 +120,7 @@ class Encoder(torch.nn.Module):
         else:
             chunk_mask = None
 
-        x = self.encoders(
+        x, mask = self.encoders(
             x,
             pos_enc,
             mask,

@@ -1,0 +1,5 @@
+# Inference settings for CI: CPU, and chunks short enough to exercise the
+# cross-fade between them on mini_an4's few-second utterances.
+chunk_sec: 2.0
+overlap_sec: 0.5
+device: cpu

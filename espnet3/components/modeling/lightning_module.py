@@ -1261,6 +1261,17 @@ class ESPnetLightningModule(lightning.LightningModule):
             OmegaConf.to_container(self.config.dataloader, resolve=True)
         )
 
+        # items per batch, and so how many shards the workers can share: a set
+        # of N items splits into at most N / batch_size. The value comes from
+        # the config (egs3/TEMPLATE sets it); collect_stats keeps its own
+        # default when a config says nothing.
+        batch_size = self.config.get("collect_stats_batch_size", None)
+        extra = {} if batch_size is None else {"batch_size": int(batch_size)}
+        # the train preprocessor's augmentation is off unless the config asks
+        train_mode = self.config.get("collect_stats_train_mode", None)
+        if train_mode is not None:
+            extra["train_mode"] = bool(train_mode)
+
         for mode in ["train", "valid"]:
             collect_stats(
                 model_config=OmegaConf.to_container(self.config.model, resolve=True),
@@ -1275,4 +1286,5 @@ class ESPnetLightningModule(lightning.LightningModule):
                     else self.config.parallel
                 ),
                 write_collected_feats=False,
+                **extra,
             )

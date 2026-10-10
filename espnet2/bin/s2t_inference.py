@@ -28,6 +28,7 @@ from espnet2.legacy.nets.scorer_interface import (
 from espnet2.legacy.nets.scorers.ctc import CTCPrefixScorer
 from espnet2.legacy.nets.scorers.length_bonus import LengthBonus
 from espnet2.legacy.utils.cli_utils import get_commandline_args
+from espnet2.s2t.ctc_utils import buffered_frame_counts
 from espnet2.tasks.lm import LMTask
 from espnet2.tasks.s2t import S2TTask
 from espnet2.text.build_tokenizer import build_tokenizer
@@ -650,8 +651,12 @@ class Speech2Text:
     @typechecked
     def batch_decode(
         self,
-        speech: torch.Tensor,
-        speech_lengths: Optional[torch.Tensor] = None,
+        speech: Union[
+            torch.Tensor, np.ndarray, Sequence[Union[torch.Tensor, np.ndarray]]
+        ],
+        speech_lengths: Optional[
+            Union[torch.Tensor, np.ndarray, Sequence[Union[int, np.integer]]]
+        ] = None,
         text_prev: Optional[torch.Tensor] = None,
         text_prev_lengths: Optional[torch.Tensor] = None,
         lang_sym: Optional[str] = None,
@@ -665,7 +670,9 @@ class Speech2Text:
         batch all have the same length and no padding mask is needed.
 
         Args:
-            speech: Padded speech of shape `(n_utt, nsamples)`.
+            speech: Padded speech of shape `(n_utt, nsamples)`, a tensor or a
+                numpy array, or a list of unpadded utterances of shape
+                `(nsamples,)`, which is padded here.
             speech_lengths: Unused, and accepted only so that a collated
                 batch can be passed straight through. Every utterance is
                 padded or trimmed to the same fixed length, and the collated
@@ -683,6 +690,12 @@ class Speech2Text:
             per utterance, in the order the utterances were given.
 
         """
+        if isinstance(speech, (list, tuple)):
+            speech = torch.nn.utils.rnn.pad_sequence(
+                [torch.as_tensor(w).reshape(-1) for w in speech], batch_first=True
+            )
+        elif isinstance(speech, np.ndarray):
+            speech = torch.as_tensor(speech)
         if speech.dim() == 3 and speech.size(2) == 1:
             speech = speech.squeeze(2)  # (n_utt, nsamples, 1) -> (n_utt, nsamples)
         if speech.dim() != 2:
@@ -1120,7 +1133,7 @@ class Speech2Text:
         self,
         speech: Union[str, Path, torch.Tensor, np.ndarray],
         batch_size: int = 1,
-        context_len_in_secs: float = 2,
+        context_len_in_secs: Optional[float] = None,
         lang_sym: Optional[str] = None,
         task_sym: Optional[str] = None,
     ) -> np.ndarray:
@@ -1133,16 +1146,26 @@ class Speech2Text:
         Long-form best-path decoding is an argmax over what this returns, and
         a forced alignment (espnet2.bin.align) is a Viterbi path through it:
         one buffering, read two ways.
+
+        The training buffer and context durations must cover whole encoder
+        frames; otherwise a ValueError is raised instead of accumulating drift.
+        An omitted context defaults to two seconds rounded to the nearest frame.
         """
         speech = self.read_audio(speech)
         lang_id = self.converter.token2id[lang_sym or self.lang_sym]
         task_id = self.converter.token2id[task_sym or self.task_sym]
 
         buffer_len_in_secs = self.preprocessor_conf["speech_length"]
+        if context_len_in_secs is None:
+            context_len_in_secs = round(2 * self.frames_per_sec) / self.frames_per_sec
+        buffer_frames, context_frames = buffered_frame_counts(
+            self.frames_per_sec, buffer_len_in_secs, context_len_in_secs
+        )
+        chunk_frames = buffer_frames - 2 * context_frames
         chunk_len_in_secs = buffer_len_in_secs - 2 * context_len_in_secs
-        buffer_len = int(self.sample_rate * buffer_len_in_secs)
-        chunk_len = int(self.sample_rate * chunk_len_in_secs)
-        context = int(self.sample_rate * context_len_in_secs)
+        buffer_len = round(self.sample_rate * buffer_len_in_secs)
+        chunk_len = round(self.sample_rate * chunk_len_in_secs)
+        context = round(self.sample_rate * context_len_in_secs)
 
         padded = np.pad(speech, (context, context))
         buffers = []
@@ -1154,8 +1177,6 @@ class Speech2Text:
             buffers.append(buffer)
 
         batched = torch.tensor(np.array(buffers)).to(getattr(torch, self.dtype))
-        buffer_frames = int(self.frames_per_sec * buffer_len_in_secs)
-        context_frames = int(self.frames_per_sec * context_len_in_secs)
 
         kept = []
         for idx in range(0, batched.size(0), batch_size):
@@ -1183,11 +1204,15 @@ class Speech2Text:
             enc, _ = self.s2t_model.encode(**batch)
             if isinstance(enc, tuple):
                 enc = enc[0]
-            # the convolutional front end can return more frames than the
-            # buffer itself, so the tail goes before the context does
-            enc = enc[:, :buffer_frames]
+            enc = self.s2t_model.frames(enc, prefix)
             frames = self.s2t_model.ctc.log_softmax(enc)
-            kept.append(frames[:, context_frames:-context_frames])
+            # A buffer is context + chunk + context. Keep exactly its middle
+            # chunk_frames, starting at context_frames. The convolutional
+            # frontend need not return buffer_frames audio positions, so an
+            # end-based slice would shift time at every buffer join.
+            if frames.size(1) < context_frames + chunk_frames:
+                raise ValueError("context is too short for the encoder's edge loss")
+            kept.append(frames[:, context_frames : context_frames + chunk_frames])
 
         # (buffers, frames, vocab) back into one run of frames, cut to the
         # frames the recording itself covers rather than the padding
@@ -1199,7 +1224,7 @@ class Speech2Text:
         self,
         speech: np.ndarray,
         batch_size: int = 1,
-        context_len_in_secs: float = 2,
+        context_len_in_secs: Optional[float] = None,
         lang_sym: Optional[str] = None,
         task_sym: Optional[str] = None,
     ) -> str:
@@ -1223,7 +1248,7 @@ class Speech2Text:
         self,
         speech: Union[str, Path, torch.Tensor, np.ndarray],
         batch_size: int = 1,
-        context_len_in_secs: float = 2,
+        context_len_in_secs: Optional[float] = None,
         condition_on_prev_text: bool = False,
         init_text: Optional[str] = None,
         end_time_threshold: Optional[str] = None,
@@ -1246,7 +1271,9 @@ class Speech2Text:
         Args:
             batch_size: buffers decoded together, on a CTC-only checkpoint.
             context_len_in_secs: context decoded and then dropped on either
-                side of each buffer, on a CTC-only checkpoint.
+                side of each buffer, on a CTC-only checkpoint. Defaults to two
+                seconds rounded to the nearest encoder frame. Explicit values
+                must cover whole frames.
             condition_on_prev_text, init_text, end_time_threshold,
                 skip_last_chunk_threshold: the encoder-decoder path.
                 `end_time_threshold` defaults to one second before the end of
