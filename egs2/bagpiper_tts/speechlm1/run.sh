@@ -38,6 +38,8 @@ train_specifier=
 valid_specifier=
 train_unregistered_specifier=
 valid_unregistered_specifier=
+train_registered_specifier=
+valid_registered_specifier=
 
 # Export (stage 2)
 export_dtype=bfloat16
@@ -49,6 +51,7 @@ train_config=
 inference_config=
 test_specifier=
 test_unregistered_specifier=
+test_registered_specifier=
 inference_output_dir=
 num_workers=1
 
@@ -65,6 +68,9 @@ weights: pass --export-path and --train-config.
   --stats-dir DIR                       Prepared length statistics
   --train-unregistered-specifier SPEC   Training data
   --valid-unregistered-specifier SPEC   Validation data
+  --train-registered-specifier SPEC     Training data from the registry
+  --valid-registered-specifier SPEC     Validation data from the registry
+  Training can combine registered and unregistered data for each split.
   --train-config YAML                  Training or inference configuration
   --output-dir DIR                     Training output (default: exp/sft)
   --resume-path PATH                   Initialize weights, with fresh optimizer
@@ -72,6 +78,8 @@ weights: pass --export-path and --train-config.
   --export-path FILE                   Export destination or inference weights
   --inference-config YAML              Published decoding configuration
   --test-unregistered-specifier SPEC    Inference requests
+  --test-registered-specifier SPEC      Inference requests from the registry
+  Inference accepts exactly one of the two test specifier options.
   --inference-output-dir DIR           Decoding output (default: exp/sft/inference)
   --ngpu N --num-nodes N --node-rank N --master-addr HOST --master-port PORT
   --python PATH                        Active environment's Python
@@ -93,8 +101,10 @@ read -r -a extra_train_args <<< "${train_args}"
 if (( stage <= 1 && stop_stage >= 1 )); then
     log "Stage 1: SFT"
     [[ -n ${stats_dir} ]] || die "set --stats-dir"
-    [[ -n ${train_specifier} && -n ${valid_specifier} ]] \
-        || die "set --train-specifier and --valid-specifier"
+    [[ -n ${train_specifier} || -n ${train_registered_specifier} ]] \
+        || die "set --train-unregistered-specifier or --train-registered-specifier"
+    [[ -n ${valid_specifier} || -n ${valid_registered_specifier} ]] \
+        || die "set --valid-unregistered-specifier or --valid-registered-specifier"
 
     resume=$(resume_checkpoint "${output_dir}" "" "${resume_path}")
     resume_args=()
@@ -110,6 +120,8 @@ if (( stage <= 1 && stop_stage >= 1 )); then
         --stats-dir "${stats_dir}" \
         --train-unregistered-specifier "${train_specifier}" \
         --valid-unregistered-specifier "${valid_specifier}" \
+        --train-registered-specifier "${train_registered_specifier}" \
+        --valid-registered-specifier "${valid_registered_specifier}" \
         --ngpu "${ngpu}" \
         --num-nodes "${num_nodes}" \
         --node-rank "${node_rank}" \
@@ -145,8 +157,14 @@ if (( stage <= 3 && stop_stage >= 3 && node_rank == 0 )); then
     fi
     [[ -n ${inference_config} ]] \
         || die "set --inference-config; the model repository publishes inference.yaml"
-    [[ -n ${test_specifier} ]] \
-        || die "set --test-specifier, as 'dialogue:test:/path/to/test.json'; this recipe prepares no test data"
+    [[ -n ${test_specifier} || -n ${test_registered_specifier} ]] \
+        || die "set --test-unregistered-specifier or --test-registered-specifier; this recipe prepares no test data"
+    [[ -z ${test_specifier} || -z ${test_registered_specifier} ]] \
+        || die "set only one of --test-unregistered-specifier and --test-registered-specifier"
+    test_args=(--test-unregistered-specifier "${test_specifier}")
+    if [[ -n ${test_registered_specifier} ]]; then
+        test_args=(--test-registered-specifier "${test_registered_specifier}")
+    fi
     [[ -f ${export_path} ]] \
         || die "no weights at ${export_path}; run stage 2, or pass --export-path"
 
@@ -155,7 +173,7 @@ if (( stage <= 3 && stop_stage >= 3 && node_rank == 0 )); then
         --train-config "${train_config}" \
         --inference-config "${inference_config}" \
         --model-checkpoint "${export_path}" \
-        --test-unregistered-specifier "${test_specifier}" \
+        "${test_args[@]}" \
         --output-dir "${inference_output_dir}" \
         --num-workers "${num_workers}"
     log "results: ${inference_output_dir}"

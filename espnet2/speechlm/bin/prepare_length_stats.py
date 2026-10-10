@@ -7,6 +7,7 @@
 import argparse
 import json
 import logging
+import shlex
 from multiprocessing import Pool
 from pathlib import Path
 from typing import Dict, Tuple
@@ -207,7 +208,7 @@ def main():
         for spec_type in ["unregistered", "registered"]:
             spec_str = getattr(args, f"{split}_{spec_type}_specifier")
             if spec_str:
-                for spec in spec_str.split():
+                for spec in shlex.split(spec_str):
                     specifiers.append((spec_type, spec))
 
     # Process each specifier
@@ -225,7 +226,7 @@ def main():
         # Collect and save statistics
         logger.info(f"Processing {spec_type} specifier: {specifier}")
         stats = collect_length_stats(
-            preprocessor, args.num_workers, spec_type, specifier
+            preprocessor, args.num_workers, spec_type, shlex.quote(specifier)
         )
         save_stats(stats, output_file)
 

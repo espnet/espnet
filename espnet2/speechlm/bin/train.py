@@ -8,6 +8,7 @@ import argparse
 import logging
 import os
 import random
+import shlex
 import shutil
 import sys
 from pathlib import Path
@@ -302,13 +303,15 @@ def main():
         shuffle=False,
     )
 
-    for spec in args.valid_unregistered_specifier.split():
+    for spec in shlex.split(args.valid_unregistered_specifier):
         factory = DataIteratorFactory(
-            unregistered_specifier=spec, **valid_iterator_args
+            unregistered_specifier=shlex.quote(spec), **valid_iterator_args
         )
         valid_iterator_factories[spec] = factory
-    for spec in args.valid_registered_specifier.split():
-        factory = DataIteratorFactory(registered_specifier=spec, **valid_iterator_args)
+    for spec in shlex.split(args.valid_registered_specifier):
+        factory = DataIteratorFactory(
+            registered_specifier=shlex.quote(spec), **valid_iterator_args
+        )
         valid_iterator_factories[spec] = factory
 
     # (5) build model

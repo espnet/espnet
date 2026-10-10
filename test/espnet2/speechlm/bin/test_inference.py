@@ -44,7 +44,14 @@ def test_native_checkpoint_loads_strictly(tmp_path):
         load_checkpoint(target, checkpoint)
 
 
-def test_failed_worker_fails_command(tmp_path, monkeypatch):
+@pytest.mark.parametrize(
+    "specifier",
+    [
+        "audio_to_text:clean:/absolute/input.json",
+        "'audio_to_text:clean:/path with spaces/input.json'",
+    ],
+)
+def test_failed_worker_fails_command(tmp_path, monkeypatch, specifier):
     monkeypatch.setattr(
         "sys.argv",
         [
@@ -56,7 +63,7 @@ def test_failed_worker_fails_command(tmp_path, monkeypatch):
             "--model-checkpoint",
             "model.pt",
             "--test-unregistered-specifier",
-            "audio_to_text:clean:/absolute/input.json",
+            specifier,
             "--output-dir",
             str(tmp_path),
         ],

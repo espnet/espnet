@@ -1,6 +1,8 @@
 """Tests for espnet2/speechlm/dataloader/iterator.py — helpers & factory."""
 
 import json
+import shlex
+from pathlib import Path
 
 import pytest
 
@@ -47,6 +49,29 @@ class TestParseDataSpecifier:
         unreg, reg = _parse_data_specifier("", "")
         assert unreg == []
         assert reg == []
+
+    @pytest.mark.parametrize(
+        "specifier",
+        [
+            "dialogue:demo:'/data/space dir/train.json':2.0",
+            "'dialogue:demo:/data/space dir/train.json:2.0'",
+            r"dialogue:demo:/data/space\ dir/train.json:2.0",
+        ],
+    )
+    def test_quoted_path_in_multiple_specifiers(self, specifier):
+        unreg, reg = _parse_data_specifier(
+            f"{specifier} text_only:other:other.json", "dialogue:registered:0.5"
+        )
+        assert unreg == [
+            ("dialogue", "demo", "/data/space dir/train.json", 2.0),
+            ("text_only", "other", "other.json", 1.0),
+        ]
+        assert reg == [("dialogue", "registered", 0.5)]
+
+    def test_quoted_path_with_literal_quote_and_backslash(self):
+        path = "/data/reader's files/back\\slash.json"
+        unreg, _ = _parse_data_specifier(shlex.quote(f"dialogue:demo:{path}"), "")
+        assert unreg == [("dialogue", "demo", path, 1.0)]
 
     def test_parse_whitespace_only(self):
         unreg, reg = _parse_data_specifier("   ", "  ")
@@ -210,6 +235,20 @@ class TestDataIteratorFactory:
             num_workers=0,
         )
         assert len(factory.batched_examples) > 0
+
+    def test_factory_reads_manifest_in_space_directory(self, synthetic_data, tmp_path):
+        manifest = tmp_path / "space dir" / "dataset.json"
+        manifest.parent.mkdir()
+        manifest.write_text(Path(synthetic_data["dataset_json"]).read_text())
+        factory = DataIteratorFactory(
+            unregistered_specifier=shlex.quote(f"text_only:mydata:{manifest}"),
+            stats_dir=synthetic_data["stats_dir"],
+            batch_size=10000,
+            num_workers=0,
+            collate_fn=lambda batch: batch,
+        )
+        batch = next(iter(factory.build_iter(global_step=0, length=1)))
+        assert len(batch) == 3
 
     def test_build_index_no_shuffle(self, synthetic_data):
         factory = DataIteratorFactory(
