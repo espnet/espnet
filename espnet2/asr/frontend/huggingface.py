@@ -84,25 +84,26 @@ class HuggingFaceFrontend(AbsFrontend):
                 sampling_rate=self.processor.sampling_rate,
                 padding=True,
             ).to(device)
-            if "attention_mask" in encoded:
-                encoded_lengths = torch.sum(encoded.attention_mask, dim=-1)
-            else:
-                # The processor only padded the waveforms.
-                encoded_lengths = input_lengths.to(device)
-            # For a waveform model the lengths so far count samples.
-            counts_samples = "input_values" in encoded
 
-        encoded = self.encoder(**encoded).last_hidden_state
-        if counts_samples:
+        feats = self.encoder(**encoded).last_hidden_state
+        if "input_values" in encoded:
+            # a waveform model: the encoder's own convolutional feature
+            # extractor decides how many frames each utterance's samples
+            # become. The processor's attention mask, when it returns one,
+            # covers exactly the samples given above, so its sum would only
+            # repeat `input_lengths`.
             encoded_lengths = self.encoder._get_feat_extract_output_lengths(
-                encoded_lengths
+                input_lengths.to(device)
             )
-        if torch.max(encoded_lengths) != encoded.size(1):
+        else:
+            # the processor already produced frames, with a mask over them
+            encoded_lengths = torch.sum(encoded.attention_mask, dim=-1)
+        if torch.max(encoded_lengths) != feats.size(1):
             # truncate the sequence to the actual length
             # there is a weird bug in conformer encoder
-            encoded = encoded[:, : torch.max(encoded_lengths), :]
+            feats = feats[:, : torch.max(encoded_lengths), :]
 
-        return encoded, encoded_lengths
+        return feats, encoded_lengths
 
     def reload_pretrained_parameters(self):
         self.encoder.load_state_dict(self.pretrained_params)
