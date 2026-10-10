@@ -67,6 +67,7 @@ def build_parallel_hf_class(model_hf_tag):
             pretrained_model_name_or_path,
             multimodal_io,
             vocab_meta,
+            is_train=True,
             **kwargs,
         ):
             """Load pretrained model and adapt it for multimodal parallel processing.
@@ -92,9 +93,13 @@ def build_parallel_hf_class(model_hf_tag):
 
             # (1.5) Assert flash attention is used — our attn_args pre-compute
             # cu_seqlens (pack) or attention_mask (bucket) for flash attention.
+            # It is a training requirement: sdpa cannot separate the examples
+            # of a packed sequence, so training without it leaks across them.
+            # Inference packs nothing, and sdpa is fine there - which is what
+            # lets a checkpoint be run on a GPU that has no FlashAttention.
             attn_impl = getattr(model.config, "_attn_implementation", "")
-            assert "flash_attention" in attn_impl, (
-                f"OpusLM requires Flash Attention "
+            assert not is_train or "flash_attention" in attn_impl, (
+                f"Training OpusLM requires Flash Attention "
                 f"(got attn_implementation={attn_impl!r}). "
                 f"Set attn_implementation: flash_attention_2 or "
                 f"flash_attention_3 in model_conf."
@@ -380,29 +385,34 @@ def build_parallel_hf_class(model_hf_tag):
             # (4) Add dummy forward to ensure all multimodal_io are always included
             # in the computation graph, even if not used in this batch.
             # This prevents gradient mismatch errors in DeepSpeed ZeRO.
-            for io_name in self.multimodal_io_dict:
-                if io_name == "text":
-                    continue
+            # There is no graph to keep whole in eval, and running it there
+            # costs an audio encoder call for a text-only request - which is
+            # also a call that can fail on a checkpoint whose encoder cannot
+            # run on the device at hand.
+            if self.training:
+                for io_name in self.multimodal_io_dict:
+                    if io_name == "text":
+                        continue
 
-                # Skip if this modality was already used in this batch
-                if (
-                    f"{io_name}_feats" in kwargs
-                    and kwargs[f"{io_name}_feats"] is not None
-                    and len(kwargs[f"{io_name}_feats"]) > 0
-                ):
-                    continue
+                    # Skip if this modality was already used in this batch
+                    if (
+                        f"{io_name}_feats" in kwargs
+                        and kwargs[f"{io_name}_feats"] is not None
+                        and len(kwargs[f"{io_name}_feats"]) > 0
+                    ):
+                        continue
 
-                # Use dummy_forward from the IO class
-                io_module = self.multimodal_io_dict[io_name]
-                dummy_out = io_module.dummy_forward(ref_tensor=input_embeds)
+                    # Use dummy_forward from the IO class
+                    io_module = self.multimodal_io_dict[io_name]
+                    dummy_out = io_module.dummy_forward(ref_tensor=input_embeds)
 
-                # For continuous modalities, also run through adaptor
-                if not io_module.is_discrete and io_name in self.adaptor:
-                    dummy_out = self.adaptor[io_name](dummy_out)
-                dummy_out = dummy_out.to(input_embeds.dtype)
+                    # For continuous modalities, also run through adaptor
+                    if not io_module.is_discrete and io_name in self.adaptor:
+                        dummy_out = self.adaptor[io_name](dummy_out)
+                    dummy_out = dummy_out.to(input_embeds.dtype)
 
-                # Sum and add with zero weight to include in computation graph
-                input_embeds = input_embeds + 0.0 * dummy_out.sum()
+                    # Sum and add with zero weight to include in computation graph
+                    input_embeds = input_embeds + 0.0 * dummy_out.sum()
 
             return input_embeds
 
