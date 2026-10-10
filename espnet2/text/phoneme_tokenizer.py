@@ -633,6 +633,9 @@ class PhonemeTokenizer(AbsTokenizer):
                 self.non_linguistic_symbols = set()
         else:
             self.non_linguistic_symbols = set(non_linguistic_symbols)
+        # An empty symbol, e.g. from a blank line of the file, matches at every
+        # position and text2tokens would never advance.
+        self.non_linguistic_symbols.discard("")
         self.remove_non_linguistic_symbols = remove_non_linguistic_symbols
 
     def __repr__(self):

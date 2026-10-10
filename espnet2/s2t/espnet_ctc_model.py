@@ -147,6 +147,15 @@ class ESPnetS2TCTCModel(AbsESPnetModel):
         )
         return encoder_out, encoder_out_lens
 
+    def frames(self, encoder_out: torch.Tensor, prefix: torch.Tensor) -> torch.Tensor:
+        """Return only audio positions from an encoded, equally prefixed batch.
+
+        The convolutional frontend prepends one position per prefix token.
+        Prompt text is supplied through cross-attention and adds no positions
+        to this axis. Keep this layout knowledge here for long-form callers.
+        """
+        return encoder_out[:, prefix.size(1) :]
+
     def forward(
         self,
         speech: torch.Tensor,
