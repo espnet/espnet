@@ -18,7 +18,7 @@ def _filter():
 
 
 def _reference(score_filter, ys):
-    """Call the original unvectorized loop reference implementation (_batch_score_loop)."""
+    """Call the original loop implementation, kept as `_batch_score_loop`."""
     return score_filter._batch_score_loop(ys, [None] * len(ys), None)[0]
 
 
@@ -34,7 +34,7 @@ HANDMADE = [
 
 
 def test_vectorised_batch_score_matches_loop_on_handmade_rows():
-    """Verify that vectorised batch_score matches the original _batch_score_loop on hand-crafted boundary rows."""
+    """The vectorised batch_score equals the original loop on hand-made rows."""
     score_filter = _filter()
     ys = torch.tensor(HANDMADE, dtype=torch.int64)
     scores, states = score_filter.batch_score(ys, [None] * len(ys), None)
@@ -44,7 +44,7 @@ def test_vectorised_batch_score_matches_loop_on_handmade_rows():
 
 
 def test_vectorised_batch_score_matches_loop_right_after_the_prompt():
-    """Verify equivalence between vectorised batch_score and original _batch_score_loop right after the prompt."""
+    """The vectorised batch_score equals the original loop right after the prompt."""
     score_filter = _filter()
     ys = torch.tensor([[SOS, 3, 4], [SOS, 3, NOTIME]], dtype=torch.int64)
     scores, _ = score_filter.batch_score(ys, [None, None], None)
@@ -60,7 +60,7 @@ def test_vectorised_batch_score_matches_loop_right_after_the_prompt():
 @pytest.mark.parametrize("ylen", [3, 4, 7, 12])
 @pytest.mark.parametrize("seed", [0, 1, 2])
 def test_vectorised_batch_score_matches_loop_on_random_rows(ylen, seed):
-    """Verify equivalence between vectorised batch_score and original _batch_score_loop on randomized sequences."""
+    """The vectorised batch_score equals the original loop on random rows."""
     torch.manual_seed(seed)
     score_filter = _filter()
     n = 64
