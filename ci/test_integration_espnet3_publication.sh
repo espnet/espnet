@@ -31,24 +31,32 @@ yaml_files:
   inference_config: conf/inference.yaml
 EOF
     cat > "${pack_root}/conf/inference.yaml" <<'EOF'
-provider:
-  _target_: demo_test_provider.DemoTestProvider
-input_key:
-  - speech
+model:
+  _target_: demo_test_inference.Inference
 EOF
-    cat > "${pack_root}/demo_test_provider.py" <<'EOF'
+    # A bundle that is its own system: its model is an Inference shipped as
+    # bundled code, loaded with trust_user_code. The demo shows text for speech.
+    cat > "${pack_root}/demo_test_inference.py" <<'EOF'
 from __future__ import annotations
 
+from espnet3.api.inference import Field, InferenceAPI
 
-class DemoTestProvider:
-    @staticmethod
-    def build_model(config):
-        _ = config
 
-        def model(speech):
-            return {"hyp": f"speech={int(speech is not None)}"}
+class Inference(InferenceAPI):
+    inputs = (Field("speech", "audio"),)
+    outputs = (Field("text", "text"),)
 
-        return model
+    def __init__(self, device="cpu"):
+        self.device = device
+
+    @classmethod
+    def from_pretrained(cls, tag_or_dir, *, device="cpu", **kwargs):
+        return cls(device=device)
+
+    sample_rate = 16000
+
+    def run(self, speech):
+        return {"text": f"speech={int(speech is not None)}"}
 EOF
 }
 
@@ -60,32 +68,52 @@ yaml_files:
   inference_config: conf/inference.yaml
 EOF
     cat > "${pack_root}/conf/inference.yaml" <<'EOF'
-provider:
-  _target_: demo_test_provider.DemoTestProvider
-input_key:
-  - speech
-  - image
+model:
+  _target_: demo_test_inference.Inference
 EOF
-    cat > "${pack_root}/demo_test_provider.py" <<'EOF'
+    # Same, plus an image input: a kind the bundle registers itself, which is
+    # how a recipe adds a modality the API does not ship.
+    cat > "${pack_root}/demo_test_inference.py" <<'EOF'
 from __future__ import annotations
 
+import numpy as np
 
-class DemoTestProvider:
-    @staticmethod
-    def build_model(config):
-        _ = config
+from espnet3.api.inference import Field, InferenceAPI, Kind, register_kind
 
-        def model(speech, image):
-            return {
-                "hyp": (
-                    f"speech={int(speech is not None)} "
-                    f"image={int(image is not None)}"
-                )
-            }
 
-        return model
+class ImageKind(Kind):
+    def check(self, value, field, model, *, output):
+        if not isinstance(value, np.ndarray):
+            raise TypeError(f"{field.name} must be an image array")
+        return value
+
+
+register_kind("image", ImageKind(), replace=True)
+
+
+class Inference(InferenceAPI):
+    inputs = (Field("speech", "audio"), Field("image", "image"))
+    outputs = (Field("text", "text"),)
+
+    def __init__(self, device="cpu"):
+        self.device = device
+
+    @classmethod
+    def from_pretrained(cls, tag_or_dir, *, device="cpu", **kwargs):
+        return cls(device=device)
+
+    sample_rate = 16000
+
+    def run(self, speech, image):
+        return {
+            "text": (
+                f"speech={int(speech is not None)} "
+                f"image={int(image is not None)}"
+            )
+        }
 EOF
 }
+
 cleanup() {
     if [ -n "${check_workdir}" ] && [ -d "${check_workdir}" ]; then
         rm -rf "${check_workdir}"
