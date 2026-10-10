@@ -50,7 +50,7 @@ Full history: [Releases](https://github.com/espnet/espnet/releases).
 ```sh
 # Install PyTorch first: https://pytorch.org/get-started/locally/
 pip install espnet              # run pretrained models
-pip install "espnet[train]"     # also train them (Lightning, TensorBoard, W&B, Hydra, Dask)
+pip install "espnet[train]"     # also train them (Lightning, TensorBoard, W&B, Dask)
 ```
 
 <details>

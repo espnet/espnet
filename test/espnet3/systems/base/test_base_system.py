@@ -65,8 +65,9 @@ def test_base_system_invokes_helpers(tmp_path, monkeypatch):
         calls["infer"] = cfg
         return "infer"
 
-    def fake_metric(cfg):
+    def fake_metric(cfg, inference_config=None):
         calls["measure"] = cfg
+        calls["measure_inference_config"] = inference_config
         return {"metric": 1.0}
 
     def fake_pack_demo(system):
@@ -101,6 +102,7 @@ def test_base_system_invokes_helpers(tmp_path, monkeypatch):
     assert calls["train"] is train_cfg
     assert calls["infer"] is infer_cfg
     assert calls["measure"] is measure_cfg
+    assert calls["measure_inference_config"] is infer_cfg
     assert calls["pack_demo"] is system
     assert calls["upload_demo"] is system
 

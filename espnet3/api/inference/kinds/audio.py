@@ -294,7 +294,7 @@ class AudioKind(Kind):
             audio = Audio(value, rate)
         else:
             audio = Audio.coerce(value, rate)
-        want = getattr(field, "channels", 1)
+        want = field.channels
         if want == 1:
             return audio.mono()
         if want is not None and audio.channels != want:

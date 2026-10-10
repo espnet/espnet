@@ -174,10 +174,11 @@ We also have [prebuilt Kaldi binaries](https://github.com/espnet/espnet/blob/mas
 1. Install ESPnet via `pyproject.toml`
 
     ESPnet adopts the modern Python packaging standard using `pyproject.toml`.
-    `pip install -e .` installs what running a pretrained model needs. Training,
-    with espnet2 or espnet3, needs the `train` extra (Lightning, TensorBoard,
-    W&B, torch_optimizer, matplotlib, Hydra, Dask), which `make` in `tools/`
-    installs for you. The task extras add the packages a task's models and
+    `pip install -e .` installs what running a pretrained model needs, espnet2
+    or espnet3 (Hydra and OmegaConf, which an espnet3 model is loaded through,
+    are included). Training, with espnet2 or espnet3, needs the `train` extra
+    (Lightning, TensorBoard, W&B, torch_optimizer, matplotlib, Dask), which
+    `make` in `tools/` installs for you. The task extras add the packages a task's models and
     metrics use. For example:
 
     * For training with the recipes (extras combine, so add the task's):
@@ -228,7 +229,7 @@ We also have [prebuilt Kaldi binaries](https://github.com/espnet/espnet/blob/mas
 
         | Group      | Purpose                       |
         | ---------- | ----------------------------- |
-        | `train`    | Training with espnet2 or espnet3 (Lightning, TensorBoard, W&B, Hydra, Dask, ...) |
+        | `train`    | Training with espnet2 or espnet3 (Lightning, TensorBoard, W&B, Dask, ...) |
         | `asr`      | ASR-specific dependencies     |
         | `asr2`     | ASR2-specific dependencies    |
         | `tts`      | TTS-specific dependencies     |
