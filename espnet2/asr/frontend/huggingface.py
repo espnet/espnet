@@ -3,6 +3,7 @@ import logging
 from typing import Optional, Tuple, Union
 
 import humanfriendly
+import numpy as np
 import torch
 import torch.share
 from typeguard import typechecked
@@ -55,6 +56,33 @@ class HuggingFaceFrontend(AbsFrontend):
                 f"the pretrained model: {self.processor.sampling_rate}."
             )
 
+        # What the processor returns decides how the output lengths are found
+        # in forward(): a waveform model (wav2vec2, HuBERT, WavLM, ...) gets
+        # `input_values` and the encoder's own feature extractor turns sample
+        # counts into frame counts; a model whose processor already produces
+        # frames (w2v-BERT) gets `input_features` with a mask over them.
+        # Anything else is checked here rather than failing at the first batch.
+        probe = self.processor(
+            np.zeros(self.processor.sampling_rate, dtype=np.float32),
+            sampling_rate=self.processor.sampling_rate,
+            return_tensors="pt",
+        )
+        self.waveform_input = "input_values" in probe
+        if self.waveform_input and not hasattr(
+            self.encoder, "_get_feat_extract_output_lengths"
+        ):
+            raise ValueError(
+                f"Frontend not supported: {type(self.encoder).__name__} takes "
+                "`input_values` but has no `_get_feat_extract_output_lengths` "
+                "to turn sample counts into frame counts."
+            )
+        if not self.waveform_input and "attention_mask" not in probe:
+            raise ValueError(
+                f"Frontend not supported: {type(self.processor).__name__} "
+                "returns frames without an attention mask, so the number of "
+                "frames per utterance is unknown."
+            )
+
     def output_size(self) -> int:
         return self.encoder.config.hidden_size
 
@@ -86,17 +114,15 @@ class HuggingFaceFrontend(AbsFrontend):
             ).to(device)
 
         feats = self.encoder(**encoded).last_hidden_state
-        if "input_values" in encoded:
-            # a waveform model: the encoder's own convolutional feature
-            # extractor decides how many frames each utterance's samples
-            # become. The processor's attention mask, when it returns one,
-            # covers exactly the samples given above, so its sum would only
-            # repeat `input_lengths`.
+        if self.waveform_input:
+            # The processor's attention mask, when it returns one, covers
+            # exactly the samples given above, so its sum would only repeat
+            # `input_lengths`; the encoder's feature extractor knows how many
+            # frames those samples become.
             encoded_lengths = self.encoder._get_feat_extract_output_lengths(
                 input_lengths.to(device)
             )
         else:
-            # the processor already produced frames, with a mask over them
             encoded_lengths = torch.sum(encoded.attention_mask, dim=-1)
         if torch.max(encoded_lengths) != feats.size(1):
             # truncate the sequence to the actual length
