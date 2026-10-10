@@ -1,0 +1,25 @@
+##########################################################
+#                 METRIC SCORING SETTING                 #
+##########################################################
+# Common usage:
+#   python run.py --stages measure \
+#       --training_config conf/training.yaml \
+#       --inference_config conf/inference.yaml \
+#       --metrics_config conf/metrics.yaml
+#
+# exp_tag / exp_dir / inference_dir are omitted on purpose: run.py copies
+# exp_tag and exp_dir from the training config and inference_dir from the
+# inference config, so `measure` scores exactly what `infer` wrote.
+
+##########################################################
+#                    METRIC DEFINITION                   #
+##########################################################
+# BLEU rather than WER/CER: this is translation. One entry, not several --
+# espnet3 keys results by metric class path, so a second BLEU entry would
+# overwrite the first instead of adding a column.
+metrics:
+  - metric:
+      _target_: espnet3.systems.esp2_st.metrics.bleu.BLEU
+      clean_types:
+      tokenize: "13a"
+      also_lowercase: true
