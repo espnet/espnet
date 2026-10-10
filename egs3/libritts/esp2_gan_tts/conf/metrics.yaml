@@ -1,0 +1,12 @@
+##########################################################
+#          LIBRITTS VITS METRIC SCORING SETTING          #
+##########################################################
+# Merged over egs3/TEMPLATE/esp2_gan_tts/conf/metrics.yaml, which already
+# scores the valid/test sets with versa (UTMOS, DNSMOS, Whisper WER/CER and
+# speaker similarity). Nothing is overridden here.
+#
+# Quick usage:
+#   python run.py --stages measure \
+#       --training_config conf/training.yaml \
+#       --inference_config conf/inference.yaml \
+#       --metrics_config conf/metrics.yaml
