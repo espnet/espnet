@@ -1,5 +1,6 @@
 """Tests for espnet2/speechlm/dataloader/batch.py — batching algorithms."""
 
+from contextlib import contextmanager
 from types import SimpleNamespace
 from unittest.mock import patch
 
@@ -214,6 +215,57 @@ class TestSynchronizeBatches:
         ):
             result = synchronize_batches(batches)
         assert result == batches
+
+    @staticmethod
+    @contextmanager
+    def _fake_dist(counts):
+        """Fake a distributed run whose per-rank batch counts are `counts`.
+
+        The collective tensors go on the current accelerator, which this
+        CPU-only test reports as the CPU; the batch-count logic is untouched.
+        """
+
+        def _all_gather(output_list, input_tensor):
+            assert len(output_list) == len(counts)
+            for out, count in zip(output_list, counts):
+                out.fill_(count)
+
+        with (
+            patch("torch.distributed.is_initialized", return_value=True),
+            patch(
+                "espnet2.speechlm.dataloader.batch._current_accelerator_device",
+                return_value=torch.device("cpu"),
+            ),
+            patch(
+                "espnet2.speechlm.dataloader.batch.dist.get_world_size",
+                return_value=len(counts),
+            ),
+            patch(
+                "espnet2.speechlm.dataloader.batch.dist.all_gather",
+                side_effect=_all_gather,
+            ),
+        ):
+            yield
+
+    def test_sync_pads_short_rank_fully(self):
+        # A rank holding fewer than half of the target used to get
+        # `batches[-n_missing:]`, i.e. fewer than tgt_n_batches batches.
+        batches = [["a"], ["b"]]
+        with self._fake_dist([2, 5]):
+            result = synchronize_batches(batches)
+        assert len(result) == 5
+        assert result[:2] == batches
+
+    def test_sync_zero_batches_on_some_rank(self):
+        batches = [["a"], ["b"], ["c"]]
+        with self._fake_dist([3, 0]):
+            with pytest.raises(RuntimeError, match="rank with no batches"):
+                synchronize_batches(batches)
+
+    def test_sync_all_ranks_empty(self):
+        # Nothing to synchronize: no padding and no error.
+        with self._fake_dist([0, 0]):
+            assert synchronize_batches([]) == []
 
     def test_sync_initialized_but_no_accelerator(self):
         # torch.distributed is initialized but there is no accelerator to run the
