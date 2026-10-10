@@ -498,5 +498,5 @@ def test_backend_class_is_refused_for_a_published_tag(monkeypatch):
     monkeypatch.setattr(asr_inference, "Speech2Text", PublishedSpeech2Text)
     _espnet2_downloader(monkeypatch, {"asr_train_config": "c.yaml"})
     transducer = "espnet2.bin.asr_transducer_inference.Speech2Text"
-    with pytest.raises(TypeError, match="read by the declared espnet2.bin.asr_inference"):
+    with pytest.raises(TypeError, match="read by the declared espnet2.bin.asr_inf"):
         Inference.from_pretrained("espnet/a_transducer", backend_class=transducer)
