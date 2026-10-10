@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Leaderboard-style WER and RTFx of an OWSM checkpoint on a sampled test set.
+"""Leaderboard-style WER and RTFx of an OWSM checkpoint on a test set.
 
 Reads a data directory written by local/prepare_hf_asr_leaderboard.py, decodes
 it with espnet2.bin.s2t_inference.Speech2Text and scores it the way the Open
@@ -8,9 +8,11 @@ text normalizer, WER is the corpus-level word error rate from jiwer, and RTFx
 is total audio duration divided by total decoding time. Only the decode calls
 are timed; model loading and one untimed warm-up batch are excluded.
 
-With --batch_size > 1 the utterances are decoded with Speech2Text.batch_decode
-(one beam search over the whole minibatch); --sort orders them by duration
-first so that a minibatch holds utterances of similar length.
+Utterances longer than 30 s are decoded using Speech2Text.decode_long segment by
+segment, avoiding truncation. Minibatches of utterances at most 30 s are decoded
+with Speech2Text.batch_decode (one beam search over the whole minibatch);
+--sort orders them by duration first so that a minibatch holds utterances of
+similar length.
 
 Example:
     python local/eval_hf_asr_leaderboard.py --data data/lb_librispeech_test_clean \
@@ -115,6 +117,10 @@ def main() -> None:
         )
 
     data = Path(args.data)
+    info_path = data / "info.json"
+    info = json.loads(info_path.read_text()) if info_path.exists() else {}
+    skipped_too_long = info.get("skipped_too_long", 0)
+
     wav_scp = read_kaldi_file(data / "wav.scp")
     texts = read_kaldi_file(data / "text")
     durations = {k: float(v) for k, v in read_kaldi_file(data / "utt2dur").items()}
@@ -124,6 +130,7 @@ def main() -> None:
     if args.sort:
         utt_ids = sorted(utt_ids, key=lambda u: durations[u])
     wavs = [sf.read(wav_scp[u], dtype="float32")[0] for u in utt_ids]
+    n_over_30s = sum(1 for u in utt_ids if durations.get(u, 0) > 30.0)
 
     start = time.time()
     speech2text = Speech2Text.from_pretrained(
@@ -141,10 +148,33 @@ def main() -> None:
     load_s = time.time() - start
     n_params = sum(p.numel() for p in speech2text.s2t_model.parameters())
 
+    def decode_single(wav):
+        dur = len(wav) / 16000.0
+        if dur > 30.0:
+            try:
+                segments = speech2text.decode_long(
+                    wav,
+                    batch_size=args.batch_size,
+                    lang_sym="<eng>",
+                    task_sym="<asr>",
+                )
+                text = " ".join(seg[2].strip() for seg in segments if seg[2].strip())
+                return text
+            except Exception as e:
+                logging.warning(
+                    f"decode_long failed on {dur:.1f}s utterance ({e}); "
+                    "falling back to standard single window"
+                )
+                return speech2text(torch.from_numpy(wav))[0][3]
+        return speech2text(torch.from_numpy(wav))[0][3]
+
     def decode(batch):
         """Return the 1-best text (without special tokens) of each utterance."""
         if len(batch) == 1:
-            return [speech2text(torch.from_numpy(batch[0]))[0][3]]
+            return [decode_single(batch[0])]
+        # Utterances > 30s are decoded via decode_long segment by segment
+        if any(len(w) / 16000.0 > 30.0 for w in batch):
+            return [decode_single(w) for w in batch]
         speech = torch.zeros(len(batch), max(len(w) for w in batch))
         for i, wav in enumerate(batch):
             speech[i, : len(wav)] = torch.from_numpy(wav)
@@ -174,6 +204,8 @@ def main() -> None:
         "model_tag": args.model_tag,
         "data": data.name,
         "n": len(utt_ids),
+        "n_over_30s": n_over_30s,
+        "skipped_too_long": skipped_too_long,
         "batch_size": args.batch_size,
         "beam_size": args.beam_size,
         "ctc_weight": args.ctc_weight,
@@ -209,10 +241,11 @@ def main() -> None:
             }
             f.write(json.dumps(record) + "\n")
     logging.info(json.dumps(summary))
+    skip_note = f" (skipped {skipped_too_long}>30s)" if skipped_too_long > 0 else ""
     print(
         f"| {data.name} | {args.model_tag} | bs={args.batch_size} beam={args.beam_size}"
         f" maxlenratio={args.maxlenratio:g}{' sorted' if args.sort else ''}"
-        f"{' int8' if args.quantize else ''} | {summary['wer']:.2f} | "
+        f"{' int8' if args.quantize else ''}{skip_note} | {summary['wer']:.2f} | "
         f"{summary['rtfx']:.2f} | {summary['sec_per_utt']:.2f} |"
     )
 

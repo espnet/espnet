@@ -1,19 +1,34 @@
 #!/usr/bin/env python3
-"""Sample a small Open ASR Leaderboard test set into a Kaldi-style data dir.
+"""Prepare an Open ASR Leaderboard test set into a Kaldi-style data dir.
 
 The Hugging Face Open ASR Leaderboard (hf-audio/open-asr-leaderboard) stores
-each test set sorted by length, longest first, so taking "the first N rows"
-would give the N longest utterances. This script instead streams the split,
-takes a seeded shuffle over a buffer of rows and keeps the first N that are
-at most --max_dur seconds long (OWSM pads or trims every input to 30 s).
+each test set sorted by length, longest first. For full evaluations (--n 0 or
+--all), this script streams the complete split without sampling or duration
+skipping, preserving all utterances for leaderboard-comparable evaluation.
+
+For quick smoke tests (--n > 0), this script streams the split, takes a seeded
+shuffle over a buffer of rows, and keeps the first N utterances that are at most
+--max_dur seconds long (OWSM pads or trims single windows to 30 s).
+
 References that are empty or equal to "ignore time segment in scoring" are
-dropped, as in the leaderboard's own data loader.
+dropped, matching the leaderboard's own data loader.
 
 The output directory contains wav.scp, text, utt2dur, utt2spk, spk2utt and an
-info.json that records how the sample was drawn, so that the set can be used
-both by local/eval_hf_asr_leaderboard.py and by the regular recipe stages.
+info.json that records metadata and statistics (including utterances > 30 s),
+so that the set can be used both by local/eval_hf_asr_leaderboard.py and by the
+regular recipe stages.
 
-Example:
+Supported configs of hf-audio/open-asr-leaderboard:
+    ami, ami_cleaned, common_voice, earnings22, gigaspeech, gigaspeech_cleaned,
+    librispeech (splits: test.clean, test.other), spgispeech, tedlium, voxpopuli,
+    voxpopuli_cleaned_aa, urgent2024, urgent2024_clean
+
+Examples:
+    # Full split evaluation (all utterances, no sampling)
+    python local/prepare_hf_asr_leaderboard.py --dataset librispeech \
+        --split test.clean --all --out data/lb_librispeech_test_clean
+
+    # Quick 100-utterance sample smoke test
     python local/prepare_hf_asr_leaderboard.py --dataset librispeech \
         --split test.clean --n 100 --out data/lb_librispeech_test_clean
 """
@@ -38,6 +53,22 @@ IGNORE_REF = "ignore time segment in scoring"
 DEFAULT_REVISION = "b6bdcd0beb34f8975dc659796176d88f43aff502"
 TARGET_SR = 16000
 
+LEADERBOARD_CONFIGS = {
+    "ami": ["test"],
+    "ami_cleaned": ["test"],
+    "common_voice": ["test"],
+    "earnings22": ["test"],
+    "gigaspeech": ["test"],
+    "gigaspeech_cleaned": ["test"],
+    "librispeech": ["test.clean", "test.other"],
+    "spgispeech": ["test"],
+    "tedlium": ["test"],
+    "voxpopuli": ["test"],
+    "voxpopuli_cleaned_aa": ["test"],
+    "urgent2024": ["test"],
+    "urgent2024_clean": ["test"],
+}
+
 
 def get_parser() -> argparse.ArgumentParser:
     """Build the argument parser."""
@@ -47,10 +78,20 @@ def get_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--dataset",
         required=True,
-        help="leaderboard config, e.g. librispeech, ami_cleaned, earnings22",
+        help="leaderboard config, e.g. " + ", ".join(sorted(LEADERBOARD_CONFIGS.keys())),
     )
-    parser.add_argument("--split", default="test", help="e.g. test, test.clean")
-    parser.add_argument("--n", type=int, default=100, help="utterances to keep")
+    parser.add_argument("--split", default="test", help="e.g. test, test.clean, test.other")
+    parser.add_argument(
+        "--n",
+        type=int,
+        default=100,
+        help="utterances to keep; 0 means keep the whole split with no sampling",
+    )
+    parser.add_argument(
+        "--all",
+        action="store_true",
+        help="keep the whole split with no sampling (equivalent to --n 0)",
+    )
     parser.add_argument("--seed", type=int, default=0, help="shuffle seed")
     parser.add_argument(
         "--buffer", type=int, default=3000, help="shuffle buffer size in rows"
@@ -58,8 +99,9 @@ def get_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--max_dur",
         type=float,
-        default=30.0,
-        help="skip utterances longer than this many seconds",
+        default=None,
+        help="skip utterances longer than this many seconds (default: 30.0 for sampled "
+        "runs; 0.0 / no limit for full runs so utterances over 30s are preserved)",
     )
     parser.add_argument(
         "--revision",
@@ -98,6 +140,13 @@ def main() -> None:
     for name in ("httpx", "huggingface_hub"):
         logging.getLogger(name).setLevel(logging.WARNING)
 
+    if args.all or args.n <= 0:
+        args.n = 0
+        if args.max_dur is None:
+            args.max_dur = 0.0
+    elif args.max_dur is None:
+        args.max_dur = 30.0
+
     from datasets import Audio, load_dataset
 
     out = Path(args.out)
@@ -112,7 +161,8 @@ def main() -> None:
         streaming=True,
     )
     dataset = dataset.cast_column("audio", Audio(decode=False))
-    dataset = dataset.shuffle(seed=args.seed, buffer_size=args.buffer)
+    if args.n > 0:
+        dataset = dataset.shuffle(seed=args.seed, buffer_size=args.buffer)
 
     prefix = re.sub(r"[^A-Za-z0-9]+", "_", f"{args.dataset}_{args.split}")
     rows = []
@@ -126,19 +176,25 @@ def main() -> None:
             continue
         wav = decode_audio(sample["audio"])
         duration = len(wav) / TARGET_SR
-        if duration > args.max_dur:
+        if args.max_dur > 0 and duration > args.max_dur:
             skipped_long += 1
             continue
         orig_id = str(sample.get("id") or sample.get("audio_id") or len(rows))
         orig_id = re.sub(r"[^A-Za-z0-9_.-]+", "_", orig_id)[:60]
-        utt_id = f"{prefix}_{len(rows):04d}_{orig_id}"
+        utt_id = f"{prefix}_{len(rows):06d}_{orig_id}"
         wav_path = wav_dir / f"{utt_id}.wav"
         sf.write(str(wav_path), wav, TARGET_SR, subtype="PCM_16")
         rows.append((utt_id, wav_path.resolve(), duration, ref))
-        if len(rows) % 20 == 0:
-            logging.info(f"{len(rows)}/{args.n} kept ({time.time() - start:.0f}s)")
-        if len(rows) >= args.n:
-            break
+        if args.n > 0:
+            if len(rows) % 20 == 0:
+                logging.info(f"{len(rows)}/{args.n} kept ({time.time() - start:.0f}s)")
+            if len(rows) >= args.n:
+                break
+        else:
+            if len(rows) % 100 == 0:
+                logging.info(
+                    f"{len(rows)} kept (seen {seen}, {time.time() - start:.0f}s)"
+                )
 
     if not rows:
         logging.error("no utterance kept; check the dataset and split names")
@@ -155,15 +211,18 @@ def main() -> None:
         (out / name).write_text("\n".join(lines) + "\n")
 
     durations = np.array([r[2] for r in rows])
+    n_over_30s = int(np.sum(durations > 30.0))
     info = {
         "dataset": args.dataset,
         "split": args.split,
         "revision": args.revision,
+        "n_requested": args.n,
         "n": len(rows),
-        "seed": args.seed,
-        "buffer": args.buffer,
+        "seed": args.seed if args.n > 0 else None,
+        "buffer": args.buffer if args.n > 0 else None,
         "max_dur": args.max_dur,
         "rows_seen": seen,
+        "n_over_30s": n_over_30s,
         "skipped_too_long": skipped_long,
         "skipped_empty_ref": skipped_empty,
         "audio_min": round(float(durations.sum()) / 60, 2),
