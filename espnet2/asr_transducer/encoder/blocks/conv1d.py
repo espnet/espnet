@@ -183,10 +183,15 @@ class Conv1d(torch.nn.Module):
             mask: Mask of output sequences. (B, sub(T))
 
         """
-        if self.padding != 0:
-            mask = mask[:, : -self.padding]
+        # Each utterance keeps the frames that its own (unpadded) length produces.
+        lengths = (mask.eq(0).sum(1) - self.padding - 1) // self.stride + 1
+        lengths = lengths.clamp(min=0)
 
-        return mask[:, :: self.stride]
+        size = (mask.size(1) - self.padding - 1) // self.stride + 1
+
+        return torch.arange(size, device=mask.device).unsqueeze(0) >= (
+            lengths.unsqueeze(1)
+        )
 
     def create_new_pos_enc(self, pos_enc: torch.Tensor) -> torch.Tensor:
         """Create new positional embedding vector.

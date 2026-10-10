@@ -35,6 +35,20 @@ class CharTokenizer(AbsTokenizer):
             if nonsplit_symbols is None
             else set([sym.split(":")[0] for sym in nonsplit_symbols])
         )
+        # An empty symbol, e.g. from a blank line of the file, matches at every
+        # position and text2tokens would never advance.
+        self.non_linguistic_symbols.discard("")
+        self.nonsplit_symbols.discard("")
+        # A shorter symbol can be a prefix of a longer one. Set order is not
+        # stable, so the longer symbol is tried first. The sets stay fixed
+        # after init.
+        self._ordered_symbols = tuple(
+            sorted(
+                self.non_linguistic_symbols.union(self.nonsplit_symbols),
+                key=len,
+                reverse=True,
+            )
+        )
 
     def __repr__(self):
         return (
@@ -49,7 +63,7 @@ class CharTokenizer(AbsTokenizer):
         removed = False
         tokens = []
         while len(line) != 0:
-            for w in self.non_linguistic_symbols.union(self.nonsplit_symbols):
+            for w in self._ordered_symbols:
                 if line.startswith(w):
                     if (
                         w in self.nonsplit_symbols

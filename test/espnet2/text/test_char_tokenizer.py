@@ -37,3 +37,30 @@ def test_remove_non_linguistic_symbols_keeps_one_space():
     assert tokenizer.text2tokens("hello <noise><noise> world") == expected
     # A symbol inside a word leaves no space behind.
     assert tokenizer.text2tokens("hel<noise>lo world") == expected
+
+
+@pytest.mark.execution_timeout(5)
+@pytest.mark.parametrize("from_file", [True, False])
+@pytest.mark.parametrize("remove", [True, False])
+def test_empty_non_linguistic_symbol(tmp_path, from_file, remove):
+    if from_file:
+        symbols = tmp_path / "nlsyms.txt"
+        symbols.write_text("[foo]\n\n \t\n", encoding="utf-8")
+    else:
+        symbols = ["[foo]", ""]
+    tokenizer = CharTokenizer(
+        non_linguistic_symbols=symbols, remove_non_linguistic_symbols=remove
+    )
+    expected = ["a", "b"] if remove else ["a", "[foo]", "b"]
+    assert tokenizer.text2tokens("a[foo]b") == expected
+
+
+@pytest.mark.execution_timeout(5)
+def test_empty_nonsplit_symbol():
+    tokenizer = CharTokenizer(nonsplit_symbols=["", "[foo]"])
+    assert tokenizer.text2tokens("a[foo]b") == ["a", "[foo]", "b"]
+
+
+def test_longer_symbol_wins_over_its_prefix():
+    tokenizer = CharTokenizer(non_linguistic_symbols=["<unk>", "<"])
+    assert tokenizer.text2tokens("<unk>a") == ["<unk>", "a"]
