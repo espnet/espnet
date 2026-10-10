@@ -4,10 +4,10 @@ from typing import Optional, Tuple, Union
 import humanfriendly
 import numpy as np
 import torch
-from torch_complex.tensor import ComplexTensor
 from typeguard import typechecked
 
 from espnet2.asr.frontend.abs_frontend import AbsFrontend
+from espnet2.enh.layers.complex_utils import complex_tensor
 from espnet2.layers.log_mel import LogMel
 from espnet2.layers.stft import Stft
 from espnet2.legacy.nets.pytorch_backend.frontends.frontend import Frontend
@@ -86,11 +86,11 @@ class DefaultFrontend(AbsFrontend):
         if self.stft is not None:
             input_stft, feats_lens = self._compute_stft(input, input_lengths)
         else:
-            input_stft = ComplexTensor(input[..., 0], input[..., 1])
+            input_stft = complex_tensor(input[..., 0], input[..., 1])
             feats_lens = input_lengths
         # 2. [Option] Speech enhancement
         if self.frontend is not None:
-            assert isinstance(input_stft, ComplexTensor), type(input_stft)
+            assert torch.is_complex(input_stft), type(input_stft)
             # input_stft: (Batch, Length, [Channel], Freq)
             input_stft, _, mask = self.frontend(input_stft, feats_lens)
 
@@ -106,7 +106,7 @@ class DefaultFrontend(AbsFrontend):
                 input_stft = input_stft[:, :, 0, :]
 
         # 4. STFT -> Power spectrum
-        # h: ComplexTensor(B, T, F) -> torch.Tensor(B, T, F)
+        # h: torch.Tensor(B, T, F) -> torch.Tensor(B, T, F)
         input_power = input_stft.real**2 + input_stft.imag**2
 
         # 5. Feature transform e.g. Stft -> Log-Mel-Fbank
@@ -125,7 +125,7 @@ class DefaultFrontend(AbsFrontend):
         # "2" refers to the real/imag parts of Complex
         assert input_stft.shape[-1] == 2, input_stft.shape
 
-        # Change torch.Tensor to ComplexTensor
+        # Change torch.Tensor to complex tensor
         # input_stft: (..., F, 2) -> (..., F)
-        input_stft = ComplexTensor(input_stft[..., 0], input_stft[..., 1])
+        input_stft = complex_tensor(input_stft[..., 0], input_stft[..., 1])
         return input_stft, feats_lens

@@ -1,7 +1,6 @@
-from typing import Optional, Tuple, Union
+from typing import Optional, Tuple
 
 import torch
-from torch_complex.tensor import ComplexTensor
 from typeguard import typechecked
 
 from espnet2.enh.layers.complex_utils import to_complex
@@ -120,12 +119,12 @@ class Stft(torch.nn.Module, InversibleInterface):
         return output, olens
 
     def inverse(
-        self, input: Union[torch.Tensor, ComplexTensor], ilens: torch.Tensor = None
+        self, input: torch.Tensor, ilens: torch.Tensor = None
     ) -> Tuple[torch.Tensor, Optional[torch.Tensor]]:
         """Inverse STFT.
 
         Args:
-            input: Tensor(batch, T, F, 2) or ComplexTensor(batch, T, F)
+            input: Tensor(batch, T, F, 2) or complex tensor (batch, T, F)
             ilens: (batch,)
         Returns:
             wavs: (batch, samples)

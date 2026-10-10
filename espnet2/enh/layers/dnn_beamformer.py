@@ -5,11 +5,10 @@ from typing import List, Optional, Tuple, Union
 
 import torch
 from torch.nn import functional as F
-from torch_complex.tensor import ComplexTensor
 
 import espnet2.enh.layers.beamformer as bf_v1
 import espnet2.enh.layers.beamformer_th as bf_v2
-from espnet2.enh.layers.complex_utils import stack, to_double, to_float
+from espnet2.enh.layers.complex_utils import as_native, stack, to_double, to_float
 from espnet2.enh.layers.mask_estimator import MaskEstimator
 
 BEAMFORMER_TYPES = (
@@ -160,11 +159,15 @@ class DNN_Beamformer(torch.nn.Module):
 
     def forward(
         self,
-        data: Union[torch.Tensor, ComplexTensor],
+        data: torch.Tensor,
         ilens: torch.LongTensor,
         powers: Optional[List[torch.Tensor]] = None,
         oracle_masks: Optional[List[torch.Tensor]] = None,
-    ) -> Tuple[Union[torch.Tensor, ComplexTensor], torch.LongTensor, torch.Tensor]:
+    ) -> Tuple[
+        Union[torch.Tensor, List[torch.Tensor]],
+        torch.LongTensor,
+        Union[torch.Tensor, List[torch.Tensor]],
+    ]:
         """DNN_Beamformer forward function.
 
         Notation:
@@ -174,16 +177,17 @@ class DNN_Beamformer(torch.nn.Module):
             F: Freq
 
         Args:
-            data (torch.complex64/ComplexTensor): (B, T, C, F)
+            data (torch.complex64): (B, T, C, F)
             ilens (torch.Tensor): (B,)
             powers (List[torch.Tensor] or None): used for wMPDR or WPD (B, F, T)
             oracle_masks (List[torch.Tensor] or None): oracle masks (B, F, C, T)
                 if not None, oracle_masks will be used instead of self.mask
         Returns:
-            enhanced (torch.complex64/ComplexTensor): (B, T, F)
+            enhanced (torch.complex64): (B, T, F)
             ilens (torch.Tensor): (B,)
             masks (torch.Tensor): (B, T, C, F)
         """
+        data = as_native(data)
         # data (B, T, C, F) -> (B, F, C, T)
         data = data.permute(0, 3, 2, 1)
         data_d = to_double(data)
@@ -367,22 +371,22 @@ class DNN_Beamformer(torch.nn.Module):
         """Beamforming with the provided statistics.
 
         Args:
-            data (torch.complex64/ComplexTensor): (B, F, C, T)
+            data (torch.complex64): (B, F, C, T)
             ilens (torch.Tensor): (B,)
-            psd_n (torch.complex64/ComplexTensor):
+            psd_n (torch.complex64):
                 Noise covariance matrix for MVDR (B, F, C, C)
                 Observation covariance matrix for MPDR/wMPDR (B, F, C, C)
                 Stacked observation covariance for WPD (B,F,(btaps+1)*C,(btaps+1)*C)
-            psd_speech (torch.complex64/ComplexTensor):
+            psd_speech (torch.complex64):
                 Speech covariance matrix (B, F, C, C)
-            psd_distortion (torch.complex64/ComplexTensor):
+            psd_distortion (torch.complex64):
                 Noise covariance matrix (B, F, C, C)
-            rtf_mat (torch.complex64/ComplexTensor):
+            rtf_mat (torch.complex64):
                 RTF matrix (B, F, C, num_spk)
             spk (int): speaker index
         Return:
-            enhanced (torch.complex64/ComplexTensor): (B, F, T)
-            ws (torch.complex64/ComplexTensor): (B, F) or (B, F, (btaps+1)*C)
+            enhanced (torch.complex64): (B, F, T)
+            ws (torch.complex64): (B, F) or (B, F, (btaps+1)*C)
         """
         # u: (B, C)
         if self.ref_channel < 0:
@@ -547,12 +551,12 @@ class DNN_Beamformer(torch.nn.Module):
         return enhanced.to(dtype=data.dtype), ws.to(dtype=data.dtype)
 
     def predict_mask(
-        self, data: Union[torch.Tensor, ComplexTensor], ilens: torch.LongTensor
+        self, data: torch.Tensor, ilens: torch.LongTensor
     ) -> Tuple[Tuple[torch.Tensor, ...], torch.LongTensor]:
         """Predict masks for beamforming.
 
         Args:
-            data (torch.complex64/ComplexTensor): (B, T, C, F), double precision
+            data (torch.complex64): (B, T, C, F), double precision
             ilens (torch.Tensor): (B,)
         Returns:
             masks (torch.Tensor): (B, T, C, F)
@@ -573,14 +577,14 @@ class AttentionReference(torch.nn.Module):
 
     def forward(
         self,
-        psd_in: Union[torch.Tensor, ComplexTensor],
+        psd_in: torch.Tensor,
         ilens: torch.LongTensor,
         scaling: float = 2.0,
     ) -> Tuple[torch.Tensor, torch.LongTensor]:
         """Attention-based reference forward function.
 
         Args:
-            psd_in (torch.complex64/ComplexTensor): (B, F, C, C)
+            psd_in (torch.complex64): (B, F, C, C)
             ilens (torch.Tensor): (B,)
             scaling (float):
         Returns:

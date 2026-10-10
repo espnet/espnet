@@ -1,6 +1,5 @@
 import pytest
 import torch
-from torch_complex import ComplexTensor
 
 from espnet2.enh.separator.dpcl_separator import DPCLSeparator
 
@@ -30,7 +29,7 @@ def test_dpcl_separator_forward_backward_complex(
 
     real = torch.rand(2, 10, input_dim)
     imag = torch.rand(2, 10, input_dim)
-    x = ComplexTensor(real, imag)
+    x = torch.complex(real, imag)
     x_lens = torch.tensor([10, 8], dtype=torch.long)
 
     masked, flens, others = model(x, ilens=x_lens)

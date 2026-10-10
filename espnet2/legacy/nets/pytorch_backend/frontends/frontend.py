@@ -5,8 +5,8 @@ from typing import List, Optional, Tuple, Union
 import numpy
 import torch
 import torch.nn as nn
-from torch_complex.tensor import ComplexTensor
 
+from espnet2.enh.layers.complex_utils import as_native
 from espnet2.enh.layers.dnn_beamformer import DNN_Beamformer
 from espnet2.enh.layers.dnn_wpe import DNN_WPE
 
@@ -89,9 +89,10 @@ class Frontend(nn.Module):
             self.beamformer = None
 
     def forward(
-        self, x: ComplexTensor, ilens: Union[torch.LongTensor, numpy.ndarray, List[int]]
-    ) -> Tuple[ComplexTensor, torch.LongTensor, Optional[ComplexTensor]]:
+        self, x: torch.Tensor, ilens: Union[torch.LongTensor, numpy.ndarray, List[int]]
+    ) -> Tuple[torch.Tensor, torch.LongTensor, Optional[torch.Tensor]]:
         """Calculate frontend forward propagation."""
+        x = as_native(x)
         assert len(x) == len(ilens), (len(x), len(ilens))
         # (B, T, F) or (B, T, C, F)
         if x.dim() not in (3, 4):
