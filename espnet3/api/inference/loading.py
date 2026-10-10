@@ -485,9 +485,18 @@ def load(
         >>> model = load("espnet/some_pack")
         >>> model = load("exp/train/model_pack", device="cuda:0")
         >>> model = load("exp/old_pack", system="esp2_asr")   # older meta.yaml
+        >>> model = load("espnet/an_espnet2_asr_model", system="asr")
     """
     if system is None:
-        tag_or_dir = locate_pack(tag_or_dir)
+        try:
+            tag_or_dir = locate_pack(tag_or_dir)
+        except ModelTagError as e:
+            # a model published without a bundle has no meta.yaml to name
+            # its system; only the caller can
+            raise ModelTagError(
+                f"{e}. Pass system=<name> for a model published without one, "
+                "such as system='asr' for an ESPnet2 ASR model."
+            ) from e
         system = read_meta(tag_or_dir).get("system")
         if not system:
             # no system to serve it: the bundle must build an Inference itself

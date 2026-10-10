@@ -22,7 +22,10 @@ That class is built three ways, all ending in ``self.backend``:
 
 - ``Inference.from_pretrained(tag_or_dir)``: :func:`load_model` builds
   the backend from the bundle's ``conf/inference.yaml`` ``model``, without
-  any provider and without importing bundled code.
+  any provider and without importing bundled code. A Hub tag that is no
+  bundle but a model the backend's own toolkit published (an ESPnet2
+  ``Speech2Text`` on the Hub) goes to the backend class's own
+  ``from_pretrained``.
 - ``Inference(asr_train_config=..., asr_model_file=...)``: the backend's own
   arguments, which is how ``inference.yaml``'s ``model`` names the class
   for the ``infer`` stage (the provider adds ``device``).
@@ -149,7 +152,7 @@ class BackendInference(InferenceAPI):
     def from_pretrained(
         cls, tag_or_dir: str | Path, *, device: str = "cpu", **kwargs: Any
     ) -> "BackendInference":
-        """Load a ``pack_model`` bundle by directory or Hub tag.
+        """Load a ``pack_model`` bundle, or a model the backend publishes.
 
         The bundle's ``conf/inference.yaml`` says how to build the model;
         :func:`load_model` builds its ``model`` on ``device``, without any
@@ -177,13 +180,18 @@ class BackendInference(InferenceAPI):
         Hub - goes to the backend class's own ``from_pretrained`` when it
         has one, with the same ``device`` and overrides, and the backend it
         returns is wrapped. That is the whole of it: which tags a backend
-        can read is the backend's to say, not this class's.
+        can read is the backend's to say, not this class's. Only the
+        declared ``backend_class`` reads such a tag: a ``backend_class``
+        override is for a bundle's ``conf/inference.yaml``, and is refused
+        here.
 
         Raises:
             ModelTagError: If the tag is neither a ``pack_model`` bundle nor
                 a model the backend class reads, or the bundle builds an
                 ``Inference`` of another class.
             ValueError: If the bundle's model needs the bundle's own code.
+            TypeError: If ``backend_class`` is given for a tag that is no
+                bundle.
 
         Examples:
             >>> Inference.from_pretrained("exp/train/model_pack")
@@ -196,6 +204,7 @@ class BackendInference(InferenceAPI):
         try:
             pack = locate_pack(tag_or_dir)
         except ModelTagError:
+            # the download is in the cache now; the backend reads it from there
             backend = cls._published_backend(str(tag_or_dir), device, kwargs)
             if backend is None:
                 raise
@@ -219,11 +228,22 @@ class BackendInference(InferenceAPI):
 
         Goes through ESPnet2's ``build_pretrained``, so a tag for another
         kind of model is the same ``ModelTagError`` the command line and
-        ``espnet.load`` give.
+        ``espnet.load`` give. The declared backend class does the reading;
+        a ``backend_class`` override among ``overrides`` is refused rather
+        than passed on to a constructor that does not take it.
+
+        Raises:
+            TypeError: If ``overrides`` names a ``backend_class``.
         """
         backend_type = cls._backend_type() if cls.backend_class else None
         if not callable(getattr(backend_type, "from_pretrained", None)):
             return None
+        if "backend_class" in overrides:
+            raise TypeError(
+                f"backend_class={overrides['backend_class']!r}: a tag the backend "
+                f"publishes is read by the declared {cls.backend_class}; another "
+                "backend is picked in a pack_model bundle's conf/inference.yaml"
+            )
         from espnet2.utils.pretrained import build_pretrained
 
         return build_pretrained(

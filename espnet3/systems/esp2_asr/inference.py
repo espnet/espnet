@@ -21,6 +21,12 @@ Examples:
         >>> from espnet3.api.inference import load
         >>> load("espnet/some_asr_pack", device="cuda:0")("utt.wav")["text"]
 
+    An ESPnet2 ASR model published without a bundle has no ``meta.yaml``
+    to name its system, so the caller does; ``Speech2Text.from_pretrained``
+    reads it, and the transducer ``Speech2Text`` is not reached this way::
+
+        >>> load("espnet/some_espnet2_asr_model", system="asr")
+
     Any ``Speech2Text`` argument replaces the packed one, as ESPnet2's
     ``from_pretrained`` takes it - decoding settings or anything else::
 
@@ -59,7 +65,7 @@ class Inference(BackendInference):
     :class:`BackendInference`):
 
     - ``Inference.from_pretrained(tag_or_dir, device=...)`` from a
-      ``pack_model`` bundle or Hub tag;
+      ``pack_model`` bundle, or an ESPnet2 ASR model on the Hub;
     - ``Inference(asr_train_config=..., asr_model_file=..., beam_size=...)``
       from ``Speech2Text``'s own arguments, which is what ``inference.yaml``
       does, plus ``backend_class=`` for the transducer ``Speech2Text``;
