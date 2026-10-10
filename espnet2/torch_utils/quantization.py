@@ -26,6 +26,8 @@ def ensure_quantized_engine() -> str:
 
 
 def quantize_dynamic(*args, **kwargs):
-    """``torch.quantization.quantize_dynamic`` after :func:`ensure_quantized_engine`."""
+    """``torch.ao.quantization.quantize_dynamic`` after :func:`ensure_quantized_engine`."""
     ensure_quantized_engine()
+    if hasattr(torch, "ao") and hasattr(torch.ao, "quantization"):
+        return torch.ao.quantization.quantize_dynamic(*args, **kwargs)
     return torch.quantization.quantize_dynamic(*args, **kwargs)
