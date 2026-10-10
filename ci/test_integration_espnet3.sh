@@ -79,3 +79,29 @@ python3 "${cwd}/ci/check_espnet3_parallel_workers.py" \
 rm -rf exp data
 
 cd "${cwd}" || exit
+
+cd ./egs3/mini_an4/beats || exit
+echo "==== [ESPnet3] BEATs ===="
+source path.sh
+# Iteration 0: random-projection targets -> encoder, then codebook usage and
+# the model bundle.
+${python} run.py \
+    --stages pretrain measure pack_model \
+    --training_config conf/training.yaml \
+    --inference_config conf/inference.yaml \
+    --metrics_config conf/metrics.yaml \
+    --publication_config conf/publication.yaml
+test -f exp/beats_iter0_tiny/model_pack/exp/beats_iter0_tiny/beats_encoder_iter0.pt
+# Iteration 1: tokenizer distilled from the iteration-0 encoder -> encoder
+${python} run.py \
+    --stages pretrain measure \
+    --training_config conf/training_iter1.yaml \
+    --train_tokenizer_config conf/training_tokenizer.yaml \
+    --inference_config conf/inference.yaml \
+    --metrics_config conf/metrics.yaml
+test -f exp/beats_tokenizer_iter1_tiny/beats_tokenizer_iter1.pt
+test -f exp/beats_iter1_tiny/beats_encoder_iter1.pt
+test -f exp/beats_iter1_tiny/targets/metrics.json
+rm -rf exp data downloads
+
+cd "${cwd}" || exit
