@@ -2,9 +2,76 @@
 #                 METRIC SCORING SETTING                 #
 ##########################################################
 # Quick usage:
-#   python run.py --stages measure --metrics_config conf/metrics.yaml
+#   python run.py --stages measure --training_config conf/training.yaml \
+#       --inference_config conf/inference.yaml --metrics_config conf/metrics.yaml
 #
-# Shared default merged under every F5-TTS recipe's metrics config.
+# Shared default merged under every F5-TTS recipe's metrics config: the
+# F5-TTS evaluation protocol (WER, speaker similarity, UTMOS), scored by
+# VERSA. A recipe names its test sets under `dataset.test` (the `name` of
+# each `dataset.test` entry in its inference config) and changes nothing
+# else, unless its eval set lacks a column read below.
+#
+# Scoring aligned with the official F5-TTS eval_librispeech_test_clean.py and
+# eval_utmos.py, as closely as VERSA allows.
+#
+#   WER   official: faster-whisper large-v3, compute_type float16, beam_size 5,
+#                   language forced to English, then lowercase + delete
+#                   punctuation; the reported WER is the MEAN of the
+#                   per-utterance WERs (eval_librispeech_test_clean.py).
+#         here:     VERSA fwhisper_wer, which wraps faster-whisper itself, so
+#                   the decoder is identical (language auto-detected). Two
+#                   deviations: text_cleaner whisper_basic is Whisper's
+#                   BasicTextNormalizer, which replaces punctuation with a
+#                   SPACE ("don't" -> "don t", two words) where the official
+#                   script deletes it; and VersaMetric reports the
+#                   corpus-level WER (edit counts summed over all utterances,
+#                   then divided), not the mean of per-utterance WERs. On the
+#                   same hypotheses the two conventions differ by a few tenths
+#                   of a point, so the value is NOT comparable with the paper.
+#         REQUIRES faster-whisper, which is NOT installed by default:
+#         espnet's tools/installers/install_versa.sh installs VERSA with the
+#         "[audio]" extra only. Run VERSA's own tools/install_fwhisper.sh
+#         inside the cloned tools/versa checkout before the measure stage.
+#         That installer also clones VERSA from main unpinned, so if
+#         fwhisper_wer is unrecognised, the checkout predates the metric and
+#         needs updating.
+#
+#   UTMOS official: UTMOS22 strong learner via torch.hub.
+#         here:     VERSA pseudo_mos with the utmos predictor, which is the
+#                   same model. dnsmos is deliberately NOT requested: it is not
+#                   part of the official protocol.
+#
+#   SIM   official: ECAPA_TDNN_SMALL(feat_dim=1024, feat_type="wavlm_large")
+#                   with UniSpeech's wavlm_large_finetune.pth, cosine
+#                   similarity at 16 kHz.
+#         here:     KNOWN DEVIATION. VERSA's speaker metric chooses a backend
+#                   from the model tag (resolve_speaker_backend in
+#                   versa/utterance_metrics/speaker.py): an "espnet/" tag
+#                   loads through espnet2.bin.spk_inference.Speech2Embedding,
+#                   and any other tag through HuggingFace
+#                   AutoModelForAudioXVector. The official
+#                   wavlm_large_finetune.pth fits NEITHER backend, because of
+#                   what that file is: a raw ECAPA_TDNN_SMALL state dict, not
+#                   a HuggingFace AutoModelForAudioXVector repo. So VERSA
+#                   still cannot load the official checkpoint, even though it
+#                   is not restricted to ESPnet-SPK models.
+#                   voxcelebs12_ecapa_wavlm_joint is the nearest match,
+#                   sharing the ECAPA architecture and WavLM-large front-end
+#                   but trained differently.
+#                   CONSEQUENCE: SIM here tracks relative quality across
+#                   checkpoints correctly, but its absolute scale is NOT
+#                   comparable to arXiv 2410.06885 Table 9. Paper-comparable
+#                   SIM still requires running the official scorer externally.
+#
+#
+# `infer` writes only what the model produced (`wav.scp`). The two scoring
+# references are columns of the test set, read as `dataset:<column>`:
+# `ref_wav_path`, the path of the prompt the sample was synthesized from, so
+# the speaker similarity is generated-vs-prompt (the SIM-o definition) by
+# construction, and `text`, the target transcript the WER scores against.
+# An eval dataset for this template therefore serves `text`,
+# `reference_speech`, `reference_text` (the Inference's inputs), `utt_id`
+# and `ref_wav_path`.
 
 recipe_dir: .
 exp_tag:
@@ -13,3 +80,26 @@ exp_dir: ${recipe_dir}/exp/${exp_tag}
 dataset:
 
 metrics:
+  - metric:
+      _target_: espnet3.systems.f5tts.metrics.versa.VersaMetric
+      score_config:
+        - name: fwhisper_wer
+          model_tag: large-v3
+          beam_size: 5
+          compute_type: float16
+          text_cleaner: whisper_basic
+        - name: speaker
+          model_tag: espnet/voxcelebs12_ecapa_wavlm_joint
+        - name: pseudo_mos
+          predictor_types: [utmos]
+          predictor_args:
+            utmos:
+              fs: 16000
+      wav_key:  wav
+      ref_key:  ref
+      text_key: text
+      use_gpu:  true
+    inputs:
+      wav:  wav                   # the model's output -> <test_name>/wav.scp
+      ref:  dataset:ref_wav_path  # the prompt wav, a column of the test set
+      text: dataset:text          # the target transcript, another column

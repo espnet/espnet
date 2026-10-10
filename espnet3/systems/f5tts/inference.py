@@ -1,11 +1,19 @@
-"""F5-TTS inference engine.
+"""F5-TTS inference: the engine and its :mod:`espnet3.api.inference` contract.
 
-Built by a recipe's ``infer`` stage
-(``model._target_: espnet3.systems.f5tts.inference.F5TTSInference``).
-For each test sample the runner calls ``model(**{key: data[key] for key in input_key})``
-with ``input_key: [text, reference_speech, reference_text]`` (the cross- and
-same-speaker protocol) and feeds the result to ``src.inference.build_output``
-(which needs a ``"wav"`` entry).
+:class:`F5TTSInference` is the engine: it loads a trained model and the
+vocoder and synthesizes waveforms. :class:`Inference` wraps it behind the
+inference contract every ESPnet3 system ships, which is what
+``espnet3.api.inference.load`` returns for a packed ``f5tts`` bundle.
+
+A recipe's ``infer`` stage names :class:`Inference` as its ``model``. The
+runner then reads the declared inputs (``text``, ``reference_speech`` and
+``reference_text``) out of each test sample by name and writes the
+declared ``wav`` output as ``wav.scp``; no ``input_key`` or ``output_fn`` is
+involved. The bare engine can still be named instead
+(``model._target_: ...F5TTSInference``); the recipe then has to give
+``input_key``, and ``output_artifacts`` with ``wav: {type: wav, sample_rate:
+24000}`` for the waveform to be written as audio rather than ``.npy``
+(an ``output_fn`` is optional).
 
 The model is rebuilt from the *training* config by instantiating that config's
 own ``model`` block (``espnet3.systems.f5tts.f5tts.F5TTS``), so it stays in
@@ -18,7 +26,7 @@ from __future__ import annotations
 
 import logging
 import re
-from typing import List, Optional, Union
+from typing import Any, List, Mapping, Optional, Union
 
 import numpy as np
 import torch
@@ -29,6 +37,8 @@ from espnet2.text.build_tokenizer import build_tokenizer
 from espnet2.text.cleaner import TextCleaner
 from espnet2.text.token_id_converter import TokenIDConverter
 from espnet2.torch_utils.safe_torch_load import safe_torch_load
+from espnet3.api.inference import Audio, Field
+from espnet3.systems.base.backend_inference import BackendInference
 from espnet3.systems.f5tts import VOCOS_DEFAULT_MODEL
 from espnet3.utils.config_utils import load_config_with_defaults
 
@@ -156,7 +166,7 @@ class F5TTSInference:
         device: str = "cpu",
         use_ema: bool = True,
         vocoder_path: Optional[str] = None,
-        target_sample_rate: int = 24000,
+        target_sample_rate: Optional[int] = None,
         ode_solver_steps: int = 32,
         guidance_strength: float = 2.0,
         sway_sampling_coefficient: float = -1.0,
@@ -168,9 +178,9 @@ class F5TTSInference:
         """Build the model, tokenizer and vocoder for inference.
 
         Args:
-            train_config: Path to the training YAML (provides the ``model``
-                block + preprocessor tokenization settings, single source of
-                truth).
+            train_config: Path to the training config the checkpoint was
+                trained with; its ``model`` block and its preprocessor
+                tokenization settings rebuild the model and the tokenizer.
             checkpoint_path: Lightning checkpoint (``.ckpt``) from training.
             device: Torch device string.
             use_ema: Load EMA-averaged weights (``ema_model_state_dict``) when
@@ -178,38 +188,56 @@ class F5TTSInference:
             vocoder_path: Local directory holding the Vocos ``config.yaml``
                 and ``pytorch_model.bin``. When unset the default checkpoint is
                 fetched from the Hugging Face Hub.
-            target_sample_rate: Output/vocoder sample rate.
+            target_sample_rate: Rate of the reference audio and of the
+                synthesized waveform. It is fixed by the model's mel front end
+                (``feats_extract_config.fs``), so leave it unset to use that
+                rate; a value that differs is refused.
             ode_solver_steps: Number of ODE solver steps, upstream's
                 ``nfe_step`` (number of function evaluations).
             guidance_strength: Classifier-free guidance scale, upstream's
                 ``cfg_strength``.
-            sway_sampling_coefficient / speed / seed: Remaining sampling
-                hyperparameters forwarded to ``CFM.sample``.
+            sway_sampling_coefficient: Sway sampling coefficient of the ODE
+                time steps, upstream's ``sway_sampling_coef``; forwarded to
+                ``CFM.sample``.
+            speed: Speaking-rate factor: the output duration estimated from
+                the reference is divided by it, so above 1 speaks faster, and
+                it scales the text length of each chunk. A chunk shorter than
+                10 bytes always uses 0.3.
+            target_rms: Loudness a quieter reference is raised to before
+                synthesis; the output is scaled back to the reference's own
+                level afterwards.
+            cross_fade_duration: Seconds of linear cross-fade between the
+                waveforms of consecutive text chunks; ``0`` concatenates them.
+            seed: Random seed of the initial noise, for reproducible output;
+                ``None`` leaves it unseeded.
 
         Raises:
             ValueError: If ``train_config`` has no ``model._target_`` or if
-                its ``dataset.preprocessor.token_list`` is missing.
+                its ``dataset.preprocessor.token_list`` is missing; if
+                ``target_sample_rate`` differs from the model's rate; or if
+                the vocoder was trained at a rate other than the model's.
 
         Example:
             .. code-block:: yaml
 
-                inference:
+                model:
                   _target_: espnet3.systems.f5tts.inference.F5TTSInference
-                  train_config: ${recipe_dir}/conf/training_f5_tts_small.yaml
+                  train_config: ${exp_dir}/config.yaml
                   checkpoint_path: ${exp_dir}/last.ckpt
                   device: cuda
                   ode_solver_steps: 32
                   guidance_strength: 2.0
 
         Note:
-            ``train_config`` is the recipe's own training YAML, not the
-            ``config.yaml`` written into ``exp_dir``: the model is rebuilt from
-            the ``model:`` block via Hydra, so architecture and tokenizer
-            settings always come from one source of truth. Construction is
-            eager, loading the checkpoint and the vocoder up front.
+            A recipe passes ``${exp_dir}/config.yaml``, the training config
+            ``F5TTSSystem.train`` writes beside the checkpoint, so the model is
+            rebuilt from the exact config it was trained with; its ``model:``
+            block is instantiated via Hydra. A recipe normally names
+            :class:`Inference`, which wraps this engine, rather than the
+            engine itself. Construction is eager, loading the checkpoint and
+            the vocoder up front.
         """
         self.device = torch.device(device)
-        self.target_sample_rate = target_sample_rate
         self.ode_solver_steps = ode_solver_steps
         self.guidance_strength = guidance_strength
         self.sway_sampling_coefficient = sway_sampling_coefficient
@@ -233,10 +261,17 @@ class F5TTSInference:
 
         self._build_tokenizer(config)
         self.vocoder = self._load_vocoder(vocoder_path)
+        self.target_sample_rate = self._check_sample_rate(target_sample_rate)
 
     # ------------------------------------------------------------------ build
 
     def _build_model(self, config: dict, checkpoint_path: str, use_ema: bool):
+        """Instantiate ``config.model`` and load the checkpoint, EMA weights first.
+
+        Falls back to the raw ``state_dict`` when the checkpoint has no EMA
+        state or ``use_ema`` is false. Loads with ``strict=False`` and logs
+        the missing/unexpected keys.
+        """
         model_config = config.get("model")
         if not model_config or not model_config.get("_target_"):
             raise ValueError(
@@ -264,6 +299,7 @@ class F5TTSInference:
 
     @staticmethod
     def _log_model_loading(tag: str, checkpoint_path: str, missing, unexpected) -> None:
+        """Log a load summary, warning on missing or unexpected keys."""
         logger.info("Loaded %s weights from %s", tag, checkpoint_path)
         if missing:
             logger.warning("[%s] missing keys (%d): %s", tag, len(missing), missing)
@@ -316,7 +352,29 @@ class F5TTSInference:
             dtype=np.int64,
         )
 
+    def _check_sample_rate(self, requested: Optional[int]) -> int:
+        """Return the model's sample rate, refusing a rate that contradicts it.
+
+        The mel front end fixes the rate the model reads the reference at, and
+        the vocoder the rate it writes the waveform at; a different requested
+        rate would resample the reference and label the output wrongly.
+        """
+        model_rate = int(self.feats_extract.fs)
+        vocoder_rate = _vocoder_sample_rate(self.vocoder)
+        if vocoder_rate is not None and vocoder_rate != model_rate:
+            raise ValueError(
+                f"The vocoder produces {vocoder_rate} Hz audio, but the model's "
+                f"mel front end is configured for {model_rate} Hz."
+            )
+        if requested is not None and int(requested) != model_rate:
+            raise ValueError(
+                f"target_sample_rate={requested} does not match the model's "
+                f"{model_rate} Hz (feats_extract_config.fs); leave it unset."
+            )
+        return model_rate
+
     def _load_vocoder(self, vocoder_path: Optional[str]):
+        """Load Vocos from ``vocoder_path`` or the default pretrained checkpoint."""
         from vocos import Vocos
 
         if vocoder_path:
@@ -341,7 +399,7 @@ class F5TTSInference:
         self,
         target_text: str,
         reference_audio: np.ndarray,
-        reference_text: Optional[str] = None,
+        reference_text: str,
     ) -> np.ndarray:
         """Synthesize ``target_text`` in the voice of ``reference_audio``.
 
@@ -353,12 +411,16 @@ class F5TTSInference:
             target_text: Target text to speak.
             reference_audio: Reference waveform at ``target_sample_rate``. Multi-
                 channel input is averaged down to mono.
-            reference_text: Transcript of ``reference_audio``. Defaults to
-                ``target_text``, treating the reference as self-referential.
+            reference_text: Transcript of ``reference_audio``. Required: the
+                model reads the reference through it, and the output duration
+                is extrapolated from the reference's audio-to-text ratio.
 
         Returns:
             Mono waveform as ``float32`` at ``target_sample_rate``. Returns a
             single zero sample when the text yields no synthesizable chunk.
+
+        Raises:
+            ValueError: If ``reference_text`` is empty.
 
         Example:
             .. code-block:: python
@@ -376,7 +438,12 @@ class F5TTSInference:
             after vocoding, so the result matches the input level rather than
             ``target_rms``.
         """
-        reference_text = target_text if reference_text is None else reference_text
+        if not reference_text or not reference_text.strip():
+            raise ValueError(
+                "reference_text is required: the transcript of reference_audio. "
+                "A wrong or missing transcript misaligns the prompt and skews "
+                "the output duration."
+            )
         sample_rate = self.target_sample_rate
 
         # Reference waveform [1, T]: mono + RMS normalization to target_rms.
@@ -469,21 +536,19 @@ class F5TTSInference:
         reference_text: Optional[Union[str, List[str]]] = None,
         speech: Optional[Union[np.ndarray, List[np.ndarray]]] = None,
     ) -> dict:
-        """Inference entry point used by the runner.
+        """Inference entry point for the bare engine.
 
-        ``text`` is the target text. The reference audio comes from ``reference_speech``
-        (cross/same-speaker protocol, with ``reference_text`` its transcript); if only
-        ``speech`` is given it is used as the reference and ``reference_text`` defaults
-        to ``text`` (self-reference). Supports a single sample (``batch_size:
-        null``) or a list (batched).
+        ``text`` is the target text; the reference audio comes from
+        ``reference_speech`` (or ``speech``, an older name for the same
+        field), and ``reference_text`` is its transcript, which is required.
+        Supports a single sample (``batch_size: null``) or a list (batched).
 
         Args:
             text: Target text, or a list of them for a batched call.
-            reference_speech: Reference waveform(s) for the cross/same-speaker
-                protocol.
-            reference_text: Transcript(s) of ``reference_speech``.
-            speech: Fallback reference used when ``reference_speech`` is absent, which
-                makes the call self-referential.
+            reference_speech: Reference waveform(s), the voice to clone.
+            reference_text: Transcript(s) of the reference. Required.
+            speech: The reference waveform(s) under the dataset column name
+                ``speech``, used when ``reference_speech`` is absent.
 
         Returns:
             ``{"wav": waveform}`` for a single sample, or ``{"wav": [...]}``
@@ -491,15 +556,21 @@ class F5TTSInference:
 
         Raises:
             ValueError: If neither ``reference_speech`` nor ``speech`` is given
-                (F5 is zero-shot and cannot synthesize without a reference), or
-                if the batched inputs have mismatched lengths.
+                (F5 is zero-shot and cannot synthesize without a reference), if
+                ``reference_text`` is missing, or if the batched inputs have
+                mismatched lengths.
 
         Example:
             .. code-block:: python
 
-                >>> tts(text="hello", speech=ref_wave)["wav"].ndim
+                >>> tts(text="hello", speech=ref_wave, reference_text="hi")["wav"].ndim
                 1
-                >>> len(tts(text=["a", "b"], reference_speech=[w1, w2])["wav"])
+                >>> wavs = tts(
+                ...     text=["a", "b"],
+                ...     reference_speech=[w1, w2],
+                ...     reference_text=["x", "y"],
+                ... )["wav"]
+                >>> len(wavs)
                 2
 
         Note:
@@ -511,14 +582,17 @@ class F5TTSInference:
         reference_audio = reference_speech if reference_speech is not None else speech
         if reference_audio is None:
             raise ValueError(
-                "No reference audio provided: set input_key to include "
-                "'reference_speech' (cross/same-speaker) or 'speech' (self-reference)."
+                "No reference audio provided: pass 'reference_speech' (or "
+                "'speech', an older name for the same field)."
+            )
+
+        if reference_text is None:
+            raise ValueError(
+                "No reference transcript provided: pass 'reference_text', the "
+                "transcript of the reference audio."
             )
 
         if isinstance(text, (list, tuple)):
-            reference_text = (
-                reference_text if reference_text is not None else [None] * len(text)
-            )
             # zip() would truncate to the shortest input, silently returning
             # fewer waveforms than requested and misaligning them with the
             # runner's test samples.
@@ -536,3 +610,136 @@ class F5TTSInference:
             ]
             return {"wav": wavs}
         return {"wav": self.infer_one(text, reference_audio, reference_text)}
+
+
+def _vocoder_sample_rate(vocoder: Any) -> Optional[int]:
+    """Return the rate a Vocos vocoder was trained at, or ``None`` if unknown.
+
+    Vocos exposes it on its mel feature extractor; a vocoder without that
+    attribute is not checked.
+    """
+    feature_extractor = getattr(vocoder, "feature_extractor", None)
+    rate = getattr(getattr(feature_extractor, "mel_spec", None), "sample_rate", None)
+    return int(rate) if rate is not None else None
+
+
+class Inference(BackendInference):
+    """Synthesize with an F5-TTS model, behind :mod:`espnet3.api.inference`.
+
+    The model behind an ``f5tts`` bundle is :class:`F5TTSInference`, which
+    this class builds, loads and calls; the contract adds what a caller
+    should not have to think about: reading a file, accepting what Gradio
+    hands over and resampling the reference to the model's rate.
+
+    Built three ways, all ending in ``self.backend`` (see
+    :class:`~espnet3.systems.base.backend_inference.BackendInference`):
+
+    - ``Inference.from_pretrained(tag_or_dir, device=...)`` from a
+      ``pack_model`` bundle or Hub tag;
+    - ``Inference(train_config=..., checkpoint_path=..., ...)`` from
+      :class:`F5TTSInference`'s own arguments, which is what
+      ``inference.yaml`` does;
+    - ``Inference(f5tts_inference)`` around one already built.
+
+    Called with the target text and a reference utterance (a path, a
+    ``(rate, samples)`` pair, an array or an
+    :class:`~espnet3.api.inference.Audio`) it returns
+    ``{"wav": Audio}`` at :attr:`sample_rate`. ``reference_text`` is the
+    transcript of the reference and is required, like the other two inputs
+    (see the note below).
+
+    Example:
+        .. code-block:: python
+
+            >>> model = Inference.from_pretrained("exp/training/model_pack")
+            >>> output = model("hello world", "prompt.wav", "the prompt transcript")
+            >>> output["wav"].rate, output["wav"].array.ndim
+            (24000, 1)
+            >>> outputs = model.batch(
+            ...     [
+            ...         {"text": "first", "reference_speech": "a.wav",
+            ...          "reference_text": "a"},
+            ...         {"text": "second", "reference_speech": "b.wav",
+            ...          "reference_text": "b"},
+            ...     ]
+            ... )
+            >>> [output["wav"].rate for output in outputs]
+            [24000, 24000]
+
+        In ``inference.yaml``, for the ``infer`` stage:
+
+        .. code-block:: yaml
+
+            model:
+              _target_: espnet3.systems.f5tts.inference.Inference
+              train_config: ${exp_dir}/config.yaml  # written by F5TTSSystem.train
+              checkpoint_path: ${exp_dir}/last.ckpt
+              ode_solver_steps: 32
+
+        The runner picks ``text``, ``reference_speech`` and ``reference_text``
+        out of each test sample by name and writes ``wav.scp``.
+
+    Note:
+        All three inputs are required. F5-TTS reads the reference through its
+        transcript and sets the output duration from the reference's
+        audio-to-text ratio, so a missing transcript is refused rather than
+        guessed.
+    """
+
+    backend_class = "espnet3.systems.f5tts.inference.F5TTSInference"
+    inputs = (
+        Field("text", "text", "Text to synthesize"),
+        Field("reference_speech", "audio", "Reference speech"),
+        Field("reference_text", "text", "Reference transcript"),
+    )
+    outputs = (Field("wav", "audio", "Synthesized speech"),)
+
+    @property
+    def sample_rate(self) -> int:
+        """Return the rate of the reference the model takes and the audio it gives.
+
+        Returns:
+            The backend's ``target_sample_rate``, the vocoder's rate.
+
+        Note:
+            The reference is resampled to this rate before :meth:`run` sees
+            it, and the synthesized waveform comes back at it.
+        """
+        return int(self.backend.target_sample_rate)
+
+    def run(
+        self,
+        text: str,
+        reference_speech: Audio,
+        reference_text: str,
+    ) -> Mapping[str, Any]:
+        """Synthesize ``text`` in the voice of ``reference_speech``.
+
+        Args:
+            text: The target text.
+            reference_speech: The voice to clone, mono, at
+                :attr:`sample_rate`.
+            reference_text: Transcript of ``reference_speech``.
+
+        Returns:
+            ``{"wav": samples}``: the synthesized mono ``float32`` waveform
+            at :attr:`sample_rate`.
+
+        Example:
+            .. code-block:: python
+
+                >>> reference = Audio.read("prompt.wav", rate=model.sample_rate)
+                >>> output = model.run("hello world", reference, "a transcript")
+                >>> output["wav"].dtype, output["wav"].ndim
+                (dtype('float32'), 1)
+
+        Note:
+            This is the hook the contract calls after converting and checking
+            the inputs. Call the model itself,
+            ``model(text, reference, reference_text)``, which also accepts a
+            path or a ``(rate, samples)`` pair for the reference and wraps the
+            result in an :class:`~espnet3.api.inference.Audio`.
+        """
+        return {
+            "wav": self.backend.infer_one(text, reference_speech.array, reference_text)
+        }

@@ -14,9 +14,12 @@ import pytest
 import torch
 import yaml
 
+from espnet3.api.inference import Audio
+from espnet3.systems.base.inference_runner import InferenceRunner
 from espnet3.systems.f5tts.f5tts import F5TTS
 from espnet3.systems.f5tts.inference import (
     F5TTSInference,
+    Inference,
     _chunk_text,
     _cross_fade,
 )
@@ -45,6 +48,7 @@ class _StubVocos:
     """Stands in for Vocos: exposes ``decode``, upsamples by the hop length."""
 
     def decode(self, mel):
+        """Return silence one hop length long per mel frame."""
         return torch.zeros(1, mel.shape[-1] * 256)
 
 
@@ -52,10 +56,12 @@ class _StubVocos:
 
 
 def test_chunk_text_keeps_short_text_whole():
+    """Text under the budget stays one chunk."""
     assert _chunk_text("Hello there.", max_chars=100) == ["Hello there."]
 
 
 def test_chunk_text_splits_on_sentence_boundaries():
+    """Longer text is cut between sentences, each chunk within the budget."""
     chunks = _chunk_text("One. Two. Three.", max_chars=9)
 
     assert chunks == ["One. Two.", "Three."]
@@ -68,6 +74,7 @@ def test_chunk_text_splits_full_width_punctuation():
 
 
 def test_chunk_text_of_empty_text_is_empty():
+    """Empty text gives no chunks."""
     assert _chunk_text("", max_chars=10) == []
 
 
@@ -75,16 +82,19 @@ def test_chunk_text_of_empty_text_is_empty():
 
 
 def test_cross_fade_of_no_waves_returns_silence():
+    """No waveforms give a single silent sample."""
     assert _cross_fade([], 0.1, 24000).shape == (1,)
 
 
 def test_cross_fade_of_a_single_wave_is_a_passthrough():
+    """A single waveform is returned as is."""
     wave = np.arange(10, dtype=np.float32)
 
     assert _cross_fade([wave], 0.1, 24000) is wave
 
 
 def test_zero_duration_cross_fade_is_plain_concatenation():
+    """A zero-length cross-fade concatenates the waveforms."""
     a = np.ones(4, dtype=np.float32)
     b = np.zeros(4, dtype=np.float32)
 
@@ -94,6 +104,7 @@ def test_zero_duration_cross_fade_is_plain_concatenation():
 
 
 def test_cross_fade_overlaps_and_shortens_the_result():
+    """The overlap is shared, so the result is shorter and the level is kept."""
     a = np.ones(10, dtype=np.float32)
     b = np.ones(10, dtype=np.float32)
     n = 4  # 4 samples at sr=1000 is 0.004 s
@@ -107,6 +118,7 @@ def test_cross_fade_overlaps_and_shortens_the_result():
 
 
 def test_cross_fade_falls_back_to_concatenation_when_a_wave_is_too_short():
+    """An overlap that rounds to zero samples concatenates instead."""
     a = np.ones(3, dtype=np.float32)
     b = np.ones(3, dtype=np.float32)
 
@@ -209,6 +221,7 @@ def reference_model(train_config):
 
 @pytest.fixture
 def checkpoint_path(tmp_path, reference_model):
+    """Save the reference model's weights as a Lightning-style checkpoint."""
     path = tmp_path / "last.ckpt"
     torch.save({"state_dict": reference_model.state_dict()}, path)
     return path
@@ -216,6 +229,7 @@ def checkpoint_path(tmp_path, reference_model):
 
 @pytest.fixture
 def stub_vocoder(monkeypatch):
+    """Replace the Vocos download with :class:`_StubVocos`."""
     monkeypatch.setattr(
         F5TTSInference, "_load_vocoder", lambda self, path: _StubVocos()
     )
@@ -223,6 +237,7 @@ def stub_vocoder(monkeypatch):
 
 @pytest.fixture
 def engine(train_config, checkpoint_path, stub_vocoder):
+    """Build an engine on the tiny model with a stub vocoder and fixed seed."""
     return F5TTSInference(
         train_config=str(train_config),
         checkpoint_path=str(checkpoint_path),
@@ -241,6 +256,46 @@ def test_construction_wires_up_the_model_parts(engine):
     assert engine.feats_extract is engine.model.feats_extract
     # hop_length is read from the config rather than assumed.
     assert engine.hop_length == 256
+
+
+def test_sample_rate_defaults_to_the_models(engine):
+    """Unset, the rate is the one the mel front end was configured with."""
+    assert engine.target_sample_rate == FEATS_CONF["fs"]
+
+
+def test_a_sample_rate_other_than_the_models_is_refused(
+    train_config, checkpoint_path, stub_vocoder
+):
+    """A 16 kHz rate on a 24 kHz model would resample and mislabel the audio."""
+    with pytest.raises(ValueError, match="target_sample_rate=16000"):
+        F5TTSInference(
+            train_config=str(train_config),
+            checkpoint_path=str(checkpoint_path),
+            target_sample_rate=16000,
+        )
+    # The model's own rate, given explicitly as older configs do, is accepted.
+    engine = F5TTSInference(
+        train_config=str(train_config),
+        checkpoint_path=str(checkpoint_path),
+        target_sample_rate=FEATS_CONF["fs"],
+    )
+    assert engine.target_sample_rate == FEATS_CONF["fs"]
+
+
+def test_a_vocoder_at_another_rate_is_refused(
+    monkeypatch, train_config, checkpoint_path
+):
+    """Vocos reports its training rate on its mel feature extractor."""
+    vocoder = _StubVocos()
+    vocoder.feature_extractor = types.SimpleNamespace(
+        mel_spec=types.SimpleNamespace(sample_rate=22050)
+    )
+    monkeypatch.setattr(F5TTSInference, "_load_vocoder", lambda self, path: vocoder)
+
+    with pytest.raises(ValueError, match="vocoder produces 22050 Hz"):
+        F5TTSInference(
+            train_config=str(train_config), checkpoint_path=str(checkpoint_path)
+        )
 
 
 def test_checkpoint_weights_are_actually_loaded(engine, reference_model):
@@ -274,6 +329,7 @@ def test_ema_weights_are_preferred_when_present(
 def test_ema_is_skipped_when_use_ema_is_off(
     tmp_path, train_config, reference_model, stub_vocoder
 ):
+    """With ``use_ema=False`` the raw weights are loaded, not the EMA ones."""
     ema = {
         "ema_model." + k: torch.zeros_like(v)
         for k, v in reference_model.state_dict().items()
@@ -293,6 +349,7 @@ def test_ema_is_skipped_when_use_ema_is_off(
 
 
 def test_a_config_without_a_model_target_is_rejected(tmp_path, checkpoint_path):
+    """A training config without ``model._target_`` is refused."""
     path = tmp_path / "bad.yaml"
     path.write_text(yaml.safe_dump({"model": {"hidden_size": 32}}), encoding="utf-8")
 
@@ -303,6 +360,7 @@ def test_a_config_without_a_model_target_is_rejected(tmp_path, checkpoint_path):
 def test_a_config_without_a_token_list_is_rejected(
     tmp_path, train_config, checkpoint_path, stub_vocoder
 ):
+    """A training config without a token list is refused."""
     cfg = yaml.safe_load(train_config.read_text(encoding="utf-8"))
     del cfg["dataset"]["preprocessor"]["token_list"]
     path = tmp_path / "no_tokens.yaml"
@@ -338,6 +396,7 @@ def test_a_vocab_file_selects_the_pinyin_tokenizer(
 
 
 def test_infer_one_returns_a_waveform(engine):
+    """``infer_one`` returns a non-empty mono float32 waveform."""
     wav = engine.infer_one(
         "abc", np.zeros(24000 // 2, dtype=np.float32), reference_text="ab"
     )
@@ -346,14 +405,17 @@ def test_infer_one_returns_a_waveform(engine):
     assert len(wav) > 1
 
 
-def test_ref_text_defaults_to_the_target_text(engine):
-    """Self-reference: no transcript given, so the target doubles as one."""
-    wav = engine.infer_one("abc", np.zeros(24000 // 2, dtype=np.float32))
-
-    assert wav.ndim == 1
+def test_infer_one_requires_the_reference_transcript(engine):
+    """A missing transcript is refused, not replaced by the target text."""
+    with pytest.raises(TypeError):
+        engine.infer_one("abc", np.zeros(24000 // 2, dtype=np.float32))
+    for empty in ("", "   "):
+        with pytest.raises(ValueError, match="reference_text is required"):
+            engine.infer_one("abc", np.zeros(24000 // 2, dtype=np.float32), empty)
 
 
 def test_a_stereo_reference_is_downmixed(engine):
+    """A two-channel reference is averaged to mono."""
     wav = engine.infer_one(
         "abc", np.zeros((2, 24000 // 2), dtype=np.float32), reference_text="ab"
     )
@@ -362,13 +424,17 @@ def test_a_stereo_reference_is_downmixed(engine):
 
 
 def test_call_returns_a_wav_entry_for_a_single_sample(engine):
-    out = engine(text="abc", speech=np.zeros(24000 // 2, dtype=np.float32))
+    """Calling the engine on one sample returns only a ``wav`` array."""
+    out = engine(
+        text="abc", speech=np.zeros(24000 // 2, dtype=np.float32), reference_text="ab"
+    )
 
     assert set(out) == {"wav"}
     assert isinstance(out["wav"], np.ndarray)
 
 
 def test_call_maps_over_a_batch(engine):
+    """Lists of inputs give one waveform per item."""
     audio = [np.zeros(24000 // 2, dtype=np.float32)] * 2
 
     out = engine(
@@ -379,8 +445,18 @@ def test_call_maps_over_a_batch(engine):
 
 
 def test_call_without_a_reference_is_refused(engine):
+    """A call without reference audio is refused."""
     with pytest.raises(ValueError, match="No reference audio"):
-        engine(text="abc")
+        engine(text="abc", reference_text="ab")
+
+
+def test_call_without_a_reference_transcript_is_refused(engine):
+    """A call without the reference transcript is refused, single or batched."""
+    audio = np.zeros(24000 // 2, dtype=np.float32)
+    with pytest.raises(ValueError, match="No reference transcript"):
+        engine(text="abc", reference_speech=audio)
+    with pytest.raises(ValueError, match="No reference transcript"):
+        engine(text=["abc", "ba"], reference_speech=[audio, audio])
 
 
 # ------------------------------------------------------- vocoder construction
@@ -391,30 +467,41 @@ def test_call_without_a_reference_is_refused(engine):
 
 
 class _FakeVocosModel:
+    """Stands in for a loaded Vocos model: records the weights it is given."""
+
     def __init__(self):
+        """Start with no weights loaded."""
         self.loaded_state = None
 
     def load_state_dict(self, state):
+        """Remember the state dict it was given."""
         self.loaded_state = state
 
     def to(self, device):
+        """Return itself, as a device move would."""
         return self
 
     def eval(self):
+        """Return itself, as switching to eval mode would."""
         return self
 
 
 def _install_fake_vocos(monkeypatch, created):
+    """Put a fake ``vocos`` module in ``sys.modules`` that records its calls."""
     module = types.ModuleType("vocos")
 
     class Vocos:
+        """Stands in for ``vocos.Vocos``: records how it was built."""
+
         @staticmethod
         def from_pretrained(repo):
+            """Record the repository and return a fake model."""
             created["repo"] = repo
             return _FakeVocosModel()
 
         @staticmethod
         def from_hparams(config_path):
+            """Record the config path and return a fake model."""
             created["config_path"] = config_path
             return _FakeVocosModel()
 
@@ -425,6 +512,7 @@ def _install_fake_vocos(monkeypatch, created):
 def test_vocos_is_fetched_from_the_default_repo(
     monkeypatch, train_config, checkpoint_path
 ):
+    """Without ``vocoder_path`` the default Vocos repository is used."""
     created = {}
     _install_fake_vocos(monkeypatch, created)
 
@@ -528,6 +616,7 @@ def test_the_prompt_is_measured_with_the_mel_cfm_uses(engine):
     real_sample = engine.cfm.sample
 
     def spy(cond, text, duration, **kwargs):
+        """Record the requested duration and prompt length, then return silence."""
         captured["duration"] = duration
         captured["prompt_frames"] = engine.cfm.mel_spec(cond).shape[-1]
         return torch.zeros(1, duration, 100), None
@@ -579,6 +668,7 @@ def test_a_chunk_that_generates_no_frames_is_dropped(engine, monkeypatch):
 
     def prompt_only(cond, text, duration, **kwargs):
         # Return exactly the reference length, so the generated span is empty.
+        """Return exactly the prompt's length, so nothing new is generated."""
         ref_len = cond.shape[-1] // engine.hop_length
         return torch.zeros(1, ref_len, 100), None
 
@@ -589,3 +679,154 @@ def test_a_chunk_that_generates_no_frames_is_dropped(engine, monkeypatch):
     )
 
     np.testing.assert_array_equal(wav, np.zeros(1, dtype=np.float32))
+
+
+# ------------------------------------------- Inference (espnet3.api.inference)
+
+
+class _RecordingEngine:
+    """Stands in for F5TTSInference: remembers what ``infer_one`` was given."""
+
+    target_sample_rate = 24000
+
+    def __init__(self):
+        """Start with no recorded calls."""
+        self.calls = []
+
+    def infer_one(self, target_text, reference_audio, reference_text):
+        """Record the arguments and return a short constant waveform."""
+        self.calls.append((target_text, reference_audio, reference_text))
+        return np.full(480, 0.25, dtype=np.float32)
+
+
+def test_inference_declares_the_f5tts_fields():
+    """``Inference`` declares three required inputs and one audio output."""
+    assert [field.name for field in Inference.inputs] == [
+        "text",
+        "reference_speech",
+        "reference_text",
+    ]
+    # All required: a missing transcript is refused, not guessed.
+    assert [field.optional for field in Inference.inputs] == [False, False, False]
+    assert [(field.name, field.kind) for field in Inference.outputs] == [
+        ("wav", "audio")
+    ]
+
+
+def test_inference_returns_audio_at_the_vocoder_rate():
+    """The output is an ``Audio`` at 24 kHz and the inputs reach the engine."""
+    backend = _RecordingEngine()
+    model = Inference(backend)
+
+    output = model("hello", np.zeros(2400, dtype=np.float32), "a prompt")
+
+    assert model.sample_rate == 24000
+    assert isinstance(output["wav"], Audio)
+    assert output["wav"].rate == 24000
+    assert output["wav"].array.shape == (480,)
+    text, reference_audio, reference_text = backend.calls[0]
+    assert (text, reference_text) == ("hello", "a prompt")
+    assert reference_audio.shape == (2400,)
+
+
+def test_inference_resamples_what_gradio_hands_over():
+    """A ``(rate, int16 samples)`` pair reaches the engine as float at 24 kHz."""
+    backend = _RecordingEngine()
+    model = Inference(backend)
+    one_second_at_48k = (48000, np.full(48000, 16384, dtype=np.int16))
+
+    model(text="hello", reference_speech=one_second_at_48k, reference_text="hi")
+
+    _, reference_audio, reference_text = backend.calls[0]
+    assert reference_audio.dtype == np.float32
+    assert abs(len(reference_audio) - 24000) <= 1
+    assert abs(float(np.median(reference_audio)) - 0.5) < 0.01
+    assert reference_text == "hi"
+
+
+def test_inference_downmixes_a_stereo_reference():
+    """A stereo ``(rate, samples)`` reference reaches the engine as mono."""
+    backend = _RecordingEngine()
+    stereo = np.zeros((2400, 2), dtype=np.float32)
+
+    Inference(backend)("hello", (24000, stereo), "a prompt")
+
+    assert backend.calls[0][1].ndim == 1
+
+
+def test_inference_requires_text_a_reference_and_its_transcript():
+    """Each missing input is refused by name, an empty transcript included."""
+    model = Inference(_RecordingEngine())
+    audio = np.zeros(2400, dtype=np.float32)
+
+    with pytest.raises(TypeError, match="reference_speech"):
+        model("hello", reference_text="a prompt")
+    with pytest.raises(TypeError, match="text"):
+        model(reference_speech=audio, reference_text="a prompt")
+    with pytest.raises(TypeError, match="reference_text"):
+        model("hello", audio)
+    # An empty box in the demo arrives as None, which counts as not given.
+    with pytest.raises(TypeError, match="reference_text"):
+        model("hello", audio, None)
+
+
+def test_inference_runs_a_batch_item_by_item():
+    """``batch`` runs the engine once per item, in order."""
+    backend = _RecordingEngine()
+    model = Inference(backend)
+    reference = np.zeros(2400, dtype=np.float32)
+
+    outputs = model.batch(
+        [
+            {"text": "first", "reference_speech": reference, "reference_text": "a"},
+            {"text": "second", "reference_speech": reference, "reference_text": "b"},
+        ]
+    )
+
+    assert [output["wav"].rate for output in outputs] == [24000, 24000]
+    assert [call[0] for call in backend.calls] == ["first", "second"]
+    assert [call[2] for call in backend.calls] == ["a", "b"]
+
+
+def test_inference_builds_the_engine_from_its_own_arguments(
+    train_config, checkpoint_path, stub_vocoder
+):
+    """What ``inference.yaml`` does: the class takes the engine's arguments."""
+    model = Inference(
+        train_config=str(train_config),
+        checkpoint_path=str(checkpoint_path),
+        device="cpu",
+        ode_solver_steps=2,
+        cross_fade_duration=0.0,
+        seed=0,
+    )
+
+    assert isinstance(model.backend, F5TTSInference)
+    output = model("abc", np.random.RandomState(0).randn(4800).astype(np.float32), "ab")
+    assert output["wav"].array.dtype == np.float32
+    assert output["wav"].array.ndim == 1
+
+
+def test_inference_serves_the_infer_stage_runner(engine):
+    """``InferenceRunner`` picks the declared inputs out of the item by name.
+
+    No ``input_key`` is given: the declaration says what to read, the item's
+    ``utt_id`` becomes the record's id, and undeclared columns are ignored.
+    """
+    model = Inference(engine)
+    reference = np.random.RandomState(0).randn(4800).astype(np.float32)
+    dataset = {
+        0: {
+            "utt_id": "u0",
+            "text": "abc",
+            "reference_speech": reference,
+            "reference_text": "ab",
+            "speaker": "ignored",
+        }
+    }
+
+    output = InferenceRunner.forward(0, dataset=dataset, model=model)
+
+    assert output["utt_id"] == "u0"
+    assert output["wav"].rate == 24000
+    assert "speaker" not in output

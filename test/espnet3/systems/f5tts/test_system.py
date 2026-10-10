@@ -96,10 +96,27 @@ def test_all_stage_configs_are_stored(tmp_path):
         assert getattr(system, name) is config
 
 
-def test_collect_stats_and_train_are_inherited():
-    """F5-TTS is built from ``model._target_``; base stages need no override."""
-    for stage in ("collect_stats", "train", "infer", "measure", "pack_model"):
+def test_the_other_stages_are_inherited():
+    """F5-TTS is built from ``model._target_``; these stages need no override."""
+    for stage in ("collect_stats", "infer", "measure", "pack_model"):
         assert getattr(F5TTSSystem, stage) is getattr(BaseSystem, stage)
+
+
+def test_train_writes_the_training_config_beside_the_checkpoints(tmp_path, monkeypatch):
+    """``${exp_dir}/config.yaml`` is what inference.yaml's model.train_config reads."""
+    config = _build_training_config(tmp_path)
+    config.model = {"_target_": "espnet3.systems.f5tts.f5tts.F5TTS"}
+    trained = []
+    monkeypatch.setattr(BaseSystem, "train", lambda self: trained.append(True))
+
+    F5TTSSystem(training_config=config).train()
+
+    saved = OmegaConf.load(tmp_path / "exp" / "config.yaml")
+    assert saved.model._target_ == "espnet3.systems.f5tts.f5tts.F5TTS"
+    assert saved.exp_dir == str(tmp_path / "exp")
+    assert trained == [True]
+    with pytest.raises(TypeError):
+        F5TTSSystem(training_config=config).train(1)
 
 
 def test_stages_run_end_to_end(tmp_path):
