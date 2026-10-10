@@ -166,6 +166,33 @@ def set_seed(seed: int):
     torch.cuda.manual_seed_all(seed)
 
 
+def record_token_layout(config_path: Path, intervals: dict) -> None:
+    """Write this run's token layout into the saved config.
+
+    Token ids follow the order of `multimodal_io`, so a config re-saved with
+    its keys sorted gives a different layout while the checkpoint still loads:
+    the model decodes nothing recognisable and nothing says why. Recording the
+    layout lets the job template catch that on load.
+
+    Appended as text rather than re-dumped, because re-dumping a config is
+    exactly what moves the ids. A run that resumes finds the record already
+    there and leaves it alone.
+    """
+    saved = yaml.safe_load(config_path.read_text()) or {}
+    if "vocab_intervals" in saved:
+        return
+    layout = {
+        name: [[int(start), int(end)] for start, end in pairs]
+        for name, pairs in intervals.items()
+    }
+    with open(config_path, "a") as config_file:
+        config_file.write(
+            "\n# The token layout of this run, checked when the config is "
+            "loaded again.\n"
+        )
+        yaml.safe_dump({"vocab_intervals": layout}, config_file, sort_keys=False)
+
+
 def main():
     parser = get_parser()
     args = parser.parse_args()
@@ -236,13 +263,16 @@ def main():
     logger.info(f"Using trainer type: {trainer_type}")
 
     # Copy train config to output directory for reproducibility
+    config_dest = args.output_dir / "train.yaml"
     if rank == 0:
-        config_dest = args.output_dir / "train.yaml"
         shutil.copy(args.train_config, config_dest)
         logger.info(f"Copied training config to: {config_dest}")
 
     job_template_class = _all_job_types[train_config["job_type"]]
     job_template = job_template_class(train_config, is_train=True)
+
+    if rank == 0:
+        record_token_layout(config_dest, job_template.vocab_meta["vocab_intervals"])
 
     # (3.5) For titan trainer, build ParallelDims early to get DP rank/world
     # for data loading. With PP, all ranks in the same PP group must see the
