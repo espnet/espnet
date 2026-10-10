@@ -43,6 +43,7 @@ from espnet2.asr.encoder.hubert_encoder import (
 from espnet2.asr.encoder.longformer_encoder import LongformerEncoder
 from espnet2.asr.encoder.multiconvformer_encoder import MultiConvConformerEncoder
 from espnet2.asr.encoder.rnn_encoder import RNNEncoder
+from espnet2.asr.encoder.spiralformer_encoder import SpiralformerEncoder
 from espnet2.asr.encoder.transformer_encoder import TransformerEncoder
 from espnet2.asr.encoder.transformer_encoder_multispkr import (
     TransformerEncoder as TransformerEncoderMultiSpkr,
@@ -155,6 +156,7 @@ encoder_choices = ClassChoices(
         transformer_multispkr=TransformerEncoderMultiSpkr,
         contextual_block_transformer=ContextualBlockTransformerEncoder,
         contextual_block_conformer=ContextualBlockConformerEncoder,
+        spiralformer=SpiralformerEncoder,
         vgg_rnn=VGGRNNEncoder,
         rnn=RNNEncoder,
         wav2vec2=FairSeqWav2Vec2Encoder,
