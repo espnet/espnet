@@ -1,0 +1,335 @@
+##########################################################
+#                    TRAINING SETTING                    #
+##########################################################
+# Port of the egs2 LibriSpeech 960h E-Branchformer recipe:
+#   egs2/librispeech/asr1/conf/tuning/train_asr_e_branchformer.yaml
+#   egs2/librispeech/asr1/run.sh
+#
+# Everything egs2 spread over run.sh (--nbpe/--token_type/--speed_perturb_factors,
+# the train/valid/test set names) and asr.sh defaults (bpemode, bpe_char_cover,
+# feats_normalize=global_mvn, grad_clip=5.0) is spelled out here.
+#
+# Self-contained: no `defaults:` block. The only base is
+# egs3/TEMPLATE/esp2_asr/conf/training.yaml, which run.py injects via
+# load_and_merge_config(default_package="egs3.TEMPLATE.esp2_asr").
+#
+# egs2's reference environment, quoted from its config header: 8 x A100 (40 GB),
+# about 40 min/epoch for 80 epochs. THIS PORT HAS NOT BEEN RUN YET -- there are
+# no numbers for it, and README.md says so rather than guessing.
+#
+# Deliberate deviations from egs2 are marked [DEVIATION].
+#
+# [DEVIATION] NO LANGUAGE MODEL.
+# egs2 trains conf/tuning/train_lm_transformer2.yaml and shallow-fuses it at
+# lm_weight 0.6 with beam 60. ESPnet3 has no LM stage, so this recipe decodes
+# with CTC/attention only (conf/inference.yaml, beam 20) and its WER is not
+# comparable to egs2's published number.
+#
+# [DEVIATION] ON-THE-FLY SPEED PERTURBATION.
+# egs2 passes --speed_perturb_factors "0.9 1.0 1.1", which triples the dumped
+# training data. Here the train preprocessor applies the same three factors per
+# sample (data_aug_prob/data_aug_effects below), as egs3/librispeech_100 does:
+# one epoch therefore sees 960 h, not 2880 h.
+#
+# [DEVIATION] OMNI-IO ARCHIVES INSTEAD OF PER-UTTERANCE FILES.
+# `create_dataset` packs each split into Omni-IO blobs (dataset/builder.py).
+# 281k `.flac` files become ~200 `.bin` files plus a Parquet offset table, which
+# is what makes this recipe usable on a shared filesystem. The audio bytes are
+# unchanged: the blob stores each source file verbatim.
+
+##########################################################
+#                  SYSTEM AND PATH SETTING               #
+##########################################################
+# `recipe_dir`, `data_dir`, `exp_tag`, `exp_dir` and `stats_dir` come from the
+# TEMPLATE config; `exp_tag` follows `${self_name:}`, the stem of this file.
+#
+# 960 h of blobs, statistics and checkpoints do not belong on a home
+# filesystem. Point `data` and `exp` at fast storage with a symlink before the
+# first stage rather than editing paths here (README.md).
+task: espnet3.systems.esp2_asr.task.ASRTask
+
+# egs2 run.sh does not set --ngpu for this config; its header documents 8 GPUs.
+# Four is the common node shape on the clusters this was written for, and
+# `accumulate_grad_batches: 2` below keeps the audio per optimizer update equal
+# to egs2's 8-GPU run.
+num_device: 4
+num_nodes: 1
+
+##########################################################
+#                 DATASET CREATION SETTING               #
+##########################################################
+# Forwarded as keyword arguments to
+# `dataset/builder.py::LibriSpeechBuilder`. `source_dir` is left unset so the
+# corpus resolves the way dataset/config.yaml documents: $LIBRISPEECH first,
+# then `${recipe_dir}/download`.
+create_dataset:
+  recipe_dir: ${recipe_dir}
+  archive_root: ${data_dir}
+  splits:
+    - train_960
+    - dev
+    - dev_clean
+    - dev_other
+    - test_clean
+    - test_other
+  # Set to true to fetch the ~60 GB of OpenSLR archives into
+  # `${recipe_dir}/download` first.
+  download: false
+
+##########################################################
+#                    DATASET DEFINITION                  #
+##########################################################
+# egs2 run.sh: train_set=train_960, valid_set=dev,
+#              test_sets="test_clean test_other dev_clean dev_other".
+#
+# `data_src` is omitted, so ESPnet3 loads `${recipe_dir}/dataset/__init__.py`
+# and forwards `data_src_args` to `LibriSpeechDataset(...)`.
+dataset:
+  train:
+    - data_src_args:
+        split: train_960
+        recipe_dir: ${recipe_dir}
+        archive_root: ${data_dir}
+  valid:
+    - data_src_args:
+        split: dev
+        recipe_dir: ${recipe_dir}
+        archive_root: ${data_dir}
+  preprocessor:
+    _target_: espnet2.train.preprocessor.CommonPreprocessor
+    train: true
+    fs: 16000
+    token_type: bpe
+    token_list: ${tokenizer.save_path}/tokens.txt
+    bpemodel: ${tokenizer.save_path}/${tokenizer.model_type}.model
+    text_cleaner:
+    # egs2's "0.9 1.0 1.1" speed perturbation, applied per sample: each of the
+    # two perturbing factors fires with probability 0.5 inside the 0.667 of
+    # samples that are augmented at all, leaving ~1/3 of samples at 1.0.
+    data_aug_prob: 0.667
+    data_aug_effects:
+      - [0.5, "speed_perturb", {"factor": 0.9}]
+      - [0.5, "speed_perturb", {"factor": 1.1}]
+
+##########################################################
+#                   TOKENIZER SETTING                    #
+##########################################################
+# egs2 run.sh: --nbpe 5000 with asr.sh's token_type bpe and
+# bpe_char_cover 1.0, trained on `data/train_960/text`.
+tokenizer:
+  vocab_size: 5000
+  character_coverage: 1.0
+  model_type: bpe
+  save_path: ${data_dir}/${tokenizer.model_type}_${tokenizer.vocab_size}
+  text_builder:
+    func: egs3.librispeech.esp2_asr.dataset.gather_training_text
+    recipe_dir: ${recipe_dir}
+    archive_root: ${data_dir}
+    split: train_960
+
+##########################################################
+#                      MODEL SETTING                     #
+##########################################################
+model:
+  vocab_size: ${tokenizer.vocab_size}
+  token_list: ${tokenizer.save_path}/tokens.txt
+
+  encoder: e_branchformer
+  encoder_conf:
+    output_size: 512
+    attention_heads: 8
+    attention_layer_type: rel_selfattn
+    pos_enc_layer_type: rel_pos
+    rel_pos_type: latest
+    cgmlp_linear_units: 3072
+    cgmlp_conv_kernel: 31
+    use_linear_after_conv: false
+    gate_activation: identity
+    num_blocks: 17
+    dropout_rate: 0.1
+    positional_dropout_rate: 0.1
+    attention_dropout_rate: 0.1
+    input_layer: conv2d
+    layer_drop_rate: 0.1
+    linear_units: 1024
+    positionwise_layer_type: linear
+    use_ffn: true
+    macaron_ffn: true
+    merge_conv_kernel: 31
+
+  decoder: transformer
+  decoder_conf:
+    attention_heads: 8
+    linear_units: 2048
+    num_blocks: 6
+    dropout_rate: 0.1
+    positional_dropout_rate: 0.1
+    self_attention_dropout_rate: 0.1
+    src_attention_dropout_rate: 0.1
+    layer_drop_rate: 0.2
+
+  # egs2 asr.sh default: feats_normalize=global_mvn.
+  normalize: global_mvn
+  normalize_conf:
+    stats_file: ${stats_dir}/train/feats_stats.npz
+
+  model_conf:
+    ctc_weight: 0.3
+    lsm_weight: 0.1
+    length_normalized_loss: false
+
+    # [DEVIATION] SentencePiece word boundary, not espnet2's "<space>" default,
+    # following egs3/spgispeech. ErrorCalculator rebuilds word boundaries by
+    # replacing sym_space before splitting on whitespace; with a BPE vocabulary
+    # "<space>" never appears, so the training-time valid/wer would degenerate
+    # into a sentence error rate. Written as the escape because U+2581 is
+    # easily mistaken for an underscore in review.
+    #
+    # This shifts valid/cer and valid/cer_ctc too. The WER/CER from the
+    # `measure` stage are unaffected: those are scored on detokenized text.
+    sym_space: "▁"
+
+  frontend: default
+  frontend_conf:
+    n_fft: 512
+    win_length: 400
+    hop_length: 160
+
+  specaug: specaug
+  specaug_conf:
+    apply_time_warp: true
+    time_warp_window: 5
+    time_warp_mode: bicubic
+    apply_freq_mask: true
+    freq_mask_width_range: [0, 27]
+    num_freq_mask: 2
+    apply_time_mask: true
+    time_mask_width_ratio_range: [0.0, 0.05]
+    num_time_mask: 10
+
+  # egs2: `init: none`, which espnet2 parses as None. Written as null because
+  # espnet3 would pass the literal string to initialize() and raise.
+  init:
+
+##########################################################
+#            OPTIMIZER & SCHEDULER SETTING               #
+##########################################################
+# egs2: optim=adam, lr=0.002, weight_decay=1e-6, scheduler=warmuplr,
+# warmup_steps=25000 in asr.sh's default but 40000 in this config.
+optimizer:
+  _target_: torch.optim.Adam
+  lr: 0.002
+  weight_decay: 0.000001
+
+scheduler:
+  _target_: espnet2.schedulers.warmup_lr.WarmupLR
+  warmup_steps: 40000
+
+scheduler_interval: step
+
+##########################################################
+#                OTHER TRAINING SETTING                  #
+##########################################################
+# egs2: best_model_criterion=[valid, acc, max], keep_nbest_models=10,
+# nbest_averaging_interval=10, patience=none (espnet3 configures no
+# EarlyStopping callback, so that matches).
+best_model_criterion:
+  - - valid/acc
+    - 10
+    - max
+
+seed: 2026
+
+# Keep the statistics and shape files identical on every run and matched to the
+# unaugmented input seen at inference, as in ESPnet2. Training augments anyway.
+collect_stats_train_mode: false
+
+# 960 h is 281k items; a larger batch keeps each worker busy for longer.
+collect_stats_batch_size: 16
+
+##########################################################
+#                   PARALLELIZATION SETTING              #
+##########################################################
+# Used by collect_stats only; the train stage ignores it. Collecting statistics
+# over 281k utterances with one local worker is slow -- switch `env` to a
+# cluster backend and add your scheduler's `options` (queue, account,
+# walltime) when running this at full scale.
+parallel:
+  env: local
+  n_workers: 1
+
+##########################################################
+#                   DATALOADER SETTING                   #
+##########################################################
+# BATCH_BINS IS NOT egs2's 140000000 -- THE UNIT CHANGED.
+#
+# egs2 bins on `speech_shape` (raw samples, 16000 per second) and splits every
+# mini-batch element-wise across ranks (espnet2/tasks/abs_task.py
+# build_sequence_iter_factory), so its batch_bins is a GLOBAL budget:
+#     140,000,000 / 16,000 = 8750 s of audio per optimizer step
+#     8750 / 8 GPUs        = 1093 s per GPU
+#
+# ESPnet3 bins on `feats_shape` = (frames, 80) and hands each rank WHOLE
+# batches (espnet3/components/data/dataloader.py: `batches[rank::world_size]`),
+# so batch_bins here is PER GPU. With hop_length 160 one second of audio costs
+# 100 * 80 = 8,000 bins, so egs2's per-GPU budget is
+#     1093 * 8,000 = 8,750,000 bins per GPU
+# and 4 GPUs x accumulate_grad_batches 2 reproduces egs2's 8750 s per update.
+#
+# Rule when changing num_device: keep batch_bins * num_device *
+# accumulate_grad_batches constant, or rescale warmup_steps by the same factor.
+# On a 40 GB GPU this is close to the memory limit; halve batch_bins and double
+# accumulate_grad_batches if it does not fit.
+#
+# [DEVIATION] num_workers is 8, not espnet2's default of 1 that egs2 leaves in
+# place. A batch holds several hundred utterances; with one worker the GPUs wait
+# on the dataloader. This changes throughput only.
+#
+# NOTE ON SHAPE FILES. egs2's asr.sh passes --train_shape_file twice
+# (speech_shape and text_shape.bpe) so the sampler bounds a batch on audio and
+# text length, whereas espnet3's collect_stats emits only feats/feats_lengths.
+# This config bins on feats_shape alone, as egs3's other recipes do.
+dataloader:
+  train:
+    iter_factory:
+      num_workers: 8
+      batches:
+        type: numel
+        shape_files:
+          - ${stats_dir}/train/feats_shape
+        batch_size: 16
+        batch_bins: 8750000
+  valid:
+    iter_factory:
+      num_workers: 8
+      batches:
+        type: numel
+        shape_files:
+          - ${stats_dir}/valid/feats_shape
+        batch_size: ${dataloader.train.iter_factory.batches.batch_size}
+        batch_bins: ${dataloader.train.iter_factory.batches.batch_bins}
+
+##########################################################
+#                    TRAINER SETTING                     #
+##########################################################
+trainer:
+  # egs2: accum_grad 1 on 8 GPUs. See the batch_bins note above.
+  accumulate_grad_batches: 2
+  check_val_every_n_epoch: 1
+  # egs2 asr.sh default: grad_clip 5.0.
+  gradient_clip_val: 5.0
+  log_every_n_steps: 100
+  # egs2: max_epoch 80.
+  max_epochs: 80
+  # egs2 sets `use_amp: true`, i.e. fp16 autocast. bf16 is the better default
+  # on Ampere and newer; a GPU without bf16 support (V100 and older) needs
+  # `16-mixed` here instead.
+  precision: bf16-mixed
+  # Keeps Lightning's SIGUSR1 auto-save next to the checkpoints, so a requeued
+  # job resumes instead of restarting.
+  default_root_dir: ${exp_dir}
+
+  logger:
+    - _target_: lightning.pytorch.loggers.TensorBoardLogger
+      save_dir: ${exp_dir}/tensorboard
+      name: tb_logger

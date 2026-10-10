@@ -1,0 +1,93 @@
+##########################################################
+#              LIBRISPEECH DATASET DEFINITION            #
+##########################################################
+# Shared by `dataset/builder.py` (archive creation) and
+# `dataset/dataset.py` (archive reading).
+#
+# `create_dataset` packs the corpus into Omni-IO archives and every later stage
+# reads only those: 281k individual `.flac` files become ~200 `.bin` blobs plus
+# one Parquet offset table per split. On the shared filesystems this recipe
+# targets, the file count is the bottleneck, not the bytes.
+
+builder:
+  # Directory (relative to the recipe root) used when this recipe has to
+  # download and extract the corpus itself.
+  dataset_path: download
+
+  # Environment variable checked for an already-extracted LibriSpeech root.
+  source_env_var: LIBRISPEECH
+
+  # Fetch missing archives from OpenSLR instead of failing. Keep this false
+  # where the corpus is already staged; the full set is ~60 GB.
+  download: false
+  download_base_url: https://us.openslr.org/resources/12
+
+  # Omni-IO archive root, relative to `archive_root` (normally ${data_dir}).
+  # One subdirectory per logical split, each holding blob_*.bin,
+  # metadata.parquet and text.tsv.
+  archive_subdir: archive
+
+  # Bytes per blob file. The Omni-IO default (320 MiB) puts 960 h in ~200
+  # files; larger blobs mean fewer files and the same O(1) range read.
+  max_bin_size: 335544320
+
+  # Workers used by `Blob.append` while packing. 0 packs in the calling
+  # process; the 960 h splits are worth parallelising.
+  num_workers: 8
+
+  # Raw LibriSpeech directory -> OpenSLR archive that provides it.
+  archives:
+    train-clean-100: train-clean-100.tar.gz
+    train-clean-360: train-clean-360.tar.gz
+    train-other-500: train-other-500.tar.gz
+    dev-clean: dev-clean.tar.gz
+    dev-other: dev-other.tar.gz
+    test-clean: test-clean.tar.gz
+    test-other: test-other.tar.gz
+
+  # Logical split -> raw LibriSpeech directories packed into it. The names
+  # follow egs2/librispeech/asr1/run.sh (train_960, dev, test_clean, ...).
+  splits:
+    train_960:
+      - train-clean-100
+      - train-clean-360
+      - train-other-500
+    train_460:
+      - train-clean-100
+      - train-clean-360
+    train_100:
+      - train-clean-100
+    dev:
+      - dev-clean
+      - dev-other
+    dev_clean:
+      - dev-clean
+    dev_other:
+      - dev-other
+    test_clean:
+      - test-clean
+    test_other:
+      - test-other
+
+  # Splits built when the training config does not pass an explicit `splits`
+  # list. Only the raw directories these need have to be present, so a
+  # 100 h debug run never has to stage the 360 h and 500 h parts.
+  required_splits:
+    - train_960
+    - dev
+    - dev_clean
+    - dev_other
+    - test_clean
+    - test_other
+
+dataset:
+  archive_subdir: archive
+  supported_splits:
+    - train_960
+    - train_460
+    - train_100
+    - dev
+    - dev_clean
+    - dev_other
+    - test_clean
+    - test_other

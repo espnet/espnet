@@ -1,0 +1,68 @@
+##########################################################
+#                   INFERENCE SETTING                    #
+##########################################################
+# Common usage:
+#   python run.py --stages infer \
+#       --training_config conf/tuning/train_e_branchformer.yaml \
+#       --inference_config conf/inference.yaml
+#
+# egs2 run.sh decodes test_clean, test_other, dev_clean and dev_other with
+# conf/decode_asr.yaml (beam 60, ctc_weight 0.3, lm_weight 0.6) plus a
+# Transformer LM. ESPnet3 has no LM stage, so this config decodes without one
+# and uses a smaller beam; see the [DEVIATION] note in the training config.
+
+##########################################################
+#                    PATHS AND INPUTS                    #
+##########################################################
+# `exp_tag` and `exp_dir` are copied from the training config by run.py, and
+# `inference_dir` defaults to `${exp_dir}/${self_name:}` -- here
+# `${exp_dir}/inference`.
+data_dir: ${recipe_dir}/data
+
+##########################################################
+#                    DATASET DEFINITION                  #
+##########################################################
+# Each entry's `name` becomes the output subdirectory under `${inference_dir}`
+# and the row label in the `measure` stage.
+dataset:
+  test:
+    - name: test_clean
+      data_src_args:
+        split: test_clean
+        recipe_dir: ${recipe_dir}
+        archive_root: ${data_dir}
+    - name: test_other
+      data_src_args:
+        split: test_other
+        recipe_dir: ${recipe_dir}
+        archive_root: ${data_dir}
+    - name: dev_clean
+      data_src_args:
+        split: dev_clean
+        recipe_dir: ${recipe_dir}
+        archive_root: ${data_dir}
+    - name: dev_other
+      data_src_args:
+        split: dev_other
+        recipe_dir: ${recipe_dir}
+        archive_root: ${data_dir}
+
+##########################################################
+#                    MODEL AND OUTPUT                    #
+##########################################################
+model:
+  _target_: espnet2.bin.asr_inference.Speech2Text
+  asr_train_config: ${exp_dir}/config.yaml
+  # Weight average over the top-10 `valid/acc` checkpoints, written by
+  # `AverageCheckpointsCallback`. A run stopped before 10 checkpoints exist
+  # produces `valid.acc.ave_<n>best.pth` instead; point this at that file.
+  asr_model_file: ${exp_dir}/valid.acc.ave_10best.pth
+  beam_size: 20
+  ctc_weight: 0.3
+
+input_key: speech
+# Utterances per model call. LibriSpeech test sets are not length-sorted, so a
+# long utterance pads its neighbours; 4 is the TEMPLATE default and a safe
+# starting point.
+batch_size: 4
+output_fn: src.inference.build_output
