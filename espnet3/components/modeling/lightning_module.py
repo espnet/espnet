@@ -778,8 +778,14 @@ class ESPnetLightningModule(lightning.LightningModule):
                 schedulers.append(scheduler)
 
             self._multi_optimizer_names = [spec.name for spec in self._optimizer_specs]
+            # Preserve runtime state restored by on_load_checkpoint (which Lightning
+            # invokes before configure_optimizers): re-creating it unconditionally
+            # here would silently discard the resumed accum_counter/update_step.
             self._optimizer_states = {
-                spec.name: OptimizerRuntimeState() for spec in self._optimizer_specs
+                spec.name: self._optimizer_states.get(
+                    spec.name, OptimizerRuntimeState()
+                )
+                for spec in self._optimizer_specs
             }
             self._named_optimizers_cache = None
             self._named_schedulers_cache = None
