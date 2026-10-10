@@ -4,7 +4,7 @@ import logging
 import sys
 from itertools import groupby
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Sequence, Tuple, Union
+from typing import Any, Dict, Iterator, List, Optional, Sequence, Tuple, Union
 
 import humanfriendly
 import numpy as np
@@ -1309,7 +1309,8 @@ class Speech2Text:
         """Decode one unsegmented recording of any length.
 
         Takes a path, an array or a tensor, and returns a list of
-        `(start_time, end_time, text)`.
+        `(start_time, end_time, text)`: everything `iter_long` yields, once
+        the recording has been read.
 
         How the recording is cut up depends on the checkpoint, because the two
         kinds of model were trained to be read differently. An encoder-decoder
@@ -1332,6 +1333,42 @@ class Speech2Text:
                 does not exist in its vocabulary.
 
         """
+        return list(
+            self.iter_long(
+                speech,
+                batch_size=batch_size,
+                context_len_in_secs=context_len_in_secs,
+                condition_on_prev_text=condition_on_prev_text,
+                init_text=init_text,
+                end_time_threshold=end_time_threshold,
+                lang_sym=lang_sym,
+                task_sym=task_sym,
+                skip_last_chunk_threshold=skip_last_chunk_threshold,
+            )
+        )
+
+    @torch.no_grad()
+    def iter_long(
+        self,
+        speech: Union[str, Path, torch.Tensor, np.ndarray],
+        batch_size: int = 1,
+        context_len_in_secs: float = 2,
+        condition_on_prev_text: bool = False,
+        init_text: Optional[str] = None,
+        end_time_threshold: Optional[str] = None,
+        lang_sym: Optional[str] = None,
+        task_sym: Optional[str] = None,
+        skip_last_chunk_threshold: float = 0.2,
+    ) -> Iterator[Tuple[float, float, str]]:
+        """`decode_long`, one `(start_time, end_time, text)` at a time.
+
+        An encoder-decoder model yields each utterance as soon as the window
+        holding it is decoded, so a caller can show a long recording's
+        transcript as it comes rather than when it is complete. A CTC-only
+        model is read in overlapping buffers whose frames are merged before
+        the argmax, so it yields its one entry once the recording is read.
+        The arguments are `decode_long`'s.
+        """
         speech = self.read_audio(speech)
         if self.sample_rate is None:
             raise RuntimeError(
@@ -1347,8 +1384,9 @@ class Speech2Text:
                 lang_sym=lang_sym,
                 task_sym=task_sym,
             )
-            return [(0.0, len(speech) / self.sample_rate, text)]
-        return self._decode_long_attention(
+            yield (0.0, len(speech) / self.sample_rate, text)
+            return
+        yield from self._iter_long_attention(
             speech,
             condition_on_prev_text=condition_on_prev_text,
             init_text=init_text,
@@ -1458,6 +1496,29 @@ class Speech2Text:
         task_sym: Optional[str] = None,
         skip_last_chunk_threshold: float = 0.2,
     ):
+        """The utterances `_iter_long_attention` yields, as a list."""
+        return list(
+            self._iter_long_attention(
+                speech,
+                condition_on_prev_text=condition_on_prev_text,
+                init_text=init_text,
+                end_time_threshold=end_time_threshold,
+                lang_sym=lang_sym,
+                task_sym=task_sym,
+                skip_last_chunk_threshold=skip_last_chunk_threshold,
+            )
+        )
+
+    def _iter_long_attention(
+        self,
+        speech: Union[torch.Tensor, np.ndarray],
+        condition_on_prev_text: bool = False,
+        init_text: Optional[str] = None,
+        end_time_threshold: Optional[str] = None,
+        lang_sym: Optional[str] = None,
+        task_sym: Optional[str] = None,
+        skip_last_chunk_threshold: float = 0.2,
+    ) -> Iterator[Tuple[float, float, str]]:
         """Decode unsegmented long-form speech.
 
         Args:
@@ -1495,7 +1556,6 @@ class Speech2Text:
             ), f"speech of size {speech.size()} is not supported"
             speech = speech.squeeze(1)  # (nsamples, 1) --> (nsamples,)
 
-        utterances = []
         offset = 0
         text_prev = init_text
         while offset < len(speech):
@@ -1569,11 +1629,9 @@ class Speech2Text:
                     ),
                 )
                 text_prev = text_prev + utt[-1]
-                utterances.append(utt)
+                yield utt
 
             offset += round((new_start_time_id - first_time_id) * resolution * fs)
-
-        return utterances
 
     @classmethod
     def from_pretrained(

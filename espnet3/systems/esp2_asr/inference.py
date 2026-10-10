@@ -21,6 +21,34 @@ Examples:
         >>> from espnet3.api.inference import load
         >>> load("espnet/some_asr_pack", device="cuda:0")("utt.wav")["text"]
 
+    An ESPnet2 ASR model published without a bundle has no ``meta.yaml``
+    to name its system, so the caller does, and ``Speech2Text.from_pretrained``
+    reads it::
+
+        >>> load("espnet/some_espnet2_asr_model", system="asr")
+
+    Which ESPnet2 models that reads: those of the ``asr`` task, published
+    with ``asr_train_config`` and ``asr_model_file`` - what
+    ``Speech2Text.from_pretrained`` takes. That is any frontend, encoder and
+    decoder of the task: CTC, attention and hybrid CTC/attention models
+    (Transformer, Conformer, Branchformer, E-Branchformer, ...), the task's
+    own transducer decoder (``decoder: transducer``), a Hugging Face decoder
+    (with ``hugging_face_decoder=True``), a model trained with a
+    contextual-block (streaming) encoder, decoded here as a whole utterance,
+    and a multi-speaker model, of which the first speaker's text is
+    returned; with the language model or n-gram the tag publishes, if any.
+    Not read:
+
+    - ``s2t`` (OWSM) and ``enh_s2t`` (joint enhancement and ASR) models are
+      published with other keys and give a ``ModelTagError`` naming them;
+      each needs a system of its own.
+    - ``asr_transducer``-task models and Mask-CTC models are published with
+      the same keys, so nothing tells them apart up front: the first fails
+      while the model is built, the second at the first utterance, as its
+      decoder has no beam-search scorer. Each has its own ``Speech2Text``,
+      which no ``backend_class`` reaches here.
+    - Streaming decoding (``Speech2TextStreaming``) is not reached.
+
     Any ``Speech2Text`` argument replaces the packed one, as ESPnet2's
     ``from_pretrained`` takes it - decoding settings or anything else::
 
@@ -59,7 +87,7 @@ class Inference(BackendInference):
     :class:`BackendInference`):
 
     - ``Inference.from_pretrained(tag_or_dir, device=...)`` from a
-      ``pack_model`` bundle or Hub tag;
+      ``pack_model`` bundle, or an ESPnet2 ASR model on the Hub;
     - ``Inference(asr_train_config=..., asr_model_file=..., beam_size=...)``
       from ``Speech2Text``'s own arguments, which is what ``inference.yaml``
       does, plus ``backend_class=`` for the transducer ``Speech2Text``;
