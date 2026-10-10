@@ -1,0 +1,33 @@
+##########################################################
+#                  PUBLICATION SETTING                   #
+##########################################################
+recipe_dir: .
+exp_tag: ${self_name:}
+exp_dir: exp/${exp_tag}
+inference_dir: ${exp_dir}/inference
+data_dir: ${recipe_dir}/data
+
+pack_model:
+  out_dir: ${exp_dir}/model_pack
+  allow_overwrite: false
+  inference_dir: ${inference_dir}
+  include_model_detail: false
+  readme: ${config_path:../src/hf_model_readme.md}
+  include:
+    - src
+    - dataset
+  exclude:
+    - inference
+    - inference_*
+    - last.ckpt
+    - "**/step*.ckpt"
+    - "**/*.log"
+    - "**/tensorboard/**"
+    - "**/wandb/**"
+
+upload_model:
+  hf_repo: espnet/${set_corpus_and_system:}_${exp_tag}
+  private: false
+  update: false
+  delete_patterns:
+    - "*"
