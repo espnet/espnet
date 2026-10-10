@@ -740,7 +740,9 @@ class Speech2Text:
         speech: Union[
             torch.Tensor, np.ndarray, Sequence[Union[torch.Tensor, np.ndarray]]
         ],
-        speech_lengths: Optional[Union[torch.Tensor, np.ndarray, Sequence[int]]] = None,
+        speech_lengths: Optional[
+            Union[torch.Tensor, np.ndarray, Sequence[Union[int, np.integer]]]
+        ] = None,
     ) -> List[ListOfHypothesis]:
         """Decode a minibatch of utterances in one beam search.
 

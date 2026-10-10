@@ -952,7 +952,8 @@ def test_Speech2Text_batch_decode_accepts_numpy_and_lists(asr_config_file_transf
         [padded[i, :n].numpy() for i, n in enumerate(lengths)]
     )
     with_int_lengths = batched.batch_decode(padded, lengths)
-    for actual in (from_numpy, from_list, with_int_lengths):
+    with_numpy_ints = batched.batch_decode(padded, [np.int64(x) for x in lengths])
+    for actual in (from_numpy, from_list, with_int_lengths, with_numpy_ints):
         assert len(actual) == len(expected)
         for exp, act in zip(expected, actual):
             assert [e[1] for e in exp] == [a[1] for a in act]

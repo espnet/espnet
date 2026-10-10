@@ -654,7 +654,9 @@ class Speech2Text:
         speech: Union[
             torch.Tensor, np.ndarray, Sequence[Union[torch.Tensor, np.ndarray]]
         ],
-        speech_lengths: Optional[Union[torch.Tensor, np.ndarray, Sequence[int]]] = None,
+        speech_lengths: Optional[
+            Union[torch.Tensor, np.ndarray, Sequence[Union[int, np.integer]]]
+        ] = None,
         text_prev: Optional[torch.Tensor] = None,
         text_prev_lengths: Optional[torch.Tensor] = None,
         lang_sym: Optional[str] = None,
