@@ -141,7 +141,13 @@ class FusedFrontends(AbsFrontend):
             input_feats = torch.cat(
                 self.feats_final, dim=-1
             )  # change the input size of the preencoder : proj_dim * n_frontends
-            feats_lens = torch.ones_like(self.feats[0][1]) * (m)
+            # Each utterance keeps the shortest of its lengths over the frontends,
+            # counted in the common frame rate, instead of the length of the
+            # padded batch.
+            feats_lens = torch.stack(
+                [lens * int(self.factors[i]) for i, (_, lens) in enumerate(self.feats)]
+            ).min(dim=0)[0]
+            feats_lens = feats_lens.clamp(max=m)
 
         else:
             raise NotImplementedError

@@ -1,0 +1,97 @@
+##########################################################
+#                    TRAINING SETTING                    #
+##########################################################
+# Quick usage:
+#   python run.py --stages train --training_config conf/training.yaml
+#
+# This is the shared default merged under every F5-TTS recipe's training
+# config (see `load_and_merge_config` in `run.py`). Only path/system
+# scaffolding lives here; the dataset, model, optimizer and dataloader blocks
+# are left null for the recipe config to fill in.
+
+##########################################################
+#                  SYSTEM AND PATH SETTING               #
+##########################################################
+num_device: 1
+num_nodes: 1
+
+# F5-TTS is an ESPnet3-native model: `model` is instantiated directly via
+# Hydra, so the ESPnet2 `task` bridge stays unset.
+task:
+
+recipe_dir: .
+data_dir: ${recipe_dir}/data
+exp_tag: ${self_name:}
+exp_dir: ${recipe_dir}/exp/${exp_tag}
+stats_dir: ${exp_dir}/stats
+inference_dir: ${exp_dir}/inference
+
+##########################################################
+#                    DATASET DEFINITION                  #
+##########################################################
+dataset:
+
+##########################################################
+#                      MODEL SETTING                     #
+##########################################################
+model:
+
+##########################################################
+#            OPTIMIZER & SCHEDULER SETTING               #
+##########################################################
+# Single optimizer path:
+optimizer:
+scheduler:
+scheduler_interval:
+scheduler_monitor:
+
+# Multiple-loss / multiple-optimizer path (e.g. GAN-based TTS):
+optimizers:
+schedulers:
+
+##########################################################
+#                OTHER TRAINING SETTING                  #
+##########################################################
+best_model_criterion:
+
+# Optional random seed used by collect_stats/train.
+seed:
+
+# Extra model initialization mode forwarded to ESPnet's initializer.
+init:
+
+##########################################################
+#                   PARALLELIZATION SETTING              #
+##########################################################
+parallel:
+  env: local
+  n_workers: 1
+  # Replace a stale shard lock left by an interrupted run. Do not enable while
+  # another run may still be writing to the same output directory.
+  allow_overwrite_lock: false
+
+# Apply the train preprocessor's random augmentation (data_aug_effects, speed
+# perturbation, ...) while collecting statistics. Off by default, as in
+# ESPnet2: the statistics and shape files are then the same on every run and
+# match the unaugmented input seen at inference. Training augments either way.
+collect_stats_train_mode: false
+
+##########################################################
+#                   DATALOADER SETTING                   #
+##########################################################
+dataloader:
+
+##########################################################
+#                    TRAINER SETTING                     #
+##########################################################
+# These settings map to `lightning.Trainer(...)`.
+trainer:
+  accelerator: auto
+  devices: ${num_device}
+  num_nodes: ${num_nodes}
+  strategy: auto
+
+##########################################################
+#                      FIT SETTING                       #
+##########################################################
+fit: {}

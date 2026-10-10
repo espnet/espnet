@@ -15,7 +15,7 @@ gen_dummy_coverage(){
 
 python3 -m pip install -e '.[asr]'
 
-cd ./egs3/mini_an4/asr || exit
+cd ./egs3/mini_an4/esp2_asr || exit
 gen_dummy_coverage
 echo "==== [ESPnet3] ASR ===="
 source path.sh
@@ -48,5 +48,34 @@ run_with_training_config \
     training_transducer_asr_conformer_rnnt.yaml \
     run.py \
     conf/inference_transducer.yaml
+
+# The runs above use one worker, which is one shard: nothing is split, built in
+# a worker process or merged. Run collect_stats, infer and measure again on two
+# CPU workers and check the results are the one-worker runs' own.
+# The streaming config applies no random augmentation, so collect_stats is
+# deterministic and the two statistics can be compared exactly.
+echo "==== [ESPnet3] ASR on multiple CPU workers ===="
+ln -sfn training_asr_streaming.yaml conf/training.yaml
+${python} run.py \
+    --stages create_dataset train_tokenizer collect_stats train infer measure \
+    --training_config conf/training.yaml \
+    --inference_config conf/inference_serial.yaml \
+    --metrics_config conf/metrics.yaml
+for training_config in \
+    conf/training_asr_streaming_serial.yaml \
+    conf/training_asr_streaming_parallel.yaml; do
+    ${python} run.py --stages collect_stats --training_config "${training_config}"
+done
+${python} run.py \
+    --stages infer measure \
+    --training_config conf/training.yaml \
+    --inference_config conf/inference_parallel.yaml \
+    --metrics_config conf/metrics.yaml
+python3 "${cwd}/ci/check_espnet3_parallel_workers.py" \
+    --inference exp/training/inference_serial \
+    --inference-parallel exp/training/inference_parallel \
+    --stats exp/stats_serial \
+    --stats-parallel exp/stats_parallel
+rm -rf exp data
 
 cd "${cwd}" || exit
