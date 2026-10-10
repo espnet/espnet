@@ -7,6 +7,11 @@ from pathlib import Path
 from hydra.utils import get_class, instantiate
 from omegaconf import DictConfig, OmegaConf, open_dict
 
+from espnet3.components.contract.metrics import (
+    check_metric_contract,
+    check_metric_inputs,
+    check_metric_output,
+)
 from espnet3.components.metrics.base_metric import BaseMetric
 from espnet3.systems.base.inference_provider import InferenceProvider
 from espnet3.systems.base.inference_runner import _materialize_output_value
@@ -199,15 +204,19 @@ def measure(metrics_config: DictConfig, inference_config: DictConfig | None = No
         then ``measure()`` scores both ``test-clean`` and ``test-other``
         when ``metrics_config.dataset.test`` is omitted.
 
-    A metric's inputs are ``.scp`` files the ``infer`` stage wrote, named by
-    alias (``hyp_key: text`` reads ``<test_name>/text.scp``), or a column of
-    the test set itself, named ``dataset:<column>`` (``ref_key: dataset:text``
-    reads the transcript from the data and writes it to
+    A metric's inputs are bound by its config's ``inputs:`` (declared name
+    -> source; see ``espnet3.components.contract.metrics.check_metric_inputs``),
+    required for every metric that declares one. A source is either a
+    ``.scp`` file the ``infer`` stage wrote (binding ``hyp`` to ``text``
+    reads ``<test_name>/text.scp``), or a column of the test set itself,
+    named ``dataset:<column>`` (binding ``ref`` to ``dataset:text`` reads
+    the transcript from the data and writes it to
     ``<test_name>/dataset/text.scp`` on first use). The reference is the
     data's, so it comes from the data, not from what inference wrote. A
     column that is not a scalar - a reference waveform for an audio metric -
-    is written as an artifact beside it, as ``dataset_artifacts:
-    {<column>: {type: wav, sample_rate: ...}}`` says, ``.npy`` by default.
+    is written as an artifact beside it, as a ``dataset_artifacts`` entry
+    for that column (``type: wav``, ``sample_rate: ...``) says, ``.npy``
+    by default.
 
     Args:
         metrics_config: Omegaconf configuration with inference and metric settings.
@@ -229,6 +238,7 @@ def measure(metrics_config: DictConfig, inference_config: DictConfig | None = No
         metric = instantiate(metric_config.metric)
         if not isinstance(metric, BaseMetric):
             raise TypeError(f"{type(metric)} is not a valid BaseMetric instance")
+        check_metric_contract(metric)
 
         log_component(
             logger,
@@ -237,20 +247,12 @@ def measure(metrics_config: DictConfig, inference_config: DictConfig | None = No
             obj=metric,
             max_depth=2,
         )
+        inputs = check_metric_inputs(metric, metric_config, inference_config) or {}
         results[get_class_path(metric)] = {}
         for test_name in test_sets:
-            if hasattr(metric_config, "inputs"):
-                inputs = OmegaConf.to_container(metric_config.inputs, resolve=True)
-            else:
-                ref_key = getattr(metric, "ref_key", None)
-                hyp_key = getattr(metric, "hyp_key", None)
-                if ref_key is None or hyp_key is None:
-                    raise ValueError(
-                        f"Metric {get_class_path(metric)} requires inputs in config"
-                    )
-                inputs = [ref_key, hyp_key]
             data = _resolve_inputs(inputs, metrics_config, test_name, inference_config)
             metric_result = metric(data, test_name, metrics_config.inference_dir)
+            check_metric_output(metric, metric_result)
             results[get_class_path(metric)].update({test_name: metric_result})
 
     out_path = Path(metrics_config.inference_dir) / "metrics.json"

@@ -2,10 +2,14 @@ from pathlib import Path
 
 import pytest
 
+from espnet3.api.inference import Field
 from espnet3.components.metrics.base_metric import BaseMetric
 
 
 class DummyMetric(BaseMetric):
+    inputs = (Field("ref", "text"), Field("hyp", "text", optional=True))
+    outputs = (Field("count", "number"),)
+
     def __call__(self, data, test_name, output_dir):
         return {"count": sum(1 for _ in self.iter_inputs(data, "ref"))}
 

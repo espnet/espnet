@@ -7,10 +7,11 @@
 # Assumptions:
 # - `infer` has already produced `<test_name>/*.scp` files: one per output of
 #   the model, named after the output (`text.scp` for ASR).
-# - A metric input names one of those files (`hyp_key: text`), or a column of
-#   the test set itself as `dataset:<column>` (`ref_key: dataset:text`): the
-#   reference is the data's, so it is read from the data, into
-#   `<test_name>/dataset/<column>.scp` on first use.
+# - A metric's `inputs:` binds each declared input name to a source: one of
+#   those files (`hyp: text`), or a column of the test set itself as
+#   `dataset:<column>` (`ref: dataset:text`): the reference is the data's, so
+#   it is read from the data, into `<test_name>/dataset/<column>.scp` on
+#   first use.
 # - If `dataset.test` is omitted, test sets are discovered from `${inference_dir}`
 #   subdirectories.
 
@@ -45,18 +46,30 @@ exp_dir: ${recipe_dir}/exp/${exp_tag}
 ##########################################################
 #                    METRIC DEFINITION                   #
 ##########################################################
+# WER/CER/TER declare the inputs they read (`ref`, `hyp`, both kind `text`)
+# and the output key they return (kind `number`). `inputs:` is required: it
+# binds each declared name to where it is read from. Before running a
+# metric, `measure` checks each declared input against the inference
+# config's model: a plain SCP input (`text` above) must name one of the
+# model's own declared `outputs` (and agree with its kind); a `dataset:`
+# input is the test set's own data, so it is not checked against the model.
+# A model that is not an `espnet3.api.inference.InferenceAPI` subclass (so
+# declares no outputs at all) is rejected outright, explaining why, instead
+# of a bare "Missing SCP file" assertion.
 metrics:
   - metric:
       _target_: espnet3.systems.esp2_asr.metrics.wer.WER
-      ref_key: dataset:text  # the test set's transcript
-      hyp_key: text          # the model's `text` output -> `<test_name>/text.scp`
       clean_types:        # optional TextCleaner pipeline, e.g. [tacotron]
+    inputs:
+      ref: dataset:text  # the test set's transcript
+      hyp: text          # <test_name>/text.scp
 
   - metric:
       _target_: espnet3.systems.esp2_asr.metrics.cer.CER
-      ref_key: dataset:text  # the test set's transcript
-      hyp_key: text          # the model's `text` output -> `<test_name>/text.scp`
       clean_types:        # optional TextCleaner pipeline, e.g. [jaconv]
+    inputs:
+      ref: dataset:text  # the test set's transcript
+      hyp: text          # <test_name>/text.scp
 
 # TER (token error rate) scores on the model's subword tokens, so it needs the
 # recipe's trained SentencePiece model. It is recipe-specific and off by default.
@@ -64,6 +77,7 @@ metrics:
 # - metric:
 #     _target_: espnet3.systems.esp2_asr.metrics.ter.TER
 #     bpemodel: exp/bpe_5000/bpe.model  # path to the trained SentencePiece model
-#     ref_key: dataset:text  # the test set's transcript
-#     hyp_key: text          # the model's `text` output -> `<test_name>/text.scp`
 #     clean_types:        # optional TextCleaner pipeline
+#   inputs:
+#     ref: dataset:text  # the test set's transcript
+#     hyp: text          # <test_name>/text.scp
