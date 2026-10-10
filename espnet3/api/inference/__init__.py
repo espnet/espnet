@@ -26,8 +26,8 @@ the stream of one chunk, and a batch is several one-shot calls that a
 model may choose to run together.
 
 What a field can hold is a :class:`Kind` registered in :data:`KINDS`
-(``espnet3.api.inference.kinds``); ``audio``, ``text`` and ``segments`` are
-built in, and a new modality is one subclass passed to
+(``espnet3.api.inference.kinds``); ``audio``, ``text``, ``segments`` and
+``number`` are built in, and a new modality is one subclass passed to
 :func:`register_kind` - from a system, or from a recipe's own ``src/``.
 
 This package is for whoever calls a model. It asks nothing of the rest
@@ -99,6 +99,7 @@ from espnet3.api.inference.kinds import (
     Audio,
     AudioKind,
     Kind,
+    NumberKind,
     SegmentsKind,
     TextKind,
     register_kind,
@@ -124,16 +125,17 @@ __all__ = [
     "Kind",
     "Field",
     "ModelTagError",
-    "apply_overrides",
-    "build_model",
-    "load_model",
-    "read_bundle",
-    "read_meta",
+    "NumberKind",
     "SegmentsKind",
     "TextKind",
+    "apply_overrides",
+    "build_model",
     "check_contract",
     "gather",
     "load",
+    "load_model",
     "locate_pack",
+    "read_bundle",
+    "read_meta",
     "register_kind",
 ]

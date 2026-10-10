@@ -160,9 +160,9 @@ def _forward_inference(
     ``model(**fields)`` for one item, ``model.batch(items)`` for a batch -
     and the sample id comes from the item (``idx_key``, else the index).
     Only what the model produced is written; a reference for scoring is
-    read from the data by ``measure`` (``ref_key: dataset:text``). A
-    configured ``output_fn`` is refused rather than ignored: the
-    declaration fixes the outputs.
+    read from the data by ``measure`` (bind ``ref`` to ``dataset:text``
+    in the metrics config's ``inputs:``). A configured ``output_fn`` is
+    refused rather than ignored: the declaration fixes the outputs.
     """
     if model_kwargs:
         raise TypeError(
@@ -172,8 +172,8 @@ def _forward_inference(
     if output_fn:
         raise TypeError(
             "an Inference writes its declared outputs and applies no output_fn; "
-            "drop output_fn (a reference for scoring is read by measure with "
-            "`ref_key: dataset:<column>`)"
+            "drop output_fn (a reference for scoring is read by measure: bind "
+            "`ref` to `dataset:<column>` in the metrics config's `inputs:`)"
         )
     batched = isinstance(idx, (list, tuple))
     indices = list(idx) if batched else [idx]
@@ -636,6 +636,11 @@ class InferenceRunner(BaseRunner):
 
 @lru_cache(maxsize=None)
 def _load_output_fn(path: str):
+    """Import a dotted ``module.function`` path for a non-Inference model.
+
+    output_fn is only for a model that is not an Inference: an Inference
+    writes its declared outputs and refuses an output_fn.
+    """
     module_path, func_name = path.rsplit(".", 1)
     module = import_module(module_path)
     return getattr(module, func_name)

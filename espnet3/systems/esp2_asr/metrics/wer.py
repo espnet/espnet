@@ -11,32 +11,33 @@ except ImportError:
     jiwer = None
 
 from espnet2.text.cleaner import TextCleaner
+from espnet3.api.inference import Field
 from espnet3.components.metrics.base_metric import BaseMetric
 
 
 class WER(BaseMetric):
     """Compute WER for hypotheses.
 
-    This metric expects hypothesis and reference strings and produces a
-    percentage score along with alignment visualization output.
+    Reads ``data["ref"]``/``data["hyp"]``, the declared names; the
+    metrics config's ``inputs:`` binds them to a source (see
+    :class:`~espnet3.components.contract.metrics.check_metric_inputs`).
+
+    Examples:
+        >>> WER().inputs[0]
+        Field(name='ref', kind='text', label='Ref', optional=False, channels=1)
     """
 
-    def __init__(
-        self,
-        ref_key: str = "ref",
-        hyp_key: str = "hyp",
-        clean_types: Iterable[str] | None = None,
-    ) -> None:
+    inputs = (Field("ref", "text"), Field("hyp", "text"))
+    outputs = (Field("WER", "number"),)
+
+    def __init__(self, clean_types: Iterable[str] | None = None) -> None:
         """Initialize the WER metric.
 
         Args:
-            ref_key: Key name for reference text entries.
-            hyp_key: Key name for hypothesis text entries.
             clean_types: Optional cleaner types passed to TextCleaner.
         """
         self.cleaner = TextCleaner(clean_types)
-        self.ref_key = ref_key
-        self.hyp_key = hyp_key
+        super().__init__()
 
     def _clean(self, text: str) -> str:
         """Clean text and provide a placeholder for empty strings.
@@ -72,8 +73,8 @@ class WER(BaseMetric):
 
         Args:
             data (Dict[str, Path]): Mapping of metric input aliases to file
-                paths. This metric expects ``data[self.ref_key]`` and
-                ``data[self.hyp_key]`` to be SCP files whose utterance IDs are
+                paths. This metric expects ``data["ref"]`` and
+                ``data["hyp"]`` to be SCP files whose utterance IDs are
                 aligned in the same order.
             test_name (str): Test set name used for output directory naming.
             inference_dir (Path): Base hypothesis/reference directory for
@@ -103,9 +104,9 @@ class WER(BaseMetric):
         self._ensure_jiwer()
         refs = []
         hyps = []
-        for _, row in self.iter_inputs(data, self.ref_key, self.hyp_key):
-            refs.append(self._clean(row[self.ref_key]))
-            hyps.append(self._clean(row[self.hyp_key]))
+        for _, row in self.iter_inputs(data, "ref", "hyp"):
+            refs.append(self._clean(row["ref"]))
+            hyps.append(self._clean(row["hyp"]))
 
         score = jiwer.wer(refs, hyps) * 100
         details = jiwer.process_words(refs, hyps)
