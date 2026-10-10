@@ -1,0 +1,36 @@
+##########################################################
+#                   INFERENCE SETTING                    #
+##########################################################
+# Common usage:
+#   python run.py --stages infer \
+#       --training_config conf/training.yaml \
+#       --inference_config conf/inference.yaml
+#
+# `run.py` copies `exp_tag` / `exp_dir` from the training config.
+
+##########################################################
+#                    DATASET DEFINITION                  #
+##########################################################
+# The test split keeps the unfiltered manifest; see `dataset/config.yaml`.
+dataset:
+  test:
+    - name: valid
+      data_src_args:
+        split: valid
+    - name: test
+      data_src_args:
+        split: test
+
+##########################################################
+#                    MODEL AND OUTPUT                    #
+##########################################################
+# The checkpoint is named directly, as in `egs3/mini_an4/asr`: the averaging
+# callback needs a second validation pass before it writes
+# `valid.acc.ave_1best.pth`, and this recipe trains for one epoch.
+model:
+  _target_: espnet2.bin.cls_inference.Classification
+  classification_train_config: ${exp_dir}/config.yaml
+  classification_model_file: ${exp_dir}/epoch0_step1_valid.acc.ckpt
+
+input_key: speech
+output_fn: src.inference.build_output

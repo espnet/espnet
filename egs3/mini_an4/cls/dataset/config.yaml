@@ -1,0 +1,42 @@
+builder:
+  # Source layout ---------------------------------------------------------
+  # The ASR recipe's archive is read in place: one corpus, one copy.
+  archive_path: ../asr/downloads.tar.gz
+  dataset_path: downloads
+  data_path: data
+
+  splits:
+    train:
+      transcript_name: an4_train.transcription
+      sph_subdir: an4_clstk
+    test:
+      transcript_name: an4_test.transcription
+      sph_subdir: an4test_clstk
+
+  # Labels ----------------------------------------------------------------
+  # AN4 carries no per-utterance attribute, so the speaker id is the class
+  # label, as in `egs2/mini_an4/lid1`. Its test speakers never appear in
+  # training, so they are relabelled with one that does.
+  test_speaker_labels:
+    fcaw: fash
+    mmxg: mwhw
+
+  # Split -----------------------------------------------------------------
+  # Named rather than counted: any contiguous pair of the five training
+  # utterances would leave validation with a single class.
+  valid_utt_ids:
+    - fash-an253-b
+    - mwhw-an152-b
+
+  manifest_paths:
+    train: manifest/train.tsv
+    valid: manifest/valid.tsv
+    test: manifest/test.tsv
+
+dataset:
+  # Train and valid read the `remove_long_short` output; test stays unfiltered
+  # so the reported scores cover the whole split.
+  split_manifest_paths:
+    train: manifest_filtered/train.tsv
+    valid: manifest_filtered/valid.tsv
+    test: manifest/test.tsv

@@ -1,0 +1,18 @@
+# infer rebuilds the encoder from ${exp_dir}/config.yaml, so BEATS_CKPT must
+# still resolve here even though those weights are replaced by the checkpoint.
+
+# Only `test`: the held-out fold is also the valid split, so scoring both
+# would run the same 400 clips twice.
+dataset:
+  test:
+    - name: test
+      data_src_args:
+        split: test
+
+model:
+  _target_: espnet2.bin.cls_inference.Classification
+  classification_train_config: ${exp_dir}/config.yaml
+  classification_model_file: ${exp_dir}/valid.acc.ave_1best.pth
+
+input_key: speech
+output_fn: src.inference.build_output
