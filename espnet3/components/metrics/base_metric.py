@@ -37,7 +37,7 @@ class BaseMetric(ABC):
 
                     metrics:
                       - metric:
-                          _target_: espnet3.systems.asr.metrics.wer.WER
+                          _target_: espnet3.systems.esp2_asr.metrics.wer.WER
                           clean_types:
                         inputs:
                           ref: ref
