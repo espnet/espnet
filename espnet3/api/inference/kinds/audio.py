@@ -186,7 +186,12 @@ class Audio:
             raise ValueError(
                 f"cannot concatenate audio with {sorted(channels)} channels"
             )
-        return cls(np.concatenate([p.array for p in pieces], axis=-1), rates.pop())
+        # one channel may be laid out as (samples,) or as (1, samples) - a
+        # mono piece becomes the former on construction, a field asking for
+        # every channel hands out the latter - so the pieces are brought to
+        # one layout before they are joined
+        arrays = [p.multichannel().array for p in pieces]
+        return cls(np.concatenate(arrays, axis=-1), rates.pop())
 
     @classmethod
     def coerce(cls, value: Any, rate: Optional[int]) -> "Audio":

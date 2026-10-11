@@ -78,6 +78,56 @@ def s2t_config_file(tmp_path: Path, token_list):
     return tmp_path / "s2t" / "config.yaml"
 
 
+@pytest.fixture()
+def s2t_long_form_config_file(tmp_path: Path, token_list):
+    """The fixture above with the rate, hop and input layer the long-form paths need.
+
+    2 kHz audio, a 200-sample hop and conv2d's four-fold subsampling: the
+    window is one second, spanned by <0.00> and <1.00>.
+    """
+    S2TTask.main(
+        cmd=[
+            "--dry_run",
+            "true",
+            "--output_dir",
+            str(tmp_path / "s2t_long"),
+            "--token_list",
+            str(token_list),
+            "--token_type",
+            "char",
+            "--decoder",
+            "rnn",
+            "--preprocessor_conf",
+            "notime_symbol='<notimestamps>'",
+            "--preprocessor_conf",
+            "first_time_symbol='<0.00>'",
+            "--preprocessor_conf",
+            "last_time_symbol='<1.00>'",
+            "--preprocessor_conf",
+            "fs=2000",
+            "--preprocessor_conf",
+            "speech_length=1",
+            "--frontend_conf",
+            "fs=2000",
+            "--frontend_conf",
+            "hop_length=200",
+            "--encoder",
+            "transformer",
+            "--encoder_conf",
+            "input_layer=conv2d",
+            "--encoder_conf",
+            "output_size=16",
+            "--encoder_conf",
+            "linear_units=16",
+            "--encoder_conf",
+            "num_blocks=1",
+            "--encoder_conf",
+            "attention_heads=2",
+        ]
+    )
+    return tmp_path / "s2t_long" / "config.yaml"
+
+
 @pytest.mark.execution_timeout(5)
 def test_Speech2Text(s2t_config_file):
     speech2text = Speech2Text(
@@ -262,6 +312,75 @@ def test_decode_window_asks_the_checkpoint_which_way(s2t_config_file):
     speech2text.ctc_only = True
     assert speech2text.decode_window(speech) == "ctc"
     assert called == ["head"]
+
+
+def test_iter_long_yields_each_utterance_as_it_is_decoded(s2t_long_form_config_file):
+    """decode_long is iter_long's list; iter_long hands out an utterance per window.
+
+    The fixture's window is one second, spanned by <0.00> and <1.00>; the
+    stand-in decoder answers every window with "a" from its start to its end,
+    so a 2.5 s recording is three windows and three utterances, and the
+    first is out before the second window is decoded.
+    """
+    speech2text = Speech2Text(s2t_train_config=s2t_long_form_config_file, beam_size=1)
+    ids = speech2text.converter.token2id
+    tokens = [ids["<eng>"], ids["<asr>"], ids["<0.00>"], ids["a"], ids["<1.00>"]]
+    windows = []
+
+    def decoder(**kwargs):
+        windows.append(len(kwargs["speech"]))
+        return [("a", ["a"], list(tokens), "a", None)]
+
+    speech2text.__call__ = decoder
+    speech = np.zeros(5000)
+
+    pieces = speech2text.iter_long(speech, lang_sym="<eng>", task_sym="<asr>")
+    assert next(pieces) == (0.0, 1.0, "a")
+    assert windows == [2000]  # the second window is not decoded yet
+    assert list(pieces) == [(1.0, 2.0, "a"), (2.0, 3.0, "a")]
+    assert windows == [2000, 2000, 1000]
+
+    assert speech2text.decode_long(speech, lang_sym="<eng>", task_sym="<asr>") == [
+        (0.0, 1.0, "a"),
+        (1.0, 2.0, "a"),
+        (2.0, 3.0, "a"),
+    ]
+
+
+def test_iter_long_always_moves_on(s2t_long_form_config_file, caplog):
+    """A window whose cut-off utterance starts at its own start is not re-read for ever.
+
+    The stand-in decoder answers each one-second window with two utterances,
+    the second ending at the window's end: that one is taken to be cut off and
+    the next window would start where it did, at the window's own start.
+    """
+    speech2text = Speech2Text(s2t_train_config=s2t_long_form_config_file, beam_size=1)
+    ids = speech2text.converter.token2id
+    tokens = [ids["<eng>"], ids["<asr>"]] + [ids["<0.00>"], ids["a"], ids["<1.00>"]] * 2
+    speech2text.__call__ = lambda **kw: [("aa", ["a", "a"], list(tokens), "aa", None)]
+
+    with caplog.at_level("WARNING"):
+        utterances = speech2text.decode_long(
+            np.zeros(5000), lang_sym="<eng>", task_sym="<asr>"
+        )
+    assert utterances == [(0.0, 1.0, "a"), (1.0, 2.0, "a"), (2.0, 3.0, "a")]
+    assert "skipping to the end of the window" in caplog.text
+
+
+def test_window_utterances_reads_a_window_as_decode_long_does(
+    s2t_long_form_config_file,
+):
+    """Lang and task first, then text between timestamp pairs; offset added."""
+    speech2text = Speech2Text(s2t_train_config=s2t_long_form_config_file, beam_size=1)
+    ids = speech2text.converter.token2id
+    tokens = [ids["<eng>"], ids["<asr>"], ids["<0.00>"], ids["a"], ids["<1.00>"]]
+    assert speech2text.window_utterances(tokens) == [(0.0, 1.0, "a")]
+    assert speech2text.window_utterances(tokens, offset=2.5) == [(2.5, 3.5, "a")]
+    # an utterance with a start but no end runs to the end of the window
+    assert speech2text.window_utterances(tokens[:-1]) == [(0.0, 1.0, "a")]
+    # no timestamp at all: the window's text as one utterance spanning it
+    no_time = [ids["<eng>"], ids["<asr>"], ids["a"], ids["a"]]
+    assert speech2text.window_utterances(no_time, offset=1.0) == [(1.0, 2.0, "aa")]
 
 
 def test_best_path_takes_one_utterance(s2t_config_file):
@@ -539,3 +658,29 @@ def test_conv2d6_default_context_keeps_contiguous_frames(ctc_config_file, monkey
     for decode in (speech2text.ctc_log_probs, speech2text.decode_long):
         with pytest.raises(ValueError, match="context_len_in_secs.*whole number"):
             decode(speech, context_len_in_secs=2)
+
+
+def test_Speech2Text_batch_decode_accepts_numpy_and_lists(s2t_config_file_transformer):
+    """A padded numpy array or a list of utterances decodes like the tensor."""
+    batched = Speech2Text(
+        s2t_train_config=s2t_config_file_transformer,
+        beam_size=2,
+        batch_size=3,
+        maxlenratio=-8,
+    )
+    lengths = [4000, 3000, 9000]
+    speeches = [np.random.randn(n).astype(np.float32) for n in lengths]
+    padded = np.zeros((len(speeches), max(lengths)), dtype=np.float32)
+    for i, sp in enumerate(speeches):
+        padded[i, : len(sp)] = sp
+    expected = batched.batch_decode(torch.tensor(padded), torch.tensor(lengths))
+
+    from_numpy = batched.batch_decode(padded, np.array(lengths))
+    from_list = batched.batch_decode(speeches)
+    for actual in (from_numpy, from_list):
+        assert len(actual) == len(expected)
+        for exp, act in zip(expected, actual):
+            assert [e[1] for e in exp] == [a[1] for a in act]
+            np.testing.assert_allclose(
+                float(exp[0][4].score), float(act[0][4].score), rtol=1e-4
+            )

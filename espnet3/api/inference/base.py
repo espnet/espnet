@@ -110,7 +110,7 @@ class InferenceAPI(ABC):
                 outputs = (Field("text", "text"),)
 
                 @classmethod
-                def from_pretrained(cls, tag_or_dir, *, device="cpu", **kwargs):
+                def from_pretrained(cls, tag_or_dir, *, device="auto", **kwargs):
                     pack = locate_pack(tag_or_dir)
                     return cls(load_model(pack, device=device, overrides=kwargs))
 
@@ -159,7 +159,7 @@ class InferenceAPI(ABC):
     @classmethod
     @abstractmethod
     def from_pretrained(
-        cls, tag_or_dir: str | Path, *, device: str = "cpu", **kwargs: Any
+        cls, tag_or_dir: str | Path, *, device: str = "auto", **kwargs: Any
     ) -> "InferenceAPI":
         """Load a published model.
 
@@ -167,7 +167,9 @@ class InferenceAPI(ABC):
             tag_or_dir: A ``pack_model`` output directory, or a Hub tag
                 ``espnet_model_zoo`` resolves. :func:`locate_pack` turns
                 either into the directory.
-            device: Where to build the model, ``"cpu"`` or ``"cuda:0"``.
+            device: Where to build the model: ``"auto"`` for CUDA when
+                torch sees it, else the CPU; or a device by name
+                (:func:`~espnet3.api.inference.resolve_device`).
             **kwargs: Arguments of the packed model's constructor that
                 replace the packed values (``beam_size=5``), as ESPnet2's
                 ``from_pretrained`` takes them; :func:`load_model` applies
