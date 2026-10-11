@@ -56,9 +56,17 @@ class Match(BaseMetric):
     inputs = (Field("ref", "text"), Field("hyp", "text"))
     outputs = (Field("n", "number"),)
 
-    def __call__(self, data, test_name, inference_dir):
-        rows = [row for _, row in self.iter_inputs(data, "ref", "hyp")]
-        return {"n": len(rows), "refs": [r["ref"] for r in rows]}
+    def __init__(self):
+        super().__init__()
+        self.add_state("n", 0, "sum")
+        self.add_state("refs", [], "cat")
+
+    def update(self, *, ref, hyp):
+        self.n += len(ref)
+        self.refs.extend(ref)
+
+    def compute(self):
+        return {"n": self.n, "refs": self.refs}
 
 
 class MatchAudio(Match):

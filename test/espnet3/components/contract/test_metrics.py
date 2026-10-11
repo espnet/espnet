@@ -22,7 +22,10 @@ class _Good(BaseMetric):
     inputs = (Field("ref", "text"), Field("hyp", "text"))
     outputs = (Field("WER", "number"),)
 
-    def __call__(self, data, test_name, output_dir):
+    def update(self, **values):
+        pass
+
+    def compute(self):
         return {"WER": 0.0}
 
 
@@ -34,7 +37,10 @@ class _Bad(BaseMetric):
     inputs = (Field("ref", "text"),)
     outputs = (Field("transcript", "text"),)
 
-    def __call__(self, data, test_name, output_dir):
+    def update(self, **values):
+        pass
+
+    def compute(self):
         return {}
 
 
@@ -44,7 +50,10 @@ def test_non_number_output_rejected_at_instantiation():
 
 
 class _Undeclared(BaseMetric):
-    def __call__(self, data, test_name, output_dir):
+    def update(self, **values):
+        pass
+
+    def compute(self):
         return {}
 
 
@@ -66,7 +75,10 @@ class _VersaStyle(BaseMetric):
         self.outputs = tuple(Field(name, "number") for name in score_config)
         super().__init__()
 
-    def __call__(self, data, test_name, output_dir):
+    def update(self, **values):
+        pass
+
+    def compute(self):
         return {name: 0.0 for name in self.score_config}
 
 
@@ -84,7 +96,10 @@ class _BrokenVersaStyle(BaseMetric):
         self.outputs = (Field("transcript", "text"),)
         super().__init__()
 
-    def __call__(self, data, test_name, output_dir):
+    def update(self, **values):
+        pass
+
+    def compute(self):
         return {}
 
 

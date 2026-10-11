@@ -34,15 +34,25 @@ class DummyMetric(BaseMetric):
     inputs = (Field("ref", "text"), Field("hyp", "text"))
     outputs = (Field("count", "number"),)
 
-    def __call__(self, data, test_name, inference_dir):
-        return {"count": sum(1 for _ in self.iter_inputs(data, "ref"))}
+    def __init__(self):
+        super().__init__()
+        self.add_state("count", 0, "sum")
+
+    def update(self, *, ref, hyp):
+        self.count += len(ref)
+
+    def compute(self):
+        return {"count": self.count}
 
 
 class NoKeyMetric(BaseMetric):
     inputs = (Field("ref", "text"), Field("hyp", "text"))
     outputs = (Field("ok", "number"),)
 
-    def __call__(self, data, test_name, inference_dir):
+    def update(self, **values):
+        pass
+
+    def compute(self):
         return {"ok": 1}
 
 
@@ -50,11 +60,15 @@ class PathMetric(BaseMetric):
     inputs = (Field("ref", "text"), Field("hyp", "text"))
     outputs = (Field("ok", "number"),)
 
-    def __call__(self, data, test_name, inference_dir):
-        task_dir = Path(inference_dir) / test_name
-        assert data["ref"] == task_dir / "ref.scp"
-        assert [row["hyp"] for _, row in self.iter_inputs(data, "hyp")] == ["h1"]
+    def update(self, *, ref, hyp):
+        assert list(hyp) == ["h1"]
+
+    def compute(self):
         return {"ok": 1}
+
+    def __call__(self, data, test_name, inference_dir):
+        assert data["ref"] == Path(inference_dir) / test_name / "ref.scp"
+        return super().__call__(data, test_name, inference_dir)
 
 
 class NotMetric:
@@ -321,7 +335,10 @@ class SkipsSuperInitMetric(BaseMetric):
     def __init__(self):
         pass
 
-    def __call__(self, data, test_name, inference_dir):
+    def update(self, **values):
+        pass
+
+    def compute(self):
         return {}
 
 
@@ -401,7 +418,10 @@ class BadOutputMetric(BaseMetric):
     inputs = (Field("ref", "text"), Field("hyp", "text"))
     outputs = (Field("X", "number"),)
 
-    def __call__(self, data, test_name, inference_dir):
+    def update(self, **values):
+        pass
+
+    def compute(self):
         return {"X": "not-a-number"}
 
 
