@@ -193,9 +193,10 @@ class Inference(BackendInference):
         previous = inputs.get("previous_text")
         if previous is not None:
             kwargs.update(init_text=previous, condition_on_prev_text=True)
-        task_sym = kwargs["task_sym"] or getattr(self.backend, "task_sym", None)
-        if task_sym == "<pr>" and not getattr(self.backend, "ctc_only", False):
-            utterances = self._phones_window_by_window(speech, kwargs["lang_sym"])
+        if self._phones_by_window(kwargs["task_sym"]):
+            utterances = self._phones_window_by_window(
+                speech, kwargs["lang_sym"], previous
+            )
         else:
             utterances = self.backend.iter_long(speech.array, **kwargs)
         first = True
@@ -220,8 +221,9 @@ class Inference(BackendInference):
         ``decode_long`` reads a window. The last second is left out because
         ``decode_long`` reads an utterance ending there as cut off and
         leaves it for the next window, which a batch item would not have.
-        A longer recording, an item with ``previous_text``, and a group of
-        one go through :meth:`run`, as does everything on a CTC-only
+        A longer recording, an item with ``previous_text``, phones on an
+        encoder-decoder checkpoint (decoded a window at a time) and a group
+        of one go through :meth:`run`, as does everything on a CTC-only
         checkpoint, whose ``batch_decode`` searches the CTC head while
         ``decode_long`` takes its best path, and on a backend without
         ``batch_decode`` or whose config does not say its window.
@@ -237,13 +239,14 @@ class Inference(BackendInference):
         outputs: list = [None] * len(items)
         groups: dict[tuple, list[int]] = {}
         for i, item in enumerate(items):
+            key = (self._language(item.get("language")), self._task(item.get("task")))
             if (
                 item.get("previous_text") is not None
                 or len(item["speech"].array) > batchable
+                or self._phones_by_window(key[1])
             ):
                 outputs[i] = self.run(**item)
                 continue
-            key = (self._language(item.get("language")), self._task(item.get("task")))
             groups.setdefault(key, []).append(i)
         for (lang_sym, task_sym), index in groups.items():
             if len(index) == 1:
@@ -264,22 +267,36 @@ class Inference(BackendInference):
                 outputs[i] = _output(self.backend.window_utterances(nbest[0][2]))
         return outputs
 
-    def _phones_window_by_window(self, speech: Audio, lang_sym: str):
-        """Yield phones for each window of the model's length, decoded on its own.
+    def _phones_by_window(self, task_sym: Optional[str]) -> bool:
+        """Whether this task on this checkpoint is decoded a window at a time.
 
-        Phone recognition has no timestamps to cut a recording up by, and
-        an encoder-decoder checkpoint asked for phones over the silence a
-        short window is padded with repeats what it has already said, for
-        as long as the window lasts; so each window is decoded on its own,
-        as the POWSM model card does, and is one segment. A CTC-only
-        checkpoint has neither problem and takes the long-form path.
+        Phone recognition has no timestamps to cut a recording up by, and an
+        encoder-decoder checkpoint asked for phones over the silence a short
+        window is padded with repeats what it has already said, for as long
+        as the window lasts; so each window is decoded on its own, as the
+        POWSM model card does. A CTC-only checkpoint has neither problem and
+        takes the long-form path, as every other task does.
+        """
+        task_sym = task_sym or getattr(self.backend, "task_sym", None)
+        return task_sym == "<pr>" and not getattr(self.backend, "ctc_only", False)
+
+    def _phones_window_by_window(
+        self, speech: Audio, lang_sym: str, previous_text: Optional[str] = None
+    ):
+        """Yield phones for each window of the model's length, one segment each.
+
+        ``previous_text`` conditions the first window, as ``decode_long``'s
+        ``init_text`` conditions the first segment.
         """
         conf = self.backend.preprocessor_conf
         window = int(conf["fs"] * conf["speech_length"])
         array, rate = speech.array, self.sample_rate
         for start in range(0, max(len(array), 1), window):
             results = self.backend(
-                array[start : start + window], lang_sym=lang_sym, task_sym="<pr>"
+                array[start : start + window],
+                text_prev=previous_text if start == 0 else None,
+                lang_sym=lang_sym,
+                task_sym="<pr>",
             )
             text = results[0][3] if results else ""  # without the special tokens
             end = min(start + window, len(array))

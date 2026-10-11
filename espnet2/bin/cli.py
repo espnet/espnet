@@ -229,7 +229,8 @@ def cmd_transcribe(args) -> int:
     _require_file(args.audio)
 
     model = _load_s2t(args, "transcribe")
-    print(_say(model, args.audio, **_prompt(args)))
+    # by name: a checkpoint built with another default task still transcribes
+    print(_say(model, args.audio, task="asr", **_prompt(args)))
     return 0
 
 

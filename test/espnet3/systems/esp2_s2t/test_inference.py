@@ -139,12 +139,12 @@ def test_phones_on_an_encoder_decoder_checkpoint_go_window_by_window():
     windows = []
 
     class Windowed(FakeSpeech2Text):
-        def __call__(self, speech, lang_sym=None, task_sym=None):
-            windows.append((len(speech), lang_sym, task_sym))
+        def __call__(self, speech, text_prev=None, lang_sym=None, task_sym=None):
+            windows.append((len(speech), text_prev, lang_sym, task_sym))
             return [("<eng><pr>/a/", [], [], "/a/", None)]
 
     backend = Windowed(tokens=VOCABULARY + ["<pr>"])  # a 30 s window
-    out = Inference(backend)(audio(45.0), task="pr")
+    out = Inference(backend)(audio(45.0), task="pr", previous_text="so far")
     assert out == {
         "text": "/a/ /a/",
         "segments": [
@@ -152,8 +152,19 @@ def test_phones_on_an_encoder_decoder_checkpoint_go_window_by_window():
             {"text": "/a/", "start": 30.0, "end": 45.0},
         ],
     }
-    assert windows == [(30 * 16000, "<eng>", "<pr>"), (15 * 16000, "<eng>", "<pr>")]
+    # the previous text conditions the first window only, as init_text does
+    assert windows == [
+        (30 * 16000, "so far", "<eng>", "<pr>"),
+        (15 * 16000, None, "<eng>", "<pr>"),
+    ]
     assert backend.calls == []  # not the long-form path
+
+    # and in a batch: window by window too, never batch_decode
+    windows.clear()
+    model = Inference(Windowed(tokens=VOCABULARY + ["<pr>"]))
+    out = model.batch([{"speech": audio(2.0), "task": "pr"}] * 2)
+    assert model.backend.batches == [] and len(windows) == 2
+    assert out == [model(audio(2.0), task="pr")] * 2
 
     # a CTC-only checkpoint has no such trouble: the long-form path, as for text
     backend = FakeSpeech2Text(tokens=VOCABULARY + ["<pr>"])

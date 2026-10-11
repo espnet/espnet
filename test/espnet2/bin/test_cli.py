@@ -144,8 +144,8 @@ def test_transcribe_prints_the_transcript(monkeypatch, tmp_path, capsys):
         "s2t",
         "auto",
     )
-    # no language given means the model works it out
-    assert model.calls == [(str(audio), {})]
+    # transcription asked for by name; no language given means the model works it out
+    assert model.calls == [(str(audio), {"task": "asr"})]
 
 
 def test_asr_passes_the_language_and_the_chosen_model(monkeypatch, tmp_path):
@@ -174,7 +174,7 @@ def test_asr_passes_the_language_and_the_chosen_model(monkeypatch, tmp_path):
     )
 
     assert rec.tag == "espnet/other" and rec.device == "cuda"
-    assert rec.calls[0][1] == {"language": "jpn"}
+    assert rec.calls[0][1] == {"task": "asr", "language": "jpn"}
 
 
 def test_phonemize_prints_ipa_without_the_slashes(monkeypatch, tmp_path, capsys):
