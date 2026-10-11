@@ -1,6 +1,7 @@
 """Shared validation for a class's or an instance's field declarations."""
 
 from __future__ import annotations
+from espnet3.api.inference.field import Field
 
 
 def check_declaration(
@@ -21,13 +22,6 @@ def check_declaration(
     Raises:
         TypeError: With the rule that was broken.
 
-    Note:
-        Imports :class:`Field` lazily (inside the function body, not at
-        module load time): :class:`InferenceAPI` imports this module to
-        share the check, so a module-level import of
-        :mod:`espnet3.api.inference` here would import it back before it
-        finishes initializing.
-
     Examples:
         >>> from espnet3.api.inference import Field
         >>> class Bad:
@@ -38,8 +32,7 @@ def check_declaration(
         Traceback (most recent call last):
         TypeError: Bad.inputs must list required fields before optional ones, ...
     """
-    from espnet3.api.inference.field import Field
-
+    
     cls = obj if isinstance(obj, type) else type(obj)
     for attr in (inputs_attr, outputs_attr):
         fields = getattr(obj, attr, None)
