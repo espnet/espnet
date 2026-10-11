@@ -500,3 +500,119 @@ def test_backend_class_is_refused_for_a_published_tag(monkeypatch):
     transducer = "espnet2.bin.asr_transducer_inference.Speech2Text"
     with pytest.raises(TypeError, match="read by the declared espnet2.bin.asr_inf"):
         Inference.from_pretrained("espnet/a_transducer", backend_class=transducer)
+
+
+class FakeStreaming:
+    """Stands in for Speech2TextStreaming: a running hypothesis per chunk."""
+
+    def __init__(self, texts):
+        self.texts = list(texts)
+        self.seen = []
+
+    def reset(self):
+        self.seen.append("reset")
+
+    def __call__(self, speech, is_final=False):
+        self.seen.append((len(speech), is_final))
+        text = self.texts.pop(0) if self.texts else None
+        return [] if text is None else [(text, [], [], None)]
+
+
+def _streaming_model(monkeypatch, texts):
+    model = Inference(FakeSpeech2Text())
+    streamer = FakeStreaming(texts)
+    monkeypatch.setattr(model, "_streamer", lambda: streamer)
+    return model, streamer
+
+
+def test_stream_yields_what_the_online_search_adds(monkeypatch):
+    """Running hypotheses "hel", "hello", "hello world" come out as their deltas."""
+    model, streamer = _streaming_model(monkeypatch, ["hel", "hello", "hello world"])
+    chunks = [{"speech": np.zeros(4000, dtype=np.float32)} for _ in range(3)]
+    pieces = [p["text"] for p in model.stream(chunks)]
+    assert pieces == ["hel", "lo", " world"]
+    # every chunk reached the decoder, the last one flagged final
+    assert streamer.seen == ["reset", (4000, False), (4000, False), (4000, True)]
+
+
+def test_stream_keeps_what_it_yielded_when_the_search_revises(monkeypatch, caplog):
+    model, _ = _streaming_model(monkeypatch, ["hello", "help me"])
+    chunks = [{"speech": np.zeros(4000, dtype=np.float32)} for _ in range(2)]
+    with caplog.at_level("WARNING"):
+        pieces = [p["text"] for p in model.stream(chunks)]
+    assert pieces == ["hello", "p me"]
+    assert "revised text already streamed" in caplog.text
+
+
+def test_stream_says_nothing_until_the_hypothesis_grows(monkeypatch):
+    model, _ = _streaming_model(monkeypatch, [None, None, "hi"])
+    chunks = [{"speech": np.zeros(4000, dtype=np.float32)} for _ in range(3)]
+    assert [p["text"] for p in model.stream(chunks)] == ["hi"]
+
+
+def test_stream_without_a_blockwise_encoder_decodes_the_whole_utterance():
+    """FakeSpeech2Text has no asr_model: the default gathers and runs."""
+    backend = FakeSpeech2Text()
+    chunks = [{"speech": np.zeros(4000, dtype=np.float32)} for _ in range(3)]
+    assert list(Inference(backend).stream(chunks)) == [{"text": "hello world"}]
+    assert backend.seen.shape == (12000,)
+
+
+@pytest.fixture()
+def tiny_streaming_config(tmp_path):
+    """A randomly initialised ASR model with a contextual-block encoder."""
+    import string
+
+    import yaml
+
+    from espnet2.tasks.asr import ASRTask
+
+    tokens = tmp_path / "tokens.txt"
+    tokens.write_text(
+        "\n".join(["<blank>", *string.ascii_lowercase, "<unk>", "<sos/eos>"]) + "\n"
+    )
+    ASRTask.main(
+        cmd=[
+            "--dry_run",
+            "true",
+            "--output_dir",
+            str(tmp_path / "asr_streaming"),
+            "--token_list",
+            str(tokens),
+            "--token_type",
+            "char",
+            "--decoder",
+            "transformer",
+            "--encoder",
+            "contextual_block_transformer",
+        ]
+    )
+    config = tmp_path / "asr_streaming" / "config.yaml"
+    args = yaml.safe_load(config.read_text())
+    args["frontend"] = "default"
+    args["encoder_conf"] = {"look_ahead": 16, "hop_size": 16, "block_size": 40}
+    config.write_text(yaml.safe_dump(args))
+    return config
+
+
+@pytest.mark.execution_timeout(60)
+def test_a_blockwise_model_streams_through_the_online_decoder(tiny_streaming_config):
+    """The pieces join into what Speech2TextStreaming says over the same chunks."""
+    from espnet2.bin.asr_inference_streaming import Speech2TextStreaming
+
+    model = Inference(asr_train_config=tiny_streaming_config, beam_size=1)
+    rng = np.random.default_rng(0)
+    chunks = [rng.standard_normal(4000).astype(np.float32) for _ in range(3)]
+
+    pieces = list(model.stream([{"speech": c} for c in chunks]))
+    assert model._streamer() is model._streamer()  # built once, kept
+    assert all(isinstance(p["text"], str) for p in pieces)
+
+    reference = Speech2TextStreaming(
+        asr_train_config=tiny_streaming_config, beam_size=1
+    )
+    reference.asr_model.load_state_dict(model.backend.asr_model.state_dict())
+    for c in chunks[:-1]:
+        reference(c, is_final=False)
+    expected = reference(chunks[-1], is_final=True)[0][0]
+    assert "".join(p["text"] for p in pieces) == expected

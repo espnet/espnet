@@ -68,7 +68,9 @@ Examples:
 from __future__ import annotations
 
 import inspect
-from typing import Any, Mapping, Optional, Sequence
+import logging
+import os
+from typing import Any, Iterable, Iterator, Mapping, Optional, Sequence
 
 import numpy as np
 
@@ -148,6 +150,7 @@ class Inference(BackendInference):
                     )
                 kwargs["return_decoded_hyp"] = True
         super().__init__(backend, device=device, backend_class=backend_class, **kwargs)
+        self._streaming_backend = None  # built on the first stream, see _streamer
 
     @property
     def takes_channels(self) -> bool:
@@ -223,6 +226,107 @@ class Inference(BackendInference):
             return super().run_batch(items)
         results = self.backend(waves)
         return [_text(nbest) for nbest in results]
+
+    def _streamer(self) -> Any:
+        """Return the online decoder over the backend's model, or ``None``.
+
+        A model trained with a contextual-block encoder decodes online with
+        ESPnet2's ``Speech2TextStreaming``, built once over the model the
+        backend already holds and with the backend's own beam size, CTC
+        weight, length penalty and length ratios. Any other model, and a
+        backend that is not a ``Speech2Text`` with a beam search, gets
+        ``None``: it decodes whole utterances only.
+        """
+        if self._streaming_backend is not None:
+            return self._streaming_backend
+        model = getattr(self.backend, "asr_model", None)
+        search = getattr(self.backend, "beam_search", None)
+        if model is None or search is None:
+            return None
+        from espnet2.asr.encoder import contextual_block_conformer_encoder as cbc
+        from espnet2.asr.encoder import contextual_block_transformer_encoder as cbt
+
+        blockwise = (
+            cbt.ContextualBlockTransformerEncoder,
+            cbc.ContextualBlockConformerEncoder,
+        )
+        if not isinstance(getattr(model, "encoder", None), blockwise):
+            return None
+        from espnet2.bin.asr_inference_streaming import Speech2TextStreaming
+
+        weights = search.weights
+        self._streaming_backend = Speech2TextStreaming(
+            asr_model=model,
+            asr_train_args=self.backend.asr_train_args,
+            device=self.backend.device,
+            dtype=self.backend.dtype,
+            beam_size=search.beam_size,
+            ctc_weight=weights.get("ctc", 0.5),
+            penalty=weights.get("length_bonus", 0.0),
+            maxlenratio=self.backend.maxlenratio,
+            minlenratio=self.backend.minlenratio,
+            nbest=1,
+        )
+        return self._streaming_backend
+
+    def run_stream(
+        self, chunks: Iterable[Mapping[str, Any]]
+    ) -> Iterator[Mapping[str, Any]]:
+        """Decode online, a block at a time, when the model was trained for it.
+
+        Each audio chunk goes to the online decoder as it arrives, and
+        the text it has settled on since the last chunk is yielded; the
+        last chunk is flagged final, which flushes the decoder. The online
+        search cannot take back text already yielded, so a piece is only
+        ever what the running best hypothesis adds to what was yielded; if
+        the final hypothesis contradicts that, what was yielded stands and
+        the rest of the final text follows it, with a warning. A model
+        without a contextual-block encoder takes the default: the chunks
+        are gathered and :meth:`run` decodes the whole utterance.
+
+        ``run`` and ``stream`` are two decoders over one model - the
+        whole-utterance beam search and the blockwise online one - so a
+        streamed transcript need not equal the one-shot transcript.
+        """
+        streamer = self._streamer()
+        if streamer is None:
+            yield from super().run_stream(chunks)
+            return
+        streamer.reset()
+        committed = ""
+        pending = None  # one chunk behind, so the last one can be flagged final
+        for chunk in chunks:
+            if "speech" not in chunk:
+                continue
+            if pending is not None:
+                piece = _added(committed, streamer(pending, is_final=False))
+                if piece:
+                    yield {"text": piece}
+                    committed += piece
+            pending = chunk["speech"].mono().array
+        if pending is None:
+            pending = np.zeros(0, dtype=np.float32)
+        results = streamer(pending, is_final=True)
+        rest = _added(committed, results)
+        final = results[0][0] if results else None
+        if final is not None and not final.startswith(committed):
+            logging.warning(
+                "the online search revised text already streamed: %r stands, "
+                "the final hypothesis was %r",
+                committed,
+                final,
+            )
+            rest = final[len(os.path.commonprefix([committed, final])) :]
+        if rest or not committed:
+            yield {"text": rest}
+
+
+def _added(committed: str, results: Sequence[Any]) -> str:
+    """Return what the running best hypothesis in ``results`` adds to ``committed``."""
+    text = results[0][0] if results else None
+    if text is None or not text.startswith(committed):
+        return ""
+    return text[len(committed) :]
 
 
 def _text(nbest: Any) -> dict:
