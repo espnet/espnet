@@ -4,7 +4,7 @@ The system is named for the code that reads its models - ESPnet2's ``s2t``
 task, and its ``s2t_ctc`` variant - rather than for a model: that code
 serves every OWSM release so far (v1 to v4), OWSM-CTC and POWSM, and a
 release built on other code would be another system. ``load(tag,
-system="owsm")`` and ``system="s2t"`` both reach it.
+system="s2t")`` reaches it, as ``espnet.load(tag, task="s2t")`` does.
 
 The model behind such a tag is
 :class:`espnet2.bin.s2t_inference.Speech2Text` - OWSM, OWSM-CTC and POWSM
