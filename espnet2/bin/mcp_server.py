@@ -21,8 +21,14 @@ swapped through the environment: ``ESPNET_MCP_ASR_MODEL`` (any OWSM-CTC
 checkpoint), ``ESPNET_MCP_TTS_MODEL`` (any ESPnet text-to-speech model),
 ``ESPNET_MCP_ENH_MODEL`` (any single-channel enhancement model, with
 ``ESPNET_MCP_ENH_FS`` its sampling rate), ``ESPNET_MCP_PR_MODEL`` (a POWSM
-checkpoint, for the phones) and ``ESPNET_MCP_DEVICE``. Alignment uses the
-recognition model, since it is a Viterbi path through that model's CTC head.
+checkpoint, for the phones) and ``ESPNET_MCP_DEVICE`` (``auto`` by default:
+cuda when torch sees one, else cpu). Alignment uses the recognition model,
+since it is a Viterbi path through that model's CTC head.
+
+The speech-to-text tools run on espnet3's inference API: the model is an
+``esp2_s2t`` ``Inference``, which takes the language and task by name and
+holds what there is to know about the checkpoint; this server only maps
+tool arguments to it and its sentences to ``ToolError``.
 """
 
 import contextlib
@@ -65,7 +71,7 @@ PR_MODEL = os.environ.get("ESPNET_MCP_PR_MODEL", "espnet/powsm_ctc")
 ENH_FS = int(os.environ.get("ESPNET_MCP_ENH_FS", "16000"))
 if ENH_FS <= 0:
     raise ValueError(f"ESPNET_MCP_ENH_FS must be a positive integer, not {ENH_FS}")
-DEVICE = os.environ.get("ESPNET_MCP_DEVICE", "cpu")
+DEVICE = os.environ.get("ESPNET_MCP_DEVICE", "auto")
 
 # Over stdio the protocol owns stdout, so anything a model prints while
 # loading (attention.py reports a missing flash_attn that way) would be read
@@ -73,24 +79,29 @@ DEVICE = os.environ.get("ESPNET_MCP_DEVICE", "cpu")
 _quiet_stdout = functools.partial(contextlib.redirect_stdout, sys.stderr)
 
 
+def _device() -> str:
+    """The device, with ``auto`` settled against this machine."""
+    from espnet3.api.inference import resolve_device
+
+    return resolve_device(DEVICE)
+
+
+def _s2t(tag: str):
+    """A speech-to-text checkpoint behind espnet3's ``esp2_s2t`` Inference."""
+    from espnet3.api.inference import load
+
+    with _quiet_stdout():
+        return load(tag, system="s2t", device=DEVICE)
+
+
 @functools.lru_cache(maxsize=None)
 def _asr():  # pragma: no cover - downloads the checkpoint
-    with _quiet_stdout():
-        from espnet2.bin.s2t_inference import Speech2Text
-
-        return Speech2Text.from_pretrained(
-            ASR_MODEL, device=DEVICE, lang_sym="<nolang>", task_sym="<asr>"
-        )
+    return _s2t(ASR_MODEL)
 
 
 @functools.lru_cache(maxsize=None)
 def _pr():  # pragma: no cover - downloads the checkpoint
-    with _quiet_stdout():
-        from espnet2.bin.s2t_inference import Speech2Text
-
-        model = Speech2Text.from_pretrained(PR_MODEL, device=DEVICE, task_sym="<pr>")
-        model.lang_sym = model.no_language()
-        return model
+    return _s2t(PR_MODEL)
 
 
 @functools.lru_cache(maxsize=None)
@@ -100,7 +111,7 @@ def _aligner():  # pragma: no cover - downloads the checkpoint
 
         # the recognition model again: alignment is a Viterbi path through
         # the CTC head this tool's transcribe already reads
-        return ForcedAligner.from_pretrained(ASR_MODEL, device=DEVICE)
+        return ForcedAligner.from_pretrained(ASR_MODEL, device=_device())
 
 
 @functools.lru_cache(maxsize=None)
@@ -108,7 +119,7 @@ def _tts():  # pragma: no cover - downloads the checkpoint
     with _quiet_stdout():
         from espnet2.bin.tts_inference import Text2Speech
 
-        return Text2Speech.from_pretrained(TTS_MODEL, device=DEVICE)
+        return Text2Speech.from_pretrained(TTS_MODEL, device=_device())
 
 
 @functools.lru_cache(maxsize=None)
@@ -116,7 +127,7 @@ def _enh():  # pragma: no cover - downloads the checkpoint
     with _quiet_stdout():
         from espnet2.bin.enh_inference import SeparateSpeech
 
-        return SeparateSpeech.from_pretrained(ENH_MODEL, device=DEVICE)
+        return SeparateSpeech.from_pretrained(ENH_MODEL, device=_device())
 
 
 # mcp relays a ToolError's message to the agent word for word and reduces
@@ -129,27 +140,23 @@ def _existing_file(path: str) -> Path:
     return p
 
 
-def _symbol(model, symbol: str, what: str, candidates=None) -> str:
-    """The symbol, or a ToolError saying what to pass instead.
+def _say(model, audio_path: str, task: str, language: str) -> str:
+    """The model's text for one recording of any length.
 
-    ``candidates`` reads the choices off the token list, for when they are
-    few enough to name: the translation targets are one <st_xxx> each, and
-    "use ISO 639-3" does not help there, since `kor` is ISO 639-3 and still
-    not a target.
+    ``task`` and ``language`` are passed by name; ``"auto"`` leaves the
+    language to the model. A name the checkpoint lacks is the model's own
+    sentence about it - which code to use, which targets it has - relayed
+    as a ``ToolError`` for the agent to act on.
     """
-    tokens = model.s2t_model.token_list
-    if symbol not in tokens:
-        if candidates is None:
-            hint = "Use an ISO 639-3 code such as eng, jpn, deu, zho, fra or spa."
-        else:
-            known = sorted(candidates(tokens))
-            hint = (
-                f"Its {what}s are {', '.join(known)}."
-                if known
-                else f"It has no {what} symbols."
-            )
-        raise ToolError(f"{what} {symbol!r} is not in the model's vocabulary. {hint}")
-    return symbol
+    path = _existing_file(audio_path)
+    prompt = {"task": task}
+    if language != "auto":
+        prompt["language"] = language
+    try:
+        with _quiet_stdout():
+            return model(str(path), **prompt)["text"]
+    except ValueError as e:
+        raise ToolError(str(e)) from e
 
 
 def transcribe(audio_path: str, language: str = "auto") -> str:
@@ -166,7 +173,7 @@ def transcribe(audio_path: str, language: str = "auto") -> str:
         the default is about 4 GB - and takes minutes; later calls take
         10-30 s per 30 s of audio on a laptop CPU, about a second on a GPU.
     """
-    return _decode(audio_path, language, "<asr>")
+    return _say(_asr(), audio_path, "asr", language)
 
 
 def _warn_if_untrained_direction(language: str, to: str) -> None:
@@ -207,12 +214,8 @@ def translate(audio_path: str, to: str, language: str = "auto") -> str:
     Returns:
         The translation as plain text.
     """
-    from espnet2.bin.demo import target_codes
-
     _warn_if_untrained_direction(language, to)
-    model = _asr()
-    target = _symbol(model, f"<st_{to}>", "target", candidates=target_codes)
-    return _decode(audio_path, language, target)
+    return _say(_asr(), audio_path, f"st_{to}", language)
 
 
 def phonemize(audio_path: str, language: str = "auto") -> str:
@@ -229,20 +232,7 @@ def phonemize(audio_path: str, language: str = "auto") -> str:
     Returns:
         The phones, space-separated, one token per phone: "ð ə s eɪ l".
     """
-    path = _existing_file(audio_path)
-    model = _pr()
-    lang_sym = (
-        model.no_language()
-        if language == "auto"
-        else _symbol(model, f"<{language}>", "language")
-    )
-    with _quiet_stdout():
-        decoded = " ".join(
-            text
-            for _, _, text in model.decode_long(
-                str(path), lang_sym=lang_sym, task_sym="<pr>"
-            )
-        )
+    decoded = _say(_pr(), audio_path, "pr", language)
     # POWSM writes each phone between slashes, so that a phone spelled like a
     # BPE token is still one token
     phones = PHONE.findall(decoded)
@@ -276,26 +266,6 @@ def align(audio_path: str, utterances: List[str]) -> str:
     return "\n".join(
         f"{s.start:.2f}\t{s.end:.2f}\t{s.score:.4f}\t{s.text}" for s in segments
     )
-
-
-def _decode(audio_path: str, language: str, task_sym: str) -> str:
-    """One recording of any length, decoded on the recognition model."""
-    path = _existing_file(audio_path)
-    model = _asr()
-    lang_sym = (
-        "<nolang>"
-        if language == "auto"
-        else _symbol(model, f"<{language}>", "language")
-    )
-    with _quiet_stdout():
-        # one recording of any length, decoded on the CTC head: the same
-        # route batch_decode took before it was deprecated
-        return " ".join(
-            text
-            for _, _, text in model.decode_long(
-                str(path), lang_sym=lang_sym, task_sym=task_sym
-            )
-        )
 
 
 def synthesize(text: str, output_path: str) -> str:
