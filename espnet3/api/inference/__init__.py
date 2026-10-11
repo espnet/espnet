@@ -93,6 +93,7 @@ resume and writers. The contract and that pair divide the work like this:
 from __future__ import annotations
 
 from espnet3.api.inference.base import InferenceAPI, check_contract, gather
+from espnet3.api.inference.device import resolve_device
 from espnet3.api.inference.field import Field
 from espnet3.api.inference.kinds import (
     KINDS,
@@ -136,4 +137,5 @@ __all__ = [
     "load",
     "locate_pack",
     "register_kind",
+    "resolve_device",
 ]

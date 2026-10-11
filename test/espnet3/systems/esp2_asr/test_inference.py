@@ -6,6 +6,7 @@ from types import SimpleNamespace
 
 import numpy as np
 import pytest
+import torch
 from omegaconf import OmegaConf
 
 from espnet3.api.inference import Audio
@@ -28,6 +29,14 @@ def _test_classes_count_as_installed_espnet_code(monkeypatch):
         "_BUNDLE_TARGET_PREFIXES",
         loading._BUNDLE_TARGET_PREFIXES + (f"{__name__}.",),
     )
+
+
+@pytest.fixture(autouse=True)
+def _no_gpu(monkeypatch):
+    """Resolve device="auto" to the CPU whatever this machine has."""
+    import torch
+
+    monkeypatch.setattr(torch.cuda, "is_available", lambda: False)
 
 
 class FakeSpeech2Text:
@@ -99,6 +108,9 @@ def test_from_pretrained_takes_a_directory_or_a_tag(tmp_path, monkeypatch):
 
     monkeypatch.setattr(base, "locate_pack", locate_pack)
     monkeypatch.setattr(base, "load_model", load_model)
+    # a machine with one GPU, so that cuda:0 passes and "auto" picks cuda
+    monkeypatch.setattr(torch.cuda, "is_available", lambda: True)
+    monkeypatch.setattr(torch.cuda, "device_count", lambda: 1)
 
     assert Inference.from_pretrained(tmp_path, device="cpu").backend is backend
     assert Inference.from_pretrained("org/model", device="cuda:0").backend is backend
@@ -110,7 +122,7 @@ def test_from_pretrained_takes_a_directory_or_a_tag(tmp_path, monkeypatch):
         ("locate", "org/model"),
         ("build", str(tmp_path), "cuda:0", {}),
         ("locate", str(tmp_path)),
-        ("build", str(tmp_path), "cpu", {"beam_size": 1}),
+        ("build", str(tmp_path), "cuda", {"beam_size": 1}),
     ]
 
 
