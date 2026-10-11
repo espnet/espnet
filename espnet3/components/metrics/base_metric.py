@@ -147,6 +147,18 @@ class BaseMetric(ABC):
         ...         return {"score": 0.0}
         >>> [f.name for f in ExampleSpeakerMetric().inputs]
         ['target', 'hyp', 'ref']
+
+        In a training callback (no files): reset, update per batch, gather
+        each rank's ``state()``, merge, load and compute. Only numbers and
+        lists travel between ranks:
+
+        >>> metric.reset()
+        >>> for batch in batches:
+        ...     metric.update(ref=batch["ref"], hyp=batch["hyp"])
+        >>> states = all_gather(metric.state())  # one dict per rank
+        >>> metric.load_state(metric.merge_states(states))
+        >>> metric.compute()
+        {'WER': 4.3}
     """
 
     #: What this metric reads: one Field per SCP input. The name is the
@@ -162,6 +174,11 @@ class BaseMetric(ABC):
     outputs: ClassVar[Tuple[Field, ...]]
     #: Rows per :meth:`update` call inside :meth:`__call__`.
     chunk_size: ClassVar[int] = 1000
+    #: True only while :meth:`__call__` runs with an ``output_dir``. ``update``
+    #: may keep per-utterance text for :meth:`write_artifacts` only when it is
+    #: True; a plain ``update``/``compute`` (a training callback) leaves it False
+    #: and keeps no text. Not a state: it never appears in :meth:`state`.
+    collect_artifacts: bool = False
 
     def __init__(self) -> None:
         """Check this instance's declared contract.
@@ -393,23 +410,27 @@ class BaseMetric(ABC):
             {'WER': 4.3}
         """
         self.reset()
-        names = [f.name for f in self.inputs if f.name in data]
-        if names:
-            chunk: Dict[str, List[str]] = {name: [] for name in names}
-            for _, row in self.iter_inputs(data, *names):
-                for name in names:
-                    chunk[name].append(row[name])
-                if len(chunk[names[0]]) == self.chunk_size:
+        self.collect_artifacts = output_dir is not None
+        try:
+            names = [f.name for f in self.inputs if f.name in data]
+            if names:
+                chunk: Dict[str, List[str]] = {name: [] for name in names}
+                for _, row in self.iter_inputs(data, *names):
+                    for name in names:
+                        chunk[name].append(row[name])
+                    if len(chunk[names[0]]) == self.chunk_size:
+                        self.update(**chunk)
+                        chunk = {name: [] for name in names}
+                if chunk[names[0]]:
                     self.update(**chunk)
-                    chunk = {name: [] for name in names}
-            if chunk[names[0]]:
-                self.update(**chunk)
-        result = self.compute()
-        if output_dir is not None:
-            test_dir = Path(output_dir) / test_name
-            test_dir.mkdir(parents=True, exist_ok=True)
-            self.write_artifacts(test_dir)
-        return result
+            result = self.compute()
+            if output_dir is not None:
+                test_dir = Path(output_dir) / test_name
+                test_dir.mkdir(parents=True, exist_ok=True)
+                self.write_artifacts(test_dir)
+            return result
+        finally:
+            self.collect_artifacts = False
 
     def write_artifacts(self, test_dir: Path) -> None:
         """Write files for one test set after :meth:`compute`; no-op by default.
