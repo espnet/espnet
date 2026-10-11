@@ -93,3 +93,41 @@ def test_a_metric_without_update_or_compute_cannot_be_built():
 
     with pytest.raises(TypeError):
         NoCompute()
+
+
+def test_a_metric_without_update_cannot_be_built():
+    class NoUpdate(BaseMetric):
+        inputs = (Field("ref", "text"),)
+        outputs = (Field("n", "number"),)
+
+        def compute(self):
+            return {"n": 0}
+
+    with pytest.raises(TypeError):
+        NoUpdate()
+
+
+class Scores(BaseMetric):
+    inputs = (Field("ref", "text"),)
+    outputs = (Field("mean", "number"),)
+
+    def __init__(self):
+        super().__init__()
+        self.add_state("scores", [], "cat")
+
+    def update(self, *, ref):
+        self.scores.extend(len(r) for r in ref)
+
+    def compute(self):
+        return {"mean": sum(self.scores) / len(self.scores)}
+
+
+def test_a_cat_state_merged_across_ranks_scores_like_one_run():
+    rows = ["a", "bb", "ccc", "dddd"]
+    rank0, rank1, merged = Scores(), Scores(), Scores()
+    rank0.update(ref=rows[:2])
+    rank1.update(ref=rows[2:])
+    merged.load_state(merged.merge_states([rank0.state(), rank1.state()]))
+    whole = Scores()
+    whole.update(ref=rows)
+    assert merged.compute() == whole.compute() == {"mean": 2.5}
