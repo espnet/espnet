@@ -295,3 +295,123 @@ def test_batch_falls_back_when_the_config_does_not_say_the_window():
     backend.preprocessor_conf = {}
     Inference(backend).batch([{"speech": audio()}, {"speech": audio()}])
     assert backend.batches == [] and len(backend.calls) == 2
+
+
+def test_batch_refuses_a_backend_that_returns_the_wrong_count():
+    backend = FakeSpeech2Text()
+    backend.batch_decode = lambda speeches, **kw: [[("", [], [0], "", None)]]
+    with pytest.raises(RuntimeError, match="returned 1 results for 2 utterances"):
+        Inference(backend).batch([{"speech": audio()}, {"speech": audio()}])
+
+
+@pytest.fixture()
+def s2t_batchable_config_file(tmp_path, token_list):  # noqa: F811
+    """A transformer decoder (batch scorers) with the long-form rate and window."""
+    from espnet2.tasks.s2t import S2TTask
+
+    S2TTask.main(
+        cmd=[
+            "--dry_run",
+            "true",
+            "--output_dir",
+            str(tmp_path / "s2t_batchable"),
+            "--token_list",
+            str(token_list),
+            "--token_type",
+            "char",
+            "--decoder",
+            "transformer",
+            "--preprocessor_conf",
+            "notime_symbol='<notimestamps>'",
+            "--preprocessor_conf",
+            "first_time_symbol='<0.00>'",
+            "--preprocessor_conf",
+            "last_time_symbol='<1.00>'",
+            "--preprocessor_conf",
+            "fs=2000",
+            "--preprocessor_conf",
+            "speech_length=4",
+            "--frontend_conf",
+            "fs=2000",
+            "--frontend_conf",
+            "hop_length=200",
+            "--encoder",
+            "transformer",
+            "--encoder_conf",
+            "input_layer=conv2d",
+            "--encoder_conf",
+            "output_size=16",
+            "--encoder_conf",
+            "linear_units=16",
+            "--encoder_conf",
+            "num_blocks=1",
+            "--encoder_conf",
+            "attention_heads=2",
+        ]
+    )
+    return tmp_path / "s2t_batchable" / "config.yaml"
+
+
+@pytest.mark.execution_timeout(60)
+def test_batch_equals_one_by_one_on_a_real_encoder_decoder_model(
+    s2t_batchable_config_file,
+):
+    """Texts and segments alike: the batch path reads the window as run does."""
+    model = Inference(
+        s2t_train_config=s2t_batchable_config_file,
+        beam_size=2,
+        maxlenratio=-8,  # the prompt is 4 tokens; keep hypotheses short
+        ctc_weight=0.0,
+    )
+    rng = np.random.default_rng(0)
+    items = [
+        {"speech": rng.standard_normal(n).astype(np.float32)} for n in (4000, 3000)
+    ]
+    assert model.batch(items) == [model(**item) for item in items]
+
+
+@pytest.fixture()
+def s2t_ctc_config_file(tmp_path, token_list):  # noqa: F811
+    """A CTC-only S2T model at the long-form rate."""
+    from espnet2.tasks.s2t_ctc import S2TTask as S2TCTCTask
+
+    S2TCTCTask.main(
+        cmd=[
+            "--dry_run",
+            "true",
+            "--output_dir",
+            str(tmp_path / "s2t_ctc"),
+            "--token_list",
+            str(token_list),
+            "--token_type",
+            "char",
+            "--promptencoder_conf",
+            "output_size=4",
+            "--preprocessor_conf",
+            "fs=2000",
+            # a 6 s window: decode_long's default 2 s of context has to be
+            # under half of it
+            "--preprocessor_conf",
+            "speech_length=6",
+            # 2000 / 100 / 4 = 5 encoder frames per second, so that
+            # decode_long's default 2 s of context is a whole number of frames
+            "--frontend_conf",
+            "fs=2000",
+            "--frontend_conf",
+            "hop_length=100",
+            "--encoder_conf",
+            "input_layer=conv2d",
+        ]
+    )
+    return tmp_path / "s2t_ctc" / "config.yaml"
+
+
+@pytest.mark.execution_timeout(60)
+def test_batch_equals_one_by_one_on_a_real_ctc_only_model(s2t_ctc_config_file):
+    model = Inference(s2t_train_config=s2t_ctc_config_file)
+    assert model.backend.ctc_only is True
+    rng = np.random.default_rng(0)
+    items = [
+        {"speech": rng.standard_normal(n).astype(np.float32) * 3} for n in (4000, 3000)
+    ]
+    assert model.batch(items) == [model(**item) for item in items]

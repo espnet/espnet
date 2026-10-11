@@ -340,6 +340,38 @@ def test_Speech2Text_streaming_from_pretrained_tag(
 
 
 @pytest.mark.execution_timeout(20)
+def test_Speech2Text_streaming_over_a_built_model(asr_config_file_streaming):
+    """asr_model + asr_train_args in place of the files: the same decoder."""
+    with open(asr_config_file_streaming, "r", encoding="utf-8") as f:
+        asr_train_config = yaml.full_load(f.read())
+    asr_train_config["frontend"] = "default"
+    asr_train_config["encoder_conf"] = {
+        "look_ahead": 16,
+        "hop_size": 16,
+        "block_size": 40,
+    }
+    with open(asr_config_file_streaming, "w", encoding="utf-8") as f:
+        yaml.dump(asr_train_config, f)
+    from_files = Speech2TextStreaming(
+        asr_train_config=asr_config_file_streaming, beam_size=1
+    )
+    over_model = Speech2TextStreaming(
+        asr_model=from_files.asr_model,
+        asr_train_args=from_files.asr_train_args,
+        beam_size=1,
+    )
+    assert over_model.asr_model is from_files.asr_model
+    speech = np.random.randn(6000)
+    expected = from_files(speech, is_final=True)
+    actual = over_model(speech, is_final=True)
+    assert [r[2] for r in actual] == [r[2] for r in expected]
+    with pytest.raises(ValueError, match="asr_train_config, or asr_model"):
+        Speech2TextStreaming(beam_size=1)
+    with pytest.raises(ValueError, match="needs its asr_train_args"):
+        Speech2TextStreaming(asr_model=from_files.asr_model)
+
+
+@pytest.mark.execution_timeout(20)
 def test_Speech2Text_streaming(asr_config_file_streaming, lm_config_file):
     file = open(asr_config_file_streaming, "r", encoding="utf-8")
     asr_train_config = file.read()

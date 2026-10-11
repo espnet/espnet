@@ -236,6 +236,11 @@ class Inference(BackendInference):
                 task_sym=task_sym,
                 predict_time=True,
             )
+            if len(results) != len(index):
+                raise RuntimeError(
+                    f"batch_decode returned {len(results)} results for "
+                    f"{len(index)} utterances"
+                )
             for i, nbest in zip(index, results):
                 outputs[i] = self._window_output(nbest[0], items[i]["speech"])
         return outputs

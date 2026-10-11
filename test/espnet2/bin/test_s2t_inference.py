@@ -347,6 +347,26 @@ def test_iter_long_yields_each_utterance_as_it_is_decoded(s2t_long_form_config_f
     ]
 
 
+def test_iter_long_always_moves_on(s2t_long_form_config_file, caplog):
+    """A window whose cut-off utterance starts at its own start is not re-read for ever.
+
+    The stand-in decoder answers each one-second window with two utterances,
+    the second ending at the window's end: that one is taken to be cut off and
+    the next window would start where it did, at the window's own start.
+    """
+    speech2text = Speech2Text(s2t_train_config=s2t_long_form_config_file, beam_size=1)
+    ids = speech2text.converter.token2id
+    tokens = [ids["<eng>"], ids["<asr>"]] + [ids["<0.00>"], ids["a"], ids["<1.00>"]] * 2
+    speech2text.__call__ = lambda **kw: [("aa", ["a", "a"], list(tokens), "aa", None)]
+
+    with caplog.at_level("WARNING"):
+        utterances = speech2text.decode_long(
+            np.zeros(5000), lang_sym="<eng>", task_sym="<asr>"
+        )
+    assert utterances == [(0.0, 1.0, "a"), (1.0, 2.0, "a"), (2.0, 3.0, "a")]
+    assert "skipping to the end of the window" in caplog.text
+
+
 def test_window_utterances_reads_a_window_as_decode_long_does(
     s2t_long_form_config_file,
 ):
@@ -358,6 +378,9 @@ def test_window_utterances_reads_a_window_as_decode_long_does(
     assert speech2text.window_utterances(tokens, offset=2.5) == [(2.5, 3.5, "a")]
     # an utterance with a start but no end runs to the end of the window
     assert speech2text.window_utterances(tokens[:-1]) == [(0.0, 1.0, "a")]
+    # no timestamp at all: the window's text as one utterance spanning it
+    no_time = [ids["<eng>"], ids["<asr>"], ids["a"], ids["a"]]
+    assert speech2text.window_utterances(no_time, offset=1.0) == [(1.0, 2.0, "aa")]
 
 
 def test_best_path_takes_one_utterance(s2t_config_file):

@@ -1589,7 +1589,17 @@ class Speech2Text:
                 text_prev = text_prev + utt[-1]
                 yield utt
 
-            offset += round((new_start_time_id - first_time_id) * resolution * fs)
+            advance = round((new_start_time_id - first_time_id) * resolution * fs)
+            if advance <= 0:
+                # the window's last, cut-off utterance started at the window's
+                # own start, so there is nowhere to resume inside it: move on
+                # by a whole window rather than decode the same one for ever
+                logging.warning(
+                    "the next window would start where this one did "
+                    f"(at {offset / fs:.2f}s); skipping to the end of the window"
+                )
+                advance = segment_len
+            offset += advance
 
     def window_utterances(
         self, token_int: Sequence[int], offset: float = 0.0
@@ -1602,7 +1612,8 @@ class Speech2Text:
         `(start_time, end_time, text)` in seconds, `offset` added, read the way
         `decode_long` reads a window - which is what lets a caller that decodes
         single-window utterances in a batch give the same segments as
-        `decode_long` gives one at a time.
+        `decode_long` gives one at a time. A window without any timestamp is
+        one utterance spanning it.
         """
         return self._window_utterances(token_int, offset)[0]
 
@@ -1630,6 +1641,12 @@ class Speech2Text:
             for idx, tok in enumerate(token_int)
             if tok >= first_time_id and tok <= last_time_id
         ]
+        if not time_pos:
+            # no timestamp at all: the window's text as one utterance spanning
+            # it, and the next window starts where this one ends
+            text = self.tokenizer.tokens2text(self.converter.ids2tokens(token_int))
+            end = round((last_time_id - first_time_id) * resolution + offset, 2)
+            return [(round(offset, 2), end, text)], last_time_id
         # NOTE(yifan): this is an edge case with only a start time
         if len(time_pos) == 1:
             token_int.append(last_time_id)

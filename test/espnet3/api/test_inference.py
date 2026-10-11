@@ -105,6 +105,19 @@ def test_audio_rejects_bad_shapes_and_rates():
         Audio(np.zeros(4), 0)
 
 
+def test_audio_concat_joins_pieces_in_either_layout():
+    """Mono pieces come as (samples,) or (1, samples); three of them join alike."""
+    mono = Audio(np.ones(4, dtype=np.float32), 8000)
+    row = Audio(np.ones((1, 4), dtype=np.float32), 8000).multichannel()
+    assert row.array.shape == (1, 4)
+    joined = Audio.concat([mono, row, row])
+    assert joined.array.shape == (12,) and joined.channels == 1
+    stereo = Audio(np.ones((2, 4), dtype=np.float32), 8000)
+    assert Audio.concat([stereo, stereo]).array.shape == (2, 8)
+    with pytest.raises(ValueError, match="channels"):
+        Audio.concat([stereo, mono])
+
+
 def test_audio_resample_only_when_needed():
     audio = Audio(np.zeros(16000, dtype=np.float32), 16000)
     assert audio.resample(16000) is audio
