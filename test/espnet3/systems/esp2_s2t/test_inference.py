@@ -38,9 +38,11 @@ class FakeSpeech2Text:
         self.lang_sym = lang_sym
         self.task_sym = task_sym
         self.sample_rate = sample_rate
-        self.preprocessor_conf = {}
+        self.preprocessor_conf = {"fs": sample_rate, "speech_length": 30}
+        self.ctc_only = False
         self.kwargs = kwargs
         self.calls = []
+        self.batches = []
 
     def no_language(self):
         for candidate in ("<nolang>", "<unk>"):
@@ -54,6 +56,19 @@ class FakeSpeech2Text:
 
     def decode_long(self, speech, **kwargs):
         return list(self.iter_long(speech, **kwargs))
+
+    # a window's best hypothesis: (text, tokens, token_int, text_nospecial, hyp);
+    # the token ids stand for the utterances, read back by window_utterances
+    def batch_decode(self, speeches, lang_sym=None, task_sym=None, predict_time=None):
+        self.batches.append(
+            ([np.asarray(s).shape for s in speeches], lang_sym, task_sym, predict_time)
+        )
+        return [
+            [("", [], list(range(len(self.utterances))), "", None)] for _ in speeches
+        ]
+
+    def window_utterances(self, token_int, offset=0.0):
+        return [self.utterances[i] for i in token_int]
 
 
 def audio(seconds=2.0, rate=16000):
@@ -222,3 +237,61 @@ def test_an_asr_checkpoint_given_to_the_s2t_system_is_a_model_tag_error(monkeypa
     _espnet2_downloader(monkeypatch, {"asr_train_config": "c.yaml"})
     with pytest.raises(ModelTagError, match="does not look like a model for"):
         load("espnet/an_asr_model", system="s2t")
+
+
+def test_batch_decodes_single_window_items_together():
+    """Two items that fit the window: one batch_decode, segments as run gives them."""
+    backend = FakeSpeech2Text()
+    model = Inference(backend)
+    out = model.batch([{"speech": audio(2.0)}, {"speech": audio(3.0)}])
+    assert out == [model(audio(2.0)), model(audio(3.0))]
+    assert backend.batches == [([(32000,), (48000,)], "<eng>", None, True)]
+    assert [shape for shape, _ in backend.calls] == [(32000,), (48000,)]
+
+
+def test_batch_groups_items_by_their_symbols():
+    backend = FakeSpeech2Text()
+    Inference(backend).batch(
+        [
+            {"speech": audio(), "language": "jpn"},
+            {"speech": audio(), "task": "st_eng"},
+            {"speech": audio(), "language": "jpn"},
+        ]
+    )
+    assert [(b[1], b[2], len(b[0])) for b in backend.batches] == [("<jpn>", None, 2)]
+    # the group of one went through run
+    assert backend.calls == [((32000,), {"lang_sym": "<eng>", "task_sym": "<st_eng>"})]
+
+
+def test_batch_decodes_long_and_prompted_items_one_by_one():
+    backend = FakeSpeech2Text()
+    Inference(backend).batch(
+        [
+            {"speech": audio(31.0)},  # longer than the 30 s window
+            {"speech": audio(), "previous_text": "so far"},
+            {"speech": audio()},
+            {"speech": audio()},
+        ]
+    )
+    assert [len(b[0]) for b in backend.batches] == [2]
+    assert [shape for shape, _ in backend.calls] == [(31 * 16000,), (32000,)]
+
+
+def test_batch_on_a_ctc_only_checkpoint_spans_each_recording():
+    backend = FakeSpeech2Text()
+    backend.ctc_only = True
+    backend.batch_decode = lambda speeches, **kw: [
+        [("<eng><asr> hi", [], [], "hi", None)] for _ in speeches
+    ]
+    out = Inference(backend).batch([{"speech": audio(2.0)}, {"speech": audio(1.0)}])
+    assert out == [
+        {"text": "hi", "segments": [{"text": "hi", "start": 0.0, "end": 2.0}]},
+        {"text": "hi", "segments": [{"text": "hi", "start": 0.0, "end": 1.0}]},
+    ]
+
+
+def test_batch_falls_back_when_the_config_does_not_say_the_window():
+    backend = FakeSpeech2Text()
+    backend.preprocessor_conf = {}
+    Inference(backend).batch([{"speech": audio()}, {"speech": audio()}])
+    assert backend.batches == [] and len(backend.calls) == 2

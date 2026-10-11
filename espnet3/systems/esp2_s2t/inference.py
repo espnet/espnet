@@ -52,7 +52,7 @@ Examples:
 
 from __future__ import annotations
 
-from typing import Any, Iterable, Iterator, Mapping, Optional
+from typing import Any, Iterable, Iterator, Mapping, Optional, Sequence
 
 from espnet3.api.inference import Audio, Field
 from espnet3.api.inference.base import gather
@@ -194,3 +194,75 @@ class Inference(BackendInference):
             first = False
         if first:
             yield {"text": "", "segments": []}
+
+    def run_batch(self, items: Sequence[Mapping[str, Any]]) -> Sequence[Mapping]:
+        """Decode the items that fit one window in one beam search each group.
+
+        ``Speech2Text.batch_decode`` decodes a minibatch of single-window
+        utterances together, with one language and task symbol for the
+        batch; so the items that fit the model's window and carry no
+        ``previous_text`` are grouped by their symbols and decoded a group
+        at a time, with ``predict_time`` so that their segments are read off
+        the timestamps exactly as ``decode_long`` reads a window. A longer
+        recording, an item with ``previous_text``, and a group of one go
+        through :meth:`run`. A backend without ``batch_decode``, or whose
+        config does not say its window, decodes everything one by one.
+        """
+        window = self._window_samples()
+        if (
+            window is None
+            or len(items) < 2
+            or not callable(getattr(self.backend, "batch_decode", None))
+        ):
+            return super().run_batch(items)
+        outputs: list = [None] * len(items)
+        groups: dict[tuple, list[int]] = {}
+        for i, item in enumerate(items):
+            if (
+                item.get("previous_text") is not None
+                or len(item["speech"].array) > window
+            ):
+                outputs[i] = self.run(**item)
+                continue
+            key = (self._language(item.get("language")), self._task(item.get("task")))
+            groups.setdefault(key, []).append(i)
+        for (lang_sym, task_sym), index in groups.items():
+            if len(index) == 1:
+                outputs[index[0]] = self.run(**items[index[0]])
+                continue
+            results = self.backend.batch_decode(
+                [items[i]["speech"].array for i in index],
+                lang_sym=lang_sym,
+                task_sym=task_sym,
+                predict_time=True,
+            )
+            for i, nbest in zip(index, results):
+                outputs[i] = self._window_output(nbest[0], items[i]["speech"])
+        return outputs
+
+    def _window_samples(self) -> Optional[int]:
+        """Return the samples one window of the model holds, or ``None`` if unsaid."""
+        conf = getattr(self.backend, "preprocessor_conf", None) or {}
+        if "fs" not in conf or "speech_length" not in conf:
+            return None
+        return int(conf["fs"] * conf["speech_length"])
+
+    def _window_output(self, best: Sequence[Any], speech: Audio) -> dict:
+        """One item's outputs from its best hypothesis of a single window.
+
+        A CTC-only checkpoint has no timestamps: its one segment spans the
+        recording, as ``decode_long`` gives it. An encoder-decoder one is read
+        through ``window_utterances``, the reading ``decode_long`` uses.
+        """
+        if getattr(self.backend, "ctc_only", False):
+            text = best[3]  # text without the special tokens
+            segments = [(0.0, len(speech.array) / self.sample_rate, text)]
+        else:
+            segments = self.backend.window_utterances(best[2])
+        return {
+            "text": " ".join(text for _, _, text in segments),
+            "segments": [
+                {"text": text, "start": start, "end": end}
+                for start, end, text in segments
+            ],
+        }

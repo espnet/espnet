@@ -1581,45 +1581,82 @@ class Speech2Text:
 
             # NOTE(yifan): sos and eos have been removed
             text, token, token_int, text_nospecial, hyp = result[0]  # best hyp
-            token_int = token_int[2:]  # remove lang and task
-
-            # Find all timestamp positions
-            time_pos = [
-                idx
-                for idx, tok in enumerate(token_int)
-                if tok >= first_time_id and tok <= last_time_id
-            ]
-            # NOTE(yifan): this is an edge case with only a start time
-            if len(time_pos) == 1:
-                token_int.append(last_time_id)
-                time_pos.append(len(token_int) - 1)
-
-            if len(time_pos) % 2 == 0:  # Timestamps are all paired
-                if (
-                    len(time_pos) > 2
-                    and token_int[time_pos[-1]] > end_time_id_threshold
-                ):
-                    # The last utterance is incomplete
-                    new_start_time_id = token_int[time_pos[-2]]
-                    time_pos = time_pos[:-2]
-                else:
-                    new_start_time_id = token_int[time_pos[-1]]
-            else:  # The last utterance only has start time
-                new_start_time_id = token_int[time_pos[-1]]
-                time_pos = time_pos[:-1]
-
-            # Get utterances in this segment
+            utterances, new_start_time_id = self._window_utterances(
+                token_int, offset / fs, end_time_id_threshold
+            )
             text_prev = ""
-            for i in range(0, len(time_pos), 2):
-                utt = (
+            for utt in utterances:
+                text_prev = text_prev + utt[-1]
+                yield utt
+
+            offset += round((new_start_time_id - first_time_id) * resolution * fs)
+
+    def window_utterances(
+        self, token_int: Sequence[int], offset: float = 0.0
+    ) -> List[Tuple[float, float, str]]:
+        """The timestamped utterances in one decoded window.
+
+        `token_int` is a best hypothesis' token ids as `__call__` or
+        `batch_decode` return them with `predict_time=True`: the language and
+        task tokens first, then text and timestamp tokens. Each utterance is
+        `(start_time, end_time, text)` in seconds, `offset` added, read the way
+        `decode_long` reads a window - which is what lets a caller that decodes
+        single-window utterances in a batch give the same segments as
+        `decode_long` gives one at a time.
+        """
+        return self._window_utterances(token_int, offset)[0]
+
+    def _window_utterances(
+        self,
+        token_int: Sequence[int],
+        offset: float,
+        end_time_id_threshold: Optional[int] = None,
+    ) -> Tuple[List[Tuple[float, float, str]], int]:
+        """The utterances in a window, and the timestamp id the next window starts at.
+
+        An utterance whose end timestamp is past `end_time_id_threshold`
+        (one second before the end of the window when not given) is taken to be
+        cut off by the window and left for the next one, which starts where
+        that utterance did.
+        """
+        first_time_id, last_time_id, resolution = self._time_ids()
+        if end_time_id_threshold is None:
+            end_time_id_threshold = self._near_window_end()
+        token_int = list(token_int[2:])  # remove lang and task
+
+        # Find all timestamp positions
+        time_pos = [
+            idx
+            for idx, tok in enumerate(token_int)
+            if tok >= first_time_id and tok <= last_time_id
+        ]
+        # NOTE(yifan): this is an edge case with only a start time
+        if len(time_pos) == 1:
+            token_int.append(last_time_id)
+            time_pos.append(len(token_int) - 1)
+
+        if len(time_pos) % 2 == 0:  # Timestamps are all paired
+            if len(time_pos) > 2 and token_int[time_pos[-1]] > end_time_id_threshold:
+                # The last utterance is incomplete
+                new_start_time_id = token_int[time_pos[-2]]
+                time_pos = time_pos[:-2]
+            else:
+                new_start_time_id = token_int[time_pos[-1]]
+        else:  # The last utterance only has start time
+            new_start_time_id = token_int[time_pos[-1]]
+            time_pos = time_pos[:-1]
+
+        utterances = []
+        for i in range(0, len(time_pos), 2):
+            utterances.append(
+                (
                     round(
-                        (token_int[time_pos[i]] - first_time_id) * resolution
-                        + offset / fs,
+                        (token_int[time_pos[i]] - first_time_id) * resolution + offset,
                         2,
                     ),
                     round(
                         (token_int[time_pos[i + 1]] - first_time_id) * resolution
-                        + offset / fs,
+                        + offset,
                         2,
                     ),
                     self.tokenizer.tokens2text(
@@ -1628,10 +1665,8 @@ class Speech2Text:
                         )
                     ),
                 )
-                text_prev = text_prev + utt[-1]
-                yield utt
-
-            offset += round((new_start_time_id - first_time_id) * resolution * fs)
+            )
+        return utterances, new_start_time_id
 
     @classmethod
     def from_pretrained(

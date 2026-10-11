@@ -347,6 +347,19 @@ def test_iter_long_yields_each_utterance_as_it_is_decoded(s2t_long_form_config_f
     ]
 
 
+def test_window_utterances_reads_a_window_as_decode_long_does(
+    s2t_long_form_config_file,
+):
+    """Lang and task first, then text between timestamp pairs; offset added."""
+    speech2text = Speech2Text(s2t_train_config=s2t_long_form_config_file, beam_size=1)
+    ids = speech2text.converter.token2id
+    tokens = [ids["<eng>"], ids["<asr>"], ids["<0.00>"], ids["a"], ids["<1.00>"]]
+    assert speech2text.window_utterances(tokens) == [(0.0, 1.0, "a")]
+    assert speech2text.window_utterances(tokens, offset=2.5) == [(2.5, 3.5, "a")]
+    # an utterance with a start but no end runs to the end of the window
+    assert speech2text.window_utterances(tokens[:-1]) == [(0.0, 1.0, "a")]
+
+
 def test_best_path_takes_one_utterance(s2t_config_file):
     speech2text = Speech2Text(s2t_train_config=s2t_config_file, beam_size=1)
     with pytest.raises(ValueError, match="one utterance"):
