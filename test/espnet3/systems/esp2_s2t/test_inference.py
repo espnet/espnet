@@ -18,6 +18,15 @@ import pytest
 from espnet3.api.inference import ModelTagError, load
 from espnet3.systems.esp2_s2t.inference import Inference
 
+
+@pytest.fixture(autouse=True)
+def _no_gpu(monkeypatch):
+    """Resolve device="auto" to the CPU whatever this machine has."""
+    import torch
+
+    monkeypatch.setattr(torch.cuda, "is_available", lambda: False)
+
+
 VOCABULARY = ["<blank>", "<unk>", "<nolang>", "<eng>", "<jpn>", "<asr>", "<st_eng>"]
 
 

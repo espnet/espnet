@@ -50,7 +50,13 @@ from typing import Any, ClassVar, Optional
 import humanfriendly
 from hydra.utils import get_class
 
-from espnet3.api.inference import InferenceAPI, ModelTagError, load_model, locate_pack
+from espnet3.api.inference import (
+    InferenceAPI,
+    ModelTagError,
+    load_model,
+    locate_pack,
+    resolve_device,
+)
 from espnet3.api.inference.loading import _disallowed_targets
 
 
@@ -70,7 +76,9 @@ class BackendInference(InferenceAPI):
 
     Args:
         backend: An already-built backend, or ``None`` to build one.
-        device: Where to build the backend when building one.
+        device: Where to build the backend when building one: ``"auto"``
+            for CUDA when torch sees it, else the CPU, or a device by name
+            (:func:`~espnet3.api.inference.resolve_device`).
         backend_class: A dotted class path overriding the class attribute
             for this instance - how a recipe picks a variant such as
             ``espnet2.bin.asr_transducer_inference.Speech2Text``.
@@ -104,13 +112,15 @@ class BackendInference(InferenceAPI):
         self,
         backend: Any = None,
         *,
-        device: str = "cpu",
+        device: str = "auto",
         backend_class: Optional[str] = None,
         **kwargs: Any,
     ) -> None:
         """Keep a built backend, or build one from its own arguments."""
         if backend is None:
-            backend = self._backend_type(backend_class)(device=device, **kwargs)
+            backend = self._backend_type(backend_class)(
+                device=resolve_device(device), **kwargs
+            )
         elif kwargs or backend_class:
             raise TypeError(
                 f"arguments {sorted(kwargs)} given for building a backend, "
@@ -150,7 +160,7 @@ class BackendInference(InferenceAPI):
 
     @classmethod
     def from_pretrained(
-        cls, tag_or_dir: str | Path, *, device: str = "cpu", **kwargs: Any
+        cls, tag_or_dir: str | Path, *, device: str = "auto", **kwargs: Any
     ) -> "BackendInference":
         """Load a ``pack_model`` bundle, or a model the backend publishes.
 
@@ -164,7 +174,8 @@ class BackendInference(InferenceAPI):
 
         Args:
             tag_or_dir: A ``pack_model`` output directory, or a Hub tag.
-            device: Where to build the backend.
+            device: Where to build the backend: ``"auto"`` for CUDA when
+                torch sees it, else the CPU, or a device by name.
             **kwargs: Any argument the packed model's constructor takes,
                 replacing the packed value, as ESPnet2's ``from_pretrained``
                 takes them. Nothing is singled out: for an ESPnet2 ASR
@@ -201,6 +212,7 @@ class BackendInference(InferenceAPI):
             ... )
             >>> Inference.from_pretrained("espnet/an_espnet2_asr_model")
         """
+        device = resolve_device(device)
         try:
             pack = locate_pack(tag_or_dir)
         except ModelTagError:
