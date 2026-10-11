@@ -93,7 +93,8 @@ def test_transcribes_a_recording_into_text_and_segments():
     }
     ((shape, kwargs),) = backend.calls
     assert shape == (32000,)
-    assert kwargs == {"lang_sym": "<eng>", "task_sym": None}
+    # no language given: the model works it out, whatever the backend was built with
+    assert kwargs == {"lang_sym": "<nolang>", "task_sym": None}
 
 
 def test_a_language_is_passed_as_the_checkpoints_symbol():
@@ -109,18 +110,18 @@ def test_a_language_the_checkpoint_lacks_is_refused_before_decoding():
     assert backend.calls == []
 
 
-def test_no_language_falls_back_to_the_checkpoints_own_symbol():
-    """The backend's lang_sym when the vocabulary has it; else no_language()."""
-    backend = FakeSpeech2Text(lang_sym="<nolang>")
+def test_no_language_means_the_checkpoints_own_symbol_for_working_it_out():
+    """no_language(): never the backend's lang_sym, whose default is English."""
+    backend = FakeSpeech2Text(lang_sym="<eng>")  # Speech2Text's constructor default
     Inference(backend)(audio())
     assert backend.calls[0][1]["lang_sym"] == "<nolang>"
 
     # a POWSM-like vocabulary: no <nolang>, so the checkpoint's <unk>
-    backend = FakeSpeech2Text(lang_sym="<nolang>", tokens=["<unk>", "<eng>", "<asr>"])
+    backend = FakeSpeech2Text(lang_sym="<eng>", tokens=["<unk>", "<eng>", "<asr>"])
     Inference(backend)(audio())
     assert backend.calls[0][1]["lang_sym"] == "<unk>"
 
-    backend = FakeSpeech2Text(lang_sym="<nolang>", tokens=["<eng>", "<asr>"])
+    backend = FakeSpeech2Text(lang_sym="<eng>", tokens=["<eng>", "<asr>"])
     with pytest.raises(ValueError, match="pass language=<ISO 639-3>"):
         Inference(backend)(audio())
 
@@ -129,8 +130,48 @@ def test_a_task_is_passed_as_the_checkpoints_symbol_and_checked():
     backend = FakeSpeech2Text()
     Inference(backend)(audio(), task="st_eng")
     assert backend.calls[0][1]["task_sym"] == "<st_eng>"
-    with pytest.raises(ValueError, match="task 'st_jpn': this model has no <st_jpn>"):
+    # the targets are named: st_jpn is well formed, and the list is the help
+    with pytest.raises(ValueError, match="no <st_jpn>; .* into eng$"):
         Inference(backend)(audio(), task="st_jpn")
+
+
+def test_phones_on_an_encoder_decoder_checkpoint_go_window_by_window():
+    """Asked for phones, each window is decoded on its own and is one segment."""
+    windows = []
+
+    class Windowed(FakeSpeech2Text):
+        def __call__(self, speech, text_prev=None, lang_sym=None, task_sym=None):
+            windows.append((len(speech), text_prev, lang_sym, task_sym))
+            return [("<eng><pr>/a/", [], [], "/a/", None)]
+
+    backend = Windowed(tokens=VOCABULARY + ["<pr>"])  # a 30 s window
+    out = Inference(backend)(audio(45.0), task="pr", previous_text="so far")
+    assert out == {
+        "text": "/a/ /a/",
+        "segments": [
+            {"text": "/a/", "start": 0.0, "end": 30.0},
+            {"text": "/a/", "start": 30.0, "end": 45.0},
+        ],
+    }
+    # the previous text conditions the first window only, as init_text does
+    assert windows == [
+        (30 * 16000, "so far", "<nolang>", "<pr>"),
+        (15 * 16000, None, "<nolang>", "<pr>"),
+    ]
+    assert backend.calls == []  # not the long-form path
+
+    # and in a batch: window by window too, never batch_decode
+    windows.clear()
+    model = Inference(Windowed(tokens=VOCABULARY + ["<pr>"]))
+    out = model.batch([{"speech": audio(2.0), "task": "pr"}] * 2)
+    assert model.backend.batches == [] and len(windows) == 2
+    assert out == [model(audio(2.0), task="pr")] * 2
+
+    # a CTC-only checkpoint has no such trouble: the long-form path, as for text
+    backend = FakeSpeech2Text(tokens=VOCABULARY + ["<pr>"])
+    backend.ctc_only = True
+    Inference(backend)(audio(45.0), task="pr")
+    assert backend.calls[0][1]["task_sym"] == "<pr>"
 
 
 def test_previous_text_conditions_the_model():
@@ -251,7 +292,7 @@ def test_batch_decodes_single_window_items_together():
     model = Inference(backend)
     out = model.batch([{"speech": audio(2.0)}, {"speech": audio(3.0)}])
     assert out == [model(audio(2.0)), model(audio(3.0))]
-    assert backend.batches == [([(32000,), (48000,)], "<eng>", None, True)]
+    assert backend.batches == [([(32000,), (48000,)], "<nolang>", None, True)]
     assert [shape for shape, _ in backend.calls] == [(32000,), (48000,)]
 
 
@@ -266,7 +307,9 @@ def test_batch_groups_items_by_their_symbols():
     )
     assert [(b[1], b[2], len(b[0])) for b in backend.batches] == [("<jpn>", None, 2)]
     # the group of one went through run
-    assert backend.calls == [((32000,), {"lang_sym": "<eng>", "task_sym": "<st_eng>"})]
+    assert backend.calls == [
+        ((32000,), {"lang_sym": "<nolang>", "task_sym": "<st_eng>"})
+    ]
 
 
 def test_batch_decodes_long_and_prompted_items_one_by_one():
