@@ -308,6 +308,10 @@ def test_align_passes_the_device_it_was_given(monkeypatch, tmp_path):
     audio = tmp_path / "a.wav"
     audio.write_bytes(b"")
     rec = _fake_aligner(monkeypatch)
+    import torch
+
+    # a machine with an MPS device, so that the name passes the check in main()
+    monkeypatch.setattr(torch.backends.mps, "is_available", lambda: True)
 
     assert cli.main(["align", str(audio), "--text", "one", "--device", "mps"]) == 0
 
