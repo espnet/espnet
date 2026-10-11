@@ -106,7 +106,7 @@ espnet synthesize "Hello from ESPnet" -o out.wav
 espnet enhance noisy.wav -o clean.wav
 ```
 
-`phonemize` and `align` are there too, and `espnet models` names the default model of each. Every command but that one takes `--model <tag>` and `--device cuda`.
+`phonemize` and `align` are there too, and `espnet models` names the default model of each. Every command but that one takes `--model <tag>` and `--device cuda`. `espnet run <tag> --system s2t speech=audio.wav` runs any model by what it declares, with no task in the command's name.
 
 **From Python**
 
