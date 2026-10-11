@@ -91,7 +91,7 @@ def _s2t(tag: str):
     from espnet3.api.inference import load
 
     with _quiet_stdout():
-        return load(tag, system="s2t", device=DEVICE)
+        return load(tag, system="s2t", device=_device())
 
 
 @functools.lru_cache(maxsize=None)
