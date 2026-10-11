@@ -235,6 +235,17 @@ class Trainer:
             logging.warning(
                 f"The training has already reached at max_epoch: {start_epoch}"
             )
+        elif (
+            start_epoch > 1
+            and trainer_options.patience is not None
+            and reporter.has(*trainer_options.early_stopping_criterion[:2])
+            and reporter.check_early_stopping(
+                trainer_options.patience, *trainer_options.early_stopping_criterion
+            )
+        ):
+            # The resumed training was already stopped early. Skip the loop,
+            # otherwise one more epoch is trained before the check at its end.
+            start_epoch = trainer_options.max_epoch + 1
 
         if distributed_option.distributed:
             if trainer_options.sharded_ddp:

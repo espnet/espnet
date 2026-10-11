@@ -224,6 +224,7 @@ class EBranchformerEncoder(AbsEncoder):
         qk_norm: bool = False,
         use_flash_attn: bool = True,
         gradient_checkpoint_layers: List[int] = [],
+        use_sdpa: bool = False,
     ):
         super().__init__()
         self._output_size = output_size
@@ -376,6 +377,7 @@ class EBranchformerEncoder(AbsEncoder):
                 use_flash_attn,
                 False,
                 False,
+                use_sdpa,
             )
         elif attention_layer_type == "legacy_rel_selfattn":
             assert pos_enc_layer_type == "legacy_rel_pos"

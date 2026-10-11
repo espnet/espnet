@@ -85,12 +85,30 @@ def _version() -> str:
 
 
 def _device(value: str) -> str:
-    """Accept what torch accepts, so a typo fails now rather than after a download."""
-    if value in ("cpu", "mps", "cuda") or re.fullmatch(r"cuda:\d+", value):
+    """Accept a device name now, so a typo fails before a download.
+
+    Whether this machine has the device, and what ``auto`` is on it, is
+    settled once the arguments are parsed (:func:`_resolve_device`).
+    """
+    if value in ("auto", "cpu", "mps", "cuda") or re.fullmatch(r"cuda:\d+", value):
         return value
     raise argparse.ArgumentTypeError(
-        f"unknown device {value!r}: use cpu, mps, cuda or cuda:<n>"
+        f"unknown device {value!r}: use auto, cpu, mps, cuda or cuda:<n>"
     )
+
+
+def _resolve_device(value: str) -> str:
+    """Turn ``auto`` into cuda or cpu, and refuse a device this machine lacks.
+
+    ``espnet3.api.inference.resolve_device`` does both; this only makes
+    its sentence the command's own, rather than a traceback.
+    """
+    from espnet3.api.inference import resolve_device
+
+    try:
+        return resolve_device(value)
+    except ValueError as e:
+        raise CLIError(str(e)) from e
 
 
 def _require_file(path: str) -> str:
@@ -129,9 +147,11 @@ def _write_audio(path: str, wave, rate: int) -> None:
 
 
 def _build(loader, args, task: str):
-    """Load a published model, or say why this tag cannot serve this command.
+    """Load an ESPnet2 inference class, or say why this tag cannot serve this command.
 
-    The loading and the "wrong task" message are shared with ``espnet.load``,
+    For the commands whose model has no espnet3 ``Inference`` yet (speech
+    synthesis, enhancement, alignment, the demo, live transcription). The
+    loading and the "wrong task" message are shared with ``espnet.load``,
     so that both front ends explain a mismatched tag the same way; only the
     wording of the fix is this command line's own.
     """
@@ -144,19 +164,42 @@ def _build(loader, args, task: str):
     )
 
 
-def _decode(s2t, audio: str, lang_sym: str, task_sym: str) -> str:
-    """One recording of any length, as one line of text.
+def _load_s2t(args, task: str):
+    """Load the speech-to-text model behind ``--model`` through espnet3's API.
 
-    ``decode_long`` returns ``(start, end, text)`` per segment and reads the
-    checkpoint to decide how to cut the recording up: a CTC-only model in
-    overlapping buffers with no search, an encoder-decoder model segment by
-    segment on its own timestamps. This command prints a transcript, so the
-    segments are joined.
+    ``espnet3.api.inference.load`` hands the tag to the ``esp2_s2t``
+    system, whose ``Inference`` reads any OWSM, OWSM-CTC or POWSM
+    checkpoint and takes the language and task by name; so this command
+    line holds no knowledge of the model's symbols or its window.
     """
-    return " ".join(
-        text
-        for _, _, text in s2t.decode_long(audio, lang_sym=lang_sym, task_sym=task_sym)
-    )
+    from espnet3.api.inference import load
+
+    try:
+        return load(args.model, system="s2t", device=args.device)
+    except ModelTagError as e:
+        raise CLIError(
+            f"{args.model} does not look like a model for `espnet {task}`. Pass "
+            f"--model with a {task} model; `espnet models` names the default. "
+            f"({e})"
+        ) from e
+
+
+def _say(model, audio: str, **prompt) -> str:
+    """Return the model's text for one recording of any length.
+
+    ``prompt`` is the model's language and task by name (``language="jpn"``,
+    ``task="st_eng"``); a name the checkpoint lacks is the model's own
+    sentence about it, which this command line only reports.
+    """
+    try:
+        return model(audio, **prompt)["text"]
+    except ValueError as e:
+        raise CLIError(str(e)) from e
+
+
+def _prompt(args) -> dict:
+    """The language, when one was given; the model works it out otherwise."""
+    return {"language": args.language} if args.language else {}
 
 
 def _in_vocabulary(s2t, symbol: str) -> bool:
@@ -205,15 +248,20 @@ def cmd_transcribe(args) -> int:
         raise CLIError("give an audio file, or --live to record one")
     _require_file(args.audio)
 
-    from espnet2.bin.s2t_inference import Speech2Text
-
-    s2t = _build(Speech2Text, args, "transcribe")
-    print(_decode(s2t, args.audio, _language(s2t, args), "<asr>"))
+    model = _load_s2t(args, "transcribe")
+    # by name: a checkpoint built with another default task still transcribes
+    print(_say(model, args.audio, task="asr", **_prompt(args)))
     return 0
 
 
 def _transcribe_as_it_arrives(args) -> int:
-    """`--live` from the microphone, `--stream` from a file, same decoding."""
+    """`--live` from the microphone, `--stream` from a file, same decoding.
+
+    The one path in this command line still on ESPnet2's own class: a
+    window has to be decoded before the next one arrives, which is
+    ``best_path`` on the CTC head, and the espnet3 ``Inference`` streams
+    its output but reads its input whole. It moves with input streaming.
+    """
     if args.live and args.audio:
         raise CLIError("--live records from the microphone; do not also name a file")
     if args.stream and not args.audio:
@@ -280,35 +328,13 @@ def _no_language(s2t) -> str:
 
 def cmd_phonemize(args) -> int:
     _require_file(args.audio)
-    from espnet2.bin.s2t_inference import Speech2Text
-
-    s2t = _build(Speech2Text, args, "phonemize")
-    lang_sym = _language(s2t, args)
-
-    if s2t.ctc_only:
-        decoded = _decode(s2t, args.audio, lang_sym, "<pr>")
-    else:
-        # An encoder-decoder checkpoint segments long audio by its own
-        # timestamps, which is right for a transcript and wrong here. A
-        # window shorter than the model's is padded with silence, and asked
-        # for phones over that silence POWSM repeats what it has already
-        # said, for as long as the window lasts. One window at a time
-        # instead, each decoded on its own, which is what the model card
-        # does.
-        decoded = " ".join(
-            s2t(window, lang_sym=lang_sym, task_sym="<pr>")[0][0]
-            for window in _windows(s2t, args.audio)
-        )
+    model = _load_s2t(args, "phonemize")
+    # how a recording is cut up for phones - an encoder-decoder checkpoint
+    # one window at a time, a CTC-only one whole - is the model's own
+    # knowledge, in espnet3.systems.esp2_s2t
+    decoded = _say(model, args.audio, task="pr", **_prompt(args))
     print(phones(decoded, spaced=args.spaced))
     return 0
-
-
-def _windows(s2t, audio: str):
-    """The recording in pieces of the length the checkpoint was trained on."""
-    speech = s2t.read_audio(audio)
-    length = int(s2t.preprocessor_conf["speech_length"] * s2t.preprocessor_conf["fs"])
-    for start in range(0, max(len(speech), 1), length):
-        yield speech[start : start + length]
 
 
 def cmd_align(args) -> int:
@@ -357,22 +383,9 @@ def cmd_align(args) -> int:
 
 def cmd_translate(args) -> int:
     _require_file(args.audio)
-    from espnet2.bin.s2t_inference import Speech2Text
-
-    s2t = _build(Speech2Text, args, "translate")
-    lang_sym = _language(s2t, args)
-    target = f"<st_{args.to}>"
-    if not _in_vocabulary(s2t, target):
-        # the targets are few - one <st_xxx> each - so they are named: `kor`
-        # is a valid ISO 639-3 code, and "use ISO 639-3" would not help
-        from espnet2.bin.demo import target_codes
-
-        known = ", ".join(sorted(target_codes(s2t.s2t_model.token_list)))
-        raise CLIError(
-            f"{args.model} does not translate into {args.to!r}; it translates "
-            f"into {known or 'nothing: it has no <st_xxx> symbols'}"
-        )
-    print(_decode(s2t, args.audio, lang_sym, target))
+    model = _load_s2t(args, "translate")
+    # a target the checkpoint lacks is named by the model, with the ones it has
+    print(_say(model, args.audio, task=f"st_{args.to}", **_prompt(args)))
     return 0
 
 
@@ -526,11 +539,6 @@ def cmd_demo(args) -> int:
     if demo.load_gradio() is None:
         raise CLIError(demo.GRADIO_MISSING)
 
-    # The demo decides for itself unless asked, because it is the one command
-    # that runs a 1B model interactively: a CPU default would be unusable on a
-    # machine that has a GPU sitting idle.
-    args.device = args.device or demo.default_device()
-
     # Before the download, not after it: the checkpoint is 4 GB and the
     # answer to "can this demo serve it" is one metadata request away.
     _require_s2t(args.model)
@@ -585,7 +593,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--version", action="version", version=f"espnet {_version()}")
     sub = parser.add_subparsers(dest="command", required=True)
 
-    def add(name, help_text, func, device="cpu", was=None):
+    def add(name, help_text, func, was=None):
         # `was` is the name this command had in a release. argparse aliases
         # share one parser, so the old name keeps working exactly, and the
         # help listing says "transcribe (asr)" - which is where someone
@@ -598,12 +606,10 @@ def build_parser() -> argparse.ArgumentParser:
         )
         p.add_argument(
             "--device",
-            default=device,
-            type=_device,
-            # None means the command picks, which only `espnet demo` does
-            help="cpu, mps, cuda or cuda:<n> (default: "
-            + (device or "cuda when torch sees one, else cpu")
-            + ")",
+            default="auto",
+            type=_device,  # the name now; what this machine has, in main()
+            help="auto (cuda when torch sees one, else cpu), cpu, mps, cuda or "
+            "cuda:<n> (default: auto)",
         )
         p.set_defaults(func=func)
         return p
@@ -679,8 +685,7 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("audio", help="audio file, any format soundfile reads")
     p.add_argument("-o", "--output", default="enhanced.wav", help="output wav")
 
-    # 8B models: let the command pick the GPU rather than defaulting to cpu
-    p = add("describe", "say what is in an audio file", cmd_describe, device=None)
+    p = add("describe", "say what is in an audio file", cmd_describe)
     p.add_argument("audio", help="audio file, any format soundfile reads")
     p.add_argument(
         "--prompt",
@@ -694,7 +699,7 @@ def build_parser() -> argparse.ArgumentParser:
     )
     _add_server(p)
 
-    p = add("render", "render audio from a described scene", cmd_render, device=None)
+    p = add("render", "render audio from a described scene", cmd_render)
     p.add_argument(
         "scene",
         help="what the audio should be, as a description, with any speech "
@@ -710,7 +715,7 @@ def build_parser() -> argparse.ArgumentParser:
     )
     _add_server(p)
 
-    p = add("demo", "serve a model in the browser", cmd_demo, device=None)
+    p = add("demo", "serve a model in the browser", cmd_demo)
     p.add_argument(
         "--port", type=int, default=7860, help="port to serve on (default: 7860)"
     )
@@ -748,6 +753,8 @@ def main(argv: Optional[List[str]] = None) -> int:
         )
     args = build_parser().parse_args(argv)
     try:
+        if hasattr(args, "device"):  # every command that loads a model
+            args.device = _resolve_device(args.device)
         return args.func(args)
     except (CLIError, ModelTagError) as e:
         print(f"espnet: {e}", file=sys.stderr)

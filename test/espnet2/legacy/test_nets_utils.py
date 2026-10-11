@@ -22,6 +22,10 @@ test_cases = [
     {"lengths": [5, 2, 3], "xs": torch.ones(3, 2, 4), "length_dim": 1},
     {"lengths": [5, 2, 3], "xs": torch.ones(3, 6, 6), "length_dim": 1},
     {"lengths": [5, 2, 3], "xs": torch.ones(3, 6, 6), "length_dim": 2},
+    {"lengths": [5, 0, 3]},
+    {"lengths": [5, 0, 3], "maxlen": 8},
+    {"lengths": [5, 0, 3], "xs": torch.ones(3, 6, 6), "length_dim": 1},
+    {"lengths": [0, 0]},
 ]
 
 

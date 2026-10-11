@@ -418,15 +418,20 @@ def cli_model(monkeypatch):
     return model
 
 
-def test_describe_prints_the_answer(cli_model, capsys):
+def test_describe_prints_the_answer(cli_model, capsys, monkeypatch):
+    import torch
+
     from espnet2.bin import cli
+
+    monkeypatch.setattr(torch.cuda, "is_available", lambda: False)
 
     assert cli.main(["describe", "recording.wav"]) == 0
 
     assert capsys.readouterr().out.strip() == "a bell rings"
     assert cli_model.asked["tag"] == cli.DEFAULT_MODELS["describe"]
-    # an 8B model: the command picks the GPU rather than defaulting to cpu
-    assert cli_model.asked["device"] is None
+    # --device auto, settled before the command ran: the GPU when torch sees
+    # one, else cpu - the same rule as every other command now
+    assert cli_model.asked["device"] == "cpu"
     assert cli_model.described == [("recording.wav", mod.UNDERSTAND_PROMPT)]
 
 

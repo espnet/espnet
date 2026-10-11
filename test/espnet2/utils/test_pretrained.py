@@ -69,3 +69,35 @@ def test_a_speechlm_release_says_which_loader_to_use(monkeypatch, tag):
         download_pretrained(tag)
 
     assert "speechlm_inference" in str(e.value)
+
+
+def test_only_an_unexpected_keyword_is_blamed_on_the_model():
+    """A TypeError from inside the model is not reported as "wrong model"."""
+    from espnet2.utils.pretrained import build_pretrained
+
+    class Bug:
+        def __init__(self, s2t_train_config=None, **kwargs):
+            pass
+
+        @staticmethod
+        def from_pretrained(model_tag=None, device=None, **kwargs):
+            raise TypeError("unsupported operand type(s) for +: 'int' and 'str'")
+
+    with pytest.raises(TypeError, match="unsupported operand"):
+        build_pretrained(Bug, "espnet/some-model", "cpu", "a caller", "a remedy")
+
+
+def test_a_keyword_the_constructor_does_take_is_not_blamed_on_the_model():
+    from espnet2.utils.pretrained import build_pretrained
+
+    class Bug:
+        def __init__(self, device=None, **kwargs):
+            pass
+
+        @staticmethod
+        def from_pretrained(model_tag=None, device=None, **kwargs):
+            # raised from deeper inside, about an argument this class accepts
+            raise TypeError("f() got an unexpected keyword argument 'device'")
+
+    with pytest.raises(TypeError, match="'device'"):
+        build_pretrained(Bug, "espnet/some-model", "cpu", "a caller", "a remedy")
