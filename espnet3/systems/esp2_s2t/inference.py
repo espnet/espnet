@@ -200,18 +200,24 @@ class Inference(BackendInference):
 
         ``Speech2Text.batch_decode`` decodes a minibatch of single-window
         utterances together, with one language and task symbol for the
-        batch; so the items that fit the model's window and carry no
-        ``previous_text`` are grouped by their symbols and decoded a group
-        at a time, with ``predict_time`` so that their segments are read off
-        the timestamps exactly as ``decode_long`` reads a window. A longer
-        recording, an item with ``previous_text``, and a group of one go
-        through :meth:`run`. A backend without ``batch_decode``, or whose
-        config does not say its window, decodes everything one by one.
+        batch; so the items that end at least a second before the model's
+        window does and carry no ``previous_text`` are grouped by their
+        symbols and decoded a group at a time, with ``predict_time`` so that
+        their segments are read off the timestamps exactly as
+        ``decode_long`` reads a window. The last second is left out because
+        ``decode_long`` reads an utterance ending there as cut off and
+        leaves it for the next window, which a batch item would not have.
+        A longer recording, an item with ``previous_text``, and a group of
+        one go through :meth:`run`, as does everything on a CTC-only
+        checkpoint, whose ``batch_decode`` searches the CTC head while
+        ``decode_long`` takes its best path, and on a backend without
+        ``batch_decode`` or whose config does not say its window.
         """
-        window = self._window_samples()
+        batchable = self._batchable_samples()
         if (
-            window is None
+            batchable is None
             or len(items) < 2
+            or getattr(self.backend, "ctc_only", False)
             or not callable(getattr(self.backend, "batch_decode", None))
         ):
             return super().run_batch(items)
@@ -220,7 +226,7 @@ class Inference(BackendInference):
         for i, item in enumerate(items):
             if (
                 item.get("previous_text") is not None
-                or len(item["speech"].array) > window
+                or len(item["speech"].array) > batchable
             ):
                 outputs[i] = self.run(**item)
                 continue
@@ -245,25 +251,24 @@ class Inference(BackendInference):
                 outputs[i] = self._window_output(nbest[0], items[i]["speech"])
         return outputs
 
-    def _window_samples(self) -> Optional[int]:
-        """Return the samples one window of the model holds, or ``None`` if unsaid."""
+    def _batchable_samples(self) -> Optional[int]:
+        """Return the longest recording a batch item may be, or ``None`` if unsaid.
+
+        One window of the model (``speech_length`` seconds at ``fs``) less
+        the second before its end, where ``decode_long`` reads an utterance
+        as cut off.
+        """
         conf = getattr(self.backend, "preprocessor_conf", None) or {}
         if "fs" not in conf or "speech_length" not in conf:
             return None
-        return int(conf["fs"] * conf["speech_length"])
+        return int(conf["fs"] * (conf["speech_length"] - 1))
 
     def _window_output(self, best: Sequence[Any], speech: Audio) -> dict:
         """One item's outputs from its best hypothesis of a single window.
 
-        A CTC-only checkpoint has no timestamps: its one segment spans the
-        recording, as ``decode_long`` gives it. An encoder-decoder one is read
-        through ``window_utterances``, the reading ``decode_long`` uses.
+        Read through ``window_utterances``, the reading ``decode_long`` uses.
         """
-        if getattr(self.backend, "ctc_only", False):
-            text = best[3]  # text without the special tokens
-            segments = [(0.0, len(speech.array) / self.sample_rate, text)]
-        else:
-            segments = self.backend.window_utterances(best[2])
+        segments = self.backend.window_utterances(best[2])
         return {
             "text": " ".join(text for _, _, text in segments),
             "segments": [

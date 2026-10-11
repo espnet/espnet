@@ -1352,7 +1352,7 @@ class Speech2Text:
         self,
         speech: Union[str, Path, torch.Tensor, np.ndarray],
         batch_size: int = 1,
-        context_len_in_secs: float = 2,
+        context_len_in_secs: Optional[float] = None,
         condition_on_prev_text: bool = False,
         init_text: Optional[str] = None,
         end_time_threshold: Optional[str] = None,

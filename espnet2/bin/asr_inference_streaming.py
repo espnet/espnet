@@ -81,8 +81,10 @@ class Speech2TextStreaming:
         ``asr_model`` and ``asr_train_args`` together take the place of
         ``asr_train_config`` and ``asr_model_file``: what ``Speech2Text``
         already holds, so a model loaded once can decode online too without
-        being read from disk again. The language model, if any, is read from
-        its files either way.
+        being read from disk again. A supplied model is moved to ``device``
+        and ``dtype`` in place, as a model read from its files is, so pass
+        the ones it already lives on. The language model, if any, is read
+        from its files either way.
         """
         if asr_model is None:
             if asr_train_config is None:

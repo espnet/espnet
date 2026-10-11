@@ -277,17 +277,24 @@ def test_batch_decodes_long_and_prompted_items_one_by_one():
     assert [shape for shape, _ in backend.calls] == [(31 * 16000,), (32000,)]
 
 
-def test_batch_on_a_ctc_only_checkpoint_spans_each_recording():
+def test_batch_on_a_ctc_only_checkpoint_decodes_one_by_one():
+    """batch_decode searches the CTC head, decode_long takes its best path."""
     backend = FakeSpeech2Text()
     backend.ctc_only = True
-    backend.batch_decode = lambda speeches, **kw: [
-        [("<eng><asr> hi", [], [], "hi", None)] for _ in speeches
-    ]
-    out = Inference(backend).batch([{"speech": audio(2.0)}, {"speech": audio(1.0)}])
-    assert out == [
-        {"text": "hi", "segments": [{"text": "hi", "start": 0.0, "end": 2.0}]},
-        {"text": "hi", "segments": [{"text": "hi", "start": 0.0, "end": 1.0}]},
-    ]
+    model = Inference(backend)
+    out = model.batch([{"speech": audio(2.0)}, {"speech": audio(1.0)}])
+    assert backend.batches == [] and len(backend.calls) == 2
+    assert out == [model(audio(2.0)), model(audio(1.0))]
+
+
+def test_batch_leaves_the_windows_last_second_to_run():
+    """An utterance ending there would be read as cut off, with no window to follow."""
+    backend = FakeSpeech2Text()  # a 30 s window
+    Inference(backend).batch(
+        [{"speech": audio(29.0)}, {"speech": audio(29.5)}, {"speech": audio(29.0)}]
+    )
+    assert [len(b[0]) for b in backend.batches] == [2]
+    assert [shape for shape, _ in backend.calls] == [(int(29.5 * 16000),)]
 
 
 def test_batch_falls_back_when_the_config_does_not_say_the_window():
@@ -389,18 +396,19 @@ def s2t_ctc_config_file(tmp_path, token_list):  # noqa: F811
             "output_size=4",
             "--preprocessor_conf",
             "fs=2000",
-            # a 6 s window: decode_long's default 2 s of context has to be
-            # under half of it
+            # an 8 s window: decode_long's default 2 s of context has to be
+            # under half of it, and the window a whole number of frames
             "--preprocessor_conf",
-            "speech_length=6",
-            # 2000 / 100 / 4 = 5 encoder frames per second, so that
-            # decode_long's default 2 s of context is a whole number of frames
+            "speech_length=8",
+            # and 2000 / 200 / 8 = 1.25 encoder frames per second, so that
+            # default is not a whole number of frames and is rounded, as
+            # decode_long rounds it
             "--frontend_conf",
             "fs=2000",
             "--frontend_conf",
-            "hop_length=100",
+            "hop_length=200",
             "--encoder_conf",
-            "input_layer=conv2d",
+            "input_layer=conv2d8",
         ]
     )
     return tmp_path / "s2t_ctc" / "config.yaml"
