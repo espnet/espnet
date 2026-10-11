@@ -9,6 +9,7 @@
 
 set -euo pipefail
 
+# shellcheck disable=SC2034
 help_message=$(cat << 'EOF'
 Usage: local/run_hf_asr_leaderboard.sh [options]
 
@@ -51,7 +52,9 @@ outdir=exp/hf_asr_leaderboard
 sets=
 revision=b6bdcd0beb34f8975dc659796176d88f43aff502  # pinned dataset commit
 
+# shellcheck disable=SC1091
 . utils/parse_options.sh
+# shellcheck disable=SC1091
 . ./path.sh
 
 if [ "${subset}" = "small" ]; then
