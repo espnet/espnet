@@ -47,6 +47,7 @@ def _fake_load(monkeypatch, model):
     import espnet3.api.inference as api
 
     def load(tag, *, system=None, device="auto", **kwargs):
+        api.resolve_device(device)  # as load does, before anything is fetched
         model.tag, model.system, model.device = tag, system, device
         return model
 
@@ -151,6 +152,10 @@ def test_asr_passes_the_language_and_the_chosen_model(monkeypatch, tmp_path):
     audio = tmp_path / "a.wav"
     audio.write_bytes(b"")
     rec = _fake_load(monkeypatch, _FakeModel("x"))
+    import torch
+
+    monkeypatch.setattr(torch.cuda, "is_available", lambda: True)  # so cuda passes
+    monkeypatch.setattr(torch.cuda, "device_count", lambda: 1)
 
     assert (
         cli.main(
@@ -763,6 +768,26 @@ def test_an_unknown_device_is_refused_by_the_parser():
 @pytest.mark.parametrize("device", ["auto", "cpu", "mps", "cuda", "cuda:1"])
 def test_the_devices_torch_understands_are_accepted(device):
     assert cli._device(device) == device
+
+
+@pytest.mark.parametrize("command", ["transcribe", "synthesize"])
+def test_a_device_this_machine_lacks_is_a_sentence_before_the_download(
+    monkeypatch, tmp_path, capsys, command
+):
+    """The name parses; whether torch has it is found when the model loads."""
+    import torch
+
+    monkeypatch.setattr(torch.cuda, "is_available", lambda: False)
+    audio = tmp_path / "a.wav"
+    audio.write_bytes(b"")
+    _fake_load(monkeypatch, _FakeModel("x"))  # never reached
+    _fake_module(monkeypatch, "espnet2.bin.tts_inference", "Text2Speech", _Recorder({}))
+    arg = str(audio) if command == "transcribe" else "hello"
+
+    assert cli.main([command, arg, "--device", "cuda:0"]) == 1
+
+    err = capsys.readouterr().err
+    assert err.startswith("espnet: cuda:0 asked for, but torch sees no CUDA device")
 
 
 def test_a_write_failure_is_reported_like_the_others(monkeypatch, tmp_path, capsys):

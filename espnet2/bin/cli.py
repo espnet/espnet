@@ -128,10 +128,14 @@ def _build(loader, args, task: str):
     """
     from espnet3.api.inference import resolve_device
 
+    try:
+        device = resolve_device(args.device)
+    except ValueError as e:  # a device this machine lacks: a sentence, not a trace
+        raise CLIError(str(e)) from e
     return build_pretrained(
         loader,
         args.model,
-        resolve_device(args.device),
+        device,
         f"`espnet {task}`",
         f"Pass --model with a {task} model; `espnet models` names the default.",
     )
@@ -156,6 +160,8 @@ def _load_s2t(args, task: str):
             f"--model with a {task} model; `espnet models` names the default. "
             f"({e})"
         ) from e
+    except ValueError as e:  # a device this machine lacks: a sentence, not a trace
+        raise CLIError(str(e)) from e
 
 
 def _say(model, audio: str, **prompt) -> str:
@@ -448,7 +454,10 @@ def cmd_demo(args) -> int:
 
     from espnet3.api.inference import resolve_device
 
-    args.device = resolve_device(args.device)  # printed below, so settled here
+    try:
+        args.device = resolve_device(args.device)  # printed below, so settled here
+    except ValueError as e:
+        raise CLIError(str(e)) from e
 
     # Before the download, not after it: the checkpoint is 4 GB and the
     # answer to "can this demo serve it" is one metadata request away.
