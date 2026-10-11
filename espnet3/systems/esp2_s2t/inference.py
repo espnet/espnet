@@ -1,6 +1,12 @@
-"""The OWSM system's side of :mod:`espnet3.api.inference`.
+"""The ESPnet2 s2t system's side of :mod:`espnet3.api.inference`.
 
-The model behind an ``s2t`` tag is
+The system is named for the code that reads its models - ESPnet2's ``s2t``
+task, and its ``s2t_ctc`` variant - rather than for a model: that code
+serves every OWSM release so far (v1 to v4), OWSM-CTC and POWSM, and a
+release built on other code would be another system. ``load(tag,
+system="owsm")`` and ``system="s2t"`` both reach it.
+
+The model behind such a tag is
 :class:`espnet2.bin.s2t_inference.Speech2Text` - OWSM, OWSM-CTC and POWSM
 checkpoints - whose ``decode_long`` takes one recording of any length and
 returns ``(start, end, text)`` per utterance, cutting the recording up the

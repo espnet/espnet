@@ -53,7 +53,11 @@ logger = logging.getLogger(__name__)
 # rename is one row and every bundle already on the Hub keeps loading.
 SYSTEM_ALIASES: dict[str, str] = {
     "asr": "esp2_asr",  # renamed in #6795; bundles packed before say "asr"
-    "s2t": "esp2_s2t",  # ESPnet2's name for the OWSM task, as espnet.load takes it
+    # ESPnet2's name for the task, as espnet.load takes it, and the model
+    # family's: a system is named for the code that reads a model, and the
+    # models that code serves (OWSM v1-v4, OWSM-CTC, POWSM) reach it by alias
+    "s2t": "esp2_s2t",
+    "owsm": "esp2_s2t",
 }
 
 

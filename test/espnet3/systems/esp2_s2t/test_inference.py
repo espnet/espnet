@@ -215,6 +215,15 @@ def test_load_reads_a_published_owsm_checkpoint_when_the_caller_names_s2t(
     assert model(audio())["text"] == "hello world again"
 
 
+def test_the_model_family_name_is_an_alias_for_the_system(monkeypatch):
+    """load(tag, system="owsm") reaches esp2_s2t, as system="s2t" does."""
+    import espnet2.bin.s2t_inference as s2t_inference
+
+    monkeypatch.setattr(s2t_inference, "Speech2Text", PublishedSpeech2Text)
+    _espnet2_downloader(monkeypatch, {"s2t_train_config": "c.yaml"})
+    assert isinstance(load("espnet/owsm_like", system="owsm"), Inference)
+
+
 def test_an_asr_checkpoint_given_to_the_s2t_system_is_a_model_tag_error(monkeypatch):
     import espnet2.bin.s2t_inference as s2t_inference
 
