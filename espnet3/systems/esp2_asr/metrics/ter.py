@@ -29,8 +29,8 @@ class TER(BaseMetric):
     :class:`~espnet3.components.contract.metrics.check_metric_inputs`).
 
     Examples:
-        >>> TER.inputs[0]
-        Field(name='ref', kind='text', label='Ref', optional=False, channels=1)
+        >>> [f.name for f in TER.inputs]
+        ['ref', 'hyp']
     """
 
     inputs = (Field("ref", "text"), Field("hyp", "text"))

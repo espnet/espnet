@@ -5,7 +5,7 @@ from __future__ import annotations
 from typing import Any, Mapping, Optional
 
 from espnet3.api.inference import KINDS, Field
-from espnet3.components.contract.check import check_declaration
+from espnet3.api.inference.check import check_declaration
 
 #: A metric input source naming a test-set column instead of an inference
 #: SCP file (bind a declared name to ``dataset:text`` in ``inputs:``);
