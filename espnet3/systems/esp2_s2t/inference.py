@@ -81,9 +81,10 @@ class Inference(BackendInference):
     vocabulary before anything is decoded:
 
     - ``language``: ISO 639-3, such as ``"eng"`` or ``"jpn"``. Left out,
-      the backend's own ``lang_sym`` when the checkpoint has it, else the
-      checkpoint's symbol for working the language out itself
-      (``no_language()``: ``<nolang>`` for OWSM, ``<unk>`` for POWSM).
+      the model works the language out itself, by the checkpoint's own
+      symbol for that (``no_language()``: ``<nolang>`` for OWSM, ``<unk>``
+      for POWSM) - not by the backend's ``lang_sym``, whose constructor
+      default is English.
     - ``task``: ``"asr"``, or ``"st_eng"`` and the like for translation.
       Left out, the backend's own ``task_sym``, ``<asr>`` unless built
       otherwise.
@@ -136,9 +137,6 @@ class Inference(BackendInference):
                     "ISO 639-3, three letters: eng, deu, jpn, zho, fra, spa ..."
                 )
             return symbol
-        own = getattr(self.backend, "lang_sym", None)
-        if own and self._known(own):
-            return own
         try:
             return self.backend.no_language()
         except ValueError as e:
