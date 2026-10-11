@@ -1,4 +1,4 @@
-"""LibriSpeech dataset backed by Omni-IO archives."""
+"""LibriSpeech dataset backed by Omni-IO archives and per-split views."""
 
 from __future__ import annotations
 
@@ -11,11 +11,11 @@ import numpy as np
 from torch.utils.data import Dataset as TorchDataset
 
 from egs3.librispeech.esp2_asr.dataset.builder import (
-    METADATA_NAME,
     LibriSpeechBuilder,
     blob_path,
+    raw_archive_dir,
     read_text_table,
-    split_archive_dir,
+    split_view_path,
 )
 from espnet3.utils.config_utils import load_config_with_defaults
 
@@ -35,33 +35,37 @@ _OMNIIO_HINT = (
 )
 
 
-def _read_metadata(archive_dir: Path) -> dict[str, list]:
-    """Read one archive's Parquet offset table as plain Python lists.
+def read_view(path: Path) -> dict[str, list]:
+    """Read a split view table as plain Python lists.
 
-    Rows are sorted by utterance id so that the dataset order -- and therefore
-    the statistics keys written by `collect_stats` -- does not depend on the
-    order in which the blobs happened to be packed.
+    The row order is the one `create_dataset` wrote - each raw archive sorted
+    by utterance id, archives in the order the split lists them - so the
+    dataset index of an utterance does not depend on how the packing workers
+    were scheduled.
     """
     import pyarrow.parquet as pq
 
-    table = pq.read_table(archive_dir / METADATA_NAME)
-    columns = table.to_pydict()
-    order = sorted(range(len(columns["id"])), key=lambda i: columns["id"][i])
+    table = pq.read_table(path).to_pydict()
     return {
-        "id": [columns["id"][i] for i in order],
-        "bin_index": [columns["bin_index"][i] for i in order],
-        "start_byte": [columns["start_byte"][i] for i in order],
-        "end_byte": [columns["end_byte"][i] for i in order],
+        "id": list(table["id"]),
+        "source": list(table["source"]),
+        "bin_index": list(table["bin_index"]),
+        "start_byte": list(table["start_byte"]),
+        "end_byte": list(table["end_byte"]),
     }
 
 
 class LibriSpeechDataset(TorchDataset):
     """Torch dataset that serves LibriSpeech out of Omni-IO archives.
 
+    A split is a view over the per-raw-directory archives rather than a copy
+    of them, so `dev` and `dev_clean`, or `train_100` and `train_960`, share
+    the same blobs.
+
     Args:
         split: Logical split name such as ``train_960`` or ``test_clean``.
         recipe_dir: Optional recipe root. Defaults to this recipe directory.
-        archive_root: Directory holding ``archive/<split>/``. Normally set to
+        archive_root: Directory holding ``archive/``. Normally set to
             ``${data_dir}`` from the config.
         source_dir: Optional LibriSpeech parent/root override, used only when
             the archive still has to be built.
@@ -72,7 +76,7 @@ class LibriSpeechDataset(TorchDataset):
 
     Raises:
         ValueError: If ``split`` is unknown.
-        FileNotFoundError: If the archive is missing and ``build_if_missing``
+        FileNotFoundError: If the view is missing and ``build_if_missing``
             is ``False``.
 
     Examples:
@@ -99,12 +103,14 @@ class LibriSpeechDataset(TorchDataset):
             if recipe_dir is not None
             else Path(__file__).resolve().parents[1]
         )
-        self.archive_dir = split_archive_dir(recipe_root, self.split, archive_root)
+        self._recipe_root = recipe_root
+        self._archive_root = archive_root
+        self.view_path = split_view_path(recipe_root, self.split, archive_root)
 
-        if not (self.archive_dir / METADATA_NAME).is_file():
+        if not self.view_path.is_file():
             if not build_if_missing:
                 raise FileNotFoundError(
-                    f"Omni-IO archive not found: {self.archive_dir}. "
+                    f"Split view not found: {self.view_path}. "
                     "Run `python run.py --stages create_dataset ...` first."
                 )
             builder = LibriSpeechBuilder()
@@ -118,19 +124,25 @@ class LibriSpeechDataset(TorchDataset):
                 builder.prepare_source(**builder_kwargs)
             builder.build(**builder_kwargs)
 
-        metadata = _read_metadata(self.archive_dir)
-        texts = read_text_table(self.archive_dir)
-        missing = [utt_id for utt_id in metadata["id"] if utt_id not in texts]
+        view = read_view(self.view_path)
+        self._utt_ids: List[str] = view["id"]
+        self._sources: List[str] = view["source"]
+        self._bin_index: List[int] = view["bin_index"]
+        self._start_byte: List[int] = view["start_byte"]
+        self._end_byte: List[int] = view["end_byte"]
+
+        # One transcript table per raw archive the view touches.
+        texts: dict[str, str] = {}
+        for source in dict.fromkeys(self._sources):
+            texts.update(
+                read_text_table(raw_archive_dir(recipe_root, source, archive_root))
+            )
+        missing = [utt_id for utt_id in self._utt_ids if utt_id not in texts]
         if missing:
             raise RuntimeError(
-                f"{len(missing)} archived utterance(s) have no transcript in "
-                f"{self.archive_dir} (first: {missing[0]}). Rebuild the split."
+                f"{len(missing)} utterance(s) in {self.view_path} have no "
+                f"transcript (first: {missing[0]}). Rebuild the split."
             )
-
-        self._utt_ids: List[str] = metadata["id"]
-        self._bin_index: List[int] = metadata["bin_index"]
-        self._start_byte: List[int] = metadata["start_byte"]
-        self._end_byte: List[int] = metadata["end_byte"]
         self._texts: List[str] = [texts[utt_id] for utt_id in self._utt_ids]
 
     def __len__(self) -> int:
@@ -143,9 +155,12 @@ class LibriSpeechDataset(TorchDataset):
             raise ImportError(_OMNIIO_HINT) from exc
 
         index = int(idx)
+        archive_dir = raw_archive_dir(
+            self._recipe_root, self._sources[index], self._archive_root
+        )
         start = int(self._start_byte[index])
         read = audio_read(
-            str(blob_path(self.archive_dir, self._bin_index[index])),
+            str(blob_path(archive_dir, self._bin_index[index])),
             start,
             int(self._end_byte[index]) - start,
         )
@@ -168,25 +183,36 @@ def gather_training_text(
 ) -> List[str]:
     """Collect transcripts for tokenizer training from a packed split.
 
-    Reading the archive's transcript table keeps the tokenizer text identical
-    to what training consumes, and costs one sequential read.
+    Reading the archive keeps the tokenizer text identical to what training
+    consumes, and costs one sequential read of the view and the transcript
+    tables it references.
 
     Args:
         recipe_dir: Recipe root used to resolve the archive path. Defaults to
             the current working directory.
-        archive_root: Directory holding ``archive/<split>/``.
+        archive_root: Directory holding ``archive/``.
         split: Logical split whose transcripts are used.
         **_kwargs: Unused extra options for API compatibility.
 
     Returns:
-        Transcript strings, ordered by utterance id.
+        Transcript strings, in the split's own order.
 
     Raises:
-        FileNotFoundError: If the split has not been packed yet.
+        FileNotFoundError: If the split has not been built yet.
     """
     recipe_root = (
         Path(recipe_dir).resolve() if recipe_dir is not None else Path.cwd().resolve()
     )
-    archive_dir = split_archive_dir(recipe_root, str(split), archive_root)
-    texts = read_text_table(archive_dir)
-    return [texts[utt_id] for utt_id in sorted(texts)]
+    view_path = split_view_path(recipe_root, str(split), archive_root)
+    if not view_path.is_file():
+        raise FileNotFoundError(
+            f"Split view not found: {view_path}. "
+            "Run `python run.py --stages create_dataset ...` first."
+        )
+    view = read_view(view_path)
+    texts: dict[str, str] = {}
+    for source in dict.fromkeys(view["source"]):
+        texts.update(
+            read_text_table(raw_archive_dir(recipe_root, source, archive_root))
+        )
+    return [texts[utt_id] for utt_id in view["id"]]

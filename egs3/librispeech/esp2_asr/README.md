@@ -93,18 +93,26 @@ python run.py --stages infer measure \
 LibriSpeech ships one `.flac` per utterance: 281k files for the 960 h training
 set. On the shared filesystems this recipe targets, that file count — not the
 60 GB — is what makes training IO-bound, and it exhausts inodes when several
-corpora are staged side by side. `create_dataset` packs each split into
-`data/archive/<split>/`:
+corpora are staged side by side.
+
+`create_dataset` packs each **raw** LibriSpeech directory once, and then writes
+one small table per logical split:
 
 ```
-blob_0.bin, blob_1.bin, ...   source files stored verbatim, 320 MiB per blob
-metadata.parquet              id, bin_index, start_byte, end_byte per utterance
-text.tsv                      utt_id <TAB> transcript
+data/archive/raw/train-clean-100/   blob_0.bin, ...  source files verbatim
+                                    metadata.parquet id, bin_index, byte range
+                                    text.tsv         utt_id <TAB> transcript
+data/archive/train_960.parquet      the view: id, source, bin_index, byte range
+data/archive/dev.parquet            ... and so on, one per split
 ```
+
+A split is therefore a view, not a copy. `dev` points at the dev-clean and
+dev-other archives, `train_100` and `train_960` share train-clean-100, and
+nothing is stored twice however many splits are built.
 
 Reading an utterance is one range read (`omniio.interface.audio_read`), and the
 bytes are the original FLAC, so the decoded samples are identical to reading
-the corpus directly. The archive is relocatable: the dataset rebuilds blob
+the corpus directly. The archives are relocatable: the dataset rebuilds blob
 paths from `bin_index` rather than trusting the absolute `path` column that
 Omni-IO records at packing time.
 

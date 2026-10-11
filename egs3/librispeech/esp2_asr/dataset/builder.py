@@ -26,6 +26,9 @@ RawEntry = Tuple[str, Path, str]
 
 TEXT_TABLE_NAME = "text.tsv"
 METADATA_NAME = "metadata.parquet"
+# Audio is packed once per raw LibriSpeech directory under this subdirectory;
+# logical splits are views over those archives.
+RAW_SUBDIR = "raw"
 
 _OMNIIO_HINT = (
     "Omni-IO is required by this recipe but is not installed. "
@@ -168,7 +171,7 @@ def resolve_archive_root(
     recipe_root: Path,
     archive_root: str | Path | None = None,
 ) -> Path:
-    """Return the directory that holds this recipe's Omni-IO archives.
+    """Return the directory that holds this recipe's archives.
 
     Args:
         recipe_root: Recipe root directory.
@@ -179,13 +182,28 @@ def resolve_archive_root(
     return root / str(_CFG["archive_subdir"])
 
 
-def split_archive_dir(
+def raw_archive_dir(
+    recipe_root: Path,
+    raw_dir: str,
+    archive_root: str | Path | None = None,
+) -> Path:
+    """Return the Omni-IO archive directory of one raw LibriSpeech directory."""
+    return resolve_archive_root(recipe_root, archive_root) / RAW_SUBDIR / str(raw_dir)
+
+
+def split_view_path(
     recipe_root: Path,
     split: str,
     archive_root: str | Path | None = None,
 ) -> Path:
-    """Return the archive directory of one logical split."""
-    return resolve_archive_root(recipe_root, archive_root) / str(split)
+    """Return the view table of one logical split.
+
+    A split is not its own copy of the audio: the view names, per utterance,
+    which raw archive holds it and at which byte range. Splits that overlap
+    (``dev`` over dev-clean and dev-other, ``train_100`` inside ``train_960``)
+    therefore cost one Parquet table each and no duplicated audio.
+    """
+    return resolve_archive_root(recipe_root, archive_root) / f"{split}.parquet"
 
 
 def blob_path(archive_dir: Path, bin_index: int) -> Path:
@@ -199,7 +217,7 @@ def blob_path(archive_dir: Path, bin_index: int) -> Path:
 
 
 def text_table_path(archive_dir: Path) -> Path:
-    """Return the transcript table path of one archive directory."""
+    """Return the transcript table path of one raw archive directory."""
     return archive_dir / TEXT_TABLE_NAME
 
 
@@ -413,15 +431,102 @@ class LibriSpeechBuilder(DatasetBuilder):
         archive_root: str | Path | None = None,
         **_kwargs,
     ) -> bool:
-        """Return whether every requested split is already packed."""
+        """Return whether every requested split already has a view table."""
         recipe_root, split_names = self._resolve(recipe_dir, splits)
-        for split in split_names:
-            archive_dir = split_archive_dir(recipe_root, split, archive_root)
-            if not (archive_dir / METADATA_NAME).is_file():
-                return False
-            if not text_table_path(archive_dir).is_file():
-                return False
-        return True
+        return all(
+            split_view_path(recipe_root, split, archive_root).is_file()
+            for split in split_names
+        )
+
+    def _is_raw_packed(
+        self,
+        recipe_root: Path,
+        raw_dir: str,
+        archive_root: str | Path | None,
+    ) -> bool:
+        archive_dir = raw_archive_dir(recipe_root, raw_dir, archive_root)
+        return (archive_dir / METADATA_NAME).is_file() and text_table_path(
+            archive_dir
+        ).is_file()
+
+    def _pack_raw_dir(
+        self,
+        recipe_root: Path,
+        source_root: Path,
+        raw_dir: str,
+        archive_root: str | Path | None,
+        workers: int,
+        bin_size: int,
+    ) -> None:
+        """Pack one raw LibriSpeech directory into its own Omni-IO archive."""
+        split_dir = source_root / raw_dir
+        if not split_dir.is_dir():
+            raise FileNotFoundError(f"Raw split directory not found: {split_dir}")
+
+        logger.info("Indexing %s", split_dir)
+        entries = _scan_raw_dir(split_dir)
+        logger.info("Indexed %d utterances in %s", len(entries), raw_dir)
+
+        archive_dir = raw_archive_dir(recipe_root, raw_dir, archive_root)
+        logger.info(
+            "Packing %s: %d utterances -> %s", raw_dir, len(entries), archive_dir
+        )
+        blob = _open_blob(archive_dir, bin_size)
+        blob.append(
+            [str(audio_path) for _utt_id, audio_path, _text in entries],
+            ids=[utt_id for utt_id, _audio_path, _text in entries],
+            num_workers=workers,
+            progress=False,
+        )
+        # Written last: `_is_raw_packed` treats the transcript table as the
+        # marker that this archive finished packing.
+        _write_text_table(archive_dir, entries)
+        logger.info("Packed %s (%d utterances)", raw_dir, len(entries))
+
+    def _write_split_view(
+        self,
+        recipe_root: Path,
+        split: str,
+        archive_root: str | Path | None,
+    ) -> None:
+        """Write the view table of one logical split over its raw archives."""
+        import pyarrow as pa
+        import pyarrow.parquet as pq
+
+        ids: List[str] = []
+        sources: List[str] = []
+        bin_index: List[int] = []
+        start_byte: List[int] = []
+        end_byte: List[int] = []
+
+        for raw_dir in _SPLITS[split]:
+            archive_dir = raw_archive_dir(recipe_root, raw_dir, archive_root)
+            table = pq.read_table(archive_dir / METADATA_NAME).to_pydict()
+            # Sort inside each raw archive so the split order is reproducible
+            # whatever order the packing workers happened to finish in.
+            order = sorted(range(len(table["id"])), key=lambda i: table["id"][i])
+            for i in order:
+                ids.append(table["id"][i])
+                sources.append(raw_dir)
+                bin_index.append(int(table["bin_index"][i]))
+                start_byte.append(int(table["start_byte"][i]))
+                end_byte.append(int(table["end_byte"][i]))
+
+        view = pa.table(
+            {
+                "id": pa.array(ids, type=pa.string()),
+                "source": pa.array(sources, type=pa.string()),
+                "bin_index": pa.array(bin_index, type=pa.int64()),
+                "start_byte": pa.array(start_byte, type=pa.int64()),
+                "end_byte": pa.array(end_byte, type=pa.int64()),
+            }
+        )
+        path = split_view_path(recipe_root, split, archive_root)
+        path.parent.mkdir(parents=True, exist_ok=True)
+        tmp_path = path.with_suffix(f".parquet.tmp.{os.getpid()}")
+        pq.write_table(view, tmp_path)
+        os.replace(tmp_path, path)
+        logger.info("Wrote view %s (%d utterances)", path, view.num_rows)
 
     def build(
         self,
@@ -433,7 +538,7 @@ class LibriSpeechBuilder(DatasetBuilder):
         max_bin_size: int | None = None,
         **_kwargs,
     ) -> None:
-        """Pack each requested split into ``archive/<split>/``.
+        """Pack the raw directories once, then write one view per split.
 
         Raises:
             FileNotFoundError: If a required raw directory is missing.
@@ -447,45 +552,31 @@ class LibriSpeechBuilder(DatasetBuilder):
         pending = [
             split
             for split in split_names
-            if not self.is_built(
-                recipe_dir=recipe_root, splits=[split], archive_root=archive_root
-            )
+            if not split_view_path(recipe_root, split, archive_root).is_file()
         ]
         if not pending:
-            logger.info("Every requested split is already packed; nothing to do.")
+            logger.info("Every requested split already has a view; nothing to do.")
             return
 
-        source_root = resolve_source_root(recipe_root, source_dir=source_dir)
-        logger.info("Packing Omni-IO archives from %s", source_root)
-
-        raw_entries: dict[str, List[RawEntry]] = {}
-        for raw_dir in raw_dirs_for(pending):
-            split_dir = source_root / raw_dir
-            if not split_dir.is_dir():
-                raise FileNotFoundError(f"Raw split directory not found: {split_dir}")
-            logger.info("Indexing %s", split_dir)
-            raw_entries[raw_dir] = _scan_raw_dir(split_dir)
-            logger.info(
-                "Indexed %d utterances in %s", len(raw_entries[raw_dir]), raw_dir
-            )
+        needed = [
+            raw_dir
+            for raw_dir in raw_dirs_for(pending)
+            if not self._is_raw_packed(recipe_root, raw_dir, archive_root)
+        ]
+        if needed:
+            source_root = resolve_source_root(recipe_root, source_dir=source_dir)
+            logger.info("Packing %d raw directories from %s", len(needed), source_root)
+            for raw_dir in needed:
+                self._pack_raw_dir(
+                    recipe_root,
+                    source_root,
+                    raw_dir,
+                    archive_root,
+                    workers,
+                    bin_size,
+                )
+        else:
+            logger.info("Raw archives already packed; writing views only.")
 
         for split in pending:
-            entries: List[RawEntry] = []
-            for raw_dir in _SPLITS[split]:
-                entries.extend(raw_entries[raw_dir])
-
-            archive_dir = split_archive_dir(recipe_root, split, archive_root)
-            logger.info(
-                "Packing %s: %d utterances -> %s", split, len(entries), archive_dir
-            )
-            blob = _open_blob(archive_dir, bin_size)
-            blob.append(
-                [str(audio_path) for _utt_id, audio_path, _text in entries],
-                ids=[utt_id for utt_id, _audio_path, _text in entries],
-                num_workers=workers,
-                progress=False,
-            )
-            # Written last: `is_built` treats the transcript table as the marker
-            # that a split finished packing.
-            _write_text_table(archive_dir, entries)
-            logger.info("Packed %s (%d utterances)", split, len(entries))
+            self._write_split_view(recipe_root, split, archive_root)

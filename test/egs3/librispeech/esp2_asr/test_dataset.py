@@ -15,9 +15,10 @@ from egs3.librispeech.esp2_asr.dataset import (  # noqa: E402
 )
 from egs3.librispeech.esp2_asr.dataset.builder import (  # noqa: E402
     known_splits,
+    raw_archive_dir,
     raw_dirs_for,
     resolve_split_names,
-    split_archive_dir,
+    split_view_path,
 )
 
 _CHAPTERS = {
@@ -92,15 +93,31 @@ def test_build_packs_every_requested_split(tmp_path: Path) -> None:
     builder.build(**kwargs)
     assert builder.is_built(**kwargs)
 
-    train_dir = split_archive_dir(recipe_dir, "train_960", archive_root)
-    assert (train_dir / "metadata.parquet").is_file()
-    assert (train_dir / "text.tsv").is_file()
-    assert sorted(p.name for p in train_dir.glob("blob_*.bin")) == ["blob_0.bin"]
+    # Audio is packed once per raw directory ...
+    for raw_dir in ("train-clean-100", "train-clean-360", "train-other-500"):
+        archive_dir = raw_archive_dir(recipe_dir, raw_dir, archive_root)
+        assert (archive_dir / "metadata.parquet").is_file()
+        assert (archive_dir / "text.tsv").is_file()
+        assert sorted(p.name for p in archive_dir.glob("blob_*.bin")) == ["blob_0.bin"]
 
-    # Packing is idempotent: a second build leaves the archive alone.
-    before = (train_dir / "metadata.parquet").stat().st_mtime_ns
+    # ... and a split is a view over them, not a copy.
+    for split in ("train_960", "dev", "test_clean"):
+        assert split_view_path(recipe_dir, split, archive_root).is_file()
+    assert not (archive_root / "archive" / "train_960").exists()
+
+    # `dev` reuses the dev-clean and dev-other archives rather than repacking:
+    # its rows name those sources.
+    import pyarrow.parquet as pq
+
+    dev = pq.read_table(split_view_path(recipe_dir, "dev", archive_root)).to_pydict()
+    assert sorted(set(dev["source"])) == ["dev-clean", "dev-other"]
+    assert len(dev["id"]) == 2 * _UTTS_PER_CHAPTER
+
+    # Building is idempotent: a second build leaves the archives alone.
+    archive_dir = raw_archive_dir(recipe_dir, "train-clean-100", archive_root)
+    before = (archive_dir / "metadata.parquet").stat().st_mtime_ns
     builder.build(**kwargs)
-    assert (train_dir / "metadata.parquet").stat().st_mtime_ns == before
+    assert (archive_dir / "metadata.parquet").stat().st_mtime_ns == before
 
 
 def test_dataset_returns_the_original_audio(tmp_path: Path) -> None:
@@ -132,6 +149,30 @@ def test_dataset_returns_the_original_audio(tmp_path: Path) -> None:
         sample["speech"], waveforms[first_utt_id].astype(np.float32), atol=0
     )
     assert sample["text"].startswith("HELLO")
+
+
+def test_overlapping_splits_share_one_archive(tmp_path: Path) -> None:
+    """train_100 and train_960 must not pack train-clean-100 twice."""
+    corpus, _ = _write_corpus(tmp_path / "corpus")
+    archive_root = tmp_path / "data"
+    recipe_dir = tmp_path / "recipe"
+    recipe_dir.mkdir()
+
+    builder = DatasetBuilder()
+    common = dict(
+        recipe_dir=recipe_dir,
+        source_dir=corpus,
+        archive_root=archive_root,
+        num_workers=0,
+    )
+    builder.build(**common, splits=["train_100"])
+    archive_dir = raw_archive_dir(recipe_dir, "train-clean-100", archive_root)
+    packed_at = (archive_dir / "metadata.parquet").stat().st_mtime_ns
+
+    builder.build(**common, splits=["train_960"])
+    # The second split reused the existing archive and only added its view.
+    assert (archive_dir / "metadata.parquet").stat().st_mtime_ns == packed_at
+    assert split_view_path(recipe_dir, "train_960", archive_root).is_file()
 
 
 def test_dataset_rejects_unknown_and_unpacked_splits(tmp_path: Path) -> None:

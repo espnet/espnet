@@ -6,8 +6,15 @@
 #
 # `create_dataset` packs the corpus into Omni-IO archives and every later stage
 # reads only those: 281k individual `.flac` files become ~200 `.bin` blobs plus
-# one Parquet offset table per split. On the shared filesystems this recipe
-# targets, the file count is the bottleneck, not the bytes.
+# a Parquet offset table. On the shared filesystems this recipe targets, the
+# file count is the bottleneck, not the bytes.
+#
+# Audio is packed once per *raw* LibriSpeech directory, under `archive/raw/`.
+# A logical split is then a view over those archives - a Parquet table naming,
+# per utterance, which raw archive holds it and at which byte range - so
+# splits that overlap cost nothing: `dev` reuses dev-clean and dev-other,
+# `train_100` and `train_960` share train-clean-100, and no audio is stored
+# twice.
 
 builder:
   # Directory (relative to the recipe root) used when this recipe has to
@@ -22,9 +29,9 @@ builder:
   download: false
   download_base_url: https://us.openslr.org/resources/12
 
-  # Omni-IO archive root, relative to `archive_root` (normally ${data_dir}).
-  # One subdirectory per logical split, each holding blob_*.bin,
-  # metadata.parquet and text.tsv.
+  # Archive root, relative to `archive_root` (normally ${data_dir}):
+  #   <archive_subdir>/raw/<raw dir>/   blob_*.bin + metadata.parquet (audio)
+  #   <archive_subdir>/<split>.parquet  the view: id, source, byte range, text
   archive_subdir: archive
 
   # Bytes per blob file. The Omni-IO default (320 MiB) puts 960 h in ~200
