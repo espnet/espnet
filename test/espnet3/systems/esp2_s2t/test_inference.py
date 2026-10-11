@@ -129,8 +129,37 @@ def test_a_task_is_passed_as_the_checkpoints_symbol_and_checked():
     backend = FakeSpeech2Text()
     Inference(backend)(audio(), task="st_eng")
     assert backend.calls[0][1]["task_sym"] == "<st_eng>"
-    with pytest.raises(ValueError, match="task 'st_jpn': this model has no <st_jpn>"):
+    # the targets are named: st_jpn is well formed, and the list is the help
+    with pytest.raises(ValueError, match="no <st_jpn>; .* into eng$"):
         Inference(backend)(audio(), task="st_jpn")
+
+
+def test_phones_on_an_encoder_decoder_checkpoint_go_window_by_window():
+    """Asked for phones, each window is decoded on its own and is one segment."""
+    windows = []
+
+    class Windowed(FakeSpeech2Text):
+        def __call__(self, speech, lang_sym=None, task_sym=None):
+            windows.append((len(speech), lang_sym, task_sym))
+            return [("<eng><pr>/a/", [], [], "/a/", None)]
+
+    backend = Windowed(tokens=VOCABULARY + ["<pr>"])  # a 30 s window
+    out = Inference(backend)(audio(45.0), task="pr")
+    assert out == {
+        "text": "/a/ /a/",
+        "segments": [
+            {"text": "/a/", "start": 0.0, "end": 30.0},
+            {"text": "/a/", "start": 30.0, "end": 45.0},
+        ],
+    }
+    assert windows == [(30 * 16000, "<eng>", "<pr>"), (15 * 16000, "<eng>", "<pr>")]
+    assert backend.calls == []  # not the long-form path
+
+    # a CTC-only checkpoint has no such trouble: the long-form path, as for text
+    backend = FakeSpeech2Text(tokens=VOCABULARY + ["<pr>"])
+    backend.ctc_only = True
+    Inference(backend)(audio(45.0), task="pr")
+    assert backend.calls[0][1]["task_sym"] == "<pr>"
 
 
 def test_previous_text_conditions_the_model():
