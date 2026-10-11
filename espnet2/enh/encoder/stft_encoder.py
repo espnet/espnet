@@ -132,7 +132,8 @@ class STFTEncoder(AbsEncoder):
         windowed = input * window
 
         windowed = torch.cat(
-            [torch.zeros(B, n_pad_left), windowed, torch.zeros(B, n_pad_right)], 1
+            [input.new_zeros(B, n_pad_left), windowed, input.new_zeros(B, n_pad_right)],
+            1,
         )
         return windowed
 
