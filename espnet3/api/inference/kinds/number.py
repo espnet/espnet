@@ -8,7 +8,7 @@ from espnet3.api.inference.kinds.base import Kind
 
 
 class NumberKind(Kind):
-    """``number``: a real number (``int``, ``float`` or NumPy scalar), not ``bool``.
+    """``number``: a real number, not ``bool``; does not join.
 
     What a metric's declared outputs hold: one scalar per result key, such
     as ``{"WER": 4.3}``.
@@ -37,8 +37,10 @@ class NumberKind(Kind):
         Examples:
             >>> NumberKind().check(4.3, Field("WER", "number"), model, output=True)
             4.3
-            >>> NumberKind().check(np.float32(4.3), field, model, output=True)
-            4.3
+            >>> NumberKind().check(
+            ...     np.float32(4.3), Field("WER", "number"), model, output=True
+            ... )
+            np.float32(4.3)
             >>> NumberKind().check(True, Field("WER", "number"), model, output=True)
             Traceback (most recent call last):
             TypeError: 'WER' returned as bool, must be a real number
