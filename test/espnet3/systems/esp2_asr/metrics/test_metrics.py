@@ -3,8 +3,7 @@ from pathlib import Path
 import pytest
 import sentencepiece as spm
 
-import espnet3.systems.esp2_asr.metrics.cer as cer_module
-import espnet3.systems.esp2_asr.metrics.wer as wer_module
+import espnet3.systems.esp2_asr.metrics.error_rate as error_rate_module
 from espnet3.api.inference import Field
 from espnet3.systems.esp2_asr.metrics.cer import CER
 from espnet3.systems.esp2_asr.metrics.ter import TER
@@ -69,24 +68,24 @@ def test_wer_rejects_unaligned_utt_ids(tmp_path: Path):
 
 
 def test_wer_clean_uses_placeholder_for_empty_text():
-    assert WER()._clean("   ") == "."
+    assert WER()._prepare("   ") == "."
 
 
 def test_cer_clean_uses_placeholder_for_empty_text():
-    assert CER()._clean("   ") == "."
+    assert CER()._prepare("   ") == "."
 
 
 def test_wer_requires_jiwer(monkeypatch):
-    monkeypatch.setattr(wer_module, "jiwer", None)
+    monkeypatch.setattr(error_rate_module, "jiwer", None)
 
-    with pytest.raises(RuntimeError, match="jiwer is required to compute WER"):
+    with pytest.raises(RuntimeError, match="jiwer is required to compute error rates"):
         WER()._ensure_jiwer()
 
 
 def test_cer_requires_jiwer(monkeypatch):
-    monkeypatch.setattr(cer_module, "jiwer", None)
+    monkeypatch.setattr(error_rate_module, "jiwer", None)
 
-    with pytest.raises(RuntimeError, match="jiwer is required to compute CER"):
+    with pytest.raises(RuntimeError, match="jiwer is required to compute error rates"):
         CER()._ensure_jiwer()
 
 
@@ -135,9 +134,8 @@ def test_ter_positive_when_different(tmp_path: Path, tiny_bpemodel: str):
 
 @pytest.mark.execution_timeout(30)
 def test_ter_requires_jiwer(tmp_path: Path, tiny_bpemodel: str, monkeypatch):
-    import espnet3.systems.esp2_asr.metrics.ter as ter_module
 
-    monkeypatch.setattr(ter_module, "jiwer", None)
+    monkeypatch.setattr(error_rate_module, "jiwer", None)
     metric = TER(bpemodel=tiny_bpemodel)
     data = _build_inputs(tmp_path, ["utt1 hello"], ["utt1 hello"])
     with pytest.raises(RuntimeError, match=r"espnet\[asr\]"):

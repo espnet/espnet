@@ -103,7 +103,9 @@ def check_metric_contract(metric: Any) -> None:
         >>> class Undeclared(BaseMetric):
         ...     def __init__(self):
         ...         pass  # declares nothing, and skips super().__init__()
-        ...     def __call__(self, data, test_name, output_dir):
+        ...     def update(self, **values):
+        ...         pass
+        ...     def compute(self):
         ...         return {}
         >>> metric = Undeclared()  # construction alone does not catch it
         >>> check_metric_contract(metric)
@@ -235,7 +237,9 @@ def check_metric_inputs(
         >>> class ExampleMetric(BaseMetric):
         ...     inputs = (Field("ref", "text"),)
         ...     outputs = (Field("score", "number"),)
-        ...     def __call__(self, data, test_name, output_dir):
+        ...     def update(self, **values):
+        ...         pass
+        ...     def compute(self):
         ...         return {"score": 0.0}
         >>> cfg = OmegaConf.create(
         ...     {"model": {"_target_": "espnet3.systems.esp2_asr.inference.Inference"}}
@@ -300,7 +304,9 @@ def check_metric_output(metric: Any, result: Mapping[str, Any]) -> None:
         >>> class ExampleMetric(BaseMetric):
         ...     inputs = (Field("ref", "text"),)
         ...     outputs = (Field("score", "number"),)
-        ...     def __call__(self, data, test_name, output_dir):
+        ...     def update(self, **values):
+        ...         pass
+        ...     def compute(self):
         ...         return {"score": 0.0}
         >>> check_metric_output(ExampleMetric(), {"score": 4.3})
         >>> check_metric_output(ExampleMetric(), {})
