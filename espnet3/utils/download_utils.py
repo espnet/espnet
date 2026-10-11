@@ -5,6 +5,7 @@ from __future__ import annotations
 import logging
 import tarfile
 import urllib.request
+import zipfile
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Optional
@@ -160,3 +161,28 @@ def extract_targz(
         # "fully_trusted" on Python < 3.14, so a downloaded archive could write
         # anywhere the process can reach.
         tar.extractall(path=dst_dir, filter="data")
+
+
+def extract_zip(
+    archive_path: Path,
+    dst_dir: Path,
+    logger: logging.Logger | None = None,
+) -> None:
+    """Extract a `.zip` archive into a destination directory.
+
+    Args:
+        archive_path (Path): Path to the `.zip` archive.
+        dst_dir (Path): Directory to extract files into.
+        logger (logging.Logger | None): Logger to emit progress messages.
+
+    Raises:
+        zipfile.BadZipFile: If the archive is invalid or extraction fails.
+
+    Examples:
+        >>> from espnet3.utils.download_utils import extract_zip, setup_logger
+        >>> logger = setup_logger(name="xxxx")
+        >>> extract_zip(Path("downloads/data.zip"), Path("data"), logger=logger)
+    """
+    _log(logger, f"Extracting: {archive_path.name}")
+    with zipfile.ZipFile(archive_path, "r") as zip_ref:
+        zip_ref.extractall(dst_dir)

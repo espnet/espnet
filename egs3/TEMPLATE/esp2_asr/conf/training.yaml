@@ -49,7 +49,7 @@ dataset_dir: /path/to/your/dataset
 # If your recipe builds manifests locally, write them under `${dataset_dir}` so
 # later stages can consume the same files without extra path overrides.
 create_dataset:
-  func: src.creating_dataset.create_dataset
+  recipe_dir: ${recipe_dir}
   dataset_dir: ${dataset_dir}
 
 ##########################################################

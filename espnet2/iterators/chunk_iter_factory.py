@@ -1,19 +1,55 @@
 import logging
 import re
 from collections import defaultdict
-from copy import deepcopy
 from math import inf
 from typing import Any, Dict, Iterator, List, Optional, Sequence, Tuple, Union
 
 import numpy as np
 import torch
-from typeguard import typechecked
+from typeguard import (
+    TypeCheckError,
+    TypeCheckMemo,
+    checker_lookup_functions,
+    typechecked,
+)
 
 from espnet2.iterators.abs_iter_factory import AbsIterFactory
 from espnet2.iterators.sequence_iter_factory import SequenceIterFactory
 from espnet2.samplers.abs_sampler import AbsSampler
 
 DEFAULT_EXCLUDED_KEY_PREFIXES = ("utt2category", "utt2fs")
+
+
+# ----------------------------------------
+# For type checking of omegaconf.ListConfig used in ESPnet3
+class ListConfig:
+    """A marker type only for runtime type checking (no dependency on omegaconf)."""
+
+    pass
+
+
+def check_listconfig(
+    value: Any, origin_type: Any, args: tuple[Any, ...], memo: TypeCheckMemo
+) -> None:
+    value_type = type(value)
+
+    if (
+        value_type.__module__ != "omegaconf.listconfig"
+        or value_type.__name__ != "ListConfig"
+    ):
+        raise TypeCheckError(
+            f"is not an omegaconf.ListConfig "
+            f"(got {value_type.__module__}.{value_type.__qualname__})"
+        )
+
+
+def lookup_listconfig(origin_type: Any, args: tuple[Any, ...], extras: tuple[Any, ...]):
+    if origin_type is ListConfig:
+        return check_listconfig
+
+
+checker_lookup_functions.append(lookup_listconfig)
+# ----------------------------------------
 
 
 class ChunkIterFactory(AbsIterFactory):
@@ -51,7 +87,7 @@ class ChunkIterFactory(AbsIterFactory):
         num_workers: int = 0,
         collate_fn=None,
         pin_memory: bool = False,
-        excluded_key_prefixes: Optional[List[str]] = None,
+        excluded_key_prefixes: Union[List[str], ListConfig, None] = None,
         discard_short_samples: bool = True,
         default_fs: Optional[int] = None,
         chunk_max_abs_length: Optional[int] = None,
@@ -115,7 +151,7 @@ class ChunkIterFactory(AbsIterFactory):
         if excluded_key_prefixes is None:
             _excluded_key_prefixes = DEFAULT_EXCLUDED_KEY_PREFIXES
         else:
-            _excluded_key_prefixes = deepcopy(excluded_key_prefixes)
+            _excluded_key_prefixes = list(excluded_key_prefixes)
             for k in DEFAULT_EXCLUDED_KEY_PREFIXES:
                 if k not in _excluded_key_prefixes:
                     _excluded_key_prefixes.append(k)
