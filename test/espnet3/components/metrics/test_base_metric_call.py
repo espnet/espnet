@@ -53,6 +53,7 @@ def test_call_updates_in_chunks(tmp_path):
 def test_call_resets_between_runs(tmp_path):
     m = Lengths()
     data = _data(tmp_path)
+    m(data, "t", None)
     assert m(data, "t", None) == {"chars": 6}
 
 
