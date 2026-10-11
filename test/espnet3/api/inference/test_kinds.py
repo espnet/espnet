@@ -19,14 +19,26 @@ def test_number_kind_accepts_int_and_float():
 
 def test_number_kind_rejects_bool():
     field = Field("WER", "number")
-    with pytest.raises(TypeError, match="must be int or float"):
+    with pytest.raises(TypeError, match="must be a real number"):
         NumberKind().check(True, field, model=None, output=True)
 
 
 def test_number_kind_rejects_str():
     field = Field("WER", "number")
-    with pytest.raises(TypeError, match="must be int or float"):
+    with pytest.raises(TypeError, match="must be a real number"):
         NumberKind().check("4.3", field, model=None, output=False)
+
+
+@pytest.mark.parametrize("value", [np.float32(4.3), np.int64(3), np.float64(0.0)])
+def test_number_kind_accepts_numpy_scalars(value):
+    field = Field("WER", "number")
+    assert NumberKind().check(value, field, model=None, output=True) == value
+
+
+def test_number_kind_rejects_numpy_bool():
+    field = Field("WER", "number")
+    with pytest.raises(TypeError, match="must be a real number"):
+        NumberKind().check(np.bool_(True), field, model=None, output=True)
 
 
 def test_kind_accepts_defaults_to_check_with_no_model():
