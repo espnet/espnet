@@ -426,6 +426,7 @@ class TransformerDecoder(BaseTransformerDecoder):
         layer_drop_rate: float = 0.0,
         qk_norm: bool = False,
         use_flash_attn: bool = True,
+        use_sdpa: bool = False,
         gradient_checkpoint_layers: List[int] = [],
     ):
         super().__init__(
@@ -464,6 +465,7 @@ class TransformerDecoder(BaseTransformerDecoder):
                     use_flash_attn,
                     True,
                     False,
+                    use_sdpa,
                 ),
                 MultiHeadedAttention(
                     attention_heads,
