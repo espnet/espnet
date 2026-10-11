@@ -34,6 +34,7 @@ says in Python, at a terminal. `--list` shows the declaration.
 
 import argparse
 import importlib.metadata
+import json
 import os
 import re
 import sys
@@ -196,9 +197,7 @@ def _declared(model) -> str:
     """The model's inputs and outputs, one a line, as `--list` prints them."""
     lines = ["inputs:"]
     for f in model.inputs:
-        lines.append(
-            f"  {f.name}={'<' + f.kind + '>'}" + ("  (optional)" if f.optional else "")
-        )
+        lines.append(f"  {f.name}=<{f.kind}>" + ("  (optional)" if f.optional else ""))
     lines.append("outputs:")
     lines += [f"  {f.name}  ({f.kind})" for f in model.outputs]
     return "\n".join(lines)
@@ -211,8 +210,6 @@ def _parse_inputs(model, pairs: List[str]) -> dict:
     string; anything else is JSON. A name the model does not declare, or a
     required input left out, is a sentence naming the declaration.
     """
-    import json
-
     fields = {f.name: f for f in model.inputs}
     inputs: dict = {}
     for pair in pairs:
@@ -233,7 +230,11 @@ def _parse_inputs(model, pairs: List[str]) -> dict:
 
 
 def _write_outputs(model, result: dict, out_dir: Path) -> None:
-    """Print each declared output; audio goes to ``out_dir/<name>.wav``."""
+    """Print each declared output; audio goes to ``out_dir/<name>.wav``.
+
+    The three kinds a ``Field`` can have: text as is, segments as
+    ``start<TAB>end<TAB>text`` lines, audio written and its path printed.
+    """
     several = len(model.outputs) > 1
     for f in model.outputs:
         value = result[f.name]
@@ -244,16 +245,12 @@ def _write_outputs(model, result: dict, out_dir: Path) -> None:
         elif f.kind == "segments":
             for s in value:
                 print(f"{s['start']:.2f}\t{s['end']:.2f}\t{s['text']}")
-        elif f.kind == "audio":
+        else:  # audio
             out_dir.mkdir(parents=True, exist_ok=True)
             path = out_dir / f"{f.name}.wav"
             array = value.array.T if value.array.ndim == 2 else value.array
             _write_audio(str(path), array, value.rate)
             print(path)
-        else:
-            import json
-
-            print(json.dumps(value, ensure_ascii=False, default=str))
 
 
 def cmd_run(args) -> int:
@@ -270,10 +267,7 @@ def cmd_run(args) -> int:
     inputs = _parse_inputs(model, args.inputs)
     try:
         result = model(**inputs)
-    except (
-        TypeError,
-        ValueError,
-    ) as e:  # a value of the wrong kind, a name the model lacks
+    except (TypeError, ValueError) as e:  # a value the model refuses
         raise CLIError(str(e)) from e
     _write_outputs(model, result, Path(args.output_dir))
     return 0

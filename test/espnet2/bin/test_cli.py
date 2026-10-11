@@ -1134,6 +1134,32 @@ def test_run_writes_an_audio_output_as_a_wave(monkeypatch, tmp_path, capsys):
     assert rate == 8000 and len(data) == 800
 
 
+def test_run_reports_a_value_the_model_refuses(monkeypatch, capsys):
+    _declared_model(monkeypatch)
+
+    def refuse(self, *args, **prompt):
+        raise ValueError("language 'xx': this model has no <xx>")
+
+    monkeypatch.setattr(_Declared, "__call__", refuse)
+
+    assert cli.main(["run", "x", "speech=a.wav", "language=xx"]) == 1
+    assert "this model has no <xx>" in capsys.readouterr().err
+
+
+def test_run_takes_an_input_after_an_option_and_other_commands_do_not(
+    monkeypatch, capsys
+):
+    model = _declared_model(monkeypatch)
+
+    assert cli.main(["run", "x", "--system", "s2t", "speech=a.wav"]) == 0
+    assert model.calls == [{"speech": "a.wav"}]
+
+    with pytest.raises(SystemExit) as e:
+        cli.main(["models", "speech=a.wav"])
+    assert e.value.code == 2
+    assert "unrecognized arguments: speech=a.wav" in capsys.readouterr().err
+
+
 def test_run_reports_a_tag_load_cannot_serve(monkeypatch, capsys):
     import espnet3.api.inference as api
     from espnet2.utils.pretrained import ModelTagError
