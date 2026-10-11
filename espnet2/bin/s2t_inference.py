@@ -28,12 +28,14 @@ from espnet2.legacy.nets.scorer_interface import (
 from espnet2.legacy.nets.scorers.ctc import CTCPrefixScorer
 from espnet2.legacy.nets.scorers.length_bonus import LengthBonus
 from espnet2.legacy.utils.cli_utils import get_commandline_args
+from espnet2.s2t.ctc_utils import buffered_frame_counts
 from espnet2.tasks.lm import LMTask
 from espnet2.tasks.s2t import S2TTask
 from espnet2.text.build_tokenizer import build_tokenizer
 from espnet2.text.token_id_converter import TokenIDConverter
 from espnet2.text.whisper_token_id_converter import OpenAIWhisperTokenIDConverter
 from espnet2.torch_utils.device_funcs import to_device
+from espnet2.torch_utils.quantization import quantize_dynamic
 from espnet2.torch_utils.set_all_random_seed import set_all_random_seed
 from espnet2.utils import config_argparse
 from espnet2.utils.pretrained import download_pretrained
@@ -128,10 +130,24 @@ class ScoreFilter(BatchScorerInterface, torch.nn.Module):
 
         return score, None
 
+    def _batch_score_loop(
+        self, ys: torch.Tensor, states: List[Any], xs: torch.Tensor
+    ) -> Tuple[torch.Tensor, List[Any]]:
+        """Original reference implementation: evaluate :meth:`score` in a loop."""
+        scores = []
+        for y in ys:
+            score, _ = self.score(y, None, xs)
+            scores.append(score)
+        return torch.stack(scores), states
+
     def batch_score(
         self, ys: torch.Tensor, states: List[Any], xs: torch.Tensor
     ) -> Tuple[torch.Tensor, List[Any]]:
         """Score new token batch (required).
+
+        The same rules as :meth:`score` and :meth:`_batch_score_loop`, expanded
+        into vectorized tensor operations over the entire batch rather than a
+        Python loop.
 
         Args:
             ys (torch.Tensor): torch.int64 prefix tokens (n_batch, ylen).
@@ -145,15 +161,50 @@ class ScoreFilter(BatchScorerInterface, torch.nn.Module):
                 and next state list for ys.
 
         """
+        n_batch, ylen = ys.shape
+        device = ys.device
+        neg = -np.inf
+        is_time = (ys >= self.first_time) & (ys <= self.last_time)  # (n, ylen)
 
-        scores = list()
-        outstates = list()
-        for i, (y, state, x) in enumerate(zip(ys, states, xs)):
-            score, outstate = self.score(y, state, x)
-            outstates.append(outstate)
-            scores.append(score)
-        scores = torch.cat(scores, 0).view(ys.shape[0], -1)
-        return scores, outstates
+        # rule 1: no timestamps are predicted -> suppress the timestamp tokens
+        no_time = (ys == self.notimestamps).any(dim=1)  # (n,)
+        # rule 2: right after the prompt the first token must be a timestamp
+        if ylen >= 3:
+            at_start = (ys[:, -3] == self.sos) & ~no_time
+        else:
+            at_start = torch.zeros(n_batch, dtype=torch.bool, device=device)
+        # otherwise the timestamps seen so far decide
+        rest = ~no_time & ~at_start
+        odd = rest & (is_time.sum(dim=1) % 2 == 1)  # a segment is open
+        even = rest & ~odd
+        closing = even & is_time[:, -1]  # a pair just closed: timestamp or eos next
+        illegal = even & ~is_time[:, -1]
+        # value of the last timestamp in each row (only used where odd)
+        positions = torch.arange(ylen, device=device).unsqueeze(0)
+        last_pos = torch.where(is_time, positions, -1).max(dim=1).values.clamp(min=0)
+        last_time_value = ys.gather(1, last_pos.unsqueeze(1))  # (n, 1)
+        last_token = ys[:, -1:]  # (n, 1)
+
+        scores = torch.zeros(
+            n_batch, self.vocab_size, dtype=self.param.dtype, device=device
+        )
+        # the only per-row masks are inside the timestamp range
+        time_cols = torch.arange(self.first_time, self.last_time + 1, device=device)
+        time_block = (
+            no_time.unsqueeze(1)
+            | (odd.unsqueeze(1) & (time_cols <= last_time_value))
+            | (closing.unsqueeze(1) & (time_cols < last_token))
+        )
+        scores[:, self.first_time : self.last_time + 1].masked_fill_(time_block, neg)
+        # everything outside the range is banned right after the prompt and after
+        # a closed pair; eos stays allowed after a closed pair
+        outside = at_start | closing
+        scores[outside, : self.first_time] = neg
+        scores[outside, self.last_time + 1 :] = neg
+        scores[closing, self.eos] = 0.0
+        scores[odd, self.eos] = neg
+        scores[illegal] = neg
+        return scores, [None] * n_batch
 
 
 # espnet2.tasks.s2t and espnet2.tasks.s2t_ctc both write `model:` into the
@@ -330,7 +381,7 @@ class Speech2Text:
         if quantize_s2t_model:
             logging.info("Use quantized s2t model for decoding.")
 
-            s2t_model = torch.quantization.quantize_dynamic(
+            s2t_model = quantize_dynamic(
                 s2t_model, qconfig_spec=qconfig_spec, dtype=quantize_dtype
             )
 
@@ -433,7 +484,7 @@ class Speech2Text:
             if quantize_lm:
                 logging.info("Use quantized lm for decoding.")
 
-                lm = torch.quantization.quantize_dynamic(
+                lm = quantize_dynamic(
                     lm, qconfig_spec=qconfig_spec, dtype=quantize_dtype
                 )
 
@@ -650,8 +701,12 @@ class Speech2Text:
     @typechecked
     def batch_decode(
         self,
-        speech: torch.Tensor,
-        speech_lengths: Optional[torch.Tensor] = None,
+        speech: Union[
+            torch.Tensor, np.ndarray, Sequence[Union[torch.Tensor, np.ndarray]]
+        ],
+        speech_lengths: Optional[
+            Union[torch.Tensor, np.ndarray, Sequence[Union[int, np.integer]]]
+        ] = None,
         text_prev: Optional[torch.Tensor] = None,
         text_prev_lengths: Optional[torch.Tensor] = None,
         lang_sym: Optional[str] = None,
@@ -665,7 +720,9 @@ class Speech2Text:
         batch all have the same length and no padding mask is needed.
 
         Args:
-            speech: Padded speech of shape `(n_utt, nsamples)`.
+            speech: Padded speech of shape `(n_utt, nsamples)`, a tensor or a
+                numpy array, or a list of unpadded utterances of shape
+                `(nsamples,)`, which is padded here.
             speech_lengths: Unused, and accepted only so that a collated
                 batch can be passed straight through. Every utterance is
                 padded or trimmed to the same fixed length, and the collated
@@ -683,6 +740,12 @@ class Speech2Text:
             per utterance, in the order the utterances were given.
 
         """
+        if isinstance(speech, (list, tuple)):
+            speech = torch.nn.utils.rnn.pad_sequence(
+                [torch.as_tensor(w).reshape(-1) for w in speech], batch_first=True
+            )
+        elif isinstance(speech, np.ndarray):
+            speech = torch.as_tensor(speech)
         if speech.dim() == 3 and speech.size(2) == 1:
             speech = speech.squeeze(2)  # (n_utt, nsamples, 1) -> (n_utt, nsamples)
         if speech.dim() != 2:
@@ -1120,7 +1183,7 @@ class Speech2Text:
         self,
         speech: Union[str, Path, torch.Tensor, np.ndarray],
         batch_size: int = 1,
-        context_len_in_secs: float = 2,
+        context_len_in_secs: Optional[float] = None,
         lang_sym: Optional[str] = None,
         task_sym: Optional[str] = None,
     ) -> np.ndarray:
@@ -1133,16 +1196,26 @@ class Speech2Text:
         Long-form best-path decoding is an argmax over what this returns, and
         a forced alignment (espnet2.bin.align) is a Viterbi path through it:
         one buffering, read two ways.
+
+        The training buffer and context durations must cover whole encoder
+        frames; otherwise a ValueError is raised instead of accumulating drift.
+        An omitted context defaults to two seconds rounded to the nearest frame.
         """
         speech = self.read_audio(speech)
         lang_id = self.converter.token2id[lang_sym or self.lang_sym]
         task_id = self.converter.token2id[task_sym or self.task_sym]
 
         buffer_len_in_secs = self.preprocessor_conf["speech_length"]
+        if context_len_in_secs is None:
+            context_len_in_secs = round(2 * self.frames_per_sec) / self.frames_per_sec
+        buffer_frames, context_frames = buffered_frame_counts(
+            self.frames_per_sec, buffer_len_in_secs, context_len_in_secs
+        )
+        chunk_frames = buffer_frames - 2 * context_frames
         chunk_len_in_secs = buffer_len_in_secs - 2 * context_len_in_secs
-        buffer_len = int(self.sample_rate * buffer_len_in_secs)
-        chunk_len = int(self.sample_rate * chunk_len_in_secs)
-        context = int(self.sample_rate * context_len_in_secs)
+        buffer_len = round(self.sample_rate * buffer_len_in_secs)
+        chunk_len = round(self.sample_rate * chunk_len_in_secs)
+        context = round(self.sample_rate * context_len_in_secs)
 
         padded = np.pad(speech, (context, context))
         buffers = []
@@ -1154,8 +1227,6 @@ class Speech2Text:
             buffers.append(buffer)
 
         batched = torch.tensor(np.array(buffers)).to(getattr(torch, self.dtype))
-        buffer_frames = int(self.frames_per_sec * buffer_len_in_secs)
-        context_frames = int(self.frames_per_sec * context_len_in_secs)
 
         kept = []
         for idx in range(0, batched.size(0), batch_size):
@@ -1183,11 +1254,15 @@ class Speech2Text:
             enc, _ = self.s2t_model.encode(**batch)
             if isinstance(enc, tuple):
                 enc = enc[0]
-            # the convolutional front end can return more frames than the
-            # buffer itself, so the tail goes before the context does
-            enc = enc[:, :buffer_frames]
+            enc = self.s2t_model.frames(enc, prefix)
             frames = self.s2t_model.ctc.log_softmax(enc)
-            kept.append(frames[:, context_frames:-context_frames])
+            # A buffer is context + chunk + context. Keep exactly its middle
+            # chunk_frames, starting at context_frames. The convolutional
+            # frontend need not return buffer_frames audio positions, so an
+            # end-based slice would shift time at every buffer join.
+            if frames.size(1) < context_frames + chunk_frames:
+                raise ValueError("context is too short for the encoder's edge loss")
+            kept.append(frames[:, context_frames : context_frames + chunk_frames])
 
         # (buffers, frames, vocab) back into one run of frames, cut to the
         # frames the recording itself covers rather than the padding
@@ -1199,7 +1274,7 @@ class Speech2Text:
         self,
         speech: np.ndarray,
         batch_size: int = 1,
-        context_len_in_secs: float = 2,
+        context_len_in_secs: Optional[float] = None,
         lang_sym: Optional[str] = None,
         task_sym: Optional[str] = None,
     ) -> str:
@@ -1223,7 +1298,7 @@ class Speech2Text:
         self,
         speech: Union[str, Path, torch.Tensor, np.ndarray],
         batch_size: int = 1,
-        context_len_in_secs: float = 2,
+        context_len_in_secs: Optional[float] = None,
         condition_on_prev_text: bool = False,
         init_text: Optional[str] = None,
         end_time_threshold: Optional[str] = None,
@@ -1247,7 +1322,9 @@ class Speech2Text:
         Args:
             batch_size: buffers decoded together, on a CTC-only checkpoint.
             context_len_in_secs: context decoded and then dropped on either
-                side of each buffer, on a CTC-only checkpoint.
+                side of each buffer, on a CTC-only checkpoint. Defaults to two
+                seconds rounded to the nearest encoder frame. Explicit values
+                must cover whole frames.
             condition_on_prev_text, init_text, end_time_threshold,
                 skip_last_chunk_threshold: the encoder-decoder path.
                 `end_time_threshold` defaults to one second before the end of

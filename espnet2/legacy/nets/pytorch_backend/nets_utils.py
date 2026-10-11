@@ -246,8 +246,9 @@ def _make_pad_mask_traceable(lengths, xs, length_dim, maxlen=None):
     lengths = torch.clamp(lengths, max=maxlen).type(torch.long)
 
     mask = torch.ones(maxlen + 1, maxlen + 1, dtype=torch.bool, device=device)
-    mask = triu_onnx(mask)[1:, :-1]  # onnx cannot handle diagonal argument.
-    mask = mask[lengths - 1][..., :maxlen]
+    # Row i is the mask for length i, so a zero length selects an all-True row.
+    mask = triu_onnx(mask)[:, :-1]  # onnx cannot handle diagonal argument.
+    mask = mask[lengths][..., :maxlen]
 
     if xs is not None and len(xs.shape) == 3 and length_dim == 1:
         return mask.transpose(1, 2)
