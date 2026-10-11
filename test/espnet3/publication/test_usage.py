@@ -69,6 +69,19 @@ def test_inference_class_follows_the_aliases_load_follows():
         inference_class("no_such_system")
 
 
+def test_a_system_whose_inference_module_has_no_inference_is_an_import_error(
+    monkeypatch,
+):
+    import sys
+    import types
+
+    module = types.ModuleType("espnet3.systems.blank.inference")
+    module.Inference = object  # not an InferenceAPI
+    monkeypatch.setitem(sys.modules, "espnet3.systems.blank.inference", module)
+    with pytest.raises(ImportError, match="defines no Inference"):
+        inference_class("blank")
+
+
 def test_usage_section_is_a_fenced_block_under_a_heading():
     section = usage_section(Describe, "espnet/some_pack")
     assert section.startswith("## Usage\n\n```python\n")
