@@ -30,8 +30,8 @@
 # training data. Here the train preprocessor applies the same three factors per
 # sample (data_aug_prob/data_aug_effects below), as egs3/librispeech_100 does:
 # one epoch therefore sees 960 h, not 2880 h. An epoch here is one pass over
-# the corpus; an egs2 epoch is three. That changes the step budget, so
-# `warmup_steps` is rescaled -- see the scheduler section.
+# the corpus; an egs2 epoch is three. `max_epochs` is tripled to compensate --
+# see the note on it below.
 #
 # [DEVIATION] OMNI-IO ARCHIVES INSTEAD OF PER-UTTERANCE FILES.
 # `create_dataset` packs each split into Omni-IO blobs (dataset/builder.py).
@@ -219,27 +219,12 @@ model:
 # egs2: optim=adam, lr=0.002, weight_decay=1e-6, scheduler=warmuplr,
 # warmup_steps=25000 in asr.sh's default but 40000 in this config.
 #
-# [DEVIATION] warmup_steps IS 13000, NOT egs2's 40000.
-# WarmupLR counts optimizer steps (`scheduler_interval: step` below). Speed
-# perturbation does not change the work done per utterance -- one forward and
-# backward either way. What differs is how many utterances an "epoch" holds:
-# egs2 dumps the three perturbed copies as separate utterances, so one egs2
-# epoch is three passes over the corpus, while the on-the-fly perturbation
-# above gives one pass with a factor drawn per sample. Both put 8750 s of audio
-# into one optimizer update, so the step budgets differ by the same factor:
-#     egs2: ~2900 h/epoch -> ~1190 steps/epoch, x 80 epochs ~ 95k steps
-#     here:  ~960 h/epoch ->   391 steps/epoch, x 80 epochs ~ 31k steps
-# (391 is measured: 6255 micro-batches per epoch / accumulate_grad_batches 16
-# on the A40 run, cross-checked against lr-Adam=1.394e-04 at epoch 8 batch 840.)
-# 40000 is 42% of egs2's budget but 128% of this one: lr was 8.8e-05 after five
-# epochs, 4% of the 0.002 peak, and the schedule would have stopped at 0.0014
-# without ever reaching it. 13000 is the same 42% here.
-#
-# This recipe still takes a third of egs2's total updates, and sees a third of
-# the audio, so its WER is not directly comparable to egs2's published number;
-# max_epochs 240 would match the budget. Rescale warmup_steps alongside
-# max_epochs and anything else that moves steps per epoch (batch_bins,
-# num_device, accumulate_grad_batches).
+# warmup_steps is egs2's 40000 unchanged, and is deliberately NOT derived from
+# max_epochs. It is an absolute number of optimizer updates: WarmupLR is an
+# AbsBatchStepScheduler stepped once per update (`scheduler_interval: step`
+# below), so lr is a function of the step count and of nothing else, exactly as
+# in espnet2. If a run never reaches `lr`, the step budget is too small -- fix
+# max_epochs, not this.
 optimizer:
   _target_: torch.optim.Adam
   lr: 0.002
@@ -247,7 +232,7 @@ optimizer:
 
 scheduler:
   _target_: espnet2.schedulers.warmup_lr.WarmupLR
-  warmup_steps: 13000
+  warmup_steps: 40000
 
 scheduler_interval: step
 
@@ -343,8 +328,26 @@ trainer:
   # egs2 asr.sh default: grad_clip 5.0.
   gradient_clip_val: 5.0
   log_every_n_steps: 100
-  # egs2: max_epoch 80.
-  max_epochs: 80
+  # [DEVIATION] 240, NOT egs2's max_epoch 80.
+  # An egs2 epoch is three passes over the corpus: --speed_perturb_factors
+  # dumps the three perturbed copies as separate utterances, so its train_960
+  # holds 3 x 281k of them. The on-the-fly perturbation above draws a factor
+  # per sample instead, so an epoch here is one pass, and 240 of them reproduce
+  # egs2's 80 -- the same utterance presentations, the same audio, the same
+  # number of optimizer updates. Per utterance the work is identical either
+  # way; only the number of utterances an epoch holds differs.
+  #     egs2: ~2900 h/epoch -> ~1190 steps/epoch, x  80 ~ 95k steps
+  #     here:  ~960 h/epoch ->   391 steps/epoch, x 240 ~ 94k steps
+  # (391 measured: 6255 micro-batches per epoch / accumulate_grad_batches 16 on
+  # an A40, cross-checked against lr-Adam=1.394e-04 at epoch 8 batch 840.)
+  # Leaving this at 80 trains for a third as long. That is what made egs2's
+  # warmup_steps=40000 look wrong here: the run would have ended at 31k steps,
+  # with lr still climbing and never reaching 0.002.
+  #
+  # Checkpoint selection consequently sees 240 validations where egs2 sees 80,
+  # so `keep_nbest_models: 10` averages over a finer grid. Set
+  # check_val_every_n_epoch: 3 to reproduce egs2's cadence exactly.
+  max_epochs: 240
   # egs2 sets `use_amp: true`, i.e. fp16 autocast. bf16 is the better default
   # on Ampere and newer; a GPU without bf16 support (V100 and older) needs
   # `16-mixed` here instead.
