@@ -326,10 +326,77 @@ def check_metric_output(metric: Any, result: Mapping[str, Any]) -> None:
             ) from e
 
 
+def check_metric_batch(metric: Any, values: Mapping[str, Any]) -> None:
+    """Raise unless ``values`` is one good batch for ``metric.update``.
+
+    ``values`` maps each declared input name to a list or tuple with one
+    element per utterance. Checks, in order: no undeclared name; every
+    required name present (an optional one may be absent or ``None``);
+    each value a list or tuple; all lengths equal; every element
+    accepted by its field's kind (``Kind.accepts``, no model needed).
+
+    Args:
+        metric: A ``BaseMetric`` instance.
+        values: The keyword arguments given to ``update``.
+
+    Raises:
+        MetricContractError: The batch breaks one of the checks. The
+            message names the input and, for a bad element, its position
+            and the expected kind.
+
+    Examples:
+        >>> from espnet3.systems.esp2_asr.metrics.wer import WER
+        >>> check_metric_batch(WER(), {"ref": ["a b"], "hyp": ["a c"]})
+        >>> check_metric_batch(WER(), {"ref": ["a b"], "hyp": [3]})
+        Traceback (most recent call last):
+        espnet3.components.contract.metrics.MetricContractError: WER input ...
+    """
+    name = type(metric).__name__
+    fields = {f.name: f for f in getattr(metric, "inputs", ())}
+    declared = ", ".join(fields)
+    for key in values:
+        if key not in fields:
+            raise MetricContractError(
+                f"{name} got input {key!r}; declared inputs: {declared}"
+            )
+    given = {}
+    for key, field in fields.items():
+        value = values.get(key)
+        if value is None:
+            if field.optional:
+                continue
+            raise MetricContractError(
+                f"{name} input {key!r} is missing; declared inputs: {declared}"
+            )
+        if not isinstance(value, (list, tuple)):
+            raise MetricContractError(
+                f"{name} input {key!r} must be a list or tuple, "
+                f"not {type(value).__name__}"
+            )
+        given[key] = value
+    if given:
+        first, *rest = given
+        for key in rest:
+            if len(given[key]) != len(given[first]):
+                raise MetricContractError(
+                    f"{name} input {key!r} has {len(given[key])} items, "
+                    f"{first!r} has {len(given[first])}"
+                )
+    for key, value in given.items():
+        field = fields[key]
+        for i, elem in enumerate(value):
+            if not KINDS[field.kind].accepts(elem, field):
+                raise MetricContractError(
+                    f"{name} input {key!r}[{i}] is {type(elem).__name__}, "
+                    f"must be {field.kind}"
+                )
+
+
 __all__ = [
     "DATASET_PREFIX",
     "Field",
     "MetricContractError",
+    "check_metric_batch",
     "check_metric_declaration",
     "check_metric_inputs",
     "check_metric_output",
