@@ -485,7 +485,10 @@ def _usage_python(target: str, out_dir: Path, system: str | None) -> str:
             from espnet3.publication.usage import inference_class, python_usage
 
             return python_usage(inference_class(system), target)
-        except ImportError as exc:
+        except (ImportError, TypeError, ValueError) as exc:
+            # no inference module, no Inference in it, or a declaration the
+            # contract refuses while the module is imported: the card still
+            # gets written, with the generic lines
             logger.warning("README usage falls back to load(): %s", exc)
     return _load_example(target, out_dir, system) + '\nresult = model("utt.wav")'
 
