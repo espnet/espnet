@@ -52,7 +52,10 @@ def resolve_device(requested: str = "auto") -> str:
     if requested == "cpu":
         return requested
     if requested == "mps":
-        if not torch.backends.mps.is_available():
+        # torch.backends.mps exists since torch 1.12; a build without it has
+        # no MPS device either
+        mps = getattr(torch.backends, "mps", None)
+        if mps is None or not mps.is_available():
             raise ValueError(
                 "mps asked for, but torch has no MPS device here; pass "
                 "device='cpu', or 'auto'"
