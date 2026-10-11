@@ -71,15 +71,28 @@ def _version() -> str:
 def _device(value: str) -> str:
     """Accept a device name now, so a typo fails before a download.
 
-    Whether this machine has the device is checked when a command loads
-    its model (``espnet3.api.inference.resolve_device``), which also turns
-    ``auto`` into cuda or cpu.
+    Whether this machine has the device, and what ``auto`` is on it, is
+    settled once the arguments are parsed (:func:`_resolve_device`).
     """
     if value in ("auto", "cpu", "mps", "cuda") or re.fullmatch(r"cuda:\d+", value):
         return value
     raise argparse.ArgumentTypeError(
         f"unknown device {value!r}: use auto, cpu, mps, cuda or cuda:<n>"
     )
+
+
+def _resolve_device(value: str) -> str:
+    """Turn ``auto`` into cuda or cpu, and refuse a device this machine lacks.
+
+    ``espnet3.api.inference.resolve_device`` does both; this only makes
+    its sentence the command's own, rather than a traceback.
+    """
+    from espnet3.api.inference import resolve_device
+
+    try:
+        return resolve_device(value)
+    except ValueError as e:
+        raise CLIError(str(e)) from e
 
 
 def _require_file(path: str) -> str:
@@ -126,16 +139,10 @@ def _build(loader, args, task: str):
     so that both front ends explain a mismatched tag the same way; only the
     wording of the fix is this command line's own.
     """
-    from espnet3.api.inference import resolve_device
-
-    try:
-        device = resolve_device(args.device)
-    except ValueError as e:  # a device this machine lacks: a sentence, not a trace
-        raise CLIError(str(e)) from e
     return build_pretrained(
         loader,
         args.model,
-        device,
+        args.device,
         f"`espnet {task}`",
         f"Pass --model with a {task} model; `espnet models` names the default.",
     )
@@ -147,8 +154,7 @@ def _load_s2t(args, task: str):
     ``espnet3.api.inference.load`` hands the tag to the ``esp2_s2t``
     system, whose ``Inference`` reads any OWSM, OWSM-CTC or POWSM
     checkpoint and takes the language and task by name; so this command
-    line holds no knowledge of the model's symbols, its window, or where
-    it runs (``--device auto`` is resolved there).
+    line holds no knowledge of the model's symbols or its window.
     """
     from espnet3.api.inference import load
 
@@ -160,8 +166,6 @@ def _load_s2t(args, task: str):
             f"--model with a {task} model; `espnet models` names the default. "
             f"({e})"
         ) from e
-    except ValueError as e:  # a device this machine lacks: a sentence, not a trace
-        raise CLIError(str(e)) from e
 
 
 def _say(model, audio: str, **prompt) -> str:
@@ -453,13 +457,6 @@ def cmd_demo(args) -> int:
     if demo.load_gradio() is None:
         raise CLIError(demo.GRADIO_MISSING)
 
-    from espnet3.api.inference import resolve_device
-
-    try:
-        args.device = resolve_device(args.device)  # printed below, so settled here
-    except ValueError as e:
-        raise CLIError(str(e)) from e
-
     # Before the download, not after it: the checkpoint is 4 GB and the
     # answer to "can this demo serve it" is one metadata request away.
     _require_s2t(args.model)
@@ -513,7 +510,7 @@ def build_parser() -> argparse.ArgumentParser:
         p.add_argument(
             "--device",
             default="auto",
-            type=_device,
+            type=_device,  # the name now; what this machine has, in main()
             help="auto (cuda when torch sees one, else cpu), cpu, mps, cuda or "
             "cuda:<n> (default: auto)",
         )
@@ -629,6 +626,8 @@ def main(argv: Optional[List[str]] = None) -> int:
         )
     args = build_parser().parse_args(argv)
     try:
+        if hasattr(args, "device"):  # every command that loads a model
+            args.device = _resolve_device(args.device)
         return args.func(args)
     except (CLIError, ModelTagError) as e:
         print(f"espnet: {e}", file=sys.stderr)

@@ -47,7 +47,6 @@ def _fake_load(monkeypatch, model):
     import espnet3.api.inference as api
 
     def load(tag, *, system=None, device="auto", **kwargs):
-        api.resolve_device(device)  # as load does, before anything is fetched
         model.tag, model.system, model.device = tag, system, device
         return model
 
@@ -131,6 +130,9 @@ def test_every_default_names_a_model_in_the_espnet_organisation():
 
 
 def test_transcribe_prints_the_transcript(monkeypatch, tmp_path, capsys):
+    import torch
+
+    monkeypatch.setattr(torch.cuda, "is_available", lambda: False)
     audio = tmp_path / "a.wav"
     audio.write_bytes(b"")
     model = _fake_load(monkeypatch, _FakeModel("hello there"))
@@ -138,11 +140,12 @@ def test_transcribe_prints_the_transcript(monkeypatch, tmp_path, capsys):
     assert cli.main(["transcribe", str(audio)]) == 0
 
     assert capsys.readouterr().out.strip() == "hello there"
-    # the default model, through the s2t system, where --device is resolved
+    # the default model, through the s2t system, --device auto resolved
+    # before the command ran (no GPU here: cpu)
     assert (model.tag, model.system, model.device) == (
         cli.DEFAULT_MODELS["transcribe"],
         "s2t",
-        "auto",
+        "cpu",
     )
     # transcription asked for by name; no language given means the model works it out
     assert model.calls == [(str(audio), {"task": "asr"})]
