@@ -398,3 +398,105 @@ def test_any_speech2text_argument_overrides_the_packed_one(tiny_asr_pack):
     assert load(tiny_asr_pack).backend.beam_search.beam_size == 1
     with pytest.raises(TypeError, match="beam_width=4: the bundle's model"):
         load(tiny_asr_pack, beam_width=4)
+
+
+class PublishedSpeech2Text(FakeSpeech2Text):
+    """A backend class that reads its own toolkit's published models."""
+
+    loaded = []
+
+    @classmethod
+    def from_pretrained(cls, model_tag=None, device="cpu", **kwargs):
+        from espnet2.utils.pretrained import download_pretrained
+
+        cls.loaded.append((model_tag, device, dict(kwargs)))
+        kwargs.update(download_pretrained(model_tag))  # as Speech2Text does
+        if "s2t_train_config" in kwargs:  # what a tag for another model brings
+            raise TypeError(
+                "__init__() got an unexpected keyword argument 's2t_train_config'"
+            )
+        return cls(**kwargs)
+
+
+def _espnet2_downloader(monkeypatch, artifacts):
+    import sys
+    import types
+
+    module = types.ModuleType("espnet_model_zoo.downloader")
+
+    class ModelDownloader:
+        def download_and_unpack(self, tag):
+            return dict(artifacts)
+
+    module.ModelDownloader = ModelDownloader
+    monkeypatch.setitem(sys.modules, "espnet_model_zoo.downloader", module)
+
+
+def test_a_tag_espnet2_published_goes_to_the_backends_own_loader(monkeypatch):
+    """Not a pack_model bundle: Speech2Text.from_pretrained reads it."""
+    import espnet2.bin.asr_inference as asr_inference
+
+    monkeypatch.setattr(asr_inference, "Speech2Text", PublishedSpeech2Text)
+    _espnet2_downloader(monkeypatch, {"asr_train_config": "c.yaml"})
+    PublishedSpeech2Text.loaded.clear()
+    model = Inference.from_pretrained("espnet/an_asr_model", device="cpu", beam_size=3)
+    assert isinstance(model.backend, PublishedSpeech2Text)
+    assert PublishedSpeech2Text.loaded == [
+        ("espnet/an_asr_model", "cpu", {"beam_size": 3})
+    ]
+    assert model(np.zeros(160, dtype=np.float32))["text"] == "hello world"
+
+
+def test_a_tag_for_another_kind_of_model_is_a_model_tag_error(monkeypatch):
+    import espnet2.bin.asr_inference as asr_inference
+    from espnet3.api.inference import ModelTagError
+
+    monkeypatch.setattr(asr_inference, "Speech2Text", PublishedSpeech2Text)
+    _espnet2_downloader(monkeypatch, {"s2t_train_config": "c.yaml"})
+    with pytest.raises(ModelTagError, match="does not look like a model for"):
+        Inference.from_pretrained("espnet/owsm_like")
+
+
+def test_a_backend_that_reads_no_published_models_keeps_the_bundle_error(monkeypatch):
+    import espnet2.bin.asr_inference as asr_inference
+    from espnet3.api.inference import ModelTagError
+
+    monkeypatch.setattr(asr_inference, "Speech2Text", FakeSpeech2Text)  # no loader
+    _espnet2_downloader(monkeypatch, {"asr_train_config": "c.yaml"})
+    with pytest.raises(ModelTagError, match="not a pack_model bundle"):
+        Inference.from_pretrained("espnet/an_asr_model")
+
+
+def test_load_reaches_a_published_tag_when_the_caller_names_the_system(monkeypatch):
+    """load(tag, system="asr"): no meta.yaml names the system, so the caller does."""
+    import espnet2.bin.asr_inference as asr_inference
+    from espnet3.api.inference import load
+
+    monkeypatch.setattr(asr_inference, "Speech2Text", PublishedSpeech2Text)
+    _espnet2_downloader(monkeypatch, {"asr_train_config": "c.yaml"})
+    PublishedSpeech2Text.loaded.clear()
+    model = load("espnet/an_asr_model", system="asr", beam_size=2)
+    assert isinstance(model, Inference)
+    assert PublishedSpeech2Text.loaded == [
+        ("espnet/an_asr_model", "cpu", {"beam_size": 2})
+    ]
+    assert model(np.zeros(160, dtype=np.float32))["text"] == "hello world"
+
+
+def test_load_without_a_system_says_to_name_one(monkeypatch):
+    from espnet3.api.inference import ModelTagError, load
+
+    _espnet2_downloader(monkeypatch, {"asr_train_config": "c.yaml"})
+    with pytest.raises(ModelTagError, match="not a pack_model bundle.*system='asr'"):
+        load("espnet/an_asr_model")
+
+
+def test_backend_class_is_refused_for_a_published_tag(monkeypatch):
+    """Only the declared backend reads a published tag; say so, not a raw TypeError."""
+    import espnet2.bin.asr_inference as asr_inference
+
+    monkeypatch.setattr(asr_inference, "Speech2Text", PublishedSpeech2Text)
+    _espnet2_downloader(monkeypatch, {"asr_train_config": "c.yaml"})
+    transducer = "espnet2.bin.asr_transducer_inference.Speech2Text"
+    with pytest.raises(TypeError, match="read by the declared espnet2.bin.asr_inf"):
+        Inference.from_pretrained("espnet/a_transducer", backend_class=transducer)
