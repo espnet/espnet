@@ -241,6 +241,14 @@ def _scan_raw_dir(split_dir: Path) -> List[RawEntry]:
 
     for root, _dirs, files in os.walk(split_dir):
         root_path = Path(root)
+        # LibriSpeech keeps each chapter's `.flac` files next to its
+        # `.trans.txt`, so the directory listing os.walk already returned is
+        # enough to tell whether an utterance's audio exists. Calling
+        # `Path.is_file()` per utterance instead costs one stat each, and on
+        # Lustre a stat is far more expensive than the readdir that produced
+        # this listing: 281k of them held the 960h scan at 4% CPU for minutes
+        # per split.
+        audio_names = {name for name in files if name.endswith(".flac")}
         for file_name in files:
             if not file_name.endswith(".trans.txt"):
                 continue
@@ -252,11 +260,12 @@ def _scan_raw_dir(split_dir: Path) -> List[RawEntry]:
                     utt_id, *words = line.split()
                     if not words:
                         continue
-                    audio_path = root_path / f"{utt_id}.flac"
-                    if not audio_path.is_file():
+                    if f"{utt_id}.flac" not in audio_names:
                         missing_audio += 1
                         continue
-                    entries.append((utt_id, audio_path, " ".join(words)))
+                    entries.append(
+                        (utt_id, root_path / f"{utt_id}.flac", " ".join(words))
+                    )
 
     if missing_audio:
         logger.warning(
