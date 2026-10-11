@@ -116,8 +116,6 @@ class ErrorRateMetric(BaseMetric):
             >>> metric.update(ref=["a b"], hyp=["a c"])
         """
         self._ensure_jiwer()
-        if len(ref) != len(hyp):
-            raise ValueError(f"ref has {len(ref)} items but hyp has {len(hyp)}")
         if not ref:
             return
 
