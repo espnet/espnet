@@ -131,3 +131,20 @@ def test_a_cat_state_merged_across_ranks_scores_like_one_run():
     whole = Scores()
     whole.update(ref=rows)
     assert merged.compute() == whole.compute() == {"mean": 2.5}
+
+
+def test_callback_round_trip_equals_one_shot():
+    rows = ["a", "bb", "ccc", "dddd"]
+    ranks = [Counter(), Counter()]
+    for rank, metric in enumerate(ranks):
+        metric.reset()
+        for batch in (rows[rank * 2 : rank * 2 + 1], rows[rank * 2 + 1 : rank * 2 + 2]):
+            metric.update(ref=batch)
+    states = [m.state() for m in ranks]
+    merged = Counter()
+    merged.load_state(merged.merge_states(states))
+    whole = Counter()
+    whole.update(ref=rows)
+    assert merged.compute() == whole.compute()
+    for state in states:
+        assert all(isinstance(v, (int, float, list)) for v in state.values())
