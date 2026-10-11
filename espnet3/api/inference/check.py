@@ -1,6 +1,7 @@
 """Shared validation for a class's or an instance's field declarations."""
 
 from __future__ import annotations
+
 from espnet3.api.inference.field import Field
 
 
@@ -32,7 +33,6 @@ def check_declaration(
         Traceback (most recent call last):
         TypeError: Bad.inputs must list required fields before optional ones, ...
     """
-    
     cls = obj if isinstance(obj, type) else type(obj)
     for attr in (inputs_attr, outputs_attr):
         fields = getattr(obj, attr, None)
