@@ -88,3 +88,20 @@ def test_a_wrong_kind_names_the_position():
 def test_update_runs_the_check():
     with pytest.raises(MetricContractError):
         Pair().update(ref=["a"], hyp=[3])
+
+
+def test_call_over_scp_runs_the_same_check(tmp_path):
+    class Score(BaseMetric):
+        inputs = (Field("x", "number"),)
+        outputs = (Field("n", "number"),)
+
+        def update(self, *, x):
+            pass
+
+        def compute(self):
+            return {"n": 0}
+
+    path = tmp_path / "x.scp"
+    path.write_text("utt1 0.5\n", encoding="utf-8")
+    with pytest.raises(MetricContractError, match=r"'x'\[0\] is str, must be number"):
+        Score()({"x": path}, "t", None)
