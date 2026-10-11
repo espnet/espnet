@@ -23,8 +23,8 @@ class WER(BaseMetric):
     :class:`~espnet3.components.contract.metrics.check_metric_inputs`).
 
     Examples:
-        >>> WER().inputs[0]
-        Field(name='ref', kind='text', label='Ref', optional=False, channels=1)
+        >>> [f.name for f in WER().inputs]
+        ['ref', 'hyp']
     """
 
     inputs = (Field("ref", "text"), Field("hyp", "text"))
