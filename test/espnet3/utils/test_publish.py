@@ -1467,3 +1467,34 @@ def test_the_readme_load_example_asks_for_trust_only_when_the_bundle_needs_it(
         "output_fn: src.code.out\nprovider:\n  _target_: src.code.Provider\n"
     )
     assert publish._load_example("org/m", out, system=None) == 'model = load("org/m")'
+
+
+# ---------------------------------------------------------------------------
+# _usage_python
+# ---------------------------------------------------------------------------
+
+
+def test_usage_python_is_the_systems_own_when_the_system_is_known(tmp_path):
+    from espnet3.utils.publication_utils import _usage_python
+
+    text = _usage_python("espnet/some_pack", tmp_path, "esp2_s2t")
+    assert text.startswith("from espnet3.api.inference import load")
+    assert 'model = load("espnet/some_pack")' in text  # a bundle: no system= needed
+    assert (
+        "# optional inputs: language (text), task (text), previous_text (text)" in text
+    )
+
+
+def test_usage_python_falls_back_to_the_generic_lines(tmp_path, caplog):
+    from espnet3.utils.publication_utils import _usage_python
+
+    # no system: a bundle that builds its own Inference, or an older one
+    assert _usage_python("espnet/some_pack", tmp_path, None).splitlines() == [
+        'model = load("espnet/some_pack")',
+        'result = model("utt.wav")',
+    ]
+    # a system with no Inference to read yet
+    with caplog.at_level("WARNING"):
+        text = _usage_python("espnet/some_pack", tmp_path, "no_such_system")
+    assert text.splitlines()[0] == 'model = load("espnet/some_pack")'
+    assert "falls back" in caplog.text
