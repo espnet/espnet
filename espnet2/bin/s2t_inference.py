@@ -1486,29 +1486,6 @@ class Speech2Text:
 
     @torch.no_grad()
     @typechecked
-    def _decode_long_attention(
-        self,
-        speech: Union[torch.Tensor, np.ndarray],
-        condition_on_prev_text: bool = False,
-        init_text: Optional[str] = None,
-        end_time_threshold: Optional[str] = None,
-        lang_sym: Optional[str] = None,
-        task_sym: Optional[str] = None,
-        skip_last_chunk_threshold: float = 0.2,
-    ):
-        """The utterances `_iter_long_attention` yields, as a list."""
-        return list(
-            self._iter_long_attention(
-                speech,
-                condition_on_prev_text=condition_on_prev_text,
-                init_text=init_text,
-                end_time_threshold=end_time_threshold,
-                lang_sym=lang_sym,
-                task_sym=task_sym,
-                skip_last_chunk_threshold=skip_last_chunk_threshold,
-            )
-        )
-
     def _iter_long_attention(
         self,
         speech: Union[torch.Tensor, np.ndarray],

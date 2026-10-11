@@ -186,14 +186,14 @@ class Inference(BackendInference):
         if previous is not None:
             kwargs.update(init_text=previous, condition_on_prev_text=True)
         first = True
-        for start, end, text in self.backend.iter_long(speech.array, **kwargs):
-            yield {
-                "text": text if first else " " + text,
-                "segments": [{"text": text, "start": start, "end": end}],
-            }
+        for utterance in self.backend.iter_long(speech.array, **kwargs):
+            out = _output([utterance])
+            if not first:
+                out["text"] = " " + out["text"]
+            yield out
             first = False
         if first:
-            yield {"text": "", "segments": []}
+            yield _output([])
 
     def run_batch(self, items: Sequence[Mapping[str, Any]]) -> Sequence[Mapping]:
         """Decode the items that fit one window in one beam search each group.
@@ -248,7 +248,7 @@ class Inference(BackendInference):
                     f"{len(index)} utterances"
                 )
             for i, nbest in zip(index, results):
-                outputs[i] = self._window_output(nbest[0], items[i]["speech"])
+                outputs[i] = _output(self.backend.window_utterances(nbest[0][2]))
         return outputs
 
     def _batchable_samples(self) -> Optional[int]:
@@ -263,16 +263,13 @@ class Inference(BackendInference):
             return None
         return int(conf["fs"] * (conf["speech_length"] - 1))
 
-    def _window_output(self, best: Sequence[Any], speech: Audio) -> dict:
-        """One item's outputs from its best hypothesis of a single window.
 
-        Read through ``window_utterances``, the reading ``decode_long`` uses.
-        """
-        segments = self.backend.window_utterances(best[2])
-        return {
-            "text": " ".join(text for _, _, text in segments),
-            "segments": [
-                {"text": text, "start": start, "end": end}
-                for start, end, text in segments
-            ],
-        }
+def _output(utterances: Sequence[tuple]) -> dict:
+    """Return the outputs for a list of ``(start, end, text)`` utterances."""
+    return {
+        "text": " ".join(text for _, _, text in utterances),
+        "segments": [
+            {"text": text, "start": start, "end": end}
+            for start, end, text in utterances
+        ],
+    }

@@ -254,7 +254,7 @@ class Inference(BackendInference):
             return None
         from espnet2.bin.asr_inference_streaming import Speech2TextStreaming
 
-        weights = getattr(search, "weights", {})
+        weights = search.weights
         self._streaming_backend = Speech2TextStreaming(
             asr_model=model,
             asr_train_args=self.backend.asr_train_args,
@@ -299,37 +299,34 @@ class Inference(BackendInference):
             if "speech" not in chunk:
                 continue
             if pending is not None:
-                text = _running_text(streamer(pending, is_final=False))
-                if text is not None and len(text) > len(committed):
-                    if text.startswith(committed):
-                        yield {"text": text[len(committed) :]}
-                        committed = text
+                piece = _added(committed, streamer(pending, is_final=False))
+                if piece:
+                    yield {"text": piece}
+                    committed += piece
             pending = chunk["speech"].mono().array
         if pending is None:
             pending = np.zeros(0, dtype=np.float32)
-        final = _running_text(streamer(pending, is_final=True))
-        if final is None:
-            final = committed
-        if final.startswith(committed):
-            rest = final[len(committed) :]
-        else:
-            stable = os.path.commonprefix([committed, final])
+        results = streamer(pending, is_final=True)
+        rest = _added(committed, results)
+        final = results[0][0] if results else None
+        if final is not None and not final.startswith(committed):
             logging.warning(
                 "the online search revised text already streamed: %r stands, "
                 "the final hypothesis was %r",
                 committed,
                 final,
             )
-            rest = final[len(stable) :]
+            rest = final[len(os.path.commonprefix([committed, final])) :]
         if rest or not committed:
             yield {"text": rest}
 
 
-def _running_text(results: Sequence[Any]) -> Optional[str]:
-    """Return the best hypothesis' text so far, from Speech2TextStreaming's results."""
-    if not results:
-        return None
-    return results[0][0]
+def _added(committed: str, results: Sequence[Any]) -> str:
+    """Return what the running best hypothesis in ``results`` adds to ``committed``."""
+    text = results[0][0] if results else None
+    if text is None or not text.startswith(committed):
+        return ""
+    return text[len(committed) :]
 
 
 def _text(nbest: Any) -> dict:

@@ -54,9 +54,6 @@ class FakeSpeech2Text:
         self.calls.append((np.asarray(speech).shape, kwargs))
         yield from self.utterances
 
-    def decode_long(self, speech, **kwargs):
-        return list(self.iter_long(speech, **kwargs))
-
     # a window's best hypothesis: (text, tokens, token_int, text_nospecial, hyp);
     # the token ids stand for the utterances, read back by window_utterances
     def batch_decode(self, speeches, lang_sym=None, task_sym=None, predict_time=None):
@@ -415,9 +412,13 @@ def s2t_ctc_config_file(tmp_path, token_list):  # noqa: F811
 
 
 @pytest.mark.execution_timeout(60)
-def test_batch_equals_one_by_one_on_a_real_ctc_only_model(s2t_ctc_config_file):
+def test_a_real_ctc_only_model_is_not_batched(s2t_ctc_config_file, monkeypatch):
+    """Its batch_decode searches the CTC head, decode_long takes the best path."""
     model = Inference(s2t_train_config=s2t_ctc_config_file)
     assert model.backend.ctc_only is True
+    monkeypatch.setattr(
+        model.backend, "batch_decode", lambda *a, **k: pytest.fail("batched")
+    )
     rng = np.random.default_rng(0)
     items = [
         {"speech": rng.standard_normal(n).astype(np.float32) * 3} for n in (4000, 3000)
