@@ -274,6 +274,23 @@ def test_enhance_resamples_and_writes(monkeypatch, wav, tmp_path):
     assert fs == 16000 and len(data) == 16000
 
 
+def test_the_speech_to_text_loaders_go_through_espnet3(monkeypatch):
+    """_s2t loads the tag as the s2t system, on the device settled for this machine."""
+    import torch
+
+    import espnet3.api.inference as api
+
+    seen = []
+    monkeypatch.setattr(
+        api, "load", lambda tag, **kw: seen.append((tag, kw)) or "model"
+    )
+    monkeypatch.setattr(torch.cuda, "is_available", lambda: False)
+    monkeypatch.setattr(mcp_server, "DEVICE", "auto")
+
+    assert mcp_server._s2t("espnet/some_owsm") == "model"
+    assert seen == [("espnet/some_owsm", {"system": "s2t", "device": "cpu"})]
+
+
 def test_build_server_names_the_missing_package(monkeypatch):
     monkeypatch.setattr(mcp_server, "MCPServer", None)
     with pytest.raises(ImportError, match=r"espnet\[mcp\]"):
