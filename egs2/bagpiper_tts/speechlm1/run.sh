@@ -16,7 +16,7 @@
 set -euo pipefail
 
 cd -- "$(dirname -- "${BASH_SOURCE[0]}")"
-. ../../TEMPLATE/speechlm1/stage_utils.sh
+. ../../TEMPLATE/asr1/scripts/speechlm/stage_utils.sh
 
 stage=1
 stop_stage=3
@@ -88,7 +88,7 @@ weights: pass --export-path and --train-config.
 "
 
 repo_root=$(cd ../../.. && pwd)
-. ../../TEMPLATE/speechlm1/parse_options.sh
+. ../../TEMPLATE/asr1/scripts/speechlm/parse_options.sh
 
 [[ $# -eq 0 ]] || die "Unexpected positional arguments: $*"
 validate_stages "${stage}" "${stop_stage}" 3 "${node_rank}"
