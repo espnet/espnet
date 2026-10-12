@@ -115,9 +115,9 @@ class STFTDecoder(AbsDecoder):
         self.stft.win_length = self.win_length * fs // self.default_fs
         self.stft.hop_length = self.hop_length * fs // self.default_fs
 
-    def _get_window_func(self):
+    def _get_window_func(self, *, device=None, dtype=None):
         window_func = getattr(torch, f"{self.window}_window")
-        window = window_func(self.win_length)
+        window = window_func(self.win_length, device=device, dtype=dtype)
         n_pad_left = (self.n_fft - window.shape[0]) // 2
         n_pad_right = self.n_fft - window.shape[0] - n_pad_left  # noqa
         return window
@@ -155,7 +155,9 @@ class STFTDecoder(AbsDecoder):
         n_pad_left = (self.n_fft - self.win_length) // 2
         output_wav = output_wav[..., n_pad_left : n_pad_left + self.win_length]
 
-        return output_wav * self._get_window_func()
+        return output_wav * self._get_window_func(
+            device=output_wav.device, dtype=output_wav.dtype
+        )
 
     def streaming_merge(self, chunks, ilens=None):
         """streaming_merge. It merges the frame-level processed audio chunks
@@ -184,7 +186,9 @@ class STFTDecoder(AbsDecoder):
         for i, chunk in enumerate(chunks):
             output[:, i * hop_size : i * hop_size + frame_size] += chunk
 
-        window_sq = self._get_window_func().pow(2)
+        window_sq = self._get_window_func(
+            device=chunks[0].device, dtype=chunks[0].dtype
+        ).pow(2)
         window_envelop = torch.zeros((batch_size, audio_len), dtype=chunks[0].dtype).to(
             chunks[0].device
         )
