@@ -33,15 +33,21 @@ sft_output_dir=exp/sft
 
 # Data for warmup and pretraining (stages 1 and 2)
 stats_dir=
-train_specifier=
-valid_specifier=
-train_unregistered_specifier=
-valid_unregistered_specifier=
+train_specifier=()
+valid_specifier=()
+train_unregistered_specifier=()
+valid_unregistered_specifier=()
+train_registered_specifier=()
+valid_registered_specifier=()
 
 # Data for SFT (stage 3): prepared instruction dialogues
 sft_stats_dir=
-sft_train_specifier=
-sft_valid_specifier=
+sft_train_specifier=()
+sft_valid_specifier=()
+sft_train_unregistered_specifier=()
+sft_valid_unregistered_specifier=()
+sft_train_registered_specifier=()
+sft_valid_registered_specifier=()
 
 # Export (stage 4)
 export_dtype=bfloat16
@@ -52,6 +58,7 @@ checkpoint_dir=      # omit to select the latest complete SFT checkpoint
 inference_config=
 test_specifier=
 test_unregistered_specifier=
+test_registered_specifier=
 inference_output_dir=
 num_workers=1
 
@@ -70,10 +77,17 @@ against published weights: pass --export-path and --train-config.
   --stats-dir DIR                       Warmup/pretraining length statistics
   --train-unregistered-specifier SPEC   Warmup/pretraining data
   --valid-unregistered-specifier SPEC   Warmup/pretraining validation data
+  --train-registered-specifier SPEC     Warmup/pretraining data from the registry
+  --valid-registered-specifier SPEC     Validation data from the registry
   --sft-stats-dir DIR                   SFT length statistics
-  --sft-train-specifier SPEC            SFT training data
-  --sft-valid-specifier SPEC            SFT validation data
+  --sft-train-unregistered-specifier SPEC  SFT training manifests
+  --sft-valid-unregistered-specifier SPEC  SFT validation manifests
+  --sft-train-registered-specifier SPEC  SFT training data from the registry
+  --sft-valid-registered-specifier SPEC  SFT validation data from the registry
+  --sft-train-specifier / --sft-valid-specifier are unregistered aliases.
   Stage 3 alone also accepts the ordinary --stats-dir and data options.
+  Repeat each training/validation data option once per specifier.
+  Training can combine registered and unregistered data for each split.
   --train-config YAML                  Override one training stage or inference
   --output-dir DIR                     Override one training stage's directory
   --resume-path PATH                   Initialize the first selected stage
@@ -81,6 +95,8 @@ against published weights: pass --export-path and --train-config.
   --export-path FILE                   Export destination or inference weights
   --inference-config YAML              Published decoding configuration
   --test-unregistered-specifier SPEC    Inference requests
+  --test-registered-specifier SPEC      Inference requests from the registry
+  Inference accepts exactly one of the two test specifier options.
   --inference-output-dir DIR           Decoding output (default: exp/sft/inference)
   --ngpu N --num-nodes N --node-rank N --master-addr HOST --master-port PORT
   --python PATH                        Active environment's Python
@@ -88,7 +104,7 @@ against published weights: pass --export-path and --train-config.
 "
 
 repo_root=$(cd ../../.. && pwd)
-. ../../TEMPLATE/asr1/utils/parse_options.sh
+. ../../TEMPLATE/speechlm1/parse_options.sh
 
 [[ $# -eq 0 ]] || die "Unexpected positional arguments: $*"
 validate_stages "${stage}" "${stop_stage}" 5 "${node_rank}"
@@ -102,13 +118,31 @@ if [[ -n ${output_dir} ]]; then
         *) sft_output_dir=${output_dir} ;;
     esac
 fi
-train_specifier=${train_unregistered_specifier:-${train_specifier}}
-valid_specifier=${valid_unregistered_specifier:-${valid_specifier}}
+if (( ${#train_unregistered_specifier[@]} )); then
+    train_specifier=("${train_unregistered_specifier[@]}")
+fi
+if (( ${#valid_unregistered_specifier[@]} )); then
+    valid_specifier=("${valid_unregistered_specifier[@]}")
+fi
 test_specifier=${test_unregistered_specifier:-${test_specifier}}
+if (( ${#sft_train_unregistered_specifier[@]} )); then
+    sft_train_specifier=("${sft_train_unregistered_specifier[@]}")
+fi
+if (( ${#sft_valid_unregistered_specifier[@]} )); then
+    sft_valid_specifier=("${sft_valid_unregistered_specifier[@]}")
+fi
 if (( stage == 3 )); then
     sft_stats_dir=${sft_stats_dir:-${stats_dir}}
-    sft_train_specifier=${sft_train_specifier:-${train_specifier}}
-    sft_valid_specifier=${sft_valid_specifier:-${valid_specifier}}
+    # Fall back per split, keeping an explicit SFT selection separate from
+    # the ordinary data options used by warmup/pretraining.
+    if (( ${#sft_train_specifier[@]} + ${#sft_train_registered_specifier[@]} == 0 )); then
+        sft_train_specifier=("${train_specifier[@]}")
+        sft_train_registered_specifier=("${train_registered_specifier[@]}")
+    fi
+    if (( ${#sft_valid_specifier[@]} + ${#sft_valid_registered_specifier[@]} == 0 )); then
+        sft_valid_specifier=("${valid_specifier[@]}")
+        sft_valid_registered_specifier=("${valid_registered_specifier[@]}")
+    fi
 fi
 export_path=${export_path:-${sft_output_dir}/export/model.pt}
 inference_output_dir=${inference_output_dir:-${sft_output_dir}/inference}
@@ -124,18 +158,36 @@ launch() {
     if [[ -n ${resume} ]]; then
         resume_args=(--resume-path "${resume}")
     fi
-    local stats=$4 train_spec=$5 valid_spec=$6
+    local stats=$4 train_ref="${5}[@]" valid_ref="${6}[@]"
+    local train_registered_ref="${7}[@]" valid_registered_ref="${8}[@]"
+    local train_specs=("${!train_ref}") valid_specs=("${!valid_ref}")
+    local train_registered=("${!train_registered_ref}")
+    local valid_registered=("${!valid_registered_ref}")
+    local data_args=() spec
+    for spec in "${train_specs[@]}"; do
+        data_args+=(--train-unregistered-specifier "${spec}")
+    done
+    for spec in "${valid_specs[@]}"; do
+        data_args+=(--valid-unregistered-specifier "${spec}")
+    done
+    for spec in "${train_registered[@]}"; do
+        data_args+=(--train-registered-specifier "${spec}")
+    done
+    for spec in "${valid_registered[@]}"; do
+        data_args+=(--valid-registered-specifier "${spec}")
+    done
 
     [[ -n ${stats} ]] || die "set --stats-dir (or --sft-stats-dir) for this stage"
-    [[ -n ${train_spec} && -n ${valid_spec} ]] \
-        || die "set the training and validation specifiers for this stage"
+    (( ${#train_specs[@]} + ${#train_registered[@]} > 0 )) \
+        || die "set a registered or unregistered training specifier for this stage"
+    (( ${#valid_specs[@]} + ${#valid_registered[@]} > 0 )) \
+        || die "set a registered or unregistered validation specifier for this stage"
 
     ../../TEMPLATE/speechlm1/train.sh \
         --train-config "${config}" \
         --output-dir "${output}" \
         --stats-dir "${stats}" \
-        --train-unregistered-specifier "${train_spec}" \
-        --valid-unregistered-specifier "${valid_spec}" \
+        "${data_args[@]}" \
         --ngpu "${ngpu}" \
         --num-nodes "${num_nodes}" \
         --node-rank "${node_rank}" \
@@ -151,19 +203,22 @@ launch() {
 if (( stage <= 1 && stop_stage >= 1 )); then
     log "Stage 1: warmup"
     launch conf/train.yaml "${warmup_output_dir}" "" \
-        "${stats_dir}" "${train_specifier}" "${valid_specifier}"
+        "${stats_dir}" train_specifier valid_specifier \
+        train_registered_specifier valid_registered_specifier
 fi
 
 if (( stage <= 2 && stop_stage >= 2 )); then
     log "Stage 2: pretraining"
     launch conf/tuning/train_pretrain.yaml "${pretrain_output_dir}" "${warmup_output_dir}" \
-        "${stats_dir}" "${train_specifier}" "${valid_specifier}"
+        "${stats_dir}" train_specifier valid_specifier \
+        train_registered_specifier valid_registered_specifier
 fi
 
 if (( stage <= 3 && stop_stage >= 3 )); then
     log "Stage 3: SFT"
     launch conf/tuning/train_sft.yaml "${sft_output_dir}" "${pretrain_output_dir}" \
-        "${sft_stats_dir}" "${sft_train_specifier}" "${sft_valid_specifier}"
+        "${sft_stats_dir}" sft_train_specifier sft_valid_specifier \
+        sft_train_registered_specifier sft_valid_registered_specifier
 fi
 
 if (( stage <= 4 && stop_stage >= 4 && node_rank == 0 )); then
@@ -191,8 +246,14 @@ if (( stage <= 5 && stop_stage >= 5 && node_rank == 0 )); then
     fi
     [[ -n ${inference_config} ]] \
         || die "set --inference-config; the model repositories publish inference_audio.yaml and inference_text.yaml"
-    [[ -n ${test_specifier} ]] \
-        || die "set --test-specifier, as 'dialogue:test:/path/to/test.json'; this recipe prepares no test data"
+    [[ -n ${test_specifier} || -n ${test_registered_specifier} ]] \
+        || die "set --test-unregistered-specifier or --test-registered-specifier; this recipe prepares no test data"
+    [[ -z ${test_specifier} || -z ${test_registered_specifier} ]] \
+        || die "set only one of --test-unregistered-specifier and --test-registered-specifier"
+    test_args=(--test-unregistered-specifier "${test_specifier}")
+    if [[ -n ${test_registered_specifier} ]]; then
+        test_args=(--test-registered-specifier "${test_registered_specifier}")
+    fi
     [[ -f ${export_path} ]] \
         || die "no weights at ${export_path}; run stage 4, or pass --export-path"
 
@@ -201,7 +262,7 @@ if (( stage <= 5 && stop_stage >= 5 && node_rank == 0 )); then
         --train-config "${train_config}" \
         --inference-config "${inference_config}" \
         --model-checkpoint "${export_path}" \
-        --test-unregistered-specifier "${test_specifier}" \
+        "${test_args[@]}" \
         --output-dir "${inference_output_dir}" \
         --num-workers "${num_workers}"
     log "results: ${inference_output_dir}"
