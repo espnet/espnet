@@ -1,4 +1,4 @@
-"""A demo notebook for a published model, written from its system's declaration.
+r"""A demo notebook for a published model, written from its system's declaration.
 
 The notebooks in https://github.com/espnet/notebook/tree/master/Demos are
 one page per task: install, an input, the model's call, its outputs, and
@@ -64,12 +64,12 @@ def _code(text: str) -> dict:
 
 
 def _first_sentence(cls: type) -> str:
-    """The first line of the class's docstring, or nothing."""
+    """Return the first line of the class's docstring, or nothing."""
     return (cls.__doc__ or "").strip().split("\n", 1)[0]
 
 
 def _audio_paths(cls: type[InferenceAPI], inputs: Mapping[str, Any]) -> list[str]:
-    """The files the call reads: its required audio inputs, and optional ones given."""
+    """Return the files the call reads: required audio, and optional audio given."""
     return [
         inputs.get(f.name, "speech.wav")
         for f in cls.inputs
