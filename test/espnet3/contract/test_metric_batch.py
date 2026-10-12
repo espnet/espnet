@@ -2,11 +2,11 @@ import numpy as np
 import pytest
 
 from espnet3.api.inference import Field
-from espnet3.components.contract.metrics import (
+from espnet3.components.metrics.base_metric import BaseMetric
+from espnet3.contract.metrics import (
     MetricContractError,
     check_metric_batch,
 )
-from espnet3.components.metrics.base_metric import BaseMetric
 
 
 class Pair(BaseMetric):
