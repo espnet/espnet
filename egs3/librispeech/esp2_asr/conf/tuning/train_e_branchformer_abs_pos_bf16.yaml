@@ -27,10 +27,21 @@
 # is applied to is simply lost. Over 240 epochs that is not a safe assumption
 # to make without evidence.
 #
-# THIS CONFIG IS THEREFORE A VALIDATION RUN, NOT A REPLACEMENT. Train it for
-# ~10 epochs and compare valid/acc and valid/loss against
-# train_e_branchformer_abs_pos at the same epochs. Adopt bf16-true only if the
-# curves agree; otherwise keep bf16-mixed and take the speed elsewhere.
+# WHAT IT COSTS IN PRACTICE, SO FAR. Against train_e_branchformer_abs_pos,
+# same seed and same data order, precision the only difference:
+#
+#     epoch  bf16-mixed  bf16-true
+#       1      0.0484     0.0413      valid/acc
+#       2      0.0771     0.0573
+#
+# It starts slower and the gap widens, which is what the missing fp32 master
+# weights predict: early updates are smallest exactly while the warmup keeps
+# the learning rate near 2e-07, so they are the likeliest to be lost. Whether
+# it catches up is the open question -- bf16-mixed only leaves this plateau at
+# epoch 9 (0.3967) and 10 (0.5663) -- and this config is run to 240 epochs to
+# answer it rather than abandoned on two epochs of evidence.
+#
+# Wall clock on one A40: 70 min per epoch against 80, so -13%.
 ##########################################################
 
 defaults:
