@@ -35,6 +35,7 @@ import logging
 from dataclasses import dataclass, field
 from typing import Any, Callable, Dict, List, Mapping, Optional, Sequence, Tuple
 
+from splet.summary import RESERVED_KEYS, declared_rules
 from splet.utterance_metrics import error_rate
 
 #: The tiers, i.e. which loop runs a metric.
@@ -130,9 +131,12 @@ def load_metrics(
         the metric callable and the state to pass it.
 
     Raises:
-        ValueError: If an entry has no name, names an unknown metric, or
-            repeats an id. Two instances under one id would report into the
-            same keys and the later would silently replace the earlier.
+        ValueError: If an entry has no name, names an unknown metric,
+            repeats an id, or declares a result key that is reserved or that
+            another loaded metric also declares (ids ``wer`` and
+            ``wer_errors``, say). Either way one key would silently replace
+            another in every result, so it is refused before anything is
+            measured.
     """
     modules: Dict[str, Dict[str, Any]] = {}
     for entry in metrics_config:
@@ -154,6 +158,8 @@ def load_metrics(
                 "entry its own `id:` so the two do not report into the same keys"
             )
 
+        check_output_keys({**modules, metric_id: {"spec": spec}})
+
         kwargs = {**spec.defaults, **entry}
         kwargs.setdefault("normalize", list(normalize) if normalize else None)
         logging.info("Loading %s evaluation as '%s'...", name, metric_id)
@@ -166,6 +172,30 @@ def load_metrics(
         }
         logging.info("Initiate %s evaluation successfully.", metric_id)
     return modules
+
+
+def check_output_keys(metrics: Mapping[str, Mapping[str, Any]]) -> None:
+    """Refuse metrics whose declared result keys would overwrite one another.
+
+    Every result is one flat dict built with ``dict.update``, so a key two
+    metrics report, or a metric reporting into a key the loop writes, is
+    overwritten without an error. :func:`load_metrics` checks each entry
+    before building its state, not when a summary is first asked for,
+    because by then the results are already written.
+
+    Args:
+        metrics: Configured id to a mapping holding at least its ``spec``.
+
+    Raises:
+        ValueError: Naming the key and the metric(s) that declare it.
+    """
+    rules = declared_rules(metrics)
+    for key in RESERVED_KEYS:
+        if key in rules:
+            raise ValueError(
+                f"metric '{rules[key][0]}' would report into the reserved key "
+                f"'{key}'; give it another `id:`"
+            )
 
 
 def load_session_metrics(

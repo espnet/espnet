@@ -2,6 +2,7 @@
 
 import pytest
 
+from splet.metric_registry import load_metrics, measure_utterances
 from splet.normalizers import build_normalizer
 
 
@@ -41,6 +42,20 @@ def test_punctuation_can_be_replaced_rather_than_deleted():
 def test_remove_tokens_only_removes_whole_tokens():
     normalizer = build_normalizer([{"name": "remove_tokens"}])
     assert normalizer("hello <unk> unknown world") == "hello unknown world"
+
+
+def test_an_empty_token_list_removes_nothing():
+    """``tokens: []`` is a choice, not a request for the defaults."""
+    normalizer = build_normalizer([{"name": "remove_tokens", "tokens": []}])
+    assert normalizer("hello <unk>") == "hello <unk>"
+
+
+def test_an_empty_token_list_keeps_the_markers_in_the_error_rate():
+    modules = load_metrics(
+        [{"name": "wer", "normalize": [{"name": "remove_tokens", "tokens": []}]}]
+    )
+    (result,) = measure_utterances({"u": "hello"}, modules, {"u": "hello <unk>"})
+    assert result["wer"] == 0.5
 
 
 def test_unicode_folds_full_width():

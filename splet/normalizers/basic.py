@@ -76,8 +76,14 @@ def remove_tokens_setup(tokens: Optional[Iterable[str]] = None) -> Callable[[str
 
     The usual targets are the non-speech markers a recipe leaves in its
     references: ``<unk>``, ``<noise>``, ``[laughter]``, and so on.
+
+    Args:
+        tokens: The tokens to delete. None means the default non-speech
+            markers; an empty list means delete nothing.
     """
-    drop = set(tokens or ["<unk>", "<noise>", "<sos>", "<eos>", "<blank>"])
+    if tokens is None:
+        tokens = ["<unk>", "<noise>", "<sos>", "<eos>", "<blank>"]
+    drop = set(tokens)
     return lambda text: " ".join(t for t in text.split() if t not in drop)
 
 

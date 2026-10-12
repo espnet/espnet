@@ -48,6 +48,11 @@ from typing import Any, Dict, Mapping, Sequence, Tuple
 #:     (a rendered alignment, a normalized transcript).
 RULES = ("sum", "rate", "text")
 
+#: Result keys the measurement loops write themselves, which no metric may
+#: declare: ``key`` carries the utterance id, and a metric configured with
+#: ``id: key`` would replace it with a number.
+RESERVED_KEYS = ("key",)
+
 
 def error_rate_from_counts(errors: int, ref_len: int) -> float:
     """Return the one error rate SPLET reports for a pair of counts.
@@ -139,7 +144,7 @@ class Accumulator:
         """
         self._num_items += 1
         for key, value in result.items():
-            if key == "key":
+            if key in RESERVED_KEYS:
                 continue
             if key not in self._rules:
                 raise ValueError(

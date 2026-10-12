@@ -105,3 +105,14 @@ def test_the_split_is_not_backend_independent():
         rapid.deletions,
         rapid.insertions,
     )
+
+
+def test_resolve_backend_rejects_what_it_cannot_run(monkeypatch):
+    import splet.alignment
+
+    with pytest.raises(ValueError, match="unknown backend"):
+        splet.alignment.resolve_backend("sclite")
+    monkeypatch.setattr(splet.alignment, "_RapidfuzzLevenshtein", None)
+    with pytest.raises(ImportError, match="requires rapidfuzz"):
+        splet.alignment.resolve_backend("rapidfuzz")
+    assert splet.alignment.resolve_backend("auto") == "python"

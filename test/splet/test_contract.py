@@ -117,6 +117,22 @@ def test_a_repeated_id_is_rejected():
         load_metrics([{"name": "wer"}, {"name": "wer"}])
 
 
+def test_an_id_reporting_into_the_utterance_key_is_rejected():
+    """``id: key`` would replace each utterance id with its WER."""
+    with pytest.raises(ValueError, match="reserved key 'key'"):
+        load_metrics([{"name": "wer", "id": "key"}])
+
+
+def test_ids_whose_result_keys_collide_are_rejected_at_load_time():
+    """``wer_errors`` (an id) and ``wer`` + ``_errors`` are the same key.
+
+    Without the check, ``measure_batch`` lets the second overwrite the first
+    and only a later ``Accumulator`` or ``summarize`` notices.
+    """
+    with pytest.raises(ValueError, match="'wer_errors' is declared by both"):
+        load_metrics([{"name": "wer"}, {"name": "wer", "id": "wer_errors"}])
+
+
 def test_alignment_key_is_namespaced_by_id():
     state = error_rate_setup(metric_id="cer", tokenizer="char", keep_alignment=True)
     assert "cer_alignment" in error_rate_metric(state, "ab", "ab")
@@ -200,6 +216,37 @@ def test_metadata_records_what_produced_the_result():
     ]
     # It is written out, so it must survive a round trip through JSON.
     assert json.loads(json.dumps(block)) == block
+
+
+@pytest.mark.parametrize("installed", [True, False])
+def test_metadata_records_the_backend_auto_resolved_to(monkeypatch, installed):
+    """Two environments that split S/D/I differently must say so.
+
+    For this pair the two backends agree on 10 errors but split them 2/1/7
+    and 4/0/6; a summary that says only ``auto`` cannot tell which.
+    """
+    import splet.alignment
+
+    if installed:
+        pytest.importorskip("rapidfuzz")
+    else:
+        monkeypatch.setattr(splet.alignment, "_RapidfuzzLevenshtein", None)
+    expected = "rapidfuzz" if installed else "python"
+    modules = load_metrics([{"name": "wer", "backend": "auto"}])
+    assert modules["wer"]["state"]["backend"] == expected
+    assert metadata(modules)["metrics"]["wer"]["backend"] == expected
+    (result,) = measure_utterances(
+        {"u": "c d c e b e b c b a e c"}, modules, {"u": "d a c e d d"}
+    )
+    direct = splet.alignment.levenshtein_alignment(
+        "d a c e d d".split(), "c d c e b e b c b a e c".split(), backend=expected
+    )
+    assert result["wer_errors"] == 10
+    assert (result["wer_sub"], result["wer_del"], result["wer_ins"]) == (
+        direct.substitutions,
+        direct.deletions,
+        direct.insertions,
+    )
 
 
 # --- batches: the validation-loop path ---------------------------------------

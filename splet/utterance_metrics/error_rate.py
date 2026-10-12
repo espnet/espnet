@@ -19,7 +19,7 @@ from __future__ import annotations
 
 from typing import Any, Callable, Dict, List, Optional
 
-from splet.alignment import levenshtein_alignment
+from splet.alignment import levenshtein_alignment, resolve_backend
 from splet.normalizers import build_normalizer
 
 
@@ -90,7 +90,9 @@ def error_rate_setup(
         backend: Alignment backend. The default is the reference
             implementation, whose S/D/I split does not depend on which
             packages happen to be installed; see
-            :func:`splet.alignment.levenshtein_alignment`.
+            :func:`splet.alignment.levenshtein_alignment`. ``auto`` is
+            resolved here, so the state, and the metadata copied from it,
+            names the backend that actually runs.
         keep_alignment: Include the rendered alignment in every result.
             Useful for a handful of utterances, ruinous for a corpus of
             them, so it is off by default.
@@ -99,7 +101,8 @@ def error_rate_setup(
         The state state passed back into :func:`error_rate_metric`.
 
     Raises:
-        ValueError: If the tokenizer name is unknown.
+        ValueError: If the tokenizer or backend name is unknown.
+        ImportError: If ``backend="rapidfuzz"`` and it is not installed.
     """
     if tokenizer not in TOKENIZER_CHOICES:
         raise ValueError(
@@ -109,7 +112,7 @@ def error_rate_setup(
         "metric_id": metric_id,
         "tokenizer": TOKENIZER_CHOICES[tokenizer](**(tokenizer_conf or {})),
         "normalizer": build_normalizer(normalize),
-        "backend": backend,
+        "backend": resolve_backend(backend),
         "keep_alignment": keep_alignment,
     }
 

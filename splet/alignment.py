@@ -107,6 +107,38 @@ _OP_CODE = {"hit": "C", "sub": "S", "del": "D", "ins": "I"}
 _PYTHON_BACKEND_CELL_LIMIT = 4_000_000
 
 
+def resolve_backend(backend: str) -> str:
+    """Turn a requested backend into the one that will actually run.
+
+    A metric calls this once at setup and records the result, so a saved
+    S/D/I split names the implementation that produced it rather than
+    ``"auto"``, which means different things in different environments.
+
+    Args:
+        backend: ``"auto"``, ``"python"`` or ``"rapidfuzz"``.
+
+    Returns:
+        ``"python"`` or ``"rapidfuzz"``.
+
+    Raises:
+        ValueError: If ``backend`` is not one of the three accepted values.
+        ImportError: If ``backend="rapidfuzz"`` and it is not installed.
+    """
+    if backend == "auto":
+        return "rapidfuzz" if _RapidfuzzLevenshtein is not None else "python"
+    if backend == "rapidfuzz":
+        if _RapidfuzzLevenshtein is None:
+            raise ImportError(
+                "backend='rapidfuzz' requires rapidfuzz: pip install rapidfuzz"
+            )
+        return backend
+    if backend == "python":
+        return backend
+    raise ValueError(
+        f"unknown backend '{backend}': expected 'auto', 'python' or 'rapidfuzz'"
+    )
+
+
 def levenshtein_alignment(
     ref: Sequence[str],
     hyp: Sequence[str],
@@ -135,13 +167,8 @@ def levenshtein_alignment(
     ref = list(ref)
     hyp = list(hyp)
 
-    if backend == "auto":
-        backend = "rapidfuzz" if _RapidfuzzLevenshtein is not None else "python"
+    backend = resolve_backend(backend)
     if backend == "rapidfuzz":
-        if _RapidfuzzLevenshtein is None:
-            raise ImportError(
-                "backend='rapidfuzz' requires rapidfuzz: pip install rapidfuzz"
-            )
         operations = _editops_rapidfuzz(ref, hyp)
     elif backend == "python":
         cells = (len(ref) + 1) * (len(hyp) + 1)
@@ -153,10 +180,6 @@ def levenshtein_alignment(
                 "this in linear memory, or segment the input."
             )
         operations = _editops_python(ref, hyp)
-    else:
-        raise ValueError(
-            f"unknown backend '{backend}': expected 'auto', 'python' or 'rapidfuzz'"
-        )
 
     counts = {"hit": 0, "sub": 0, "del": 0, "ins": 0}
     for op, _, _ in operations:
