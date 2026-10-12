@@ -1517,5 +1517,6 @@ def test_usage_python_falls_back_when_the_declaration_itself_is_refused(
 
     with caplog.at_level("WARNING"):
         text = _usage_python("espnet/some_pack", tmp_path, "esp2_s2t")
-    assert text.splitlines()[0] == 'model = load("espnet/some_pack")'
+    assert text.splitlines()[0] == "from espnet3.api.inference import load"
+    assert text.splitlines()[2] == 'model = load("espnet/some_pack")'
     assert "outputs cannot be optional" in caplog.text
