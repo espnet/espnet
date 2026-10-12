@@ -81,9 +81,10 @@ class Inference(BackendInference):
     vocabulary before anything is decoded:
 
     - ``language``: ISO 639-3, such as ``"eng"`` or ``"jpn"``. Left out,
-      the backend's own ``lang_sym`` when the checkpoint has it, else the
-      checkpoint's symbol for working the language out itself
-      (``no_language()``: ``<nolang>`` for OWSM, ``<unk>`` for POWSM).
+      the model works the language out itself, by the checkpoint's own
+      symbol for that (``no_language()``: ``<nolang>`` for OWSM, ``<unk>``
+      for POWSM) - not by the backend's ``lang_sym``, whose constructor
+      default is English.
     - ``task``: ``"asr"``, or ``"st_eng"`` and the like for translation.
       Left out, the backend's own ``task_sym``, ``<asr>`` unless built
       otherwise.
@@ -136,9 +137,6 @@ class Inference(BackendInference):
                     "ISO 639-3, three letters: eng, deu, jpn, zho, fra, spa ..."
                 )
             return symbol
-        own = getattr(self.backend, "lang_sym", None)
-        if own and self._known(own):
-            return own
         try:
             return self.backend.no_language()
         except ValueError as e:
@@ -154,11 +152,19 @@ class Inference(BackendInference):
             return None
         symbol = f"<{task}>"
         if not self._known(symbol):
+            # the translation targets are few, one <st_xxx> each, so they are
+            # named: `kor` is ISO 639-3, and "use ISO 639-3" would not help
+            targets = ", ".join(sorted(self._targets())) or "nothing"
             raise ValueError(
-                f"task {task!r}: this model has no {symbol}; it takes asr, "
-                "or st_<ISO 639-3> to translate into that language"
+                f"task {task!r}: this model has no {symbol}; it takes asr, or "
+                f"st_<ISO 639-3> to translate, into {targets}"
             )
         return symbol
+
+    def _targets(self) -> list[str]:
+        """Return the languages the checkpoint translates into, by its <st_xxx>."""
+        tokens = getattr(getattr(self.backend, "s2t_model", None), "token_list", None)
+        return [t[len("<st_") : -1] for t in tokens or () if t.startswith("<st_")]
 
     def run_stream(
         self, chunks: Iterable[Mapping[str, Any]]
@@ -185,8 +191,14 @@ class Inference(BackendInference):
         previous = inputs.get("previous_text")
         if previous is not None:
             kwargs.update(init_text=previous, condition_on_prev_text=True)
+        if self._phones_by_window(kwargs["task_sym"]):
+            utterances = self._phones_window_by_window(
+                speech, kwargs["lang_sym"], previous
+            )
+        else:
+            utterances = self.backend.iter_long(speech.array, **kwargs)
         first = True
-        for utterance in self.backend.iter_long(speech.array, **kwargs):
+        for utterance in utterances:
             out = _output([utterance])
             if not first:
                 out["text"] = " " + out["text"]
@@ -207,8 +219,9 @@ class Inference(BackendInference):
         ``decode_long`` reads a window. The last second is left out because
         ``decode_long`` reads an utterance ending there as cut off and
         leaves it for the next window, which a batch item would not have.
-        A longer recording, an item with ``previous_text``, and a group of
-        one go through :meth:`run`, as does everything on a CTC-only
+        A longer recording, an item with ``previous_text``, phones on an
+        encoder-decoder checkpoint (decoded a window at a time) and a group
+        of one go through :meth:`run`, as does everything on a CTC-only
         checkpoint, whose ``batch_decode`` searches the CTC head while
         ``decode_long`` takes its best path, and on a backend without
         ``batch_decode`` or whose config does not say its window.
@@ -224,13 +237,14 @@ class Inference(BackendInference):
         outputs: list = [None] * len(items)
         groups: dict[tuple, list[int]] = {}
         for i, item in enumerate(items):
+            key = (self._language(item.get("language")), self._task(item.get("task")))
             if (
                 item.get("previous_text") is not None
                 or len(item["speech"].array) > batchable
+                or self._phones_by_window(key[1])
             ):
                 outputs[i] = self.run(**item)
                 continue
-            key = (self._language(item.get("language")), self._task(item.get("task")))
             groups.setdefault(key, []).append(i)
         for (lang_sym, task_sym), index in groups.items():
             if len(index) == 1:
@@ -250,6 +264,41 @@ class Inference(BackendInference):
             for i, nbest in zip(index, results):
                 outputs[i] = _output(self.backend.window_utterances(nbest[0][2]))
         return outputs
+
+    def _phones_by_window(self, task_sym: Optional[str]) -> bool:
+        """Whether this task on this checkpoint is decoded a window at a time.
+
+        Phone recognition has no timestamps to cut a recording up by, and an
+        encoder-decoder checkpoint asked for phones over the silence a short
+        window is padded with repeats what it has already said, for as long
+        as the window lasts; so each window is decoded on its own, as the
+        POWSM model card does. A CTC-only checkpoint has neither problem and
+        takes the long-form path, as every other task does.
+        """
+        task_sym = task_sym or getattr(self.backend, "task_sym", None)
+        return task_sym == "<pr>" and not getattr(self.backend, "ctc_only", False)
+
+    def _phones_window_by_window(
+        self, speech: Audio, lang_sym: str, previous_text: Optional[str] = None
+    ):
+        """Yield phones for each window of the model's length, one segment each.
+
+        ``previous_text`` conditions the first window, as ``decode_long``'s
+        ``init_text`` conditions the first segment.
+        """
+        conf = self.backend.preprocessor_conf
+        window = int(conf["fs"] * conf["speech_length"])
+        array, rate = speech.array, self.sample_rate
+        for start in range(0, max(len(array), 1), window):
+            results = self.backend(
+                array[start : start + window],
+                text_prev=previous_text if start == 0 else None,
+                lang_sym=lang_sym,
+                task_sym="<pr>",
+            )
+            text = results[0][3] if results else ""  # without the special tokens
+            end = min(start + window, len(array))
+            yield (start / rate, end / rate, text)
 
     def _batchable_samples(self) -> Optional[int]:
         """Return the longest recording a batch item may be, or ``None`` if unsaid.

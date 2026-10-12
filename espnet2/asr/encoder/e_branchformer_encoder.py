@@ -386,6 +386,8 @@ class EBranchformerEncoder(AbsEncoder):
                 attention_heads,
                 output_size,
                 attention_dropout_rate,
+                False,  # zero_triu
+                use_sdpa,
             )
             logging.warning(
                 "Using legacy_rel_selfattn and it will be deprecated in the future."
@@ -398,6 +400,7 @@ class EBranchformerEncoder(AbsEncoder):
                 output_size,
                 attention_dropout_rate,
                 zero_triu,
+                use_sdpa,
             )
         elif attention_layer_type == "fast_selfattn":
             assert pos_enc_layer_type in ["abs_pos", "scaled_abs_pos"]
