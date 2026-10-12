@@ -5,7 +5,7 @@ import logging
 import pytest
 from omegaconf import OmegaConf
 
-from espnet3.components.contract.stages import StageContractError, StageSpec, roles
+from espnet3.contract.stages import StageContractError, StageSpec, roles
 from espnet3.systems.base.system import BaseSystem
 from espnet3.systems.launch import build_parser, default_conf_package, launch
 

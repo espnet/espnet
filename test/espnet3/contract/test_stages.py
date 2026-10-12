@@ -1,11 +1,11 @@
-"""Tests for espnet3.components.contract.stages."""
+"""Tests for espnet3.contract.stages."""
 
 from pathlib import Path
 
 import pytest
 from omegaconf import OmegaConf
 
-from espnet3.components.contract.stages import (
+from espnet3.contract.stages import (
     StageContractError,
     StageSpec,
     check_requested_stages,

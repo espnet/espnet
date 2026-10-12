@@ -9,7 +9,7 @@ import torch
 import torch.nn as nn
 from omegaconf import OmegaConf
 
-from espnet3.components.contract.stages import StageSpec
+from espnet3.contract.stages import StageSpec
 from espnet3.utils import logging_utils as elog
 
 # | Test Name                                              | Description                                                    | # noqa: E501

@@ -41,7 +41,7 @@ class StageContractError(ValueError):
     Examples:
         >>> raise StageContractError("ASRSystem has no stage 'decode'")
         Traceback (most recent call last):
-        espnet3.components.contract.stages.StageContractError: ASRSystem ...
+        espnet3.contract.stages.StageContractError: ASRSystem ...
     """
 
 
@@ -68,7 +68,7 @@ def check_stage_contract(cls: type) -> None:
         ...     stages = ()
         >>> check_stage_contract(BadSystem)
         Traceback (most recent call last):
-        espnet3.components.contract.stages.StageContractError: BadSystem.stages must ...
+        espnet3.contract.stages.StageContractError: BadSystem.stages must ...
     """
     stages = getattr(cls, "stages", None)
     if (

@@ -20,7 +20,7 @@ from typing import Any, Mapping
 import torch
 from omegaconf import OmegaConf
 
-from espnet3.components.contract.stages import roles
+from espnet3.contract.stages import roles
 
 LOG_FORMAT = (
     "[%(hostname)s] %(asctime)s (%(filename)s:%(lineno)d) "
@@ -85,7 +85,7 @@ def log_stage_metadata(
 
     Examples:
         >>> from argparse import Namespace
-        >>> from espnet3.components.contract.stages import StageSpec
+        >>> from espnet3.contract.stages import StageSpec
         >>> class DummySystem:
         ...     stages = (StageSpec(name="train", config="training"),)
         ...     training_config = {"exp_dir": "./exp/train"}

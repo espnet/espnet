@@ -4,7 +4,7 @@ import pytest
 from omegaconf import OmegaConf
 
 import espnet3.systems.base.system as sysmod
-from espnet3.components.contract.stages import stage_log_dir
+from espnet3.contract.stages import stage_log_dir
 from espnet3.systems.base.system import BaseSystem
 
 

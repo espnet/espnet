@@ -7,7 +7,7 @@ from typing import ClassVar
 
 from omegaconf import DictConfig, OmegaConf
 
-from espnet3.components.contract.stages import StageSpec, check_stage_contract
+from espnet3.contract.stages import StageSpec, check_stage_contract
 from espnet3.components.data.dataset_module import (
     load_dataset_module,
     parse_dataset_reference_config,
@@ -27,13 +27,13 @@ class BaseSystem:
     """Base class for all ESPnet3 systems.
 
     A system declares its stages as the class attribute ``stages``: a
-    tuple of :class:`~espnet3.components.contract.stages.StageSpec`, in
+    tuple of :class:`~espnet3.contract.stages.StageSpec`, in
     the order "all" runs them. Every public method a system defines
     (class-defined, not starting with ``_``) must be one of these stage
     names - a system has no other public surface. See
-    ``espnet3.components.contract.stages.check_stage_contract`` for the
+    ``espnet3.contract.stages.check_stage_contract`` for the
     checks run when a subclass is defined, and
-    ``espnet3.components.contract.stages.stage_log_dir`` for how a
+    ``espnet3.contract.stages.stage_log_dir`` for how a
     stage's log directory is resolved.
 
     Class Attributes:

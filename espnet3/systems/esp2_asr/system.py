@@ -11,7 +11,7 @@ from importlib import import_module
 from pathlib import Path
 from typing import ClassVar, Iterable
 
-from espnet3.components.contract.stages import StageSpec
+from espnet3.contract.stages import StageSpec
 from espnet3.systems.base.system import BaseSystem
 from espnet3.systems.esp2_asr.src.tokenizers.sentencepiece import train_sentencepiece
 

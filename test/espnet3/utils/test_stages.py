@@ -5,7 +5,7 @@ from typing import ClassVar
 
 import pytest
 
-from espnet3.components.contract.stages import StageSpec
+from espnet3.contract.stages import StageSpec
 from espnet3.systems.base.system import BaseSystem
 from espnet3.utils import stages_utils
 from espnet3.utils.stages_utils import _RANK_ENV_KEYS, resolve_stages, run_stages

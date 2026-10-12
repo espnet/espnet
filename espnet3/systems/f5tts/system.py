@@ -9,7 +9,7 @@ two data-preparation stages an F5-TTS recipe runs between
 import logging
 from typing import ClassVar
 
-from espnet3.components.contract.stages import StageSpec
+from espnet3.contract.stages import StageSpec
 from espnet3.systems.base.system import BaseSystem
 from espnet3.systems.f5tts.create_token_list import create_token_list
 from espnet3.systems.f5tts.remove_long_short import remove_long_short
