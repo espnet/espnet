@@ -195,3 +195,45 @@ def test_branchformer_output_does_not_depend_on_batch_neighbours():
             **{k: v for k, v in COMMON.items() if k != "linear_units"},
         )
     )
+
+
+@pytest.mark.parametrize(
+    "attn, pos_enc",
+    [("selfattn", "abs_pos"), ("rel_selfattn", "rel_pos")],
+)
+def test_use_sdpa_reaches_the_attention_and_matches_the_default(attn, pos_enc):
+    """`use_sdpa` has to be forwarded, and must not change the output.
+
+    The flag reaches PyTorch's scaled_dot_product_attention; checking every
+    module that carries it, rather than one attribute name, keeps this honest
+    if a layer gains a second attention.
+    """
+    x = torch.randn(2, 120, 80)
+    lengths = torch.tensor([120, 95])
+
+    def build(**kwargs):
+        torch.manual_seed(0)
+        return BranchformerEncoder(
+            80,
+            output_size=32,
+            attention_heads=2,
+            cgmlp_linear_units=32,
+            num_blocks=2,
+            attention_layer_type=attn,
+            pos_enc_layer_type=pos_enc,
+            rel_pos_type="latest",
+            use_flash_attn=False,
+            **kwargs,
+        )
+
+    # eval() so dropout does not make the two forward passes draw different
+    # masks: the point of the comparison is the attention implementation.
+    sdpa_encoder = build(use_sdpa=True).eval()
+    attentions = [m for m in sdpa_encoder.modules() if hasattr(m, "use_sdpa")]
+    assert attentions and all(m.use_sdpa for m in attentions)
+
+    with torch.no_grad():
+        default_out, _, _ = build().eval()(x, lengths)
+        sdpa_out, _, _ = sdpa_encoder(x, lengths)
+    assert default_out.shape == sdpa_out.shape
+    assert torch.allclose(default_out, sdpa_out, atol=1e-5)
