@@ -5,6 +5,58 @@ import torch
 from espnet2.aqa.base import UniversaBase
 
 
+def _build_universa(**kwargs):
+    torch.manual_seed(0)
+    return UniversaBase(
+        input_size=8,
+        metric2id={"mos": 0},
+        use_ref_audio=True,
+        use_ref_text=False,
+        embedding_size=8,
+        use_normalize=False,
+        audio_encoder_params=dict(
+            num_blocks=1,
+            attention_heads=2,
+            linear_units=16,
+            input_layer="linear",
+            dropout_rate=0.0,
+            positional_dropout_rate=0.0,
+            attention_dropout_rate=0.0,
+            use_flash_attn=False,
+        ),
+        cross_attention_params=dict(n_head=2, dropout_rate=0.0),
+        **kwargs,
+    )
+
+
+def test_use_sdpa_reaches_the_attention_and_matches_the_default():
+    """`use_sdpa` has to be forwarded, and must not change the output.
+
+    eval() so dropout does not make the two forward passes draw different
+    masks. Reference audio is included so the cross attention runs too.
+    """
+    audio = torch.randn(2, 10, 8)
+    lengths = torch.tensor([10, 8])
+    reference = torch.randn(2, 12, 8)
+    reference_lengths = torch.tensor([12, 9])
+
+    outputs = {}
+    for use_sdpa in (False, True):
+        model = _build_universa(use_sdpa=use_sdpa).eval()
+        attentions = [m for m in model.modules() if hasattr(m, "use_sdpa")]
+        assert attentions and all(m.use_sdpa is use_sdpa for m in attentions)
+        with torch.no_grad():
+            encoded, encoded_lengths = model.encode(
+                audio, lengths, reference, reference_lengths
+            )
+        outputs[use_sdpa] = (encoded, encoded_lengths)
+
+    torch.testing.assert_close(
+        outputs[True][0], outputs[False][0], atol=1e-5, rtol=1e-5
+    )
+    torch.testing.assert_close(outputs[True][1], outputs[False][1])
+
+
 @pytest.mark.parametrize("multi_branch", [False, True])
 @pytest.mark.parametrize("pooling_type", ["mean", "channel_attention"])
 @pytest.mark.parametrize("use_normalize", [False, True])
