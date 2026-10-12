@@ -13,7 +13,7 @@ from typing import ClassVar, Iterable
 
 from espnet3.components.contract.stages import StageSpec
 from espnet3.systems.base.system import BaseSystem
-from espnet3.systems.esp2_asr.tokenizers.sentencepiece import train_sentencepiece
+from espnet3.systems.esp2_asr.src.tokenizers.sentencepiece import train_sentencepiece
 
 logger = logging.getLogger(__name__)
 
