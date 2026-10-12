@@ -309,3 +309,70 @@ class TestMainDispatch:
 
         with pytest.raises(ValueError, match="Unknown trainer type"):
             self._run(train_module, argv, ctxs)
+
+
+# ---------------------------------------------------------------------------
+# record_token_layout
+# ---------------------------------------------------------------------------
+INTERVALS = {"text": [(0, 5)], "discrete_audio": [(5, 9)]}
+
+# The same config in the three YAML shapes a saved config has turned up in.
+# The first is what a hand-written config looks like; the other two broke the
+# earlier version of this writer, which appended its record as text.
+CONFIG_FORMS = {
+    "block": "job_type: speechlm\nmultimodal_io:\n  text: {}\n  discrete_audio: {}\n",
+    "document end marker": (
+        "job_type: speechlm\nmultimodal_io:\n  text: {}\n  discrete_audio: {}\n...\n"
+    ),
+    "flow-style root": (
+        "{job_type: speechlm, multimodal_io: {text: {}, discrete_audio: {}}}\n"
+    ),
+}
+
+
+class TestRecordTokenLayout:
+    @pytest.mark.parametrize("form", list(CONFIG_FORMS))
+    def test_the_config_still_loads_and_keeps_its_order(
+        self, train_module, tmp_path, form
+    ):
+        """Whichever YAML shape it was saved in."""
+        config_path = tmp_path / "train.yaml"
+        config_path.write_text(CONFIG_FORMS[form])
+
+        train_module.record_token_layout(config_path, INTERVALS)
+
+        saved = yaml.safe_load(config_path.read_text())
+        # the order of multimodal_io is what hands out the token ids
+        assert list(saved["multimodal_io"]) == ["text", "discrete_audio"]
+        assert saved["vocab_intervals"] == {
+            "text": [[0, 5]],
+            "discrete_audio": [[5, 9]],
+        }
+        assert saved["job_type"] == "speechlm"
+
+    def test_a_record_already_there_is_left_alone(self, train_module, tmp_path):
+        """A resumed run must not overwrite the layout the first run recorded."""
+        config_path = tmp_path / "train.yaml"
+        config_path.write_text(CONFIG_FORMS["block"])
+        train_module.record_token_layout(config_path, INTERVALS)
+        after_first = config_path.read_text()
+
+        train_module.record_token_layout(config_path, {"text": [(99, 100)]})
+
+        assert config_path.read_text() == after_first
+
+    def test_the_record_survives_a_trip_through_the_loader(
+        self, train_module, tmp_path
+    ):
+        """Tuples in, lists out: the comparison on load is against plain YAML."""
+        config_path = tmp_path / "train.yaml"
+        config_path.write_text(CONFIG_FORMS["block"])
+
+        train_module.record_token_layout(config_path, INTERVALS)
+
+        layout = yaml.safe_load(config_path.read_text())["vocab_intervals"]
+        assert all(
+            isinstance(pair, list) and all(isinstance(x, int) for x in pair)
+            for pairs in layout.values()
+            for pair in pairs
+        )

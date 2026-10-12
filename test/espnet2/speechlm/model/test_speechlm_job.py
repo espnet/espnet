@@ -15,6 +15,7 @@ from unittest.mock import MagicMock, patch
 import numpy as np
 import pytest
 import torch
+import yaml
 
 from espnet2.speechlm.model.speechlm.multimodal_io.abs_io import AbsIO
 
@@ -777,3 +778,23 @@ class TestRecordedTokenLayout:
         assert moved in message
         # and it says what to do about it
         assert "sort_keys=False" in message
+
+    def test_a_default_re_dump_is_refused(self):
+        """The failure this guard exists for, produced the way it happens.
+
+        `yaml.safe_dump` sorts keys unless told not to, so a config passed
+        through it comes back with `multimodal_io` in alphabetical order and
+        every token id moved, while the checkpoint still loads strictly.
+        """
+        config = _make_config()
+        config["vocab_intervals"] = self._recorded(self._build(config))
+
+        re_dumped = yaml.safe_load(yaml.safe_dump(config))
+        # that is all it takes: the modalities come back the other way round
+        assert list(re_dumped["multimodal_io"]) != list(config["multimodal_io"])
+        assert list(re_dumped["multimodal_io"]) == sorted(config["multimodal_io"])
+
+        with pytest.raises(ValueError) as raised:
+            self._build(re_dumped)
+
+        assert "sort_keys=False" in str(raised.value)

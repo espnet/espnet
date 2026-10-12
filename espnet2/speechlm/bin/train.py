@@ -174,23 +174,23 @@ def record_token_layout(config_path: Path, intervals: dict) -> None:
     the model decodes nothing recognisable and nothing says why. Recording the
     layout lets the job template catch that on load.
 
-    Appended as text rather than re-dumped, because re-dumping a config is
-    exactly what moves the ids. A run that resumes finds the record already
-    there and leaves it alone.
+    `sort_keys=False` is the point of this function as much as the record is:
+    dumping with the default would itself sort `multimodal_io` and move every
+    id, which is the failure this guard exists to catch. Re-dumping does lose
+    the comments and the formatting of the copy, which is why it rewrites the
+    copy in the output directory and never the config the user passed in.
+
+    A run that resumes finds the record already there and leaves it alone, so
+    the layout of the first run is the one that is checked.
     """
     saved = yaml.safe_load(config_path.read_text()) or {}
     if "vocab_intervals" in saved:
         return
-    layout = {
+    saved["vocab_intervals"] = {
         name: [[int(start), int(end)] for start, end in pairs]
         for name, pairs in intervals.items()
     }
-    with open(config_path, "a") as config_file:
-        config_file.write(
-            "\n# The token layout of this run, checked when the config is "
-            "loaded again.\n"
-        )
-        yaml.safe_dump({"vocab_intervals": layout}, config_file, sort_keys=False)
+    config_path.write_text(yaml.safe_dump(saved, sort_keys=False, allow_unicode=True))
 
 
 def main():
