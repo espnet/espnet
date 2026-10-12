@@ -188,17 +188,30 @@ def test_main_writes_the_file(tmp_path, capsys):
     assert "workflows/pr_demo.yml/badge.svg" in text
 
 
-def test_main_reads_the_system_from_a_bundle_when_none_is_named(
+def test_main_reads_the_system_from_the_bundle_when_none_is_named(
     tmp_path, monkeypatch, capsys
 ):
-    import espnet3.api.inference as api
+    """No weights are built for it: meta.yaml names the system."""
+    import espnet3.api.inference.loading as loading
 
-    monkeypatch.setattr(api, "load", lambda tag, **kwargs: Say())
-    out = tmp_path / "tts_demo.ipynb"
-    argv = ["espnet/some_tts", "--title", "t", "--input", "text=hi", "-o", str(out)]
-    assert notebook.main(argv) == 0
+    monkeypatch.setattr(loading, "locate_pack", lambda tag: tmp_path)
+    monkeypatch.setattr(loading, "read_meta", lambda path: {"system": "s2t"})
+    out = tmp_path / "asr_demo.ipynb"
+    assert notebook.main(["espnet/some_pack", "--title", "t", "-o", str(out)]) == 0
 
-    assert 'result = model("hi")' in "\n".join(_sources(json.loads(out.read_text())))
+    text = "\n".join(_sources(json.loads(out.read_text())))
+    assert 'model = load("espnet/some_pack")\nresult = model("speech.wav")' in text
+
+
+def test_main_asks_for_the_system_a_bundle_does_not_name(tmp_path, monkeypatch, capsys):
+    import espnet3.api.inference.loading as loading
+
+    monkeypatch.setattr(loading, "locate_pack", lambda tag: tmp_path)
+    monkeypatch.setattr(loading, "read_meta", lambda path: {})
+    with pytest.raises(SystemExit) as e:
+        notebook.main(["espnet/some_pack", "--title", "t", "-o", str(tmp_path / "a")])
+    assert e.value.code == 2
+    assert "names no system in its meta.yaml; pass --system" in capsys.readouterr().err
 
 
 def test_main_refuses_an_input_without_a_value(tmp_path, capsys):

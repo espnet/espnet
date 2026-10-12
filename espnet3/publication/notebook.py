@@ -235,12 +235,15 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
         if not sep:
             parser.error(f"--input {pair!r}: give NAME=VALUE")
         inputs[name] = value
-    if args.system:
-        cls = inference_class(args.system)
-    else:
-        from espnet3.api.inference import load
+    system = args.system
+    if not system:
+        # a bundle names its system in meta.yaml; no weights are built for it
+        from espnet3.api.inference.loading import locate_pack, read_meta
 
-        cls = type(load(args.tag, device="cpu"))
+        system = read_meta(locate_pack(args.tag)).get("system")
+        if not system:
+            parser.error(f"{args.tag} names no system in its meta.yaml; pass --system")
+    cls = inference_class(system)
     page = demo_notebook(
         cls,
         args.tag,
