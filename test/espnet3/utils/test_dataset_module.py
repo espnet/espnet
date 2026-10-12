@@ -3,6 +3,7 @@ from pathlib import Path
 import pytest
 
 from espnet3.components.data import dataset_module as dm
+from espnet3.components.data.data_organizer import DatasetConfig
 
 
 def _write(path: Path, text: str) -> None:
@@ -236,6 +237,26 @@ def test_parse_dataset_reference_config_keeps_data_src_args():
 
     assert data_src == "mini_an4/esp2_asr"
     assert data_src_args == {"split": "train"}
+
+
+def test_parse_dataset_reference_config_omitted_data_src_args_parses():
+    """A plain dict omitting data_src_args must not fail dict() conversion."""
+    data_src, data_src_args = dm.parse_dataset_reference_config(
+        {"data_src": "mini_an4/asr"}
+    )
+
+    assert data_src == "mini_an4/asr"
+    assert data_src_args == {}
+
+
+def test_parse_dataset_reference_config_dataset_config_default_parses():
+    """DatasetConfig defaults data_src_args to None; parsing must still succeed."""
+    data_src, data_src_args = dm.parse_dataset_reference_config(
+        DatasetConfig(data_src="mini_an4/asr")
+    )
+
+    assert data_src == "mini_an4/asr"
+    assert data_src_args == {}
 
 
 def test_instantiate_dataset_reference_blank_data_src_uses_local_module(tmp_path):
