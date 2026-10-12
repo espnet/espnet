@@ -1,10 +1,10 @@
-"""Tests for espnet3.components.contract.dataset."""
+"""Tests for espnet3.contract.data."""
 
 import numpy as np
 import pytest
 
 from espnet3.api.inference import Field
-from espnet3.components.contract.dataset import (
+from espnet3.contract.data import (
     DatasetContractError,
     check_fields,
     check_item,

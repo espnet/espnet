@@ -13,7 +13,7 @@ class DatasetContractError(ValueError):
     Examples:
         >>> raise DatasetContractError("item lacks declared field 'text'")
         Traceback (most recent call last):
-        espnet3.components.contract.dataset.DatasetContractError: item lacks ...
+        espnet3.contract.data.DatasetContractError: item lacks ...
     """
 
 
@@ -106,7 +106,7 @@ def check_item(fields: Tuple[Field, ...], item: Any, where: str) -> None:
         >>> check_item(fields, item, "train[0]")
         >>> check_item(fields, {"speech": item["speech"]}, "train[0]")
         Traceback (most recent call last):
-        espnet3.components.contract.dataset.DatasetContractError: train[0]: ...
+        espnet3.contract.data.DatasetContractError: train[0]: ...
     """
     if not isinstance(item, Mapping):
         raise DatasetContractError(
