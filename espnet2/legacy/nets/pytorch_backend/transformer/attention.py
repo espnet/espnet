@@ -280,12 +280,13 @@ class LegacyRelPositionMultiHeadedAttention(MultiHeadedAttention):
         n_feat (int): The number of features.
         dropout_rate (float): Dropout rate.
         zero_triu (bool): Whether to zero the upper triangular part of attention matrix.
+        use_sdpa (bool): Use PyTorch's scaled dot product attention.
 
     """
 
-    def __init__(self, n_head, n_feat, dropout_rate, zero_triu=False):
+    def __init__(self, n_head, n_feat, dropout_rate, zero_triu=False, use_sdpa=False):
         """Construct an RelPositionMultiHeadedAttention object."""
-        super().__init__(n_head, n_feat, dropout_rate)
+        super().__init__(n_head, n_feat, dropout_rate, use_sdpa=use_sdpa)
         self.zero_triu = zero_triu
         # linear transformation for positional encoding
         self.linear_pos = nn.Linear(n_feat, n_feat, bias=False)
@@ -355,6 +356,25 @@ class LegacyRelPositionMultiHeadedAttention(MultiHeadedAttention):
         # (batch, head, time1, time1)
         matrix_bd = torch.matmul(q_with_bias_v, p.transpose(-2, -1))
         matrix_bd = self.rel_shift(matrix_bd)
+
+        if self.use_sdpa:
+            # See RelPositionMultiHeadedAttention below for why the
+            # relative-position term travels as an additive attn_mask.
+            attn_mask = matrix_bd / math.sqrt(self.d_k)
+            if mask is not None:
+                attn_mask = attn_mask.masked_fill(
+                    mask.unsqueeze(1).eq(0), torch.finfo(attn_mask.dtype).min
+                )
+            out = torch.nn.functional.scaled_dot_product_attention(
+                q_with_bias_u,
+                k,
+                v,
+                attn_mask,
+                dropout_p=self.dropout_rate if self.training else 0.0,
+            )  # (batch, head, time1, d_k)
+            out = out.transpose(1, 2)  # (batch, time1, head, d_k)
+            out = out.reshape(out.shape[0], out.shape[1], -1)
+            return self.linear_out(out)
 
         scores = (matrix_ac + matrix_bd) / math.sqrt(
             self.d_k

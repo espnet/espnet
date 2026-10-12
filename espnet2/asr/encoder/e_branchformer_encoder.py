@@ -386,6 +386,8 @@ class EBranchformerEncoder(AbsEncoder):
                 attention_heads,
                 output_size,
                 attention_dropout_rate,
+                False,  # zero_triu
+                use_sdpa,
             )
             logging.warning(
                 "Using legacy_rel_selfattn and it will be deprecated in the future."
