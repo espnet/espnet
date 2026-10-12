@@ -1,0 +1,51 @@
+##########################################################
+#                   INFERENCE SETTING                    #
+##########################################################
+# Common usage:
+#   python run.py --stages infer \
+#       --training_config conf/training.yaml \
+#       --inference_config conf/inference.yaml
+#
+# Shared default merged under every classification recipe's inference config.
+# Kept as empty as possible so it never conflicts with a concrete recipe.
+
+##########################################################
+#                    PATHS AND INPUTS                    #
+##########################################################
+# `run.py` copies `exp_tag` / `exp_dir` from the training config, so recipes
+# normally leave them unset. When `inference_dir` is omitted,
+# `conf/<name>.yaml` writes to `${exp_dir}/<name>`.
+recipe_dir: .
+exp_tag:
+exp_dir: ${recipe_dir}/exp/${exp_tag}
+data_dir: ${recipe_dir}/data
+inference_dir: ${exp_dir}/${self_name:}
+
+##########################################################
+#                    DATASET DEFINITION                  #
+##########################################################
+# Each `test` entry becomes one output directory under `inference_dir`.
+dataset:
+  _target_: espnet3.components.data.data_organizer.DataOrganizer
+  _recursive_: false
+  recipe_dir: ${recipe_dir}
+  test:
+  preprocessor:
+
+parallel:
+  env: local
+  n_workers: 1
+
+##########################################################
+#                    MODEL AND OUTPUT                    #
+##########################################################
+# `model` is instantiated with `device` injected by the provider.
+# `output_fn` maps one model output to the fields written as SCP files.
+model:
+input_key: speech
+output_fn:
+
+provider:
+  _target_: espnet3.systems.base.inference_provider.InferenceProvider
+runner:
+  _target_: espnet3.systems.base.inference_runner.InferenceRunner

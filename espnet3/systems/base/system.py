@@ -10,6 +10,7 @@ from espnet3.components.data.dataset_module import (
     load_dataset_module,
     parse_dataset_reference_config,
 )
+from espnet3.parallel.parallel import set_parallel
 from espnet3.publication.demo.packing import pack_demo as _pack_demo
 from espnet3.publication.demo.packing import upload_demo as _upload_demo
 from espnet3.systems.base.inference import infer
@@ -237,6 +238,12 @@ class BaseSystem:
             self.training_config, "create_dataset", OmegaConf.create({})
         )
         default_builder_kwargs = dict(create_dataset_config)
+
+        # A builder may fan its conversion work out over the cluster, so the
+        # stage sets parallelism up the way remove_long_short and collect_stats
+        # already do. Without this the global default of one worker applies.
+        if self.training_config.get("parallel"):
+            set_parallel(self.training_config.parallel)
 
         prepared_any = False
 
