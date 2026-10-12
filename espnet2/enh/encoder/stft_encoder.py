@@ -193,6 +193,6 @@ class STFTEncoder(AbsEncoder):
         strides = list(audio.stride())
 
         shape = list(audio.shape[:-1]) + [self.win_length, n_frames]
-        strides = strides + [self.hop_length]
+        strides = strides + [self.hop_length * audio.stride(-1)]
 
-        return audio.as_strided(shape, strides, storage_offset=0).unbind(dim=-1)
+        return audio.as_strided(shape, strides).unbind(dim=-1)
