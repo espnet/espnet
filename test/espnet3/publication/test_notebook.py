@@ -124,9 +124,42 @@ def test_a_text_input_is_given_and_no_recording_is_fetched():
         in code[3]
     )
     assert (
-        "`espnet run espnet/some_tts text=Hello from ESPnet`"
+        "`espnet run espnet/some_tts text='Hello from ESPnet'`"
         in _sources(page, "markdown")[-1]
     )
+
+
+class Hear(InferenceAPI):
+    """Text in, an optional recording to match; audio out."""
+
+    inputs = (
+        Field("text", "text", "Text"),
+        Field("reference", "audio", "Reference", optional=True),
+    )
+    outputs = (Field("audio", "audio", "Speech"),)
+
+    @classmethod
+    def from_pretrained(cls, tag_or_dir, *, device="auto", **kwargs):
+        return cls()
+
+    def run(self, text, reference=None):
+        return {"audio": text}
+
+
+def test_an_optional_audio_input_given_without_a_required_one():
+    """The sample is fetched to it, and nothing indexes a required path."""
+    page = notebook.demo_notebook(
+        Hear,
+        "x",
+        name="tts_demo",
+        title="t",
+        inputs={"text": "hi", "reference": "ref.wav"},
+        espnet_version="202610.post2",
+    )
+    code = _sources(page, "code")
+    assert code[1].startswith(f"!wget -q -O ref.wav {notebook.SAMPLE_AUDIO}")
+    assert 'result = model("hi", reference="ref.wav")' in code[2]
+    assert "`espnet run x text=hi reference=ref.wav`" in _sources(page, "markdown")[-1]
 
 
 def test_an_optional_input_named_makes_the_page_about_it():

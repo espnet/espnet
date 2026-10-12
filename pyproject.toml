@@ -316,7 +316,7 @@ test = [
   # test_mcp_server.py imports mcp outright; macOS CI installs only .[test].
   "mcp>=2.0",
   # test_notebook.py validates the generated Demos page against the schema
-  "nbformat",
+  "nbformat>=5.0",
 ]
 
 doc = [

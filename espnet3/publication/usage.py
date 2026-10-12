@@ -94,7 +94,7 @@ def call_lines(
     call = ", ".join(
         [value(f) for f in required] + [f"{f.name}={value(f)}" for f in passed]
     )
-    load_args = f'"{tag}"' + (f', system="{system}"' if system else "")
+    load_args = _literal(tag) + (f", system={_literal(system)}" if system else "")
     lines = [
         "from espnet3.api.inference import load",
         "",

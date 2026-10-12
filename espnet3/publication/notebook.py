@@ -34,6 +34,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import shlex
 import sys
 from pathlib import Path
 from typing import Any, Mapping, Optional, Sequence
@@ -68,11 +69,11 @@ def _first_sentence(cls: type) -> str:
 
 
 def _audio_paths(cls: type[InferenceAPI], inputs: Mapping[str, Any]) -> list[str]:
-    """The files the call reads for its required audio inputs."""
+    """The files the call reads: its required audio inputs, and optional ones given."""
     return [
         inputs.get(f.name, "speech.wav")
         for f in cls.inputs
-        if f.kind == "audio" and not f.optional
+        if f.kind == "audio" and (not f.optional or f.name in inputs)
     ]
 
 
@@ -134,11 +135,18 @@ def demo_notebook(
         espnet_version = __version__ if __version__[:1].isdigit() else None
     pin = f'"espnet=={espnet_version}"' if espnet_version else "espnet"
     paths = _audio_paths(cls, given)
-    run = f"espnet run {tag}" + (f" --system {system}" if system else "")
-    run += "".join(
-        f" {f.name}={given.get(f.name, paths[0] if f.kind == 'audio' else '...')}"
-        for f in cls.inputs
-        if not f.optional or f.name in given
+    run = " ".join(
+        ["espnet", "run", shlex.quote(tag)]
+        + (["--system", shlex.quote(system)] if system else [])
+        + [
+            (
+                f"{f.name}=" + shlex.quote(str(given[f.name]))
+                if f.name in given
+                else f"{f.name}=" + (paths[0] if f.kind == "audio" else "...")
+            )
+            for f in cls.inputs
+            if not f.optional or f.name in given
+        ]
     )
     cells = [
         _markdown(

@@ -97,3 +97,8 @@ def test_given_inputs_are_written_in_the_call():
     item = '{"speech": "talk.wav", "hint": "a cat"}'
     assert f"model.batch([{item}, {item}])" in text
     assert f"for piece in model.stream([{item}]):" in text
+
+
+def test_a_tag_is_written_as_a_python_literal():
+    text = python_usage(Describe, 'exp/model "v2"\\pack', system="s2t")
+    assert 'model = load("exp/model \\"v2\\"\\\\pack", system="s2t")' in text
