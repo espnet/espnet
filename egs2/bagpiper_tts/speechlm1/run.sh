@@ -16,7 +16,7 @@
 set -euo pipefail
 
 cd -- "$(dirname -- "${BASH_SOURCE[0]}")"
-. ../../TEMPLATE/speechlm1/stage_utils.sh
+. ../../TEMPLATE/asr1/scripts/speechlm/stage_utils.sh
 
 stage=1
 stop_stage=3

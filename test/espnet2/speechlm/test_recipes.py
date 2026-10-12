@@ -26,7 +26,7 @@ def recipe_tree(tmp_path):
         shutil.copy2(source / relative / "run.sh", root / relative / "run.sh")
     for relative in (
         "egs2/TEMPLATE/speechlm1/train.sh",
-        "egs2/TEMPLATE/speechlm1/stage_utils.sh",
+        "egs2/TEMPLATE/asr1/scripts/speechlm/stage_utils.sh",
         "egs2/TEMPLATE/asr1/utils/parse_options.sh",
     ):
         target = root / relative

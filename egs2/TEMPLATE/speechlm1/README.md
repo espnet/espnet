@@ -6,7 +6,7 @@ This template contains two drivers for different SpeechLM training interfaces:
 | --- | --- | --- |
 | `speechlm.sh` | `espnet2.bin.speechlm_train` | Existing staged recipes, such as LibriTTS and mini_an4, with the traditional ESPnet environment and job launcher |
 | `train.sh` | `espnet2.speechlm.bin.train` | Bagpiper and Bagpiper-TTS training with TorchTitan, prepared dataset manifests, and length statistics |
-| `stage_utils.sh` | sourced by those recipes' `run.sh` | Finding the latest complete checkpoint, and the rule for where a training stage starts |
+| [`scripts/speechlm/stage_utils.sh`](../asr1/scripts/speechlm/stage_utils.sh) | sourced by those recipes' `run.sh` | Finding the latest complete checkpoint, and the rule for where a training stage starts |
 
 The drivers have different configuration and data interfaces. Keep using
 `speechlm.sh` for recipes built around it; `train.sh` provides the entry point for
@@ -32,7 +32,7 @@ the usual egs2 shape, ending in export and inference:
 that, so the last stage decodes published weights without training anything
 when it is given `--export-path` and `--train-config`. A training stage
 continues its own output directory once that has checkpoints, and otherwise
-starts from the stage before it; `stage_utils.sh` holds that rule and the
+starts from the stage before it; `scripts/speechlm/stage_utils.sh` holds that rule and the
 search for the latest complete checkpoint, so the recipes do not repeat it.
 
 Their inputs are already prepared, so the data-preparation and cluster-launch
