@@ -23,6 +23,7 @@ from espnet2.tok.objective.reconstruction.abs_reconstruction import (
 from espnet2.tok.output import SpeechTokenizerOutput
 from espnet2.torch_utils.device_funcs import force_gatherable
 
+
 class HiFiGANReconstructionObjective(AbsReconstructionObjective):
     """Reconstruct speech from differentiable tokens with HiFi-GAN.
 
