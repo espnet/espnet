@@ -7,6 +7,7 @@ This template contains two drivers for different SpeechLM training interfaces:
 | `speechlm.sh` | `espnet2.bin.speechlm_train` | Existing staged recipes, such as LibriTTS and mini_an4, with the traditional ESPnet environment and job launcher |
 | `train.sh` | `espnet2.speechlm.bin.train` | Bagpiper and Bagpiper-TTS training with TorchTitan, prepared dataset manifests, and length statistics |
 | [`scripts/speechlm/stage_utils.sh`](../asr1/scripts/speechlm/stage_utils.sh) | sourced by those recipes' `run.sh` | Finding the latest complete checkpoint, and the rule for where a training stage starts |
+| [`scripts/speechlm/parse_options.sh`](../asr1/scripts/speechlm/parse_options.sh) | sourced by `train.sh` and those recipes' `run.sh` | Reading the options, with repeatable ones collected into an array and every value kept literal |
 
 The drivers have different configuration and data interfaces. Keep using
 `speechlm.sh` for recipes built around it; `train.sh` provides the entry point for
