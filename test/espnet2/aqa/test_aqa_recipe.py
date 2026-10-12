@@ -169,3 +169,29 @@ def test_scoring(recipe):
     )
     assert json.loads((output / "utt_result.json").read_text())["utt_mos_mse"] == 1
     assert json.loads((output / "sys_result.json").read_text())["sys_mos_mse"] == 1
+
+
+def test_statistics_padded_line_counts(recipe):
+    """Padded BSD line counts must still form a valid parallel job range."""
+    path, run = recipe
+    for dset, keys in (("train", ["a", "b"]), ("valid", ["c"])):
+        data = path / "dump/raw" / dset
+        data.mkdir(parents=True)
+        (data / "wav.scp").write_text("".join(f"{key} /{key}.wav\n" for key in keys))
+    bin_dir = path / "bin"
+    bin_dir.mkdir()
+    wc = bin_dir / "wc"
+    wc.write_text("""#!/usr/bin/env bash
+printf "       %s\\n" "$(awk 'END {print NR}')"
+""")
+    wc.chmod(0o755)
+    with (path / "path.sh").open("a") as stream:
+        stream.write(f'export PATH="{bin_dir}:$PATH"\n')
+    recorder = path / "record-train"
+    recorder.write_text('#!/usr/bin/env bash\nprintf "%s\\n" "$@" > stats-args.txt\n')
+    recorder.chmod(0o755)
+    (path / "cmd.sh").write_text(f"train_cmd={recorder}\n")
+    run(6, "--python", "/usr/bin/true")
+    args = (path / "stats-args.txt").read_text().splitlines()
+    assert args[0] == "JOB=1:1"
+    assert (path / "exp/aqa_stats_raw/logdir/valid.1.scp").read_text() == "c /c.wav\n"

@@ -19,7 +19,8 @@ min() {
           a="${b}"
       fi
   done
-  echo "${a}"
+  # BSD wc pads line counts; emit a normalized integer for JOB=1:<nj>.
+  echo "$((a))"
 }
 SECONDS=0
 
