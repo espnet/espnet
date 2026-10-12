@@ -6,6 +6,7 @@ from types import SimpleNamespace
 
 import numpy as np
 import pytest
+import torch
 from omegaconf import OmegaConf
 
 from espnet3.api.inference import Audio
@@ -28,6 +29,14 @@ def _test_classes_count_as_installed_espnet_code(monkeypatch):
         "_BUNDLE_TARGET_PREFIXES",
         loading._BUNDLE_TARGET_PREFIXES + (f"{__name__}.",),
     )
+
+
+@pytest.fixture(autouse=True)
+def _no_gpu(monkeypatch):
+    """Resolve device="auto" to the CPU whatever this machine has."""
+    import torch
+
+    monkeypatch.setattr(torch.cuda, "is_available", lambda: False)
 
 
 class FakeSpeech2Text:
@@ -99,6 +108,9 @@ def test_from_pretrained_takes_a_directory_or_a_tag(tmp_path, monkeypatch):
 
     monkeypatch.setattr(base, "locate_pack", locate_pack)
     monkeypatch.setattr(base, "load_model", load_model)
+    # a machine with one GPU, so that cuda:0 passes and "auto" picks cuda
+    monkeypatch.setattr(torch.cuda, "is_available", lambda: True)
+    monkeypatch.setattr(torch.cuda, "device_count", lambda: 1)
 
     assert Inference.from_pretrained(tmp_path, device="cpu").backend is backend
     assert Inference.from_pretrained("org/model", device="cuda:0").backend is backend
@@ -110,7 +122,7 @@ def test_from_pretrained_takes_a_directory_or_a_tag(tmp_path, monkeypatch):
         ("locate", "org/model"),
         ("build", str(tmp_path), "cuda:0", {}),
         ("locate", str(tmp_path)),
-        ("build", str(tmp_path), "cpu", {"beam_size": 1}),
+        ("build", str(tmp_path), "cuda", {"beam_size": 1}),
     ]
 
 
@@ -398,3 +410,221 @@ def test_any_speech2text_argument_overrides_the_packed_one(tiny_asr_pack):
     assert load(tiny_asr_pack).backend.beam_search.beam_size == 1
     with pytest.raises(TypeError, match="beam_width=4: the bundle's model"):
         load(tiny_asr_pack, beam_width=4)
+
+
+class PublishedSpeech2Text(FakeSpeech2Text):
+    """A backend class that reads its own toolkit's published models."""
+
+    loaded = []
+
+    @classmethod
+    def from_pretrained(cls, model_tag=None, device="cpu", **kwargs):
+        from espnet2.utils.pretrained import download_pretrained
+
+        cls.loaded.append((model_tag, device, dict(kwargs)))
+        kwargs.update(download_pretrained(model_tag))  # as Speech2Text does
+        if "s2t_train_config" in kwargs:  # what a tag for another model brings
+            raise TypeError(
+                "__init__() got an unexpected keyword argument 's2t_train_config'"
+            )
+        return cls(**kwargs)
+
+
+def _espnet2_downloader(monkeypatch, artifacts):
+    import sys
+    import types
+
+    module = types.ModuleType("espnet_model_zoo.downloader")
+
+    class ModelDownloader:
+        def download_and_unpack(self, tag):
+            return dict(artifacts)
+
+    module.ModelDownloader = ModelDownloader
+    monkeypatch.setitem(sys.modules, "espnet_model_zoo.downloader", module)
+
+
+def test_a_tag_espnet2_published_goes_to_the_backends_own_loader(monkeypatch):
+    """Not a pack_model bundle: Speech2Text.from_pretrained reads it."""
+    import espnet2.bin.asr_inference as asr_inference
+
+    monkeypatch.setattr(asr_inference, "Speech2Text", PublishedSpeech2Text)
+    _espnet2_downloader(monkeypatch, {"asr_train_config": "c.yaml"})
+    PublishedSpeech2Text.loaded.clear()
+    model = Inference.from_pretrained("espnet/an_asr_model", device="cpu", beam_size=3)
+    assert isinstance(model.backend, PublishedSpeech2Text)
+    assert PublishedSpeech2Text.loaded == [
+        ("espnet/an_asr_model", "cpu", {"beam_size": 3})
+    ]
+    assert model(np.zeros(160, dtype=np.float32))["text"] == "hello world"
+
+
+def test_a_tag_for_another_kind_of_model_is_a_model_tag_error(monkeypatch):
+    import espnet2.bin.asr_inference as asr_inference
+    from espnet3.api.inference import ModelTagError
+
+    monkeypatch.setattr(asr_inference, "Speech2Text", PublishedSpeech2Text)
+    _espnet2_downloader(monkeypatch, {"s2t_train_config": "c.yaml"})
+    with pytest.raises(ModelTagError, match="does not look like a model for"):
+        Inference.from_pretrained("espnet/owsm_like")
+
+
+def test_a_backend_that_reads_no_published_models_keeps_the_bundle_error(monkeypatch):
+    import espnet2.bin.asr_inference as asr_inference
+    from espnet3.api.inference import ModelTagError
+
+    monkeypatch.setattr(asr_inference, "Speech2Text", FakeSpeech2Text)  # no loader
+    _espnet2_downloader(monkeypatch, {"asr_train_config": "c.yaml"})
+    with pytest.raises(ModelTagError, match="not a pack_model bundle"):
+        Inference.from_pretrained("espnet/an_asr_model")
+
+
+def test_load_reaches_a_published_tag_when_the_caller_names_the_system(monkeypatch):
+    """load(tag, system="asr"): no meta.yaml names the system, so the caller does."""
+    import espnet2.bin.asr_inference as asr_inference
+    from espnet3.api.inference import load
+
+    monkeypatch.setattr(asr_inference, "Speech2Text", PublishedSpeech2Text)
+    _espnet2_downloader(monkeypatch, {"asr_train_config": "c.yaml"})
+    PublishedSpeech2Text.loaded.clear()
+    model = load("espnet/an_asr_model", system="asr", beam_size=2)
+    assert isinstance(model, Inference)
+    assert PublishedSpeech2Text.loaded == [
+        ("espnet/an_asr_model", "cpu", {"beam_size": 2})
+    ]
+    assert model(np.zeros(160, dtype=np.float32))["text"] == "hello world"
+
+
+def test_load_without_a_system_says_to_name_one(monkeypatch):
+    from espnet3.api.inference import ModelTagError, load
+
+    _espnet2_downloader(monkeypatch, {"asr_train_config": "c.yaml"})
+    with pytest.raises(ModelTagError, match="not a pack_model bundle.*system='asr'"):
+        load("espnet/an_asr_model")
+
+
+def test_backend_class_is_refused_for_a_published_tag(monkeypatch):
+    """Only the declared backend reads a published tag; say so, not a raw TypeError."""
+    import espnet2.bin.asr_inference as asr_inference
+
+    monkeypatch.setattr(asr_inference, "Speech2Text", PublishedSpeech2Text)
+    _espnet2_downloader(monkeypatch, {"asr_train_config": "c.yaml"})
+    transducer = "espnet2.bin.asr_transducer_inference.Speech2Text"
+    with pytest.raises(TypeError, match="read by the declared espnet2.bin.asr_inf"):
+        Inference.from_pretrained("espnet/a_transducer", backend_class=transducer)
+
+
+class FakeStreaming:
+    """Stands in for Speech2TextStreaming: a running hypothesis per chunk."""
+
+    def __init__(self, texts):
+        self.texts = list(texts)
+        self.seen = []
+
+    def reset(self):
+        self.seen.append("reset")
+
+    def __call__(self, speech, is_final=False):
+        self.seen.append((len(speech), is_final))
+        text = self.texts.pop(0) if self.texts else None
+        return [] if text is None else [(text, [], [], None)]
+
+
+def _streaming_model(monkeypatch, texts):
+    model = Inference(FakeSpeech2Text())
+    streamer = FakeStreaming(texts)
+    monkeypatch.setattr(model, "_streamer", lambda: streamer)
+    return model, streamer
+
+
+def test_stream_yields_what_the_online_search_adds(monkeypatch):
+    """Running hypotheses "hel", "hello", "hello world" come out as their deltas."""
+    model, streamer = _streaming_model(monkeypatch, ["hel", "hello", "hello world"])
+    chunks = [{"speech": np.zeros(4000, dtype=np.float32)} for _ in range(3)]
+    pieces = [p["text"] for p in model.stream(chunks)]
+    assert pieces == ["hel", "lo", " world"]
+    # every chunk reached the decoder, the last one flagged final
+    assert streamer.seen == ["reset", (4000, False), (4000, False), (4000, True)]
+
+
+def test_stream_keeps_what_it_yielded_when_the_search_revises(monkeypatch, caplog):
+    model, _ = _streaming_model(monkeypatch, ["hello", "help me"])
+    chunks = [{"speech": np.zeros(4000, dtype=np.float32)} for _ in range(2)]
+    with caplog.at_level("WARNING"):
+        pieces = [p["text"] for p in model.stream(chunks)]
+    assert pieces == ["hello", "p me"]
+    assert "revised text already streamed" in caplog.text
+
+
+def test_stream_says_nothing_until_the_hypothesis_grows(monkeypatch):
+    model, _ = _streaming_model(monkeypatch, [None, None, "hi"])
+    chunks = [{"speech": np.zeros(4000, dtype=np.float32)} for _ in range(3)]
+    assert [p["text"] for p in model.stream(chunks)] == ["hi"]
+
+
+def test_stream_without_a_blockwise_encoder_decodes_the_whole_utterance():
+    """FakeSpeech2Text has no asr_model: the default gathers and runs."""
+    backend = FakeSpeech2Text()
+    chunks = [{"speech": np.zeros(4000, dtype=np.float32)} for _ in range(3)]
+    assert list(Inference(backend).stream(chunks)) == [{"text": "hello world"}]
+    assert backend.seen.shape == (12000,)
+
+
+@pytest.fixture()
+def tiny_streaming_config(tmp_path):
+    """A randomly initialised ASR model with a contextual-block encoder."""
+    import string
+
+    import yaml
+
+    from espnet2.tasks.asr import ASRTask
+
+    tokens = tmp_path / "tokens.txt"
+    tokens.write_text(
+        "\n".join(["<blank>", *string.ascii_lowercase, "<unk>", "<sos/eos>"]) + "\n"
+    )
+    ASRTask.main(
+        cmd=[
+            "--dry_run",
+            "true",
+            "--output_dir",
+            str(tmp_path / "asr_streaming"),
+            "--token_list",
+            str(tokens),
+            "--token_type",
+            "char",
+            "--decoder",
+            "transformer",
+            "--encoder",
+            "contextual_block_transformer",
+        ]
+    )
+    config = tmp_path / "asr_streaming" / "config.yaml"
+    args = yaml.safe_load(config.read_text())
+    args["frontend"] = "default"
+    args["encoder_conf"] = {"look_ahead": 16, "hop_size": 16, "block_size": 40}
+    config.write_text(yaml.safe_dump(args))
+    return config
+
+
+@pytest.mark.execution_timeout(60)
+def test_a_blockwise_model_streams_through_the_online_decoder(tiny_streaming_config):
+    """The pieces join into what Speech2TextStreaming says over the same chunks."""
+    from espnet2.bin.asr_inference_streaming import Speech2TextStreaming
+
+    model = Inference(asr_train_config=tiny_streaming_config, beam_size=1)
+    rng = np.random.default_rng(0)
+    chunks = [rng.standard_normal(4000).astype(np.float32) for _ in range(3)]
+
+    pieces = list(model.stream([{"speech": c} for c in chunks]))
+    assert model._streamer() is model._streamer()  # built once, kept
+    assert all(isinstance(p["text"], str) for p in pieces)
+
+    reference = Speech2TextStreaming(
+        asr_train_config=tiny_streaming_config, beam_size=1
+    )
+    reference.asr_model.load_state_dict(model.backend.asr_model.state_dict())
+    for c in chunks[:-1]:
+        reference(c, is_final=False)
+    expected = reference(chunks[-1], is_final=True)[0][0]
+    assert "".join(p["text"] for p in pieces) == expected

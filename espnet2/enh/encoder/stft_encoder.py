@@ -132,7 +132,8 @@ class STFTEncoder(AbsEncoder):
         windowed = input * window
 
         windowed = torch.cat(
-            [torch.zeros(B, n_pad_left), windowed, torch.zeros(B, n_pad_right)], 1
+            [input.new_zeros(B, n_pad_left), windowed, input.new_zeros(B, n_pad_right)],
+            1,
         )
         return windowed
 
@@ -193,6 +194,6 @@ class STFTEncoder(AbsEncoder):
         strides = list(audio.stride())
 
         shape = list(audio.shape[:-1]) + [self.win_length, n_frames]
-        strides = strides + [self.hop_length]
+        strides = strides + [self.hop_length * audio.stride(-1)]
 
-        return audio.as_strided(shape, strides, storage_offset=0).unbind(dim=-1)
+        return audio.as_strided(shape, strides).unbind(dim=-1)

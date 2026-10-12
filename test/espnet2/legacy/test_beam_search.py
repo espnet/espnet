@@ -276,6 +276,42 @@ def test_end_detected_converts_each_ended_hypothesis_once():
     assert len(search._ended_summaries) == 3
 
 
+def test_end_detection_is_not_delayed_by_a_primer():
+    """A primer makes every hypothesis longer; it must not make the search later.
+
+    One good hypothesis ends at the second step and a far worse one at every
+    step after it. End detection needs three such steps behind it, whatever
+    the search began from. With a four-token primer it used to take three
+    steps longer; longer primers delayed it further.
+    """
+    search = BeamSearch(
+        scorers={"length_bonus": LengthBonus(5)},
+        weights={"length_bonus": 1.0},
+        beam_size=2,
+        vocab_size=5,
+        sos=4,
+        eos=4,
+    )
+
+    def first_detection(primer):
+        search.set_hyp_primer(primer)
+        ended = []
+        for i in range(1, 20):
+            # a hypothesis that ends at step i has i + 1 tokens after the primer
+            ended.append(
+                Hypothesis(
+                    yseq=torch.tensor(primer + [0] * i + [4]),
+                    score=torch.tensor(0.0 if i == 1 else -100.0),
+                )
+            )
+            if search.end_detected(ended, i):
+                return i
+        return None
+
+    assert first_detection([4]) == first_detection([4, 1, 2, 3]) == 6
+    assert first_detection([4] + [1] * 99) == 6
+
+
 class FramePosteriors(torch.nn.Module):
     """A CTC head whose input is already the frame-level log posteriors."""
 

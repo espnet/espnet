@@ -20,7 +20,7 @@ class CER(BaseMetric):
 
     Reads ``data["ref"]``/``data["hyp"]``, the declared names; the
     metrics config's ``inputs:`` binds them to a source (see
-    :class:`~espnet3.components.contract.metrics.check_metric_inputs`).
+    :class:`~espnet3.contract.metrics.check_metric_inputs`).
 
     Examples:
         >>> [f.name for f in CER().inputs]

@@ -23,7 +23,7 @@ class MetricContractError(ValueError):
     Examples:
         >>> raise MetricContractError("WER.outputs field 'wer' must be number")
         Traceback (most recent call last):
-        espnet3.components.contract.metrics.MetricContractError: WER.outputs field ...
+        espnet3.contract.metrics.MetricContractError: WER.outputs field ...
     """
 
 
@@ -318,7 +318,7 @@ def check_metric_output(metric: Any, result: Mapping[str, Any]) -> None:
         >>> check_metric_output(ExampleMetric(), {"score": 4.3})
         >>> check_metric_output(ExampleMetric(), {})
         Traceback (most recent call last):
-        espnet3.components.contract.metrics.MetricContractError: ExampleMetric ...
+        espnet3.contract.metrics.MetricContractError: ExampleMetric ...
     """
     outputs = getattr(metric, "outputs", None)
     if not outputs:
@@ -362,7 +362,7 @@ def check_metric_batch(metric: Any, values: Mapping[str, Any]) -> None:
         >>> check_metric_batch(WER(), {"ref": ["a b"], "hyp": ["a c"]})
         >>> check_metric_batch(WER(), {"ref": ["a b"], "hyp": [3]})
         Traceback (most recent call last):
-        espnet3.components.contract.metrics.MetricContractError: WER input ...
+        espnet3.contract.metrics.MetricContractError: WER input ...
     """
     name = type(metric).__name__
     fields = {f.name: f for f in getattr(metric, "inputs", ())}

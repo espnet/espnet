@@ -7,7 +7,7 @@ import espnet3.systems.esp2_asr.metrics.cer as cer_module
 import espnet3.systems.esp2_asr.metrics.ter as ter_module
 import espnet3.systems.esp2_asr.metrics.wer as wer_module
 from espnet3.api.inference import Field
-from espnet3.components.contract.metrics import MetricContractError
+from espnet3.contract.metrics import MetricContractError
 from espnet3.systems.esp2_asr.metrics.cer import CER
 from espnet3.systems.esp2_asr.metrics.ter import TER
 from espnet3.systems.esp2_asr.metrics.wer import WER

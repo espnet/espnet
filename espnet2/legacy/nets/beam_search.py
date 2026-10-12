@@ -195,7 +195,12 @@ class BeamSearch(torch.nn.Module):
                 hit = (h, hit[1], i)
             cache[id(h)] = hit
             summaries.append(hit[1])
-        return end_detect(summaries, i)
+        # `end_detect` looks for hypotheses as long as one that ended in the
+        # last few steps of a search that began from <sos>. A search that
+        # begins from a longer primer has every hypothesis longer by the rest
+        # of the primer, and without counting that it stopped that many steps
+        # late: one more decoding step for every token of a prompt.
+        return end_detect(summaries, i + self._primer_length() - 1)
 
     def set_hyp_primer(self, hyp_primer: List[int] = None) -> None:
         """Set the primer sequence for decoding.

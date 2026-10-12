@@ -43,6 +43,7 @@ from omegaconf import DictConfig, OmegaConf, open_dict
 
 from espnet2.utils.pretrained import ModelTagError
 from espnet3.api.inference.base import InferenceAPI
+from espnet3.api.inference.device import resolve_device
 from espnet3.publication.schema import PACK_SCHEMA_VERSION
 from espnet3.utils.config_utils import load_config_with_defaults
 
@@ -53,6 +54,7 @@ logger = logging.getLogger(__name__)
 # rename is one row and every bundle already on the Hub keeps loading.
 SYSTEM_ALIASES: dict[str, str] = {
     "asr": "esp2_asr",  # renamed in #6795; bundles packed before say "asr"
+    "s2t": "esp2_s2t",  # ESPnet2's name for the task, as espnet.load takes it
 }
 
 
@@ -438,7 +440,7 @@ def apply_overrides(config: DictConfig, overrides: Optional[Mapping[str, Any]]) 
 def load(
     tag_or_dir: str | Path,
     *,
-    device: str = "cpu",
+    device: str = "auto",
     system: str | None = None,
     trust_user_code: bool = False,
     **kwargs: Any,
@@ -453,7 +455,10 @@ def load(
 
     Args:
         tag_or_dir: A ``pack_model`` directory or a Hub tag.
-        device: Where to build the model.
+        device: Where to build the model: ``"auto"`` (the default) is CUDA
+            when torch sees a CUDA device, else the CPU; or ``"cpu"``,
+            ``"mps"``, ``"cuda"``, ``"cuda:<n>"``, checked against this
+            machine before anything is downloaded (:func:`resolve_device`).
         system: Overrides the name in ``meta.yaml`` - for a bundle packed
             before the name was recorded, or a model that is not an ESPnet3
             bundle at all, in which case ``tag_or_dir`` is passed to the
@@ -482,12 +487,22 @@ def load(
             ``Inference``.
 
     Examples:
-        >>> model = load("espnet/some_pack")
-        >>> model = load("exp/train/model_pack", device="cuda:0")
+        >>> model = load("espnet/some_pack")                  # cuda if there is one
+        >>> model = load("exp/train/model_pack", device="cpu")
         >>> model = load("exp/old_pack", system="esp2_asr")   # older meta.yaml
+        >>> model = load("espnet/an_espnet2_asr_model", system="asr")
     """
+    device = resolve_device(device)
     if system is None:
-        tag_or_dir = locate_pack(tag_or_dir)
+        try:
+            tag_or_dir = locate_pack(tag_or_dir)
+        except ModelTagError as e:
+            # a model published without a bundle has no meta.yaml to name
+            # its system; only the caller can
+            raise ModelTagError(
+                f"{e}. Pass system=<name> for a model published without one, "
+                "such as system='asr' for an ESPnet2 ASR model."
+            ) from e
         system = read_meta(tag_or_dir).get("system")
         if not system:
             # no system to serve it: the bundle must build an Inference itself
