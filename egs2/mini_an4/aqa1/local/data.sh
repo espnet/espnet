@@ -5,6 +5,7 @@ set -e
 set -u
 set -o pipefail
 
+# Print a timestamped message with the calling script and line number.
 log() {
     local fname=${BASH_SOURCE[1]##*/}
     echo -e "$(date '+%Y-%m-%dT%H:%M:%S') (${fname}:${BASH_LINENO[0]}:${FUNCNAME[1]}) $*"

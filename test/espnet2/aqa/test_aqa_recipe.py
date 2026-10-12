@@ -29,7 +29,11 @@ def recipe(tmp_path):
 
     def run(stage, *options):
         """Run one recipe stage with the test interpreter and supplied options."""
-        env = dict(os.environ, PYTHONPATH=str(ROOT))
+        env = dict(
+            os.environ,
+            PYTHONPATH=str(ROOT),
+            PATH=str(Path(sys.executable).parent) + os.pathsep + os.environ["PATH"],
+        )
         result = subprocess.run(
             [
                 "bash",
@@ -57,17 +61,31 @@ def recipe(tmp_path):
     return tmp_path, run
 
 
-def test_character_tokens(recipe):
+@pytest.mark.parametrize(
+    "python_command", [sys.executable, f"{sys.executable} -m coverage run --append"]
+)
+def test_character_tokens(recipe, python_command):
     """Character tokenization reads the configured reference text."""
     path, run = recipe
     (path / "reference.txt").write_text("a ab\nb bc\n")
-    run(5, "--token_type", "char", "--bpe_train_text", "reference.txt")
+    run(
+        5,
+        "--token_type",
+        "char",
+        "--bpe_train_text",
+        "reference.txt",
+        "--python",
+        python_command,
+    )
     tokens = (path / "data/token_list/char/tokens.txt").read_text().splitlines()
     assert tokens == ["<blank>", "<unk>", "b", "a", "c", "<sos/eos>"]
 
 
+@pytest.mark.parametrize(
+    "python_command", [sys.executable, f"{sys.executable} -m coverage run --append"]
+)
 @pytest.mark.parametrize("use_ref_wav", ["true", "false"])
-def test_metric_ids_and_duration_filter(recipe, use_ref_wav):
+def test_metric_ids_and_duration_filter(recipe, use_ref_wav, python_command):
     """Filter real references, retain missing references, and preserve metric IDs."""
     path, run = recipe
     for dset in ("train", "valid"):
@@ -91,8 +109,8 @@ def test_metric_ids_and_duration_filter(recipe, use_ref_wav):
         (data / "utt2num_samples.ref").write_text(
             "long 999999\npresent 32000\nshort 32000\n"
         )
-    run(3)
-    run(4, "--use_ref_wav", use_ref_wav)
+    run(3, "--python", python_command)
+    run(4, "--use_ref_wav", use_ref_wav, "--python", python_command)
     result = path / "dump/raw/train"
     expected = (
         ["missing", "present"]
@@ -146,7 +164,10 @@ def test_training_reference_shapes(recipe, audio, text, custom_dirs):
     assert "aqa.sh" in (path / exp / "run.sh").read_text()
 
 
-def test_scoring(recipe):
+@pytest.mark.parametrize(
+    "python_command", [sys.executable, f"{sys.executable} -m coverage run --append"]
+)
+def test_scoring(recipe, python_command):
     """Score a prepared recipe through the canonical AQA evaluator."""
     path, run = recipe
     data = path / "dump/raw/test"
@@ -166,6 +187,8 @@ def test_scoring(recipe):
         "predictions",
         "--sys_info",
         "systems.scp",
+        "--python",
+        python_command,
     )
     assert json.loads((output / "utt_result.json").read_text())["utt_mos_mse"] == 1
     assert json.loads((output / "sys_result.json").read_text())["sys_mos_mse"] == 1
