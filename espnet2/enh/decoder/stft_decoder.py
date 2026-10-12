@@ -198,7 +198,9 @@ class STFTDecoder(AbsDecoder):
 
         # We need to trim the front padding away if center.
         start = (frame_size // 2) if self.center else 0
-        end = -(frame_size // 2) if ilens.max() is None else start + ilens.max()
+        end = -start if start else None
+        if ilens is not None:
+            end = start + ilens.max()
 
         return output[..., start:end]
 
