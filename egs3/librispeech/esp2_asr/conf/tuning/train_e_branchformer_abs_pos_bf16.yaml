@@ -1,0 +1,41 @@
+##########################################################
+#        TRUE-bf16 VARIANT OF THE ABS_POS CONFIG         #
+##########################################################
+# conf/tuning/train_e_branchformer_abs_pos.yaml with one line changed:
+#
+#   trainer.precision: bf16-mixed -> bf16-true
+#
+# WHY. `bf16-mixed` is autocast: the parameters stay fp32 and every operator
+# casts its inputs down and its outputs back up. On an A40 that costs a lot
+# here, because this recipe is memory-bound rather than compute-bound -- a
+# kernel profile of the abs_pos run put 29% of GPU time in element-wise work,
+# with 2,070 `aten::copy_` and 1,529 `aten::_to_copy` launches per
+# micro-batch. `bf16-true` holds the model in bf16, so those casts disappear
+# and every weight read moves half the bytes.
+#
+# Measured over 96 micro-batches on one A40, against the otherwise identical
+# bf16-mixed config:
+#
+#     run_training_batch   0.818 s -> 0.432 s   (-47%)
+#     forward              0.404 s -> 0.221 s   (-45%)
+#     backward             0.408 s -> 0.206 s   (-49%)
+#     optimizer step       0.916 s -> 0.492 s   (-46%)
+#
+# WHAT IT COSTS. `bf16-mixed` keeps fp32 master weights; `bf16-true` does not,
+# and Adam's moments end up in bf16 as well. bf16 carries a 7-bit mantissa, so
+# its relative resolution is about 0.8%: an update small against the weight it
+# is applied to is simply lost. Over 240 epochs that is not a safe assumption
+# to make without evidence.
+#
+# THIS CONFIG IS THEREFORE A VALIDATION RUN, NOT A REPLACEMENT. Train it for
+# ~10 epochs and compare valid/acc and valid/loss against
+# train_e_branchformer_abs_pos at the same epochs. Adopt bf16-true only if the
+# curves agree; otherwise keep bf16-mixed and take the speed elsewhere.
+##########################################################
+
+defaults:
+  - train_e_branchformer_abs_pos
+  - _self_
+
+trainer:
+  precision: bf16-true
