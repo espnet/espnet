@@ -1,6 +1,5 @@
 """HiFi-GAN waveform reconstruction for speech-tokenizer training."""
 
-from copy import deepcopy
 from typing import Any, Dict, Optional, Tuple
 
 import torch
@@ -24,72 +23,6 @@ from espnet2.tok.objective.reconstruction.abs_reconstruction import (
 from espnet2.tok.output import SpeechTokenizerOutput
 from espnet2.torch_utils.device_funcs import force_gatherable
 
-DEFAULT_GENERATOR_PARAMS = {
-    "out_channels": 1,
-    "channels": 512,
-    "global_channels": -1,
-    "kernel_size": 7,
-    "upsample_scales": [10, 8, 2, 2],
-    "upsample_kernel_sizes": [20, 16, 4, 4],
-    "resblock_kernel_sizes": [3, 7, 11],
-    "resblock_dilations": [[1, 3, 5], [1, 3, 5], [1, 3, 5]],
-    "use_additional_convs": True,
-    "bias": True,
-    "nonlinear_activation": "LeakyReLU",
-    "nonlinear_activation_params": {"negative_slope": 0.1},
-    "use_weight_norm": True,
-}
-
-DEFAULT_DISCRIMINATOR_PARAMS = {
-    "scales": 3,
-    "scale_downsample_pooling": "AvgPool1d",
-    "scale_downsample_pooling_params": {
-        "kernel_size": 4,
-        "stride": 2,
-        "padding": 2,
-    },
-    "scale_discriminator_params": {
-        "in_channels": 1,
-        "out_channels": 1,
-        "kernel_sizes": [15, 41, 5, 3],
-        "channels": 128,
-        "max_downsample_channels": 1024,
-        "max_groups": 16,
-        "bias": True,
-        "downsample_scales": [4, 4, 4, 4, 1],
-        "nonlinear_activation": "LeakyReLU",
-        "nonlinear_activation_params": {"negative_slope": 0.1},
-    },
-    "follow_official_norm": True,
-    "periods": [2, 3, 5, 7, 11],
-    "period_discriminator_params": {
-        "in_channels": 1,
-        "out_channels": 1,
-        "kernel_sizes": [5, 3],
-        "channels": 32,
-        "downsample_scales": [3, 3, 3, 3, 1],
-        "max_downsample_channels": 1024,
-        "bias": True,
-        "nonlinear_activation": "LeakyReLU",
-        "nonlinear_activation_params": {"negative_slope": 0.1},
-        "use_weight_norm": True,
-        "use_spectral_norm": False,
-    },
-}
-
-DEFAULT_MEL_LOSS_PARAMS = {
-    "fs": 16000,
-    "n_fft": 1024,
-    "hop_length": 256,
-    "win_length": None,
-    "window": "hann",
-    "n_mels": 80,
-    "fmin": 0,
-    "fmax": 8000,
-    "log_base": None,
-}
-
-
 class HiFiGANReconstructionObjective(AbsReconstructionObjective):
     """Reconstruct speech from differentiable tokens with HiFi-GAN.
 
@@ -98,8 +31,9 @@ class HiFiGANReconstructionObjective(AbsReconstructionObjective):
 
     Token assignments are embedded differentiably.  A pretrained speaker
     embedding is repeated over token frames and concatenated with the token
-    embedding before the standard ESPnet HiFi-GAN generator.  Defaults follow
-    ParallelWaveGAN's 16-kHz VCTK HuBERT vocoder configuration.
+    embedding before the standard ESPnet HiFi-GAN generator.  Generator,
+    discriminator, and mel-loss parameters are supplied by the recipe so that
+    sampling-rate and frontend-specific settings remain in the configuration.
     """
 
     def __init__(
@@ -139,9 +73,7 @@ class HiFiGANReconstructionObjective(AbsReconstructionObjective):
             embed_dim=token_embed_dim,
             use_positional_encoding=False,
         )
-        generator_conf = deepcopy(DEFAULT_GENERATOR_PARAMS)
-        if generator_params is not None:
-            generator_conf.update(generator_params)
+        generator_conf = dict(generator_params or {})
         expected_channels = token_embed_dim + speaker_embed_dim
         configured_channels = generator_conf.pop("in_channels", expected_channels)
         if configured_channels != expected_channels:
@@ -158,11 +90,8 @@ class HiFiGANReconstructionObjective(AbsReconstructionObjective):
             in_channels=expected_channels, **generator_conf
         )
 
-        discriminator_conf = deepcopy(DEFAULT_DISCRIMINATOR_PARAMS)
-        if discriminator_params is not None:
-            discriminator_conf.update(discriminator_params)
         self.discriminator = HiFiGANMultiScaleMultiPeriodDiscriminator(
-            **discriminator_conf
+            **(discriminator_params or {})
         )
         self.generator_adv_loss = GeneratorAdversarialLoss(
             **({"average_by_discriminators": False} | (generator_adv_loss_params or {}))
@@ -187,10 +116,7 @@ class HiFiGANReconstructionObjective(AbsReconstructionObjective):
             )
         self.use_mel_loss = use_mel_loss
         if use_mel_loss:
-            mel_conf = deepcopy(DEFAULT_MEL_LOSS_PARAMS)
-            if mel_loss_params is not None:
-                mel_conf.update(mel_loss_params)
-            self.mel_loss = MelSpectrogramLoss(**mel_conf)
+            self.mel_loss = MelSpectrogramLoss(**(mel_loss_params or {}))
 
         self.speaker_embed_dim = speaker_embed_dim
         self.segment_size = segment_size
