@@ -5,28 +5,37 @@ import torch
 from espnet2.aqa.base import UniversaBase
 
 
+def _encoder_params(**kwargs):
+    params = dict(
+        num_blocks=1,
+        attention_heads=2,
+        linear_units=16,
+        input_layer="linear",
+        dropout_rate=0.0,
+        positional_dropout_rate=0.0,
+        attention_dropout_rate=0.0,
+        use_flash_attn=False,
+    )
+    params.update(kwargs)
+    return params
+
+
 def _build_universa(**kwargs):
     torch.manual_seed(0)
-    return UniversaBase(
+    options = dict(
         input_size=8,
         metric2id={"mos": 0},
         use_ref_audio=True,
-        use_ref_text=False,
+        use_ref_text=True,
+        vocab_size=8,
         embedding_size=8,
         use_normalize=False,
-        audio_encoder_params=dict(
-            num_blocks=1,
-            attention_heads=2,
-            linear_units=16,
-            input_layer="linear",
-            dropout_rate=0.0,
-            positional_dropout_rate=0.0,
-            attention_dropout_rate=0.0,
-            use_flash_attn=False,
-        ),
+        audio_encoder_params=_encoder_params(),
+        text_encoder_params=_encoder_params(),
         cross_attention_params=dict(n_head=2, dropout_rate=0.0),
-        **kwargs,
     )
+    options.update(kwargs)
+    return UniversaBase(**options)
 
 
 def test_use_sdpa_reaches_the_attention_and_matches_the_default():
@@ -55,6 +64,23 @@ def test_use_sdpa_reaches_the_attention_and_matches_the_default():
         outputs[True][0], outputs[False][0], atol=1e-5, rtol=1e-5
     )
     torch.testing.assert_close(outputs[True][1], outputs[False][1])
+
+
+@pytest.mark.parametrize("component_use_sdpa", [False, True])
+def test_component_use_sdpa_is_preserved(component_use_sdpa):
+    """An explicit use_sdpa in a component dict wins over the constructor."""
+    model = _build_universa(
+        use_sdpa=not component_use_sdpa,
+        audio_encoder_params=_encoder_params(use_sdpa=component_use_sdpa),
+        text_encoder_params=_encoder_params(use_sdpa=component_use_sdpa),
+        cross_attention_params=dict(
+            n_head=2, dropout_rate=0.0, use_sdpa=component_use_sdpa
+        ),
+    )
+    assert model.audio_encoder.encoders[0].self_attn.use_sdpa is component_use_sdpa
+    assert model.ref_audio_encoder.encoders[0].self_attn.use_sdpa is component_use_sdpa
+    assert model.text_encoder.encoders[0].self_attn.use_sdpa is component_use_sdpa
+    assert model.cross_attention.use_sdpa is component_use_sdpa
 
 
 @pytest.mark.parametrize("multi_branch", [False, True])
