@@ -8,6 +8,8 @@ for ((speechlm_argpos = 1; speechlm_argpos < $#; speechlm_argpos++)); do
         speechlm_next=$((speechlm_argpos + 1))
         config=${!speechlm_next}
         [[ -r ${config} ]] || { echo "$0: missing config '${config}'" >&2; exit 1; }
+        # The config is named on the command line, so its path is not known here.
+        # shellcheck source=/dev/null
         . "${config}"
     fi
 done
@@ -31,7 +33,9 @@ while (( $# )); do
                     declare -a "${speechlm_option}=()"
                     speechlm_array_options+="${speechlm_option} "
                 fi
-                speechlm_reference=${speechlm_option}[@]
+                # Quoted so the [@] stays literal here: it is the name that
+                # ${!speechlm_reference} expands, not a glob to match now.
+                speechlm_reference="${speechlm_option}[@]"
                 speechlm_values=("${!speechlm_reference}")
                 if [[ -n $2 ]]; then
                     printf -v "${speechlm_option}[${#speechlm_values[@]}]" '%s' "$2"

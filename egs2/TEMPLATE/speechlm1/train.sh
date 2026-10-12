@@ -50,7 +50,7 @@ All relative paths are resolved from the recipe directory.
 
 # Recipe run.sh enters its directory before calling this shared launcher.
 repo_root=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/../../.." && pwd)
-. "${repo_root}/egs2/TEMPLATE/speechlm1/parse_options.sh"
+. "${repo_root}/egs2/TEMPLATE/asr1/scripts/speechlm/parse_options.sh"
 
 die() {
     echo "$0: $*" >&2
