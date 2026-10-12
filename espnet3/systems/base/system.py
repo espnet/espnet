@@ -284,7 +284,20 @@ class BaseSystem:
         return None
 
     def collect_stats(self, *args, **kwargs):
-        """Collect statistics needed for training."""
+        """Collect statistics needed for training.
+
+        Reads the same ``dataset:`` block as ``train``. By default the
+        ``DataOrganizer`` is built with ``train_mode=False``, so the train
+        preprocessor's augmentation (``data_aug_effects``, speed perturbation
+        and so on) is not applied, as in ESPnet2: the statistics and the shape
+        files the sampler batches by are then the same on every run. ``train``
+        still augments. To collect statistics with the augmentation applied,
+        set it in the training config:
+
+        .. code-block:: yaml
+
+            collect_stats_train_mode: true
+        """
         self._reject_stage_args("collect_stats", args, kwargs)
         logger.info(
             "Collecting stats | exp_dir=%s stats_dir=%s",

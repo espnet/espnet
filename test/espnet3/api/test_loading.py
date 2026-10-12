@@ -8,6 +8,7 @@ from pathlib import Path
 
 import numpy as np
 import pytest
+import torch
 import yaml
 from omegaconf import OmegaConf
 
@@ -40,6 +41,14 @@ def _test_classes_count_as_installed_espnet_code(monkeypatch):
         "_BUNDLE_TARGET_PREFIXES",
         loading._BUNDLE_TARGET_PREFIXES + (f"{__name__}.",),
     )
+
+
+@pytest.fixture(autouse=True)
+def _no_gpu(monkeypatch):
+    """Resolve device="auto" to the CPU whatever this machine has."""
+    import torch
+
+    monkeypatch.setattr(torch.cuda, "is_available", lambda: False)
 
 
 class Echo(InferenceAPI):
@@ -301,6 +310,8 @@ def _install_fake_system(monkeypatch, name, cls):
 
 def test_load_goes_through_the_system_named_in_meta(tmp_path, monkeypatch):
     _install_fake_system(monkeypatch, "echo", Echo)
+    monkeypatch.setattr(torch.cuda, "is_available", lambda: True)
+    monkeypatch.setattr(torch.cuda, "device_count", lambda: 1)
     model = load(_pack(tmp_path, system="echo"), device="cuda:0")
     assert isinstance(model, Echo) and model.device == "cuda:0"
 
@@ -479,3 +490,15 @@ def test_a_system_bundle_with_a_disallowed_target_is_told_to_repack(
     root = _pack(tmp_path, model_target="os.system", system="esp2_asr")
     with pytest.raises(ValueError, match="names system 'esp2_asr'.*re-pack"):
         read_bundle(root)
+
+
+def test_load_resolves_auto_before_the_system_sees_it(tmp_path, monkeypatch):
+    """A system's from_pretrained never receives "auto"."""
+    _install_fake_system(monkeypatch, "echo", Echo)
+    pack = _pack(tmp_path, system="echo")
+    assert load(pack).device == "cpu"  # the _no_gpu fixture
+    monkeypatch.setattr(torch.cuda, "is_available", lambda: True)
+    assert load(pack).device == "cuda"
+    assert load(pack, device="cpu").device == "cpu"
+    with pytest.raises(ValueError, match="unknown device 'gpu'"):
+        load(pack, device="gpu")
