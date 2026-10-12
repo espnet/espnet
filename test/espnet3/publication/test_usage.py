@@ -86,3 +86,14 @@ def test_usage_section_is_a_fenced_block_under_a_heading():
     section = usage_section(Describe, "espnet/some_pack")
     assert section.startswith("## Usage\n\n```python\n")
     assert section.endswith("\n```")
+
+
+def test_given_inputs_are_written_in_the_call():
+    text = python_usage(
+        Describe, "espnet/some_pack", inputs={"speech": "talk.wav", "hint": "a cat"}
+    )
+    assert 'result = model("talk.wav", hint="a cat")' in text
+    assert "# optional inputs" not in text  # the only optional one is passed
+    item = '{"speech": "talk.wav", "hint": "a cat"}'
+    assert f"model.batch([{item}, {item}])" in text
+    assert f"for piece in model.stream([{item}]):" in text

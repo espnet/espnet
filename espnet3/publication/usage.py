@@ -21,7 +21,8 @@ Examples:
 from __future__ import annotations
 
 import importlib
-from typing import Optional
+import json
+from typing import Any, Mapping, Optional
 
 from espnet3.api.inference import SYSTEM_ALIASES, Field, InferenceAPI
 
@@ -57,25 +58,42 @@ def _example(field: Field) -> str:
     return _INPUT_EXAMPLES.get(field.kind, "...")
 
 
-def python_usage(
-    cls: type[InferenceAPI], tag: str, *, system: Optional[str] = None
-) -> str:
-    """Return the Python a reader runs to use the model behind ``tag``.
+def _literal(value: Any) -> str:
+    """Return ``value`` as a reader would type it: strings in double quotes."""
+    return (
+        json.dumps(value, ensure_ascii=False) if isinstance(value, str) else repr(value)
+    )
+
+
+def call_lines(
+    cls: type[InferenceAPI],
+    tag: str,
+    *,
+    system: Optional[str] = None,
+    inputs: Optional[Mapping[str, Any]] = None,
+) -> list[str]:
+    """Return the load, one call, and the outputs, a line each.
 
     Args:
         cls: The system's ``Inference`` class, whose declaration is read.
         tag: The Hub tag or directory ``load`` takes.
         system: Passed to ``load`` when the tag is not a bundle naming its
             system in ``meta.yaml`` - a checkpoint published without one.
-
-    Returns:
-        Lines of Python: the load, one call with the required inputs,
-        the optional inputs and how to pass them, each output, then the
-        batch and stream forms.
+        inputs: Values to write in the call instead of the examples: a
+            path for an audio input, the text for a text input; an optional
+            input named here is passed, the others are listed in a comment.
     """
+    given = dict(inputs or {})
     required = [f for f in cls.inputs if not f.optional]
-    optional = [f for f in cls.inputs if f.optional]
-    call = ", ".join(_example(f) for f in required)
+    passed = [f for f in cls.inputs if f.optional and f.name in given]
+    left = [f for f in cls.inputs if f.optional and f.name not in given]
+
+    def value(f: Field) -> str:
+        return _literal(given[f.name]) if f.name in given else _example(f)
+
+    call = ", ".join(
+        [value(f) for f in required] + [f"{f.name}={value(f)}" for f in passed]
+    )
     load_args = f'"{tag}"' + (f', system="{system}"' if system else "")
     lines = [
         "from espnet3.api.inference import load",
@@ -83,12 +101,12 @@ def python_usage(
         f"model = load({load_args})",
         f"result = model({call})",
     ]
-    if optional:
+    if left:
         lines.append(
-            "# optional inputs: " + ", ".join(f"{f.name} ({f.kind})" for f in optional)
+            "# optional inputs: " + ", ".join(f"{f.name} ({f.kind})" for f in left)
         )
         with_optional = ", ".join(
-            [call] + [f"{f.name}={_example(f)}" for f in optional[:2]]
+            [call] + [f"{f.name}={_example(f)}" for f in left[:2]]
         )
         lines.append(f"# result = model({with_optional})")
     width = max(len(f'result["{f.name}"]') for f in cls.outputs)
@@ -96,20 +114,54 @@ def python_usage(
         key = f'result["{f.name}"]'
         note = _OUTPUT_NOTES.get(f.kind, f.kind)
         lines.append(f"{key:<{width}}  # {f.label}: {note}")
-    items = ", ".join(
-        "{" + ", ".join(f'"{f.name}": {_example(f)}' for f in required) + "}"
-        for _ in range(2)
+    return lines
+
+
+def more_lines(
+    cls: type[InferenceAPI], *, inputs: Optional[Mapping[str, Any]] = None
+) -> list[str]:
+    """Return the batch and stream forms of the call, a line each.
+
+    An item carries the required inputs and the optional ones ``inputs``
+    gives, as the call does: a page about translation translates in batch.
+    """
+    given = dict(inputs or {})
+    fields = [f for f in cls.inputs if not f.optional or f.name in given]
+    item = (
+        "{"
+        + ", ".join(
+            f'"{f.name}": {_literal(given[f.name]) if f.name in given else _example(f)}'
+            for f in fields
+        )
+        + "}"
     )
-    lines += [
-        "",
+    return [
         "# several at once, and pieces as the model produces them",
-        f"model.batch([{items}])",
-        "for piece in model.stream([{"
-        + ", ".join(f'"{f.name}": {_example(f)}' for f in required)
-        + "}]):",
+        f"model.batch([{item}, {item}])",
+        f"for piece in model.stream([{item}]):",
         "    print(piece)",
     ]
-    return "\n".join(lines)
+
+
+def python_usage(
+    cls: type[InferenceAPI],
+    tag: str,
+    *,
+    system: Optional[str] = None,
+    inputs: Optional[Mapping[str, Any]] = None,
+) -> str:
+    """Return the Python a reader runs to use the model behind ``tag``.
+
+    :func:`call_lines` - the load, one call with the required inputs, the
+    optional inputs and how to pass them, each output - then a blank line
+    and :func:`more_lines`, the batch and stream forms. The arguments are
+    theirs.
+    """
+    return "\n".join(
+        call_lines(cls, tag, system=system, inputs=inputs)
+        + [""]
+        + more_lines(cls, inputs=inputs)
+    )
 
 
 def usage_section(
