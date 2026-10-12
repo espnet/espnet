@@ -61,59 +61,70 @@ Finally, we convert the filtered data into Kaldi format using `local/convert_to_
 
 ## Open ASR Leaderboard evaluation and CPU decoding speed
 
-`local/run_hf_asr_leaderboard.sh` evaluates an OWSM checkpoint on the [Open ASR Leaderboard](https://huggingface.co/datasets/hf-audio/open-asr-leaderboard) test sets. The driver supports two profiles:
+Open ASR Leaderboard test sets can be prepared and evaluated directly through the recipe stages (`local/data.sh`, `s2t.sh` stage 12 and stage 13):
 
-1. **Full Leaderboard Evaluation (`--subset full`, default)**: Runs all 9 benchmark configs (`librispeech` test.clean and test.other, `ami_cleaned`, `voxpopuli_cleaned_aa`, `common_voice`, `tedlium`, `gigaspeech_cleaned`, `spgispeech`, and `earnings22`). Keeps all utterances without sampling (`--n 0`), decodes audio longer than 30 s with `Speech2Text.decode_long`, and produces WER numbers directly comparable to the official leaderboard.
-2. **Small Smoke Test (`--subset small`)**: Samples 100 utterances from six benchmark sets with reproducible seed 0 (`--max_dur 30.0`), allowing quick verification of decoding changes on a laptop in a few minutes.
+### 1. Data Preparation (`local/data.sh`)
 
-WER is computed as on the leaderboard (Whisper English text normalizer, corpus-level WER with jiwer). RTFx is the total audio duration divided by the decoding time; model loading and one warm-up batch are not counted.
+`local/data.sh` prepares the [Open ASR Leaderboard](https://huggingface.co/datasets/hf-audio/open-asr-leaderboard) test sets using `local/prepare_hf_asr_leaderboard.py`. Two profiles are supported:
 
-The dataset is gated: accept the terms on its page and log in with `huggingface-cli login` (or set `HF_TOKEN`). `jiwer` and `openai-whisper` are needed for scoring.
+- **Full evaluation (`--openasr_subset full`, default)**: Prepares the full test sets (`data/openasr_<set>`) across benchmark configs (`librispeech` test.clean and test.other, `ami_cleaned`, `voxpopuli_cleaned_aa`, `common_voice`, `tedlium`, `gigaspeech_cleaned`, `spgispeech`, `earnings22`), preserving all utterances without sampling.
+- **Small smoke test (`--openasr_subset small`)**: Prepares 100-utterance subsets (`data/openasr_<set>_100`) from 6 benchmark sets with reproducible seed 0 (`--max_dur 30.0`) for quick local validation on CPU/laptop in a few minutes.
+
+The dataset is gated: accept the terms on its page and log in with `huggingface-cli login` (or set `HF_TOKEN`) before running.
 
 ```bash
-# Full Open ASR Leaderboard evaluation (all 9 English benchmark sets)
-local/run_hf_asr_leaderboard.sh --model_tag espnet/owsm_v4_base_102M --subset full
+# Prepare full leaderboard test sets
+local/data.sh --openasr true --openasr_subset full
 
-# Quick smoke test (6 sets, 100 utterances each, OWSM v4 base, batch 8 sorted)
-local/run_hf_asr_leaderboard.sh --model_tag espnet/owsm_v4_base_102M --subset small --batch_size 8 --sort true
-
-# Single set, full or sampled
-python local/prepare_hf_asr_leaderboard.py --dataset librispeech --split test.clean --all --out data/lb_librispeech_test_clean
-python local/eval_hf_asr_leaderboard.py --data data/lb_librispeech_test_clean --model_tag espnet/owsm_v4_base_102M \
-    --batch_size 8 --sort true --out exp/hf_asr_leaderboard/test_clean.json
+# Or prepare 100-utterance sample sets for quick smoke testing
+local/data.sh --openasr true --openasr_subset small
 ```
 
-The Hub copies of the test sets are stored longest first. In full mode (`--all` or `--n 0`), the entire split is streamed in canonical order and kept without duration cuts. In small sample mode (`--n 100`), a seeded shuffle is drawn over a row buffer and utterances over 30 s are skipped. Samples are written as Kaldi-style data directories (`wav.scp`, `text`, `utt2dur`, ...) under `data/lb_*`, with `info.json` recording sampling metadata and utterance counts.
+### 2. Decoding (Stage 12) and Scoring (Stage 13)
 
-### Results on CPU (n=100 sample smoke test)
+Decode and score using standard `s2t.sh` stages with the Open ASR decoding configuration (`conf/decode_openasr.yaml`: beam 5, ctc 0, maxlenratio 0, lang `<eng>`, task `<asr>`):
 
-Apple M4 laptop, 4 threads, PyTorch 2.12 (CPU), `ctc_weight=0`, beam 5 unless noted, decoding time only. 100 utterances per set, drawn with seed 0 (`info.json` has the details); these rows evaluate decoding configurations on the same 100-sample test sets rather than leaderboard-level full test sets.
+```bash
+# Evaluate OWSM v4 base on the 100-utterance smoke test sets
+./s2t.sh --stage 12 --stop_stage 13 \
+    --download_model espnet/owsm_v4_base_102M \
+    --test_sets "openasr_librispeech_test_clean_100 openasr_librispeech_test_other_100 openasr_ami_cleaned_test_100 openasr_voxpopuli_cleaned_aa_test_100 openasr_earnings22_test_100 openasr_common_voice_test_100" \
+    --inference_config conf/decode_openasr.yaml \
+    --gpu_inference false \
+    --batch_size 8 \
+    --inference_nj 4 \
+    --cleaner whisper_en \
+    --hyp_cleaner whisper_en
 
-| set (n=100 sample) | utterances | audio (min) | mean length (s) |
-| --- | ---: | ---: | ---: |
-| test-clean | 100 | 13.8 | 8.3 |
-| test-other | 100 | 11.8 | 7.1 |
-| AMI | 100 | 8.2 | 4.9 |
-| VoxPopuli | 100 | 18.6 | 11.2 |
-| Earnings-22 | 100 | 13.1 | 7.8 |
-| Common Voice | 100 | 12.4 | 7.5 |
+# Full leaderboard evaluation across all sets
+./s2t.sh --stage 12 --stop_stage 13 \
+    --download_model espnet/owsm_v4_base_102M \
+    --test_sets "openasr_librispeech_test_clean openasr_librispeech_test_other openasr_ami_cleaned_test openasr_voxpopuli_cleaned_aa_test openasr_common_voice_test openasr_tedlium_test openasr_gigaspeech_cleaned_test openasr_spgispeech_test openasr_earnings22_test" \
+    --inference_config conf/decode_openasr.yaml \
+    --gpu_inference false \
+    --batch_size 8 \
+    --inference_nj 8 \
+    --cleaner whisper_en \
+    --hyp_cleaner whisper_en
+```
 
-| decoding (WER % / RTFx, n=100 sample) | test-clean | test-other | AMI | VoxPopuli | Earnings-22 | Common Voice |
-| --- | ---: | ---: | ---: | ---: | ---: | ---: |
-| beam 5, batch 1, maxlenratio 1.0 (old README advice) | 3.35 / 0.9 | - | - | - | - | - |
-| beam 5, batch 1, maxlenratio 0 (default) | 3.35 / 8.8 | 9.31 / 8.2 | 16.77 / 6.2 | 5.37 / 9.4 | 16.61 / 9.9 | 19.39 / 10.9 |
-| beam 5, batch 8 sorted, maxlenratio 0 | 3.35 / 9.8 | 9.31 / 9.3 | 16.77 / 7.1 | 5.37 / 7.8 | 16.61 / 9.9 | 19.39 / 12.2 |
-| greedy, batch 8 sorted, maxlenratio 0 | 3.57 / 23.1 | 9.78 / 17.5 | 29.63 / 11.6 | 5.69 / 32.7 | 16.50 / 24.4 | 20.81 / 26.0 |
-| 370M: beam 5, batch 8 sorted, maxlenratio 0 | 2.32 / 2.7 | 6.31 / 2.2 | 12.65 / 0.6 | 3.96 / 3.5 | 14.03 / 2.9 | 15.15 / 2.3 |
+To calculate RTF and latency over stage 12 decoding logs:
 
-What the rows mean:
+```bash
+python3 pyscripts/utils/calculate_rtf.py \
+    --log-dir "exp/espnet/owsm_v4_base_102M/decode_openasr/openasr_librispeech_test_clean_100/logdir" \
+    --log-name "s2t_inference" \
+    --input-shift 0.0625 \
+    --start-times-marker "speech length" \
+    --end-times-marker "best hypo"
+```
 
-- OWSM v4 pads every single-window input to 30 s, so the maximum output length is 374 steps whatever the utterance. With `maxlenratio=1.0` the beam search always runs to that maximum: once the real transcript has ended, the remaining beams keep producing punctuation and fragments over the padded silence, and about 97% of the decoding time goes there.
-- With `maxlenratio=0` (the default) the maximum length is the same, but the beam search also runs its end detection (Eq. 50 of Watanabe et al., 2017) and stops once the recently finished hypotheses are all far below the best one. The transcripts are identical to the `1.0` run on all 100 utterances of every set above.
-- `--batch_size 8 --sort true` decodes eight utterances of similar length in one beam search (`Speech2Text.batch_decode`). Also identical transcripts. A batch runs until end detection has fired for its slowest utterance, so on this CPU sorted batches gain between nothing and 25% over batch 1 and lose on VoxPopuli; unsorted batches are slower still.
-- The 370M model on AMI shows the limit of end detection: on some of these short, noisy utterances no hypothesis ends at three consecutive lengths, so 4 of the 13 sorted batches ran to the 374-step maximum (about 200 s each) and the set decodes at 9 s per utterance while the other sets take about 3 s.
-- Greedy decoding (`--beam_size 1`) is faster still but not safe: on AMI it falls into repetition loops on some utterances and the WER almost doubles.
-- Also tried and not worth it on this machine: encoding the true utterance length instead of 30 s (WER 3.35 -> 10.2, the model needs the padded context), padding to 10 to 20 s buckets or to speech plus a short tail (WER +0.1 to +1.2 for at most 1.3x), bfloat16 (30x slower on the CPU), int8 dynamic quantization (WER +1.8 and slower), 8 or 10 threads instead of 4, and SDPA in the decoder (no change).
+### Results and Observations
+
+See [RESULTS.md](RESULTS.md) for detailed numbers and findings, including:
+- Sample smoke test benchmark results across decoding setups (beam 5, batch 8, greedy).
+- Analysis of end detection behavior and `maxlenratio=0` speedup on padded 30-second single-window inputs.
+- Discussion of 370M model behavior on AMI and greedy search repetition loops.
 
 ## OWSM series
 

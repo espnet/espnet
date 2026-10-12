@@ -15,8 +15,7 @@ dropped, matching the leaderboard's own data loader.
 
 The output directory contains wav.scp, text, utt2dur, utt2spk, spk2utt and an
 info.json that records metadata and statistics (including utterances > 30 s),
-so that the set can be used both by local/eval_hf_asr_leaderboard.py and by the
-regular recipe stages.
+so that the set can be used directly by the regular recipe stages (s2t.sh).
 
 Supported configs of hf-audio/open-asr-leaderboard:
     ami, ami_cleaned, common_voice, earnings22, gigaspeech, gigaspeech_cleaned,
@@ -26,11 +25,11 @@ Supported configs of hf-audio/open-asr-leaderboard:
 Examples:
     # Full split evaluation (all utterances, no sampling)
     python local/prepare_hf_asr_leaderboard.py --dataset librispeech \
-        --split test.clean --all --out data/lb_librispeech_test_clean
+        --split test.clean --all --out data/openasr_librispeech_test_clean
 
     # Quick 100-utterance sample smoke test
     python local/prepare_hf_asr_leaderboard.py --dataset librispeech \
-        --split test.clean --n 100 --out data/lb_librispeech_test_clean
+        --split test.clean --n 100 --out data/openasr_librispeech_test_clean_100
 """
 
 import argparse
