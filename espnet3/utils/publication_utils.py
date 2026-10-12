@@ -490,7 +490,11 @@ def _usage_python(target: str, out_dir: Path, system: str | None) -> str:
             # contract refuses while the module is imported: the card still
             # gets written, with the generic lines
             logger.warning("README usage falls back to load(): %s", exc)
-    return _load_example(target, out_dir, system) + '\nresult = model("utt.wav")'
+    return (
+        "from espnet3.api.inference import load\n\n"
+        + _load_example(target, out_dir, system)
+        + '\nresult = model("utt.wav")'
+    )
 
 
 def _build_readme_context(

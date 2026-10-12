@@ -1490,13 +1490,16 @@ def test_usage_python_falls_back_to_the_generic_lines(tmp_path, caplog):
 
     # no system: a bundle that builds its own Inference, or an older one
     assert _usage_python("espnet/some_pack", tmp_path, None).splitlines() == [
+        "from espnet3.api.inference import load",
+        "",
         'model = load("espnet/some_pack")',
         'result = model("utt.wav")',
     ]
     # a system with no Inference to read yet
     with caplog.at_level("WARNING"):
         text = _usage_python("espnet/some_pack", tmp_path, "no_such_system")
-    assert text.splitlines()[0] == 'model = load("espnet/some_pack")'
+    assert text.splitlines()[0] == "from espnet3.api.inference import load"
+    assert text.splitlines()[2] == 'model = load("espnet/some_pack")'
     assert "falls back" in caplog.text
 
 
