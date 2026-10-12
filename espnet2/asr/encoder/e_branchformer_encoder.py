@@ -398,6 +398,7 @@ class EBranchformerEncoder(AbsEncoder):
                 output_size,
                 attention_dropout_rate,
                 zero_triu,
+                use_sdpa,
             )
         elif attention_layer_type == "fast_selfattn":
             assert pos_enc_layer_type in ["abs_pos", "scaled_abs_pos"]
