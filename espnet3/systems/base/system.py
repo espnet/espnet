@@ -7,11 +7,11 @@ from typing import ClassVar
 
 from omegaconf import DictConfig, OmegaConf
 
-from espnet3.contract.stages import StageSpec, check_stage_contract
 from espnet3.components.data.dataset_module import (
     load_dataset_module,
     parse_dataset_reference_config,
 )
+from espnet3.contract.stages import StageSpec, check_stage_contract
 from espnet3.publication.demo.packing import pack_demo as _pack_demo
 from espnet3.publication.demo.packing import upload_demo as _upload_demo
 from espnet3.systems.base.inference import infer
