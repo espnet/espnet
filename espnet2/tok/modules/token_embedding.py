@@ -20,6 +20,12 @@ class TokenEmbedding(AbsFrontend):
     matrix.  The latter path preserves gradients to a differentiable
     quantizer, including hard straight-through assignments.
 
+    Unlike ``espnet2.mt.frontend.embedding.Embedding``, which is intended for
+    discrete text token IDs, this frontend is used when tokenizer objectives
+    must backpropagate through soft distributions or hard one-hot
+    straight-through assignments.  It still accepts integer token IDs for
+    inference and other discrete inputs.
+
     Args:
         input_size: Number of input tokens ``K``.
         embed_dim: Embedding dimension.
