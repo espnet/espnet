@@ -1151,8 +1151,11 @@ def test_run_takes_an_input_after_an_option_and_other_commands_do_not(
 ):
     model = _declared_model(monkeypatch)
 
-    assert cli.main(["run", "x", "--system", "s2t", "speech=a.wav"]) == 0
-    assert model.calls == [{"speech": "a.wav"}]
+    # an input after an option is left over by argparse on every Python; an
+    # input list that was empty before the option is filled by 3.12.7+ itself
+    argv = ["run", "x", "speech=a.wav", "--system", "s2t", "language=jpn"]
+    assert cli.main(argv) == 0
+    assert model.calls == [{"speech": "a.wav", "language": "jpn"}]
 
     with pytest.raises(SystemExit) as e:
         cli.main(["models", "speech=a.wav"])
