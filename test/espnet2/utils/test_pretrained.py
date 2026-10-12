@@ -26,10 +26,14 @@ def test_espnet2_pack_returns_the_constructor_kwargs(monkeypatch):
 @pytest.mark.parametrize("key", ["inference_config", "training_config"])
 def test_an_espnet3_pack_says_which_loader_to_use(monkeypatch, key):
     _fake_downloader(monkeypatch, {key: "conf/x.yaml"})
-    with pytest.raises(RuntimeError) as e:
+    from espnet2.utils.pretrained import Espnet3BundleError, ModelTagError
+
+    with pytest.raises(Espnet3BundleError) as e:
         download_pretrained("espnet/some_espnet3_model")
-    assert "espnet3" in str(e.value)
-    assert "InferenceModel.from_pretrained" in str(e.value)
+    assert isinstance(e.value, ModelTagError)  # the CLI reports it as a choice
+    assert e.value.model_tag == "espnet/some_espnet3_model"
+    assert "espnet.load('espnet/some_espnet3_model')" in str(e.value)
+    assert "espnet3.api.inference.load" in str(e.value)
 
 
 def test_a_missing_model_zoo_is_named(monkeypatch, caplog):
@@ -38,3 +42,35 @@ def test_a_missing_model_zoo_is_named(monkeypatch, caplog):
     with pytest.raises(ImportError):
         download_pretrained("espnet/anything")
     assert "espnet_model_zoo" in caplog.text
+
+
+def test_only_an_unexpected_keyword_is_blamed_on_the_model():
+    """A TypeError from inside the model is not reported as "wrong model"."""
+    from espnet2.utils.pretrained import build_pretrained
+
+    class Bug:
+        def __init__(self, s2t_train_config=None, **kwargs):
+            pass
+
+        @staticmethod
+        def from_pretrained(model_tag=None, device=None, **kwargs):
+            raise TypeError("unsupported operand type(s) for +: 'int' and 'str'")
+
+    with pytest.raises(TypeError, match="unsupported operand"):
+        build_pretrained(Bug, "espnet/some-model", "cpu", "a caller", "a remedy")
+
+
+def test_a_keyword_the_constructor_does_take_is_not_blamed_on_the_model():
+    from espnet2.utils.pretrained import build_pretrained
+
+    class Bug:
+        def __init__(self, device=None, **kwargs):
+            pass
+
+        @staticmethod
+        def from_pretrained(model_tag=None, device=None, **kwargs):
+            # raised from deeper inside, about an argument this class accepts
+            raise TypeError("f() got an unexpected keyword argument 'device'")
+
+    with pytest.raises(TypeError, match="'device'"):
+        build_pretrained(Bug, "espnet/some-model", "cpu", "a caller", "a remedy")

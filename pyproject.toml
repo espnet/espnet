@@ -22,10 +22,11 @@ license = { "text" = "Apache Software License" }
 # We didn't specify torch-related packages as it highly depends on environment.
 dependencies = [
     # What `pip install espnet` has to be able to do: load a pretrained model
-    # through any from_pretrained in espnet2/bin and run it. Nothing here is
-    # for training - that stack (lightning, tensorboard, wandb, torch_optimizer,
-    # matplotlib, nltk, and hydra, omegaconf, datasets, dask for espnet3) is the
-    # [train] extra, which [all] includes.
+    # through any from_pretrained in espnet2/bin, or an espnet3 bundle through
+    # espnet3.api.inference.load, and run it. Nothing here is for training -
+    # that stack (lightning, tensorboard, wandb, torch_optimizer, matplotlib,
+    # nltk, and datasets, dask for espnet3) is the [train] extra, which [all]
+    # includes.
     # ci/check_inference_imports.py, run by the test_import job on a wheel
     # installed with no extras, fails when an inference module starts
     # importing one of them at module level.
@@ -64,6 +65,17 @@ dependencies = [
     # it arrived only through huggingface_hub.
     "tqdm>=4.64",
     "espnet_model_zoo",
+    # An espnet3 bundle is read and built through them: omegaconf resolves its
+    # conf/inference.yaml and hydra instantiates the model it names, so
+    # without them `pip install espnet` cannot load an espnet3 model at all.
+    # Pure Python, and imported only when such a bundle is loaded; they bring
+    # antlr4-python3-runtime==4.9.* (omegaconf pins it). The floors are what
+    # espnet3 uses (hydra.utils.get_object is 1.3) and CI runs (omegaconf
+    # 2.3); the caps are the next minor release, since hydra's minor releases
+    # have changed how configs are composed and instantiated, and hydra-core
+    # 1.3 itself caps omegaconf below 2.4.
+    "hydra-core>=1.3,<1.4",
+    "omegaconf>=2.3,<2.4",
     # The supported set is exactly {2.11.0, 2.13.0, 2.14.0}, and three places
     # have to agree on it: ci/image_variants.json, which is what CI builds
     # images for; tools/installers/install_torch.sh, which exits 1 on anything
@@ -132,8 +144,6 @@ train = [
   # CER/WER during validation (legacy/nets/e2e_asr_common.py, the transducer
   # error calculator, uasr/espnet_model.py); also in [asr].
   "editdistance",
-  "hydra-core",
-  "omegaconf",
   "datasets",
   "dask[distributed]",
   "dask_jobqueue",
@@ -159,6 +169,8 @@ asr = [
 tts = [
   "pyworld>=0.3.4",
   "pypinyin<=0.44.0",
+  "rjieba<=0.2.1",
+  "vocos",
   "espnet_tts_frontend",
   "espnet-g2p-en>=2.1.0.post1",  # fork of Kyubyong/g2p
   "jamo==0.4.1",
@@ -168,6 +180,11 @@ tts = [
 enh = [
   "ci_sdr",
   "fast-bss-eval==0.1.3",
+]
+rst = [
+  "peft",
+  "pyroomacoustics",
+  "transformers",  # the w2v-BERT 2.0 backbone
 ]
 
 asr2 = [
@@ -318,6 +335,7 @@ all = [
   "espnet[asr2]",
   "espnet[tts]",
   "espnet[enh]",
+  "espnet[rst]",
   "espnet[st]",
   "espnet[s2t]",
   "espnet[s2st]",

@@ -1,11 +1,15 @@
 """Tests for espnet2/speechlm/dataloader/batch.py — batching algorithms."""
 
+from contextlib import contextmanager
+from types import SimpleNamespace
 from unittest.mock import patch
 
 import pytest
+import torch
 
 from espnet2.speechlm.dataloader.batch import (
     _bfd_worker,
+    _current_accelerator_device,
     _diverse_bfd_worker,
     batchfy,
     batchfy_bucket,
@@ -211,3 +215,128 @@ class TestSynchronizeBatches:
         ):
             result = synchronize_batches(batches)
         assert result == batches
+
+    @staticmethod
+    @contextmanager
+    def _fake_dist(counts):
+        """Fake a distributed run whose per-rank batch counts are `counts`.
+
+        The collective tensors go on the current accelerator, which this
+        CPU-only test reports as the CPU; the batch-count logic is untouched.
+        """
+
+        def _all_gather(output_list, input_tensor):
+            assert len(output_list) == len(counts)
+            for out, count in zip(output_list, counts):
+                out.fill_(count)
+
+        with (
+            patch("torch.distributed.is_initialized", return_value=True),
+            patch(
+                "espnet2.speechlm.dataloader.batch._current_accelerator_device",
+                return_value=torch.device("cpu"),
+            ),
+            patch(
+                "espnet2.speechlm.dataloader.batch.dist.get_world_size",
+                return_value=len(counts),
+            ),
+            patch(
+                "espnet2.speechlm.dataloader.batch.dist.all_gather",
+                side_effect=_all_gather,
+            ),
+        ):
+            yield
+
+    def test_sync_pads_short_rank_fully(self):
+        # A rank holding fewer than half of the target used to get
+        # `batches[-n_missing:]`, i.e. fewer than tgt_n_batches batches.
+        batches = [["a"], ["b"]]
+        with self._fake_dist([2, 5]):
+            result = synchronize_batches(batches)
+        assert len(result) == 5
+        assert result[:2] == batches
+
+    def test_sync_zero_batches_on_some_rank(self):
+        batches = [["a"], ["b"], ["c"]]
+        with self._fake_dist([3, 0]):
+            with pytest.raises(RuntimeError, match="rank with no batches"):
+                synchronize_batches(batches)
+
+    def test_sync_all_ranks_empty(self):
+        # Nothing to synchronize: no padding and no error.
+        with self._fake_dist([0, 0]):
+            assert synchronize_batches([]) == []
+
+    def test_sync_initialized_but_no_accelerator(self):
+        # torch.distributed is initialized but there is no accelerator to run the
+        # collective on: synchronizing is impossible, so this must not be a silent
+        # no-op (ranks would keep different numbers of batches).
+        batches = [["a", "b"], ["c"]]
+        with (
+            patch("torch.distributed.is_initialized", return_value=True),
+            patch(
+                "espnet2.speechlm.dataloader.batch._current_accelerator_device",
+                return_value=None,
+            ),
+        ):
+            with pytest.raises(RuntimeError, match="requires an accelerator"):
+                synchronize_batches(batches)
+
+    def test_sync_pads_shorter_ranks(self):
+        # A rank with fewer batches than the max across ranks is padded from the end.
+        batches = [["a", "b"], ["c"]]
+
+        def fake_all_gather(out_list, _tensor):
+            for t in out_list:
+                t.fill_(3)  # pretend some rank reports 3 batches
+
+        with (
+            patch("torch.distributed.is_initialized", return_value=True),
+            patch(
+                "espnet2.speechlm.dataloader.batch._current_accelerator_device",
+                return_value=torch.device("cpu"),
+            ),
+            patch(
+                "espnet2.speechlm.dataloader.batch.dist.get_world_size",
+                return_value=2,
+            ),
+            patch(
+                "espnet2.speechlm.dataloader.batch.dist.all_gather",
+                side_effect=fake_all_gather,
+            ),
+        ):
+            result = synchronize_batches(batches)
+        assert len(result) == 3
+        assert result[-1] == ["c"]
+
+
+# ---------- _current_accelerator_device ----------
+
+
+class TestCurrentAcceleratorDevice:
+    def test_accelerator_available(self, monkeypatch):
+        # torch >= 2.5 with an available accelerator: report its device.
+        fake = SimpleNamespace(
+            is_available=lambda: True,
+            current_accelerator=lambda: torch.device("cpu"),
+        )
+        monkeypatch.setattr(torch, "accelerator", fake, raising=False)
+        assert _current_accelerator_device() == torch.device("cpu")
+
+    def test_accelerator_present_but_unavailable(self, monkeypatch):
+        # torch.accelerator exists but reports nothing usable -> None.
+        fake = SimpleNamespace(is_available=lambda: False)
+        monkeypatch.setattr(torch, "accelerator", fake, raising=False)
+        assert _current_accelerator_device() is None
+
+    def test_no_accelerator_falls_back_to_cuda(self, monkeypatch):
+        # torch < 2.5 (no torch.accelerator) with CUDA available -> "cuda".
+        monkeypatch.delattr(torch, "accelerator", raising=False)
+        monkeypatch.setattr(torch.cuda, "is_available", lambda: True)
+        assert _current_accelerator_device() == torch.device("cuda")
+
+    def test_no_accelerator_no_cuda(self, monkeypatch):
+        # torch < 2.5 and no CUDA -> None.
+        monkeypatch.delattr(torch, "accelerator", raising=False)
+        monkeypatch.setattr(torch.cuda, "is_available", lambda: False)
+        assert _current_accelerator_device() is None

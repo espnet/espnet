@@ -552,6 +552,21 @@ if [ "${task}" == "codec" ] || [ "${task}" == "all" ]; then
     cd "${cwd}"
 fi
 
+if [ "${task}" == "rst" ] || [ "${task}" == "all" ]; then
+    # [ESPnet2] test rst1 recipe: feature predictor, vocoder pretraining and
+    # finetuning, and inference, with a tiny w2v-BERT 2.0
+    echo "::group::Installing RST dependencies ==="
+    python3 -m pip install -e '.[rst]'
+    echo "::endgroup::"
+    cd ./egs2/mini_an4/rst1
+    gen_dummy_coverage
+    echo "==== [ESPnet2] RST ==="
+    ./run.sh --stage 1 --stop_stage 9 --python "${python}"
+    # Remove generated files in order to reduce the disk usage
+    rm -rf exp dump data downloads
+    cd "${cwd}"
+fi
+
 echo "::group::=== report ==="
 if compgen -G "egs2/*/*/.coverage" > /dev/null; then
     coverage combine egs2/*/*/.coverage

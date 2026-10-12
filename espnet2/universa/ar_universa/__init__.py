@@ -1,3 +1,5 @@
-from espnet2.universa.ar_universa.ar_universa import ARUniversa
+"""Compatibility imports; use espnet2.aqa.ar_universa for new code."""
 
-__all__ = ["ARUniversa"]
+from espnet2.aqa.ar_universa import (  # noqa: F401
+    ARUniversa,
+)

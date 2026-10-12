@@ -157,6 +157,10 @@ class UIAssetRegistry:
                 f"but got: {type(asset)}"
             )
 
+    def names(self) -> set[str]:
+        """Return the registered asset type names, which a spec's ``type`` may use."""
+        return set(self._assets)
+
     def get(self, name: str) -> UIAsset:
         """Return one registered asset.
 

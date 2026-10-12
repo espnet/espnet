@@ -1,5 +1,5 @@
-"""Legacy task import retained for published Uni-VERSA and ARECHO workflows."""
+"""Compatibility task import; new code uses AqaTask."""
 
-from espnet2.tasks.audio_metric import AudioMetricTask
+from espnet2.tasks.aqa import AqaTask
 
-UniversaTask = AudioMetricTask
+UniversaTask = AqaTask

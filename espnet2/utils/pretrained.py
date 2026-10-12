@@ -11,8 +11,30 @@ class ModelTagError(RuntimeError):
 
     Its own type because both front ends - ``espnet2.bin.cli`` and
     ``espnet.load`` - report it as a choice the user can correct rather than
-    as a traceback.
+    as a traceback. ``espnet3.api.inference`` raises it too, for a tag its
+    loader cannot serve.
     """
+
+
+class Espnet3BundleError(ModelTagError):
+    """The tag is an ESPnet3 ``pack_model`` bundle, which no ESPnet2 class loads.
+
+    ``espnet.load`` catches it and hands the tag, already downloaded into the
+    same cache, to ``espnet3.api.inference.load``; the command line reports
+    it like any other tag it cannot serve.
+
+    Attributes:
+        model_tag: The tag that was downloaded.
+    """
+
+    def __init__(self, model_tag: str) -> None:
+        """Name the tag and the loaders that serve it."""
+        super().__init__(
+            f"{model_tag} was published with espnet3's pack_model; load it with "
+            f"espnet.load({model_tag!r}) or espnet3.api.inference.load"
+            f"({model_tag!r}) instead."
+        )
+        self.model_tag = model_tag
 
 
 def download_pretrained(model_tag: str) -> Dict:
@@ -35,12 +57,7 @@ def download_pretrained(model_tag: str) -> Dict:
         raise
     kwargs = ModelDownloader().download_and_unpack(model_tag)
     if "inference_config" in kwargs or "training_config" in kwargs:
-        raise RuntimeError(
-            f"{model_tag} was published with espnet3's pack_model; load it with "
-            "espnet3.publication.inference_model.InferenceModel.from_pretrained("
-            f"{model_tag!r}) instead (trust_user_code=True if the bundle ships "
-            "its own code)."
-        )
+        raise Espnet3BundleError(model_tag)
     return kwargs
 
 
