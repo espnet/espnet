@@ -33,11 +33,13 @@ def _violations(system_dir: Path) -> list[str]:
 
 @pytest.mark.parametrize("system_dir", _systems(), ids=lambda p: p.name)
 def test_every_system_keeps_the_layout(system_dir: Path) -> None:
+    """Verify every system directory maintains the allowed layout."""
     names = _violations(system_dir)
     assert names == [], f"{system_dir.name}: move under src/: {names}"
 
 
 def test_extra_entries_are_reported(tmp_path: Path) -> None:
+    """Verify that extra entries are reported as violations."""
     system_dir = tmp_path / "demo"
     system_dir.mkdir()
     (system_dir / "inference.py").touch()
@@ -50,6 +52,7 @@ def test_extra_entries_are_reported(tmp_path: Path) -> None:
 
 
 def test_allowed_entries_pass(tmp_path: Path) -> None:
+    """Verify that allowed entries do not cause violations."""
     system_dir = tmp_path / "demo"
     system_dir.mkdir()
     (system_dir / "__init__.py").touch()
@@ -64,6 +67,7 @@ def test_allowed_entries_pass(tmp_path: Path) -> None:
 
 
 def test_base_is_exempt() -> None:
+    """Verify that the base system directory is exempt from checks."""
     systems = _systems()
     assert SYSTEMS_DIR / "base" not in systems
     assert SYSTEMS_DIR / "esp2_asr" in systems
