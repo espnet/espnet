@@ -4,8 +4,8 @@ import numpy as np
 import pytest
 
 from espnet3.api.inference import Field
-from espnet3.contract.data import DatasetContractError
 from espnet3.components.data.base_dataset import BaseDataset
+from espnet3.contract.data import DatasetContractError
 
 
 def test_base_dataset_checks_only_the_first_getitem_call():
