@@ -49,28 +49,32 @@ def test_tools_are_listed_with_their_docs():
 
 
 class FakeASR:
+    """An esp2_s2t Inference stand-in: language and task by name, text out.
+
+    It refuses what the real one refuses, with the real one's sentences, so
+    that the server's relay of them is what is tested here.
+    """
+
+    languages = ("eng", "deu", "jpn")
+    targets = ("deu", "eng")
+
     def __init__(self):
         self.calls = []
-        self.s2t_model = SimpleNamespace(
-            token_list=[
-                "<nolang>",
-                "<eng>",
-                "<deu>",
-                "<jpn>",
-                "<asr>",
-                "<st_deu>",
-                "<st_eng>",
-            ]
-        )
 
-    def decode_long(self, speech, lang_sym, task_sym):
-        self.calls.append((speech, lang_sym, task_sym))
-        # decode_long returns one (start, end, text) per segment; the two
-        # segments are joined by the server, so a single-word return here
-        # would not show that the join happens.
-        words = "hallo welt" if task_sym == "<st_deu>" else "hello world"
-        first, second = words.split()
-        return [(0.0, 1.0, first), (1.0, 2.0, second)]
+    def __call__(self, audio, **prompt):
+        language, task = prompt.get("language"), prompt["task"]
+        if language is not None and language not in self.languages:
+            raise ValueError(
+                f"language {language!r}: this model has no <{language}>; pass "
+                "ISO 639-3, three letters: eng, deu, jpn, zho, fra, spa ..."
+            )
+        if task.startswith("st_") and task[3:] not in self.targets:
+            raise ValueError(
+                f"task {task!r}: this model has no <{task}>; it takes asr, or "
+                f"st_<ISO 639-3> to translate, into {', '.join(self.targets)}"
+            )
+        self.calls.append((audio, prompt))
+        return {"text": "hallo welt" if task == "st_deu" else "hello world"}
 
 
 def test_transcribe_maps_codes_to_symbols(monkeypatch, wav):
@@ -82,9 +86,10 @@ def test_transcribe_maps_codes_to_symbols(monkeypatch, wav):
         call(server, "translate", audio_path=str(wav), language="eng", to="deu")
         == "hallo welt"
     )
+    # by name; no language means the model works it out
     assert fake.calls == [
-        (str(wav), "<nolang>", "<asr>"),
-        (str(wav), "<eng>", "<st_deu>"),
+        (str(wav), {"task": "asr"}),
+        (str(wav), {"task": "st_deu", "language": "eng"}),
     ]
 
 
@@ -114,7 +119,7 @@ def test_transcribe_rejects_what_the_model_cannot_do(monkeypatch, wav, tmp_path)
             server.call_tool("transcribe", {"audio_path": str(wav), "language": "en"})
         )
     # fra is ISO 639-3, so the answer is the targets the model has
-    with pytest.raises(ToolError, match="target '<st_fra>'.*targets are deu, eng"):
+    with pytest.raises(ToolError, match="no <st_fra>.*into deu, eng"):
         asyncio.run(
             server.call_tool("translate", {"audio_path": str(wav), "to": "fra"})
         )
@@ -124,19 +129,14 @@ def test_transcribe_rejects_what_the_model_cannot_do(monkeypatch, wav, tmp_path)
         )
 
 
-class FakePOWSM:
+class FakePOWSM(FakeASR):
     """POWSM writes each phone between slashes; the server takes them out."""
 
-    def __init__(self):
-        self.calls = []
-        self.s2t_model = SimpleNamespace(token_list=["<unk>", "<eng>", "<pr>"])
+    languages = ("eng",)
 
-    def no_language(self):
-        return "<unk>"
-
-    def decode_long(self, speech, lang_sym, task_sym):
-        self.calls.append((speech, lang_sym, task_sym))
-        return [(0.0, 1.0, "/ð//ə/"), (1.0, 2.0, "/s//eɪ//l/")]
+    def __call__(self, audio, **prompt):
+        super().__call__(audio, **prompt)
+        return {"text": "/ð//ə/ /s//eɪ//l/"}
 
 
 def test_phonemize_returns_one_token_a_phone(monkeypatch, wav):
@@ -146,9 +146,8 @@ def test_phonemize_returns_one_token_a_phone(monkeypatch, wav):
 
     assert call(server, "phonemize", audio_path=str(wav)) == "ð ə s eɪ l"
 
-    # the model's own symbol for "work the language out yourself", which is
-    # <unk> for POWSM and <nolang> for OWSM
-    assert fake.calls == [(str(wav), "<unk>", "<pr>")]
+    # phones by name; no language means the model works it out
+    assert fake.calls == [(str(wav), {"task": "pr"})]
 
 
 def test_phonemize_takes_a_language_the_model_has(monkeypatch, wav):
@@ -157,7 +156,7 @@ def test_phonemize_takes_a_language_the_model_has(monkeypatch, wav):
     server = mcp_server.build_server()
 
     call(server, "phonemize", audio_path=str(wav), language="eng")
-    assert fake.calls[-1][1] == "<eng>"
+    assert fake.calls[-1][1] == {"task": "pr", "language": "eng"}
 
     with pytest.raises(ToolError, match="ISO 639-3"):
         asyncio.run(
@@ -273,6 +272,23 @@ def test_enhance_resamples_and_writes(monkeypatch, wav, tmp_path):
     assert seen["shape"] == (1, 16000)
     data, fs = soundfile.read(str(out))
     assert fs == 16000 and len(data) == 16000
+
+
+def test_the_speech_to_text_loaders_go_through_espnet3(monkeypatch):
+    """_s2t loads the tag as the s2t system, on the device settled for this machine."""
+    import torch
+
+    import espnet3.api.inference as api
+
+    seen = []
+    monkeypatch.setattr(
+        api, "load", lambda tag, **kw: seen.append((tag, kw)) or "model"
+    )
+    monkeypatch.setattr(torch.cuda, "is_available", lambda: False)
+    monkeypatch.setattr(mcp_server, "DEVICE", "auto")
+
+    assert mcp_server._s2t("espnet/some_owsm") == "model"
+    assert seen == [("espnet/some_owsm", {"system": "s2t", "device": "cpu"})]
 
 
 def test_build_server_names_the_missing_package(monkeypatch):
