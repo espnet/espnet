@@ -210,7 +210,8 @@ Each JSONL row contains `example_id` and `messages`, with messages represented a
 `[role, modality, content]`. Training rows include the assistant's target text/audio;
 inference rows can contain only the user request and any input audio.
 
-Pass space-separated `task:name:dataset.json[:factor]` specifiers. Supported
+Pass one `task:name:dataset.json[:factor]` per option, repeating the option
+for additional specifiers. Supported
 tasks are `text_to_audio`, `audio_to_text`, `text_only`, and `dialogue`; use
 distinct training and validation names. Registered datasets instead use
 `--train-registered-specifier` / `--valid-registered-specifier` with
@@ -230,19 +231,32 @@ Then `--train-registered-specifier "dialogue:train"` and
 Each training/validation split requires at least one data option; registered
 and unregistered datasets can be combined by supplying both options for a split.
 
-Quote paths containing spaces **inside** the specifier value, in addition to
-the outer shell quotes. For example:
+Quote the whole argument once for the shell. Each argument is a literal
+specifier; embedded apostrophes, quotation marks, and backslashes are preserved.
+For example:
 
 ```bash
 ./run.sh --stage 3 --stop-stage 3 --ngpu 8 \
     --stats-dir /path/to/stats \
-    --train-unregistered-specifier "dialogue:train:'/path with spaces/train.json'" \
-    --valid-unregistered-specifier "dialogue:valid:'/path with spaces/valid.json'"
+    --train-unregistered-specifier "dialogue:train:/path with spaces/train.json" \
+    --train-unregistered-specifier "text_only:books:/data/reader's books/train.json" \
+    --valid-unregistered-specifier "dialogue:valid:/path with spaces/valid.json"
 ```
 
-The inner quotes keep each path within one specifier when several specifiers
-are separated by spaces. Use the same form for inference, such as
-`--test-unregistered-specifier "dialogue:test:'/path with spaces/requests.json'"`.
+Use the same literal form for inference, such as
+`--test-unregistered-specifier "dialogue:test:/path with spaces/requests.json"`.
+The training and statistics Python CLIs and both recipe launchers accept repeated
+training/validation options, including the SFT aliases. Migrate an old
+`--train-unregistered-specifier "A B"` to
+`--train-unregistered-specifier "A" --train-unregistered-specifier "B"`, and remove
+inner quotes previously added around paths. In shell files passed via `--config`,
+use arrays such as `train_unregistered_specifier=("A" "B")`; a scalar represents
+one specifier. Explicit CLI options replace that option's configured array.
+Direct Python `DataIteratorFactory` callers may still pass legacy
+whitespace-separated strings with their original `.split()` behavior, or lists
+of literal specifiers for paths containing whitespace. Paths containing `:` remain
+unsupported by the existing specifier format.
+
 Registered inference uses `--test-registered-specifier "dialogue:test"` and
 requires the corresponding registry entry. Inference accepts exactly one
 registered or unregistered test specifier option.
@@ -288,8 +302,12 @@ For warmup alone:
 ```bash
 ./run.sh --stage 1 --stop-stage 1 --ngpu 8 \
     --stats-dir /path/to/pretrain_stats \
-    --train-unregistered-specifier "text_to_audio:train:/path/to/train.json audio_to_text:train:/path/to/train.json text_only:text_train:/path/to/text_train.json" \
-    --valid-unregistered-specifier "text_to_audio:valid:/path/to/valid.json audio_to_text:valid:/path/to/valid.json text_only:text_valid:/path/to/text_valid.json"
+    --train-unregistered-specifier "text_to_audio:train:/path/to/train.json" \
+    --train-unregistered-specifier "audio_to_text:train:/path/to/train.json" \
+    --train-unregistered-specifier "text_only:text_train:/path/to/text_train.json" \
+    --valid-unregistered-specifier "text_to_audio:valid:/path/to/valid.json" \
+    --valid-unregistered-specifier "audio_to_text:valid:/path/to/valid.json" \
+    --valid-unregistered-specifier "text_only:text_valid:/path/to/text_valid.json"
 ```
 
 For pretraining, repeat the data arguments with `--stage 2 --stop-stage 2`.

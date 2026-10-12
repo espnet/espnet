@@ -1,7 +1,6 @@
 """Tests for espnet2/speechlm/dataloader/iterator.py — helpers & factory."""
 
 import json
-import shlex
 from pathlib import Path
 
 import pytest
@@ -51,27 +50,40 @@ class TestParseDataSpecifier:
         assert reg == []
 
     @pytest.mark.parametrize(
-        "specifier",
+        "path",
         [
-            "dialogue:demo:'/data/space dir/train.json':2.0",
-            "'dialogue:demo:/data/space dir/train.json:2.0'",
-            r"dialogue:demo:/data/space\ dir/train.json:2.0",
+            "/data/space dir/train.json",
+            "/data/reader's.json",
+            r"/data/back\slash.json",
+            '/data/"quoted".json',
+            "/data/reader's files/back\\slash.json",
         ],
     )
-    def test_quoted_path_in_multiple_specifiers(self, specifier):
+    def test_literal_path_in_multiple_specifiers(self, path):
         unreg, reg = _parse_data_specifier(
-            f"{specifier} text_only:other:other.json", "dialogue:registered:0.5"
+            [f"dialogue:demo:{path}:2.0", "text_only:other:other.json"],
+            ["dialogue:registered:0.5"],
         )
         assert unreg == [
-            ("dialogue", "demo", "/data/space dir/train.json", 2.0),
+            ("dialogue", "demo", path, 2.0),
             ("text_only", "other", "other.json", 1.0),
         ]
         assert reg == [("dialogue", "registered", 0.5)]
 
-    def test_quoted_path_with_literal_quote_and_backslash(self):
-        path = "/data/reader's files/back\\slash.json"
-        unreg, _ = _parse_data_specifier(shlex.quote(f"dialogue:demo:{path}"), "")
+    @pytest.mark.parametrize("path", ["/data/reader's.json", r"/data/back\slash.json"])
+    def test_legacy_string_preserves_apostrophes_and_backslashes(self, path):
+        unreg, _ = _parse_data_specifier(f"dialogue:demo:{path}", "")
         assert unreg == [("dialogue", "demo", path, 1.0)]
+
+    @pytest.mark.parametrize("name", ["reader's", r"back\slash", 'reader\'s "books"'])
+    def test_literal_registered_names(self, name):
+        _, reg = _parse_data_specifier([], [f"dialogue:{name}:0.5", "text_only:other"])
+        assert reg == [("dialogue", name, 0.5), ("text_only", "other", 1.0)]
+
+    @pytest.mark.parametrize("name", ["reader's", r"back\slash"])
+    def test_legacy_registered_names(self, name):
+        _, reg = _parse_data_specifier("", f"dialogue:{name} text_only:other")
+        assert reg == [("dialogue", name, 1.0), ("text_only", "other", 1.0)]
 
     def test_parse_whitespace_only(self):
         unreg, reg = _parse_data_specifier("   ", "  ")
@@ -236,12 +248,17 @@ class TestDataIteratorFactory:
         )
         assert len(factory.batched_examples) > 0
 
-    def test_factory_reads_manifest_in_space_directory(self, synthetic_data, tmp_path):
-        manifest = tmp_path / "space dir" / "dataset.json"
+    @pytest.mark.parametrize(
+        "directory", ["space dir", "reader's files", 'back\\slash "files"']
+    )
+    def test_factory_reads_manifest_in_literal_directory(
+        self, synthetic_data, tmp_path, directory
+    ):
+        manifest = tmp_path / directory / "dataset.json"
         manifest.parent.mkdir()
         manifest.write_text(Path(synthetic_data["dataset_json"]).read_text())
         factory = DataIteratorFactory(
-            unregistered_specifier=shlex.quote(f"text_only:mydata:{manifest}"),
+            unregistered_specifier=[f"text_only:mydata:{manifest}"],
             stats_dir=synthetic_data["stats_dir"],
             batch_size=10000,
             num_workers=0,

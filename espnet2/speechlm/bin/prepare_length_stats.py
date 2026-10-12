@@ -7,7 +7,6 @@
 import argparse
 import json
 import logging
-import shlex
 from multiprocessing import Pool
 from pathlib import Path
 from typing import Dict, Tuple
@@ -52,8 +51,9 @@ def get_parser() -> argparse.ArgumentParser:
             parser.add_argument(
                 f"--{split}-{spec_type}-specifier",
                 type=str,
-                default="",
-                help=f"{spec_type.capitalize()} {split} data specifier. "
+                action="append",
+                default=[],
+                help=f"One {spec_type} {split} specifier; repeat for more datasets. "
                 f"Format: '{format_str}' (e.g., '{example}')",
             )
 
@@ -92,8 +92,8 @@ def worker(
     # Create iterator with appropriate specifier
     try:
         iterator = DataIteratorFactory(
-            unregistered_specifier=unregistered_spec,
-            registered_specifier=registered_spec,
+            unregistered_specifier=[unregistered_spec] if unregistered_spec else [],
+            registered_specifier=[registered_spec] if registered_spec else [],
             rank=rank,
             world_size=world_size,
             shuffle=False,
@@ -206,10 +206,8 @@ def main():
     specifiers = []
     for split in ["train", "valid"]:
         for spec_type in ["unregistered", "registered"]:
-            spec_str = getattr(args, f"{split}_{spec_type}_specifier")
-            if spec_str:
-                for spec in shlex.split(spec_str):
-                    specifiers.append((spec_type, spec))
+            for spec in getattr(args, f"{split}_{spec_type}_specifier"):
+                specifiers.append((spec_type, spec))
 
     # Process each specifier
     for spec_type, specifier in specifiers:
@@ -226,7 +224,7 @@ def main():
         # Collect and save statistics
         logger.info(f"Processing {spec_type} specifier: {specifier}")
         stats = collect_length_stats(
-            preprocessor, args.num_workers, spec_type, shlex.quote(specifier)
+            preprocessor, args.num_workers, spec_type, specifier
         )
         save_stats(stats, output_file)
 

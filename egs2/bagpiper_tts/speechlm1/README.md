@@ -252,12 +252,15 @@ and use `--train-registered-specifier "dialogue:tts_train"` and
 one data option, and registered and unregistered datasets can be combined by
 supplying both options for that split.
 
-Paths containing spaces need inner quotes within the outer shell-quoted
-specifier value, for example
-`--train-unregistered-specifier "dialogue:tts_train:'/path with spaces/train.json'"`
-and `--valid-unregistered-specifier "dialogue:tts_valid:'/path with spaces/valid.json'"`.
-The same syntax applies to inference:
-`--test-unregistered-specifier "dialogue:test:'/path with spaces/requests.json'"`.
+Pass one literal specifier per argument, repeating training/validation options
+for additional datasets. Quote the whole argument once for the shell, for example
+`--train-unregistered-specifier "dialogue:tts_train:/path with spaces/train.json"`
+and `--valid-unregistered-specifier "dialogue:tts_valid:/path with spaces/valid.json"`.
+Embedded apostrophes, quotes, and backslashes are preserved. The same literal
+syntax applies to inference:
+`--test-unregistered-specifier "dialogue:test:/path with spaces/requests.json"`.
+For migration from whitespace-separated arguments and shell `--config` files,
+see the [Bagpiper input instructions](../../bagpiper/speechlm1/README.md#setup-and-inputs).
 For a registered test manifest, use `--test-registered-specifier "dialogue:test"`.
 Inference accepts exactly one registered or unregistered test specifier option.
 

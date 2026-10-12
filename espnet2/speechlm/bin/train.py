@@ -8,7 +8,6 @@ import argparse
 import logging
 import os
 import random
-import shlex
 import shutil
 import sys
 from pathlib import Path
@@ -64,36 +63,40 @@ def get_parser() -> argparse.ArgumentParser:
     data_group.add_argument(
         "--train-unregistered-specifier",
         type=str,
-        default="",
+        action="append",
+        default=[],
         required=False,
-        help="Unregistered train data specifier. "
+        help="One unregistered train specifier; repeat for additional datasets. "
         "Format: 'task:name:data_json[:factor]' "
         "(e.g., 'asr:librispeech:train.json:2.0')",
     )
     data_group.add_argument(
         "--train-registered-specifier",
         type=str,
-        default="",
+        action="append",
+        default=[],
         required=False,
-        help="Registered train data specifier. "
+        help="One registered train specifier; repeat for additional datasets. "
         "Format: 'task:name[:factor]' "
         "(e.g., 'tts:ljspeech:1.5')",
     )
     data_group.add_argument(
         "--valid-unregistered-specifier",
         type=str,
-        default="",
+        action="append",
+        default=[],
         required=False,
-        help="Unregistered validation data specifier. "
+        help="One unregistered validation specifier; repeat for more datasets. "
         "Format: 'task:name:data_json[:factor]' "
         "(e.g., 'asr:librispeech:valid.json')",
     )
     data_group.add_argument(
         "--valid-registered-specifier",
         type=str,
-        default="",
+        action="append",
+        default=[],
         required=False,
-        help="Registered validation data specifier. "
+        help="One registered validation specifier; repeat for more datasets. "
         "Format: 'task:name[:factor]' "
         "(e.g., 'tts:ljspeech:1.0')",
     )
@@ -303,14 +306,14 @@ def main():
         shuffle=False,
     )
 
-    for spec in shlex.split(args.valid_unregistered_specifier):
+    for spec in args.valid_unregistered_specifier:
         factory = DataIteratorFactory(
-            unregistered_specifier=shlex.quote(spec), **valid_iterator_args
+            unregistered_specifier=[spec], **valid_iterator_args
         )
         valid_iterator_factories[spec] = factory
-    for spec in shlex.split(args.valid_registered_specifier):
+    for spec in args.valid_registered_specifier:
         factory = DataIteratorFactory(
-            registered_specifier=shlex.quote(spec), **valid_iterator_args
+            registered_specifier=[spec], **valid_iterator_args
         )
         valid_iterator_factories[spec] = factory
 

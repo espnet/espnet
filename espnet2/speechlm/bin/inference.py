@@ -188,8 +188,10 @@ def inference_worker(
 
     # Build data iterator with sharding
     iterator_factory = DataIteratorFactory(
-        unregistered_specifier=unregistered_specifier,
-        registered_specifier=registered_specifier,
+        unregistered_specifier=(
+            [unregistered_specifier] if unregistered_specifier else []
+        ),
+        registered_specifier=[registered_specifier] if registered_specifier else [],
         collate_fn=preprocessor.collate_fn,
         num_workers=0,
         rank=rank,
@@ -272,8 +274,8 @@ def main():
         )
 
     unregistered, registered = _parse_data_specifier(
-        args.test_unregistered_specifier or "",
-        args.test_registered_specifier or "",
+        [args.test_unregistered_specifier] if args.test_unregistered_specifier else [],
+        [args.test_registered_specifier] if args.test_registered_specifier else [],
     )
     specifiers = unregistered or registered
     if not specifiers:

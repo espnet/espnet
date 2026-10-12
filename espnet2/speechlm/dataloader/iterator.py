@@ -6,9 +6,8 @@
 import json
 import logging
 import random
-import shlex
 from pathlib import Path
-from typing import Callable, Dict, List, Optional, Tuple, TypeVar, Union
+from typing import Callable, Dict, List, Optional, Sequence, Tuple, TypeVar, Union
 
 from torch.utils.data import DataLoader
 
@@ -33,11 +32,13 @@ class DataIteratorFactory:
         - State saving/loading for training resumption
 
     Args:
-        unregistered_specifier: Space-separated unregistered data specs.
+        unregistered_specifier: List of literal unregistered data specs.
             Format: "task:name:data_json[:factor]"
             Example: "asr:librispeech:train.json:2.0"
-            Quote paths containing whitespace inside the specifier string.
-        registered_specifier: Space-separated registered data specs.
+            Legacy whitespace-separated strings are also accepted; use a list
+            for paths containing whitespace. Quotes and backslashes are literal.
+        registered_specifier: List of literal registered data specs, or a legacy
+            whitespace-separated string.
             Format: "task:name[:factor]"
             Example: "tts:ljspeech:1.5"
         stats_dir: Directory containing statistics files (str or Path).
@@ -68,8 +69,8 @@ class DataIteratorFactory:
 
     def __init__(
         self,
-        unregistered_specifier: str = "",
-        registered_specifier: str = "",
+        unregistered_specifier: Union[str, Sequence[str]] = "",
+        registered_specifier: Union[str, Sequence[str]] = "",
         stats_dir: Union[str, Path] = None,
         loader_state: Optional[Path] = None,
         collate_fn: Optional[Callable] = None,
@@ -348,19 +349,20 @@ class DataIteratorFactory:
 
 
 def _parse_data_specifier(
-    task_data_factors: str,
-    task_registered_data_factors: str,
+    task_data_factors: Union[str, Sequence[str]],
+    task_registered_data_factors: Union[str, Sequence[str]],
 ) -> Tuple[List[Tuple], List[Tuple]]:
     """Parse data specifier strings into structured tuples.
 
     Args:
-        task_data_factors: Space-separated unregistered data specifiers.
+        task_data_factors: List of literal unregistered data specifiers.
             Format: "task:name:data_json[:factor]"
             Example: "asr:librispeech:train.json:2.0"
-            Paths containing whitespace must be quoted, for example
-            "dialogue:demo:'/path with spaces/data.json'".
-        task_registered_data_factors: Space-separated registered data
-            specifiers. Format: "task:name[:factor]"
+            Legacy whitespace-separated strings retain their original split()
+            behavior. Use a list for paths containing whitespace, for example
+            ["dialogue:demo:/path with spaces/data.json"].
+        task_registered_data_factors: List of literal registered data specifiers,
+            or a legacy whitespace-separated string. Format: "task:name[:factor]"
             Example: "tts:ljspeech:1.5"
 
     Returns:
@@ -371,9 +373,16 @@ def _parse_data_specifier(
     Raises:
         ValueError: If specifier format is invalid.
     """
+    # CLI entrypoints pass lists. Keep the pre-existing Python string interface
+    # without interpreting shell quotes or removing literal backslashes.
+    if isinstance(task_data_factors, str):
+        task_data_factors = task_data_factors.split()
+    if isinstance(task_registered_data_factors, str):
+        task_registered_data_factors = task_registered_data_factors.split()
+
     cache_unregistered = []
-    if task_data_factors.strip():
-        for entry in shlex.split(task_data_factors):
+    if task_data_factors:
+        for entry in task_data_factors:
             parts = entry.split(":")
             if len(parts) == 4:
                 task, name, data_json, factor = parts
@@ -389,8 +398,8 @@ def _parse_data_specifier(
             cache_unregistered.append((task, name, data_json, factor))
 
     cache_registered = []
-    if task_registered_data_factors.strip():
-        for entry in shlex.split(task_registered_data_factors):
+    if task_registered_data_factors:
+        for entry in task_registered_data_factors:
             parts = entry.split(":")
             if len(parts) == 3:
                 task, name, factor = parts

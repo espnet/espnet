@@ -178,17 +178,20 @@ class TestMainDispatch:
                     m.stop()
 
     @pytest.mark.parametrize(
-        "valid_specifier, expected_paths",
+        "valid_specifiers, expected_paths",
         [
-            ("text_only:valid:valid.json", ["valid.json"]),
+            (["text_only:valid:valid.json"], ["valid.json"]),
             (
-                "'dialogue:valid:/space dir/valid.json' text_only:extra:extra.json",
-                ["/space dir/valid.json", "extra.json"],
+                [
+                    "dialogue:valid:/reader's files/valid.json",
+                    'text_only:extra:/back\\slash "files"/extra.json',
+                ],
+                ["/reader's files/valid.json", '/back\\slash "files"/extra.json'],
             ),
         ],
     )
     def test_dispatch_deepspeed(
-        self, train_module, tmp_path, valid_specifier, expected_paths
+        self, train_module, tmp_path, valid_specifiers, expected_paths
     ):
         from espnet2.speechlm.dataloader.iterator import _parse_data_specifier
 
@@ -203,7 +206,25 @@ class TestMainDispatch:
             "seed": 0,
         }
         argv = self._make_args(tmp_path, train_cfg, "deepspeed")
-        argv[argv.index("--valid-unregistered-specifier") + 1] = valid_specifier
+        train_specs = [
+            "text_only:first:/reader's files/train.json",
+            r"dialogue:second:/back\slash.json",
+        ]
+        index = argv.index("--train-unregistered-specifier")
+        argv[index : index + 2] = [
+            arg
+            for spec in train_specs
+            for arg in ("--train-unregistered-specifier", spec)
+        ]
+        index = argv.index("--valid-unregistered-specifier")
+        argv[index : index + 2] = [
+            arg
+            for spec in valid_specifiers
+            for arg in ("--valid-unregistered-specifier", spec)
+        ]
+        registered = ["dialogue:reader's books", r"dialogue:back\slash"]
+        for spec in registered:
+            argv.extend(["--valid-registered-specifier", spec])
         ctxs = self._patches(train_module)
         factory = MagicMock()
         ctxs.append(patch.object(train_module, "DataIteratorFactory", factory))
@@ -228,13 +249,19 @@ class TestMainDispatch:
 
         ds_trainer_cls.assert_called_once()
         ds_trainer_cls.return_value.run.assert_called_once()
-        # Each validation factory reparses its argument, so quoting must survive
-        # the entrypoint splitting a list into separate validation datasets.
+        assert factory.call_args_list[0].args == (train_specs, [])
+        # Each factory receives one literal list element, with no re-quoting.
         paths = []
+        names = []
         for call in factory.call_args_list[1:]:
-            parsed, _ = _parse_data_specifier(call.kwargs["unregistered_specifier"], "")
-            paths.append(parsed[0][2])
+            parsed, reg = _parse_data_specifier(
+                call.kwargs.get("unregistered_specifier", []),
+                call.kwargs.get("registered_specifier", []),
+            )
+            paths.extend(entry[2] for entry in parsed)
+            names.extend(entry[1] for entry in reg)
         assert paths == expected_paths
+        assert names == [spec.split(":")[1] for spec in registered]
 
     def test_dispatch_titan_no_pp(self, train_module, tmp_path):
         train_cfg = {

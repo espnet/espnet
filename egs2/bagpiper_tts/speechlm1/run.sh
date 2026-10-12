@@ -34,12 +34,12 @@ train_args=          # anything else for train.sh, quoted
 resume_path=         # /path/to/bagpiper-base/base.pt for a fresh run
 output_dir=exp/sft
 stats_dir=
-train_specifier=
-valid_specifier=
-train_unregistered_specifier=
-valid_unregistered_specifier=
-train_registered_specifier=
-valid_registered_specifier=
+train_specifier=()
+valid_specifier=()
+train_unregistered_specifier=()
+valid_unregistered_specifier=()
+train_registered_specifier=()
+valid_registered_specifier=()
 
 # Export (stage 2)
 export_dtype=bfloat16
@@ -70,6 +70,7 @@ weights: pass --export-path and --train-config.
   --valid-unregistered-specifier SPEC   Validation data
   --train-registered-specifier SPEC     Training data from the registry
   --valid-registered-specifier SPEC     Validation data from the registry
+  Repeat each training/validation data option once per specifier.
   Training can combine registered and unregistered data for each split.
   --train-config YAML                  Training or inference configuration
   --output-dir DIR                     Training output (default: exp/sft)
@@ -87,12 +88,16 @@ weights: pass --export-path and --train-config.
 "
 
 repo_root=$(cd ../../.. && pwd)
-. ../../TEMPLATE/asr1/utils/parse_options.sh
+. ../../TEMPLATE/speechlm1/parse_options.sh
 
 [[ $# -eq 0 ]] || die "Unexpected positional arguments: $*"
 validate_stages "${stage}" "${stop_stage}" 3 "${node_rank}"
-train_specifier=${train_unregistered_specifier:-${train_specifier}}
-valid_specifier=${valid_unregistered_specifier:-${valid_specifier}}
+if (( ${#train_unregistered_specifier[@]} )); then
+    train_specifier=("${train_unregistered_specifier[@]}")
+fi
+if (( ${#valid_unregistered_specifier[@]} )); then
+    valid_specifier=("${valid_unregistered_specifier[@]}")
+fi
 test_specifier=${test_unregistered_specifier:-${test_specifier}}
 export_path=${export_path:-${output_dir}/export/model.pt}
 inference_output_dir=${inference_output_dir:-${output_dir}/inference}
@@ -101,9 +106,9 @@ read -r -a extra_train_args <<< "${train_args}"
 if (( stage <= 1 && stop_stage >= 1 )); then
     log "Stage 1: SFT"
     [[ -n ${stats_dir} ]] || die "set --stats-dir"
-    [[ -n ${train_specifier} || -n ${train_registered_specifier} ]] \
+    (( ${#train_specifier[@]} + ${#train_registered_specifier[@]} > 0 )) \
         || die "set --train-unregistered-specifier or --train-registered-specifier"
-    [[ -n ${valid_specifier} || -n ${valid_registered_specifier} ]] \
+    (( ${#valid_specifier[@]} + ${#valid_registered_specifier[@]} > 0 )) \
         || die "set --valid-unregistered-specifier or --valid-registered-specifier"
 
     resume=$(resume_checkpoint "${output_dir}" "" "${resume_path}")
@@ -114,14 +119,25 @@ if (( stage <= 1 && stop_stage >= 1 )); then
         die "set --resume-path, the published Bagpiper-Base base.pt, to start"
     fi
 
+    data_args=()
+    for spec in "${train_specifier[@]}"; do
+        data_args+=(--train-unregistered-specifier "${spec}")
+    done
+    for spec in "${train_registered_specifier[@]}"; do
+        data_args+=(--train-registered-specifier "${spec}")
+    done
+    for spec in "${valid_specifier[@]}"; do
+        data_args+=(--valid-unregistered-specifier "${spec}")
+    done
+    for spec in "${valid_registered_specifier[@]}"; do
+        data_args+=(--valid-registered-specifier "${spec}")
+    done
+
     ../../TEMPLATE/speechlm1/train.sh \
         --train-config "${train_config:-conf/train.yaml}" \
         --output-dir "${output_dir}" \
         --stats-dir "${stats_dir}" \
-        --train-unregistered-specifier "${train_specifier}" \
-        --valid-unregistered-specifier "${valid_specifier}" \
-        --train-registered-specifier "${train_registered_specifier}" \
-        --valid-registered-specifier "${valid_registered_specifier}" \
+        "${data_args[@]}" \
         --ngpu "${ngpu}" \
         --num-nodes "${num_nodes}" \
         --node-rank "${node_rank}" \

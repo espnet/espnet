@@ -26,6 +26,7 @@ def recipe_tree(tmp_path):
         shutil.copy2(source / relative / "run.sh", root / relative / "run.sh")
     for relative in (
         "egs2/TEMPLATE/speechlm1/train.sh",
+        "egs2/TEMPLATE/speechlm1/parse_options.sh",
         "egs2/TEMPLATE/speechlm1/stage_utils.sh",
         "egs2/TEMPLATE/asr1/utils/parse_options.sh",
     ):
@@ -86,6 +87,10 @@ def value(args, key):
     return args[args.index(key) + 1]
 
 
+def values(args, key):
+    return [args[i + 1] for i, arg in enumerate(args) if arg == key]
+
+
 @pytest.mark.parametrize("name,stage", [("bagpiper", 5), ("bagpiper_tts", 3)])
 @pytest.mark.parametrize("registered", [False, True])
 def test_published_inference_command(recipe_tree, name, stage, registered):
@@ -95,7 +100,9 @@ def test_published_inference_command(recipe_tree, name, stage, registered):
         "--test-registered-specifier" if registered else "--test-unregistered-specifier"
     )
     specifier = (
-        "dialogue:test" if registered else "dialogue:test:'/path with spaces/test.json'"
+        "dialogue:reader's books"
+        if registered
+        else 'dialogue:test:/reader\'s files/back\\slash "test".json'
     )
     calls = run(
         name,
@@ -201,21 +208,23 @@ def test_initialize_then_resume_training(recipe_tree, name, stage):
 def test_registered_training_and_resume(recipe_tree, name, stage, mixed):
     _, run, stats, weights = recipe_tree
     registered = {
-        "train": "dialogue:train:0.5 text_only:text_train",
-        "valid": "dialogue:valid",
+        "train": ["dialogue:reader's train:0.5", r"text_only:back\slash"],
+        "valid": ['dialogue:valid "books"'],
     }
     unregistered = {
-        "train": (
-            "dialogue:extra:'/path with spaces/train.json':0.5 "
-            "text_only:extra_text:'/other path/text.json'"
-        ),
-        "valid": "dialogue:extra_valid:'/path with spaces/valid.json'",
+        "train": [
+            "dialogue:extra:/reader's files/train.json:0.5",
+            'text_only:extra_text:/back\\slash "files"/text.json',
+        ],
+        "valid": ["dialogue:extra_valid:/path with spaces/valid.json"],
     }
     data = []
     for split in ("train", "valid"):
-        data.extend((f"--{split}-registered-specifier", registered[split]))
+        for spec in registered[split]:
+            data.extend((f"--{split}-registered-specifier", spec))
         if mixed:
-            data.extend((f"--{split}-unregistered-specifier", unregistered[split]))
+            for spec in unregistered[split]:
+                data.extend((f"--{split}-unregistered-specifier", spec))
     args = ("--stage", stage, "--stop-stage", stage, "--stats-dir", stats, *data)
     for initialize in (True, False):
         initializer = ("--resume-path", weights) if initialize else ()
@@ -228,11 +237,11 @@ def test_registered_training_and_resume(recipe_tree, name, stage, mixed):
             assert "--resume-path" not in calls[0]
         for split in ("train", "valid"):
             assert (
-                value(calls[0], f"--{split}-registered-specifier") == registered[split]
+                values(calls[0], f"--{split}-registered-specifier") == registered[split]
             )
             if mixed:
                 assert (
-                    value(calls[0], f"--{split}-unregistered-specifier")
+                    values(calls[0], f"--{split}-unregistered-specifier")
                     == unregistered[split]
                 )
             else:
@@ -271,6 +280,76 @@ def test_registered_training_requires_both_splits(recipe_tree, name, stage, miss
     )
 
 
+@pytest.mark.parametrize(
+    "name,stage,alias",
+    [
+        ("bagpiper", 1, "train-specifier"),
+        ("bagpiper", 3, "sft-train-specifier"),
+        ("bagpiper_tts", 1, "train-specifier"),
+    ],
+)
+def test_repeated_aliases_preserve_literal_arguments(recipe_tree, name, stage, alias):
+    _, run, stats, weights = recipe_tree
+    specs = [
+        "dialogue:first:/reader's files/data.json",
+        'text_only:second:/back\\slash "files"/data.json',
+    ]
+    calls = run(
+        name,
+        "--stage",
+        stage,
+        "--stop-stage",
+        stage,
+        "--stats-dir",
+        stats,
+        "--resume-path",
+        weights,
+        f"--{alias}",
+        specs[0],
+        f"--{alias}",
+        specs[1],
+        "--valid-registered-specifier",
+        "dialogue:valid",
+    )
+    assert values(calls[0], "--train-unregistered-specifier") == specs
+
+
+@pytest.mark.parametrize("name,stage", [("bagpiper", 3), ("bagpiper_tts", 1)])
+@pytest.mark.parametrize("override", [False, True])
+def test_shell_config_arrays_and_cli_precedence(recipe_tree, name, stage, override):
+    root, run, stats, weights = recipe_tree
+    config = root / "data options.conf"
+    config.write_text(
+        'train_registered_specifier=("dialogue:configured one" '
+        '"text_only:configured two")\n'
+        'valid_registered_specifier="dialogue:valid"\n'
+    )
+    specs = ["dialogue:reader's books", r"text_only:back\slash"]
+    args = (
+        [arg for spec in specs for arg in ("--train-registered-specifier", spec)]
+        if override
+        else []
+    )
+    calls = run(
+        name,
+        "--stage",
+        stage,
+        "--stop-stage",
+        stage,
+        "--stats-dir",
+        stats,
+        "--resume-path",
+        weights,
+        *args,
+        "--config",
+        config,
+    )
+    assert values(calls[0], "--train-registered-specifier") == (
+        specs if override else ["dialogue:configured one", "text_only:configured two"]
+    )
+    assert values(calls[0], "--valid-registered-specifier") == ["dialogue:valid"]
+
+
 @pytest.mark.parametrize("split", ["train", "valid"])
 @pytest.mark.parametrize("route", ["registered", "unregistered"])
 def test_standalone_sft_selects_each_split_without_mixing_scopes(
@@ -279,9 +358,7 @@ def test_standalone_sft_selects_each_split_without_mixing_scopes(
     _, run, stats, weights = recipe_tree
     other_route = "unregistered" if route == "registered" else "registered"
     specific = (
-        "dialogue:sft"
-        if route == "registered"
-        else "dialogue:sft:'/SFT path/data.json'"
+        "dialogue:sft" if route == "registered" else "dialogue:sft:/SFT path/data.json"
     )
     ordinary = (
         "dialogue:ordinary:/ordinary.json"
@@ -330,7 +407,7 @@ def test_bagpiper_registered_curriculum_keeps_stage_data_separate(recipe_tree):
         "--sft-valid-registered-specifier",
         "dialogue:sft_valid",
         "--sft-train-unregistered-specifier",
-        "dialogue:extra:'/SFT path/extra.json'",
+        "dialogue:extra:/SFT path/extra.json",
         "--resume-path",
         weights,
         "--inference-config",
@@ -355,7 +432,7 @@ def test_bagpiper_registered_curriculum_keeps_stage_data_separate(recipe_tree):
     assert value(calls[2], "--valid-registered-specifier") == "dialogue:sft_valid"
     assert (
         value(calls[2], "--train-unregistered-specifier")
-        == "dialogue:extra:'/SFT path/extra.json'"
+        == "dialogue:extra:/SFT path/extra.json"
     )
     assert "--valid-unregistered-specifier" not in calls[2]
     assert value(calls[4], "--test-registered-specifier") == "dialogue:test"
