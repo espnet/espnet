@@ -1,1 +1,0 @@
-../../TEMPLATE/audio_metric1/path.sh

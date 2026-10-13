@@ -5,7 +5,7 @@ set -e
 set -u
 set -o pipefail
 
-./audio_metric.sh \
+./aqa.sh \
     --train_config conf/train.yaml \
     --inference_config conf/decode.yaml \
     --train_set train \

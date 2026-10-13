@@ -1,4 +1,4 @@
-# This is a debug config for CI
+# Uni-VERSA training on precomputed URGENT24 evaluation metrics.
 
 ########################
 # Model architecture   #
@@ -55,12 +55,18 @@ universa_conf:
   multi_branch: true
 
 # Frontend
-frontend: default
+frontend: s3prl
+frontend_conf:
+  frontend_conf:
+      upstream: wavlm_large
+  download_dir: ./hub
+  multilayer_feature: true
+
 
 ########################
 # Training parameters  #
 ########################
-max_epoch: 200
+max_epoch: 100
 batch_type: sorted
 batch_size: 16
 grad_clip: -1             # gradient clipping norm
@@ -74,7 +80,6 @@ keep_nbest_models: 5      # number of models to keep
 num_att_plot: 0           # number of attention figures to be saved in every check
 seed: 777                 # random seed number
 patience: null            # patience for early stopping
-unused_parameters: false   # needed for multi gpu case
 init: xavier_uniform
 
 # Optimizer
@@ -86,6 +91,8 @@ optim_conf:
 scheduler: warmuplr
 scheduler_conf:
     warmup_steps: 25000
+
+unused_parameters: true
 
 cudnn_deterministic: false # setting to false accelerates the training speed but makes it non-deterministic
                            # in the case of GAN-TTS training, we strongly recommend setting to false
