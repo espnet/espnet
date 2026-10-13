@@ -163,17 +163,30 @@ def test_bleu_writes_detail_with_signature(tmp_path: Path):
     assert "sentences: 1" in detail
 
 
+def test_bleu_declares_what_it_reads_and_returns():
+    """The config's `inputs:` binds these names; the metric does not rename."""
+    assert [f.name for f in BLEU().inputs] == ["ref", "hyp"]
+    assert [f.name for f in BLEU(chrf=False, ter=False, also_lowercase=False)
+            .outputs] == [
+        "BLEU",
+        "BLEU_brevity_penalty",
+        "BLEU_1gram_prec",
+        "BLEU_2gram_prec",
+        "BLEU_3gram_prec",
+        "BLEU_4gram_prec",
+    ]
+    assert "chrF2_lc" in [f.name for f in BLEU().outputs]
+
+
 @needs_sacrebleu
-def test_bleu_respects_custom_keys(tmp_path: Path):
-    ref_path = tmp_path / "gold.scp"
-    hyp_path = tmp_path / "pred.scp"
+def test_bleu_scores_the_whole_corpus_not_each_batch(tmp_path: Path):
+    """Corpus BLEU is not the mean of per-batch BLEUs, so the texts are state."""
     # Four tokens minimum: corpus BLEU needs a 4-gram to exist, or the
     # geometric mean over the precisions is 0 regardless of the match.
-    ref_path.write_text("utt1 das ist ein test", encoding="utf-8")
-    hyp_path.write_text("utt1 das ist ein test", encoding="utf-8")
+    metric = BLEU(chrf=False, ter=False)
+    metric.reset()
+    metric.update(ref=["das ist ein test"], hyp=["das ist ein test"])
+    metric.update(ref=["noch ein kurzer satz"], hyp=["noch ein kurzer satz"])
 
-    result = BLEU(ref_key="gold", hyp_key="pred", chrf=False, ter=False)(
-        {"gold": ref_path, "pred": hyp_path}, "test", tmp_path
-    )
-
-    assert result["BLEU"] == 100.0
+    assert metric.compute()["BLEU"] == 100.0
+    assert len(metric.refs) == 2

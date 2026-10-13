@@ -25,8 +25,6 @@ from importlib import resources
 from pathlib import Path
 from typing import Any
 
-from torch.utils.data import Dataset as TorchDataset
-
 from egs3.must_c.esp2_st.dataset.builder import (
     LANG_PAIR,
     REQUIRED_SPLITS,
@@ -36,6 +34,8 @@ from egs3.must_c.esp2_st.dataset.builder import (
     MustCSTBuilder,
     read_segment,
 )
+from espnet3.api import Field
+from espnet3.components.data.base_dataset import BaseDataset
 from espnet3.systems.esp2_st.src.normalization import apply_case as _apply_case
 from espnet3.utils.config_utils import load_config_with_defaults
 
@@ -88,7 +88,12 @@ def kept_indices(durations, split: str) -> list[int] | None:
     return [i for i, duration in enumerate(durations) if keep_duration(duration)]
 
 
-class MustCSTDataset(TorchDataset):
+# Every sample carries these; `utt_id` joins them when the caller asks.
+_FIELDS = (Field("speech", "audio"), Field("text", "text"),
+           Field("src_text", "text"))
+
+
+class MustCSTDataset(BaseDataset):
     """Torch dataset that reads MuST-C from the original directory layout.
 
     Args:
@@ -150,6 +155,9 @@ class MustCSTDataset(TorchDataset):
         self.tgt_case = str(tgt_case)
         self.apply_filter = bool(apply_filter)
         self.return_utt_id = bool(return_utt_id)
+        # Declared per instance, not on the class: `return_utt_id` changes
+        # the item's keys.
+        self.fields = _FIELDS + ((Field("utt_id", "text"),) if return_utt_id else ())
         self._keep: list[int] | None = None
 
         self._hf_cache = _require_hf_cache(

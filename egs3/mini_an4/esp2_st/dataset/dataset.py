@@ -9,9 +9,10 @@ from typing import Any
 
 import numpy as np
 import soundfile as sf
-from torch.utils.data import Dataset as TorchDataset
 
 from egs3.mini_an4.esp2_st.dataset.builder import MiniAn4STBuilder
+from espnet3.api import Field
+from espnet3.components.data.base_dataset import BaseDataset
 from espnet3.utils.config_utils import load_config_with_defaults
 
 _CONFIG_RESOURCE = resources.files(__package__).joinpath("config.yaml")
@@ -58,7 +59,12 @@ def _read_manifest(manifest_path: Path) -> list[ManifestEntry]:
     return entries
 
 
-class MiniAn4STDataset(TorchDataset):
+# Every sample carries these; `utt_id` joins them when the caller asks.
+_FIELDS = (Field("speech", "audio"), Field("text", "text"),
+           Field("src_text", "text"))
+
+
+class MiniAn4STDataset(BaseDataset):
     """AN4 as a speech-translation set, for the integration test only.
 
     ``src_text`` is AN4's English transcript and ``text`` is its synthetic
@@ -85,6 +91,9 @@ class MiniAn4STDataset(TorchDataset):
     ) -> None:
         self.split = split
         self.return_utt_id = bool(return_utt_id)
+        # Declared per instance, not on the class: `return_utt_id` changes
+        # the item's keys.
+        self.fields = _FIELDS + ((Field("utt_id", "text"),) if return_utt_id else ())
         recipe_root = (
             Path(recipe_dir).resolve()
             if recipe_dir is not None

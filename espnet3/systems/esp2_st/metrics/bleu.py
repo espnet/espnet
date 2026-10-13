@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Dict, Iterable, List, Tuple
+from typing import Dict, Iterable, List, Sequence, Tuple
 
 try:
     import sacrebleu
@@ -11,6 +11,7 @@ except ImportError:
     sacrebleu = None
 
 from espnet2.text.cleaner import TextCleaner
+from espnet3.api.inference import Field
 from espnet3.components.metrics.base_metric import BaseMetric
 from espnet3.systems.esp2_st.src.normalization import remove_punctuation
 
@@ -18,9 +19,12 @@ from espnet3.systems.esp2_st.src.normalization import remove_punctuation
 class BLEU(BaseMetric):
     """Score translation hypotheses the way ``egs2/TEMPLATE/st1/st.sh`` does.
 
-    Mirrors ``espnet3.systems.esp2_asr.metrics.wer.WER`` in shape: it reads the
-    ``ref``/``hyp`` SCP files that inference wrote, scores them, and writes a
-    human-readable detail file next to them.
+    Mirrors ``espnet3.systems.esp2_asr.metrics.wer.WER`` in shape: it takes
+    the declared ``ref``/``hyp`` texts, which the metrics config's ``inputs:``
+    binds to a source, and writes a human-readable detail file beside the
+    scores. Unlike WER's counts, the texts themselves are the state: corpus
+    BLEU is not the mean of per-batch BLEUs, so ``compute`` scores them all
+    at once.
 
     sacreBLEU is used rather than ``nltk``'s sentence BLEU because it is what
     ``st.sh`` reports (``scripts/utils/score_bleu.sh`` calls ``sacrebleu``), and
@@ -54,10 +58,10 @@ class BLEU(BaseMetric):
     silently inflates BLEU.
     """
 
+    inputs = (Field("ref", "text"), Field("hyp", "text"))
+
     def __init__(
         self,
-        ref_key: str = "ref",
-        hyp_key: str = "hyp",
         clean_types: Iterable[str] | None = None,
         tokenize: str = "13a",
         also_lowercase: bool = True,
@@ -68,8 +72,6 @@ class BLEU(BaseMetric):
         """Initialize the metric.
 
         Args:
-            ref_key: Key name for reference text entries.
-            hyp_key: Key name for hypothesis text entries.
             clean_types: Optional cleaner types passed to TextCleaner. st.sh
                 applies its ``--cleaner`` to the reference only and deliberately
                 not to the hypothesis (st.sh:1563, "Don't use cleaner for hyp");
@@ -93,13 +95,36 @@ class BLEU(BaseMetric):
             ter: Report TER (lower is better), likewise.
         """
         self.cleaner = TextCleaner(clean_types)
-        self.ref_key = ref_key
-        self.hyp_key = hyp_key
         self.tokenize = tokenize
         self.also_lowercase = also_lowercase
         self.lc_remove_punctuation = lc_remove_punctuation
         self.chrf = chrf
         self.ter = ter
+        self.outputs = self._declare_outputs()
+        super().__init__()
+        # Corpus BLEU is not the mean of per-batch BLEUs, so the texts
+        # themselves are the state and `compute` scores them in one go.
+        self.add_state("refs", [], "cat")
+        self.add_state("hyps", [], "cat")
+        self._lines: List[str] = []
+
+    def _declare_outputs(self) -> Tuple[Field, ...]:
+        """Name every key :meth:`compute` returns, for the chosen passes."""
+        names: List[str] = []
+        for suffix in ("",) + (("_lc",) if self.also_lowercase else ()):
+            names.append(f"BLEU{suffix}")
+            names.append(f"BLEU_brevity_penalty{suffix}")
+            names += [f"BLEU_{n}gram_prec{suffix}" for n in range(1, 5)]
+            if self.chrf:
+                names.append(f"chrF2{suffix}")
+            if self.ter:
+                names.append(f"TER{suffix}")
+        return tuple(Field(name, "number") for name in names)
+
+    def reset(self) -> None:
+        """Reset the texts and drop detail lines from an unfinished run."""
+        super().reset()
+        self._lines = []
 
     def _clean(self, text: str) -> str:
         """Clean and strip one line.
@@ -175,20 +200,22 @@ class BLEU(BaseMetric):
             lines.append(result.format(signature=signature))
         return out, lines
 
-    def __call__(
-        self,
-        data: Dict[str, Path],
-        test_name: str,
-        inference_dir: Path,
-    ) -> Dict[str, float]:
-        """Score both passes, write the detail file, return the metrics.
+    def update(self, *, ref: Sequence[str], hyp: Sequence[str]) -> None:
+        """Keep one batch's cleaned texts for the corpus-level score.
 
         Args:
-            data: Mapping of metric input aliases to SCP paths; expects
-                ``data[self.ref_key]`` and ``data[self.hyp_key]``, aligned by
-                utterance id.
-            test_name: Test set name, used for the output subdirectory.
-            inference_dir: Base directory inference wrote into.
+            ref: Reference translations, one per utterance.
+            hyp: Hypotheses, aligned with ``ref``.
+
+        Examples:
+            >>> metric = BLEU()
+            >>> metric.update(ref=["hallo welt"], hyp=["hallo welt"])
+        """
+        self.refs.extend(self._clean(text) for text in ref)
+        self.hyps.extend(self._clean(text) for text in hyp)
+
+    def compute(self) -> Dict[str, float]:
+        """Score both passes over everything added so far.
 
         Returns:
             ``BLEU``/``chrF2``/``TER`` for the case-sensitive pass, plus the
@@ -199,12 +226,8 @@ class BLEU(BaseMetric):
             RuntimeError: If ``sacrebleu`` is not installed or is too old.
         """
         self._ensure_sacrebleu()
-        refs, hyps = [], []
-        for _, row in self.iter_inputs(data, self.ref_key, self.hyp_key):
-            refs.append(self._clean(row[self.ref_key]))
-            hyps.append(self._clean(row[self.hyp_key]))
-
-        out, lines = self._score(hyps, refs, lowercase=False, suffix="")
+        refs, hyps = self.refs, self.hyps
+        out, self._lines = self._score(hyps, refs, lowercase=False, suffix="")
 
         if self.also_lowercase:
             lc_hyps, lc_refs = hyps, refs
@@ -215,14 +238,19 @@ class BLEU(BaseMetric):
                 lc_hyps, lc_refs, lowercase=True, suffix="_lc"
             )
             out.update(lc_out)
-            lines.extend(lc_lines)
+            self._lines.extend(lc_lines)
+        return out
 
-        test_dir = Path(inference_dir) / test_name
-        test_dir.mkdir(parents=True, exist_ok=True)
+    def write_artifacts(self, test_dir: Path) -> None:
+        """Write the scored passes to ``test_dir/bleu_detail``.
+
+        Args:
+            test_dir: The test set's output directory, already created.
+        """
         with (test_dir / "bleu_detail").open("w", encoding="utf-8") as f:
             # The signature records tokenizer/smoothing/version, without which
             # a BLEU number is not reproducible or comparable across papers.
-            for line in lines:
+            for line in self._lines:
                 f.write(f"{line}\n")
-            f.write(f"sentences: {len(hyps)}\n")
-        return out
+            f.write(f"sentences: {len(self.hyps)}\n")
+        self._lines = []
