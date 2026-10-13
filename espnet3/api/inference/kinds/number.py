@@ -1,10 +1,14 @@
-"""The ``number`` kind: an ``int`` or ``float``, for a metric's result."""
+"""The ``number`` kind: a real number (int, float or NumPy scalar)."""
+
+import numbers
+
+import numpy as np
 
 from espnet3.api.inference.kinds.base import Kind
 
 
 class NumberKind(Kind):
-    """``number``: an ``int`` or ``float`` (not ``bool``); does not join.
+    """``number``: a real number, not ``bool``; does not join.
 
     What a metric's declared outputs hold: one scalar per result key, such
     as ``{"WER": 4.3}``.
@@ -15,7 +19,7 @@ class NumberKind(Kind):
     """
 
     def check(self, value, field, model, *, output):
-        """Require an ``int`` or ``float``, excluding ``bool``.
+        """Require a real number, excluding ``bool``.
 
         Args:
             value: What the caller gave, or what the hook returned.
@@ -27,21 +31,24 @@ class NumberKind(Kind):
             ``value`` itself.
 
         Raises:
-            TypeError: If ``value`` is not an ``int``/``float``, or is a
-                ``bool`` (a `bool` is technically an `int` in Python, but
-                was never meant as a metric score).
+            TypeError: If ``value`` is not a real number (``numbers.Real``),
+                or is a ``bool`` or ``np.bool_``.
 
         Examples:
             >>> NumberKind().check(4.3, Field("WER", "number"), model, output=True)
             4.3
+            >>> NumberKind().check(
+            ...     np.float32(4.3), Field("WER", "number"), model, output=True
+            ... )
+            np.float32(4.3)
             >>> NumberKind().check(True, Field("WER", "number"), model, output=True)
             Traceback (most recent call last):
-            TypeError: 'WER' returned as bool, must be int or float
+            TypeError: 'WER' returned as bool, must be a real number
         """
-        if isinstance(value, bool) or not isinstance(value, (int, float)):
+        if isinstance(value, (bool, np.bool_)) or not isinstance(value, numbers.Real):
             where = "returned" if output else "given"
             raise TypeError(
                 f"{field.name!r} {where} as {type(value).__name__}, "
-                "must be int or float"
+                "must be a real number"
             )
         return value
