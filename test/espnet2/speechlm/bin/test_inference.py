@@ -44,7 +44,15 @@ def test_native_checkpoint_loads_strictly(tmp_path):
         load_checkpoint(target, checkpoint)
 
 
-def test_failed_worker_fails_command(tmp_path, monkeypatch):
+@pytest.mark.parametrize(
+    "specifier",
+    [
+        "audio_to_text:clean:/absolute/input.json",
+        "audio_to_text:clean:/reader's files/back\\slash.json",
+        'audio_to_text:clean:/path with "quotes"/input.json',
+    ],
+)
+def test_failed_worker_fails_command(tmp_path, monkeypatch, specifier):
     monkeypatch.setattr(
         "sys.argv",
         [
@@ -56,7 +64,7 @@ def test_failed_worker_fails_command(tmp_path, monkeypatch):
             "--model-checkpoint",
             "model.pt",
             "--test-unregistered-specifier",
-            "audio_to_text:clean:/absolute/input.json",
+            specifier,
             "--output-dir",
             str(tmp_path),
         ],
@@ -73,7 +81,8 @@ def test_failed_worker_fails_command(tmp_path, monkeypatch):
     assert not (tmp_path / "audio_to_text_clean_" / "absolute").exists()
 
 
-def test_worker_writes_complete_text_and_audio(tmp_path):
+@pytest.mark.parametrize("registered", [False, True])
+def test_worker_writes_complete_text_and_audio(tmp_path, registered):
     config = tmp_path / "config.yaml"
     config.write_text("job_type: speechlm\n")
     model = MagicMock()
@@ -106,8 +115,25 @@ def test_worker_writes_complete_text_and_audio(tmp_path):
         factory.return_value.build_iter.return_value = [
             {"keys": [("text_to_audio", "smoke", "example")]}
         ]
+        specifier = "text_to_audio:reader's books" + (
+            "" if registered else ":/data/back\\slash files.json"
+        )
         inference_worker(
-            0, 1, config, config, tmp_path / "model.pt", "", "", tmp_path, 0
+            0,
+            1,
+            config,
+            config,
+            tmp_path / "model.pt",
+            "" if registered else specifier,
+            specifier if registered else "",
+            tmp_path,
+            0,
+        )
+        assert factory.call_args.kwargs["registered_specifier"] == (
+            [specifier] if registered else []
+        )
+        assert factory.call_args.kwargs["unregistered_specifier"] == (
+            [] if registered else [specifier]
         )
     result = json.loads((tmp_path / "inference_rank0" / "results.json").read_text())
     messages = result["example"]

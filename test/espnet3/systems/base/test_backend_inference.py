@@ -34,3 +34,21 @@ def test_the_rate_is_read_off_the_backend_in_order():
     for silent in (SimpleNamespace(), object(), SimpleNamespace(tts_train_args=args)):
         with pytest.raises(TypeError, match="cannot tell the rate"):
             Wrapped(silent).sample_rate
+
+
+@pytest.mark.parametrize(
+    "path, why",
+    [
+        ("this.s", "this.s"),  # importing it alone runs code
+        ("subprocess.Popen", "subprocess.Popen"),
+        ("espnet3.systems.base.inference_provider.os.system", "resolves to"),
+        ("espnet2.bin.launch.main", "not a class"),
+    ],
+)
+def test_a_backend_class_argument_must_be_an_espnet_class(path, why, capsys):
+    """A bundle's inference.yaml can set it: it is checked before any import."""
+    from espnet3.systems.esp2_asr.inference import Inference
+
+    with pytest.raises(ValueError, match=f"must be an ESPnet2 or ESPnet3 class.*{why}"):
+        Inference(backend_class=path)
+    assert "Zen of Python" not in capsys.readouterr().out

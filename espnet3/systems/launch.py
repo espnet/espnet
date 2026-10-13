@@ -114,7 +114,8 @@ def launch(
 
     Raises:
         espnet3.contract.stages.StageContractError: A requested
-            stage is not declared.
+            stage is not declared, or its config role was not given and
+            no ``--exp_dir`` is given to inherit it from an earlier run.
         RuntimeError: No ``--exp_dir`` is given and no role's own config
             has a self-resolving ``exp_dir``.
 
@@ -129,8 +130,8 @@ def launch(
         ```
 
         The ``__main__`` guard is required: ``collect_stats``/``train``
-        spawn Dask worker processes that re-import ``run.py``; without
-        the guard, each worker re-runs ``launch(...)`` itself.
+        spawn Dask/DataLoader worker processes that re-import ``run.py``;
+        without the guard, each worker re-runs ``launch(...)`` itself.
     """
     parser = parser or build_parser(system_cls)
     args = parser.parse_args(argv)

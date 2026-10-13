@@ -1,7 +1,7 @@
 """F5-TTS inference engine.
 
 Built by a recipe's ``infer`` stage
-(``model._target_: espnet3.systems.f5tts.inference.F5TTSInference``).
+(``model._target_: espnet3.systems.f5tts.src.f5tts.F5TTS``).
 For each test sample the runner calls ``model(**{key: data[key] for key in input_key})``
 with ``input_key: [text, reference_speech, reference_text]`` (the cross- and
 same-speaker protocol) and feeds the result to ``src.inference.build_output``
@@ -194,7 +194,7 @@ class F5TTSInference:
             .. code-block:: yaml
 
                 inference:
-                  _target_: espnet3.systems.f5tts.inference.F5TTSInference
+                  _target_: espnet3.systems.f5tts.src.f5tts.F5TTS
                   train_config: ${recipe_dir}/conf/training_f5_tts_small.yaml
                   checkpoint_path: ${exp_dir}/last.ckpt
                   device: cuda

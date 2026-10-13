@@ -242,6 +242,57 @@ def test_launch_conf_package_overrides_the_derived_default(
     assert stub_config_loading["default_package"] == "some.other.package"
 
 
+class _CustomRoleSystem(BaseSystem):
+    """A system declaring a custom config role outside the five standard ones."""
+
+    stages = (StageSpec(name="finetune", config="finetuning"),)
+    instances: list = []
+
+    def __init__(self, *, configs, exp_dir=None, stages_to_run=None):
+        self.configs = configs
+        self.exp_dir = exp_dir
+        self.stages_to_run = stages_to_run
+        type(self).instances.append(self)
+
+    def finetune(self):
+        pass
+
+
+def test_launch_passes_custom_role_config_to_constructor(stub_config_loading, tmp_path):
+    """A custom role must reach system_cls(configs=...) keyed by its own name."""
+    _CustomRoleSystem.instances.clear()
+    launch(
+        _CustomRoleSystem,
+        argv=[
+            "--stages",
+            "finetune",
+            "--finetuning_config",
+            str(tmp_path / "finetuning.yaml"),
+        ],
+    )
+    system = _CustomRoleSystem.instances[-1]
+    assert "finetuning" in system.configs
+    assert system.configs["finetuning"] is not None
+
+
+def test_launch_inference_only_stage_runs_without_training_config(
+    stub_config_loading, tmp_path
+):
+    """An inference-only request must not require --training_config."""
+    _RecordingSystem.instances.clear()
+    launch(
+        _RecordingSystem,
+        argv=[
+            "--stages",
+            "infer",
+            "--inference_config",
+            str(tmp_path / "inference.yaml"),
+        ],
+    )
+    system = _RecordingSystem.instances[-1]
+    assert system.calls == ["infer"]
+
+
 # ---------------------------------------------------------------------------
 # Regression: recipe run.py must guard launch() with `if __name__ == "__main__"`
 # ---------------------------------------------------------------------------

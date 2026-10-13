@@ -256,6 +256,8 @@ def test_check_requested_stages_accepts_satisfied_request():
 
 
 class _MultiRoleSystem:
+    """A system whose pack_model needs both training and publication."""
+
     stages = (
         StageSpec(name="infer", config="inference"),
         StageSpec(name="measure", config="metrics"),

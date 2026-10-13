@@ -63,36 +63,40 @@ def get_parser() -> argparse.ArgumentParser:
     data_group.add_argument(
         "--train-unregistered-specifier",
         type=str,
-        default="",
+        action="append",
+        default=[],
         required=False,
-        help="Unregistered train data specifier. "
+        help="One unregistered train specifier; repeat for additional datasets. "
         "Format: 'task:name:data_json[:factor]' "
         "(e.g., 'asr:librispeech:train.json:2.0')",
     )
     data_group.add_argument(
         "--train-registered-specifier",
         type=str,
-        default="",
+        action="append",
+        default=[],
         required=False,
-        help="Registered train data specifier. "
+        help="One registered train specifier; repeat for additional datasets. "
         "Format: 'task:name[:factor]' "
         "(e.g., 'tts:ljspeech:1.5')",
     )
     data_group.add_argument(
         "--valid-unregistered-specifier",
         type=str,
-        default="",
+        action="append",
+        default=[],
         required=False,
-        help="Unregistered validation data specifier. "
+        help="One unregistered validation specifier; repeat for more datasets. "
         "Format: 'task:name:data_json[:factor]' "
         "(e.g., 'asr:librispeech:valid.json')",
     )
     data_group.add_argument(
         "--valid-registered-specifier",
         type=str,
-        default="",
+        action="append",
+        default=[],
         required=False,
-        help="Registered validation data specifier. "
+        help="One registered validation specifier; repeat for more datasets. "
         "Format: 'task:name[:factor]' "
         "(e.g., 'tts:ljspeech:1.0')",
     )
@@ -166,6 +170,33 @@ def set_seed(seed: int):
     torch.cuda.manual_seed_all(seed)
 
 
+def record_token_layout(config_path: Path, intervals: dict) -> None:
+    """Write this run's token layout into the saved config.
+
+    Token ids follow the order of `multimodal_io`, so a config re-saved with
+    its keys sorted gives a different layout while the checkpoint still loads:
+    the model decodes nothing recognisable and nothing says why. Recording the
+    layout lets the job template catch that on load.
+
+    `sort_keys=False` is the point of this function as much as the record is:
+    dumping with the default would itself sort `multimodal_io` and move every
+    id, which is the failure this guard exists to catch. Re-dumping does lose
+    the comments and the formatting of the copy, which is why it rewrites the
+    copy in the output directory and never the config the user passed in.
+
+    A run that resumes finds the record already there and leaves it alone, so
+    the layout of the first run is the one that is checked.
+    """
+    saved = yaml.safe_load(config_path.read_text()) or {}
+    if "vocab_intervals" in saved:
+        return
+    saved["vocab_intervals"] = {
+        name: [[int(start), int(end)] for start, end in pairs]
+        for name, pairs in intervals.items()
+    }
+    config_path.write_text(yaml.safe_dump(saved, sort_keys=False, allow_unicode=True))
+
+
 def main():
     parser = get_parser()
     args = parser.parse_args()
@@ -236,13 +267,16 @@ def main():
     logger.info(f"Using trainer type: {trainer_type}")
 
     # Copy train config to output directory for reproducibility
+    config_dest = args.output_dir / "train.yaml"
     if rank == 0:
-        config_dest = args.output_dir / "train.yaml"
         shutil.copy(args.train_config, config_dest)
         logger.info(f"Copied training config to: {config_dest}")
 
     job_template_class = _all_job_types[train_config["job_type"]]
     job_template = job_template_class(train_config, is_train=True)
+
+    if rank == 0:
+        record_token_layout(config_dest, job_template.vocab_meta["vocab_intervals"])
 
     # (3.5) For titan trainer, build ParallelDims early to get DP rank/world
     # for data loading. With PP, all ranks in the same PP group must see the
@@ -302,13 +336,15 @@ def main():
         shuffle=False,
     )
 
-    for spec in args.valid_unregistered_specifier.split():
+    for spec in args.valid_unregistered_specifier:
         factory = DataIteratorFactory(
-            unregistered_specifier=spec, **valid_iterator_args
+            unregistered_specifier=[spec], **valid_iterator_args
         )
         valid_iterator_factories[spec] = factory
-    for spec in args.valid_registered_specifier.split():
-        factory = DataIteratorFactory(registered_specifier=spec, **valid_iterator_args)
+    for spec in args.valid_registered_specifier:
+        factory = DataIteratorFactory(
+            registered_specifier=[spec], **valid_iterator_args
+        )
         valid_iterator_factories[spec] = factory
 
     # (5) build model

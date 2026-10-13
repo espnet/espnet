@@ -232,7 +232,7 @@ def measure(metrics_config: DictConfig, inference_config: DictConfig | None = No
     """
     test_sets = _resolve_test_sets(metrics_config)
     results = {}
-    assert hasattr(metrics_config, "metrics"), "Please specify `metrics`!"
+    assert getattr(metrics_config, "metrics", None), "Please specify `metrics`!"
 
     for idx, metric_config in enumerate(metrics_config.metrics):
         metric = instantiate(metric_config.metric)

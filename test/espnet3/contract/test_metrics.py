@@ -142,6 +142,13 @@ def test_declared_outputs_none_when_unset():
     assert declared_outputs(OmegaConf.create({})) is None
 
 
+def test_declared_outputs_raises_when_the_target_cannot_be_imported():
+    cfg = OmegaConf.create({"model": {"_target_": "nope.Missing"}})
+    with pytest.raises(MetricContractError, match="cannot import") as exc:
+        declared_outputs(cfg)
+    assert exc.value.__cause__ is not None
+
+
 # ---------------------------------------------------------------------------
 # check_metric_inputs
 # ---------------------------------------------------------------------------

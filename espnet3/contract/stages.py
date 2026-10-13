@@ -19,9 +19,10 @@ class StageSpec:
             system takes (``"training"`` -> ``training_config``). A
             system's full set of roles is derived from its ``stages``
             (see :func:`roles`); there is no separate, fixed role list.
-        log_dir: A dotted key inside that config whose value is the
-            stage's log directory (e.g. ``"exp_dir"``, ``"pack.out_dir"``);
-            ``None`` falls back to the system's own default log directory.
+        log_dir: A dotted key inside the first provided role's config
+            whose value is the stage's log directory (e.g. ``"exp_dir"``,
+            ``"pack.out_dir"``); ``None`` falls back to the system's own
+            default log directory.
 
     Examples:
         >>> StageSpec(name="train", config="training", log_dir="exp_dir")
@@ -115,12 +116,15 @@ def check_stage_contract(cls: type) -> None:
     (``cls.__dict__``), not the full MRO: it checks what ``cls`` itself
     newly defines or overrides, not methods it merely inherits unchanged.
     This is deliberate, not an oversight - each class in the hierarchy is
-    checked once, when it is itself defined, against the ``stages`` tuple
-    in effect at that point. A method already validated on a parent does
-    not need re-validating on every child that leaves it untouched. The
-    one case this does not catch: a subclass that *narrows* ``stages``
-    (drops a name a parent declared) without also removing or privatizing
-    the inherited method of that name - the now-undeclared method stays
+    checked once, when it is itself defined (``__init_subclass__`` checks
+    every subclass automatically; ``BaseSystem`` has no superclass to
+    trigger that hook, so its own module calls this function on itself
+    explicitly), against the ``stages`` tuple in effect *at that point*.
+    A method already validated on a parent does not need
+    re-validating on every child that leaves it untouched. The one case
+    this does not catch: a subclass that *narrows* ``stages`` (drops a
+    name a parent declared) without also removing or privatizing the
+    inherited method of that name - the now-undeclared method stays
     inherited, not locally defined, so this scan does not see it. No
     system in this codebase does that today; every subclass only adds to
     or overrides ``BaseSystem.stages``, never narrows it.
@@ -242,7 +246,12 @@ def stage_log_dir_of(config: Any, spec: StageSpec) -> Path | None:
     ``"exp_dir"``, ``"pack.out_dir"``) off ``config``. Returns ``None``
     when ``spec.log_dir`` is unset or the key has no value in ``config``,
     leaving the fallback (the system's experiment directory, then a
-    generic default) to the caller.
+    generic default) to the caller. ``config`` is the stage's own,
+    already-merged config - when a stage declares more than one role
+    (:attr:`StageSpec.config` as a tuple), the caller is responsible for
+    merging those roles' configs into one before calling this (see
+    ``espnet3.utils.stage_configs``); this function does not pick among
+    roles itself.
 
     Examples:
         >>> from omegaconf import OmegaConf
