@@ -52,11 +52,17 @@ Examples:
 
 from __future__ import annotations
 
+import logging
 from typing import Any, Iterable, Iterator, Mapping, Optional, Sequence
 
+from espnet2.legacy.nets.pytorch_backend.transformer.subsampling import (
+    TooShortUttError,
+)
 from espnet3.api.inference import Audio, Field
 from espnet3.api.inference.base import gather
 from espnet3.systems.base.backend_inference import BackendInference
+
+logger = logging.getLogger(__name__)
 
 
 class Inference(BackendInference):
@@ -180,7 +186,9 @@ class Inference(BackendInference):
         Yields:
             ``{"text": piece, "segments": [one segment]}`` per utterance,
             and ``{"text": "", "segments": []}`` for a recording the model
-            found nothing in.
+            found nothing in - including one too short for the encoder to
+            subsample, which espnet2 raises ``TooShortUttError`` for and
+            which is scored here as an empty hypothesis.
         """
         inputs = gather(self.inputs, chunks)
         speech: Audio = inputs["speech"]
@@ -198,12 +206,18 @@ class Inference(BackendInference):
         else:
             utterances = self.backend.iter_long(speech.array, **kwargs)
         first = True
-        for utterance in utterances:
-            out = _output([utterance])
-            if not first:
-                out["text"] = " " + out["text"]
-            yield out
-            first = False
+        try:
+            for utterance in utterances:
+                out = _output([utterance])
+                if not first:
+                    out["text"] = " " + out["text"]
+                yield out
+                first = False
+        except TooShortUttError as e:
+            # The reference is still scored, so an empty hypothesis counts
+            # against it; raising would instead drop the utterance and
+            # flatter the model.
+            logger.warning("%s: emitting an empty hypothesis", e)
         if first:
             yield _output([])
 
@@ -250,12 +264,20 @@ class Inference(BackendInference):
             if len(index) == 1:
                 outputs[index[0]] = self.run(**items[index[0]])
                 continue
-            results = self.backend.batch_decode(
-                [items[i]["speech"].array for i in index],
-                lang_sym=lang_sym,
-                task_sym=task_sym,
-                predict_time=True,
-            )
+            try:
+                results = self.backend.batch_decode(
+                    [items[i]["speech"].array for i in index],
+                    lang_sym=lang_sym,
+                    task_sym=task_sym,
+                    predict_time=True,
+                )
+            except TooShortUttError:
+                # The search is over the whole group, so one clip too short
+                # to subsample fails all of them; they are decoded one by
+                # one instead, where only that clip comes back empty.
+                for i in index:
+                    outputs[i] = self.run(**items[i])
+                continue
             if len(results) != len(index):
                 raise RuntimeError(
                     f"batch_decode returned {len(results)} results for "
