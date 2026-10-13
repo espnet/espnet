@@ -166,6 +166,10 @@ jobs:
       # The table below, against the code it describes: a command renamed or
       # a tool added leaves it quietly false.
       - run: python3 ci/check_front_ends.py
+      # splet/ is in this repository but is meant to be extractable from it.
+      # That is only true while nothing inside it imports ESPnet, which is
+      # exactly the kind of thing that gets added without anyone noticing.
+      - run: python3 ci/check_splet_independence.py
       # Hand the grid to the jobs that run all of it, so the versions are
       # written down once rather than repeated per job.
       - id: variants
