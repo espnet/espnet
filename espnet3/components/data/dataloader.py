@@ -309,6 +309,9 @@ class DataLoaderBuilder:
             dataset = self.dataset
 
         sampler_config = factory_config.pop("batches")
+        if batch_distribution == "global" and torch.distributed.is_initialized():
+            # Match ESPnet2: every shared batch must be splittable across ranks.
+            sampler_config["min_batch_size"] = torch.distributed.get_world_size()
         batches = build_batch_sampler(**sampler_config)
 
         if batch_distribution == "global":
