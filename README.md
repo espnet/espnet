@@ -29,14 +29,10 @@ ESPnet is an end-to-end speech processing toolkit built on [PyTorch](https://pyt
 
 | Setting | ESPnet2 | ESPnet3 |
 | --- | --- | --- |
-| `batch_bins` (sequence batching) | Global budget for the whole distributed job | Per-GPU budget by default; global budget with `batch_distribution: global` |
-| Batch distribution | Split each sequence batch across ranks | `dataloader.train.batch_distribution: per_gpu` (default) distributes complete batches; `global` splits each batch across ranks. Validation selects its mode under `dataloader.valid`. |
-| Training configuration | `conf/train_asr_*.yaml`, top-level model/optimizer/batching fields plus shell options | `conf/training.yaml` or a variant, with `model`, `optimizer`, `dataloader`, and Lightning `trainer` blocks |
-| Inference configuration | `conf/decode_asr.yaml`, usually decoding hyperparameters | `conf/inference.yaml`, including model, datasets, provider/runner, output artifacts, and parallel execution |
-| Gradient accumulation | `accum_grad` | `trainer.accumulate_grad_batches` |
-| Scoring configuration | Recipe shell scoring stages | `conf/metrics.yaml`; WER uses `espnet3.systems.esp2_asr.metrics.wer.WER` |
+| `batch_bins` (sequence batching) | Global budget for the whole distributed job; each sequence batch is split across ranks | Per-GPU budget by default; `dataloader.train.batch_distribution: global` opts into a global budget and splits each batch across ranks. Validation selects its mode under `dataloader.valid`. |
+| `best_model_criterion` | Each criterion is `(phase, metric, mode)`; the number of models to keep is set separately with `keep_nbest_models` | Each criterion is `(monitor, top_k, mode)`, so the number of checkpoints to keep is specified per criterion (for example, `valid/loss, 3, min`). |
 
-Existing ESPnet3 configs keep per-GPU behavior when the new setting is omitted.
+Existing ESPnet3 configs keep per-GPU behavior when `batch_distribution` is omitted.
 Changing the GPU count in that mode changes the effective global batch budget.
 Switching modes does not automatically rescale `batch_bins` or accumulation.
 Global mode requires shared batches with at least `world_size` items;
