@@ -3,23 +3,19 @@
 # Defaults come from egs3/TEMPLATE/esp2_s2t/conf/inference.yaml.
 
 model:
-  _target_: src.inference.Speech2TextOWSM
+  _target_: espnet3.systems.esp2_s2t.inference.Inference
   s2t_train_config: ${exp_dir}/config.yaml
   s2t_model_file: ${exp_dir}/valid.acc.ave.pth
-  device: cuda
   beam_size: 5
   ctc_weight: 0.0
   maxlenratio: 0.0
   nbest: 1
 
-# speech is decoded; text supplies the <lang><task> prompt.
-input_key: [speech, text]
-
-output_fn: src.inference.build_output
-
 cache:
   cache_dir: ${oc.env:OWSM_CACHE,${recipe_dir}/data/hf}
 
+# `transform` prompts each utterance from its own tags; without it the whole
+# set would be decoded as whatever task the checkpoint defaults to.
 dataset:
   test:
     - name: spgispeech_val
@@ -28,9 +24,13 @@ dataset:
         split: val
         recipe_dir: ${recipe_dir}
         cache: ${cache}
+      transform:
+        _target_: egs3.owsm_v4.esp2_s2t.dataset.dataset.PromptFromTags
     - name: must_c_dev
       data_src: egs3.owsm_v4.esp2_s2t.dataset.sub_datasets.must_c
       data_src_args:
         split: dev
         recipe_dir: ${recipe_dir}
         cache: ${cache}
+      transform:
+        _target_: egs3.owsm_v4.esp2_s2t.dataset.dataset.PromptFromTags

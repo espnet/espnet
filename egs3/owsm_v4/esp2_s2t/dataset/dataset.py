@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import re
 from pathlib import Path
 from typing import Any, Iterator
 
@@ -111,6 +112,45 @@ class OWSMDataset(TorchDataset):
             "text": prefix + row["text"],
             "text_prev": row["text_prev"],
             "text_ctc": row["text_ctc"],
+        }
+
+
+#: The leading tags of a reference: ``<lang><task>``, e.g. ``<eng><asr>`` or
+#: ``<eng><st_deu>``.
+_PREFIX = re.compile(r"^\s*<(?P<lang>[^<>]+)>\s*<(?P<task>[^<>]+)>")
+
+
+class PromptFromTags:
+    """Read each utterance's ``<lang><task>`` tags into its own columns.
+
+    OWSM is told which language and task to produce. egs2 does this per test
+    set with ``--lang_sym``/``--task_sym``, but one OWSM cache holds every
+    direction at once, so it has to be per utterance instead. The s2t
+    ``Inference`` takes them as the ``language`` and ``task`` inputs, named
+    without their brackets, which is what this adds.
+
+    The model is given the reference's *tags*, never its words, so the
+    transcript or translation is still produced from audio alone. It does
+    mean language and task identification are not being evaluated -- the
+    same limitation egs2 has, where both are fixed for the whole set.
+
+    ``text`` is left as it is: the metrics read the task off its tags to
+    decide which rows are theirs, and strip them before scoring.
+
+    Examples:
+        >>> PromptFromTags()({"text": "<eng><st_deu> hallo"})["task"]
+        'st_deu'
+    """
+
+    def __call__(self, sample: dict[str, Any]) -> dict[str, Any]:
+        """Return ``sample`` with ``language`` and ``task`` added, if tagged."""
+        match = _PREFIX.match(sample.get("text") or "")
+        if match is None:
+            return sample
+        return {
+            **sample,
+            "language": match.group("lang"),
+            "task": match.group("task"),
         }
 
 
