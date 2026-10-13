@@ -6,8 +6,8 @@ inputs and outputs - and checks that the declaration itself is well formed
 against that declaration at run time: what it is given, what it returns,
 and how its config binds it to the other parts.
 
-Checks live here one part at a time: :mod:`.metrics` today, dataset and
-stage contracts to follow. This package depends only on
+Checks live here one part at a time: :mod:`.metrics`, :mod:`.data` (a
+dataset's declared item fields), :mod:`.stages`. This package depends only on
 :mod:`espnet3.api`; it must never import :mod:`espnet3.components` or
 :mod:`espnet3.systems` at module level.
 """
