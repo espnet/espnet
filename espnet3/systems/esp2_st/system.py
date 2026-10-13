@@ -9,7 +9,9 @@ from hydra.utils import instantiate
 from omegaconf import DictConfig
 
 from espnet3.systems.base.system import BaseSystem
-from espnet3.systems.esp2_st.tokenizers.sentencepiece import train_sentencepiece
+from espnet3.systems.esp2_st.src.tokenizers.sentencepiece import (
+    train_sentencepiece,
+)
 
 logger = logging.getLogger(__name__)
 

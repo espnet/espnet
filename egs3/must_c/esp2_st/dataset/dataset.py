@@ -36,7 +36,7 @@ from egs3.must_c.esp2_st.dataset.builder import (
     MustCSTBuilder,
     read_segment,
 )
-from espnet3.systems.esp2_st.normalization import apply_case as _apply_case
+from espnet3.systems.esp2_st.src.normalization import apply_case as _apply_case
 from espnet3.utils.config_utils import load_config_with_defaults
 
 _CONFIG_RESOURCE = resources.files(__package__).joinpath("config.yaml")
