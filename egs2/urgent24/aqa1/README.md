@@ -6,8 +6,10 @@ the corpus or compute the target metrics. See the [AQA task guide](../../TEMPLAT
 for the label format and shared stages.
 
 Prepare `data/train`, `data/dev`, and `data/test`. Each split must contain
-`wav.scp`, `ref_wav.scp`, `text`, `utt2spk`, and `metric.scp`, keyed by the same
-utterance IDs. Audio entries use Kaldi SCP format; `ref_wav.scp` may use
+`wav.scp`, `utt2spk`, and `metric.scp`, keyed by the same utterance IDs.
+The default configuration also requires `ref_wav.scp` and `text`. Omit them
+when running with `--use_ref_wav false` and `--use_ref_text false`, respectively.
+Audio entries use Kaldi SCP format; `ref_wav.scp` may use
 `utt_id None` for a missing reference. Text entries contain the reference
 transcript. Each `metric.scp` entry contains an utterance ID and a JSON object
 of numeric metric values, for example:
@@ -34,7 +36,7 @@ To use WavLM Large features, install S3PRL with the ESPnet tools installer
 ```
 
 The WavLM frontend downloads pretrained weights on first use. Both configurations
-use 16 kHz audio and reference text/audio. The default is one training GPU;
+use 16 kHz audio and enable reference text/audio by default. The default is one training GPU;
 use `--ngpu 0` for CPU training. Override shared driver options through `run.sh`,
 for example `--stage 6 --stop_stage 7` to collect statistics and train after data
 preparation. These are corpus training configurations, not CI debug settings.
