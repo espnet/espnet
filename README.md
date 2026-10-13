@@ -31,6 +31,8 @@ ESPnet is an end-to-end speech processing toolkit built on [PyTorch](https://pyt
 | --- | --- | --- |
 | `batch_bins` (sequence batching) | Global budget for the whole distributed job; each sequence batch is split across ranks | Per-GPU budget by default; `dataloader.train.batch_distribution: global` opts into a global budget and splits each batch across ranks. Validation selects its mode under `dataloader.valid`. |
 | `best_model_criterion` | Each criterion is `(phase, metric, mode)`; the number of models to keep is set separately with `keep_nbest_models` | Each criterion is `(monitor, top_k, mode)`, so the number of checkpoints to keep is specified per criterion (for example, `valid/loss, 3, min`). |
+| `seed` | Set initially and reset to `seed + epoch` at the start of each epoch | Set once before training with Lightning's `seed_everything(..., workers=True)`; random streams are not reset to `seed + epoch` by ESPnet3. |
+| Early stopping (`patience`) | `patience` and `early_stopping_criterion` are trainer options | Configure Lightning's `EarlyStopping` callback in `trainer.callbacks` (for example, its `monitor`, `patience`, and `mode`); no early-stopping callback is added by default. |
 
 Existing ESPnet3 configs keep per-GPU behavior when `batch_distribution` is omitted.
 Changing the GPU count in that mode changes the effective global batch budget.
