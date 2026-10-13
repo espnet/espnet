@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from espnet3.api.inference.field import Field
+from espnet3.api.field import Field
 
 
 def check_declaration(
@@ -10,13 +10,13 @@ def check_declaration(
 ) -> None:
     """Raise ``TypeError`` unless ``obj`` declares its fields correctly.
 
-    Shared by every contract built on :class:`Field`: a tuple of fields
+    Shared by every interface declared with :class:`Field`: a tuple of fields
     with distinct names, required ones before optional ones, and no
     optional output.
 
     Args:
         obj: The class to check, or an instance whose own attributes (set
-            in its ``__init__``) declare a contract its class does not.
+            in its ``__init__``) declare fields its class does not.
         inputs_attr: The name of the inputs attribute to check.
         outputs_attr: The name of the outputs attribute to check.
 

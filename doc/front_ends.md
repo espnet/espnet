@@ -51,7 +51,7 @@ Whatever `espnet2.bin` class does the work. It takes `model_tag` through
 `from_pretrained`, and `test/espnet2/bin/test_from_pretrained_routing.py`
 holds every such class to one way of fetching a published model.
 
-An ESPnet3 system states the same thing as a contract: its
+An ESPnet3 system states the same thing as an interface: its
 `espnet3/systems/<name>/inference.py` defines `Inference`, a subclass of
 `espnet3.api.inference.InferenceAPI` that declares the fields it takes and
 returns, and `espnet3.api.inference.load(tag)` finds it from the bundle's

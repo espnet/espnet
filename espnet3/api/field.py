@@ -5,7 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Optional
 
-from espnet3.api.inference.kinds import KINDS
+from espnet3.api.kinds import KINDS
 
 
 @dataclass(frozen=True)
@@ -19,7 +19,7 @@ class Field:
     Args:
         name: The keyword the value is passed or returned as, such as
             ``speech`` or ``text``. Must be a Python identifier.
-        kind: A name in :data:`~espnet3.api.inference.kinds.KINDS`. Decides
+        kind: A name in :data:`~espnet3.api.kinds.KINDS`. Decides
             how a value is converted
             and checked (``audio`` becomes an :class:`Audio` at the model's
             rate, ``text`` must be a ``str``) and, for a front end, which

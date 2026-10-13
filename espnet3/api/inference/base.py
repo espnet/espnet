@@ -1,4 +1,4 @@
-"""The contract itself: :class:`InferenceAPI`, its check, and :func:`gather`."""
+"""The interface itself: :class:`InferenceAPI`, its check, and :func:`gather`."""
 
 from __future__ import annotations
 
@@ -6,12 +6,12 @@ from abc import ABC, abstractmethod
 from pathlib import Path
 from typing import Any, ClassVar, Iterable, Iterator, Mapping, Optional, Sequence
 
-from espnet3.api.inference.check import check_declaration
-from espnet3.api.inference.field import Field
-from espnet3.api.inference.kinds import KINDS
+from espnet3.api.check import check_declaration
+from espnet3.api.field import Field
+from espnet3.api.kinds import KINDS
 
 
-def check_contract(cls: type) -> None:
+def check_inference_api(cls: type) -> None:
     """Raise ``TypeError`` unless ``cls`` is a usable system declaration.
 
     Run on every concrete subclass of :class:`InferenceAPI` as it is
@@ -136,7 +136,7 @@ class InferenceAPI(ABC):
         # An intermediate base that declares nothing is allowed; a system
         # declares both.
         if hasattr(cls, "inputs") or hasattr(cls, "outputs"):
-            check_contract(cls)
+            check_inference_api(cls)
 
     @classmethod
     @abstractmethod
