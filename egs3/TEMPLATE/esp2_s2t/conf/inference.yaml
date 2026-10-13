@@ -38,7 +38,9 @@ cache:
 #   omitted here: a mixture has several, and `${recipe_dir}/dataset/` is the
 #   shared layer rather than a dataset of its own.
 # - `data_src_args` is forwarded to `Dataset(...)`
-# - `transform` is optional and runs before `preprocessor`
+# - `transform` is optional and runs before `preprocessor`. Every entry wants
+#   one here: it is what turns the reference's `<lang><task>` tags into the
+#   `language` and `task` the model is prompted with.
 #
 # Only `data_src_args` is passed to the recipe `Dataset` constructor.
 # Top-level fields such as `name` and `transform` are consumed by
@@ -56,12 +58,16 @@ cache:
 #         split: val
 #         recipe_dir: ${recipe_dir}
 #         cache: ${cache}
+#       transform:
+#         _target_: egs3.owsm_v4.esp2_s2t.dataset.dataset.PromptFromTags
 #     - name: must_c_dev
 #       data_src: egs3.owsm_v4.esp2_s2t.dataset.sub_datasets.must_c
 #       data_src_args:
 #         split: dev
 #         recipe_dir: ${recipe_dir}
 #         cache: ${cache}
+#       transform:
+#         _target_: egs3.owsm_v4.esp2_s2t.dataset.dataset.PromptFromTags
 dataset:
   _target_: espnet3.components.data.data_organizer.DataOrganizer
   _recursive_: false
@@ -79,21 +85,35 @@ parallel:
 ##########################################################
 #                    MODEL AND OUTPUT                    #
 ##########################################################
-# Filled in by the recipe, which points at its own src/inference.py. The
-# reference implementation is egs3/TEMPLATE/esp2_s2t/src/inference.py:
-# Speech2TextOWSM prompts the decoder per utterance from the reference's
-# <lang><task> tags, because one OWSM cache holds every direction and a single
-# fixed task would decode the translation rows as ASR.
+# The model is the system's `Inference` (espnet3.api.inference): it declares
+# what it takes and returns, so nothing below needs to say. Its arguments are
+# the ones `espnet2.bin.s2t_inference.Speech2Text` takes; `device` is added by
+# the provider.
+#
+# Besides `speech` it takes an optional `language` and `task` per utterance,
+# picked out of each dataset item by those names. One OWSM cache holds every
+# direction at once, so a fixed task would decode the translation rows as
+# ASR; each test entry below therefore carries a `transform` that reads the
+# reference's `<lang><task>` tags into those two columns.
 model:
+  _target_: espnet3.systems.esp2_s2t.inference.Inference
+  # s2t_train_config: ${exp_dir}/config.yaml
+  # s2t_model_file: ${exp_dir}/valid.acc.ave.pth
+  # beam_size: 5
 
-# Key name(s) selected from each dataset sample and passed to the model.
-# If `dataset[i]` returns `{"speech": ..., "text": ..., "utt_id": ...}` and
-# `input_key: speech`, inference uses `dataset[i]["speech"]` as model input.
-# If you set `input_key: [speech, text]`, inference builds
-# `{"speech": dataset[i]["speech"], "text": dataset[i]["text"]}` and calls
-# `model(**...)` with that dict.
-# OWSM needs both: speech is decoded, text supplies the prompt tags.
-input_key: [speech, text]
+# Nothing but the model's outputs is written here: `text.scp` is what the
+# model said, with the tags already stripped, and `segments` where each
+# utterance fell. The reference for scoring is the dataset's `text` column,
+# which keeps its tags, and `measure` reads it from the data
+# (`ref_key: dataset:text` in metrics.yaml), so this stage does not copy it.
+
+# Only for a model that is not an `Inference`: the dataset field(s) passed to
+# it. If `dataset[i]` returns `{"speech": ..., "text": ..., "utt_id": ...}` and
+# `input_key: speech`, inference uses `dataset[i]["speech"]` as model input;
+# `input_key: [speech, text]` calls `model(speech=..., text=...)`. An
+# `Inference` declares its inputs, so leave this unset.
+#
+# input_key: speech
 
 # Optional output key list.
 # These keys must exist in the dict returned by `output_fn`.
@@ -121,23 +141,24 @@ input_key: [speech, text]
 # 8-16 pays off when the test set is roughly sorted by length. A batch that does
 # not fit in memory is split in halves and retried with a warning; a single
 # utterance that does not fit raises an error that names its length.
-# Set to `null` for a model or `output_fn` that only supports one item per call.
+# Set to `null` for a model or `output_fn` that only supports one item per call;
+# an `Inference` decodes a batch together only when its system says so
+# (`run_batch`), and one at a time otherwise, so any value is safe.
 batch_size: 4
 
-# Optional recipe-provided formatter that converts raw model outputs into dicts such as:
-#   {"utt_id": "...", "hyp": "..."}
-# If omitted, the model output itself must already be a dict (or a list of dicts
-# for batched inference) and must contain `utt_id` unless `idx_key` is
-# overridden.
+# Only for a model that is not an `Inference`: a recipe function converting
+# raw model outputs into dicts such as {"utt_id": "...", "hyp": "..."}. With an
+# `Inference` there is nothing to declare here - what it outputs is in the
+# class (`text` and `segments` for s2t) and the runner writes it as it is.
+# Setting this together with an `Inference` is an error, not ignored.
 #
 # Each output field must be a single value.
 # - Primitive values (`str`, `int`, `float`, `bool`) are written directly to SCP.
 # - `dict` values are serialized as JSON artifacts and the artifact path is
 #   written to SCP.
 # - Bare top-level `list` / `tuple` outputs are not supported.
-# Filled in by the recipe. It must write a `ref` that keeps its OWSM tags,
-# which is how the metrics know which rows are theirs.
-output_fn:
+#
+# output_fn: src.inference.build_output
 
 # Optional artifact writers for non-scalar outputs.
 # Primitive values (str/int/float/bool) are written directly into SCP files.

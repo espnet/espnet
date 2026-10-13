@@ -22,11 +22,15 @@ metrics:
   - metric:
       _target_: espnet3.systems.esp2_s2t.metrics.error_rate.CER
       nlsyms: ${nlsyms}
+      ref_key: dataset:text  # the reference, tags and all
+      hyp_key: text          # what the model said
       ref_cleaner:
       hyp_cleaner:
   - metric:
       _target_: espnet3.systems.esp2_s2t.metrics.error_rate.WER
       nlsyms: ${nlsyms}
+      ref_key: dataset:text  # the reference, tags and all
+      hyp_key: text          # what the model said
       ref_cleaner:
       hyp_cleaner:
   - metric:
@@ -34,5 +38,7 @@ metrics:
       # Must match tokenizer.save_path / model_type in the training config.
       bpemodel: ${recipe_dir}/data/bpe_50000/bpe.model
       nlsyms: ${nlsyms}
+      ref_key: dataset:text  # the reference, tags and all
+      hyp_key: text          # what the model said
       ref_cleaner:
       hyp_cleaner:
