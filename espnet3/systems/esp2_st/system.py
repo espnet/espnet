@@ -3,11 +3,11 @@
 import logging
 import os
 from pathlib import Path
-from typing import Iterable, List
+from typing import ClassVar, Iterable, List
 
 from hydra.utils import instantiate
-from omegaconf import DictConfig
 
+from espnet3.contract.stages import StageSpec
 from espnet3.systems.base.system import BaseSystem
 from espnet3.systems.esp2_st.src.tokenizers.sentencepiece import (
     train_sentencepiece,
@@ -55,42 +55,31 @@ class STSystem(BaseSystem):
 
     A side may be omitted, in which case it is skipped -- egs2's
     ``use_src_lang=false`` trains the target model only.
+
+    Examples:
+        >>> [s.name for s in STSystem.stages[:2]]
+        ['create_dataset', 'train_tokenizer']
     """
 
-    def __init__(
-        self,
-        training_config: DictConfig | None = None,
-        inference_config: DictConfig | None = None,
-        metrics_config: DictConfig | None = None,
-        publication_config: DictConfig | None = None,
-        stage_log_mapping: dict | None = None,
-        demo_config: DictConfig | None = None,
-    ) -> None:
-        """Initialize the ST system with optional stage configs.
-
-        Args:
-            training_config: Training configuration.
-            inference_config: Inference configuration.
-            metrics_config: Measurement configuration.
-            publication_config: Publication configuration for the model
-                packing and upload stages.
-            stage_log_mapping: Optional per-stage log directory overrides.
-            demo_config: Demo configuration for the demo stages.
-        """
-        # ASRSystem points train_tokenizer's log at tokenizer.save_path. There
-        # is no single save_path here -- the sides live under tokenizer.tgt and
-        # tokenizer.src -- so the target side stands for the stage.
-        super().__init__(
-            training_config=training_config,
-            inference_config=inference_config,
-            metrics_config=metrics_config,
-            publication_config=publication_config,
-            stage_log_mapping={
-                "train_tokenizer": "training_config.tokenizer.tgt.save_path",
-                **(stage_log_mapping or {}),
-            },
-            demo_config=demo_config,
-        )
+    # ASRSystem's stages. `train_tokenizer` writes one model per side, so
+    # there is no single `tokenizer.save_path` to log under and the target
+    # side stands for the stage.
+    stages: ClassVar[tuple[StageSpec, ...]] = (
+        StageSpec(name="create_dataset", config="training", log_dir="data_dir"),
+        StageSpec(
+            name="train_tokenizer",
+            config="training",
+            log_dir="tokenizer.tgt.save_path",
+        ),
+        StageSpec(name="collect_stats", config="training", log_dir="stats_dir"),
+        StageSpec(name="train", config="training", log_dir="exp_dir"),
+        StageSpec(name="infer", config="inference", log_dir="inference_dir"),
+        StageSpec(name="measure", config="metrics", log_dir="inference_dir"),
+        StageSpec(name="pack_model", config=("training", "publication")),
+        StageSpec(name="upload_model", config="publication"),
+        StageSpec(name="pack_demo", config="demo", log_dir="pack.out_dir"),
+        StageSpec(name="upload_demo", config="demo", log_dir="pack.out_dir"),
+    )
 
     def train(self, *args, **kwargs):
         """Train the model, training any missing tokenizer first.
