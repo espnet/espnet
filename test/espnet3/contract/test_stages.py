@@ -98,6 +98,62 @@ def test_check_stage_contract_rejects_non_identifier_config_role():
         check_stage_contract(BadRole)
 
 
+def test_check_stage_contract_accepts_tuple_config_with_multiple_roles():
+    """A stage needing more than one config role declares a tuple."""
+
+    class MultiRole:
+        stages = (StageSpec(name="pack_model", config=("training", "publication")),)
+
+        def pack_model(self):
+            pass
+
+    check_stage_contract(MultiRole)
+
+
+def test_check_stage_contract_rejects_empty_config_tuple():
+    class EmptyTuple:
+        stages = (StageSpec(name="train", config=()),)
+
+        def train(self):
+            pass
+
+    with pytest.raises(StageContractError, match="at least one role"):
+        check_stage_contract(EmptyTuple)
+
+
+def test_check_stage_contract_rejects_duplicate_role_in_tuple():
+    class DuplicateRole:
+        stages = (StageSpec(name="train", config=("training", "training")),)
+
+        def train(self):
+            pass
+
+    with pytest.raises(StageContractError, match="duplicate role"):
+        check_stage_contract(DuplicateRole)
+
+
+def test_check_stage_contract_rejects_non_identifier_role_in_tuple():
+    class BadRoleInTuple:
+        stages = (StageSpec(name="train", config=("training", "not-an-identifier")),)
+
+        def train(self):
+            pass
+
+    with pytest.raises(StageContractError, match="non-empty identifier"):
+        check_stage_contract(BadRoleInTuple)
+
+
+def test_check_stage_contract_rejects_non_str_non_tuple_config():
+    class WrongType:
+        stages = (StageSpec(name="train", config=123),)
+
+        def train(self):
+            pass
+
+    with pytest.raises(StageContractError, match="must be a str or"):
+        check_stage_contract(WrongType)
+
+
 def test_check_stage_contract_rejects_non_str_log_dir():
     class BadLogDir:
         stages = (StageSpec(name="train", config="training", log_dir=123),)
@@ -200,6 +256,51 @@ def test_check_requested_stages_accepts_satisfied_request():
     )
 
 
+class _MultiRoleSystem:
+    """A system whose pack_model needs both training and publication."""
+
+    stages = (
+        StageSpec(name="infer", config="inference"),
+        StageSpec(name="measure", config="metrics"),
+        StageSpec(name="pack_model", config=("training", "publication")),
+    )
+
+    def infer(self):
+        pass
+
+    def measure(self):
+        pass
+
+    def pack_model(self):
+        pass
+
+
+def test_check_requested_stages_rejects_tuple_config_missing_one_role():
+    with pytest.raises(
+        StageContractError, match="pack_model runs on the training config"
+    ):
+        check_requested_stages(
+            _MultiRoleSystem, ["pack_model"], {"publication": object()}
+        )
+
+
+def test_check_requested_stages_accepts_tuple_config_with_all_roles_given():
+    check_requested_stages(
+        _MultiRoleSystem,
+        ["pack_model"],
+        {"training": object(), "publication": object()},
+    )
+
+
+def test_check_requested_stages_inference_only_does_not_require_training():
+    """Inference/measure-only stages must not demand a training config."""
+    check_requested_stages(
+        _MultiRoleSystem,
+        ["infer", "measure"],
+        {"inference": object(), "metrics": object()},
+    )
+
+
 # ---------------------------------------------------------------------------
 # stage_names / stage_spec / stage_log_dir
 # ---------------------------------------------------------------------------
@@ -288,3 +389,31 @@ def test_roles_is_empty_for_a_system_with_no_stages_declared():
         stages = ()
 
     assert roles(NoRoles) == ()
+
+
+def test_roles_expands_tuple_config_into_each_role():
+    assert roles(_MultiRoleSystem) == (
+        "inference",
+        "metrics",
+        "training",
+        "publication",
+    )
+
+
+def test_stage_log_dir_tuple_config_uses_first_role_with_a_set_config():
+    class MultiRoleWithLogDir:
+        stages = (
+            StageSpec(
+                name="pack_model",
+                config=("training", "publication"),
+                log_dir="exp_dir",
+            ),
+        )
+        training_config = None
+        publication_config = OmegaConf.create({"exp_dir": "pub_exp"})
+        _default_log_dir = Path("logs")
+
+        def pack_model(self):
+            pass
+
+    assert stage_log_dir(MultiRoleWithLogDir(), "pack_model") == Path("pub_exp")

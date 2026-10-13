@@ -112,8 +112,13 @@ def launch(
         from espnet3.systems.esp2_asr.system import ASRSystem
         from espnet3.systems.launch import launch
 
-        launch(ASRSystem)
+        if __name__ == "__main__":
+            launch(ASRSystem)
         ```
+
+        The ``__main__`` guard is required: ``collect_stats``/``train``
+        spawn Dask/DataLoader worker processes that re-import ``run.py``;
+        without the guard, each worker re-runs ``launch(...)`` itself.
     """
     parser = parser or build_parser(system_cls)
     args = parser.parse_args(argv)
@@ -156,14 +161,7 @@ def launch(
     )
     resolve_loaded_configs(*configs.values())
 
-    # TODO(config_fix): removed by the upcoming config fix PR
-    system = system_cls(
-        training_config=configs.get("training"),
-        inference_config=configs.get("inference"),
-        metrics_config=configs.get("metrics"),
-        publication_config=configs.get("publication"),
-        demo_config=configs.get("demo"),
-    )
+    system = system_cls(**{f"{role}_config": cfg for role, cfg in configs.items()})
 
     logger.info("System: %s", system_cls.__name__)
     logger.info("Requested stages: %s", args.stages)
