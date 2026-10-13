@@ -255,10 +255,9 @@ def instantiate_dataset_reference(
     data_src, data_src_args = parse_dataset_reference_config(config)
     module = load_dataset_module(data_src=data_src, recipe_dir=recipe_dir)
     dataset_cls = getattr(module, "Dataset")
-    dataset = dataset_cls(**data_src_args)
-    if not isinstance(dataset, BaseDataset):
+    if not issubclass(dataset_cls, BaseDataset):
         raise TypeError(
             f"{dataset_cls.__qualname__} does not inherit BaseDataset; a "
             "recipe's Dataset class must declare `fields` through it"
         )
-    return dataset
+    return dataset_cls(**data_src_args)

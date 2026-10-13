@@ -313,7 +313,7 @@ def test_instantiate_dataset_reference_invalid_kwargs_raises_type_error(tmp_path
 def test_instantiate_dataset_reference_rejects_dataset_outside_base(monkeypatch):
     class NotBaseDataset:
         def __init__(self, **kwargs):
-            self.kwargs = kwargs
+            raise AssertionError("must not be instantiated before the base check")
 
     class DummyModule:
         Dataset = NotBaseDataset

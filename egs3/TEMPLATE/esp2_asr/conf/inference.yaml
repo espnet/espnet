@@ -50,6 +50,10 @@ inference_dir: ${exp_dir}/${self_name:}
 # its kind (`audio`, `text`, ...). The first item of each instance is
 # checked against this declaration.
 #
+# An inference-only dataset only needs to declare the fields it actually
+# returns (e.g. `speech` and `utt_id`); it does not need to declare `text`
+# or other training-only fields it does not provide.
+#
 # Example:
 # dataset:
 #   test:
