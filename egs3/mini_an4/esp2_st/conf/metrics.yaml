@@ -20,6 +20,8 @@
 metrics:
   - metric:
       _target_: espnet3.systems.esp2_st.metrics.bleu.BLEU
+      ref_key: dataset:text  # the reference, read from the test set itself
+      hyp_key: text          # what the model said
       clean_types:
       tokenize: "13a"
       also_lowercase: true

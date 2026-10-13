@@ -20,8 +20,8 @@
 # `return_utt_id` is set only here: training cannot take it, because
 # CommonCollateFn stacks every value and a str has no dtype.
 #
-# No `preprocessor:` -- text must stay a raw string so src/inference.py can
-# write it as the reference.
+# No `preprocessor:` -- `measure` reads the reference out of this test set
+# (`ref_key: dataset:text`), so the text has to stay a raw string.
 dataset:
   test:
     - name: valid
@@ -36,10 +36,12 @@ dataset:
 ##########################################################
 #                    MODEL AND OUTPUT                    #
 ##########################################################
+# The system's `Inference`: it declares what it takes and returns, so this
+# config needs no `input_key` or `output_fn`. Its arguments are the ones
+# `espnet2.bin.st_inference.Speech2Text` takes; `device` is added by the
+# provider.
 model:
-  _target_: espnet2.bin.st_inference.Speech2Text
+  _target_: espnet3.systems.esp2_st.inference.Inference
   st_train_config: ${exp_dir}/config.yaml
   st_model_file: ${exp_dir}/epoch0_step1_valid.loss.ckpt
   beam_size: 1
-
-output_fn: src.inference.build_output

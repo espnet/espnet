@@ -28,8 +28,8 @@ cache:
 #   `${recipe_dir}/dataset/__init__.py`
 # - `data_src_args` is passed directly to `MustCSTDataset(...)`
 #
-# No `preprocessor:` -- text must stay a raw string so src/inference.py can
-# write it as the reference.
+# No `preprocessor:` -- `measure` reads the reference out of this test set
+# (`ref_key: dataset:text`), so the text has to stay a raw string.
 dataset:
   test:
     - name: tst-COMMON
@@ -48,14 +48,14 @@ dataset:
 ##########################################################
 #                    MODEL AND OUTPUT                    #
 ##########################################################
-# Speech2TextShortSafe, not Speech2Text: tst-COMMON keeps 54 utterances shorter
-# than conv2d subsampling allows.
+# The system's `Inference`: it declares what it takes and returns, so this
+# config needs no `input_key` or `output_fn`. It also scores the 54
+# tst-COMMON utterances that are too short for conv2d subsampling rather
+# than raising on them.
 model:
-  _target_: src.inference.Speech2TextShortSafe
+  _target_: espnet3.systems.esp2_st.inference.Inference
   st_train_config: ${exp_dir}/config.yaml
   # Weight average over the top-10 `valid/acc` checkpoints, written by
   # `AverageCheckpointsCallback` (espnet3/components/callbacks/default_callbacks.py).
   st_model_file: ${exp_dir}/valid.acc.ave_10best.pth
   beam_size: 10
-
-output_fn: src.inference.build_output

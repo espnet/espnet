@@ -33,7 +33,6 @@
 
 pack_model:
   include:
-    - ${recipe_dir}/src
     - ${recipe_dir}/dataset
     # Globbed, so the vocabulary size lives only in the training config.
     # `_expand_pack_paths` warns if a pattern matches nothing.

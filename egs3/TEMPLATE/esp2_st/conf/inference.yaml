@@ -76,15 +76,28 @@ parallel:
 ##########################################################
 #                    MODEL AND OUTPUT                    #
 ##########################################################
+# The model is the system's `Inference` (espnet3.api.inference): it declares
+# what it takes and returns, so nothing below needs to say. Its arguments are
+# the ones `espnet2.bin.st_inference.Speech2Text` takes; `device` is added by
+# the provider.
 model:
+  _target_: espnet3.systems.esp2_st.inference.Inference
+  # st_train_config: ${exp_dir}/config.yaml
+  # st_model_file: ${exp_dir}/valid.acc.ave_10best.pth
+  # beam_size: 10
 
-# Key name(s) selected from each dataset sample and passed to the model.
-# If `dataset[i]` returns `{"speech": ..., "text": ..., "utt_id": ...}` and
-# `input_key: speech`, inference uses `dataset[i]["speech"]` as model input.
-# If you set `input_key: [speech, text]`, inference builds
-# `{"speech": dataset[i]["speech"], "text": dataset[i]["text"]}` and calls
-# `model(**...)` with that dict.
-input_key: speech
+# Nothing but the model's outputs is written here: `text.scp` is the
+# translation. The reference for scoring is the dataset's `text` column, and
+# `measure` reads it from the data (`ref_key: dataset:text` in metrics.yaml),
+# so this stage does not copy it.
+
+# Only for a model that is not an `Inference`: the dataset field(s) passed to
+# it. If `dataset[i]` returns `{"speech": ..., "text": ..., "utt_id": ...}` and
+# `input_key: speech`, inference uses `dataset[i]["speech"]` as model input;
+# `input_key: [speech, text]` calls `model(speech=..., text=...)`. An
+# `Inference` declares its inputs, so leave this unset.
+#
+# input_key: speech
 
 # Optional output key list.
 # These keys must exist in the dict returned by `output_fn`.
@@ -107,25 +120,27 @@ input_key: speech
 # Number of utterances decoded per model call. Consecutive dataset items form a
 # batch and are passed to the model as a list per input key.
 #
-# null, unlike the ASR template's 4: `espnet2.bin.st_inference.Speech2Text` is
-# @typechecked on a single `speech` array and has no `batch_decode`, so a list
-# raises TypeCheckError. InferenceRunner recovers by rerunning the batch one
-# item at a time, but every batch pays the failed call first.
-# Raise it for a model and `output_fn` that do accept a list.
+# `espnet2.bin.st_inference.Speech2Text` is @typechecked on a single `speech`
+# array and has no `batch_decode`, so it cannot take a list. The system's
+# `Inference` therefore decodes a batch one item at a time, which makes any
+# value here safe; a model that is not an `Inference` still needs `null`,
+# since InferenceRunner would otherwise pay a failed call per batch before
+# retrying it item by item.
 batch_size: null
 
-# Optional recipe-provided formatter that converts raw model outputs into dicts such as:
-#   {"utt_id": "...", "hyp": "..."}
-# If omitted, the model output itself must already be a dict (or a list of dicts
-# for batched inference) and must contain `utt_id` unless `idx_key` is
-# overridden.
+# Only for a model that is not an `Inference`: a recipe function converting
+# raw model outputs into dicts such as {"utt_id": "...", "hyp": "..."}. With an
+# `Inference` there is nothing to declare here - what it outputs is in the
+# class (`text` for ST) and the runner writes it as it is (`text.scp`).
+# Setting this together with an `Inference` is an error, not ignored.
 #
 # Each output field must be a single value.
 # - Primitive values (`str`, `int`, `float`, `bool`) are written directly to SCP.
 # - `dict` values are serialized as JSON artifacts and the artifact path is
 #   written to SCP.
 # - Bare top-level `list` / `tuple` outputs are not supported.
-output_fn:
+#
+# output_fn: src.inference.build_output
 
 # Optional artifact writers for non-scalar outputs.
 # Primitive values (str/int/float/bool) are written directly into SCP files.

@@ -140,7 +140,8 @@ def test_bleu_can_skip_the_lowercase_pass(tmp_path: Path):
 @needs_sacrebleu
 def test_bleu_keeps_empty_hypotheses_empty(tmp_path: Path):
     """An undecodable utterance must not be handed a free n-gram match."""
-    # "utt2" has no text, as src/inference.py writes for a TooShortUttError.
+    # "utt2" has no text, as the system's Inference writes for an
+    # utterance too short to subsample.
     data = _build_inputs(
         tmp_path, ["utt1 hallo welt", "utt2 guten tag"], ["utt1 hallo welt", "utt2 "]
     )
