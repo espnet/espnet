@@ -76,6 +76,18 @@ works online or `run` if it needs the whole input, and gets the other.
 A command is one positional input and options. If a task needs two inputs, it
 is a flag (`espnet align audio.wav --text "..."`), not a second positional.
 
+### `espnet run`: the one command with no task in its name
+
+Every verb above is a front end for one task. `espnet run <tag>` is the
+front end for the contract itself: it loads any model `espnet3.api.inference.load`
+reads (`--system` names the system for a checkpoint published without a
+bundle), takes the inputs the model declares as `name=value` - a path for
+audio, a string for text, JSON otherwise - and prints the outputs it
+declares, one after the other, an audio output as a WAV file. `--list`
+prints the declaration. It is what a model card's usage says in Python,
+at a terminal, and so it is the line a generated card can show for any
+system, including one that has no verb here yet.
+
 ### 3. The MCP server — `espnet2/bin/mcp_server.py`
 
 - a loader, `_x()`, wrapped in `functools.lru_cache`, so the checkpoint is
