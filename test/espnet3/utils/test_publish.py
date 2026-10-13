@@ -1452,32 +1452,38 @@ def test_the_readme_load_example_asks_for_trust_only_when_the_bundle_needs_it(
     (out / "conf" / "inference.yaml").write_text(
         "model:\n  _target_: src.code.Local\noutput_fn: src.code.out\n"
     )
-    assert publish._load_example("org/m", out, system=None) == 'model = load("org/m")'
+    assert (
+        publish._build_load_example("org/m", out, system=None)
+        == 'model = load("org/m")'
+    )
     (out / "src").mkdir()
     (out / "src" / "code.py").write_text("class Local: pass\n")
-    example = publish._load_example("org/m", out, system=None)
+    example = publish._build_load_example("org/m", out, system=None)
     assert example.endswith('model = load("org/m", trust_user_code=True)')
     assert "only if you trust" in example
     # a system serves it, and the stage's own code is never imported by load()
-    assert publish._load_example("org/m", out, system="esp2_asr") == (
+    assert publish._build_load_example("org/m", out, system="esp2_asr") == (
         'model = load("org/m")'
     )
     (out / "conf" / "inference.yaml").write_text(
         "model:\n  _target_: espnet3.systems.esp2_asr.inference.Inference\n"
         "output_fn: src.code.out\nprovider:\n  _target_: src.code.Provider\n"
     )
-    assert publish._load_example("org/m", out, system=None) == 'model = load("org/m")'
+    assert (
+        publish._build_load_example("org/m", out, system=None)
+        == 'model = load("org/m")'
+    )
 
 
 # ---------------------------------------------------------------------------
-# _usage_python
+# _build_usage_python
 # ---------------------------------------------------------------------------
 
 
 def test_usage_python_is_the_systems_own_when_the_system_is_known(tmp_path):
-    from espnet3.utils.publication_utils import _usage_python
+    from espnet3.utils.publication_utils import _build_usage_python
 
-    text = _usage_python("espnet/some_pack", tmp_path, "esp2_s2t")
+    text = _build_usage_python("espnet/some_pack", tmp_path, "esp2_s2t")
     assert text.startswith("from espnet3.api.inference import load")
     assert 'model = load("espnet/some_pack")' in text  # a bundle: no system= needed
     assert (
@@ -1486,10 +1492,10 @@ def test_usage_python_is_the_systems_own_when_the_system_is_known(tmp_path):
 
 
 def test_usage_python_falls_back_to_the_generic_lines(tmp_path, caplog):
-    from espnet3.utils.publication_utils import _usage_python
+    from espnet3.utils.publication_utils import _build_usage_python
 
     # no system: a bundle that builds its own Inference, or an older one
-    assert _usage_python("espnet/some_pack", tmp_path, None).splitlines() == [
+    assert _build_usage_python("espnet/some_pack", tmp_path, None).splitlines() == [
         "from espnet3.api.inference import load",
         "",
         'model = load("espnet/some_pack")',
@@ -1497,7 +1503,7 @@ def test_usage_python_falls_back_to_the_generic_lines(tmp_path, caplog):
     ]
     # a system with no Inference to read yet
     with caplog.at_level("WARNING"):
-        text = _usage_python("espnet/some_pack", tmp_path, "no_such_system")
+        text = _build_usage_python("espnet/some_pack", tmp_path, "no_such_system")
     assert text.splitlines()[0] == "from espnet3.api.inference import load"
     assert text.splitlines()[2] == 'model = load("espnet/some_pack")'
     assert "falls back" in caplog.text
@@ -1512,11 +1518,11 @@ def test_usage_python_falls_back_when_the_declaration_itself_is_refused(
     def refused(system):
         raise TypeError(f"{system}: outputs cannot be optional")
 
-    monkeypatch.setattr(usage, "inference_class", refused)
-    from espnet3.utils.publication_utils import _usage_python
+    monkeypatch.setattr(usage, "get_inference_class", refused)
+    from espnet3.utils.publication_utils import _build_usage_python
 
     with caplog.at_level("WARNING"):
-        text = _usage_python("espnet/some_pack", tmp_path, "esp2_s2t")
+        text = _build_usage_python("espnet/some_pack", tmp_path, "esp2_s2t")
     assert text.splitlines()[0] == "from espnet3.api.inference import load"
     assert text.splitlines()[2] == 'model = load("espnet/some_pack")'
     assert "outputs cannot be optional" in caplog.text

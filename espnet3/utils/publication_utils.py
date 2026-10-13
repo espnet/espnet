@@ -438,7 +438,7 @@ def _build_results_note(results_path: Path | None, results_section: str) -> str:
     )
 
 
-def _load_example(target: str, out_dir: Path, system: str | None) -> str:
+def _build_load_example(target: str, out_dir: Path, system: str | None) -> str:
     """Return the README's ``load(...)`` line for this bundle.
 
     A bundle served by an installed system loads as it is. One that names no
@@ -471,20 +471,23 @@ def _load_example(target: str, out_dir: Path, system: str | None) -> str:
     )
 
 
-def _usage_python(target: str, out_dir: Path, system: str | None) -> str:
+def _build_usage_python(target: str, out_dir: Path, system: str | None) -> str:
     """Return the README's usage block: the system's own, or the two generic lines.
 
     A bundle served by an installed system gets the usage its ``Inference``
-    declaration gives (:func:`espnet3.publication.usage.python_usage`): the
+    declaration gives (:func:`espnet3.publication.usage.build_python_usage`): the
     call with its inputs, the outputs by name, the batch and stream forms.
     A bundle that names no system, or one whose system has no ``Inference``
-    to read, keeps :func:`_load_example` and a bare call.
+    to read, keeps :func:`_build_load_example` and a bare call.
     """
     if system:
         try:
-            from espnet3.publication.usage import inference_class, python_usage
+            from espnet3.publication.usage import (
+                build_python_usage,
+                get_inference_class,
+            )
 
-            return python_usage(inference_class(system), target)
+            return build_python_usage(get_inference_class(system), target)
         except (ImportError, TypeError, ValueError) as exc:
             # no inference module, no Inference in it, or a declaration the
             # contract refuses while the module is imported: the card still
@@ -492,7 +495,7 @@ def _usage_python(target: str, out_dir: Path, system: str | None) -> str:
             logger.warning("README usage falls back to load(): %s", exc)
     return (
         "from espnet3.api.inference import load\n\n"
-        + _load_example(target, out_dir, system)
+        + _build_load_example(target, out_dir, system)
         + '\nresult = model("utt.wav")'
     )
 
@@ -511,8 +514,8 @@ def _build_readme_context(
     hf_repo = getattr(getattr(publication_config, "upload_model", None), "hf_repo", "")
     target = hf_repo or "/path/to/packed_model"
     system = _system_for_meta(training_config)
-    usage_load_call = _load_example(target, out_dir, system=system)
-    usage_python = _usage_python(target, out_dir, system)
+    usage_load_call = _build_load_example(target, out_dir, system=system)
+    usage_python = _build_usage_python(target, out_dir, system)
     model_summary_section = ""
     model_detail_section = ""
     try:
