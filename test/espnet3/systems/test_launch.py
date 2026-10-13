@@ -1,6 +1,9 @@
 """Tests for espnet3.systems.launch: build_parser, launch, default_conf_package."""
 
+import importlib.util
 import logging
+from pathlib import Path
+from unittest.mock import patch
 
 import pytest
 from omegaconf import OmegaConf
@@ -8,6 +11,26 @@ from omegaconf import OmegaConf
 from espnet3.components.contract.stages import StageContractError, StageSpec, roles
 from espnet3.systems.base.system import BaseSystem
 from espnet3.systems.launch import build_parser, default_conf_package, launch
+
+_REPO_ROOT = Path(__file__).resolve().parents[3]
+_RECIPE_RUN_PY_FILES = [
+    _REPO_ROOT / "egs3" / "mini_an4" / "esp2_asr" / "run.py",
+    _REPO_ROOT / "egs3" / "librispeech_100" / "esp2_asr" / "run.py",
+    _REPO_ROOT / "egs3" / "spgispeech" / "esp2_asr" / "run.py",
+]
+
+
+def _exec_run_py(path: Path, module_name: str):
+    """Load and execute ``path`` as a module named ``module_name``.
+
+    Mirrors how a Dask/DataLoader worker re-imports ``run.py`` under its
+    own module name (never ``"__main__"``), as opposed to how a user
+    actually invokes it as a script.
+    """
+    spec = importlib.util.spec_from_file_location(module_name, path)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
 
 
 class _RecordingSystem(BaseSystem):
@@ -217,3 +240,28 @@ def test_launch_conf_package_overrides_the_derived_default(
         ],
     )
     assert stub_config_loading["default_package"] == "some.other.package"
+
+
+# ---------------------------------------------------------------------------
+# Regression: recipe run.py must guard launch() with `if __name__ == "__main__"`
+# ---------------------------------------------------------------------------
+#
+# Without the guard, a Dask (or DataLoader, on macOS with spawn) worker
+# re-imports run.py under its own module name and re-runs the whole
+# pipeline, racing the parent and locking an already-locked shard.
+
+
+@pytest.mark.parametrize("run_py", _RECIPE_RUN_PY_FILES, ids=lambda p: p.parent.name)
+def test_importing_run_py_does_not_execute_the_pipeline(run_py):
+    assert run_py.is_file(), f"missing recipe entry point: {run_py}"
+    with patch("espnet3.systems.launch.launch") as mock_launch:
+        _exec_run_py(run_py, "espnet3_test_run_py_as_worker_import")
+    mock_launch.assert_not_called()
+
+
+def test_run_py_calls_launch_when_executed_as_a_script():
+    """Running the file as a script (module name "__main__") calls launch()."""
+    run_py = _RECIPE_RUN_PY_FILES[0]
+    with patch("espnet3.systems.launch.launch") as mock_launch:
+        _exec_run_py(run_py, "__main__")
+    mock_launch.assert_called_once()

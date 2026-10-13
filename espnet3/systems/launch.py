@@ -124,8 +124,13 @@ def launch(
         from espnet3.systems.esp2_asr.system import ASRSystem
         from espnet3.systems.launch import launch
 
-        launch(ASRSystem)
+        if __name__ == "__main__":
+            launch(ASRSystem)
         ```
+
+        The ``__main__`` guard is required: ``collect_stats``/``train``
+        spawn Dask worker processes that re-import ``run.py``; without
+        the guard, each worker re-runs ``launch(...)`` itself.
     """
     parser = parser or build_parser(system_cls)
     args = parser.parse_args(argv)
