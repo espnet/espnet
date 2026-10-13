@@ -25,6 +25,28 @@ ______________________________________________________________________
 
 ESPnet is an end-to-end speech processing toolkit built on [PyTorch](https://pytorch.org/). It covers speech recognition, text-to-speech, speech translation, speech enhancement, speaker diarization, spoken language understanding, singing voice synthesis, speech language models, and more — with [Kaldi](http://kaldi-asr.org/)-style reproducible recipes from data preparation to evaluation, and hundreds of pretrained models on Hugging Face.
 
+## ESPnet2 and ESPnet3 configuration differences
+
+| Setting | ESPnet2 | ESPnet3 |
+| --- | --- | --- |
+| `batch_bins` (sequence batching) | Global budget for the whole distributed job | Per-GPU budget by default; global budget with `batch_distribution: global` |
+| Batch distribution | Split each sequence batch across ranks | `dataloader.train.batch_distribution: per_gpu` (default) distributes complete batches; `global` splits each batch across ranks. Validation selects its mode under `dataloader.valid`. |
+| Training configuration | `conf/train_asr_*.yaml`, top-level model/optimizer/batching fields plus shell options | `conf/training.yaml` or a variant, with `model`, `optimizer`, `dataloader`, and Lightning `trainer` blocks |
+| Inference configuration | `conf/decode_asr.yaml`, usually decoding hyperparameters | `conf/inference.yaml`, including model, datasets, provider/runner, output artifacts, and parallel execution |
+| Gradient accumulation | `accum_grad` | `trainer.accumulate_grad_batches` |
+| Scoring configuration | Recipe shell scoring stages | `conf/metrics.yaml`; WER uses `espnet3.systems.esp2_asr.metrics.wer.WER` |
+
+Existing ESPnet3 configs keep per-GPU behavior when the new setting is omitted.
+Changing the GPU count in that mode changes the effective global batch budget.
+Switching modes does not automatically rescale `batch_bins` or accumulation.
+Global mode requires shared sequence batches with at least `world_size` items;
+unsupported iterator/sharding configurations raise an error.
+
+See the [migration guide](doc/espnet3/guides/migrating-from-espnet2/config-diff.md)
+and [dynamic batching guide](doc/espnet3/guides/scaling/data-pipeline.md)
+for configuration examples and limitations. These repository links remain usable
+while the guides await publication in the official documentation.
+
 ## What's new
 
 - **[ESPnet 202610.post2](https://github.com/espnet/espnet/releases/tag/v.202610.post2)** — the command line has one name a task and two more of them: `espnet phonemize` reads the phones with POWSM, `espnet align` lines text up with the audio it was said in, and `asr` and `tts` became `transcribe` and `synthesize` (the old names still work); models published before June 2025 load again, after `init: chainer` was removed from the toolkit.
