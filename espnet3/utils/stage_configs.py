@@ -18,6 +18,7 @@ from typing import Dict, Iterable, Mapping, Optional, Tuple
 
 from omegaconf import DictConfig, OmegaConf
 
+from espnet3.contract.stages import config_roles
 from espnet3.utils.run_utils import ConfigError, resolve_loaded_configs
 
 logger = logging.getLogger(__name__)
@@ -71,7 +72,7 @@ def inherit(
 
     Examples:
         >>> import tempfile
-        >>> from espnet3.components.contract.stages import StageSpec
+        >>> from espnet3.contract.stages import StageSpec
         >>> class ExampleSystem:
         ...     stages = (
         ...         StageSpec(name="train", config="training"),
@@ -114,6 +115,32 @@ def inherit(
     return OmegaConf.create(merged)
 
 
+def _own_config_for(
+    spec, configs_by_role: Mapping[str, Optional[DictConfig]]
+) -> Optional[DictConfig]:
+    """Return a stage's own config: its single role's, or all given roles merged.
+
+    `StageSpec.config` is usually a single role, and this is just
+    `configs_by_role.get(spec.config)`. When it names more than one role
+    (e.g. `("training", "publication")`), the given roles' own configs are
+    merged (whole-top-level-key replacement, later role wins), so a stage
+    needing more than one role still gets a single config to run with -
+    the other roles' keys still reach it the normal way too, via
+    `inherit`'s walk of earlier stages, so this only matters for a role
+    that is not also an earlier stage's own role.
+    """
+    parts = [configs_by_role.get(role) for role in config_roles(spec.config)]
+    parts = [part for part in parts if part is not None]
+    if not parts:
+        return None
+    if len(parts) == 1:
+        return parts[0]
+    merged: dict = {}
+    for part in parts:
+        merged.update(OmegaConf.to_container(part, resolve=False))
+    return OmegaConf.create(merged)
+
+
 def build_stage_configs(
     system_cls: type,
     configs_by_role: Mapping[str, Optional[DictConfig]],
@@ -153,7 +180,7 @@ def build_stage_configs(
             interpolation; see :func:`~espnet3.utils.run_utils.resolve_loaded_configs`.
 
     Examples:
-        >>> from espnet3.components.contract.stages import StageSpec
+        >>> from espnet3.contract.stages import StageSpec
         >>> class ExampleSystem:
         ...     stages = (
         ...         StageSpec(name="train", config="training"),
@@ -188,7 +215,7 @@ def build_stage_configs(
     own_keys: Dict[str, Tuple[str, ...]] = {}
 
     for spec in stages:
-        own = configs_by_role.get(spec.config)
+        own = _own_config_for(spec, configs_by_role)
         this_own_keys = tuple(own.keys()) if own is not None else ()
         merged = inherit(
             exp_dir,

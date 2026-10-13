@@ -19,7 +19,7 @@ from typing import (
 )
 
 from espnet3.api.inference import Field
-from espnet3.components.contract.metrics import (
+from espnet3.contract.metrics import (
     check_metric_batch,
     check_metric_contract,
 )
@@ -39,7 +39,7 @@ class BaseMetric(ABC):
     :class:`~espnet3.api.inference.InferenceAPI` uses): ``inputs`` names
     what the metric reads (checked against the configured model's own
     declared outputs, via
-    ``espnet3.components.contract.metrics.check_metric_inputs``), and
+    ``espnet3.contract.metrics.check_metric_inputs``), and
     ``outputs`` names the keys of the result dict, each of kind
     ``"number"``. There is no undeclared fallback: a metric that declares
     neither raises ``TypeError`` as soon as it is instantiated.
@@ -205,7 +205,7 @@ class BaseMetric(ABC):
         """Wrap a subclass's own ``update`` so every call checks its batch.
 
         Each class wraps only a concrete ``update`` it defines itself, so a
-        call runs :func:`~espnet3.components.contract.metrics.check_metric_batch`
+        call runs :func:`~espnet3.contract.metrics.check_metric_batch`
         and then the body, whether it comes from a training callback or
         from the chunks of :meth:`__call__`.
 
@@ -219,7 +219,7 @@ class BaseMetric(ABC):
             ...         return {"n": 0}
             >>> Count().update(ref=[3])
             Traceback (most recent call last):
-            espnet3.components.contract.metrics.MetricContractError: Count input ...
+            espnet3.contract.metrics.MetricContractError: Count input ...
         """
         super().__init_subclass__(**kwargs)
         update = cls.__dict__.get("update")

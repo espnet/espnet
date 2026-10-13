@@ -5,7 +5,7 @@ from omegaconf import OmegaConf
 
 import espnet3.parallel.parallel as parallel_module
 import espnet3.systems.f5tts.system as system_module
-from espnet3.components.contract.stages import stage_log_dir_of, stage_spec
+from espnet3.contract.stages import stage_log_dir_of, stage_spec
 from espnet3.systems.base.system import BaseSystem
 from espnet3.systems.f5tts.system import F5TTSSystem
 

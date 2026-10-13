@@ -1,17 +1,17 @@
-"""Tests for espnet3.components.contract.metrics and BaseMetric's contract hook."""
+"""Tests for espnet3.contract.metrics and BaseMetric's contract hook."""
 
 import pytest
 from omegaconf import OmegaConf
 
 from espnet3.api.inference import Field
-from espnet3.components.contract.metrics import (
+from espnet3.components.metrics.base_metric import BaseMetric
+from espnet3.contract.metrics import (
     MetricContractError,
     check_metric_declaration,
     check_metric_inputs,
     check_metric_output,
     declared_outputs,
 )
-from espnet3.components.metrics.base_metric import BaseMetric
 
 # ---------------------------------------------------------------------------
 # instantiation time: BaseMetric.__init__

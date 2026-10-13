@@ -5,5 +5,5 @@ The declaration types (:class:`~espnet3.api.inference.Field`,
 (:func:`~espnet3.api.inference.check.check_declaration`) live in
 :mod:`espnet3.api.inference`; this package holds :mod:`.metrics` (a
 metric's declared inputs/outputs) and :mod:`.stages`
-(:class:`~espnet3.components.contract.stages.StageSpec`).
+(:class:`~espnet3.contract.stages.StageSpec`).
 """

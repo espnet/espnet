@@ -1,13 +1,14 @@
-"""Tests for espnet3.components.contract.stages."""
+"""Tests for espnet3.contract.stages."""
 
 import pytest
 from omegaconf import OmegaConf
 
-from espnet3.components.contract.stages import (
+from espnet3.contract.stages import (
     StageContractError,
     StageSpec,
     check_requested_stages,
     check_stage_contract,
+    config_roles,
     roles,
     stage_log_dir_of,
     stage_names,
@@ -94,6 +95,62 @@ def test_check_stage_contract_rejects_non_identifier_config_role():
 
     with pytest.raises(StageContractError, match="non-empty identifier"):
         check_stage_contract(BadRole)
+
+
+def test_check_stage_contract_accepts_tuple_config_with_multiple_roles():
+    """A stage needing more than one config role declares a tuple."""
+
+    class MultiRole:
+        stages = (StageSpec(name="pack_model", config=("training", "publication")),)
+
+        def pack_model(self):
+            pass
+
+    check_stage_contract(MultiRole)
+
+
+def test_check_stage_contract_rejects_empty_config_tuple():
+    class EmptyTuple:
+        stages = (StageSpec(name="train", config=()),)
+
+        def train(self):
+            pass
+
+    with pytest.raises(StageContractError, match="at least one role"):
+        check_stage_contract(EmptyTuple)
+
+
+def test_check_stage_contract_rejects_duplicate_role_in_tuple():
+    class DuplicateRole:
+        stages = (StageSpec(name="train", config=("training", "training")),)
+
+        def train(self):
+            pass
+
+    with pytest.raises(StageContractError, match="duplicate role"):
+        check_stage_contract(DuplicateRole)
+
+
+def test_check_stage_contract_rejects_non_identifier_role_in_tuple():
+    class BadRoleInTuple:
+        stages = (StageSpec(name="train", config=("training", "not-an-identifier")),)
+
+        def train(self):
+            pass
+
+    with pytest.raises(StageContractError, match="non-empty identifier"):
+        check_stage_contract(BadRoleInTuple)
+
+
+def test_check_stage_contract_rejects_non_str_non_tuple_config():
+    class WrongType:
+        stages = (StageSpec(name="train", config=123),)
+
+        def train(self):
+            pass
+
+    with pytest.raises(StageContractError, match="must be a str or"):
+        check_stage_contract(WrongType)
 
 
 def test_check_stage_contract_rejects_non_str_log_dir():
@@ -198,6 +255,49 @@ def test_check_requested_stages_accepts_satisfied_request():
     )
 
 
+class _MultiRoleSystem:
+    stages = (
+        StageSpec(name="infer", config="inference"),
+        StageSpec(name="measure", config="metrics"),
+        StageSpec(name="pack_model", config=("training", "publication")),
+    )
+
+    def infer(self):
+        pass
+
+    def measure(self):
+        pass
+
+    def pack_model(self):
+        pass
+
+
+def test_check_requested_stages_rejects_tuple_config_missing_one_role():
+    with pytest.raises(
+        StageContractError, match="pack_model runs on the training config"
+    ):
+        check_requested_stages(
+            _MultiRoleSystem, ["pack_model"], {"publication": object()}
+        )
+
+
+def test_check_requested_stages_accepts_tuple_config_with_all_roles_given():
+    check_requested_stages(
+        _MultiRoleSystem,
+        ["pack_model"],
+        {"training": object(), "publication": object()},
+    )
+
+
+def test_check_requested_stages_inference_only_does_not_require_training():
+    """Inference/measure-only stages must not demand a training config."""
+    check_requested_stages(
+        _MultiRoleSystem,
+        ["infer", "measure"],
+        {"inference": object(), "metrics": object()},
+    )
+
+
 def test_check_requested_stages_allows_a_missing_config_when_exp_dir_is_given():
     # The stage's config may come from its baked file under exp_dir; a
     # missing CLI config is not an error in that case.
@@ -280,3 +380,20 @@ def test_roles_is_empty_for_a_system_with_no_stages_declared():
         stages = ()
 
     assert roles(NoRoles) == ()
+
+
+def test_roles_expands_tuple_config_into_each_role():
+    assert roles(_MultiRoleSystem) == (
+        "inference",
+        "metrics",
+        "training",
+        "publication",
+    )
+
+
+def test_config_roles_normalizes_a_bare_string():
+    assert config_roles("training") == ("training",)
+
+
+def test_config_roles_returns_a_tuple_as_is():
+    assert config_roles(("training", "publication")) == ("training", "publication")

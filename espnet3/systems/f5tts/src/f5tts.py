@@ -21,9 +21,9 @@ from typing import Any, Dict, List, Optional, Sequence, Tuple, Union
 import torch
 from torch.amp import autocast
 
-from espnet3.systems.f5tts.cfm import CFM
-from espnet3.systems.f5tts.dit import DiT
-from espnet3.systems.f5tts.vocoder_mel import VocoderMelSpec
+from espnet3.systems.f5tts.src.cfm import CFM
+from espnet3.systems.f5tts.src.dit import DiT
+from espnet3.systems.f5tts.src.vocoder_mel import VocoderMelSpec
 from espnet3.utils.config_utils import convert_to_dict
 
 
@@ -125,7 +125,7 @@ class F5TTS(torch.nn.Module):
             .. code-block:: yaml
 
                 model:            # F5TTS_Small; omit the sizes for F5TTS_Base
-                  _target_: espnet3.systems.f5tts.f5tts.F5TTS
+                  _target_: espnet3.systems.f5tts.src.f5tts.F5TTS
                   token_list: ${data_dir}/tokens/char_tokens.txt
                   feats_extract_config:
                     fs: 24000

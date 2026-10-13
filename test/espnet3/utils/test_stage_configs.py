@@ -3,7 +3,7 @@ import logging
 import pytest
 from omegaconf import OmegaConf
 
-from espnet3.components.contract.stages import StageSpec
+from espnet3.contract.stages import StageSpec
 from espnet3.utils.run_utils import ConfigError
 from espnet3.utils.stage_configs import bake, build_stage_configs, inherit, load_baked
 
@@ -197,6 +197,32 @@ def test_build_stage_configs_raises_when_a_stage_points_at_its_own_inherited_key
 
     with pytest.raises(ConfigError):
         build_stage_configs(_System, configs, exp_dir=tmp_path)
+
+
+def test_build_stage_configs_merges_a_tuple_configs_own_roles(tmp_path):
+    """A stage declaring more than one role gets both roles' own keys."""
+
+    class _MultiRoleSystem:
+        stages = (
+            StageSpec(name="train", config="training"),
+            StageSpec(name="pack_model", config=("training", "publication")),
+        )
+
+    configs = {
+        "training": OmegaConf.create({"exp_dir": "./exp/debug", "exp_tag": "debug"}),
+        "publication": OmegaConf.create({"readme": "README.md"}),
+    }
+
+    stage_configs, own_keys = build_stage_configs(
+        _MultiRoleSystem, configs, exp_dir=tmp_path
+    )
+
+    # "pack_model"'s own config is training's and publication's own keys
+    # merged (publication wins on any overlap), on top of whatever it
+    # already inherits from "train" via the normal stage-order walk.
+    assert stage_configs["pack_model"].readme == "README.md"
+    assert stage_configs["pack_model"].exp_tag == "debug"
+    assert set(own_keys["pack_model"]) == {"exp_dir", "exp_tag", "readme"}
 
 
 def test_build_stage_configs_respects_upto_and_skips_later_stages(tmp_path):

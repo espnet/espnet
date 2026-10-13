@@ -9,7 +9,7 @@ import time
 from pathlib import Path
 from typing import Any, Iterable, List, Sequence
 
-from espnet3.components.contract.stages import stage_log_dir_of, stage_spec
+from espnet3.contract.stages import stage_log_dir_of, stage_spec
 from espnet3.utils.logging_utils import (
     log_stage,
     log_stage_metadata,
@@ -92,7 +92,7 @@ def run_stages(
         Exception: Re-raises any exception from a stage method.
 
     Examples:
-        >>> from espnet3.components.contract.stages import StageSpec
+        >>> from espnet3.contract.stages import StageSpec
         >>> from omegaconf import OmegaConf
         >>> class ExampleSystem:
         ...     stages = (StageSpec(name="train", config="training"),)

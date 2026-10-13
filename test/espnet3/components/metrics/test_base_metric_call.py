@@ -1,6 +1,6 @@
 from espnet3.api.inference import Field
-from espnet3.components.contract.metrics import check_metric_output
 from espnet3.components.metrics.base_metric import BaseMetric
+from espnet3.contract.metrics import check_metric_output
 
 
 class Lengths(BaseMetric):

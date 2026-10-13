@@ -8,7 +8,7 @@ same-speaker protocol) and feeds the result to ``src.inference.build_output``
 (which needs a ``"wav"`` entry).
 
 The model is rebuilt from the *training* config by instantiating that config's
-own ``model`` block (``espnet3.systems.f5tts.f5tts.F5TTS``), so it stays in
+own ``model`` block (``espnet3.systems.f5tts.src.f5tts.F5TTS``), so it stays in
 sync with whatever was trained. Text is tokenized with the exact espnet2
 components used in training (TextCleaner + tokenizer + TokenIDConverter) read
 from the training config's preprocessor.
@@ -284,7 +284,7 @@ class F5TTSInference:
 
         if "F5PinyinPreprocessor" in target or preprocessor_config.get("vocab_file"):
             # F5 zh+en pinyin: F5's own tokenizer + vocab (unknown token -> 0).
-            from espnet3.systems.f5tts.pinyin import (
+            from espnet3.systems.f5tts.src.pinyin import (
                 load_vocab_char_map,
                 text_to_pinyin_ids,
             )
@@ -300,7 +300,7 @@ class F5TTSInference:
                 "Could not find dataset.preprocessor.token_list in train_config."
             )
         if preprocessor_config.get("g2p_type") == "f5_pinyin":
-            from espnet3.systems.f5tts.pinyin import register_f5_pinyin_g2p
+            from espnet3.systems.f5tts.src.pinyin import register_f5_pinyin_g2p
 
             register_f5_pinyin_g2p()
         cleaner = TextCleaner(preprocessor_config.get("text_cleaner"))

@@ -7,12 +7,12 @@ from pathlib import Path
 from hydra.utils import get_class, instantiate
 from omegaconf import DictConfig, OmegaConf, open_dict
 
-from espnet3.components.contract.metrics import (
+from espnet3.components.metrics.base_metric import BaseMetric
+from espnet3.contract.metrics import (
     check_metric_contract,
     check_metric_inputs,
     check_metric_output,
 )
-from espnet3.components.metrics.base_metric import BaseMetric
 from espnet3.systems.base.inference_provider import InferenceProvider
 from espnet3.systems.base.inference_runner import _materialize_output_value
 from espnet3.utils.logging_utils import log_component
@@ -205,7 +205,7 @@ def measure(metrics_config: DictConfig, inference_config: DictConfig | None = No
         when ``metrics_config.dataset.test`` is omitted.
 
     A metric's inputs are bound by its config's ``inputs:`` (declared name
-    -> source; see ``espnet3.components.contract.metrics.check_metric_inputs``),
+    -> source; see ``espnet3.contract.metrics.check_metric_inputs``),
     required for every metric that declares one. A source is either a
     ``.scp`` file the ``infer`` stage wrote (binding ``hyp`` to ``text``
     reads ``<test_name>/text.scp``), or a column of the test set itself,

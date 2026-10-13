@@ -6,11 +6,11 @@ from typing import ClassVar, Mapping, Optional, Sequence, Tuple
 
 from omegaconf import DictConfig, OmegaConf
 
-from espnet3.components.contract.stages import StageSpec, check_stage_contract
 from espnet3.components.data.dataset_module import (
     load_dataset_module,
     parse_dataset_reference_config,
 )
+from espnet3.contract.stages import StageSpec, check_stage_contract, config_roles
 from espnet3.publication.demo.packing import pack_demo as _pack_demo
 from espnet3.publication.demo.packing import upload_demo as _upload_demo
 from espnet3.systems.base.inference import infer
@@ -46,20 +46,23 @@ def _exp_dir_from(
     """
     seen_roles = set()
     for spec in system_cls.stages:
-        if spec.config in seen_roles:
-            continue
-        seen_roles.add(spec.config)
-        config = configs.get(spec.config)
-        if config is None:
-            continue
-        try:
-            standalone = OmegaConf.create(OmegaConf.to_container(config, resolve=False))
-            OmegaConf.resolve(standalone)
-        except Exception:
-            continue
-        value = standalone.get("exp_dir")
-        if value:
-            return Path(value)
+        for role in config_roles(spec.config):
+            if role in seen_roles:
+                continue
+            seen_roles.add(role)
+            config = configs.get(role)
+            if config is None:
+                continue
+            try:
+                standalone = OmegaConf.create(
+                    OmegaConf.to_container(config, resolve=False)
+                )
+                OmegaConf.resolve(standalone)
+            except Exception:
+                continue
+            value = standalone.get("exp_dir")
+            if value:
+                return Path(value)
     return None
 
 
@@ -67,13 +70,13 @@ class BaseSystem:
     """Base class for all ESPnet3 systems.
 
     A system declares its stages as the class attribute ``stages``: a
-    tuple of :class:`~espnet3.components.contract.stages.StageSpec`, in
+    tuple of :class:`~espnet3.contract.stages.StageSpec`, in
     the order "all" runs them. Every public method a system defines
     (class-defined, not starting with ``_``) must be one of these stage
     names - a system has no other public surface. See
-    ``espnet3.components.contract.stages.check_stage_contract`` for the
+    ``espnet3.contract.stages.check_stage_contract`` for the
     checks run when a subclass is defined, and
-    ``espnet3.components.contract.stages.stage_log_dir`` for how a
+    ``espnet3.contract.stages.stage_log_dir`` for how a
     stage's log directory is resolved.
 
     Class Attributes:
@@ -103,7 +106,7 @@ class BaseSystem:
         StageSpec(name="train", config="training", log_dir="exp_dir"),
         StageSpec(name="infer", config="inference", log_dir="inference_dir"),
         StageSpec(name="measure", config="metrics", log_dir="inference_dir"),
-        StageSpec(name="pack_model", config="publication"),
+        StageSpec(name="pack_model", config=("training", "publication")),
         StageSpec(name="upload_model", config="publication"),
         StageSpec(name="pack_demo", config="demo", log_dir="pack.out_dir"),
         StageSpec(name="upload_demo", config="demo", log_dir="pack.out_dir"),

@@ -11,9 +11,9 @@ from importlib import import_module
 from pathlib import Path
 from typing import ClassVar, Iterable
 
-from espnet3.components.contract.stages import StageSpec
+from espnet3.contract.stages import StageSpec
 from espnet3.systems.base.system import BaseSystem
-from espnet3.systems.esp2_asr.tokenizers.sentencepiece import train_sentencepiece
+from espnet3.systems.esp2_asr.src.tokenizers.sentencepiece import train_sentencepiece
 
 logger = logging.getLogger(__name__)
 
@@ -39,7 +39,7 @@ class ASRSystem(BaseSystem):
         StageSpec(name="train", config="training", log_dir="exp_dir"),
         StageSpec(name="infer", config="inference", log_dir="inference_dir"),
         StageSpec(name="measure", config="metrics", log_dir="inference_dir"),
-        StageSpec(name="pack_model", config="publication"),
+        StageSpec(name="pack_model", config=("training", "publication")),
         StageSpec(name="upload_model", config="publication"),
         StageSpec(name="pack_demo", config="demo", log_dir="pack.out_dir"),
         StageSpec(name="upload_demo", config="demo", log_dir="pack.out_dir"),

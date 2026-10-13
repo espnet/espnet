@@ -6,7 +6,7 @@ import argparse
 from pathlib import Path
 from typing import Sequence
 
-from espnet3.components.contract.stages import (
+from espnet3.contract.stages import (
     check_requested_stages,
     roles,
     stage_names,
@@ -25,7 +25,7 @@ def build_parser(system_cls: type) -> argparse.ArgumentParser:
 
     Returns:
         A parser with ``--stages``, one ``--<role>_config`` per
-        :func:`~espnet3.components.contract.stages.roles` of
+        :func:`~espnet3.contract.stages.roles` of
         ``system_cls``, ``--exp_dir``, ``--dry_run``, and
         ``--write_requirements``.
 
@@ -113,7 +113,7 @@ def launch(
             for a recipe that needs its own extra arguments.
 
     Raises:
-        espnet3.components.contract.stages.StageContractError: A requested
+        espnet3.contract.stages.StageContractError: A requested
             stage is not declared.
         RuntimeError: No ``--exp_dir`` is given and no role's own config
             has a self-resolving ``exp_dir``.

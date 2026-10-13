@@ -9,12 +9,13 @@ from typing import Any, Mapping, Sequence
 
 @dataclass(frozen=True, kw_only=True)
 class StageSpec:
-    """One stage of a system: its method name, config role, and log path.
+    """One stage of a system: its method name, config role(s), and log path.
 
     Args:
         name: The stage method name on the system (e.g. ``"train"``).
-        config: The config role the stage runs on - any non-empty
-            identifier, naming an ``*_config`` constructor argument the
+        config: The config role(s) the stage runs on - a non-empty
+            identifier, or a tuple of them when the stage needs more than
+            one, each naming an ``*_config`` constructor argument the
             system takes (``"training"`` -> ``training_config``). A
             system's full set of roles is derived from its ``stages``
             (see :func:`roles`); there is no separate, fixed role list.
@@ -25,11 +26,66 @@ class StageSpec:
     Examples:
         >>> StageSpec(name="train", config="training", log_dir="exp_dir")
         StageSpec(name='train', config='training', log_dir='exp_dir')
+        >>> StageSpec(name="pack_model", config=("training", "publication"))
+        StageSpec(name='pack_model', config=('training', 'publication'), log_dir=None)
     """
 
     name: str
-    config: str
+    config: str | tuple[str, ...]
     log_dir: str | None = None
+
+
+def config_roles(config: str | tuple[str, ...]) -> tuple[str, ...]:
+    """Normalize a :attr:`StageSpec.config` value to a tuple of roles.
+
+    A bare string is treated as a single-role tuple; a tuple is returned
+    as-is. Does not validate the roles themselves - see
+    :func:`_validate_config_roles` for that.
+
+    Examples:
+        >>> config_roles("training")
+        ('training',)
+        >>> config_roles(("training", "publication"))
+        ('training', 'publication')
+    """
+    return (config,) if isinstance(config, str) else tuple(config)
+
+
+def _validate_config_roles(
+    cls_name: str, stage_name: str, config: Any
+) -> tuple[str, ...]:
+    """Return ``config`` as a validated tuple of role identifiers.
+
+    Raises:
+        StageContractError: ``config`` is not a ``str`` or a ``tuple`` of
+            ``str``, declares no role, repeats a role, or a role is not a
+            non-empty identifier.
+    """
+    if isinstance(config, str):
+        config_roles_: tuple[str, ...] = (config,)
+    elif isinstance(config, tuple) and all(isinstance(c, str) for c in config):
+        config_roles_ = config
+    else:
+        raise StageContractError(
+            f"{cls_name} stage {stage_name!r}: config must be a str or "
+            f"tuple[str, ...], not {config!r}"
+        )
+    if not config_roles_:
+        raise StageContractError(
+            f"{cls_name} stage {stage_name!r}: config must declare at least " "one role"
+        )
+    if len(set(config_roles_)) != len(config_roles_):
+        raise StageContractError(
+            f"{cls_name} stage {stage_name!r}: config declares duplicate "
+            f"role(s): {config!r}"
+        )
+    for role in config_roles_:
+        if not role.isidentifier():
+            raise StageContractError(
+                f"{cls_name} stage {stage_name!r}: config role must be a "
+                f"non-empty identifier, not {role!r}"
+            )
+    return config_roles_
 
 
 class StageContractError(ValueError):
@@ -41,7 +97,7 @@ class StageContractError(ValueError):
     Examples:
         >>> raise StageContractError("ASRSystem has no stage 'decode'")
         Traceback (most recent call last):
-        espnet3.components.contract.stages.StageContractError: ASRSystem ...
+        espnet3.contract.stages.StageContractError: ASRSystem ...
     """
 
 
@@ -50,10 +106,24 @@ def check_stage_contract(cls: type) -> None:
 
     Checked once, when ``cls`` is defined (``BaseSystem.__init_subclass__``):
     ``stages`` is a non-empty tuple of :class:`StageSpec` with distinct
-    names, each naming a non-empty identifier ``config`` role and a
-    callable method of that name on ``cls``. Every public callable ``cls``
-    defines (not starting with ``_``) must also be one of the declared
-    stage names - a system has no other public surface.
+    names, each naming one or more non-empty identifier ``config`` role(s)
+    and a callable method of that name on ``cls``. Every public callable
+    ``cls`` defines (not starting with ``_``) must also be one of the
+    declared stage names - a system has no other public surface.
+
+    The "public method" scan intentionally looks only at ``vars(cls)``
+    (``cls.__dict__``), not the full MRO: it checks what ``cls`` itself
+    newly defines or overrides, not methods it merely inherits unchanged.
+    This is deliberate, not an oversight - each class in the hierarchy is
+    checked once, when it is itself defined, against the ``stages`` tuple
+    in effect at that point. A method already validated on a parent does
+    not need re-validating on every child that leaves it untouched. The
+    one case this does not catch: a subclass that *narrows* ``stages``
+    (drops a name a parent declared) without also removing or privatizing
+    the inherited method of that name - the now-undeclared method stays
+    inherited, not locally defined, so this scan does not see it. No
+    system in this codebase does that today; every subclass only adds to
+    or overrides ``BaseSystem.stages``, never narrows it.
 
     Args:
         cls: The system class being defined.
@@ -68,7 +138,7 @@ def check_stage_contract(cls: type) -> None:
         ...     stages = ()
         >>> check_stage_contract(BadSystem)
         Traceback (most recent call last):
-        espnet3.components.contract.stages.StageContractError: BadSystem.stages must ...
+        espnet3.contract.stages.StageContractError: BadSystem.stages must ...
     """
     stages = getattr(cls, "stages", None)
     if (
@@ -83,11 +153,7 @@ def check_stage_contract(cls: type) -> None:
     if len(set(names)) != len(names):
         raise StageContractError(f"{cls.__qualname__}.stages repeats a name: {names}")
     for spec in stages:
-        if not spec.config or not spec.config.isidentifier():
-            raise StageContractError(
-                f"{cls.__qualname__} stage {spec.name!r}: config must be a "
-                f"non-empty identifier, not {spec.config!r}"
-            )
+        _validate_config_roles(cls.__qualname__, spec.name, spec.config)
         if spec.log_dir is not None and not isinstance(spec.log_dir, str):
             raise StageContractError(
                 f"{cls.__qualname__} stage {spec.name!r}: log_dir must be a "
@@ -141,7 +207,8 @@ def roles(system_cls: type) -> tuple[str, ...]:
     """
     seen: dict[str, None] = {}
     for spec in system_cls.stages:
-        seen.setdefault(spec.config, None)
+        for role in config_roles(spec.config):
+            seen.setdefault(role, None)
     return tuple(seen)
 
 
@@ -237,7 +304,10 @@ def check_requested_stages(
     if exp_dir is not None:
         return
     missing = [
-        (s, names[s].config) for s in requested if provided.get(names[s].config) is None
+        (s, role)
+        for s in requested
+        for role in config_roles(names[s].config)
+        if provided.get(role) is None
     ]
     if missing:
         lines = "\n".join(f"  - {s} runs on the {role} config" for s, role in missing)
@@ -252,6 +322,7 @@ __all__ = [
     "StageSpec",
     "check_requested_stages",
     "check_stage_contract",
+    "config_roles",
     "roles",
     "stage_log_dir_of",
     "stage_names",
