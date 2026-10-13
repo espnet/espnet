@@ -1,4 +1,4 @@
-"""The inference contract, checked without a model.
+"""The inference interface, checked without a model.
 
 A fake transcriber stands in for a system, so what is tested is what the
 base class promises every front end: binding, conversion and checking.
@@ -21,7 +21,7 @@ from espnet3.api.inference import (
     Field,
     InferenceAPI,
     ModelTagError,
-    check_contract,
+    check_inference_api,
     gather,
     load,
     locate_pack,
@@ -144,10 +144,10 @@ def test_audio_coerce_every_shape_a_caller_holds(tmp_path):
         Audio.coerce(42, 16000)
 
 
-# --- the contract ----------------------------------------------------------
+# --- the declaration -------------------------------------------------------
 
 
-def test_contract_is_checked_when_the_class_is_defined():
+def test_declaration_is_checked_when_the_class_is_defined():
     with pytest.raises(TypeError, match="tuple of Field"):
 
         class NotFields(InferenceAPI):
@@ -184,7 +184,7 @@ def test_an_intermediate_base_that_declares_nothing_is_allowed():
         pass
 
     with pytest.raises(TypeError):
-        check_contract(Base)
+        check_inference_api(Base)
 
 
 def test_a_text_only_model_declares_no_task_and_no_sample_rate():

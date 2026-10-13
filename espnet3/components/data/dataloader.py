@@ -1,6 +1,7 @@
 """DataLoader builder for ESPnet3 trainer."""
 
 import copy
+import hashlib
 import logging
 from functools import partial
 
@@ -54,6 +55,13 @@ class DataLoaderBuilder:
     - Custom collate functions (e.g., CommonCollateFn)
     - Sequence-based batch sampling with batch_bins or batch_size
     - Dynamic handling of DDP-compatible iteration strategies
+
+    Set `dataloader.<mode>.batch_distribution` to `per_gpu` (the default)
+    to distribute complete batches, or `global` to split each supplied batch
+    across ranks. Global mode requires unsharded datasets and at least one
+    sample per rank in every batch. Factories that regenerate batches must
+    preserve the distribution when doing so. For CategoryIterFactory, set
+    `sampler_args.distributed: true` for multi-rank global batching.
 
     Typically used by ESPnetLightningModule to instantiate training and validation
     DataLoaders with consistent behavior across single-GPU, multi-GPU, and distributed
@@ -194,12 +202,23 @@ class DataLoaderBuilder:
             ```
 
         Raises:
-            ValueError: If the provided mode is neither "train" nor "valid".
+            ValueError: If batch_distribution is not per_gpu or global.
+            RuntimeError: If global batching cannot preserve the shared batch plan.
+
+        Examples:
+            Set `config.dataloader.train.batch_distribution = "global"` and
+            use an iter_factory to split the sampler's batches across ranks.
+            Omitting the setting preserves complete per-GPU batches.
         """
         mode_config = getattr(self.config.dataloader, mode, DictConfig({}))
 
         config = copy.copy(mode_config)
-        dataset = self._maybe_shard_dataset(self.dataset)
+        batch_distribution = getattr(config, "batch_distribution", "per_gpu")
+        if batch_distribution not in ("per_gpu", "global"):
+            raise ValueError(
+                "batch_distribution must be 'per_gpu' or 'global', "
+                f"got {batch_distribution!r}."
+            )
         if hasattr(config, "multiple_iterator"):
             raise RuntimeError(
                 "ESPnet3 does not support multiple_iterator. "
@@ -218,10 +237,40 @@ class DataLoaderBuilder:
                 "Use a standard iter_factory (Sequence/Chunk/Category*) and "
                 "select a single shard explicitly if needed."
             )
+        if batch_distribution == "global":
+            if config.iter_factory is None:
+                raise RuntimeError(
+                    "batch_distribution='global' requires an iter_factory "
+                    "with a shared batch plan; standard DataLoader is not supported."
+                )
+            if getattr(config.iter_factory, "shuffle_within_batch", False):
+                raise RuntimeError(
+                    "batch_distribution='global' does not support "
+                    "shuffle_within_batch=True, which regroups rank-local samples."
+                )
+            if any(
+                getattr(dataset, "total_shards", None) not in (None, 1)
+                for dataset in self.dataset.datasets
+            ):
+                raise RuntimeError(
+                    "batch_distribution='global' requires the same unsharded "
+                    "dataset on every rank; total_shards must not exceed 1."
+                )
+            num_nodes = getattr(getattr(self.config, "trainer", None), "num_nodes", 1)
+            if (self.num_device > 1 or num_nodes > 1) and not (
+                torch.distributed.is_initialized()
+            ):
+                raise RuntimeError(
+                    "batch_distribution='global' requires an initialized "
+                    "torch.distributed process group for multi-device training."
+                )
+        dataset = self._maybe_shard_dataset(self.dataset)
         if config.iter_factory is not None:
             factory_config = OmegaConf.to_container(config.iter_factory, resolve=True)
-            return self._build_iter_factory(factory_config, dataset)
-        return self._build_standard_dataloader(config, dataset)
+            return self._build_iter_factory(
+                factory_config, dataset, mode, batch_distribution
+            )
+        return self._build_standard_dataloader(config, dataset, mode)
 
     def _build_standard_dataloader(self, dataloader_config, dataset=None, mode="train"):
         if dataset is None:
@@ -242,6 +291,7 @@ class DataLoaderBuilder:
 
         # Remove default config for espnet's data loader
         config.pop("iter_factory")
+        config.pop("batch_distribution", None)
         loader = torch.utils.data.DataLoader(
             dataset,
             sampler=sampler,
@@ -256,7 +306,9 @@ class DataLoaderBuilder:
         )
         return loader
 
-    def _build_iter_factory(self, factory_config, dataset=None, mode="train"):
+    def _build_iter_factory(
+        self, factory_config, dataset=None, mode="train", batch_distribution="per_gpu"
+    ):
         if dataset is None:
             dataset = self.dataset
 
@@ -264,18 +316,60 @@ class DataLoaderBuilder:
         # epoch - 1), while self.epoch is Lightning's 0-based current_epoch;
         # _maybe_shard_dataset keeps the 0-based convention.
         espnet2_epoch = self.epoch + 1
-        batch_config = factory_config.pop("batches")
+        sampler_config = factory_config.pop("batches")
+        if batch_distribution == "global" and torch.distributed.is_initialized():
+            # Match ESPnet2: every shared batch must be splittable across ranks.
+            sampler_config["min_batch_size"] = torch.distributed.get_world_size()
         num_batches = None
-        if batch_config.get("type") in CATEGORY_BATCH_TYPES:
-            batch_config.setdefault("epoch", espnet2_epoch)
-            batches, _ = build_category_batch_sampler(**batch_config)
+        if sampler_config.get("type") in CATEGORY_BATCH_TYPES:
+            sampler_config.setdefault("epoch", espnet2_epoch)
+            batches, _ = build_category_batch_sampler(**sampler_config)
             # The category samplers ignore num_batches. It is applied after
             # rank sharding below, so every rank keeps num_batches batches.
-            num_batches = batch_config.get("num_batches")
+            num_batches = sampler_config.get("num_batches")
         else:
-            batches = build_batch_sampler(**batch_config)
+            batches = build_batch_sampler(**sampler_config)
 
-        if self.num_device > 1:
+        if batch_distribution == "global":
+            rank, world_size = (
+                (torch.distributed.get_rank(), torch.distributed.get_world_size())
+                if torch.distributed.is_initialized()
+                else (0, 1)
+            )
+            batches = list(batches)
+            if world_size > 1:
+                # All ranks must split the same batches in the same iteration order.
+                fingerprint = hashlib.sha256(
+                    repr((batches, factory_config)).encode("utf-8")
+                ).hexdigest()
+                fingerprints = [None] * world_size
+                torch.distributed.all_gather_object(fingerprints, fingerprint)
+                if len(set(fingerprints)) != 1:
+                    raise RuntimeError(
+                        "batch_distribution='global' requires identical batch plans "
+                        "and iterator settings on every rank."
+                    )
+                if factory_config.get("_target_") == (
+                    "espnet2.iterators.category_iter_factory.CategoryIterFactory"
+                ) and not (factory_config.get("sampler_args") or {}).get("distributed"):
+                    raise RuntimeError(
+                        "batch_distribution='global' requires "
+                        "sampler_args.distributed=True for CategoryIterFactory; "
+                        "otherwise regenerated batches are duplicated across ranks."
+                    )
+            if not batches:
+                raise RuntimeError("batch_distribution='global' received no batches.")
+            for index, batch in enumerate(batches):
+                if len(batch) < world_size:
+                    raise RuntimeError(
+                        "batch_distribution='global' cannot split "
+                        f"batch {index} of size {len(batch)} "
+                        f"over world_size={world_size}. "
+                        "Every batch must contain at least world_size samples; "
+                        "adjust the sampler's minimum batch size or use per_gpu."
+                    )
+            batches = [batch[rank::world_size] for batch in batches]
+        elif self.num_device > 1:
             batches = list(batches)
             world_size = torch.distributed.get_world_size()
             rank = torch.distributed.get_rank()
@@ -320,6 +414,22 @@ class DataLoaderBuilder:
 
         if num_batches is not None:
             batches = list(batches)[:num_batches]
+
+        log_key = f"{mode}/{batch_distribution}"
+        if log_key not in _LOGGED_DISTRIBUTED_BATCHES:
+            if batch_distribution != "global":
+                rank, world_size = self._get_world_info()
+            logger.info(
+                "[%s] batch_distribution=%s, world_size=%s, rank=%s, "
+                "batch_bins=%s (%s budget)",
+                mode,
+                batch_distribution,
+                world_size,
+                rank,
+                sampler_config.get("batch_bins"),
+                batch_distribution,
+            )
+            _LOGGED_DISTRIBUTED_BATCHES.add(log_key)
 
         iter_factory = instantiate(factory_config, dataset, batches=batches)
         loader = EpochSyncIterator(partial(iter_factory.build_iter, espnet2_epoch))

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Any, Mapping, Optional, Tuple
 
-from espnet3.api.inference import KINDS, Field
+from espnet3.api import KINDS, Field
 
 
 class DatasetContractError(ValueError):

@@ -8,7 +8,7 @@ from typing import Any, Optional, Sequence
 
 import numpy as np
 
-from espnet3.api.inference.kinds.base import Kind
+from espnet3.api.kinds.base import Kind
 
 
 @dataclass(frozen=True)
@@ -326,7 +326,7 @@ class AudioKind(Kind):
         pair, or a bare array/tensor.
 
         Examples:
-            >>> from espnet3.api.inference.field import Field
+            >>> from espnet3.api.field import Field
             >>> field = Field("speech", "audio")
             >>> AudioKind().accepts(np.zeros(16000, dtype=np.float32), field)
             True
