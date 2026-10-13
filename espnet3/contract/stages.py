@@ -18,7 +18,7 @@ class StageSpec:
             one, each naming an ``*_config`` constructor argument the
             system takes (``"training"`` -> ``training_config``). A
             system's full set of roles is derived from its ``stages``
-            (see :func:`roles`); there is no separate, fixed role list.
+            (see :func:`list_roles`); there is no separate, fixed role list.
         log_dir: A dotted key inside the first provided role's config
             whose value is the stage's log directory (e.g. ``"exp_dir"``,
             ``"pack.out_dir"``); ``None`` falls back to the system's own
@@ -36,7 +36,7 @@ class StageSpec:
     log_dir: str | None = None
 
 
-def config_roles(config: str | tuple[str, ...]) -> tuple[str, ...]:
+def resolve_config_roles(config: str | tuple[str, ...]) -> tuple[str, ...]:
     """Normalize a :attr:`StageSpec.config` value to a tuple of roles.
 
     A bare string is treated as a single-role tuple; a tuple is returned
@@ -44,9 +44,9 @@ def config_roles(config: str | tuple[str, ...]) -> tuple[str, ...]:
     :func:`_validate_config_roles` for that.
 
     Examples:
-        >>> config_roles("training")
+        >>> resolve_config_roles("training")
         ('training',)
-        >>> config_roles(("training", "publication"))
+        >>> resolve_config_roles(("training", "publication"))
         ('training', 'publication')
     """
     return (config,) if isinstance(config, str) else tuple(config)
@@ -180,19 +180,19 @@ def check_stage_contract(cls: type) -> None:
             )
 
 
-def stage_names(system_cls: type) -> list[str]:
+def list_stage_names(system_cls: type) -> list[str]:
     """Return ``system_cls``'s stage names, in declared order.
 
     Examples:
         >>> class ExampleSystem:
         ...     stages = (StageSpec(name="train", config="training"),)
-        >>> stage_names(ExampleSystem)
+        >>> list_stage_names(ExampleSystem)
         ['train']
     """
     return [s.name for s in system_cls.stages]
 
 
-def roles(system_cls: type) -> tuple[str, ...]:
+def list_roles(system_cls: type) -> tuple[str, ...]:
     """Return ``system_cls``'s config roles, in stage order, without duplicates.
 
     Derived from each declared stage's :attr:`StageSpec.config` - there is
@@ -206,17 +206,17 @@ def roles(system_cls: type) -> tuple[str, ...]:
         ...         StageSpec(name="infer", config="inference"),
         ...         StageSpec(name="measure", config="inference"),
         ...     )
-        >>> roles(ExampleSystem)
+        >>> list_roles(ExampleSystem)
         ('training', 'inference')
     """
     seen: dict[str, None] = {}
     for spec in system_cls.stages:
-        for role in config_roles(spec.config):
+        for role in resolve_config_roles(spec.config):
             seen.setdefault(role, None)
     return tuple(seen)
 
 
-def stage_spec(system_cls: type, name: str) -> StageSpec:
+def find_stage_spec(system_cls: type, name: str) -> StageSpec:
     """Return the declared :class:`StageSpec` named ``name`` on ``system_cls``.
 
     Raises:
@@ -227,7 +227,7 @@ def stage_spec(system_cls: type, name: str) -> StageSpec:
         ...     stages = (
         ...         StageSpec(name="train", config="training", log_dir="exp_dir"),
         ...     )
-        >>> stage_spec(ExampleSystem, "train").config
+        >>> find_stage_spec(ExampleSystem, "train").config
         'training'
     """
     for spec in system_cls.stages:
@@ -235,11 +235,11 @@ def stage_spec(system_cls: type, name: str) -> StageSpec:
             return spec
     raise StageContractError(
         f"{system_cls.__name__} has no stage {name!r}; declared stages are "
-        f"{stage_names(system_cls)}"
+        f"{list_stage_names(system_cls)}"
     )
 
 
-def stage_log_dir_of(config: Any, spec: StageSpec) -> Path | None:
+def resolve_stage_log_dir(config: Any, spec: StageSpec) -> Path | None:
     """Return a stage's log directory from its own merged config, if any.
 
     A pure function: reads ``spec.log_dir`` (a dotted key, e.g.
@@ -256,9 +256,9 @@ def stage_log_dir_of(config: Any, spec: StageSpec) -> Path | None:
     Examples:
         >>> from omegaconf import OmegaConf
         >>> spec = StageSpec(name="train", config="training", log_dir="exp_dir")
-        >>> stage_log_dir_of(OmegaConf.create({"exp_dir": "exp"}), spec)
+        >>> resolve_stage_log_dir(OmegaConf.create({"exp_dir": "exp"}), spec)
         PosixPath('exp')
-        >>> stage_log_dir_of(OmegaConf.create({}), spec) is None
+        >>> resolve_stage_log_dir(OmegaConf.create({}), spec) is None
         True
     """
     from omegaconf import OmegaConf
@@ -315,7 +315,7 @@ def check_requested_stages(
     missing = [
         (s, role)
         for s in requested
-        for role in config_roles(names[s].config)
+        for role in resolve_config_roles(names[s].config)
         if provided.get(role) is None
     ]
     if missing:
@@ -331,9 +331,9 @@ __all__ = [
     "StageSpec",
     "check_requested_stages",
     "check_stage_contract",
-    "config_roles",
-    "roles",
-    "stage_log_dir_of",
-    "stage_names",
-    "stage_spec",
+    "resolve_config_roles",
+    "list_roles",
+    "resolve_stage_log_dir",
+    "list_stage_names",
+    "find_stage_spec",
 ]

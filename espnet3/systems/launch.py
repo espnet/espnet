@@ -8,8 +8,8 @@ from typing import Sequence
 
 from espnet3.contract.stages import (
     check_requested_stages,
-    roles,
-    stage_names,
+    list_roles,
+    list_stage_names,
 )
 from espnet3.utils.config_utils import load_and_merge_config
 from espnet3.utils.logging_utils import configure_logging
@@ -25,7 +25,7 @@ def build_parser(system_cls: type) -> argparse.ArgumentParser:
 
     Returns:
         A parser with ``--stages``, one ``--<role>_config`` per
-        :func:`~espnet3.contract.stages.roles` of
+        :func:`~espnet3.contract.stages.list_roles` of
         ``system_cls``, ``--exp_dir``, ``--dry_run``, and
         ``--write_requirements``.
 
@@ -36,7 +36,7 @@ def build_parser(system_cls: type) -> argparse.ArgumentParser:
         >>> args.stages
         ['train']
     """
-    names = stage_names(system_cls)
+    names = list_stage_names(system_cls)
     parser = argparse.ArgumentParser()
     parser.add_argument(
         "--stages",
@@ -45,7 +45,7 @@ def build_parser(system_cls: type) -> argparse.ArgumentParser:
         default=names,
         help="Which stages to run. Multiple values allowed.",
     )
-    for role in roles(system_cls):
+    for role in list_roles(system_cls):
         parser.add_argument(
             f"--{role}_config",
             default=None,
@@ -135,9 +135,9 @@ def launch(
     """
     parser = parser or build_parser(system_cls)
     args = parser.parse_args(argv)
-    names = stage_names(system_cls)
+    names = list_stage_names(system_cls)
     stages_to_run = resolve_stages(args.stages, names)
-    system_roles = roles(system_cls)
+    system_roles = list_roles(system_cls)
     cli_paths = {role: getattr(args, f"{role}_config") for role in system_roles}
     check_requested_stages(
         system_cls, stages_to_run, provided=cli_paths, exp_dir=args.exp_dir

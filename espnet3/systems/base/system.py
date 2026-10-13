@@ -10,7 +10,11 @@ from espnet3.components.data.dataset_module import (
     load_dataset_module,
     parse_dataset_reference_config,
 )
-from espnet3.contract.stages import StageSpec, check_stage_contract, config_roles
+from espnet3.contract.stages import (
+    StageSpec,
+    check_stage_contract,
+    resolve_config_roles,
+)
 from espnet3.publication.demo.packing import pack_demo as _pack_demo
 from espnet3.publication.demo.packing import upload_demo as _upload_demo
 from espnet3.systems.base.inference import infer
@@ -46,7 +50,7 @@ def _exp_dir_from(
     """
     seen_roles = set()
     for spec in system_cls.stages:
-        for role in config_roles(spec.config):
+        for role in resolve_config_roles(spec.config):
             if role in seen_roles:
                 continue
             seen_roles.add(role)

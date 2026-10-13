@@ -5,7 +5,7 @@ from omegaconf import OmegaConf
 
 import espnet3.parallel.parallel as parallel_module
 import espnet3.systems.f5tts.system as system_module
-from espnet3.contract.stages import stage_log_dir_of, stage_spec
+from espnet3.contract.stages import find_stage_spec, resolve_stage_log_dir
 from espnet3.systems.base.system import BaseSystem
 from espnet3.systems.f5tts.system import F5TTSSystem
 
@@ -67,8 +67,8 @@ def test_stage_logs_go_under_the_stage_save_path(tmp_path):
         ("remove_long_short", tmp_path / "filtered"),
         ("create_token_list", tmp_path / "tokens"),
     ):
-        spec = stage_spec(F5TTSSystem, stage)
-        assert stage_log_dir_of(system.stage_configs[stage], spec) == expected
+        spec = find_stage_spec(F5TTSSystem, stage)
+        assert resolve_stage_log_dir(system.stage_configs[stage], spec) == expected
 
 
 def test_all_stage_configs_are_built(tmp_path):

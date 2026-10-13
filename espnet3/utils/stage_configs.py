@@ -18,7 +18,7 @@ from typing import Dict, Iterable, Mapping, Optional, Tuple
 
 from omegaconf import DictConfig, OmegaConf
 
-from espnet3.contract.stages import config_roles
+from espnet3.contract.stages import resolve_config_roles
 from espnet3.utils.run_utils import ConfigError, resolve_loaded_configs
 
 logger = logging.getLogger(__name__)
@@ -129,7 +129,7 @@ def _own_config_for(
     `inherit`'s walk of earlier stages, so this only matters for a role
     that is not also an earlier stage's own role.
     """
-    parts = [configs_by_role.get(role) for role in config_roles(spec.config)]
+    parts = [configs_by_role.get(role) for role in resolve_config_roles(spec.config)]
     parts = [part for part in parts if part is not None]
     if not parts:
         return None

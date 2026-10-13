@@ -8,7 +8,7 @@ from unittest.mock import patch
 import pytest
 from omegaconf import OmegaConf
 
-from espnet3.contract.stages import StageContractError, StageSpec, roles
+from espnet3.contract.stages import StageContractError, StageSpec, list_roles
 from espnet3.systems.base.system import BaseSystem
 from espnet3.systems.launch import build_parser, default_conf_package, launch
 
@@ -99,14 +99,14 @@ def test_build_parser_stages_choices_follow_declared_order():
 def test_build_parser_has_one_config_arg_per_declared_role():
     parser = build_parser(_RecordingSystem)
     args = parser.parse_args(["--training_config", "a.yaml"])
-    for role in roles(_RecordingSystem):
+    for role in list_roles(_RecordingSystem):
         assert hasattr(args, f"{role}_config")
     assert str(args.training_config) == "a.yaml"
 
 
 def test_build_parser_has_no_config_arg_for_an_undeclared_role():
     parser = build_parser(_RecordingSystem)
-    assert "metrics" not in roles(_RecordingSystem)
+    assert "metrics" not in list_roles(_RecordingSystem)
     with pytest.raises(SystemExit):
         parser.parse_args(["--metrics_config", "b.yaml"])
 
@@ -290,7 +290,12 @@ def test_launch_inference_only_stage_runs_without_training_config(
         ],
     )
     system = _RecordingSystem.instances[-1]
-    assert system.calls == ["infer"]
+    # stub_config_loading stubs out run_stages itself (see its own docstring),
+    # so this checks what launch() resolved and passed to the constructor,
+    # not that infer() actually ran.
+    assert system.stages_to_run == ["infer"]
+    assert system.configs.get("training") is None
+    assert system.configs["inference"] is not None
 
 
 # ---------------------------------------------------------------------------

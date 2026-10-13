@@ -8,11 +8,11 @@ from espnet3.contract.stages import (
     StageSpec,
     check_requested_stages,
     check_stage_contract,
-    config_roles,
-    roles,
-    stage_log_dir_of,
-    stage_names,
-    stage_spec,
+    find_stage_spec,
+    list_roles,
+    list_stage_names,
+    resolve_config_roles,
+    resolve_stage_log_dir,
 )
 
 # ---------------------------------------------------------------------------
@@ -309,55 +309,55 @@ def test_check_requested_stages_allows_a_missing_config_when_exp_dir_is_given():
 
 
 # ---------------------------------------------------------------------------
-# stage_names / stage_spec / stage_log_dir
+# list_stage_names / find_stage_spec / resolve_stage_log_dir
 # ---------------------------------------------------------------------------
 
 
-def test_stage_names_preserves_declared_order():
-    assert stage_names(_ExampleSystem) == ["train", "pack_model"]
+def test_list_stage_names_preserves_declared_order():
+    assert list_stage_names(_ExampleSystem) == ["train", "pack_model"]
 
 
-def test_stage_spec_returns_the_matching_spec():
-    assert stage_spec(_ExampleSystem, "pack_model").config == "publication"
+def test_find_stage_spec_returns_the_matching_spec():
+    assert find_stage_spec(_ExampleSystem, "pack_model").config == "publication"
 
 
-def test_stage_spec_raises_for_unknown_name():
+def test_find_stage_spec_raises_for_unknown_name():
     with pytest.raises(StageContractError, match="has no stage 'decode'"):
-        stage_spec(_ExampleSystem, "decode")
+        find_stage_spec(_ExampleSystem, "decode")
 
 
-def test_stage_log_dir_of_reads_the_configured_path(tmp_path):
+def test_resolve_stage_log_dir_reads_the_configured_path(tmp_path):
     spec = StageSpec(name="train", config="training", log_dir="exp_dir")
     config = OmegaConf.create({"exp_dir": str(tmp_path / "exp")})
 
-    assert stage_log_dir_of(config, spec) == tmp_path / "exp"
+    assert resolve_stage_log_dir(config, spec) == tmp_path / "exp"
 
 
-def test_stage_log_dir_of_is_none_when_config_is_none():
+def test_resolve_stage_log_dir_is_none_when_config_is_none():
     spec = StageSpec(name="train", config="training", log_dir="exp_dir")
 
-    assert stage_log_dir_of(None, spec) is None
+    assert resolve_stage_log_dir(None, spec) is None
 
 
-def test_stage_log_dir_of_is_none_when_spec_has_no_log_dir():
+def test_resolve_stage_log_dir_is_none_when_spec_has_no_log_dir():
     spec = StageSpec(name="pack_model", config="publication")
     config = OmegaConf.create({"out_dir": "somewhere"})
 
-    assert stage_log_dir_of(config, spec) is None
+    assert resolve_stage_log_dir(config, spec) is None
 
 
-def test_stage_log_dir_of_is_none_when_the_key_is_absent():
+def test_resolve_stage_log_dir_is_none_when_the_key_is_absent():
     spec = StageSpec(name="train", config="training", log_dir="exp_dir")
     config = OmegaConf.create({"other": "value"})
 
-    assert stage_log_dir_of(config, spec) is None
+    assert resolve_stage_log_dir(config, spec) is None
 
 
-def test_roles_derives_from_declared_stages_without_duplicates():
-    assert roles(_ExampleSystem) == ("training", "publication")
+def test_list_roles_derives_from_declared_stages_without_duplicates():
+    assert list_roles(_ExampleSystem) == ("training", "publication")
 
 
-def test_roles_preserves_stage_order_of_first_appearance():
+def test_list_roles_preserves_stage_order_of_first_appearance():
     class System:
         stages = (
             StageSpec(name="train", config="training"),
@@ -374,18 +374,18 @@ def test_roles_preserves_stage_order_of_first_appearance():
         def measure(self):
             pass
 
-    assert roles(System) == ("training", "inference")
+    assert list_roles(System) == ("training", "inference")
 
 
-def test_roles_is_empty_for_a_system_with_no_stages_declared():
+def test_list_roles_is_empty_for_a_system_with_no_stages_declared():
     class NoRoles:
         stages = ()
 
-    assert roles(NoRoles) == ()
+    assert list_roles(NoRoles) == ()
 
 
-def test_roles_expands_tuple_config_into_each_role():
-    assert roles(_MultiRoleSystem) == (
+def test_list_roles_expands_tuple_config_into_each_role():
+    assert list_roles(_MultiRoleSystem) == (
         "inference",
         "metrics",
         "training",
@@ -393,9 +393,12 @@ def test_roles_expands_tuple_config_into_each_role():
     )
 
 
-def test_config_roles_normalizes_a_bare_string():
-    assert config_roles("training") == ("training",)
+def test_resolve_config_roles_normalizes_a_bare_string():
+    assert resolve_config_roles("training") == ("training",)
 
 
-def test_config_roles_returns_a_tuple_as_is():
-    assert config_roles(("training", "publication")) == ("training", "publication")
+def test_resolve_config_roles_returns_a_tuple_as_is():
+    assert resolve_config_roles(("training", "publication")) == (
+        "training",
+        "publication",
+    )
