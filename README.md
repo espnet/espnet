@@ -190,6 +190,7 @@ Four ways to run a published model — a hosted [Space](https://huggingface.co/e
 | **SE** — enhancement | 🟢 [universal-se](https://huggingface.co/spaces/espnet/universal-se) | 🟢 [`enh_demo`](https://github.com/espnet/notebook/blob/master/Demos/enh_demo.ipynb) | 🟢 `enhance` | 🟢 `espnet enhance` |
 | **PR** — phone recognition | 🟢 [powsm-ctc](https://huggingface.co/spaces/espnet/powsm-ctc) | 🟢 [`s2t_pr_demo`](https://github.com/espnet/notebook/blob/master/Demos/s2t_pr_demo.ipynb) | 🟢 `phonemize` | 🟢 `espnet phonemize` |
 | **ALIGN** — forced alignment | 🟢 [forced-alignment](https://huggingface.co/spaces/espnet/forced-alignment) | 🟢 [`s2t_align_demo`](https://github.com/espnet/notebook/blob/master/Demos/s2t_align_demo.ipynb) | 🟢 `align` | 🟢 `espnet align` |
+| **SPEECHLM** — audio understanding and generation | ❌ [authors' demo](https://bagpiper-cmu.github.io/) | ❌ | 🚧 `describe`, `render` | 🚧 `espnet describe`, `espnet render` |
 
 Every Space is built from a directory in this repository, and [`doc/front_ends.md`](doc/front_ends.md) is how a seventh task gets all four columns.
 
@@ -348,7 +349,7 @@ Demonstration
 
 Demonstration
 - TTS demo with ESPnet2  [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/espnet/notebook/blob/master/Demos/tts_demo.ipynb)
-- Integrated to [Hugging Face Spaces](https://huggingface.co/spaces) with [Gradio](https://github.com/gradio-app/gradio). See demo: [![Hugging Face Spaces](https://img.shields.io/badge/%F0%9F%A4%97%20Hugging%20Face-Spaces-blue)](https://huggingface.co/spaces/espnet/TTS)
+- Integrated to [Hugging Face Spaces](https://huggingface.co/spaces) with [Gradio](https://github.com/gradio-app/gradio). See demo: [![Hugging Face Spaces](https://img.shields.io/badge/%F0%9F%A4%97%20Hugging%20Face-Spaces-blue)](https://huggingface.co/spaces/espnet/ljspeech-vits)
 
 To train the neural vocoder, please check the following repositories:
 - [kan-bayashi/ParallelWaveGAN](https://github.com/kan-bayashi/ParallelWaveGAN)

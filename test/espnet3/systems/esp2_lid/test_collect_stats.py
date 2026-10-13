@@ -7,7 +7,7 @@ import pytest
 import soundfile as sf
 from omegaconf import OmegaConf
 
-import espnet3.systems.esp2_lid.collect_stats as stats_module
+import espnet3.systems.esp2_lid.src.collect_stats as stats_module
 from espnet2.fileio.read_text import read_2columns_text
 from espnet2.samplers.build_batch_sampler import build_category_batch_sampler
 

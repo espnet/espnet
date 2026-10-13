@@ -1,3 +1,5 @@
-from .universa_base import UniversaBase
+"""Compatibility imports; use espnet2.aqa.base for new code."""
 
-__all__ = ["UniversaBase"]
+from espnet2.aqa.base import (  # noqa: F401
+    UniversaBase,
+)

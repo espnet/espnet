@@ -2,10 +2,16 @@
 recipe_dir: .
 exp_tag: null
 exp_dir: ${recipe_dir}/exp/${exp_tag}
+# `ref` is the test set's `lid_labels` column, read from the data;
+# `hyp` is `<test_name>/language.scp`, written by `infer`.
 metrics:
   - metric:
       _target_: espnet3.systems.esp2_lid.metrics.accuracy.Accuracy
-      ref_key: ref
-      hyp_key: hyp
+    inputs:
+      ref: dataset:lid_labels
+      hyp: language
   - metric:
       _target_: espnet3.systems.esp2_lid.metrics.classification_report.ClassificationReport
+    inputs:
+      ref: dataset:lid_labels
+      hyp: language

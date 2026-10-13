@@ -16,16 +16,14 @@ parallel:
   # Replace a stale shard lock left by an interrupted run. Do not enable while
   # another run may still be writing to the same output directory.
   allow_overwrite_lock: false
-model: null
-input_key: speech
-batch_size: null
-output_fn: null
+# The system's `Inference` declares its input (`speech`) and output
+# (`language`), so the runner writes `<test_name>/language.scp` with no
+# `input_key` or `output_fn`. Its arguments are `Speech2Language`'s.
+model:
+  _target_: espnet3.systems.esp2_lid.inference.Inference
+batch_size: 4
 provider:
   _target_: espnet3.systems.base.inference_provider.InferenceProvider
 runner:
   _target_: espnet3.systems.base.inference_runner.InferenceRunner
 stats_dir: ${recipe_dir}/exp/stats
-output_keys:
-  - hyp
-  - ref
-idx_key: utt_id

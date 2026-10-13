@@ -5,7 +5,7 @@ import pytest
 import torch
 from torch.utils.data import DataLoader
 
-from espnet3.systems.esp2_lid.callbacks import BestCheckpointLink
+from espnet3.systems.esp2_lid.src.callbacks import BestCheckpointLink
 
 
 @pytest.mark.parametrize("interrupt", [False, True])

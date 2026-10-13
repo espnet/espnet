@@ -1,147 +1,155 @@
-"""Precision, recall, F1 and per-language LID reports."""
+"""Macro precision, recall, F1 and per-language LID reports."""
 
 from __future__ import annotations
 
 import json
 from collections import Counter
 from pathlib import Path
-from typing import Dict
+from typing import Dict, Sequence
 
+from espnet3.api.inference import Field
 from espnet3.components.metrics.base_metric import BaseMetric
 
 
 class ClassificationReport(BaseMetric):
-    """Compute precision/recall/F1 and write per-language and error reports.
+    """Compute macro precision/recall/F1 and write per-language reports.
 
-    Args:
-        ref_key: Reference SCP alias.
-        hyp_key: Predicted language SCP alias.
+    Macro averages run over the languages in the references, as in ESPnet2
+    LID scoring; a predicted language that no reference has is counted only
+    as a false positive. With one language per utterance, micro precision,
+    recall and F1 all equal :class:`Accuracy`'s ``MicroAccuracy``, so they
+    are not reported again here.
+
+    Examples:
+        >>> metric = ClassificationReport()
+        >>> metric.update(ref=["eng", "eng", "fra"], hyp=["eng", "fra", "fra"])
+        >>> metric.compute()
+        {'MacroPrecision': 75.0, 'MacroRecall': 75.0, 'MacroF1': 66.67}
     """
 
-    def __init__(self, ref_key: str = "ref", hyp_key: str = "hyp") -> None:
-        """Select the aligned reference and hypothesis SCP aliases."""
-        self.ref_key = ref_key
-        self.hyp_key = hyp_key
+    inputs = (Field("ref", "text"), Field("hyp", "text"))
+    outputs = (
+        Field("MacroPrecision", "number"),
+        Field("MacroRecall", "number"),
+        Field("MacroF1", "number"),
+    )
+
+    def __init__(self) -> None:
+        """Register the counts of reference/prediction pairs."""
+        super().__init__()
+        # One [reference, hypothesis, count] row per pair of each batch.
+        self.add_state("pairs", [], "cat")
 
     @staticmethod
     def _percentage(value: float) -> float:
         """Round a fraction to a percentage for reports."""
         return round(value * 100, 2)
 
-    def __call__(
-        self,
-        data: Dict[str, Path],
-        test_name: str,
-        inference_dir: Path,
-    ) -> Dict[str, float]:
-        """Score aligned reference and predicted ISO 639-3 language codes.
+    def update(self, *, ref: Sequence[str], hyp: Sequence[str]) -> None:
+        """Add the reference/prediction pair counts of one batch.
 
         Args:
-            data: Reference and hypothesis SCP paths selected by the metric keys.
-            test_name: Name of the inference test set.
-            inference_dir: Root inference directory. Per-test-set outputs are
-                ``lid_errors``, ``lid_per_language.json`` and
-                ``lid_error_counts.json``. Re-running replaces these summaries.
-
-        Returns:
-            Overall and macro-averaged percentages, using the ESPnet2 LID
-            convention of averaging across languages in the reference set.
+            ref: Reference language codes, one per utterance.
+            hyp: Predicted language codes, aligned with ``ref``.
 
         Raises:
-            ValueError: If labels are empty or there are no predictions.
-            AssertionError: If reference and hypothesis SCP IDs are not aligned.
-
-        Example:
-            >>> ClassificationReport()({"ref": ref_path, "hyp": hyp_path},
-            ...                        "dev", output_dir)
+            ValueError: If a label is empty.
         """
-        rows = []
-        for utt_id, row in self.iter_inputs(data, self.ref_key, self.hyp_key):
-            reference = row[self.ref_key].strip()
-            hypothesis = row[self.hyp_key].strip()
+        pairs = Counter()
+        for reference, hypothesis in zip(ref, hyp):
+            reference, hypothesis = reference.strip(), hypothesis.strip()
             if not reference or not hypothesis:
-                raise ValueError(f"Empty LID label found for utterance: {utt_id}")
-            rows.append((utt_id, reference, hypothesis))
-        if not rows:
+                raise ValueError("Empty LID label")
+            pairs[reference, hypothesis] += 1
+        self.pairs.extend([r, h, n] for (r, h), n in pairs.items())
+
+    def _counts(self) -> Counter:
+        """Return the summed count of each (reference, hypothesis) pair."""
+        pairs = Counter()
+        for reference, hypothesis, n in self.pairs:
+            pairs[reference, hypothesis] += n
+        return pairs
+
+    def _per_language(self) -> Dict[str, Dict[str, float]]:
+        """Return the counts and percentages of each reference language.
+
+        Raises:
+            ValueError: If no prediction was added.
+        """
+        target_total, true_positive, false_positive = Counter(), Counter(), Counter()
+        for (reference, hypothesis), n in self._counts().items():
+            target_total[reference] += n
+            if reference == hypothesis:
+                true_positive[reference] += n
+            else:
+                false_positive[hypothesis] += n
+        if not target_total:
             raise ValueError("No LID predictions found")
 
-        target_total = Counter(reference for _, reference, _ in rows)
-        true_positive = Counter()
-        false_positive = Counter()
-        for _, reference, hypothesis in rows:
-            if reference == hypothesis:
-                true_positive[reference] += 1
-            else:
-                false_positive[hypothesis] += 1
-
-        target_languages = sorted(target_total)
-        correct = sum(true_positive.values())
-        total = len(rows)
-
-        recalls = []
-        precisions = []
-        f1_scores = []
         per_language = {}
-        for language in target_languages:
-            true_positive_count = true_positive[language]
-            precision = (
-                true_positive_count / (true_positive_count + false_positive[language])
-                if true_positive_count + false_positive[language]
-                else 0.0
-            )
-            recall = true_positive_count / target_total[language]
+        for language in sorted(target_total):
+            hits = true_positive[language]
+            predicted = hits + false_positive[language]
+            precision = hits / predicted if predicted else 0.0
+            recall = hits / target_total[language]
             f1 = (
                 2 * precision * recall / (precision + recall)
                 if precision + recall
                 else 0.0
             )
-            precisions.append(precision)
-            recalls.append(recall)
-            f1_scores.append(f1)
             per_language[language] = {
                 "Count": target_total[language],
-                "Correct": true_positive_count,
-                "Accuracy": self._percentage(recall),
-                "Precision": self._percentage(precision),
-                "Recall": self._percentage(recall),
-                "F1": self._percentage(f1),
+                "Correct": hits,
+                "Accuracy": recall,
+                "Precision": precision,
+                "Recall": recall,
+                "F1": f1,
             }
+        return per_language
 
-        test_dir = Path(inference_dir) / test_name
-        test_dir.mkdir(parents=True, exist_ok=True)
-        errors = [
-            f"{utt_id} {reference} {hypothesis}\n"
-            for utt_id, reference, hypothesis in rows
-            if reference != hypothesis
-        ]
-        (test_dir / "lid_errors").write_text("".join(errors), encoding="utf-8")
-        (test_dir / "lid_per_language.json").write_text(
-            json.dumps(per_language, indent=2, ensure_ascii=False) + "\n",
-            encoding="utf-8",
-        )
-        error_counts = Counter(
-            f"{reference}->{hypothesis}"
-            for _, reference, hypothesis in rows
-            if reference != hypothesis
-        )
-        (test_dir / "lid_error_counts.json").write_text(
-            json.dumps(
-                dict(
-                    sorted(error_counts.items(), key=lambda item: (-item[1], item[0]))
-                ),
-                indent=2,
-                ensure_ascii=False,
-            )
-            + "\n",
-            encoding="utf-8",
-        )
+    def compute(self) -> Dict[str, float]:
+        """Return macro-averaged percentages, rounded to two decimals.
 
-        accuracy = correct / total
+        Raises:
+            ValueError: If no prediction was added.
+        """
+        per_language = self._per_language().values()
         return {
-            "Precision": self._percentage(accuracy),
-            "Recall": self._percentage(accuracy),
-            "F1": self._percentage(accuracy),
-            "Macro Precision": self._percentage(sum(precisions) / len(precisions)),
-            "Macro Recall": self._percentage(sum(recalls) / len(recalls)),
-            "Macro F1": self._percentage(sum(f1_scores) / len(f1_scores)),
+            f"Macro{name}": self._percentage(
+                sum(scores[name] for scores in per_language) / len(per_language)
+            )
+            for name in ("Precision", "Recall", "F1")
         }
+
+    def write_artifacts(self, test_dir: Path) -> None:
+        """Write ``lid_per_language.json`` and ``lid_error_counts.json``.
+
+        The first holds each reference language's counts and percentages, the
+        second each confusion such as ``"deu->eng"`` with its count, most
+        frequent first. Re-running replaces both.
+
+        Args:
+            test_dir: The test set's output directory, already created.
+        """
+        per_language = {
+            language: {
+                name: value if name in ("Count", "Correct") else self._percentage(value)
+                for name, value in scores.items()
+            }
+            for language, scores in self._per_language().items()
+        }
+        error_counts = {
+            f"{reference}->{hypothesis}": n
+            for (reference, hypothesis), n in sorted(
+                self._counts().items(), key=lambda item: (-item[1], item[0])
+            )
+            if reference != hypothesis
+        }
+        for name, report in (
+            ("lid_per_language.json", per_language),
+            ("lid_error_counts.json", error_counts),
+        ):
+            (test_dir / name).write_text(
+                json.dumps(report, indent=2, ensure_ascii=False) + "\n",
+                encoding="utf-8",
+            )

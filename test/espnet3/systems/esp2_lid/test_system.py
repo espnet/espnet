@@ -6,7 +6,7 @@ import pytest
 import soundfile as sf
 from omegaconf import OmegaConf
 
-import espnet3.systems.esp2_lid.collect_stats as stats_module
+import espnet3.systems.esp2_lid.src.collect_stats as stats_module
 from espnet3.systems.esp2_lid.system import LIDSystem
 from espnet3.utils.config_utils import load_and_merge_config
 

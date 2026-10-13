@@ -10,12 +10,13 @@ from typing import Any
 
 import numpy as np
 import soundfile as sf
-from torch.utils.data import Dataset as TorchDataset
 
 from egs3.voxlingua107.esp2_lid.dataset.builder import (
     _BUILDING,
     resolve_metadata_root,
 )
+from espnet3.api.inference import Field
+from espnet3.components.data.base_dataset import BaseDataset
 from espnet3.utils.config_utils import load_config_with_defaults
 
 _CONFIG_RESOURCE = resources.files(__package__).joinpath("config.yaml")
@@ -47,8 +48,10 @@ def _read_manifest(path: Path) -> list[VoxLingua107Example]:
     return examples
 
 
-class VoxLingua107Dataset(TorchDataset):
+class VoxLingua107Dataset(BaseDataset):
     """Dataset returning raw speech and a language label."""
+
+    fields = (Field("speech", "audio"), Field("lid_labels", "text"))
 
     def __init__(
         self,

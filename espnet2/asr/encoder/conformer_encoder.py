@@ -118,6 +118,7 @@ class ConformerEncoder(AbsEncoder):
         max_pos_emb_len: int = 5000,
         qk_norm: bool = False,
         use_flash_attn: bool = True,
+        use_sdpa: bool = False,
     ):
         super().__init__()
         self._output_size = output_size
@@ -260,6 +261,7 @@ class ConformerEncoder(AbsEncoder):
                 use_flash_attn,
                 False,
                 False,
+                use_sdpa,
             )
         elif selfattention_layer_type == "legacy_rel_selfattn":
             assert pos_enc_layer_type == "legacy_rel_pos"
@@ -268,6 +270,8 @@ class ConformerEncoder(AbsEncoder):
                 attention_heads,
                 output_size,
                 attention_dropout_rate,
+                False,  # zero_triu
+                use_sdpa,
             )
             logging.warning(
                 "Using legacy_rel_selfattn and it will be deprecated in the future."
@@ -280,6 +284,7 @@ class ConformerEncoder(AbsEncoder):
                 output_size,
                 attention_dropout_rate,
                 zero_triu,
+                use_sdpa,
             )
         else:
             raise ValueError("unknown encoder_attn_layer: " + selfattention_layer_type)

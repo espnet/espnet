@@ -55,7 +55,7 @@ from espnet2.train.preprocessor import (
     LIDPreprocessor,
 )
 from espnet2.utils.types import int_or_none, str2bool, str_or_none
-from espnet3.systems.esp2_lid.espnet_model import ESPnetLIDModel
+from espnet3.systems.esp2_lid.src.espnet_model import ESPnetLIDModel
 
 model_choices = ClassChoices(
     "model",

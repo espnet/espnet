@@ -14,7 +14,7 @@ from egs3.voxlingua107.esp2_lid.dataset.builder import (
     VoxLingua107Builder,
     resolve_source_root,
 )
-from espnet3.systems.esp2_lid.collect_stats import collect_speech_shapes
+from espnet3.systems.esp2_lid.src.collect_stats import collect_speech_shapes
 from espnet3.utils.config_utils import load_and_merge_config
 
 

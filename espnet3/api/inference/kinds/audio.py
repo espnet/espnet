@@ -186,7 +186,12 @@ class Audio:
             raise ValueError(
                 f"cannot concatenate audio with {sorted(channels)} channels"
             )
-        return cls(np.concatenate([p.array for p in pieces], axis=-1), rates.pop())
+        # one channel may be laid out as (samples,) or as (1, samples) - a
+        # mono piece becomes the former on construction, a field asking for
+        # every channel hands out the latter - so the pieces are brought to
+        # one layout before they are joined
+        arrays = [p.multichannel().array for p in pieces]
+        return cls(np.concatenate(arrays, axis=-1), rates.pop())
 
     @classmethod
     def coerce(cls, value: Any, rate: Optional[int]) -> "Audio":
@@ -307,3 +312,39 @@ class AudioKind(Kind):
     def join(self, first, second):
         """Concatenate the samples in time."""
         return Audio.concat([first, second])
+
+    def accepts(self, value, field):
+        """Accept anything :meth:`check` would, plus a bare rate-less array.
+
+        :meth:`check` always needs ``model.sample_rate``, which a model-free
+        caller cannot supply, so the default ``accepts`` (which calls
+        ``check`` with ``model=None``) would reject every value, including
+        an ``Audio``, a path or a ``(rate, samples)`` pair that already
+        carries its own rate. This instead accepts any form
+        :meth:`Audio.coerce` accepts when given a fixed rate, without
+        requiring one: an :class:`Audio`, a path, a ``(rate, samples)``
+        pair, or a bare array/tensor.
+
+        Examples:
+            >>> from espnet3.api.inference.field import Field
+            >>> field = Field("speech", "audio")
+            >>> AudioKind().accepts(np.zeros(16000, dtype=np.float32), field)
+            True
+            >>> AudioKind().accepts((16000, np.zeros(16000, dtype=np.float32)), field)
+            True
+            >>> AudioKind().accepts(42, field)
+            False
+        """
+        if isinstance(value, Audio):
+            return True
+        if isinstance(value, (str, Path)):
+            return True
+        if (
+            isinstance(value, (tuple, list))
+            and len(value) == 2
+            and isinstance(value[0], (int, np.integer))
+        ):
+            return True
+        if hasattr(value, "detach"):  # a torch tensor, without importing torch
+            return True
+        return isinstance(value, np.ndarray)

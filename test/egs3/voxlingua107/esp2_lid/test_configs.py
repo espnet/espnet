@@ -2,9 +2,10 @@
 
 from pathlib import Path
 
+import pytest
 from omegaconf import OmegaConf
 
-from egs3.TEMPLATE.esp2_lid.run import DEFAULT_STAGES
+from espnet3.systems.esp2_lid.system import LIDSystem
 from espnet3.utils.config_utils import load_and_merge_config, load_default_config
 from espnet3.utils.publication_utils import pack_model
 
@@ -22,11 +23,14 @@ def test_lid_template_configs_define_inference_measure_and_publication():
     assert training.dataloader.train.iter_factory.seed == 0
     assert training.dataloader.valid.iter_factory.seed == 0
     assert training.trainer.accumulate_grad_batches == 1
+    assert inference.model._target_ == "espnet3.systems.esp2_lid.inference.Inference"
     assert metrics.metrics[0].metric._target_.endswith(
         "esp2_lid.metrics.accuracy.Accuracy"
     )
+    for metric in metrics.metrics:
+        assert dict(metric.inputs) == {"ref": "dataset:lid_labels", "hyp": "language"}
     assert publication.pack_model.readme.endswith("src/hf_model_readme.md")
-    assert DEFAULT_STAGES == [
+    assert [stage.name for stage in LIDSystem.stages] == [
         "create_dataset",
         "collect_stats",
         "train",
@@ -37,19 +41,31 @@ def test_lid_template_configs_define_inference_measure_and_publication():
     ]
 
 
-def test_voxlingua_inference_config_uses_lid_components():
-    """Select the LID inference model and standard output builder."""
+@pytest.mark.parametrize("name", ["inference.yaml", "inference_prepared.yaml"])
+def test_voxlingua_inference_configs_use_the_lid_inference(name):
+    """Name the system's Inference, so infer writes the declared language.scp."""
     config = load_and_merge_config(
-        Path("egs3/voxlingua107/esp2_lid/conf/inference.yaml"),
+        Path("egs3/voxlingua107/esp2_lid/conf") / name,
         config_name="inference.yaml",
         default_package="egs3.TEMPLATE.esp2_lid",
         resolve=False,
     )
 
-    assert config.dataset.test[0].name == "dev"
-    assert config.model._target_ == "espnet3.systems.esp2_lid.inference.Speech2Language"
-    assert config.output_fn == "src.inference.build_output"
-    assert list(config.output_keys) == ["hyp", "ref"]
+    assert config.model._target_ == "espnet3.systems.esp2_lid.inference.Inference"
+    for key in ("input_key", "output_fn", "output_keys"):
+        assert key not in config
+
+
+def test_voxlingua_metrics_read_the_reference_from_the_dataset():
+    config = load_and_merge_config(
+        Path("egs3/voxlingua107/esp2_lid/conf/metrics.yaml"),
+        config_name="metrics.yaml",
+        default_package="egs3.TEMPLATE.esp2_lid",
+        resolve=False,
+    )
+
+    for metric in config.metrics:
+        assert dict(metric.inputs) == {"ref": "dataset:lid_labels", "hyp": "language"}
 
 
 def test_voxlingua_training_overrides_default_sampler():

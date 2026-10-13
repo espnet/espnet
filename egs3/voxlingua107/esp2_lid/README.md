@@ -21,11 +21,24 @@ python run.py --stages infer \
     --training_config conf/training.yaml \
     --inference_config conf/inference.yaml
 
-# 3) Compute accuracy, precision, recall, and F1
+# 3) Compute accuracy and macro precision, recall, and F1
 python run.py --stages measure \
     --training_config conf/training.yaml \
     --inference_config conf/inference.yaml \
     --metrics_config conf/metrics.yaml
+```
+
+## Language embeddings
+
+Extract language embeddings and plot them with t-SNE:
+
+```bash
+python -m egs3.voxlingua107.esp2_lid.src.embeddings \
+    --lid-train-config exp/training/config.yaml \
+    --lid-model-file exp/training/valid.accuracy.best.pth \
+    --lang2utt exp/stats/train/lang2utt \
+    --manifest data/voxlingua107/dev/manifest.tsv \
+    --output-dir exp/training/embeddings
 ```
 
 ## Results
@@ -35,7 +48,7 @@ Accuracy (%) of the MMS-1B + ECAPA-TDNN model trained on VoxLingua107 with
 
 | Dataset | Split | Evaluated languages | Utterances | Accuracy (%) |
 | --- | --- | ---: | ---: | ---: |
-| VoxLingua107 | dev | 33 | 1,609 | 93.78 |
+| VoxLingua107 | dev | 33 | 1,609 | 93.72 |
 | FLEURS | test | 83 | 63,885 | 94.49 |
 | ML-SUPERB 2.0 | dev | 91 | 17,631 | 88.31 |
 | ML-SUPERB 2.0 | dev_dialect | 8 | 7,095 | 75.79 |

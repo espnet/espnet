@@ -135,8 +135,8 @@ def write_artifact(
 
     Args:
         value: Artifact value to serialize.
-        output_path: Base output path. The file suffix may be adjusted to match
-            the resolved writer.
+        output_path: Base output path. The suffix of the resolved writer is
+            appended to it, so dots in the name are kept.
         field_config: Optional writer configuration.
 
     Returns:
@@ -218,7 +218,10 @@ def _write_builtin_artifact(
             )
         value = value.detach().cpu().numpy()
 
-    output_path = output_path.with_suffix(_suffix_for_type(type_name))
+    # Append the suffix instead of replacing the existing one: the base name is
+    # an utterance id, and an id such as "sp0.9-utt1" must not be cut at its dot,
+    # or "sp0.9-utt1" and "sp0.9-utt2" would write the same file.
+    output_path = output_path.with_name(output_path.name + _suffix_for_type(type_name))
     output_path.parent.mkdir(parents=True, exist_ok=True)
 
     if type_name == "wav":

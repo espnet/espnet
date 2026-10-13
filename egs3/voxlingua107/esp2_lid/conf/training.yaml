@@ -138,5 +138,5 @@ trainer:
   num_sanity_val_steps: 0
   precision: bf16-mixed
   callbacks:
-    - _target_: espnet3.systems.esp2_lid.callbacks.BestCheckpointLink
+    - _target_: espnet3.systems.esp2_lid.src.callbacks.BestCheckpointLink
       output_dir: ${exp_dir}

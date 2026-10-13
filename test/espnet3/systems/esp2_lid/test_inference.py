@@ -1,15 +1,19 @@
+from types import SimpleNamespace
+
 import numpy as np
 import pytest
 import torch
+import yaml
 from omegaconf import OmegaConf
 
 import espnet3.parallel.parallel as parallel_module
 import espnet3.systems.base.inference as base_inference_module
 import espnet3.systems.esp2_lid.inference as inference_module
-from egs3.voxlingua107.esp2_lid.src.inference import build_output
+from espnet3.api.inference import Audio, load
 from espnet3.systems.base.inference import infer
+from espnet3.systems.base.inference_runner import InferenceRunner
 from espnet3.systems.base.metric import measure
-from espnet3.systems.esp2_lid.inference import Speech2Language
+from espnet3.systems.esp2_lid.inference import Inference, Speech2Language
 
 
 class DummyLIDModel:
@@ -92,33 +96,17 @@ def test_speech2language_rejects_non_waveform_input(tmp_path, monkeypatch):
         speech2language(np.ones((2, 3), dtype=np.float32))
 
 
-def test_voxlingua_output_formatter_handles_single_and_batch():
-    assert build_output(
-        {"lid_labels": "eng"},
-        "eng",
-        3,
-    ) == {"utt_id": "3", "hyp": "eng", "ref": "eng"}
-    assert build_output(
-        [
-            {"utt_id": "utt1", "lid_labels": "eng"},
-            {"utt_id": "utt2", "lid_labels": "fra"},
-        ],
-        ["eng", "deu"],
-        [0, 1],
-    ) == [
-        {"utt_id": "utt1", "hyp": "eng", "ref": "eng"},
-        {"utt_id": "utt2", "hyp": "deu", "ref": "fra"},
-    ]
-
-
 @pytest.mark.parametrize("extract_embd", [False, True])
 def test_lid_infer_and_measure_pipeline(tmp_path, monkeypatch, extract_embd):
+    """The recipe's stages: infer writes language.scp, measure reads lid_labels."""
     lang2utt = tmp_path / "lang2utt"
     lang2utt.write_text("eng 0\nfra 1\n", encoding="utf-8")
     monkeypatch.setattr(
         inference_module.LIDTask,
         "build_model_from_file",
-        staticmethod(lambda **_kwargs: (DummyLIDModel(), None)),
+        staticmethod(
+            lambda **_kwargs: (DummyLIDModel(), SimpleNamespace(frontend_conf={}))
+        ),
     )
     monkeypatch.setattr(parallel_module, "parallel_config", None)
     # Run shards in this process so the patched model builder is used.
@@ -135,19 +123,13 @@ def test_lid_infer_and_measure_pipeline(tmp_path, monkeypatch, extract_embd):
                 "test": [{"name": "dev"}],
             },
             "model": {
-                "_target_": "espnet3.systems.esp2_lid.inference.Speech2Language",
+                "_target_": "espnet3.systems.esp2_lid.inference.Inference",
                 "lid_train_config": str(tmp_path / "config.yaml"),
                 "lid_model_file": str(tmp_path / "model.pth"),
                 "lang2utt": str(lang2utt),
                 "extract_embd": extract_embd,
             },
-            "input_key": "speech",
-            "output_keys": (
-                ["hyp", "ref", "embedding"] if extract_embd else ["hyp", "ref"]
-            ),
-            "idx_key": "utt_id",
             "batch_size": 2,
-            "output_fn": "egs3.voxlingua107.esp2_lid.src.inference.build_output",
             "provider": {
                 "_target_": (
                     "espnet3.systems.base.inference_provider.InferenceProvider"
@@ -160,40 +142,45 @@ def test_lid_infer_and_measure_pipeline(tmp_path, monkeypatch, extract_embd):
     )
 
     infer(inference_config)
-    assert (inference_dir / "dev/hyp.scp").read_text(encoding="utf-8") == (
+    assert sorted(path.name for path in (inference_dir / "dev").glob("*.scp")) == [
+        "language.scp"
+    ]
+    assert (inference_dir / "dev/language.scp").read_text(encoding="utf-8") == (
         "0 eng\n1 fra\n"
     )
-    assert (inference_dir / "dev/ref.scp").read_text(encoding="utf-8") == (
-        "0 eng\n1 fra\n"
-    )
-    if extract_embd:
-        rows = (inference_dir / "dev/embedding.scp").read_text().splitlines()
-        assert len(rows) == 2
-        for idx, row in enumerate(rows):
-            utt_id, path = row.split(maxsplit=1)
-            assert utt_id == str(idx)
-            np.testing.assert_array_equal(np.load(path), np.zeros(2))
-    else:
-        assert not (inference_dir / "dev/embedding.scp").exists()
 
+    prefix = "espnet3.systems.esp2_lid.metrics"
+    inputs = {"ref": "dataset:lid_labels", "hyp": "language"}
     results = measure(
         OmegaConf.create(
             {
                 "inference_dir": str(inference_dir),
                 "metrics": [
                     {
+                        "metric": {"_target_": f"{prefix}.accuracy.Accuracy"},
+                        "inputs": inputs,
+                    },
+                    {
                         "metric": {
                             "_target_": (
-                                "espnet3.systems.esp2_lid.metrics.accuracy.Accuracy"
+                                f"{prefix}.classification_report.ClassificationReport"
                             )
-                        }
-                    }
+                        },
+                        "inputs": inputs,
+                    },
                 ],
             }
-        )
+        ),
+        inference_config=inference_config,
     )
-    metric_name = "espnet3.systems.esp2_lid.metrics.accuracy.Accuracy"
-    assert results[metric_name]["dev"]["Accuracy"] == 100.0
+    assert results[f"{prefix}.accuracy.Accuracy"]["dev"] == {
+        "MicroAccuracy": 100.0,
+        "MacroAccuracy": 100.0,
+    }
+    assert (inference_dir / "dev/dataset/lid_labels.scp").read_text() == (
+        "0 eng\n1 fra\n"
+    )
+    assert (inference_dir / "dev/lid_per_language.json").is_file()
     assert (inference_dir / "metrics.json").is_file()
 
 
@@ -221,11 +208,142 @@ def test_speech2language_normalizes_optional_embeddings(tmp_path, monkeypatch):
         np.testing.assert_allclose(np.linalg.norm(prediction["embedding"]), 1.0)
 
 
-def test_voxlingua_output_formatter_preserves_optional_embedding():
-    embedding = np.array([0.6, 0.8], dtype=np.float32)
-    record = build_output(
-        {"lid_labels": "eng"}, {"hyp": "fra", "embedding": embedding}, 3
+class FakeSpeech2Language:
+    """Return what Speech2Language does, remembering its input."""
+
+    def __init__(self, fs=None, extract_embd=False, **kwargs):
+        self.lid_train_args = SimpleNamespace(
+            frontend_conf={} if fs is None else {"fs": fs}
+        )
+        self.extract_embd = extract_embd
+        self.kwargs = kwargs
+        self.seen = None
+
+    def __call__(self, speech):
+        self.seen = speech
+        if isinstance(speech, list):
+            return [self._predict(index) for index in range(len(speech))]
+        return self._predict(0)
+
+    def _predict(self, index):
+        language = ["jpn", "eng"][index % 2]
+        if self.extract_embd:
+            return {"hyp": language, "embedding": np.zeros(2, dtype=np.float32)}
+        return language
+
+
+def test_inference_returns_the_predicted_language():
+    backend = FakeSpeech2Language()
+    assert Inference(backend)(np.zeros(16000, dtype=np.float32)) == {"language": "jpn"}
+    assert backend.seen.ndim == 1 and backend.seen.dtype == np.float32
+
+
+def test_inference_reads_the_language_from_an_embedding_backend():
+    model = Inference(FakeSpeech2Language(extract_embd=True))
+    assert model(np.zeros(160, dtype=np.float32)) == {"language": "jpn"}
+    assert model.batch([{"speech": np.zeros(160)}, {"speech": np.zeros(320)}]) == [
+        {"language": "jpn"},
+        {"language": "eng"},
+    ]
+
+
+def test_inference_batch_is_one_backend_call():
+    backend = FakeSpeech2Language()
+    Inference(backend).batch([{"speech": np.zeros(160)}, {"speech": np.zeros(320)}])
+    assert [len(wave) for wave in backend.seen] == [160, 320]
+
+
+def test_inference_sample_rate_comes_from_the_frontend_config():
+    assert Inference(FakeSpeech2Language()).sample_rate == 16000
+    assert Inference(FakeSpeech2Language(fs="16k")).sample_rate == 16000
+    backend = FakeSpeech2Language(fs=8000)
+    Inference(backend)(Audio(np.zeros(16000, dtype=np.float32), 16000))
+    assert len(backend.seen) == 8000
+    with pytest.raises(TypeError, match="cannot tell the rate"):
+        Inference(SimpleNamespace()).sample_rate  # not a Speech2Language at all
+
+
+def test_the_infer_stage_runner_calls_inference_as_it_is():
+    """InferenceRunner needs no output_fn: the declared output is written."""
+    model = Inference(FakeSpeech2Language())
+    dataset = {
+        i: {"speech": np.zeros(160, dtype=np.float32), "lid_labels": "jpn"}
+        for i in range(3)
+    }
+    assert InferenceRunner.forward(0, dataset=dataset, model=model) == {
+        "utt_id": "0",
+        "language": "jpn",
+    }
+    assert InferenceRunner.forward([1, 2], dataset=dataset, model=model) == [
+        {"utt_id": "1", "language": "jpn"},
+        {"utt_id": "2", "language": "eng"},
+    ]
+
+
+def test_speech2language_keeps_its_training_args(tmp_path, monkeypatch):
+    lang2utt = tmp_path / "lang2utt"
+    lang2utt.write_text("eng 0\n", encoding="utf-8")
+    args = SimpleNamespace(frontend_conf={"fs": 16000})
+    monkeypatch.setattr(
+        inference_module.LIDTask,
+        "build_model_from_file",
+        staticmethod(lambda **_kwargs: (DummyLIDModel(), args)),
     )
-    assert record["hyp"] == "fra"
-    assert record["ref"] == "eng"
-    assert record["embedding"] is embedding
+    speech2language = Speech2Language("config.yaml", "model.pth", lang2utt)
+    assert speech2language.lid_train_args is args
+
+
+@pytest.mark.parametrize(
+    "packed_model, packed_system",
+    [
+        ("Inference", "esp2_lid"),
+        # The published VoxLingua107 bundle: packed before the recipe named
+        # Inference as its model and before meta.yaml recorded the system.
+        ("Speech2Language", None),
+    ],
+)
+def test_load_serves_a_pack_made_by_the_recipe(
+    tmp_path, monkeypatch, packed_model, packed_system
+):
+    """A bundle naming Inference, or Speech2Language as older recipes packed."""
+    # The real Speech2Language, around a stand-in model: a bundle may only build
+    # espnet2/espnet3 classes, so the class itself is not replaced.
+    monkeypatch.setattr(
+        inference_module.LIDTask,
+        "build_model_from_file",
+        staticmethod(
+            lambda **_kwargs: (DummyLIDModel(), SimpleNamespace(frontend_conf={}))
+        ),
+    )
+    lang2utt = tmp_path / "lang2utt"
+    lang2utt.write_text("jpn 0\neng 1\n", encoding="utf-8")
+    pack = tmp_path / "pack"
+    (pack / "conf").mkdir(parents=True)
+    meta = {
+        "schema_version": 1,
+        "yaml_files": {"inference_config": "conf/inference.yaml"},
+    }
+    if packed_system:
+        meta["system"] = packed_system
+    (pack / "meta.yaml").write_text(yaml.safe_dump(meta))
+    inference_config = {
+        "model": {
+            "_target_": f"espnet3.systems.esp2_lid.inference.{packed_model}",
+            "lid_train_config": str(tmp_path / "config.yaml"),
+            "lid_model_file": str(tmp_path / "model.pth"),
+            "lang2utt": str(lang2utt),
+            "extract_embd": True,
+        },
+    }
+    if packed_model == "Speech2Language":
+        inference_config.update(
+            input_key="speech", output_fn="src.inference.build_output"
+        )
+    (pack / "conf" / "inference.yaml").write_text(yaml.safe_dump(inference_config))
+
+    model = load(pack) if packed_system else load(pack, system="esp2_lid")
+
+    assert isinstance(model, Inference)
+    assert isinstance(model.backend, Speech2Language)
+    assert model.sample_rate == 16000
+    assert model(np.zeros(160, dtype=np.float32)) == {"language": "jpn"}

@@ -1,17 +1,27 @@
 from pathlib import Path
 from unittest import mock
 
+import numpy as np
 import pytest
 import torch
+import torch.nn as nn
 from hydra.utils import instantiate
-from lightning.pytorch.callbacks import LearningRateMonitor, ModelCheckpoint
+from lightning.pytorch.callbacks import (
+    LearningRateMonitor,
+    ModelCheckpoint,
+    TQDMProgressBar,
+)
 from omegaconf import OmegaConf
 
 from espnet3.components.callbacks.default_callbacks import (
     AverageCheckpointsCallback,
+    MetricsLogger,
     _metric_to_float,
     get_default_callbacks,
 )
+from espnet3.components.data import data_organizer as data_organizer_module
+from espnet3.components.modeling.lightning_module import ESPnetLightningModule
+from espnet3.components.trainers.trainer import ESPnet3LightningTrainer
 
 # ===============================================================
 # Test Case Summary for AverageCheckpointsCallback
@@ -474,3 +484,171 @@ def test_average_includes_final_checkpoint_after_fit(tmp_path, max_epochs):
     ]
     assert len(values) == max_epochs
     assert torch.allclose(saved["weight"], torch.stack(values).mean(0))
+
+
+# ---------------------------------------------------------------
+# trainer-callbacks#07: end-to-end coverage with a real Lightning run
+# ---------------------------------------------------------------
+
+
+class _TinyRegressionDataset:
+    """4 deterministic (x, y=2x) points; both x and y are model kwargs.
+
+    Values are numpy arrays (not torch tensors) because the default
+    collate_fn is CommonCollateFn, which inspects ``.dtype.kind`` -- a numpy
+    attribute that a bare ``torch.Tensor`` does not have.
+    """
+
+    def __init__(self, path=None):
+        self.data = [
+            {
+                "x": np.array([float(i)], dtype=np.float32),
+                "y": np.array([2.0 * i], dtype=np.float32),
+            }
+            for i in range(1, 5)
+        ]
+
+    def __len__(self):
+        return len(self.data)
+
+    def __getitem__(self, idx):
+        return self.data[idx]
+
+
+class _TinyRegressionModel(nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.linear = nn.Linear(1, 1)
+
+    def forward(self, x, y, **kwargs):
+        pred = self.linear(x)
+        loss = torch.nn.functional.mse_loss(pred, y)
+        return loss, {"loss": loss.detach()}, None
+
+
+@pytest.fixture
+def _patch_tiny_dataset(monkeypatch):
+    monkeypatch.setattr(
+        data_organizer_module,
+        "instantiate_dataset_reference",
+        lambda config, recipe_dir=None: _TinyRegressionDataset(),
+    )
+
+
+@pytest.mark.execution_timeout(60)
+def test_default_callbacks_e2e_produces_real_best_and_averaged_checkpoints(
+    tmp_path, _patch_tiny_dataset
+):
+    """Drive 3 real training epochs through get_default_callbacks() and CSVLogger.
+
+    Regression coverage for trainer-callbacks#07: every existing test in this
+    file replaces ModelCheckpoint with mocks and calls
+    AverageCheckpointsCallback.on_validation_end() directly with
+    torch.load/save mocked out, so a real Lightning run was never exercised.
+    This test trains a tiny real model for 3 epochs and asserts:
+    (1) the top-2 best checkpoints and the averaged ``.pth`` both exist,
+    (2) the averaged weights equal the real mean of the final top-2
+        checkpoints (no mocking), and
+    (3) get_default_callbacks()'s returned list matches its documented order
+        contract.
+
+    Lightning's CallbackConnector moves every ``ModelCheckpoint`` to the
+    *end* of the runtime callback list regardless of the order passed to
+    ``Trainer(callbacks=...)``, so ``AverageCheckpointsCallback.on_validation_end``
+    runs with the *previous* epoch's ``best_k_models``. The callback therefore
+    averages once more in ``on_train_end``, after the last checkpoint is saved,
+    which assertion (2) checks. Assertion (3) checks the *construction-time*
+    order contract from ``get_default_callbacks()`` itself, not runtime
+    ``trainer.callbacks`` order, since the latter is reshuffled by Lightning,
+    not by ESPnet3.
+
+    EMA-enabled verification is out of scope here (not wired into
+    get_default_callbacks by default); see the finding's outlook.
+    """
+    exp_dir = tmp_path / "exp"
+    model_config = OmegaConf.create(
+        {
+            "exp_dir": str(exp_dir),
+            "optimizer": {"_target_": "torch.optim.SGD", "lr": 0.1},
+            "scheduler": {
+                "_target_": "torch.optim.lr_scheduler.StepLR",
+                "step_size": 10,
+            },
+            "dataset": {
+                "_target_": "espnet3.components.data.data_organizer.DataOrganizer",
+                "train": [{"name": "train_dummy", "data_src": "dummy/regression"}],
+                "valid": [{"name": "valid_dummy", "data_src": "dummy/regression"}],
+            },
+            "dataloader": {
+                "train": {"batch_size": 4, "shuffle": False, "iter_factory": None},
+                "valid": {"batch_size": 4, "shuffle": False, "iter_factory": None},
+            },
+            "num_device": 1,
+        }
+    )
+    module = ESPnetLightningModule(_TinyRegressionModel(), model_config)
+
+    trainer_config = OmegaConf.create(
+        {
+            "accelerator": "cpu",
+            "devices": 1,
+            "num_nodes": 1,
+            "max_epochs": 3,
+            "num_sanity_val_steps": 0,
+            "log_every_n_steps": 1,
+            "logger": {
+                "_target_": "lightning.pytorch.loggers.CSVLogger",
+                "save_dir": str(tmp_path / "csv"),
+                "name": "e2e",
+            },
+        }
+    )
+    wrapper = ESPnet3LightningTrainer(
+        model=module,
+        exp_dir=str(exp_dir),
+        config=trainer_config,
+        best_model_criterion=OmegaConf.create([["valid/loss", 2, "min"]]),
+    )
+
+    wrapper.fit()
+
+    callbacks = wrapper.trainer.callbacks
+    ckpt_callbacks = [cb for cb in callbacks if isinstance(cb, ModelCheckpoint)]
+    best_ckpt_callback = next(cb for cb in ckpt_callbacks if cb.monitor == "valid/loss")
+
+    # (1) files exist
+    assert len(best_ckpt_callback.best_k_models) == 2
+    for ckpt_path in best_ckpt_callback.best_k_models:
+        assert Path(ckpt_path).is_file()
+    ave_path = exp_dir / "valid.loss.ave_2best.pth"
+    assert ave_path.is_file()
+
+    # (2) the averaged weights are the real mean of the final top-2
+    # checkpoints, including the last epoch's (see docstring).
+    real_states = [
+        torch.load(p, map_location="cpu", weights_only=False)["state_dict"]
+        for p in best_ckpt_callback.best_k_models
+    ]
+    assert len(real_states) == 2
+    # ESPnetLightningModule.state_dict() delegates directly to the wrapped
+    # model's own state_dict(), so checkpoint keys are unprefixed ("linear.*",
+    # not "model.linear.*").
+    expected_weight = sum(s["linear.weight"] for s in real_states) / len(real_states)
+    expected_bias = sum(s["linear.bias"] for s in real_states) / len(real_states)
+    averaged = torch.load(ave_path, map_location="cpu", weights_only=False)
+    assert torch.allclose(averaged["linear.weight"], expected_weight)
+    assert torch.allclose(averaged["linear.bias"], expected_bias)
+
+    # (3) get_default_callbacks()'s own returned list follows its documented
+    # order contract (last-ckpt, best-ckpt(s), average, LR monitor,
+    # MetricsLogger, progress bar). This is the ESPnet3-owned contract;
+    # Lightning's runtime reordering of ModelCheckpoint (see docstring above)
+    # is Lightning's behavior, not ESPnet3's, so it is not asserted here.
+    constructed = get_default_callbacks(
+        exp_dir=str(exp_dir), best_model_criterion=[("valid/loss", 2, "min")]
+    )
+    kinds = [type(cb) for cb in constructed]
+    assert kinds.index(ModelCheckpoint) < kinds.index(AverageCheckpointsCallback)
+    assert kinds.index(AverageCheckpointsCallback) < kinds.index(LearningRateMonitor)
+    assert kinds.index(LearningRateMonitor) < kinds.index(MetricsLogger)
+    assert kinds.index(MetricsLogger) < kinds.index(TQDMProgressBar)

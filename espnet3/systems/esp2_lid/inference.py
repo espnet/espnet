@@ -1,14 +1,27 @@
-"""Language identification inference helpers."""
+"""Language identification inference.
+
+:class:`Speech2Language` runs a trained LID model on waveforms.
+:class:`Inference` exposes it through :mod:`espnet3.api.inference`: the
+recipe's ``infer`` stage runs it, and a packed LID model can be loaded with
+``espnet3.api.inference.load`` and called like any other system.
+"""
 
 from __future__ import annotations
 
 from pathlib import Path
+from typing import Any, Mapping, Sequence
 
 import numpy as np
 import torch
 from torch.nn.utils.rnn import pad_sequence
 
+from espnet3.api.inference import Audio, Field
+from espnet3.systems.base.backend_inference import BackendInference, parse_rate
 from espnet3.systems.esp2_lid.task import LIDTask
+
+# The rate of ESPnet2's default and S3PRL frontends when the training config
+# names none.
+DEFAULT_FRONTEND_RATE = 16000
 
 
 class Speech2Language:
@@ -39,7 +52,7 @@ class Speech2Language:
         self.extract_embd = extract_embd
         self.dtype = getattr(torch, dtype)
 
-        self.model, _ = LIDTask.build_model_from_file(
+        self.model, self.lid_train_args = LIDTask.build_model_from_file(
             config_file=lid_train_config,
             model_file=lid_model_file,
             device=device,
@@ -122,3 +135,75 @@ class Speech2Language:
             ]
             return results if is_batch else results[0]
         return languages if is_batch else languages[0]
+
+
+class Inference(BackendInference):
+    """Identify the language of speech through :mod:`espnet3.api.inference`.
+
+    Wraps :class:`Speech2Language`. Built three ways, all ending in
+    ``self.backend`` (see :class:`BackendInference`):
+
+    - ``Inference.from_pretrained(tag_or_dir, device=...)`` from a
+      ``pack_model`` bundle or Hub tag, including bundles whose
+      ``inference.yaml`` names ``Speech2Language`` as the model;
+    - ``Inference(lid_train_config=..., lid_model_file=..., lang2utt=...)``
+      from ``Speech2Language``'s own arguments;
+    - ``Inference(speech2language)`` around one already built.
+
+    Called with one utterance (a path, a ``(rate, samples)`` pair, an array or
+    an :class:`~espnet3.api.inference.Audio`) it returns ``{"language": str}``.
+
+    Examples:
+        >>> from espnet3.api.inference import load
+        >>> model = load("exp/training/model_pack", system="esp2_lid")
+        >>> model("utt.wav")
+        {'language': 'jpn'}
+        >>> model.batch([{"speech": first}, {"speech": second}])
+        [{'language': 'jpn'}, {'language': 'eng'}]
+    """
+
+    backend_class = "espnet3.systems.esp2_lid.inference.Speech2Language"
+    inputs = (Field("speech", "audio", "Speech"),)
+    outputs = (Field("language", "text", "Language"),)
+
+    @property
+    def sample_rate(self) -> int:
+        """Return the frontend rate: ``frontend_conf.fs``, else 16 kHz.
+
+        A backend that is not a :class:`Speech2Language` (no
+        ``lid_train_args``) falls back to the base class, which reads a
+        ``sample_rate`` or ``fs`` attribute or raises.
+        """
+        args = getattr(self.backend, "lid_train_args", None)
+        if args is None:
+            return super().sample_rate
+        conf = getattr(args, "frontend_conf", None) or {}
+        return parse_rate(conf.get("fs", DEFAULT_FRONTEND_RATE))
+
+    def run(self, speech: Audio) -> Mapping[str, Any]:
+        """Return the predicted language of one utterance.
+
+        Args:
+            speech: The utterance, at :attr:`sample_rate`, one channel.
+
+        Returns:
+            ``{"language": str}``, an ISO 639-3 code in the training inventory.
+        """
+        return {"language": _language(self.backend(speech.array))}
+
+    def run_batch(self, items: Sequence[Mapping[str, Any]]) -> Sequence[Mapping]:
+        """Identify several utterances in one padded forward pass.
+
+        Args:
+            items: Mappings with a ``speech`` :class:`Audio` each.
+
+        Returns:
+            One ``{"language": str}`` per item, in order.
+        """
+        predictions = self.backend([item["speech"].array for item in items])
+        return [{"language": _language(prediction)} for prediction in predictions]
+
+
+def _language(prediction: Any) -> str:
+    """Return the language from a string or an ``extract_embd`` dictionary."""
+    return prediction["hyp"] if isinstance(prediction, dict) else prediction

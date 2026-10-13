@@ -6,6 +6,7 @@ from abc import ABC, abstractmethod
 from pathlib import Path
 from typing import Any, ClassVar, Iterable, Iterator, Mapping, Optional, Sequence
 
+from espnet3.api.inference.check import check_declaration
 from espnet3.api.inference.field import Field
 from espnet3.api.inference.kinds import KINDS
 
@@ -39,26 +40,7 @@ def check_contract(cls: type) -> None:
         Traceback (most recent call last):
         TypeError: Bad.inputs must list required fields before optional ones, ...
     """
-    for attr in ("inputs", "outputs"):
-        fields = getattr(cls, attr, None)
-        if not isinstance(fields, tuple) or not all(
-            isinstance(f, Field) for f in fields
-        ):
-            raise TypeError(f"{cls.__qualname__}.{attr} must be a tuple of Field")
-        if not fields:
-            raise TypeError(f"{cls.__qualname__}.{attr} must name at least one field")
-        names = [f.name for f in fields]
-        if len(set(names)) != len(names):
-            raise TypeError(f"{cls.__qualname__}.{attr} repeats a name: {names}")
-    optional = [f.optional for f in cls.inputs]
-    if optional != sorted(optional):
-        raise TypeError(
-            f"{cls.__qualname__}.inputs must list required fields before "
-            "optional ones, so a call by position means one thing"
-        )
-    for f in cls.outputs:
-        if f.optional:
-            raise TypeError(f"{cls.__qualname__}: outputs cannot be optional")
+    check_declaration(cls)
     if cls.run is InferenceAPI.run and cls.run_stream is InferenceAPI.run_stream:
         raise TypeError(
             f"{cls.__qualname__} must implement run_stream (online) or run "
@@ -110,7 +92,7 @@ class InferenceAPI(ABC):
                 outputs = (Field("text", "text"),)
 
                 @classmethod
-                def from_pretrained(cls, tag_or_dir, *, device="cpu", **kwargs):
+                def from_pretrained(cls, tag_or_dir, *, device="auto", **kwargs):
                     pack = locate_pack(tag_or_dir)
                     return cls(load_model(pack, device=device, overrides=kwargs))
 
@@ -159,7 +141,7 @@ class InferenceAPI(ABC):
     @classmethod
     @abstractmethod
     def from_pretrained(
-        cls, tag_or_dir: str | Path, *, device: str = "cpu", **kwargs: Any
+        cls, tag_or_dir: str | Path, *, device: str = "auto", **kwargs: Any
     ) -> "InferenceAPI":
         """Load a published model.
 
@@ -167,7 +149,9 @@ class InferenceAPI(ABC):
             tag_or_dir: A ``pack_model`` output directory, or a Hub tag
                 ``espnet_model_zoo`` resolves. :func:`locate_pack` turns
                 either into the directory.
-            device: Where to build the model, ``"cpu"`` or ``"cuda:0"``.
+            device: Where to build the model: ``"auto"`` for CUDA when
+                torch sees it, else the CPU; or a device by name
+                (:func:`~espnet3.api.inference.resolve_device`).
             **kwargs: Arguments of the packed model's constructor that
                 replace the packed values (``beam_size=5``), as ESPnet2's
                 ``from_pretrained`` takes them; :func:`load_model` applies
