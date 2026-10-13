@@ -29,10 +29,7 @@ ${model_detail_section}
 ## Usage
 
 ```python
-from espnet3.api.inference import load
-
-${usage_load_call}
-result = model("utt.wav")
+${usage_python}
 ```
 
 ## Packaging

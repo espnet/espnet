@@ -25,6 +25,29 @@ def test_main():
         main()
 
 
+@pytest.mark.parametrize("s2t_config_file", [("conv2d6", 30)], indirect=True)
+def test_conv2d6_deprecated_wrappers_preserve_defaults(s2t_config_file, monkeypatch):
+    """Both old defaults must remain usable on the sixfold encoder grid."""
+    with pytest.warns(DeprecationWarning, match="deprecated"):
+        speech2text = Speech2TextGreedySearch(s2t_train_config=s2t_config_file)
+
+    def encode(speech, prefix, **kwargs):
+        frames = speech[:, ::960][:, :-1].unsqueeze(-1)
+        marks = speech.new_full((speech.size(0), prefix.size(1), 1), -1.0)
+        return torch.cat([marks, frames], dim=1), None
+
+    monkeypatch.setattr(speech2text.s2t_model, "encode", encode)
+    monkeypatch.setattr(speech2text.s2t_model.ctc, "log_softmax", lambda enc: enc)
+    speech = np.zeros(70 * speech2text.sample_rate, dtype=np.float32)
+    for decode, default in (
+        (speech2text.decode_long_batched_buffered, 2),
+        (speech2text.batch_decode, 4),
+    ):
+        assert decode(speech, batch_size=2) == ""
+        with pytest.raises(ValueError, match="context_len_in_secs.*whole number"):
+            decode(speech, context_len_in_secs=default)
+
+
 @pytest.fixture()
 def token_list(tmp_path: Path):
     with (tmp_path / "tokens.txt").open("w") as f:
@@ -48,7 +71,8 @@ def token_list(tmp_path: Path):
 
 
 @pytest.fixture()
-def s2t_config_file(tmp_path: Path, token_list):
+def s2t_config_file(tmp_path: Path, token_list, request):
+    input_layer, window = getattr(request, "param", ("conv2d8", 4))
     # Write default configuration file
     S2TTask.main(
         cmd=[
@@ -65,13 +89,13 @@ def s2t_config_file(tmp_path: Path, token_list):
             "--preprocessor_conf",
             "fs=2000",
             "--preprocessor_conf",
-            "speech_length=3",
+            f"speech_length={window}",
             "--frontend_conf",
             "fs=16k",
             "--frontend_conf",
             "hop_length=160",
             "--encoder_conf",
-            "input_layer=conv2d8",
+            f"input_layer={input_layer}",
         ]
     )
     return tmp_path / "s2t" / "config.yaml"
@@ -167,7 +191,7 @@ def test_decode_long_returns_one_segment_for_a_ctc_only_checkpoint(s2t_config_fi
     speech2text = Speech2TextBase(s2t_train_config=s2t_config_file)
     # longer than the buffer the model was trained on, so it is chunked
     speech = np.random.randn(int(speech2text.sample_rate * 7))
-    segments = speech2text.decode_long(speech, batch_size=2, context_len_in_secs=0.5)
+    segments = speech2text.decode_long(speech, batch_size=2, context_len_in_secs=0.8)
 
     assert len(segments) == 1  # no timestamps in a CTC-only model
     start, end, text = segments[0]
@@ -183,17 +207,17 @@ def test_the_deprecated_class_decodes_the_same_way(s2t_config_file):
         old = Speech2TextGreedySearch(s2t_train_config=s2t_config_file)
 
     speech = np.random.randn(int(speech2text.sample_rate * 7))
-    segments = speech2text.decode_long(speech, batch_size=2, context_len_in_secs=0.5)
+    segments = speech2text.decode_long(speech, batch_size=2, context_len_in_secs=0.8)
     assert (
-        old.decode_long_batched_buffered(speech, batch_size=2, context_len_in_secs=0.5)
+        old.decode_long_batched_buffered(speech, batch_size=2, context_len_in_secs=0.8)
         == segments[0][2]
     )
     assert (
-        old.batch_decode(speech, batch_size=2, context_len_in_secs=0.5)
+        old.batch_decode(speech, batch_size=2, context_len_in_secs=0.8)
         == segments[0][2]
     )
     # a list in, a list out
-    assert old.batch_decode([speech], batch_size=2, context_len_in_secs=0.5) == [
+    assert old.batch_decode([speech], batch_size=2, context_len_in_secs=0.8) == [
         segments[0][2]
     ]
 
@@ -298,7 +322,7 @@ def test_Speech2TextGreedy_longform(s2t_config_file):
     speech = np.random.randn(3000)
     result = speech2text.decode_long_batched_buffered(
         speech,
-        context_len_in_secs=1,
+        context_len_in_secs=0.8,
     )
     assert isinstance(result, str)
 
@@ -314,6 +338,6 @@ def test_Speech2TextGreedy_batchdecode(s2t_config_file):
             np.random.randn(7000),
         ],
         batch_size=2,
-        context_len_in_secs=1,
+        context_len_in_secs=0.8,
     )
     assert isinstance(result[0], str) and isinstance(result[1], str)

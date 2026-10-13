@@ -1,4 +1,4 @@
-"""The inference contract, checked without a model.
+"""The inference interface, checked without a model.
 
 A fake transcriber stands in for a system, so what is tested is what the
 base class promises every front end: binding, conversion and checking.
@@ -21,7 +21,7 @@ from espnet3.api.inference import (
     Field,
     InferenceAPI,
     ModelTagError,
-    check_contract,
+    check_inference_api,
     gather,
     load,
     locate_pack,
@@ -105,6 +105,19 @@ def test_audio_rejects_bad_shapes_and_rates():
         Audio(np.zeros(4), 0)
 
 
+def test_audio_concat_joins_pieces_in_either_layout():
+    """Mono pieces come as (samples,) or (1, samples); three of them join alike."""
+    mono = Audio(np.ones(4, dtype=np.float32), 8000)
+    row = Audio(np.ones((1, 4), dtype=np.float32), 8000).multichannel()
+    assert row.array.shape == (1, 4)
+    joined = Audio.concat([mono, row, row])
+    assert joined.array.shape == (12,) and joined.channels == 1
+    stereo = Audio(np.ones((2, 4), dtype=np.float32), 8000)
+    assert Audio.concat([stereo, stereo]).array.shape == (2, 8)
+    with pytest.raises(ValueError, match="channels"):
+        Audio.concat([stereo, mono])
+
+
 def test_audio_resample_only_when_needed():
     audio = Audio(np.zeros(16000, dtype=np.float32), 16000)
     assert audio.resample(16000) is audio
@@ -131,10 +144,10 @@ def test_audio_coerce_every_shape_a_caller_holds(tmp_path):
         Audio.coerce(42, 16000)
 
 
-# --- the contract ----------------------------------------------------------
+# --- the declaration -------------------------------------------------------
 
 
-def test_contract_is_checked_when_the_class_is_defined():
+def test_declaration_is_checked_when_the_class_is_defined():
     with pytest.raises(TypeError, match="tuple of Field"):
 
         class NotFields(InferenceAPI):
@@ -171,7 +184,7 @@ def test_an_intermediate_base_that_declares_nothing_is_allowed():
         pass
 
     with pytest.raises(TypeError):
-        check_contract(Base)
+        check_inference_api(Base)
 
 
 def test_a_text_only_model_declares_no_task_and_no_sample_rate():
