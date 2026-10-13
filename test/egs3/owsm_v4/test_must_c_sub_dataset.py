@@ -14,7 +14,7 @@ import pytest
 import soundfile as sf
 import yaml
 
-from egs3.owsm_v4.owsm.dataset.sub_datasets.must_c import Dataset, DatasetBuilder
+from egs3.owsm_v4.esp2_s2t.dataset.sub_datasets.must_c import Dataset, DatasetBuilder
 
 RATE = 16000
 
