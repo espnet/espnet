@@ -235,7 +235,7 @@ dataloader:
   # Training dataloader / iterator settings.
   train:
     # per_gpu: complete batches per rank (default); global: split each batch.
-    # global requires SequenceIterFactory and at least world_size items per batch.
+    # global requires a shared batch plan and at least world_size items per batch.
     batch_distribution: per_gpu
     # `total_shards` is the total number of dataset shards.
     # `dist_world_size` is the distributed world size used to rotate shards.

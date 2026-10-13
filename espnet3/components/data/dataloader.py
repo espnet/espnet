@@ -53,9 +53,11 @@ class DataLoaderBuilder:
     - Dynamic handling of DDP-compatible iteration strategies
 
     Set `dataloader.<mode>.batch_distribution` to `per_gpu` (the default)
-    to distribute complete batches, or `global` to split each sequence batch
-    across ranks. Global mode requires unsharded datasets, the standard
-    SequenceIterFactory, and at least one sample per rank in every batch.
+    to distribute complete batches, or `global` to split each supplied batch
+    across ranks. Global mode requires unsharded datasets and at least one
+    sample per rank in every batch. Factories that regenerate batches must
+    preserve the distribution when doing so. For CategoryIterFactory, set
+    `sampler_args.distributed: true` for multi-rank global batching.
 
     Typically used by ESPnetLightningModule to instantiate training and validation
     DataLoaders with consistent behavior across single-GPU, multi-GPU, and distributed
@@ -201,7 +203,7 @@ class DataLoaderBuilder:
 
         Examples:
             Set `config.dataloader.train.batch_distribution = "global"` and
-            use SequenceIterFactory to split the sampler's batches across ranks.
+            use an iter_factory to split the sampler's batches across ranks.
             Omitting the setting preserves complete per-GPU batches.
         """
         mode_config = getattr(self.config.dataloader, mode, DictConfig({}))
@@ -232,13 +234,10 @@ class DataLoaderBuilder:
                 "select a single shard explicitly if needed."
             )
         if batch_distribution == "global":
-            if target != (
-                "espnet2.iterators.sequence_iter_factory.SequenceIterFactory"
-            ):
+            if config.iter_factory is None:
                 raise RuntimeError(
-                    "batch_distribution='global' requires the standard "
-                    "SequenceIterFactory; standard, chunk, and custom loaders "
-                    "cannot guarantee shared sequence batches."
+                    "batch_distribution='global' requires an iter_factory "
+                    "with a shared batch plan; standard DataLoader is not supported."
                 )
             if getattr(config.iter_factory, "shuffle_within_batch", False):
                 raise RuntimeError(
@@ -330,6 +329,14 @@ class DataLoaderBuilder:
                     raise RuntimeError(
                         "batch_distribution='global' requires identical batch plans "
                         "and iterator settings on every rank."
+                    )
+                if factory_config.get("_target_") == (
+                    "espnet2.iterators.category_iter_factory.CategoryIterFactory"
+                ) and not (factory_config.get("sampler_args") or {}).get("distributed"):
+                    raise RuntimeError(
+                        "batch_distribution='global' requires "
+                        "sampler_args.distributed=True for CategoryIterFactory; "
+                        "otherwise regenerated batches are duplicated across ranks."
                     )
             if not batches:
                 raise RuntimeError("batch_distribution='global' received no batches.")

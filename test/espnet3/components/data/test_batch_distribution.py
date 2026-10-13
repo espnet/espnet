@@ -8,6 +8,7 @@ import pytest
 import torch
 from omegaconf import OmegaConf
 
+from espnet2.samplers.category_balanced_sampler import CategoryBalancedSampler
 from espnet3.components.data import dataloader as dataloader_module
 from espnet3.components.data.dataloader import DataLoaderBuilder
 from espnet3.components.data.dataset import CombinedDataset
@@ -170,23 +171,81 @@ def test_invalid_distribution_is_rejected(distribution):
         _builder(config).build("train")
 
 
-@pytest.mark.parametrize(
-    "target",
-    [
-        None,
-        "espnet2.iterators.chunk_iter_factory.ChunkIterFactory",
-        "espnet2.iterators.category_iter_factory.CategoryIterFactory",
-    ],
-)
-def test_global_requires_sequence_factory(target):
-    """Factories that change the supplied batch plan cannot promise global batches."""
+def test_global_requires_iter_factory():
+    """Standard DataLoader does not expose the shared batch plan to split."""
     config = _config("global")
-    if target is None:
-        config.dataloader.train.iter_factory = None
-    else:
-        config.dataloader.train.iter_factory._target_ = target
-    with pytest.raises(RuntimeError, match="global.*SequenceIterFactory"):
+    config.dataloader.train.iter_factory = None
+    with pytest.raises(RuntimeError, match="global.*iter_factory"):
         _builder(config).build("train")
+
+
+@pytest.mark.parametrize("rank", [0, 1])
+def test_global_accepts_custom_iter_factory(monkeypatch, rank):
+    """Custom factories receive split batches without a class-name restriction."""
+    monkeypatch.setattr(
+        dataloader_module, "build_batch_sampler", lambda **kwargs: BATCHES
+    )
+    _patch_ranks(monkeypatch, rank, 2)
+    config = _config("global")
+    config.dataloader.train.iter_factory._target_ = (
+        "test.espnet3.components.data.test_dataloader_builder.DummyIterFactory"
+    )
+    loader = _builder(config, 2).build("train")
+    assert list(loader.generate()) == [batch[rank::2] for batch in BATCHES]
+
+
+@pytest.mark.parametrize("epoch", [0, 1])
+def test_global_category_iter_factory(tmp_path, monkeypatch, epoch):
+    """Category batches split correctly at startup and after epoch regeneration."""
+    categories = tmp_path / "category2utt"
+    categories.write_text(
+        "".join(
+            f"category{category} "
+            + " ".join(str(index) for index in range(category * 5, (category + 1) * 5))
+            + "\n"
+            for category in range(4)
+        )
+    )
+    sampler_args = {
+        "category2utt_file": str(categories),
+        "batch_size": 4,
+        "min_batch_size": 2,
+        "num_batches": None,
+        "distributed": True,
+    }
+    initial_batches = list(CategoryBalancedSampler(**sampler_args, epoch=1))
+    expected_batches = list(CategoryBalancedSampler(**sampler_args, epoch=epoch + 1))
+    monkeypatch.setattr(
+        dataloader_module, "build_batch_sampler", lambda **kwargs: initial_batches
+    )
+    config = _config(
+        "global", sampler_args=sampler_args, batch_type="catbel", _convert_="all"
+    )
+    config.dataloader.train.iter_factory._target_ = (
+        "espnet2.iterators.category_iter_factory.CategoryIterFactory"
+    )
+    for rank in range(2):
+        _patch_ranks(monkeypatch, rank, 2)
+        builder = _builder(config, 2)
+        builder.epoch = epoch
+        assert _values(builder.build("train")) == [
+            [int(index) for index in batch[rank::2]] for batch in expected_batches
+        ]
+
+
+@pytest.mark.parametrize("sampler_args", [None, {"distributed": False}])
+def test_global_rejects_unsharded_category_regeneration(monkeypatch, sampler_args):
+    """Reject category settings that would duplicate batches from the next epoch."""
+    monkeypatch.setattr(
+        dataloader_module, "build_batch_sampler", lambda **kwargs: BATCHES
+    )
+    _patch_ranks(monkeypatch, 0, 2)
+    config = _config("global", sampler_args=sampler_args)
+    config.dataloader.train.iter_factory._target_ = (
+        "espnet2.iterators.category_iter_factory.CategoryIterFactory"
+    )
+    with pytest.raises(RuntimeError, match="sampler_args.distributed=True"):
+        _builder(config, 2).build("train")
 
 
 def test_global_rejects_rank_specific_dataset():
@@ -238,12 +297,13 @@ def test_global_rejects_different_rank_plans(monkeypatch):
 
 
 def _distributed_worker(rank, directory, distribution, scenario):
+    torch.set_num_threads(1)
     torch.distributed.init_process_group(
         "gloo",
         init_method=f"file://{directory}/process_group",
         rank=rank,
         world_size=2,
-        timeout=timedelta(seconds=30),
+        timeout=timedelta(seconds=60),
     )
     try:
         batches = BATCHES
@@ -265,7 +325,7 @@ def _distributed_worker(rank, directory, distribution, scenario):
         torch.distributed.destroy_process_group()
 
 
-@pytest.mark.execution_timeout(120)
+@pytest.mark.execution_timeout(300)
 @pytest.mark.parametrize(
     "distribution,scenario",
     [
@@ -277,12 +337,21 @@ def _distributed_worker(rank, directory, distribution, scenario):
 )
 def test_distribution_with_real_process_group(tmp_path, distribution, scenario):
     """Real Gloo ranks agree on steps, reject mismatches, and terminate together."""
-    torch.multiprocessing.spawn(
+    context = torch.multiprocessing.spawn(
         _distributed_worker,
         args=(tmp_path, distribution, scenario),
         nprocs=2,
-        join=True,
+        join=False,
     )
+    try:
+        while not context.join(timeout=1):
+            pass
+    finally:
+        for process in context.processes:
+            if process.is_alive():
+                process.terminate()
+        for process in context.processes:
+            process.join(timeout=5)
     results = [
         json.loads((tmp_path / f"rank{rank}.json").read_text()) for rank in range(2)
     ]

@@ -39,7 +39,7 @@ ESPnet is an end-to-end speech processing toolkit built on [PyTorch](https://pyt
 Existing ESPnet3 configs keep per-GPU behavior when the new setting is omitted.
 Changing the GPU count in that mode changes the effective global batch budget.
 Switching modes does not automatically rescale `batch_bins` or accumulation.
-Global mode requires shared sequence batches with at least `world_size` items;
+Global mode requires shared batches with at least `world_size` items;
 unsupported iterator/sharding configurations raise an error.
 
 <!-- TODO: After merge, replace the draft links below with the corresponding
