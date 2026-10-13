@@ -60,8 +60,7 @@ def _read_manifest(manifest_path: Path) -> list[ManifestEntry]:
 
 
 # Every sample carries these; `utt_id` joins them when the caller asks.
-_FIELDS = (Field("speech", "audio"), Field("text", "text"),
-           Field("src_text", "text"))
+_FIELDS = (Field("speech", "audio"), Field("text", "text"), Field("src_text", "text"))
 
 
 class MiniAn4STDataset(BaseDataset):

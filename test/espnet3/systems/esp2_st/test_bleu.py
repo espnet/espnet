@@ -166,8 +166,9 @@ def test_bleu_writes_detail_with_signature(tmp_path: Path):
 def test_bleu_declares_what_it_reads_and_returns():
     """The config's `inputs:` binds these names; the metric does not rename."""
     assert [f.name for f in BLEU().inputs] == ["ref", "hyp"]
-    assert [f.name for f in BLEU(chrf=False, ter=False, also_lowercase=False)
-            .outputs] == [
+    assert [
+        f.name for f in BLEU(chrf=False, ter=False, also_lowercase=False).outputs
+    ] == [
         "BLEU",
         "BLEU_brevity_penalty",
         "BLEU_1gram_prec",

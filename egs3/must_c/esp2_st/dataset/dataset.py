@@ -89,8 +89,7 @@ def kept_indices(durations, split: str) -> list[int] | None:
 
 
 # Every sample carries these; `utt_id` joins them when the caller asks.
-_FIELDS = (Field("speech", "audio"), Field("text", "text"),
-           Field("src_text", "text"))
+_FIELDS = (Field("speech", "audio"), Field("text", "text"), Field("src_text", "text"))
 
 
 class MustCSTDataset(BaseDataset):
