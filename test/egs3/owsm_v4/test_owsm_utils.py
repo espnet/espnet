@@ -1,6 +1,6 @@
 """Differential tests for the OWSM utterance layer.
 
-``egs3/owsm_v4/owsm/dataset/utils.py`` is a port of
+``egs3/owsm_v4/esp2_s2t/dataset/utils.py`` is a port of
 ``egs2/owsm_v1/s2t1/local/utils.py``. These load the egs2 file at runtime and
 compare against it, rather than asserting golden values, so a change on either
 side surfaces instead of the two silently diverging.
@@ -21,7 +21,7 @@ from pathlib import Path
 import pytest
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
-RECIPE_DIR = REPO_ROOT / "egs3" / "owsm_v4" / "owsm"
+RECIPE_DIR = REPO_ROOT / "egs3" / "owsm_v4" / "esp2_s2t"
 EGS2_UTILS = REPO_ROOT / "egs2" / "owsm_v1" / "s2t1" / "local" / "utils.py"
 
 PACKING_CASES = 200
