@@ -6,7 +6,7 @@ import pytest
 
 from espnet3.api.inference import Field, InferenceAPI
 from espnet3.publication import notebook
-from espnet3.publication.usage import inference_class
+from espnet3.publication.usage import get_inference_class
 
 
 class Describe(InferenceAPI):
@@ -45,12 +45,17 @@ class Say(InferenceAPI):
 
 
 def _sources(page, cell_type=None):
-    return [c["source"] for c in page["cells"] if cell_type in (None, c["cell_type"])]
+    # nbformat keeps a cell's source as a list of lines once it is written
+    return [
+        "".join(c["source"])
+        for c in page["cells"]
+        if cell_type in (None, c["cell_type"])
+    ]
 
 
 def test_the_page_is_a_valid_notebook_and_follows_the_demo_rules():
     nbformat = pytest.importorskip("nbformat")
-    page = notebook.demo_notebook(
+    page = notebook.build_demo_notebook(
         Describe,
         "espnet/some_pack",
         name="asr_demo",
@@ -71,7 +76,7 @@ def test_the_page_is_a_valid_notebook_and_follows_the_demo_rules():
 
 
 def test_the_cells_come_from_the_declaration():
-    page = notebook.demo_notebook(
+    page = notebook.build_demo_notebook(
         Describe,
         "espnet/some_pack",
         name="asr_demo",
@@ -101,13 +106,12 @@ def test_the_cells_come_from_the_declaration():
     assert "[Space](https://huggingface.co/spaces/espnet/x)" in last
     assert "https://huggingface.co/espnet/some_pack" in last
     assert (
-        "Audio and an optional hint in; text, spans and audio out."
-        in page["cells"][0]["source"]
+        "Audio and an optional hint in; text, spans and audio out." in _sources(page)[0]
     )
 
 
 def test_a_text_input_is_given_and_no_recording_is_fetched():
-    page = notebook.demo_notebook(
+    page = notebook.build_demo_notebook(
         Say,
         "espnet/some_tts",
         name="tts_demo",
@@ -148,7 +152,7 @@ class Hear(InferenceAPI):
 
 def test_an_optional_audio_input_given_without_a_required_one():
     """The sample is fetched to it, and nothing indexes a required path."""
-    page = notebook.demo_notebook(
+    page = notebook.build_demo_notebook(
         Hear,
         "x",
         name="tts_demo",
@@ -164,8 +168,8 @@ def test_an_optional_audio_input_given_without_a_required_one():
 
 def test_an_optional_input_named_makes_the_page_about_it():
     """One notebook per task: st_demo passes task=st_deu on the asr model."""
-    page = notebook.demo_notebook(
-        inference_class("s2t"),
+    page = notebook.build_demo_notebook(
+        get_inference_class("s2t"),
         "espnet/owsm_v4_base_102M",
         system="s2t",
         name="st_demo",
@@ -190,7 +194,7 @@ def test_no_version_means_no_pin(monkeypatch):
     import espnet
 
     monkeypatch.setattr(espnet, "__version__", "unknown (running from a source tree)")
-    page = notebook.demo_notebook(
+    page = notebook.build_demo_notebook(
         Say, "x", name="tts_demo", title="t", inputs={"text": "a"}
     )
     assert _sources(page, "code")[0] == "%pip install -q espnet espnet_model_zoo"

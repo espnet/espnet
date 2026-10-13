@@ -3,7 +3,11 @@
 import pytest
 
 from espnet3.api.inference import Field, InferenceAPI
-from espnet3.publication.usage import inference_class, python_usage, usage_section
+from espnet3.publication.usage import (
+    build_python_usage,
+    build_usage_section,
+    get_inference_class,
+)
 
 
 class Describe(InferenceAPI):
@@ -28,7 +32,7 @@ class Describe(InferenceAPI):
 
 
 def test_the_usage_follows_the_declaration():
-    text = python_usage(Describe, "espnet/some_pack")
+    text = build_python_usage(Describe, "espnet/some_pack")
     assert text.splitlines() == [
         "from espnet3.api.inference import load",
         "",
@@ -49,8 +53,8 @@ def test_the_usage_follows_the_declaration():
 
 def test_a_checkpoint_without_a_bundle_names_its_system():
     """load(tag, system=...) is what a published ESPnet2 checkpoint needs."""
-    text = python_usage(
-        inference_class("s2t"), "espnet/owsm_v4_base_102M", system="s2t"
+    text = build_python_usage(
+        get_inference_class("s2t"), "espnet/owsm_v4_base_102M", system="s2t"
     )
     assert 'model = load("espnet/owsm_v4_base_102M", system="s2t")' in text
     assert (
@@ -63,10 +67,10 @@ def test_inference_class_follows_the_aliases_load_follows():
     from espnet3.systems.esp2_asr.inference import Inference as Asr
     from espnet3.systems.esp2_s2t.inference import Inference as S2t
 
-    assert inference_class("asr") is Asr and inference_class("esp2_asr") is Asr
-    assert inference_class("s2t") is S2t
+    assert get_inference_class("asr") is Asr and get_inference_class("esp2_asr") is Asr
+    assert get_inference_class("s2t") is S2t
     with pytest.raises(ImportError):
-        inference_class("no_such_system")
+        get_inference_class("no_such_system")
 
 
 def test_a_system_whose_inference_module_has_no_inference_is_an_import_error(
@@ -79,17 +83,17 @@ def test_a_system_whose_inference_module_has_no_inference_is_an_import_error(
     module.Inference = object  # not an InferenceAPI
     monkeypatch.setitem(sys.modules, "espnet3.systems.blank.inference", module)
     with pytest.raises(ImportError, match="defines no Inference"):
-        inference_class("blank")
+        get_inference_class("blank")
 
 
 def test_usage_section_is_a_fenced_block_under_a_heading():
-    section = usage_section(Describe, "espnet/some_pack")
+    section = build_usage_section(Describe, "espnet/some_pack")
     assert section.startswith("## Usage\n\n```python\n")
     assert section.endswith("\n```")
 
 
 def test_given_inputs_are_written_in_the_call():
-    text = python_usage(
+    text = build_python_usage(
         Describe, "espnet/some_pack", inputs={"speech": "talk.wav", "hint": "a cat"}
     )
     assert 'result = model("talk.wav", hint="a cat")' in text
@@ -100,5 +104,5 @@ def test_given_inputs_are_written_in_the_call():
 
 
 def test_a_tag_is_written_as_a_python_literal():
-    text = python_usage(Describe, 'exp/model "v2"\\pack', system="s2t")
+    text = build_python_usage(Describe, 'exp/model "v2"\\pack', system="s2t")
     assert 'model = load("exp/model \\"v2\\"\\\\pack", system="s2t")' in text
