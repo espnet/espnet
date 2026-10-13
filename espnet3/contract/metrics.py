@@ -124,12 +124,17 @@ def declared_outputs(config: Any) -> Optional[tuple]:
     Mirrors ``espnet3.systems.base.inference_runner.declared_input_names``:
     the model class is found via ``get_class`` without building it, so
     this touches no checkpoint and no device. ``None`` means the
-    configured model is not declared at all - unset, unimportable, or not
-    an :class:`~espnet3.api.inference.InferenceAPI` subclass.
+    configured model is not declared at all - unset, or not an
+    :class:`~espnet3.api.inference.InferenceAPI` subclass. A target that
+    cannot be imported raises instead of reading as undeclared.
 
     ``outputs`` is read from the class, as the contract declares it
     (``ClassVar``, checked at class definition): unlike ``BaseMetric``,
     no ``InferenceAPI`` subclass in ``espnet3`` sets ``self.outputs``.
+
+    Raises:
+        MetricContractError: ``model._target_`` is set but cannot be
+            imported; the import error is chained as ``__cause__``.
 
     Examples:
         >>> from omegaconf import OmegaConf
@@ -148,8 +153,10 @@ def declared_outputs(config: Any) -> Optional[tuple]:
         return None
     try:
         cls = get_class(target)
-    except Exception:
-        return None
+    except Exception as exc:
+        raise MetricContractError(
+            f"cannot import the configured model {target!r}"
+        ) from exc
     if isinstance(cls, type) and issubclass(cls, InferenceAPI):
         return cls.outputs
     return None

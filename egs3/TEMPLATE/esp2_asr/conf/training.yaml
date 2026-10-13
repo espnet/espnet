@@ -72,6 +72,12 @@ create_dataset:
 # Only `data_src_args` is passed to the recipe `Dataset` constructor.
 # Top-level fields such as `name` and `transform` stay in organizer space.
 #
+# The recipe `Dataset` class must inherit
+# `espnet3.components.data.base_dataset.BaseDataset` and declare `fields`:
+# a tuple of `Field(name, kind)` naming each key `__getitem__` returns and
+# its kind (`audio`, `text`, ...). The first item of each instance is
+# checked against this declaration.
+#
 # Example:
 # dataset:
 #   _target_: espnet3.components.data.data_organizer.DataOrganizer
