@@ -23,11 +23,11 @@ needs no change for it::
 
 from __future__ import annotations
 
-from espnet3.api.inference.kinds.audio import Audio, AudioKind
-from espnet3.api.inference.kinds.base import Kind
-from espnet3.api.inference.kinds.number import NumberKind
-from espnet3.api.inference.kinds.segments import SegmentsKind
-from espnet3.api.inference.kinds.text import TextKind
+from espnet3.api.kinds.audio import Audio, AudioKind
+from espnet3.api.kinds.base import Kind
+from espnet3.api.kinds.number import NumberKind
+from espnet3.api.kinds.segments import SegmentsKind
+from espnet3.api.kinds.text import TextKind
 
 # What a field can hold, by the name a Field's ``kind`` gives.
 KINDS: dict[str, Kind] = {

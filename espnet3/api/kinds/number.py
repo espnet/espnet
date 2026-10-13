@@ -1,6 +1,6 @@
 """The ``number`` kind: an ``int`` or ``float``, for a metric's result."""
 
-from espnet3.api.inference.kinds.base import Kind
+from espnet3.api.kinds.base import Kind
 
 
 class NumberKind(Kind):

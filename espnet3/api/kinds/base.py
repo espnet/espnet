@@ -6,8 +6,8 @@ from abc import ABC, abstractmethod
 from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
+    from espnet3.api.field import Field
     from espnet3.api.inference.base import InferenceAPI
-    from espnet3.api.inference.field import Field
 
 
 class Kind(ABC):
@@ -100,8 +100,8 @@ class Kind(ABC):
         rate when none is carried).
 
         Examples:
-            >>> from espnet3.api.inference.field import Field
-            >>> from espnet3.api.inference.kinds.text import TextKind
+            >>> from espnet3.api.field import Field
+            >>> from espnet3.api.kinds.text import TextKind
             >>> TextKind().accepts("hi", Field("text", "text"))
             True
             >>> TextKind().accepts(7, Field("text", "text"))
