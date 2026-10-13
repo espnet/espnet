@@ -10,6 +10,11 @@
 # - `train_tokenizer`: uses `tokenizer`
 # - `collect_stats`: uses `dataset`, `dataloader`, `model`, and `parallel`
 # - `train`: uses most fields in this file
+#
+# The full stage list, order, and config role each one runs on are declared
+# once, on the system class, as `ASRSystem.stages` (a tuple of
+# `StageSpec(name=..., config=..., log_dir=...)`); `--stages` picks from
+# those names, or `all` for every one in declared order.
 
 ##########################################################
 #                  SYSTEM AND PATH SETTING               #
