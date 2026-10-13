@@ -5,7 +5,7 @@ import logging
 import pytest
 from omegaconf import OmegaConf
 
-from espnet3.systems.f5tts.create_token_list import create_token_list
+from espnet3.systems.f5tts.src.create_token_list import create_token_list
 
 
 def _write_manifest(tmp_path, name, rows):
