@@ -20,15 +20,6 @@ ones that change the result:
 - **`batch_bins` restated in ESPnet3's per-GPU unit**, which also bins on
   `feats_shape` rather than raw samples.
 
-## Requirements
-
-This recipe stores audio in [Omni-IO](https://pypi.org/project/omniio/)
-archives, which is not among ESPnet's default dependencies:
-
-```bash
-pip install omniio
-```
-
 ## Corpus
 
 Point `LIBRISPEECH` at an existing LibriSpeech root — the directory that holds
