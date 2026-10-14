@@ -27,21 +27,27 @@
 # is applied to is simply lost. Over 240 epochs that is not a safe assumption
 # to make without evidence.
 #
-# WHAT IT COSTS IN PRACTICE, SO FAR. Against train_e_branchformer_abs_pos,
-# same seed and same data order, precision the only difference:
+# WHAT IT COSTS IN PRACTICE. Against train_e_branchformer_abs_pos, same seed
+# and same data order, precision the only difference:
 #
-#     epoch  bf16-mixed  bf16-true
-#       1      0.0484     0.0413      valid/acc
-#       2      0.0771     0.0573
+#     epoch      9     17     25     34     37
+#     mixed   .397   .884   .921   .935      -      valid/acc
+#     true    .120   .424   .661   .800   .838
 #
-# It starts slower and the gap widens, which is what the missing fp32 master
-# weights predict: early updates are smallest exactly while the warmup keeps
-# the learning rate near 2e-07, so they are the likeliest to be lost. Whether
-# it catches up is the open question -- bf16-mixed only leaves this plateau at
-# epoch 9 (0.3967) and 10 (0.5663) -- and this config is run to 240 epochs to
-# answer it rather than abandoned on two epochs of evidence.
+# It is slow to start and it does converge. The other configs leave the
+# opening plateau at epoch 9; this one sits there until 14 and lifts around
+# 17. That is what dropping the fp32 master weights predicts -- updates are
+# smallest while warmup holds the learning rate near 2e-07, so that is where
+# bf16's 7-bit mantissa loses them. By epoch 37 it is about 0.10 behind at
+# matched epochs and closing. Whether 240 epochs is enough to catch up is
+# still open, and is why this config is being trained to the end rather than
+# judged on its first ten epochs.
 #
-# Wall clock on one A40: 70 min per epoch against 80, so -13%.
+# Wall clock on one A40: 70 min per epoch against 80, so -13%. That does not
+# pay for the lost epochs unless it does catch up.
+#
+# If it does not, the thing to try is bf16 weights with fp32 master weights in
+# the optimizer, which keeps the cast savings without losing the updates.
 ##########################################################
 
 defaults:

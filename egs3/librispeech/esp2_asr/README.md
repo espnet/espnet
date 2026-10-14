@@ -144,28 +144,33 @@ since this recipe decodes without a language model.
 
 Training is in progress. What follows is `valid/acc` and wall clock from runs
 on **one NVIDIA A40** (`batch_bins: 4375000`, `accumulate_grad_batches: 16`,
-391 optimizer steps per epoch), as of 2026-10-12:
+391 optimizer steps per epoch), as of 2026-10-14:
 
-| config | min/epoch | ep 5 | ep 9 | ep 13 | ep 17 | ep 24 |
+| config | min/epoch | ep 9 | ep 17 | ep 25 | ep 34 | ep 45 |
 | --- | --- | --- | --- | --- | --- | --- |
-| baseline | 106 | 0.131 | 0.436 | 0.844 | 0.901 | — |
-| `_sdpa` | 96 | 0.131 | 0.466 | — | — | — |
-| `_abs_pos` | 80 | 0.125 | 0.397 | 0.803 | 0.884 | 0.920 |
-| `_abs_pos_bf16` | 70 | 0.091 | 0.120 | 0.179 | — | — |
+| baseline | 106 | 0.436 | 0.901 | 0.928 | 0.939 | — |
+| `_sdpa` | 96 | 0.466 | 0.899 | 0.926 | — | — |
+| `_abs_pos` | 80 | 0.397 | 0.884 | 0.921 | 0.935 | 0.945 |
+| `_abs_pos_bf16` | 70 | 0.120 | 0.424 | 0.661 | 0.800 | — |
 
-Three things these say so far:
+Four things these say so far:
 
-- **SDPA does not change the learning.** The baseline and `_sdpa` agree to
-  three decimals over the first seven epochs; only the kernel differs.
-- **Relative positions buy a little accuracy per epoch and cost time.**
-  `_abs_pos` trails per epoch but is 25% faster, so it is ahead per hour.
-  The per-epoch gap narrows as training goes on (0.039 at epoch 9, 0.017 at
-  17).
-- **`bf16-true` is not converging.** It never leaves the plateau the others
-  exit around epoch 9. Keeping no fp32 master weights looks like the reason:
-  during warmup the updates are smallest, and bf16's 7-bit mantissa drops
-  them. Do not take that config as a recommendation; it is in the tree because
-  the measurement is worth having.
+- **SDPA does not change the learning.** The baseline and `_sdpa` track each
+  other for 28 epochs — 0.920 against 0.920 at epoch 21, 0.934 against 0.934 at
+  28. Only the kernel differs, and it is 10% faster per epoch.
+- **Relative positions buy a little accuracy per epoch, and the gap closes.**
+  `_abs_pos` trails the baseline by 0.017 at epoch 17, 0.007 at 25, 0.004 at
+  34.
+- **Per hour, `_abs_pos` and `_sdpa` come out level.** At ~45 h `_sdpa` is at
+  0.934 and `_abs_pos` is at 0.934; at 60 h the baseline is at 0.939 and
+  `_abs_pos` at 0.945. Making relative attention fast is worth as much as
+  giving it up.
+- **`bf16-true` is slow to start but does converge.** It sits on the opening
+  plateau until epoch 14 and lifts around 17, where the others lift at 9; by
+  epoch 37 it is at 0.838 and still climbing, roughly 0.10 behind the others at
+  matched epochs and closing. Dropping the fp32 master weights costs the early
+  updates, when warmup keeps them smallest and bf16's 7-bit mantissa drops
+  them. Whether 240 epochs is enough for it to catch up is still open.
 
 ## Pretrained Models
 
