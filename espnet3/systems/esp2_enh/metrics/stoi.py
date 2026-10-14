@@ -1,12 +1,9 @@
 """Short-time objective intelligibility metric."""
 
-from pathlib import Path
-from typing import Dict
+from typing import Any
 
-import numpy as np
-
-from espnet3.components.metrics.base_metric import BaseMetric
-from espnet3.systems.esp2_enh.metrics.sisnr import load_audio
+from espnet3.api.inference import Field
+from espnet3.systems.esp2_enh.metrics.sisnr import MeanScore, waveform
 
 try:
     from pystoi import stoi as stoi_fn
@@ -14,48 +11,35 @@ except ImportError:
     stoi_fn = None
 
 
-class STOI(BaseMetric):
-    """Compute STOI. Requires: `pip install pystoi`.
+class STOI(MeanScore):
+    """Compute mean STOI or ESTOI. Requires: `pip install pystoi`.
 
     Args:
-        ref_key: Input alias for reference waveform paths.
-        hyp_key: Input alias for enhanced waveform paths.
         fs: Sampling rate in Hz.
-        extended: Whether to compute extended STOI (ESTOI).
+        extended: Whether to compute extended STOI (ESTOI). The result is
+            then reported as ``ESTOI`` instead of ``STOI``.
+
+    Examples:
+        >>> metric = STOI(fs=16000)
+        >>> metric.update(ref=["clean.wav"], hyp=["enhanced.wav"])
+        >>> metric.compute()
+        {'STOI': 0.937}
     """
 
-    def __init__(
-        self,
-        ref_key: str = "reference",
-        hyp_key: str = "enhanced",
-        fs: int = 16000,
-        extended: bool = False,
-    ):
-        """Initialize STOI scoring with the configured keys and options."""
-        self.ref_key = ref_key
-        self.hyp_key = hyp_key
+    def __init__(self, fs: int = 16000, extended: bool = False):
+        """Initialize STOI scoring with the configured options."""
         self.fs = fs
         self.extended = extended
+        self.outputs = (Field("ESTOI" if extended else "STOI", "number"),)
+        super().__init__()
 
-    def __call__(
-        self, data: Dict[str, Path], test_name: str, inference_dir: Path
-    ) -> Dict[str, float]:
-        """Return the mean STOI or ESTOI score for one test set."""
+    def score(self, reference: Any, estimate: Any) -> float:
+        """Return the STOI of one utterance, cut to the shorter signal."""
         if stoi_fn is None:
             raise RuntimeError("STOI requires: `pip install pystoi`.")
-        scores = []
-        for _, row in self.iter_inputs(data, self.ref_key, self.hyp_key):
-            reference = load_audio(row[self.ref_key], self.fs)
-            estimate = load_audio(row[self.hyp_key], self.fs)
-            length = min(len(reference), len(estimate))
-            scores.append(
-                stoi_fn(
-                    reference[:length],
-                    estimate[:length],
-                    self.fs,
-                    extended=self.extended,
-                )
-            )
-        mean = float(np.mean(scores)) if scores else float("nan")
-        label = "ESTOI" if self.extended else "STOI"
-        return {label: round(mean, 4)}
+        reference = waveform(reference, self.fs)
+        estimate = waveform(estimate, self.fs)
+        length = min(len(reference), len(estimate))
+        return stoi_fn(
+            reference[:length], estimate[:length], self.fs, extended=self.extended
+        )

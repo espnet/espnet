@@ -1,12 +1,9 @@
 """Perceptual evaluation of speech quality metric."""
 
-from pathlib import Path
-from typing import Dict
+from typing import Any
 
-import numpy as np
-
-from espnet3.components.metrics.base_metric import BaseMetric
-from espnet3.systems.esp2_enh.metrics.sisnr import load_audio
+from espnet3.api.inference import Field
+from espnet3.systems.esp2_enh.metrics.sisnr import MeanScore, waveform
 
 try:
     from pesq import pesq as pesq_fn
@@ -14,40 +11,36 @@ except ImportError:
     pesq_fn = None
 
 
-class PESQ(BaseMetric):
-    """Compute PESQ. Requires: `pip install pesq`.
+class PESQ(MeanScore):
+    """Compute mean PESQ. Requires: `pip install pesq`.
+
+    Wide-band PESQ at 16 kHz, narrow-band at 8 kHz.
 
     Args:
-        ref_key: Input alias for reference waveform paths.
-        hyp_key: Input alias for enhanced waveform paths.
         fs: Sampling rate. Must be 8000 or 16000 Hz.
+
+    Examples:
+        >>> metric = PESQ(fs=16000)
+        >>> metric.update(ref=["clean.wav"], hyp=["enhanced.wav"])
+        >>> metric.compute()
+        {'PESQ': 2.551}
     """
 
-    def __init__(
-        self,
-        ref_key: str = "reference",
-        hyp_key: str = "enhanced",
-        fs: int = 16000,
-    ):
-        """Initialize PESQ scoring for the configured SCP keys and sample rate."""
+    outputs = (Field("PESQ", "number"),)
+
+    def __init__(self, fs: int = 16000):
+        """Initialize PESQ scoring at the given sample rate."""
         if fs not in (8000, 16000):
             raise ValueError(f"PESQ supports only 8000 or 16000 Hz, but got {fs}")
-        self.ref_key = ref_key
-        self.hyp_key = hyp_key
         self.fs = fs
+        super().__init__()
 
-    def __call__(
-        self, data: Dict[str, Path], test_name: str, inference_dir: Path
-    ) -> Dict[str, float]:
-        """Return the mean PESQ score for one test set."""
+    def score(self, reference: Any, estimate: Any) -> float:
+        """Return the PESQ of one utterance, cut to the shorter signal."""
         if pesq_fn is None:
             raise RuntimeError("PESQ requires: `pip install pesq`.")
+        reference = waveform(reference, self.fs)
+        estimate = waveform(estimate, self.fs)
+        length = min(len(reference), len(estimate))
         mode = "wb" if self.fs == 16000 else "nb"
-        scores = []
-        for _, row in self.iter_inputs(data, self.ref_key, self.hyp_key):
-            reference = load_audio(row[self.ref_key], self.fs)
-            estimate = load_audio(row[self.hyp_key], self.fs)
-            length = min(len(reference), len(estimate))
-            scores.append(pesq_fn(self.fs, reference[:length], estimate[:length], mode))
-        mean = float(np.mean(scores)) if scores else float("nan")
-        return {"PESQ": round(mean, 4)}
+        return pesq_fn(self.fs, reference[:length], estimate[:length], mode)

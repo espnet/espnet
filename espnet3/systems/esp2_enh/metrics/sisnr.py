@@ -1,7 +1,7 @@
 """Scale-invariant signal-to-noise ratio metric."""
 
 from pathlib import Path
-from typing import Dict
+from typing import Any, Dict, Sequence
 
 import librosa
 import numpy as np
@@ -9,6 +9,7 @@ import soundfile as sf
 import torch
 
 from espnet2.enh.loss.criterions.time_domain import SISNRLoss
+from espnet3.api.inference import Field
 from espnet3.components.metrics.base_metric import BaseMetric
 
 
@@ -49,27 +50,65 @@ def si_snr(reference: np.ndarray, estimate: np.ndarray) -> float:
     return -float(SISNRLoss()(reference[None], estimate[None]))
 
 
-class SISNR(BaseMetric):
-    """Compute mean SI-SNR from aligned reference and enhanced WAV SCPs.
+def waveform(value: Any, sample_rate: int | None = None) -> np.ndarray:
+    """Return one ``update`` value as a mono waveform.
 
-    Args:
-        ref_key: Input alias for reference waveform paths.
-        hyp_key: Input alias for enhanced waveform paths.
+    ``measure`` passes the paths an SCP lists; a training callback may pass
+    the samples themselves, which are used as they are.
+    """
+    if isinstance(value, (str, Path)):
+        return load_audio(value, sample_rate)
+    return np.asarray(value, dtype=np.float32)
+
+
+class MeanScore(BaseMetric):
+    """Average a per-utterance score of ``ref`` and ``hyp`` over a test set.
+
+    ``ref`` is the clean speech and ``hyp`` the enhanced speech. A subclass
+    implements :meth:`score` and declares the one output it returns.
     """
 
-    def __init__(self, ref_key: str = "reference", hyp_key: str = "enhanced"):
-        """Initialize SI-SNR scoring for the configured SCP keys."""
-        self.ref_key = ref_key
-        self.hyp_key = hyp_key
+    inputs = (Field("ref", "audio"), Field("hyp", "audio"))
 
-    def __call__(
-        self, data: Dict[str, Path], test_name: str, inference_dir: Path
-    ) -> Dict[str, float]:
-        """Return the mean SI-SNR for one test set."""
-        scores = []
-        for _, row in self.iter_inputs(data, self.ref_key, self.hyp_key):
-            scores.append(
-                si_snr(load_audio(row[self.ref_key]), load_audio(row[self.hyp_key]))
-            )
-        mean = float(np.mean(scores)) if scores else float("nan")
-        return {"SI-SNR": round(mean, 4)}
+    def __init__(self) -> None:
+        """Register the running total and count of scored utterances."""
+        super().__init__()
+        self.add_state("total", 0.0, "sum")
+        self.add_state("count", 0, "sum")
+
+    def score(self, reference: np.ndarray, estimate: np.ndarray) -> float:
+        """Return the score of one utterance."""
+        raise NotImplementedError
+
+    def update(self, *, ref: Sequence[Any], hyp: Sequence[Any]) -> None:
+        """Add the scores of one batch of utterances."""
+        for reference, estimate in zip(ref, hyp):
+            self.total += float(self.score(reference, estimate))
+            self.count += 1
+
+    def compute(self) -> Dict[str, float]:
+        """Return the mean score, rounded to 4 places.
+
+        Raises:
+            ValueError: If no utterance was scored.
+        """
+        if self.count == 0:
+            raise ValueError("nothing to score: the test set is empty")
+        return {self.outputs[0].name: round(self.total / self.count, 4)}
+
+
+class SISNR(MeanScore):
+    """Compute mean SI-SNR (dB) of enhanced speech against clean speech.
+
+    Examples:
+        >>> metric = SISNR()
+        >>> metric.update(ref=["clean.wav"], hyp=["enhanced.wav"])
+        >>> metric.compute()
+        {'SI_SNR': 18.73}
+    """
+
+    outputs = (Field("SI_SNR", "number"),)
+
+    def score(self, reference: Any, estimate: Any) -> float:
+        """Return the SI-SNR of one utterance."""
+        return si_snr(waveform(reference), waveform(estimate))

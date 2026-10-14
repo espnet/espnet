@@ -80,7 +80,7 @@ class MiniAn4Builder(DatasetBuilder):
 
         Examples:
             >>> builder = MiniAn4Builder()
-            >>> builder.is_source_prepared("egs3/mini_an4/asr")
+            >>> builder.is_source_prepared("egs3/mini_an4/esp2_enh")
             True
         """
         recipe_root = Path(recipe_dir).resolve()
@@ -110,7 +110,7 @@ class MiniAn4Builder(DatasetBuilder):
 
         Examples:
             >>> builder = MiniAn4Builder()
-            >>> builder.prepare_source("egs3/mini_an4/asr")
+            >>> builder.prepare_source("egs3/mini_an4/esp2_enh")
         """
         recipe_root = Path(recipe_dir).resolve()
         dataset_root = recipe_root / _CFG["dataset_path"]
@@ -144,7 +144,7 @@ class MiniAn4Builder(DatasetBuilder):
 
         Examples:
             >>> builder = MiniAn4Builder()
-            >>> builder.is_built("egs3/mini_an4/asr")
+            >>> builder.is_built("egs3/mini_an4/esp2_enh")
             True
         """
         recipe_root = Path(recipe_dir).resolve()
@@ -178,7 +178,7 @@ class MiniAn4Builder(DatasetBuilder):
 
         Examples:
             >>> builder = MiniAn4Builder()
-            >>> builder.build("egs3/mini_an4/asr")
+            >>> builder.build("egs3/mini_an4/esp2_enh")
         """
         recipe_root = Path(recipe_dir).resolve()
         data = recipe_root / _CFG["data_path"]

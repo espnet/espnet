@@ -14,12 +14,7 @@ dataset:
         inference: true
 
 model:
-  _target_: src.inference.SeparateSpeechWrapper
+  _target_: espnet3.systems.esp2_enh.inference.Inference
   train_config: ${exp_dir}/config.yaml
   model_file: ${exp_dir}/last.ckpt
   normalize_output_wav: true
-
-output_fn: src.inference.build_output
-
-runner:
-  batch_size: 1
