@@ -4,11 +4,11 @@
 - date: `Mon Oct 12 13:18:00 +05 2026`
 - python version: `3.12.8`
 - espnet2 version: `espnet2 202501`
-- pytorch version: `pytorch 2.12`
+- pytorch version: `pytorch 2.14.1`
 
 ## Evaluation on Open ASR Leaderboard (n=100 sample smoke test)
 
-Apple M4 laptop, 4 threads, PyTorch 2.12 (CPU), `ctc_weight=0`, beam 5 unless noted, decoding time only. 100 utterances per set, drawn with seed 0 (`info.json` records sampling parameters and details); these rows evaluate decoding configurations on the same 100-sample test sets rather than leaderboard-level full test sets.
+Hardware: Apple M4 laptop (4 threads, CPU), PyTorch 2.14.1, `ctc_weight=0`, beam 5 unless noted, decoding time only. 100 utterances per set, drawn with seed 0 (`info.json` records sampling parameters and details); these rows evaluate decoding configurations on the same 100-sample test sets rather than leaderboard-level full test sets.
 
 | set (n=100 sample) | utterances | audio (min) | mean length (s) |
 | --- | ---: | ---: | ---: |
@@ -33,4 +33,3 @@ Apple M4 laptop, 4 threads, PyTorch 2.12 (CPU), `ctc_weight=0`, beam 5 unless no
 - **Batch decoding:** `--batch_size 8` decodes utterances in one beam search (`Speech2Text.batch_decode`). Transcripts remain identical. A batch runs until end detection has fired for its slowest utterance.
 - **370M model on AMI:** The 370M model on AMI shows the limit of end detection: on some of these short, noisy utterances no hypothesis ends at three consecutive lengths, so 4 of the 13 batches ran to the 374-step maximum (about 200 s each) and the set decodes at 9 s per utterance while the other sets take about 3 s.
 - **Greedy search stability:** Greedy decoding (`--beam_size 1`) is faster but not safe: on AMI it falls into repetition loops on some utterances and the WER almost doubles.
-- **Other CPU experiments:** Encoding the true utterance length instead of 30 s degraded WER (3.35 -> 10.2, the model needs the padded context); padding to short buckets gained at most 1.3x speedup with WER degradation; bfloat16 was 30x slower on CPU; int8 dynamic quantization increased WER (+1.8); SDPA in decoder showed no speed difference on CPU.

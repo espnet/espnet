@@ -67,26 +67,26 @@ Open ASR Leaderboard test sets can be prepared and evaluated directly through th
 
 `local/data.sh` prepares the [Open ASR Leaderboard](https://huggingface.co/datasets/hf-audio/open-asr-leaderboard) test sets using `local/prepare_hf_asr_leaderboard.py`. Two profiles are supported:
 
-- **Full evaluation (`--openasr_subset full`, default)**: Prepares the full test sets (`data/openasr_<set>`) across benchmark configs (`librispeech` test.clean and test.other, `ami_cleaned`, `voxpopuli_cleaned_aa`, `common_voice`, `tedlium`, `gigaspeech_cleaned`, `spgispeech`, `earnings22`), preserving all utterances without sampling.
-- **Small smoke test (`--openasr_subset small`)**: Prepares 100-utterance subsets (`data/openasr_<set>_100`) from 6 benchmark sets with reproducible seed 0 (`--max_dur 30.0`) for quick local validation on CPU/laptop in a few minutes.
+- **Full evaluation (`--openasr_subset full`, default)**: Prepares the full test sets (`data/openasr_<set>`) across benchmark configs (`librispeech` test.clean and test.other, `ami_cleaned`, `voxpopuli_cleaned_aa`, `common_voice`, `tedlium`, `gigaspeech_cleaned`, `spgispeech`, `earnings22`), preserving all utterances without sampling. Note that `--openasr_subset full` also creates the seeded 100-sample sets (`data/openasr_<set>_100`) alongside the full sets.
+- **Small smoke test (`--openasr_subset small`)**: Prepares only the 100-utterance subsets (`data/openasr_<set>_100`) from 6 benchmark sets with reproducible seed 0 (`--max_dur 30.0`) for quick local validation on CPU/laptop in a few minutes.
 
 The dataset is gated: accept the terms on its page and log in with `huggingface-cli login` (or set `HF_TOKEN`) before running.
 
 ```bash
-# Prepare full leaderboard test sets
-local/data.sh --openasr true --openasr_subset full
+# Prepare full leaderboard test sets (also creates the _100 subsets)
+local/data.sh --stage 5 --stop_stage 5 --openasr_subset full
 
-# Or prepare 100-utterance sample sets for quick smoke testing
-local/data.sh --openasr true --openasr_subset small
+# Or prepare only the 100-utterance sample sets for quick smoke testing
+local/data.sh --stage 5 --stop_stage 5 --openasr_subset small
 ```
 
-### 2. Decoding (Stage 12) and Scoring (Stage 13)
+### 2. Feature Dump (Stage 3), Decoding (Stage 12), and Scoring (Stage 13)
 
-Decode and score using standard `s2t.sh` stages with the Open ASR decoding configuration (`conf/decode_openasr.yaml`: beam 5, ctc 0, maxlenratio 0, lang `<eng>`, task `<asr>`):
+Format test sets, decode, and score using standard `s2t.sh` stages with the Open ASR decoding configuration (`conf/decode_openasr.yaml`: beam 5, ctc 0, maxlenratio 0, lang `<eng>`, task `<asr>`):
 
 ```bash
 # Evaluate OWSM v4 base on the 100-utterance smoke test sets
-./s2t.sh --stage 12 --stop_stage 13 \
+./s2t.sh --stage 3 --stop_stage 13 --skip_train true \
     --download_model espnet/owsm_v4_base_102M \
     --test_sets "openasr_librispeech_test_clean_100 openasr_librispeech_test_other_100 openasr_ami_cleaned_test_100 openasr_voxpopuli_cleaned_aa_test_100 openasr_earnings22_test_100 openasr_common_voice_test_100" \
     --inference_config conf/decode_openasr.yaml \
@@ -97,7 +97,7 @@ Decode and score using standard `s2t.sh` stages with the Open ASR decoding confi
     --hyp_cleaner whisper_en
 
 # Full leaderboard evaluation across all sets
-./s2t.sh --stage 12 --stop_stage 13 \
+./s2t.sh --stage 3 --stop_stage 13 --skip_train true \
     --download_model espnet/owsm_v4_base_102M \
     --test_sets "openasr_librispeech_test_clean openasr_librispeech_test_other openasr_ami_cleaned_test openasr_voxpopuli_cleaned_aa_test openasr_common_voice_test openasr_tedlium_test openasr_gigaspeech_cleaned_test openasr_spgispeech_test openasr_earnings22_test" \
     --inference_config conf/decode_openasr.yaml \

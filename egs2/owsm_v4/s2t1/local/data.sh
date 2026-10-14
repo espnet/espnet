@@ -27,7 +27,6 @@ yodas2_data_path= # Path to the YODAS2 dataset directory
 save_dir= # Directory to save the intermediate data
 
 # Open ASR Leaderboard options
-openasr=false
 openasr_subset=full
 openasr_sets=
 openasr_revision=b6bdcd0beb34f8975dc659796176d88f43aff502
@@ -37,6 +36,13 @@ openasr_seed=0
 
 . ./path.sh
 . ./cmd.sh
+
+if [ -n "${openasr_sets}" ]; then
+    :
+elif [ "${openasr_subset}" != "full" ] && [ "${openasr_subset}" != "small" ]; then
+    echo "Error: --openasr_subset must be either 'full' or 'small', got: ${openasr_subset}"
+    exit 1
+fi
 
 longform_data_file="${save_dir}/all_data.jsonl"
 
@@ -124,7 +130,7 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
 fi
 
 
-if [ "${openasr}" = true ] || { [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ] && [ -z "${file_list}" ]; }; then
+if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
     echo "Stage 5: Prepare Open ASR Leaderboard test sets"
 
     if [ -n "${openasr_sets}" ]; then
@@ -143,7 +149,7 @@ if [ "${openasr}" = true ] || { [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ] &&
         # 1. Full split: data/openasr_<set>
         if [ "${openasr_subset}" != "small" ]; then
             data_full="data/openasr_${prefix}"
-            if [ ! -f "${data_full}/wav.scp" ] || [ ! -f "${data_full}/text" ] || ! python3 - "${data_full}/info.json" "0" "${openasr_revision}" <<'EOF'
+            if [ ! -f "${data_full}/wav.scp" ] || [ ! -f "${data_full}/text" ] || ! python3 - "${data_full}/info.json" "${openasr_revision}" <<'EOF'
 import json, sys
 try:
     info = json.load(open(sys.argv[1]))

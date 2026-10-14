@@ -6,7 +6,9 @@ import numpy as np
 import pytest
 import torch
 
-from espnet2.bin.s2t_inference import Speech2Text, get_parser, main
+import soundfile
+
+from espnet2.bin.s2t_inference import Speech2Text, get_parser, inference, main
 from espnet2.legacy.nets.beam_search import Hypothesis
 from espnet2.tasks.s2t import S2TTask
 from espnet2.tasks.s2t_ctc import S2TTask as S2TCTCTask
@@ -539,3 +541,182 @@ def test_conv2d6_default_context_keeps_contiguous_frames(ctc_config_file, monkey
     for decode in (speech2text.ctc_log_probs, speech2text.decode_long):
         with pytest.raises(ValueError, match="context_len_in_secs.*whole number"):
             decode(speech, context_len_in_secs=2)
+
+
+@pytest.mark.execution_timeout(10)
+def test_inference_long_audio_routed_to_decode_long(
+    s2t_config_file_transformer, tmp_path, monkeypatch, caplog
+):
+    """Utterances longer than speech_length * fs are routed to decode_long."""
+    fs = 2000
+    # speech_length = 4 seconds in fixture -> max_speech_samples = 8000
+    # Create an audio file that exceeds 4 seconds (e.g. 5 seconds = 10000 samples)
+    audio_samples = 10000
+    wav_path = tmp_path / "long.wav"
+    soundfile.write(wav_path, np.random.randn(audio_samples).astype(np.float32), fs)
+
+    wav_scp = tmp_path / "wav.scp"
+    wav_scp.write_text(f"long_utt {wav_path}\n")
+
+    out_dir = tmp_path / "out"
+
+    called_decode_long = []
+
+    def mock_decode_long(self, speech, **kwargs):
+        called_decode_long.append(len(speech))
+        return [(0.0, 5.0, "long transcribed text")]
+
+    monkeypatch.setattr(Speech2Text, "decode_long", mock_decode_long)
+    monkeypatch.setattr(
+        Speech2Text,
+        "__call__",
+        lambda self, speech, **kwargs: [
+            (
+                "mock text",
+                ["m"],
+                [1],
+                "mock text",
+                Hypothesis(score=-1.0, scores={}, states={}, yseq=[]),
+            )
+        ],
+    )
+
+    with caplog.at_level(logging.INFO):
+        parser = get_parser()
+        args = parser.parse_args(
+            [
+                "--output_dir",
+                str(out_dir),
+                "--batch_size",
+                "1",
+                "--dtype",
+                "float32",
+                "--ngpu",
+                "0",
+                "--seed",
+                "0",
+                "--num_workers",
+                "0",
+                "--log_level",
+                "INFO",
+                "--data_path_and_name_and_type",
+                f"{wav_scp},speech,sound",
+                "--s2t_train_config",
+                str(s2t_config_file_transformer),
+                "--beam_size",
+                "1",
+                "--maxlenratio",
+                "-5",
+            ]
+        )
+        kwargs = vars(args)
+        kwargs.pop("config", None)
+        inference(**kwargs)
+
+    assert len(called_decode_long) == 1
+    assert called_decode_long[0] == audio_samples
+    assert "Total utterances decoded via decode_long: 1" in caplog.text
+
+    # Verify output files
+    recog_dir = out_dir / "1best_recog"
+    text_content = (recog_dir / "text").read_text().strip()
+    text_nospecial_content = (recog_dir / "text_nospecial").read_text().strip()
+    token_content = (recog_dir / "token").read_text().strip()
+    token_int_content = (recog_dir / "token_int").read_text().strip()
+    score_content = (recog_dir / "score").read_text().strip()
+
+    assert text_content.startswith("long_utt")
+    assert "long transcribed text" in text_content
+    assert text_nospecial_content.startswith("long_utt")
+    assert "long transcribed text" in text_nospecial_content
+    assert token_content.startswith("long_utt")
+    assert token_int_content.startswith("long_utt")
+    assert score_content == "long_utt 0.0"
+
+
+@pytest.mark.execution_timeout(10)
+def test_inference_mixed_batch_preserves_order_and_keys(
+    s2t_config_file_transformer, tmp_path, monkeypatch, caplog
+):
+    """Mixed batch with short and long inputs preserves order and all keys."""
+    fs = 2000
+    # max_speech_samples = 4 * 2000 = 8000
+    # Create 3 utterances: short (2s = 4000), long (5s = 10000), short (3s = 6000)
+    samples = {"utt1_short": 4000, "utt2_long": 10000, "utt3_short": 6000}
+    wav_scp = tmp_path / "wav.scp"
+    with wav_scp.open("w") as f:
+        for utt_id, n_samp in samples.items():
+            wav_p = tmp_path / f"{utt_id}.wav"
+            soundfile.write(wav_p, np.random.randn(n_samp).astype(np.float32), fs)
+            f.write(f"{utt_id} {wav_p}\n")
+
+    out_dir = tmp_path / "out_mixed"
+
+    def mock_decode_long(self, speech, **kwargs):
+        return [(0.0, 5.0, "long output text")]
+
+    def mock_batch_decode(self, speech, speech_lengths=None, **kwargs):
+        results = []
+        for _ in range(speech.size(0)):
+            hyp = Hypothesis(score=-1.5, scores={}, states={}, yseq=[])
+            results.append([("short text", ["s", "h"], [12, 13], "short text", hyp)])
+        return results
+
+    monkeypatch.setattr(Speech2Text, "decode_long", mock_decode_long)
+    monkeypatch.setattr(Speech2Text, "batch_decode", mock_batch_decode)
+
+    with caplog.at_level(logging.INFO):
+        parser = get_parser()
+        args = parser.parse_args(
+            [
+                "--output_dir",
+                str(out_dir),
+                "--batch_size",
+                "3",
+                "--dtype",
+                "float32",
+                "--ngpu",
+                "0",
+                "--seed",
+                "0",
+                "--num_workers",
+                "0",
+                "--log_level",
+                "INFO",
+                "--data_path_and_name_and_type",
+                f"{wav_scp},speech,sound",
+                "--s2t_train_config",
+                str(s2t_config_file_transformer),
+                "--beam_size",
+                "1",
+                "--maxlenratio",
+                "-5",
+            ]
+        )
+        kwargs = vars(args)
+        kwargs.pop("config", None)
+        inference(**kwargs)
+
+    assert "Total utterances decoded via decode_long: 1" in caplog.text
+
+    recog_dir = out_dir / "1best_recog"
+    text_lines = (recog_dir / "text").read_text().strip().splitlines()
+    text_nospecial_lines = (
+        (recog_dir / "text_nospecial").read_text().strip().splitlines()
+    )
+    score_lines = (recog_dir / "score").read_text().strip().splitlines()
+
+    assert len(text_lines) == 3
+    keys_in_text = [line.split()[0] for line in text_lines]
+    assert keys_in_text == ["utt1_short", "utt2_long", "utt3_short"]
+
+    keys_in_nospecial = [line.split()[0] for line in text_nospecial_lines]
+    assert keys_in_nospecial == ["utt1_short", "utt2_long", "utt3_short"]
+
+    assert "short text" in text_lines[0]
+    assert "long output text" in text_lines[1]
+    assert "short text" in text_lines[2]
+
+    assert score_lines[0].split()[1] == "-1.5"
+    assert score_lines[1].split()[1] == "0.0"
+    assert score_lines[2].split()[1] == "-1.5"

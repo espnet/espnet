@@ -2612,7 +2612,7 @@ class S2TPreprocessor(CommonPreprocessor):
                 speech = np.pad(
                     speech, ((0, 0), (0, self.speech_length - speech.shape[-1]))
                 )
-            else:
+            elif self.train:
                 speech = speech[:, : self.speech_length]
 
             data[self.speech_name] = speech.T  # convert back to time first
@@ -2789,7 +2789,7 @@ class S2TCTCPreprocessor(CommonPreprocessor):
                 speech = np.pad(
                     speech, ((0, 0), (0, self.speech_length - speech.shape[-1]))
                 )
-            else:
+            elif self.train:
                 speech = speech[:, : self.speech_length]
 
             data[self.speech_name] = speech.T  # convert back to time first
