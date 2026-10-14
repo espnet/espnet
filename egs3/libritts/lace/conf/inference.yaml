@@ -6,26 +6,14 @@
 #       --training_config conf/training.yaml \
 #       --inference_config conf/inference.yaml
 #
-# Merged over egs3/TEMPLATE/lace/conf/inference.yaml, which supplies
-# `recipe_dir`, `exp_dir`, `inference_dir`, `parallel`, `batch_size` and
-# the provider/runner classes. `exp_tag`/`exp_dir` are copied in from the
-# training config by run.py, so only recipe-specific keys live here.
+# Merged over egs3/TEMPLATE/lace/conf/inference.yaml (paths, `parallel`,
+# `batch_size`, provider/runner). The model is the system's `Inference`:
+# it rebuilds the wrapped codec from ${exp_dir}/lace_model.yaml, loads the
+# fine-tuned checkpoint strictly, and writes the resynthesized test set as
+# 24 kHz WAV files listed in `${inference_dir}/test/resyn_audio.scp`.
 #
-# The model is the LACE `Inference` (espnet3.api.inference): it takes the
-# dataset's `audio` and returns `resyn_audio`, the encode -> decode
-# roundtrip of the fine-tuned codec at the configured compression `rate`,
-# which the runner writes as 24 kHz WAV files listed in
-# `${inference_dir}/test/resyn_audio.scp`. The ground-truth waveform for
-# scoring is the test set's own `wav_path` column (conf/metrics.yaml).
-#
-# The wrapped architecture is rebuilt from ${exp_dir}/lace_model.yaml
-# (written by LACESystem.train), and the fine-tuned checkpoint is loaded
-# strictly on top.
-#
-# For a rate sweep, copy this config once per rate (e.g.
-# conf/inference_r025.yaml) and change `rate` there; the inference dir is
-# derived from the config's filename, so the runs do not overwrite each
-# other. Outside the recipe, `load(tag, rate=0.25)` does the same.
+# For a rate sweep, copy this file once per rate (e.g. conf/inference_r025.yaml)
+# and change `rate`; the inference dir is named after the config file.
 
 dataset:
   test:
@@ -37,11 +25,8 @@ dataset:
 model:
   _target_: espnet3.systems.lace.inference.Inference
   train_config: ${exp_dir}/lace_model.yaml
-  # Fine-tuned checkpoint (wrapped key layout). Lightning checkpoints
-  # (last.ckpt) are unwrapped automatically and loaded strictly.
-  model_file: ${exp_dir}/last.ckpt
+  model_file: ${exp_dir}/last.ckpt   # Lightning checkpoints are unwrapped automatically
   rate: 0.5
-  # Anchor constraint (optional): layers at/after this index may only
-  # place boundaries inside the union of the earlier layers' boundaries.
-  # null disables; e.g. 2 anchors layers 2+ on layers 0-1.
+  # Layers at/after this index may only cut where earlier layers did;
+  # null disables anchoring.
   anchor_start_layer: null

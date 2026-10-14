@@ -2,31 +2,19 @@
 #                 LACE FINE-TUNING SETTING               #
 ##########################################################
 # Fine-tunes the published LibriTTS EnCodec of the ESPnet3 codec recipe
-# (NewGame/libritts_codec_train_encodec_libritts)
-# with the LACE multi-compression quantizer wrapper (per-codebook
-# variable-rate frame merging before each RVQ layer).
+# (NewGame/libritts_codec_train_encodec_libritts) with the LACE quantizer
+# wrapper. Merged over egs3/TEMPLATE/lace/conf/training.yaml, which
+# supplies the path scaffold, `num_device`, `parallel` and the base
+# `trainer` keys.
 #
 # Quick usage:
 #   python run.py --stages create_dataset --training_config conf/training.yaml
 #   python run.py --stages train          --training_config conf/training.yaml
 #
-# Merged over egs3/TEMPLATE/lace/conf/training.yaml, which supplies the
-# path scaffold (`recipe_dir`, `exp_dir`, `stats_dir`, ...), `num_device`,
-# `parallel` and the base `trainer` keys; only recipe-specific keys live
-# here.
-#
-# NOTE: skip the collect_stats stage - chunk batching needs no shape
-# files (see the dataloader comment below), and the task-less Hydra model
-# path has nothing to collect.
-#
-# NOTE: no `task:` key on purpose. LACESystem then instantiates `model:`
-# as a Hydra _target_ (espnet3.systems.lace.src.lace.LACE), which
-# downloads the published baseline and strict-loads its weights BEFORE
-# wrapping the quantizer. The builder is the recipe's ONLY weight-loading
-# mechanism (do not add a framework `init:` scheme, which could touch the
-# loaded weights). LACESystem.train writes the model spec to
-# ${exp_dir}/lace_model.yaml for the inference stage (conf/inference.yaml)
-# to rebuild from.
+# No `collect_stats` stage: chunk batching needs no shape files. No `task:`
+# key: the model is a Hydra target (espnet3.systems.lace.src.lace.LACE) that
+# strict-loads the pretrained codec itself, and `train` writes its spec to
+# ${exp_dir}/lace_model.yaml for conf/inference.yaml to rebuild from.
 ##########################################################
 #                  SYSTEM AND PATH SETTING               #
 ##########################################################
@@ -35,9 +23,8 @@ exp_tag: train_encodec_lace_libritts
 ##########################################################
 #                 DATASET CREATION SETTING               #
 ##########################################################
-# Forwarded as keyword arguments to `LibriTTSBuilder`
-# (`dataset/builder.py`). Add `remove_archive: true` to delete each
-# downloaded `.tar.gz` after extraction.
+# Keyword arguments of `LibriTTSBuilder` (dataset/builder.py); add
+# `remove_archive: true` to delete each `.tar.gz` after extraction.
 create_dataset:
   recipe_dir: ${recipe_dir}
 
@@ -66,23 +53,17 @@ dataset:
 ##########################################################
 model:
   _target_: espnet3.systems.lace.src.lace.LACE
-  # The published baseline codec, an ESPnet3 `pack_model` bundle on the
-  # Hugging Face Hub (downloaded and cached by espnet_model_zoo). Its
-  # architecture and weights are strict-loaded into the UNWRAPPED model
-  # before the quantizer is wrapped, so a wrong bundle raises instead of
-  # silently partial-loading. To fine-tune a codec you trained yourself,
-  # replace this with `pretrained_model_dir: <that run>/model_pack` (its
-  # pack_model output) or with the repo id its upload_model stage pushed to.
+  # The pretrained codec: an ESPnet3 `pack_model` bundle on the Hugging Face
+  # Hub, strict-loaded before the quantizer is wrapped. For a codec you
+  # trained yourself, use `pretrained_model_dir: <that run>/model_pack`.
   pretrained_model_tag: NewGame/libritts_codec_train_encodec_libritts
   freeze_codec_module_name: none   # none | encoder | decoder
   compression_model:
     name: cosine_similarity        # cosine_similarity | density_peak | dp_segmentation | identity
     params: {}
-    # Training samples a compression rate per forward pass in
-    # [min_rate, max_rate]; validation always uses eval_rate so epochs
-    # are comparable. For cosine_similarity and density_peak the rate
-    # acts directly as the similarity threshold (higher rate = more
-    # segments = less compression).
+    # Training samples a rate per forward pass in [min_rate, max_rate];
+    # validation always uses eval_rate. Higher rate = more segments = less
+    # compression (see README "Compression models" for each model's rule).
     min_rate: 0.1
     max_rate: 1.0
     random_rate: per_quantizer     # per_quantizer | per_sample | none
@@ -91,9 +72,8 @@ model:
 ##########################################################
 #            OPTIMIZER & SCHEDULER SETTING               #
 ##########################################################
-# Same optimizer as the published baseline's training config (AdamW, betas
-# 0.5/0.9, lr 3.0e-4) at a third of the learning rate, since this is
-# fine-tuning of a converged codec; the LACE paper fine-tuned with 1.0e-4.
+# The pretrained codec's optimizer (AdamW, betas 0.5/0.9) at a third of its
+# learning rate, as this is fine-tuning; the paper fine-tuned with 1.0e-4.
 optimizers:
   generator:
     optimizer:
@@ -103,8 +83,8 @@ optimizers:
       eps: 1.0e-9
       weight_decay: 0.0
     params: generator            # substring used to select parameters
-    accum_grad_steps: 1          # number of backward passes before optimizer.step()
-    step_every_n_iters: 1        # only step on every N-th training iteration
+    accum_grad_steps: 1
+    step_every_n_iters: 1
     gradient_clip_val: null
   discriminator:
     optimizer:
@@ -147,9 +127,8 @@ best_model_criterion:
 ##########################################################
 #                   DATALOADER SETTING                   #
 ##########################################################
-# Chunk-based iteration (`ChunkIterFactory` draws fixed-length chunks from
-# each utterance, so no collect_stats shape files are needed), with the
-# chunk length and batch size the published baseline was trained with.
+# Chunk-based iteration with the chunk length and batch size the pretrained
+# codec was trained with.
 dataloader:
   collate_fn:
     _target_: espnet2.train.collate_fn.CommonCollateFn
@@ -158,8 +137,7 @@ dataloader:
   train:
     iter_factory:
       _target_: espnet2.iterators.chunk_iter_factory.ChunkIterFactory
-      # Number of chunks / samples per batch per GPU.
-      batch_size: 4
+      batch_size: 4                # chunks per batch per GPU
       chunk_length: 61440
       num_cache_chunks: 64
       num_samples_per_epoch: 10000
@@ -191,12 +169,8 @@ dataloader:
 ##########################################################
 #                    TRAINER SETTING                     #
 ##########################################################
-# For multi-GPU training (num_device > 1), set `strategy` to
-# ddp_find_unused_parameters_true: GAN steps alternate generator/
-# discriminator optimization (and skip_discriminator_prob skips the
-# discriminator entirely on some steps), so each backward leaves one
-# module's parameters without gradients, which default DDP treats as an
-# error.
+# For num_device > 1 set `strategy: ddp_find_unused_parameters_true`: each
+# GAN turn leaves one module without gradients, which default DDP rejects.
 trainer:
   accumulate_grad_batches: 1
   check_val_every_n_epoch: 1
