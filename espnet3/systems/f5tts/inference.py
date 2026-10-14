@@ -29,6 +29,15 @@ from espnet2.text.build_tokenizer import build_tokenizer
 from espnet2.text.cleaner import TextCleaner
 from espnet2.text.token_id_converter import TokenIDConverter
 from espnet2.torch_utils.safe_torch_load import safe_torch_load
+from espnet3.api.inference import (
+    Audio,
+    Field,
+    InferenceAPI,
+    ModelTagError,
+    load_model,
+    locate_pack,
+    resolve_device,
+)
 from espnet3.systems.f5tts import VOCOS_DEFAULT_MODEL
 from espnet3.utils.config_utils import load_config_with_defaults
 
@@ -536,3 +545,88 @@ class F5TTSInference:
             ]
             return {"wav": wavs}
         return {"wav": self.infer_one(text, reference_audio, reference_text)}
+
+
+class Inference(InferenceAPI):
+    """Synthesize speech in the voice of a reference recording, with F5-TTS.
+
+    The ``text`` is said in the voice of ``speech``, a recording of about
+    the speaker; ``reference_text`` is what that recording says, which the
+    model uses to find where the voice is. Left out, the target text stands
+    in for it, as :meth:`F5TTSInference.infer_one` does. F5-TTS is zero-shot,
+    so there is no call without a reference.
+
+    Built by :meth:`from_pretrained` from a bundle, or around an engine
+    already built (``Inference(F5TTSInference(...))``). The output is
+    :class:`~espnet3.api.inference.Audio` at :attr:`sample_rate`, the rate the
+    vocoder writes.
+
+    Examples:
+        >>> model = Inference.from_pretrained("exp/f5tts_pack")
+        >>> model("Hello from ESPnet", "reference.wav")["audio"].rate
+        24000
+        >>> model("Hello", "reference.wav", reference_text="Hi there")
+    """
+
+    inputs = (
+        Field("text", "text", "Text"),
+        Field("speech", "audio", "Reference speech"),
+        Field("reference_text", "text", "Reference text", optional=True),
+    )
+    outputs = (Field("audio", "audio", "Speech"),)
+
+    def __init__(self, engine: F5TTSInference):
+        """Wrap a built engine; ``from_pretrained`` builds it from a bundle."""
+        self.engine = engine
+
+    @classmethod
+    def from_pretrained(
+        cls, tag_or_dir: str, *, device: str = "auto", **kwargs
+    ) -> "Inference":
+        """Load a ``pack_model`` bundle whose ``model`` is an F5-TTS engine.
+
+        Args:
+            tag_or_dir: A ``pack_model`` output directory, or a Hub tag.
+            device: Where to build the engine: ``"auto"``, ``"cpu"``, or a
+                device by name.
+            **kwargs: Arguments of the engine's constructor that replace the
+                packed values, such as ``ode_solver_steps=16``.
+
+        Returns:
+            A ready :class:`Inference`.
+
+        Raises:
+            ModelTagError: If the bundle builds something other than an
+                F5-TTS engine or an :class:`Inference`.
+        """
+        built = load_model(
+            locate_pack(tag_or_dir), device=resolve_device(device), overrides=kwargs
+        )
+        if isinstance(built, Inference):
+            return built
+        if isinstance(built, InferenceAPI):
+            raise ModelTagError(
+                f"the bundle builds {type(built).__name__}, not Inference"
+            )
+        return cls(built)
+
+    @property
+    def sample_rate(self) -> int:
+        """The rate of the audio the model writes, and of the reference it reads."""
+        return self.engine.target_sample_rate
+
+    def run(
+        self, text: str, speech: Audio, reference_text: Optional[str] = None
+    ) -> dict:
+        """Synthesize ``text`` in the voice of ``speech``.
+
+        Args:
+            text: The text to say.
+            speech: The reference recording, at :attr:`sample_rate`.
+            reference_text: What ``speech`` says, or ``None`` to use ``text``.
+
+        Returns:
+            ``{"audio": Audio}`` at :attr:`sample_rate`.
+        """
+        wav = self.engine.infer_one(text, speech.array, reference_text)
+        return {"audio": Audio(wav, self.sample_rate)}

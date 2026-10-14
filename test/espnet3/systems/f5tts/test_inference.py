@@ -589,3 +589,92 @@ def test_a_chunk_that_generates_no_frames_is_dropped(engine, monkeypatch):
     )
 
     np.testing.assert_array_equal(wav, np.zeros(1, dtype=np.float32))
+
+
+# --------------------------------------------------------- the declaration
+
+
+def test_the_declaration_names_text_and_a_reference_recording_in_and_audio_out():
+    from espnet3.systems.f5tts.inference import Inference
+
+    assert [f.name for f in Inference.inputs] == ["text", "speech", "reference_text"]
+    assert [f.optional for f in Inference.inputs] == [False, False, True]
+    assert [f.kind for f in Inference.outputs] == ["audio"]
+
+
+def test_the_declaration_runs_the_engine_and_writes_audio_at_its_rate(engine):
+    from espnet3.api.inference import Audio
+    from espnet3.systems.f5tts.inference import Inference
+
+    rate = engine.target_sample_rate
+    reference = Audio(np.zeros(rate, dtype=np.float32), rate)
+    out = Inference(engine)("abc", reference)["audio"]
+
+    assert out.rate == rate
+    assert out.array.ndim == 1 and out.array.dtype == np.float32
+
+
+def test_the_reference_text_reaches_the_engine_or_stays_unset(engine, monkeypatch):
+    from espnet3.api.inference import Audio
+    from espnet3.systems.f5tts.inference import Inference
+
+    rate = engine.target_sample_rate
+    reference = Audio(np.zeros(rate, dtype=np.float32), rate)
+    seen = []
+    infer_one = engine.infer_one
+    monkeypatch.setattr(
+        engine,
+        "infer_one",
+        lambda text, audio, ref_text=None: (
+            seen.append(ref_text),
+            infer_one(text, audio, ref_text),
+        )[1],
+    )
+    model = Inference(engine)
+
+    model("abc", reference)
+    model("abc", reference, reference_text="ab")
+    assert seen == [None, "ab"]
+
+
+def test_a_call_without_a_reference_is_refused(engine):
+    from espnet3.systems.f5tts.inference import Inference
+
+    with pytest.raises(TypeError):
+        Inference(engine)("abc")
+
+
+def test_from_pretrained_wraps_the_engine_its_bundle_builds(engine, monkeypatch):
+    import espnet3.systems.f5tts.inference as module
+
+    monkeypatch.setattr(module, "locate_pack", lambda tag: "pack")
+    monkeypatch.setattr(
+        module,
+        "load_model",
+        lambda pack, device, overrides: engine,
+    )
+    model = module.Inference.from_pretrained("org/pack", device="cpu", seed=3)
+
+    assert isinstance(model, module.Inference)
+    assert model.engine is engine
+
+
+def test_from_pretrained_refuses_a_bundle_that_builds_another_system(monkeypatch):
+    import espnet3.systems.f5tts.inference as module
+    from espnet3.api.inference import Field, InferenceAPI, ModelTagError
+
+    class Other(InferenceAPI):
+        inputs = (Field("x", "text", "X"),)
+        outputs = (Field("y", "text", "Y"),)
+
+        @classmethod
+        def from_pretrained(cls, tag_or_dir, *, device="auto", **kwargs):
+            return cls()
+
+        def run(self):
+            return {}
+
+    monkeypatch.setattr(module, "locate_pack", lambda tag: "pack")
+    monkeypatch.setattr(module, "load_model", lambda pack, device, overrides: Other())
+    with pytest.raises(ModelTagError):
+        module.Inference.from_pretrained("org/pack")
