@@ -196,8 +196,8 @@ class CustomCollate:
     def __init__(self):
         pass
 
-    def __call__(batch):
-        return {"custom": True}
+    def __call__(self, batch):
+        return {"custom": True, "batch_size": len(batch)}
 
 
 def test_use_espnet_collator_flag_false(tmp_path, dummy_model, dummy_dataset_config):
@@ -217,10 +217,18 @@ def test_use_espnet_collator_flag_false(tmp_path, dummy_model, dummy_dataset_con
         }
     )
     model = ESPnetLightningModule(dummy_model, config)
-    _ = model.train_dataloader()
-    _ = model.val_dataloader()
+    train_loader = model.train_dataloader()
+    valid_loader = model.val_dataloader()
     assert model.train_dataset.use_espnet_collator is False
     assert model.valid_dataset.use_espnet_collator is False
+
+    # Actually drive a batch through the custom collate_fn: previously
+    # ``CustomCollate.__call__`` had no ``self`` parameter, so it was never
+    # invoked by this test and the resulting TypeError went unnoticed.
+    train_batch = next(iter(train_loader))
+    assert train_batch == {"custom": True, "batch_size": 1}
+    valid_batch = next(iter(valid_loader))
+    assert valid_batch == {"custom": True, "batch_size": 1}
 
 
 # ---------------------- Error Cases ----------------------
@@ -802,6 +810,36 @@ def test_collect_stats_batch_size_comes_from_the_config(
             "dataloader": make_standard_dataloader_config(),
             "num_device": 1,
             "collect_stats_batch_size": configured,
+        }
+    )
+    ESPnetLightningModule(dummy_model, config).collect_stats()
+    assert seen == [expected, expected]  # train and valid
+
+
+@pytest.mark.parametrize(
+    "configured, expected", [(None, "unset"), (False, False), (True, True)]
+)
+def test_collect_stats_train_mode_comes_from_the_config(
+    tmp_path, dummy_model, dummy_dataset_config, monkeypatch, configured, expected
+):
+    """Augmentation during collect_stats is opt-in, from the training config."""
+    import espnet3.components.modeling.lightning_module as module
+
+    seen = []
+    monkeypatch.setattr(
+        module,
+        "collect_stats",
+        lambda **kwargs: seen.append(kwargs.get("train_mode", "unset")),
+    )
+    config = OmegaConf.create(
+        {
+            "exp_dir": str(tmp_path / "exp"),
+            "stats_dir": str(tmp_path / "stats"),
+            "model": {},
+            "dataset": dummy_dataset_config,
+            "dataloader": make_standard_dataloader_config(),
+            "num_device": 1,
+            "collect_stats_train_mode": configured,
         }
     )
     ESPnetLightningModule(dummy_model, config).collect_stats()

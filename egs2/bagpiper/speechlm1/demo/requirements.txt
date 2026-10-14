@@ -1,0 +1,3 @@
+espnet[speechlm,demo]>=202610.post3
+espnet_model_zoo
+librosa

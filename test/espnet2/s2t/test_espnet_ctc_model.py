@@ -10,7 +10,11 @@ from espnet2.s2t.espnet_ctc_model import ESPnetS2TCTCModel
 @pytest.mark.execution_timeout(5)
 @pytest.mark.parametrize("encoder_arch", [EBranchformerCTCEncoder])
 @pytest.mark.parametrize("prompt_encoder_arch", [TransformerEncoder])
-def test_espnet_model(encoder_arch, prompt_encoder_arch):
+@pytest.mark.parametrize(
+    "input_layer", ["conv2d1", "conv2d2", "conv2d", "conv2d6", "conv2d8"]
+)
+@pytest.mark.parametrize("prefix_length", [1, 2, 3])
+def test_espnet_model(encoder_arch, prompt_encoder_arch, input_layer, prefix_length):
     token_list = [
         "<blank>",
         "<unk>",
@@ -28,6 +32,7 @@ def test_espnet_model(encoder_arch, prompt_encoder_arch):
     enc_out = 1
     encoder = encoder_arch(
         15,
+        input_layer=input_layer,
         output_size=enc_out,
         attention_heads=1,
         attention_layer_type="selfattn",
@@ -72,15 +77,35 @@ def test_espnet_model(encoder_arch, prompt_encoder_arch):
     )
 
     inputs = dict(
-        speech=torch.randn(2, 16, 15, requires_grad=True),
-        speech_lengths=torch.tensor([16, 16], dtype=torch.long),
+        speech=torch.randn(2, 64, 15, requires_grad=True),
+        speech_lengths=torch.tensor([64, 64], dtype=torch.long),
         text=torch.randint(2, 4, [2, 4], dtype=torch.long),
         text_lengths=torch.tensor([4, 3], dtype=torch.long),
         text_prev=torch.tensor([[2], [7]], dtype=torch.long),
         text_prev_lengths=torch.tensor([1, 1], dtype=torch.long),
         text_ctc=torch.randint(2, 4, [2, 4], dtype=torch.long),
         text_ctc_lengths=torch.tensor([4, 3], dtype=torch.long),
-        prefix=torch.tensor([[4, 5], [4, 6]], dtype=torch.long),
-        prefix_lengths=torch.tensor([2, 2], dtype=torch.long),
+        prefix=torch.full((2, prefix_length), 4, dtype=torch.long),
+        prefix_lengths=torch.full((2,), prefix_length, dtype=torch.long),
     )
     loss, *_ = model(**inputs)
+
+    # Count the actual convolution outputs, independently of the prefix layout.
+    with torch.no_grad():
+        conv_frames = encoder.embed.conv(inputs["speech"].unsqueeze(1)).size(2)
+        encoded, _ = model.encode(
+            **{
+                key: inputs[key]
+                for key in (
+                    "speech",
+                    "speech_lengths",
+                    "text_prev",
+                    "text_prev_lengths",
+                    "prefix",
+                    "prefix_lengths",
+                )
+            }
+        )
+        if isinstance(encoded, tuple):
+            encoded = encoded[0]
+        assert model.frames(encoded, inputs["prefix"]).size(1) == conv_frames

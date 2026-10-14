@@ -28,6 +28,7 @@ does it in its ``Inference``.
 from __future__ import annotations
 
 import importlib
+import inspect
 import logging
 import os
 import re
@@ -37,11 +38,12 @@ from pathlib import Path
 from typing import Any, Mapping, Optional
 
 import yaml
-from hydra.utils import instantiate
+from hydra.utils import get_object, instantiate
 from omegaconf import DictConfig, OmegaConf, open_dict
 
 from espnet2.utils.pretrained import ModelTagError
 from espnet3.api.inference.base import InferenceAPI
+from espnet3.api.inference.device import resolve_device
 from espnet3.publication.schema import PACK_SCHEMA_VERSION
 from espnet3.utils.config_utils import load_config_with_defaults
 
@@ -52,6 +54,7 @@ logger = logging.getLogger(__name__)
 # rename is one row and every bundle already on the Hub keeps loading.
 SYSTEM_ALIASES: dict[str, str] = {
     "asr": "esp2_asr",  # renamed in #6795; bundles packed before say "asr"
+    "s2t": "esp2_s2t",  # ESPnet2's name for the task, as espnet.load takes it
 }
 
 
@@ -59,6 +62,33 @@ SYSTEM_ALIASES: dict[str, str] = {
 # drops them before the bundled-code check, so a bundle whose only own code
 # is one of these loads without trusting anything.
 _STAGE_KEYS = ("output_fn", "runner", "provider")
+
+# What an untrusted bundle's model may be built from. Hydra imports and calls
+# every ``_target_``, nested ones included, so the bundled-code check alone is
+# not enough: a target naming something already installed here - os.system,
+# torch.load - would pass it and run with the bundle's arguments. Loading
+# builds ``model`` only, and a published model is an ESPnet2 or ESPnet3 class.
+_BUNDLE_TARGET_PREFIXES = ("espnet2.", "espnet3.")
+
+# Refused by name and by what they resolve to. The checks in
+# _disallowed_targets already reject all of these; the list keeps a loader or
+# a shell out if a prefix is ever widened or one is re-exported from an
+# allowed module.
+_DENIED_TARGETS = frozenset(
+    {
+        "torch.load",
+        "torch.jit.load",
+        "torch.serialization.load",
+        "builtins.eval",
+        "builtins.exec",
+        "builtins.__import__",
+        "os.system",
+        "subprocess.run",
+        "subprocess.Popen",
+        "subprocess.call",
+        "subprocess.check_output",
+    }
+)
 
 _BUILD_LOCK = threading.Lock()
 
@@ -94,7 +124,9 @@ def locate_pack(tag_or_dir: str | Path) -> Path:
         raise ModelTagError(
             f"{tag_or_dir} is not a pack_model bundle: it has no inference_config"
         )
-    return Path(artifacts["inference_config"]).resolve().parent.parent
+    # The Hub cache's snapshot holds symlinks into blobs/: take the snapshot
+    # directory first, so resolving does not follow a file into blobs/.
+    return Path(artifacts["inference_config"]).parent.parent.resolve()
 
 
 def read_meta(pack_dir: str | Path) -> dict[str, Any]:
@@ -227,6 +259,22 @@ def read_bundle(
         with open_dict(config):
             for key in drop:
                 config.pop(key, None)
+    if not trust_user_code:
+        disallowed = _disallowed_targets(config.get("model", None))
+        if disallowed:
+            system = meta.get("system")
+            remedy = (
+                f"meta.yaml names system {system!r}, whose Inference never runs "
+                "them; re-pack the bundle without them"
+                if system
+                else "set trust_user_code=True only if you trust the bundle's "
+                "publisher"
+            )
+            raise ValueError(
+                "This inference config builds targets outside the classes a "
+                f"published model may be built from ({', '.join(disallowed)}). "
+                f"Hydra would run them while loading: {remedy}."
+            )
     return config, bundle_root
 
 
@@ -394,7 +442,7 @@ def apply_overrides(config: DictConfig, overrides: Optional[Mapping[str, Any]]) 
 def load(
     tag_or_dir: str | Path,
     *,
-    device: str = "cpu",
+    device: str = "auto",
     system: str | None = None,
     trust_user_code: bool = False,
     **kwargs: Any,
@@ -409,7 +457,10 @@ def load(
 
     Args:
         tag_or_dir: A ``pack_model`` directory or a Hub tag.
-        device: Where to build the model.
+        device: Where to build the model: ``"auto"`` (the default) is CUDA
+            when torch sees a CUDA device, else the CPU; or ``"cpu"``,
+            ``"mps"``, ``"cuda"``, ``"cuda:<n>"``, checked against this
+            machine before anything is downloaded (:func:`resolve_device`).
         system: Overrides the name in ``meta.yaml`` - for a bundle packed
             before the name was recorded, or a model that is not an ESPnet3
             bundle at all, in which case ``tag_or_dir`` is passed to the
@@ -438,12 +489,22 @@ def load(
             ``Inference``.
 
     Examples:
-        >>> model = load("espnet/some_pack")
-        >>> model = load("exp/train/model_pack", device="cuda:0")
+        >>> model = load("espnet/some_pack")                  # cuda if there is one
+        >>> model = load("exp/train/model_pack", device="cpu")
         >>> model = load("exp/old_pack", system="esp2_asr")   # older meta.yaml
+        >>> model = load("espnet/an_espnet2_asr_model", system="asr")
     """
+    device = resolve_device(device)
     if system is None:
-        tag_or_dir = locate_pack(tag_or_dir)
+        try:
+            tag_or_dir = locate_pack(tag_or_dir)
+        except ModelTagError as e:
+            # a model published without a bundle has no meta.yaml to name
+            # its system; only the caller can
+            raise ModelTagError(
+                f"{e}. Pass system=<name> for a model published without one, "
+                "such as system='asr' for an ESPnet2 ASR model."
+            ) from e
         system = read_meta(tag_or_dir).get("system")
         if not system:
             # no system to serve it: the bundle must build an Inference itself
@@ -539,6 +600,72 @@ def _uses_bundled_code(config: DictConfig, bundled: set[str]) -> bool:
         elif isinstance(value, (list, tuple)):
             stack.extend(value)
     return False
+
+
+def _iter_targets(node: Any) -> list[str]:
+    """Return every ``_target_`` string in a config tree, nested ones included.
+
+    Hydra instantiates recursively, so a ``_target_`` inside an argument runs
+    just as the top-level one does.
+    """
+    if node is None:
+        return []
+    if OmegaConf.is_config(node):
+        node = OmegaConf.to_container(node, resolve=False)
+    targets, stack = [], [node]
+    while stack:
+        value = stack.pop()
+        if isinstance(value, Mapping):
+            target = value.get("_target_")
+            if isinstance(target, str):
+                targets.append(target)
+            stack.extend(value.values())
+        elif isinstance(value, (list, tuple)):
+            stack.extend(value)
+    return targets
+
+
+def _disallowed_targets(model: Any) -> list[str]:
+    """Return the ``_target_`` values in ``model`` a bundle may not build.
+
+    Each must clear three checks, in this order:
+
+    - the name as written is in an allowed namespace, so a name outside
+      ``espnet2`` and ``espnet3`` is never imported. A name inside them is
+      imported to be resolved, which runs that module's top-level code -
+      installed ESPnet code, not anything the bundle brought;
+    - the object it resolves to comes from an allowed namespace, because a
+      written path can leave its namespace through an attribute of an
+      allowed module (``espnet3.<module that imports os>.os.system``);
+    - that object is a class.
+
+    The class requirement is not a claim that every class is safe to build.
+    It narrows by what published models are - every ``_target_`` a model in
+    espnet2, espnet3 and egs3 names is a class - while it removes module
+    functions as a category; ``espnet2.bin.launch.main`` clears the first
+    two checks and starts subprocesses with the arguments it is given.
+
+    None of this makes an arbitrary config safe: the arguments an allowed
+    class receives, and OmegaConf resolvers, are a separate surface.
+    """
+    disallowed = set()
+    for target in _iter_targets(model):
+        if target in _DENIED_TARGETS or not target.startswith(_BUNDLE_TARGET_PREFIXES):
+            disallowed.add(target)
+            continue
+        try:
+            obj = get_object(target)
+        except Exception:
+            disallowed.add(f"{target} (does not resolve)")
+            continue
+        module = getattr(obj, "__module__", None) or ""
+        name = getattr(obj, "__qualname__", None) or getattr(obj, "__name__", "")
+        origin = f"{module}.{name}"
+        if origin in _DENIED_TARGETS or not origin.startswith(_BUNDLE_TARGET_PREFIXES):
+            disallowed.add(f"{target} (resolves to {origin})")
+        elif not inspect.isclass(obj):
+            disallowed.add(f"{target} (resolves to {origin}, not a class)")
+    return sorted(disallowed)
 
 
 def _absolutise_paths(obj: Any, seen: Optional[set] = None) -> None:

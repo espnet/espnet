@@ -63,7 +63,7 @@ def fused_cross_entropy_loss(
     """Compute cross-entropy loss using Liger's fused linear + CE kernel.
 
     Uses reduction="sum" with pre-masked targets to work around Liger's
-    reduction="none" backward bug. Two Liger calls: one for stream 0
+    reduction="none" backward behavior. Two Liger calls: one for stream 0
     (full vocab) and one for streams 1+ (multimodal vocab subset).
 
     Args:
@@ -106,6 +106,7 @@ def fused_cross_entropy_loss(
     # Pre-mask: set ignored positions to ignore_index=0 (pad token)
     s0_targets[s0_mask == 0] = 0
 
+    # Newer Liger versions also return predicted tokens as a fourth output.
     s0_loss, s0_z_loss, s0_acc = LigerFusedLinearCrossEntropyFunction.apply(
         s0_hidden,  # _input: [B*T, H]
         lm_head_weight,  # weight: [V, H]
@@ -121,7 +122,7 @@ def fused_cross_entropy_loss(
         torch.float32,  # accum_dtype
         False,  # use_token_scaling
         True,  # return_token_accuracy
-    )
+    )[:3]
 
     # ---- Streams 1+: multimodal vocab subset (single call) ----
     mm_loss = torch.tensor(0.0, device=hidden_states.device)
@@ -163,7 +164,7 @@ def fused_cross_entropy_loss(
             torch.float32,  # accum_dtype
             False,  # use_token_scaling
             True,  # return_token_accuracy
-        )
+        )[:3]
 
     # ---- Combine ----
     count = (loss_mask[:, :, 0] != 0).float().sum()
@@ -171,9 +172,14 @@ def fused_cross_entropy_loss(
 
     # ---- Accuracy stats ----
     stats["z_loss"] = s0_z_loss.float()
-    stats["z_loss_s0"] = s0_z_loss.float() / z_loss_weight
+    stats["z_loss_s0"] = (
+        s0_z_loss.float() / z_loss_weight if z_loss_weight else s0_z_loss.float()
+    )
     if num_stream > 1 and multimodal_vocab_range is not None:
-        stats["z_loss_mm"] = mm_z_loss.float() / z_loss_weight
+        stats["z_loss"] = stats["z_loss"] + mm_z_loss.float()
+        stats["z_loss_mm"] = (
+            mm_z_loss.float() / z_loss_weight if z_loss_weight else mm_z_loss.float()
+        )
     if s0_acc is not None:
         stats["acc_layer0"] = s0_acc * count
 

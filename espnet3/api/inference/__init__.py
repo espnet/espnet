@@ -1,4 +1,4 @@
-"""The inference contract: what a trained ESPnet3 model promises a caller.
+"""The inference interface: what a trained ESPnet3 model promises a caller.
 
 Every system under ``espnet3/systems/<name>/`` ships an ``inference.py``
 whose ``Inference`` class subclasses :class:`InferenceAPI`. The class
@@ -26,9 +26,10 @@ the stream of one chunk, and a batch is several one-shot calls that a
 model may choose to run together.
 
 What a field can hold is a :class:`Kind` registered in :data:`KINDS`
-(``espnet3.api.inference.kinds``); ``audio``, ``text`` and ``segments`` are
-built in, and a new modality is one subclass passed to
-:func:`register_kind` - from a system, or from a recipe's own ``src/``.
+(:mod:`espnet3.api.kinds`, shared by every interface in :mod:`espnet3.api`);
+``audio``, ``text``, ``segments`` and ``number`` are built in, and a new
+modality is one subclass passed to :func:`register_kind` - from a system,
+or from a recipe's own ``src/``.
 
 This package is for whoever calls a model. It asks nothing of the rest
 of ESPnet3 - no recipe, no stage, no dataset, no cluster - and depends on
@@ -40,9 +41,10 @@ stage machinery and stops at this package, which that machinery adapts
 to, never the reverse.)
 
 The package is laid out by what a reader looks for: :mod:`.base` holds
-:class:`InferenceAPI`, :mod:`.field` the :class:`Field` declaration,
-:mod:`.kinds` the kinds, and :mod:`.loading` :func:`load`. Everything is
-importable from here.
+:class:`InferenceAPI` and :mod:`.loading` :func:`load`; the
+:class:`Field` declaration and the kinds are shared by every interface and
+live one level up, in :mod:`espnet3.api.field` and :mod:`espnet3.api.kinds`.
+Everything a caller needs is importable from here.
 
 A system says nothing about *what task* it performs; it says what goes in
 and what comes out. A front end that offers ``transcribe`` looks for a
@@ -56,7 +58,7 @@ Relation to the provider and runner
 ESPnet3 runs its stages through an ``EnvironmentProvider`` and a
 ``BaseRunner`` (``espnet3/parallel``): the provider builds the objects a
 stage needs, the runner processes dataset shards, in parallel, with
-resume and writers. The contract and that pair divide the work like this:
+resume and writers. The interface and that pair divide the work like this:
 
 1. ``Inference`` is the only thing a system must provide for inference.
    It knows nothing of datasets, shards or runners, so the front ends -
@@ -83,7 +85,7 @@ resume and writers. The contract and that pair divide the work like this:
    given to :func:`load` with ``system=`` since there is no bundle. It
    need not have an ``infer`` stage config; if it has one, it may run it
    its own way. The front ends only ever see ``Inference``.
-6. Nothing assumes a task. No layer - the contract, a kind, the
+6. Nothing assumes a task. No layer - the interface, a kind, the
    provider/runner, a front end - may ask a system what task it performs
    or dispatch on a task name; what a model does is read from its fields.
    A verb such as ``transcribe`` is a front end's word for a shape of
@@ -92,17 +94,9 @@ resume and writers. The contract and that pair divide the work like this:
 
 from __future__ import annotations
 
-from espnet3.api.inference.base import InferenceAPI, check_contract, gather
-from espnet3.api.inference.field import Field
-from espnet3.api.inference.kinds import (
-    KINDS,
-    Audio,
-    AudioKind,
-    Kind,
-    SegmentsKind,
-    TextKind,
-    register_kind,
-)
+from espnet3.api.field import Field
+from espnet3.api.inference.base import InferenceAPI, check_inference_api, gather
+from espnet3.api.inference.device import resolve_device
 from espnet3.api.inference.loading import (
     SYSTEM_ALIASES,
     ModelTagError,
@@ -114,6 +108,16 @@ from espnet3.api.inference.loading import (
     read_bundle,
     read_meta,
 )
+from espnet3.api.kinds import (
+    KINDS,
+    Audio,
+    AudioKind,
+    Kind,
+    NumberKind,
+    SegmentsKind,
+    TextKind,
+    register_kind,
+)
 
 __all__ = [
     "KINDS",
@@ -124,16 +128,18 @@ __all__ = [
     "Kind",
     "Field",
     "ModelTagError",
-    "apply_overrides",
-    "build_model",
-    "load_model",
-    "read_bundle",
-    "read_meta",
+    "NumberKind",
     "SegmentsKind",
     "TextKind",
-    "check_contract",
+    "apply_overrides",
+    "build_model",
+    "check_inference_api",
     "gather",
     "load",
+    "load_model",
     "locate_pack",
+    "read_bundle",
+    "read_meta",
     "register_kind",
+    "resolve_device",
 ]

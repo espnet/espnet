@@ -110,6 +110,10 @@ Homepage = "http://github.com/espnet/espnet"
 espnet = "espnet2.bin.cli:main"
 espnet-mcp = "espnet2.bin.mcp_server:main"
 espnet3 = "espnet3.cli.main:main"
+# The text-side counterpart of VERSA's `versa-score`, with the same shape of
+# command. Named after espnet3's `measure` stage rather than after VERSA's,
+# because in ESPnet a "scorer" is a beam-search component.
+splet-measure = "splet.bin.measure:main"
 
 [build-system]
 requires = ["setuptools>=38.5.1,<74.0.0", "wheel", "setuptools-scm>=8.0,<9.0"]
@@ -120,10 +124,16 @@ version = {file = "version.txt"}
 readme = {file = ["README.md"], content-type = "text/markdown"}
 
 [tool.setuptools.packages.find]
-include = ["espnet*", "egs3*"]
+# splet* is listed explicitly because SPLET is deliberately not named
+# espnet-anything: it is a self-contained toolkit that lives here for now and
+# is meant to be extracted into its own repository (espnet/espnet#6760).
+include = ["espnet*", "egs3*", "splet*"]
 
 [tool.setuptools.package-data]
 egs3 = ["egs3/TEMPLATE/**/*.yaml"]
+# splet/egs/ is deliberately not shipped: it holds one example config to copy
+# out of the repository, nothing loads it through importlib.resources, and it
+# is not a package (no __init__.py).
 
 
 [project.optional-dependencies]
@@ -160,6 +170,16 @@ train = [
 # 400 Can't have direct dependency, which is what kept ESPnet off PyPI from
 # v.202604 to v.202609 with nothing local reporting it. ci/check_ci_image_config.py
 # now fails on one.
+# SPLET, the spoken language evaluation toolkit under splet/. It is
+# separable on purpose: everything it needs is here, nothing it needs comes
+# from ESPnet, and ci/check_splet_independence.py fails if that stops being
+# true. PyYAML is the only hard requirement; rapidfuzz is the linear-memory
+# alignment backend, needed for transcripts too long for a full DP table.
+splet = [
+  "PyYAML>=5.1.2",
+  "rapidfuzz",
+]
+
 asr = [
   "espnet-ctc-segmentation>=1.7.4.post1",  # fork of lumaku/ctc-segmentation
   "editdistance",
@@ -243,7 +263,8 @@ speechlm = [
   "polars",
   "duckdb",
   # Keep Linux training dependencies off Windows/macOS installs.
-  "torchtitan; sys_platform == 'linux'",
+  # SpeechLM uses ParallelDims(etp=...), which TorchTitan 0.3 removed.
+  "torchtitan==0.2.2; sys_platform == 'linux'",
   "liger-kernel; sys_platform == 'linux'",
   "flash-linear-attention>=0.2.2; sys_platform == 'linux'",
   "tilelang>=0.1.12; sys_platform == 'linux'",
@@ -289,6 +310,11 @@ mcp = [
   "espnet[enh]",
 ]
 
+# Demo notebooks (espnet3/publication/notebook.py) are written with nbformat.
+notebook = [
+  "nbformat>=5.0",
+]
+
 dev = [
   "black",
   "flake8>=3.7.8",
@@ -316,6 +342,8 @@ test = [
   "playwright",
   # test_mcp_server.py imports mcp outright; macOS CI installs only .[test].
   "mcp>=2.0",
+  # test_notebook.py writes and validates the generated Demos page
+  "espnet[notebook]",
 ]
 
 doc = [
@@ -344,6 +372,7 @@ all = [
   "espnet[speechlm]",
   "espnet[egs2]",
   "espnet[mcp]",
+  "espnet[notebook]",
   "fairscale",
   "transformers",
   "evaluate",

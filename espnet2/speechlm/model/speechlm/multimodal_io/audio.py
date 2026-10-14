@@ -3,6 +3,7 @@
 
 """Audio I/O implementation for discrete and continuous representations"""
 
+import copy
 import math
 from pathlib import Path
 from typing import List, Optional, Tuple, Union
@@ -800,26 +801,14 @@ class DiscreteAudioIO(AbsIO):
     def copy_for_worker(self) -> "DiscreteAudioIO":
         """Create lightweight copy for multiprocessing workers.
 
-        Creates a new instance with the same parameters (loads models)
-        then removes the heavy model components to reduce memory usage
-        in workers while keeping necessary metadata.
+        Keeps preprocessing metadata without loading or copying model weights.
 
         Returns:
             Lightweight copy suitable for workers
         """
-        # Create new instance with same parameters (loads models)
-        worker_copy = self.__class__(
-            codec_choice=self.codec_choice,
-            codec_hf_model_tag=self.codec_hf_model_tag,
-            codec_max_token_per_frame=self.codec_max_token_per_frame,
-            ssl_choice=self.ssl_choice,
-            ssl_hf_model_tag=self.ssl_hf_model_tag,
-            stream_weights=self.stream_weights,
-            delay_interleave=self.delay_interleave,
-            device="cpu",  # Workers use CPU
-        )
-
-        # Remove heavy model components after initialization
+        worker_copy = copy.copy(self)
+        worker_copy._modules = self._modules.copy()
+        worker_copy.device = "cpu"
         worker_copy.codec_model = None
         worker_copy.ssl_model = None
         worker_copy.km_model = None
@@ -1022,9 +1011,11 @@ class ContinuousAudioIO(AbsIO):
 
         # Extract audio features using the encoder
         audio_features = self.model.get_audio_features(
-            batch_data,
-            feature_attention_mask=mask,
+            batch_data, feature_attention_mask=mask
         )
+        # Qwen encoders can return a tensor or a structured model output.
+        if not isinstance(audio_features, torch.Tensor):
+            audio_features = audio_features.last_hidden_state
         # Calculate output lengths after model's downsampling
         output_length = self.find_length(None, length)
         audio_features = audio_features.split(output_length.tolist(), dim=0)
@@ -1089,18 +1080,9 @@ class ContinuousAudioIO(AbsIO):
         Returns:
             Lightweight copy suitable for workers
         """
-        # Create new instance with same parameters
-        worker_copy = self.__class__(
-            encoder_choice=self.encoder_choice,
-            encoder_hf_model_tag=self.encoder_hf_model_tag,
-            attn_implementation=self.attn_implementation,
-            dtype=self.dtype_str,
-            device="cpu",  # Workers use CPU
-        )
-
-        # Remove the heavy model components for workers
-        # Keep only the processor which is needed for preprocessing
-        del worker_copy.model
+        worker_copy = copy.copy(self)
+        worker_copy._modules = self._modules.copy()
+        worker_copy.device = "cpu"
         worker_copy.model = None
 
         return worker_copy

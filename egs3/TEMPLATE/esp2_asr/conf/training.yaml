@@ -10,6 +10,11 @@
 # - `train_tokenizer`: uses `tokenizer`
 # - `collect_stats`: uses `dataset`, `dataloader`, `model`, and `parallel`
 # - `train`: uses most fields in this file
+#
+# The full stage list, order, and config role each one runs on are declared
+# once, on the system class, as `ASRSystem.stages` (a tuple of
+# `StageSpec(name=..., config=..., log_dir=...)`); `--stages` picks from
+# those names, or `all` for every one in declared order.
 
 ##########################################################
 #                  SYSTEM AND PATH SETTING               #
@@ -71,6 +76,12 @@ create_dataset:
 #
 # Only `data_src_args` is passed to the recipe `Dataset` constructor.
 # Top-level fields such as `name` and `transform` stay in organizer space.
+#
+# The recipe `Dataset` class must inherit
+# `espnet3.components.data.base_dataset.BaseDataset` and declare `fields`:
+# a tuple of `Field(name, kind)` naming each key `__getitem__` returns and
+# its kind (`audio`, `text`, ...). The first item of each instance is
+# checked against this declaration.
 #
 # Example:
 # dataset:
@@ -219,6 +230,12 @@ parallel:
 # N / collect_stats_batch_size workers busy.
 collect_stats_batch_size: 4
 
+# Apply the train preprocessor's random augmentation (data_aug_effects, speed
+# perturbation, ...) while collecting statistics. Off by default, as in
+# ESPnet2: the statistics and shape files are then the same on every run and
+# match the unaugmented input seen at inference. Training augments either way.
+collect_stats_train_mode: false
+
 ##########################################################
 #                   DATALOADER SETTING                   #
 ##########################################################
@@ -228,6 +245,9 @@ dataloader:
     int_pad_value: -1
   # Training dataloader / iterator settings.
   train:
+    # per_gpu: complete batches per rank (default); global: split each batch.
+    # global requires a shared batch plan and at least world_size items per batch.
+    batch_distribution: per_gpu
     # `total_shards` is the total number of dataset shards.
     # `dist_world_size` is the distributed world size used to rotate shards.
     # Keep `dist_world_size` equal to the runtime world size.
@@ -248,6 +268,8 @@ dataloader:
 
   # Validation dataloader / iterator settings.
   valid:
+    # Select validation distribution independently from training.
+    batch_distribution: per_gpu
     # Use the same sharding settings as `train`.
     total_shards: 1
     dist_world_size: 1

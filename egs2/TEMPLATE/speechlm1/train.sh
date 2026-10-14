@@ -13,10 +13,10 @@ train_config=
 output_dir=exp/train
 resume_path=
 stats_dir=
-train_unregistered_specifier=
-valid_unregistered_specifier=
-train_registered_specifier=
-valid_registered_specifier=
+train_unregistered_specifier=()
+valid_unregistered_specifier=()
+train_registered_specifier=()
+valid_registered_specifier=()
 save_loader_state=true
 wandb_mode=disabled
 wandb_project=speechlm
@@ -30,11 +30,11 @@ All relative paths are resolved from the recipe directory.
   --train-config PATH                 Training YAML
   --output-dir PATH                   Checkpoints and logs (default: exp/train)
   --stats-dir PATH                    Prepared stats_<task>_<name>.jsonl files
-  --train-unregistered-specifier SPEC 'task:name:dataset.json[:factor] ...'
-  --valid-unregistered-specifier SPEC 'task:name:dataset.json[:factor] ...'
-  --train-registered-specifier SPEC   'task:name[:factor] ...' from the registry
-  --valid-registered-specifier SPEC   'task:name[:factor] ...' from the registry
-  --resume-path PATH                  DCP directory for weights-only initialization
+  --train-unregistered-specifier SPEC 'task:name:dataset.json[:factor]' (repeatable)
+  --valid-unregistered-specifier SPEC 'task:name:dataset.json[:factor]' (repeatable)
+  --train-registered-specifier SPEC   'task:name[:factor]' (repeatable)
+  --valid-registered-specifier SPEC   'task:name[:factor]' (repeatable)
+  --resume-path PATH                  Native .pt weights or DCP directory
                                       Omit to resume the latest output checkpoint
   --ngpu N                           GPUs per node (default: 1)
   --num-nodes N                      Number of nodes (default: 1)
@@ -48,9 +48,9 @@ All relative paths are resolved from the recipe directory.
   --python PATH                     Python executable (default: python)
 "
 
-recipe_dir=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
-cd "${recipe_dir}"
-. ./utils/parse_options.sh
+# Recipe run.sh enters its directory before calling this shared launcher.
+repo_root=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/../../.." && pwd)
+. "${repo_root}/egs2/TEMPLATE/asr1/scripts/speechlm/parse_options.sh"
 
 die() {
     echo "$0: $*" >&2
@@ -60,9 +60,9 @@ die() {
 [[ $# -eq 0 ]] || die "Unexpected positional arguments: $*"
 [[ -f ${train_config} ]] || die "Provide --train-config with an existing YAML file."
 [[ -d ${stats_dir} ]] || die "Provide --stats-dir with prepared length statistics."
-[[ -n ${train_unregistered_specifier} || -n ${train_registered_specifier} ]] \
+(( ${#train_unregistered_specifier[@]} + ${#train_registered_specifier[@]} > 0 )) \
     || die "Provide a training data specifier."
-[[ -n ${valid_unregistered_specifier} || -n ${valid_registered_specifier} ]] \
+(( ${#valid_unregistered_specifier[@]} + ${#valid_registered_specifier[@]} > 0 )) \
     || die "Provide a validation data specifier."
 [[ ${ngpu} =~ ^[1-9][0-9]*$ ]] || die "--ngpu must be a positive integer."
 [[ ${num_nodes} =~ ^[1-9][0-9]*$ ]] || die "--num-nodes must be a positive integer."
@@ -70,11 +70,10 @@ die() {
 (( node_rank < num_nodes )) || die "--node-rank must be less than --num-nodes."
 
 if [[ -n ${resume_path} ]]; then
-    [[ -d ${resume_path} && -f ${resume_path}/.metadata ]] \
-        || die "--resume-path must be a DCP directory containing .metadata: ${resume_path}"
+    [[ -f ${resume_path} || ( -d ${resume_path} && -f ${resume_path}/.metadata ) ]] \
+        || die "--resume-path must be a weight file or DCP directory containing .metadata: ${resume_path}"
 fi
 
-repo_root=$(cd "${recipe_dir}/../../.." && pwd)
 export PYTHONPATH="${repo_root}${PYTHONPATH:+:${PYTHONPATH}}"
 # Dataset resampling uses Python hashes; keep them consistent across ranks.
 export PYTHONHASHSEED=0
@@ -97,9 +96,10 @@ train_args=(
 )
 for specifier in train_unregistered_specifier valid_unregistered_specifier \
     train_registered_specifier valid_registered_specifier; do
-    if [[ -n ${!specifier} ]]; then
-        train_args+=("--${specifier//_/-}" "${!specifier}")
-    fi
+    specifier_ref=${specifier}[@]
+    for spec in "${!specifier_ref}"; do
+        train_args+=("--${specifier//_/-}" "${spec}")
+    done
 done
 if [[ -n ${resume_path} ]]; then
     train_args+=(--resume-path "${resume_path}")

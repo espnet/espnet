@@ -3,6 +3,7 @@
 import logging
 import time
 from pathlib import Path
+from typing import ClassVar
 
 from omegaconf import DictConfig, OmegaConf
 
@@ -10,6 +11,7 @@ from espnet3.components.data.dataset_module import (
     load_dataset_module,
     parse_dataset_reference_config,
 )
+from espnet3.contract.stages import StageSpec, check_stage_contract
 from espnet3.publication.demo.packing import pack_demo as _pack_demo
 from espnet3.publication.demo.packing import upload_demo as _upload_demo
 from espnet3.systems.base.inference import infer
@@ -24,23 +26,23 @@ logger = logging.getLogger(__name__)
 class BaseSystem:
     """Base class for all ESPnet3 systems.
 
+    A system declares its stages as the class attribute ``stages``: a
+    tuple of :class:`~espnet3.contract.stages.StageSpec`, in
+    the order "all" runs them. Every public method a system defines
+    (class-defined, not starting with ``_``) must be one of these stage
+    names - a system has no other public surface. See
+    ``espnet3.contract.stages.check_stage_contract`` for the
+    checks run when a subclass is defined, and
+    ``espnet3.contract.stages.stage_log_dir`` for how a
+    stage's log directory is resolved.
+
     Class Attributes:
         DATASET_BUILDER_CLASS_NAME: Name of the builder class expected in each
             dataset module (default ``"DatasetBuilder"``).
         DATASET_CLASS_NAME: Name of the dataset class expected in each dataset
             module (default ``"Dataset"``). Used by subclasses that instantiate
             datasets directly.
-
-    Each system should implement the following:
-      - create_dataset()
-      - train()
-      - infer()
-      - measure()
-      - publish()
-      - pack_model()
-      - upload_model()
-      - pack_demo()
-      - upload_demo()
+        stages: The declared stage order (see above).
 
     All behavior is config-driven.
 
@@ -48,45 +50,34 @@ class BaseSystem:
         training_config (DictConfig | None): Training configuration.
         inference_config (DictConfig | None): Inference configuration.
         metrics_config (DictConfig | None): Measurement configuration.
-        stage_log_mapping (dict | None): Optional overrides for stage log path
-            resolution. Keys are stage names; values are dotted attribute
-            paths (e.g., ``"training_config.exp_dir"``) or lists/tuples of such
-            paths (first non-empty value wins).
-
-    Stage log mapping (base defaults):
-        | Stage          | Path reference                     |
-        |---             |---                                 |
-        | create_dataset | training_config.data_dir           |
-        | collect_stats  | training_config.stats_dir          |
-        | train          | training_config.exp_dir            |
-        | infer          | inference_config.inference_dir     |
-        | measure        | metrics_config.inference_dir       |
-        | pack_model     | training_config.exp_dir            |
-        | upload_model   | training_config.exp_dir            |
-        | pack_demo      | demo_config.pack.out_dir           |
-        | upload_demo    | demo_config.pack.out_dir           |
-
-    Any stage missing from the mapping (or resolving to ``None``) falls back
-    to the default log directory: ``training_config.exp_dir`` when available,
-    otherwise ``<cwd>/logs``.
+        publication_config (DictConfig | None): Publication configuration.
+        demo_config (DictConfig | None): Demo configuration.
 
     Examples:
-        Override a subset of stage log paths:
-            ```python
-            system = BaseSystem(
-                training_config=train_cfg,
-                inference_config=infer_cfg,
-                metrics_config=measure_cfg,
-                stage_log_mapping={
-                    "infer": "training_config.exp_dir",
-                    "measure": "training_config.exp_dir",
-                },
-            )
-            ```
+        >>> system = BaseSystem()
+        >>> [s.name for s in system.stages[:3]]
+        ['create_dataset', 'collect_stats', 'train']
     """
 
     DATASET_BUILDER_CLASS_NAME = "DatasetBuilder"
     DATASET_CLASS_NAME = "Dataset"
+
+    stages: ClassVar[tuple[StageSpec, ...]] = (
+        StageSpec(name="create_dataset", config="training", log_dir="data_dir"),
+        StageSpec(name="collect_stats", config="training", log_dir="stats_dir"),
+        StageSpec(name="train", config="training", log_dir="exp_dir"),
+        StageSpec(name="infer", config="inference", log_dir="inference_dir"),
+        StageSpec(name="measure", config="metrics", log_dir="inference_dir"),
+        StageSpec(name="pack_model", config=("training", "publication")),
+        StageSpec(name="upload_model", config="publication"),
+        StageSpec(name="pack_demo", config="demo", log_dir="pack.out_dir"),
+        StageSpec(name="upload_demo", config="demo", log_dir="pack.out_dir"),
+    )
+
+    def __init_subclass__(cls, **kwargs) -> None:
+        """Check the subclass's declared ``stages`` against its own methods."""
+        super().__init_subclass__(**kwargs)
+        check_stage_contract(cls)
 
     def __init__(
         self,
@@ -94,7 +85,6 @@ class BaseSystem:
         inference_config: DictConfig | None = None,
         metrics_config: DictConfig | None = None,
         publication_config: DictConfig | None = None,
-        stage_log_mapping: dict | None = None,
         demo_config: DictConfig | None = None,
     ) -> None:
         """Initialize the system with optional stage configs.
@@ -108,7 +98,6 @@ class BaseSystem:
                 stage.
             publication_config: Publication configuration for ``pack_model``
                 and ``upload_model`` stages.
-            stage_log_mapping: Optional per-stage log directory overrides.
             demo_config: Demo configuration for the ``demo`` stage.
         """
         self.training_config = training_config
@@ -123,31 +112,7 @@ class BaseSystem:
         else:
             self.exp_dir = None
 
-        if self.exp_dir is not None:
-            default_dir = self.exp_dir
-        else:
-            default_dir = Path.cwd() / "logs"
-
-        base_mapping = {
-            "create_dataset": "training_config.data_dir",
-            "collect_stats": "training_config.stats_dir",
-            "train": "training_config.exp_dir",
-            "infer": "inference_config.inference_dir",
-            "measure": "metrics_config.inference_dir",
-            "pack_model": "training_config.exp_dir",
-            "upload_model": "training_config.exp_dir",
-            "pack_demo": "demo_config.pack.out_dir",
-            "upload_demo": "demo_config.pack.out_dir",
-        }
-        mapping = dict(base_mapping)
-        if stage_log_mapping:
-            mapping.update(stage_log_mapping)
-
-        self.stage_log_dirs = {"default": default_dir}
-        for stage, ref in mapping.items():
-            resolved = self._resolve_stage_log_ref(ref)
-            if resolved:
-                self.stage_log_dirs[stage] = Path(resolved)
+        self._default_log_dir = self.exp_dir or (Path.cwd() / "logs")
 
         logger.info(
             "Initialized %s with training_config=%s inference_config=%s "
@@ -160,33 +125,6 @@ class BaseSystem:
             demo_config is not None,
             self.exp_dir,
         )
-
-    def _resolve_stage_log_ref(
-        self, ref: str | list[str] | tuple[str, ...] | None
-    ) -> str | None:
-        """Resolve stage log mapping references to concrete values.
-
-        Supports dotted attribute paths like ``training_config.exp_dir`` and
-        fallbacks via list/tuple entries (first non-empty value wins).
-        """
-        target = self
-        if isinstance(ref, (list, tuple)):
-            for item in ref:
-                resolved = self._resolve_stage_log_ref(item)
-                if resolved:
-                    return resolved
-            return None
-
-        if not isinstance(ref, str):
-            return None
-
-        root_name, *parts = ref.split(".")
-        current = getattr(target, root_name, None)
-        for part in parts:
-            if current is None:
-                return None
-            current = getattr(current, part, None)
-        return current
 
     @staticmethod
     def _reject_stage_args(stage: str, args, kwargs) -> None:
@@ -284,7 +222,20 @@ class BaseSystem:
         return None
 
     def collect_stats(self, *args, **kwargs):
-        """Collect statistics needed for training."""
+        """Collect statistics needed for training.
+
+        Reads the same ``dataset:`` block as ``train``. By default the
+        ``DataOrganizer`` is built with ``train_mode=False``, so the train
+        preprocessor's augmentation (``data_aug_effects``, speed perturbation
+        and so on) is not applied, as in ESPnet2: the statistics and the shape
+        files the sampler batches by are then the same on every run. ``train``
+        still augments. To collect statistics with the augmentation applied,
+        set it in the training config:
+
+        .. code-block:: yaml
+
+            collect_stats_train_mode: true
+        """
         self._reject_stage_args("collect_stats", args, kwargs)
         logger.info(
             "Collecting stats | exp_dir=%s stats_dir=%s",
@@ -355,3 +306,8 @@ class BaseSystem:
         """Upload demo bundle to HuggingFace."""
         self._reject_stage_args("upload_demo", args, kwargs)
         return _upload_demo(self)
+
+
+# __init_subclass__ only fires for subclasses; check BaseSystem's own
+# declaration here so it is held to the same contract.
+check_stage_contract(BaseSystem)

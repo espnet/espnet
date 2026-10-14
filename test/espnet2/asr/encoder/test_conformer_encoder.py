@@ -200,3 +200,43 @@ def test_conformer_legacy_rel_pos_is_documented_as_not_invariant():
         )
     )
     assert (batched - alone).abs().max() > 1e-3
+
+
+@pytest.mark.parametrize(
+    "attn, pos_enc",
+    [("selfattn", "abs_pos"), ("rel_selfattn", "rel_pos")],
+)
+def test_use_sdpa_reaches_the_attention_and_matches_the_default(attn, pos_enc):
+    """`use_sdpa` has to be forwarded, and must not change the output.
+
+    Both attention types, because they take different constructor signatures
+    and the relative one reaches scaled_dot_product_attention by a different
+    route -- it folds the relative-position term into the additive mask.
+    """
+    x = torch.randn(2, 120, 80)
+    lengths = torch.tensor([120, 95])
+
+    def build(**kwargs):
+        torch.manual_seed(0)
+        return ConformerEncoder(
+            80,
+            output_size=32,
+            attention_heads=2,
+            linear_units=32,
+            num_blocks=2,
+            selfattention_layer_type=attn,
+            pos_enc_layer_type=pos_enc,
+            use_flash_attn=False,
+            **kwargs,
+        )
+
+    # eval() so dropout does not make the two forward passes draw different
+    # masks: the point of the comparison is the attention implementation.
+    sdpa_encoder = build(use_sdpa=True).eval()
+    assert sdpa_encoder.encoders[0].self_attn.use_sdpa
+
+    with torch.no_grad():
+        default_out, _, _ = build().eval()(x, lengths)
+        sdpa_out, _, _ = sdpa_encoder(x, lengths)
+    assert default_out.shape == sdpa_out.shape
+    assert torch.allclose(default_out, sdpa_out, atol=1e-5)

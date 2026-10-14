@@ -14,8 +14,8 @@
 
 <!--
 Please ensure:
-- No more than 20 files changed
-- Fewer than 1000 lines changed
+- No more than 30 files changed
+- Fewer than 1500 lines changed
 
 Answer "yes" if the above is true.
 

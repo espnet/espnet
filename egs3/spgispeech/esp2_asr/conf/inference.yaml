@@ -11,10 +11,10 @@
 #       --inference_config conf/inference.yaml \
 #       --metrics_config conf/metrics.yaml
 #
-# The only base is egs3/TEMPLATE/esp2_asr/conf/inference.yaml, which run.py injects
-# automatically via load_and_merge_config(default_package="egs3.TEMPLATE.esp2_asr").
+# The only base is egs3/TEMPLATE/esp2_asr/conf/inference.yaml, which launch()
+# injects automatically via load_and_merge_config(default_package="egs3.TEMPLATE.esp2_asr").
 #
-# exp_tag / exp_dir / inference_dir are deliberately omitted: run.py copies
+# exp_tag / exp_dir / inference_dir are deliberately omitted: launch() copies
 # exp_tag and exp_dir from the training config, and inference_dir then defaults
 # to ${exp_dir}/<stem of this file> -- i.e. exp/<exp_tag>/inference/.
 
@@ -72,7 +72,7 @@ dataset:
 # [DEVIATION] NO LANGUAGE MODEL, so lm_weight is dropped.
 # egs2 run.sh passes --lm_config conf/train_lm.yaml, so asr.sh trains a
 # transformer LM and shallow-fuses it at lm_weight 0.3. This egs3 recipe has no
-# LM stage at all (DEFAULT_STAGES in TEMPLATE/esp2_asr/run.py has no train_lm), and
+# LM stage at all (ASRSystem.stages has no train_lm), and
 # nothing in exp/ is an LM. Passing lm_weight without lm_train_config/
 # lm_file would just be ignored by Speech2Text. Expect WER above egs2's
 # published number for this reason ALONE, independent of training length.
@@ -83,7 +83,7 @@ dataset:
 # Its internal paths (token_list, bpemodel, normalize stats_file) are relative,
 # and run.py executes from the recipe dir, so they resolve.
 model:
-  _target_: espnet2.bin.asr_inference.Speech2Text
+  _target_: espnet3.systems.esp2_asr.inference.Inference
   asr_train_config: ${exp_dir}/config.yaml
   # Weight average over the top-10 valid/acc checkpoints, written by
   # AverageCheckpointsCallback (keep_nbest_models: 10). This is the checkpoint
@@ -97,15 +97,11 @@ model:
   maxlenratio: 0.0
   minlenratio: 0.0
 
-input_key: speech
-output_fn: src.inference.build_output
-
 # Pinned explicitly rather than left to inherit egs3/TEMPLATE/esp2_asr's default
 # (also 4, as of espnet/espnet#6658): consecutive utterances are decoded
 # together in one `Speech2Text.batch_decode` call, 2.8x faster on dev_4k than
 # batch_size: null (31.3 min vs 88.75 min, 1 GPU) with WER/CER unchanged
-# within noise -- see readme.md's Results section. `src/inference.py`'s
-# `build_output` handles the resulting list-of-samples call.
+# within noise -- see readme.md's Results section.
 batch_size: 4
 
 ##########################################################

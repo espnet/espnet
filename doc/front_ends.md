@@ -51,7 +51,7 @@ Whatever `espnet2.bin` class does the work. It takes `model_tag` through
 `from_pretrained`, and `test/espnet2/bin/test_from_pretrained_routing.py`
 holds every such class to one way of fetching a published model.
 
-An ESPnet3 system states the same thing as a contract: its
+An ESPnet3 system states the same thing as an interface: its
 `espnet3/systems/<name>/inference.py` defines `Inference`, a subclass of
 `espnet3.api.inference.InferenceAPI` that declares the fields it takes and
 returns, and `espnet3.api.inference.load(tag)` finds it from the bundle's
@@ -75,6 +75,18 @@ works online or `run` if it needs the whole input, and gets the other.
 
 A command is one positional input and options. If a task needs two inputs, it
 is a flag (`espnet align audio.wav --text "..."`), not a second positional.
+
+### `espnet run`: the one command with no task in its name
+
+Every verb above is a front end for one task. `espnet run <tag>` is the
+front end for the contract itself: it loads any model `espnet3.api.inference.load`
+reads (`--system` names the system for a checkpoint published without a
+bundle), takes the inputs the model declares as `name=value` - a path for
+audio, a string for text, JSON otherwise - and prints the outputs it
+declares, one after the other, an audio output as a WAV file. `--list`
+prints the declaration. It is what a model card's usage says in Python,
+at a terminal, and so it is the line a generated card can show for any
+system, including one that has no verb here yet.
 
 ### 3. The MCP server — `espnet2/bin/mcp_server.py`
 
