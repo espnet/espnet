@@ -105,7 +105,8 @@ model:
 # model said, with the tags already stripped, and `segments` where each
 # utterance fell. The reference for scoring is the dataset's `text` column,
 # which keeps its tags, and `measure` reads it from the data
-# (`ref_key: dataset:text` in metrics.yaml), so this stage does not copy it.
+# (`ref: dataset:text` in metrics.yaml's `inputs:`), so this stage does not
+# copy it.
 
 # Only for a model that is not an `Inference`: the dataset field(s) passed to
 # it. If `dataset[i]` returns `{"speech": ..., "text": ..., "utt_id": ...}` and
