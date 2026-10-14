@@ -132,14 +132,13 @@ class LACESystem(BaseSystem):
     ``training_config.model._target_``; ``task`` must be left unset.
 
     Examples:
-        Wired through ``egs3/TEMPLATE/lace/run.py``:
+        A recipe's ``run.py`` (``egs3/libritts/lace/run.py``):
         ```python
-        from egs3.TEMPLATE.lace.run import DEFAULT_STAGES, build_parser, main
         from espnet3.systems.lace.system import LACESystem
+        from espnet3.systems.launch import launch
 
-        parser = build_parser(stages=DEFAULT_STAGES)
-        args, _ = parse_cli_and_stage_args(parser, stages=DEFAULT_STAGES)
-        main(args=args, system_cls=LACESystem, stages=DEFAULT_STAGES)
+        if __name__ == "__main__":
+            launch(LACESystem)
         ```
     """
 

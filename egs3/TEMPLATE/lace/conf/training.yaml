@@ -11,7 +11,7 @@
 # - `train`: uses most fields in this file
 #
 # This is the shared default merged under every LACE recipe's training config
-# (see `load_and_merge_config` in `run.py`). Kept as empty as possible so it
+# (`espnet3.systems.launch` merges them). Kept as empty as possible so it
 # never conflicts with a concrete recipe config: a LACE run fine-tunes a
 # published espnet2 GAN codec (Encodec, SoundStream, DAC, FunCodec) whose
 # architecture comes with the bundle and whose optimizer, chunk length and
