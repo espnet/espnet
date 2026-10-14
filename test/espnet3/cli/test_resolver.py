@@ -49,6 +49,13 @@ def test_resolve_recipe_rejects_missing_recipe(fake_egs3, recipe):
         resolve_recipe(recipe)
 
 
+def test_resolve_recipe_rejects_file_at_recipe_path(fake_egs3):
+    recipe_file = fake_egs3 / "mini_an4" / "file"
+    recipe_file.write_text("not a recipe directory")
+    with pytest.raises(FileNotFoundError, match="mini_an4/file"):
+        resolve_recipe("mini_an4/file")
+
+
 def test_resolve_recipe_error_lists_available_recipes(fake_egs3):
     with pytest.raises(FileNotFoundError) as error:
         resolve_recipe("unknown/asr")

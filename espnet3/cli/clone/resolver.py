@@ -60,7 +60,7 @@ def resolve_recipe(recipe: str) -> Path:
         raise ValueError(
             f"Recipe must resolve to a subdirectory of egs3, got: {recipe!r}"
         )
-    if not recipe_path.exists():
+    if not recipe_path.is_dir():
         available = _list_available(egs3)
         hint = "\n  ".join(available) if available else "(none found)"
         raise FileNotFoundError(

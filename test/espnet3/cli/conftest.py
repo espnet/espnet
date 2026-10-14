@@ -47,6 +47,8 @@ def fake_recipe(tmp_path):
     assets = recipe / "assets"
     assets.mkdir()
     (assets / "metadata.json").write_text('{"version": 1}')
+    (recipe / "dataset" / "data").mkdir()
+    (recipe / "dataset" / "data" / "README.md").write_text("recipe source")
     (recipe / "demo").mkdir()
     (recipe / "demo" / "app.py").write_text("# demo")
     (recipe / "__init__.py").write_text("")
@@ -54,4 +56,7 @@ def fake_recipe(tmp_path):
     (recipe / "downloads.tar.gz").write_bytes(b"")
     (recipe / ".agents").mkdir()
     (recipe / ".agents" / "instructions.md").write_text("ignore")
+    for name in ("data", "exp", "dump", "downloads", ".cache", ".pytest_cache"):
+        (recipe / name).mkdir()
+    (recipe / "sample.pyc").write_bytes(b"")
     return recipe

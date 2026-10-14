@@ -15,15 +15,6 @@ gen_dummy_coverage(){
     ${python} empty.py
 }
 
-write_cloned_path_sh() {
-    cat > path.sh <<EOF
-#!/usr/bin/env bash
-
-source "${cwd}/tools/activate_python.sh"
-source "${cwd}/tools/extra_path.sh"
-EOF
-}
-
 cleanup() {
     if [ -n "${clone_workdir}" ] && [ -d "${clone_workdir}" ]; then
         rm -rf "${clone_workdir}"
@@ -35,9 +26,8 @@ trap cleanup EXIT
 python3 -m pip install -e '.[asr]'
 
 clone_workdir=$(mktemp -d)
-espnet3 clone mini_an4/esp2_asr --project "${clone_workdir}/recipe"
+espnet clone mini_an4/esp2_asr --project "${clone_workdir}/recipe"
 cd "${clone_workdir}/recipe" || exit
-write_cloned_path_sh
 gen_dummy_coverage
 echo "==== [ESPnet3] ASR ===="
 source path.sh

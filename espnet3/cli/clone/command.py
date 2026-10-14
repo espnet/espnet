@@ -3,13 +3,31 @@
 from __future__ import annotations
 
 import argparse
-import logging
+from fnmatch import fnmatchcase
 import shutil
 from pathlib import Path
 
-logger = logging.getLogger(__name__)
-
-_EXCLUDED_NAMES = {"__pycache__", "downloads", "downloads.tar.gz", "demo"}
+_IGNORED_ANYWHERE = ("*.pyc", "__pycache__", ".pytest_cache")
+# These mirror the egs*/<dataset>/<task>/ rules in .gitignore. `data` is exact:
+# `dataset/` is recipe source and must be copied.
+_IGNORED_RECIPE_ROOT = (
+    "data",
+    "manifest*",
+    "db",
+    "downloads",
+    "dump",
+    "enhan",
+    "exp",
+    "fbank",
+    "mfcc",
+    "stft",
+    "tensorboard",
+    "wav*",
+    "score*",
+    "nltk*",
+    ".cache*",
+    "pretrained_models*",
+)
 
 _DESCRIPTION = """\
 Copy an egs3 recipe to a new directory so you can customise it without
@@ -26,25 +44,25 @@ _EPILOG = """\
 examples:
   Clone using the recipe name as destination (./mini_an4/esp2_asr/):
 
-    espnet3 clone mini_an4/esp2_asr
+    espnet clone mini_an4/esp2_asr
     cd mini_an4/esp2_asr
     python run.py --stages create_dataset train \\
         --training_config conf/training.yaml
 
   Clone into a custom directory:
 
-    espnet3 clone mini_an4/esp2_asr --project my_asr
+    espnet clone mini_an4/esp2_asr --project my_asr
     cd my_asr
     python run.py --stages create_dataset train \\
         --training_config conf/training.yaml
 
   List all available recipes:
 
-    espnet3 clone --list
+    espnet clone --list
 
   Run all stages end-to-end after cloning:
 
-    espnet3 clone librispeech_100/esp2_asr --project ls_asr
+    espnet clone librispeech_100/esp2_asr --project ls_asr
     cd ls_asr
     python run.py --stages all \\
         --training_config conf/training.yaml \\
@@ -53,29 +71,32 @@ examples:
 
 what gets cloned:
   The complete recipe package, including recipe-specific files and directories.
-  Generated artefacts, caches, and hidden entries are excluded.
+  Generated artefacts and caches ignored by the recipe policy are excluded.
 """
 
 _MISSING_RECIPE = """\
 recipe argument is required.
 
-  espnet3 clone <dataset>/<task> [--project <dir>]
+  espnet clone <dataset>/<task> [--project <dir>]
 
 examples:
-  espnet3 clone mini_an4/esp2_asr                    # clones to ./mini_an4/esp2_asr/
-  espnet3 clone mini_an4/esp2_asr --project my_asr   # clones to ./my_asr/
+  espnet clone mini_an4/esp2_asr                    # clones to ./mini_an4/esp2_asr/
+  espnet clone mini_an4/esp2_asr --project my_asr   # clones to ./my_asr/
 
-run 'espnet3 clone --list' to see all available recipes.
-run 'espnet3 clone --help' for full usage.\
+run 'espnet clone --list' to see all available recipes.
+run 'espnet clone --help' for full usage.\
 """
 
 
-def add_arguments(subparsers) -> None:
+def add_arguments(subparsers) -> argparse.ArgumentParser:
     """Register the clone subcommand onto an argparse subparsers object.
 
     Args:
-        subparsers: The argparse ``_SubParsersAction`` returned by
+        subparsers: The argparse subparser collection returned by
             ``ArgumentParser.add_subparsers()``.
+
+    Returns:
+        The parser created for the ``clone`` subcommand.
 
     Examples:
         >>> import argparse
@@ -116,14 +137,15 @@ def add_arguments(subparsers) -> None:
         help="List all available recipes and exit.",
     )
     parser.set_defaults(func=run)
+    return parser
 
 
-def run(args) -> None:
+def run(args) -> int:
     """Copy a complete egs3 recipe package into a new project directory.
 
     The recipe directory is the source of truth for its layout. Generated
-    artefacts, caches, and hidden entries are excluded; all other files,
-    including package markers and recipe-specific source, are copied.
+    artefacts and caches ignored by the recipe policy are excluded; all other
+    files, including package markers and recipe-specific source, are copied.
 
     Args:
         args: Parsed CLI arguments containing a ``<dataset>/<task>`` recipe
@@ -152,7 +174,7 @@ def run(args) -> None:
             print("Available recipes:")
             for recipe in recipes:
                 print(f"  {recipe}")
-        return
+        return 0
 
     if args.recipe is None:
         raise ValueError(_MISSING_RECIPE)
@@ -160,7 +182,8 @@ def run(args) -> None:
     from espnet3.cli.clone.resolver import resolve_recipe
 
     recipe_path = resolve_recipe(args.recipe)
-    dest = Path(args.project).resolve() if args.project else Path.cwd() / args.recipe
+    recipe_name = args.recipe.strip("/")
+    dest = Path(args.project).resolve() if args.project else Path.cwd() / recipe_name
 
     if dest.exists():
         raise FileExistsError(
@@ -168,55 +191,38 @@ def run(args) -> None:
             "Remove it or choose a different --project name."
         )
 
-    logging.basicConfig(level=logging.INFO, format="%(message)s")
-    logger.info("Cloning %s -> %s", args.recipe, dest)
+    print(f"Cloning {args.recipe} -> {dest}")
 
+    dest.parent.mkdir(parents=True, exist_ok=True)
     _copy_recipe(recipe_path, dest)
-    _inject_corpus_system(dest, args.recipe)
 
-    logger.info("Done.")
-    logger.info("  cd %s", dest)
-    logger.info("  python run.py --help")
+    print("Done.")
+    print(f"  cd {dest}")
+    print("  python run.py --help")
+    return 0
 
 
 def _copy_recipe(src: Path, dest: Path) -> None:
     """Copy a recipe package while excluding generated artefacts and caches."""
-    shutil.copytree(src, dest, symlinks=False, ignore=_ignore_recipe_artifacts)
+    source = Path(src).resolve()
+
+    def ignore(directory: str, names: list[str]) -> set[str]:
+        return _ignore_recipe_artifacts(directory, names, source)
+
+    shutil.copytree(source, dest, symlinks=False, ignore=ignore)
 
 
-def _ignore_recipe_artifacts(_directory: str, names: list[str]) -> set[str]:
-    """Return generated, cached, and hidden entries that clone must omit."""
+def _ignore_recipe_artifacts(
+    directory: str, names: list[str], recipe_root: Path
+) -> set[str]:
+    """Return generated and cached entries ignored by the recipe policy."""
+    at_recipe_root = Path(directory).resolve() == recipe_root
     return {
         name
         for name in names
-        if name in _EXCLUDED_NAMES or name.endswith(".pyc") or name.startswith(".")
+        if any(fnmatchcase(name, pattern) for pattern in _IGNORED_ANYWHERE)
+        or (
+            at_recipe_root
+            and any(fnmatchcase(name, pattern) for pattern in _IGNORED_RECIPE_ROOT)
+        )
     }
-
-
-def _inject_corpus_system(dest: Path, recipe: str) -> None:
-    from omegaconf import OmegaConf
-
-    corpus_system = recipe.strip("/").replace("/", "_")
-
-    pub_yaml = dest / "conf" / "publication.yaml"
-    if pub_yaml.exists():
-        conf = OmegaConf.load(pub_yaml)
-        OmegaConf.update(
-            conf,
-            "upload_model.hf_repo",
-            f"espnet/{corpus_system}_${{exp_tag}}",
-            force_add=True,
-        )
-        OmegaConf.save(conf, pub_yaml)
-
-    demo_yaml = dest / "conf" / "demo.yaml"
-    if demo_yaml.exists():
-        conf = OmegaConf.load(demo_yaml)
-        OmegaConf.update(conf, "ui.title", f"{corpus_system} demo", force_add=True)
-        OmegaConf.update(
-            conf,
-            "upload_demo.hf_repo",
-            f"espnet/{corpus_system}_${{exp_tag}}",
-            force_add=True,
-        )
-        OmegaConf.save(conf, demo_yaml)

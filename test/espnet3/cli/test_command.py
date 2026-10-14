@@ -10,7 +10,6 @@ import pytest
 
 from espnet3.cli.clone.command import (
     _copy_recipe,
-    _inject_corpus_system,
     add_arguments,
     run,
 )
@@ -35,12 +34,17 @@ def test_copy_recipe_copies_complete_recipe_package(fake_recipe, tmp_path):
     assert (dest / "assets" / "metadata.json").read_text() == '{"version": 1}'
 
 
-def test_copy_recipe_excludes_unwanted_files(fake_recipe, tmp_path):
+def test_copy_recipe_excludes_only_gitignored_artifacts(fake_recipe, tmp_path):
     dest = tmp_path / "clone"
     _copy_recipe(fake_recipe, dest)
-    assert not (dest / "demo").exists()
-    assert not (dest / "downloads.tar.gz").exists()
-    assert not (dest / ".agents").exists()
+    for name in ("data", "exp", "dump", "downloads", ".cache", ".pytest_cache"):
+        assert not (dest / name).exists()
+    assert not (dest / "sample.pyc").exists()
+    assert (dest / "demo" / "app.py").is_file()
+    assert (dest / "downloads.tar.gz").read_bytes() == b""
+    assert (dest / ".agents" / "instructions.md").read_text() == "ignore"
+    assert (dest / "dataset" / "file.py").is_file()
+    assert (dest / "dataset" / "data" / "README.md").read_text() == "recipe source"
     assert not any(dest.rglob("__pycache__"))
 
 
@@ -64,7 +68,7 @@ def test_copy_recipe_preserves_file_content_and_empty_recipe(tmp_path):
 
     empty = tmp_path / "empty"
     empty.mkdir()
-    (empty / "demo").mkdir()
+    (empty / "__pycache__").mkdir()
     empty_dest = tmp_path / "empty_clone"
     _copy_recipe(empty, empty_dest)
     assert list(empty_dest.iterdir()) == []
@@ -99,47 +103,6 @@ def test_copy_recipe_dereferences_external_symlink(tmp_path):
     assert copied.read_text() == "external: true"
 
 
-def test_inject_corpus_system_adds_missing_fields(tmp_path):
-    conf_dir = tmp_path / "conf"
-    conf_dir.mkdir()
-    (conf_dir / "publication.yaml").write_text("pack_model:\n  include: []\n")
-    (conf_dir / "demo.yaml").write_text("model:\n  trust_user_code: true\n")
-    _inject_corpus_system(tmp_path, "mini_an4/asr")
-    publication = (conf_dir / "publication.yaml").read_text()
-    demo = (conf_dir / "demo.yaml").read_text()
-    assert "hf_repo: espnet/mini_an4_asr_${exp_tag}" in publication
-    assert "title: mini_an4_asr demo" in demo
-    assert "hf_repo: espnet/mini_an4_asr_${exp_tag}" in demo
-
-
-def test_inject_corpus_system_updates_existing_keys_without_duplicates(tmp_path):
-    from omegaconf import OmegaConf
-
-    conf_dir = tmp_path / "conf"
-    conf_dir.mkdir()
-    (conf_dir / "publication.yaml").write_text(
-        "upload_model:\n  hf_repo: existing/model\n  private: false\n"
-    )
-    (conf_dir / "demo.yaml").write_text(
-        "ui:\n  title: Existing demo\n  app_script: src/app.py\n"
-        "upload_demo:\n  hf_repo: existing/demo\n  update: false\n"
-    )
-    _inject_corpus_system(tmp_path, "mini_an4/asr")
-    OmegaConf.load(conf_dir / "publication.yaml")
-    OmegaConf.load(conf_dir / "demo.yaml")
-    publication = (conf_dir / "publication.yaml").read_text()
-    demo = (conf_dir / "demo.yaml").read_text()
-    assert publication.count("upload_model:") == 1 and "private: false" in publication
-    assert demo.count("ui:") == demo.count("upload_demo:") == 1
-    assert "app_script: src/app.py" in demo and "update: false" in demo
-
-
-def test_inject_corpus_system_skips_missing_config_files(tmp_path):
-    (tmp_path / "conf").mkdir()
-    _inject_corpus_system(tmp_path, "mini_an4/asr")
-    _inject_corpus_system(tmp_path / "no_conf", "mini_an4/asr")
-
-
 @pytest.fixture(scope="module")
 def cloned_mini_an4(tmp_path_factory):
     dest = tmp_path_factory.mktemp("integration") / "mini_an4_esp2_asr"
@@ -152,17 +115,28 @@ def test_integration_clone_layout(cloned_mini_an4):
     assert (cloned_mini_an4 / "__init__.py").exists()
     assert (cloned_mini_an4 / "conf" / "training.yaml").exists()
     assert (cloned_mini_an4 / "conf" / "inference.yaml").exists()
+    assert (cloned_mini_an4 / "downloads.tar.gz").is_file()
     assert not any(cloned_mini_an4.rglob("__pycache__"))
-    assert not (cloned_mini_an4 / "demo").exists()
-    assert not [p for p in cloned_mini_an4.iterdir() if p.name.startswith(".")]
 
 
-def test_integration_clone_injects_recipe_identity(cloned_mini_an4):
-    publication = (cloned_mini_an4 / "conf" / "publication.yaml").read_text()
-    demo = (cloned_mini_an4 / "conf" / "demo.yaml").read_text()
-    assert "hf_repo: espnet/mini_an4_esp2_asr_${exp_tag}" in publication
-    assert "title: mini_an4_esp2_asr demo" in demo
-    assert "hf_repo: espnet/mini_an4_esp2_asr_${exp_tag}" in demo
+def test_integration_clone_preserves_recipe_configs(cloned_mini_an4):
+    from espnet3.cli.clone.resolver import resolve_recipe
+
+    source = resolve_recipe("mini_an4/esp2_asr")
+    for config in ("publication.yaml", "demo.yaml"):
+        source_config = source / "conf" / config
+        if source_config.exists():
+            assert (cloned_mini_an4 / "conf" / config).read_bytes() == (
+                source_config.read_bytes()
+            )
+
+
+def test_integration_clone_preserves_path_sh(cloned_mini_an4):
+    from espnet3.cli.clone.resolver import resolve_recipe
+
+    source = resolve_recipe("mini_an4/esp2_asr") / "path.sh"
+    assert (cloned_mini_an4 / "path.sh").read_bytes() == source.read_bytes()
+    assert "BASH_SOURCE" in (cloned_mini_an4 / "path.sh").read_text()
 
 
 @pytest.mark.execution_timeout(30)
@@ -211,6 +185,14 @@ def test_run_creates_explicit_and_default_destination(fake_egs3, tmp_path, monke
     assert (workdir / "mini_an4" / "asr").is_dir()
 
 
+def test_default_destination_strips_recipe_slashes(fake_egs3, tmp_path, monkeypatch):
+    workdir = tmp_path / "workdir"
+    workdir.mkdir()
+    monkeypatch.chdir(workdir)
+    run(argparse.Namespace(list=False, recipe="/mini_an4/asr/", project=None))
+    assert (workdir / "mini_an4" / "asr").is_dir()
+
+
 def test_run_rejects_existing_default_destination(fake_egs3, tmp_path, monkeypatch):
     workdir = tmp_path / "workdir"
     (workdir / "mini_an4" / "asr").mkdir(parents=True)
@@ -225,8 +207,8 @@ def test_run_rejects_missing_recipe(tmp_path):
     )
     with pytest.raises(ValueError, match="recipe argument is required") as error:
         run(args)
-    assert "espnet3 clone <dataset>/<task>" in str(error.value)
-    assert "espnet3 clone --help" in str(error.value)
+    assert "espnet clone <dataset>/<task>" in str(error.value)
+    assert "espnet clone --help" in str(error.value)
     assert not (tmp_path / "project").exists()
 
 
@@ -234,6 +216,23 @@ def test_clone_list_uses_resolver_output(fake_egs3, capsys):
     run(argparse.Namespace(list=True, recipe=None, project=None))
     output = capsys.readouterr().out
     assert "mini_an4/asr" in output and "librispeech/asr" in output
+
+
+def test_clone_is_registered_under_espnet_cli():
+    from espnet2.bin.cli import build_parser, cmd_clone
+
+    args = build_parser().parse_args(["clone", "mini_an4/asr"])
+    assert args.func is cmd_clone
+
+
+def test_clone_cli_reports_user_errors_with_espnet_prefix(fake_egs3, capsys):
+    from espnet2.bin.cli import main
+
+    assert main(["clone", "unknown/asr"]) == 1
+    captured = capsys.readouterr()
+    assert captured.out == ""
+    assert captured.err.startswith("espnet:")
+    assert "Traceback" not in captured.err
 
 
 def test_clone_list_handles_empty_and_does_not_clone(
