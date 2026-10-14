@@ -75,6 +75,7 @@ def test_inference_state_is_reset_after_each_call(finetuned):
     original_encode = coding.model.encode
 
     def spy_encode(audio, **kwargs):
+        """Record the quantizer's inference state at encode time, then encode."""
         seen["rate"] = coding.quantizer._inference_rate
         seen["anchor"] = coding.quantizer._inference_anchor_start_layer
         seen["kwargs"] = kwargs

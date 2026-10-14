@@ -18,6 +18,7 @@ def _capture_parent_init(monkeypatch):
     def fake_init(
         self, model=None, exp_dir=None, config=None, best_model_criterion=None
     ):
+        """Record the parent constructor's arguments instead of building a trainer."""
         recorded.update(
             model=model,
             exp_dir=exp_dir,
@@ -68,13 +69,19 @@ def test_build_gan_trainer_wires_module_and_trainer(monkeypatch):
     created = {}
 
     class FakeModule:
+        """Record the model and config the trainer builder wraps."""
+
         def __init__(self, model, config):
+            """Record ``model`` and ``config``."""
             created["module"] = (model, config)
 
     class FakeTrainer:
+        """Record the trainer arguments the builder passes."""
+
         def __init__(
             self, model=None, exp_dir=None, config=None, best_model_criterion=None
         ):
+            """Record the constructor arguments."""
             created["trainer"] = {
                 "model": model,
                 "exp_dir": exp_dir,

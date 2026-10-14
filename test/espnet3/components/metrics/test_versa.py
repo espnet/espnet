@@ -282,7 +282,10 @@ class TestCall:
         seen = {}
 
         class Recording(_FakePopen):
+            """Capture the SCP contents before the fake scorer runs."""
+
             def __call__(self, cmd, **kwargs):
+                """Read the ``--pred``/``--gt`` SCPs, then behave as the fake scorer."""
                 seen["pred"] = pathlib.Path(cmd[cmd.index("--pred") + 1]).read_text()
                 seen["gt"] = pathlib.Path(cmd[cmd.index("--gt") + 1]).read_text()
                 return super().__call__(cmd, **kwargs)

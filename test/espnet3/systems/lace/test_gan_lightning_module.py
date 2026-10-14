@@ -205,6 +205,7 @@ def test_step_no_forward_run_returns_none_without_forward(tmp_path):
     batch = build_train_batch(module)
 
     def boom(**kwargs):
+        """Fail if the model is called."""
         raise AssertionError("model.forward must not be called")
 
     model.forward = boom
@@ -352,6 +353,7 @@ def test_train_step_nan_loss_skips_batch(tmp_path):
     real_forward = model.forward
 
     def nan_forward(**kwargs):
+        """Return the real output with a NaN loss."""
         out = real_forward(**kwargs)
         out["loss"] = out["loss"] * float("nan")
         return out

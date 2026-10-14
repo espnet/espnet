@@ -186,6 +186,7 @@ def test_anchor_start_layer_restricts_later_layers(original_quantizer):
     wrapped.reset_inference_rate()
 
     def boundaries(segment_idx):
+        """Return the (B, T) boundary mask of a segment index tensor."""
         boundary = torch.zeros_like(segment_idx, dtype=torch.bool)
         boundary[:, 1:] = segment_idx[:, 1:] != segment_idx[:, :-1]
         return boundary

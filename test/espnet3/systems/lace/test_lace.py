@@ -89,6 +89,7 @@ def test_pretrained_model_tag_downloads_through_espnet_model_zoo(tmp_path, monke
     calls = {}
 
     def download_and_unpack(self, name):
+        """Record the requested tag and return the local bundle's artifacts."""
         calls["name"] = name
         return artifacts
 
