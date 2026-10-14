@@ -65,3 +65,32 @@ def test_average_nbest_models_0epoch_reporter(output_dir, nbest):
             best_model_criterion=[("valid", "acc", "max")],
             nbest=nbest,
         )
+
+
+def test_average_nbest_models_reads_each_checkpoint_as_it_was_saved(tmp_path):
+    # A checkpoint is loaded once and kept for the other criteria and nbest
+    # values, so an average must not be written into it.
+    reporter = Reporter()
+    for e in (1, 2, 3):
+        reporter.set_epoch(e)
+        with reporter.observe("valid") as sub:
+            # epoch 1 is the best by both criteria, epoch 3 the worst
+            sub.register({"loss": float(e), "acc": 1.0 - 0.1 * e})
+            sub.next()
+        torch.save({"w": torch.tensor([float(e)])}, tmp_path / f"{e}epoch.pth")
+
+    average_nbest_models(
+        reporter=reporter,
+        output_dir=tmp_path,
+        best_model_criterion=[("valid", "loss", "min"), ("valid", "acc", "max")],
+        nbest=[2, 3],
+    )
+
+    expected = {
+        "valid.loss.ave_2best.pth": 1.5,
+        "valid.loss.ave_3best.pth": 2.0,
+        "valid.acc.ave_2best.pth": 1.5,
+        "valid.acc.ave_3best.pth": 2.0,
+    }
+    for name, value in expected.items():
+        assert torch.load(tmp_path / name)["w"].item() == pytest.approx(value), name

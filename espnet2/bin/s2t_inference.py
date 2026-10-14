@@ -4,7 +4,7 @@ import logging
 import sys
 from itertools import groupby
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Sequence, Tuple, Union
+from typing import Any, Dict, Iterator, List, Optional, Sequence, Tuple, Union
 
 import humanfriendly
 import numpy as np
@@ -28,12 +28,14 @@ from espnet2.legacy.nets.scorer_interface import (
 from espnet2.legacy.nets.scorers.ctc import CTCPrefixScorer
 from espnet2.legacy.nets.scorers.length_bonus import LengthBonus
 from espnet2.legacy.utils.cli_utils import get_commandline_args
+from espnet2.s2t.ctc_utils import buffered_frame_counts
 from espnet2.tasks.lm import LMTask
 from espnet2.tasks.s2t import S2TTask
 from espnet2.text.build_tokenizer import build_tokenizer
 from espnet2.text.token_id_converter import TokenIDConverter
 from espnet2.text.whisper_token_id_converter import OpenAIWhisperTokenIDConverter
 from espnet2.torch_utils.device_funcs import to_device
+from espnet2.torch_utils.quantization import quantize_dynamic
 from espnet2.torch_utils.set_all_random_seed import set_all_random_seed
 from espnet2.utils import config_argparse
 from espnet2.utils.pretrained import download_pretrained
@@ -128,10 +130,24 @@ class ScoreFilter(BatchScorerInterface, torch.nn.Module):
 
         return score, None
 
+    def _batch_score_loop(
+        self, ys: torch.Tensor, states: List[Any], xs: torch.Tensor
+    ) -> Tuple[torch.Tensor, List[Any]]:
+        """Original reference implementation: evaluate :meth:`score` in a loop."""
+        scores = []
+        for y in ys:
+            score, _ = self.score(y, None, xs)
+            scores.append(score)
+        return torch.stack(scores), states
+
     def batch_score(
         self, ys: torch.Tensor, states: List[Any], xs: torch.Tensor
     ) -> Tuple[torch.Tensor, List[Any]]:
         """Score new token batch (required).
+
+        The same rules as :meth:`score` and :meth:`_batch_score_loop`, expanded
+        into vectorized tensor operations over the entire batch rather than a
+        Python loop.
 
         Args:
             ys (torch.Tensor): torch.int64 prefix tokens (n_batch, ylen).
@@ -145,15 +161,50 @@ class ScoreFilter(BatchScorerInterface, torch.nn.Module):
                 and next state list for ys.
 
         """
+        n_batch, ylen = ys.shape
+        device = ys.device
+        neg = -np.inf
+        is_time = (ys >= self.first_time) & (ys <= self.last_time)  # (n, ylen)
 
-        scores = list()
-        outstates = list()
-        for i, (y, state, x) in enumerate(zip(ys, states, xs)):
-            score, outstate = self.score(y, state, x)
-            outstates.append(outstate)
-            scores.append(score)
-        scores = torch.cat(scores, 0).view(ys.shape[0], -1)
-        return scores, outstates
+        # rule 1: no timestamps are predicted -> suppress the timestamp tokens
+        no_time = (ys == self.notimestamps).any(dim=1)  # (n,)
+        # rule 2: right after the prompt the first token must be a timestamp
+        if ylen >= 3:
+            at_start = (ys[:, -3] == self.sos) & ~no_time
+        else:
+            at_start = torch.zeros(n_batch, dtype=torch.bool, device=device)
+        # otherwise the timestamps seen so far decide
+        rest = ~no_time & ~at_start
+        odd = rest & (is_time.sum(dim=1) % 2 == 1)  # a segment is open
+        even = rest & ~odd
+        closing = even & is_time[:, -1]  # a pair just closed: timestamp or eos next
+        illegal = even & ~is_time[:, -1]
+        # value of the last timestamp in each row (only used where odd)
+        positions = torch.arange(ylen, device=device).unsqueeze(0)
+        last_pos = torch.where(is_time, positions, -1).max(dim=1).values.clamp(min=0)
+        last_time_value = ys.gather(1, last_pos.unsqueeze(1))  # (n, 1)
+        last_token = ys[:, -1:]  # (n, 1)
+
+        scores = torch.zeros(
+            n_batch, self.vocab_size, dtype=self.param.dtype, device=device
+        )
+        # the only per-row masks are inside the timestamp range
+        time_cols = torch.arange(self.first_time, self.last_time + 1, device=device)
+        time_block = (
+            no_time.unsqueeze(1)
+            | (odd.unsqueeze(1) & (time_cols <= last_time_value))
+            | (closing.unsqueeze(1) & (time_cols < last_token))
+        )
+        scores[:, self.first_time : self.last_time + 1].masked_fill_(time_block, neg)
+        # everything outside the range is banned right after the prompt and after
+        # a closed pair; eos stays allowed after a closed pair
+        outside = at_start | closing
+        scores[outside, : self.first_time] = neg
+        scores[outside, self.last_time + 1 :] = neg
+        scores[closing, self.eos] = 0.0
+        scores[odd, self.eos] = neg
+        scores[illegal] = neg
+        return scores, [None] * n_batch
 
 
 # espnet2.tasks.s2t and espnet2.tasks.s2t_ctc both write `model:` into the
@@ -330,7 +381,7 @@ class Speech2Text:
         if quantize_s2t_model:
             logging.info("Use quantized s2t model for decoding.")
 
-            s2t_model = torch.quantization.quantize_dynamic(
+            s2t_model = quantize_dynamic(
                 s2t_model, qconfig_spec=qconfig_spec, dtype=quantize_dtype
             )
 
@@ -433,7 +484,7 @@ class Speech2Text:
             if quantize_lm:
                 logging.info("Use quantized lm for decoding.")
 
-                lm = torch.quantization.quantize_dynamic(
+                lm = quantize_dynamic(
                     lm, qconfig_spec=qconfig_spec, dtype=quantize_dtype
                 )
 
@@ -650,8 +701,12 @@ class Speech2Text:
     @typechecked
     def batch_decode(
         self,
-        speech: torch.Tensor,
-        speech_lengths: Optional[torch.Tensor] = None,
+        speech: Union[
+            torch.Tensor, np.ndarray, Sequence[Union[torch.Tensor, np.ndarray]]
+        ],
+        speech_lengths: Optional[
+            Union[torch.Tensor, np.ndarray, Sequence[Union[int, np.integer]]]
+        ] = None,
         text_prev: Optional[torch.Tensor] = None,
         text_prev_lengths: Optional[torch.Tensor] = None,
         lang_sym: Optional[str] = None,
@@ -665,7 +720,9 @@ class Speech2Text:
         batch all have the same length and no padding mask is needed.
 
         Args:
-            speech: Padded speech of shape `(n_utt, nsamples)`.
+            speech: Padded speech of shape `(n_utt, nsamples)`, a tensor or a
+                numpy array, or a list of unpadded utterances of shape
+                `(nsamples,)`, which is padded here.
             speech_lengths: Unused, and accepted only so that a collated
                 batch can be passed straight through. Every utterance is
                 padded or trimmed to the same fixed length, and the collated
@@ -683,6 +740,12 @@ class Speech2Text:
             per utterance, in the order the utterances were given.
 
         """
+        if isinstance(speech, (list, tuple)):
+            speech = torch.nn.utils.rnn.pad_sequence(
+                [torch.as_tensor(w).reshape(-1) for w in speech], batch_first=True
+            )
+        elif isinstance(speech, np.ndarray):
+            speech = torch.as_tensor(speech)
         if speech.dim() == 3 and speech.size(2) == 1:
             speech = speech.squeeze(2)  # (n_utt, nsamples, 1) -> (n_utt, nsamples)
         if speech.dim() != 2:
@@ -853,6 +916,13 @@ class Speech2Text:
         which is `__call__`. On an encoder-decoder checkpoint this reads the
         CTC branch beside the decoder; on a CTC-only one it reads the only
         head there is.
+
+        **A CTC branch answers what that branch was trained on, which is not
+        always what `task_sym` asks for.** POWSM's answers phones whether it
+        is asked for `<pr>` or `<asr>`: on espnet/powsm, best_path returns
+        the same phones for both, and only the decoder - `__call__` - reads
+        the task. A caller that must honour the task on an encoder-decoder
+        checkpoint should call the object instead, and pay for the search.
         """
         if isinstance(speech, np.ndarray):
             speech = torch.tensor(speech)
@@ -867,6 +937,42 @@ class Speech2Text:
         if intermediate_outs is not None and self.generate_interctc_outputs:
             return results, self._decode_interctc(intermediate_outs)
         return results
+
+    def decode_window(
+        self,
+        speech: Union[torch.Tensor, np.ndarray],
+        lang_sym: Optional[str] = None,
+        task_sym: Optional[str] = None,
+        text_prev: Union[torch.Tensor, np.ndarray, str, List] = "<na>",
+    ) -> str:
+        """One window of audio, decoded the way this checkpoint has to be.
+
+        A CTC-only checkpoint is read off its CTC head with no search, which
+        is an order of magnitude faster and loses nothing: that head is the
+        whole model. One with a decoder is called, because its CTC branch
+        answers what that branch was trained on rather than what `task_sym`
+        asks for - see `best_path`.
+
+        Here rather than in each front end: `espnet phonemize` and the
+        browser demo both had to know which kind of checkpoint they were
+        holding, and it is the checkpoint that knows.
+
+        Args:
+            speech: One window, no longer than the model's own.
+            lang_sym, task_sym: As for `best_path` and `__call__`.
+            text_prev: What the model is given to condition on, for a task
+                that has an input besides the audio. POWSM's `<g2p>` takes
+                the words that were said and answers with phones, and its
+                `<p2g>` takes phones and answers with words; `<asr>` and
+                `<pr>` take `<na>`, which is the default.
+
+        Returns:
+            The decoded text, with whatever symbols the model wrote.
+        """
+        decode = self.best_path if self.ctc_only else self.__call__
+        return decode(
+            speech, text_prev=text_prev, lang_sym=lang_sym, task_sym=task_sym
+        )[0][0]
 
     @torch.no_grad()
     @typechecked
@@ -1073,28 +1179,43 @@ class Speech2Text:
         return speech
 
     @torch.no_grad()
-    def _decode_long_ctc(
+    def ctc_log_probs(
         self,
-        speech: np.ndarray,
+        speech: Union[str, Path, torch.Tensor, np.ndarray],
         batch_size: int = 1,
-        context_len_in_secs: float = 2,
+        context_len_in_secs: Optional[float] = None,
         lang_sym: Optional[str] = None,
         task_sym: Optional[str] = None,
-    ) -> str:
-        """Best-path decoding of a long recording, buffer by buffer.
+    ) -> np.ndarray:
+        """The CTC head's log posteriors for a recording, as (frames, vocab).
 
         The model sees one training-length buffer at a time, with context on
-        either side that is decoded and then dropped, so the frames kept from
+        either side that is encoded and then dropped, so the frames kept from
         each buffer were never at its edge.
+
+        Long-form best-path decoding is an argmax over what this returns, and
+        a forced alignment (espnet2.bin.align) is a Viterbi path through it:
+        one buffering, read two ways.
+
+        The training buffer and context durations must cover whole encoder
+        frames; otherwise a ValueError is raised instead of accumulating drift.
+        An omitted context defaults to two seconds rounded to the nearest frame.
         """
+        speech = self.read_audio(speech)
         lang_id = self.converter.token2id[lang_sym or self.lang_sym]
         task_id = self.converter.token2id[task_sym or self.task_sym]
 
         buffer_len_in_secs = self.preprocessor_conf["speech_length"]
+        if context_len_in_secs is None:
+            context_len_in_secs = round(2 * self.frames_per_sec) / self.frames_per_sec
+        buffer_frames, context_frames = buffered_frame_counts(
+            self.frames_per_sec, buffer_len_in_secs, context_len_in_secs
+        )
+        chunk_frames = buffer_frames - 2 * context_frames
         chunk_len_in_secs = buffer_len_in_secs - 2 * context_len_in_secs
-        buffer_len = int(self.sample_rate * buffer_len_in_secs)
-        chunk_len = int(self.sample_rate * chunk_len_in_secs)
-        context = int(self.sample_rate * context_len_in_secs)
+        buffer_len = round(self.sample_rate * buffer_len_in_secs)
+        chunk_len = round(self.sample_rate * chunk_len_in_secs)
+        context = round(self.sample_rate * context_len_in_secs)
 
         padded = np.pad(speech, (context, context))
         buffers = []
@@ -1106,8 +1227,6 @@ class Speech2Text:
             buffers.append(buffer)
 
         batched = torch.tensor(np.array(buffers)).to(getattr(torch, self.dtype))
-        buffer_frames = int(self.frames_per_sec * buffer_len_in_secs)
-        context_frames = int(self.frames_per_sec * context_len_in_secs)
 
         kept = []
         for idx in range(0, batched.size(0), batch_size):
@@ -1135,13 +1254,40 @@ class Speech2Text:
             enc, _ = self.s2t_model.encode(**batch)
             if isinstance(enc, tuple):
                 enc = enc[0]
-            # the convolutional front end can return more frames than the
-            # buffer itself, so the tail goes before the context does
-            enc = enc[:, :buffer_frames]
-            frames = self.s2t_model.ctc.argmax(enc)
-            kept.append(frames[:, context_frames:-context_frames].reshape(-1))
+            enc = self.s2t_model.frames(enc, prefix)
+            frames = self.s2t_model.ctc.log_softmax(enc)
+            # A buffer is context + chunk + context. Keep exactly its middle
+            # chunk_frames, starting at context_frames. The convolutional
+            # frontend need not return buffer_frames audio positions, so an
+            # end-based slice would shift time at every buffer join.
+            if frames.size(1) < context_frames + chunk_frames:
+                raise ValueError("context is too short for the encoder's edge loss")
+            kept.append(frames[:, context_frames : context_frames + chunk_frames])
 
-        merged = torch.unique_consecutive(torch.cat(kept)).cpu().tolist()
+        # (buffers, frames, vocab) back into one run of frames, cut to the
+        # frames the recording itself covers rather than the padding
+        probs = torch.cat([k.reshape(-1, k.size(-1)) for k in kept])
+        wanted = int(round(len(speech) / self.sample_rate * self.frames_per_sec))
+        return probs[:wanted].cpu().numpy()
+
+    def _decode_long_ctc(
+        self,
+        speech: np.ndarray,
+        batch_size: int = 1,
+        context_len_in_secs: Optional[float] = None,
+        lang_sym: Optional[str] = None,
+        task_sym: Optional[str] = None,
+    ) -> str:
+        """Best-path decoding of a long recording: an argmax over the frames."""
+        probs = self.ctc_log_probs(
+            speech,
+            batch_size=batch_size,
+            context_len_in_secs=context_len_in_secs,
+            lang_sym=lang_sym,
+            task_sym=task_sym,
+        )
+        frames = torch.tensor(probs).argmax(dim=-1)
+        merged = torch.unique_consecutive(frames).tolist()
         token_int = [x for x in merged if x != self.s2t_model.blank_id]
         token = self.converter.ids2tokens(token_int)
         token_nospecial = [x for x in token if not (x[0] == "<" and x[-1] == ">")]
@@ -1152,7 +1298,7 @@ class Speech2Text:
         self,
         speech: Union[str, Path, torch.Tensor, np.ndarray],
         batch_size: int = 1,
-        context_len_in_secs: float = 2,
+        context_len_in_secs: Optional[float] = None,
         condition_on_prev_text: bool = False,
         init_text: Optional[str] = None,
         end_time_threshold: Optional[str] = None,
@@ -1163,7 +1309,8 @@ class Speech2Text:
         """Decode one unsegmented recording of any length.
 
         Takes a path, an array or a tensor, and returns a list of
-        `(start_time, end_time, text)`.
+        `(start_time, end_time, text)`: everything `iter_long` yields, once
+        the recording has been read.
 
         How the recording is cut up depends on the checkpoint, because the two
         kinds of model were trained to be read differently. An encoder-decoder
@@ -1175,7 +1322,9 @@ class Speech2Text:
         Args:
             batch_size: buffers decoded together, on a CTC-only checkpoint.
             context_len_in_secs: context decoded and then dropped on either
-                side of each buffer, on a CTC-only checkpoint.
+                side of each buffer, on a CTC-only checkpoint. Defaults to two
+                seconds rounded to the nearest encoder frame. Explicit values
+                must cover whole frames.
             condition_on_prev_text, init_text, end_time_threshold,
                 skip_last_chunk_threshold: the encoder-decoder path.
                 `end_time_threshold` defaults to one second before the end of
@@ -1183,6 +1332,42 @@ class Speech2Text:
                 OWSM's `<29.00>` until a 20 s model asked for a token that
                 does not exist in its vocabulary.
 
+        """
+        return list(
+            self.iter_long(
+                speech,
+                batch_size=batch_size,
+                context_len_in_secs=context_len_in_secs,
+                condition_on_prev_text=condition_on_prev_text,
+                init_text=init_text,
+                end_time_threshold=end_time_threshold,
+                lang_sym=lang_sym,
+                task_sym=task_sym,
+                skip_last_chunk_threshold=skip_last_chunk_threshold,
+            )
+        )
+
+    @torch.no_grad()
+    def iter_long(
+        self,
+        speech: Union[str, Path, torch.Tensor, np.ndarray],
+        batch_size: int = 1,
+        context_len_in_secs: Optional[float] = None,
+        condition_on_prev_text: bool = False,
+        init_text: Optional[str] = None,
+        end_time_threshold: Optional[str] = None,
+        lang_sym: Optional[str] = None,
+        task_sym: Optional[str] = None,
+        skip_last_chunk_threshold: float = 0.2,
+    ) -> Iterator[Tuple[float, float, str]]:
+        """`decode_long`, one `(start_time, end_time, text)` at a time.
+
+        An encoder-decoder model yields each utterance as soon as the window
+        holding it is decoded, so a caller can show a long recording's
+        transcript as it comes rather than when it is complete. A CTC-only
+        model is read in overlapping buffers whose frames are merged before
+        the argmax, so it yields its one entry once the recording is read.
+        The arguments are `decode_long`'s.
         """
         speech = self.read_audio(speech)
         if self.sample_rate is None:
@@ -1199,8 +1384,9 @@ class Speech2Text:
                 lang_sym=lang_sym,
                 task_sym=task_sym,
             )
-            return [(0.0, len(speech) / self.sample_rate, text)]
-        return self._decode_long_attention(
+            yield (0.0, len(speech) / self.sample_rate, text)
+            return
+        yield from self._iter_long_attention(
             speech,
             condition_on_prev_text=condition_on_prev_text,
             init_text=init_text,
@@ -1262,8 +1448,29 @@ class Speech2Text:
                 )
         return first, last, step
 
+    def no_language(self) -> str:
+        """The symbol this checkpoint uses for "work the language out yourself".
+
+        Both POWSM checkpoints use `<unk>` and OWSM uses `<nolang>`, but
+        only some configs say so: POWSM-CTC records `nolang_symbol`, POWSM
+        does not, and POWSM has no `<nolang>` in its vocabulary at all, so a
+        guess turns into a KeyError several seconds after the model has
+        loaded. What the config says if it says anything, then either
+        spelling, each checked against the token list before it is offered.
+
+        Raises:
+            ValueError: the checkpoint has no such symbol, and the caller has
+                to name a language instead.
+        """
+        tokens = set(getattr(self.s2t_model, "token_list", None) or ())
+        named = (self.preprocessor_conf or {}).get("nolang_symbol")
+        for candidate in (named, "<nolang>", "<unk>"):
+            if candidate and (not tokens or candidate in tokens):
+                return str(candidate)
+        raise ValueError("this model has no symbol for an unknown language: name one")
+
     def _near_window_end(self) -> int:
-        """The timestamp id a second before the end of the model's window.
+        """The timestamp a second before the end of the model's own window.
 
         An utterance whose end timestamp is past this one is taken to be cut
         off by the window rather than finished, so the next segment starts
@@ -1279,7 +1486,7 @@ class Speech2Text:
 
     @torch.no_grad()
     @typechecked
-    def _decode_long_attention(
+    def _iter_long_attention(
         self,
         speech: Union[torch.Tensor, np.ndarray],
         condition_on_prev_text: bool = False,
@@ -1288,7 +1495,7 @@ class Speech2Text:
         lang_sym: Optional[str] = None,
         task_sym: Optional[str] = None,
         skip_last_chunk_threshold: float = 0.2,
-    ):
+    ) -> Iterator[Tuple[float, float, str]]:
         """Decode unsegmented long-form speech.
 
         Args:
@@ -1326,7 +1533,6 @@ class Speech2Text:
             ), f"speech of size {speech.size()} is not supported"
             speech = speech.squeeze(1)  # (nsamples, 1) --> (nsamples,)
 
-        utterances = []
         offset = 0
         text_prev = init_text
         while offset < len(speech):
@@ -1352,45 +1558,99 @@ class Speech2Text:
 
             # NOTE(yifan): sos and eos have been removed
             text, token, token_int, text_nospecial, hyp = result[0]  # best hyp
-            token_int = token_int[2:]  # remove lang and task
-
-            # Find all timestamp positions
-            time_pos = [
-                idx
-                for idx, tok in enumerate(token_int)
-                if tok >= first_time_id and tok <= last_time_id
-            ]
-            # NOTE(yifan): this is an edge case with only a start time
-            if len(time_pos) == 1:
-                token_int.append(last_time_id)
-                time_pos.append(len(token_int) - 1)
-
-            if len(time_pos) % 2 == 0:  # Timestamps are all paired
-                if (
-                    len(time_pos) > 2
-                    and token_int[time_pos[-1]] > end_time_id_threshold
-                ):
-                    # The last utterance is incomplete
-                    new_start_time_id = token_int[time_pos[-2]]
-                    time_pos = time_pos[:-2]
-                else:
-                    new_start_time_id = token_int[time_pos[-1]]
-            else:  # The last utterance only has start time
-                new_start_time_id = token_int[time_pos[-1]]
-                time_pos = time_pos[:-1]
-
-            # Get utterances in this segment
+            utterances, new_start_time_id = self._window_utterances(
+                token_int, offset / fs, end_time_id_threshold
+            )
             text_prev = ""
-            for i in range(0, len(time_pos), 2):
-                utt = (
+            for utt in utterances:
+                text_prev = text_prev + utt[-1]
+                yield utt
+
+            advance = round((new_start_time_id - first_time_id) * resolution * fs)
+            if advance <= 0:
+                # the window's last, cut-off utterance started at the window's
+                # own start, so there is nowhere to resume inside it: move on
+                # by a whole window rather than decode the same one for ever
+                logging.warning(
+                    "the next window would start where this one did "
+                    f"(at {offset / fs:.2f}s); skipping to the end of the window"
+                )
+                advance = segment_len
+            offset += advance
+
+    def window_utterances(
+        self, token_int: Sequence[int], offset: float = 0.0
+    ) -> List[Tuple[float, float, str]]:
+        """The timestamped utterances in one decoded window.
+
+        `token_int` is a best hypothesis' token ids as `__call__` or
+        `batch_decode` return them with `predict_time=True`: the language and
+        task tokens first, then text and timestamp tokens. Each utterance is
+        `(start_time, end_time, text)` in seconds, `offset` added, read the way
+        `decode_long` reads a window - which is what lets a caller that decodes
+        single-window utterances in a batch give the same segments as
+        `decode_long` gives one at a time. A window without any timestamp is
+        one utterance spanning it.
+        """
+        return self._window_utterances(token_int, offset)[0]
+
+    def _window_utterances(
+        self,
+        token_int: Sequence[int],
+        offset: float,
+        end_time_id_threshold: Optional[int] = None,
+    ) -> Tuple[List[Tuple[float, float, str]], int]:
+        """The utterances in a window, and the timestamp id the next window starts at.
+
+        An utterance whose end timestamp is past `end_time_id_threshold`
+        (one second before the end of the window when not given) is taken to be
+        cut off by the window and left for the next one, which starts where
+        that utterance did.
+        """
+        first_time_id, last_time_id, resolution = self._time_ids()
+        if end_time_id_threshold is None:
+            end_time_id_threshold = self._near_window_end()
+        token_int = list(token_int[2:])  # remove lang and task
+
+        # Find all timestamp positions
+        time_pos = [
+            idx
+            for idx, tok in enumerate(token_int)
+            if tok >= first_time_id and tok <= last_time_id
+        ]
+        if not time_pos:
+            # no timestamp at all: the window's text as one utterance spanning
+            # it, and the next window starts where this one ends
+            text = self.tokenizer.tokens2text(self.converter.ids2tokens(token_int))
+            end = round((last_time_id - first_time_id) * resolution + offset, 2)
+            return [(round(offset, 2), end, text)], last_time_id
+        # NOTE(yifan): this is an edge case with only a start time
+        if len(time_pos) == 1:
+            token_int.append(last_time_id)
+            time_pos.append(len(token_int) - 1)
+
+        if len(time_pos) % 2 == 0:  # Timestamps are all paired
+            if len(time_pos) > 2 and token_int[time_pos[-1]] > end_time_id_threshold:
+                # The last utterance is incomplete
+                new_start_time_id = token_int[time_pos[-2]]
+                time_pos = time_pos[:-2]
+            else:
+                new_start_time_id = token_int[time_pos[-1]]
+        else:  # The last utterance only has start time
+            new_start_time_id = token_int[time_pos[-1]]
+            time_pos = time_pos[:-1]
+
+        utterances = []
+        for i in range(0, len(time_pos), 2):
+            utterances.append(
+                (
                     round(
-                        (token_int[time_pos[i]] - first_time_id) * resolution
-                        + offset / fs,
+                        (token_int[time_pos[i]] - first_time_id) * resolution + offset,
                         2,
                     ),
                     round(
                         (token_int[time_pos[i + 1]] - first_time_id) * resolution
-                        + offset / fs,
+                        + offset,
                         2,
                     ),
                     self.tokenizer.tokens2text(
@@ -1399,12 +1659,8 @@ class Speech2Text:
                         )
                     ),
                 )
-                text_prev = text_prev + utt[-1]
-                utterances.append(utt)
-
-            offset += round((new_start_time_id - first_time_id) * resolution * fs)
-
-        return utterances
+            )
+        return utterances, new_start_time_id
 
     @classmethod
     def from_pretrained(

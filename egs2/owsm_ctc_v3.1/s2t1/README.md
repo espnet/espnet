@@ -162,7 +162,7 @@ CTC segmentation can be efficiently applied to audio of an arbitrary length.
 
 ```python
 import soundfile as sf
-from espnet2.bin.s2t_ctc_align import CTCSegmentation
+from espnet2.bin.s2t_align import CTCSegmentation
 from espnet_model_zoo.downloader import ModelDownloader
 
 # Download model first

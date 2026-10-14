@@ -92,6 +92,13 @@ python ./doc/members2rst.py --root espnet2 --dst ./doc/_gen/guide --exclude espn
 python ./doc/members2rst.py --root espnetez --dst ./doc/_gen/guide
 echo "::endgroup::"
 
+# Two pages at one address make vuepress-plugin-search-pro throw
+# "SlimSearch: duplicate ID" after everything below has run, naming neither
+# page. Fail here instead, with both names.
+echo "::group::check page addresses"
+python3 ./ci/check_doc_pages.py
+echo "::endgroup::"
+
 # build markdown
 echo "::group::build markdown"
 cp ./doc/index.rst ./doc/_gen/index.rst
@@ -125,7 +132,7 @@ python ./doc/convert_md_to_homepage.py ./doc/vuepress/src/recipe
 cd ./doc/vuepress
 python create_menu.py --root ./src
 
-npm i
+npm ci
 # npm run docs:dev
 npm run docs:build
 mv src/.vuepress/dist ../../

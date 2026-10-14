@@ -94,6 +94,8 @@ def test_XMLReader(tmp_path: Path):
     print(p)
     reader = XMLReader(p)
     val = reader["abc"]
+    assert "abc" in reader
+    assert "zzz" not in reader
 
     assert len(val) == 2
     assert val[0] == 60
@@ -177,6 +179,8 @@ def test_MIDReader(tmp_path: Path):
 
     reader = MIDReader(p, add_rest=True)
     val = reader["abc"]
+    assert "abc" in reader
+    assert "zzz" not in reader
 
     assert len(val) == 2
     assert val[0] == 60
@@ -223,6 +227,8 @@ def test_SingingScoreReader(tmp_path: Path):
 
     reader = SingingScoreReader(p)
     val = reader["abc"]
+    assert "abc" in reader
+    assert "zzz" not in reader
 
     assert val == dic
 

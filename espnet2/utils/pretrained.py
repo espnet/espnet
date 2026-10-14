@@ -11,8 +11,30 @@ class ModelTagError(RuntimeError):
 
     Its own type because both front ends - ``espnet2.bin.cli`` and
     ``espnet.load`` - report it as a choice the user can correct rather than
-    as a traceback.
+    as a traceback. ``espnet3.api.inference`` raises it too, for a tag its
+    loader cannot serve.
     """
+
+
+class Espnet3BundleError(ModelTagError):
+    """The tag is an ESPnet3 ``pack_model`` bundle, which no ESPnet2 class loads.
+
+    ``espnet.load`` catches it and hands the tag, already downloaded into the
+    same cache, to ``espnet3.api.inference.load``; the command line reports
+    it like any other tag it cannot serve.
+
+    Attributes:
+        model_tag: The tag that was downloaded.
+    """
+
+    def __init__(self, model_tag: str) -> None:
+        """Name the tag and the loaders that serve it."""
+        super().__init__(
+            f"{model_tag} was published with espnet3's pack_model; load it with "
+            f"espnet.load({model_tag!r}) or espnet3.api.inference.load"
+            f"({model_tag!r}) instead."
+        )
+        self.model_tag = model_tag
 
 
 def download_pretrained(model_tag: str) -> Dict:
@@ -25,6 +47,8 @@ def download_pretrained(model_tag: str) -> Dict:
     ``<task>_train_config`` / ``<task>_model_file`` pairs these classes take,
     and it has to be loaded through espnet3.
     """
+    _refuse_if_speechlm(model_tag)
+
     try:
         from espnet_model_zoo.downloader import ModelDownloader
     except ImportError:
@@ -35,13 +59,33 @@ def download_pretrained(model_tag: str) -> Dict:
         raise
     kwargs = ModelDownloader().download_and_unpack(model_tag)
     if "inference_config" in kwargs or "training_config" in kwargs:
-        raise RuntimeError(
-            f"{model_tag} was published with espnet3's pack_model; load it with "
-            "espnet3.publication.inference_model.InferenceModel.from_pretrained("
-            f"{model_tag!r}) instead (trust_user_code=True if the bundle ships "
-            "its own code)."
-        )
+        raise Espnet3BundleError(model_tag)
     return kwargs
+
+
+def _refuse_if_speechlm(model_tag: str) -> None:
+    """Send a SpeechLM release to the loader that can read it.
+
+    These are published as loose files - a train config, a ``.pt`` holding
+    ``{"module": state_dict}``, decoding configs - rather than as an
+    espnet_model_zoo pack, so the downloader below cannot unpack one and
+    none of these classes can be built from what it would return. Worse,
+    ``espnet/bagpiper-tts-sft`` carries ``text-to-speech`` on the Hub, so
+    ``espnet.load`` infers ``tts`` for it and the failure arrives as a
+    puzzle about Text2Speech. Say so before anything is fetched.
+    """
+    from espnet2.bin.speechlm_inference import RELEASES
+
+    if str(model_tag) not in RELEASES:
+        return
+    raise ModelTagError(
+        f"{model_tag} is a SpeechLM release ("
+        f"{RELEASES[str(model_tag)]['what']}), which is published as loose "
+        "files rather than as an espnet_model_zoo pack. Load it with "
+        "espnet2.bin.speechlm_inference.from_pretrained("
+        f"{str(model_tag)!r}), or address a server with "
+        "espnet2.bin.speechlm_inference.from_server()."
+    )
 
 
 def build_pretrained(
@@ -64,7 +108,7 @@ def build_pretrained(
         model_tag: The tag to load.
         device: Passed to the constructor.
         what: How the caller names itself in the message, e.g.
-            ``"`espnet tts`"`` or ``"espnet.load(task='tts')"``.
+            ``"`espnet synthesize`"`` or ``"espnet.load(task='tts')"``.
         remedy: One sentence telling the user how to pick another tag.
         **kwargs: Further constructor arguments.
     """

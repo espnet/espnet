@@ -9,6 +9,7 @@ import torch
 from espnet2.bin.s2t_inference import Speech2Text, get_parser, main
 from espnet2.legacy.nets.beam_search import Hypothesis
 from espnet2.tasks.s2t import S2TTask
+from espnet2.tasks.s2t_ctc import S2TTask as S2TCTCTask
 
 
 def test_get_parser():
@@ -75,6 +76,56 @@ def s2t_config_file(tmp_path: Path, token_list):
         ]
     )
     return tmp_path / "s2t" / "config.yaml"
+
+
+@pytest.fixture()
+def s2t_long_form_config_file(tmp_path: Path, token_list):
+    """The fixture above with the rate, hop and input layer the long-form paths need.
+
+    2 kHz audio, a 200-sample hop and conv2d's four-fold subsampling: the
+    window is one second, spanned by <0.00> and <1.00>.
+    """
+    S2TTask.main(
+        cmd=[
+            "--dry_run",
+            "true",
+            "--output_dir",
+            str(tmp_path / "s2t_long"),
+            "--token_list",
+            str(token_list),
+            "--token_type",
+            "char",
+            "--decoder",
+            "rnn",
+            "--preprocessor_conf",
+            "notime_symbol='<notimestamps>'",
+            "--preprocessor_conf",
+            "first_time_symbol='<0.00>'",
+            "--preprocessor_conf",
+            "last_time_symbol='<1.00>'",
+            "--preprocessor_conf",
+            "fs=2000",
+            "--preprocessor_conf",
+            "speech_length=1",
+            "--frontend_conf",
+            "fs=2000",
+            "--frontend_conf",
+            "hop_length=200",
+            "--encoder",
+            "transformer",
+            "--encoder_conf",
+            "input_layer=conv2d",
+            "--encoder_conf",
+            "output_size=16",
+            "--encoder_conf",
+            "linear_units=16",
+            "--encoder_conf",
+            "num_blocks=1",
+            "--encoder_conf",
+            "attention_heads=2",
+        ]
+    )
+    return tmp_path / "s2t_long" / "config.yaml"
 
 
 @pytest.mark.execution_timeout(5)
@@ -238,6 +289,100 @@ def test_ctc_only_decoding_says_it_is_not_best_path(s2t_config_file, caplog):
     assert "prefix beam search" not in caplog.text
 
 
+def test_decode_window_asks_the_checkpoint_which_way(s2t_config_file):
+    """The kind of checkpoint decides how a window is read, not the caller.
+
+    A CTC-only model is read off its head; one with a decoder is called,
+    because its CTC branch answers what that branch was trained on rather
+    than what the task symbol asks for. `espnet phonemize` and the browser
+    demo both had to know this, and it is the checkpoint that knows.
+    """
+    speech2text = Speech2Text(s2t_train_config=s2t_config_file, beam_size=1)
+    speech = np.random.randn(2000)
+    assert speech2text.ctc_only is False
+
+    called = []
+    speech2text.best_path = lambda *a, **k: called.append("head") or [("ctc",)]
+
+    # a decoder to read the task with: the object, not the head
+    text = speech2text.decode_window(speech, lang_sym="<eng>", task_sym="<asr>")
+    assert isinstance(text, str) and called == []
+
+    # and without one, the head
+    speech2text.ctc_only = True
+    assert speech2text.decode_window(speech) == "ctc"
+    assert called == ["head"]
+
+
+def test_iter_long_yields_each_utterance_as_it_is_decoded(s2t_long_form_config_file):
+    """decode_long is iter_long's list; iter_long hands out an utterance per window.
+
+    The fixture's window is one second, spanned by <0.00> and <1.00>; the
+    stand-in decoder answers every window with "a" from its start to its end,
+    so a 2.5 s recording is three windows and three utterances, and the
+    first is out before the second window is decoded.
+    """
+    speech2text = Speech2Text(s2t_train_config=s2t_long_form_config_file, beam_size=1)
+    ids = speech2text.converter.token2id
+    tokens = [ids["<eng>"], ids["<asr>"], ids["<0.00>"], ids["a"], ids["<1.00>"]]
+    windows = []
+
+    def decoder(**kwargs):
+        windows.append(len(kwargs["speech"]))
+        return [("a", ["a"], list(tokens), "a", None)]
+
+    speech2text.__call__ = decoder
+    speech = np.zeros(5000)
+
+    pieces = speech2text.iter_long(speech, lang_sym="<eng>", task_sym="<asr>")
+    assert next(pieces) == (0.0, 1.0, "a")
+    assert windows == [2000]  # the second window is not decoded yet
+    assert list(pieces) == [(1.0, 2.0, "a"), (2.0, 3.0, "a")]
+    assert windows == [2000, 2000, 1000]
+
+    assert speech2text.decode_long(speech, lang_sym="<eng>", task_sym="<asr>") == [
+        (0.0, 1.0, "a"),
+        (1.0, 2.0, "a"),
+        (2.0, 3.0, "a"),
+    ]
+
+
+def test_iter_long_always_moves_on(s2t_long_form_config_file, caplog):
+    """A window whose cut-off utterance starts at its own start is not re-read for ever.
+
+    The stand-in decoder answers each one-second window with two utterances,
+    the second ending at the window's end: that one is taken to be cut off and
+    the next window would start where it did, at the window's own start.
+    """
+    speech2text = Speech2Text(s2t_train_config=s2t_long_form_config_file, beam_size=1)
+    ids = speech2text.converter.token2id
+    tokens = [ids["<eng>"], ids["<asr>"]] + [ids["<0.00>"], ids["a"], ids["<1.00>"]] * 2
+    speech2text.__call__ = lambda **kw: [("aa", ["a", "a"], list(tokens), "aa", None)]
+
+    with caplog.at_level("WARNING"):
+        utterances = speech2text.decode_long(
+            np.zeros(5000), lang_sym="<eng>", task_sym="<asr>"
+        )
+    assert utterances == [(0.0, 1.0, "a"), (1.0, 2.0, "a"), (2.0, 3.0, "a")]
+    assert "skipping to the end of the window" in caplog.text
+
+
+def test_window_utterances_reads_a_window_as_decode_long_does(
+    s2t_long_form_config_file,
+):
+    """Lang and task first, then text between timestamp pairs; offset added."""
+    speech2text = Speech2Text(s2t_train_config=s2t_long_form_config_file, beam_size=1)
+    ids = speech2text.converter.token2id
+    tokens = [ids["<eng>"], ids["<asr>"], ids["<0.00>"], ids["a"], ids["<1.00>"]]
+    assert speech2text.window_utterances(tokens) == [(0.0, 1.0, "a")]
+    assert speech2text.window_utterances(tokens, offset=2.5) == [(2.5, 3.5, "a")]
+    # an utterance with a start but no end runs to the end of the window
+    assert speech2text.window_utterances(tokens[:-1]) == [(0.0, 1.0, "a")]
+    # no timestamp at all: the window's text as one utterance spanning it
+    no_time = [ids["<eng>"], ids["<asr>"], ids["a"], ids["a"]]
+    assert speech2text.window_utterances(no_time, offset=1.0) == [(1.0, 2.0, "aa")]
+
+
 def test_best_path_takes_one_utterance(s2t_config_file):
     speech2text = Speech2Text(s2t_train_config=s2t_config_file, beam_size=1)
     with pytest.raises(ValueError, match="one utterance"):
@@ -390,3 +535,152 @@ def test_Speech2Text_quantized(s2t_config_file):
         assert isinstance(token_int[0], int)
         assert isinstance(text_nospecial, str)
         assert isinstance(hyp, Hypothesis)
+
+
+@pytest.fixture()
+def ctc_config_file(tmp_path: Path, token_list, request):
+    input_layer, window = getattr(request, "param", ("conv2d8", 4))
+    ctc_tokens = tmp_path / "ctc_tokens.txt"
+    ctc_tokens.write_text(token_list.read_text() + "<nolang>\n")
+    S2TCTCTask.main(
+        cmd=[
+            "--dry_run",
+            "true",
+            "--output_dir",
+            str(tmp_path / "ctc"),
+            "--token_list",
+            str(ctc_tokens),
+            "--token_type",
+            "char",
+            "--promptencoder_conf",
+            "output_size=4",
+            "--preprocessor_conf",
+            "fs=16000",
+            "--preprocessor_conf",
+            f"speech_length={window}",
+            "--frontend_conf",
+            "fs=16k",
+            "--frontend_conf",
+            "hop_length=160",
+            "--encoder_conf",
+            f"input_layer={input_layer}",
+        ]
+    )
+    return tmp_path / "ctc" / "config.yaml"
+
+
+@pytest.mark.parametrize("context", [0.56, 0.8, 1.6])
+@pytest.mark.parametrize("batch_size", [1, 3])
+def test_ctc_log_probs_row_i_is_the_audio_at_frame_i(
+    ctc_config_file, monkeypatch, context, batch_size
+):
+    """The language and task positions are not audio, so they are not frames.
+
+    The encoder puts their embeddings in front of the frames. Counted as
+    frames, they shift every row by the prefix length, which `ForcedAligner`
+    reports as time, and drop that many frames from the recording.
+    """
+    speech2text = Speech2Text(s2t_train_config=ctc_config_file)
+    # a 4 s window with 0.8 s of context is a whole number of frames throughout
+    monkeypatch.setitem(speech2text.preprocessor_conf, "speech_length", 4)
+    hop = round(speech2text.sample_rate / speech2text.frames_per_sec)
+
+    def encode(speech, prefix, **kwargs):
+        # one position per prefix symbol, then one per frame holding the first
+        # sample of that frame; one frame short, as the convolutions are
+        frames = speech[:, ::hop][:, :-1].unsqueeze(-1)
+        marks = speech.new_full((speech.size(0), prefix.size(1), 1), -1.0)
+        return torch.cat([marks, frames], dim=1), None
+
+    monkeypatch.setattr(speech2text.s2t_model, "encode", encode)
+    monkeypatch.setattr(speech2text.s2t_model.ctc, "log_softmax", lambda enc: enc)
+
+    # every sample says where it is; 0 is what the padding holds
+    seconds = 10
+    speech = np.arange(1, seconds * speech2text.sample_rate + 1, dtype=np.float32)
+    probs = speech2text.ctc_log_probs(
+        speech, batch_size=batch_size, context_len_in_secs=context
+    )
+
+    assert len(probs) == round(seconds * speech2text.frames_per_sec)
+    assert probs[:, 0].tolist() == (1 + hop * np.arange(len(probs))).tolist()
+
+
+@pytest.mark.parametrize(
+    "context,window,argument",
+    [
+        (0.5, 4, "context_len_in_secs"),
+        (0.8, 3, "speech_length"),
+    ],
+)
+def test_ctc_log_probs_rejects_fractional_frames(
+    ctc_config_file, context, window, argument
+):
+    """A sample step between encoder frames would accumulate timing drift."""
+    speech2text = Speech2Text(s2t_train_config=ctc_config_file)
+    speech2text.preprocessor_conf["speech_length"] = window
+    with pytest.raises(ValueError, match=argument + ".*whole number"):
+        speech2text.ctc_log_probs(
+            np.zeros(16000, dtype=np.float32), context_len_in_secs=context
+        )
+
+
+@pytest.mark.parametrize("context", [-0.8, 0, 2, 2.4])
+def test_ctc_log_probs_rejects_missing_chunk_frames(ctc_config_file, context):
+    """Refuse empty steps and contexts too short to preserve complete chunks."""
+    speech2text = Speech2Text(s2t_train_config=ctc_config_file)
+    with pytest.raises(ValueError, match="context"):
+        speech2text.ctc_log_probs(
+            np.zeros(16000, dtype=np.float32), context_len_in_secs=context
+        )
+
+
+@pytest.mark.parametrize("ctc_config_file", [("conv2d6", 30)], indirect=True)
+def test_conv2d6_default_context_keeps_contiguous_frames(ctc_config_file, monkeypatch):
+    """Omitted two-second context becomes 33 frames, without changing the stride."""
+    speech2text = Speech2Text(s2t_train_config=ctc_config_file)
+    hop = 960  # 160-sample frontend hop, subsampled six times
+
+    def encode(speech, prefix, **kwargs):
+        frames = speech[:, ::hop][:, :-1].unsqueeze(-1)
+        marks = speech.new_full((speech.size(0), prefix.size(1), 1), -1.0)
+        return torch.cat([marks, frames], dim=1), None
+
+    monkeypatch.setattr(speech2text.s2t_model, "encode", encode)
+    monkeypatch.setattr(speech2text.s2t_model.ctc, "log_softmax", lambda enc: enc)
+    speech = np.arange(1, 70 * speech2text.sample_rate + 1, dtype=np.float32)
+    probs = speech2text.ctc_log_probs(speech, batch_size=2)
+    expected = 1 + hop * np.arange(round(len(speech) / hop))
+    np.testing.assert_array_equal(probs[:, 0], expected)
+    # The decoding wrapper also preserves an omitted context; one output
+    # column makes every best-path label blank.
+    assert speech2text.decode_long(speech, batch_size=2) == [(0.0, 70.0, "")]
+    for decode in (speech2text.ctc_log_probs, speech2text.decode_long):
+        with pytest.raises(ValueError, match="context_len_in_secs.*whole number"):
+            decode(speech, context_len_in_secs=2)
+
+
+def test_Speech2Text_batch_decode_accepts_numpy_and_lists(s2t_config_file_transformer):
+    """A padded numpy array or a list of utterances decodes like the tensor."""
+    batched = Speech2Text(
+        s2t_train_config=s2t_config_file_transformer,
+        beam_size=2,
+        batch_size=3,
+        maxlenratio=-8,
+    )
+    lengths = [4000, 3000, 9000]
+    speeches = [np.random.randn(n).astype(np.float32) for n in lengths]
+    padded = np.zeros((len(speeches), max(lengths)), dtype=np.float32)
+    for i, sp in enumerate(speeches):
+        padded[i, : len(sp)] = sp
+    expected = batched.batch_decode(torch.tensor(padded), torch.tensor(lengths))
+
+    from_numpy = batched.batch_decode(padded, np.array(lengths))
+    from_list = batched.batch_decode(speeches)
+    for actual in (from_numpy, from_list):
+        assert len(actual) == len(expected)
+        for exp, act in zip(expected, actual):
+            assert [e[1] for e in exp] == [a[1] for a in act]
+            np.testing.assert_allclose(
+                float(exp[0][4].score), float(act[0][4].score), rtol=1e-4
+            )

@@ -22,10 +22,11 @@ license = { "text" = "Apache Software License" }
 # We didn't specify torch-related packages as it highly depends on environment.
 dependencies = [
     # What `pip install espnet` has to be able to do: load a pretrained model
-    # through any from_pretrained in espnet2/bin and run it. Nothing here is
-    # for training - that stack (lightning, tensorboard, wandb, torch_optimizer,
-    # matplotlib, nltk, and hydra, omegaconf, datasets, dask for espnet3) is the
-    # [train] extra, which [all] includes.
+    # through any from_pretrained in espnet2/bin, or an espnet3 bundle through
+    # espnet3.api.inference.load, and run it. Nothing here is for training -
+    # that stack (lightning, tensorboard, wandb, torch_optimizer, matplotlib,
+    # nltk, and datasets, dask for espnet3) is the [train] extra, which [all]
+    # includes.
     # ci/check_inference_imports.py, run by the test_import job on a wheel
     # installed with no extras, fails when an inference module starts
     # importing one of them at module level.
@@ -64,6 +65,17 @@ dependencies = [
     # it arrived only through huggingface_hub.
     "tqdm>=4.64",
     "espnet_model_zoo",
+    # An espnet3 bundle is read and built through them: omegaconf resolves its
+    # conf/inference.yaml and hydra instantiates the model it names, so
+    # without them `pip install espnet` cannot load an espnet3 model at all.
+    # Pure Python, and imported only when such a bundle is loaded; they bring
+    # antlr4-python3-runtime==4.9.* (omegaconf pins it). The floors are what
+    # espnet3 uses (hydra.utils.get_object is 1.3) and CI runs (omegaconf
+    # 2.3); the caps are the next minor release, since hydra's minor releases
+    # have changed how configs are composed and instantiated, and hydra-core
+    # 1.3 itself caps omegaconf below 2.4.
+    "hydra-core>=1.3,<1.4",
+    "omegaconf>=2.3,<2.4",
     # The supported set is exactly {2.11.0, 2.13.0, 2.14.0}, and three places
     # have to agree on it: ci/image_variants.json, which is what CI builds
     # images for; tools/installers/install_torch.sh, which exits 1 on anything
@@ -97,6 +109,10 @@ Homepage = "http://github.com/espnet/espnet"
 [project.scripts]
 espnet = "espnet2.bin.cli:main"
 espnet-mcp = "espnet2.bin.mcp_server:main"
+# The text-side counterpart of VERSA's `versa-score`, with the same shape of
+# command. Named after espnet3's `measure` stage rather than after VERSA's,
+# because in ESPnet a "scorer" is a beam-search component.
+splet-measure = "splet.bin.measure:main"
 
 [build-system]
 requires = ["setuptools>=38.5.1,<74.0.0", "wheel", "setuptools-scm>=8.0,<9.0"]
@@ -107,10 +123,16 @@ version = {file = "version.txt"}
 readme = {file = ["README.md"], content-type = "text/markdown"}
 
 [tool.setuptools.packages.find]
-include = ["espnet*", "egs3*"]
+# splet* is listed explicitly because SPLET is deliberately not named
+# espnet-anything: it is a self-contained toolkit that lives here for now and
+# is meant to be extracted into its own repository (espnet/espnet#6760).
+include = ["espnet*", "egs3*", "splet*"]
 
 [tool.setuptools.package-data]
 egs3 = ["egs3/TEMPLATE/**/*.yaml"]
+# splet/egs/ is deliberately not shipped: it holds one example config to copy
+# out of the repository, nothing loads it through importlib.resources, and it
+# is not a package (no __init__.py).
 
 
 [project.optional-dependencies]
@@ -132,8 +154,6 @@ train = [
   # CER/WER during validation (legacy/nets/e2e_asr_common.py, the transducer
   # error calculator, uasr/espnet_model.py); also in [asr].
   "editdistance",
-  "hydra-core",
-  "omegaconf",
   "datasets",
   "dask[distributed]",
   "dask_jobqueue",
@@ -149,6 +169,16 @@ train = [
 # 400 Can't have direct dependency, which is what kept ESPnet off PyPI from
 # v.202604 to v.202609 with nothing local reporting it. ci/check_ci_image_config.py
 # now fails on one.
+# SPLET, the spoken language evaluation toolkit under splet/. It is
+# separable on purpose: everything it needs is here, nothing it needs comes
+# from ESPnet, and ci/check_splet_independence.py fails if that stops being
+# true. PyYAML is the only hard requirement; rapidfuzz is the linear-memory
+# alignment backend, needed for transcripts too long for a full DP table.
+splet = [
+  "PyYAML>=5.1.2",
+  "rapidfuzz",
+]
+
 asr = [
   "espnet-ctc-segmentation>=1.7.4.post1",  # fork of lumaku/ctc-segmentation
   "editdistance",
@@ -159,6 +189,8 @@ asr = [
 tts = [
   "pyworld>=0.3.4",
   "pypinyin<=0.44.0",
+  "rjieba<=0.2.1",
+  "vocos",
   "espnet_tts_frontend",
   "espnet-g2p-en>=2.1.0.post1",  # fork of Kyubyong/g2p
   "jamo==0.4.1",
@@ -171,6 +203,11 @@ enh = [
   # Scoring for espnet3 enhancement recipes (espnet3/systems/esp2_enh/metrics).
   "pesq",
   "pystoi>=0.2.2",
+]
+rst = [
+  "peft",
+  "pyroomacoustics",
+  "transformers",  # the w2v-BERT 2.0 backbone
 ]
 
 asr2 = [
@@ -228,7 +265,8 @@ speechlm = [
   "polars",
   "duckdb",
   # Keep Linux training dependencies off Windows/macOS installs.
-  "torchtitan; sys_platform == 'linux'",
+  # SpeechLM uses ParallelDims(etp=...), which TorchTitan 0.3 removed.
+  "torchtitan==0.2.2; sys_platform == 'linux'",
   "liger-kernel; sys_platform == 'linux'",
   "flash-linear-attention>=0.2.2; sys_platform == 'linux'",
   "tilelang>=0.1.12; sys_platform == 'linux'",
@@ -321,6 +359,7 @@ all = [
   "espnet[asr2]",
   "espnet[tts]",
   "espnet[enh]",
+  "espnet[rst]",
   "espnet[st]",
   "espnet[s2t]",
   "espnet[s2st]",

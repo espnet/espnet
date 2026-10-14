@@ -1,23 +1,25 @@
 import argparse
 import contextlib
 import logging
+from typing import ClassVar
 
 import pytest
 
+from espnet3.contract.stages import StageSpec
 from espnet3.systems.base.system import BaseSystem
 from espnet3.utils import stages_utils
-from espnet3.utils.stages_utils import (
-    _RANK_ENV_KEYS,
-    parse_cli_and_stage_args,
-    resolve_stages,
-    run_stages,
-)
+from espnet3.utils.stages_utils import _RANK_ENV_KEYS, resolve_stages, run_stages
 
 
 class DummySystem:
+    stages: ClassVar[tuple[StageSpec, ...]] = (
+        StageSpec(name="stage_a", config="training"),
+        StageSpec(name="stage_b", config="training"),
+    )
+    _default_log_dir = None
+
     def __init__(self):
         self.calls = []
-        self.stage_log_dirs = {"default": None}
 
     def stage_a(self):
         self.calls.append("a")
@@ -34,21 +36,6 @@ def test_resolve_stages_all():
 def test_resolve_stages_subset_preserves_stage_order():
     stages = ["stage_a", "stage_b", "stage_c"]
     assert resolve_stages(["stage_b", "stage_a"], stages) == ["stage_a", "stage_b"]
-
-
-def test_parse_cli_and_stage_args_resolves_requested_stage_order(monkeypatch):
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--stages", nargs="+", default=["all"])
-    monkeypatch.setattr(
-        parser,
-        "parse_args",
-        lambda: argparse.Namespace(stages=["stage_b", "stage_a"]),
-    )
-
-    args, stages_to_run = parse_cli_and_stage_args(parser, ["stage_a", "stage_b"])
-
-    assert args.stages == ["stage_b", "stage_a"]
-    assert stages_to_run == ["stage_a", "stage_b"]
 
 
 def test_get_process_rank_reads_rank_from_environment(monkeypatch):
@@ -88,6 +75,10 @@ def test_run_stages_reraises_typeerror():
     """
 
     class BadSystem(BaseSystem):
+        stages: ClassVar[tuple[StageSpec, ...]] = (
+            StageSpec(name="stage_a", config="training"),
+        )
+
         def stage_a(self):
             raise TypeError("unhashable type: 'dict'")
 
@@ -98,6 +89,10 @@ def test_run_stages_reraises_typeerror():
 
 def test_run_stages_reraises_exception(monkeypatch):
     class CrashSystem(BaseSystem):
+        stages: ClassVar[tuple[StageSpec, ...]] = (
+            StageSpec(name="stage_a", config="training"),
+        )
+
         def stage_a(self):
             raise ValueError("boom")
 
@@ -111,9 +106,14 @@ def test_run_stages_reraises_exception(monkeypatch):
 
 def test_run_stages_writes_stage_logs(tmp_path):
     class LoggingSystem:
+        stages: ClassVar[tuple[StageSpec, ...]] = (
+            StageSpec(name="stage_a", config="training"),
+            StageSpec(name="stage_b", config="training"),
+        )
+
         def __init__(self, log_dir):
             self.log_dir = log_dir
-            self.stage_log_dirs = {"default": log_dir}
+            self._default_log_dir = log_dir
 
         def stage_a(self):
             pass
@@ -148,8 +148,12 @@ def test_run_stages_train_uses_per_rank_log_filename(monkeypatch, tmp_path):
     seen = {}
 
     class TrainingSystem:
+        stages: ClassVar[tuple[StageSpec, ...]] = (
+            StageSpec(name="train", config="training"),
+        )
+
         def __init__(self):
-            self.stage_log_dirs = {"default": tmp_path, "train": tmp_path}
+            self._default_log_dir = tmp_path
             self.training_config = argparse.Namespace(stage_log_mode="per_rank")
 
         def train(self):
@@ -180,8 +184,12 @@ def test_run_stages_train_unknown_log_mode_falls_back_to_rank0(
     seen = {}
 
     class TrainingSystem:
+        stages: ClassVar[tuple[StageSpec, ...]] = (
+            StageSpec(name="train", config="training"),
+        )
+
         def __init__(self):
-            self.stage_log_dirs = {"default": tmp_path, "train": tmp_path}
+            self._default_log_dir = tmp_path
             self.training_config = argparse.Namespace(stage_log_mode="unknown")
 
         def train(self):

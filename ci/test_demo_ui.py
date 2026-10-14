@@ -16,14 +16,14 @@ from playwright.sync_api import sync_playwright
 
 SYSTEM_CONFIGS = {
     "default_asr": {
-        "demo_dir": "egs3/mini_an4/asr/exp/demo_ui_default",
+        "demo_dir": "egs3/mini_an4/esp2_asr/exp/demo_ui_default",
         "expected_texts": ["Input Audio", "Transcription"],
         "expected_image_inputs": 0,
         "expected_output": "speech=1",
         "run_label": "Run",
     },
     "custom_asr_image": {
-        "demo_dir": "egs3/mini_an4/asr/exp/demo_ui_custom",
+        "demo_dir": "egs3/mini_an4/esp2_asr/exp/demo_ui_custom",
         "expected_texts": ["Input Audio", "Transcription", "Reference Image"],
         "expected_image_inputs": 1,
         "expected_output": "speech=1 image=1",
