@@ -4,6 +4,7 @@ import random
 
 import pytest
 
+from splet.metadata import metadata
 from splet.metric_registry import load_metrics, measure_utterances
 from splet.summary import summarize
 from splet.utterance_metrics import error_rate_metric, error_rate_setup
@@ -107,7 +108,9 @@ def test_matches_jiwer(unit):
     """Regression against the implementation espnet3 uses today.
 
     espnet3's WER and CER call jiwer, so SPLET's must agree with it on the
-    corpus figure before it can replace them anywhere.
+    corpus figure before it can replace them anywhere -- under unit costs,
+    which is the question jiwer answers. Under the default sclite costs it
+    must not, and test_sclite_costs_are_the_default pins that.
     """
     jiwer = pytest.importorskip("jiwer")
 
@@ -123,7 +126,9 @@ def test_matches_jiwer(unit):
         references.append(" ".join(reference))
         hypotheses.append(" ".join(hypothesis) or "x")
 
-    modules = load_metrics([{"name": "wer" if unit == "word" else "cer"}])
+    modules = load_metrics(
+        [{"name": "wer" if unit == "word" else "cer", "costs": "unit"}]
+    )
     results = measure_utterances(
         {str(i): hypothesis for i, hypothesis in enumerate(hypotheses)},
         modules,
@@ -137,3 +142,44 @@ def test_matches_jiwer(unit):
         else jiwer.cer(references, hypotheses)
     )
     assert summary["wer" if unit == "word" else "cer"] == pytest.approx(expected)
+
+
+def test_sclite_costs_are_the_default():
+    """The default is sclite's cost model, and it is not jiwer's answer.
+
+    Four deletions and three insertions cost 21 under sclite's weights; the
+    five substitutions and one deletion jiwer finds cost 23. sclite 2.10
+    scores this pair 4 correct, 0 S, 4 D, 3 I.
+    """
+    reference = "b b b b a a a a"
+    hypothesis = "a a a b a b b"
+
+    (sclite,) = measure_utterances(
+        {"u": hypothesis}, load_metrics([{"name": "wer"}]), {"u": reference}
+    )
+    assert (sclite["wer_sub"], sclite["wer_del"], sclite["wer_ins"]) == (0, 4, 3)
+    assert sclite["wer_errors"] == 7
+
+    (unit,) = measure_utterances(
+        {"u": hypothesis},
+        load_metrics([{"name": "wer", "costs": "unit"}]),
+        {"u": reference},
+    )
+    assert unit["wer_errors"] == 6
+
+
+def test_the_cost_model_is_recorded_in_the_metadata():
+    """A rate is not reproducible without the weights that produced it.
+
+    ``costs`` has a default the config never spells out, so it is read back
+    out of the state the way ``backend`` is.
+    """
+    described = metadata(load_metrics([{"name": "wer"}]))
+    assert described["metrics"]["wer"]["costs"] == "sclite"
+    loaded = load_metrics([{"name": "cer", "costs": "unit"}])
+    assert metadata(loaded)["metrics"]["cer"]["costs"] == "unit"
+
+
+def test_an_unknown_cost_model_is_rejected():
+    with pytest.raises(ValueError, match="unknown cost model"):
+        error_rate_setup(costs="sctk")

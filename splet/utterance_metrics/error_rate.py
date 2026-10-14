@@ -11,15 +11,16 @@ rate so that the corpus figure is pooled rather than averaged; see
 ``splet/summary.py`` for why that is not cosmetic.
 
 This is the one metric the skeleton implements, to pin down the contract
-every other metric follows. Its S/D/I split has not yet been checked against
-sclite -- see :mod:`splet.alignment` and espnet/espnet#6760.
+every other metric follows. It aligns with sclite's cost model by default,
+and reproduces sclite's counts; :mod:`splet.alignment` lists the two
+behaviours of sclite's that it does not have.
 """
 
 from __future__ import annotations
 
 from typing import Any, Callable, Dict, List, Optional
 
-from splet.alignment import levenshtein_alignment, resolve_backend
+from splet.alignment import levenshtein_alignment, resolve_backend, resolve_costs
 from splet.normalizers import build_normalizer
 
 
@@ -72,6 +73,7 @@ def error_rate_setup(
     tokenizer: str = "word",
     tokenizer_conf: Optional[Dict[str, Any]] = None,
     normalize: Optional[list] = None,
+    costs: str = "sclite",
     backend: str = "python",
     keep_alignment: bool = False,
 ) -> Dict[str, Any]:
@@ -87,6 +89,9 @@ def error_rate_setup(
         tokenizer: Unit to count: ``word`` for WER, ``char`` for CER.
         tokenizer_conf: Keyword arguments for the tokenizer.
         normalize: Normalization pipeline config, applied to both sides.
+        costs: Alignment cost model. ``sclite`` (the default) reproduces
+            sclite's counts; ``unit`` is plain edit distance, which is what
+            jiwer reports. See :mod:`splet.alignment`.
         backend: Alignment backend. The default is the reference
             implementation, whose S/D/I split does not depend on which
             packages happen to be installed; see
@@ -101,7 +106,7 @@ def error_rate_setup(
         The state state passed back into :func:`error_rate_metric`.
 
     Raises:
-        ValueError: If the tokenizer or backend name is unknown.
+        ValueError: If the tokenizer, cost model or backend name is unknown.
         ImportError: If ``backend="rapidfuzz"`` and it is not installed.
     """
     if tokenizer not in TOKENIZER_CHOICES:
@@ -112,7 +117,9 @@ def error_rate_setup(
         "metric_id": metric_id,
         "tokenizer": TOKENIZER_CHOICES[tokenizer](**(tokenizer_conf or {})),
         "normalizer": build_normalizer(normalize),
-        "backend": resolve_backend(backend),
+        "costs": costs,
+        "cost_model": resolve_costs(costs),
+        "backend": resolve_backend(backend, costs),
         "keep_alignment": keep_alignment,
     }
 
@@ -142,6 +149,7 @@ def error_rate_metric(
         tokenize(normalizer(gt_text)),
         tokenize(normalizer(pred_text)),
         backend=state["backend"],
+        costs=state["cost_model"],
     )
 
     result: Dict[str, Any] = {

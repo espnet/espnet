@@ -224,6 +224,9 @@ def test_metadata_records_the_backend_auto_resolved_to(monkeypatch, installed):
 
     For this pair the two backends agree on 10 errors but split them 2/1/7
     and 4/0/6; a summary that says only ``auto`` cannot tell which.
+
+    Under ``costs="unit"``, because rapidfuzz cannot compute a weighted
+    model and ``auto`` will not pick it for one.
     """
     import splet.alignment
 
@@ -232,14 +235,17 @@ def test_metadata_records_the_backend_auto_resolved_to(monkeypatch, installed):
     else:
         monkeypatch.setattr(splet.alignment, "_RapidfuzzLevenshtein", None)
     expected = "rapidfuzz" if installed else "python"
-    modules = load_metrics([{"name": "wer", "backend": "auto"}])
+    modules = load_metrics([{"name": "wer", "backend": "auto", "costs": "unit"}])
     assert modules["wer"]["state"]["backend"] == expected
     assert metadata(modules)["metrics"]["wer"]["backend"] == expected
     (result,) = measure_utterances(
         {"u": "c d c e b e b c b a e c"}, modules, {"u": "d a c e d d"}
     )
     direct = splet.alignment.levenshtein_alignment(
-        "d a c e d d".split(), "c d c e b e b c b a e c".split(), backend=expected
+        "d a c e d d".split(),
+        "c d c e b e b c b a e c".split(),
+        backend=expected,
+        costs="unit",
     )
     assert result["wer_errors"] == 10
     assert (result["wer_sub"], result["wer_del"], result["wer_ins"]) == (
