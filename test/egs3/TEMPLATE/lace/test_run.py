@@ -26,6 +26,7 @@ def test_default_training_config_has_no_task_or_init():
 
 
 def test_default_inference_config_targets():
+    """The template names the LACE ``Inference`` and the shared provider."""
     config = load_default_config("inference.yaml", "egs3.TEMPLATE.lace")
     # Post-#6806 form: the Inference declares its inputs/outputs.
     assert config.get("input_key") is None and config.get("output_fn") is None
@@ -37,6 +38,7 @@ def test_default_inference_config_targets():
 
 
 def test_libritts_training_config_resolves():
+    """The recipe training config merges over the template and targets ``LACE``."""
     config = load_and_merge_config(
         RECIPE_CONF / "training.yaml",
         "training.yaml",
@@ -57,6 +59,7 @@ def test_libritts_training_config_resolves():
 
 
 def test_libritts_inference_config_resolves():
+    """The recipe inference config rebuilds from ``lace_model.yaml``."""
     config = load_and_merge_config(
         RECIPE_CONF / "inference.yaml",
         "inference.yaml",
@@ -70,6 +73,7 @@ def test_libritts_inference_config_resolves():
 
 
 def test_libritts_metrics_config_reads_the_reference_from_the_data():
+    """The metrics config binds ``ref`` to the dataset's ``wav_path``."""
     config = load_and_merge_config(
         RECIPE_CONF / "metrics.yaml",
         "metrics.yaml",
@@ -85,6 +89,7 @@ def test_libritts_metrics_config_reads_the_reference_from_the_data():
 
 
 def test_launch_parser_exposes_the_lace_roles_and_stages():
+    """``launch`` sees the LACE stages and the template conf package."""
     parser = build_parser(LACESystem)
     args = parser.parse_args(["--stages", "train", "--training_config", "x.yaml"])
     assert args.stages == ["train"]

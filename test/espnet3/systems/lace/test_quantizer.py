@@ -23,10 +23,12 @@ FRAME_RATE = 30
 
 @pytest.fixture
 def original_quantizer():
+    """Return the unwrapped tiny Encodec quantizer."""
     return build_tiny_codec_model().codec.generator.quantizer
 
 
-def build_wrapped(original_quantizer, compression_model=None, **kwargs):
+def _build_wrapped(original_quantizer, compression_model=None, **kwargs):
+    """Wrap a copy of ``original_quantizer`` with a compression model."""
     return CompressionResidualVectorQuantizer(
         copy.deepcopy(original_quantizer),
         compression_model or CosineSimilarityCompression(),
@@ -35,18 +37,21 @@ def build_wrapped(original_quantizer, compression_model=None, **kwargs):
 
 
 def test_rejects_unknown_random_rate(original_quantizer):
+    """An unknown sampling strategy raises."""
     with pytest.raises(ValueError, match="random_rate"):
-        build_wrapped(original_quantizer, random_rate="per_batch")
+        _build_wrapped(original_quantizer, random_rate="per_batch")
 
 
 def test_rejects_quantizer_without_inner_vq():
+    """A module without ``.vq`` is not an espnet2 RVQ."""
     with pytest.raises(TypeError, match="ResidualVectorQuantizer"):
         CompressionResidualVectorQuantizer(torch.nn.Linear(2, 2), IdentityCompression())
 
 
 def test_wraps_inner_vq_and_exposes_properties(original_quantizer):
+    """The inner ``.vq`` is wrapped and the bandwidth getters pass through."""
     compression_model = IdentityCompression()
-    wrapped = build_wrapped(original_quantizer, compression_model)
+    wrapped = _build_wrapped(original_quantizer, compression_model)
     assert isinstance(wrapped.rvq.vq, RVQCompressionWrapper)
     assert wrapped.compression_model is compression_model
     assert wrapped.num_codebooks == NUM_CODEBOOKS
@@ -61,7 +66,8 @@ def test_wraps_inner_vq_and_exposes_properties(original_quantizer):
 def test_identity_compression_matches_unwrapped_quantizer(original_quantizer, training):
     # random_rate="none": sampling a rate would consume random numbers that
     # the unwrapped quantizer does not, and shift its dead-code resampling.
-    wrapped = build_wrapped(
+    """With identity compression the wrapper is bit-equivalent to espnet2."""
+    wrapped = _build_wrapped(
         original_quantizer, IdentityCompression(), random_rate="none", eval_rate=0.5
     )
     reference = copy.deepcopy(original_quantizer)
@@ -83,7 +89,8 @@ def test_identity_compression_matches_unwrapped_quantizer(original_quantizer, tr
 
 
 def test_state_dict_layout_round_trips(original_quantizer):
-    wrapped = build_wrapped(original_quantizer)
+    """Keys move under ``rvq.vq.rvq.`` and a wrapped state dict loads strictly."""
+    wrapped = _build_wrapped(original_quantizer)
     assert all(key.startswith("rvq.vq.rvq.") for key in wrapped.state_dict())
     assert len(wrapped.state_dict()) == len(original_quantizer.state_dict())
     for key, value in original_quantizer.state_dict().items():
@@ -93,7 +100,8 @@ def test_state_dict_layout_round_trips(original_quantizer):
 
 
 def test_resolve_rate_precedence(original_quantizer):
-    wrapped = build_wrapped(original_quantizer, eval_rate=0.5)
+    """Explicit rate, then the inference rate, then ``eval_rate``."""
+    wrapped = _build_wrapped(original_quantizer, eval_rate=0.5)
     wrapped.eval()
     assert wrapped._resolve_rate(2, "cpu", 0.9) == 0.9
     assert wrapped._resolve_rate(2, "cpu", None) == 0.5
@@ -108,7 +116,8 @@ def test_resolve_rate_precedence(original_quantizer):
     [("per_quantizer", (NUM_CODEBOOKS, 3)), ("per_sample", (3,)), ("none", None)],
 )
 def test_training_rate_sampling(original_quantizer, random_rate, shape):
-    wrapped = build_wrapped(
+    """Each strategy samples the documented shape within the range."""
+    wrapped = _build_wrapped(
         original_quantizer, min_rate=0.2, max_rate=0.6, random_rate=random_rate
     )
     wrapped.train()
@@ -122,7 +131,8 @@ def test_training_rate_sampling(original_quantizer, random_rate, shape):
 
 @pytest.mark.parametrize("random_rate", ["per_quantizer", "per_sample", "none"])
 def test_training_forward_backward(original_quantizer, random_rate):
-    wrapped = build_wrapped(original_quantizer, random_rate=random_rate)
+    """A training forward pass returns the 4-tuple and is differentiable."""
+    wrapped = _build_wrapped(original_quantizer, random_rate=random_rate)
     wrapped.train()
     x = torch.randn(2, HIDDEN_DIM, 12, requires_grad=True)
     quantized, codes, bandwidth, commit_loss = wrapped(x, FRAME_RATE)
@@ -133,7 +143,8 @@ def test_training_forward_backward(original_quantizer, random_rate):
 
 
 def test_lower_rate_gives_fewer_segments(original_quantizer):
-    wrapped = build_wrapped(original_quantizer)
+    """``encode_with_segments`` reports fewer segments at a lower rate."""
+    wrapped = _build_wrapped(original_quantizer)
     wrapped.eval()
     torch.manual_seed(0)
     x = torch.randn(2, HIDDEN_DIM, 20)
@@ -150,7 +161,8 @@ def test_lower_rate_gives_fewer_segments(original_quantizer):
 
 
 def test_encode_layer_range_and_bandwidth(original_quantizer):
-    wrapped = build_wrapped(original_quantizer, IdentityCompression())
+    """``st`` and ``bandwidth`` select the layer range as in espnet2."""
+    wrapped = _build_wrapped(original_quantizer, IdentityCompression())
     wrapped.eval()
     x = torch.randn(1, HIDDEN_DIM, 10)
     assert wrapped.encode(x, FRAME_RATE, st=2).shape == (NUM_CODEBOOKS - 2, 1, 10)
@@ -159,7 +171,8 @@ def test_encode_layer_range_and_bandwidth(original_quantizer):
 
 
 def test_anchor_start_layer_restricts_later_layers(original_quantizer):
-    wrapped = build_wrapped(
+    """Layers from the anchor index on cut only where earlier layers did."""
+    wrapped = _build_wrapped(
         original_quantizer, CosineSimilarityCompression(max_tokens_per_group=None)
     )
     wrapped.eval()
@@ -191,6 +204,7 @@ def test_anchor_start_layer_restricts_later_layers(original_quantizer):
 
 
 def test_quantizer_dropout_codec_returns_five_values():
+    """A quantizer-dropout codec (DAC) keeps its 5-tuple return."""
     torch.manual_seed(0)
     model = get_espnet_model(
         "espnet2.tasks.gan_codec.GANCodecTask", {"codec": "dac", "codec_conf": {}}

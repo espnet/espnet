@@ -6,12 +6,14 @@ from espnet3.systems.lace.src.density_peak import DensityPeakCompression
 
 
 def test_rate_none_returns_per_frame_segmentation():
+    """``rate=None`` is the identity segmentation."""
     x = torch.randn(2, 7, 4)
     output = DensityPeakCompression()(x, rate=None)
     assert torch.equal(output.reconstructed_features, x)
 
 
 def test_output_shapes_and_segment_count():
+    """Output shapes match the input and ``expected_length`` counts the segments."""
     torch.manual_seed(0)
     x = torch.randn(2, 16, 8)
     output = DensityPeakCompression()(x, rate=0.5)
@@ -24,6 +26,7 @@ def test_output_shapes_and_segment_count():
 
 
 def test_segments_never_exceed_max_span():
+    """No cluster grows past ``max_span`` frames, even when merging is free."""
     torch.manual_seed(0)
     x = torch.ones(1, 12, 4) + 0.01 * torch.randn(1, 12, 4)
     output = DensityPeakCompression(max_span=3)(x, rate=0.0)
@@ -31,6 +34,7 @@ def test_segments_never_exceed_max_span():
 
 
 def test_identical_frames_merge_and_distinct_frames_split():
+    """Identical frames share a cluster; opposite frames do not."""
     first = torch.tensor([1.0, 0.0]).expand(2, 2)
     second = torch.tensor([-1.0, 0.0]).expand(2, 2)
     x = torch.cat([first, second]).unsqueeze(0)  # (1, 4, 2)
@@ -39,6 +43,7 @@ def test_identical_frames_merge_and_distinct_frames_split():
 
 
 def test_higher_rate_never_gives_fewer_segments():
+    """The segment count is monotone in the threshold."""
     torch.manual_seed(0)
     x = torch.randn(2, 20, 8)
     model = DensityPeakCompression()
@@ -48,6 +53,7 @@ def test_higher_rate_never_gives_fewer_segments():
 
 
 def test_padding_and_single_frame_sequences():
+    """Padding carries no boundary and a one-frame sequence is one segment."""
     torch.manual_seed(0)
     x = torch.randn(2, 8, 4)
     padding_mask = torch.zeros(2, 8, dtype=torch.bool)
@@ -59,6 +65,7 @@ def test_padding_and_single_frame_sequences():
 
 
 def test_per_sample_rate_tensor_and_ignored_anchor():
+    """A (B,) rate tensor matches per-item float rates; anchors are ignored."""
     torch.manual_seed(0)
     x = torch.randn(2, 10, 4)
     model = DensityPeakCompression()

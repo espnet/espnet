@@ -40,6 +40,7 @@ def finetuned(tmp_path):
 
 
 def test_mismatched_checkpoint_raises(finetuned, tmp_path):
+    """A checkpoint that does not match the rebuilt model raises."""
     spec_path, _ = finetuned
     wrong = tmp_path / "wrong.ckpt"
     torch.save({"state_dict": {"unexpected.weight": torch.zeros(1)}}, wrong)
@@ -48,6 +49,7 @@ def test_mismatched_checkpoint_raises(finetuned, tmp_path):
 
 
 def test_roundtrip_with_finetuned_checkpoint(finetuned):
+    """The roundtrip returns codes and audio for 1-D and batched input."""
     spec_path, model_file = finetuned
     coding = LACEAudioCoding(train_config=spec_path, model_file=model_file, rate=0.5)
     assert not coding.model.training
@@ -64,6 +66,7 @@ def test_roundtrip_with_finetuned_checkpoint(finetuned):
 
 
 def test_inference_state_is_reset_after_each_call(finetuned):
+    """The quantizer's inference rate and anchor are set per call and reset."""
     spec_path, model_file = finetuned
     coding = LACEAudioCoding(
         train_config=spec_path, model_file=model_file, rate=0.5, anchor_start_layer=1
@@ -90,6 +93,7 @@ def test_inference_state_is_reset_after_each_call(finetuned):
 
 
 def test_inference_declaration_and_sample_rate(finetuned):
+    """``Inference`` declares one audio in, one audio out, at the codec rate."""
     spec_path, model_file = finetuned
     model = Inference(train_config=spec_path, model_file=model_file, rate=0.5)
     assert [f.name for f in model.inputs] == ["audio"]
@@ -99,6 +103,7 @@ def test_inference_declaration_and_sample_rate(finetuned):
 
 
 def test_inference_run_matches_the_backend_roundtrip(finetuned):
+    """``Inference`` returns exactly the backend's resynthesis as ``Audio``."""
     spec_path, model_file = finetuned
     model = Inference(train_config=spec_path, model_file=model_file, rate=0.5)
     audio = np.random.RandomState(0).randn(240).astype(np.float32)
@@ -115,6 +120,7 @@ def test_inference_run_matches_the_backend_roundtrip(finetuned):
 
 
 def test_inference_wraps_a_built_backend(finetuned):
+    """An already built ``LACEAudioCoding`` is accepted, without extra kwargs."""
     spec_path, model_file = finetuned
     coding = LACEAudioCoding(train_config=spec_path, model_file=model_file)
     assert Inference(coding).backend is coding

@@ -38,6 +38,7 @@ def _write_corpus(recipe_dir: Path, utterances_per_subset: int = 2) -> None:
 
 
 def test_package_exports_the_builder_and_dataset():
+    """The package exports the contract names with the declared fields."""
     assert DatasetBuilder is LibriTTSBuilder
     assert Dataset is LibriTTSCodecDataset
     # The dataset contract: a BaseDataset with declared item fields.
@@ -48,6 +49,7 @@ def test_package_exports_the_builder_and_dataset():
 
 
 def test_builder_writes_manifests_and_dataset_reads_them(tmp_path):
+    """Manifests are built from a tiny corpus and read back by the dataset."""
     _write_corpus(tmp_path)
     builder = LibriTTSBuilder()
     assert builder.is_source_prepared(recipe_dir=tmp_path)
@@ -87,11 +89,13 @@ def test_builder_writes_manifests_and_dataset_reads_them(tmp_path):
 
 
 def test_dataset_requires_built_manifests(tmp_path):
+    """Loading a split before ``create_dataset`` raises."""
     with pytest.raises(RuntimeError, match="not built yet"):
         LibriTTSCodecDataset(split="train", recipe_dir=tmp_path)
 
 
 def test_source_is_not_prepared_without_markers(tmp_path):
+    """A subset without its ``.complete`` marker counts as not prepared."""
     _write_corpus(tmp_path)
     (tmp_path / "downloads" / "LibriTTS" / "dev-clean" / ".complete").unlink()
     assert not LibriTTSBuilder().is_source_prepared(recipe_dir=tmp_path)

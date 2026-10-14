@@ -32,6 +32,7 @@ COMPRESSION = {"name": "cosine_similarity", "params": {}, "eval_rate": 0.5}
 
 
 def test_build_compression_model():
+    """Names map to classes with their kwargs; unknown names raise."""
     model = build_compression_model("dp_segmentation", max_span=3)
     assert isinstance(model, DPSegmentationCompression)
     assert model.max_span == 3
@@ -42,6 +43,7 @@ def test_build_compression_model():
 
 
 def test_build_from_fresh_codec_conf_with_omegaconf_inputs():
+    """A fresh codec builds from OmegaConf inputs and keeps the espnet2 layout."""
     model = LACE(
         compression_model=OmegaConf.create(COMPRESSION),
         codec="encodec",
@@ -66,6 +68,7 @@ def test_build_from_fresh_codec_conf_with_omegaconf_inputs():
 def test_pretrained_model_dir_loads_bundle_weights_before_wrapping(
     tmp_path, layout, lightning
 ):
+    """Bundle weights land under the wrapped keys for both layouts."""
     baseline = write_tiny_bundle(tmp_path, layout=layout, lightning=lightning)
     model = LACE(compression_model=COMPRESSION, pretrained_model_dir=str(tmp_path))
     assert isinstance(
@@ -78,6 +81,7 @@ def test_pretrained_model_dir_loads_bundle_weights_before_wrapping(
 
 
 def test_pretrained_model_tag_downloads_through_espnet_model_zoo(tmp_path, monkeypatch):
+    """A tag goes through ``ModelDownloader`` and its weights are loaded."""
     from espnet_model_zoo.downloader import ModelDownloader
 
     baseline = write_tiny_bundle(tmp_path)
@@ -100,6 +104,7 @@ def test_pretrained_model_tag_downloads_through_espnet_model_zoo(tmp_path, monke
 
 
 def test_read_bundle_artifacts(tmp_path):
+    """``meta.yaml`` entries become absolute paths; a missing file raises."""
     write_tiny_bundle(tmp_path, layout="espnet3")
     artifacts = read_bundle_artifacts(tmp_path)
     assert artifacts == {
@@ -111,6 +116,7 @@ def test_read_bundle_artifacts(tmp_path):
 
 
 def test_build_codec_from_bundle_rejects_unknown_layouts(tmp_path):
+    """Artifacts without a model file or a known config key raise."""
     with pytest.raises(ValueError, match="no 'model_file'"):
         build_codec_from_bundle({"train_config": "x"})
     with pytest.raises(ValueError, match="neither 'train_config'"):
@@ -118,6 +124,7 @@ def test_build_codec_from_bundle_rejects_unknown_layouts(tmp_path):
 
 
 def test_build_codec_from_bundle_strict_load_mismatch_raises(tmp_path):
+    """A bundle whose weights miss a key raises instead of partial-loading."""
     write_tiny_bundle(tmp_path)
     artifacts = read_bundle_artifacts(tmp_path)
     broken = dict(build_tiny_codec_model().state_dict())
@@ -128,6 +135,7 @@ def test_build_codec_from_bundle_strict_load_mismatch_raises(tmp_path):
 
 
 def test_architecture_source_validation(tmp_path):
+    """Exactly one model source must be given."""
     with pytest.raises(ValueError, match="exactly one model source"):
         LACE(compression_model=COMPRESSION)
     with pytest.raises(ValueError, match="exactly one model source"):
@@ -145,6 +153,7 @@ def test_architecture_source_validation(tmp_path):
 
 
 def test_rejects_non_residual_vector_quantizer(monkeypatch):
+    """A codec without the shared RVQ is refused."""
     import espnet3.utils.task_utils as task_utils
 
     model = build_tiny_codec_model()
@@ -155,6 +164,7 @@ def test_rejects_non_residual_vector_quantizer(monkeypatch):
 
 
 def test_load_model_state_strict_raises_on_mismatch(tmp_path):
+    """The strict loader raises on a missing key."""
     model = build_tiny_codec_model()
     state_dict = dict(model.state_dict())
     state_dict.pop(next(iter(state_dict)))
@@ -166,6 +176,7 @@ def test_load_model_state_strict_raises_on_mismatch(tmp_path):
 
 @pytest.mark.parametrize("module", ["none", "encoder", "decoder"])
 def test_freeze_codec_module(module):
+    """Only the named generator module loses ``requires_grad``."""
     model = build_tiny_codec_model()
     freeze_codec_module(model, module)
     generator = model.codec.generator
@@ -175,6 +186,7 @@ def test_freeze_codec_module(module):
 
 
 def test_freeze_codec_module_rejects_unknown_choice():
+    """``all`` is not a freeze choice."""
     with pytest.raises(ValueError, match="freeze_codec_module"):
         freeze_codec_module(build_tiny_codec_model(), "all")
 
@@ -183,6 +195,7 @@ def test_freeze_codec_module_rejects_unknown_choice():
 
 
 def test_drop_legacy_dac_discriminator_keys(caplog):
+    """Legacy DAC keys are dropped from a copy, with a warning, only for DAC."""
     legacy = {
         "codec": "dac",
         "codec_conf": {
@@ -210,6 +223,7 @@ def test_drop_legacy_dac_discriminator_keys(caplog):
 
 
 def test_fill_missing_snake_alpha(caplog):
+    """Missing Snake alphas are filled with ones; nothing else is added."""
     from espnet2.gan_codec.shared.encoder.snake_activation import Snake1d
 
     model = torch.nn.Sequential(Snake1d(), torch.nn.Linear(2, 2), Snake1d())
@@ -234,6 +248,7 @@ def test_fill_missing_snake_alpha(caplog):
 
 
 def test_read_model_state_unwraps_lightning_and_model_prefix(tmp_path):
+    """Plain, Lightning and ``model.``-prefixed checkpoints read the same."""
     model = build_tiny_codec_model()
     plain = tmp_path / "model.pth"
     torch.save(model.state_dict(), plain)

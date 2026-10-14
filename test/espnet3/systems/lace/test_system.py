@@ -20,8 +20,8 @@ from espnet3.systems.lace.system import (
 COMPRESSION = {"name": "cosine_similarity", "params": {}, "eval_rate": 0.5}
 
 
-def make_training_config(tmp_path, **overrides):
-    """A resolved LACE training config fine-tuning a bundle under tmp_path."""
+def _build_training_config(tmp_path, **overrides):
+    """Build a resolved LACE training config fine-tuning a bundle under tmp_path."""
     config = {
         "exp_dir": str(tmp_path / "exp"),
         "bundle_dir": str(tmp_path / "bundle"),
@@ -37,21 +37,26 @@ def make_training_config(tmp_path, **overrides):
     return OmegaConf.create(config)
 
 
-class DummyTrainer:
+class _DummyTrainer:
+    """Records whether ``collect_stats`` and ``fit`` were called, and with what."""
+
     def __init__(self):
+        """Start with nothing called."""
         self.collect_stats_called = False
         self.fit_called = False
         self.fit_kwargs = None
 
     def collect_stats(self):
+        """Record the call."""
         self.collect_stats_called = True
 
     def fit(self, **kwargs):
+        """Record the call and its kwargs."""
         self.fit_called = True
         self.fit_kwargs = kwargs
 
 
-def patch_runtime(monkeypatch, trainer):
+def _patch_runtime(monkeypatch, trainer):
     """Stub the trainer build and the process-level runtime hooks."""
     calls = {}
     monkeypatch.setattr(LACESystem, "_build_trainer", lambda self: trainer)
@@ -75,7 +80,8 @@ def patch_runtime(monkeypatch, trainer):
 
 
 def test_build_lace_model_config_strips_target_and_weight_source(tmp_path):
-    config = make_training_config(tmp_path)
+    """Hydra keys are dropped and interpolations resolved."""
+    config = _build_training_config(tmp_path)
 
     spec = build_lace_model_config(config.model)
 
@@ -95,12 +101,14 @@ def test_build_lace_model_config_accepts_plain_dict_and_drops_hydra_keys():
 
 
 def test_build_lace_model_config_rejects_task_built_model_block():
+    """A model block without ``_target_`` is not a LACE spec."""
     with pytest.raises(ValueError, match="model._target_"):
         build_lace_model_config({"codec": "encodec", "codec_conf": {}})
 
 
 def test_write_lace_model_config_creates_parents_and_round_trips(tmp_path):
-    config = make_training_config(tmp_path)
+    """The written YAML reads back as the built spec."""
+    config = _build_training_config(tmp_path)
     output_path = tmp_path / "exp" / "nested" / MODEL_CONFIG_NAME
 
     written = write_lace_model_config(config.model, output_path)
@@ -114,7 +122,7 @@ def test_write_lace_model_config_creates_parents_and_round_trips(tmp_path):
 def test_written_spec_rebuilds_the_trained_architecture(tmp_path):
     """The spec rebuilds the wrapped model layout used during fine-tuning."""
     write_tiny_bundle(tmp_path / "bundle", lightning=True)
-    config = make_training_config(tmp_path)
+    config = _build_training_config(tmp_path)
     trained = LACE(**build_lace_model_config(config.model))
 
     spec = yaml.safe_load(
@@ -130,7 +138,8 @@ def test_written_spec_rebuilds_the_trained_architecture(tmp_path):
 
 
 def test_build_trainer_uses_gan_path_for_gan_model(tmp_path, monkeypatch):
-    config = make_training_config(tmp_path)
+    """An ``AbsGANESPnetModel`` gets the GAN trainer."""
+    config = _build_training_config(tmp_path)
     monkeypatch.setattr(sysmod, "instantiate", lambda model_config: DummyGANModel())
     monkeypatch.setattr(
         sysmod,
@@ -142,7 +151,8 @@ def test_build_trainer_uses_gan_path_for_gan_model(tmp_path, monkeypatch):
 
 
 def test_build_trainer_uses_plain_path_for_non_gan_model(tmp_path, monkeypatch):
-    config = make_training_config(
+    """Any other model gets the plain Lightning trainer."""
+    config = _build_training_config(
         tmp_path, trainer={"max_epochs": 1}, best_model_criterion=[]
     )
     monkeypatch.setattr(sysmod, "instantiate", lambda model_config: nn.Linear(1, 1))
@@ -167,14 +177,15 @@ def test_build_trainer_uses_plain_path_for_non_gan_model(tmp_path, monkeypatch):
 
 
 def test_collect_stats_runs_pipeline(tmp_path, monkeypatch):
-    config = make_training_config(
+    """``collect_stats`` prepares the runtime and runs the trainer's stats pass."""
+    config = _build_training_config(
         tmp_path,
         stats_dir=str(tmp_path / "stats"),
         seed=777,
         parallel={"backend": "dummy"},
     )
-    trainer = DummyTrainer()
-    calls = patch_runtime(monkeypatch, trainer)
+    trainer = _DummyTrainer()
+    calls = _patch_runtime(monkeypatch, trainer)
     system = LACESystem(training_config=config)
 
     system.collect_stats()
@@ -188,9 +199,10 @@ def test_collect_stats_runs_pipeline(tmp_path, monkeypatch):
 
 
 def test_train_writes_spec_then_fits_with_fit_kwargs(tmp_path, monkeypatch):
-    config = make_training_config(tmp_path, seed=123, fit={"ckpt_path": "last"})
-    trainer = DummyTrainer()
-    calls = patch_runtime(monkeypatch, trainer)
+    """``train`` writes ``lace_model.yaml`` and forwards the ``fit`` block."""
+    config = _build_training_config(tmp_path, seed=123, fit={"ckpt_path": "last"})
+    trainer = _DummyTrainer()
+    calls = _patch_runtime(monkeypatch, trainer)
     system = LACESystem(training_config=config)
 
     system.train()
@@ -207,9 +219,10 @@ def test_train_writes_spec_then_fits_with_fit_kwargs(tmp_path, monkeypatch):
 
 
 def test_train_with_null_stats_dir_and_empty_fit(tmp_path, monkeypatch):
-    config = make_training_config(tmp_path, stats_dir=None, fit={})
-    trainer = DummyTrainer()
-    patch_runtime(monkeypatch, trainer)
+    """A null ``stats_dir`` and an empty ``fit`` block are fine."""
+    config = _build_training_config(tmp_path, stats_dir=None, fit={})
+    trainer = _DummyTrainer()
+    _patch_runtime(monkeypatch, trainer)
     system = LACESystem(training_config=config)
 
     system.train()
@@ -220,8 +233,11 @@ def test_train_with_null_stats_dir_and_empty_fit(tmp_path, monkeypatch):
 
 @pytest.mark.parametrize("stage", ["train", "collect_stats"])
 def test_stages_reject_task_configs(tmp_path, monkeypatch, stage):
-    config = make_training_config(tmp_path, task="espnet2.tasks.gan_codec.GANCodecTask")
-    patch_runtime(monkeypatch, DummyTrainer())
+    """Both stages refuse a config that sets ``task``."""
+    config = _build_training_config(
+        tmp_path, task="espnet2.tasks.gan_codec.GANCodecTask"
+    )
+    _patch_runtime(monkeypatch, _DummyTrainer())
     system = LACESystem(training_config=config)
     with pytest.raises(ValueError, match="leave `task:` unset"):
         getattr(system, stage)()
@@ -230,6 +246,7 @@ def test_stages_reject_task_configs(tmp_path, monkeypatch, stage):
 
 @pytest.mark.parametrize("stage", ["train", "collect_stats"])
 def test_stages_reject_positional_arguments(tmp_path, stage):
-    system = LACESystem(training_config=make_training_config(tmp_path))
+    """Both stages refuse call arguments."""
+    system = LACESystem(training_config=_build_training_config(tmp_path))
     with pytest.raises(TypeError, match="does not accept arguments"):
         getattr(system, stage)("unexpected")
