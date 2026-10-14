@@ -8,8 +8,10 @@ contract: one ``audio`` field in, one ``resyn_audio`` field out, at the
 codec's sample rate. Building the backend, loading a bundle and the rate
 come from :class:`espnet3.systems.base.backend_inference.BackendInference`.
 
-Examples:
-    From a bundle, by directory or Hub tag::
+Example:
+    From a bundle, by directory or Hub tag:
+
+    .. code-block:: python
 
         >>> from espnet3.systems.lace.inference import Inference
         >>> model = Inference.from_pretrained("exp/train_encodec_lace/model_pack")
@@ -18,13 +20,17 @@ Examples:
 
     Or, without naming the system, through the bundle's ``meta.yaml``, and
     with any ``LACEAudioCoding`` argument replacing the packed one, which is
-    how a rate sweep reads::
+    how a rate sweep reads:
+
+    .. code-block:: python
 
         >>> from espnet3.api.inference import load
         >>> load("espnet/libritts_lace_train_encodec_lace", rate=0.25)("utt.wav")
 
     In the ``infer`` stage, ``inference.yaml`` names this class with the
-    same arguments::
+    same arguments:
+
+    .. code-block:: yaml
 
         model:
           _target_: espnet3.systems.lace.inference.Inference
@@ -64,33 +70,16 @@ class LACEAudioCoding:
     call (which forwards no extra kwargs), and can be overridden per call
     via ``decode_conf={"rate": ..., "anchor_start_layer": ...}``.
 
-    Args:
-        train_config: Path to the ``lace_model.yaml`` spec of a
-            fine-tuning run.
-        model_file: Path to the fine-tuned weights (model-level state dict
-            or Lightning checkpoint).
-        rate: Default compression rate; ``None`` falls back to the
-            compression model's ``eval_rate``.
-        anchor_start_layer: Default index of the first anchored layer;
-            ``None`` disables anchoring.
-        target_bandwidth: Default target bandwidth in kbps; ``None`` uses
-            all codebook layers.
-        dtype: Torch dtype name of the model and the input audio.
-        device: Device the model runs on.
+    Example:
+        .. code-block:: python
 
-    Raises:
-        RuntimeError: If ``model_file`` does not match the rebuilt
-            architecture exactly (propagated from the strict load).
-
-    Examples:
-        ```python
-        coding = LACEAudioCoding(
-            train_config="exp/train_encodec_lace_libritts/lace_model.yaml",
-            model_file="exp/train_encodec_lace_libritts/last.ckpt",
-            rate=0.5,
-        )
-        coding.fs  # -> 24000
-        ```
+            >>> coding = LACEAudioCoding(
+            ...     train_config="exp/train_encodec_lace_libritts/lace_model.yaml",
+            ...     model_file="exp/train_encodec_lace_libritts/last.ckpt",
+            ...     rate=0.5,
+            ... )
+            >>> coding.fs
+            24000
     """
 
     def __init__(
@@ -103,7 +92,26 @@ class LACEAudioCoding:
         dtype: str = "float32",
         device: Union[str, torch.device] = "cpu",
     ):
-        """Build the wrapped codec and load its weights."""
+        """Rebuild the wrapped codec from its spec and load the fine-tuned weights.
+
+        Args:
+            train_config: Path to the ``lace_model.yaml`` spec of a
+                fine-tuning run.
+            model_file: Path to the fine-tuned weights (model-level state dict
+                or Lightning checkpoint).
+            rate: Default compression rate; ``None`` falls back to the
+                compression model's ``eval_rate``.
+            anchor_start_layer: Default index of the first anchored layer;
+                ``None`` disables anchoring.
+            target_bandwidth: Default target bandwidth in kbps; ``None`` uses
+                all codebook layers.
+            dtype: Torch dtype name of the model and the input audio.
+            device: Device the model runs on.
+
+        Raises:
+            RuntimeError: If ``model_file`` does not match the rebuilt
+                architecture exactly (propagated from the strict load).
+        """
         with open(train_config, encoding="utf-8") as f:
             spec = yaml.safe_load(f)
         model = LACE(**spec)
@@ -145,17 +153,18 @@ class LACEAudioCoding:
         Raises:
             AssertionError: If ``audio`` is ``None``.
 
-        Examples:
-            ```python
-            coding = LACEAudioCoding(
-                train_config="exp/train_encodec_lace_libritts/lace_model.yaml",
-                model_file="exp/train_encodec_lace_libritts/last.ckpt",
-                rate=0.5,
-            )
-            output = coding(torch.randn(24000))
-            sorted(output)  # -> ['codes', 'resyn_audio']
-            output = coding(torch.randn(24000), decode_conf={"rate": 0.25})
-            ```
+        Example:
+            .. code-block:: python
+
+                >>> coding = LACEAudioCoding(
+                ...     train_config="exp/train_encodec_lace_libritts/lace_model.yaml",
+                ...     model_file="exp/train_encodec_lace_libritts/last.ckpt",
+                ...     rate=0.5,
+                ... )
+                >>> output = coding(torch.randn(24000))
+                >>> sorted(output)
+                ['codes', 'resyn_audio']
+                >>> output = coding(torch.randn(24000), decode_conf={"rate": 0.25})
         """
         assert audio is not None, "Audio is invalid, input a valid audio."
 
@@ -206,13 +215,15 @@ class Inference(BackendInference):
     recording is reduced to its reference channel first, as the codec is
     single-channel.
 
-    Examples:
-        >>> model = Inference.from_pretrained("exp/train_encodec_lace/model_pack")
-        >>> out = model("utt.wav")
-        >>> out["resyn_audio"].rate == model.sample_rate
-        True
-        >>> model.batch([{"audio": "a.wav"}, {"audio": "b.wav"}])
-        [{'resyn_audio': Audio(...)}, {'resyn_audio': Audio(...)}]
+    Example:
+        .. code-block:: python
+
+            >>> model = Inference.from_pretrained("exp/train_encodec_lace/model_pack")
+            >>> output = model("utt.wav")
+            >>> output["resyn_audio"].rate == model.sample_rate
+            True
+            >>> model.batch([{"audio": "a.wav"}, {"audio": "b.wav"}])
+            [{'resyn_audio': Audio(...)}, {'resyn_audio': Audio(...)}]
     """
 
     backend_class = "espnet3.systems.lace.inference.LACEAudioCoding"
@@ -228,6 +239,14 @@ class Inference(BackendInference):
         Returns:
             ``{"resyn_audio": Audio}``, the encode -> decode roundtrip at the
             backend's compression rate, at the codec's sample rate.
+
+        Example:
+            .. code-block:: python
+
+                >>> model = Inference(coding)
+                >>> audio = Audio(np.zeros(24000, dtype=np.float32), 24000)
+                >>> model.run(audio)["resyn_audio"].rate
+                24000
         """
         resyn_audio = self.backend(audio.array)["resyn_audio"]
         return {"resyn_audio": Audio(resyn_audio.cpu().numpy(), self.sample_rate)}

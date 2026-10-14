@@ -9,9 +9,12 @@ baseline codec.
 from __future__ import annotations
 
 import copy
+from typing import Any, Dict, Optional, Sequence, Union
 
+import lightning as L
 from omegaconf import DictConfig
 
+from espnet2.train.abs_gan_espnet_model import AbsGANESPnetModel
 from espnet3.components.trainers.trainer import ESPnet3LightningTrainer
 from espnet3.systems.lace.src.gan_lightning_module import GANLightningModule
 
@@ -21,10 +24,10 @@ class GANLightningTrainer(ESPnet3LightningTrainer):
 
     def __init__(
         self,
-        model=None,
-        exp_dir: str | None = None,
-        config=None,
-        best_model_criterion=None,
+        model: Optional[L.LightningModule] = None,
+        exp_dir: Optional[str] = None,
+        config: Optional[Union[DictConfig, Dict[str, Any]]] = None,
+        best_model_criterion: Optional[Sequence[Sequence[Any]]] = None,
     ):
         """Initialize GANLightningTrainer, stripping GAN-specific config keys.
 
@@ -39,22 +42,23 @@ class GANLightningTrainer(ESPnet3LightningTrainer):
                 :class:`GANLightningModule`.
             exp_dir: Experiment directory for checkpoints and logs.
             config: The recipe's ``trainer`` block. May contain a ``gan``
-                sub-block, which is removed here rather than mutated in
-                place -- *config* itself is left untouched.
+                sub-block, which is removed from a copy; ``config`` itself is
+                left untouched.
             best_model_criterion: Checkpoint selection rules, each of the
                 form ``[monitor_key, num_to_keep, "min" | "max"]``.
 
-        Examples:
+        Example:
             Usually reached through :func:`build_gan_trainer` rather than
             constructed directly:
-            ```python
-            trainer = GANLightningTrainer(
-                model=GANLightningModule(model, config),
-                exp_dir=config.exp_dir,
-                config=config.trainer,          # may include `gan:`
-                best_model_criterion=config.best_model_criterion,
-            )
-            ```
+
+            .. code-block:: python
+
+                >>> trainer = GANLightningTrainer(
+                ...     model=GANLightningModule(model, config),
+                ...     exp_dir=config.exp_dir,
+                ...     config=config.trainer,          # may include `gan:`
+                ...     best_model_criterion=config.best_model_criterion,
+                ... )
         """
         trainer_config = copy.deepcopy(config)
         if isinstance(trainer_config, DictConfig) and hasattr(trainer_config, "gan"):
@@ -70,7 +74,9 @@ class GANLightningTrainer(ESPnet3LightningTrainer):
         )
 
 
-def build_gan_trainer(training_config, model) -> GANLightningTrainer:
+def build_gan_trainer(
+    training_config: DictConfig, model: AbsGANESPnetModel
+) -> GANLightningTrainer:
     """Build the GAN Lightning trainer for any AbsGANESPnetModel.
 
     Wraps *model* in a :class:`GANLightningModule` (which drives the manual
@@ -93,21 +99,22 @@ def build_gan_trainer(training_config, model) -> GANLightningTrainer:
         GANLightningTrainer: A trainer ready for ``.fit()`` or
         ``.collect_stats()``.
 
-    Examples:
-        ```python
-        from espnet3.systems.lace.src.gan_trainer import build_gan_trainer
-        from espnet3.utils.task_utils import get_espnet_model
+    Example:
+        .. code-block:: python
 
-        model = get_espnet_model(config.task, config.model)
-        trainer = build_gan_trainer(config, model)
-        trainer.fit()
-        ```
+            >>> from hydra.utils import instantiate
+            >>> from espnet3.systems.lace.src.gan_trainer import build_gan_trainer
+
+            >>> model = instantiate(config.model)
+            >>> trainer = build_gan_trainer(config, model)
+            >>> trainer.fit()
 
         ``LACESystem`` picks this path automatically for GAN models:
-        ```python
-        if isinstance(model, AbsGANESPnetModel):
-            return build_gan_trainer(config, model)
-        ```
+
+        .. code-block:: python
+
+            >>> if isinstance(model, AbsGANESPnetModel):
+            ...     return build_gan_trainer(config, model)
     """
     lit_model = GANLightningModule(model, training_config)
     return GANLightningTrainer(

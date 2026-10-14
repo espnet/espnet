@@ -10,6 +10,7 @@ from __future__ import annotations
 import logging
 from importlib import resources
 from pathlib import Path
+from typing import Any
 
 from espnet3.components.data.dataset_builder import DatasetBuilder
 from espnet3.utils.config_utils import load_config_with_defaults
@@ -33,19 +34,20 @@ _ARCHIVE_SIZES: dict[str, int] = {
 }
 
 
-def _load_builder_config() -> dict:
+def _load_builder_config() -> dict[str, Any]:
+    """Read the ``builder`` block of this package's ``config.yaml``."""
     config_resource = resources.files(__package__).joinpath("config.yaml")
     with resources.as_file(config_resource) as config_path:
         return load_config_with_defaults(str(config_path), resolve=False)["builder"]
 
 
-_CFG = _load_builder_config()
+_BUILDER_CONFIG = _load_builder_config()
 
 
-def _required_subsets() -> list[str]:
+def _list_required_subsets() -> list[str]:
     """Return every LibriTTS subset referenced by the split definitions."""
     required: list[str] = []
-    for subsets in _CFG["split_subsets"].values():
+    for subsets in _BUILDER_CONFIG["split_subsets"].values():
         required.extend(subsets)
     return required
 
@@ -107,17 +109,13 @@ def _download_subset(
 
 
 def _scan_subset_entries(subset_dir: Path) -> list[tuple[str, Path, str, str]]:
-    """Scan a subset directory for ``(utt_id, wav_path, text, spk_key)`` tuples.
+    """Scan a subset directory for ``(utt_id, wav_path, text, speaker)`` tuples.
 
-    Args:
-        subset_dir: Path to the subset directory (e.g., "LibriTTS/train-clean-100")
-
-    Returns:
-        List of tuples containing:
-            - utt_id: Unique utterance ID (e.g., "123-456-789")
-            - wav_path: Path to the corresponding WAV file
-            - text: Transcription text
-            - spk_key: Speaker key (e.g., "speaker_chapter") for speaker ID mapping
+    One tuple per ``*.normalized.txt`` with a sibling ``*.wav`` under
+    ``subset_dir`` (e.g. ``LibriTTS/train-clean-100``): the utterance id with
+    ``_`` replaced by ``-`` (``1089-134691-000004-000001``), the absolute WAV
+    path, the normalized transcript, and the LibriTTS speaker directory name
+    used for speaker-id assignment.
     """
     entries = []
     for text_path in sorted(subset_dir.rglob("*.normalized.txt")):
@@ -129,13 +127,27 @@ def _scan_subset_entries(subset_dir: Path) -> list[tuple[str, Path, str, str]]:
             continue
         utt_id = text_path.stem.replace(".normalized", "").replace("_", "-")
         speaker = text_path.parent.parent.name
-        spk_key = speaker
-        entries.append((utt_id, wav_path.resolve(), text, spk_key))
+        entries.append((utt_id, wav_path.resolve(), text, speaker))
     return entries
 
 
 class LibriTTSBuilder(DatasetBuilder):
-    """Prepare LibriTTS manifests for the ESPnet3 LACE recipe."""
+    """Prepare LibriTTS manifests for the ESPnet3 LACE recipe.
+
+    The ``create_dataset`` stage drives it through ``DatasetBuilder``:
+    ``prepare_source`` downloads the configured subsets, ``build`` writes one
+    ``utt_id<TAB>wav_path<TAB>text<TAB>sid`` manifest per split, and the two
+    ``is_*`` checks make a re-run skip what is already there.
+
+    Example:
+        .. code-block:: python
+
+            >>> builder = LibriTTSBuilder()
+            >>> builder.prepare_source(recipe_dir="egs3/libritts/lace")
+            >>> builder.build(recipe_dir="egs3/libritts/lace")
+            >>> builder.is_built(recipe_dir="egs3/libritts/lace")
+            True
+    """
 
     def is_source_prepared(
         self,
@@ -165,18 +177,18 @@ class LibriTTSBuilder(DatasetBuilder):
             configured subset. Without them this returns False and
             ``prepare_source`` re-downloads the archives.
 
-        Examples:
-            ```python
-            builder = LibriTTSBuilder()
-            if not builder.is_source_prepared(recipe_dir="egs3/libritts/lace"):
-                builder.prepare_source(recipe_dir="egs3/libritts/lace")
-            ```
+        Example:
+            .. code-block:: python
+
+                >>> builder = LibriTTSBuilder()
+                >>> if not builder.is_source_prepared(recipe_dir="egs3/libritts/lace"):
+                ...     builder.prepare_source(recipe_dir="egs3/libritts/lace")
         """
         recipe_root = Path(recipe_dir).resolve()
-        libritts_root = recipe_root / _CFG["dataset_path"] / "LibriTTS"
+        libritts_root = recipe_root / _BUILDER_CONFIG["dataset_path"] / "LibriTTS"
         return all(
             (libritts_root / subset / ".complete").is_file()
-            for subset in _required_subsets()
+            for subset in _list_required_subsets()
         )
 
     def prepare_source(
@@ -204,41 +216,44 @@ class LibriTTSBuilder(DatasetBuilder):
             ValueError: If a configured subset is not a known LibriTTS subset.
             URLError: If a download fails.
 
-        Examples:
+        Example:
             Called by the ``create_dataset`` stage, but it can also be driven
             directly:
-            ```python
-            from egs3.libritts.lace.dataset.builder import LibriTTSBuilder
 
-            builder = LibriTTSBuilder()
-            builder.prepare_source(recipe_dir="egs3/libritts/lace")
-            ```
+            .. code-block:: python
+
+                >>> from egs3.libritts.lace.dataset.builder import LibriTTSBuilder
+
+                >>> builder = LibriTTSBuilder()
+                >>> builder.prepare_source(recipe_dir="egs3/libritts/lace")
 
             The full recipe download is ~80 GB. To keep only the extracted
             audio:
-            ```python
-            builder.prepare_source(
-                recipe_dir="egs3/libritts/lace",
-                remove_archive=True,
-            )
-            ```
 
-            The `create_dataset` stage forwards every key under
-            `create_dataset:` in the training config as a builder kwarg, so
+            .. code-block:: python
+
+                >>> builder.prepare_source(
+                ...     recipe_dir="egs3/libritts/lace",
+                ...     remove_archive=True,
+                ... )
+
+            The ``create_dataset`` stage forwards every key under
+            ``create_dataset:`` in the training config as a builder kwarg, so
             the same option is reachable from yaml:
-            ```yaml
-            create_dataset:
-              recipe_dir: ${recipe_dir}
-              remove_archive: true
-            ```
+
+            .. code-block:: yaml
+
+                create_dataset:
+                  recipe_dir: ${recipe_dir}
+                  remove_archive: true
         """
         if self.is_source_prepared(recipe_dir=recipe_dir):
             logger.info("LibriTTS source data is already prepared, skipping download.")
             return
 
-        dataset_root = Path(recipe_dir).resolve() / _CFG["dataset_path"]
+        dataset_root = Path(recipe_dir).resolve() / _BUILDER_CONFIG["dataset_path"]
         dataset_root.mkdir(parents=True, exist_ok=True)
-        for subset in _required_subsets():
+        for subset in _list_required_subsets():
             _download_subset(dataset_root, subset, remove_archive=remove_archive)
 
     def is_built(self, recipe_dir: str | Path, **_kwargs) -> bool:
@@ -251,18 +266,18 @@ class LibriTTSBuilder(DatasetBuilder):
         Returns:
             True if all expected manifest files exist; False otherwise.
 
-        Examples:
-            ```python
-            builder = LibriTTSBuilder()
-            if not builder.is_built(recipe_dir="egs3/libritts/lace"):
-                builder.build(recipe_dir="egs3/libritts/lace")
-            ```
+        Example:
+            .. code-block:: python
+
+                >>> builder = LibriTTSBuilder()
+                >>> if not builder.is_built(recipe_dir="egs3/libritts/lace"):
+                ...     builder.build(recipe_dir="egs3/libritts/lace")
         """
         recipe_root = Path(recipe_dir).resolve()
-        data_dir = recipe_root / _CFG["data_path"]
+        data_dir = recipe_root / _BUILDER_CONFIG["data_path"]
         return all(
             (data_dir / relpath).is_file()
-            for relpath in _CFG["manifest_paths"].values()
+            for relpath in _BUILDER_CONFIG["manifest_paths"].values()
         )
 
     def build(
@@ -288,32 +303,33 @@ class LibriTTSBuilder(DatasetBuilder):
             FileNotFoundError: If a configured subset directory is missing,
                 i.e. ``prepare_source`` has not run successfully.
 
-        Examples:
-            ```python
-            from egs3.libritts.lace.dataset.builder import LibriTTSBuilder
+        Example:
+            .. code-block:: python
 
-            builder = LibriTTSBuilder()
-            builder.prepare_source(recipe_dir="egs3/libritts/lace")
-            builder.build(recipe_dir="egs3/libritts/lace")
-            ```
+                >>> from egs3.libritts.lace.dataset.builder import LibriTTSBuilder
+
+                >>> builder = LibriTTSBuilder()
+                >>> builder.prepare_source(recipe_dir="egs3/libritts/lace")
+                >>> builder.build(recipe_dir="egs3/libritts/lace")
 
             Each manifest row is four tab-separated fields, e.g.:
-            ```text
-            1089-134691-000004-000001
-            /abs/path/1089_134691_000004_000001.wav
-            He hoped there would be stew for dinner.
-            0
-            ```
+
+            .. code-block:: text
+
+                1089-134691-000004-000001
+                /abs/path/1089_134691_000004_000001.wav
+                He hoped there would be stew for dinner.
+                0
         """
         recipe_root = Path(recipe_dir).resolve()
-        libritts_root = recipe_root / _CFG["dataset_path"] / "LibriTTS"
-        data_dir = recipe_root / _CFG["data_path"]
+        libritts_root = recipe_root / _BUILDER_CONFIG["dataset_path"] / "LibriTTS"
+        data_dir = recipe_root / _BUILDER_CONFIG["data_path"]
         data_dir.mkdir(parents=True, exist_ok=True)
 
         split_entries = {}
         speaker_to_id = {}
 
-        for split, subsets in _CFG["split_subsets"].items():
+        for split, subsets in _BUILDER_CONFIG["split_subsets"].items():
             entries = []
             for subset in subsets:
                 subset_dir = libritts_root / subset
@@ -322,14 +338,14 @@ class LibriTTSBuilder(DatasetBuilder):
                 entries.extend(_scan_subset_entries(subset_dir))
             entries = sorted(entries, key=lambda x: x[0])
             split_entries[split] = entries
-            for _, _, _, spk_key in entries:
-                if spk_key not in speaker_to_id:
-                    speaker_to_id[spk_key] = len(speaker_to_id)
+            for _, _, _, speaker in entries:
+                if speaker not in speaker_to_id:
+                    speaker_to_id[speaker] = len(speaker_to_id)
 
         for split, entries in split_entries.items():
-            manifest_path = data_dir / _CFG["manifest_paths"][split]
+            manifest_path = data_dir / _BUILDER_CONFIG["manifest_paths"][split]
             manifest_path.parent.mkdir(parents=True, exist_ok=True)
             with manifest_path.open("w", encoding="utf-8") as f:
-                for utt_id, wav_path, text, spk_key in entries:
-                    sid = speaker_to_id[spk_key]
+                for utt_id, wav_path, text, speaker in entries:
+                    sid = speaker_to_id[speaker]
                     f.write(f"{utt_id}\t{wav_path}\t{text}\t{sid}\n")

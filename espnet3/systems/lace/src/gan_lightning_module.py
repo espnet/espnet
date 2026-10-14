@@ -11,10 +11,11 @@ codec LACE builds exactly as it serves the baseline codec.
 from __future__ import annotations
 
 import time
-from typing import Dict, List, Tuple
+from typing import Any, Dict, List, Optional, Tuple, Union
 
 import torch
 import torch.distributed as dist
+from omegaconf import DictConfig
 
 from espnet2.train.abs_gan_espnet_model import AbsGANESPnetModel
 from espnet3.components.modeling.lightning_module import ESPnetLightningModule
@@ -29,7 +30,7 @@ class GANLightningModule(ESPnetLightningModule):
         1: "discriminator",
     }
 
-    def __init__(self, model, config):
+    def __init__(self, model: AbsGANESPnetModel, config: DictConfig):
         """Initialize the module and disable Lightning's automatic optimization.
 
         GAN training alternates a generator turn and a discriminator turn
@@ -44,16 +45,17 @@ class GANLightningModule(ESPnetLightningModule):
                 ``trainer.gan`` block sets ``generator_first`` (default
                 False) and ``skip_discriminator_prob`` (default 0.0).
 
-        Examples:
-            ```python
-            module = GANLightningModule(model, config)
-            assert module.automatic_optimization is False
-            ```
+        Example:
+            .. code-block:: python
+
+                >>> module = GANLightningModule(model, config)
+                >>> assert module.automatic_optimization is False
         """
         super().__init__(model, config)
         self.automatic_optimization = False
 
-    def _gan_option(self, name: str, default):
+    def _get_gan_option(self, name: str, default: Any) -> Any:
+        """Return ``trainer.gan.<name>`` from the config, or ``default``."""
         trainer_config = getattr(self.config, "trainer", None)
         if trainer_config is not None and hasattr(trainer_config, "gan"):
             gan_config = trainer_config.gan
@@ -63,13 +65,15 @@ class GANLightningModule(ESPnetLightningModule):
                 return gan_config.get(name, default)
         return default
 
-    def _turns_in_order(self) -> List[tuple[str, bool]]:
-        generator_first = bool(self._gan_option("generator_first", False))
+    def _get_turn_order(self) -> List[Tuple[str, bool]]:
+        """Return the ``(turn name, forward_generator)`` pairs in update order."""
+        generator_first = bool(self._get_gan_option("generator_first", False))
         if generator_first:
             return [("generator", True), ("discriminator", False)]
         return [("discriminator", False), ("generator", True)]
 
-    def _normalize_optim_idx(self, optim_idx) -> int:
+    def _normalize_optim_idx(self, optim_idx: Union[int, torch.Tensor]) -> int:
+        """Return ``optim_idx`` as 0 or 1, accepting an int or a 0/1-dim tensor."""
         if isinstance(optim_idx, int):
             normalized = optim_idx
         elif isinstance(optim_idx, torch.Tensor):
@@ -103,24 +107,29 @@ class GANLightningModule(ESPnetLightningModule):
         return normalized
 
     def _clear_model_cache(self) -> None:
+        """Drop the generator outputs a skipped discriminator turn left cached.
+
+        espnet2 GAN models (gan_codec, gan_tts) keep generator outputs in
+        ``_cache`` on the module that defines ``cache_generator_outputs``,
+        expecting the discriminator turn to consume and reset it. When that
+        turn is skipped, the stale cache must be dropped here.
+
+        Note:
+            Without this (``cache_generator_outputs: true`` plus
+            ``skip_discriminator_prob > 0``), batch N's generator turn stores
+            its outputs in ``_cache`` and calls ``backward()``, freeing their
+            autograd graph; the discriminator turn is skipped, so ``_cache``
+            is never reset; batch N+1's generator turn sees a non-None
+            ``_cache``, reuses those outputs instead of running a fresh
+            forward, and its ``backward()`` fails with "Trying to backward
+            through the graph a second time". espnet2's own ``GANTrainer``
+            clears the cache the same way on skip but hardcodes
+            ``model.codec._cache = None``; this version finds the caching
+            module generically so it also works for GAN-TTS (``model.tts``).
+        """
         if hasattr(self.model, "clear_cache"):
             self.model.clear_cache()
             return
-        # espnet2 GAN models (gan_codec, gan_tts) keep generator outputs in
-        # `_cache` on the module that defines `cache_generator_outputs`,
-        # expecting the discriminator turn to consume and reset it. When
-        # that turn is skipped, the stale cache must be dropped here.
-        # Example of the failure otherwise (cache_generator_outputs: true +
-        # skip_discriminator_prob > 0): batch N's generator turn stores its
-        # outputs in `_cache` and calls backward(), freeing their autograd
-        # graph; the discriminator turn is skipped, so `_cache` is never
-        # reset; batch N+1's generator turn sees a non-None `_cache`,
-        # reuses those outputs instead of running a fresh forward, and its
-        # backward() fails with "Trying to backward through the graph a
-        # second time". espnet2's own GANTrainer clears the cache the same
-        # way on skip, but hardcodes `model.codec._cache = None`; this
-        # version finds the caching module generically so it also works for
-        # GAN-TTS (`model.tts`).
         for module in self.model.modules():
             if (
                 getattr(module, "cache_generator_outputs", False)
@@ -129,10 +138,14 @@ class GANLightningModule(ESPnetLightningModule):
                 module._cache = None
 
     def _should_skip_discriminator(self, mode: str) -> bool:
+        """Draw whether this training batch skips the discriminator turn.
+
+        The draw is broadcast from rank 0 so every DDP rank skips together.
+        """
         if mode != "train":
             return False
 
-        skip_prob = float(self._gan_option("skip_discriminator_prob", 0.0) or 0.0)
+        skip_prob = float(self._get_gan_option("skip_discriminator_prob", 0.0) or 0.0)
         if skip_prob <= 0.0:
             return False
 
@@ -142,8 +155,14 @@ class GANLightningModule(ESPnetLightningModule):
         return bool(skip_disc.item() < skip_prob)
 
     def _forward_gan_turn(
-        self, batch, forward_generator: bool
-    ) -> Tuple[OptimizationStep, Dict[str, torch.Tensor], torch.Tensor | None]:
+        self, batch: Tuple[Any, Dict[str, torch.Tensor]], forward_generator: bool
+    ) -> Tuple[OptimizationStep, Dict[str, torch.Tensor], Optional[torch.Tensor]]:
+        """Run one generator or discriminator turn and check the model's output.
+
+        Returns the named ``OptimizationStep``, the model's ``stats`` and its
+        ``weight``; raises ``AssertionError`` on any deviation from the
+        ``AbsGANESPnetModel`` contract.
+        """
         output = self.model(**batch[1], forward_generator=forward_generator)
         if not isinstance(output, dict):
             raise AssertionError(
@@ -172,11 +191,17 @@ class GANLightningModule(ESPnetLightningModule):
         self,
         step: OptimizationStep,
         stats: Dict[str, torch.Tensor],
-        weight,
+        weight: Optional[torch.Tensor],
         batch_idx: int,
         turn_name: str,
         forward_time: float,
     ) -> None:
+        """Backward one turn's loss and step its named optimizer when due.
+
+        Mirrors the base module's accumulation, clipping and scheduler
+        handling for the optimizer ``step.name`` selects, and logs the
+        turn's loss, timings and learning rates with ``stats``.
+        """
         named_optimizers = self._get_named_optimizers()
         spec_by_name = {spec.name: spec for spec in self._optimizer_specs}
         name_to_idx = {
@@ -194,7 +219,7 @@ class GANLightningModule(ESPnetLightningModule):
         optimizer = named_optimizers[step.name]
         optim_idx = name_to_idx[step.name]
 
-        extra_stats: Dict[str, torch.Tensor | float] = {
+        extra_stats: Dict[str, Union[torch.Tensor, float]] = {
             f"{step.name}/loss": step.loss.detach(),
             f"{turn_name}_forward_time": forward_time,
         }
@@ -239,14 +264,21 @@ class GANLightningModule(ESPnetLightningModule):
 
         self._log_stats("train", stats, weight, extra_stats=extra_stats)
 
-    def _step(self, batch, batch_idx, mode):
+    def _step(
+        self, batch: Tuple[Any, Dict[str, torch.Tensor]], batch_idx: int, mode: str
+    ):
+        """Run the generator and discriminator turns of one batch.
+
+        Non-GAN models fall through to the base module's single-loss step.
+        Training updates the optimizers; validation only logs.
+        """
         if not isinstance(self.model, AbsGANESPnetModel):
             return super()._step(batch, batch_idx, mode)
 
-        if bool(self._gan_option("no_forward_run", False)):
+        if bool(self._get_gan_option("no_forward_run", False)):
             return None
 
-        for turn_name, forward_generator in self._turns_in_order():
+        for turn_name, forward_generator in self._get_turn_order():
             if turn_name == "discriminator" and self._should_skip_discriminator(mode):
                 self._clear_model_cache()
                 continue

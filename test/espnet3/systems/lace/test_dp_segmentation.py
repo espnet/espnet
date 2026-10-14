@@ -7,6 +7,7 @@ from espnet3.systems.lace.src.dp_segmentation import DPSegmentationCompression
 
 
 def test_rate_none_returns_per_frame_segmentation():
+    """``rate=None`` is the identity segmentation."""
     x = torch.randn(2, 7, 4)
     output = DPSegmentationCompression()(x, rate=None)
     assert torch.equal(output.reconstructed_features, x)
@@ -14,6 +15,7 @@ def test_rate_none_returns_per_frame_segmentation():
 
 @pytest.mark.parametrize("rate, num_segments", [(0.5, 25), (1.0, 50), (0.25, 13)])
 def test_segment_count_follows_rate(rate, num_segments):
+    """The DP targets exactly ``round(rate * T)`` segments."""
     torch.manual_seed(0)
     x = torch.randn(2, 50, 8)
     output = DPSegmentationCompression(max_span=4)(x, rate=rate)
@@ -21,6 +23,7 @@ def test_segment_count_follows_rate(rate, num_segments):
 
 
 def test_max_span_raises_segment_count_to_stay_feasible():
+    """Too few segments for ``max_span`` are raised to the feasible minimum."""
     torch.manual_seed(0)
     x = torch.randn(1, 12, 4)
     output = DPSegmentationCompression(max_span=2)(x, rate=0.1)
@@ -29,6 +32,7 @@ def test_max_span_raises_segment_count_to_stay_feasible():
 
 
 def test_dp_finds_the_minimum_distortion_split():
+    """Two constant halves are split exactly at their junction."""
     values = [0.0, 0.0, 0.0, 5.0, 5.0, 5.0]
     x = torch.tensor(values).view(1, 6, 1)
     # rate * (T - 1) = 0.3 * 5 -> k = 1 -> 2 segments
@@ -38,6 +42,7 @@ def test_dp_finds_the_minimum_distortion_split():
 
 
 def test_anchor_boundary_restricts_boundaries_to_anchor_set():
+    """Anchored DP only cuts at anchor positions."""
     torch.manual_seed(0)
     x = torch.randn(1, 12, 4)
     anchor_boundary = torch.zeros(1, 12, dtype=torch.long)
@@ -50,6 +55,7 @@ def test_anchor_boundary_restricts_boundaries_to_anchor_set():
 
 
 def test_empty_anchor_set_falls_back_to_unconstrained_dp():
+    """An all-zero anchor tensor behaves like no anchors."""
     torch.manual_seed(0)
     x = torch.randn(1, 10, 4)
     model = DPSegmentationCompression()
@@ -59,6 +65,7 @@ def test_empty_anchor_set_falls_back_to_unconstrained_dp():
 
 
 def test_infeasible_anchor_set_falls_back_to_uniform_segments():
+    """Anchors that cannot satisfy ``max_span`` fall back to uniform segments."""
     torch.manual_seed(0)
     x = torch.randn(1, 12, 4)
     anchor_boundary = torch.zeros(1, 12, dtype=torch.long)
@@ -70,6 +77,7 @@ def test_infeasible_anchor_set_falls_back_to_uniform_segments():
 
 
 def test_padding_and_per_sample_rates():
+    """Padding carries no boundary and a one-frame sequence is one segment."""
     torch.manual_seed(0)
     x = torch.randn(2, 10, 4)
     padding_mask = torch.zeros(2, 10, dtype=torch.bool)
@@ -83,11 +91,13 @@ def test_padding_and_per_sample_rates():
 
 
 def test_uniform_segment_fallback_covers_all_segments():
-    segment_idx = DPSegmentationCompression._uniform_segment(7, 3, "cpu")
+    """The uniform fallback spreads the frames over every segment."""
+    segment_idx = DPSegmentationCompression._segment_uniformly(7, 3, "cpu")
     assert segment_idx.tolist() == [0, 0, 0, 1, 1, 2, 2]
 
 
 def test_gradient_flows_through_segment_average():
+    """The hard DP boundaries still let gradients reach the input."""
     x = torch.randn(1, 8, 4, requires_grad=True)
     output = DPSegmentationCompression()(x, rate=0.5)
     output.reconstructed_features.sum().backward()

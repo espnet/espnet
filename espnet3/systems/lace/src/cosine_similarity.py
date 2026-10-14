@@ -16,7 +16,7 @@ class CosineSimilarityCompression(BaseCompressionModel):
 
     A new segment starts at every frame whose cosine similarity to the
     previous frame is below ``rate``, i.e. the two frames are dissimilar
-    enough that the latter is judged to belong to a new segment.  ``rate``
+    enough that the latter is judged to belong to a new segment. ``rate``
     therefore acts directly as the similarity threshold: high rate (-> 1.0)
     means many boundaries and little compression; low rate (-> 0.0) means
     few boundaries and heavy compression.
@@ -25,35 +25,36 @@ class CosineSimilarityCompression(BaseCompressionModel):
     boundaries are additionally restricted to the anchor set, so later
     layers can only segment at positions already chosen by earlier layers.
 
-    Args:
-        max_tokens_per_group: Hard cap on segment length in frames
-            (FlexiCodec's ``max_tokens_per_group``).  Longer natural segments
-            are split into chunks of this size.  ``None`` disables the cap.
+    Example:
+        .. code-block:: python
 
-    Examples:
-        ```python
-        model = CosineSimilarityCompression(max_tokens_per_group=4)
-        output = model(torch.randn(2, 50, 128), rate=0.5)
-        output.segment_idx.shape  # -> torch.Size([2, 50])
-        ```
+            >>> model = CosineSimilarityCompression(max_tokens_per_group=4)
+            >>> output = model(torch.randn(2, 50, 128), rate=0.5)
+            >>> output.segment_idx.shape
+            torch.Size([2, 50])
     """
 
     def __init__(self, max_tokens_per_group: Optional[int] = 4):
-        """Initialize the compression model."""
+        """Store the segment-length cap.
+
+        Args:
+            max_tokens_per_group: Hard cap on segment length in frames
+                (FlexiCodec's ``max_tokens_per_group``). A segment that
+                would naturally be longer is split into chunks of this size,
+                with a possibly shorter leftover at its end. ``None``
+                disables the cap.
+        """
         super().__init__()
-        # Mirror FlexiCodec's max_tokens_per_group: hard cap on segment
-        # length.  When set, any segment that would naturally be longer
-        # than this gets split into max_tokens_per_group-sized chunks
-        # (with a possible smaller leftover at the end of the natural
-        # segment).  None disables.
         self.max_tokens_per_group = max_tokens_per_group
 
     # ------------------------------------------------------------------
     # Private helpers
     # ------------------------------------------------------------------
 
-    def _compute_cosine_similarity(self, x, padding_mask):
-        """Frame-to-frame cosine similarities, (B, T-1).
+    def _compute_cosine_similarity(
+        self, x: torch.Tensor, padding_mask: Optional[torch.Tensor]
+    ) -> torch.Tensor:
+        """Return the (B, T-1) cosine similarities between consecutive frames.
 
         Padded positions are filled with 1.0 so they never fall below the
         threshold (and ``_build_boundary`` masks them again anyway).
@@ -63,37 +64,41 @@ class CosineSimilarityCompression(BaseCompressionModel):
             cosine_similarity = cosine_similarity.masked_fill(padding_mask[:, 1:], 1.0)
         return cosine_similarity
 
-    def _build_boundary(self, stop_tokens, B, device, padding_mask):
+    def _build_boundary(
+        self,
+        stop_tokens: torch.Tensor,
+        batch_size: int,
+        device: torch.device,
+        padding_mask: Optional[torch.Tensor],
+    ) -> torch.Tensor:
         """Prepend a t=0 zero and mask padding into a (B, T) boundary tensor."""
         boundary = torch.cat(
-            [torch.zeros(B, 1, device=device, dtype=stop_tokens.dtype), stop_tokens],
+            [
+                torch.zeros(batch_size, 1, device=device, dtype=stop_tokens.dtype),
+                stop_tokens,
+            ],
             dim=1,
         )
         if padding_mask is not None:
             boundary = boundary.masked_fill(padding_mask, 0)
         return boundary
 
-    def _apply_max_segment_length(self, boundary, padding_mask=None):
+    def _apply_max_segment_length(
+        self, boundary: torch.Tensor, padding_mask: Optional[torch.Tensor] = None
+    ) -> torch.Tensor:
         """Split segments longer than ``self.max_tokens_per_group`` frames.
 
         Forces a boundary at every position where the current segment would
-        otherwise exceed the cap.  No-op when ``self.max_tokens_per_group``
-        is None.
+        otherwise exceed the cap, and returns a boundary tensor of the same
+        shape and dtype as ``boundary`` (1 marks the start of a new segment;
+        position 0 stays 0). No-op when ``self.max_tokens_per_group`` is
+        ``None``.
 
         Mirrors FlexiCodec's vectorised cummax trick: compute the in-segment
         index of every frame, then add a boundary wherever this index is a
-        positive multiple of the max.  Combined (OR'd) with the existing
-        natural boundaries; original natural splits are preserved exactly.
-
-        Args:
-            boundary: (B, T) int tensor; 1 marks the START of a new segment
-                      (pos 0 is the implicit first-segment start and stays 0
-                      in this representation).
-            padding_mask: (B, T) optional; True = padding.  Forced boundaries
-                          falling on padded positions are cleared.
-
-        Returns:
-            new boundary tensor with the same shape and dtype.
+        positive multiple of the cap. The forced boundaries are OR'd with the
+        natural ones, so the natural splits are preserved exactly, and any
+        forced boundary falling on a padded position is cleared.
         """
         if self.max_tokens_per_group is None:
             return boundary
@@ -102,8 +107,8 @@ class CosineSimilarityCompression(BaseCompressionModel):
         device = boundary.device
 
         # FlexiCodec convention: treat position 0 as an implicit segment
-        # start when computing the in-segment index.  We don't modify the
-        # output boundary's pos 0 (which stays 0 by our convention).
+        # start when computing the in-segment index. The output boundary's
+        # position 0 is left untouched (it stays 0 by convention).
         is_segment_start = boundary.clone().long()
         is_segment_start[:, 0] = 1
 
@@ -151,12 +156,21 @@ class CosineSimilarityCompression(BaseCompressionModel):
 
         Returns:
             ``CompressionOutput`` for the batch.
+
+        Example:
+            .. code-block:: python
+
+                >>> model = CosineSimilarityCompression(max_tokens_per_group=None)
+                >>> x = torch.ones(1, 4, 8)
+                >>> x[0, 2] = -1.0
+                >>> model(x, rate=0.5).boundary_soft
+                tensor([[0., 0., 1., 1.]])
         """
         B, T, _ = x.shape
         device = x.device
 
         if rate is None:
-            return self._no_rate_output(x, padding_mask)
+            return self._build_no_rate_output(x, padding_mask)
 
         cosine_similarity = self._compute_cosine_similarity(x, padding_mask)
         if isinstance(rate, torch.Tensor) and rate.dim() == 1:
@@ -166,12 +180,12 @@ class CosineSimilarityCompression(BaseCompressionModel):
             # Anchored layers may only place boundaries inside the anchor set.
             stop_tokens = stop_tokens * anchor_boundary[:, 1:].bool().long()
         boundary = self._build_boundary(stop_tokens, B, device, padding_mask)
-        # Optional FlexiCodec-style hard cap on segment length.  No-op when
+        # Optional FlexiCodec-style hard cap on segment length. No-op when
         # ``self.max_tokens_per_group is None``.
         boundary = self._apply_max_segment_length(boundary, padding_mask)
         boundary_soft = boundary.float()
         segment_idx = torch.cumsum(boundary, dim=1)
-        average_vectors = self._segment_average(x, segment_idx, padding_mask)
+        average_vectors = self._average_segments(x, segment_idx, padding_mask)
         expected_length = boundary_soft.sum(dim=1, keepdim=True) + 1
 
         return CompressionOutput(

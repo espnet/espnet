@@ -2,7 +2,7 @@
 
 from test.espnet3.systems.lace._gan_dummies import (
     DummyGANModel,
-    make_gan_training_config,
+    build_gan_training_config,
 )
 
 from omegaconf import OmegaConf
@@ -12,6 +12,7 @@ from espnet3.systems.lace.src.gan_lightning_module import GANLightningModule
 
 
 def _capture_parent_init(monkeypatch):
+    """Replace the parent trainer's ``__init__`` and return what it receives."""
     recorded = {}
 
     def fake_init(
@@ -29,6 +30,7 @@ def _capture_parent_init(monkeypatch):
 
 
 def test_strips_gan_key_from_dictconfig(monkeypatch):
+    """The ``gan`` block is removed from a copy of a ``DictConfig``."""
     recorded = _capture_parent_init(monkeypatch)
     config = OmegaConf.create({"max_epochs": 3, "gan": {"generator_first": True}})
     gt.GANLightningTrainer(
@@ -44,6 +46,7 @@ def test_strips_gan_key_from_dictconfig(monkeypatch):
 
 
 def test_strips_gan_key_from_plain_dict(monkeypatch):
+    """The ``gan`` key is removed from a copy of a plain dict."""
     recorded = _capture_parent_init(monkeypatch)
     config = {"max_epochs": 3, "gan": {"skip_discriminator_prob": 0.5}}
     gt.GANLightningTrainer(model="m", exp_dir="exp", config=config)
@@ -53,6 +56,7 @@ def test_strips_gan_key_from_plain_dict(monkeypatch):
 
 
 def test_config_without_gan_key_passes_through(monkeypatch):
+    """A config without ``gan`` is passed on unchanged."""
     recorded = _capture_parent_init(monkeypatch)
     config = OmegaConf.create({"max_epochs": 3})
     gt.GANLightningTrainer(model="m", exp_dir="exp", config=config)
@@ -60,6 +64,7 @@ def test_config_without_gan_key_passes_through(monkeypatch):
 
 
 def test_build_gan_trainer_wires_module_and_trainer(monkeypatch):
+    """``build_gan_trainer`` wraps the model and feeds the trainer blocks."""
     created = {}
 
     class FakeModule:
@@ -101,10 +106,11 @@ def test_build_gan_trainer_wires_module_and_trainer(monkeypatch):
 
 
 def test_gan_fit_runs_one_batch_with_real_trainer(tmp_path):
+    """A real Lightning fit steps both optimizers once."""
     from espnet3.systems.lace.src.gan_trainer import GANLightningTrainer
 
     model = GANLightningModule(
-        DummyGANModel(), make_gan_training_config(tmp_path / "exp")
+        DummyGANModel(), build_gan_training_config(tmp_path / "exp")
     )
     trainer_config = OmegaConf.create(
         {

@@ -60,7 +60,7 @@ COMPRESSION_MODEL_MAP = {
 }
 
 
-def _convert_to_container(config):
+def _convert_to_container(config: Any) -> Any:
     """Convert possible OmegaConf containers from Hydra into plain dicts."""
     if OmegaConf.is_config(config):
         return OmegaConf.to_container(config, resolve=True)
@@ -88,11 +88,12 @@ def build_compression_model(name: str, **kwargs) -> BaseCompressionModel:
     Raises:
         ValueError: If ``name`` is not a key of ``COMPRESSION_MODEL_MAP``.
 
-    Examples:
-        ```python
-        model = build_compression_model("dp_segmentation", max_span=4)
-        type(model).__name__  # -> 'DPSegmentationCompression'
-        ```
+    Example:
+        .. code-block:: python
+
+            >>> model = build_compression_model("dp_segmentation", max_span=4)
+            >>> type(model).__name__
+            'DPSegmentationCompression'
     """
     if name not in COMPRESSION_MODEL_MAP:
         raise ValueError(
@@ -120,13 +121,13 @@ def read_bundle_artifacts(bundle_dir: Union[str, Path]) -> Dict[str, str]:
     Raises:
         FileNotFoundError: If ``bundle_dir`` has no ``meta.yaml``.
 
-    Examples:
-        ```python
-        artifacts = read_bundle_artifacts("exp/train_encodec_libritts/model_pack")
-        sorted(artifacts)
-        # -> ['inference_config', 'metrics_config', 'model_file',
-        #     'publication_config', 'training_config']
-        ```
+    Example:
+        .. code-block:: python
+
+            >>> artifacts = read_bundle_artifacts("exp/train_encodec/model_pack")
+            >>> sorted(artifacts)
+            ['inference_config', 'metrics_config', 'model_file',
+             'publication_config', 'training_config']
     """
     bundle_dir = Path(bundle_dir)
     meta_path = bundle_dir / "meta.yaml"
@@ -169,15 +170,17 @@ def build_codec_from_bundle(
         RuntimeError: If ``model_file`` does not match the built model's keys
             exactly.
 
-    Examples:
-        ```python
-        from espnet_model_zoo.downloader import ModelDownloader
+    Example:
+        .. code-block:: python
 
-        artifacts = ModelDownloader().download_and_unpack("espnet/libritts_encodec_24k")
-        codec = build_codec_from_bundle(artifacts)
-        type(codec.codec.generator.quantizer).__name__
-        # -> 'ResidualVectorQuantizer'
-        ```
+            >>> from espnet_model_zoo.downloader import ModelDownloader
+
+            >>> downloader = ModelDownloader()
+            >>> tag = "espnet/libritts_encodec_24k"
+            >>> artifacts = downloader.download_and_unpack(tag)
+            >>> codec = build_codec_from_bundle(artifacts)
+            >>> type(codec.codec.generator.quantizer).__name__
+            'ResidualVectorQuantizer'
     """
     from espnet3.utils.task_utils import get_espnet_model
 
@@ -223,13 +226,13 @@ def drop_legacy_dac_discriminator_keys(model_config: Dict[str, Any]) -> Dict[str
         ``model_config`` itself when nothing applies, else a copy with the
         keys removed.
 
-    Examples:
-        ```python
-        config = {"codec": "dac", "codec_conf": {"discriminator_params": {
-            "scales": 3, "msmpmb_discriminator_params": {}}}}
-        drop_legacy_dac_discriminator_keys(config)["codec_conf"]
-        # -> {'discriminator_params': {'msmpmb_discriminator_params': {}}}
-        ```
+    Example:
+        .. code-block:: python
+
+            >>> config = {"codec": "dac", "codec_conf": {"discriminator_params": {
+            ...     "scales": 3, "msmpmb_discriminator_params": {}}}}
+            >>> drop_legacy_dac_discriminator_keys(config)["codec_conf"]
+            {'discriminator_params': {'msmpmb_discriminator_params': {}}}
     """
     if model_config.get("codec") != "dac":
         return model_config
@@ -272,11 +275,12 @@ def fill_missing_snake_alpha(
         ``state_dict`` itself when nothing is missing, else a copy with the
         missing ``alpha`` entries added.
 
-    Examples:
-        ```python
-        state_dict = fill_missing_snake_alpha(model, read_model_state("81epoch.pth"))
-        model.load_state_dict(state_dict, strict=True)
-        ```
+    Example:
+        .. code-block:: python
+
+            >>> state_dict = read_model_state("81epoch.pth")
+            >>> state_dict = fill_missing_snake_alpha(model, state_dict)
+            >>> model.load_state_dict(state_dict, strict=True)
     """
     missing = [
         key
@@ -351,10 +355,10 @@ def load_model_state_strict(model: torch.nn.Module, model_file: str) -> None:
     Raises:
         RuntimeError: If the checkpoint keys do not match ``model`` exactly.
 
-    Examples:
-        ```python
-        load_model_state_strict(model, "exp/train_encodec_libritts/last.ckpt")
-        ```
+    Example:
+        .. code-block:: python
+
+            >>> load_model_state_strict(model, "exp/train_encodec_libritts/last.ckpt")
     """
     model.load_state_dict(read_model_state(model_file), strict=True)
 
@@ -373,11 +377,11 @@ def read_model_state(model_file: str) -> Dict[str, torch.Tensor]:
     Returns:
         The model-level state dict, on the CPU.
 
-    Examples:
-        ```python
-        sorted(read_model_state("exp/train_encodec_libritts/last.ckpt"))[:1]
-        # -> ['codec.discriminator.discriminators.0.convs.0.conv.bias']
-        ```
+    Example:
+        .. code-block:: python
+
+            >>> sorted(read_model_state("exp/train_encodec_libritts/last.ckpt"))[:1]
+            ['codec.discriminator.discriminators.0.convs.0.conv.bias']
     """
     state_dict = torch.load(model_file, map_location="cpu")
     if "state_dict" in state_dict:  # Lightning checkpoint layout
@@ -407,12 +411,12 @@ def freeze_codec_module(model: AbsGANESPnetModel, module: str = "none") -> None:
     Raises:
         ValueError: If ``module`` is not one of ``FREEZE_CHOICES``.
 
-    Examples:
-        ```python
-        freeze_codec_module(model, "encoder")
-        any(p.requires_grad for p in model.codec.generator.encoder.parameters())
-        # -> False
-        ```
+    Example:
+        .. code-block:: python
+
+            >>> freeze_codec_module(model, "encoder")
+            >>> any(p.requires_grad for p in model.codec.generator.encoder.parameters())
+            False
     """
     if module not in FREEZE_CHOICES:
         raise ValueError(
@@ -445,40 +449,7 @@ class LACE(ESPnetGANCodecModel):
     (``codec.generator...``, ``codec.discriminator...``), with the wrapped
     quantizer under ``codec.generator.quantizer.rvq``.
 
-    Args:
-        compression_model: Dict with ``name`` (key of
-            ``COMPRESSION_MODEL_MAP``), optional ``params`` (constructor
-            arguments of that compression model), and the quantizer
-            wrapper's rate settings, all optional: ``min_rate`` (default
-            0.2), ``max_rate`` (default 1.0), ``random_rate`` (default
-            ``per_quantizer``), ``eval_rate`` (default ``None``).
-        pretrained_model_tag: Hugging Face model id of a published codec,
-            downloaded through ``espnet_model_zoo``: the repo an espnet3
-            ``upload_model`` stage pushed to (e.g.
-            ``NewGame/libritts_codec_train_encodec_libritts``) or an espnet2
-            zoo model (e.g. ``espnet/libritts_encodec_24k``).
-        pretrained_model_dir: Local bundle directory with a ``meta.yaml``:
-            an unpacked zoo model or an espnet3 ``pack_model`` output.
-        codec: Codec name for a fresh, untrained ``GANCodecTask`` model
-            (e.g. ``encodec``). Mutually exclusive with the ``pretrained_*``
-            sources.
-        codec_conf: ``codec_conf`` block used together with ``codec``.
-        task: espnet2 task path used to build the base model for ``codec``
-            and for espnet2 zoo bundles (whose ``config.yaml`` does not
-            name a task).
-        freeze_codec_module_name: ``none``, ``encoder`` or ``decoder``.
-
-    Raises:
-        ValueError: If not exactly one model source (``pretrained_model_tag``,
-            ``pretrained_model_dir``, ``codec``) is given, if the bundle
-            layout is unknown, or if the compression model name or freeze
-            choice is unknown.
-        TypeError: If the codec's quantizer is not the shared
-            ``ResidualVectorQuantizer`` (e.g. HiFiCodec's group quantizer).
-        RuntimeError: If the bundle's ``model_file`` does not match the base
-            model's keys exactly.
-
-    Examples:
+    Example:
         Wired from ``egs3/libritts/lace/conf/training.yaml`` (no top-level
         ``task:`` key):
 
@@ -497,14 +468,18 @@ class LACE(ESPnetGANCodecModel):
                 eval_rate: 0.5
 
         Or directly:
-        ```python
-        model = LACE(
-            compression_model={"name": "cosine_similarity", "eval_rate": 0.5},
-            pretrained_model_tag="NewGame/libritts_codec_train_encodec_libritts",
-        )
-        type(model.codec.generator.quantizer).__name__
-        # -> 'CompressionResidualVectorQuantizer'
-        ```
+
+        .. code-block:: python
+
+            >>> model = LACE(
+            ...     compression_model={
+            ...         "name": "cosine_similarity",
+            ...         "eval_rate": 0.5,
+            ...     },
+            ...     pretrained_model_tag="espnet/libritts_encodec_24k",
+            ... )
+            >>> type(model.codec.generator.quantizer).__name__
+            'CompressionResidualVectorQuantizer'
     """
 
     def __init__(
@@ -517,7 +492,42 @@ class LACE(ESPnetGANCodecModel):
         task: str = "espnet2.tasks.gan_codec.GANCodecTask",
         freeze_codec_module_name: str = "none",
     ):
-        """Build the base codec, load its weights, then wrap its quantizer."""
+        """Build the base codec, load its weights, then wrap its quantizer.
+
+        Args:
+            compression_model: Dict with ``name`` (key of
+                ``COMPRESSION_MODEL_MAP``), optional ``params`` (constructor
+                arguments of that compression model), and the quantizer
+                wrapper's rate settings, all optional: ``min_rate`` (default
+                0.2), ``max_rate`` (default 1.0), ``random_rate`` (default
+                ``per_quantizer``), ``eval_rate`` (default ``None``).
+            pretrained_model_tag: Hugging Face model id of a published codec,
+                downloaded through ``espnet_model_zoo``: the repo an espnet3
+                ``upload_model`` stage pushed to (e.g.
+                ``NewGame/libritts_codec_train_encodec_libritts``) or an
+                espnet2 zoo model (e.g. ``espnet/libritts_encodec_24k``).
+            pretrained_model_dir: Local bundle directory with a ``meta.yaml``:
+                an unpacked zoo model or an espnet3 ``pack_model`` output.
+            codec: Codec name for a fresh, untrained ``GANCodecTask`` model
+                (e.g. ``encodec``). Mutually exclusive with the
+                ``pretrained_*`` sources.
+            codec_conf: ``codec_conf`` block used together with ``codec``.
+            task: espnet2 task path used to build the base model for
+                ``codec`` and for espnet2 zoo bundles (whose ``config.yaml``
+                does not name a task).
+            freeze_codec_module_name: ``none``, ``encoder`` or ``decoder``.
+
+        Raises:
+            ValueError: If not exactly one model source
+                (``pretrained_model_tag``, ``pretrained_model_dir``,
+                ``codec``) is given, if the bundle layout is unknown, or if
+                the compression model name or freeze choice is unknown.
+            TypeError: If the codec's quantizer is not the shared
+                ``ResidualVectorQuantizer`` (e.g. HiFiCodec's group
+                quantizer).
+            RuntimeError: If the bundle's ``model_file`` does not match the
+                base model's keys exactly.
+        """
         base_model = _build_base_model(
             codec=codec,
             codec_conf=codec_conf,

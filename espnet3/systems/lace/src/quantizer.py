@@ -4,13 +4,13 @@ Two layers of wrapping:
 
 - ``RVQCompressionWrapper`` wraps espnet2's ``ResidualVectorQuantization``
   (``espnet2/gan_codec/shared/quantizer/modules/core_vq.py``) and inserts a
-  compression-model call before every codebook layer.  Its forward/encode/
+  compression-model call before every codebook layer. Its forward/encode/
   decode mirror the original loops exactly, so with the identity compression
   model (or ``rate=None``) it is bit-equivalent to the unwrapped module.
 - ``CompressionResidualVectorQuantizer`` replaces espnet2's
   ``ResidualVectorQuantizer`` (``generator.quantizer``) while keeping its
   exact call interface: ``forward(x, sample_rate, bandwidth)``,
-  ``encode(x, sample_rate, bandwidth, st)``, ``decode(codes)``.  Because
+  ``encode(x, sample_rate, bandwidth, st)``, ``decode(codes)``. Because
   every ``espnet2/gan_codec`` RVQ codec (SoundStream, Encodec, DAC,
   FunCodec) calls its quantizer through exactly this interface, swapping
   the module is all that is needed: the codec's own forward/encode/decode
@@ -19,7 +19,7 @@ Two layers of wrapping:
 Compression-rate delivery (the codecs never pass a ``rate`` kwarg):
 
 - training: sampled internally per forward pass (``random_rate`` strategy in
-  [``min_rate``, ``max_rate``]).  SoundStream/Encodec cache generator
+  [``min_rate``, ``max_rate``]). SoundStream/Encodec cache generator
   outputs across the G/D turns of one batch during training, so a single
   sample per batch is used consistently by both turns.
 - validation: deterministic ``eval_rate`` (no generator caching in eval,
@@ -45,31 +45,34 @@ class RVQCompressionWrapper(nn.Module):
     layer, so each layer quantizes segment-averaged features under its own
     (possibly different) compression rate.
 
-    Args:
-        original_vq: espnet2 ``ResidualVectorQuantization`` instance (the
-            ``.vq`` attribute of a ``ResidualVectorQuantizer``).
-        compression_model: Compression model called before every layer.
-
-    Examples:
+    Example:
         Normally built by ``CompressionResidualVectorQuantizer``; direct use
         on the quantizer of the recipe's Encodec (hidden dim 512, 32 layers)
         looks like:
-        ```python
-        quantizer = model.codec.generator.quantizer
-        wrapper = RVQCompressionWrapper(quantizer.vq, IdentityCompression())
-        quantized, codes, losses = wrapper(torch.randn(2, 512, 50), rate=0.5)
-        codes.shape  # -> torch.Size([32, 2, 50])
-        ```
+
+        .. code-block:: python
+
+            >>> quantizer = model.codec.generator.quantizer
+            >>> wrapper = RVQCompressionWrapper(quantizer.vq, IdentityCompression())
+            >>> quantized, codes, losses = wrapper(torch.randn(2, 512, 50), rate=0.5)
+            >>> codes.shape
+            torch.Size([32, 2, 50])
     """
 
     def __init__(self, original_vq: nn.Module, compression_model: BaseCompressionModel):
-        """Initialize the wrapper."""
+        """Keep the original codebooks and the compression model to call.
+
+        Args:
+            original_vq: espnet2 ``ResidualVectorQuantization`` instance (the
+                ``.vq`` attribute of a ``ResidualVectorQuantizer``).
+            compression_model: Compression model called before every layer.
+        """
         super().__init__()
         self.rvq = original_vq  # espnet2 ResidualVectorQuantization
         self.compression_model = compression_model
 
     @property
-    def layers(self):
+    def layers(self) -> nn.ModuleList:
         """Return the original codebook layers.
 
         A property, not an attribute, so the modules are not registered
@@ -78,7 +81,7 @@ class RVQCompressionWrapper(nn.Module):
         return self.rvq.layers
 
     @property
-    def quantizer_dropout(self):
+    def quantizer_dropout(self) -> float:
         """Return the wrapped module's quantizer dropout rate (0.0 if unset)."""
         return getattr(self.rvq, "quantizer_dropout", 0.0)
 
@@ -89,7 +92,10 @@ class RVQCompressionWrapper(nn.Module):
         n_q: Optional[int] = None,
         padding_mask: Optional[torch.Tensor] = None,
         anchor_start_layer: Optional[int] = None,
-    ):
+    ) -> Union[
+        Tuple[torch.Tensor, torch.Tensor, torch.Tensor],
+        Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor],
+    ]:
         """Quantize ``x``, compressing the residual before every layer.
 
         Mirrors ``ResidualVectorQuantization.forward`` of espnet2.
@@ -103,7 +109,7 @@ class RVQCompressionWrapper(nn.Module):
             padding_mask: (B, T) bool tensor; ``True`` marks padding positions.
             anchor_start_layer: Layers at or after this index may only place
                 boundaries inside the union of the earlier layers'
-                boundaries.  ``None`` disables anchoring.
+                boundaries. ``None`` disables anchoring.
 
         Returns:
             Without quantizer dropout, the tuple ``(quantized, codes,
@@ -111,6 +117,15 @@ class RVQCompressionWrapper(nn.Module):
             ``(quantized, codes, commit_losses, quantization_losses)``.
             ``quantized`` is (B, D, T), ``codes`` is (n_q, B, T) and the
             losses are stacked per layer.
+
+        Example:
+            .. code-block:: python
+
+                >>> wrapper = RVQCompressionWrapper(quantizer.vq, IdentityCompression())
+                >>> x = torch.randn(2, 512, 50)
+                >>> quantized, codes, losses = wrapper(x, rate=0.5)
+                >>> quantized.shape, codes.shape, losses.shape
+                (torch.Size([2, 512, 50]), torch.Size([32, 2, 50]), torch.Size([32, 1]))
         """
         quantized_out = 0.0
         residual = x
@@ -232,21 +247,20 @@ class RVQCompressionWrapper(nn.Module):
             )
             return quantized_out, out_indices, out_commit_losses, out_quant_losses
 
-    def _encode_loop(
+    def _run_encode_loop(
         self,
         x: torch.Tensor,
-        rate=None,
+        rate: Optional[Union[float, torch.Tensor]] = None,
         n_q: Optional[int] = None,
         st: Optional[int] = None,
         padding_mask: Optional[torch.Tensor] = None,
         anchor_start_layer: Optional[int] = None,
     ) -> Tuple[torch.Tensor, torch.Tensor, List[torch.Tensor]]:
-        """Shared encode loop used by both encode() and encode_with_segments().
+        """Run the encode loop shared by ``encode`` and ``encode_with_segments``.
 
-        Returns:
-            out_indices:   (n_q, B, T') stacked code indices.
-            out_quantized: (n_q, B, D, T') pre-quantization residuals per layer.
-            segment_indices: list of (B, T') segment index tensors per layer.
+        Returns the (n_q - st, B, T) stacked code indices, the (n_q - st, B,
+        D, T) residuals fed to each layer before compression, and one (B, T)
+        segment index tensor per layer.
         """
         residual = x
         all_indices = []
@@ -315,8 +329,15 @@ class RVQCompressionWrapper(nn.Module):
 
         Returns:
             (n_q - st, B, T) code indices.
+
+        Example:
+            .. code-block:: python
+
+                >>> codes = wrapper.encode(torch.randn(2, 512, 50), rate=0.5, n_q=8)
+                >>> codes.shape
+                torch.Size([8, 2, 50])
         """
-        out_indices, _, _ = self._encode_loop(
+        out_indices, _, _ = self._run_encode_loop(
             x,
             rate=rate,
             n_q=n_q,
@@ -334,6 +355,13 @@ class RVQCompressionWrapper(nn.Module):
 
         Returns:
             (B, D, T) quantized representation.
+
+        Example:
+            .. code-block:: python
+
+                >>> codes = wrapper.encode(torch.randn(2, 512, 50), rate=0.5)
+                >>> wrapper.decode(codes).shape
+                torch.Size([2, 512, 50])
         """
         quantized_out = torch.tensor(0.0, device=q_indices.device)
         for i, indices in enumerate(q_indices):
@@ -366,8 +394,16 @@ class RVQCompressionWrapper(nn.Module):
             Tuple of the (n_q - st, B, T) code indices, the (n_q - st, B, D,
             T) residuals fed to each layer before compression, and a list
             with one (B, T) segment index tensor per layer.
+
+        Example:
+            .. code-block:: python
+
+                >>> x = torch.randn(2, 512, 50)
+                >>> _, residuals, segments = wrapper.encode_with_segments(x, rate=0.5)
+                >>> residuals.shape, len(segments), segments[0].shape
+                (torch.Size([32, 2, 512, 50]), 32, torch.Size([2, 50]))
         """
-        return self._encode_loop(
+        return self._run_encode_loop(
             x,
             rate=rate,
             n_q=n_q,
@@ -381,41 +417,25 @@ class CompressionResidualVectorQuantizer(nn.Module):
     """Drop-in replacement for espnet2's ``ResidualVectorQuantizer``.
 
     Holds the original quantizer as ``self.rvq`` and swaps its inner
-    ``.vq`` for an ``RVQCompressionWrapper``.  The public interface
+    ``.vq`` for an ``RVQCompressionWrapper``. The public interface
     (``forward(x, sample_rate, bandwidth)`` / ``encode`` / ``decode`` and
     the bandwidth getters) matches the original exactly, including the
     ``quantizer_dropout``-dependent 4- vs 5-tuple forward return.
 
-    Args:
-        original_rvq: espnet2 ``ResidualVectorQuantizer`` instance
-            (``generator.quantizer`` of a built codec).
-        compression_model: Compression model called before every layer.
-        min_rate: Lower end of the training-time rate sampling range.
-        max_rate: Upper end of the training-time rate sampling range.
-        random_rate: Sampling strategy: ``per_quantizer`` (one rate per
-            codebook layer and batch item), ``per_sample`` (one per batch
-            item), or ``none`` (no compression during training).
-        eval_rate: Deterministic rate used in eval-mode forward passes
-            (validation).  ``None`` means no compression at validation.
-
-    Raises:
-        ValueError: If ``random_rate`` is not one of ``RATE_STRATEGIES``.
-        TypeError: If ``original_rvq`` has no inner ``.vq`` module, i.e. it
-            is not an espnet2 ``ResidualVectorQuantizer``.
-
-    Examples:
+    Example:
         ``LACE`` swaps it in for a codec's quantizer:
-        ```python
-        generator = model.codec.generator
-        generator.quantizer = CompressionResidualVectorQuantizer(
-            generator.quantizer,
-            CosineSimilarityCompression(),
-            min_rate=0.1,
-            max_rate=1.0,
-            random_rate="per_quantizer",
-            eval_rate=0.5,
-        )
-        ```
+
+        .. code-block:: python
+
+            >>> generator = model.codec.generator
+            >>> generator.quantizer = CompressionResidualVectorQuantizer(
+            ...     generator.quantizer,
+            ...     CosineSimilarityCompression(),
+            ...     min_rate=0.1,
+            ...     max_rate=1.0,
+            ...     random_rate="per_quantizer",
+            ...     eval_rate=0.5,
+            ... )
     """
 
     def __init__(
@@ -427,7 +447,25 @@ class CompressionResidualVectorQuantizer(nn.Module):
         random_rate: str = "per_quantizer",
         eval_rate: Optional[float] = None,
     ):
-        """Initialize the quantizer wrapper."""
+        """Wrap the quantizer's codebooks and store the rate settings.
+
+        Args:
+            original_rvq: espnet2 ``ResidualVectorQuantizer`` instance
+                (``generator.quantizer`` of a built codec).
+            compression_model: Compression model called before every layer.
+            min_rate: Lower end of the training-time rate sampling range.
+            max_rate: Upper end of the training-time rate sampling range.
+            random_rate: Sampling strategy: ``per_quantizer`` (one rate per
+                codebook layer and batch item), ``per_sample`` (one per batch
+                item), or ``none`` (no compression during training).
+            eval_rate: Deterministic rate used in eval-mode forward passes
+                (validation). ``None`` means no compression at validation.
+
+        Raises:
+            ValueError: If ``random_rate`` is not one of ``RATE_STRATEGIES``.
+            TypeError: If ``original_rvq`` has no inner ``.vq`` module, i.e.
+                it is not an espnet2 ``ResidualVectorQuantizer``.
+        """
         super().__init__()
         if random_rate not in RATE_STRATEGIES:
             raise ValueError(
@@ -464,42 +502,74 @@ class CompressionResidualVectorQuantizer(nn.Module):
         """Return the number of codebook layers."""
         return len(self.rvq.vq.layers)
 
-    def set_inference_rate(self, rate) -> None:
+    def set_inference_rate(self, rate: Optional[Union[float, torch.Tensor]]) -> None:
         """Set the compression rate used when no explicit rate is passed.
 
         Needed at inference because ``codec.encode()`` does not forward
-        extra kwargs down to the quantizer.  Pair every call with
+        extra kwargs down to the quantizer. Pair every call with
         ``reset_inference_rate``.
 
         Args:
             rate: Compression rate (float or tensor, see ``forward``), or
                 ``None`` to fall back to ``eval_rate``.
+
+        Example:
+            .. code-block:: python
+
+                >>> quantizer.set_inference_rate(0.25)
+                >>> try:
+                ...     codes = codec.encode(audio)
+                ... finally:
+                ...     quantizer.reset_inference_rate()
         """
         self._inference_rate = rate
 
     def reset_inference_rate(self) -> None:
-        """Clear the rate set by ``set_inference_rate``."""
+        """Clear the rate set by ``set_inference_rate``.
+
+        Example:
+            .. code-block:: python
+
+                >>> quantizer.reset_inference_rate()
+        """
         self._inference_rate = None
 
     def set_inference_anchor_start_layer(self, layer: Optional[int]) -> None:
         """Set the anchor start layer used by encode when none is passed.
 
         Layers at/after this index constrain their boundaries to the union
-        of the earlier (free) layers' boundaries.  Inference-only: like the
+        of the earlier (free) layers' boundaries. Inference-only: like the
         inference rate, it exists because ``codec.encode()`` forwards no
-        extra kwargs.  Reset after use so training is never affected.
+        extra kwargs. Reset after use so training is never affected.
 
         Args:
             layer: Index of the first anchored layer, or ``None`` to disable
                 anchoring.
+
+        Example:
+            .. code-block:: python
+
+                >>> quantizer.set_inference_anchor_start_layer(2)
+                >>> try:
+                ...     codes = codec.encode(audio)
+                ... finally:
+                ...     quantizer.reset_inference_anchor_start_layer()
         """
         self._inference_anchor_start_layer = layer
 
     def reset_inference_anchor_start_layer(self) -> None:
-        """Clear the layer set by ``set_inference_anchor_start_layer``."""
+        """Clear the layer set by ``set_inference_anchor_start_layer``.
+
+        Example:
+            .. code-block:: python
+
+                >>> quantizer.reset_inference_anchor_start_layer()
+        """
         self._inference_anchor_start_layer = None
 
-    def _sample_rate(self, batch_size: int, device) -> Optional[torch.Tensor]:
+    def _sample_training_rate(
+        self, batch_size: int, device: torch.device
+    ) -> Optional[torch.Tensor]:
         """Sample a training-time rate tensor according to ``random_rate``.
 
         Ported from the source repo's ``BaseCodecLightningModule._sample_rate``
@@ -518,12 +588,17 @@ class CompressionResidualVectorQuantizer(nn.Module):
         # "none": no compression during training.
         return None
 
-    def _resolve_rate(self, batch_size: int, device, rate):
+    def _resolve_rate(
+        self,
+        batch_size: int,
+        device: torch.device,
+        rate: Optional[Union[float, torch.Tensor]],
+    ) -> Optional[Union[float, torch.Tensor]]:
         """Pick the rate: explicit, sampled (train), inference, then eval."""
         if rate is not None:
             return rate
         if self.training:
-            return self._sample_rate(batch_size, device)
+            return self._sample_training_rate(batch_size, device)
         if self._inference_rate is not None:
             return self._inference_rate
         return self.eval_rate
@@ -540,7 +615,10 @@ class CompressionResidualVectorQuantizer(nn.Module):
         rate: Optional[Union[float, torch.Tensor]] = None,
         padding_mask: Optional[torch.Tensor] = None,
         anchor_start_layer: Optional[int] = None,
-    ):
+    ) -> Union[
+        Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor],
+        Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor],
+    ]:
         """Residual vector quantization with per-layer compression.
 
         Mirrors ``ResidualVectorQuantizer.forward(x, sample_rate,
@@ -552,20 +630,31 @@ class CompressionResidualVectorQuantizer(nn.Module):
             sample_rate: Frame rate of ``x`` in Hz, as the codec passes it.
             bandwidth: Target bandwidth in kbps; ``None`` uses all layers.
             rate: Compression rate: a float, a (B,) tensor or a
-                (num_codebooks, B) tensor.  ``None`` samples a rate in
+                (num_codebooks, B) tensor. ``None`` samples a rate in
                 training mode and otherwise uses the inference rate, then
                 ``eval_rate``.
             padding_mask: (B, T) bool tensor; ``True`` marks padding positions.
             anchor_start_layer: Layers at or after this index may only place
                 boundaries inside the union of the earlier layers'
-                boundaries.  ``None`` disables anchoring.
+                boundaries. ``None`` disables anchoring.
 
         Returns:
             Without quantizer dropout, the tuple ``(quantized, codes,
             bandwidth, commit_loss)``; with quantizer dropout (DAC), the
             tuple ``(quantized, codes, bandwidth, commit_loss,
-            quantization_loss)``.  ``quantized`` is (B, D, T) and ``codes``
+            quantization_loss)``. ``quantized`` is (B, D, T) and ``codes``
             is (n_q, B, T); the rest are scalar tensors.
+
+        Example:
+            .. code-block:: python
+
+                >>> quantizer = model.codec.generator.quantizer
+                >>> quantizer.eval()
+                >>> quantized, codes, bandwidth, loss = quantizer(
+                ...     torch.randn(2, 512, 50), sample_rate=75
+                ... )
+                >>> codes.shape
+                torch.Size([32, 2, 50])
         """
         rate = self._resolve_rate(x.size(0), x.device, rate)
         bandwidth_per_quantizer = self.rvq.get_bandwidth_per_quantizer(sample_rate)
@@ -622,6 +711,13 @@ class CompressionResidualVectorQuantizer(nn.Module):
 
         Returns:
             (n_q, B, T) code indices.
+
+        Example:
+            .. code-block:: python
+
+                >>> codes = quantizer.encode(torch.randn(2, 512, 50), sample_rate=75)
+                >>> codes.shape
+                torch.Size([32, 2, 50])
         """
         rate = self._resolve_rate(x.size(0), x.device, rate)
         if anchor_start_layer is None:
@@ -644,6 +740,13 @@ class CompressionResidualVectorQuantizer(nn.Module):
 
         Returns:
             (B, D, T) quantized representation.
+
+        Example:
+            .. code-block:: python
+
+                >>> codes = quantizer.encode(torch.randn(2, 512, 50), sample_rate=75)
+                >>> quantizer.decode(codes).shape
+                torch.Size([2, 512, 50])
         """
         return self.rvq.vq.decode(codes)
 
@@ -676,6 +779,14 @@ class CompressionResidualVectorQuantizer(nn.Module):
             Tuple of the (n_q, B, T) code indices, the (n_q, B, D, T)
             residuals fed to each layer before compression, and a list with
             one (B, T) segment index tensor per layer.
+
+        Example:
+            .. code-block:: python
+
+                >>> x = torch.randn(2, 512, 50)
+                >>> _, _, segments = quantizer.encode_with_segments(x, sample_rate=75)
+                >>> len(segments), segments[0].shape
+                (32, torch.Size([2, 50]))
         """
         rate = self._resolve_rate(x.size(0), x.device, rate)
         if anchor_start_layer is None:
@@ -693,9 +804,37 @@ class CompressionResidualVectorQuantizer(nn.Module):
     def get_num_quantizers_for_bandwidth(
         self, sample_rate: int, bandwidth: Optional[float] = None
     ) -> int:
-        """Return the number of layers needed for ``bandwidth`` (kbps)."""
+        """Return the number of layers needed for ``bandwidth``.
+
+        Args:
+            sample_rate: Frame rate of the encoder output in Hz.
+            bandwidth: Target bandwidth in kbps; ``None`` uses all layers.
+
+        Returns:
+            Number of codebook layers, as the wrapped quantizer computes it.
+
+        Example:
+            .. code-block:: python
+
+                >>> quantizer.get_num_quantizers_for_bandwidth(75, bandwidth=6.0)
+                8
+        """
         return self.rvq.get_num_quantizers_for_bandwidth(sample_rate, bandwidth)
 
-    def get_bandwidth_per_quantizer(self, sample_rate: int):
-        """Return the bandwidth of one codebook layer in kbps."""
+    def get_bandwidth_per_quantizer(self, sample_rate: int) -> float:
+        """Return the bandwidth of one codebook layer.
+
+        Args:
+            sample_rate: Frame rate of the encoder output in Hz.
+
+        Returns:
+            Bandwidth of one layer in kbps (``log2(codebook size) *
+            sample_rate / 1000``).
+
+        Example:
+            .. code-block:: python
+
+                >>> quantizer.get_bandwidth_per_quantizer(75)
+                0.75
+        """
         return self.rvq.get_bandwidth_per_quantizer(sample_rate)

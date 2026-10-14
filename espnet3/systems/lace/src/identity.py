@@ -1,5 +1,7 @@
 """Identity (no-op) compression model."""
 
+from typing import Optional, Union
+
 import torch
 
 from espnet3.systems.lace.src.compression import (
@@ -20,18 +22,20 @@ class IdentityCompression(BaseCompressionModel):
     this is a drop-in replacement in sweeps; the rate has no effect because
     the output is always per-frame segmentation.
 
-    Examples:
-        ```python
-        output = IdentityCompression()(torch.randn(2, 50, 128), rate=0.3)
-        output.expected_length  # -> tensor([[50.], [50.]])
-        ```
+    Example:
+        .. code-block:: python
+
+            >>> model = IdentityCompression()
+            >>> output = model(torch.randn(2, 50, 128), rate=0.3)
+            >>> output.expected_length
+            tensor([[50.], [50.]])
     """
 
     def forward(
         self,
         x: torch.Tensor,
-        rate=None,
-        padding_mask=None,
+        rate: Optional[Union[float, torch.Tensor]] = None,
+        padding_mask: Optional[torch.Tensor] = None,
         **kwargs,
     ) -> CompressionOutput:
         """Return the per-frame segmentation of ``x``.
@@ -44,5 +48,12 @@ class IdentityCompression(BaseCompressionModel):
 
         Returns:
             ``CompressionOutput`` whose ``reconstructed_features`` is ``x``.
+
+        Example:
+            .. code-block:: python
+
+                >>> output = IdentityCompression()(torch.randn(2, 50, 128))
+                >>> output.segment_idx[0, :4]
+                tensor([0, 1, 2, 3])
         """
-        return self._no_rate_output(x, padding_mask)
+        return self._build_no_rate_output(x, padding_mask)

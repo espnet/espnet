@@ -16,10 +16,15 @@ under ``src/``:
   ``model._target_`` with ``task:`` left unset.
 - ``gan_lightning_module``, ``gan_trainer``: the generator/discriminator
   training loop the wrapped codec (an ``AbsGANESPnetModel``) needs.
+
+The two stage-facing modules sit at the package root:
+
 - ``system``: ``LACESystem``, the staged pipeline a recipe under
   ``egs3/<corpus_name>/lace/`` runs; it builds the GAN trainer and writes
   the ``lace_model.yaml`` spec at training time.
-- ``inference``: ``LACEAudioCoding``, the ``model`` of an inference config.
+- ``inference``: ``Inference``, the ``model`` of an inference config
+  (``espnet3.api.inference``), wrapping ``LACEAudioCoding``, the encode ->
+  decode roundtrip of a fine-tuned codec at a chosen compression rate.
 
 The model is described in:
 

@@ -27,12 +27,12 @@ from espnet3.utils.config_utils import load_config_with_defaults
 _CONFIG_RESOURCE = resources.files(__package__).joinpath("config.yaml")
 with resources.as_file(_CONFIG_RESOURCE) as _CONFIG_PATH:
     _CONFIG = load_config_with_defaults(str(_CONFIG_PATH), resolve=False)
-_DATASET_CFG = _CONFIG["dataset"]
-_BUILDER_CFG = _CONFIG["builder"]
+_DATASET_CONFIG = _CONFIG["dataset"]
+_BUILDER_CONFIG = _CONFIG["builder"]
 
 _SPLIT_MANIFEST_PATHS: dict[str, str] = {
     str(split): str(relpath)
-    for split, relpath in _DATASET_CFG["split_manifest_paths"].items()
+    for split, relpath in _DATASET_CONFIG["split_manifest_paths"].items()
 }
 
 
@@ -95,31 +95,16 @@ class LibriTTSCodecDataset(BaseDataset):
     ``dataset:wav_path``); the declared ``fields`` grow accordingly, as the
     dataset contract (``espnet3.components.data.base_dataset``) asks.
 
-    Args:
-        split: Manifest split to load; one of the keys under
-            ``dataset.split_manifest_paths`` in ``dataset/config.yaml``
-            (``train``, ``valid``, ``test``). Ignored when ``manifest_path``
-            is given.
-        recipe_dir: Optional recipe root. When omitted, defaults to the
-            recipe directory inferred from this module.
-        manifest_path: Optional manifest override. Relative paths resolve
-            against ``recipe_dir``.
-        inference: Add ``utt_id`` and ``wav_path`` to each sample.
+    Example:
+        .. code-block:: python
 
-    Raises:
-        RuntimeError: If the manifests have not been built yet, or the
-            resolved manifest is empty.
-        ValueError: If ``split`` is unknown and no ``manifest_path`` is given.
-        FileNotFoundError: If the resolved manifest file does not exist.
+            >>> dataset = LibriTTSCodecDataset(split="train")
+            >>> sorted(dataset[0].keys())
+            ['audio']
 
-    Examples:
-        ```python
-        dataset = LibriTTSCodecDataset(split="train")
-        sorted(dataset[0].keys())        # -> ['audio']
-
-        test = LibriTTSCodecDataset(split="test", inference=True)
-        sorted(test[0].keys())           # -> ['audio', 'utt_id', 'wav_path']
-        ```
+            >>> test = LibriTTSCodecDataset(split="test", inference=True)
+            >>> sorted(test[0].keys())
+            ['audio', 'utt_id', 'wav_path']
     """
 
     fields = (Field("audio", "audio"),)
@@ -155,17 +140,20 @@ class LibriTTSCodecDataset(BaseDataset):
                 given.
             FileNotFoundError: If the resolved manifest file does not exist.
 
-        Examples:
-            ```python
-            train = LibriTTSCodecDataset(split="train")
-            test = LibriTTSCodecDataset(split="test", inference=True)
+        Example:
+            .. code-block:: python
 
-            # A manifest outside the configured splits:
-            other = LibriTTSCodecDataset(
-                split="test",
-                manifest_path="data/manifest/custom.tsv",
-            )
-            ```
+                >>> train = LibriTTSCodecDataset(split="train")
+                >>> test = LibriTTSCodecDataset(split="test", inference=True)
+
+            A manifest outside the configured splits:
+
+            .. code-block:: python
+
+                >>> other = LibriTTSCodecDataset(
+                ...     split="test",
+                ...     manifest_path="data/manifest/custom.tsv",
+                ... )
         """
         self.split = split
         self.inference = inference
@@ -179,7 +167,7 @@ class LibriTTSCodecDataset(BaseDataset):
             if recipe_dir is not None
             else Path(__file__).resolve().parents[1]
         )
-        self.data_dir = recipe_root / _BUILDER_CFG["data_path"]
+        self.data_dir = recipe_root / _BUILDER_CONFIG["data_path"]
 
         if manifest_path is not None:
             # An explicit manifest is an override: it may live outside the
@@ -211,10 +199,11 @@ class LibriTTSCodecDataset(BaseDataset):
         Returns:
             Number of manifest rows.
 
-        Examples:
-            ```python
-            len(LibriTTSCodecDataset(split="test"))   # -> 4837
-            ```
+        Example:
+            .. code-block:: python
+
+                >>> len(LibriTTSCodecDataset(split="test"))
+                4837
         """
         return len(self._entries)
 
@@ -225,11 +214,12 @@ class LibriTTSCodecDataset(BaseDataset):
             List of utterance IDs, in the same order as integer indexing,
             so ``dataset[dataset.keys()[i]] == dataset[i]``.
 
-        Examples:
-            ```python
-            dataset = LibriTTSCodecDataset(split="test")
-            dataset.keys()[:2]   # -> ['1089-134686-000002-000000', ...]
-            ```
+        Example:
+            .. code-block:: python
+
+                >>> dataset = LibriTTSCodecDataset(split="test")
+                >>> dataset.keys()[:2]
+                ['1089-134686-000002-000000', ...]
         """
         return [entry.utt_id for entry in self._entries]
 
@@ -242,20 +232,20 @@ class LibriTTSCodecDataset(BaseDataset):
 
         Returns:
             Dict with the waveform under ``audio`` as a 1-D float32 numpy
-            array. In ``inference`` mode it also carries ``utt_id`` (as a
-            0-d numpy array, so the collate function passes it through) and
-            ``wav_path`` (str).
+            array. In ``inference`` mode it also carries ``utt_id`` and
+            ``wav_path``, both plain strings.
 
         Raises:
             KeyError: If a string *idx* is not a known utterance ID.
             IndexError: If an integer *idx* is out of range.
 
-        Examples:
-            ```python
-            dataset = LibriTTSCodecDataset(split="test")
-            dataset[0]["audio"].dtype            # -> dtype('float32')
-            dataset[dataset.keys()[0]]["audio"]  # same sample, by utt_id
-            ```
+        Example:
+            .. code-block:: python
+
+                >>> dataset = LibriTTSCodecDataset(split="test")
+                >>> dataset[0]["audio"].dtype
+                dtype('float32')
+                >>> dataset[dataset.keys()[0]]["audio"]  # same sample, by utt_id
         """
         if isinstance(idx, str):
             entry = self._by_utt_id[idx]

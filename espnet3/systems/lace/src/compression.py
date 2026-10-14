@@ -2,7 +2,7 @@
 
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from typing import Optional
+from typing import Optional, Union
 
 import torch
 import torch.nn as nn
@@ -21,12 +21,15 @@ class CompressionOutput:
       upsampled back to frame resolution.
     - ``expected_length`` (B, 1): number of segments (boundaries + 1).
 
-    Examples:
-        ```python
-        output = CosineSimilarityCompression()(torch.randn(2, 50, 128), rate=0.5)
-        output.reconstructed_features.shape  # -> torch.Size([2, 50, 128])
-        output.expected_length.shape         # -> torch.Size([2, 1])
-        ```
+    Example:
+        .. code-block:: python
+
+            >>> compression = CosineSimilarityCompression()
+            >>> output = compression(torch.randn(2, 50, 128), rate=0.5)
+            >>> output.reconstructed_features.shape
+            torch.Size([2, 50, 128])
+            >>> output.expected_length.shape
+            torch.Size([2, 1])
     """
 
     boundary_soft: torch.Tensor
@@ -44,23 +47,24 @@ class BaseCompressionModel(nn.Module, ABC):
     resolution while carrying fewer distinct vectors.
 
     Subclasses must implement ``forward``, which segments an input feature
-    sequence and returns a ``CompressionOutput``.  The per-frame identity
+    sequence and returns a ``CompressionOutput``. The per-frame identity
     output (``rate=None``) and the segment-averaging math are shared here.
 
-    Examples:
+    Example:
         A minimal subclass that never merges frames:
-        ```python
-        class PerFrameCompression(BaseCompressionModel):
-            def forward(self, x, rate=None, padding_mask=None, **kwargs):
-                return self._no_rate_output(x, padding_mask)
-        ```
+
+        .. code-block:: python
+
+            >>> class PerFrameCompression(BaseCompressionModel):
+            ...     def forward(self, x, rate=None, padding_mask=None, **kwargs):
+            ...         return self._build_no_rate_output(x, padding_mask)
     """
 
     @abstractmethod
     def forward(
         self,
         x: torch.Tensor,
-        rate=None,
+        rate: Optional[Union[float, torch.Tensor]] = None,
         padding_mask: Optional[torch.Tensor] = None,
         **kwargs,
     ) -> CompressionOutput:
@@ -70,21 +74,29 @@ class BaseCompressionModel(nn.Module, ABC):
             x: (B, T, D) input features.
             rate: Compression rate or budget (interpretation is
                 model-specific): a float, or a (B,) tensor with one rate per
-                batch item.  When ``None``, every frame is its own segment
+                batch item. When ``None``, every frame is its own segment
                 (identity).
             padding_mask: (B, T) bool tensor; ``True`` marks padding positions.
-            **kwargs: Model-specific options.  The RVQ wrapper always passes
+            **kwargs: Model-specific options. The RVQ wrapper always passes
                 ``anchor_boundary`` (a (B, T) boundary tensor or ``None``);
                 models that do not support anchoring accept and ignore it.
 
         Returns:
             ``CompressionOutput`` for the batch.
+
+        Example:
+            .. code-block:: python
+
+                >>> model = CosineSimilarityCompression()
+                >>> output = model(torch.randn(2, 50, 128), rate=0.5)
+                >>> output.boundary_soft[:, 0]
+                tensor([0., 0.])
         """
 
-    def _no_rate_output(
+    def _build_no_rate_output(
         self, x: torch.Tensor, padding_mask: Optional[torch.Tensor]
     ) -> CompressionOutput:
-        """Trivial per-frame segmentation (used when rate is None)."""
+        """Return the per-frame segmentation used when ``rate`` is ``None``."""
         B, T, _ = x.shape
         device = x.device
         boundary = torch.ones(B, T, device=device, dtype=torch.long)
@@ -101,19 +113,16 @@ class BaseCompressionModel(nn.Module, ABC):
             expected_length=expected_length,
         )
 
-    def _segment_average(
+    def _average_segments(
         self,
         x: torch.Tensor,
         segment_idx: torch.Tensor,
         padding_mask: Optional[torch.Tensor],
     ) -> torch.Tensor:
-        """Segment-wise mean features, upsampled back to frame resolution.
+        """Average ``x`` within each segment, upsampled back to (B, T, D).
 
         Uses scatter_add + gather instead of a dense (B, S, T) assignment
         matrix, keeping peak memory at O(B*T*D).
-
-        Returns:
-            (B, T, D)
         """
         B, T, D = x.shape
         device = x.device

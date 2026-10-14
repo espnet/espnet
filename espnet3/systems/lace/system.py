@@ -40,7 +40,9 @@ logger = logging.getLogger(__name__)
 MODEL_CONFIG_NAME = "lace_model.yaml"
 
 
-def build_lace_model_config(model_config: Union[DictConfig, Dict[str, Any]]):
+def build_lace_model_config(
+    model_config: Union[DictConfig, Dict[str, Any]],
+) -> Dict[str, Any]:
     """Turn a training config's ``model`` block into ``LACE`` constructor kwargs.
 
     Args:
@@ -57,20 +59,20 @@ def build_lace_model_config(model_config: Union[DictConfig, Dict[str, Any]]):
             model block (``codec``/``codec_conf`` under ``task:``) is not a
             LACE model and has no spec to write.
 
-    Examples:
-        ```python
-        from omegaconf import OmegaConf
+    Example:
+        .. code-block:: python
 
-        model_config = OmegaConf.create({
-            "_target_": "espnet3.systems.lace.src.lace.LACE",
-            "_convert_": "all",
-            "pretrained_model_tag": "NewGame/libritts_codec_train_encodec_libritts",
-            "compression_model": {"name": "cosine_similarity"},
-        })
-        build_lace_model_config(model_config)
-        # -> {'pretrained_model_tag': 'NewGame/libritts_codec_train_encodec_libritts',
-        #     'compression_model': {'name': 'cosine_similarity'}}
-        ```
+            >>> from omegaconf import OmegaConf
+
+            >>> model_config = OmegaConf.create({
+            ...     "_target_": "espnet3.systems.lace.src.lace.LACE",
+            ...     "_convert_": "all",
+            ...     "pretrained_model_tag": "espnet/libritts_encodec_24k",
+            ...     "compression_model": {"name": "cosine_similarity"},
+            ... })
+            >>> build_lace_model_config(model_config)
+            {'pretrained_model_tag': 'espnet/libritts_encodec_24k',
+             'compression_model': {'name': 'cosine_similarity'}}
     """
     if OmegaConf.is_config(model_config):
         spec = OmegaConf.to_container(model_config, resolve=True)
@@ -88,6 +90,7 @@ def build_lace_model_config(model_config: Union[DictConfig, Dict[str, Any]]):
 
 
 def _is_hydra_key(key: str) -> bool:
+    """Return whether ``key`` is a Hydra instantiate key such as ``_target_``."""
     return key.startswith("_") and key.endswith("_")
 
 
@@ -106,10 +109,10 @@ def write_lace_model_config(
     Raises:
         ValueError: Propagated from :func:`build_lace_model_config`.
 
-    Examples:
-        ```python
-        write_lace_model_config(config.model, "exp/train_encodec_lace/lace_model.yaml")
-        ```
+    Example:
+        .. code-block:: python
+
+            >>> write_lace_model_config(config.model, "exp/lace_model.yaml")
     """
     spec = build_lace_model_config(model_config)
     output_path = Path(output_path)
@@ -131,18 +134,20 @@ class LACESystem(BaseSystem):
     before fitting. The model is instantiated directly from
     ``training_config.model._target_``; ``task`` must be left unset.
 
-    Examples:
+    Example:
         A recipe's ``run.py`` (``egs3/libritts/lace/run.py``):
-        ```python
-        from espnet3.systems.lace.system import LACESystem
-        from espnet3.systems.launch import launch
 
-        if __name__ == "__main__":
-            launch(LACESystem)
-        ```
+        .. code-block:: python
+
+            >>> from espnet3.systems.lace.system import LACESystem
+            >>> from espnet3.systems.launch import launch
+
+            >>> if __name__ == "__main__":
+            ...     launch(LACESystem)
     """
 
     def _reject_task_config(self) -> None:
+        """Raise if the training config sets ``task``, which LACE leaves unset."""
         task = self.training_config.get("task")
         if task:
             raise ValueError(
@@ -151,6 +156,7 @@ class LACESystem(BaseSystem):
             )
 
     def _build_trainer(self) -> ESPnet3LightningTrainer:
+        """Instantiate the model and wrap it in the GAN or the plain trainer."""
         config = self.training_config
         model = instantiate(config.model)
         if isinstance(model, AbsGANESPnetModel):
@@ -165,6 +171,7 @@ class LACESystem(BaseSystem):
         )
 
     def _prepare_training_runtime(self) -> None:
+        """Create the output directories and apply the parallel/seed settings."""
         config = self.training_config
         Path(config.exp_dir).mkdir(parents=True, exist_ok=True)
         # `stats_dir` may be declared but left null (the recipe skips
@@ -181,7 +188,7 @@ class LACESystem(BaseSystem):
 
         torch.set_float32_matmul_precision("high")
 
-    def collect_stats(self, *args, **kwargs):
+    def collect_stats(self, *args, **kwargs) -> None:
         """Run the collect_stats stage with the GAN trainer.
 
         Args:
@@ -195,12 +202,13 @@ class LACESystem(BaseSystem):
             TypeError: If any positional or keyword argument is passed.
             ValueError: If ``training_config.task`` is set.
 
-        Examples:
+        Example:
             Invoked by ``run.py`` for the ``collect_stats`` stage:
-            ```python
-            system = LACESystem(training_config=config)
-            system.collect_stats()
-            ```
+
+            .. code-block:: python
+
+                >>> system = LACESystem(training_config=config)
+                >>> system.collect_stats()
         """
         self._reject_stage_args("collect_stats", args, kwargs)
         self._reject_task_config()
@@ -216,7 +224,7 @@ class LACESystem(BaseSystem):
             self.training_config.get("stats_dir"),
         )
 
-    def train(self, *args, **kwargs):
+    def train(self, *args, **kwargs) -> None:
         """Write ``lace_model.yaml`` into ``exp_dir``, then fit with the GAN trainer.
 
         Args:
@@ -233,19 +241,21 @@ class LACESystem(BaseSystem):
                 ``training_config.model`` has no ``_target_``, i.e. the
                 config does not build a LACE model.
 
-        Examples:
+        Example:
             Invoked by ``run.py`` for the ``train`` stage:
-            ```python
-            system = LACESystem(training_config=config)
-            system.train()
-            ```
+
+            .. code-block:: python
+
+                >>> system = LACESystem(training_config=config)
+                >>> system.train()
 
             Extra keyword arguments for ``trainer.fit`` come from the
             config's ``fit`` block, not from this call:
-            ```yaml
-            fit:
-              ckpt_path: exp/train_encodec_lace_libritts/last.ckpt
-            ```
+
+            .. code-block:: yaml
+
+                fit:
+                  ckpt_path: exp/train_encodec_lace_libritts/last.ckpt
         """
         self._reject_stage_args("train", args, kwargs)
         self._reject_task_config()

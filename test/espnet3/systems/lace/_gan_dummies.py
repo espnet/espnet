@@ -11,7 +11,10 @@ DUMMY_DATA_SRC = "dummy/lace"
 
 
 class DummyDataset:
+    """Three two-dimensional samples under ``x``, enough for one tiny batch."""
+
     def __init__(self, path=None):
+        """Ignore ``path``; the data is fixed."""
         self.data = [
             {"x": np.array([0.1, 0.2], dtype=np.float32)},
             {"x": np.array([0.3, 0.4], dtype=np.float32)},
@@ -19,9 +22,11 @@ class DummyDataset:
         ]
 
     def __len__(self):
+        """Return the number of samples."""
         return len(self.data)
 
     def __getitem__(self, idx):
+        """Return the ``idx``-th sample."""
         return {"x": self.data[idx]["x"]}
 
 
@@ -29,6 +34,7 @@ class DummyGANModel(AbsGANESPnetModel):
     """Minimal AbsGANESPnetModel: generator/discriminator turns via Linear."""
 
     def __init__(self, optim_idx_map=None):
+        """Build the two linear turns and the turn-to-``optim_idx`` map."""
         super().__init__()
         self.generator = nn.Linear(2, 1)
         self.discriminator = nn.Linear(2, 1)
@@ -36,6 +42,7 @@ class DummyGANModel(AbsGANESPnetModel):
         self.optim_idx_map = optim_idx_map or {True: 0, False: 1}
 
     def forward(self, x, x_lengths=None, forward_generator=True, **kwargs):
+        """Return one turn's GAN dict; its loss is the chosen module's output sum."""
         module = self.generator if forward_generator else self.discriminator
         loss = module(x).sum()
         return {
@@ -46,10 +53,12 @@ class DummyGANModel(AbsGANESPnetModel):
         }
 
     def collect_feats(self, **batch):
+        """Collect nothing; required by ``AbsGANESPnetModel``."""
         return {}
 
 
-def make_gan_training_config(exp_dir, gan=None, optimizers=None):
+def build_gan_training_config(exp_dir, gan=None, optimizers=None):
+    """Build a resolved two-optimizer training config over the dummy dataset."""
     if optimizers is None:
         optimizers = {
             "generator": {
@@ -102,14 +111,16 @@ def make_gan_training_config(exp_dir, gan=None, optimizers=None):
     return OmegaConf.create(config)
 
 
-def make_train_batch(module):
+def build_train_batch(module):
+    """Return the first training batch, stubbing ``_trainer`` if Lightning has not."""
     trainer = getattr(module, "_trainer", None)
     if trainer is None or not hasattr(trainer, "current_epoch"):
         module._trainer = type("DummyTrainer", (), {"current_epoch": 0})()
     return next(iter(module.train_dataloader()))
 
 
-def make_valid_batch(module):
+def build_valid_batch(module):
+    """Return the first validation batch, stubbing ``_trainer`` if Lightning has not."""
     trainer = getattr(module, "_trainer", None)
     if trainer is None or not hasattr(trainer, "current_epoch"):
         module._trainer = type("DummyTrainer", (), {"current_epoch": 0})()
@@ -117,6 +128,11 @@ def make_valid_batch(module):
 
 
 def prepare_manual_optimization(module, configured):
+    """Wire ``configured`` optimizers into ``module`` without a Lightning Trainer.
+
+    Returns the optimizer and scheduler maps plus the dicts that capture what
+    ``log_dict`` and ``clip_gradients`` receive.
+    """
     optimizer_map = {
         spec.name: optimizer
         for spec, optimizer in zip(module._optimizer_specs, configured[0])

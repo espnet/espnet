@@ -1,7 +1,7 @@
 """Dynamic-programming segmentation compression model."""
 
 import math
-from typing import Optional, Union
+from typing import Optional, Tuple, Union
 
 import torch
 
@@ -14,7 +14,7 @@ from espnet3.systems.lace.src.compression import (
 class DPSegmentationCompression(BaseCompressionModel):
     """Optimal frame boundary detection via Dynamic Programming.
 
-    Based on CodecSlime (arXiv:2506.21074).  Finds the segmentation that
+    Based on CodecSlime (arXiv:2506.21074). Finds the segmentation that
     minimises total L2 distortion between original frames and their
     segment-mean reconstruction:
 
@@ -28,33 +28,34 @@ class DPSegmentationCompression(BaseCompressionModel):
     targeting exactly T' = clamp(round(rate × T), 1, T) segments.
 
     Optimal boundaries are recovered by backtracking through stored parent
-    pointers.  The cost table and DP run under ``torch.no_grad()`` because
+    pointers. The cost table and DP run under ``torch.no_grad()`` because
     boundaries are hard (non-differentiable); gradients still flow through
     the subsequent segment-averaging step.
 
-    Args:
-        max_span: Hard upper bound on segment length U (default 4, matching
-                  the paper).  This is an **algorithmic parameter**: it is
-                  part of the formal DP constraint set
-                  ``S = {s | Σsᵢ = T, 1 ≤ sᵢ ≤ U}`` and should be kept
-                  consistent between training and inference.  Larger values
-                  allow more aggressive compression but increase cost-table
-                  memory from O(T·U·D) toward O(T²·D).  Set to ``None``
-                  to remove the constraint entirely (equivalent to U = T).
+    Example:
+        .. code-block:: python
 
-    Examples:
-        ```python
-        model = DPSegmentationCompression(max_span=4)
-        output = model(torch.randn(2, 50, 128), rate=0.5)
-        output.expected_length  # -> tensor([[25.], [25.]])
-        ```
+            >>> model = DPSegmentationCompression(max_span=4)
+            >>> output = model(torch.randn(2, 50, 128), rate=0.5)
+            >>> output.expected_length
+            tensor([[25.], [25.]])
     """
 
     def __init__(
         self,
         max_span: Optional[int] = 4,
     ):
-        """Initialize the compression model."""
+        """Store the segment-length bound.
+
+        Args:
+            max_span: Hard upper bound U on the segment length (the paper
+                uses 4). It is an algorithmic parameter, part of the DP
+                constraint set ``S = {s | Σsᵢ = T, 1 ≤ sᵢ ≤ U}``, so keep it
+                the same between training and inference. Larger values allow
+                more aggressive compression but grow the cost table from
+                O(T·U·D) toward O(T²·D). ``None`` removes the constraint
+                (U = T).
+        """
         super().__init__()
         self.max_span = max_span
 
@@ -63,20 +64,15 @@ class DPSegmentationCompression(BaseCompressionModel):
     # ------------------------------------------------------------------
 
     def _compute_cost_table(self, x: torch.Tensor) -> torch.Tensor:
-        """Pre-compute L2 distortion for every (end-frame, span) pair.
+        """Return the (T, U) L2 distortion of every (end-frame, span) pair.
 
-        ``cost[j, s−1]`` is the cost of a segment of length *s* whose
-        last frame is 0-indexed frame *j*:
+        For ``x`` of shape (T, D), ``cost[j, s−1]`` is the cost of a segment
+        of length *s* whose last frame is 0-indexed frame *j*:
 
             cost[j, s−1] = Σ_{t=j−s+1}^{j} ‖h_t − mean(h[j−s+1 … j])‖₂
 
-        Invalid entries (j < s−1) are set to ``+inf``.
-
-        Args:
-            x: (T, D) unpadded feature sequence.
-        Returns:
-            cost: (T, U) where U = min(max_span, T) or T when max_span is
-                  None; invalid entries are ``+inf``.
+        with U = min(max_span, T), or T when ``max_span`` is ``None``.
+        Invalid entries (j < s−1) are ``+inf``.
         """
         T, D = x.shape
         U = min(self.max_span, T) if self.max_span is not None else T
@@ -108,27 +104,25 @@ class DPSegmentationCompression(BaseCompressionModel):
     # DP forward pass + backtracking
     # ------------------------------------------------------------------
 
-    def _dp_forward(
+    def _run_dp_forward(
         self,
         cost: torch.Tensor,
         T: int,
         max_segments: int,
-    ) -> tuple[torch.Tensor, torch.Tensor]:
-        """Forward DP pass over (j, i) states up to ``max_segments``.
+    ) -> Tuple[torch.Tensor, torch.Tensor]:
+        """Run the forward DP pass over the (j, i) states up to ``max_segments``.
 
-        Returns:
-            d:      (T+1, max_segments+1); d[j, i] is the best objective
-                    (negative distortion) covering j frames with i segments.
-                    NEG_INF for infeasible (j, i) combinations.
-            parent: (T+1, max_segments+1); segment length s chosen to reach
-                    state (j, i); 1-indexed span.
+        Returns ``(d, parent)``, both (T+1, max_segments+1): ``d[j, i]`` is
+        the best objective (negative distortion) covering j frames with i
+        segments, ``-inf`` where infeasible, and ``parent[j, i]`` is the
+        1-indexed span of the last segment chosen to reach state (j, i).
         """
         U = cost.shape[1]
         device = cost.device
-        NEG_INF = float("-inf")
+        neg_inf = float("-inf")
 
         d = torch.full(
-            (T + 1, max_segments + 1), NEG_INF, device=device, dtype=cost.dtype
+            (T + 1, max_segments + 1), neg_inf, device=device, dtype=cost.dtype
         )
         d[0, 0] = 0.0
 
@@ -137,13 +131,13 @@ class DPSegmentationCompression(BaseCompressionModel):
         # For span s_idx (0-indexed, span length = s_idx+1):
         #   candidates[s_idx, j] = d_prev[j - s_idx] - cost[j, s_idx]
         # Build a padded view of d_prev so shifting is a plain slice:
-        #   padded = [NEG_INF×U, d_prev[0..T-1]]  (length U+T)
-        #   padded[U - s_idx + j] = d_prev[j - s_idx]  when j >= s_idx (else NEG_INF)
-        NEG_INF_T = cost.new_full((U,), NEG_INF)
+        #   padded = [-inf×U, d_prev[0..T-1]]  (length U+T)
+        #   padded[U - s_idx + j] = d_prev[j - s_idx]  when j >= s_idx (else -inf)
+        neg_inf_pad = cost.new_full((U,), neg_inf)
 
         for i in range(1, max_segments + 1):
             d_prev = d[:, i - 1]  # (T+1,)
-            padded = torch.cat([NEG_INF_T, d_prev[:T]])  # (U+T,)
+            padded = torch.cat([neg_inf_pad, d_prev[:T]])  # (U+T,)
 
             shifted = torch.stack(
                 [padded[U - s_idx : U - s_idx + T] for s_idx in range(U)], dim=0
@@ -151,9 +145,9 @@ class DPSegmentationCompression(BaseCompressionModel):
 
             candidates = shifted - cost.T
 
-            valid = (shifted > NEG_INF) & (cost.T < float("inf"))
+            valid = (shifted > neg_inf) & (cost.T < float("inf"))
             candidates = torch.where(
-                valid, candidates, cost.new_full(candidates.shape, NEG_INF)
+                valid, candidates, cost.new_full(candidates.shape, neg_inf)
             )
 
             best_vals, best_s_idx = candidates.max(dim=0)
@@ -162,13 +156,13 @@ class DPSegmentationCompression(BaseCompressionModel):
 
         return d, parent
 
-    def _dp_backtrack(
+    def _backtrack_dp(
         self,
         parent: torch.Tensor,
         T: int,
         num_segments: int,
     ) -> torch.Tensor:
-        """Recover segment_idx from a parent table at state (T, num_segments)."""
+        """Return the (T,) segment index backtracked from state (T, num_segments)."""
         device = parent.device
         segment_lengths: list[int] = []
         j, segment_count = T, num_segments
@@ -192,22 +186,17 @@ class DPSegmentationCompression(BaseCompressionModel):
         T: int,
         num_segments: int,
     ) -> torch.Tensor:
-        """Run DP and backtrack to recover the optimal segment index tensor.
+        """Return the (T,) optimal segment index for exactly ``num_segments`` segments.
 
-        Args:
-            cost:         (T, max_span) distortion table from
-                          ``_compute_cost_table``.
-            T:            unpadded sequence length.
-            num_segments: target number of segments T' (already clamped for
-                          feasibility by the caller).
-        Returns:
-            segment_idx: (T,) long tensor; 0-indexed segment label per frame.
+        ``cost`` is the (T, U) table from ``_compute_cost_table`` and
+        ``num_segments`` is already clamped for feasibility by the caller;
+        the uniform fallback only guards an infeasible state.
         """
-        d, parent = self._dp_forward(cost, T, num_segments)
+        d, parent = self._run_dp_forward(cost, T, num_segments)
         if d[T, num_segments].item() == float("-inf"):
             # Should not happen after feasibility clamping, but guard anyway.
-            return self._uniform_segment(T, num_segments, cost.device)
-        return self._dp_backtrack(parent, T, num_segments)
+            return self._segment_uniformly(T, num_segments, cost.device)
+        return self._backtrack_dp(parent, T, num_segments)
 
     # ------------------------------------------------------------------
     # Anchor-restricted DP: boundaries are a subset of anchor positions
@@ -215,12 +204,14 @@ class DPSegmentationCompression(BaseCompressionModel):
 
     def _run_dp_anchor_subset(
         self,
-        x_b: torch.Tensor,  # (valid_length, D)
-        anchor_positions: torch.Tensor,  # (K,) sorted positions in [1, valid_length)
+        x_b: torch.Tensor,
+        anchor_positions: torch.Tensor,
         num_segments: int,
     ) -> torch.Tensor:
         """Run the DP with boundaries restricted to the anchor positions.
 
+        ``x_b`` is one unpadded (valid_length, D) sequence and
+        ``anchor_positions`` its (K,) sorted anchors in [1, valid_length).
         Only segments that start and end on an anchor (or on the sequence
         ends) keep a finite cost, so the optimal segmentation can cut only
         at a subset of ``anchor_positions``.
@@ -270,8 +261,10 @@ class DPSegmentationCompression(BaseCompressionModel):
     # ------------------------------------------------------------------
 
     @staticmethod
-    def _uniform_segment(T: int, num_segments: int, device) -> torch.Tensor:
-        """Evenly distribute T frames into num_segments segments."""
+    def _segment_uniformly(
+        T: int, num_segments: int, device: Union[str, torch.device]
+    ) -> torch.Tensor:
+        """Return the (T,) segment index spreading T frames evenly over segments."""
         segment_idx = torch.zeros(T, dtype=torch.long, device=device)
         for t in range(T):
             segment_idx[t] = min(int(t * num_segments / T), num_segments - 1)
@@ -294,15 +287,15 @@ class DPSegmentationCompression(BaseCompressionModel):
         Args:
             x: (B, T, D) input features.
             rate: Compression rate in (0, 1]; a float or a per-sample (B,)
-                tensor.  Target segments T' = clamp(round(rate * T), 1, T).
+                tensor. Target segments T' = clamp(round(rate * T), 1, T).
                 Pass ``None`` to return a trivial per-frame identity
                 segmentation.
             padding_mask: (B, T) bool tensor; ``True`` marks padding positions.
             anchor_boundary: (B, T) binary tensor of boundary positions
-                inherited from prior codebooks (1 = boundary).  When
+                inherited from prior codebooks (1 = boundary). When
                 provided, boundaries may only be placed on anchor positions:
                 the DP selects the subset of anchors that minimises the
-                total L2 distortion for the target segment count.  When no
+                total L2 distortion for the target segment count. When no
                 anchor falls inside a sequence, that sequence uses the
                 plain unconstrained DP; when the target count cannot be
                 reached with the anchors, it falls back to uniform
@@ -312,12 +305,20 @@ class DPSegmentationCompression(BaseCompressionModel):
 
         Returns:
             ``CompressionOutput`` for the batch.
+
+        Example:
+            .. code-block:: python
+
+                >>> model = DPSegmentationCompression(max_span=4)
+                >>> output = model(torch.randn(2, 50, 128), rate=0.5)
+                >>> output.expected_length
+                tensor([[25.], [25.]])
         """
         B, T, _ = x.shape
         device = x.device
 
         if rate is None:
-            return self._no_rate_output(x, padding_mask)
+            return self._build_no_rate_output(x, padding_mask)
 
         use_anchors = anchor_boundary is not None
 
@@ -368,14 +369,14 @@ class DPSegmentationCompression(BaseCompressionModel):
             num_segments = min(num_segments, valid_length)
 
             # Cost table and DP run without gradient tracking: boundaries are
-            # hard decisions; gradients flow through _segment_average instead.
+            # hard decisions; gradients flow through _average_segments instead.
             with torch.no_grad():
                 # Anchor-augmented path: select the best subset of anchor
                 # positions as boundaries, minimizing total L2 distortion.
                 anchors_b = None
                 if use_anchors:
-                    # Anchors live at positions 1..valid_length-1 (position 0 is never a
-                    # boundary by convention).
+                    # Anchors live at positions 1..valid_length-1 (position 0
+                    # is never a boundary by convention).
                     anchors_b = (
                         anchor_boundary[b, 1:valid_length].nonzero(as_tuple=True)[0] + 1
                     )
@@ -405,7 +406,7 @@ class DPSegmentationCompression(BaseCompressionModel):
         boundary_soft = boundary.float()
         # Recompute cumsum-based segment_idx for pipeline consistency.
         segment_idx = torch.cumsum(boundary, dim=1)
-        reconstructed = self._segment_average(x, segment_idx, padding_mask)
+        reconstructed = self._average_segments(x, segment_idx, padding_mask)
         expected_length = boundary_soft.sum(dim=1, keepdim=True) + 1
 
         return CompressionOutput(

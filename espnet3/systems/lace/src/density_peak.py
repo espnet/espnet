@@ -1,6 +1,6 @@
 """Density-peak clustering compression model."""
 
-from typing import Optional, Union
+from typing import Optional, Tuple, Union
 
 import torch
 import torch.nn.functional as F
@@ -14,9 +14,9 @@ from espnet3.systems.lace.src.compression import (
 class DensityPeakCompression(BaseCompressionModel):
     """Frame boundary detection via Temporal-Aware Density Peak Clustering.
 
-    Based on VARSTok (arXiv:2509.04685).  A frame is a good cluster seed if it
+    Based on VARSTok (arXiv:2509.04685). A frame is a good cluster seed if it
     is *locally dense* (surrounded by similar neighbours) **and** *isolated* from
-    denser regions.  Concretely, each frame is scored as
+    denser regions. Concretely, each frame is scored as
 
         s[i] = rho[i] * delta[i]
 
@@ -29,23 +29,18 @@ class DensityPeakCompression(BaseCompressionModel):
     Segmentation is the full VARSTok greedy bidirectional expansion: each
     iteration picks the highest-scored unassigned frame as a seed, then
     expands forward/backward up to *max_span* frames subject to a
-    similarity threshold.  ``rate`` is used directly as that threshold:
+    similarity threshold. ``rate`` is used directly as that threshold:
     high rate (-> 1.0) makes merging hard (many segments, little
     compression); low rate (-> 0.0) makes merging easy (few segments,
     heavy compression).
 
-    Args:
-        k: Number of nearest neighbours for local density (default 5).
-        beta: Penalty weight that discourages absorbing high-scored frames
-              into a neighbouring cluster (default 0.2).
-        max_span: Maximum frames per cluster (default 4).
+    Example:
+        .. code-block:: python
 
-    Examples:
-        ```python
-        model = DensityPeakCompression(k=5, beta=0.2, max_span=4)
-        output = model(torch.randn(2, 50, 128), rate=0.5)
-        output.segment_idx.shape  # -> torch.Size([2, 50])
-        ```
+            >>> model = DensityPeakCompression(k=5, beta=0.2, max_span=4)
+            >>> output = model(torch.randn(2, 50, 128), rate=0.5)
+            >>> output.segment_idx.shape
+            torch.Size([2, 50])
     """
 
     def __init__(
@@ -54,7 +49,14 @@ class DensityPeakCompression(BaseCompressionModel):
         beta: float = 0.2,
         max_span: int = 4,
     ):
-        """Initialize the compression model."""
+        """Store the clustering hyperparameters.
+
+        Args:
+            k: Number of nearest neighbours for the local density.
+            beta: Penalty weight that discourages absorbing high-scored
+                frames into a neighbouring cluster.
+            max_span: Maximum number of frames per cluster.
+        """
         super().__init__()
         self.k = k
         self.beta = beta
@@ -64,26 +66,14 @@ class DensityPeakCompression(BaseCompressionModel):
     # Density-peak helpers (operate on a single, unpadded sequence)
     # ------------------------------------------------------------------
 
-    def _similarity_matrix(self, x: torch.Tensor) -> torch.Tensor:
-        """Normalised pairwise cosine similarity in [0, 1].
-
-        Args:
-            x: (T, D)
-        Returns:
-            similarity: (T, T)
-        """
+    def _compute_similarity_matrix(self, x: torch.Tensor) -> torch.Tensor:
+        """Return the (T, T) pairwise cosine similarity of ``x`` (T, D) in [0, 1]."""
         x_normalized = F.normalize(x, dim=-1)  # (T, D)
         cosine = torch.matmul(x_normalized, x_normalized.T)  # (T, T)  in [-1, 1]
         return (cosine + 1.0) / 2.0  # rescale to [0, 1]
 
-    def _local_density(self, similarity: torch.Tensor) -> torch.Tensor:
-        """Local density rho = exp(mean of k-NN similarities).
-
-        Args:
-            similarity: (T, T) similarity matrix
-        Returns:
-            rho: (T,)
-        """
+    def _compute_local_density(self, similarity: torch.Tensor) -> torch.Tensor:
+        """Return the (T,) local density rho = exp(mean of k-NN similarities)."""
         T = similarity.shape[0]
         k = min(self.k, T - 1)
 
@@ -94,19 +84,14 @@ class DensityPeakCompression(BaseCompressionModel):
         knn_similarities, _ = torch.topk(similarity_no_diagonal, k, dim=-1)  # (T, k)
         return torch.exp(knn_similarities.mean(dim=-1))  # (T,)
 
-    def _peak_distance(
+    def _compute_peak_distance(
         self, similarity: torch.Tensor, rho: torch.Tensor
     ) -> torch.Tensor:
-        """Peak distance delta.
+        """Return the (T,) peak distance delta of every frame.
 
-        For frame i: delta[i] = min distance to any j with rho[j] > rho[i].
-        For the global density peak (no such j): delta = max distance to any frame.
-
-        Args:
-            similarity: (T, T) in [0, 1]
-            rho: (T,)
-        Returns:
-            delta: (T,)
+        For frame i, delta[i] is the minimum distance to any frame j with
+        rho[j] > rho[i]; for the global density peak (no such j), it is the
+        maximum distance to any frame.
         """
         distance = 1.0 - similarity  # (T, T)
 
@@ -125,66 +110,55 @@ class DensityPeakCompression(BaseCompressionModel):
 
         return delta
 
-    def _density_scores(self, x: torch.Tensor):
-        """Compute s = rho * delta for every frame.
+    def _compute_density_scores(
+        self, x: torch.Tensor
+    ) -> Tuple[torch.Tensor, torch.Tensor]:
+        """Return the (T,) scores rho * delta of ``x`` (T, D) and its similarity.
 
-        Args:
-            x: (T, D) unpadded feature sequence
-        Returns:
-            s:   (T,)   clustering score
-            similarity: (T, T) similarity matrix (kept for greedy clustering)
+        The (T, T) similarity matrix is returned too, for the greedy
+        clustering that follows.
         """
-        similarity = self._similarity_matrix(x)
-        rho = self._local_density(similarity)
-        delta = self._peak_distance(similarity, rho)
+        similarity = self._compute_similarity_matrix(x)
+        rho = self._compute_local_density(similarity)
+        delta = self._compute_peak_distance(similarity, rho)
         return rho * delta, similarity
 
     # ------------------------------------------------------------------
     # Greedy bidirectional clustering
     # ------------------------------------------------------------------
 
-    def _greedy_cluster(
+    def _cluster_greedily(
         self,
-        s: torch.Tensor,
+        scores: torch.Tensor,
         similarity: torch.Tensor,
         max_span: int,
         threshold: float,
     ) -> torch.Tensor:
-        """Greedy bidirectional expansion from density peaks.
+        """Return the (T,) segment index from greedy expansion around density peaks.
 
-        Iteratively selects the highest-scored unassigned frame as a cluster
-        seed and expands forwards and backwards up to *max_span* frames,
-        merging any frame whose adjusted similarity exceeds *threshold*.
+        Iteratively selects the highest-scored unassigned frame (``scores``,
+        (T,)) as a cluster seed and expands forwards and backwards up to
+        ``max_span`` frames, merging any frame whose adjusted similarity
+        exceeds ``threshold``; the clusters are then numbered in temporal
+        order. The adjusted similarity penalises absorbing high-scored frames::
 
-        The adjusted similarity penalises absorbing high-scored frames::
-
-            similarity_score[seed, t] = similarity[seed, t] - beta * s[t]
-
-        Args:
-            s:        (T,) density scores
-            similarity:      (T, T) similarity matrix in [0, 1]
-            max_span: maximum frames per cluster
-            threshold: similarity cutoff for merging
-        Returns:
-            segment_idx: (T,) integer segment index, temporally ordered
+            similarity_score[seed, t] = similarity[seed, t] - beta * scores[t]
         """
-        T = s.shape[0]
-        assigned = torch.zeros(T, dtype=torch.bool, device=s.device)
+        T = scores.shape[0]
+        assigned = torch.zeros(T, dtype=torch.bool, device=scores.device)
         clusters: list[list[int]] = []
-
-        scores = s.clone()
 
         while not assigned.all():
             # Pick the unassigned frame with the highest density score.
-            masked = scores.clone()
-            masked[assigned] = -float("inf")
-            seed = int(masked.argmax().item())
+            masked_scores = scores.clone()
+            masked_scores[assigned] = -float("inf")
+            seed = int(masked_scores.argmax().item())
 
             cluster = [seed]
             assigned[seed] = True
 
             # Penalise adding other high-score frames into this cluster.
-            similarity_score = similarity[seed] - self.beta * s  # (T,)
+            similarity_score = similarity[seed] - self.beta * scores  # (T,)
 
             # Forward expansion.
             for t in range(seed + 1, min(T, seed + max_span + 1)):
@@ -211,7 +185,7 @@ class DensityPeakCompression(BaseCompressionModel):
         # Sort clusters by their earliest frame to restore temporal order.
         clusters.sort(key=lambda frames: frames[0])
 
-        segment_idx = torch.zeros(T, dtype=torch.long, device=s.device)
+        segment_idx = torch.zeros(T, dtype=torch.long, device=scores.device)
         for segment_id, cluster in enumerate(clusters):
             for t in cluster:
                 segment_idx[t] = segment_id
@@ -235,8 +209,8 @@ class DensityPeakCompression(BaseCompressionModel):
             x: (B, T, D) input features.
             rate: Compression rate in (0, 1], used directly as the
                 similarity threshold for cluster merging; a float or a
-                per-sample (B,) tensor.  ``max_span`` is fixed at
-                construction time.  Pass ``None`` to return a trivial
+                per-sample (B,) tensor. ``max_span`` is fixed at
+                construction time. Pass ``None`` to return a trivial
                 per-frame identity segmentation.
             padding_mask: (B, T) bool tensor; ``True`` marks padding positions.
             **kwargs: Ignored (e.g. ``anchor_boundary``; this model does not
@@ -244,12 +218,20 @@ class DensityPeakCompression(BaseCompressionModel):
 
         Returns:
             ``CompressionOutput`` for the batch.
+
+        Example:
+            .. code-block:: python
+
+                >>> model = DensityPeakCompression(max_span=4)
+                >>> output = model(torch.randn(2, 50, 128), rate=0.5)
+                >>> output.reconstructed_features.shape
+                torch.Size([2, 50, 128])
         """
         B, T, _ = x.shape
         device = x.device
 
         if rate is None:
-            return self._no_rate_output(x, padding_mask)
+            return self._build_no_rate_output(x, padding_mask)
 
         valid_lengths = (
             (~padding_mask).sum(dim=1).float() if padding_mask is not None else None
@@ -271,15 +253,15 @@ class DensityPeakCompression(BaseCompressionModel):
 
             x_b = x[b, :valid_length]  # (valid_length, D)
 
-            s_b, similarity_b = self._density_scores(x_b)
+            scores_b, similarity_b = self._compute_density_scores(x_b)
 
             # rate is used directly as the similarity threshold:
             #   high rate (-> 1.0) = hard to merge = many segments
             #   low  rate (-> 0.0) = easy to merge = few  segments
             threshold = float(rate_b[b].item() if rate_b.dim() > 0 else rate_b.item())
 
-            segment_idx_b = self._greedy_cluster(
-                s_b, similarity_b, self.max_span, threshold
+            segment_idx_b = self._cluster_greedily(
+                scores_b, similarity_b, self.max_span, threshold
             )
             all_segment_idx[b, :valid_length] = segment_idx_b
 
@@ -297,7 +279,7 @@ class DensityPeakCompression(BaseCompressionModel):
         # Recompute cumsum-based segment_idx for consistency with the rest of
         # the pipeline (same convention as CosineSimilarityCompression).
         segment_idx = torch.cumsum(boundary, dim=1)
-        reconstructed = self._segment_average(x, segment_idx, padding_mask)
+        reconstructed = self._average_segments(x, segment_idx, padding_mask)
         expected_length = boundary_soft.sum(dim=1, keepdim=True) + 1
 
         return CompressionOutput(
