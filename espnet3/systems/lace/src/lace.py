@@ -14,6 +14,7 @@ understands are accepted: an espnet2 zoo model (``meta.yaml`` naming
 espnet3 ``pack_model`` output (``training_config`` + ``model_file``).
 """
 
+import logging
 from pathlib import Path
 from typing import Any, Dict, Optional, Union
 
@@ -31,7 +32,22 @@ from espnet3.systems.lace.src.dp_segmentation import DPSegmentationCompression
 from espnet3.systems.lace.src.identity import IdentityCompression
 from espnet3.systems.lace.src.quantizer import CompressionResidualVectorQuantizer
 
+logger = logging.getLogger(__name__)
+
 FREEZE_CHOICES = ("none", "encoder", "decoder")
+
+#: ``discriminator_params`` keys of the multi-scale discriminator branch that
+#: espnet2's ``DACDiscriminator`` had until 9209eb47036 (Aug 2024). The
+#: published ESPnet DAC codecs (``espnet/libritts_dac_24k``,
+#: ``espnet/libritts_dac_16k``, espnet 202402) still carry them in their
+#: ``config.yaml`` although their checkpoints never held weights for that
+#: branch, so the current class rejects their config.
+LEGACY_DAC_DISCRIMINATOR_KEYS = (
+    "scales",
+    "scale_downsample_pooling",
+    "scale_downsample_pooling_params",
+    "scale_discriminator_params",
+)
 
 COMPRESSION_MODEL_MAP = {
     "cosine_similarity": CosineSimilarityCompression,
@@ -182,9 +198,102 @@ def build_codec_from_bundle(
             "Bundle names neither 'train_config' (espnet2 zoo model) nor "
             f"'training_config' (espnet3 pack_model bundle): {sorted(artifacts)}"
         )
+    model_config = drop_legacy_dac_discriminator_keys(model_config)
     model = get_espnet_model(task, model_config)
-    load_model_state_strict(model, artifacts["model_file"])
+    state_dict = read_model_state(artifacts["model_file"])
+    model.load_state_dict(fill_missing_snake_alpha(model, state_dict), strict=True)
     return model
+
+
+def drop_legacy_dac_discriminator_keys(model_config: Dict[str, Any]) -> Dict[str, Any]:
+    """Return a DAC ``model_config`` without the removed multi-scale keys.
+
+    A no-op for any other codec, and for a DAC config written against the
+    current ``DACDiscriminator``. For a config of the published 2024 DAC
+    models it drops :data:`LEGACY_DAC_DISCRIMINATOR_KEYS` from
+    ``codec_conf.discriminator_params`` with a warning; the checkpoint holds
+    no weights for that branch, so the discriminator built from the
+    remaining keys is the one it was saved from.
+
+    Args:
+        model_config: A ``GANCodecTask`` model config (``codec`` plus
+            ``codec_conf``), as a plain dict.
+
+    Returns:
+        ``model_config`` itself when nothing applies, else a copy with the
+        keys removed.
+
+    Examples:
+        ```python
+        config = {"codec": "dac", "codec_conf": {"discriminator_params": {
+            "scales": 3, "msmpmb_discriminator_params": {}}}}
+        drop_legacy_dac_discriminator_keys(config)["codec_conf"]
+        # -> {'discriminator_params': {'msmpmb_discriminator_params': {}}}
+        ```
+    """
+    if model_config.get("codec") != "dac":
+        return model_config
+    params = (model_config.get("codec_conf") or {}).get("discriminator_params") or {}
+    legacy = [key for key in LEGACY_DAC_DISCRIMINATOR_KEYS if key in params]
+    if not legacy:
+        return model_config
+    logger.warning(
+        "Dropping discriminator_params %s of a DAC config written before "
+        "espnet2 removed the multi-scale discriminator branch (the published "
+        "espnet/libritts_dac_* models); the checkpoint has no weights for it.",
+        legacy,
+    )
+    config = dict(model_config)
+    config["codec_conf"] = dict(model_config["codec_conf"])
+    config["codec_conf"]["discriminator_params"] = {
+        key: value for key, value in params.items() if key not in legacy
+    }
+    return config
+
+
+def fill_missing_snake_alpha(
+    model: torch.nn.Module, state_dict: Dict[str, torch.Tensor]
+) -> Dict[str, torch.Tensor]:
+    """Add the Snake ``alpha`` entries an older checkpoint does not carry.
+
+    espnet2's ``Snake1d.alpha`` was a fixed tensor of ones, never saved,
+    until 094c5f188ef (Oct 2025) made it a parameter. A checkpoint from
+    before (the published DAC models) therefore lacks every ``*.alpha``
+    entry the current model has; they are filled with ones, the value the
+    checkpoint was trained with, so the load can stay strict and the model
+    is the one that was published. A saved ``alpha`` is left alone, and
+    nothing else is added.
+
+    Args:
+        model: The model the checkpoint is loaded into.
+        state_dict: The checkpoint's model-level state dict.
+
+    Returns:
+        ``state_dict`` itself when nothing is missing, else a copy with the
+        missing ``alpha`` entries added.
+
+    Examples:
+        ```python
+        state_dict = fill_missing_snake_alpha(model, read_model_state("81epoch.pth"))
+        model.load_state_dict(state_dict, strict=True)
+        ```
+    """
+    missing = [
+        key
+        for key, value in model.state_dict().items()
+        if key.endswith(".alpha") and key not in state_dict and value.numel() == 1
+    ]
+    if not missing:
+        return state_dict
+    logger.warning(
+        "Filling %d Snake `alpha` entries missing from the checkpoint with 1.0 "
+        "(saved before espnet2 made alpha a parameter).",
+        len(missing),
+    )
+    filled = dict(state_dict)
+    for key in missing:
+        filled[key] = torch.ones_like(model.state_dict()[key])
+    return filled
 
 
 def _build_base_model(
@@ -228,11 +337,11 @@ def _build_base_model(
 def load_model_state_strict(model: torch.nn.Module, model_file: str) -> None:
     """Strictly load a model-level or Lightning checkpoint into ``model``.
 
-    Lightning checkpoints (``last.ckpt``) nest the weights under a
-    ``state_dict`` key; they are unwrapped here (and a legacy ``model.``
-    key prefix is stripped when present).  Unlike espnet2's own
-    ``strict=False`` loading, which silently yields a random model when
-    keys do not match, the load is always strict, so any mismatch raises.
+    The checkpoint is read with :func:`read_model_state` (Lightning
+    checkpoints and the legacy ``model.`` prefix are unwrapped). Unlike
+    espnet2's own ``strict=False`` loading, which silently yields a random
+    model when keys do not match, the load is always strict, so any
+    mismatch raises.
 
     Args:
         model: Module that receives the weights, modified in place.
@@ -247,17 +356,39 @@ def load_model_state_strict(model: torch.nn.Module, model_file: str) -> None:
         load_model_state_strict(model, "exp/train_encodec_libritts/last.ckpt")
         ```
     """
+    model.load_state_dict(read_model_state(model_file), strict=True)
+
+
+def read_model_state(model_file: str) -> Dict[str, torch.Tensor]:
+    """Read a checkpoint as a model-level state dict.
+
+    Lightning checkpoints (``last.ckpt``) nest the weights under a
+    ``state_dict`` key, and older ``ESPnetLightningModule`` versions
+    prefixed the inner model with ``model.``; both are unwrapped here.
+
+    Args:
+        model_file: Path to a model-level state dict (``.pth``) or a
+            Lightning checkpoint (``.ckpt``).
+
+    Returns:
+        The model-level state dict, on the CPU.
+
+    Examples:
+        ```python
+        sorted(read_model_state("exp/train_encodec_libritts/last.ckpt"))[:1]
+        # -> ['codec.discriminator.discriminators.0.convs.0.conv.bias']
+        ```
+    """
     state_dict = torch.load(model_file, map_location="cpu")
     if "state_dict" in state_dict:  # Lightning checkpoint layout
         state_dict = state_dict["state_dict"]
     if any(key.startswith("model.") for key in state_dict):
-        # Older ESPnetLightningModule versions prefixed the inner model.
         state_dict = {
             key.removeprefix("model."): value
             for key, value in state_dict.items()
             if key.startswith("model.")
         }
-    model.load_state_dict(state_dict, strict=True)
+    return state_dict
 
 
 def freeze_codec_module(model: AbsGANESPnetModel, module: str = "none") -> None:

@@ -19,9 +19,12 @@ from espnet3.systems.lace.src.lace import (
     LACE,
     build_codec_from_bundle,
     build_compression_model,
+    drop_legacy_dac_discriminator_keys,
+    fill_missing_snake_alpha,
     freeze_codec_module,
     load_model_state_strict,
     read_bundle_artifacts,
+    read_model_state,
 )
 from espnet3.systems.lace.src.quantizer import CompressionResidualVectorQuantizer
 
@@ -174,3 +177,80 @@ def test_freeze_codec_module(module):
 def test_freeze_codec_module_rejects_unknown_choice():
     with pytest.raises(ValueError, match="freeze_codec_module"):
         freeze_codec_module(build_tiny_codec_model(), "all")
+
+
+# ---------------- legacy DAC bundles (published before espnet2's DAC changed) ----
+
+
+def test_drop_legacy_dac_discriminator_keys(caplog):
+    legacy = {
+        "codec": "dac",
+        "codec_conf": {
+            "discriminator_params": {
+                "msmpmb_discriminator_params": {"periods": [2, 3]},
+                "scales": 3,
+                "scale_downsample_pooling": "AvgPool1d",
+                "scale_downsample_pooling_params": {"kernel_size": 4},
+            }
+        },
+    }
+    with caplog.at_level("WARNING"):
+        cleaned = drop_legacy_dac_discriminator_keys(legacy)
+    assert cleaned["codec_conf"]["discriminator_params"] == {
+        "msmpmb_discriminator_params": {"periods": [2, 3]}
+    }
+    assert "Dropping discriminator_params" in caplog.text
+    assert "scales" in legacy["codec_conf"]["discriminator_params"]  # input untouched
+    # Nothing to drop, or not DAC: the same object comes back, silently.
+    caplog.clear()
+    assert drop_legacy_dac_discriminator_keys(cleaned) is cleaned
+    other = {"codec": "encodec", "codec_conf": {"discriminator_params": {"scales": 3}}}
+    assert drop_legacy_dac_discriminator_keys(other) is other
+    assert caplog.text == ""
+
+
+def test_fill_missing_snake_alpha(caplog):
+    from espnet2.gan_codec.shared.encoder.snake_activation import Snake1d
+
+    model = torch.nn.Sequential(Snake1d(), torch.nn.Linear(2, 2), Snake1d())
+    with torch.no_grad():
+        model[0].alpha.fill_(2.0)
+    saved = {k: v for k, v in model.state_dict().items() if k != "2.alpha"}
+
+    with caplog.at_level("WARNING"):
+        filled = fill_missing_snake_alpha(model, saved)
+
+    assert "Filling 1 Snake" in caplog.text
+    assert "2.alpha" not in saved  # input untouched
+    model.load_state_dict(filled, strict=True)
+    assert model[0].alpha.item() == 2.0  # a saved alpha wins
+    assert model[2].alpha.item() == 1.0  # the missing one is the trained value
+    # A complete state dict comes back as it is.
+    assert fill_missing_snake_alpha(model, filled) is filled
+    # Only Snake alphas are filled, never an arbitrary missing key.
+    partial = {k: v for k, v in filled.items() if k != "1.weight"}
+    with pytest.raises(RuntimeError, match="Missing key"):
+        model.load_state_dict(fill_missing_snake_alpha(model, partial), strict=True)
+
+
+def test_read_model_state_unwraps_lightning_and_model_prefix(tmp_path):
+    model = build_tiny_codec_model()
+    plain = tmp_path / "model.pth"
+    torch.save(model.state_dict(), plain)
+    lightning = tmp_path / "last.ckpt"
+    torch.save({"state_dict": model.state_dict(), "epoch": 1}, lightning)
+    prefixed = tmp_path / "old.ckpt"
+    torch.save(
+        {"state_dict": {"model." + k: v for k, v in model.state_dict().items()}},
+        prefixed,
+    )
+    for path in (plain, lightning, prefixed):
+        assert list(read_model_state(str(path))) == list(model.state_dict())
+
+
+def test_legacy_dac_layout_bundle_loads_strictly(tmp_path, caplog):
+    """Neither adaptation touches a bundle that needs none (the tiny Encodec)."""
+    write_tiny_bundle(tmp_path)
+    with caplog.at_level("WARNING"):
+        build_codec_from_bundle(read_bundle_artifacts(tmp_path))
+    assert "Dropping" not in caplog.text and "Filling" not in caplog.text
