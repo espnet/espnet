@@ -77,7 +77,8 @@ def test_libritts_metrics_config_reads_the_reference_from_the_data():
     )
     (metric,) = config.metrics
     assert metric.metric._target_ == "espnet3.components.metrics.versa.VersaMetric"
-    assert dict(metric.inputs) == {"wav": "resyn_audio", "ref": "dataset:wav_path"}
+    assert dict(metric.inputs) == {"hyp": "resyn_audio", "ref": "dataset:wav_path"}
+    assert "utmos" in metric.metric.outputs
 
 
 # ---------------- launch() ----------------

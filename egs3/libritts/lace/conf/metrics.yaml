@@ -40,9 +40,11 @@ metrics:
               fs: 16000
             plcmos:
               fs: 16000
-      wav_key: wav
-      ref_key: ref
+      # The result keys the measures above emit; each is a declared output
+      # the metric must find in the scorer's result (`sir` is left out: it
+      # is infinite for a clean reference).
+      outputs: [sdr, sar, si_snr, ci_sdr, utmos, dns_overall, dns_p808, plcmos]
       use_gpu: true
     inputs:
-      wav: resyn_audio        # the model's output -> <test>/resyn_audio.scp
+      hyp: resyn_audio        # the model's output -> <test>/resyn_audio.scp
       ref: dataset:wav_path   # the test set's ground-truth waveform
