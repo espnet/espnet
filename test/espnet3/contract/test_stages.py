@@ -9,6 +9,7 @@ from espnet3.contract.stages import (
     check_requested_stages,
     check_stage_contract,
     find_stage_spec,
+    generate_stage_flag_mapping,
     list_roles,
     list_stage_names,
     resolve_config_roles,
@@ -402,3 +403,96 @@ def test_resolve_config_roles_returns_a_tuple_as_is():
         "training",
         "publication",
     )
+
+# ---------------------------------------------------------------------------
+# generate_stage_flag_mapping
+# ---------------------------------------------------------------------------
+
+
+def test_generate_stage_flag_mapping_basic():
+    """Basic: log_dir="stats_dir" -> flag `--stats_dir`."""
+    spec = StageSpec(name="train", config="training", log_dir="stats_dir")
+    result = generate_stage_flag_mapping([spec])
+    assert result == {"stats_dir": "stats_dir"}
+
+
+def test_generate_stage_flag_mapping_exp_dir():
+    """log_dir="exp_dir" -> flag `--exp_dir`."""
+    spec = StageSpec(name="train", config="training", log_dir="exp_dir")
+    result = generate_stage_flag_mapping([spec])
+    assert result == {"exp_dir": "exp_dir"}
+
+
+def test_generate_stage_flag_mapping_tokenizer_save_path():
+    """Dotted key: log_dir="tokenizer.save_path" -> flag `--tokenizer_save_path`."""
+    spec = StageSpec(
+        name="tokenize", config="tokenizer", log_dir="tokenizer.save_path"
+    )
+    result = generate_stage_flag_mapping([spec])
+    assert result == {"tokenizer_save_path": "tokenizer.save_path"}
+
+
+def test_generate_stage_flag_mapping_with_alias():
+    """Alias + canonical: both flag names map to the SAME canonical key
+    string, so either CLI flag writes to the same config location."""
+    spec = StageSpec(
+        name="train",
+        config="training",
+        log_dir="exp_dir",
+        dir_aliases=("training_dir",),
+    )
+    result = generate_stage_flag_mapping([spec])
+    assert result["exp_dir"] == "exp_dir"
+    assert result["training_dir"] == "exp_dir"
+
+
+def test_generate_stage_flag_mapping_shared_canonical_key():
+    """Two stages sharing the same canonical key produce only one flag."""
+    spec1 = StageSpec(name="train", config="training", log_dir="exp_dir")
+    spec2 = StageSpec(name="infer", config="inference", log_dir="exp_dir")
+    result = generate_stage_flag_mapping([spec1, spec2])
+    assert result == {"exp_dir": "exp_dir"}
+
+
+def test_generate_stage_flag_mapping_with_aliases_from_shared_key():
+    """Shared key where both stages have aliases: every flag (canonical and
+    both aliases) must resolve to the SAME canonical key, "output" - not an
+    arbitrary alphabetically-first alias."""
+    spec1 = StageSpec(
+        name="train", config="training", log_dir="output", dir_aliases=("out_dir",)
+    )
+    spec2 = StageSpec(
+        name="infer", config="inference", log_dir="output", dir_aliases=("results",)
+    )
+    result = generate_stage_flag_mapping([spec1, spec2])
+    assert result["output"] == "output"
+    assert result["out_dir"] == "output"
+    assert result["results"] == "output"
+
+
+def test_generate_stage_flag_mapping_log_dir_none():
+    """log_dir=None produces no flag, no error."""
+    spec = StageSpec(name="foo", config="bar", log_dir=None)
+    result = generate_stage_flag_mapping([spec])
+    assert result == {}
+
+
+def test_generate_stage_flag_mapping_collision_alias_vs_another_canonical():
+    """Alias colliding with a different canonical key raises StageContractError."""
+    spec1 = StageSpec(name="train", config="training", log_dir="stats_dir")
+    spec2 = StageSpec(
+        name="decode",
+        config="inference",
+        log_dir="training_dir",
+        dir_aliases=("stats_dir",),
+    )
+    with pytest.raises(StageContractError, match="CLI flag name collision"):
+        generate_stage_flag_mapping([spec1, spec2])
+
+
+def test_generate_stage_flag_mapping_multiple_canonical_collision():
+    """Multiple canonicals mapping to flags that would collide."""
+    spec1 = StageSpec(name="a", config="role1", log_dir="dir1")
+    spec2 = StageSpec(name="b", config="role2", log_dir="dir2", dir_aliases=("dir1",))
+    with pytest.raises(StageContractError, match="CLI flag name collision"):
+        generate_stage_flag_mapping([spec1, spec2])

@@ -15,7 +15,7 @@ from espnet3.utils.logging_utils import (
     log_stage_metadata,
     set_stage_log_handler,
 )
-from espnet3.utils.stage_configs import bake
+from espnet3.utils.stage_configs import bake, snapshot_config
 
 logger = logging.getLogger(__name__)
 
@@ -128,6 +128,15 @@ def run_stages(
                 resolve_stage_log_dir(config, spec)
                 or system.exp_dir
                 or Path.cwd() / "logs"
+            )
+
+            # Persist full config snapshot to <log_dir>/<stage>.yaml
+            snapshot_config(
+                log_dir=log_dir,
+                stage=stage,
+                resolved=config,
+                dry_run=dry_run,
+                is_rank0=(rank == 0),
             )
             filename = f"{stage}.log"
 

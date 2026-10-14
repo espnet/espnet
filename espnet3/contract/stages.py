@@ -34,6 +34,7 @@ class StageSpec:
     name: str
     config: str | tuple[str, ...]
     log_dir: str | None = None
+    dir_aliases: tuple[str, ...] = ()
 
 
 def resolve_config_roles(config: str | tuple[str, ...]) -> tuple[str, ...]:
@@ -326,6 +327,60 @@ def check_requested_stages(
         )
 
 
+
+def generate_stage_flag_mapping(
+    stage_specs,
+) -> dict[str, str]:
+    """Return a mapping from CLI flag names to their canonical config key.
+
+    For every stage with a valid ``log_dir``, computes the CLI flag names
+    (the canonical ``log_dir`` key itself, plus any ``dir_aliases``) and
+    maps each one to the single canonical config key it writes to. Multiple
+    stages may declare the same canonical key; their flag names are simply
+    merged, since they all write to the same place.
+
+    Args:
+        stage_specs: All declared stages of one or more systems.
+
+    Returns:
+        A dict mapping each unique CLI flag name to the single canonical
+        config key (``StageSpec.log_dir``) it writes to. A canonical key and
+        its aliases all map to the SAME canonical key string - callers must
+        use this value (not the flag name) as the config key/argparse
+        destination, so an alias and its canonical name always write to the
+        same place.
+
+    Raises:
+        StageContractError: A flag name would be derived from two different
+            canonical keys.
+    """
+    flag_name_to_canonical: dict[str, str] = {}
+
+    for spec in stage_specs:
+        if spec.log_dir is None:
+            continue
+
+        canonical_key = spec.log_dir
+        location_keys = list(spec.dir_aliases) + [canonical_key]
+
+        for key in location_keys:
+            flag_name = key.replace(".", "_")
+
+            if flag_name in flag_name_to_canonical:
+                existing_canonical = flag_name_to_canonical[flag_name]
+                if existing_canonical != canonical_key:
+                    raise StageContractError(
+                        f"CLI flag name collision: flag {flag_name!r} would be derived from "
+                        f"both canonical key {canonical_key!r} (via StageSpec name={spec.name!r}) "
+                        f"and already-defined canonical key {existing_canonical!r}"
+                    )
+            else:
+                flag_name_to_canonical[flag_name] = canonical_key
+
+    return flag_name_to_canonical
+
+
+
 __all__ = [
     "StageContractError",
     "StageSpec",
@@ -335,5 +390,6 @@ __all__ = [
     "list_roles",
     "resolve_stage_log_dir",
     "list_stage_names",
-    "find_stage_spec",
+
+    "generate_stage_flag_mapping",
 ]

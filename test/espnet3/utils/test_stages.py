@@ -217,6 +217,43 @@ def test_run_stages_train_uses_per_rank_log_filename(monkeypatch, tmp_path, no_b
     assert seen["filename"] == "train_rank3.log"
 
 
+def test_run_stages_writes_full_config_snapshot(tmp_path, monkeypatch):
+    """Integration: run_stages() actually persists <log_dir>/<stage>.yaml
+    via snapshot_config - not just the unit-tested function in isolation."""
+
+    class TrainingSystem:
+        stages: ClassVar[tuple[StageSpec, ...]] = (
+            StageSpec(name="train", config="training", log_dir="exp_dir"),
+        )
+
+        def __init__(self, exp_dir=None, stage_configs=None, own_keys=None):
+            self.exp_dir = exp_dir
+            self.stage_configs = stage_configs
+            self.own_keys = own_keys
+
+        def train(self):
+            pass
+
+    monkeypatch.setattr(stages_utils, "_get_process_rank", lambda: 0)
+
+    system = TrainingSystem(
+        exp_dir=tmp_path,
+        stage_configs={
+            "train": OmegaConf.create(
+                {"exp_dir": str(tmp_path), "seed": 42, "model": "dummy"}
+            )
+        },
+        own_keys={"train": ()},
+    )
+    run_stages(system, ["train"])
+
+    snapshot_path = tmp_path / "train.yaml"
+    assert snapshot_path.is_file()
+    content = snapshot_path.read_text(encoding="utf-8")
+    assert "seed: 42" in content
+    assert "model: dummy" in content
+
+
 def test_run_stages_bakes_each_stage_config_before_running(monkeypatch):
     """Test that each stage is baked before running."""
     calls = []

@@ -26,9 +26,10 @@ logger = logging.getLogger(__name__)
 _CONFIG_DIRNAME = "config"
 _HISTORY_DIRNAME = "history"
 
-
 def _history_timestamp() -> str:
     return datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
+
+
 
 
 def inherit(
@@ -292,6 +293,73 @@ def bake(
     tmp_path.write_text(new_text, encoding="utf-8")
     os.replace(tmp_path, stage_path)
     return stage_path
+
+def snapshot_config(
+    log_dir,
+    stage,
+    resolved,
+    *,
+    dry_run=False,
+    is_rank0=True,
+):
+    """Persist the full resolved config for the stage at <log_dir>/<stage>.yaml.
+
+    - Full effective config persisted (not just own_keys)
+    - Atomic writes with history backup when content changes
+    - Respects dry_run and rank-0-only
+    """
+    if dry_run:
+        logger.debug("dry_run: skipping snapshot write for stage %s", stage)
+        return
+    if not is_rank0:
+        logger.debug("rank!=0: skipping snapshot write for stage %s in distributed execution", stage)
+        return
+    if not log_dir:
+        logger.debug("log_dir not set for stage %s: skipping snapshot write", stage)
+        return
+
+    from pathlib import Path
+    import os
+    snapshot_path = Path(log_dir) / f"{stage}.yaml"
+    try:
+        new_yaml = OmegaConf.to_yaml(resolved, resolve=True)
+    except Exception as exc:
+        logger.warning("Failed to serialize resolved config for stage %s: %s", stage, exc)
+        return
+
+    backup_needed = snapshot_path.exists()
+    if backup_needed:
+        try:
+            existing = OmegaConf.load(snapshot_path)
+            if OmegaConf.to_container(existing, resolve=False) == OmegaConf.to_container(resolved, resolve=False):
+                backup_needed = False
+        except Exception:
+            pass
+
+    if backup_needed and snapshot_path.exists():
+        history_dir = Path(log_dir) / ".config_history"
+        history_dir.mkdir(parents=True, exist_ok=True)
+        import shutil, time
+        timestamp = int(time.time())
+        history_path = history_dir / f"{stage}.{timestamp}.yaml"
+        shutil.copy2(str(snapshot_path), str(history_path))
+        logger.info("%s: config snapshot differs from previous run; backed up history to %s", stage, history_path)
+
+    tmp_path = snapshot_path.with_suffix(".yaml.tmp")
+    try:
+        tmp_path.write_text(new_yaml, encoding="utf-8")
+        os.replace(str(tmp_path), str(snapshot_path))
+        logger.debug("Wrote snapshot: %s", snapshot_path)
+    except Exception as exc:
+        if tmp_path.exists():
+            try:
+                tmp_path.unlink()
+            except Exception:
+                pass
+        logger.error("Failed to write snapshot for stage %s: %s", stage, exc)
+        raise
+
+
 
 
 def load_baked(exp_dir: Path, stage: str) -> DictConfig:

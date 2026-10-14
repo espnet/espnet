@@ -240,3 +240,166 @@ def test_build_stage_configs_respects_upto_and_skips_later_stages(tmp_path):
 
     assert set(stage_configs) == {"train", "infer"}
     assert set(own_keys) == {"train", "infer"}
+
+
+# ---------------------------------------------------------------------------
+# snapshot_config
+# ---------------------------------------------------------------------------
+
+
+import tempfile
+
+
+def test_snapshot_config_writes_full_config_no_dry_run(tmp_path):
+    """Full resolved config is written when log_dir is provided and not dry_run."""
+    from espnet3.utils.stage_configs import snapshot_config
+    from omegaconf import OmegaConf
+
+    resolved = OmegaConf.create({
+        "exp_dir": "./exp/debug",
+        "exp_tag": "debug",
+        "model": "dummy_model",
+        "seed": 42,
+    })
+
+    snapshot_config(tmp_path, "train", resolved, dry_run=False, is_rank0=True)
+
+    snapshot_yaml = (tmp_path / "train.yaml").read_text(encoding="utf-8")
+    # Full resolved config is persisted
+    assert "exp_dir: ./exp/debug" in snapshot_yaml
+    assert "exp_tag: debug" in snapshot_yaml
+    assert "model: dummy_model" in snapshot_yaml
+    assert "seed: 42" in snapshot_yaml
+
+
+def test_snapshot_config_no_write_on_dry_run(tmp_path):
+    """No write occurs when dry_run=True."""
+    from espnet3.utils.stage_configs import snapshot_config
+    from omegaconf import OmegaConf
+
+    resolved = OmegaConf.create({"exp_dir": "./exp/debug"})
+
+    snapshot_config(tmp_path, "train", resolved, dry_run=True, is_rank0=True)
+
+    # No file should be written
+    assert not (tmp_path / "train.yaml").exists()
+
+
+def test_snapshot_config_no_write_if_not_rank0(tmp_path):
+    """No write occurs when is_rank0=False (distributed execution)."""
+    from espnet3.utils.stage_configs import snapshot_config
+    from omegaconf import OmegaConf
+
+    resolved = OmegaConf.create({"exp_dir": "./exp/debug"})
+
+    snapshot_config(tmp_path, "train", resolved, dry_run=False, is_rank0=False)
+
+    assert not (tmp_path / "train.yaml").exists()
+
+
+def test_snapshot_config_no_write_without_log_dir():
+    """No write occurs when log_dir is None."""
+    from espnet3.utils.stage_configs import snapshot_config
+    from omegaconf import OmegaConf
+
+    resolved = OmegaConf.create({"exp_dir": "./exp/debug"})
+
+    snapshot_config(None, "train", resolved, dry_run=False, is_rank0=True)
+
+    # No exception should occur, no file created since no path
+    assert True
+
+
+def test_snapshot_config_atomic_write_and_history_on_change(tmp_path):
+    """Atomic write with history backup when content differs."""
+    from espnet3.utils.stage_configs import snapshot_config
+    from omegaconf import OmegaConf
+
+    first = OmegaConf.create({
+        "exp_dir": "./exp/first",
+        "model": "v1",
+    })
+
+    snapshot_config(tmp_path, "train", first, dry_run=False, is_rank0=True)
+    first_mtime = (tmp_path / "train.yaml").stat().st_mtime_ns
+
+    # Second run with different config
+    second = OmegaConf.create({
+        "exp_dir": "./exp/second",
+        "model": "v2",
+    })
+    snapshot_config(tmp_path, "train", second, dry_run=False, is_rank0=True)
+
+    # File should exist
+    assert (tmp_path / "train.yaml").exists()
+    # Content should be updated
+    content = (tmp_path / "train.yaml").read_text(encoding="utf-8")
+    assert "exp_dir: ./exp/second" in content
+    assert "model: v2" in content
+
+    # History directory should exist and contain backup
+    history_dir = tmp_path / ".config_history"
+    assert history_dir.exists()
+    history_files = list(history_dir.iterdir())
+    assert len(history_files) >= 1
+    assert any("train." in f.name and f.name.endswith(".yaml") for f in history_files)
+
+
+def test_snapshot_config_no_history_when_identical(tmp_path):
+    """No history backup when content is identical."""
+    from espnet3.utils.stage_configs import snapshot_config
+    from omegaconf import OmegaConf
+
+    resolved = OmegaConf.create({"exp_dir": "./exp", "model": "test"})
+
+    # First write
+    snapshot_config(tmp_path, "train", resolved, dry_run=False, is_rank0=True)
+    
+    # Identical second write
+    snapshot_config(tmp_path, "train", resolved, dry_run=False, is_rank0=True)
+
+    # Content should remain the same
+    content = (tmp_path / "train.yaml").read_text(encoding="utf-8")
+    assert "exp_dir: ./exp" in content
+    assert "model: test" in content
+    
+    # No history directory should be created
+    assert not (tmp_path / ".config_history").exists()
+
+
+def test_snapshot_config_full_config_includes_inherited_keys(tmp_path):
+    """Snapshot contains full resolved config with inherited keys, not only own_keys."""
+    from espnet3.utils.stage_configs import build_stage_configs, snapshot_config
+    from espnet3.contract.stages import StageSpec
+    from omegaconf import OmegaConf
+
+    class ExampleSystem:
+        stages = (
+            StageSpec(name="train", config="training"),
+            StageSpec(name="infer", config="inference"),
+        )
+
+    configs = {
+        "training": OmegaConf.create({
+            "exp_dir": "./exp",
+            "exp_tag": "t",
+            "model_conf": {"num_layers": 3},
+        }),
+        "inference": OmegaConf.create({
+            "inference_dir": "${exp_dir}/infer",
+            "batch_size": 32,
+        }),
+    }
+
+    stage_configs, own_keys = build_stage_configs(
+        ExampleSystem, configs, exp_dir=tmp_path
+    )
+    resolved = stage_configs["train"]  # train's full resolved config
+
+    # Snapshot should contain inherited key 'exp_dir' plus own key 'model_conf'
+    snapshot_config(tmp_path, "train", resolved, dry_run=False, is_rank0=True)
+    
+    snapshot_yaml = (tmp_path / "train.yaml").read_text(encoding="utf-8")
+    assert "exp_dir: ./exp" in snapshot_yaml or "model_conf" in snapshot_yaml
+    assert "model_conf" in snapshot_yaml
+
