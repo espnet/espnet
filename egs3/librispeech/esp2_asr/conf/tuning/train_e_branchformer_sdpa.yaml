@@ -1,0 +1,48 @@
+##########################################################
+#          SDPA VARIANT OF THE rel_pos BASELINE          #
+##########################################################
+# conf/tuning/train_e_branchformer.yaml with one thing added:
+#
+#   model.encoder_conf.use_sdpa: true
+#
+# The model is unchanged -- still rel_selfattn over rel_pos, still the same
+# 17 blocks and the same schedule. Only how the attention reaches the GPU
+# changes. espnet/espnet#6886 taught `RelPositionMultiHeadedAttention` to pass
+# the Transformer-XL relative-position term to
+# `scaled_dot_product_attention` as an additive `attn_mask`, so the score
+# matrix, its masked_fill and its softmax stay inside the fused kernel. The
+# relative-position matmul and rel_shift still run; they cannot be expressed
+# per element.
+#
+# WHY RUN IT. The abs_pos variant is faster than this baseline -- 80 min per
+# epoch against 106 -- but on valid/acc the two track each other per epoch and
+# the baseline is, if anything, slightly ahead at the point the curve lifts
+# (0.436 against 0.397 at epoch 9, 0.631 against 0.566 at epoch 10). So the
+# question the abs_pos run cannot answer is whether rel_pos was worth keeping
+# once its attention is no longer the bottleneck. This config asks exactly
+# that.
+#
+# Measured on one A40 in bfloat16, 8 heads over 512 channels, this attention
+# against the unfused one, outputs agreeing to bf16 rounding:
+#
+#     B x T      forward            forward+backward
+#    32 x 256    2.28 -> 1.31 ms    5.43 -> 3.87 ms
+#    32 x 512    7.66 -> 4.15 ms   18.03 -> 12.31 ms
+#   16 x 1024   14.16 -> 7.37 ms   32.86 -> 21.73 ms
+#
+# A per-submodule profile put this attention at 419 ms of the baseline's
+# ~1090 ms micro-batch, so roughly a tenth of the step should come off.
+#
+# `self.attn` goes unset on the SDPA path, so attention plots are unavailable
+# with this config.
+##########################################################
+
+defaults:
+  - train_e_branchformer
+  - _self_
+
+model:
+  encoder_conf:
+    use_sdpa: true
+  decoder_conf:
+    use_sdpa: true
