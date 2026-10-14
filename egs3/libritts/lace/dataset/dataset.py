@@ -14,9 +14,10 @@ from typing import Any
 
 import numpy as np
 import soundfile as sf
-from torch.utils.data import Dataset as TorchDataset
 
 from egs3.libritts.lace.dataset.builder import LibriTTSBuilder
+from espnet3.api import Field
+from espnet3.components.data.base_dataset import BaseDataset
 from espnet3.utils.config_utils import load_config_with_defaults
 
 # ---------------------------------------------------------------------------
@@ -82,15 +83,17 @@ def _read_manifest(path: Path) -> list[ManifestEntry]:
 # ---------------------------------------------------------------------------
 
 
-class LibriTTSCodecDataset(TorchDataset):
+class LibriTTSCodecDataset(BaseDataset):
     """LibriTTS dataset returning audio-only samples for codec training.
 
     Reads one manifest TSV written by
     :class:`~egs3.libritts.lace.dataset.builder.LibriTTSBuilder` and returns
     ``{"audio": np.float32 waveform}`` per utterance, matching
     ``CommonPreprocessor(speech_name="audio")``. In ``inference`` mode the
-    sample also carries ``utt_id`` and ``wav_path`` so the infer stage can
-    write the ground-truth reference SCP.
+    sample also carries ``utt_id`` (the sample id the infer stage writes)
+    and ``wav_path`` (the ground-truth waveform ``measure`` reads as
+    ``dataset:wav_path``); the declared ``fields`` grow accordingly, as the
+    dataset contract (``espnet3.components.data.base_dataset``) asks.
 
     Args:
         split: Manifest split to load; one of the keys under
@@ -118,6 +121,8 @@ class LibriTTSCodecDataset(TorchDataset):
         sorted(test[0].keys())           # -> ['audio', 'utt_id', 'wav_path']
         ```
     """
+
+    fields = (Field("audio", "audio"),)
 
     def __init__(
         self,
@@ -164,6 +169,11 @@ class LibriTTSCodecDataset(TorchDataset):
         """
         self.split = split
         self.inference = inference
+        if inference:
+            self.fields = self.fields + (
+                Field("utt_id", "text"),
+                Field("wav_path", "text"),
+            )
         recipe_root = (
             Path(recipe_dir).resolve()
             if recipe_dir is not None
@@ -254,10 +264,5 @@ class LibriTTSCodecDataset(TorchDataset):
         audio, _ = sf.read(str(entry.wav_path))
         sample: dict[str, Any] = {"audio": np.asarray(audio, dtype=np.float32)}
         if self.inference:
-            sample.update(
-                {
-                    "utt_id": np.asarray(entry.utt_id),
-                    "wav_path": str(entry.wav_path),
-                }
-            )
+            sample.update({"utt_id": entry.utt_id, "wav_path": str(entry.wav_path)})
         return sample
