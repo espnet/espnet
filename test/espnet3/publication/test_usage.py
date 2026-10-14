@@ -90,3 +90,19 @@ def test_usage_section_is_a_fenced_block_under_a_heading():
     section = build_usage_section(Describe, "espnet/some_pack")
     assert section.startswith("## Usage\n\n```python\n")
     assert section.endswith("\n```")
+
+
+def test_given_inputs_are_written_in_the_call():
+    text = build_python_usage(
+        Describe, "espnet/some_pack", inputs={"speech": "talk.wav", "hint": "a cat"}
+    )
+    assert 'result = model("talk.wav", hint="a cat")' in text
+    assert "# optional inputs" not in text  # the only optional one is passed
+    item = '{"speech": "talk.wav", "hint": "a cat"}'
+    assert f"model.batch([{item}, {item}])" in text
+    assert f"for piece in model.stream([{item}]):" in text
+
+
+def test_a_tag_is_written_as_a_python_literal():
+    text = build_python_usage(Describe, 'exp/model "v2"\\pack', system="s2t")
+    assert 'model = load("exp/model \\"v2\\"\\\\pack", system="s2t")' in text
