@@ -4,6 +4,7 @@ import pytest
 from omegaconf import OmegaConf
 
 import espnet3.systems.base.system as sysmod
+from espnet3.contract.stages import stage_log_dir
 from espnet3.systems.base.system import BaseSystem
 
 
@@ -29,21 +30,27 @@ def test_base_system_get_required_config_raises_on_none_config():
         BaseSystem._get_required_config(None, "section", "section must be set")
 
 
-def test_base_system_resolves_stage_log_ref_fallback_list(tmp_path):
-    train_cfg = OmegaConf.create({"exp_dir": str(tmp_path / "exp")})
-    infer_cfg = OmegaConf.create({"inference_dir": str(tmp_path / "infer")})
-    system = BaseSystem(training_config=train_cfg, inference_config=infer_cfg)
+def test_stage_log_dir_reads_the_declared_config_key(tmp_path):
+    train_cfg = OmegaConf.create(
+        {"exp_dir": str(tmp_path / "exp"), "data_dir": str(tmp_path / "data")}
+    )
+    system = BaseSystem(training_config=train_cfg)
 
-    assert system._resolve_stage_log_ref(
-        ["training_config.missing_dir", "inference_config.inference_dir"]
-    ) == str(tmp_path / "infer")
+    assert stage_log_dir(system, "create_dataset") == tmp_path / "data"
 
 
-def test_base_system_resolves_stage_log_ref_rejects_non_string(tmp_path):
+def test_stage_log_dir_falls_back_to_default_when_value_is_absent(tmp_path):
     train_cfg = OmegaConf.create({"exp_dir": str(tmp_path / "exp")})
     system = BaseSystem(training_config=train_cfg)
 
-    assert system._resolve_stage_log_ref(123) is None
+    assert stage_log_dir(system, "create_dataset") == system._default_log_dir
+
+
+def test_stage_log_dir_falls_back_to_cwd_logs_without_training_config():
+    system = BaseSystem()
+
+    assert stage_log_dir(system, "pack_model") == system._default_log_dir
+    assert system._default_log_dir.name == "logs"
 
 
 def test_base_system_invokes_helpers(tmp_path, monkeypatch):
@@ -116,38 +123,6 @@ def test_base_system_create_dataset_requires_dataset_config(tmp_path):
     system = BaseSystem(training_config=train_cfg)
     with pytest.raises(RuntimeError, match="training_config.dataset must be set"):
         system.create_dataset()
-
-
-def test_base_system_create_dataset_stage_logs_use_data_dir(tmp_path):
-    train_cfg = OmegaConf.create(
-        {
-            "exp_dir": str(tmp_path / "exp"),
-            "data_dir": str(tmp_path / "data"),
-            "recipe_dir": str(tmp_path / "recipe"),
-        }
-    )
-
-    system = BaseSystem(training_config=train_cfg)
-
-    assert system.stage_log_dirs["create_dataset"] == tmp_path / "data"
-
-
-def test_base_system_stage_log_mapping_overrides_base_mapping(tmp_path):
-    train_cfg = OmegaConf.create(
-        {
-            "exp_dir": str(tmp_path / "exp"),
-            "data_dir": str(tmp_path / "data"),
-        }
-    )
-    infer_cfg = OmegaConf.create({"inference_dir": str(tmp_path / "infer")})
-
-    system = BaseSystem(
-        training_config=train_cfg,
-        inference_config=infer_cfg,
-        stage_log_mapping={"create_dataset": "inference_config.inference_dir"},
-    )
-
-    assert system.stage_log_dirs["create_dataset"] == tmp_path / "infer"
 
 
 def test_base_system_create_dataset_prepares_dataset_references(tmp_path, monkeypatch):

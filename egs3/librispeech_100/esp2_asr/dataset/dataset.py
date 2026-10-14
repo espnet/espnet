@@ -10,12 +10,13 @@ from typing import Any
 
 import numpy as np
 import soundfile as sf
-from torch.utils.data import Dataset as TorchDataset
 
 from egs3.librispeech_100.esp2_asr.dataset.builder import (
     LibriSpeech100Builder,
     resolve_source_root,
 )
+from espnet3.api.inference import Field
+from espnet3.components.data.base_dataset import BaseDataset
 from espnet3.utils.config_utils import load_config_with_defaults
 
 _CONFIG_RESOURCE = resources.files(__package__).joinpath("config.yaml")
@@ -72,7 +73,7 @@ def _scan_split(split_dir: Path) -> list[LibriSpeechExample]:
     return sorted(examples, key=lambda example: example.utt_id)
 
 
-class LibriSpeech100Dataset(TorchDataset):
+class LibriSpeech100Dataset(BaseDataset):
     """Torch dataset that reads LibriSpeech from the original directory layout.
 
     Args:
@@ -91,8 +92,10 @@ class LibriSpeech100Dataset(TorchDataset):
         >>> dataset = LibriSpeech100Dataset(split="train-clean-100")
         >>> sample = dataset[0]
         >>> sorted(sample.keys())
-        ['speech', 'text', 'utt_id']
+        ['speech', 'text']
     """
+
+    fields = (Field("speech", "audio"), Field("text", "text"))
 
     def __init__(
         self,

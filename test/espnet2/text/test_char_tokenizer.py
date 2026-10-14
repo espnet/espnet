@@ -59,3 +59,8 @@ def test_empty_non_linguistic_symbol(tmp_path, from_file, remove):
 def test_empty_nonsplit_symbol():
     tokenizer = CharTokenizer(nonsplit_symbols=["", "[foo]"])
     assert tokenizer.text2tokens("a[foo]b") == ["a", "[foo]", "b"]
+
+
+def test_longer_symbol_wins_over_its_prefix():
+    tokenizer = CharTokenizer(non_linguistic_symbols=["<unk>", "<"])
+    assert tokenizer.text2tokens("<unk>a") == ["<unk>", "a"]

@@ -438,7 +438,7 @@ def _build_results_note(results_path: Path | None, results_section: str) -> str:
     )
 
 
-def _load_example(target: str, out_dir: Path, system: str | None) -> str:
+def _build_load_example(target: str, out_dir: Path, system: str | None) -> str:
     """Return the README's ``load(...)`` line for this bundle.
 
     A bundle served by an installed system loads as it is. One that names no
@@ -471,6 +471,35 @@ def _load_example(target: str, out_dir: Path, system: str | None) -> str:
     )
 
 
+def _build_usage_python(target: str, out_dir: Path, system: str | None) -> str:
+    """Return the README's usage block: the system's own, or the two generic lines.
+
+    A bundle served by an installed system gets the usage its ``Inference``
+    declaration gives (:func:`espnet3.publication.usage.build_python_usage`): the
+    call with its inputs, the outputs by name, the batch and stream forms.
+    A bundle that names no system, or one whose system has no ``Inference``
+    to read, keeps :func:`_build_load_example` and a bare call.
+    """
+    if system:
+        try:
+            from espnet3.publication.usage import (
+                build_python_usage,
+                get_inference_class,
+            )
+
+            return build_python_usage(get_inference_class(system), target)
+        except (ImportError, TypeError, ValueError) as exc:
+            # no inference module, no Inference in it, or a declaration the
+            # contract refuses while the module is imported: the card still
+            # gets written, with the generic lines
+            logger.warning("README usage falls back to load(): %s", exc)
+    return (
+        "from espnet3.api.inference import load\n\n"
+        + _build_load_example(target, out_dir, system)
+        + '\nresult = model("utt.wav")'
+    )
+
+
 def _build_readme_context(
     training_config: DictConfig,
     publication_config: DictConfig,
@@ -483,11 +512,10 @@ def _build_readme_context(
     git_meta = get_git_metadata(recipe_root)
     results_section = _build_results_table(results_path)
     hf_repo = getattr(getattr(publication_config, "upload_model", None), "hf_repo", "")
-    usage_load_call = _load_example(
-        hf_repo or "/path/to/packed_model",
-        out_dir,
-        system=_system_for_meta(training_config),
-    )
+    target = hf_repo or "/path/to/packed_model"
+    system = _system_for_meta(training_config)
+    usage_load_call = _build_load_example(target, out_dir, system=system)
+    usage_python = _build_usage_python(target, out_dir, system)
     model_summary_section = ""
     model_detail_section = ""
     try:
@@ -529,6 +557,7 @@ def _build_readme_context(
         "task_class": str(getattr(training_config, "task", "") or ""),
         "train_config": OmegaConf.to_yaml(training_config, resolve=True),
         "usage_load_call": usage_load_call,
+        "usage_python": usage_python,
     }
 
 
