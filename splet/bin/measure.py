@@ -35,6 +35,7 @@ import yaml
 from splet.metadata import metadata
 from splet.metric_registry import (
     METRIC_CHOICES,
+    check_output_keys,
     load_corpus_metrics,
     load_metrics,
     measure_corpus,
@@ -149,6 +150,16 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     if not metrics and not corpus_metrics:
         logging.error("no metric is configured")
         return 2
+    # Each tier checks only its own ids and keys, but both end up in one
+    # summary and one metadata block, where the corpus figure would replace
+    # the utterance one.
+    shared = sorted(metrics.keys() & corpus_metrics.keys())
+    if shared:
+        raise ValueError(
+            f"metric id(s) {shared} are used by both an utterance and a corpus "
+            "metric; give one of them another `id:`"
+        )
+    check_output_keys({**metrics, **corpus_metrics})
 
     if metrics:
         results = measure_utterances(

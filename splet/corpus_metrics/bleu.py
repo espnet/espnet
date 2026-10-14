@@ -63,7 +63,7 @@ BLEU_OUTPUTS: Dict[str, str] = {
 def _setup(name, metric_class, metric_id, normalize, kwargs) -> Dict[str, Any]:
     """Build the sacrebleu metric object and the normalizer shared by all three."""
     if metric_class is None:
-        raise ImportError(f"{name} requires sacrebleu>=2.0: pip install sacrebleu")
+        raise ImportError(f"{name} requires sacrebleu>=2.2: pip install sacrebleu")
     return {
         "name": name,
         "metric_id": metric_id,
@@ -143,13 +143,20 @@ def sacrebleu_metric(
         ``state["signature"]``, where the summary's metadata picks it up.
 
     Raises:
-        ValueError: If there are no references, or no utterances to measure.
+        ValueError: If there are no references, no utterances to measure, or
+            not one reference per hypothesis. sacrebleu scores only the
+            pairs it can zip, so a missing reference would change the score
+            without an error.
     """
     name = state["metric_id"]
     if gt_texts is None:
         raise ValueError(f"{name} needs references (--gt)")
     if not pred_texts:
         raise ValueError(f"{name} has nothing to measure")
+    if len(pred_texts) != len(gt_texts):
+        raise ValueError(
+            f"{name}: {len(pred_texts)} hypotheses but {len(gt_texts)} references"
+        )
 
     normalizer = state["normalizer"]
     metric = state["metric"]

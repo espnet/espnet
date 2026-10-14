@@ -1,6 +1,8 @@
 """Tests for the splet-measure command line interface."""
 
 import json
+import subprocess
+import sys
 
 import pytest
 
@@ -168,3 +170,138 @@ def test_jsonl_io_reads_turns(tmp_path, capsys):
         == 0
     )
     assert json.loads(capsys.readouterr().out)["wer"] == 0.0
+
+
+# Corpus tier (BLEU, chrF, TER) through the command, as st.sh runs it.
+
+REFS = [
+    "The cat sat on the mat.",
+    "Hello, world!",
+    "It is raining again today, isn't it?",
+    "We'll meet at the station at 5 p.m.",
+]
+HYPS = [
+    "the cat sat on a mat",
+    "Hello world!",
+    "It rains again today, isn't it?",
+    "We will meet at the station at 5 pm.",
+]
+
+
+def _write(path, lines):
+    path.write_text(
+        "".join(f"utt{i} {line}\n" for i, line in enumerate(lines)), encoding="utf-8"
+    )
+
+
+def _sacrebleu_cli(tmp_path, *flags):
+    """Run the sacrebleu command the way st.sh stage 13 does."""
+    ref = tmp_path / "ref.trn.detok"
+    hyp = tmp_path / "hyp.trn.detok"
+    ref.write_text("\n".join(REFS) + "\n", encoding="utf-8")
+    hyp.write_text("\n".join(HYPS) + "\n", encoding="utf-8")
+    out = subprocess.run(
+        [sys.executable, "-m", "sacrebleu", *flags, str(ref), "-i", str(hyp)]
+        + ["-m", "bleu", "chrf", "ter", "-w", "6"],
+        check=True,
+        capture_output=True,
+        text=True,
+    ).stdout
+    return {entry["name"]: entry for entry in json.loads(out)}
+
+
+def _splet_measure(tmp_path, capsys, config):
+    ref = tmp_path / "ref.txt"
+    hyp = tmp_path / "hyp.txt"
+    _write(ref, REFS)
+    _write(hyp, HYPS)
+    conf = tmp_path / "metrics.yaml"
+    conf.write_text(config, encoding="utf-8")
+    argv = ["--pred", str(hyp), "--gt", str(ref), "--metrics_config", str(conf)]
+    assert main(argv) == 0
+    return json.loads(capsys.readouterr().out)
+
+
+def test_matches_st_sh_case_sensitive_pass(tmp_path, capsys):
+    """st.sh: sacrebleu ref -i hyp -m bleu chrf ter."""
+    expected = _sacrebleu_cli(tmp_path)
+    summary = _splet_measure(
+        tmp_path, capsys, "- name: bleu\n- name: chrf\n- name: translation_edit_rate\n"
+    )
+
+    for key, name in (
+        ("bleu", "BLEU"),
+        ("chrf", "chrF2"),
+        ("translation_edit_rate", "TER"),
+    ):
+        assert summary[key] == pytest.approx(expected[name]["score"], abs=1e-6)
+        signature = summary["metadata"]["metrics"][key]["signature"]
+        assert signature == expected[name]["signature"]
+    assert summary["num_utterances"] == 4
+
+
+def test_matches_st_sh_lowercased_sacrebleu_call(tmp_path, capsys):
+    """st.sh: sacrebleu -lc ref -i hyp -m bleu chrf ter.
+
+    -lc lowercases BLEU only, so only the bleu entry takes lowercase: true.
+    The remove_punctuation.pl step st.sh runs before this call is not tested.
+    """
+    expected = _sacrebleu_cli(tmp_path, "-lc")
+    summary = _splet_measure(
+        tmp_path,
+        capsys,
+        "- name: bleu\n  lowercase: true\n"
+        "- name: chrf\n- name: translation_edit_rate\n",
+    )
+
+    for key, name in (
+        ("bleu", "BLEU"),
+        ("chrf", "chrF2"),
+        ("translation_edit_rate", "TER"),
+    ):
+        assert summary[key] == pytest.approx(expected[name]["score"], abs=1e-6)
+        signature = summary["metadata"]["metrics"][key]["signature"]
+        assert signature == expected[name]["signature"]
+    assert "case:lc" in summary["metadata"]["metrics"]["bleu"]["signature"]
+
+
+def test_bleu_runs_twice_under_two_ids(tmp_path, capsys):
+    """Case-sensitive and lowercased BLEU in one config, as st.sh runs both."""
+    summary = _splet_measure(
+        tmp_path,
+        capsys,
+        "- name: bleu\n- name: bleu\n  id: bleu_lc\n  lowercase: true\n",
+    )
+    assert summary["bleu_lc"] > summary["bleu"]
+    assert summary["bleu_lc_ref_len"] == summary["bleu_ref_len"]
+    described = summary["metadata"]["metrics"]
+    assert described["bleu_lc"]["name"] == "bleu"
+    assert "case:lc" in described["bleu_lc"]["signature"]
+    assert "case:mixed" in described["bleu"]["signature"]
+
+
+def test_corpus_and_utterance_metrics_in_one_config(tmp_path, capsys):
+    summary = _splet_measure(tmp_path, capsys, "- name: wer\n- name: bleu\n")
+    assert "wer" in summary
+    assert "bleu" in summary
+
+
+def test_list_metrics_shows_the_corpus_tier(capsys):
+    assert main(["--list_metrics"]) == 0
+    printed = capsys.readouterr().out
+    for name in ("bleu", "chrf", "translation_edit_rate"):
+        assert f"{name}\tcorpus" in printed
+
+
+def test_an_id_used_in_both_tiers_is_rejected(tmp_path, capsys):
+    # BLEU under the id `wer` would replace the WER figure and its metadata.
+    with pytest.raises(ValueError, match="'wer'"):
+        _splet_measure(tmp_path, capsys, "- name: wer\n- name: bleu\n  id: wer\n")
+
+
+def test_result_keys_colliding_across_tiers_are_rejected(tmp_path, capsys):
+    # BLEU under the id `wer_errors` reports into WER's `wer_errors` count.
+    with pytest.raises(ValueError, match="wer_errors"):
+        _splet_measure(
+            tmp_path, capsys, "- name: wer\n- name: bleu\n  id: wer_errors\n"
+        )
