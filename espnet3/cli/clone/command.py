@@ -3,8 +3,8 @@
 from __future__ import annotations
 
 import argparse
-from fnmatch import fnmatchcase
 import shutil
+from fnmatch import fnmatchcase
 from pathlib import Path
 
 _IGNORED_ANYWHERE = ("*.pyc", "__pycache__", ".pytest_cache")
