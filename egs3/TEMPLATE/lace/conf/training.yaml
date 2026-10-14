@@ -27,7 +27,7 @@ num_device: 1
 num_nodes: 1
 
 # No `task:` key on purpose: a LACE model is always built from
-# `model._target_` (espnet3.systems.lace.lace.LACE), and
+# `model._target_` (espnet3.systems.lace.src.lace.LACE), and
 # `LACESystem.train` refuses a config that sets `task`.
 
 # Path scaffold relative to the recipe root.
@@ -108,7 +108,7 @@ dataset:
 #                      MODEL SETTING                     #
 ##########################################################
 # Training model definition, instantiated directly via Hydra. The `_target_`
-# is `espnet3.systems.lace.lace.LACE`, which builds the baseline
+# is `espnet3.systems.lace.src.lace.LACE`, which builds the baseline
 # codec from a published model bundle (`pretrained_model_tag`, a Hugging
 # Face id downloaded through espnet_model_zoo, or `pretrained_model_dir`, a
 # local pack_model output) or fresh from `codec`/`codec_conf`, strict-loads
@@ -118,7 +118,7 @@ dataset:
 #
 # Example:
 # model:
-#   _target_: espnet3.systems.lace.lace.LACE
+#   _target_: espnet3.systems.lace.src.lace.LACE
 #   pretrained_model_tag: NewGame/libritts_codec_train_encodec_libritts
 #   freeze_codec_module_name: none   # none | encoder | decoder
 #   compression_model:

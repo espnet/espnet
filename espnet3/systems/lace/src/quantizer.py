@@ -33,7 +33,7 @@ from typing import List, Optional, Tuple, Union
 import torch
 import torch.nn as nn
 
-from espnet3.systems.lace.compression import BaseCompressionModel
+from espnet3.systems.lace.src.compression import BaseCompressionModel
 
 RATE_STRATEGIES = ("per_quantizer", "per_sample", "none")
 

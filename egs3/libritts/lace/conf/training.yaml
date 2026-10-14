@@ -20,7 +20,7 @@
 # path has nothing to collect.
 #
 # NOTE: no `task:` key on purpose. LACESystem then instantiates `model:`
-# as a Hydra _target_ (espnet3.systems.lace.lace.LACE), which
+# as a Hydra _target_ (espnet3.systems.lace.src.lace.LACE), which
 # downloads the published baseline and strict-loads its weights BEFORE
 # wrapping the quantizer. The builder is the recipe's ONLY weight-loading
 # mechanism (do not add a framework `init:` scheme, which could touch the
@@ -65,7 +65,7 @@ dataset:
 #                     LACE MODEL SETTING                 #
 ##########################################################
 model:
-  _target_: espnet3.systems.lace.lace.LACE
+  _target_: espnet3.systems.lace.src.lace.LACE
   # The published baseline codec, an ESPnet3 `pack_model` bundle on the
   # Hugging Face Hub (downloaded and cached by espnet_model_zoo). Its
   # architecture and weights are strict-loaded into the UNWRAPPED model

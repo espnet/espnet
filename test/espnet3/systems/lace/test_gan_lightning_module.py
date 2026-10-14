@@ -1,4 +1,4 @@
-"""Unit tests for espnet3.systems.lace.gan_lightning_module."""
+"""Unit tests for espnet3.systems.lace.src.gan_lightning_module."""
 
 from test.espnet3.systems.lace._gan_dummies import (
     DummyGANModel,
@@ -13,7 +13,7 @@ import torch
 import torch.nn as nn
 from omegaconf import OmegaConf
 
-from espnet3.systems.lace.gan_lightning_module import GANLightningModule
+from espnet3.systems.lace.src.gan_lightning_module import GANLightningModule
 
 
 def make_module(tmp_path, gan=None, model=None, optimizers=None):

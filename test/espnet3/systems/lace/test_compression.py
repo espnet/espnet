@@ -1,9 +1,9 @@
-"""Unit tests for espnet3.systems.lace.compression."""
+"""Unit tests for espnet3.systems.lace.src.compression."""
 
 import pytest
 import torch
 
-from espnet3.systems.lace.compression import (
+from espnet3.systems.lace.src.compression import (
     BaseCompressionModel,
     CompressionOutput,
 )

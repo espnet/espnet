@@ -14,7 +14,7 @@ import yaml
 from espnet3.api.inference import Audio, load
 from espnet3.publication.schema import PACK_SCHEMA_VERSION
 from espnet3.systems.lace.inference import Inference, LACEAudioCoding
-from espnet3.systems.lace.lace import LACE
+from espnet3.systems.lace.src.lace import LACE
 from espnet3.systems.lace.system import (
     build_lace_model_config,
     write_lace_model_config,
@@ -28,7 +28,7 @@ def finetuned(tmp_path):
     """Fine-tuning run: lace_model.yaml spec + wrapped-layout checkpoint."""
     write_tiny_bundle(tmp_path / "bundle", lightning=True)
     model_config = {
-        "_target_": "espnet3.systems.lace.lace.LACE",
+        "_target_": "espnet3.systems.lace.src.lace.LACE",
         "compression_model": COMPRESSION,
         "pretrained_model_dir": str(tmp_path / "bundle"),
     }

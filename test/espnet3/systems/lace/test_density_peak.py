@@ -1,8 +1,8 @@
-"""Unit tests for espnet3.systems.lace.density_peak."""
+"""Unit tests for espnet3.systems.lace.src.density_peak."""
 
 import torch
 
-from espnet3.systems.lace.density_peak import DensityPeakCompression
+from espnet3.systems.lace.src.density_peak import DensityPeakCompression
 
 
 def test_rate_none_returns_per_frame_segmentation():

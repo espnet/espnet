@@ -43,14 +43,14 @@ import yaml
 
 from espnet3.api.inference import Audio, Field
 from espnet3.systems.base.backend_inference import BackendInference
-from espnet3.systems.lace.lace import LACE, load_model_state_strict
+from espnet3.systems.lace.src.lace import LACE, load_model_state_strict
 
 
 class LACEAudioCoding:
     """Encode -> decode roundtrip for a LACE codec.
 
     Analog of ``espnet2.bin.gan_codec_inference.AudioCoding`` for models
-    of ``espnet3.systems.lace.lace.LACE``, and the backend
+    of ``espnet3.systems.lace.src.lace.LACE``, and the backend
     :class:`Inference` wraps: the wrapped architecture is rebuilt from
     ``train_config``, the model spec ``LACESystem.train`` writes during
     fine-tuning (``${exp_dir}/lace_model.yaml``), and the fine-tuned weights

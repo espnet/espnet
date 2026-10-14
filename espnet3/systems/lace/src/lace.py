@@ -24,12 +24,12 @@ from omegaconf import OmegaConf
 from espnet2.gan_codec.espnet_model import ESPnetGANCodecModel
 from espnet2.gan_codec.shared.quantizer.residual_vq import ResidualVectorQuantizer
 from espnet2.train.abs_gan_espnet_model import AbsGANESPnetModel
-from espnet3.systems.lace.compression import BaseCompressionModel
-from espnet3.systems.lace.cosine_similarity import CosineSimilarityCompression
-from espnet3.systems.lace.density_peak import DensityPeakCompression
-from espnet3.systems.lace.dp_segmentation import DPSegmentationCompression
-from espnet3.systems.lace.identity import IdentityCompression
-from espnet3.systems.lace.quantizer import CompressionResidualVectorQuantizer
+from espnet3.systems.lace.src.compression import BaseCompressionModel
+from espnet3.systems.lace.src.cosine_similarity import CosineSimilarityCompression
+from espnet3.systems.lace.src.density_peak import DensityPeakCompression
+from espnet3.systems.lace.src.dp_segmentation import DPSegmentationCompression
+from espnet3.systems.lace.src.identity import IdentityCompression
+from espnet3.systems.lace.src.quantizer import CompressionResidualVectorQuantizer
 
 FREEZE_CHOICES = ("none", "encoder", "decoder")
 
@@ -354,7 +354,7 @@ class LACE(ESPnetGANCodecModel):
         .. code-block:: yaml
 
             model:
-              _target_: espnet3.systems.lace.lace.LACE
+              _target_: espnet3.systems.lace.src.lace.LACE
               pretrained_model_tag: NewGame/libritts_codec_train_encodec_libritts
               freeze_codec_module_name: none
               compression_model:

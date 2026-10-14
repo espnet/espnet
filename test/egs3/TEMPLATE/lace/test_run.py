@@ -60,7 +60,7 @@ def test_libritts_training_config_resolves_against_the_codec_recipe():
         default_package="egs3.TEMPLATE.lace",
     )
     assert config.get("task") is None
-    assert config.model._target_ == "espnet3.systems.lace.lace.LACE"
+    assert config.model._target_ == "espnet3.systems.lace.src.lace.LACE"
     assert (
         config.model.pretrained_model_tag
         == "NewGame/libritts_codec_train_encodec_libritts"

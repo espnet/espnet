@@ -1,8 +1,8 @@
-"""Unit tests for espnet3.systems.lace.cosine_similarity."""
+"""Unit tests for espnet3.systems.lace.src.cosine_similarity."""
 
 import torch
 
-from espnet3.systems.lace.cosine_similarity import CosineSimilarityCompression
+from espnet3.systems.lace.src.cosine_similarity import CosineSimilarityCompression
 
 
 def make_two_segment_input():

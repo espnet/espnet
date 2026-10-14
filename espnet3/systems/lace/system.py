@@ -6,10 +6,10 @@ LACE (Layer-Adaptive Codec Encoding) run needs in ``collect_stats`` and
 
 - The model is an espnet2 GAN codec with a wrapped quantizer
   (``AbsGANESPnetModel``), so both stages build the generator/discriminator
-  trainer from :mod:`espnet3.systems.lace.gan_trainer` instead of the plain
+  trainer from :mod:`espnet3.systems.lace.src.gan_trainer` instead of the plain
   single-optimizer trainer.
 - The model is built through a Hydra ``_target_``
-  (``espnet3.systems.lace.lace.LACE``) with ``task:`` unset, so
+  (``espnet3.systems.lace.src.lace.LACE``) with ``task:`` unset, so
   there is no espnet2-style ``config.yaml`` for inference to rebuild from.
   ``train`` writes the equivalent, ``${exp_dir}/lace_model.yaml``: the
   ``model`` block as ``LACE`` keyword arguments, which
@@ -33,7 +33,7 @@ from espnet3.components.modeling.lightning_module import ESPnetLightningModule
 from espnet3.components.trainers.trainer import ESPnet3LightningTrainer
 from espnet3.parallel.parallel import set_parallel
 from espnet3.systems.base.system import BaseSystem
-from espnet3.systems.lace.gan_trainer import build_gan_trainer
+from espnet3.systems.lace.src.gan_trainer import build_gan_trainer
 
 logger = logging.getLogger(__name__)
 
@@ -62,7 +62,7 @@ def build_lace_model_config(model_config: Union[DictConfig, Dict[str, Any]]):
         from omegaconf import OmegaConf
 
         model_config = OmegaConf.create({
-            "_target_": "espnet3.systems.lace.lace.LACE",
+            "_target_": "espnet3.systems.lace.src.lace.LACE",
             "_convert_": "all",
             "pretrained_model_tag": "NewGame/libritts_codec_train_encodec_libritts",
             "compression_model": {"name": "cosine_similarity"},
@@ -79,7 +79,7 @@ def build_lace_model_config(model_config: Union[DictConfig, Dict[str, Any]]):
     if spec.get("_target_") is None:
         raise ValueError(
             "LACE training configs build the model through `model._target_` "
-            "(espnet3.systems.lace.lace.LACE) with `task:` unset; "
+            "(espnet3.systems.lace.src.lace.LACE) with `task:` unset; "
             f"got model keys {sorted(spec)}."
         )
     # Hydra's own keys (`_target_`, plus `_convert_: all`, which the recipe

@@ -1,9 +1,9 @@
-"""Unit tests for espnet3.systems.lace.dp_segmentation."""
+"""Unit tests for espnet3.systems.lace.src.dp_segmentation."""
 
 import pytest
 import torch
 
-from espnet3.systems.lace.dp_segmentation import DPSegmentationCompression
+from espnet3.systems.lace.src.dp_segmentation import DPSegmentationCompression
 
 
 def test_rate_none_returns_per_frame_segmentation():

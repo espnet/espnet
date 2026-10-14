@@ -5,7 +5,7 @@ from typing import Optional, Union
 
 import torch
 
-from espnet3.systems.lace.compression import (
+from espnet3.systems.lace.src.compression import (
     BaseCompressionModel,
     CompressionOutput,
 )

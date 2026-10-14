@@ -9,7 +9,7 @@ import yaml
 from omegaconf import OmegaConf
 
 import espnet3.systems.lace.system as sysmod
-from espnet3.systems.lace.lace import LACE
+from espnet3.systems.lace.src.lace import LACE
 from espnet3.systems.lace.system import (
     MODEL_CONFIG_NAME,
     LACESystem,
@@ -26,7 +26,7 @@ def make_training_config(tmp_path, **overrides):
         "exp_dir": str(tmp_path / "exp"),
         "bundle_dir": str(tmp_path / "bundle"),
         "model": {
-            "_target_": "espnet3.systems.lace.lace.LACE",
+            "_target_": "espnet3.systems.lace.src.lace.LACE",
             "_convert_": "all",
             "pretrained_model_dir": "${bundle_dir}",
             "freeze_codec_module_name": "encoder",

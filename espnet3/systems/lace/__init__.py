@@ -2,7 +2,8 @@
 
 Wraps the residual vector quantizer of an espnet2 GAN codec (SoundStream,
 Encodec, DAC, FunCodec) so that every codebook layer quantizes
-segment-averaged frames under its own compression rate:
+segment-averaged frames under its own compression rate. The model code lives
+under ``src/``:
 
 - ``compression``: the shared ``BaseCompressionModel`` and its
   ``CompressionOutput`` record.

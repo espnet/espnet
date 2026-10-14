@@ -1,4 +1,4 @@
-"""Unit tests for espnet3.systems.lace.quantizer."""
+"""Unit tests for espnet3.systems.lace.src.quantizer."""
 
 import copy
 from test.espnet3.systems.lace._codec_dummies import (
@@ -10,9 +10,9 @@ from test.espnet3.systems.lace._codec_dummies import (
 import pytest
 import torch
 
-from espnet3.systems.lace.cosine_similarity import CosineSimilarityCompression
-from espnet3.systems.lace.identity import IdentityCompression
-from espnet3.systems.lace.quantizer import (
+from espnet3.systems.lace.src.cosine_similarity import CosineSimilarityCompression
+from espnet3.systems.lace.src.identity import IdentityCompression
+from espnet3.systems.lace.src.quantizer import (
     CompressionResidualVectorQuantizer,
     RVQCompressionWrapper,
 )

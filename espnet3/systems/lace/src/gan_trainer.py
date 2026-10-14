@@ -1,6 +1,6 @@
 """GAN trainer helpers for the LACE system.
 
-Pairs with ``espnet3.systems.lace.gan_lightning_module.GANLightningModule``.
+Pairs with ``espnet3.systems.lace.src.gan_lightning_module.GANLightningModule``.
 A LACE model is an espnet2 GAN codec (``AbsGANESPnetModel``) with a wrapped
 quantizer, so it trains with the same generator/discriminator loop as the
 baseline codec.
@@ -13,7 +13,7 @@ import copy
 from omegaconf import DictConfig
 
 from espnet3.components.trainers.trainer import ESPnet3LightningTrainer
-from espnet3.systems.lace.gan_lightning_module import GANLightningModule
+from espnet3.systems.lace.src.gan_lightning_module import GANLightningModule
 
 
 class GANLightningTrainer(ESPnet3LightningTrainer):
@@ -95,7 +95,7 @@ def build_gan_trainer(training_config, model) -> GANLightningTrainer:
 
     Examples:
         ```python
-        from espnet3.systems.lace.gan_trainer import build_gan_trainer
+        from espnet3.systems.lace.src.gan_trainer import build_gan_trainer
         from espnet3.utils.task_utils import get_espnet_model
 
         model = get_espnet_model(config.task, config.model)

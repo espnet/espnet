@@ -1,9 +1,9 @@
-"""Unit tests for espnet3.systems.lace.identity."""
+"""Unit tests for espnet3.systems.lace.src.identity."""
 
 import pytest
 import torch
 
-from espnet3.systems.lace.identity import IdentityCompression
+from espnet3.systems.lace.src.identity import IdentityCompression
 
 
 @pytest.mark.parametrize("rate", [None, 0.1, 1.0])

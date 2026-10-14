@@ -1,4 +1,4 @@
-"""Unit tests for espnet3.systems.lace.lace."""
+"""Unit tests for espnet3.systems.lace.src.lace."""
 
 from test.espnet3.systems.lace._codec_dummies import (
     build_tiny_codec_conf,
@@ -12,9 +12,9 @@ from omegaconf import OmegaConf
 
 from espnet2.gan_codec.espnet_model import ESPnetGANCodecModel
 from espnet2.train.abs_gan_espnet_model import AbsGANESPnetModel
-from espnet3.systems.lace.dp_segmentation import DPSegmentationCompression
-from espnet3.systems.lace.identity import IdentityCompression
-from espnet3.systems.lace.lace import (
+from espnet3.systems.lace.src.dp_segmentation import DPSegmentationCompression
+from espnet3.systems.lace.src.identity import IdentityCompression
+from espnet3.systems.lace.src.lace import (
     COMPRESSION_MODEL_MAP,
     LACE,
     build_codec_from_bundle,
@@ -23,7 +23,7 @@ from espnet3.systems.lace.lace import (
     load_model_state_strict,
     read_bundle_artifacts,
 )
-from espnet3.systems.lace.quantizer import CompressionResidualVectorQuantizer
+from espnet3.systems.lace.src.quantizer import CompressionResidualVectorQuantizer
 
 COMPRESSION = {"name": "cosine_similarity", "params": {}, "eval_rate": 0.5}
 
