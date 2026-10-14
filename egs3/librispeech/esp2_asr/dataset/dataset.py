@@ -8,6 +8,7 @@ from pathlib import Path
 from typing import Any, List
 
 import numpy as np
+from omniio.interface import audio_read
 from torch.utils.data import Dataset as TorchDataset
 
 from egs3.librispeech.esp2_asr.dataset.builder import (
@@ -27,12 +28,6 @@ with resources.as_file(_CONFIG_RESOURCE) as _CONFIG_PATH:
 _DATASET_CFG = _CONFIG["dataset"]
 
 _KNOWN_SPLITS = {str(split) for split in _DATASET_CFG["supported_splits"]}
-
-_OMNIIO_HINT = (
-    "Omni-IO is required by this recipe but is not installed. "
-    "Install it with `pip install omniio` "
-    "(it is not among ESPnet's default dependencies)."
-)
 
 
 def read_view(path: Path) -> dict[str, list]:
@@ -149,11 +144,6 @@ class LibriSpeechDataset(TorchDataset):
         return len(self._utt_ids)
 
     def __getitem__(self, idx: int) -> dict[str, Any]:
-        try:
-            from omniio.interface import audio_read
-        except ImportError as exc:  # pragma: no cover - environment dependent
-            raise ImportError(_OMNIIO_HINT) from exc
-
         index = int(idx)
         archive_dir = raw_archive_dir(
             self._recipe_root, self._sources[index], self._archive_root

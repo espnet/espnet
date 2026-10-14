@@ -15,6 +15,8 @@ from importlib import resources
 from pathlib import Path
 from typing import Iterator, List, Sequence, Tuple
 
+from omniio.blob.blob import Blob
+
 from espnet3.components.data.dataset_builder import DatasetBuilder
 from espnet3.utils.config_utils import load_config_with_defaults
 from espnet3.utils.download_utils import download_url, extract_targz
@@ -29,12 +31,6 @@ METADATA_NAME = "metadata.parquet"
 # Audio is packed once per raw LibriSpeech directory under this subdirectory;
 # logical splits are views over those archives.
 RAW_SUBDIR = "raw"
-
-_OMNIIO_HINT = (
-    "Omni-IO is required by this recipe but is not installed. "
-    "Install it with `pip install omniio` "
-    "(it is not among ESPnet's default dependencies)."
-)
 
 
 def _load_builder_config() -> dict:
@@ -312,11 +308,6 @@ def _write_text_table(archive_dir: Path, entries: Sequence[RawEntry]) -> None:
 
 def _open_blob(archive_dir: Path, max_bin_size: int):
     """Return an Omni-IO ``Blob`` writer for ``archive_dir``."""
-    try:
-        from omniio.blob.blob import Blob
-    except ImportError as exc:  # pragma: no cover - environment dependent
-        raise ImportError(_OMNIIO_HINT) from exc
-
     archive_dir.mkdir(parents=True, exist_ok=True)
     return Blob(
         archive_dir=str(archive_dir),
@@ -542,7 +533,6 @@ class LibriSpeechBuilder(DatasetBuilder):
 
         Raises:
             FileNotFoundError: If a required raw directory is missing.
-            ImportError: If Omni-IO is not installed.
             RuntimeError: If a raw directory yields no utterances.
         """
         recipe_root, split_names = self._resolve(recipe_dir, splits)

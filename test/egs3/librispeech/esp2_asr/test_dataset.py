@@ -6,14 +6,12 @@ import numpy as np
 import pytest
 import soundfile as sf
 
-pytest.importorskip("omniio", reason="this recipe stores audio with Omni-IO")
-
-from egs3.librispeech.esp2_asr.dataset import (  # noqa: E402
+from egs3.librispeech.esp2_asr.dataset import (
     Dataset,
     DatasetBuilder,
     gather_training_text,
 )
-from egs3.librispeech.esp2_asr.dataset.builder import (  # noqa: E402
+from egs3.librispeech.esp2_asr.dataset.builder import (
     known_splits,
     raw_archive_dir,
     raw_dirs_for,

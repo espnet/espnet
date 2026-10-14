@@ -87,12 +87,14 @@ python run.py --stages infer measure \
 `create_dataset` builds only the splits listed in the training config, so a
 100 h debug run does not need the 360 h and 500 h archives staged.
 
-## Why Omni-IO
+## How the audio is stored
 
 LibriSpeech ships one `.flac` per utterance: 281k files for the 960 h training
 set. On the shared filesystems this recipe targets, that file count — not the
 60 GB — is what makes training IO-bound, and it exhausts inodes when several
-corpora are staged side by side.
+corpora are staged side by side. So the recipe packs the corpus into
+[Omni-IO](https://pypi.org/project/omniio/) archives, which ESPnet already
+depends on, rather than reading the corpus tree directly.
 
 `create_dataset` packs each **raw** LibriSpeech directory once, and then writes
 one small table per logical split:
