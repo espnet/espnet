@@ -4,9 +4,8 @@ from pathlib import Path
 
 import numpy as np
 import pytest
-import torch
-
 import soundfile
+import torch
 
 from espnet2.bin.s2t_inference import Speech2Text, get_parser, inference, main
 from espnet2.legacy.nets.beam_search import Hypothesis
