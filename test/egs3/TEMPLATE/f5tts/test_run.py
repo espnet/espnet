@@ -1,37 +1,21 @@
-"""Tests for the egs3/TEMPLATE/f5tts scaffold configs and runner wiring."""
+"""Tests for the egs3/TEMPLATE/f5tts scaffold configs and the recipe's launch."""
 
-from argparse import Namespace
 from pathlib import Path
 
 import pytest
 from omegaconf import OmegaConf
 
-from egs3.TEMPLATE.f5tts.run import DEFAULT_STAGES, build_parser, main
+from espnet3.contract.stages import StageContractError, stage_names
 from espnet3.systems.f5tts.system import F5TTSSystem
+from espnet3.systems.launch import build_parser, launch
 from espnet3.utils.config_utils import load_and_merge_config, load_default_config
 
 PACKAGE = "egs3.TEMPLATE.f5tts"
 
 
-def _run_arguments(**overrides):
-    """Return a ``run.py`` argument namespace with ``overrides`` applied."""
-    arguments = {
-        "stages": ["all"],
-        "training_config": None,
-        "inference_config": None,
-        "metrics_config": None,
-        "publication_config": None,
-        "demo_config": None,
-        "dry_run": False,
-        "write_requirements": False,
-    }
-    arguments.update(overrides)
-    return Namespace(**arguments)
-
-
-def test_default_stages_run_manifest_consumers_after_create_dataset() -> None:
-    """Execution follows list order, whatever order ``--stages`` is given in."""
-    assert DEFAULT_STAGES == [
+def test_the_stages_run_manifest_consumers_after_create_dataset() -> None:
+    """Execution follows the declared order, whatever order ``--stages`` is given in."""
+    assert stage_names(F5TTSSystem) == [
         "create_dataset",
         "remove_long_short",
         "create_token_list",
@@ -46,15 +30,9 @@ def test_default_stages_run_manifest_consumers_after_create_dataset() -> None:
     ]
 
 
-def test_every_default_stage_is_a_system_method() -> None:
-    """Every stage ``run.py`` offers is a method of ``F5TTSSystem``."""
-    for stage in DEFAULT_STAGES:
-        assert callable(getattr(F5TTSSystem, stage))
-
-
 def test_parser_accepts_the_stage_names_and_config_options() -> None:
-    """The parser takes the F5-TTS stage names and the config paths."""
-    parser = build_parser(stages=DEFAULT_STAGES)
+    """The parser takes the F5-TTS stage names and one config path per role."""
+    parser = build_parser(F5TTSSystem)
     args = parser.parse_args(
         [
             "--stages",
@@ -134,6 +112,36 @@ def test_metrics_scaffold_is_the_f5tts_protocol() -> None:
         "ref": "dataset:ref_wav_path",
         "text": "dataset:text",
     }
+    assert list(entry.metric.outputs) == [
+        "fwhisper_wer",
+        "fwhisper_cer",
+        "spk_similarity",
+        "utmos",
+    ]
+
+
+def test_metrics_scaffold_binds_the_inference_declaration() -> None:
+    """``wav`` is the Inference's audio output; the references are dataset columns."""
+    from hydra.utils import instantiate
+
+    from espnet3.contract.metrics import check_metric_inputs
+
+    metrics_config = load_default_config("metrics.yaml", PACKAGE)
+    inference_config = load_default_config("inference.yaml", PACKAGE)
+    (entry,) = metrics_config.metrics
+    metric = instantiate(entry.metric)
+
+    assert check_metric_inputs(metric, entry, inference_config) == {
+        "wav": "wav",
+        "ref": "dataset:ref_wav_path",
+        "text": "dataset:text",
+    }
+    assert [f.name for f in metric.outputs] == [
+        "fwhisper_wer",
+        "fwhisper_cer",
+        "spk_similarity",
+        "utmos",
+    ]
 
 
 def test_load_and_merge_config_user_overrides_template_defaults(tmp_path) -> None:
@@ -141,7 +149,7 @@ def test_load_and_merge_config_user_overrides_template_defaults(tmp_path) -> Non
     user = tmp_path / "training_small.yaml"
     user.write_text(
         "model:\n"
-        "  _target_: espnet3.systems.f5tts.f5tts.F5TTS\n"
+        "  _target_: espnet3.systems.f5tts.src.f5tts.F5TTS\n"
         "  hidden_size: 768\n"
         "trainer:\n"
         "  max_steps: 600000\n",
@@ -152,7 +160,7 @@ def test_load_and_merge_config_user_overrides_template_defaults(tmp_path) -> Non
 
     assert config.exp_tag == "training_small"
     assert config.model.hidden_size == 768
-    assert config.model._target_ == "espnet3.systems.f5tts.f5tts.F5TTS"
+    assert config.model._target_ == "espnet3.systems.f5tts.src.f5tts.F5TTS"
     assert config.trainer.max_steps == 600000
     # Scaffold values the user config did not touch are kept.
     assert config.trainer.accelerator == "auto"
@@ -168,17 +176,17 @@ def test_load_and_merge_config_none_path_returns_none() -> None:
     "stage",
     ["remove_long_short", "create_token_list", "train", "infer", "pack_model"],
 )
-def test_main_refuses_a_stage_without_its_config(stage) -> None:
-    """``main`` refuses a stage whose config was not passed."""
-    with pytest.raises(ValueError, match="Config not provided"):
-        main(args=_run_arguments(stages=[stage]), system_cls=F5TTSSystem)
+def test_launch_refuses_a_stage_without_its_config(stage) -> None:
+    """``launch`` refuses a stage whose config role was not passed."""
+    with pytest.raises(StageContractError, match="config not provided"):
+        launch(F5TTSSystem, argv=["--stages", stage])
 
 
-def test_main_runs_the_data_and_training_stages(recipe_dir) -> None:
+def test_launch_runs_the_data_and_training_stages(recipe_dir) -> None:
     """``run.py`` runs the recipe from manifests to a trained checkpoint.
 
-    The stages are given out of order on purpose: execution follows
-    ``DEFAULT_STAGES``. ``collect_stats`` and ``train`` build the data pipeline
+    The stages are given out of order on purpose: execution follows the
+    system's declared order. ``collect_stats`` and ``train`` build the data pipeline
     the way a real run does, so the template's ``dataset`` scaffold has to
     hand ``DataOrganizer`` the preprocessor as a config (``_recursive_:
     false``): Hydra would otherwise build ``CommonPreprocessor`` first, without
@@ -207,12 +215,17 @@ def test_main_runs_the_data_and_training_stages(recipe_dir) -> None:
     training_yaml.write_text(yaml.safe_dump(config), encoding="utf-8")
     (recipe_dir / "exp" / "training" / "last.ckpt").unlink()
 
-    main(
-        args=_run_arguments(
-            stages=["train", "collect_stats", "create_token_list", "remove_long_short"],
-            training_config=Path("conf/training.yaml"),
-        ),
-        system_cls=F5TTSSystem,
+    launch(
+        F5TTSSystem,
+        argv=[
+            "--stages",
+            "train",
+            "collect_stats",
+            "create_token_list",
+            "remove_long_short",
+            "--training_config",
+            "conf/training.yaml",
+        ],
     )
 
     filtered = (recipe_dir / "data" / "manifest_filtered" / "train.tsv").read_text()

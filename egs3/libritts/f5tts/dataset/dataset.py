@@ -11,9 +11,10 @@ import numpy as np
 import soundfile as sf
 import torch
 import torchaudio
-from torch.utils.data import Dataset as TorchDataset
 
 from egs3.libritts.f5tts.dataset.builder import LibriTTSBuilder
+from espnet3.api import Field
+from espnet3.components.data.base_dataset import BaseDataset
 from espnet3.utils.config_utils import load_config_with_defaults
 
 _CONFIG_RESOURCE = resources.files(__package__).joinpath("config.yaml")
@@ -60,12 +61,13 @@ def _read_manifest(path: Path) -> list[ManifestEntry]:
     return entries
 
 
-class LibriTTSDataset(TorchDataset):
+class LibriTTSDataset(BaseDataset):
     """LibriTTS training/validation dataset returning text/speech samples.
 
-    The output keys are:
+    The output keys, declared as ``fields`` on each instance since they
+    depend on ``load_speech``:
       - ``text``  : raw transcript string (tokenized later by ``CommonPreprocessor``)
-      - ``speech``: float32 waveform
+      - ``speech``: float32 waveform, only when ``load_speech`` is true
 
     Evaluation does not go through this class: ``conf/inference.yaml`` reads
     the LibriSpeech-PC manifest via ``dataset/librispeech_pc.py``, whose rows
@@ -100,6 +102,8 @@ class LibriTTSDataset(TorchDataset):
         self.split = split
         self.load_speech = load_speech
         self.fs = fs
+        text = Field("text", "text")
+        self.fields = (Field("speech", "audio"), text) if load_speech else (text,)
         recipe_root = (
             Path(recipe_dir).resolve()
             if recipe_dir is not None

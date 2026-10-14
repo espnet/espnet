@@ -1,7 +1,7 @@
 # ESPnet3 F5-TTS recipe
 
 Shared runner, default configs and demo app for recipes that train
-`espnet3.systems.f5tts.f5tts.F5TTS`.
+`espnet3.systems.f5tts.src.f5tts.F5TTS`.
 A recipe adds its `dataset/` package (a `DatasetBuilder` writing tab-separated
 manifests whose first three columns are `utt_id`, `wav_path` and `text`, and a
 `Dataset` reading them), its `conf/*.yaml` deltas over this template's

@@ -245,6 +245,7 @@ class EBranchformerCTCEncoder(AbsEncoder):
         interctc_use_conditioning: bool = False,
         use_cross_attention=True,  # bool or list of bool
         use_flash_attn: bool = False,
+        use_sdpa: bool = False,
     ):
         super().__init__()
         self._output_size = output_size
@@ -381,6 +382,9 @@ class EBranchformerCTCEncoder(AbsEncoder):
                 attention_dropout_rate,
                 False,  # no qk_norm
                 use_flash_attn,
+                False,  # not causal
+                False,  # not cross-attention
+                use_sdpa,
             )
         elif attention_layer_type == "legacy_rel_selfattn":
             assert pos_enc_layer_type == "legacy_rel_pos"
@@ -389,6 +393,8 @@ class EBranchformerCTCEncoder(AbsEncoder):
                 attention_heads,
                 output_size,
                 attention_dropout_rate,
+                False,  # zero_triu
+                use_sdpa,
             )
             logging.warning(
                 "Using legacy_rel_selfattn and it will be deprecated in the future."
@@ -401,6 +407,7 @@ class EBranchformerCTCEncoder(AbsEncoder):
                 output_size,
                 attention_dropout_rate,
                 zero_triu,
+                use_sdpa,
             )
         elif attention_layer_type == "fast_selfattn":
             assert pos_enc_layer_type in ["abs_pos", "scaled_abs_pos"]
@@ -450,6 +457,7 @@ class EBranchformerCTCEncoder(AbsEncoder):
                         False,  # no qk_norm
                         use_flash_attn,
                         cross_attn=True,
+                        use_sdpa=use_sdpa,
                     )
                     if use_cross_attention[lnum]
                     else None

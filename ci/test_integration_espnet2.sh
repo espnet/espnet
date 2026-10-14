@@ -567,6 +567,16 @@ if [ "${task}" == "rst" ] || [ "${task}" == "all" ]; then
     cd "${cwd}"
 fi
 
+if [ "${task}" == "aqa" ] || [ "${task}" == "all" ]; then
+    # [ESPnet2] test AQA training and inference with synthetic metric labels
+    cd ./egs2/mini_an4/aqa1
+    gen_dummy_coverage
+    echo "==== [ESPnet2] AQA ==="
+    ./run.sh --ngpu 0 --stage 1 --stop_stage 9 --python "${python}"
+    rm -rf exp dump data downloads
+    cd "${cwd}"
+fi
+
 echo "::group::=== report ==="
 if compgen -G "egs2/*/*/.coverage" > /dev/null; then
     coverage combine egs2/*/*/.coverage

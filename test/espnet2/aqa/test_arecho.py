@@ -150,6 +150,32 @@ def test_empty_metric_targets(make_arecho, labels):
     loss.backward()
 
 
+@pytest.mark.parametrize("metrics_list", [["mos"], []])
+def test_filtered_metric_targets(make_arecho, metrics_list):
+    """Train EOS when metric selection removes every metric."""
+    processor = ARMetricProcessor(
+        metric_token_info=token_info(), metrics_list=metrics_list, train=True
+    )
+    samples = []
+    for uid, length in [("a", 5), ("b", 3)]:
+        sample = processor(
+            uid,
+            dict(audio=np.ones(length, dtype=np.float32), metrics={"language": "eng"}),
+        )
+        assert sample["metrics"] == {}
+        sample["audio"] = np.random.randn(length, 8).astype(np.float32)
+        samples.append((uid, sample))
+    _, batch = ARMetricCollateFn()(samples)
+    model = make_arecho()
+    loss, stats, _ = model(**batch)
+    assert torch.isfinite(loss) and loss > 0
+    assert stats["value_ar_decoder"] == 0
+    loss.backward()
+    assert all(
+        torch.isfinite(p.grad).all() for p in model.parameters() if p.grad is not None
+    )
+
+
 def test_target_padding_uses_lengths(make_arecho):
     """Ignore padded targets while preserving the caller-owned token tensor."""
     model = make_arecho().eval()
@@ -235,6 +261,92 @@ def test_unsupported_architecture_rejected(make_arecho, options):
     """Unsupported architecture settings fail instead of changing checkpoint shape."""
     with pytest.raises(ValueError):
         make_arecho(**options)
+
+
+def _sdpa_attentions(model):
+    """Attention modules use_sdpa should reach.
+
+    TransformerDecoder forwards use_sdpa to its self attention only, so the
+    decoder's source attention is left out.
+    """
+    encoders = [model.audio_encoder, model.ref_audio_encoder, model.text_encoder]
+    return (
+        [layer.self_attn for encoder in encoders for layer in encoder.encoders]
+        + [model.cross_attention]
+        + [layer.self_attn for layer in model.decoder.decoders]
+    )
+
+
+def test_use_sdpa_reaches_the_attention_and_matches_the_default(make_arecho):
+    """`use_sdpa` has to be forwarded, and must not change the output.
+
+    eval() so dropout does not make the two forward passes draw different
+    masks. Both references are given so the cross attention runs too.
+    """
+    audio = torch.randn(2, 7, 8)
+    lengths = torch.tensor([7, 5])
+    refs = dict(
+        ref_audio=torch.randn(2, 6, 8),
+        ref_audio_lengths=torch.tensor([6, 4]),
+        ref_text=torch.tensor([[1, 2, 3], [4, 5, -1]]),
+        ref_text_lengths=torch.tensor([3, 2]),
+    )
+    metrics = dict(
+        metric_token=torch.tensor([[4, 7, 10, 12], [4, 7, 0, 0]]),
+        metric_token_lengths=torch.tensor([4, 2]),
+    )
+
+    outputs = {}
+    for use_sdpa in (False, True):
+        torch.manual_seed(0)
+        model = make_arecho(
+            use_ref_audio=True, use_ref_text=True, vocab_size=6, use_sdpa=use_sdpa
+        ).eval()
+        assert all(m.use_sdpa is use_sdpa for m in _sdpa_attentions(model))
+        with torch.no_grad():
+            encoded, _ = model.encode(audio, lengths, **refs)
+            loss, _, _ = model(audio, lengths, metrics, **refs)
+        model.set_inference(1, ["mos", "language"], True, True)
+        result = model.inference(audio[:1], lengths[:1])
+        outputs[use_sdpa] = (encoded, loss, result["token_seq"])
+
+    torch.testing.assert_close(
+        outputs[True][0], outputs[False][0], atol=1e-5, rtol=1e-5
+    )
+    torch.testing.assert_close(
+        outputs[True][1], outputs[False][1], atol=1e-5, rtol=1e-5
+    )
+    assert outputs[True][2] == outputs[False][2]
+
+
+@pytest.mark.parametrize("component_use_sdpa", [False, True])
+def test_component_use_sdpa_is_preserved(make_arecho, component_use_sdpa):
+    """An explicit use_sdpa in a component dict wins over the constructor."""
+    encoder_params = dict(
+        num_blocks=1,
+        attention_heads=2,
+        linear_units=16,
+        input_layer="linear",
+        use_sdpa=component_use_sdpa,
+    )
+    model = make_arecho(
+        use_ref_audio=True,
+        use_ref_text=True,
+        vocab_size=6,
+        use_sdpa=not component_use_sdpa,
+        audio_encoder_params=encoder_params,
+        text_encoder_params=encoder_params,
+        cross_attention_params=dict(
+            n_head=2, dropout_rate=0.0, use_sdpa=component_use_sdpa
+        ),
+        metric_decoder_params=dict(
+            num_blocks=1,
+            attention_heads=2,
+            linear_units=16,
+            use_sdpa=component_use_sdpa,
+        ),
+    )
+    assert all(m.use_sdpa is component_use_sdpa for m in _sdpa_attentions(model))
 
 
 def test_default_inference_setup(make_arecho):

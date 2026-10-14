@@ -84,7 +84,7 @@ token_list: ${create_token_list.save_path}/${create_token_list.filename}
 # names; the comment on each line gives the upstream F5-TTS name, and
 # F5TTS.__init__ carries the full mapping table.
 model:
-  _target_: espnet3.systems.f5tts.f5tts.F5TTS
+  _target_: espnet3.systems.f5tts.src.f5tts.F5TTS
   token_list: ${token_list}
   feats_extract_config:
     fs: ${sample_rate}

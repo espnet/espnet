@@ -9,18 +9,20 @@ the checkpoints, where inference rebuilds the model from.
 
 import logging
 from pathlib import Path
+from typing import ClassVar
 
-from omegaconf import DictConfig, OmegaConf
+from omegaconf import OmegaConf
 
+from espnet3.contract.stages import StageSpec
 from espnet3.systems.base.system import BaseSystem
-from espnet3.systems.f5tts.create_token_list import create_token_list
-from espnet3.systems.f5tts.remove_long_short import remove_long_short
+from espnet3.systems.f5tts.src.create_token_list import create_token_list
+from espnet3.systems.f5tts.src.remove_long_short import remove_long_short
 
 logger = logging.getLogger(__name__)
 
 
 class F5TTSSystem(BaseSystem):
-    """System for recipes that train :class:`espnet3.systems.f5tts.f5tts.F5TTS`.
+    """System for recipes that train :class:`espnet3.systems.f5tts.src.f5tts.F5TTS`.
 
     The stage order of an F5-TTS recipe is ``create_dataset ->
     remove_long_short -> create_token_list -> collect_stats -> train ->
@@ -34,68 +36,32 @@ class F5TTSSystem(BaseSystem):
     from the config it was trained with. Every other stage is inherited
     from ``BaseSystem`` unchanged.
 
-    Additional stage log paths:
-
-    .. list-table::
-       :header-rows: 1
-
-       * - Stage
-         - Path reference
-       * - ``remove_long_short``
-         - ``training_config.remove_long_short.save_path``
-       * - ``create_token_list``
-         - ``training_config.create_token_list.save_path``
+    Examples:
+        >>> [s.name for s in F5TTSSystem.stages[:3]]
+        ['create_dataset', 'remove_long_short', 'create_token_list']
     """
 
-    def __init__(
-        self,
-        training_config: DictConfig | None = None,
-        inference_config: DictConfig | None = None,
-        metrics_config: DictConfig | None = None,
-        publication_config: DictConfig | None = None,
-        stage_log_mapping: dict | None = None,
-        demo_config: DictConfig | None = None,
-    ) -> None:
-        """Initialize the F5-TTS system with optional stage configs.
-
-        Args:
-            training_config: Training configuration. Also carries the
-                ``remove_long_short`` and ``create_token_list`` blocks.
-            inference_config: Inference configuration.
-            metrics_config: Measurement configuration.
-            publication_config: Publication configuration for model packing
-                and upload stages.
-            stage_log_mapping: Optional per-stage log directory overrides,
-                merged over the two entries this system adds.
-            demo_config: Demo configuration for demo packing and upload
-                stages.
-
-        Example:
-            .. code-block:: python
-
-                >>> system = F5TTSSystem(training_config=training_config)
-                >>> str(system.stage_log_dirs["remove_long_short"])
-                'data/manifest_filtered'
-                >>> str(system.stage_log_dirs["create_token_list"])
-                'data/token_list'
-
-        Note:
-            An entry in ``stage_log_mapping`` wins over the default for the
-            same stage, so a subclass can redirect a stage's log or add
-            entries for stages of its own.
-        """
-        super().__init__(
-            training_config=training_config,
-            inference_config=inference_config,
-            metrics_config=metrics_config,
-            publication_config=publication_config,
-            stage_log_mapping={
-                "remove_long_short": "training_config.remove_long_short.save_path",
-                "create_token_list": "training_config.create_token_list.save_path",
-                **(stage_log_mapping or {}),
-            },
-            demo_config=demo_config,
-        )
+    stages: ClassVar[tuple[StageSpec, ...]] = (
+        StageSpec(name="create_dataset", config="training", log_dir="data_dir"),
+        StageSpec(
+            name="remove_long_short",
+            config="training",
+            log_dir="remove_long_short.save_path",
+        ),
+        StageSpec(
+            name="create_token_list",
+            config="training",
+            log_dir="create_token_list.save_path",
+        ),
+        StageSpec(name="collect_stats", config="training", log_dir="stats_dir"),
+        StageSpec(name="train", config="training", log_dir="exp_dir"),
+        StageSpec(name="infer", config="inference", log_dir="inference_dir"),
+        StageSpec(name="measure", config="metrics", log_dir="inference_dir"),
+        StageSpec(name="pack_model", config=("training", "publication")),
+        StageSpec(name="upload_model", config="publication"),
+        StageSpec(name="pack_demo", config="demo", log_dir="pack.out_dir"),
+        StageSpec(name="upload_demo", config="demo", log_dir="pack.out_dir"),
+    )
 
     def train(self, *args, **kwargs):
         """Write the training config beside the checkpoints, then train.
@@ -131,10 +97,10 @@ class F5TTSSystem(BaseSystem):
         return super().train()
 
     def remove_long_short(self, *args, **kwargs):
-        r"""Filter the recipe's manifests by audio duration.
+        """Filter the recipe's manifests by audio duration.
 
         Runs the ``remove_long_short`` stage on ``training_config``. See
-        :func:`espnet3.systems.f5tts.remove_long_short.remove_long_short`
+        :func:`espnet3.systems.f5tts.src.remove_long_short.remove_long_short`
         for the ``training_config.remove_long_short`` fields and the files
         written.
 
@@ -143,18 +109,9 @@ class F5TTSSystem(BaseSystem):
             RuntimeError: If required configuration is missing or a manifest
                 file is not found.
 
-        Example:
-            .. code-block:: python
-
-                >>> system = F5TTSSystem(training_config=training_config)
-                >>> system.remove_long_short()
-
-            From the command line, through a recipe's ``run.py``:
-
-            .. code-block:: bash
-
-                python run.py --stages remove_long_short \
-                    --training_config conf/training.yaml
+        Examples:
+            >>> system = F5TTSSystem(training_config=training_config)
+            >>> system.remove_long_short()
 
         Note:
             Run it after ``create_dataset``, which writes the manifests it
@@ -166,10 +123,10 @@ class F5TTSSystem(BaseSystem):
         return remove_long_short(self.training_config)
 
     def create_token_list(self, *args, **kwargs):
-        r"""Build the token list from the training manifest.
+        """Build the token list from the training manifest.
 
         Runs the ``create_token_list`` stage on ``training_config``. See
-        :func:`espnet3.systems.f5tts.create_token_list.create_token_list`
+        :func:`espnet3.systems.f5tts.src.create_token_list.create_token_list`
         for the ``training_config.create_token_list`` fields and the file
         written.
 
@@ -178,18 +135,9 @@ class F5TTSSystem(BaseSystem):
             RuntimeError: If required configuration is missing or the
                 manifest file is not found.
 
-        Example:
-            .. code-block:: python
-
-                >>> system = F5TTSSystem(training_config=training_config)
-                >>> system.create_token_list()
-
-            From the command line, through a recipe's ``run.py``:
-
-            .. code-block:: bash
-
-                python run.py --stages create_token_list \
-                    --training_config conf/training.yaml
+        Examples:
+            >>> system = F5TTSSystem(training_config=training_config)
+            >>> system.create_token_list()
 
         Note:
             The model and the dataset preprocessor both read the token list

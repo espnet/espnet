@@ -1,1 +1,1 @@
-"""ESPnet3 F5-TTS recipe template: shared runner, default configs and demo app."""
+"""ESPnet3 F5-TTS recipe template: default configs and the demo app."""

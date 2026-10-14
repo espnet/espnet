@@ -19,8 +19,8 @@ import torch
 from omegaconf import OmegaConf
 
 import espnet3.parallel.parallel as parallel_module
-from espnet3.systems.f5tts.f5tts import F5TTS
 from espnet3.systems.f5tts.inference import F5TTSInference
+from espnet3.systems.f5tts.src.f5tts import F5TTS
 from espnet3.utils.config_utils import load_and_merge_config
 
 PACKAGE = "egs3.TEMPLATE.f5tts"
@@ -104,7 +104,7 @@ TRAINING_CONFIG = {
     },
     "token_list": "${create_token_list.save_path}/${create_token_list.filename}",
     "model": {
-        "_target_": "espnet3.systems.f5tts.f5tts.F5TTS",
+        "_target_": "espnet3.systems.f5tts.src.f5tts.F5TTS",
         "token_list": "${token_list}",
         "feats_extract_config": FEATS_EXTRACT_CONFIG,
         **MODEL_OVERRIDES,
@@ -203,11 +203,15 @@ TOY_DATASET = '''"""Toy LibriTTS-shaped dataset for the template tests."""
 
 import numpy as np
 import soundfile as sf
-from torch.utils.data import Dataset as TorchDataset
+
+from espnet3.api import Field
+from espnet3.components.data.base_dataset import BaseDataset
 
 
-class Dataset(TorchDataset):
+class Dataset(BaseDataset):
     """Serve ``utt_id<TAB>wav_path<TAB>text<TAB>speaker`` rows."""
+
+    fields = (Field("speech", "audio"), Field("text", "text"))
 
     def __init__(self, manifest_path):
         with open(manifest_path, encoding="utf-8") as f:

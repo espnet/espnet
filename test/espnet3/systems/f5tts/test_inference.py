@@ -16,13 +16,13 @@ import yaml
 
 from espnet3.api.inference import Audio
 from espnet3.systems.base.inference_runner import InferenceRunner
-from espnet3.systems.f5tts.f5tts import F5TTS
 from espnet3.systems.f5tts.inference import (
     F5TTSInference,
     Inference,
     _chunk_text,
     _cross_fade,
 )
+from espnet3.systems.f5tts.src.f5tts import F5TTS
 
 TOKENS = ["<blank>", "<unk>", "a", "b", "c", " ", "<sos/eos>"]
 MODEL_CONF = dict(
@@ -190,7 +190,7 @@ def train_config(tmp_path):
     token_file.write_text("\n".join(TOKENS) + "\n", encoding="utf-8")
     cfg = {
         "model": {
-            "_target_": "espnet3.systems.f5tts.f5tts.F5TTS",
+            "_target_": "espnet3.systems.f5tts.src.f5tts.F5TTS",
             "token_list": str(token_file),
             "feats_extract_config": dict(FEATS_CONF),
             **dict(MODEL_CONF),
@@ -378,7 +378,7 @@ def test_a_vocab_file_selects_the_pinyin_tokenizer(
     vocab.write_text("\n".join(TOKENS) + "\n", encoding="utf-8")
     cfg = yaml.safe_load(train_config.read_text(encoding="utf-8"))
     cfg["dataset"]["preprocessor"] = {
-        "_target_": "espnet3.systems.f5tts.preprocessor.F5PinyinPreprocessor",
+        "_target_": "espnet3.systems.f5tts.src.preprocessor.F5PinyinPreprocessor",
         "vocab_file": str(vocab),
     }
     path = tmp_path / "pinyin.yaml"
@@ -575,7 +575,7 @@ def restore_g2p_registry():
     run after it see a patched tokenizer.
     """
     import espnet2.text.phoneme_tokenizer as pt
-    from espnet3.systems.f5tts import pinyin
+    from espnet3.systems.f5tts.src import pinyin
 
     choices = list(pt.g2p_choices)
     init = pt.PhonemeTokenizer.__init__

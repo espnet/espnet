@@ -18,6 +18,7 @@ import sys
 import types
 
 import pytest
+import torch
 
 import espnet
 
@@ -121,12 +122,13 @@ def test_importing_espnet_does_not_drag_in_torch():
 @pytest.mark.parametrize("task", sorted(espnet.TASKS))
 def test_each_task_dispatches_to_its_own_class(task, monkeypatch):
     rec = _fake_class(monkeypatch, task, _Recorder())
+    monkeypatch.setattr(torch.cuda, "is_available", lambda: False)
 
     built = espnet.load("espnet/some-model", task=task)
 
     assert built is rec
     assert rec.tag == "espnet/some-model"
-    assert rec.device == "cpu"
+    assert rec.device == "cpu"  # "auto", resolved before the class sees it
 
 
 def test_every_task_names_a_class_that_exists():
@@ -142,6 +144,8 @@ def test_every_task_names_a_class_that_exists():
 
 def test_device_and_extra_arguments_reach_the_constructor(monkeypatch):
     rec = _fake_class(monkeypatch, "asr", _Recorder())
+    monkeypatch.setattr(torch.cuda, "is_available", lambda: True)
+    monkeypatch.setattr(torch.cuda, "device_count", lambda: 2)
 
     espnet.load("espnet/some-asr", task="asr", device="cuda:1", beam_size=1)
 
@@ -355,6 +359,8 @@ def _fake_espnet3(monkeypatch, system="esp2_asr"):
 def test_an_espnet3_bundle_is_handed_to_espnet3s_loader(monkeypatch):
     _fake_class(monkeypatch, "asr", _Espnet3Bundle)
     calls = _fake_espnet3(monkeypatch)
+    monkeypatch.setattr(torch.cuda, "is_available", lambda: True)
+    monkeypatch.setattr(torch.cuda, "device_count", lambda: 1)
     model = espnet.load(
         "espnet/an_espnet3_pack", task="asr", device="cuda", beam_size=1
     )

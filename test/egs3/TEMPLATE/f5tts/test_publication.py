@@ -1,11 +1,10 @@
 """The template's pack_model and pack_demo configs, run on a tiny recipe.
 
-These go through ``run.py``'s ``main`` the way a user does, then load the
+These go through ``launch`` the way a recipe's ``run.py`` does, then load the
 result back the way a user of the published model does.
 """
 
 import shutil
-from argparse import Namespace
 from importlib import resources
 from pathlib import Path
 
@@ -15,26 +14,18 @@ import yaml
 from hydra.utils import get_class
 from omegaconf import OmegaConf
 
-from egs3.TEMPLATE.f5tts.run import main
 from espnet3.api.inference import Audio, load
 from espnet3.systems.f5tts.system import F5TTSSystem
+from espnet3.systems.launch import launch
 from espnet3.utils.config_utils import load_default_config
 
 
 def _run(stages, **configs):
-    """Run ``stages`` through the template's ``main`` with the given configs."""
-    arguments = {
-        "stages": stages,
-        "training_config": Path("conf/training.yaml"),
-        "inference_config": None,
-        "metrics_config": None,
-        "publication_config": None,
-        "demo_config": None,
-        "dry_run": False,
-        "write_requirements": False,
-    }
-    arguments.update({name: Path(path) for name, path in configs.items()})
-    main(args=Namespace(**arguments), system_cls=F5TTSSystem)
+    """Run ``stages`` through ``launch`` with the given configs."""
+    argv = ["--stages", *stages, "--training_config", "conf/training.yaml"]
+    for name, path in configs.items():
+        argv += [f"--{name}", str(path)]
+    launch(F5TTSSystem, argv=argv)
 
 
 def _pack_model():

@@ -24,7 +24,9 @@ import numpy as np
 import soundfile as sf
 import torch
 import torchaudio
-from torch.utils.data import Dataset as TorchDataset
+
+from espnet3.api import Field
+from espnet3.components.data.base_dataset import BaseDataset
 
 
 def _find_utterance_flac(root: Path, utterance_id: str) -> Path:
@@ -88,7 +90,7 @@ def build_manifest(lst_path, test_clean_root, out_tsv) -> int:
     return len(rows)
 
 
-class LibriSpeechPCDataset(TorchDataset):
+class LibriSpeechPCDataset(BaseDataset):
     """Serve the LibriSpeech-PC manifest rows as F5-TTS inference samples.
 
     Each sample carries the target text plus the pinned prompt: ``utt_id``,
@@ -103,6 +105,14 @@ class LibriSpeechPCDataset(TorchDataset):
     Raises:
         RuntimeError: If the manifest holds no rows.
     """
+
+    fields = (
+        Field("utt_id", "text"),
+        Field("text", "text"),
+        Field("reference_speech", "audio"),
+        Field("reference_text", "text"),
+        Field("ref_wav_path", "text"),
+    )
 
     def __init__(
         self,

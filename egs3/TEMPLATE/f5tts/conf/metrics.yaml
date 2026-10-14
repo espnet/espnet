@@ -95,6 +95,12 @@ metrics:
           predictor_args:
             utmos:
               fs: 16000
+      # The scores this protocol promises; `measure` fails if VERSA drops one
+      # (a metric whose dependency is missing is disabled without failing the
+      # run). `fwhisper_wer` / `fwhisper_cer` are the corpus-level rates
+      # VersaMetric pools from the edit counts; every other VERSA key is
+      # returned as well.
+      outputs: [fwhisper_wer, fwhisper_cer, spk_similarity, utmos]
       wav_key:  wav
       ref_key:  ref
       text_key: text

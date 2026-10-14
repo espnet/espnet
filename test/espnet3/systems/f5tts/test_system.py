@@ -5,6 +5,7 @@ from omegaconf import OmegaConf
 
 import espnet3.parallel.parallel as parallel_module
 import espnet3.systems.f5tts.system as system_module
+from espnet3.contract.stages import stage_log_dir
 from espnet3.systems.base.system import BaseSystem
 from espnet3.systems.f5tts.system import F5TTSSystem
 
@@ -62,23 +63,8 @@ def test_stage_logs_go_under_the_stage_save_path(tmp_path):
     """Each added stage logs next to the files it writes."""
     system = F5TTSSystem(training_config=_build_training_config(tmp_path))
 
-    assert system.stage_log_dirs["remove_long_short"] == tmp_path / "filtered"
-    assert system.stage_log_dirs["create_token_list"] == tmp_path / "tokens"
-
-
-def test_stage_log_mapping_overrides_are_merged(tmp_path):
-    """A caller's ``stage_log_mapping`` extends and overrides the defaults."""
-    system = F5TTSSystem(
-        training_config=_build_training_config(tmp_path),
-        stage_log_mapping={
-            "create_token_list": "training_config.exp_dir",
-            "export_onnx": "training_config.exp_dir",
-        },
-    )
-
-    assert system.stage_log_dirs["remove_long_short"] == tmp_path / "filtered"
-    assert system.stage_log_dirs["create_token_list"] == tmp_path / "exp"
-    assert system.stage_log_dirs["export_onnx"] == tmp_path / "exp"
+    assert stage_log_dir(system, "remove_long_short") == tmp_path / "filtered"
+    assert stage_log_dir(system, "create_token_list") == tmp_path / "tokens"
 
 
 def test_all_stage_configs_are_stored(tmp_path):
@@ -105,14 +91,14 @@ def test_the_other_stages_are_inherited():
 def test_train_writes_the_training_config_beside_the_checkpoints(tmp_path, monkeypatch):
     """``${exp_dir}/config.yaml`` is what inference.yaml's model.train_config reads."""
     config = _build_training_config(tmp_path)
-    config.model = {"_target_": "espnet3.systems.f5tts.f5tts.F5TTS"}
+    config.model = {"_target_": "espnet3.systems.f5tts.src.f5tts.F5TTS"}
     trained = []
     monkeypatch.setattr(BaseSystem, "train", lambda self: trained.append(True))
 
     F5TTSSystem(training_config=config).train()
 
     saved = OmegaConf.load(tmp_path / "exp" / "config.yaml")
-    assert saved.model._target_ == "espnet3.systems.f5tts.f5tts.F5TTS"
+    assert saved.model._target_ == "espnet3.systems.f5tts.src.f5tts.F5TTS"
     assert saved.exp_dir == str(tmp_path / "exp")
     assert trained == [True]
     with pytest.raises(TypeError):
