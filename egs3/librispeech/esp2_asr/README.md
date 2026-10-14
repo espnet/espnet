@@ -7,10 +7,18 @@ following
 `egs2/librispeech/asr1/conf/tuning/train_asr_e_branchformer.yaml`.
 
 Differences from the egs2 recipe are marked `[DEVIATION]` in that config. The
-three that change the result: **no language model** (ESPnet3 has no LM stage,
-so decoding is CTC/attention only), speed perturbation applied **on the fly**
-instead of tripling the dumped data, and `batch_bins` restated in ESPnet3's
-per-GPU unit.
+ones that change the result:
+
+- **No language model.** ESPnet3 has no LM stage, so decoding is
+  CTC/attention only and the WER is not comparable to egs2's published number.
+- **Speed perturbation on the fly** rather than tripling the dumped data.
+- **`max_epochs: 240`, not egs2's 80.** These are the same amount of training.
+  `--speed_perturb_factors` dumps the three perturbed copies as separate
+  utterances, so an egs2 epoch is three passes over the corpus and an epoch
+  here is one. `warmup_steps` is left at egs2's 40000: it counts optimizer
+  steps and does not follow the epoch budget.
+- **`batch_bins` restated in ESPnet3's per-GPU unit**, which also bins on
+  `feats_shape` rather than raw samples.
 
 ## Requirements
 
@@ -116,11 +124,48 @@ the corpus directly. The archives are relocatable: the dataset rebuilds blob
 paths from `bin_index` rather than trusting the absolute `path` column that
 Omni-IO records at packing time.
 
+## Variants
+
+Four training configs, each inheriting the baseline and stating only what it
+changes, so any pair isolates one thing:
+
+| config | changes | what it isolates |
+| --- | --- | --- |
+| `train_e_branchformer.yaml` | — | the baseline, `rel_selfattn` over `rel_pos` |
+| `train_e_branchformer_sdpa.yaml` | `use_sdpa` | the attention kernel, same model |
+| `train_e_branchformer_abs_pos.yaml` | `selfattn` + `abs_pos` | dropping relative positions |
+| `train_e_branchformer_abs_pos_bf16.yaml` | `bf16-true` | fp32 master weights |
+
 ## Results
 
-Not run yet. This port has produced no numbers, so none are quoted here; the
-egs2 recipe's published WER is not comparable anyway, because this recipe
-decodes without a language model.
+**No WER yet.** The `infer` and `measure` stages have not been run, so there is
+nothing to compare against egs2 — and the comparison would not be fair anyway,
+since this recipe decodes without a language model.
+
+Training is in progress. What follows is `valid/acc` and wall clock from runs
+on **one NVIDIA A40** (`batch_bins: 4375000`, `accumulate_grad_batches: 16`,
+391 optimizer steps per epoch), as of 2026-10-12:
+
+| config | min/epoch | ep 5 | ep 9 | ep 13 | ep 17 | ep 24 |
+| --- | --- | --- | --- | --- | --- | --- |
+| baseline | 106 | 0.131 | 0.436 | 0.844 | 0.901 | — |
+| `_sdpa` | 96 | 0.131 | 0.466 | — | — | — |
+| `_abs_pos` | 80 | 0.125 | 0.397 | 0.803 | 0.884 | 0.920 |
+| `_abs_pos_bf16` | 70 | 0.091 | 0.120 | 0.179 | — | — |
+
+Three things these say so far:
+
+- **SDPA does not change the learning.** The baseline and `_sdpa` agree to
+  three decimals over the first seven epochs; only the kernel differs.
+- **Relative positions buy a little accuracy per epoch and cost time.**
+  `_abs_pos` trails per epoch but is 25% faster, so it is ahead per hour.
+  The per-epoch gap narrows as training goes on (0.039 at epoch 9, 0.017 at
+  17).
+- **`bf16-true` is not converging.** It never leaves the plateau the others
+  exit around epoch 9. Keeping no fp32 master weights looks like the reason:
+  during warmup the updates are smallest, and bf16's 7-bit mantissa drops
+  them. Do not take that config as a recommendation; it is in the tree because
+  the measurement is worth having.
 
 ## Pretrained Models
 
