@@ -8,9 +8,10 @@ from typing import Any
 import librosa
 import numpy as np
 import soundfile as sf
-from torch.utils.data import Dataset as TorchDataset
 
 from egs3.vctk_noisy.esp2_enh.dataset.builder import resolve_dataset_dir
+from espnet3.api.inference import Field
+from espnet3.components.data.base_dataset import BaseDataset
 
 # Same speaker hold-out as egs2/vctk_noisy/enh1/local/vctk_data_prep.sh
 _VALID_SPEAKERS = frozenset({"p226", "p287"})
@@ -50,7 +51,7 @@ def _list_pairs(noisy_dir: Path, clean_dir: Path) -> list[tuple[str, Path, Path]
     return pairs
 
 
-class VCTKNoisyDataset(TorchDataset):
+class VCTKNoisyDataset(BaseDataset):
     """Load noisy/clean pairs from a VCTK-DEMAND root.
 
     Args:
@@ -64,6 +65,8 @@ class VCTKNoisyDataset(TorchDataset):
         sample_rate: Rate the waveforms are resampled to. The official wavs are
             48 kHz, while the model and the wav writers expect 16 kHz.
     """
+
+    fields = (Field("speech_mix", "audio"), Field("speech_ref1", "audio"))
 
     def __init__(
         self,

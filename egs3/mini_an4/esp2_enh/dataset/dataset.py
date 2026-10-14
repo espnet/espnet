@@ -9,9 +9,10 @@ from typing import Any
 
 import numpy as np
 import soundfile as sf
-from torch.utils.data import Dataset as TorchDataset
 
 from egs3.mini_an4.esp2_enh.dataset.builder import MiniAn4Builder
+from espnet3.api.inference import Field
+from espnet3.components.data.base_dataset import BaseDataset
 from espnet3.utils.config_utils import load_config_with_defaults
 
 _CONFIG_RESOURCE = resources.files(__package__).joinpath("config.yaml")
@@ -59,12 +60,14 @@ def _read_manifest(manifest_path: Path) -> list[ManifestEntry]:
     return entries
 
 
-class MiniAn4EnhDataset(TorchDataset):
+class MiniAn4EnhDataset(BaseDataset):
     """Mini AN4 enh dataset returning ``speech_mix`` and ``speech_ref1``.
 
     Like egs2/mini_an4/enh1 without a preprocessor, mix and ref are the same
     clean waveform. That is enough for a CI smoke train/infer/measure loop.
     """
+
+    fields = (Field("speech_mix", "audio"), Field("speech_ref1", "audio"))
 
     def __init__(
         self,

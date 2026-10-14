@@ -8,8 +8,9 @@
 #       --metrics_config conf/metrics.yaml
 #
 # Assumptions:
-# - `infer` has already written `<test_name>/reference.scp` and
-#   `<test_name>/enhanced.scp` (plus matching wavs).
+# - `infer` has already written `<test_name>/enhanced.scp` (plus matching wavs).
+# - The clean reference is the test set's `speech_ref1` column; `measure`
+#   writes it once as `<test_name>/dataset/speech_ref1.scp` plus wavs.
 # - If `dataset.test` is omitted, test sets are discovered from
 #   `${inference_dir}` subdirectories.
 #
@@ -22,32 +23,34 @@ recipe_dir: .
 exp_tag:
 exp_dir: ${recipe_dir}/exp/${exp_tag}
 
+# How a dataset column is written before scoring, in the form of
+# inference.yaml's `output_artifacts`.
+dataset_artifacts:
+  speech_ref1:
+    type: wav
+    sample_rate: 16000
+
 ##########################################################
 #                    METRIC DEFINITION                   #
 ##########################################################
+# Each metric reads `ref` (the clean speech) and `hyp` (the enhanced speech).
 metrics:
   - metric:
       _target_: espnet3.systems.esp2_enh.metrics.sisnr.SISNR
-      ref_key: reference
-      hyp_key: enhanced
     inputs:
-      reference: reference
-      enhanced: enhanced
+      ref: dataset:speech_ref1
+      hyp: enhanced
 
   - metric:
       _target_: espnet3.systems.esp2_enh.metrics.pesq.PESQ
-      ref_key: reference
-      hyp_key: enhanced
       fs: 16000
     inputs:
-      reference: reference
-      enhanced: enhanced
+      ref: dataset:speech_ref1
+      hyp: enhanced
 
   - metric:
       _target_: espnet3.systems.esp2_enh.metrics.stoi.STOI
-      ref_key: reference
-      hyp_key: enhanced
       fs: 16000
     inputs:
-      reference: reference
-      enhanced: enhanced
+      ref: dataset:speech_ref1
+      hyp: enhanced

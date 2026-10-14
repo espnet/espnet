@@ -1,4 +1,3 @@
-import math
 from pathlib import Path
 
 import numpy as np
@@ -39,7 +38,7 @@ def _write_pairs(tmp_path: Path, pairs, fs: int = 16000) -> dict[str, Path]:
         hyp_lines.append(f"utt{i} {hyp_path}")
     (tmp_path / "ref.scp").write_text("\n".join(ref_lines), encoding="utf-8")
     (tmp_path / "hyp.scp").write_text("\n".join(hyp_lines), encoding="utf-8")
-    return {"reference": tmp_path / "ref.scp", "enhanced": tmp_path / "hyp.scp"}
+    return {"ref": tmp_path / "ref.scp", "hyp": tmp_path / "hyp.scp"}
 
 
 def test_si_snr_matches_worked_examples():
@@ -55,18 +54,19 @@ def test_si_snr_matches_worked_examples():
 def test_sisnr_metric_averages_over_utterances(tmp_path):
     data = _write_pairs(tmp_path, [(REF, REF + NOISE), (REF, REF + 0.1 * NOISE)])
 
-    assert SISNR()(data, "test", tmp_path) == {
-        "SI-SNR": pytest.approx(10.0, abs=SISNR_TOL)
-    }
+    assert SISNR()(data, "test") == {"SI_SNR": pytest.approx(10.0, abs=SISNR_TOL)}
 
 
-def test_sisnr_metric_uses_configured_keys(tmp_path):
-    data = _write_pairs(tmp_path, [(REF, REF + 0.1 * NOISE)])
-    data = {"clean": data["reference"], "denoised": data["enhanced"]}
+def test_sisnr_metric_takes_waveforms_and_sums_states_across_batches():
+    # A training callback passes samples, not paths, and merges ranks' states.
+    first, second = SISNR(), SISNR()
+    first.update(ref=[REF], hyp=[REF + NOISE])
+    second.update(ref=[REF], hyp=[REF + 0.1 * NOISE])
 
-    result = SISNR(ref_key="clean", hyp_key="denoised")(data, "test", tmp_path)
+    merged = SISNR()
+    merged.load_state(merged.merge_states([first.state(), second.state()]))
 
-    assert result == {"SI-SNR": pytest.approx(20.0, abs=SISNR_TOL)}
+    assert merged.compute() == {"SI_SNR": pytest.approx(10.0, abs=SISNR_TOL)}
 
 
 def test_load_audio_takes_first_channel_and_resamples(tmp_path):
@@ -90,7 +90,7 @@ def test_pesq_requires_package(tmp_path, monkeypatch):
     monkeypatch.setattr(pesq_module, "pesq_fn", None)
     data = _write_pairs(tmp_path, [(REF, REF)])
     with pytest.raises(RuntimeError, match="pip install pesq"):
-        PESQ()(data, "test", tmp_path)
+        PESQ()(data, "test")
 
 
 @pytest.mark.parametrize("fs, mode", [(16000, "wb"), (8000, "nb")])
@@ -107,7 +107,7 @@ def test_pesq_passes_rate_and_mode_and_averages(tmp_path, monkeypatch, fs, mode)
         tmp_path, [(REF, REF), (REF, np.concatenate([REF, REF]))], fs=fs
     )
 
-    assert PESQ(fs=fs)(data, "test", tmp_path) == {"PESQ": 2.5}
+    assert PESQ(fs=fs)(data, "test") == {"PESQ": 2.5}
     assert seen == [(fs, mode, len(REF), len(REF))] * 2
 
 
@@ -120,8 +120,8 @@ def test_pesq_scores_clean_above_noisy(tmp_path):
     noisy_dir.mkdir()
     noisy_data = _write_pairs(noisy_dir, [(clean, noisy.astype(np.float32))])
 
-    clean_score = PESQ()(data, "test", tmp_path)["PESQ"]
-    noisy_score = PESQ()(noisy_data, "test", noisy_dir)["PESQ"]
+    clean_score = PESQ()(data, "test")["PESQ"]
+    noisy_score = PESQ()(noisy_data, "test")["PESQ"]
 
     assert clean_score > 4.0
     assert noisy_score < clean_score
@@ -131,7 +131,7 @@ def test_stoi_requires_package(tmp_path, monkeypatch):
     monkeypatch.setattr(stoi_module, "stoi_fn", None)
     data = _write_pairs(tmp_path, [(REF, REF)])
     with pytest.raises(RuntimeError, match="pip install pystoi"):
-        STOI()(data, "test", tmp_path)
+        STOI()(data, "test")
 
 
 @pytest.mark.parametrize("extended, label", [(False, "STOI"), (True, "ESTOI")])
@@ -145,7 +145,7 @@ def test_stoi_passes_options_and_labels_result(tmp_path, monkeypatch, extended, 
     monkeypatch.setattr(stoi_module, "stoi_fn", fake_stoi)
     data = _write_pairs(tmp_path, [(REF, np.concatenate([REF, REF]))])
 
-    assert STOI(extended=extended)(data, "test", tmp_path) == {label: 0.8}
+    assert STOI(extended=extended)(data, "test") == {label: 0.8}
     assert seen == [(len(REF), len(REF), 16000, extended)]
 
 
@@ -158,16 +158,18 @@ def test_stoi_scores_identical_signals_near_one(tmp_path):
     noisy_dir.mkdir()
     noisy_data = _write_pairs(noisy_dir, [(clean, noisy.astype(np.float32))])
 
-    clean_score = STOI()(data, "test", tmp_path)["STOI"]
-    noisy_score = STOI()(noisy_data, "test", noisy_dir)["STOI"]
+    clean_score = STOI()(data, "test")["STOI"]
+    noisy_score = STOI()(noisy_data, "test")["STOI"]
 
     assert clean_score == pytest.approx(1.0, abs=1e-3)
     assert noisy_score < clean_score
 
 
-def test_metrics_return_nan_for_empty_test_set(tmp_path):
+@pytest.mark.parametrize("metric", [SISNR(), PESQ(), STOI()])
+def test_metrics_refuse_an_empty_test_set(tmp_path, metric):
     (tmp_path / "ref.scp").write_text("", encoding="utf-8")
     (tmp_path / "hyp.scp").write_text("", encoding="utf-8")
-    data = {"reference": tmp_path / "ref.scp", "enhanced": tmp_path / "hyp.scp"}
+    data = {"ref": tmp_path / "ref.scp", "hyp": tmp_path / "hyp.scp"}
 
-    assert math.isnan(SISNR()(data, "test", tmp_path)["SI-SNR"])
+    with pytest.raises(ValueError, match="nothing to score"):
+        metric(data, "test")

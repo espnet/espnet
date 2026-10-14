@@ -16,7 +16,7 @@
 recipe_dir: .
 # Common case:
 # - pass both `--training_config` and `--inference_config`
-# - `run.py` copies `training_config.exp_tag` / `training_config.exp_dir` here
+# - `launch()` copies `training_config.exp_tag` / `training_config.exp_dir` here
 # - `${self_name:}` resolves to the stem of the config file passed to
 #   `--inference_config`
 exp_tag:
@@ -55,27 +55,20 @@ parallel:
 ##########################################################
 #                    MODEL AND OUTPUT                    #
 ##########################################################
-# `model` is usually filled by the concrete recipe (e.g. SeparateSpeechWrapper).
-# `input_key` selects the sample field passed to the model callable.
-# `output_fn` turns model outputs into the dictionaries written as artifacts.
+# The model is the enhancement system's `Inference`
+# (espnet3.systems.esp2_enh.inference): it takes `speech_mix` and returns
+# `enhanced`, written as `enhanced.scp` plus one wav per utterance at
+# `sample_rate`. Its other arguments are the ones
+# `espnet2.bin.enh_inference.SeparateSpeech` takes; `device` is added by the
+# provider. The clean reference is not written here: `measure` reads it from
+# the dataset's `speech_ref1` column.
 model:
-
-input_key: speech_mix
-output_fn:
-output_keys:
-  - reference
-  - enhanced
-
-output_artifacts:
-  reference:
-    type: wav
-    sample_rate: 16000
-  enhanced:
-    type: wav
-    sample_rate: 16000
+  _target_: espnet3.systems.esp2_enh.inference.Inference
+  # train_config: ${exp_dir}/config.yaml
+  # model_file: ${exp_dir}/last.ckpt
+  # sample_rate: 16000
 
 provider:
   _target_: espnet3.systems.base.inference_provider.InferenceProvider
 runner:
   _target_: espnet3.systems.base.inference_runner.InferenceRunner
-  batch_size: 1
