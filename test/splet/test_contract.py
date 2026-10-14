@@ -91,13 +91,19 @@ def test_dir_reader_rejects_colliding_stems(tmp_path):
 
 
 def test_one_implementation_runs_twice_under_two_ids():
-    """Raw and normalized WER coexist, each under its own keys."""
+    """Raw and normalized WER coexist, each under its own keys.
+
+    Both ask for case="sensitive" so that the normalizer is the only
+    difference between them; the default is to fold, which would make
+    the lowercase normalizer a no-op and the two ids identical.
+    """
     modules = load_metrics(
         [
-            {"name": "wer", "keep_alignment": True},
+            {"name": "wer", "case": "sensitive", "keep_alignment": True},
             {
                 "name": "wer",
                 "id": "wer_norm",
+                "case": "sensitive",
                 "normalize": [{"name": "lowercase"}],
                 "keep_alignment": True,
             },

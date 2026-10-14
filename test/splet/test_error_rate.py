@@ -183,3 +183,58 @@ def test_the_cost_model_is_recorded_in_the_metadata():
 def test_an_unknown_cost_model_is_rejected():
     with pytest.raises(ValueError, match="unknown cost model"):
         error_rate_setup(costs="sctk")
+
+
+def test_case_is_folded_by_default():
+    """sclite is case-insensitive unless given -s, so SPLET is too.
+
+    This moves published numbers: OWSM emits cased hypotheses against
+    lowercase references, where folding took one recipe's WER from 28.95
+    to 23.05.
+    """
+    state = error_rate_setup()
+    assert error_rate_metric(state, "The Cat Sat", "the cat sat")["wer"] == 0.0
+
+
+def test_case_sensitive_is_sclites_dash_s():
+    state = error_rate_setup(case="sensitive")
+    result = error_rate_metric(state, "The Cat Sat", "the cat sat")
+    assert result["wer"] == 1.0
+    assert result["wer_sub"] == 3
+
+
+def test_folding_applies_to_characters_too():
+    state = error_rate_setup(metric_id="cer", tokenizer="char")
+    assert error_rate_metric(state, "ABC", "abc")["cer"] == 0.0
+
+
+def test_an_unknown_case_policy_is_rejected():
+    with pytest.raises(ValueError, match="unknown case policy"):
+        error_rate_setup(case="lower")
+
+
+def test_optional_deletion_can_be_scored_correct():
+    """sclite's -D, reached from the metric rather than only the aligner."""
+    scored = error_rate_setup(optional_deletion_is_correct=True)
+    assert error_rate_metric(scored, "b e", "b (c) d")["wer_del"] == 0
+    default = error_rate_setup()
+    assert error_rate_metric(default, "b e", "b (c) d")["wer_del"] == 1
+
+
+def test_case_and_optional_deletion_are_recorded_in_the_metadata():
+    """Both move the number and neither has to appear in the config.
+
+    A summary whose metadata does not say which was in force cannot be
+    reproduced from the config alone.
+    """
+    modules = load_metrics([{"name": "wer"}])
+    block = metadata(modules)["metrics"]["wer"]
+    assert block["case"] == "fold"
+    assert block["optional_deletion_is_correct"] is False
+
+    modules = load_metrics(
+        [{"name": "wer", "case": "sensitive", "optional_deletion_is_correct": True}]
+    )
+    block = metadata(modules)["metrics"]["wer"]
+    assert block["case"] == "sensitive"
+    assert block["optional_deletion_is_correct"] is True

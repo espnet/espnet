@@ -51,6 +51,13 @@ TOKENIZER_CHOICES: Dict[str, Callable[..., Callable[[str], List[str]]]] = {
     "char": _char_tokenizer,
 }
 
+#: How a configured case policy folds the text it is given. ``fold`` is
+#: sclite's default; ``sensitive`` is its ``-s``.
+CASE_CHOICES: Dict[str, Callable[[str], str]] = {
+    "fold": str.casefold,
+    "sensitive": lambda text: text,
+}
+
 #: The result keys an error rate reports, by the suffix after its configured
 #: id, and how each is reduced over the corpus (see ``splet/summary.py``):
 #: the rate is recomputed from the summed error and reference-length counts,
@@ -74,6 +81,8 @@ def error_rate_setup(
     tokenizer_conf: Optional[Dict[str, Any]] = None,
     normalize: Optional[list] = None,
     costs: str = "sclite",
+    case: str = "fold",
+    optional_deletion_is_correct: bool = False,
     backend: str = "python",
     keep_alignment: bool = False,
 ) -> Dict[str, Any]:
@@ -92,6 +101,14 @@ def error_rate_setup(
         costs: Alignment cost model. ``sclite`` (the default) reproduces
             sclite's counts; ``unit`` is plain edit distance, which is what
             jiwer reports. See :mod:`splet.alignment`.
+        case: ``fold`` (the default) case-folds both sides before
+            tokenizing, which is what sclite does unless given ``-s``;
+            ``sensitive`` is ``-s``. Folded text is what a rendered
+            alignment shows, because it is what was scored.
+        optional_deletion_is_correct: sclite's ``-D``. Score a token
+            written ``(word)`` as correct when it is dropped rather than
+            as an error. A reference that does not use the marking is
+            unaffected either way.
         backend: Alignment backend. The default is the reference
             implementation, whose S/D/I split does not depend on which
             packages happen to be installed; see
@@ -106,12 +123,17 @@ def error_rate_setup(
         The state state passed back into :func:`error_rate_metric`.
 
     Raises:
-        ValueError: If the tokenizer, cost model or backend name is unknown.
+        ValueError: If the tokenizer, cost model, case policy or backend
+            name is unknown.
         ImportError: If ``backend="rapidfuzz"`` and it is not installed.
     """
     if tokenizer not in TOKENIZER_CHOICES:
         raise ValueError(
             f"unknown tokenizer '{tokenizer}'. Available: {sorted(TOKENIZER_CHOICES)}"
+        )
+    if case not in CASE_CHOICES:
+        raise ValueError(
+            f"unknown case policy '{case}'. Available: {sorted(CASE_CHOICES)}"
         )
     return {
         "metric_id": metric_id,
@@ -119,6 +141,9 @@ def error_rate_setup(
         "normalizer": build_normalizer(normalize),
         "costs": costs,
         "cost_model": resolve_costs(costs),
+        "case": case,
+        "fold": CASE_CHOICES[case],
+        "optional_deletion_is_correct": optional_deletion_is_correct,
         "backend": resolve_backend(backend, costs),
         "keep_alignment": keep_alignment,
     }
@@ -144,12 +169,14 @@ def error_rate_metric(
     name: str = state["metric_id"]
     normalizer = state["normalizer"]
     tokenize = state["tokenizer"]
+    fold = state["fold"]
 
     alignment = levenshtein_alignment(
-        tokenize(normalizer(gt_text)),
-        tokenize(normalizer(pred_text)),
+        tokenize(fold(normalizer(gt_text))),
+        tokenize(fold(normalizer(pred_text))),
         backend=state["backend"],
         costs=state["cost_model"],
+        optional_deletion_is_correct=state["optional_deletion_is_correct"],
     )
 
     result: Dict[str, Any] = {
