@@ -7,8 +7,9 @@
 #       --inference_config conf/inference.yaml \
 #       --metrics_config conf/metrics.yaml
 #
-# Everything else -- what the three rates are, and why there is no BLEU --
-# is in egs3/TEMPLATE/esp2_s2t/conf/metrics.yaml, which this file merges over.
+# Everything else -- what the three rates are, why there is no BLEU, and what
+# `inputs:` binds -- is in egs3/TEMPLATE/esp2_s2t/conf/metrics.yaml, which this
+# file merges over.
 
 ##########################################################
 #                    METRIC DEFINITION                   #
@@ -20,25 +21,30 @@ nlsyms:
 
 metrics:
   - metric:
-      _target_: espnet3.systems.esp2_s2t.metrics.error_rate.CER
+      _target_: espnet3.systems.esp2_s2t.metrics.cer.CER
       nlsyms: ${nlsyms}
-      ref_key: dataset:text  # the reference, tags and all
-      hyp_key: text          # what the model said
       ref_cleaner:
       hyp_cleaner:
+    inputs:
+      ref: dataset:text  # the reference, tags and all
+      hyp: text          # what the model said
+
   - metric:
-      _target_: espnet3.systems.esp2_s2t.metrics.error_rate.WER
+      _target_: espnet3.systems.esp2_s2t.metrics.wer.WER
       nlsyms: ${nlsyms}
-      ref_key: dataset:text  # the reference, tags and all
-      hyp_key: text          # what the model said
       ref_cleaner:
       hyp_cleaner:
+    inputs:
+      ref: dataset:text
+      hyp: text
+
   - metric:
-      _target_: espnet3.systems.esp2_s2t.metrics.error_rate.TER
+      _target_: espnet3.systems.esp2_s2t.metrics.ter.TER
       # Must match tokenizer.save_path / model_type in the training config.
       bpemodel: ${recipe_dir}/data/bpe_50000/bpe.model
       nlsyms: ${nlsyms}
-      ref_key: dataset:text  # the reference, tags and all
-      hyp_key: text          # what the model said
       ref_cleaner:
       hyp_cleaner:
+    inputs:
+      ref: dataset:text
+      hyp: text

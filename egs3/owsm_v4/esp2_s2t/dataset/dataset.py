@@ -9,7 +9,6 @@ from typing import Any, Iterator
 import numpy as np
 import soundfile as sf
 from datasets import load_from_disk
-from torch.utils.data import Dataset as TorchDataset
 
 from egs3.owsm_v4.esp2_s2t.dataset.utils import (
     cache_root,
@@ -17,6 +16,8 @@ from egs3.owsm_v4.esp2_s2t.dataset.utils import (
     sub_dataset_config,
     task_token,
 )
+from espnet3.api.inference import Field
+from espnet3.components.data.base_dataset import BaseDataset
 
 
 def read_span(wav_path: str, start_time: float, end_time: float) -> np.ndarray:
@@ -28,7 +29,7 @@ def read_span(wav_path: str, start_time: float, end_time: float) -> np.ndarray:
         return handle.read(frames=frames, dtype="float32", always_2d=False)
 
 
-class OWSMDataset(TorchDataset):
+class OWSMDataset(BaseDataset):
     """OWSM samples for one split of one corpus.
 
     Every sub-dataset writes the same cache columns, so they differ only in
@@ -48,6 +49,13 @@ class OWSMDataset(TorchDataset):
         ValueError: If ``split`` is unknown.
         FileNotFoundError: If the split has not been built.
     """
+
+    fields = (
+        Field("speech", "audio"),
+        Field("text", "text"),
+        Field("text_prev", "text"),
+        Field("text_ctc", "text"),
+    )
 
     #: Both filled from the sub-dataset's own config.yaml.
     CACHE_SUBDIR: str = ""

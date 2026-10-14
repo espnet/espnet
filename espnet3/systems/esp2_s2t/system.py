@@ -5,14 +5,14 @@ import os
 import random
 import time
 from pathlib import Path
-from typing import Iterable, List
+from typing import ClassVar, Iterable, List
 
 from hydra.utils import instantiate
-from omegaconf import DictConfig
 
+from espnet3.contract.stages import StageSpec
 from espnet3.systems.base.system import BaseSystem
-from espnet3.systems.esp2_s2t.symbols import load_symbols
-from espnet3.systems.esp2_s2t.tokenizers.sentencepiece import train_sentencepiece
+from espnet3.systems.esp2_s2t.src.symbols import load_symbols
+from espnet3.systems.esp2_s2t.src.tokenizers.sentencepiece import train_sentencepiece
 
 logger = logging.getLogger(__name__)
 
@@ -64,37 +64,20 @@ class OWSMSystem(BaseSystem):
     :meth:`collect_stats`.
     """
 
-    def __init__(
-        self,
-        training_config: DictConfig | None = None,
-        inference_config: DictConfig | None = None,
-        metrics_config: DictConfig | None = None,
-        publication_config: DictConfig | None = None,
-        stage_log_mapping: dict | None = None,
-        demo_config: DictConfig | None = None,
-    ) -> None:
-        """Initialize the OWSM system with optional stage configs.
-
-        Args:
-            training_config: Training configuration.
-            inference_config: Inference configuration.
-            metrics_config: Measurement configuration.
-            publication_config: Publication configuration for the model
-                packing and upload stages.
-            stage_log_mapping: Optional per-stage log directory overrides.
-            demo_config: Demo configuration for the demo stages.
-        """
-        super().__init__(
-            training_config=training_config,
-            inference_config=inference_config,
-            metrics_config=metrics_config,
-            publication_config=publication_config,
-            stage_log_mapping={
-                "train_tokenizer": "training_config.tokenizer.save_path",
-                **(stage_log_mapping or {}),
-            },
-            demo_config=demo_config,
-        )
+    stages: ClassVar[tuple[StageSpec, ...]] = (
+        StageSpec(name="create_dataset", config="training", log_dir="data_dir"),
+        StageSpec(
+            name="train_tokenizer", config="training", log_dir="tokenizer.save_path"
+        ),
+        StageSpec(name="collect_stats", config="training", log_dir="stats_dir"),
+        StageSpec(name="train", config="training", log_dir="exp_dir"),
+        StageSpec(name="infer", config="inference", log_dir="inference_dir"),
+        StageSpec(name="measure", config="metrics", log_dir="inference_dir"),
+        StageSpec(name="pack_model", config=("training", "publication")),
+        StageSpec(name="upload_model", config="publication"),
+        StageSpec(name="pack_demo", config="demo", log_dir="pack.out_dir"),
+        StageSpec(name="upload_demo", config="demo", log_dir="pack.out_dir"),
+    )
 
     def train(self, *args, **kwargs):
         """Train the model, training the tokenizer first when it is missing.
