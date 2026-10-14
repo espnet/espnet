@@ -13,7 +13,7 @@ from espnet3.systems.lace.src.compression import (
 class IdentityCompression(BaseCompressionModel):
     """No-op compression: every input frame becomes its own segment.
 
-    Used as a no-compression baseline when evaluating codec reconstruction
+    Used as a no-compression reference when evaluating codec reconstruction
     (the codec sees one code per frame, like standard inference, but the
     pipeline still produces a valid CompressionOutput so downstream
     segment-rate stats and decoding code paths work unchanged).

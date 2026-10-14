@@ -3,7 +3,7 @@
 Pairs with ``espnet3.systems.lace.src.gan_lightning_module.GANLightningModule``.
 A LACE model is an espnet2 GAN codec (``AbsGANESPnetModel``) with a wrapped
 quantizer, so it trains with the same generator/discriminator loop as the
-baseline codec.
+unwrapped codec.
 """
 
 from __future__ import annotations

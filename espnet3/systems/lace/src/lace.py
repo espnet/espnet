@@ -54,7 +54,7 @@ COMPRESSION_MODEL_MAP = {
     "density_peak": DensityPeakCompression,
     "dp_segmentation": DPSegmentationCompression,
     # No-op: every frame becomes its own segment.  Use this as the
-    # "no compression" baseline when evaluating codec reconstruction.
+    # "no compression" reference when evaluating codec reconstruction.
     "none": IdentityCompression,
     "identity": IdentityCompression,
 }

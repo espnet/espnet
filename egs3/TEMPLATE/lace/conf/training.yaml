@@ -15,7 +15,7 @@
 # never conflicts with a concrete recipe config: a LACE run fine-tunes a
 # published espnet2 GAN codec (Encodec, SoundStream, DAC, FunCodec) whose
 # architecture comes with the bundle and whose optimizer, chunk length and
-# checkpoint criteria follow that baseline's recipe, so only generic,
+# checkpoint criteria follow that codec's recipe, so only generic,
 # non-conflicting path/system scaffolding lives here. Everything run-specific is left null for the recipe
 # config to fill in; see `egs3/libritts/lace/conf/training.yaml` for a worked
 # example.
@@ -74,7 +74,7 @@ create_dataset: {}
 # The recipe `Dataset` should return a dict keyed `"audio"` for GAN-codec
 # tasks, matching `CommonPreprocessor(speech_name="audio")`.
 #
-# A LACE recipe usually fine-tunes on the baseline codec recipe's data, so
+# A LACE recipe usually fine-tunes on the pretrained codec recipe's data, so
 # its entries point at that recipe's dataset module with `data_src` instead
 # of shipping a `dataset/` package of their own.
 #
@@ -108,7 +108,7 @@ dataset:
 #                      MODEL SETTING                     #
 ##########################################################
 # Training model definition, instantiated directly via Hydra. The `_target_`
-# is `espnet3.systems.lace.src.lace.LACE`, which builds the baseline
+# is `espnet3.systems.lace.src.lace.LACE`, which builds the pretrained
 # codec from a published model bundle (`pretrained_model_tag`, a Hugging
 # Face id downloaded through espnet_model_zoo, or `pretrained_model_dir`, a
 # local pack_model output) or fresh from `codec`/`codec_conf`, strict-loads
@@ -205,7 +205,7 @@ seed:
 
 # No `init:` key on purpose: the builder is the only weight-loading
 # mechanism, and a framework initialization scheme would overwrite the
-# pretrained baseline weights it just loaded.
+# pretrained codec weights it just loaded.
 
 ##########################################################
 #                   PARALLELIZATION SETTING              #

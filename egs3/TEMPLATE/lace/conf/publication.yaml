@@ -51,7 +51,7 @@ data_dir: ${recipe_dir}/data
 #   5. `meta.yaml` is written at the bundle root.
 #
 # A LACE model carries no tokenizer or token list, so the bundle is the
-# `lace_model.yaml` spec in `${exp_dir}` (which names the published baseline
+# `lace_model.yaml` spec in `${exp_dir}` (which names the pretrained codec
 # by its Hugging Face id, so it is self-contained) plus ONE checkpoint. The
 # `exclude` list below drops every checkpoint from the bulk copy (`last.ckpt`,
 # step and epoch checkpoints, the `*.pth` averaging stubs), so the recipe MUST

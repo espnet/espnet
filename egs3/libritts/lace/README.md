@@ -13,9 +13,9 @@ If LibriTTS is already on disk, point the recipe at it rather than downloading a
 An absolute path is used exactly as written, and a relative one is resolved from the recipe directory.
 A subset counts as prepared only once it carries a `.complete` marker, which `create_dataset` writes after extracting that subset; a corpus staged any other way needs the markers created by hand (`touch <dataset_path>/LibriTTS/<subset>/.complete`), or the recipe downloads the subsets again.
 
-## Baseline codec
+## Pretrained codec
 
-The baseline is a published ESPnet3 model bundle (the `pack_model` output of the codec recipe, uploaded by its `upload_model` stage).
+The codec that is fine-tuned is a published ESPnet3 model bundle (the `pack_model` output of the codec recipe, uploaded by its `upload_model` stage).
 `model.pretrained_model_tag` names it by its Hugging Face id, and `espnet_model_zoo` downloads and caches it on first use.
 An espnet2 zoo model (`meta.yaml` with `train_config`) is accepted the same way, as long as its checkpoint matches the current espnet2 code.
 To fine-tune a codec you trained with an ESPnet3 codec recipe instead, run its `pack_model` stage and set `model.pretrained_model_dir` to the resulting `model_pack` directory (or `pretrained_model_tag` to the repo its `upload_model` stage pushed to).
@@ -26,7 +26,7 @@ To fine-tune a codec you trained with an ESPnet3 codec recipe instead, run its `
 # 1) Build the manifests
 python run.py --stages create_dataset --training_config conf/training.yaml
 
-# 2) Fine-tune the published baseline with the LACE wrapper
+# 2) Fine-tune the pretrained codec with the LACE wrapper
 python run.py --stages train --training_config conf/training.yaml
 
 # 3) Resynthesize the test set at the compression rate set in the config, then score it
@@ -68,7 +68,7 @@ python run.py --stages pack_demo upload_demo \
     --demo_config conf/demo.yaml
 ```
 
-The bundle carries `lace_model.yaml` and the fine-tuned checkpoint; the baseline it names by Hugging Face id is downloaded again when the bundle is loaded.
+The bundle carries `lace_model.yaml` and the fine-tuned checkpoint; the pretrained codec it names by Hugging Face id is downloaded again when the bundle is loaded.
 `meta.yaml` records the system, so `espnet3.api.inference.load` finds the `Inference` class without being told.
 The demo stages require `--training_config` because the demo config resolves `${exp_tag}` from it.
 `conf/demo.yaml` points the demo at `${upload_demo.hf_repo}`, so `upload_model` has to publish to that repo before the Space can load a model.
@@ -82,7 +82,7 @@ The demo stages require `--training_config` because the demo config resolves `${
 | `cosine_similarity` | Start a new segment when the cosine similarity to the previous frame drops below a threshold. | The similarity threshold. |
 | `density_peak` | VARSTok: grow clusters around density-peak seed frames, up to `max_span` frames, while neighbours stay similar enough. | The similarity threshold. |
 | `dp_segmentation` | CodecSlime: dynamic programming for the segmentation with the least L2 distortion. | The segment fraction, `round(rate * T)` segments. |
-| `identity` | No merging; the baseline codec with the wrapper in place. | Ignored. |
+| `identity` | No merging; the pretrained codec with the wrapper in place, as a no-compression reference. | Ignored. |
 
 For the first two models a higher rate therefore means more segments and less compression, and `dp_segmentation` follows the same direction by construction.
 During training a rate is sampled per forward pass in `[min_rate, max_rate]`; validation and inference use a fixed rate.

@@ -5,7 +5,7 @@ flag, dict return with ``optim_idx``) needs this adapter instead of the base
 ``ESPnetLightningModule``, since that base class expects a single
 ``model(**batch)`` call returning ``(loss, stats, weight)``. The adapter is
 written against the ``AbsGANESPnetModel`` contract, so it serves the wrapped
-codec LACE builds exactly as it serves the baseline codec.
+codec LACE builds exactly as it serves the unwrapped codec.
 """
 
 from __future__ import annotations

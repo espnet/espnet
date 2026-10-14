@@ -6,7 +6,7 @@ The model is described in "LACE: Layer-Wise Compression for Dynamic Frame Rate C
 ## Quick start
 
 ```bash
-# 0) Edit configs to set paths and pick the baseline.
+# 0) Edit configs to set paths and pick the pretrained codec.
 #    `conf/training.yaml:model.pretrained_model_tag` names the published
 #    codec bundle to fine-tune (or `model.pretrained_model_dir` for a local
 #    `pack_model` output); `model.compression_model` picks the segmentation.
@@ -19,7 +19,7 @@ The model is described in "LACE: Layer-Wise Compression for Dynamic Frame Rate C
 # 1) Build the manifests (run once)
 python run.py --stages create_dataset --training_config conf/training.yaml
 
-# 2) Fine-tune the baseline with the LACE wrapper (no collect_stats needed:
+# 2) Fine-tune the pretrained codec with the LACE wrapper (no collect_stats needed:
 #    the chunk-based loader uses no shape files)
 python run.py --stages train --training_config conf/training.yaml
 
