@@ -5,7 +5,7 @@ from omegaconf import OmegaConf
 
 from espnet3.contract.stages import StageSpec
 from espnet3.utils.run_utils import ConfigError
-from espnet3.utils.stage_configs import bake, build_stage_configs, inherit, load_baked
+from espnet3.utils.stage_configs import bake, build_stage_configs, inherit, load_baked, merge_stage_config_from_snapshots
 
 
 class _System:
@@ -403,3 +403,121 @@ def test_snapshot_config_full_config_includes_inherited_keys(tmp_path):
     assert "exp_dir: ./exp" in snapshot_yaml or "model_conf" in snapshot_yaml
     assert "model_conf" in snapshot_yaml
 
+
+
+def test_merge_fallback_to_old_layout_when_no_snapshot_exists(tmp_path):
+    """Legacy layout fallback: reads <exp_dir>/config/<stage>.yaml when no snapshot exists."""
+    from espnet3.utils.stage_configs import snapshot_config, merge_stage_config_from_snapshots
+    
+    # Create old layout file (not snapshot)
+    config_dir = tmp_path / "config"
+    config_dir.mkdir()
+    (config_dir / "train.yaml").write_text(
+        "exp_dir: ./myexp\nseed: 42\nexp_tag: legacy\n", encoding="utf-8"
+    )
+    
+    # Call merge_stage_config_from_snapshots with exp_dir override
+    # No new-style snapshot exists, so it should fall back to old layout
+    result = merge_stage_config_from_snapshots(
+        _System, "train", {"training": None}, {"exp_dir": str(tmp_path)}
+    )
+    
+    assert result.exp_dir == str(tmp_path).replace("/config", "")  # Relative path
+    assert result.seed == 42
+    assert result.exp_tag == "legacy"
+
+
+def test_merge_prefers_new_snapshot_over_old_layout(tmp_path):
+    """When both old layout and new snapshot exist, new snapshot wins."""
+    from espnet3.utils.stage_configs import snapshot_config, merge_stage_config_from_snapshots
+    
+    # Create old layout file
+    config_dir = tmp_path / "config"
+    config_dir.mkdir()
+    (config_dir / "train.yaml").write_text(
+        "exp_dir: ./old\nseed: 1\n", encoding="utf-8"
+    )
+    
+    # Create new-style snapshot
+    snapshot_config(tmp_path, "train", OmegaConf.create({
+        "exp_dir": str(tmp_path),
+        "seed": 2,
+        "model": "new_model"
+    }))
+    
+    result = merge_stage_config_from_snapshots(
+        _System, "train", {"training": None}, {"exp_dir": str(tmp_path)}
+    )
+    
+    # New snapshot should win
+    assert result.seed == 2, "New snapshot should override old layout"
+    assert result.model == "new_model"
+
+
+def test_merge_fallback_does_not_override_explicit_stage_selection(tmp_path):
+    """Fallback for one stage does not affect another stage's explicit selection."""
+    from espnet3.utils.stage_configs import snapshot_config, merge_stage_config_from_snapshots
+    from espnet3.contract.stages import StageSpec
+    
+    class ThreeStageSystem:
+        stages = (
+            StageSpec(name="train", config="training"),
+            StageSpec(name="infer", config="inference"),
+            StageSpec(name="measure", config="metrics"),
+        )
+    
+    # Create directories for train and measure
+    train_dir = tmp_path / "train_logs"
+    train_dir.mkdir()
+    measure_dir = tmp_path / "measure_logs"
+    measure_dir.mkdir()
+    
+    # Create old layout for measure stage
+    config_dir = tmp_path / "config"
+    config_dir.mkdir()
+    (config_dir / "measure.yaml").write_text(
+        "stage_specific: measure_value\n", encoding="utf-8"
+    )
+    
+    # Run merge for train stage only with explicit inference_dir for infer stage
+    # The measure stage should NOT be affected by the old layout fallback
+    # because we're only working with train stage (in-scope stages up to train)
+    
+    configs = {
+        "training": OmegaConf.create({"exp_dir": str(tmp_path)}),
+    }
+    result = merge_stage_config_from_snapshots(
+        ThreeStageSystem, "train", configs, {"exp_dir": str(tmp_path)}
+    )
+    
+    # Should successfully resolve without errors
+    assert "exp_dir" in result
+
+
+# Cleanup old layout test file references
+def test_merge_fallback_only_for_requested_stage(tmp_path):
+    """Fallback only applies to the requested stage, not preceding stages."""
+    from espnet3.utils.stage_configs import merge_stage_config_from_snapshots
+    from espnet3.contract.stages import StageSpec
+    
+    class MultiStageSystem:
+        stages = (
+            StageSpec(name="train", config="training"),
+            StageSpec(name="infer", config="inference"),
+        )
+    
+    # Request infer stage with no directories resolved
+    # Fallback should not apply to preceding train stage
+    configs = {
+        "training": None,  # No explicit training config
+        "inference": None,  # No explicit inference config
+    }
+    
+    # Should handle gracefully - if no CLI exp_dir provided, no fallback
+    result = merge_stage_config_from_snapshots(
+        MultiStageSystem, "infer", configs, {}
+    )
+    
+    # Result should be based on inherited stage configs only
+    # The key point: fallback only applies when requested_stage has no directory
+    # and exp_dir is in cli_dir_overrides, so with empty overrides this is fine

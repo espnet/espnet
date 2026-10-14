@@ -540,6 +540,7 @@ def merge_stage_config_from_snapshots(
     # very first pass.
     attempted: set = set()
     loaded: Dict[str, DictConfig] = {}
+
     for _ in range(len(in_scope) + 1):
         progressed = False
         for spec in in_scope:
@@ -574,6 +575,33 @@ def merge_stage_config_from_snapshots(
                     directories[other.name] = Path(value)
         if not progressed:
             break
+
+    # Narrow fallback for the requested stage only, used when the normal
+    # search found nothing for it (e.g. it declares no log_dir, so
+    # resolve_search_directories has nothing to resolve) and this run gave
+    # an explicit exp_dir. New-style <exp_dir>/<stage>.yaml is tried first -
+    # a log_dir=None stage still snapshots to exp_dir (see "保存・ログ・
+    # fallback") - and only the OLD <exp_dir>/config/<stage>.yaml layout
+    # after that, so a new snapshot always wins over an old one.
+    if requested_stage not in loaded and "exp_dir" in cli_dir_overrides:
+        exp_dir_path = Path(cli_dir_overrides["exp_dir"])
+        new_style_path = exp_dir_path / f"{requested_stage}.yaml"
+        old_config_path = exp_dir_path / _CONFIG_DIRNAME / f"{requested_stage}.yaml"
+        if new_style_path.is_file():
+            try:
+                loaded[requested_stage] = OmegaConf.load(new_style_path)
+                directories[requested_stage] = exp_dir_path
+            except Exception as exc:
+                raise ConfigError(
+                    f"stage {requested_stage!r}: could not read saved config "
+                    f"snapshot at {new_style_path}: {exc}"
+                ) from exc
+        elif old_config_path.is_file():
+            try:
+                loaded[requested_stage] = load_baked(exp_dir_path, requested_stage)
+                directories[requested_stage] = exp_dir_path
+            except ConfigError:
+                pass
 
     # Detect snapshots that disagree on a key they both define - mixing two
     # different parent experiments rather than one shared lineage.
