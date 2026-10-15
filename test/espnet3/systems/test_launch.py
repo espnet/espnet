@@ -321,3 +321,92 @@ def test_run_py_calls_launch_when_executed_as_a_script():
     with patch("espnet3.systems.launch.launch") as mock_launch:
         _exec_run_py(run_py, "__main__")
     mock_launch.assert_called_once()
+
+
+# ---------------------------------------------------------------------------
+# Saved-config search wiring: per-stage directory flags -> cli_dir_overrides
+# -> merge_stage_config_from_snapshots -> system.stage_configs
+# ---------------------------------------------------------------------------
+
+
+class _MismatchedRoleSystem(BaseSystem):
+    """A role name ("training") that does NOT match its stage's log_dir key
+    ("exp_dir") - the realistic case (see design/config_tree_fix.md's own
+    StageSpec examples). A naive `f"{role}_dir"` guess would miss this."""
+
+    stages = (
+        StageSpec(name="train", config="training", log_dir="exp_dir"),
+    )
+    instances: list = []
+
+    def __init__(self, *, configs, exp_dir=None, stages_to_run=None):
+        self.configs = configs
+        self.exp_dir = exp_dir
+        self.stages_to_run = stages_to_run
+        type(self).instances.append(self)
+
+    def train(self):
+        pass
+
+
+def test_build_parser_adds_exp_dir_flag_from_log_dir_key():
+    parser = build_parser(_RecordingSystem)
+    action = next(a for a in parser._actions if a.dest == "exp_dir")
+    assert "--exp_dir" in action.option_strings or "--exp-dir" in action.option_strings
+
+
+def test_build_parser_adds_flag_for_a_non_exp_dir_log_dir_key():
+    parser = build_parser(_RecordingSystem)
+    args = parser.parse_args(["--inference-dir", "/tmp/beam10"])
+    assert args.inference_dir == "/tmp/beam10"
+
+
+def test_launch_forwards_exp_dir_cli_value_despite_role_log_dir_mismatch(
+    tmp_path, stub_config_loading
+):
+    """Regression: cli_dir_overrides must be built from the stage's actual
+    canonical log_dir key (here "exp_dir"), not a guess like
+    f"{role}_dir" (which would produce "training_dir" - nonexistent)."""
+    _MismatchedRoleSystem.instances.clear()
+    captured = {}
+
+    def fake_merge(system_cls, stage, configs_by_role, cli_dir_overrides, **kwargs):
+        captured["cli_dir_overrides"] = dict(cli_dir_overrides)
+        return OmegaConf.create({})
+
+    with patch(
+        "espnet3.systems.launch.merge_stage_config_from_snapshots",
+        side_effect=fake_merge,
+    ):
+        launch(
+            _MismatchedRoleSystem,
+            argv=["--stages", "train", "--exp_dir", str(tmp_path / "exp")],
+        )
+
+    assert captured["cli_dir_overrides"].get("exp_dir") == tmp_path / "exp"
+
+
+def test_launch_resolved_stage_configs_reach_the_system(
+    tmp_path, stub_config_loading
+):
+    """The merged config launch() computes per stage must actually reach
+    the running system, not be computed and discarded."""
+    _RecordingSystem.instances.clear()
+    sentinel = OmegaConf.create({"from_snapshot_merge": True})
+
+    with patch(
+        "espnet3.systems.launch.merge_stage_config_from_snapshots",
+        return_value=sentinel,
+    ):
+        launch(
+            _RecordingSystem,
+            argv=[
+                "--stages",
+                "train",
+                "--training_config",
+                str(tmp_path / "training.yaml"),
+            ],
+        )
+
+    system = _RecordingSystem.instances[-1]
+    assert system.stage_configs["train"] == sentinel
