@@ -3,7 +3,6 @@
 import numpy as np
 import pytest
 
-from espnet3.api.inference import Field
 from espnet3.components.data.base_dataset import BaseDataset
 from espnet3.contract.data import DatasetContractError
 
@@ -12,7 +11,7 @@ def test_base_dataset_checks_only_the_first_getitem_call():
     calls = []
 
     class Recipe(BaseDataset):
-        fields = (Field("speech", "audio"), Field("text", "text"))
+        fields = {"speech": np.ndarray, "text": str}
 
         def __getitem__(self, index):
             calls.append(index)
@@ -26,12 +25,12 @@ def test_base_dataset_checks_only_the_first_getitem_call():
 
 def test_base_dataset_rejects_item_missing_a_declared_field():
     class Recipe(BaseDataset):
-        fields = (Field("speech", "audio"), Field("text", "text"))
+        fields = {"speech": np.ndarray, "text": str}
 
         def __getitem__(self, index):
             return {"text": "hi"}
 
-    with pytest.raises(DatasetContractError, match="lacks declared field 'speech'"):
+    with pytest.raises(DatasetContractError, match="is missing 'speech'"):
         Recipe()[0]
 
 
@@ -39,7 +38,7 @@ def test_base_dataset_accepts_instance_level_fields():
     class Recipe(BaseDataset):
         def __init__(self, extra):
             self.extra = extra
-            self.fields = (Field("speech", "audio"), Field(extra, "text"))
+            self.fields = {"speech": np.ndarray, extra: str}
 
         def __getitem__(self, index):
             return {"speech": np.zeros(16000, dtype=np.float32), self.extra: "hi"}
@@ -53,15 +52,15 @@ def test_base_dataset_requires_fields_somewhere():
         def __getitem__(self, index):
             return {"text": "hi"}
 
-    with pytest.raises(TypeError, match="does not declare fields"):
+    with pytest.raises(DatasetContractError, match="must map names to types"):
         Recipe()[0]
 
 
 def test_base_dataset_rejects_malformed_class_fields_at_class_creation():
-    with pytest.raises(TypeError, match="must name at least one field"):
+    with pytest.raises(DatasetContractError, match="must map names to types"):
 
         class Recipe(BaseDataset):
-            fields = ()
+            fields = {}
 
             def __getitem__(self, index):
                 return {}
@@ -74,7 +73,7 @@ def test_base_dataset_requires_getitem_override():
 
 def test_base_dataset_preserves_getitem_name_and_docstring():
     class Recipe(BaseDataset):
-        fields = (Field("text", "text"),)
+        fields = {"text": str}
 
         def __getitem__(self, index):
             """Return one item."""
@@ -97,7 +96,7 @@ def test_base_dataset_checks_only_once_through_a_grandchild(monkeypatch):
     monkeypatch.setattr(base_dataset_module, "check_item", spy)
 
     class Recipe(BaseDataset):
-        fields = (Field("text", "text"),)
+        fields = {"text": str}
 
         def __getitem__(self, index):
             return {"text": "hi"}

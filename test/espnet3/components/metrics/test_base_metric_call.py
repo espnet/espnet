@@ -1,11 +1,9 @@
-from espnet3.api.inference import Field
 from espnet3.components.metrics.base_metric import BaseMetric
-from espnet3.contract.metrics import check_metric_output
 
 
 class Lengths(BaseMetric):
-    inputs = (Field("ref", "text"), Field("hyp", "text"))
-    outputs = (Field("chars", "number"),)
+    inputs = {"ref": str, "hyp": str}
+    outputs = ("chars",)
 
     def __init__(self):
         super().__init__()
@@ -73,9 +71,3 @@ def test_compute_writes_no_file(tmp_path):
     before = sorted(tmp_path.rglob("*"))
     m.compute()
     assert sorted(tmp_path.rglob("*")) == before
-
-
-def test_compute_result_passes_check_metric_output():
-    m = Lengths()
-    m.update(ref=ROWS, hyp=ROWS)
-    check_metric_output(m, m.compute())

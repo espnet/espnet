@@ -11,11 +11,9 @@ from typing import Any, Dict, Iterable, List, Optional, Sequence
 
 import numpy as np
 import torch
-from hydra.utils import get_class
 from omegaconf import ListConfig
 
 from espnet2.torch_utils.device_funcs import is_out_of_memory_error
-from espnet3.api.inference import Audio, InferenceAPI
 from espnet3.parallel.base_runner import BaseRunner, concatenate_shard_files
 from espnet3.parallel.env_provider import EnvironmentProvider
 from espnet3.utils.scp_utils import check_utt_id
@@ -54,137 +52,6 @@ def _iter_outputs(result: Any) -> List[Dict[str, Any]]:
             outputs.extend(_iter_outputs(item))
         return outputs
     return [result]
-
-
-def declared_input_names(config) -> Optional[List[str]]:
-    """Return the input field names the configured model class declares.
-
-    Lets ``infer()`` tell an :class:`InferenceAPI` subclass from a bare
-    model without building it - an ``Inference`` takes no ``input_key`` -
-    and name its inputs in the error when one is set anyway. ``None`` when
-    ``model._target_`` names anything else or nothing.
-
-    Args:
-        config: The inference config; only ``model._target_`` is read.
-
-    Returns:
-        The declared input names, optional ones included, or ``None``.
-
-    Examples:
-        >>> cfg = OmegaConf.create(
-        ...     {"model": {"_target_": "espnet3.systems.esp2_asr.inference.Inference"}}
-        ... )
-        >>> declared_input_names(cfg)
-        ['speech']
-    """
-    target = getattr(getattr(config, "model", None), "_target_", None)
-    if not isinstance(target, str) or not target:
-        return None
-    try:
-        cls = get_class(target)
-    except Exception:  # noqa: BLE001 - not an importable class: not ours to judge
-        return None
-    if isinstance(cls, type) and issubclass(cls, InferenceAPI):
-        return [f.name for f in cls.inputs]
-    return None
-
-
-def _declared_fields(model: InferenceAPI, data: Mapping[str, Any]) -> Dict[str, Any]:
-    """Pick the declared inputs out of one dataset item."""
-    fields = {}
-    for f in model.inputs:
-        if f.name in data:
-            fields[f.name] = data[f.name]
-        elif not f.optional:
-            raise KeyError(
-                f"dataset item has no {f.name!r}, which {type(model).__qualname__} "
-                f"needs; it has {sorted(data)}"
-            )
-    return fields
-
-
-def _record(
-    output: Mapping[str, Any], data: Mapping[str, Any], idx: Any, idx_key: str
-) -> Dict[str, Any]:
-    """One result as the writers take it: the id first, then the outputs."""
-    record: Dict[str, Any] = {idx_key: data.get(idx_key, str(idx))}
-    record.update(output)
-    return record
-
-
-def _writable(
-    output: Mapping[str, Any], artifact_configs: Mapping[str, Any]
-) -> tuple[dict, dict]:
-    """Turn contract values into what the writers take; audio brings its rate.
-
-    Returns:
-        The record's values, and the artifact configs this record's audio
-        needs: WAV at each value's own rate, unless ``output_artifacts``
-        says otherwise. They are per record, never written back into the
-        shard's shared configs, so one item's rate is not every item's.
-    """
-    out, own = {}, {}
-    for key, value in output.items():
-        if isinstance(value, Audio):
-            configured = artifact_configs.get(key)
-            if configured is None:
-                own[key] = {"type": "wav", "sample_rate": value.rate}
-            elif configured.get("type", "wav") == "wav" and (
-                configured.get("sample_rate") is None
-            ):
-                own[key] = {**configured, "sample_rate": value.rate}
-            # soundfile writes (samples, channels); Audio keeps channels first
-            value = value.array.T if value.array.ndim == 2 else value.array
-        elif isinstance(value, list) and all(isinstance(v, Mapping) for v in value):
-            # segments, as the contract shapes them: the writers take no
-            # top-level list, so they become one JSON document - an empty
-            # one too, which is what a silent utterance gives
-            value = {key: value}
-        out[key] = value
-    return out, own
-
-
-def _forward_inference(
-    idx,
-    dataset,
-    model: InferenceAPI,
-    *,
-    idx_key: str,
-    model_kwargs: Mapping[str, Any],
-    output_fn: Any,
-):
-    """Run one item or a batch through an :class:`InferenceAPI` by its declaration.
-
-    The declared inputs are picked out of each item (optional ones when
-    present), the model is called through its own entry points -
-    ``model(**fields)`` for one item, ``model.batch(items)`` for a batch -
-    and the sample id comes from the item (``idx_key``, else the index).
-    Only what the model produced is written; a reference for scoring is
-    read from the data by ``measure`` (bind ``ref`` to ``dataset:text``
-    in the metrics config's ``inputs:``). A configured ``output_fn`` is
-    refused rather than ignored: the declaration fixes the outputs.
-    """
-    if model_kwargs:
-        raise TypeError(
-            f"an Inference takes no call-time arguments ({sorted(model_kwargs)}); "
-            "put them in its model config"
-        )
-    if output_fn:
-        raise TypeError(
-            "an Inference writes its declared outputs and applies no output_fn; "
-            "drop output_fn (a reference for scoring is read by measure: bind "
-            "`ref` to `dataset:<column>` in the metrics config's `inputs:`)"
-        )
-    batched = isinstance(idx, (list, tuple))
-    indices = list(idx) if batched else [idx]
-    items = [dataset[i] for i in indices]
-    fields = [_declared_fields(model, data) for data in items]
-    outputs = model.batch(fields) if batched else [model(**fields[0])]
-    records = [
-        _record(out, data, i, idx_key)
-        for out, data, i in zip(outputs, items, indices, strict=True)
-    ]
-    return records if batched else records[0]
 
 
 def _materialize_output_value(
@@ -239,28 +106,10 @@ def _materialize_output_value(
 
 
 class InferenceRunner(BaseRunner):
-    """Inference runner with strict output-format validation.
+    """Execute a configured backend and persist its formatted results.
 
-    ``forward`` takes one of two paths. For an
-    :class:`~espnet3.api.inference.InferenceAPI` it picks the declared
-    inputs out of each item, calls ``model(**fields)`` or
-    ``model.batch(items)``, and writes each declared output by its kind;
-    no ``input_key`` or ``output_fn`` is used. For any other model it
-    passes the ``input_key`` fields and shapes the result with the
-    recipe's ``output_fn``. The key names are configurable via ``idx_key`` and
-    ``hyp_key``/``ref_key``. ``hyp_key`` and ``ref_key`` may be a single
-    string or a list of strings to support multiple hypothesis/reference
-    fields. ``idx_key`` is the key used to map each inference result to
-    its source dataset index when writing SCP files.
-
-    Output format requirements:
-        - The result is a dict with the configured keys plus any extra fields.
-        - A sample identifier key must exist under ``idx_key`` so SCP outputs
-          can map each result back to the corresponding dataset sample.
-        - The sample identifier must be a single value, not a list or tuple.
-        - ``hyp_key`` and ``ref_key`` values may be scalars or lists/tuples.
-          If lists are returned, each entry is written to its own SCP file
-          (e.g., ``hyp0.scp``, ``hyp1.scp``).
+    input_key, output_fn and output_artifacts belong to the recipe. This
+    runner makes no assumptions about the model's class or declarations.
     """
 
     def __init__(
@@ -347,60 +196,11 @@ class InferenceRunner(BaseRunner):
 
     @staticmethod
     def forward(idx, dataset=None, model=None, **kwargs):
-        """Run inference for one or more dataset items and return output dict(s).
-
-        Args:
-            idx: Integer index or an iterable of integer indices into the dataset.
-            dataset: Dataset providing inference entries.
-            model: Inference model callable on the configured input.
-            **kwargs: For an ``InferenceAPI``, ``idx_key`` only: the
-                declaration gives the inputs and outputs. For any other
-                model, ``input_key`` and optionally ``output_fn_path``;
-                ``model_kwargs`` passes extra keyword arguments to it.
-
-        Returns:
-            Dict containing ``idx`` and output fields for a single item, or a list
-            of dicts for batched inputs: the declared outputs for an
-            ``InferenceAPI``, else what ``output_fn`` returns.
-
-        Raises:
-            RuntimeError: If required input settings are missing.
-            KeyError: If required input keys are missing from the dataset item(s).
-            RuntimeError: If batched inference fails; includes guidance to disable
-                batching when unsupported.
-
-        Notes:
-            - ``input_key`` may be a string or a list/tuple of strings.
-            - Batched inputs are passed to the model as lists per key; padding is
-              the model's responsibility.
-
-        Examples:
-            >>> # Single-item inference
-            >>> out = InferenceRunner.forward(
-            ...     0, dataset=dataset, model=model,
-            ...     input_key="speech", output_fn_path="m.mod.out_fn"
-            ... )
-            >>> # Batched inference
-            >>> out = InferenceRunner.forward(
-            ...     [0, 1], dataset=dataset, model=model,
-            ...     input_key=["speech", "text"], output_fn_path="m.mod.out_fn"
-            ... )
-        """
+        """Call the configured backend on one dataset item or a batch."""
         model_kwargs = kwargs.get("model_kwargs") or {}
         if not isinstance(model_kwargs, Mapping):
             raise TypeError("model_kwargs must be a mapping when provided.")
         model_kwargs = dict(model_kwargs)
-        if isinstance(model, InferenceAPI):
-            # An Inference declares its inputs and fixes its outputs: the
-            # declaration drives the run, and no output_fn is applied.
-            return _forward_inference(
-                idx,
-                dataset,
-                model,
-                idx_key=kwargs.get("idx_key") or "utt_id",
-                model_kwargs=model_kwargs,
-                output_fn=kwargs.get("output_fn") or kwargs.get("output_fn_path"),
-            )
         if "input_key" not in kwargs:
             raise RuntimeError("input_key must be provided for inference.")
         input_key = kwargs["input_key"]
@@ -515,7 +315,6 @@ class InferenceRunner(BaseRunner):
 
         shard_dir = writers.get("shard_dir")
         for output in _iter_outputs(result):
-            output, own_configs = _writable(output, writers["artifact_configs"])
             InferenceRunner._validate_output_with_keys(
                 output,
                 idx_key=idx_key,
@@ -538,8 +337,7 @@ class InferenceRunner(BaseRunner):
                     field_key=field_key,
                     value=output[field_key],
                     output_dir=shard_dir,
-                    artifact_config=own_configs.get(field_key)
-                    or writers["artifact_configs"].get(field_key),
+                    artifact_config=writers["artifact_configs"].get(field_key),
                 )
                 handle = writers["scp_handles"].get(field_key)
                 if handle is None:
@@ -636,11 +434,7 @@ class InferenceRunner(BaseRunner):
 
 @lru_cache(maxsize=None)
 def _load_output_fn(path: str):
-    """Import a dotted ``module.function`` path for a non-Inference model.
-
-    output_fn is only for a model that is not an Inference: an Inference
-    writes its declared outputs and refuses an output_fn.
-    """
+    """Import the recipe's dotted output-formatting function."""
     module_path, func_name = path.rsplit(".", 1)
     module = import_module(module_path)
     return getattr(module, func_name)

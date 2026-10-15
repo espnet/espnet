@@ -83,7 +83,7 @@ dataset:
 # Its internal paths (token_list, bpemodel, normalize stats_file) are relative,
 # and run.py executes from the recipe dir, so they resolve.
 model:
-  _target_: espnet3.systems.esp2_asr.inference.Inference
+  _target_: espnet2.bin.asr_inference.Speech2Text
   asr_train_config: ${exp_dir}/config.yaml
   # Weight average over the top-10 valid/acc checkpoints, written by
   # AverageCheckpointsCallback (keep_nbest_models: 10). This is the checkpoint

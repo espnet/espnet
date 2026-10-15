@@ -46,16 +46,13 @@ exp_dir: ${recipe_dir}/exp/${exp_tag}
 ##########################################################
 #                    METRIC DEFINITION                   #
 ##########################################################
-# WER/CER/TER declare the inputs they read (`ref`, `hyp`, both kind `text`)
-# and the output key they return (kind `number`). `inputs:` is required: it
-# binds each declared name to where it is read from. Before running a
-# metric, `measure` checks each declared input against the inference
-# config's model: a plain SCP input (`text` above) must name one of the
-# model's own declared `outputs` (and agree with its kind); a `dataset:`
-# input is the test set's own data, so it is not checked against the model.
-# A model that is not an `espnet3.api.inference.InferenceAPI` subclass (so
-# declares no outputs at all) is rejected outright, explaining why, instead
-# of a bare "Missing SCP file" assertion.
+# WER/CER/TER declare the inputs they read (`ref`, `hyp`, both Python `str`)
+# and the numeric output keys they return. `inputs:` is required: it binds
+# each declared name to where it is read from. Before running a metric,
+# `measure` checks required and unknown input names. The metric contract checks
+# aligned batch lengths, element types and numeric results independently of
+# the inference model. SCP inputs name output files; `dataset:` inputs name
+# columns of the test set's own data.
 metrics:
   - metric:
       _target_: espnet3.systems.esp2_asr.metrics.wer.WER
