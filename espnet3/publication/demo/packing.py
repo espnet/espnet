@@ -276,7 +276,8 @@ def _link_local_model_into_bundle(demo_cfg, demo_dir: Path) -> None:
         candidate,
         dest,
     )
-    dest.symlink_to(candidate, target_is_directory=True)
+    if not (dest.is_symlink() and dest.resolve() == candidate):
+        dest.symlink_to(candidate, target_is_directory=True)
     model_cfg["dir_or_tag"] = "model_pack"
 
 

@@ -33,6 +33,9 @@ def build_model(demo_dir: Path, model_config):
     config.recipe_dir = str(pack_dir)
     parameters = OmegaConf.to_container(config.model, resolve=True)
     target = parameters.pop("_target_")
+    # Packed configs retain Hydra controls; native constructors do not take them.
+    for key in ("_convert_", "_recursive_"):
+        parameters.pop(key, None)
     if target == "espnet2.bin.asr_inference.Speech2Text":
         from espnet2.bin.asr_inference import Speech2Text
     elif target == "espnet2.bin.asr_transducer_inference.Speech2Text":

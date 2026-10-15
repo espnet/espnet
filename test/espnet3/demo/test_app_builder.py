@@ -23,6 +23,8 @@ def _archive(tmp_path, target="espnet2.bin.asr_inference.Speech2Text"):
                 "recipe_dir": ".",
                 "model": {
                     "_target_": target,
+                    "_convert_": "all",
+                    "_recursive_": False,
                     "asr_train_config": "${recipe_dir}/config.yaml",
                     "asr_model_file": "${recipe_dir}/weights.pth",
                 },

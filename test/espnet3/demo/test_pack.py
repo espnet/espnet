@@ -65,6 +65,13 @@ def test_pack_demo_writes_assets(
     assert (demo_dir / "model_pack").is_symlink()
     demo_yaml = yaml.safe_load((demo_dir / "demo.yaml").read_text(encoding="utf-8"))
     assert demo_yaml["model"]["dir_or_tag"] == "model_pack"
+    # Repacking the same model must reuse its link and refresh the app assets.
+    app_script.write_text("print('updated demo')\n", encoding="utf-8")
+    assert pack_demo(DummySystem()) == demo_dir
+    assert (demo_dir / "model_pack").resolve() == model_pack_dir
+    assert (demo_dir / "app.py").read_text(encoding="utf-8") == app_script.read_text(
+        encoding="utf-8"
+    )
 
 
 def test_pack_demo_writes_requirements_txt(
