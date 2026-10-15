@@ -62,6 +62,7 @@ MODULES = [
     "espnet3.api.inference",
     "espnet3.systems.esp2_asr.inference",
     "espnet3.systems.esp2_s2t.inference",
+    "espnet3.systems.esp2_st.inference",
 ]
 
 # Entry points that need one task extra installed on top of the bare package.

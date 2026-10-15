@@ -1,0 +1,34 @@
+##########################################################
+#                 METRIC SCORING SETTING                 #
+##########################################################
+#   python run.py --stages measure \
+#       --training_config conf/training.yaml \
+#       --inference_config conf/inference.yaml \
+#       --metrics_config conf/metrics.yaml
+#
+# exp_tag / exp_dir / inference_dir are omitted on purpose: run.py copies
+# exp_tag and exp_dir from the training config and inference_dir from the
+# inference config, so `measure` scores exactly what `infer` wrote.
+recipe_dir: .
+exp_tag:
+exp_dir: ${recipe_dir}/exp/${exp_tag}
+
+##########################################################
+#                    METRIC DEFINITION                   #
+##########################################################
+# BLEU rather than WER/CER: this is translation. The metric reports both
+# passes egs2's st.sh runs -- case-sensitive, and case-insensitive after
+# scripts/utils/remove_punctuation.pl -- plus chrF2 and TER, as
+# `sacrebleu -m bleu chrf ter` does.
+#
+# ONE entry, not several: espnet3 keys results by metric CLASS PATH
+# (espnet3/systems/base/metric.py), so a second BLEU entry would overwrite the
+# first instead of adding a column.
+metrics:
+  - metric:
+      _target_: espnet3.systems.esp2_st.metrics.bleu.BLEU
+      ref_key: ref        # reference text key -> `<test_name>/ref.scp`
+      hyp_key: hyp        # hypothesis text key -> `<test_name>/hyp.scp`
+      clean_types:        # optional TextCleaner pipeline
+      tokenize: "13a"     # sacreBLEU default; use zh / ja-mecab for those
+      also_lowercase: true
