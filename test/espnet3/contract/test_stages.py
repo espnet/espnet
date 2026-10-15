@@ -1,7 +1,5 @@
 """Tests for espnet3.contract.stages."""
 
-from pathlib import Path
-
 import pytest
 from omegaconf import OmegaConf
 
@@ -10,10 +8,12 @@ from espnet3.contract.stages import (
     StageSpec,
     check_requested_stages,
     check_stage_contract,
-    roles,
-    stage_log_dir,
-    stage_names,
-    stage_spec,
+    find_stage_spec,
+    generate_stage_flag_mapping,
+    list_roles,
+    list_stage_names,
+    resolve_config_roles,
+    resolve_stage_log_dir,
 )
 
 # ---------------------------------------------------------------------------
@@ -301,98 +301,92 @@ def test_check_requested_stages_inference_only_does_not_require_training():
     )
 
 
+def test_check_requested_stages_allows_a_missing_config_when_exp_dir_is_given():
+    # The stage's config may come from its baked file under exp_dir; a
+    # missing CLI config is not an error in that case.
+    check_requested_stages(
+        _ExampleSystem, ["train"], {"training": None}, exp_dir="./exp/my_run"
+    )
+
+
 # ---------------------------------------------------------------------------
-# stage_names / stage_spec / stage_log_dir
+# list_stage_names / find_stage_spec / resolve_stage_log_dir
 # ---------------------------------------------------------------------------
 
 
-def test_stage_names_preserves_declared_order():
-    assert stage_names(_ExampleSystem) == ["train", "pack_model"]
+def test_list_stage_names_preserves_declared_order():
+    assert list_stage_names(_ExampleSystem) == ["train", "pack_model"]
 
 
-def test_stage_spec_returns_the_matching_spec():
-    assert stage_spec(_ExampleSystem, "pack_model").config == "publication"
+def test_find_stage_spec_returns_the_matching_spec():
+    assert find_stage_spec(_ExampleSystem, "pack_model").config == "publication"
 
 
-def test_stage_spec_raises_for_unknown_name():
+def test_find_stage_spec_raises_for_unknown_name():
     with pytest.raises(StageContractError, match="has no stage 'decode'"):
-        stage_spec(_ExampleSystem, "decode")
+        find_stage_spec(_ExampleSystem, "decode")
 
 
-def test_stage_log_dir_reads_the_configured_path(tmp_path):
-    class WithConfig:
-        stages = (StageSpec(name="train", config="training", log_dir="exp_dir"),)
-        training_config = OmegaConf.create({"exp_dir": str(tmp_path / "exp")})
-        _default_log_dir = tmp_path / "logs"
+def test_resolve_stage_log_dir_reads_the_configured_path(tmp_path):
+    spec = StageSpec(name="train", config="training", log_dir="exp_dir")
+    config = OmegaConf.create({"exp_dir": str(tmp_path / "exp")})
 
-        def train(self):
-            pass
-
-    assert stage_log_dir(WithConfig(), "train") == tmp_path / "exp"
+    assert resolve_stage_log_dir(config, spec) == tmp_path / "exp"
 
 
-def test_stage_log_dir_falls_back_when_config_is_none():
-    class NoConfig:
-        stages = (StageSpec(name="train", config="training", log_dir="exp_dir"),)
-        training_config = None
-        _default_log_dir = Path("logs")
+def test_resolve_stage_log_dir_is_none_when_config_is_none():
+    spec = StageSpec(name="train", config="training", log_dir="exp_dir")
 
-        def train(self):
-            pass
-
-    assert stage_log_dir(NoConfig(), "train") == Path("logs")
+    assert resolve_stage_log_dir(None, spec) is None
 
 
-def test_stage_log_dir_falls_back_when_log_dir_is_none():
-    class NoLogDir:
-        stages = (StageSpec(name="pack_model", config="publication"),)
-        publication_config = OmegaConf.create({"out_dir": "somewhere"})
-        _default_log_dir = Path("logs")
+def test_resolve_stage_log_dir_is_none_when_spec_has_no_log_dir():
+    spec = StageSpec(name="pack_model", config="publication")
+    config = OmegaConf.create({"out_dir": "somewhere"})
 
-        def pack_model(self):
-            pass
-
-    assert stage_log_dir(NoLogDir(), "pack_model") == Path("logs")
+    assert resolve_stage_log_dir(config, spec) is None
 
 
-# ---------------------------------------------------------------------------
-# roles: config roles derived from a system's own stages
-# ---------------------------------------------------------------------------
+def test_resolve_stage_log_dir_is_none_when_the_key_is_absent():
+    spec = StageSpec(name="train", config="training", log_dir="exp_dir")
+    config = OmegaConf.create({"other": "value"})
+
+    assert resolve_stage_log_dir(config, spec) is None
 
 
-def test_roles_preserves_first_seen_stage_order():
-    assert roles(_ExampleSystem) == ("training", "publication")
+def test_list_roles_derives_from_declared_stages_without_duplicates():
+    assert list_roles(_ExampleSystem) == ("training", "publication")
 
 
-def test_roles_drops_duplicates_keeping_first_occurrence():
-    class RepeatingRoles:
+def test_list_roles_preserves_stage_order_of_first_appearance():
+    class System:
         stages = (
             StageSpec(name="train", config="training"),
-            StageSpec(name="collect_stats", config="training"),
             StageSpec(name="infer", config="inference"),
+            StageSpec(name="measure", config="inference"),
         )
 
         def train(self):
             pass
 
-        def collect_stats(self):
-            pass
-
         def infer(self):
             pass
 
-    assert roles(RepeatingRoles) == ("training", "inference")
+        def measure(self):
+            pass
+
+    assert list_roles(System) == ("training", "inference")
 
 
-def test_roles_is_empty_for_a_system_with_no_stages_declared():
+def test_list_roles_is_empty_for_a_system_with_no_stages_declared():
     class NoRoles:
         stages = ()
 
-    assert roles(NoRoles) == ()
+    assert list_roles(NoRoles) == ()
 
 
-def test_roles_expands_tuple_config_into_each_role():
-    assert roles(_MultiRoleSystem) == (
+def test_list_roles_expands_tuple_config_into_each_role():
+    assert list_roles(_MultiRoleSystem) == (
         "inference",
         "metrics",
         "training",
@@ -400,20 +394,104 @@ def test_roles_expands_tuple_config_into_each_role():
     )
 
 
-def test_stage_log_dir_tuple_config_uses_first_role_with_a_set_config():
-    class MultiRoleWithLogDir:
-        stages = (
-            StageSpec(
-                name="pack_model",
-                config=("training", "publication"),
-                log_dir="exp_dir",
-            ),
-        )
-        training_config = None
-        publication_config = OmegaConf.create({"exp_dir": "pub_exp"})
-        _default_log_dir = Path("logs")
+def test_resolve_config_roles_normalizes_a_bare_string():
+    assert resolve_config_roles("training") == ("training",)
 
-        def pack_model(self):
-            pass
 
-    assert stage_log_dir(MultiRoleWithLogDir(), "pack_model") == Path("pub_exp")
+def test_resolve_config_roles_returns_a_tuple_as_is():
+    assert resolve_config_roles(("training", "publication")) == (
+        "training",
+        "publication",
+    )
+
+
+# ---------------------------------------------------------------------------
+# generate_stage_flag_mapping
+# ---------------------------------------------------------------------------
+
+
+def test_generate_stage_flag_mapping_basic():
+    """Basic: log_dir="stats_dir" -> flag `--stats_dir`."""
+    spec = StageSpec(name="train", config="training", log_dir="stats_dir")
+    result = generate_stage_flag_mapping([spec])
+    assert result == {"stats_dir": "stats_dir"}
+
+
+def test_generate_stage_flag_mapping_exp_dir():
+    """log_dir="exp_dir" -> flag `--exp_dir`."""
+    spec = StageSpec(name="train", config="training", log_dir="exp_dir")
+    result = generate_stage_flag_mapping([spec])
+    assert result == {"exp_dir": "exp_dir"}
+
+
+def test_generate_stage_flag_mapping_tokenizer_save_path():
+    """Dotted key: log_dir="tokenizer.save_path" -> flag `--tokenizer_save_path`."""
+    spec = StageSpec(name="tokenize", config="tokenizer", log_dir="tokenizer.save_path")
+    result = generate_stage_flag_mapping([spec])
+    assert result == {"tokenizer_save_path": "tokenizer.save_path"}
+
+
+def test_generate_stage_flag_mapping_with_alias():
+    """Alias + canonical: both flag names map to the SAME canonical key
+    string, so either CLI flag writes to the same config location."""
+    spec = StageSpec(
+        name="train",
+        config="training",
+        log_dir="exp_dir",
+        dir_aliases=("training_dir",),
+    )
+    result = generate_stage_flag_mapping([spec])
+    assert result["exp_dir"] == "exp_dir"
+    assert result["training_dir"] == "exp_dir"
+
+
+def test_generate_stage_flag_mapping_shared_canonical_key():
+    """Two stages sharing the same canonical key produce only one flag."""
+    spec1 = StageSpec(name="train", config="training", log_dir="exp_dir")
+    spec2 = StageSpec(name="infer", config="inference", log_dir="exp_dir")
+    result = generate_stage_flag_mapping([spec1, spec2])
+    assert result == {"exp_dir": "exp_dir"}
+
+
+def test_generate_stage_flag_mapping_with_aliases_from_shared_key():
+    """Shared key where both stages have aliases: every flag (canonical and
+    both aliases) must resolve to the SAME canonical key, "output" - not an
+    arbitrary alphabetically-first alias."""
+    spec1 = StageSpec(
+        name="train", config="training", log_dir="output", dir_aliases=("out_dir",)
+    )
+    spec2 = StageSpec(
+        name="infer", config="inference", log_dir="output", dir_aliases=("results",)
+    )
+    result = generate_stage_flag_mapping([spec1, spec2])
+    assert result["output"] == "output"
+    assert result["out_dir"] == "output"
+    assert result["results"] == "output"
+
+
+def test_generate_stage_flag_mapping_log_dir_none():
+    """log_dir=None produces no flag, no error."""
+    spec = StageSpec(name="foo", config="bar", log_dir=None)
+    result = generate_stage_flag_mapping([spec])
+    assert result == {}
+
+
+def test_generate_stage_flag_mapping_collision_alias_vs_another_canonical():
+    """Alias colliding with a different canonical key raises StageContractError."""
+    spec1 = StageSpec(name="train", config="training", log_dir="stats_dir")
+    spec2 = StageSpec(
+        name="decode",
+        config="inference",
+        log_dir="training_dir",
+        dir_aliases=("stats_dir",),
+    )
+    with pytest.raises(StageContractError, match="CLI flag name collision"):
+        generate_stage_flag_mapping([spec1, spec2])
+
+
+def test_generate_stage_flag_mapping_multiple_canonical_collision():
+    """Multiple canonicals mapping to flags that would collide."""
+    spec1 = StageSpec(name="a", config="role1", log_dir="dir1")
+    spec2 = StageSpec(name="b", config="role2", log_dir="dir2", dir_aliases=("dir1",))
+    with pytest.raises(StageContractError, match="CLI flag name collision"):
+        generate_stage_flag_mapping([spec1, spec2])

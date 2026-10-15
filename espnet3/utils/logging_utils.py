@@ -20,8 +20,6 @@ from typing import Any, Mapping
 import torch
 from omegaconf import OmegaConf
 
-from espnet3.contract.stages import roles
-
 LOG_FORMAT = (
     "[%(hostname)s] %(asctime)s (%(filename)s:%(lineno)d) "
     "%(levelname)s:\t[%(stage)s] %(message)s"
@@ -56,77 +54,75 @@ def log_stage(name: str):
         _LOG_STAGE.reset(token)
 
 
+def _config_paths(args: argparse.Namespace | None) -> dict[str, Path | None]:
+    """Return ``{role: path}`` for every ``<role>_config`` attribute on ``args``."""
+    if args is None:
+        return {}
+    return {
+        name[: -len("_config")]: (Path(value) if value else None)
+        for name, value in vars(args).items()
+        if name.endswith("_config")
+    }
+
+
 def log_stage_metadata(
     logger: logging.Logger,
-    system: Any,
+    *,
+    stage: str,
+    config: Any,
     args: argparse.Namespace | None,
 ) -> None:
     """Write per-stage metadata into the active stage log.
 
-    This helper records the invocation context that is useful when auditing a
-    stage log after the fact: CLI command line, selected config file paths,
-    environment metadata, and the resolved in-memory configs attached to the
-    system object.
+    This helper records the invocation context that is useful when
+    auditing a stage log after the fact: CLI command line, every role's
+    config path given on the command line, environment metadata, and the
+    current stage's own merged, resolved config.
 
     Args:
         logger (logging.Logger): Logger that should receive the metadata
-            entries. In practice this is the stage logger configured immediately
-            before a stage starts.
-        system (Any): Instantiated system object. Its config roles (from
-            ``roles(type(system))``, derived from its declared stages) are
-            read as ``<role>_config`` attributes and dumped as resolved
-            YAML for reproducibility.
-        args (argparse.Namespace | None): Parsed CLI namespace. The function
-            reads a ``<role>_config`` attribute per role, and
-            ``write_requirements``, from this namespace when available.
+            entries. In practice this is the stage logger configured
+            immediately before a stage starts.
+        stage (str): The stage name about to run, e.g. ``"train"``.
+        config (Any): ``stage``'s own merged, resolved config (as built by
+            :func:`~espnet3.utils.stage_configs.build_stage_configs`),
+            dumped as YAML for reproducibility.
+        args (argparse.Namespace | None): The full CLI namespace
+            :func:`~espnet3.systems.launch.build_parser` produced (or
+            ``None``). Every ``<role>_config`` attribute on it is logged
+            as a config path; ``write_requirements`` is also read from it
+            when present.
 
     Returns:
         None: This function is logging-only and does not return a value.
 
     Examples:
         >>> from argparse import Namespace
-        >>> from espnet3.contract.stages import StageSpec
-        >>> class DummySystem:
-        ...     stages = (StageSpec(name="train", config="training"),)
-        ...     training_config = {"exp_dir": "./exp/train"}
+        >>> from omegaconf import OmegaConf
         >>> log_stage_metadata(
         ...     logging.getLogger("espnet3"),
-        ...     system=DummySystem(),
-        ...     args=Namespace(
-        ...         training_config="conf/training.yaml",
-        ...         write_requirements=False,
-        ...     ),
+        ...     stage="train",
+        ...     config=OmegaConf.create({"exp_dir": "./exp/train"}),
+        ...     args=Namespace(training_config="conf/training.yaml",
+        ...                     write_requirements=False),
         ... )
 
     """
-    system_roles = roles(type(system))
-    role_configs = {
-        role: getattr(system, f"{role}_config", None) for role in system_roles
-    }
-
     log_run_metadata(
         logger,
         argv=sys.argv,
-        configs={
-            role.capitalize(): (
-                Path(getattr(args, f"{role}_config"))
-                if args is not None and getattr(args, f"{role}_config", None)
-                else None
-            )
-            for role in system_roles
-        },
+        configs=_config_paths(args),
         write_requirements=bool(
             getattr(args, "write_requirements", False) if args is not None else False
         ),
     )
     log_env_metadata(logger)
-    for role, config in role_configs.items():
-        if config is not None:
-            logger.info(
-                "%s config content:\n%s",
-                role.capitalize(),
-                OmegaConf.to_yaml(config, resolve=True),
-            )
+    if config is not None:
+        logger.info(
+            "%s config content:\n%s",
+            stage,
+            OmegaConf.to_yaml(config, resolve=True),
+        )
 
 
 def set_log_format(

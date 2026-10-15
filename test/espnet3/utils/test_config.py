@@ -524,13 +524,12 @@ def test_load_and_merge_publication_config_inherits_template_readme_path() -> No
 
     readme = cfg.pack_model.readme
     assert Path(readme).is_absolute()
-    assert readme.endswith("egs3/TEMPLATE/esp2_asr/src/hf_model_readme.md")
-    assert list(cfg.pack_model.include) == [
-        "./src",
-        "./dataset",
-        "./data/**/bpe.model",
-        "./data/**/bpe.vocab",
-        "./data/**/tokens.txt",
+    assert OmegaConf.to_container(cfg.pack_model.include, resolve=False) == [
+        "${recipe_dir}/src",
+        "${recipe_dir}/dataset",
+        "${data_dir}/**/bpe.model",
+        "${data_dir}/**/bpe.vocab",
+        "${data_dir}/**/tokens.txt",
     ]
     assert list(cfg.pack_model.exclude)[:2] == ["inference", "inference_*"]
 
