@@ -1,6 +1,7 @@
 """The shipped ASR app runs without inference declarations or generated sessions."""
 
 import importlib.util
+from pathlib import Path
 from types import SimpleNamespace
 
 import numpy as np
@@ -94,7 +95,8 @@ def test_demo_resamples_audio_and_formats_native_result(tmp_path, nested):
         predict(None)
 
 
-def test_packed_default_app_builds_and_decodes(tmp_path, monkeypatch):
+@pytest.mark.parametrize("recipe", [None, "librispeech_100", "mini_an4"])
+def test_packed_default_app_builds_and_decodes(tmp_path, monkeypatch, recipe):
     pack = _archive(tmp_path)
     user_config = tmp_path / "demo.yaml"
     OmegaConf.save(
@@ -115,6 +117,26 @@ def test_packed_default_app_builds_and_decodes(tmp_path, monkeypatch):
         default_package="egs3.TEMPLATE.esp2_asr",
         resolve=False,
     )
+    if recipe is not None:
+        recipe_config = (
+            Path(__file__).resolve().parents[3]
+            / "egs3"
+            / recipe
+            / "esp2_asr"
+            / "conf"
+            / "demo.yaml"
+        )
+        config = OmegaConf.merge(
+            load_and_merge_config(
+                recipe_config,
+                "demo.yaml",
+                default_package="egs3.TEMPLATE.esp2_asr",
+                resolve=False,
+            ),
+            OmegaConf.load(user_config),
+        )
+    config.ui.inputs = [{"key": "speech", "type": "audio", "label": "Recording"}]
+    config.ui.outputs = [{"key": "text", "type": "text", "label": "Decoded text"}]
     out = pack_demo(SimpleNamespace(demo_config=config, exp_dir=None))
     spec = importlib.util.spec_from_file_location("packed_asr_app", out / "app.py")
     module = importlib.util.module_from_spec(spec)
@@ -128,6 +150,12 @@ def test_packed_default_app_builds_and_decodes(tmp_path, monkeypatch):
     )
     ui = module.build_demo(out)
     assert ui.title == "Test ASR"
+    assert any(
+        getattr(block, "label", None) == "Recording" for block in ui.blocks.values()
+    )
+    assert any(
+        getattr(block, "label", None) == "Decoded text" for block in ui.blocks.values()
+    )
     audio = tmp_path / "audio.wav"
     sf.write(audio, np.zeros(1600), 16000)
     predict = next(iter(ui.fns.values())).fn

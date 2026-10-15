@@ -82,11 +82,19 @@ def build_demo(demo_dir: Path, demo_config_path: Path | None = None):
             description = re.sub(
                 r"^---\s*\n.*?\n---\s*\n", "", description, count=1, flags=re.DOTALL
             )
+    input_spec = next(
+        (spec for spec in config.ui.get("inputs", []) if spec.get("key") == "speech"),
+        {},
+    )
+    output_spec = next(
+        (spec for spec in config.ui.get("outputs", []) if spec.get("key") == "text"),
+        {},
+    )
     with gr.Blocks(title=title) as app:
         gr.Markdown(f"# {title}")
-        audio = gr.Audio(type="filepath", label="Input audio")
+        audio = gr.Audio(type="filepath", label=input_spec.get("label", "Input audio"))
         submit = gr.Button("Run")
-        text = gr.Textbox(label="Transcription")
+        text = gr.Textbox(label=output_spec.get("label", "Transcription"))
         if description:
             gr.Markdown(str(description))
         submit.click(create_predict(model, sample_rate), inputs=audio, outputs=text)

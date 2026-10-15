@@ -77,8 +77,36 @@ create_dataset:
 # Only `data_src_args` is passed to the recipe `Dataset` constructor.
 # Top-level fields such as `name` and `transform` stay in organizer space.
 #
-# Dataset items are plain mappings consumed by transforms and preprocessors.
-
+# The recipe `Dataset` class must inherit
+# `espnet3.components.data.base_dataset.BaseDataset` and declare `fields`:
+# a mapping from each key `__getitem__` returns to accepted Python types,
+# e.g. `fields = {"speech": np.ndarray, "text": str}`. The first item of each
+# instance is checked against this declaration.
+#
+# Example:
+# dataset:
+#   _target_: espnet3.components.data.data_organizer.DataOrganizer
+#   recipe_dir: ${recipe_dir}
+#   train:
+#     - data_src: librispeech/asr
+#       data_src_args:
+#         split: train_clean_100
+#         data_path: ${dataset_dir}
+#     - data_src_args:
+#         split: train
+#       transform:
+#         _target_: src.transforms.normalize_text
+#   valid:
+#     - data_src: librispeech/asr
+#       data_src_args:
+#         split: dev_clean
+#         data_path: ${dataset_dir}
+#   test:
+#     - name: eval_local
+#       data_src_args:
+#         split: test
+#   preprocessor:
+#     _target_: src.preprocess.build_preprocessor
 dataset:
   _target_: espnet3.components.data.data_organizer.DataOrganizer
   _recursive_: false
