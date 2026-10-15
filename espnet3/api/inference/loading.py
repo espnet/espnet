@@ -55,6 +55,7 @@ logger = logging.getLogger(__name__)
 SYSTEM_ALIASES: dict[str, str] = {
     "asr": "esp2_asr",  # renamed in #6795; bundles packed before say "asr"
     "s2t": "esp2_s2t",  # ESPnet2's name for the task, as espnet.load takes it
+    "spk": "esp2_spk",  # ESPnet2's name for the task; bundles packed before say "spk"
 }
 
 
