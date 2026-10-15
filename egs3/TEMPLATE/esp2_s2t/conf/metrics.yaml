@@ -1,0 +1,101 @@
+##########################################################
+#                 METRIC SCORING SETTING                 #
+##########################################################
+# Quick usage:
+#   python run.py --stages measure --metrics_config conf/metrics.yaml
+#
+# Assumptions:
+# - `infer` has already produced `<test_name>/*.scp` files: one per output of
+#   the model, named after the output (`text.scp` for s2t).
+# - A metric's `inputs:` binds each declared input name to a source: one of
+#   those files (`hyp: text`), or a column of the test set itself as
+#   `dataset:<column>` (`ref: dataset:text`): the reference is the data's, so
+#   it is read from the data, into `<test_name>/dataset/<column>.scp` on
+#   first use.
+# - If `dataset.test` is omitted, test sets are discovered from `${inference_dir}`
+#   subdirectories.
+
+##########################################################
+#                    PATHS AND INPUTS                    #
+##########################################################
+recipe_dir: .
+# Common case:
+# - pass `--training_config`, `--inference_config`, and `--metrics_config`
+# - `launch()` copies `training_config.exp_tag` / `training_config.exp_dir` here
+# - `launch()` also copies `inference_config.inference_dir` here, so `measure`
+#   reads the same directory used by `infer`
+#
+# Standalone `measure` is also supported. In that case, set either `exp_tag` or
+# a concrete `exp_dir` below, and add `inference_dir` here unless
+# `--inference_config` provides it. Add `inference_dir` only when you want to
+# score a different inference output directory.
+exp_tag:
+exp_dir: ${recipe_dir}/exp/${exp_tag}
+
+
+##########################################################
+#                    METRIC DEFINITION                   #
+##########################################################
+# The three rates egs2/TEMPLATE/s2t1/s2t.sh reports (s2t.sh:1596-1612): char,
+# word and BPE, over EVERY row. s2t.sh does not split by task, so a translation
+# is scored against its translation as if it were a transcript; that is the
+# number the OWSM recipe produces. There is no BLEU here because there is none
+# in any owsm recipe to match.
+#
+# Each of the three declares the inputs it reads (`ref`, `hyp`, both kind
+# `text`) and the output key it returns (kind `number`). `inputs:` is required
+# and is a sibling of `metric:`: it binds each declared name to where it is
+# read from. Before running a metric, `measure` checks each declared input
+# against the inference config's model: a plain SCP input (`text` below) must
+# name one of the model's own declared `outputs`; a `dataset:` input is the
+# test set's own data, so it is not checked against the model.
+#
+# Two preprocessing details are reproduced because they change the numbers:
+#
+#   remove_tags strips OWSM tags from both sides. The hypothesis normally
+#   arrives as text_nospecial and carries none, but `hyp` may be bound to the
+#   tagged text, and stripping one side only turns a match into a total miss.
+#   The tags come from nlsyms, so only symbols the recipe actually emits are
+#   removed and a transcript reading "5 < 10 > 3" survives. A recipe sets it to
+#   whatever tokenizer.nlsyms names; leaving it unset while remove_tags is true
+#   raises.
+#
+#   ref_cleaner and hyp_cleaner are separate, as s2t.sh keeps them, and both
+#   default to none. egs2/owsm_v3/s2t1/run.sh:18 suggests whisper_en for both,
+#   commented out; pass ref_cleaner: [whisper_en] to enable it.
+metrics:
+  - metric:
+      _target_: espnet3.systems.esp2_s2t.metrics.cer.CER
+      nlsyms:
+      ref_cleaner:
+      hyp_cleaner:
+      remove_tags: true
+    inputs:
+      ref: dataset:text  # the test set's reference, tags and all
+      hyp: text          # <test_name>/text.scp
+
+  - metric:
+      _target_: espnet3.systems.esp2_s2t.metrics.wer.WER
+      nlsyms:
+      ref_cleaner:
+      hyp_cleaner:
+      remove_tags: true
+    inputs:
+      ref: dataset:text
+      hyp: text
+
+  - metric:
+      _target_: espnet3.systems.esp2_s2t.metrics.ter.TER
+      # BPE-piece error rate, s2t.sh's third pass. Not sacreBLEU's TER
+      # (translation edit rate), which espnet3/systems/esp2_st reports.
+      # Only exp_tag, exp_dir and inference_dir reach this config from the
+      # training one, so the tokenizer path is spelled out and has to match
+      # training's tokenizer.save_path / model_type.
+      bpemodel: ${recipe_dir}/data/bpe_50000/bpe.model
+      nlsyms:
+      ref_cleaner:
+      hyp_cleaner:
+      remove_tags: true
+    inputs:
+      ref: dataset:text
+      hyp: text

@@ -15,6 +15,9 @@ from types import SimpleNamespace
 import numpy as np
 import pytest
 
+from espnet2.legacy.nets.pytorch_backend.transformer.subsampling import (
+    TooShortUttError,
+)
 from espnet3.api.inference import ModelTagError, load
 from espnet3.systems.esp2_s2t.inference import Inference
 
@@ -77,8 +80,42 @@ class FakeSpeech2Text:
         return [self.utterances[i] for i in token_int]
 
 
+class TooShort(FakeSpeech2Text):
+    """A backend whose encoder cannot subsample what it is given.
+
+    ``fails_in_batch`` fails only the grouped ``batch_decode``, as a group
+    holding one short clip does.
+    """
+
+    def __init__(self, fails_in_batch=False, **kwargs):
+        super().__init__(**kwargs)
+        self.fails_in_batch = fails_in_batch
+
+    @staticmethod
+    def _too_short():
+        return TooShortUttError("has 1 frames, but needs more than 3", 1, 3)
+
+    def iter_long(self, speech, **kwargs):
+        if self.fails_in_batch:
+            yield from super().iter_long(speech, **kwargs)
+            return
+        self.calls.append((np.asarray(speech).shape, kwargs))
+        raise self._too_short()
+        yield  # pragma: no cover - unreachable, but keeps this a generator
+
+    def batch_decode(self, speeches, **kwargs):
+        self.batches.append(([np.asarray(s).shape for s in speeches], kwargs))
+        raise self._too_short()
+
+
 def audio(seconds=2.0, rate=16000):
     return np.zeros(int(seconds * rate), dtype=np.float32)
+
+
+SEGMENTS = [
+    {"text": "hello world", "start": 0.0, "end": 1.5},
+    {"text": "again", "start": 1.5, "end": 2.0},
+]
 
 
 def test_transcribes_a_recording_into_text_and_segments():
@@ -198,6 +235,24 @@ def test_a_recording_with_nothing_in_it_gives_empty_outputs():
         "text": "",
         "segments": [],
     }
+
+
+def test_a_clip_too_short_to_subsample_is_an_empty_hypothesis():
+    """Scored, not raised: the reference counts, so the model is not flattered."""
+    backend = TooShort()
+    assert Inference(backend)(audio(0.01)) == {"text": "", "segments": []}
+
+
+def test_a_too_short_clip_does_not_take_its_batch_group_with_it():
+    """batch_decode searches the group at once, so the group is retried singly."""
+    backend = TooShort(fails_in_batch=True)
+    out = Inference(backend).batch([{"speech": audio(2.0)}, {"speech": audio(3.0)}])
+    assert out == [
+        {"text": "hello world again", "segments": SEGMENTS},
+        {"text": "hello world again", "segments": SEGMENTS},
+    ]
+    assert len(backend.batches) == 1  # tried once, then one at a time
+    assert [shape for shape, _ in backend.calls] == [(32000,), (48000,)]
 
 
 def test_sample_rate_is_the_backends():
