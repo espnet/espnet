@@ -7,6 +7,10 @@ for the current module layout.
 - [Inference API](api/AGENT.md): public model inputs, outputs, and loading.
 - [Components](components/AGENT.md): data, modeling, training, metrics, and
   optimization building blocks.
+- [`contract/`](../../espnet3/contract/): checks a part against its own
+  `espnet3.api` declaration at run time (a metric's inputs/outputs, a
+  dataset's item fields, a system's stage order) - depends only on
+  `espnet3.api`.
 - [Parallel execution](parallel/AGENT.md): runners, providers, and worker
   boundaries.
 - [Publication](publication/AGENT.md): model bundles and demo packaging.
