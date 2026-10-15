@@ -8,6 +8,7 @@
     espnet translate audio.wav --to eng
     espnet synthesize "Hello from ESPnet" -o hello.wav
     espnet enhance noisy.wav -o clean.wav
+    espnet run espnet/owsm_v4_base_102M --system s2t speech=audio.wav language=jpn
     espnet describe recording.wav
     espnet render "A bell rings twice in an empty stairwell." -o bell.wav
     espnet describe recording.wav --brief | espnet render - -o again.wav
@@ -28,6 +29,11 @@ to `espnet transcribe` is reported rather than half-loaded.
 `espnet demo` is the same OWSM model in a browser instead: it serves the app
 the Hugging Face Space runs, locally, and prints the URL to open.
 
+`espnet run` is the one command with no task in its name: it loads any
+model espnet3's `load` reads, takes the inputs the model declares by name,
+and prints the outputs it declares - which is what a model card's usage
+says in Python, at a terminal. `--list` shows the declaration.
+
 `describe` and `render` are the two directions of one model, Bagpiper, which
 maps audio to a description of it and a description back to audio. That is
 why they pipe into each other: the third example above asks what a recording
@@ -37,6 +43,7 @@ is, and renders the answer back as sound. They are 8B models, so both take
 
 import argparse
 import importlib.metadata
+import json
 import os
 import re
 import sys
@@ -200,6 +207,86 @@ def _say(model, audio: str, **prompt) -> str:
 def _prompt(args) -> dict:
     """The language, when one was given; the model works it out otherwise."""
     return {"language": args.language} if args.language else {}
+
+
+def _declared(model) -> str:
+    """The model's inputs and outputs, one a line, as `--list` prints them."""
+    lines = ["inputs:"]
+    for f in model.inputs:
+        lines.append(f"  {f.name}=<{f.kind}>" + ("  (optional)" if f.optional else ""))
+    lines.append("outputs:")
+    lines += [f"  {f.name}  ({f.kind})" for f in model.outputs]
+    return "\n".join(lines)
+
+
+def _parse_inputs(model, pairs: List[str]) -> dict:
+    """Turn ``name=value`` arguments into the model's inputs, by its declaration.
+
+    An audio value is a path, which the model reads; a text value is the
+    string; anything else is JSON. A name the model does not declare, or a
+    required input left out, is a sentence naming the declaration.
+    """
+    fields = {f.name: f for f in model.inputs}
+    inputs: dict = {}
+    for pair in pairs:
+        name, sep, value = pair.partition("=")
+        if not sep or name not in fields:
+            raise CLIError(
+                f"{pair!r}: give inputs as name=value, one of "
+                f"{', '.join(fields) or 'none'}"
+            )
+        kind = fields[name].kind
+        inputs[name] = value if kind in ("audio", "text") else json.loads(value)
+    missing = [f.name for f in model.inputs if not f.optional and f.name not in inputs]
+    if missing:
+        raise CLIError(
+            f"missing input(s) {missing}; the model declares:\n{_declared(model)}"
+        )
+    return inputs
+
+
+def _write_outputs(model, result: dict, out_dir: Path) -> None:
+    """Print each declared output; audio goes to ``out_dir/<name>.wav``.
+
+    The three kinds a ``Field`` can have: text as is, segments as
+    ``start<TAB>end<TAB>text`` lines, audio written and its path printed.
+    """
+    several = len(model.outputs) > 1
+    for f in model.outputs:
+        value = result[f.name]
+        if several:
+            print(f"== {f.name}")
+        if f.kind == "text":
+            print(value)
+        elif f.kind == "segments":
+            for s in value:
+                print(f"{s['start']:.2f}\t{s['end']:.2f}\t{s['text']}")
+        else:  # audio
+            out_dir.mkdir(parents=True, exist_ok=True)
+            path = out_dir / f"{f.name}.wav"
+            array = value.array.T if value.array.ndim == 2 else value.array
+            _write_audio(str(path), array, value.rate)
+            print(path)
+
+
+def cmd_run(args) -> int:
+    """Run any published model by its declaration: inputs in, outputs out."""
+    from espnet3.api.inference import load
+
+    try:
+        model = load(args.tag, system=args.system, device=args.device)
+    except (ModelTagError, ValueError) as e:
+        raise CLIError(str(e)) from e
+    if args.list:
+        print(_declared(model))
+        return 0
+    inputs = _parse_inputs(model, args.inputs)
+    try:
+        result = model(**inputs)
+    except (TypeError, ValueError) as e:  # a value the model refuses
+        raise CLIError(str(e)) from e
+    _write_outputs(model, result, Path(args.output_dir))
+    return 0
 
 
 def _in_vocabulary(s2t, symbol: str) -> bool:
@@ -685,6 +772,43 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("audio", help="audio file, any format soundfile reads")
     p.add_argument("-o", "--output", default="enhanced.wav", help="output wav")
 
+    p = sub.add_parser(
+        "run",
+        help="run any published model by what it declares; `--list` shows that",
+    )
+    p.add_argument(
+        "tag", help="a Hub tag or a pack_model directory espnet3's load reads"
+    )
+    p.add_argument(
+        "--system",
+        default=None,
+        help="the system that reads the tag, for a checkpoint published without a "
+        "bundle (s2t for OWSM and POWSM, asr for ESPnet2 ASR models)",
+    )
+    p.add_argument(
+        "--device",
+        default="auto",
+        type=_device,
+        help="auto (cuda when torch sees one, else cpu), cpu, mps, cuda or "
+        "cuda:<n> (default: auto)",
+    )
+    p.add_argument(
+        "inputs",
+        nargs="*",
+        help="the model's inputs as name=value: a path for audio, a string for "
+        "text, JSON otherwise",
+    )
+    p.add_argument(
+        "--list", action="store_true", help="print the inputs and outputs and stop"
+    )
+    p.add_argument(
+        "-o",
+        "--output-dir",
+        default=".",
+        help="where an audio output is written, as <name>.wav (default: here)",
+    )
+    p.set_defaults(func=cmd_run)
+
     p = add("describe", "say what is in an audio file", cmd_describe)
     p.add_argument("audio", help="audio file, any format soundfile reads")
     p.add_argument(
@@ -751,7 +875,16 @@ def main(argv: Optional[List[str]] = None) -> int:
             f"rather than two. The old name still works.",
             file=sys.stderr,
         )
-    args = build_parser().parse_args(argv)
+    parser = build_parser()
+    args, extra = parser.parse_known_args(argv)
+    if extra:
+        # `espnet run tag speech=a.wav --system s2t language=jpn`: argparse
+        # binds the positionals it sees before the first option and leaves
+        # the rest, so name=value inputs after an option arrive here
+        if args.command == "run" and all("=" in a and a[0] != "-" for a in extra):
+            args.inputs = [*args.inputs, *extra]
+        else:
+            parser.error(f"unrecognized arguments: {' '.join(extra)}")
     try:
         if hasattr(args, "device"):  # every command that loads a model
             args.device = _resolve_device(args.device)

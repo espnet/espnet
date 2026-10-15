@@ -4,7 +4,7 @@ import numbers
 
 import numpy as np
 
-from espnet3.api.inference.kinds.base import Kind
+from espnet3.api.kinds.base import Kind
 
 
 class NumberKind(Kind):

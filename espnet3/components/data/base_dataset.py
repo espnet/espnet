@@ -8,7 +8,7 @@ from typing import Any, Callable, ClassVar, Mapping, Tuple
 
 from torch.utils.data import Dataset as TorchDataset
 
-from espnet3.api.inference import Field
+from espnet3.api import Field
 from espnet3.contract.data import (
     check_fields,
     check_item,

@@ -124,7 +124,9 @@ def locate_pack(tag_or_dir: str | Path) -> Path:
         raise ModelTagError(
             f"{tag_or_dir} is not a pack_model bundle: it has no inference_config"
         )
-    return Path(artifacts["inference_config"]).resolve().parent.parent
+    # The Hub cache's snapshot holds symlinks into blobs/: take the snapshot
+    # directory first, so resolving does not follow a file into blobs/.
+    return Path(artifacts["inference_config"]).parent.parent.resolve()
 
 
 def read_meta(pack_dir: str | Path) -> dict[str, Any]:

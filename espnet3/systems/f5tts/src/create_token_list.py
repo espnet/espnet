@@ -110,7 +110,7 @@ def create_token_list(config: DictConfig) -> None:
             create_token_list:
               save_path: ${data_dir}/token_list
               filename: vocab.txt
-              vocab_builder: espnet3.systems.f5tts.pinyin.build_pinyin_vocab
+              vocab_builder: espnet3.systems.f5tts.src.pinyin.build_pinyin_vocab
 
         With the first config and a training manifest whose only transcript
         is ``hello world``:

@@ -17,9 +17,9 @@
 recipe_dir: .
 # Common case:
 # - pass both `--training_config` and `--publication_config`
-# - `run.py` copies `training_config.exp_tag` / `training_config.exp_dir` here
+# - `launch()` copies `training_config.exp_tag` / `training_config.exp_dir` here
 # - `pack_model` also receives `inference_config` and `metrics_config` when
-#   they were provided to `run.py`
+#   they were provided to `launch()`
 #
 # Override `inference_dir` only when publication should read results from a
 # different inference output directory.

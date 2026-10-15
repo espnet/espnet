@@ -25,6 +25,27 @@ ______________________________________________________________________
 
 ESPnet is an end-to-end speech processing toolkit built on [PyTorch](https://pytorch.org/). It covers speech recognition, text-to-speech, speech translation, speech enhancement, speaker diarization, spoken language understanding, singing voice synthesis, speech language models, and more — with [Kaldi](http://kaldi-asr.org/)-style reproducible recipes from data preparation to evaluation, and hundreds of pretrained models on Hugging Face.
 
+## ESPnet2 and ESPnet3 configuration differences
+
+| Setting | ESPnet2 | ESPnet3 |
+| --- | --- | --- |
+| `batch_bins` (sequence batching) | Global budget for the whole distributed job; each sequence batch is split across ranks | Per-GPU budget by default; `dataloader.train.batch_distribution: global` opts into a global budget and splits each batch across ranks. Validation selects its mode under `dataloader.valid`. |
+| `best_model_criterion` | Each criterion is `(phase, metric, mode)`; the number of models to keep is set separately with `keep_nbest_models` | Each criterion is `(monitor, top_k, mode)`, so the number of checkpoints to keep is specified per criterion (for example, `valid/loss, 3, min`). |
+| `seed` | Set initially and reset to `seed + epoch` at the start of each epoch | Set once before training with Lightning's `seed_everything(..., workers=True)`; random streams are not reset to `seed + epoch` by ESPnet3. |
+| Early stopping (`patience`) | `patience` and `early_stopping_criterion` are trainer options | Configure Lightning's `EarlyStopping` callback in `trainer.callbacks` (for example, its `monitor`, `patience`, and `mode`); no early-stopping callback is added by default. |
+
+Existing ESPnet3 configs keep per-GPU behavior when `batch_distribution` is omitted.
+Changing the GPU count in that mode changes the effective global batch budget.
+Switching modes does not automatically rescale `batch_bins` or accumulation.
+Global mode requires shared batches with at least `world_size` items;
+unsupported iterator/sharding configurations raise an error.
+
+<!-- TODO: After merge, replace the draft links below with the corresponding
+     official documentation URLs under https://espnet.github.io/espnet/. -->
+See the [migration guide](https://masao-someki.github.io/espnet_draft_home_page/espnet3/guides/migrating-from-espnet2/config-diff.html)
+and [dynamic batching guide](https://masao-someki.github.io/espnet_draft_home_page/espnet3/guides/scaling/data-pipeline.html)
+on the draft documentation site for further guidance.
+
 ## What's new
 
 - **[ESPnet 202610.post2](https://github.com/espnet/espnet/releases/tag/v.202610.post2)** — the command line has one name a task and two more of them: `espnet phonemize` reads the phones with POWSM, `espnet align` lines text up with the audio it was said in, and `asr` and `tts` became `transcribe` and `synthesize` (the old names still work); models published before June 2025 load again, after `init: chainer` was removed from the toolkit.
@@ -106,7 +127,7 @@ espnet synthesize "Hello from ESPnet" -o out.wav
 espnet enhance noisy.wav -o clean.wav
 ```
 
-`phonemize` and `align` are there too, and `espnet models` names the default model of each. Every command but that one takes `--model <tag>` and `--device cuda`.
+`phonemize` and `align` are there too, and `espnet models` names the default model of each. Every command but that one takes `--model <tag>` and `--device cuda`. `espnet run <tag> --system s2t speech=audio.wav` runs any model by what it declares, with no task in the command's name.
 
 **From Python**
 

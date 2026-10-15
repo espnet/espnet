@@ -20,6 +20,8 @@ from typing import Any, Mapping
 import torch
 from omegaconf import OmegaConf
 
+from espnet3.contract.stages import roles
+
 LOG_FORMAT = (
     "[%(hostname)s] %(asctime)s (%(filename)s:%(lineno)d) "
     "%(levelname)s:\t[%(stage)s] %(message)s"
@@ -70,78 +72,61 @@ def log_stage_metadata(
         logger (logging.Logger): Logger that should receive the metadata
             entries. In practice this is the stage logger configured immediately
             before a stage starts.
-        system (Any): Instantiated system object. When present, the attributes
-            ``training_config``, ``inference_config``, and ``metrics_config`` are read
-            and dumped as resolved YAML for reproducibility.
+        system (Any): Instantiated system object. Its config roles (from
+            ``roles(type(system))``, derived from its declared stages) are
+            read as ``<role>_config`` attributes and dumped as resolved
+            YAML for reproducibility.
         args (argparse.Namespace | None): Parsed CLI namespace. The function
-            reads ``training_config``, ``inference_config``, ``metrics_config``, and
-            ``write_requirements`` from this namespace when available.
+            reads a ``<role>_config`` attribute per role, and
+            ``write_requirements``, from this namespace when available.
 
     Returns:
         None: This function is logging-only and does not return a value.
 
     Examples:
         >>> from argparse import Namespace
+        >>> from espnet3.contract.stages import StageSpec
         >>> class DummySystem:
+        ...     stages = (StageSpec(name="train", config="training"),)
         ...     training_config = {"exp_dir": "./exp/train"}
-        ...     inference_config = None
-        ...     metrics_config = None
         >>> log_stage_metadata(
         ...     logging.getLogger("espnet3"),
         ...     system=DummySystem(),
         ...     args=Namespace(
         ...         training_config="conf/training.yaml",
-        ...         inference_config=None,
-        ...         metrics_config=None,
         ...         write_requirements=False,
         ...     ),
         ... )
 
     """
-    training_config = getattr(system, "training_config", None)
-    inference_config = getattr(system, "inference_config", None)
-    metrics_config = getattr(system, "metrics_config", None)
+    system_roles = roles(type(system))
+    role_configs = {
+        role: getattr(system, f"{role}_config", None) for role in system_roles
+    }
 
     log_run_metadata(
         logger,
         argv=sys.argv,
         configs={
-            "Training": (
-                Path(args.training_config)
-                if args is not None and getattr(args, "training_config", None)
+            role.capitalize(): (
+                Path(getattr(args, f"{role}_config"))
+                if args is not None and getattr(args, f"{role}_config", None)
                 else None
-            ),
-            "Inference": (
-                Path(args.inference_config)
-                if args is not None and getattr(args, "inference_config", None)
-                else None
-            ),
-            "Metrics": (
-                Path(args.metrics_config)
-                if args is not None and getattr(args, "metrics_config", None)
-                else None
-            ),
+            )
+            for role in system_roles
         },
         write_requirements=bool(
             getattr(args, "write_requirements", False) if args is not None else False
         ),
     )
     log_env_metadata(logger)
-    if training_config is not None:
-        logger.info(
-            "Training config content:\n%s",
-            OmegaConf.to_yaml(training_config, resolve=True),
-        )
-    if inference_config is not None:
-        logger.info(
-            "Inference config content:\n%s",
-            OmegaConf.to_yaml(inference_config, resolve=True),
-        )
-    if metrics_config is not None:
-        logger.info(
-            "Metrics config content:\n%s",
-            OmegaConf.to_yaml(metrics_config, resolve=True),
-        )
+    for role, config in role_configs.items():
+        if config is not None:
+            logger.info(
+                "%s config content:\n%s",
+                role.capitalize(),
+                OmegaConf.to_yaml(config, resolve=True),
+            )
 
 
 def set_log_format(
