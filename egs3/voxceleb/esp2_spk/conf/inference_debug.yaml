@@ -51,4 +51,3 @@ model:
   # This means the debug run does NOT cover the filename the real run depends
   # on.
   model_file: ${exp_dir}/valid.eer.ave_1best.pth
-

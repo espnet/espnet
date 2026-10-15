@@ -33,4 +33,3 @@ model:
   # Weight average over the top-3 `valid/eer` checkpoints, written by
   # `AverageCheckpointsCallback` (espnet3/components/callbacks/default_callbacks.py).
   model_file: ${exp_dir}/valid.eer.ave_3best.pth
-
