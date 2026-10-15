@@ -1,4 +1,4 @@
-# Audio metric prediction: Uni-VERSA and ARECHO
+# Audio quality assessment: Uni-VERSA and ARECHO checkpoint compatibility
 
 The `aqa` (audio quality assessment) task revives the regression models from
 [PR #5959](https://github.com/espnet/espnet/pull/5959) and the autoregressive
@@ -42,7 +42,9 @@ textual tokenizer labels name those IDs in the opposite order.
 
 Old `UniversaTask`, `espnet2.bin.universa_train`, and
 `espnet2.bin.universa_inference` imports are aliases. Old recipe directory and
-`uni_versa.sh` names are symlinks. This preserves model and entry-point loading;
+`uni_versa.sh` names are symlinks to `aqa1` and `aqa.sh`, respectively, in
+`TEMPLATE`, `mini_an4`, and `urgent24`. New commands use `espnet2.bin.aqa_train`
+and `espnet2.bin.aqa_inference`. This preserves model and entry-point loading;
 it does not promise every experimental application in `arecho_app` is supported.
 
 Use the original architecture config with resolved artifact paths and
@@ -53,10 +55,11 @@ checkpoint. New training intentionally uses the corrected positive objective.
 
 ## Published checkpoint validation
 
-The following representative weights were strictly loaded (no missing/unexpected
+During the original series validation, the following representative weights were
+strictly loaded (no missing/unexpected
 keys), then trained for one optimizer step with their configured frozen parameter
 prefixes. The check requires finite loss and gradients, verifies a trainable
-parameter changed, and runs inference afterward.
+parameter changed, and requires one valid prediction for every requested metric.
 
 | Model | Hugging Face revision | Weight |
 | --- | --- | --- |
@@ -78,13 +81,22 @@ PYTHONPATH=. python test/espnet2/aqa/check_published_checkpoint.py \
 For the Uni-VERSA package, use its paths from the table and `--metrics '{"mos": 2.5}'`.
 The check reads local artifacts; it does not download model packages. The frontend
 library may fetch its upstream model if the supplied cache is incomplete.
+Relative artifact paths, including a file-backed `token_list`, are resolved from
+the package root; embedded metadata is used directly. `--metrics` must be a
+non-empty JSON object with known metric names and finite, unmasked numeric labels
+or categorical labels from the released vocabulary. Models configured for
+reference audio or text receive synthetic references, including an unknown text
+token. This checks execution and parameter updates, not reference quality.
 
-Validation used CPU PyTorch 2.11 and the available Python 3.10 environment, with
+The original published-weight validation used CPU PyTorch 2.11 and Python 3.10, with
 current `espnet-s3prl`. This is a compatibility smoke check, not a quality benchmark
 or validation of every checkpoint. Current ESPnet's supported Python 3.12/3.13
 matrix and GPU runs remain CI work. A separate tiny model completed ESPnet
 statistics collection and one epoch of training. Full shell recipes were syntax
-checked but not executed locally because sph2pipe was unavailable.
+checked but not executed during that validation because sph2pipe was unavailable.
+These historical results do not replace a rerun against the current revision.
+Small local regression tests exercise the validator with both architectures and
+with and without references, including strict-load and inference failure cases.
 
 Artifact gaps found in the supplied collections:
 
@@ -96,3 +108,7 @@ Artifact gaps found in the supplied collections:
   ESPnet state-dict compatibility tests.
 - Other collection variants were inspected at config level, not all loaded and
   fine-tuned. ARECHO inference currently supports batch size one.
+
+See the [URGENT24 release guide](../egs2/urgent24/aqa1/README.md) for the full,
+audio-only, text-only, and no-reference WavLM packages, their pinned revisions,
+and the metric vocabulary saved with those releases.

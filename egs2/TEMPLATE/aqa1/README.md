@@ -3,6 +3,9 @@
 This task trains predictors of speech/audio evaluation metrics. `aqa`
 is the task name; Uni-VERSA is the initial model (`universa: base`).
 
+See the [checkpoint compatibility guide](../../../doc/espnet2_audio_metric.md)
+for legacy aliases, released model artifacts, and strict-load/fine-tuning checks.
+
 The implementation revives [ESPnet PR #5959](https://github.com/espnet/espnet/pull/5959)
 on current ESPnet. It uses the existing length-aware speaker pooling API.
 
