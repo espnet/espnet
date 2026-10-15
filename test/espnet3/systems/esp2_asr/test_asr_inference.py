@@ -353,6 +353,9 @@ class NativeASRProvider(InferenceProvider):
         ]
 
 
+# Builds a real ASR model and decodes it; the first run pays the import cost,
+# which exceeds the default 10-second execution timeout on CI.
+@pytest.mark.execution_timeout(60)
 @pytest.mark.parametrize("batch_size", [None, 2])
 def test_native_asr_recipe_writes_the_backends_text(tmp_path, batch_size):
     """Exercise model construction, native decoding, formatting and SCP writing."""
