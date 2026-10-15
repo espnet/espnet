@@ -1,0 +1,210 @@
+##########################################################
+#                    TRAINING SETTING                    #
+##########################################################
+# Quick usage:
+#   python run.py --stages create_dataset     --training_config conf/training.yaml
+#   python run.py --stages compute_xvectors   --training_config conf/training.yaml
+#   python run.py --stages remove_long_short  --training_config conf/training.yaml
+#   python run.py --stages create_token_list  --training_config conf/training.yaml
+#   python run.py --stages collect_stats      --training_config conf/training.yaml
+#   python run.py --stages train              --training_config conf/training.yaml
+#
+# Shared default merged under every esp2_gan_tts recipe's training config
+# (see `load_and_merge_config` in `run.py`). It carries the generic
+# scaffolding for an espnet2 GAN-TTS recipe (VITS, JETS, ...): the copied
+# task, the manifest/x-vector/token-list stages and the dataset wiring that
+# consumes their outputs. Architecture-specific blocks (`model`,
+# `optimizers`, `schedulers`, `dataloader`, `trainer`) are left for the
+# recipe config to fill in.
+#
+# Main stages and what this config is used for:
+# - `create_dataset`: uses `create_dataset`
+# - `compute_xvectors`: uses `xvector` and `parallel`
+# - `remove_long_short`: uses `remove_long_short` and `parallel`
+# - `create_token_list`: uses `create_token_list`
+# - `collect_stats`: uses `dataset`, `dataloader`, `model`, and `parallel`
+# - `train`: uses most fields in this file
+
+##########################################################
+#                  SYSTEM AND PATH SETTING               #
+##########################################################
+num_device: 1
+num_nodes: 1
+
+# ESPnet task class path used by `get_espnet_model(...)`. This is the
+# espnet3 compatibility copy of `espnet2.tasks.gan_tts.GANTTSTask`.
+task: espnet3.systems.esp2_gan_tts.task.GANTTSTask
+
+recipe_dir: .
+data_dir: ${recipe_dir}/data
+exp_tag: ${self_name:}
+exp_dir: ${recipe_dir}/exp/${exp_tag}
+stats_dir: ${exp_dir}/stats
+inference_dir: ${exp_dir}/inference
+
+##########################################################
+#                DATA PREPARATION SETTING                #
+##########################################################
+# `create_dataset` calls the recipe's `dataset/builder.py` with these
+# keyword arguments. The LibriTTS builder also accepts `fs` (defaults to
+# `builder.fs` in dataset/config.yaml) and `num_workers` for the one-off
+# resampling of the corpus, e.g. `num_workers: 16`.
+create_dataset:
+  recipe_dir: ${recipe_dir}
+
+##########################################################
+#               SPEAKER EMBEDDING SETTING                #
+##########################################################
+# `compute_xvectors` writes one `<utt_id>.pt` per utterance under
+# `<save_path>/<spk_embed_tag>_<split>`. The defaults are espnet2's
+# `tts.sh` defaults (`spk_embed_tool=espnet`,
+# `spk_embed_model=espnet/voxcelebs12_rawnet3`), which need no extra
+# dependency. `toolkit` may also be `speechbrain` (pip install speechbrain)
+# or `rawnet`.
+xvector:
+  toolkit: espnet
+  pretrained_model: espnet/voxcelebs12_rawnet3
+  spk_embed_tag: voxcelebs12_rawnet3
+  save_path: ${data_dir}/x_vectors
+  manifest_paths:
+    train: ${data_dir}/manifest/train.tsv
+    valid: ${data_dir}/manifest/valid.tsv
+    test: ${data_dir}/manifest/test.tsv
+  splits: [train, valid, test]
+  batch_size: null
+  # cuda:0 when available, else cpu.
+  device: null
+  async_mode: false
+
+##########################################################
+#              UTTERANCE FILTERING SETTING               #
+##########################################################
+# `remove_long_short` drops utterances outside [min, max] seconds, mirroring
+# espnet2's `tts.sh` `--min_wav_duration` / `--max_wav_duration`.
+remove_long_short:
+  min_wav_duration: 1.0
+  max_wav_duration: 20.0
+  splits: [train, valid, test]
+  manifest_paths:
+    train: ${data_dir}/manifest/train.tsv
+    valid: ${data_dir}/manifest/valid.tsv
+    test: ${data_dir}/manifest/test.tsv
+  save_path: ${data_dir}/manifests_filtered
+
+##########################################################
+#                   TOKEN LIST SETTING                   #
+##########################################################
+# `create_token_list` mirrors `espnet2/bin/tokenize_text.py` on the filtered
+# training manifest. `token_type` / `cleaner` / `g2p` are also what the
+# preprocessor below and the recipe's `model` block should use.
+create_token_list:
+  manifest_path: ${remove_long_short.save_path}/train.tsv
+  save_path: ${data_dir}/tokens
+  filename: tokens.txt
+  token_type: phn
+  cleaner: tacotron
+  g2p: espeak_ng_english_us_vits
+  non_linguistic_symbols: null
+  bpemodel: null
+  space_symbol: "<space>"
+  add_symbol:
+    - "<blank>:0"
+    - "<unk>:1"
+    - "<sos/eos>:-1"
+  vocabulary_size: -1
+  cutoff: 1
+
+##########################################################
+#                    DATASET DEFINITION                  #
+##########################################################
+# Dataset organizer used across collect_stats/train. Each entry points at
+# the recipe's own `dataset/` module (no `data_src`) and reads the filtered
+# manifests plus the per-split x-vector directories produced by the stages
+# above. `_recursive_: false` lets DataOrganizer instantiate the shared
+# preprocessor once per split with the right `train` flag.
+dataset:
+  _target_: espnet3.components.data.data_organizer.DataOrganizer
+  _recursive_: false
+  recipe_dir: ${recipe_dir}
+  train:
+    - data_src_args:
+        split: train
+        manifest_path: ${remove_long_short.save_path}/train.tsv
+        xvector_dir: ${xvector.save_path}/${xvector.spk_embed_tag}_train
+  valid:
+    - data_src_args:
+        split: valid
+        manifest_path: ${remove_long_short.save_path}/valid.tsv
+        xvector_dir: ${xvector.save_path}/${xvector.spk_embed_tag}_valid
+  preprocessor:
+    _target_: espnet2.train.preprocessor.CommonPreprocessor
+    # Rate of the task-ready audio written by `create_dataset` (`builder.fs`
+    # in dataset/config.yaml). Keep `mel_loss_params.fs` and
+    # `tts_conf.sampling_rate` in the recipe's model block equal to it.
+    fs: 22050
+    token_type: ${create_token_list.token_type}
+    token_list: ${create_token_list.save_path}/${create_token_list.filename}
+    text_cleaner:
+      - ${create_token_list.cleaner}
+    g2p_type: ${create_token_list.g2p}
+
+##########################################################
+#                      MODEL SETTING                     #
+##########################################################
+# Filled in by the recipe (espnet2 GAN-TTS `model` block: token_list,
+# feats_extract, tts, tts_conf, ...).
+model:
+
+##########################################################
+#            OPTIMIZER & SCHEDULER SETTING               #
+##########################################################
+# GAN-TTS uses the named multi-optimizer path: `optimizers` / `schedulers`
+# must define exactly `generator` and `discriminator`.
+optimizer:
+scheduler:
+scheduler_interval:
+scheduler_monitor:
+optimizers:
+schedulers:
+
+##########################################################
+#                OTHER TRAINING SETTING                  #
+##########################################################
+best_model_criterion:
+
+# Optional random seed used by collect_stats/train.
+seed:
+
+# Extra model initialization mode forwarded to ESPnet's initializer.
+init:
+
+##########################################################
+#                   PARALLELIZATION SETTING              #
+##########################################################
+parallel:
+  env: local
+  n_workers: 1
+
+##########################################################
+#                   DATALOADER SETTING                   #
+##########################################################
+dataloader:
+
+##########################################################
+#                    TRAINER SETTING                     #
+##########################################################
+# These settings map to `lightning.Trainer(...)`, except `trainer.gan`, which
+# is read by GANTTSLightningModule and stripped before Lightning sees it.
+trainer:
+  accelerator: auto
+  devices: ${num_device}
+  num_nodes: ${num_nodes}
+  strategy: auto
+  gan:
+    generator_first: false
+    skip_discriminator_prob: 0.0
+
+##########################################################
+#                      FIT SETTING                       #
+##########################################################
+fit: {}

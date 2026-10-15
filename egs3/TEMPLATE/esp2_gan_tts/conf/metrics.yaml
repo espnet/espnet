@@ -1,0 +1,54 @@
+##########################################################
+#                 METRIC SCORING SETTING                 #
+##########################################################
+# Quick usage:
+#   python run.py --stages measure \
+#       --training_config conf/training.yaml \
+#       --inference_config conf/inference.yaml \
+#       --metrics_config conf/metrics.yaml
+#
+# Shared default merged under every esp2_gan_tts recipe's metrics config.
+# Scores the `infer` stage outputs (`${inference_dir}/<test>/{wav,ref,text}.scp`)
+# with versa (https://github.com/wavlab-speech/versa), which must be
+# installed in the evaluation environment: pseudo-MOS (UTMOS, DNSMOS),
+# Whisper WER/CER against `text`, and speaker similarity against `ref`.
+
+recipe_dir: .
+exp_tag:
+exp_dir: ${recipe_dir}/exp/${exp_tag}
+
+##########################################################
+#                   TEST SETS TO SCORE                   #
+##########################################################
+dataset:
+  test:
+    - name: valid
+    - name: test
+
+##########################################################
+#                VERSA METRIC DEFINITION                 #
+##########################################################
+metrics:
+  - metric:
+      _target_: espnet3.components.metrics.versa.VersaMetric
+      score_config:
+        - name: pseudo_mos
+          predictor_types: [utmos, dnsmos]
+          predictor_args:
+            utmos:
+              fs: 16000
+            dnsmos:
+              fs: 16000
+        - name: whisper_wer
+          model_tag: default
+          beam_size: 1
+        - name: speaker
+          model_tag: espnet/voxcelebs12_ecapa_wavlm_joint
+      wav_key: wav
+      ref_key: ref
+      text_key: text
+      use_gpu: true
+    inputs:
+      wav: wav
+      ref: ref
+      text: text

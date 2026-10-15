@@ -1,0 +1,30 @@
+##########################################################
+#            LIBRITTS VITS INFERENCE SETTING             #
+##########################################################
+# Merged over egs3/TEMPLATE/esp2_gan_tts/conf/inference.yaml, so only the
+# values this recipe changes are listed here. See the template for the shared
+# defaults (paths, the valid/test dataset block, the text preprocessor, the
+# Text2Speech model reference, parallel, provider, runner).
+
+##########################################################
+#               SPEAKER EMBEDDING SETTING                #
+##########################################################
+# Must match `xvector` in conf/training.yaml.
+xvector:
+  spk_embed_tag: spkrec-ecapa-voxceleb
+
+##########################################################
+#                   DATASET DEFINITION                   #
+##########################################################
+dataset:
+  preprocessor:
+    token_list: ${data_dir}/tokens/phn_tokens.txt
+
+##########################################################
+#                 INPUT / OUTPUT SETTING                 #
+##########################################################
+output_fn: src.inference.build_output
+output_artifacts:
+  wav:
+    type: wav
+    sample_rate: 22050
