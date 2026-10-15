@@ -16,6 +16,8 @@ higher is better. The average covers all 11 evaluation metrics in the paper.
 | --- | --- | --- | --- | --- | --- |
 | Fbank | Audio + text | 0.78 / 0.80 | 0.72 / 0.72 | 0.57 / 0.53 | 0.76 / 0.73 |
 | WavLM Large | Audio + text | 0.82 / 0.84 | 0.77 / 0.77 | 0.79 / 0.79 | 0.84 / 0.82 |
+| WavLM Large | Audio only | 0.82 / 0.83 | 0.78 / 0.78 | 0.78 / 0.76 | 0.85 / 0.82 |
+| WavLM Large | Text only | 0.84 / 0.86 | 0.79 / 0.79 | 0.78 / 0.76 | 0.85 / 0.83 |
 | WavLM Large | None | 0.85 / 0.86 | 0.77 / 0.78 | 0.79 / 0.78 | 0.85 / 0.82 |
 
 The paper partitions source utterances into train/dev/test sets in an 85:5:10
@@ -38,20 +40,43 @@ The release names say `wavlm_base`, but their saved frontend selects `wavlm_larg
 | Model | Reference inputs | Saved config and checkpoint directory | Weight file |
 | --- | --- | --- | --- |
 | [Fbank](https://huggingface.co/espnet/universa-base_urgent24_multi-metric/tree/7cd604c67a5a3e0a2cc79453c6cead9f17d99e9a) | Audio + text | `exp/universa_train_universa_raw_fs16000/` | `96epoch.pth` |
-| [WavLM Large](https://huggingface.co/espnet/universa-wavlm_base_urgent24_multi-metric/tree/16184f434b0da62a2a723ee6afd0b74b8439fb0b) | Audio + text | `exp/universa_all_only_wavlm_freeze/` | `100epoch.pth` |
+| [WavLM Large, full reference](https://huggingface.co/espnet/universa-wavlm_base_urgent24_multi-metric_fullref/tree/23c228a8f7cd658de16850b897b8c662fe815efa) | Audio + text | `update_exp/universa_train_universa_wavlm_freeze_raw_fs16000/` | `7epoch.pth` |
+| [WavLM Large, audio reference](https://huggingface.co/espnet/universa-wavlm_base_urgent24_multi-metric_audioref/tree/fb24f25a303546a0857b39328d88141029c6f022) | Audio only | `update_exp/universa_train_universa_wavlm_ref_audio_raw_fs16000/` | `15epoch.pth` |
+| [WavLM Large, text reference](https://huggingface.co/espnet/universa-wavlm_base_urgent24_multi-metric_textref/tree/d84d3a141989f9e65f3121a33b1c64b9cd76db8b) | Text only | `update_exp/universa_train_universa_wavlm_text_raw_fs16000/` | `17epoch.pth` |
 | [WavLM Large, no reference](https://huggingface.co/espnet/universa-wavlm_base_urgent24_multi-metric_noref/tree/6abec38c0971c2c0feebbe39ee2f94c9c21357c4) | None | `update_exp/universa_train_universa_wavlm_noref_raw_fs16000/` | `13epoch.pth` |
 
 Each directory in the table contains `config.yaml`. Links pin the inspected
 Hugging Face revisions. The published results above describe the paper's systems;
 these checkpoint files have not been re-benchmarked with this recipe.
 
-The no-reference release includes its metric vocabulary at
+All four suffixed WavLM packages include the metric vocabulary at
 `dump_ark/raw/train_update/metric2id` and a BPE model at
-`data/token_list/bpe_unigram500/bpe.model`. Resolve saved paths relative to the
-downloaded package before loading. The two full-reference packages currently
-omit their referenced metric vocabularies and BPE models; restore the exact
-training assets before using them. Do not infer metric ordering from the result
-table or substitute a newly trained tokenizer.
+`data/token_list/bpe_unigram500/bpe.model`. Resolve these saved paths relative to
+the downloaded package before loading. Their saved configurations freeze
+`frontend.upstream` and set `max_epoch: 100`; batch size is 16 for the reference
+variants and 32 for no-reference. Their `meta.yaml` records ESPnet `202412`,
+Python `3.9.18`, and PyTorch `2.6.0.dev20241210+cu124` as the release environment.
+These historical versions are provenance, not installation requirements for
+current ESPnet.
+
+The released vocabulary contains 13 targets in this order:
+
+```text
+dns_p808 f0corr f0rmse mcd mos pesq sheet_ssqa si_snr speech_bert spk_similarity stoi utmos wer
+```
+
+The paper reports 11 evaluation metrics, so its average excludes the additional
+F0-RMSE and MCD outputs. Preserve the package's full vocabulary and ordering when
+loading its checkpoint. These four WavLM packages provide training curves but no
+machine-readable held-out evaluation results; the correlation table above is
+sourced from the paper, not inferred from the weights or training curves.
+
+The older Fbank package in the table and the
+[unsuffixed WavLM package](https://huggingface.co/espnet/universa-wavlm_base_urgent24_multi-metric/tree/16184f434b0da62a2a723ee6afd0b74b8439fb0b)
+omit their referenced metric vocabularies and BPE models. Prefer the complete
+`_fullref` WavLM release above. Using either older package requires restoring its
+exact original assets; do not assume a newer release has the same metric ordering
+or tokenizer.
 
 For inference with a complete package, use `espnet2.bin.aqa_inference` with
 `--train_config` pointing to the resolved saved configuration and `--model_file`
