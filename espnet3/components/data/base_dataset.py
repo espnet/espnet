@@ -4,20 +4,18 @@ from __future__ import annotations
 
 import functools
 from abc import ABC, abstractmethod
-from typing import Any, Callable, ClassVar, Mapping, Tuple
+from typing import Any, Callable, ClassVar, Mapping
 
 from torch.utils.data import Dataset as TorchDataset
 
-from espnet3.api import Field
 from espnet3.contract.data import (
     check_fields,
     check_item,
-    require_fields,
 )
 
 
 class BaseDataset(TorchDataset, ABC):
-    """What a recipe's dataset promises: the keys and kinds of one item.
+    """What a recipe's dataset promises: the keys and Python types of one item.
 
     A subclass declares ``fields`` - a class attribute when every instance's
     item shape is the same, or set on ``self`` in ``__init__`` when it
@@ -28,7 +26,7 @@ class BaseDataset(TorchDataset, ABC):
 
     Examples:
         >>> class MiniDataset(BaseDataset):
-        ...     fields = (Field("utt_id", "text"), Field("text", "text"))
+        ...     fields = {"utt_id": str, "text": str}
         ...     def __init__(self):
         ...         self.items = [{"utt_id": "u1", "text": "hi"}]
         ...     def __len__(self):
@@ -39,7 +37,7 @@ class BaseDataset(TorchDataset, ABC):
         'hi'
     """
 
-    fields: ClassVar[Tuple[Field, ...]]
+    fields: ClassVar[Mapping[str, type | tuple[type, ...]]]
 
     def __init_subclass__(cls, **kwargs):
         """Validate class-level ``fields`` and wrap ``__getitem__`` to check once."""
@@ -62,8 +60,6 @@ def _checked_once(getitem: Callable) -> Callable:
         item = getitem(self, index)
         if not getattr(self, "_fields_checked", False):
             fields = check_fields(self, "fields")
-            if fields is None:
-                require_fields(self, "fields")
             check_item(fields, item, where=type(self).__qualname__)
             self._fields_checked = True
         return item

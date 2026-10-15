@@ -11,24 +11,23 @@ except ImportError:
     jiwer = None
 
 from espnet2.text.cleaner import TextCleaner
-from espnet3.api.inference import Field
 from espnet3.components.metrics.base_metric import BaseMetric
 
 
 class CER(BaseMetric):
     """Compute CER for a dataset.
 
-    Reads ``data["ref"]``/``data["hyp"]``, the declared names; the
-    metrics config's ``inputs:`` binds them to a source (see
-    :class:`~espnet3.contract.metrics.check_metric_inputs`).
+    Reads ``data["ref"]``/``data["hyp"]``, the declared names; the metrics
+    config's ``inputs:`` binds them to a source (see
+    :func:`~espnet3.contract.metrics.check_metric_inputs`).
 
     Examples:
-        >>> [f.name for f in CER().inputs]
+        >>> list(CER().inputs)
         ['ref', 'hyp']
     """
 
-    inputs = (Field("ref", "text"), Field("hyp", "text"))
-    outputs = (Field("CER", "number"),)
+    inputs = {"ref": str, "hyp": str}
+    outputs = ("CER",)
 
     def __init__(self, clean_types: Iterable[str] | None = None) -> None:
         """Initialize the CER metric.

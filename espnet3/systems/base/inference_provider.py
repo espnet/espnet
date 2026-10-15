@@ -9,7 +9,6 @@ import torch
 from hydra.utils import instantiate
 from omegaconf import DictConfig, OmegaConf
 
-from espnet3.api.inference.loading import build_model
 from espnet3.parallel.env_provider import EnvironmentProvider
 from espnet3.utils.logging_utils import log_instance_dict
 
@@ -179,42 +178,16 @@ class InferenceProvider(EnvironmentProvider, ABC):
 
     @staticmethod
     def build_model(config: DictConfig):
-        """Build the model ``config.model`` names, on this worker's device.
-
-        Resolves the device (:meth:`_resolve_device`: the config's, else a
-        GPU this worker sees, else the CPU) and hands the config to
-        :func:`espnet3.api.inference.build_model`, the one way a model is
-        built, shared with loading a published bundle. An ``Inference``
-        needs nothing more; a subclass overrides this only for a model that
-        is built some other way in the ``infer`` stage.
-
-        Args:
-            config (DictConfig): The inference config, with ``model``.
-
-        Returns:
-            Any: The built model - the system's ``Inference`` when
-            ``model._target_`` names one.
-
-        Example:
-            >>> config = OmegaConf.create({"model": {
-            ...     "_target_": "espnet3.systems.esp2_asr.inference.Inference",
-            ...     "asr_train_config": "exp/config.yaml",
-            ...     "asr_model_file": "exp/valid.acc.ave.pth"}})
-            >>> model = InferenceProvider.build_model(config)  # doctest: +SKIP
-        """
+        """Build config.model directly on this worker's logical device."""
         if isinstance(config, dict):
             config = OmegaConf.create(config)
         device = InferenceProvider._resolve_device(config)
-        # build_model logs the model and device; this adds what the worker sees
         logger.debug(
             "CUDA_VISIBLE_DEVICES=%s, visible_gpus=%s",
             os.getenv("CUDA_VISIBLE_DEVICES"),
             torch.cuda.device_count() if torch.cuda.is_available() else 0,
         )
-        # One way to build a model from an inference config, shared with
-        # loading a published bundle; it reads only config.model and never
-        # calls a provider, so this cannot be called back.
-        return build_model(config, device=device)
+        return instantiate(config.model, device=device)
 
     @staticmethod
     def _resolve_device(config: DictConfig) -> str:

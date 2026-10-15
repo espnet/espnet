@@ -32,7 +32,7 @@ README = ROOT / "README.md"
 
 # Subcommands that are not a task: they run no model of their own, and the
 # matrix is about tasks.
-NOT_A_TASK = {"demo", "models"}
+NOT_A_TASK = {"demo", "models", "run"}  # run takes any model: no task of its own
 
 
 def cli_commands() -> set:
