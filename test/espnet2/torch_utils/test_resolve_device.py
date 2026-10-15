@@ -3,7 +3,7 @@
 import pytest
 import torch
 
-from espnet3.api.inference import resolve_device
+from espnet2.torch_utils.resolve_device import resolve_device
 
 
 def test_auto_is_cuda_when_torch_sees_it_else_cpu(monkeypatch):

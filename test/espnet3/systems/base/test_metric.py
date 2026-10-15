@@ -4,35 +4,16 @@ from pathlib import Path
 import pytest
 from omegaconf import OmegaConf
 
-from espnet3.api.inference import Field, InferenceAPI
 from espnet3.components.metrics.base_metric import BaseMetric
 from espnet3.systems.base.metric import _resolve_test_sets, measure
 from espnet3.utils.scp_utils import get_class_path
 
-
-class _DummyInference(InferenceAPI):
-    """A model declaration covering every output name this file's metrics use."""
-
-    inputs = (Field("speech", "audio"),)
-    outputs = (
-        Field("ref", "text"),
-        Field("hyp", "text"),
-        Field("text", "text"),
-        Field("hypothesis", "text"),
-    )
-
-    def run(self, speech):
-        raise NotImplementedError
-
-
-_INFERENCE_CFG = OmegaConf.create(
-    {"model": {"_target_": f"{__name__}._DummyInference"}}
-)
+_INFERENCE_CFG = OmegaConf.create({})
 
 
 class DummyMetric(BaseMetric):
-    inputs = (Field("ref", "text"), Field("hyp", "text"))
-    outputs = (Field("count", "number"),)
+    inputs = {"ref": str, "hyp": str}
+    outputs = ("count",)
 
     def __init__(self):
         super().__init__()
@@ -46,8 +27,8 @@ class DummyMetric(BaseMetric):
 
 
 class NoKeyMetric(BaseMetric):
-    inputs = (Field("ref", "text"), Field("hyp", "text"))
-    outputs = (Field("ok", "number"),)
+    inputs = {"ref": str, "hyp": str}
+    outputs = ("ok",)
 
     def update(self, **values):
         pass
@@ -57,8 +38,8 @@ class NoKeyMetric(BaseMetric):
 
 
 class PathMetric(BaseMetric):
-    inputs = (Field("ref", "text"), Field("hyp", "text"))
-    outputs = (Field("ok", "number"),)
+    inputs = {"ref": str, "hyp": str}
+    outputs = ("ok",)
 
     def update(self, *, ref, hyp):
         assert list(hyp) == ["h1"]
@@ -198,7 +179,8 @@ def test_metric_uses_config_inputs_mapping(tmp_path):
     assert results[expected_key][test_name] == {"ok": 1}
 
 
-def test_metric_passes_lazy_scp_inputs(tmp_path):
+@pytest.mark.parametrize("inputs", [{"ref": "ref", "hyp": "hyp"}, ["ref", "hyp"]])
+def test_metric_passes_lazy_scp_inputs(tmp_path, inputs):
     inference_dir = tmp_path / "infer"
     test_name = "test_a"
     task_dir = inference_dir / test_name
@@ -213,7 +195,7 @@ def test_metric_passes_lazy_scp_inputs(tmp_path):
             "metrics": [
                 {
                     "metric": {"_target_": f"{__name__}.PathMetric"},
-                    "inputs": {"ref": "ref", "hyp": "hyp"},
+                    "inputs": inputs,
                 }
             ],
         }
@@ -307,7 +289,7 @@ def test_metric_requires_inputs_in_config(tmp_path):
         }
     )
 
-    with pytest.raises(ValueError, match="bind them in the metrics config"):
+    with pytest.raises(ValueError, match="inputs mapping"):
         measure(cfg, _INFERENCE_CFG)
 
 
@@ -329,63 +311,7 @@ def test_metric_requires_test_sets_from_config_or_inference_dir(tmp_path):
 # ---------------------------------------------------------------------------
 
 
-class SkipsSuperInitMetric(BaseMetric):
-    """Declares nothing, and skips super().__init__() - the gap measure() closes."""
-
-    def __init__(self):
-        pass
-
-    def update(self, **values):
-        pass
-
-    def compute(self):
-        return {}
-
-
-def test_measure_rejects_a_metric_that_skipped_the_init_check(tmp_path):
-    inference_dir = tmp_path / "infer"
-    test_name = "test-clean"
-    (inference_dir / test_name).mkdir(parents=True)
-
-    cfg = OmegaConf.create(
-        {
-            "inference_dir": str(inference_dir),
-            "dataset": {"test": [{"name": test_name}]},
-            "metrics": [{"metric": {"_target_": f"{__name__}.SkipsSuperInitMetric"}}],
-        }
-    )
-
-    # construction alone does not catch it: __init__ never called super().__init__()
-    assert SkipsSuperInitMetric()
-
-    with pytest.raises(TypeError, match="does not declare"):
-        measure(cfg, _INFERENCE_CFG)
-
-
-def test_measure_rejects_metric_whose_input_is_not_a_declared_output(tmp_path):
-    inference_dir = tmp_path / "infer"
-    test_name = "test-clean"
-    (inference_dir / test_name).mkdir(parents=True)
-
-    not_declared = OmegaConf.create({"model": {"_target_": "builtins.dict"}})
-    cfg = OmegaConf.create(
-        {
-            "inference_dir": str(inference_dir),
-            "dataset": {"test": [{"name": test_name}]},
-            "metrics": [
-                {
-                    "metric": {"_target_": f"{__name__}.DummyMetric"},
-                    "inputs": {"ref": "ref", "hyp": "hyp"},
-                }
-            ],
-        }
-    )
-
-    with pytest.raises(ValueError, match="declares no outputs"):
-        measure(cfg, not_declared)
-
-
-def test_measure_succeeds_for_declared_metric_with_matching_output(tmp_path):
+def test_measure_scores_configured_scp_inputs(tmp_path):
     inference_dir = tmp_path / "infer"
     test_name = "test-clean"
     task_dir = inference_dir / test_name
@@ -412,45 +338,7 @@ def test_measure_succeeds_for_declared_metric_with_matching_output(tmp_path):
     assert results[expected_key][test_name] == {"count": 1}
 
 
-class BadOutputMetric(BaseMetric):
-    """A declared metric whose __call__ breaks its own output contract."""
-
-    inputs = (Field("ref", "text"), Field("hyp", "text"))
-    outputs = (Field("X", "number"),)
-
-    def update(self, **values):
-        pass
-
-    def compute(self):
-        return {"X": "not-a-number"}
-
-
-def test_measure_rejects_non_number_metric_output(tmp_path):
-    inference_dir = tmp_path / "infer"
-    test_name = "test-clean"
-    task_dir = inference_dir / test_name
-    task_dir.mkdir(parents=True)
-    _write_scp(task_dir / "ref.scp", ["utt1 r1"])
-    _write_scp(task_dir / "hyp.scp", ["utt1 h1"])
-
-    cfg = OmegaConf.create(
-        {
-            "inference_dir": str(inference_dir),
-            "dataset": {"test": [{"name": test_name}]},
-            "metrics": [
-                {
-                    "metric": {"_target_": f"{__name__}.BadOutputMetric"},
-                    "inputs": {"ref": "ref", "hyp": "hyp"},
-                }
-            ],
-        }
-    )
-
-    with pytest.raises(ValueError, match="number"):
-        measure(cfg, _INFERENCE_CFG)
-
-
-def test_measure_succeeds_for_wer_against_a_declared_inference_model(tmp_path):
+def test_measure_scores_wer_without_model_declarations(tmp_path):
     from espnet3.systems.esp2_asr.metrics.wer import WER
 
     try:
@@ -520,7 +408,7 @@ def test_measure_succeeds_for_wer_with_dataset_and_scp_inputs(tmp_path):
     inference_cfg = OmegaConf.create(
         {
             "inference_dir": str(inference_dir),
-            "model": {"_target_": f"{__name__}._DummyInference"},
+            "model": {"_target_": "builtins.object"},
             "provider": {"_target_": f"{__name__}._DatasetTextProvider"},
         }
     )

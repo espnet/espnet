@@ -1,117 +1,68 @@
-"""Tests for espnet3.contract.data."""
+"""Dataset contracts survive removal of the inference declarations."""
 
 import numpy as np
 import pytest
 
-from espnet3.api.inference import Field
-from espnet3.contract.data import (
-    DatasetContractError,
-    check_fields,
-    check_item,
-    require_fields,
+from espnet3.components.data.base_dataset import BaseDataset
+from espnet3.contract.data import DatasetContractError
+
+
+class Samples(BaseDataset):
+    fields = {"speech": np.ndarray, "text": str, "utt_id": (str, type(None))}
+
+    def __init__(self, item):
+        self.item = item
+
+    def __len__(self):
+        return 1
+
+    def __getitem__(self, index):
+        return self.item
+
+
+def test_dataset_checks_required_and_optional_values():
+    item = {"speech": np.zeros(4), "text": "hello", "extra": 1}
+    dataset = Samples(item)
+    assert dataset[0] is item
+    # A successful first check is cached, as for the original dataset contract.
+    dataset.item = {}
+    assert dataset[0] == {}
+
+
+@pytest.mark.parametrize(
+    "item",
+    [
+        None,
+        {},
+        {"speech": [1], "text": "a"},
+        {"speech": np.zeros(4), "text": 1},
+        {"speech": np.zeros(4), "text": "a", "utt_id": 1},
+    ],
 )
-
-# ---------------------------------------------------------------------------
-# check_fields
-# ---------------------------------------------------------------------------
-
-
-def test_check_fields_returns_well_formed_tuple():
-    class Good:
-        fields = (Field("speech", "audio"), Field("text", "text"))
-
-    assert check_fields(Good, "fields") == Good.fields
+def test_dataset_rejects_invalid_item(item):
+    with pytest.raises(DatasetContractError):
+        Samples(item)[0]
 
 
-def test_check_fields_returns_none_when_undeclared():
-    class Undeclared:
-        pass
-
-    assert check_fields(Undeclared, "fields") is None
-
-
-def test_check_fields_accepts_instance_attribute():
-    class Configurable:
-        def __init__(self, extra):
-            self.fields = (Field("speech", "audio"), Field(extra, "text"))
-
-    obj = Configurable("text")
-    assert check_fields(obj, "fields") == obj.fields
+def test_invalid_first_item_does_not_disable_validation():
+    dataset = Samples({})
+    for _ in range(2):
+        with pytest.raises(DatasetContractError, match="speech"):
+            dataset[0]
 
 
-def test_check_fields_rejects_non_tuple():
-    class Bad:
-        fields = [Field("speech", "audio")]
-
-    with pytest.raises(TypeError, match="must be a tuple of Field"):
-        check_fields(Bad, "fields")
+@pytest.mark.parametrize("fields", [(), {}, {"text": "str"}, {"": str}])
+def test_dataset_rejects_invalid_declaration(fields):
+    with pytest.raises(DatasetContractError):
+        type("InvalidDataset", (Samples,), {"fields": fields})
 
 
-def test_check_fields_rejects_empty_tuple():
-    class Bad:
-        fields = ()
+def test_dataset_instance_can_declare_fields():
+    class Dynamic(BaseDataset):
+        def __init__(self):
+            self.fields = {"text": str}
 
-    with pytest.raises(TypeError, match="must name at least one field"):
-        check_fields(Bad, "fields")
+        def __getitem__(self, index):
+            return {"text": "hello"}
 
-
-def test_check_fields_rejects_duplicate_names():
-    class Bad:
-        fields = (Field("speech", "audio"), Field("speech", "text"))
-
-    with pytest.raises(TypeError, match="repeats a name"):
-        check_fields(Bad, "fields")
-
-
-# ---------------------------------------------------------------------------
-# require_fields
-# ---------------------------------------------------------------------------
-
-
-def test_require_fields_always_raises():
-    class Undeclared:
-        pass
-
-    with pytest.raises(TypeError, match="does not declare fields"):
-        require_fields(Undeclared, "fields")
-
-
-# ---------------------------------------------------------------------------
-# check_item
-# ---------------------------------------------------------------------------
-
-_FIELDS = (Field("speech", "audio"), Field("text", "text"))
-
-
-def test_check_item_accepts_matching_item():
-    check_item(
-        _FIELDS, {"speech": np.zeros(16000, dtype=np.float32), "text": "hi"}, "x"
-    )
-
-
-def test_check_item_allows_undeclared_extra_keys():
-    check_item(
-        _FIELDS,
-        {"speech": np.zeros(16000, dtype=np.float32), "text": "hi", "utt_id": "u1"},
-        "x",
-    )
-
-
-def test_check_item_rejects_non_mapping():
-    with pytest.raises(DatasetContractError, match="item must be a dict"):
-        check_item(_FIELDS, ["not", "a", "dict"], "x")
-
-
-def test_check_item_rejects_missing_field():
-    with pytest.raises(DatasetContractError, match="lacks declared field 'text'"):
-        check_item(_FIELDS, {"speech": np.zeros(16000, dtype=np.float32)}, "x")
-
-
-def test_check_item_rejects_wrong_kind():
-    with pytest.raises(DatasetContractError, match="declared audio but the item holds"):
-        check_item(_FIELDS, {"speech": 42, "text": "hi"}, "x")
-
-
-def test_check_item_allows_missing_optional_field():
-    fields = (Field("speech", "audio"), Field("prompt", "text", optional=True))
-    check_item(fields, {"speech": np.zeros(16000, dtype=np.float32)}, "x")
+    assert Dynamic()[0] == {"text": "hello"}
