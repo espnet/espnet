@@ -30,6 +30,9 @@ def _bundle_paths(value, pack_dir, key=""):
         }
     if isinstance(value, list):
         return [_bundle_paths(item, pack_dir) for item in value]
+    if isinstance(value, str) and value.startswith("${recipe_dir}"):
+        # `_write_bundle_config` writes placeholders; plain YAML keeps them.
+        return value.replace("${recipe_dir}", str(pack_dir), 1)
     is_path = key in {"token_list", "bpemodel"} or key.endswith(
         ("_file", "_path", "_dir", "_config")
     )

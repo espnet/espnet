@@ -68,13 +68,14 @@ def _s2t(tag: str):
     from espnet2.bin.s2t_inference import Speech2Text
     from espnet2.utils.pretrained import build_pretrained
 
-    return build_pretrained(
-        Speech2Text,
-        tag,
-        _device(),
-        "ESPnet speech-to-text tools",
-        "Select an OWSM or POWSM checkpoint.",
-    )
+    with _quiet_stdout():
+        return build_pretrained(
+            Speech2Text,
+            tag,
+            _device(),
+            "ESPnet speech-to-text tools",
+            "Select an OWSM or POWSM checkpoint.",
+        )
 
 
 @functools.lru_cache(maxsize=None)
