@@ -649,3 +649,29 @@ def test_locate_pack_downloads_a_tag(tmp_path, monkeypatch):
     monkeypatch.setattr(downloader, "ModelDownloader", Empty)
     with pytest.raises(RuntimeError, match="not a pack_model bundle"):
         locate_pack("org/other")
+
+
+def test_locate_pack_finds_a_bundle_in_the_hub_cache(tmp_path, monkeypatch):
+    """huggingface_hub caches a download as a snapshot of symlinks into blobs/."""
+    repo = tmp_path / "models--org--model"
+    snapshot = repo / "snapshots" / "0123abc"
+    (snapshot / "conf").mkdir(parents=True)
+    (repo / "blobs").mkdir()
+    files = {
+        "meta.yaml": "yaml_files:\n  inference_config: conf/inference.yaml\n",
+        "conf/inference.yaml": "recipe_dir: .\n",
+    }
+    for index, (name, text) in enumerate(files.items()):
+        blob = repo / "blobs" / str(index)
+        blob.write_text(text)
+        (snapshot / name).symlink_to(blob)
+
+    class Downloader:
+        def download_and_unpack(self, tag):
+            return {"inference_config": str(snapshot / "conf" / "inference.yaml")}
+
+    import espnet_model_zoo.downloader as downloader
+
+    monkeypatch.setattr(downloader, "ModelDownloader", Downloader)
+    assert locate_pack("org/model") == snapshot.resolve()
+    assert (locate_pack("org/model") / "meta.yaml").is_file()

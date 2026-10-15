@@ -106,7 +106,7 @@ espnet synthesize "Hello from ESPnet" -o out.wav
 espnet enhance noisy.wav -o clean.wav
 ```
 
-`phonemize` and `align` are there too, and `espnet models` names the default model of each. Every command but that one takes `--model <tag>` and `--device cuda`.
+`phonemize` and `align` are there too, and `espnet models` names the default model of each. Every command but that one takes `--model <tag>` and `--device cuda`. `espnet run <tag> --system s2t speech=audio.wav` runs any model by what it declares, with no task in the command's name.
 
 **From Python**
 
@@ -250,6 +250,32 @@ Contributions, questions, and feature requests are all welcome — open an [issu
 <img src="https://contrib.rocks/image?repo=espnet/espnet&max=100&columns=25"
 alt="Contributors"/>
 </a>
+
+## ESPnet2 and ESPnet3 configuration differences
+
+<details>
+<summary><b>Configuration differences when moving from ESPnet2 to ESPnet3</b></summary>
+
+| Setting | ESPnet2 | ESPnet3 |
+| --- | --- | --- |
+| `batch_bins` (sequence batching) | Global budget for the whole distributed job; each sequence batch is split across ranks | Per-GPU budget by default; `dataloader.train.batch_distribution: global` opts into a global budget and splits each batch across ranks. Validation selects its mode under `dataloader.valid`. |
+| `best_model_criterion` | Each criterion is `(phase, metric, mode)`; the number of models to keep is set separately with `keep_nbest_models` | Each criterion is `(monitor, top_k, mode)`, so the number of checkpoints to keep is specified per criterion (for example, `valid/loss, 3, min`). |
+| `seed` | Set initially and reset to `seed + epoch` at the start of each epoch | Set once before training with Lightning's `seed_everything(..., workers=True)`; random streams are not reset to `seed + epoch` by ESPnet3. |
+| Early stopping (`patience`) | `patience` and `early_stopping_criterion` are trainer options | Configure Lightning's `EarlyStopping` callback in `trainer.callbacks` (for example, its `monitor`, `patience`, and `mode`); no early-stopping callback is added by default. |
+
+Existing ESPnet3 configs keep per-GPU behavior when `batch_distribution` is omitted.
+Changing the GPU count in that mode changes the effective global batch budget.
+Switching modes does not automatically rescale `batch_bins` or accumulation.
+Global mode requires shared batches with at least `world_size` items;
+unsupported iterator/sharding configurations raise an error.
+
+<!-- TODO: After merge, replace the draft links below with the corresponding
+     official documentation URLs under https://espnet.github.io/espnet/. -->
+See the [migration guide](https://masao-someki.github.io/espnet_draft_home_page/espnet3/guides/migrating-from-espnet2/config-diff.html)
+and [dynamic batching guide](https://masao-someki.github.io/espnet_draft_home_page/espnet3/guides/scaling/data-pipeline.html)
+on the draft documentation site for further guidance.
+
+</details>
 
 ## Details
 
