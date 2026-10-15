@@ -58,8 +58,10 @@ Archives are used through their recipe and native backend, rather than a
 unified callable loader. Old configurations naming removed wrapper classes
 must be updated to the native target and explicit input/output configuration.
 
-`pack_demo` and `upload_demo` remain available. Supply a standalone app via
-`demo_config.ui.app_script`; packing copies the app, model reference, extra
+`pack_demo` and `upload_demo` remain available. The ASR template supplies
+`src/app.py`, which reads the packed `conf/inference.yaml` and directly builds
+the native ASR or transducer backend. Set `model.sample_rate` to the training
+audio rate. A recipe can override `demo_config.ui.app_script`; packing copies the app, model reference, extra
 assets, requirements and optional Space card, and uploading publishes that
 directory. UI generation from model declarations and notebook generation are
 removed. Standalone applications and notebooks call the native backend

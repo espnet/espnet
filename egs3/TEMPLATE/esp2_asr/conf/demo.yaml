@@ -15,11 +15,14 @@ recipe_dir: .
 ##########################################################
 # `model.dir_or_tag` selects the packed model used by the demo.
 # - local packed directory relative to the demo dir, e.g. `../model_pack`
-# - remote model tag understood by `espnet_model_zoo`
+# - Hugging Face repo containing a recipe archive with conf/inference.yaml
 #
-# The application loads this reference using its chosen native backend.
+# Include --inference_config when running pack_model: the default app reads
+# conf/inference.yaml and builds its native ASR backend directly.
 model:
   dir_or_tag: exp/${exp_tag}/model_pack
+  device: auto
+  sample_rate: 16000  # Must match the rate used to train the ASR model.
 
 ##########################################################
 #                     UI DEFINITION                      #
@@ -32,7 +35,7 @@ model:
 #
 # Supply a standalone application; packing does not generate UI components.
 ui:
-  app_script: null  # Required: path to the recipe's standalone application
+  app_script: ${config_path:../src/app.py}
   title: ${set_corpus_and_system:} demo
   description: README.md
 ##########################################################
@@ -56,7 +59,7 @@ pack:
   # Standard pip specifiers and git+https:// entries are both supported.
   # Example git install: git+https://github.com/espnet/espnet@main
   requirements:
-    - git+https://github.com/espnet/espnet.git
+    - espnet[asr,demo] @ git+https://github.com/espnet/espnet.git
   readme: ${config_path:../src/hf_demo_readme.md}
   readme_context:
     title: ${ui.title}
