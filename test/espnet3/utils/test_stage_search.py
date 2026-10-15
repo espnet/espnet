@@ -27,6 +27,14 @@ class _System:
     )
 
 
+class _SystemWithStatsRole:
+    stages = (
+        StageSpec(name="collect_stats", config="stats", log_dir="stats_dir"),
+        StageSpec(name="train", config="training", log_dir="exp_dir"),
+        StageSpec(name="infer", config="inference", log_dir="inference_dir"),
+    )
+
+
 # ---------------------------------------------------------------------------
 # resolve_search_directories
 # ---------------------------------------------------------------------------
@@ -207,6 +215,38 @@ def test_merge_conflicting_parent_experiments_raises(tmp_path):
             _System, "infer", {"inference": None},
             {"exp_dir": str(exp_a), "inference_dir": str(infer_dir)},
         )
+
+
+def test_collect_stats_own_role_separate_from_train(tmp_path):
+    # System where collect_stats has its own "stats" config role, separate from train's "training"
+    stats_dir = tmp_path / "stats_an4"
+    stats_dir.mkdir()
+    exp_dir = tmp_path / "exp"
+    exp_dir.mkdir()
+
+    # Simulate collect_stats run: saves its config to stats_dir/collect_stats.yaml
+    collect_stats_config = OmegaConf.create({
+        "stats_dir": str(stats_dir),
+        "model_conf": {"layers": 5},
+    })
+    snapshot_config(stats_dir, "collect_stats", collect_stats_config)
+
+    # Simulate train run in a separate process: no configs_by_role entries in memory,
+    # only --stats_dir CLI override pointing to where collect_stats saved its config
+    train_config = OmegaConf.create({
+        "exp_dir": str(exp_dir),
+    })
+
+    result = merge_stage_config_from_snapshots(
+        _SystemWithStatsRole,
+        "train",
+        {"training": train_config, "stats": None},  # stats role not provided (separate process)
+        {"stats_dir": str(stats_dir)},  # CLI override pointing to collect_stats output
+    )
+
+    # train should inherit model_conf from collect_stats via stats_dir snapshot
+    assert result.model_conf.layers == 5
+    assert result.exp_dir == str(exp_dir)
 
 
 def test_merge_missing_stage_raises_clear_error():
