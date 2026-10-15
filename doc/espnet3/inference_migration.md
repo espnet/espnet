@@ -67,3 +67,11 @@ directory. UI generation from model declarations and notebook generation are
 removed. Standalone applications and notebooks call the native backend
 themselves. The existing ESPnet2 task commands, demo and MCP tools remain
 independent clients of those native backends.
+
+The independent helpers in `espnet3.publication.demo` remain available:
+packing/uploading, the UI asset registry, and `DemoSession` for configuration,
+description text, component construction and button wiring. Call
+`load_demo_session(demo_dir, "demo.yaml", model=decode)` with a callable built
+by the recipe and explicit `ui.inputs`/`ui.outputs`. The callable returns
+named values in Gradio-compatible formats. Sessions do not construct models
+or derive UI specs from model declarations.
