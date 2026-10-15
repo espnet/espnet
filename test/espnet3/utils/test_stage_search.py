@@ -288,3 +288,196 @@ def test_train_only_system_no_infer_or_measure(tmp_path):
         _TrainOnlySystem, "train", configs, {"exp_dir": str(exp_dir)}
     )
     assert result.seed == 42
+
+
+# ---------------------------------------------------------------------------
+# Items 5, 6, 7: beam10/beam20 infer+measure flow
+# ---------------------------------------------------------------------------
+
+
+def test_beam10_beam20_infer_measure_separate_configs_and_outputs(tmp_path):
+    """
+    Item 5: beam10's infer+measure and beam20's infer+measure each use their
+    own explicit infer.yaml-equivalent config and produce separate, correctly-
+    scoped results.
+    """
+    exp_dir = tmp_path / "exp"
+    exp_dir.mkdir()
+    
+    # Train produces a model
+    train_config = OmegaConf.create({
+        "exp_dir": str(exp_dir),
+        "model_conf": {"layers": 3, "unit": "transformer"},
+    })
+    snapshot_config(exp_dir, "train", train_config)
+
+    # beam10 inference
+    beam10_dir = tmp_path / "beam10"
+    beam10_dir.mkdir()
+    beam10_infer_config = OmegaConf.create({
+        "inference_dir": str(beam10_dir),
+        "beam": 10,
+        "batch_size": 16,
+    })
+    snapshot_config(beam10_dir, "infer", beam10_infer_config)
+    
+    # beam20 inference
+    beam20_dir = tmp_path / "beam20"
+    beam20_dir.mkdir()
+    beam20_infer_config = OmegaConf.create({
+        "inference_dir": str(beam20_dir),
+        "beam": 20,
+        "batch_size": 32,
+    })
+    snapshot_config(beam20_dir, "infer", beam20_infer_config)
+
+    # beam10 measure
+    beam10_measure_config = OmegaConf.create({
+        "inference_dir": str(beam10_dir),
+        "metric": "wer",
+        "dataset": "test-clean",
+    })
+    snapshot_config(beam10_dir, "measure", beam10_measure_config)
+    
+    # beam20 measure
+    beam20_measure_config = OmegaConf.create({
+        "inference_dir": str(beam20_dir),
+        "metric": "cer",
+        "dataset": "test-other",
+    })
+    snapshot_config(beam20_dir, "measure", beam20_measure_config)
+
+    # Verify beam10 measure uses beam10's snapshot and configs
+    result10 = merge_stage_config_from_snapshots(
+        _System, "measure",
+        {"inference": None, "metrics": None},
+        {"inference_dir": str(beam10_dir)},
+    )
+    assert result10.beam == 10
+    assert result10.batch_size == 16
+    assert result10.metric == "wer"
+    assert result10.dataset == "test-clean"
+
+    # Verify beam20 measure uses beam20's snapshot and configs
+    result20 = merge_stage_config_from_snapshots(
+        _System, "measure",
+        {"inference": None, "metrics": None},
+        {"inference_dir": str(beam20_dir)},
+    )
+    assert result20.beam == 20
+    assert result20.batch_size == 32
+    assert result20.metric == "cer"
+    assert result20.dataset == "test-other"
+
+
+
+def test_beam20_does_not_modify_beam10_snapshot_or_metrics(tmp_path):
+    """
+    Item 6: After beam10's full flow is written, beam20 execution must NOT
+    change beam10's already-written snapshot file content or its metrics.json
+    stand-in.
+    """
+    exp_dir = tmp_path / "exp"
+    exp_dir.mkdir()
+    
+    # Train
+    train_config = OmegaConf.create({
+        "exp_dir": str(exp_dir),
+        "model_conf": {"layers": 3},
+    })
+    snapshot_config(exp_dir, "train", train_config)
+
+    # beam10
+    beam10_dir = tmp_path / "beam10"
+    beam10_dir.mkdir()
+    beam10_infer_config = OmegaConf.create({
+        "inference_dir": str(beam10_dir),
+        "beam": 10,
+    })
+    snapshot_config(beam10_dir, "infer", beam10_infer_config)
+    
+    beam10_measure_config = OmegaConf.create({
+        "inference_dir": str(beam10_dir),
+        "metric": "wer",
+    })
+    snapshot_config(beam10_dir, "measure", beam10_measure_config)
+    
+    # Create a metrics.json stand-in file
+    (beam10_dir / "metrics.json").write_text('{"wer": 0.05}', encoding="utf-8")
+    
+    # Save original content and mtime
+    original_metrics_content = (beam10_dir / "metrics.json").read_text(encoding="utf-8")
+    original_mtime = (beam10_dir / "metrics.json").stat().st_mtime
+    original_infer_content = (beam10_dir / "infer.yaml").read_text(encoding="utf-8")
+    original_measure_content = (beam10_dir / "measure.yaml").read_text(encoding="utf-8")
+
+    # Run beam20
+    beam20_dir = tmp_path / "beam20"
+    beam20_dir.mkdir()
+    beam20_infer_config = OmegaConf.create({
+        "inference_dir": str(beam20_dir),
+        "beam": 20,
+    })
+    snapshot_config(beam20_dir, "infer", beam20_infer_config)
+    
+    # Verify beam10 files were NOT modified by beam20 execution
+    assert (beam10_dir / "metrics.json").read_text(encoding="utf-8") == original_metrics_content
+    assert (beam10_dir / "infer.yaml").read_text(encoding="utf-8") == original_infer_content
+    assert (beam10_dir / "measure.yaml").read_text(encoding="utf-8") == original_measure_content
+    assert (beam10_dir / "metrics.json").stat().st_mtime == original_mtime
+
+
+
+def test_measure_reuses_saved_snapshot_on_subsequent_run(tmp_path):
+    """
+    Item 7: beam10's first measure run is given a metrics config; re-running
+    measure for beam10 later with no explicit metrics config (only --inference_dir)
+    must reuse the saved measure.yaml snapshot rather than requiring the config.
+    """
+    exp_dir = tmp_path / "exp"
+    exp_dir.mkdir()
+    
+    # Train
+    train_config = OmegaConf.create({
+        "exp_dir": str(exp_dir),
+        "model_conf": {"layers": 3},
+    })
+    snapshot_config(exp_dir, "train", train_config)
+
+    # beam10
+    beam10_dir = tmp_path / "beam10"
+    beam10_dir.mkdir()
+    beam10_infer_config = OmegaConf.create({
+        "inference_dir": str(beam10_dir),
+        "beam": 10,
+    })
+    snapshot_config(beam10_dir, "infer", beam10_infer_config)
+
+    # First measure run with explicit metrics config
+    beam10_measure_config = OmegaConf.create({
+        "inference_dir": str(beam10_dir),
+        "metric": "wer",
+        "dataset": "test-clean",
+    })
+    snapshot_config(beam10_dir, "measure", beam10_measure_config)
+
+    # Verify first run works
+    result1 = merge_stage_config_from_snapshots(
+        _System, "measure",
+        {"inference": None, "metrics": beam10_measure_config},
+        {"inference_dir": str(beam10_dir)},
+    )
+    assert result1.metric == "wer"
+    assert result1.dataset == "test-clean"
+
+    # Second measure run WITHOUT explicit metrics config (only inference_dir)
+    result2 = merge_stage_config_from_snapshots(
+        _System, "measure",
+        {"inference": None, "metrics": None},
+        {"inference_dir": str(beam10_dir)},
+    )
+    # Should still have the metric from the saved snapshot
+    assert result2.metric == "wer"
+    assert result2.dataset == "test-clean"
+    # Should also inherit beam from infer snapshot
+    assert result2.beam == 10
