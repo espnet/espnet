@@ -92,16 +92,13 @@ class AcousticSegmenter:
 
             # Convert sample indices to frame indices
             frame_start = max(0, (search_start - self.frame_len) // self.hop_len)
-            frame_end = min(
-                len(rms_db), (search_end - self.frame_len) // self.hop_len
-            )
+            frame_end = min(len(rms_db), (search_end - self.frame_len) // self.hop_len)
 
             if frame_end > frame_start:
                 sub_rms = rms_db[frame_start:frame_end]
                 min_idx = torch.argmin(sub_rms).item()
-                split_sample = (
-                    (frame_start + min_idx) * self.hop_len
-                    + (self.frame_len // 2)
+                split_sample = (frame_start + min_idx) * self.hop_len + (
+                    self.frame_len // 2
                 )
             else:
                 split_sample = cur_sample + max_samples
@@ -161,15 +158,11 @@ class MockSpeechTransformer(nn.Module):
         self.encoder_layer = nn.TransformerEncoderLayer(
             d_model=d_model, nhead=8, dim_feedforward=1024, batch_first=True
         )
-        self.encoder = nn.TransformerEncoder(
-            self.encoder_layer, num_layers=n_layers
-        )
+        self.encoder = nn.TransformerEncoder(self.encoder_layer, num_layers=n_layers)
         self.linear_in = nn.Linear(80, d_model)
         self.linear_out = nn.Linear(d_model, 1000)
 
-    def forward(
-        self, feats: torch.Tensor, lengths: torch.Tensor
-    ) -> torch.Tensor:
+    def forward(self, feats: torch.Tensor, lengths: torch.Tensor) -> torch.Tensor:
         h = self.linear_in(feats)
         mask = (
             torch.arange(feats.size(1), device=feats.device)[None, :]
@@ -239,9 +232,7 @@ class LongAudioBatchEngine:
                     )
                 )
 
-        grouped_by_utt: Dict[str, List[DecodedChunk]] = {
-            k: [] for k in utterances
-        }
+        grouped_by_utt: Dict[str, List[DecodedChunk]] = {k: [] for k in utterances}
         for dc in decoded_chunks:
             grouped_by_utt[dc.utt_id].append(dc)
 
@@ -269,9 +260,7 @@ def run_comprehensive_benchmark():
         bsz = len(batch_audio)
         n_enc_frames = 375  # 30s / (0.01 * 8)
         feats = torch.randn(bsz, n_enc_frames, 80, device=device)
-        frame_lens = torch.full(
-            (bsz,), n_enc_frames, dtype=torch.long, device=device
-        )
+        frame_lens = torch.full((bsz,), n_enc_frames, dtype=torch.long, device=device)
 
         with torch.no_grad():
             logits = model(feats, frame_lens)
@@ -320,9 +309,7 @@ def run_comprehensive_benchmark():
 
     segmenter = AcousticSegmenter(sample_rate=sample_rate, max_duration=30.0)
     packer = DynamicWindowPacker(target_batch_size=8, sample_rate=sample_rate)
-    engine = LongAudioBatchEngine(
-        segmenter, packer, batch_size=8, device=device
-    )
+    engine = LongAudioBatchEngine(segmenter, packer, batch_size=8, device=device)
 
     # Warm-up
     _ = engine.decode_heterogeneous_batch_parallel(
@@ -340,9 +327,7 @@ def run_comprehensive_benchmark():
     serial_throughput = total_audio_hours / (serial_time / 3600.0)
     logging.info(f"Serial Fallback Elapsed Time: {serial_time:.3f} s")
     logging.info(f"Serial Fallback RTF: {serial_rtf:.4f}")
-    logging.info(
-        f"Serial Fallback Throughput: {serial_throughput:.2f} audio-hrs/hr"
-    )
+    logging.info(f"Serial Fallback Throughput: {serial_throughput:.2f} audio-hrs/hr")
 
     # Benchmark Proposed Parallel Dynamic Window Packing (AG-DCB)
     logging.info("\n--- Benchmarking Proposed Parallel Dynamic Batching ---")
@@ -357,9 +342,7 @@ def run_comprehensive_benchmark():
 
     logging.info(f"Parallel AG-DCB Elapsed Time: {parallel_time:.3f} s")
     logging.info(f"Parallel AG-DCB RTF: {parallel_rtf:.4f}")
-    logging.info(
-        f"Parallel AG-DCB Throughput: {parallel_throughput:.2f} audio-hrs/hr"
-    )
+    logging.info(f"Parallel AG-DCB Throughput: {parallel_throughput:.2f} audio-hrs/hr")
     logging.info(f">>> SPEEDUP FACTOR: {speedup:.2f}x <<<")
 
     assert len(serial_results) == len(parallel_results)
@@ -367,9 +350,7 @@ def run_comprehensive_benchmark():
         assert k in parallel_results
 
     logging.info("=" * 78)
-    logging.info(
-        f"BENCHMARK COMPLETED SUCCESSFULLY: {speedup:.2f}x Acceleration"
-    )
+    logging.info(f"BENCHMARK COMPLETED SUCCESSFULLY: {speedup:.2f}x Acceleration")
     logging.info("=" * 78)
 
     return {
