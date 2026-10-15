@@ -25,7 +25,7 @@ The source of the Hugging Face Space `espnet/ljspeech-vits`, one of the demos
 kept in this repository. It types text in and gets a waveform out:
 [`kan-bayashi_ljspeech_vits`](https://huggingface.co/espnet/kan-bayashi_ljspeech_vits)
 is an end-to-end model with no separate vocoder, trained on LJSpeech by the
-recipe in the directory above this one. It is the model `espnet tts` uses by
+recipe in the directory above this one. It is the model `espnet synthesize` uses by
 default.
 
 The controls are read from the checkpoint rather than written here:

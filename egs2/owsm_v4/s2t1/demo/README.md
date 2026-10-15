@@ -35,6 +35,19 @@ can be compared on the same audio:
 | text prompt | supported | not supported by OWSM-CTC |
 | source | this directory | [`egs2/owsm_ctc_v4/s2t1/demo`](../../../owsm_ctc_v4/s2t1/demo) |
 
+## The page is not here
+
+`app.py` loads a model, picks a device and asks for a slice of GPU time. The
+page is [`espnet2.bin.demo`](../../../../espnet2/bin/demo.py), the module
+`espnet demo` serves, which reads what to offer off the checkpoint - the
+language menu, the translation targets, the window, and the text prompt,
+which appears here because this model has a decoder to prime and not on the
+encoder-only one, which has nothing to prime.
+
+Both demos used to carry their own copy of that page.
+`test/espnet2/bin/test_demo_apps.py` existed to keep them in step; the copies
+are gone.
+
 Language identification uses `Speech2Language` on the same checkpoint; the
 language menu and the translation targets are read from it too.
 

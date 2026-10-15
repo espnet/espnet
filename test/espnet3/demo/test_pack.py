@@ -29,7 +29,7 @@ def test_pack_demo_writes_assets(
                 "dir_or_tag": str(model_pack_dir),
             },
             "ui": {
-                "app_script": "egs3/TEMPLATE/asr/src/app.py",
+                "app_script": "egs3/TEMPLATE/esp2_asr/src/app.py",
                 "description": "README.md",
             },
             "pack": {
@@ -68,7 +68,7 @@ def test_pack_demo_writes_requirements_txt(
     demo_cfg = OmegaConf.create(
         {
             "model": {"dir_or_tag": "espnet/some-model"},
-            "ui": {"app_script": "egs3/TEMPLATE/asr/src/app.py"},
+            "ui": {"app_script": "egs3/TEMPLATE/esp2_asr/src/app.py"},
             "pack": {
                 "out_dir": str(demo_dir),
                 "requirements": [
@@ -99,7 +99,7 @@ def test_pack_demo_skips_requirements_txt_when_not_configured(
     demo_cfg = OmegaConf.create(
         {
             "model": {"dir_or_tag": "espnet/some-model"},
-            "ui": {"app_script": "egs3/TEMPLATE/asr/src/app.py"},
+            "ui": {"app_script": "egs3/TEMPLATE/esp2_asr/src/app.py"},
             "pack": {"out_dir": str(demo_dir)},
         }
     )
@@ -127,7 +127,7 @@ def test_pack_demo_skips_description_copy_when_ui_description_is_missing(
                 "dir_or_tag": str(model_pack_dir),
             },
             "ui": {
-                "app_script": "egs3/TEMPLATE/asr/src/app.py",
+                "app_script": "egs3/TEMPLATE/esp2_asr/src/app.py",
             },
             "pack": {
                 "out_dir": str(demo_dir),
@@ -170,7 +170,7 @@ def test_pack_demo_supports_exclude_patterns_for_included_dirs(
                 "dir_or_tag": str(model_pack_dir),
             },
             "ui": {
-                "app_script": "egs3/TEMPLATE/asr/src/app.py",
+                "app_script": "egs3/TEMPLATE/esp2_asr/src/app.py",
             },
             "pack": {
                 "out_dir": str(demo_dir),
@@ -211,7 +211,7 @@ def test_pack_demo_expands_globbed_include_paths(
                 "dir_or_tag": str(model_pack_dir),
             },
             "ui": {
-                "app_script": "egs3/TEMPLATE/asr/src/app.py",
+                "app_script": "egs3/TEMPLATE/esp2_asr/src/app.py",
             },
             "pack": {
                 "out_dir": str(demo_dir),
@@ -286,7 +286,7 @@ def test_pack_demo_renders_space_readme(
     demo_cfg = load_and_merge_config(
         demo_config_path,
         config_name="demo.yaml",
-        default_package="egs3.TEMPLATE.asr",
+        default_package="egs3.TEMPLATE.esp2_asr",
         resolve=False,
     )
 
@@ -346,7 +346,7 @@ def _make_demo_system(tmp_path: Path, upload_overrides: dict) -> object:
     demo_cfg = load_and_merge_config(
         user_cfg_path,
         config_name="demo.yaml",
-        default_package="egs3.TEMPLATE.asr",
+        default_package="egs3.TEMPLATE.esp2_asr",
         resolve=False,
     )
 

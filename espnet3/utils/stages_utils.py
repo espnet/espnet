@@ -7,8 +7,9 @@ import logging
 import os
 import time
 from pathlib import Path
-from typing import Any, Iterable, List, Sequence, Tuple
+from typing import Any, Iterable, List, Sequence
 
+from espnet3.contract.stages import stage_log_dir
 from espnet3.utils.logging_utils import (
     log_stage,
     log_stage_metadata,
@@ -69,50 +70,6 @@ def resolve_stages(
     return [s for s in stages if s in requested_set]
 
 
-def parse_cli_and_stage_args(
-    parser: argparse.ArgumentParser,
-    stages: Sequence[str],
-) -> Tuple[argparse.Namespace, List[str]]:
-    """Parse CLI arguments and expand the requested stage selection.
-
-    This helper is a thin wrapper around ``ArgumentParser.parse_args()`` plus
-    :func:`resolve_stages`. It keeps the runner entrypoints concise and ensures
-    the `"all"` shorthand is expanded consistently across recipes.
-
-    Args:
-        parser (argparse.ArgumentParser): Parser configured by the recipe
-            entrypoint. It is expected to define a ``--stages`` argument whose
-            value is compatible with ``resolve_stages(...)``.
-        stages (Sequence[str]): Ordered list of stage names supported by the
-            current runner, for example ``["create_dataset", "train", "infer"]``.
-
-    Returns:
-        Tuple[argparse.Namespace, List[str]]: A pair containing:
-            - the parsed CLI namespace returned by ``parser.parse_args()``
-            - the resolved list of stages to execute, preserving the canonical
-              order from ``stages``
-
-    Examples:
-        >>> parser = argparse.ArgumentParser()
-        >>> parser.add_argument("--stages", nargs="+", default=["all"])
-        >>> # If argv is: ["--stages", "infer", "train"]
-        >>> args, stages_to_run = parse_cli_and_stage_args(
-        ...     parser,
-        ...     ["create_dataset", "train", "infer"],
-        ... )
-        >>> stages_to_run
-        ['train', 'infer']
-
-    Notes:
-        The returned stage order is not the same as CLI input order when they
-        differ. The canonical order defined by ``stages`` always wins so stage
-        execution remains deterministic.
-    """
-    args = parser.parse_args()
-    stages_to_run = resolve_stages(args.stages, stages)
-    return args, stages_to_run
-
-
 def run_stages(
     system: Any,
     stages_to_run: Iterable[str],
@@ -132,6 +89,16 @@ def run_stages(
         AttributeError: If a named stage method is missing on ``system``.
         TypeError: If a stage method rejects CLI-provided arguments.
         Exception: Re-raises any exception from a stage method.
+
+    Examples:
+        >>> from espnet3.contract.stages import StageSpec
+        >>> class ExampleSystem:
+        ...     stages = (StageSpec(name="train", config="training"),)
+        ...     _default_log_dir = None
+        ...     def train(self):
+        ...         print("training ran")
+        >>> run_stages(ExampleSystem(), ["train"])
+        training ran
     """
     log = log or logger
     dry_run = bool(getattr(args, "dry_run", False))
@@ -145,8 +112,7 @@ def run_stages(
                 log.info("[DRY RUN] would run stage: %s", stage)
                 continue
 
-            stage_log_dirs = system.stage_log_dirs
-            log_dir = stage_log_dirs.get(stage) or stage_log_dirs.get("default")
+            log_dir = stage_log_dir(system, stage)
 
             # stage_log_mode controls per-rank logging: "rank0" or "per_rank".
             # rank0 avoids multi-process rotation races;

@@ -18,6 +18,7 @@ import sys
 import types
 
 import pytest
+import torch
 
 import espnet
 
@@ -121,12 +122,13 @@ def test_importing_espnet_does_not_drag_in_torch():
 @pytest.mark.parametrize("task", sorted(espnet.TASKS))
 def test_each_task_dispatches_to_its_own_class(task, monkeypatch):
     rec = _fake_class(monkeypatch, task, _Recorder())
+    monkeypatch.setattr(torch.cuda, "is_available", lambda: False)
 
     built = espnet.load("espnet/some-model", task=task)
 
     assert built is rec
     assert rec.tag == "espnet/some-model"
-    assert rec.device == "cpu"
+    assert rec.device == "cpu"  # "auto", resolved before the class sees it
 
 
 def test_every_task_names_a_class_that_exists():
@@ -142,6 +144,8 @@ def test_every_task_names_a_class_that_exists():
 
 def test_device_and_extra_arguments_reach_the_constructor(monkeypatch):
     rec = _fake_class(monkeypatch, "asr", _Recorder())
+    monkeypatch.setattr(torch.cuda, "is_available", lambda: True)
+    monkeypatch.setattr(torch.cuda, "device_count", lambda: 2)
 
     espnet.load("espnet/some-asr", task="asr", device="cuda:1", beam_size=1)
 
@@ -319,3 +323,64 @@ def test_a_meta_yaml_that_cannot_be_fetched_asks_for_the_task(monkeypatch):
         espnet.load("espnet/hand-uploaded")
 
     assert "espnet/hand-uploaded" in str(e.value)
+
+
+class _Espnet3Bundle:
+    """An espnet2 class that downloads a tag and finds an espnet3 bundle."""
+
+    __name__ = "Speech2Text"
+
+    def __init__(self, device="cpu"):
+        pass
+
+    @staticmethod
+    def from_pretrained(model_tag=None, device=None, **kwargs):
+        from espnet2.utils.pretrained import Espnet3BundleError
+
+        raise Espnet3BundleError(model_tag)
+
+
+def _fake_espnet3(monkeypatch, system="esp2_asr"):
+    """Record what espnet3's loader is asked, with the bundle naming `system`."""
+    import espnet3.api.inference as api
+
+    calls = []
+
+    def load(tag, *, device="cpu", **kwargs):
+        calls.append((tag, device, kwargs))
+        return "an espnet3 Inference"
+
+    monkeypatch.setattr(api, "load", load)
+    monkeypatch.setattr(api, "locate_pack", lambda tag: tag)
+    monkeypatch.setattr(api, "read_meta", lambda pack: {"system": system})
+    return calls
+
+
+def test_an_espnet3_bundle_is_handed_to_espnet3s_loader(monkeypatch):
+    _fake_class(monkeypatch, "asr", _Espnet3Bundle)
+    calls = _fake_espnet3(monkeypatch)
+    monkeypatch.setattr(torch.cuda, "is_available", lambda: True)
+    monkeypatch.setattr(torch.cuda, "device_count", lambda: 1)
+    model = espnet.load(
+        "espnet/an_espnet3_pack", task="asr", device="cuda", beam_size=1
+    )
+    assert model == "an espnet3 Inference"
+    assert calls == [("espnet/an_espnet3_pack", "cuda", {"beam_size": 1})]
+
+
+def test_an_inferred_task_does_not_overrule_the_bundles_own_system(monkeypatch):
+    _fake_class(monkeypatch, "tts", _Espnet3Bundle)
+    calls = _fake_espnet3(monkeypatch, system="esp2_asr")
+    monkeypatch.setattr(espnet, "_infer_task", lambda tag: "tts")
+    assert espnet.load("espnet/mislabelled_pack") == "an espnet3 Inference"
+    assert len(calls) == 1
+
+
+def test_an_explicit_task_that_is_not_the_bundles_system_is_explained(monkeypatch):
+    from espnet2.utils.pretrained import ModelTagError
+
+    _fake_class(monkeypatch, "tts", _Espnet3Bundle)
+    calls = _fake_espnet3(monkeypatch, system="esp2_asr")
+    with pytest.raises(ModelTagError, match="espnet3 esp2_asr bundle, not a tts"):
+        espnet.load("espnet/an_asr_pack", task="tts")
+    assert calls == []

@@ -56,3 +56,37 @@ for the language model and audio encoder.
 
 If no matching wheel exists, pip may compile CUDA extensions locally, requiring
 a CUDA toolkit (`nvcc`) and C++ compiler.
+
+## 4. Optional: vLLM serving in a separate environment
+
+Use the [ESPnet vLLM fork](https://github.com/espnet/vllm) for Bagpiper serving.
+Keep its environment separate: its PyTorch and Transformers versions may differ
+from those used for SpeechLM training. With [uv](https://docs.astral.sh/uv/):
+
+```bash
+pip install uv
+git clone https://github.com/espnet/vllm.git
+cd vllm
+uv venv --python 3.12
+source .venv/bin/activate
+VLLM_USE_PRECOMPILED=1 uv pip install -e . --torch-backend=auto
+```
+
+Precompiled extensions require a supported GPU/driver and compatible wheels.
+Follow the fork's installation instructions if your platform requires a source
+build. Do not install the training environment's CUDA extensions into this venv.
+
+The [Bagpiper instructions](https://github.com/espnet/vllm/tree/main/examples/espnet)
+cover checkpoint conversion, serving, and the reference client. Public ESPnet
+`.pt` checkpoints need conversion before `vllm serve`:
+
+```bash
+.venv/bin/python examples/espnet/convert/convert_bagpiper_ckpt.py \
+    /path/to/model.pt /path/to/bagpiper-vllm
+MODEL_PATH=/path/to/bagpiper-vllm HOST=127.0.0.1 PORT=8000 \
+    bash examples/espnet/serve_bagpiper.sh
+```
+
+See the [Bagpiper](../../egs2/bagpiper/speechlm1/README.md) and
+[Bagpiper-TTS](../../egs2/bagpiper_tts/speechlm1/README.md) recipes for inference,
+fine-tuning, and checkpoint export instructions.
