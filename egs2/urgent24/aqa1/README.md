@@ -5,6 +5,65 @@ This recipe consumes externally prepared audio and scores. It does not download
 the corpus or compute the target metrics. See the [AQA task guide](../../TEMPLATE/aqa1/README.md)
 for the label format and shared stages.
 
+## Published results
+
+The [Uni-VERSA paper (Interspeech 2025)](https://www.isca-archive.org/interspeech_2025/shi25f_interspeech.pdf)
+reports the following URGENT24 test results (Tables 2 and 3). Each entry is
+utterance-level **LCC / SRCC** between predicted and target metric values;
+higher is better. The average covers all 11 evaluation metrics in the paper.
+
+| Features | Reference inputs | PESQ | MOS | WER | Average |
+| --- | --- | --- | --- | --- | --- |
+| Fbank | Audio + text | 0.78 / 0.80 | 0.72 / 0.72 | 0.57 / 0.53 | 0.76 / 0.73 |
+| WavLM Large | Audio + text | 0.82 / 0.84 | 0.77 / 0.77 | 0.79 / 0.79 | 0.84 / 0.82 |
+| WavLM Large | None | 0.85 / 0.86 | 0.77 / 0.78 | 0.79 / 0.78 | 0.85 / 0.82 |
+
+The paper partitions source utterances into train/dev/test sets in an 85:5:10
+ratio, keeping outputs from the same source in the same split, and uses 16 kHz
+audio. These are the original publication's results, not new measurements from
+this revived recipe. In particular, the published setup freezes the SSL feature
+extractor and trains for 50 epochs; the example configurations here use different
+epoch limits and do not freeze WavLM by default. Matching the paper also requires
+its data partition and metric labels. Synthetic smoke-test scores are not
+benchmark results.
+
+## Pretrained models
+
+The [official Uni-VERSA collection](https://huggingface.co/collections/espnet/universa-6834e7c0a28225bffb6e2526)
+contains models released by Jiatong Shi (`ftshijt`). The following releases are
+relevant to the systems above. Use each release's saved architecture/configuration
+when loading its weights; the local example configurations are for new training.
+The release names say `wavlm_base`, but their saved frontend selects `wavlm_large`.
+
+| Model | Reference inputs | Saved config and checkpoint directory | Weight file |
+| --- | --- | --- | --- |
+| [Fbank](https://huggingface.co/espnet/universa-base_urgent24_multi-metric/tree/7cd604c67a5a3e0a2cc79453c6cead9f17d99e9a) | Audio + text | `exp/universa_train_universa_raw_fs16000/` | `96epoch.pth` |
+| [WavLM Large](https://huggingface.co/espnet/universa-wavlm_base_urgent24_multi-metric/tree/16184f434b0da62a2a723ee6afd0b74b8439fb0b) | Audio + text | `exp/universa_all_only_wavlm_freeze/` | `100epoch.pth` |
+| [WavLM Large, no reference](https://huggingface.co/espnet/universa-wavlm_base_urgent24_multi-metric_noref/tree/6abec38c0971c2c0feebbe39ee2f94c9c21357c4) | None | `update_exp/universa_train_universa_wavlm_noref_raw_fs16000/` | `13epoch.pth` |
+
+Each directory in the table contains `config.yaml`. Links pin the inspected
+Hugging Face revisions. The published results above describe the paper's systems;
+these checkpoint files have not been re-benchmarked with this recipe.
+
+The no-reference release includes its metric vocabulary at
+`dump_ark/raw/train_update/metric2id` and a BPE model at
+`data/token_list/bpe_unigram500/bpe.model`. Resolve saved paths relative to the
+downloaded package before loading. The two full-reference packages currently
+omit their referenced metric vocabularies and BPE models; restore the exact
+training assets before using them. Do not infer metric ordering from the result
+table or substitute a newly trained tokenizer.
+
+For inference with a complete package, use `espnet2.bin.aqa_inference` with
+`--train_config` pointing to the resolved saved configuration and `--model_file`
+pointing to the corresponding weight file. Retain the saved reference settings
+and install ESPnet's S3PRL fork for WavLM, as described below. For fine-tuning,
+use the original resolved configuration with `--init_param` and preserve its
+`freeze_param`; an epoch weight file is not a resumable trainer checkpoint.
+See the [AQA task guide](../../TEMPLATE/aqa1/README.md#arecho-and-legacy-models)
+for legacy configuration compatibility.
+
+## Data preparation and training
+
 Prepare `data/train`, `data/dev`, and `data/test`. Each split must contain
 `wav.scp`, `utt2spk`, and `metric.scp`, keyed by the same utterance IDs.
 The default configuration also requires `ref_wav.scp` and `text`. Omit them
