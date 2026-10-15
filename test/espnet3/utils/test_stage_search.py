@@ -481,3 +481,160 @@ def test_measure_reuses_saved_snapshot_on_subsequent_run(tmp_path):
     assert result2.dataset == "test-clean"
     # Should also inherit beam from infer snapshot
     assert result2.beam == 10
+
+
+# ---------------------------------------------------------------------------
+# Item 1: Stage config independence
+# ---------------------------------------------------------------------------
+
+
+def test_stage_config_independence_second_stage_omits_setting(tmp_path):
+    """
+    Item 1: Build two stages' configs where the SECOND stage's own explicit
+    config omits a setting that the FIRST stage's own snapshot still has.
+    Confirm the first stage's own resolved config AND its already-written
+    snapshot file are unaffected by the second stage's config.
+    
+    The key point: when the second stage runs with a config that omits a
+    setting, it should not cause the first stage's snapshot to be modified
+    or resurrect deleted settings in the first stage.
+    """
+    exp_dir = tmp_path / "exp"
+    exp_dir.mkdir()
+    
+    # First stage (train) with normalize setting
+    train_config = OmegaConf.create({
+        "exp_dir": str(exp_dir),
+        "normalize": True,
+        "model_conf": {"layers": 3},
+    })
+    snapshot_config(exp_dir, "train", train_config)
+    
+    # Save original snapshot content and mtime
+    original_snapshot_path = exp_dir / "train.yaml"
+    original_content = original_snapshot_path.read_text(encoding="utf-8")
+    original_mtime = original_snapshot_path.stat().st_mtime
+
+    # Second stage (infer) with its own config that omits 'normalize'
+    # This simulates a scenario where collect_stats removes normalize,
+    # but train should still keep it
+    infer_dir = tmp_path / "beam10"
+    infer_dir.mkdir()
+    infer_config = OmegaConf.create({
+        "inference_dir": str(infer_dir),
+        "beam": 10,
+    })
+    
+    # Build configs for both stages
+    configs = {"training": None, "inference": infer_config}
+    result_train = merge_stage_config_from_snapshots(
+        _System, "train", configs, {"exp_dir": str(exp_dir)}
+    )
+    result_infer = merge_stage_config_from_snapshots(
+        _System, "infer", configs,
+        {"exp_dir": str(exp_dir), "inference_dir": str(infer_dir)}
+    )
+    
+    # First stage's resolved config should still have normalize
+    assert result_train.normalize is True
+    
+    # Verify the snapshot file still contains normalize and hasn't changed
+    assert original_snapshot_path.exists()
+    current_content = original_snapshot_path.read_text(encoding="utf-8")
+    assert current_content == original_content
+    assert original_snapshot_path.stat().st_mtime == original_mtime
+    snapshot = OmegaConf.load(original_snapshot_path)
+    assert snapshot.normalize is True
+    
+    # Most importantly: verify that running the second stage did NOT modify
+    # the first stage's snapshot file
+    assert original_snapshot_path.stat().st_mtime == original_mtime
+
+
+# ---------------------------------------------------------------------------
+# Item 2: CLI override with OmegaConf interpolation
+# ---------------------------------------------------------------------------
+
+
+def test_cli_override_resolves_interpolation_before_final_resolution(tmp_path):
+    """
+    Item 2: Build a config with an OmegaConf interpolation that references
+    a key which the CLI override of that same key would change (e.g., a key
+    like "out": "${exp_dir}/out" where exp_dir is what the CLI overrides).
+    Confirm the CLI-overridden value interpolation resolves using the
+    CLI-overridden value, not the original config's value.
+    """
+    exp_dir = tmp_path / "exp"
+    exp_dir.mkdir()
+    
+    # Config with interpolation using exp_dir
+    training_config = OmegaConf.create({
+        "exp_dir": "./original_exp",  # Original value
+        "out": "${exp_dir}/output",
+        "model_conf": {"layers": 3},
+    })
+    
+    # CLI overrides exp_dir
+    configs = {"training": training_config}
+    result = merge_stage_config_from_snapshots(
+        _System, "train", configs, {"exp_dir": str(exp_dir)}
+    )
+    
+    # The interpolation should use the CLI-overridden exp_dir
+    assert result.exp_dir == str(exp_dir)
+    assert result.out == f"{exp_dir}/output"
+
+
+# ---------------------------------------------------------------------------
+# Item 11: Clear error for unresolvable required values
+# ---------------------------------------------------------------------------
+
+
+def test_unresolvable_interpolation_raises_error_with_stage_and_key(tmp_path):
+    """
+    Item 11: Confirm that when a required value cannot be resolved at all
+    (e.g., an unresolvable interpolation like "${missing_key}"), the raised
+    error includes the specific stage and key involved, not a generic message.
+    """
+    exp_dir = tmp_path / "exp"
+    exp_dir.mkdir()
+    
+    # Config with unresolvable interpolation
+    training_config = OmegaConf.create({
+        "exp_dir": str(exp_dir),
+        "out": "${missing_key}/output",  # This will fail to resolve
+        "model_conf": {"layers": 3},
+    })
+    
+    configs = {"training": training_config}
+    
+    # Should raise ConfigError with stage and key information
+    with pytest.raises(ConfigError, match="train config cannot resolve"):
+        merge_stage_config_from_snapshots(
+            _System, "train", configs, {"exp_dir": str(exp_dir)}
+        )
+
+
+def test_unresolvable_interpolation_in_nested_key_raises_error_with_key_path(tmp_path):
+    """
+    Item 11 (continued): Test that nested key paths are also reported in errors.
+    """
+    exp_dir = tmp_path / "exp"
+    exp_dir.mkdir()
+    
+    # Config with unresolvable interpolation in a nested key
+    training_config = OmegaConf.create({
+        "exp_dir": str(exp_dir),
+        "model_conf": {
+            "layers": 3,
+            "output_path": "${nonexistent_key}/model.pth",
+        },
+    })
+    
+    configs = {"training": training_config}
+    
+    # Should raise ConfigError mentioning the nested key
+    with pytest.raises(ConfigError, match="train config cannot resolve"):
+        merge_stage_config_from_snapshots(
+            _System, "train", configs, {"exp_dir": str(exp_dir)}
+        )
