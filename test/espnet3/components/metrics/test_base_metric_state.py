@@ -4,6 +4,8 @@ from espnet3.components.metrics.base_metric import BaseMetric
 
 
 class Counter(BaseMetric):
+    inputs = {"ref": str}
+    outputs = ("n",)
 
     def __init__(self):
         super().__init__()
@@ -101,6 +103,8 @@ def test_a_metric_without_update_cannot_be_built():
 
 
 class Scores(BaseMetric):
+    inputs = {"ref": str}
+    outputs = ("mean",)
 
     def __init__(self):
         super().__init__()

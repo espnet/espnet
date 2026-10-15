@@ -2,6 +2,8 @@ from espnet3.components.metrics.base_metric import BaseMetric
 
 
 class Lengths(BaseMetric):
+    inputs = {"ref": str, "hyp": str}
+    outputs = ("chars",)
 
     def __init__(self):
         super().__init__()

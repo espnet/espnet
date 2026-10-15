@@ -17,6 +17,9 @@ from espnet3.components.metrics.base_metric import BaseMetric
 class WER(BaseMetric):
     """Compute word error rates from configured reference and hypothesis inputs."""
 
+    inputs = {"ref": str, "hyp": str}
+    outputs = ("WER",)
+
     def __init__(self, clean_types: Iterable[str] | None = None) -> None:
         """Initialize the WER metric.
 

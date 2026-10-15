@@ -12,6 +12,8 @@ _INFERENCE_CFG = OmegaConf.create({})
 
 
 class DummyMetric(BaseMetric):
+    inputs = {"ref": str, "hyp": str}
+    outputs = ("count",)
 
     def __init__(self):
         super().__init__()
@@ -25,6 +27,8 @@ class DummyMetric(BaseMetric):
 
 
 class NoKeyMetric(BaseMetric):
+    inputs = {"ref": str, "hyp": str}
+    outputs = ("ok",)
 
     def update(self, **values):
         pass
@@ -34,6 +38,8 @@ class NoKeyMetric(BaseMetric):
 
 
 class PathMetric(BaseMetric):
+    inputs = {"ref": str, "hyp": str}
+    outputs = ("ok",)
 
     def update(self, *, ref, hyp):
         assert list(hyp) == ["h1"]
@@ -173,7 +179,8 @@ def test_metric_uses_config_inputs_mapping(tmp_path):
     assert results[expected_key][test_name] == {"ok": 1}
 
 
-def test_metric_passes_lazy_scp_inputs(tmp_path):
+@pytest.mark.parametrize("inputs", [{"ref": "ref", "hyp": "hyp"}, ["ref", "hyp"]])
+def test_metric_passes_lazy_scp_inputs(tmp_path, inputs):
     inference_dir = tmp_path / "infer"
     test_name = "test_a"
     task_dir = inference_dir / test_name
@@ -188,7 +195,7 @@ def test_metric_passes_lazy_scp_inputs(tmp_path):
             "metrics": [
                 {
                     "metric": {"_target_": f"{__name__}.PathMetric"},
-                    "inputs": {"ref": "ref", "hyp": "hyp"},
+                    "inputs": inputs,
                 }
             ],
         }

@@ -41,6 +41,8 @@ class ASRSystem(BaseSystem):
         StageSpec(name="measure", config="metrics", log_dir="inference_dir"),
         StageSpec(name="pack_model", config=("training", "publication")),
         StageSpec(name="upload_model", config="publication"),
+        StageSpec(name="pack_demo", config="demo", log_dir="pack.out_dir"),
+        StageSpec(name="upload_demo", config="demo", log_dir="pack.out_dir"),
     )
 
     def train(self, *args, **kwargs):

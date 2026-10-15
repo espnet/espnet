@@ -1,12 +1,12 @@
 from pathlib import Path
 
 import pytest
-from torch.utils.data import Dataset as TorchDataset
 
 from espnet3.components.data import dataset_module as dm
+from espnet3.components.data.base_dataset import BaseDataset
 from espnet3.components.data.data_organizer import DatasetConfig
 
-_BASE_IMPORT = "from torch.utils.data import Dataset as TorchDataset"
+_BASE_IMPORT = "from espnet3.components.data.base_dataset import BaseDataset"
 
 
 def _write(path: Path, text: str) -> None:
@@ -33,7 +33,8 @@ def _create_local_recipe_dataset(tmp_path: Path) -> None:
                 "    def build(self, **kwargs):",
                 "        return None",
                 "",
-                "class Dataset(TorchDataset):",
+                "class Dataset(BaseDataset):",
+                "    fields = {'text': str}",
                 "    def __init__(self, **kwargs):",
                 "        self.kwargs = kwargs",
                 "    def __getitem__(self, index):",
@@ -67,7 +68,8 @@ def _create_module_path_dataset(tmp_path: Path) -> str:
                 "    def build(self, **kwargs):",
                 "        return None",
                 "",
-                "class Dataset(TorchDataset):",
+                "class Dataset(BaseDataset):",
+                "    fields = {'text': str}",
                 "    def __init__(self, **kwargs):",
                 "        self.kwargs = kwargs",
                 "    def __getitem__(self, index):",
@@ -105,7 +107,8 @@ def test_is_tag_distinguishes_slash_from_dotted_path():
 def test_instantiate_dataset_reference_keeps_explicit_split(monkeypatch):
     called = {}
 
-    class DummyDataset(TorchDataset):
+    class DummyDataset(BaseDataset):
+        fields = {"text": str}
 
         def __init__(self, **kwargs):
             called.update(kwargs)
@@ -155,7 +158,8 @@ def test_instantiate_dataset_reference_without_ref_keeps_kwargs(tmp_path):
 def test_tag_ref_resolves_and_passes_kwargs(monkeypatch):
     captured = {}
 
-    class DummyDataset(TorchDataset):
+    class DummyDataset(BaseDataset):
+        fields = {"text": str}
 
         def __init__(self, **kwargs):
             self.kwargs = kwargs
@@ -203,7 +207,8 @@ def test_module_path_ref_resolves_direct_module(tmp_path, monkeypatch):
 def test_instantiate_dataset_reference_passes_only_kwargs_to_dataset(monkeypatch):
     captured = {}
 
-    class DummyDataset(TorchDataset):
+    class DummyDataset(BaseDataset):
+        fields = {"text": str}
 
         def __init__(self, **kwargs):
             captured.update(kwargs)
@@ -301,7 +306,7 @@ def test_instantiate_dataset_reference_invalid_kwargs_raises_type_error(tmp_path
         )
 
 
-def test_instantiate_dataset_reference_accepts_an_ordinary_dataset(monkeypatch):
+def test_instantiate_dataset_reference_requires_the_dataset_contract(monkeypatch):
     class Dataset:
         def __init__(self, text):
             self.text = text
@@ -317,6 +322,5 @@ def test_instantiate_dataset_reference_accepts_an_ordinary_dataset(monkeypatch):
 
     Module.Dataset = Dataset
     monkeypatch.setattr(dm, "load_dataset_module", lambda **kwargs: Module)
-    dataset = dm.instantiate_dataset_reference({"data_src_args": {"text": "hello"}})
-    assert len(dataset) == 1
-    assert dataset[0] == {"text": "hello"}
+    with pytest.raises(TypeError, match="does not inherit BaseDataset"):
+        dm.instantiate_dataset_reference({"data_src_args": {"text": "hello"}})

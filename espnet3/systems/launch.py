@@ -70,7 +70,16 @@ def build_parser(system_cls: type) -> argparse.ArgumentParser:
 
 
 def default_conf_package(system_cls: type) -> str:
-    """Return the template package for an installed system class."""
+    """Return the ``egs3.TEMPLATE`` package that holds ``system_cls``'s default configs.
+
+    Derived from ``system_cls``'s own module, ``espnet3.systems.<x>.system``,
+    using the system module name as the recipe template name.
+
+    Examples:
+        >>> from espnet3.systems.esp2_asr.system import ASRSystem
+        >>> default_conf_package(ASRSystem)
+        'egs3.TEMPLATE.esp2_asr'
+    """
     system_name = system_cls.__module__.split(".")[-2]
     return f"egs3.TEMPLATE.{system_name}"
 
@@ -139,6 +148,7 @@ def launch(
         inference_config=configs.get("inference"),
         metrics_config=configs.get("metrics"),
         publication_config=configs.get("publication"),
+        demo_config=configs.get("demo"),
         log=logger,
     )
     # TODO(config_fix): removed by the upcoming config fix PR

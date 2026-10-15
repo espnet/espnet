@@ -18,6 +18,9 @@ from espnet3.components.metrics.base_metric import BaseMetric
 class TER(BaseMetric):
     """Compute token error rates from configured reference and hypothesis inputs."""
 
+    inputs = {"ref": str, "hyp": str}
+    outputs = ("TER",)
+
     def __init__(
         self,
         bpemodel: str | Path,

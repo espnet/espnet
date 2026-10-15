@@ -1,6 +1,8 @@
 """Base metric interfaces for ESPnet3."""
 
 import copy
+import functools
+import inspect
 from abc import ABC, abstractmethod
 from pathlib import Path
 from typing import (
@@ -17,6 +19,13 @@ from typing import (
     Union,
 )
 
+from espnet3.contract.metrics import (
+    check_metric_batch,
+    check_metric_contract,
+    check_metric_inputs,
+    check_metric_output,
+)
+
 #: How a state combines across chunks and ranks: ``"sum"`` adds numbers,
 #: ``"cat"`` concatenates lists.
 Reduce = Literal["sum", "cat"]
@@ -28,9 +37,30 @@ class BaseMetric(ABC):
     """Accumulate metric state and score aligned SCP inputs.
 
     The metrics config maps keyword arguments of update() to SCP files or
-    dataset columns. Subclasses implement update() and compute(); no schema
-    declaration or inference-model introspection is required.
+    dataset columns. Subclasses declare ``inputs`` as name-to-Python-type mappings and
+    ``outputs`` as a tuple of numeric result names, and implement update()
+    and compute(). Contracts do not inspect the inference model.
     """
+
+    inputs: ClassVar[Mapping[str, Union[type, Tuple[type, ...]]]]
+    outputs: ClassVar[Tuple[str, ...]]
+
+    def __init__(self):
+        """Validate the metric's own input and output declarations."""
+        check_metric_contract(self)
+
+    def __init_subclass__(cls, **kwargs):
+        """Check direct update/compute calls as well as SCP scoring."""
+        super().__init_subclass__(**kwargs)
+        for method, check in (
+            ("update", check_metric_batch),
+            ("compute", check_metric_output),
+        ):
+            original = getattr(cls, method)
+            if not getattr(original, "__isabstractmethod__", False) and not getattr(
+                original, "__wrapped_contract__", False
+            ):
+                setattr(cls, method, _checked_method(original, check, method))
 
     #: Rows per :meth:`update` call inside :meth:`__call__`.
     chunk_size: ClassVar[int] = 1000
@@ -219,6 +249,7 @@ class BaseMetric(ABC):
         self.reset()
         self.collect_artifacts = output_dir is not None
         try:
+            check_metric_inputs(self, {name: name for name in data})
             names = list(data)
             if names:
                 chunk: Dict[str, List[str]] = {name: [] for name in names}
@@ -359,3 +390,26 @@ class BaseMetric(ABC):
             utt_id = parts[0].strip()
             value = parts[1].strip() if len(parts) > 1 else ""
             yield utt_id, value
+
+
+def _checked_method(method, check, name):
+    """Wrap a metric method without changing its public calling signature."""
+    signature = inspect.signature(method)
+
+    @functools.wraps(method)
+    def wrapped(self, *args, **kwargs):
+        if name == "update":
+            bound = signature.bind(self, *args, **kwargs)
+            values = dict(bound.arguments)
+            values.pop(next(iter(signature.parameters)))
+            for key, parameter in signature.parameters.items():
+                if parameter.kind == inspect.Parameter.VAR_KEYWORD:
+                    values.update(values.pop(key, {}))
+            check(self, values)
+        result = method(self, *args, **kwargs)
+        if name == "compute":
+            check(self, result)
+        return result
+
+    wrapped.__wrapped_contract__ = True
+    return wrapped

@@ -311,6 +311,87 @@ def test_apply_training_context_syncs_publication_from_training_and_inference(
     )
 
 
+def test_apply_training_context_propagates_pack_model_out_dir_to_demo(
+    caplog,
+) -> None:
+    publication = OmegaConf.create({"pack_model": {"out_dir": "./model_pack"}})
+    demo = OmegaConf.create({"model": {"dir_or_tag": None}})
+
+    with caplog.at_level(logging.INFO):
+        apply_training_experiment_context(
+            training_config=None,
+            inference_config=None,
+            metrics_config=None,
+            publication_config=publication,
+            demo_config=demo,
+            log=logging.getLogger("test.run_utils"),
+        )
+
+    assert demo.model.dir_or_tag == "./model_pack"
+    assert "Inserted demo_config.model.dir_or_tag" in caplog.text
+
+
+def test_apply_training_context_does_not_override_existing_demo_dir_or_tag() -> None:
+    publication = OmegaConf.create({"pack_model": {"out_dir": "./model_pack"}})
+    demo = OmegaConf.create({"model": {"dir_or_tag": "existing/model"}})
+
+    apply_training_experiment_context(
+        training_config=None,
+        inference_config=None,
+        metrics_config=None,
+        publication_config=publication,
+        demo_config=demo,
+        log=logging.getLogger("test.run_utils"),
+    )
+
+    assert demo.model.dir_or_tag == "existing/model"
+
+
+def test_apply_training_context_prefers_upload_model_hf_repo_over_pack_model_out_dir(
+    caplog,
+) -> None:
+    publication = OmegaConf.create(
+        {
+            "pack_model": {"out_dir": "./model_pack"},
+            "upload_model": {"hf_repo": "myorg/my-model"},
+        }
+    )
+    demo = OmegaConf.create({"model": {"dir_or_tag": None}})
+
+    with caplog.at_level(logging.INFO):
+        apply_training_experiment_context(
+            training_config=None,
+            inference_config=None,
+            metrics_config=None,
+            publication_config=publication,
+            demo_config=demo,
+            log=logging.getLogger("test.run_utils"),
+        )
+
+    assert demo.model.dir_or_tag == "myorg/my-model"
+    assert "upload_model.hf_repo" in caplog.text
+
+
+def test_apply_training_context_falls_back_to_pack_model_out_dir_when_no_hf_repo(
+    caplog,
+) -> None:
+    publication = OmegaConf.create({"pack_model": {"out_dir": "./model_pack"}})
+    demo = OmegaConf.create({"model": {"dir_or_tag": None}})
+
+    with caplog.at_level(logging.INFO):
+        apply_training_experiment_context(
+            training_config=None,
+            inference_config=None,
+            metrics_config=None,
+            publication_config=publication,
+            demo_config=demo,
+            log=logging.getLogger("test.run_utils"),
+        )
+
+    assert demo.model.dir_or_tag == "./model_pack"
+    assert "pack_model.out_dir" in caplog.text
+
+
 def test_resolve_loaded_configs_resolves_publication_interpolations() -> None:
     training = OmegaConf.create(
         {

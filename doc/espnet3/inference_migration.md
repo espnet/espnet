@@ -28,12 +28,16 @@ Use `espnet2.bin.asr_transducer_inference.Speech2Text` with
 return types and streaming support remain those of the backend; callers do
 not receive automatically derived single, batch, or streaming methods.
 
-Datasets can be ordinary Python or PyTorch datasets returning mappings.
-They no longer need a toolkit-specific superclass or item declarations.
+Recipe datasets retain `BaseDataset` and declare Python types, for example
+`fields = {"speech": np.ndarray, "text": str}`. The first item is checked for required keys and Python types.
+Include `type(None)` in a tuple of accepted types for optional keys.
 Transforms and preprocessors remain recipe configuration.
 
 Metrics implement `update()` and `compute()` and can retain their existing
-registered aggregation state. Configure their keyword arguments explicitly:
+registered aggregation state. Declare `inputs = {"ref": str, "hyp": str}`
+and `outputs = ("WER",)` on the metric. Contracts check required input names,
+aligned batch lengths, element types, and numeric results, including direct
+`update()`/`compute()` calls. Configure their keyword arguments explicitly:
 
 ```yaml
 metrics:
@@ -45,15 +49,19 @@ metrics:
 ```
 
 This reads the reference from the dataset and the hypothesis from `text.scp`.
-Measurement does not inspect a model class or validate an input/output schema.
-Ordinary missing-input, SCP-alignment, and backend errors still surface.
+Measurement validates metric input bindings without inspecting the model class.
+SCP alignment and the metric's own contracts are checked independently of
+inference.
 
 Model packing and uploading retain checkpoints, configuration and metadata.
 Archives are used through their recipe and native backend, rather than a
 unified callable loader. Old configurations naming removed wrapper classes
 must be updated to the native target and explicit input/output configuration.
 
-Generated demo sessions, demo packing/uploading stages and notebook generation
-are removed. Standalone applications and notebooks can call the native
-backend themselves. The existing ESPnet2 task commands, demo and MCP tools
-remain independent clients of those native backends.
+`pack_demo` and `upload_demo` remain available. Supply a standalone app via
+`demo_config.ui.app_script`; packing copies the app, model reference, extra
+assets, requirements and optional Space card, and uploading publishes that
+directory. UI generation from model declarations and notebook generation are
+removed. Standalone applications and notebooks call the native backend
+themselves. The existing ESPnet2 task commands, demo and MCP tools remain
+independent clients of those native backends.

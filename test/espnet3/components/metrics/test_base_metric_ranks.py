@@ -9,6 +9,8 @@ SPLITS = [(5, 5), (9, 1), (10, 0), (0, 10)]
 
 
 class Counts(BaseMetric):
+    inputs = {"ref": str}
+    outputs = ("mean",)
 
     def __init__(self):
         super().__init__()
@@ -24,6 +26,8 @@ class Counts(BaseMetric):
 
 
 class Scores(BaseMetric):
+    inputs = {"ref": str}
+    outputs = ("mean", "first")
 
     def __init__(self):
         super().__init__()

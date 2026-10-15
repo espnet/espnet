@@ -1,1 +1,1 @@
-"""Validation of system stage declarations and requested configuration roles."""
+"""Contracts for dataset items, metric inputs/results and system stages."""

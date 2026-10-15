@@ -17,6 +17,9 @@ from espnet3.components.metrics.base_metric import BaseMetric
 class CER(BaseMetric):
     """Compute character error rates from configured reference and hypothesis inputs."""
 
+    inputs = {"ref": str, "hyp": str}
+    outputs = ("CER",)
+
     def __init__(self, clean_types: Iterable[str] | None = None) -> None:
         """Initialize the CER metric.
 

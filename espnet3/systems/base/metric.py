@@ -5,15 +5,19 @@ import logging
 from pathlib import Path
 
 from hydra.utils import get_class, instantiate
-from omegaconf import DictConfig, OmegaConf, open_dict
+from omegaconf import DictConfig, ListConfig, OmegaConf, open_dict
 
 from espnet3.components.metrics.base_metric import BaseMetric
+from espnet3.contract.metrics import (
+    DATASET_PREFIX,
+    check_metric_contract,
+    check_metric_inputs,
+    check_metric_output,
+)
 from espnet3.systems.base.inference_provider import InferenceProvider
 from espnet3.systems.base.inference_runner import _materialize_output_value
 from espnet3.utils.logging_utils import log_component
 from espnet3.utils.scp_utils import check_utt_id, get_class_path, load_scp_paths
-
-DATASET_PREFIX = "dataset:"
 
 logger = logging.getLogger(__name__)
 
@@ -41,9 +45,6 @@ def _resolve_test_sets(metrics_config: DictConfig) -> list[str]:
         test_sets,
     )
     return test_sets
-
-
-DATASET_PREFIX = "dataset:"
 
 
 def _dataset_column_scp(
@@ -144,7 +145,11 @@ def _resolve_inputs(
     An input is an ``.scp`` file the ``infer`` stage wrote, or a
     ``dataset:<column>`` column of the test set, written on demand.
     """
-    input_map = {k: k for k in inputs} if isinstance(inputs, list) else dict(inputs)
+    input_map = (
+        {k: k for k in inputs}
+        if isinstance(inputs, (list, tuple, ListConfig))
+        else dict(inputs)
+    )
     inference_dir = Path(metrics_config.inference_dir)
     from_scp = {
         a: f for a, f in input_map.items() if not str(f).startswith(DATASET_PREFIX)
@@ -205,10 +210,18 @@ def measure(metrics_config: DictConfig, inference_config: DictConfig | None = No
         inputs = metric_config.get("inputs")
         if not inputs:
             raise ValueError("Each metric must configure its inputs mapping.")
+        check_metric_contract(metric)
+        bindings = (
+            {k: k for k in inputs}
+            if isinstance(inputs, (list, tuple, ListConfig))
+            else dict(inputs)
+        )
+        check_metric_inputs(metric, bindings)
         results[get_class_path(metric)] = {}
         for test_name in test_sets:
             data = _resolve_inputs(inputs, metrics_config, test_name, inference_config)
             metric_result = metric(data, test_name, metrics_config.inference_dir)
+            check_metric_output(metric, metric_result)
             results[get_class_path(metric)].update({test_name: metric_result})
 
     out_path = Path(metrics_config.inference_dir) / "metrics.json"

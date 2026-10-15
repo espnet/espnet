@@ -219,7 +219,11 @@ Each runs top to bottom on a CPU and pins the release it was checked against. Th
 **Publish your own.** ESPnet3 recipes archive checkpoints and configuration
 with `pack_model` and upload them with `upload_model`. Use the recipe's
 inference configuration to build the native backend and format its results.
-Hosted applications and notebooks are maintained separately.
+Use `pack_demo` to package a standalone app specified by
+`demo_config.ui.app_script` and `upload_demo` to publish it to Hugging Face
+Spaces. [Demo packing configuration](egs3/TEMPLATE/esp2_asr/conf/demo.yaml)
+controls assets, requirements and the Space card. Apps call native backends
+directly; model declarations no longer generate UI components or notebooks.
 
 ## Learn
 

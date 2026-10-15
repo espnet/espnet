@@ -9,9 +9,9 @@ from typing import Any
 
 import numpy as np
 import soundfile as sf
-from torch.utils.data import Dataset as TorchDataset
 
 from egs3.mini_an4.esp2_asr.dataset.builder import MiniAn4Builder
+from espnet3.components.data.base_dataset import BaseDataset
 from espnet3.utils.config_utils import load_config_with_defaults
 
 # ---------------------------------------------------------------------------
@@ -78,7 +78,7 @@ def _read_manifest(manifest_path: Path) -> list[ManifestEntry]:
 # ---------------------------------------------------------------------------
 
 
-class MiniAn4Dataset(TorchDataset):
+class MiniAn4Dataset(BaseDataset):
     """Mini AN4 dataset that returns ``{\"speech\", \"text\"}`` samples.
 
     Examples:
@@ -87,6 +87,8 @@ class MiniAn4Dataset(TorchDataset):
         >>> sorted(sample.keys())
         ['speech', 'text']
     """
+
+    fields = {"speech": np.ndarray, "text": str}
 
     def __init__(self, split: str, recipe_dir: str | Path | None = None) -> None:
         self.split = split
