@@ -103,6 +103,45 @@ def test_reject_incompatible_checkpoint(package, tmp_path):
         main(options)
 
 
+@pytest.mark.parametrize(
+    "failure,message",
+    [
+        ("loss", "Non-finite training loss"),
+        ("gradient", "Non-finite gradient"),
+        ("zero_gradient", "non-zero gradient"),
+        ("unchanged", "did not change"),
+        ("frozen", "No trainable parameters"),
+    ],
+)
+def test_training_failures(package, tmp_path, monkeypatch, failure, message):
+    """Reject invalid training even when Python disables assert statements."""
+    options = package()
+    if failure == "frozen":
+        path = tmp_path / "config.yaml"
+        config = yaml.safe_load(path.read_text())
+        config["freeze_param"] = [""]
+        path.write_text(yaml.safe_dump(config))
+    elif failure == "unchanged":
+        monkeypatch.setattr(torch.optim.Adam, "step", lambda *a, **kw: None)
+    else:
+        original = ESPnetUniversaModel.forward
+
+        def forward(*args, **kwargs):
+            """Inject one invalid training result into the real model's forward."""
+            loss, stats, weight = original(*args, **kwargs)
+            if failure == "loss":
+                loss = loss * float("nan")
+            elif failure == "zero_gradient":
+                loss = loss * 0
+            else:
+                loss.register_hook(lambda grad: torch.full_like(grad, float("nan")))
+            return loss, stats, weight
+
+        monkeypatch.setattr(ESPnetUniversaModel, "forward", forward)
+    with pytest.raises(ValueError, match=message):
+        main(options)
+
+
 @pytest.mark.parametrize("recipe", ["TEMPLATE", "mini_an4", "urgent24"])
 def test_legacy_recipe_aliases(recipe):
     """Legacy directories and scripts resolve to the canonical AQA driver."""

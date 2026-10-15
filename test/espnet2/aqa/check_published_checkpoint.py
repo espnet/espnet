@@ -69,6 +69,8 @@ def main(argv=None):
             parameter.requires_grad_(False)
     model.train()
     parameters = [p for p in model.parameters() if p.requires_grad]
+    if not parameters:
+        raise ValueError("No trainable parameters remain after applying freeze_param")
     optimizer = torch.optim.Adam(parameters, lr=1e-5)
     audio = torch.randn(1, 16000) * 0.05
     lengths = torch.tensor([audio.size(1)])
@@ -89,15 +91,21 @@ def main(argv=None):
     else:
         labels = {key: torch.tensor([value]) for key, value in options.metrics.items()}
     loss, _, _ = model(audio, lengths, labels, **references)
-    assert torch.isfinite(loss).all()
+    if not torch.isfinite(loss).all():
+        raise ValueError("Non-finite training loss")
     loss.mean().backward()
+    if not all(torch.isfinite(p.grad).all() for p in parameters if p.grad is not None):
+        raise ValueError("Non-finite gradient")
     updated = next(
-        p for p in parameters if p.grad is not None and p.grad.abs().sum() > 0
+        (p for p in parameters if p.grad is not None and p.grad.abs().sum() > 0),
+        None,
     )
+    if updated is None:
+        raise ValueError("No trainable parameter received a non-zero gradient")
     before = updated.detach().clone()
-    assert all(torch.isfinite(p.grad).all() for p in parameters if p.grad is not None)
     optimizer.step()
-    assert not torch.equal(before, updated)
+    if torch.equal(before, updated):
+        raise ValueError("Optimizer step did not change the checked parameter")
     print("FINETUNE_STEP", loss.item(), flush=True)
     model.eval()
     if getattr(model.universa, "sequential_metrics", False):
