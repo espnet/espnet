@@ -285,6 +285,40 @@ def test_resolve_test_sets_ignores_hidden_directories(tmp_path):
     assert _resolve_test_sets(cfg) == ["test_visible"]
 
 
+def test_resolve_test_sets_ignores_config_history_directory(tmp_path):
+    """Verify that .config_history/ created by snapshot_config is ignored."""
+    from espnet3.utils.stage_configs import snapshot_config
+
+    inference_dir = tmp_path / "inference"
+    inference_dir.mkdir(parents=True)
+
+    # Create a real test-set directory
+    test_set_dir = inference_dir / "test-clean"
+    test_set_dir.mkdir(parents=True)
+
+    # Apply snapshot_config twice with different configs to create .config_history/
+    resolved1 = OmegaConf.create({"lr": 0.001})
+    snapshot_config(str(inference_dir), "train", resolved1)
+    resolved2 = OmegaConf.create({"lr": 0.002})
+    snapshot_config(str(inference_dir), "train", resolved2)
+
+    # Confirm .config_history/ exists and contains a history file
+    history_dir = inference_dir / ".config_history"
+    assert history_dir.is_dir()
+    hist_files = list(history_dir.glob("train.*.yaml"))
+    assert len(hist_files) >= 1
+
+    metrics_cfg = OmegaConf.create(
+        {
+            "inference_dir": str(inference_dir),
+            "metrics": [{"metric": {"_target_": f"{__name__}.DummyMetric"}}],
+        }
+    )
+
+    resolved = _resolve_test_sets(metrics_cfg)
+    assert resolved == ["test-clean"]
+
+
 def test_metric_rejects_non_metric_instance(tmp_path):
     cfg = OmegaConf.create(
         {
