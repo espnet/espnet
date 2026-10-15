@@ -16,8 +16,9 @@ class Espnet3BundleError(ModelTagError):
     def __init__(self, model_tag: str) -> None:
         """Explain how to use an archived recipe bundle."""
         super().__init__(
-            f"{model_tag} was published with espnet3's pack_model. "
-            "Use its recipe inference configuration and backend directly."
+            f"{model_tag} was published with espnet3's pack_model, which "
+            "ESPnet2 cannot load. Its conf/inference.yaml names the backend to "
+            "build, as the recipe's demo app does (src/app.py build_model)."
         )
         self.model_tag = model_tag
 

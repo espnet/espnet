@@ -306,21 +306,18 @@ def test_instantiate_dataset_reference_invalid_kwargs_raises_type_error(tmp_path
         )
 
 
-def test_instantiate_dataset_reference_requires_the_dataset_contract(monkeypatch):
-    class Dataset:
-        def __init__(self, text):
-            self.text = text
+def test_instantiate_dataset_reference_rejects_dataset_outside_base(monkeypatch):
+    class NotBaseDataset:
+        def __init__(self, **kwargs):
+            raise AssertionError("must not be instantiated before the base check")
 
-        def __len__(self):
-            return 1
+    class DummyModule:
+        Dataset = NotBaseDataset
 
-        def __getitem__(self, index):
-            return {"text": self.text}
-
-    class Module:
-        pass
-
-    Module.Dataset = Dataset
-    monkeypatch.setattr(dm, "load_dataset_module", lambda **kwargs: Module)
+    monkeypatch.setattr(
+        dm,
+        "load_dataset_module",
+        lambda data_src=None, recipe_dir=None: DummyModule(),
+    )
     with pytest.raises(TypeError, match="does not inherit BaseDataset"):
-        dm.instantiate_dataset_reference({"data_src_args": {"text": "hello"}})
+        dm.instantiate_dataset_reference({"data_src_args": {}})

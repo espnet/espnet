@@ -70,7 +70,8 @@ def build_model(demo_dir: Path, model_config):
         raise ValueError(f"The ASR demo does not support backend {target!r}")
     parameters["device"] = resolve_device(model_config.get("device", "auto"))
     # Native task configs use plain YAML, so bind their relative artifact paths
-    # before construction. This also keeps lazily loaded tokenizer paths valid.
+    # before construction. The backend reads these files while it is built, so
+    # the temporary copies are only needed inside this block.
     with TemporaryDirectory(prefix="espnet-asr-demo-") as tmp_dir:
         for key, weights_key in (
             ("asr_train_config", "asr_model_file"),

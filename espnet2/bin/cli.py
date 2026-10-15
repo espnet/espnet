@@ -742,13 +742,7 @@ def main(argv: Optional[List[str]] = None) -> int:
     parser = build_parser()
     args, extra = parser.parse_known_args(argv)
     if extra:
-        # `espnet run tag speech=a.wav --system s2t language=jpn`: argparse
-        # binds the positionals it sees before the first option and leaves
-        # the rest, so name=value inputs after an option arrive here
-        if args.command == "run" and all("=" in a and a[0] != "-" for a in extra):
-            args.inputs = [*args.inputs, *extra]
-        else:
-            parser.error(f"unrecognized arguments: {' '.join(extra)}")
+        parser.error(f"unrecognized arguments: {' '.join(extra)}")
     try:
         if hasattr(args, "device"):  # every command that loads a model
             args.device = _resolve_device(args.device)
