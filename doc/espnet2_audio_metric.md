@@ -56,8 +56,8 @@ checkpoint. New training intentionally uses the corrected positive objective.
 ## Published checkpoint validation
 
 During the original series validation, the following representative weights were
-strictly loaded (no missing/unexpected
-keys), then trained for one optimizer step with their configured frozen parameter
+strictly loaded (no missing/unexpected keys), then trained for one optimizer step
+with their configured frozen parameter
 prefixes. The check requires finite loss and gradients, verifies a trainable
 parameter changed, and requires one valid prediction for every requested metric.
 

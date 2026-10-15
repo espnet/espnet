@@ -16,6 +16,7 @@ from espnet2.tasks.aqa import AqaTask
 
 
 def main(argv=None):
+    """Strictly load a local package, update its weights, and check predictions."""
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("package", type=Path)
     parser.add_argument("--config", required=True, type=Path)

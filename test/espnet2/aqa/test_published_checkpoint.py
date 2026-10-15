@@ -19,6 +19,7 @@ def package(tmp_path):
     """Save model weights and portable metadata as a downloaded package would."""
 
     def create(arecho=False, references=False):
+        """Write one tiny model package and return its validator arguments."""
         args = task_args(tmp_path)
         args.use_ref_audio = args.use_ref_text = references
         if references:
