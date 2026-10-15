@@ -12,8 +12,6 @@ from espnet3.components.data.dataset_module import (
     parse_dataset_reference_config,
 )
 from espnet3.contract.stages import StageSpec, check_stage_contract
-from espnet3.publication.demo.packing import pack_demo as _pack_demo
-from espnet3.publication.demo.packing import upload_demo as _upload_demo
 from espnet3.systems.base.inference import infer
 from espnet3.systems.base.metric import measure
 from espnet3.systems.base.training import collect_stats, train
@@ -51,7 +49,6 @@ class BaseSystem:
         inference_config (DictConfig | None): Inference configuration.
         metrics_config (DictConfig | None): Measurement configuration.
         publication_config (DictConfig | None): Publication configuration.
-        demo_config (DictConfig | None): Demo configuration.
 
     Examples:
         >>> system = BaseSystem()
@@ -70,8 +67,6 @@ class BaseSystem:
         StageSpec(name="measure", config="metrics", log_dir="inference_dir"),
         StageSpec(name="pack_model", config=("training", "publication")),
         StageSpec(name="upload_model", config="publication"),
-        StageSpec(name="pack_demo", config="demo", log_dir="pack.out_dir"),
-        StageSpec(name="upload_demo", config="demo", log_dir="pack.out_dir"),
     )
 
     def __init_subclass__(cls, **kwargs) -> None:
@@ -85,7 +80,6 @@ class BaseSystem:
         inference_config: DictConfig | None = None,
         metrics_config: DictConfig | None = None,
         publication_config: DictConfig | None = None,
-        demo_config: DictConfig | None = None,
     ) -> None:
         """Initialize the system with optional stage configs.
 
@@ -98,13 +92,11 @@ class BaseSystem:
                 stage.
             publication_config: Publication configuration for ``pack_model``
                 and ``upload_model`` stages.
-            demo_config: Demo configuration for the ``demo`` stage.
         """
         self.training_config = training_config
         self.inference_config = inference_config
         self.metrics_config = metrics_config
         self.publication_config = publication_config
-        self.demo_config = demo_config
 
         if training_config is not None:
             self.exp_dir = Path(training_config.exp_dir)
@@ -116,13 +108,12 @@ class BaseSystem:
 
         logger.info(
             "Initialized %s with training_config=%s inference_config=%s "
-            "metrics_config=%s publication_config=%s demo_config=%s exp_dir=%s",
+            "metrics_config=%s publication_config=%s exp_dir=%s",
             self.__class__.__name__,
             training_config is not None,
             inference_config is not None,
             metrics_config is not None,
             publication_config is not None,
-            demo_config is not None,
             self.exp_dir,
         )
 
@@ -142,7 +133,7 @@ class BaseSystem:
         Args:
             config: Dict-like config (e.g. ``DictConfig``) to read from.
                 ``None`` is treated the same as a missing key.
-            key: Field name to extract.
+            key: Configuration key to extract.
             error_message: Message for the ``RuntimeError`` raised when the
                 field is absent or ``None``.
 
@@ -296,16 +287,6 @@ class BaseSystem:
         """Upload model bundle to HuggingFace."""
         self._reject_stage_args("upload_model", args, kwargs)
         return _upload_model(self)
-
-    def pack_demo(self, *args, **kwargs):
-        """Pack demo assets into a runnable demo directory."""
-        self._reject_stage_args("pack_demo", args, kwargs)
-        return _pack_demo(self)
-
-    def upload_demo(self, *args, **kwargs):
-        """Upload demo bundle to HuggingFace."""
-        self._reject_stage_args("upload_demo", args, kwargs)
-        return _upload_demo(self)
 
 
 # __init_subclass__ only fires for subclasses; check BaseSystem's own

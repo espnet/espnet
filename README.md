@@ -106,7 +106,7 @@ espnet synthesize "Hello from ESPnet" -o out.wav
 espnet enhance noisy.wav -o clean.wav
 ```
 
-`phonemize` and `align` are there too, and `espnet models` names the default model of each. Every command but that one takes `--model <tag>` and `--device cuda`. `espnet run <tag> --system s2t speech=audio.wav` runs any model by what it declares, with no task in the command's name.
+`phonemize` and `align` are there too, and `espnet models` names the default model of each. Every command but that one takes `--model <tag>` and `--device cuda`.
 
 **From Python**
 
@@ -216,25 +216,10 @@ Each runs top to bottom on a CPU and pins the release it was checked against. Th
 
 </details>
 
-**Publish your own.** Every ESPnet3 recipe can wrap its trained model in a
-[Gradio](https://www.gradio.app/) app and push it to Hugging Face Spaces — the UI,
-the Space `README.md` and `requirements.txt` are all generated from
-[`conf/demo.yaml`](egs3/TEMPLATE/esp2_asr/conf/demo.yaml).
-
-<details>
-<summary>The three stages</summary>
-
-```sh
-cd egs3/librispeech_100/esp2_asr
-train=conf/tuning/training_e_branchformer.yaml   # the config the model was trained with
-python run.py --stages pack_model  --training_config $train --publication_config conf/publication.yaml  # -> exp/.../model_pack
-python run.py --stages pack_demo   --training_config $train --demo_config conf/demo.yaml                # -> demo/
-python run.py --stages upload_demo --training_config $train --demo_config conf/demo.yaml                # needs `hf auth login`
-```
-
-Run the packed app locally with `python demo/app.py`.
-
-</details>
+**Publish your own.** ESPnet3 recipes archive checkpoints and configuration
+with `pack_model` and upload them with `upload_model`. Use the recipe's
+inference configuration to build the native backend and format its results.
+Hosted applications and notebooks are maintained separately.
 
 ## Learn
 

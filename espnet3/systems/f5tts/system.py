@@ -22,8 +22,8 @@ class F5TTSSystem(BaseSystem):
 
     The stage order of an F5-TTS recipe is ``create_dataset ->
     remove_long_short -> create_token_list -> collect_stats -> train ->
-    infer -> measure -> pack_model -> upload_model -> pack_demo ->
-    upload_demo``. Every stage other than the two added here is inherited
+    infer -> measure -> pack_model -> upload_model``. Every stage other
+    than the two added here is inherited
     from ``BaseSystem`` unchanged: the model is instantiated directly from
     ``training_config.model._target_``, with ``task`` left unset.
 
@@ -50,8 +50,6 @@ class F5TTSSystem(BaseSystem):
         StageSpec(name="measure", config="metrics", log_dir="inference_dir"),
         StageSpec(name="pack_model", config=("training", "publication")),
         StageSpec(name="upload_model", config="publication"),
-        StageSpec(name="pack_demo", config="demo", log_dir="pack.out_dir"),
-        StageSpec(name="upload_demo", config="demo", log_dir="pack.out_dir"),
     )
 
     def remove_long_short(self, *args, **kwargs):

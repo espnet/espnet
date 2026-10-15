@@ -1,61 +1,11 @@
-##########################################################
-#                 METRIC SCORING SETTING                 #
-##########################################################
-# Quick usage:
-#   python run.py --stages measure --metrics_config conf/metrics.yaml
-#
-# Assumptions:
-# - `infer` has already produced `<test_name>/*.scp` files: one per output of
-#   the model, named after the output (`text.scp` for ASR).
-# - A metric's `inputs:` binds each declared input name to a source: one of
-#   those files (`hyp: text`), or a column of the test set itself as
-#   `dataset:<column>` (`ref: dataset:text`): the reference is the data's, so
-#   it is read from the data, into `<test_name>/dataset/<column>.scp` on
-#   first use.
-# - If `dataset.test` is omitted, test sets are discovered from `${inference_dir}`
-#   subdirectories.
+# Map metric update() arguments to SCP stems or dataset:<column>.
 
-##########################################################
-#                    PATHS AND INPUTS                    #
-##########################################################
 recipe_dir: .
-# Common case:
-# - pass `--training_config`, `--inference_config`, and `--metrics_config`
-# - `launch()` copies `training_config.exp_tag` / `training_config.exp_dir` here
-# - `launch()` also copies `inference_config.inference_dir` here, so `measure`
-#   reads the same directory used by `infer`
-#
-# Standalone `measure` is also supported. In that case, set either `exp_tag` or
-# a concrete `exp_dir` below, and add `inference_dir` here unless
-# `--inference_config` provides it. Add `inference_dir` only when you want to
-# score a different inference output directory.
 exp_tag:
 exp_dir: ${recipe_dir}/exp/${exp_tag}
 
-# A `dataset:<column>` input that is not a scalar (a reference waveform for
-# an audio metric, say) is written as an artifact under
-# `<test_name>/dataset/<column>/<id>.<ext>` and the .scp holds its path.
-# Say how, per column, in the form of inference.yaml's `output_artifacts`;
-# an array becomes `.npy` and a dict JSON when nothing is said.
-# dataset_artifacts:
-#   speech:
-#     type: wav
-#     sample_rate: 16000
 
 
-##########################################################
-#                    METRIC DEFINITION                   #
-##########################################################
-# WER/CER/TER declare the inputs they read (`ref`, `hyp`, both kind `text`)
-# and the output key they return (kind `number`). `inputs:` is required: it
-# binds each declared name to where it is read from. Before running a
-# metric, `measure` checks each declared input against the inference
-# config's model: a plain SCP input (`text` above) must name one of the
-# model's own declared `outputs` (and agree with its kind); a `dataset:`
-# input is the test set's own data, so it is not checked against the model.
-# A model that is not an `espnet3.api.inference.InferenceAPI` subclass (so
-# declares no outputs at all) is rejected outright, explaining why, instead
-# of a bare "Missing SCP file" assertion.
 metrics:
   - metric:
       _target_: espnet3.systems.esp2_asr.metrics.wer.WER
@@ -70,14 +20,3 @@ metrics:
     inputs:
       ref: dataset:text  # the test set's transcript
       hyp: text          # <test_name>/text.scp
-
-# TER (token error rate) scores on the model's subword tokens, so it needs the
-# recipe's trained SentencePiece model. It is recipe-specific and off by default.
-# To enable it, uncomment below and point `bpemodel` at your trained model:
-# - metric:
-#     _target_: espnet3.systems.esp2_asr.metrics.ter.TER
-#     bpemodel: exp/bpe_5000/bpe.model  # path to the trained SentencePiece model
-#     clean_types:        # optional TextCleaner pipeline
-#   inputs:
-#     ref: dataset:text  # the test set's transcript
-#     hyp: text          # <test_name>/text.scp

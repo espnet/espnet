@@ -774,39 +774,19 @@ def test_rewrite_config_path_absolute_unchanged(tmp_path):
 
 
 def test_config_path_end_to_end_with_real_template(tmp_path):
-    """Load a real-world demo.yaml against egs3.TEMPLATE.esp2_asr.
-
-    Verifies that pack.readme resolves to the TEMPLATE's actual
-    hf_demo_readme.md file. This is the core regression test for the removal
-    of _normalize_inherited_readme_path: the
-    ${config_path:../src/hf_demo_readme.md} in the TEMPLATE default must
-    survive the merge and resolve to an absolute path that exists on disk,
-    regardless of the user's recipe_dir value.
-    """
-    user_demo = tmp_path / "demo.yaml"
-    user_demo.write_text(
-        "exp_tag: test_run\n"
-        "ui:\n"
-        "  title: My ASR Demo\n"
-        "upload_demo:\n"
-        "  hf_repo: myorg/my-demo\n"
-    )
-
+    """Resolve the publication README relative to its template config."""
+    user_config = tmp_path / "publication.yaml"
+    user_config.write_text("exp_tag: test_run\n")
     cfg = load_and_merge_config(
-        user_demo,
-        "demo.yaml",
+        user_config,
+        "publication.yaml",
         default_package="egs3.TEMPLATE.esp2_asr",
         resolve=False,
     )
-
-    readme = cfg.pack.readme
-    assert Path(
-        readme
-    ).is_absolute(), f"pack.readme must be an absolute path, got: {readme}"
-    assert readme.endswith(
-        "egs3/TEMPLATE/esp2_asr/src/hf_demo_readme.md"
-    ), f"pack.readme must point to the TEMPLATE file, got: {readme}"
-    assert Path(readme).exists(), f"pack.readme path must exist on disk: {readme}"
+    readme = Path(cfg.pack_model.readme)
+    assert readme.is_absolute()
+    assert readme.as_posix().endswith("egs3/TEMPLATE/esp2_asr/src/hf_model_readme.md")
+    assert readme.is_file()
 
 
 # ===============================================================

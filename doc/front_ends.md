@@ -51,17 +51,9 @@ Whatever `espnet2.bin` class does the work. It takes `model_tag` through
 `from_pretrained`, and `test/espnet2/bin/test_from_pretrained_routing.py`
 holds every such class to one way of fetching a published model.
 
-An ESPnet3 system states the same thing as an interface: its
-`espnet3/systems/<name>/inference.py` defines `Inference`, a subclass of
-`espnet3.api.inference.InferenceAPI` that declares the fields it takes and
-returns, and `espnet3.api.inference.load(tag)` finds it from the bundle's
-`meta.yaml`. The system does not name a verb: `transcribe` is the front
-end's word for "audio in, `text` out", and a model that answers a
-conversation declares one `messages` field rather than a list of the tasks
-a prompt might ask of it. The declaration is checked when the class is
-defined. Inference is a stream - chunks in, chunks out - and the one-shot
-call is the stream of one chunk: a system implements `run_stream` if it
-works online or `run` if it needs the whole input, and gets the other.
+ESPnet3 recipes construct these native inference classes through their
+provider. The Runner passes the configured dataset columns directly to the
+backend and uses the recipe's output formatter to produce SCP records.
 
 ### 2. The command line — `espnet2/bin/cli.py`
 
@@ -76,23 +68,11 @@ works online or `run` if it needs the whole input, and gets the other.
 A command is one positional input and options. If a task needs two inputs, it
 is a flag (`espnet align audio.wav --text "..."`), not a second positional.
 
-### `espnet run`: the one command with no task in its name
-
-Every verb above is a front end for one task. `espnet run <tag>` is the
-front end for the contract itself: it loads any model `espnet3.api.inference.load`
-reads (`--system` names the system for a checkpoint published without a
-bundle), takes the inputs the model declares as `name=value` - a path for
-audio, a string for text, JSON otherwise - and prints the outputs it
-declares, one after the other, an audio output as a WAV file. `--list`
-prints the declaration. It is what a model card's usage says in Python,
-at a terminal, and so it is the line a generated card can show for any
-system, including one that has no verb here yet.
-
 ### 3. The MCP server — `espnet2/bin/mcp_server.py`
 
 - a loader, `_x()`, wrapped in `functools.lru_cache`, so the checkpoint is
   fetched once a session
-- a tool function named after the verb, whose **docstring is the API**: an
+- a tool function named after the verb, whose docstring describes the tool: an
   `Args:` line per argument and a `Returns:` that says what comes back and
   roughly what it costs. An agent reads that before it calls anything, so a
   caveat belongs there rather than in the returned text
@@ -104,87 +84,8 @@ Keep the tool signature to what the task needs. `phonemize` takes audio and a
 language, not a prompt, because a second input would make the simplest thing
 harder to call — the browser is where a second input costs nothing.
 
-### 4. The Space — `egs2/<recipe>/<task>/demo[_<variant>]/`
+### Notebooks and hosted applications
 
-Three files, and a Space is exactly that directory:
-
-- **`app.py`** — loads a model, picks a device, asks for a slice of GPU time.
-  For a task whose page is "audio in, text out", **import the page** rather
-  than writing one:
-
-  ```python
-  from espnet2.bin.demo import build_app
-  demo = build_app(s2t, device=DEVICE, model_tag=MODEL_TAG,
-                   wrap=spaces.GPU(duration=GPU_SECONDS))
-  ```
-
-  `espnet2.bin.demo` reads the menus, the window, the tasks and whether there
-  is a decoder to prompt off the checkpoint, so one page serves every
-  speech-to-text Space and `espnet demo`. Pass `title` and `description` for
-  what the page cannot read off a model: what this checkpoint is and why
-  someone would open this Space rather than the one next door. Write your own
-  page only when the task's shape is different — alignment does, with two
-  inputs and a table — and say why in the README.
-- **`README.md`** — the Hugging Face card. `python_version: "3.12"` as a
-  string, `app_file: app.py`, the model in `models:`, a
-  `short_description` under 60 characters, and a section saying how to run it
-  locally and when it may be uploaded.
-- **`requirements.txt`** — `espnet[<extra>]>=<release>` with a lower bound,
-  `espnet_model_zoo`, and what the app itself imports. The extra is the one
-  that carries the dependency: `espnet[demo]` brings gradio, `espnet[tts]`,
-  `espnet[enh]` and `espnet[spk]` bring the front ends those checkpoints need.
-
-Then register the directory in `test/espnet2/bin/test_demo_apps.py::DEMOS`,
-which is what checks the rest:
-
-| rule | why |
-|---|---|
-| the ZeroGPU shim, word for word | it patches torch on import, so it comes before torch |
-| the device rule, word for word | getting it wrong is silent: the app runs on the CPU of a machine rented for its GPU |
-| the model from `<NAME>_MODEL_TAG` | a Space is switched to another checkpoint without a commit |
-| the sample rate from the checkpoint | a model at another rate must not need an edit |
-| one `MAX_*` cap, compared against the input and named in the message | a cap nobody is told about reads as the model losing the tail |
-| `GPU_SECONDS` ≥ that cap | the slice has to cover what the page accepts |
-| a pinned lowest espnet | see *Releases* below |
-
-### 5. The notebook — `espnet/notebook`
-
-`Demos/<task>_<variant>_demo.ipynb`, a workflow of its own for the badge, and
-a row in both READMEs; `tools/check_layout.py` fails if any of those is
-missing. It pins a release, opens with a `MODEL` variable so a reader can swap
-checkpoints, and ends with **Where next** pointing at the other three front
-ends.
-
-### 6. The matrix
-
-Add the row to the table in the top-level `README.md`, and say plainly what is
-missing: ❌ is a cell nobody has done, 🚧 is one in review. The point of the
-table is the gaps.
-
-## Releases
-
-A Space installs espnet from PyPI and a notebook pins a release, so **a front
-end that uses something only `master` has cannot ship until the release that
-carries it**. Two rules:
-
-- a Space is uploaded *after* that release, never before — uploading early
-  replaces a working Space with one that builds and then fails to start
-- a notebook pins the release it needs, and its workflow sets
-  `allow_unreleased_pin: true` until that release is out, so CI says which
-  release it is waiting for instead of failing on the pin
-
-`test_demo_apps.py` knows which names arrived in which release and fails a
-Space whose `requirements.txt` asks for less.
-
-## What is checked, and where
-
-| check | file |
-|---|---|
-| the Spaces' shape, cards and pins | `test/espnet2/bin/test_demo_apps.py` |
-| the page built from a checkpoint | `test/espnet2/bin/test_demo.py` |
-| the CLI's commands and default models | `test/espnet2/bin/test_cli.py` |
-| the MCP tools | `test/espnet2/bin/test_mcp_server.py` |
-| `from_pretrained` on every inference class | `test/espnet2/bin/test_from_pretrained_routing.py` |
-| the README's table against the CLI and the MCP tools | `ci/check_front_ends.py`, with the table |
-| the links in the README | `ci/check_demo_links.py`, daily |
-| the notebooks' names, badges and tables | `tools/check_layout.py` in `espnet/notebook` |
+Notebooks and applications call the native inference backend directly.
+Their input conversion and output presentation belong to that application.
+ESPnet3 does not generate a notebook or an inference UI from declarations.

@@ -12,29 +12,11 @@ except ImportError:
 
 from espnet2.text.cleaner import TextCleaner
 from espnet2.text.sentencepiece_tokenizer import SentencepiecesTokenizer
-from espnet3.api.inference import Field
 from espnet3.components.metrics.base_metric import BaseMetric
 
 
 class TER(BaseMetric):
-    """Compute TER (token error rate) for a dataset.
-
-    TER is the error rate over the model's subword (BPE) tokens: the reference
-    and hypothesis text are tokenized with a SentencePiece model, then scored
-    like WER over the resulting token sequences. This mirrors espnet2's Stage 13
-    scoring, which computes ``ter`` at the ``bpe`` token level.
-
-    Reads ``data["ref"]``/``data["hyp"]``, the declared names; the
-    metrics config's ``inputs:`` binds them to a source (see
-    :class:`~espnet3.contract.metrics.check_metric_inputs`).
-
-    Examples:
-        >>> [f.name for f in TER.inputs]
-        ['ref', 'hyp']
-    """
-
-    inputs = (Field("ref", "text"), Field("hyp", "text"))
-    outputs = (Field("TER", "number"),)
+    """Compute token error rates from configured reference and hypothesis inputs."""
 
     def __init__(
         self,

@@ -2,7 +2,6 @@
 
 import pytest
 
-from espnet3.api.inference import Field
 from espnet3.components.metrics.base_metric import BaseMetric
 
 ROWS = [f"r{i}" * (i + 1) for i in range(10)]
@@ -10,8 +9,6 @@ SPLITS = [(5, 5), (9, 1), (10, 0), (0, 10)]
 
 
 class Counts(BaseMetric):
-    inputs = (Field("ref", "text"),)
-    outputs = (Field("mean", "number"),)
 
     def __init__(self):
         super().__init__()
@@ -27,8 +24,6 @@ class Counts(BaseMetric):
 
 
 class Scores(BaseMetric):
-    inputs = (Field("ref", "text"),)
-    outputs = (Field("mean", "number"), Field("first", "number"))
 
     def __init__(self):
         super().__init__()

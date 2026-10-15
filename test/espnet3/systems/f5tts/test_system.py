@@ -68,13 +68,12 @@ def test_stage_logs_go_under_the_stage_save_path(tmp_path):
 
 
 def test_all_stage_configs_are_stored(tmp_path):
-    """The five stage configs reach ``BaseSystem`` unchanged."""
+    """The four stage configs reach ``BaseSystem`` unchanged."""
     configs = {
         "training_config": _build_training_config(tmp_path),
         "inference_config": OmegaConf.create({"inference_dir": str(tmp_path)}),
         "metrics_config": OmegaConf.create({"metrics": []}),
         "publication_config": OmegaConf.create({"pack_model": {}}),
-        "demo_config": OmegaConf.create({"ui": {}}),
     }
     system = F5TTSSystem(**configs)
 
