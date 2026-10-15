@@ -35,6 +35,12 @@ class _SystemWithStatsRole:
     )
 
 
+class _TrainOnlySystem:
+    stages = (
+        StageSpec(name="train", config="training", log_dir="exp_dir"),
+    )
+
+
 # ---------------------------------------------------------------------------
 # resolve_search_directories
 # ---------------------------------------------------------------------------
@@ -263,3 +269,22 @@ def test_merge_corrupt_snapshot_raises_naming_stage_and_path(tmp_path):
         merge_stage_config_from_snapshots(
             _System, "train", {"training": None}, {"exp_dir": str(exp_dir)}
         )
+
+
+def test_train_only_system_no_infer_or_measure(tmp_path):
+    # System with ONLY a train stage; no infer or measure at all.
+    exp_dir = tmp_path / "exp"
+    exp_dir.mkdir()
+
+    # Provide an explicit training config for this run
+    configs = {"training": OmegaConf.create({"exp_dir": str(exp_dir), "seed": 42})}
+
+    # Resolve search directories for train
+    dirs = resolve_search_directories(_TrainOnlySystem, "train", configs, {})
+    assert dirs["train"] == Path(exp_dir)
+
+    # Merge stage config from snapshots for train
+    result = merge_stage_config_from_snapshots(
+        _TrainOnlySystem, "train", configs, {"exp_dir": str(exp_dir)}
+    )
+    assert result.seed == 42
