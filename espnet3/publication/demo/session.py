@@ -82,7 +82,7 @@ class DemoSession:
         """Read explicit UI specs without inspecting the model."""
         return [
             OmegaConf.to_container(spec, resolve=True)
-            for spec in self.demo_cfg.ui.get(which, [])
+            for spec in self.demo_cfg.ui.get(which) or []
         ]
 
     def build_input_component(self, spec: dict[str, Any]) -> Any:

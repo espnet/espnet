@@ -15,7 +15,16 @@ from espnet3.components.metrics.base_metric import BaseMetric
 
 
 class WER(BaseMetric):
-    """Compute word error rates from configured reference and hypothesis inputs."""
+    """Compute WER for hypotheses.
+
+    Reads ``data["ref"]``/``data["hyp"]``, the declared names; the metrics
+    config's ``inputs:`` binds them to a source (see
+    :func:`~espnet3.contract.metrics.check_metric_inputs`).
+
+    Examples:
+        >>> list(WER().inputs)
+        ['ref', 'hyp']
+    """
 
     inputs = {"ref": str, "hyp": str}
     outputs = ("WER",)

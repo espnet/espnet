@@ -66,3 +66,13 @@ def test_dataset_instance_can_declare_fields():
             return {"text": "hello"}
 
     assert Dynamic()[0] == {"text": "hello"}
+
+
+def test_dataset_accepts_union_types_for_optional_fields():
+    class Recipe(BaseDataset):
+        fields = {"text": str, "ref": str | None}
+
+        def __getitem__(self, index):
+            return {"text": "hi", "ref": None}
+
+    assert Recipe()[0]["text"] == "hi"

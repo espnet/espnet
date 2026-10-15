@@ -15,7 +15,16 @@ from espnet3.components.metrics.base_metric import BaseMetric
 
 
 class CER(BaseMetric):
-    """Compute character error rates from configured reference and hypothesis inputs."""
+    """Compute CER for a dataset.
+
+    Reads ``data["ref"]``/``data["hyp"]``, the declared names; the metrics
+    config's ``inputs:`` binds them to a source (see
+    :func:`~espnet3.contract.metrics.check_metric_inputs`).
+
+    Examples:
+        >>> list(CER().inputs)
+        ['ref', 'hyp']
+    """
 
     inputs = {"ref": str, "hyp": str}
     outputs = ("CER",)

@@ -5,6 +5,7 @@ import pytest
 from omegaconf import OmegaConf
 
 from espnet3.components.metrics.base_metric import BaseMetric
+from espnet3.contract.metrics import MetricContractError
 from espnet3.systems.base.metric import _resolve_test_sets, measure
 from espnet3.utils.scp_utils import get_class_path
 
@@ -429,3 +430,59 @@ def test_measure_succeeds_for_wer_with_dataset_and_scp_inputs(tmp_path):
 
     expected_key = get_class_path(WER())
     assert results[expected_key][test_name] == {"WER": 0.0}
+
+
+class _NonNumericMetric(BaseMetric):
+    inputs = {"ref": str, "hyp": str}
+    outputs = ("count",)
+
+    def update(self, *, ref, hyp):
+        pass
+
+    def compute(self):
+        return {"count": "three"}
+
+
+class _SkippedInitMetric(BaseMetric):
+    def __init__(self):
+        pass
+
+    def update(self, *, ref, hyp):
+        pass
+
+    def compute(self):
+        return {}
+
+
+def _single_test_set_config(tmp_path: Path, metric_target: str):
+    inference_dir = tmp_path / "infer"
+    task_dir = inference_dir / "test-clean"
+    task_dir.mkdir(parents=True)
+    _write_scp(task_dir / "ref.scp", ["utt1 r1"])
+    _write_scp(task_dir / "hyp.scp", ["utt1 h1"])
+    return OmegaConf.create(
+        {
+            "inference_dir": str(inference_dir),
+            "dataset": {"test": [{"name": "test-clean"}]},
+            "metrics": [
+                {
+                    "metric": {"_target_": metric_target},
+                    "inputs": {"ref": "ref", "hyp": "hyp"},
+                }
+            ],
+        }
+    )
+
+
+def test_measure_rejects_non_numeric_metric_output(tmp_path):
+    cfg = _single_test_set_config(tmp_path, f"{__name__}._NonNumericMetric")
+
+    with pytest.raises(MetricContractError, match="must be a real number"):
+        measure(cfg, _INFERENCE_CFG)
+
+
+def test_measure_rejects_a_metric_that_skipped_the_init_check(tmp_path):
+    cfg = _single_test_set_config(tmp_path, f"{__name__}._SkippedInitMetric")
+
+    with pytest.raises(ValueError, match="inputs"):
+        measure(cfg, _INFERENCE_CFG)
