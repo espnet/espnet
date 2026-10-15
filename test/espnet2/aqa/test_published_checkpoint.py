@@ -140,17 +140,3 @@ def test_training_failures(package, tmp_path, monkeypatch, failure, message):
         monkeypatch.setattr(ESPnetUniversaModel, "forward", forward)
     with pytest.raises(ValueError, match=message):
         main(options)
-
-
-@pytest.mark.parametrize("recipe", ["TEMPLATE", "mini_an4", "urgent24"])
-def test_legacy_recipe_aliases(recipe):
-    """Legacy directories and scripts resolve to the canonical AQA driver."""
-    from pathlib import Path
-
-    root = Path(__file__).resolve().parents[3]
-    alias = root / "egs2" / recipe / "uni_versa1"
-    canonical = alias.with_name("aqa1")
-    assert alias.is_symlink() and alias.resolve(strict=True) == canonical
-    driver = alias / "uni_versa.sh"
-    assert driver.is_symlink()
-    assert driver.resolve(strict=True) == (canonical / "aqa.sh").resolve(strict=True)

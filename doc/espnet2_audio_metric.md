@@ -40,12 +40,70 @@ positions. New configs use `embedding_size`; actual RoPE is not implemented.
 ARECHO preserves the trained SOS=2 / EOS=3 convention even though the historical
 textual tokenizer labels name those IDs in the opposite order.
 
-Old `UniversaTask`, `espnet2.bin.universa_train`, and
-`espnet2.bin.universa_inference` imports are aliases. Old recipe directory and
-`uni_versa.sh` names are symlinks to `aqa1` and `aqa.sh`, respectively, in
-`TEMPLATE`, `mini_an4`, and `urgent24`. New commands use `espnet2.bin.aqa_train`
-and `espnet2.bin.aqa_inference`. This preserves model and entry-point loading;
-it does not promise every experimental application in `arecho_app` is supported.
+New commands use `espnet2.bin.aqa_train`, `espnet2.bin.aqa_inference`,
+`espnet2.tasks.aqa.AqaTask`, and the `egs2/*/aqa1/aqa.sh` recipe driver.
+The unused legacy training/task/model-package, packing, and evaluator aliases
+have been removed, together with their compatibility-only tests. This PR adds
+no legacy recipe or shell-script links.
+
+### Remaining inference consumer migration
+
+Only `espnet2.bin.universa_inference` remains temporarily. Its removal is tracked
+in [PR #6759](https://github.com/espnet/espnet/pull/6759), following
+[the migration agreement in #6827](https://github.com/espnet/espnet/pull/6827#issuecomment-6047947493).
+The specific outstanding dependencies are:
+
+| Consumer | Migration and removal condition |
+| --- | --- |
+| VERSA Uni-VERSA and ARECHO loaders | [VERSA PR #106](https://github.com/wavlab-speech/versa/pull/106) switches both imports and the ESPnet installation pin to AQA, and filters inference diagnostics out of scores. Merge this consumer update before removing the shim. |
+| Six ESPnet Uni-VERSA model cards | Replace their link to the [historical Colab](https://colab.research.google.com/drive/1y2mp5TqaiF7-a-_7iNUK2dXvSv4Tmejj) with canonical AQA examples. The notebook imports `UniversaInference` and installs the historical `espnet_inference` fork. Prepared card/notebook updates still require authenticated publication. |
+| Four ESPnet ARECHO model cards | Replace `egs2/universa_unite/uni_versa1` and the historical checkout instructions with the AQA API and `aqa1` / `aqa.sh` recipe instructions. Prepared updates still require authenticated publication. |
+
+The six Uni-VERSA cards are `espnet/universa-base_urgent24_multi-metric`,
+`espnet/universa-wavlm_base_urgent24_multi-metric`, and the latter's `_noref`,
+`_audioref`, `_textref`, and `_fullref` releases. The four ARECHO cards are
+`espnet/arecho_base_v0`, `espnet/arecho_scale_v0`,
+`espnet/arecho_base_v0.1-large-decoder`, and
+`espnet/arecho_scale_v0.1-large-decoder`.
+
+Remove the inference shim after those consumers have migrated and their AQA
+strict loading, save/reload, fine-tuning, and inference checks pass.
+The current consumer smoke tests use tiny checkpoints; they do not establish
+that every published large-weight variant has completed that sequence. The old notebook installs a separate historical
+fork, so it does not consume the removed task/model-package wrappers on current
+ESPnet. Historical artifact filenames such as `universa_train_.../13epoch.pth`
+are actual published paths, not public recipe entry points; do not rename them.
+
+### Canonical inference example
+
+Install current ESPnet with the AQA task on Python 3.12 or 3.13 and install
+`espnet-s3prl` for the released WavLM frontend. For the complete no-reference
+release:
+
+```python
+import librosa
+import soundfile as sf
+
+from espnet2.bin.aqa_inference import AqaInference
+
+audio, sample_rate = sf.read("example.wav", dtype="float32")
+if audio.ndim == 2:
+    audio = audio.mean(axis=1)
+audio = librosa.resample(audio, orig_sr=sample_rate, target_sr=16000)
+predict = AqaInference.from_pretrained(
+    "espnet/universa-wavlm_base_urgent24_multi-metric_noref"
+)
+scores = predict(audio)
+print({name: scores[name] for name in predict.universa.metric2id})
+```
+
+For the complete `_audioref`, `_textref`, and `_fullref` releases, select the
+corresponding model ID and pass `ref_audio` (a mono waveform at 16 kHz),
+`ref_text` (the transcript), or both. ARECHO uses the same class and its own
+model ID, with one utterance per batch. `encoded_feat`, `token_seq`,
+`use_tokenizer_metrics`, and `sequential_metrics` are inference diagnostics,
+not predicted metric scores. Package-relative artifact paths must be resolved
+before loading a manually downloaded config.
 
 Use the original architecture config with resolved artifact paths and
 `--init_param /path/to/model.pth` to initialize fine-tuning. Preserve `freeze_param`
