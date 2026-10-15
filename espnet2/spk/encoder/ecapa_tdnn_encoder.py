@@ -31,13 +31,17 @@ class EcapaTdnnEncoder(AbsEncoder):
         output_size: output embedding dimension.
         num_blocks: number of SE-Res2 blocks, with dilations 2, 3, ...,
             num_blocks + 1. The default is the paper's three blocks (2, 3, 4).
-            Four blocks (2, 3, 4, 5) match the IDLab VoxSRC 2020 system; for
-            five or more, choosing the dilations with ``dilations`` is
-            recommended.
+            Four blocks (2, 3, 4, 5) follow the IDLab VoxSRC-20 system, which
+            adds a fourth SE-Res2Block with dilation 5 (J. Thienpondt et al.,
+            ``The IDLAB VoxSRC-20 Submission: Large Margin Fine-Tuning and
+            Quality-Aware Score Calibration in DNN Based Speaker
+            Verification,'' arXiv:2010.11255, Sec. 2). For five or more,
+            choosing the dilations with ``dilations`` is recommended.
         dilations: dilation of each SE-Res2 block, such as ``[2, 3, 4, 2, 3, 4]``;
             the number of blocks is its length. Dilations do not change the
-            parameter shapes, so use a model with the dilations it was
-            trained with.
+            parameter shapes, so build the model from the configuration it
+            was trained with (the ``encoder_conf`` saved in its
+            ``config.yaml``).
 
     Every block takes the first convolution's output plus the outputs of all
     earlier blocks, and the 1x1 convolution ``layer4`` aggregates all block
@@ -56,7 +60,6 @@ class EcapaTdnnEncoder(AbsEncoder):
         output_size: int = 1536,
         num_blocks: Optional[int] = None,
         dilations: Optional[Sequence[int]] = None,
-        **kwargs,
     ):
         super().__init__()
         if block == "EcapaBlock":
@@ -113,8 +116,11 @@ class EcapaTdnnEncoder(AbsEncoder):
         x2 = self.layer2(x + x1)
         x3 = self.layer3(x + x1 + x2)
         outputs = [x1, x2, x3]
-        for layer in self.extra_layers:
-            outputs.append(layer(x + sum(outputs)))
+        if self.extra_layers:
+            total = x + x1 + x2 + x3
+            for layer in self.extra_layers:
+                outputs.append(layer(total))
+                total = total + outputs[-1]
 
         x = self.layer4(torch.cat(outputs, dim=1))
         x = self.relu(x)
