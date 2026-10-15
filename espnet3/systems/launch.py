@@ -39,7 +39,7 @@ def build_parser(system_cls: type) -> argparse.ArgumentParser:
         ['train']
     """
     from espnet3.utils.stage_cli import add_stage_flags
-    
+
     names = list_stage_names(system_cls)
     parser = argparse.ArgumentParser()
     parser.add_argument(
@@ -74,10 +74,10 @@ def build_parser(system_cls: type) -> argparse.ArgumentParser:
         action="store_true",
         help="Write requirements.txt alongside each stage log.",
     )
-    
+
     # Add per-stage directory flags from StageSpec.log_dir keys
     parser = add_stage_flags(parser, system_cls.stages)
-    
+
     return parser
 
 
@@ -152,7 +152,7 @@ def launch(
     )
 
     package = conf_package or default_conf_package(system_cls)
-    
+
     # Load role configs (not yet resolved)
     configs = {
         role: (
@@ -167,7 +167,7 @@ def launch(
         )
         for role in system_roles
     }
-    
+
     # Build per-stage directory CLI overrides from the ACTUAL canonical
     # log_dir keys the stages declare (generate_stage_flag_mapping), not
     # from config role names - a role name (e.g. "training") does not
@@ -183,7 +183,7 @@ def launch(
         value = getattr(args, canonical_key, None)
         if value is not None:
             cli_dir_overrides[canonical_key] = Path(value)
-    
+
     # Resolve each requested stage's config via saved-config search
     stage_configs = {}
     for stage in stages_to_run:
@@ -198,7 +198,7 @@ def launch(
     system = system_cls(
         configs=configs, exp_dir=args.exp_dir, stages_to_run=stages_to_run
     )
-    
+
     # Override system's stage_configs with the resolved configs from saved-config search
     system.stage_configs = stage_configs
 

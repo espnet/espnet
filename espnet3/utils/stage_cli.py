@@ -30,13 +30,13 @@ def add_stage_flags(
     prefix: str = "",
 ) -> argparse.ArgumentParser:
     """Add CLI flags for all stage log_dir targets to an argparse parser.
-    
+
     Transforms the output of `generate_stage_flag_mapping` into argparse
     arguments. When multiple flag names (e.g., canonical + aliases) map to
     the same canonical location, they all write their values to the SINGLE
     argparse destination corresponding to the canonical key, ensuring a
     single canonical value is captured on parse.
-    
+
     Args:
         parser: The argparse parser to extend. If None, a new one is created.
         system_stages: The system's declared stages tuple.
@@ -44,10 +44,10 @@ def add_stage_flags(
             --stats-exp-dir-style flags). Useful when a single parser holds
             more than one "direction" of stages within the same command.
             The prefix is NOT applied to the argparse destination.
-            
+
     Returns:
         The parser with new flags added.
-        
+
     Examples:
         >>> import argparse
         >>> from espnet3.contract.stages import StageSpec
@@ -60,7 +60,7 @@ def add_stage_flags(
     """
     if parser is None:
         parser = argparse.ArgumentParser()
-    
+
     flag_mapping = generate_stage_flag_mapping(system_stages)
 
     if not flag_mapping:
@@ -77,9 +77,9 @@ def add_stage_flags(
 
         # Use the canonical config key as the argparse destination (sanitized to identifier)
         dest_key = _sanitize_dest_key(canonical_config_key)
-        
+
         help_text = f"Output directory for stage. Config key: `{canonical_config_key}`."
-        
+
         parser.add_argument(
             f"--{flag_name_dashed}",
             dest=dest_key,
@@ -88,7 +88,7 @@ def add_stage_flags(
             help=help_text,
             metavar="DIR",
         )
-    
+
     return parser
 
 
@@ -98,14 +98,14 @@ def build_stage_flag_parser(
     prefix: str = "",
 ) -> argparse.ArgumentParser:
     """Convenience: build a new parser with all stage log_dir flags.
-    
+
     Args:
         system_stages: The system's declared stages.
         prefix: Optional prefix for flags as in :func:`add_stage_flags`.
-        
+
     Returns:
         A new ArgumentParser ready to handle stage log_dir CLI arguments.
-        
+
     Example:
         >>> from espnet3.contract.stages import StageSpec
         >>> spec = StageSpec(name="train", config="training", log_dir="exp_dir")

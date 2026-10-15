@@ -10,7 +10,6 @@ from espnet3.utils.stage_cli import (
     build_stage_flag_parser,
 )
 
-
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
@@ -19,8 +18,8 @@ from espnet3.utils.stage_cli import (
 def _extract_stage_dests(parser: argparse.ArgumentParser) -> tuple[str, ...]:
     """Return the set of all registered destination keys for stage flags."""
     return tuple(
-        action.dest 
-        for action in parser._actions 
+        action.dest
+        for action in parser._actions
         if hasattr(action, "dest") and action.dest not in ("help",)
     )
 
@@ -35,26 +34,24 @@ def test_add_stage_flags_creates_exp_dir_flag():
     spec = StageSpec(name="train", config="training", log_dir="exp_dir")
     parser = argparse.ArgumentParser()
     parser = add_stage_flags(parser, (spec,))
-    
+
     dests = _extract_stage_dests(parser)
     assert "exp_dir" in dests
-    
+
     args = parser.parse_args(["--exp-dir", "/tmp/exp"])
     assert args.exp_dir == "/tmp/exp"
 
 
 def test_add_stage_flags_creates_dir_with_dots():
     """Dotted key -> underscore flag/argparse dest that handles dotted OmegaConf keys."""
-    spec = StageSpec(
-        name="tokenize", config="tokenizer", log_dir="tokenizer.save_path"
-    )
+    spec = StageSpec(name="tokenize", config="tokenizer", log_dir="tokenizer.save_path")
     parser = argparse.ArgumentParser()
     parser = add_stage_flags(parser, (spec,))
-    
+
     dests = _extract_stage_dests(parser)
     # Destination is safe identifier version of config key
     assert "tokenizer_save_path" in dests
-    
+
     args = parser.parse_args(["--tokenizer-save-path", "/tmp/save"])
     assert args.tokenizer_save_path == "/tmp/save"
 
@@ -69,7 +66,7 @@ def test_add_stage_flags_with_alias_collects_all_names_same_dest():
     )
     parser = argparse.ArgumentParser()
     parser = add_stage_flags(parser, (spec,))
-    
+
     # Both CLI flags exist
     args1 = parser.parse_args(["--exp-dir", "/a"])
     args2 = parser.parse_args(["--training-dir", "/a"])
@@ -86,7 +83,7 @@ def test_add_stage_flags_from_two_stages_with_same_canonical():
     spec2 = StageSpec(name="infer", config="inference", log_dir="output")
     parser = argparse.ArgumentParser()
     parser = add_stage_flags(parser, (spec1, spec2))
-    
+
     args = parser.parse_args(["--output", "/shared"])
     assert args.output == "/shared"
 
@@ -117,7 +114,7 @@ def test_add_stage_flags_handles_no_log_dir():
     spec = StageSpec(name="foo", config="bar", log_dir=None)
     parser = argparse.ArgumentParser()
     parser = add_stage_flags(parser, (spec,))
-    
+
     dests = _extract_stage_dests(parser)
     assert len(dests) == 0
 
@@ -132,10 +129,10 @@ def test_add_stage_flags_with_prefix_prepends():
     spec = StageSpec(name="train", config="training", log_dir="exp_dir")
     parser = argparse.ArgumentParser()
     parser = add_stage_flags(parser, (spec,), prefix="stats")
-    
+
     dests = _extract_stage_dests(parser)
     assert "exp_dir" in dests
-    
+
     args = parser.parse_args(["--stats-exp-dir", "/a"])
     assert args.exp_dir == "/a"
 
@@ -149,9 +146,9 @@ def test_build_stage_flag_parser_returns_new_parser():
     """Convenience function builds a new parser with stage flags."""
     spec = StageSpec(name="train", config="training", log_dir="exp_dir")
     parser = build_stage_flag_parser((spec,))
-    
+
     assert isinstance(parser, argparse.ArgumentParser)
-    
+
     args = parser.parse_args(["--exp-dir", "/tmp/exp"])
     assert args.exp_dir == "/tmp/exp"
 
@@ -163,9 +160,7 @@ def test_build_stage_flag_parser_returns_new_parser():
 
 def test_add_stage_flags_surface_flag_collision():
     """Flag name collision raised when building parser."""
-    spec1 = StageSpec(
-        name="train", config="training", log_dir="stats_dir"
-    )
+    spec1 = StageSpec(name="train", config="training", log_dir="stats_dir")
     spec2 = StageSpec(
         name="decode",
         config="inference",
@@ -173,7 +168,7 @@ def test_add_stage_flags_surface_flag_collision():
         dir_aliases=("stats_dir",),  # Makes --stats-dir collide
     )
     parser = argparse.ArgumentParser()
-    
+
     with pytest.raises(StageContractError, match="CLI flag name collision"):
         _ = add_stage_flags(parser, (spec1, spec2))
 
@@ -188,6 +183,8 @@ def test_add_stage_flags_creates_dashed_flags():
     spec = StageSpec(name="train", config="training", log_dir="output_path")
     parser = argparse.ArgumentParser()
     parser = add_stage_flags(parser, (spec,))
-    
-    option_strings = [action.option_strings[0] for action in parser._actions if action.option_strings]
+
+    option_strings = [
+        action.option_strings[0] for action in parser._actions if action.option_strings
+    ]
     assert "--output-path" in option_strings

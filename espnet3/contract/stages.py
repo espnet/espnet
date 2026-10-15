@@ -327,7 +327,6 @@ def check_requested_stages(
         )
 
 
-
 def generate_stage_flag_mapping(
     stage_specs,
 ) -> dict[str, str]:
@@ -380,7 +379,6 @@ def generate_stage_flag_mapping(
     return flag_name_to_canonical
 
 
-
 __all__ = [
     "StageContractError",
     "StageSpec",
@@ -390,6 +388,5 @@ __all__ = [
     "list_roles",
     "resolve_stage_log_dir",
     "list_stage_names",
-
     "generate_stage_flag_mapping",
 ]

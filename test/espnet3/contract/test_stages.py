@@ -404,6 +404,7 @@ def test_resolve_config_roles_returns_a_tuple_as_is():
         "publication",
     )
 
+
 # ---------------------------------------------------------------------------
 # generate_stage_flag_mapping
 # ---------------------------------------------------------------------------
@@ -425,9 +426,7 @@ def test_generate_stage_flag_mapping_exp_dir():
 
 def test_generate_stage_flag_mapping_tokenizer_save_path():
     """Dotted key: log_dir="tokenizer.save_path" -> flag `--tokenizer_save_path`."""
-    spec = StageSpec(
-        name="tokenize", config="tokenizer", log_dir="tokenizer.save_path"
-    )
+    spec = StageSpec(name="tokenize", config="tokenizer", log_dir="tokenizer.save_path")
     result = generate_stage_flag_mapping([spec])
     assert result == {"tokenizer_save_path": "tokenizer.save_path"}
 

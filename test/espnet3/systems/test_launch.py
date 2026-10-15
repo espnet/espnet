@@ -334,9 +334,7 @@ class _MismatchedRoleSystem(BaseSystem):
     ("exp_dir") - the realistic case (see design/config_tree_fix.md's own
     StageSpec examples). A naive `f"{role}_dir"` guess would miss this."""
 
-    stages = (
-        StageSpec(name="train", config="training", log_dir="exp_dir"),
-    )
+    stages = (StageSpec(name="train", config="training", log_dir="exp_dir"),)
     instances: list = []
 
     def __init__(self, *, configs, exp_dir=None, stages_to_run=None):
@@ -386,9 +384,7 @@ def test_launch_forwards_exp_dir_cli_value_despite_role_log_dir_mismatch(
     assert captured["cli_dir_overrides"].get("exp_dir") == tmp_path / "exp"
 
 
-def test_launch_resolved_stage_configs_reach_the_system(
-    tmp_path, stub_config_loading
-):
+def test_launch_resolved_stage_configs_reach_the_system(tmp_path, stub_config_loading):
     """The merged config launch() computes per stage must actually reach
     the running system, not be computed and discarded."""
     _RecordingSystem.instances.clear()
