@@ -142,6 +142,8 @@ SID:
           - "espnet2/bin/spk_*"
           - "test/espnet2/spk/**"
           - "egs2/*/spk1/**"
+          - "espnet3/systems/esp2_spk/**"
+          - "egs3/*/esp2_spk/**"
 
 Diarization:
   - changed-files:
