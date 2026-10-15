@@ -106,7 +106,7 @@ espnet synthesize "Hello from ESPnet" -o out.wav
 espnet enhance noisy.wav -o clean.wav
 ```
 
-`phonemize` and `align` are there too, and `espnet models` names the default model of each. Every command but that one takes `--model <tag>` and `--device cuda`. `espnet run <tag> --system s2t speech=audio.wav` runs any model by what it declares, with no task in the command's name.
+`phonemize` and `align` are there too, and `espnet models` names the default model of each. Every command but that one takes `--model <tag>` and `--device cuda`.
 
 **From Python**
 
@@ -227,7 +227,7 @@ the Space `README.md` and `requirements.txt` are all generated from
 ```sh
 cd egs3/librispeech_100/esp2_asr
 train=conf/tuning/training_e_branchformer.yaml   # the config the model was trained with
-python run.py --stages pack_model  --training_config $train --publication_config conf/publication.yaml  # -> exp/.../model_pack
+python run.py --stages pack_model  --training_config $train --inference_config conf/inference.yaml --publication_config conf/publication.yaml  # -> exp/.../model_pack
 python run.py --stages pack_demo   --training_config $train --demo_config conf/demo.yaml                # -> demo/
 python run.py --stages upload_demo --training_config $train --demo_config conf/demo.yaml                # needs `hf auth login`
 ```

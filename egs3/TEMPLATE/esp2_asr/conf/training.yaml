@@ -79,9 +79,9 @@ create_dataset:
 #
 # The recipe `Dataset` class must inherit
 # `espnet3.components.data.base_dataset.BaseDataset` and declare `fields`:
-# a tuple of `Field(name, kind)` naming each key `__getitem__` returns and
-# its kind (`audio`, `text`, ...). The first item of each instance is
-# checked against this declaration.
+# a mapping from each key `__getitem__` returns to accepted Python types,
+# e.g. `fields = {"speech": np.ndarray, "text": str}`. The first item of each
+# instance is checked against this declaration.
 #
 # Example:
 # dataset:
