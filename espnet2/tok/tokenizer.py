@@ -14,12 +14,12 @@ class SpeechTokenizer(torch.nn.Module):
     """Convert speech into differentiable assignments and discrete token IDs.
 
     This class combines a speech frontend and quantizer for joint training
-    with downstream objectives. Its training output preserves gradients
+    with downstream losses. Its training output preserves gradients
     through hard token assignments, while inference exposes integer token IDs.
 
     ``AbsGANCodec`` encodes waveforms into codes and decodes codes back into
     waveforms. This tokenizer only maps speech to units for downstream
-    objectives, so it does not implement the codec's waveform decoder.
+    losses, so it does not implement the codec's waveform decoder.
 
     The similarly named classes serve different purposes:
     ``speechlm.tokenizer.AbsTokenizer`` is intended for no-grad SpeechLM token

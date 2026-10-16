@@ -36,13 +36,13 @@ def make_tokenizer_output(assignment):
 def test_forward_embeds_assignments_and_preserves_gradient():
     asr_model = DummyASRModel()
     embedding = TokenEmbedding(4, 3, use_positional_encoding=False)
-    objective = ASRLoss(asr_model, embedding)
+    loss_module = ASRLoss(asr_model, embedding)
     assignment = torch.nn.functional.one_hot(
         torch.tensor([[0, 2], [1, 3]]), num_classes=4
     ).float()
     assignment.requires_grad_()
 
-    loss, stats, weight = objective(
+    loss, stats, weight = loss_module(
         make_tokenizer_output(assignment),
         text=torch.tensor([[1], [2]]),
         text_lengths=torch.tensor([1, 1]),
@@ -61,13 +61,13 @@ def test_forward_embeds_assignments_and_preserves_gradient():
 def test_encode_uses_the_same_embedding():
     asr_model = DummyASRModel()
     embedding = TokenEmbedding(4, 3, use_positional_encoding=False)
-    objective = ASRLoss(asr_model, embedding)
+    loss_module = ASRLoss(asr_model, embedding)
     assignment = torch.nn.functional.one_hot(
         torch.tensor([[0, 2]]), num_classes=4
     ).float()
     tokenizer_output = make_tokenizer_output(assignment)
 
-    encoded, lengths = objective.encode(tokenizer_output)
+    encoded, lengths = loss_module.encode(tokenizer_output)
 
     assert encoded.shape == (1, 2, 1)
     torch.testing.assert_close(lengths, tokenizer_output.lengths)

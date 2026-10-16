@@ -24,7 +24,7 @@ from espnet2.torch_utils.device_funcs import force_gatherable
 class HiFiGANReconstructionLoss(torch.nn.Module):
     """Reconstruct speech from differentiable tokens with HiFi-GAN.
 
-    The objective will own its token embedding, speaker-conditioned generator,
+    The loss owns its token embedding, speaker-conditioned generator,
     discriminators, reconstruction losses, and reusable generator-output cache.
 
     Token assignments are embedded differentiably.  A pretrained speaker
@@ -133,7 +133,7 @@ class HiFiGANReconstructionLoss(torch.nn.Module):
 
     @property
     def is_adversarial(self) -> bool:
-        """Return that this objective requires a discriminator optimizer."""
+        """Return that this loss requires a discriminator optimizer."""
         return True
 
     @property
@@ -224,7 +224,7 @@ class HiFiGANReconstructionLoss(torch.nn.Module):
         spembs: torch.Tensor,
         **batch: torch.Tensor,
     ) -> Tuple[torch.Tensor, Dict[str, torch.Tensor], torch.Tensor]:
-        """Compute the generator-side vocoder objective."""
+        """Compute the generator-side vocoder loss."""
         speech_hat, speech_real = self._generate_segments(
             tokenizer_output, speech, spembs
         )

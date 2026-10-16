@@ -12,18 +12,18 @@ from espnet2.tok.token_embedding import TokenEmbedding
 class ASRLoss(torch.nn.Module):
     """Apply an ESPnet ASR model to embedded differentiable speech tokens.
 
-    This objective will reuse the joint CTC/attention ASR components while
+    This loss reuses the joint CTC/attention ASR components while
     leaving SSL feature extraction and tokenization under the shared tokenizer.
 
     The wrapped ASR model must be built with ``frontend=None`` and with its
-    encoder input size equal to ``embedding.output_size()``.  The objective
+    encoder input size equal to ``embedding.output_size()``.  The loss
     embeds hard straight-through token assignments before calling the standard
     :class:`ESPnetASRModel`; no modification to the generic ASR model is needed.
 
     Args:
         asr_model: Standard ESPnet ASR model containing the encoder, CTC, and
             optional attention or transducer decoder.
-        embedding: Objective-specific token embedding.
+        embedding: Loss-specific token embedding.
     """
 
     def __init__(
@@ -57,8 +57,8 @@ class ASRLoss(torch.nn.Module):
                 integer token IDs.
             text: Reference token IDs of shape ``(B, L)``.
             text_lengths: Valid reference lengths of shape ``(B,)``.
-            speech: Original waveform, unused by the ASR objective.
-            speech_lengths: Original waveform lengths, unused by the ASR objective.
+            speech: Original waveform, unused by the ASR loss.
+            speech_lengths: Original waveform lengths, unused by the ASR loss.
             kwargs: Optional auxiliary inputs consumed by ESPnetASRModel, such
                 as intermediate-CTC targets.
 

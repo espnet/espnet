@@ -47,7 +47,7 @@ TINY_DISCRIMINATOR_PARAMS = {
 }
 
 
-def make_objective(cache_generator_outputs=True, **kwargs):
+def make_loss(cache_generator_outputs=True, **kwargs):
     loss_params = {
         "use_feat_match_loss": False,
         "use_mel_loss": False,
@@ -79,52 +79,52 @@ def make_tokenizer_output():
 
 
 def test_synthesize():
-    objective = make_objective()
+    loss_module = make_loss()
     tokenizer_output = make_tokenizer_output()
     spembs = torch.ones(1, 2)
 
-    condition = objective._prepare_condition(tokenizer_output, spembs)
+    condition = loss_module._prepare_condition(tokenizer_output, spembs)
     token_features = torch.matmul(
-        tokenizer_output.assignment.detach(), objective.embedding.embed.weight.detach()
+        tokenizer_output.assignment.detach(), loss_module.embedding.embed.weight.detach()
     )
     expected_condition = torch.cat(
         [token_features, spembs.unsqueeze(1).expand(-1, 5, -1)], dim=-1
     ).transpose(1, 2)
     torch.testing.assert_close(condition.detach(), expected_condition)
 
-    waveform, waveform_lengths = objective.synthesize(tokenizer_output, spembs=spembs)
+    waveform, waveform_lengths = loss_module.synthesize(tokenizer_output, spembs=spembs)
 
     assert waveform.shape == (1, 1, 10)
     torch.testing.assert_close(waveform_lengths, torch.tensor([10]))
 
 
 def test_generator_and_discriminator_losses_with_cache():
-    objective = make_objective()
+    loss_module = make_loss()
     tokenizer_output = make_tokenizer_output()
     speech = torch.randn(1, 10)
     spembs = torch.randn(1, 2)
 
-    generator_loss, _, _ = objective(tokenizer_output, speech, spembs)
+    generator_loss, _, _ = loss_module(tokenizer_output, speech, spembs)
     generator_loss.backward()
     assert tokenizer_output.assignment.grad is not None
     assert torch.count_nonzero(tokenizer_output.assignment.grad) > 0
-    assert objective._cache is not None
+    assert loss_module._cache is not None
 
-    for parameter in objective.parameters():
+    for parameter in loss_module.parameters():
         parameter.grad = None
-    discriminator_loss, _, _ = objective.forward_discriminator(
+    discriminator_loss, _, _ = loss_module.forward_discriminator(
         tokenizer_output, speech, spembs
     )
     discriminator_loss.backward()
 
-    assert objective._cache is None
-    assert any(p.grad is not None for p in objective.discriminator.parameters())
-    assert all(p.grad is None for p in objective.generator.parameters())
-    assert all(p.grad is None for p in objective.embedding.parameters())
+    assert loss_module._cache is None
+    assert any(p.grad is not None for p in loss_module.discriminator.parameters())
+    assert all(p.grad is None for p in loss_module.generator.parameters())
+    assert all(p.grad is None for p in loss_module.embedding.parameters())
 
 
 def test_generator_loss_with_auxiliary_losses():
-    objective = make_objective(
+    loss_module = make_loss(
         use_feat_match_loss=True,
         use_mel_loss=True,
         mel_loss_params={
@@ -139,15 +139,15 @@ def test_generator_loss_with_auxiliary_losses():
     speech = torch.randn(1, 10)
     spembs = torch.randn(1, 2)
 
-    loss, stats, _ = objective(tokenizer_output, speech, spembs)
-    speech_hat, speech_real, _ = objective._cache
-    fake_outputs = objective.discriminator(speech_hat)
-    real_outputs = objective.discriminator(speech_real)
-    expected_adv_loss = objective.generator_adv_loss(fake_outputs)
-    expected_feat_match_loss = 2.0 * objective.feat_match_loss(
+    loss, stats, _ = loss_module(tokenizer_output, speech, spembs)
+    speech_hat, speech_real, _ = loss_module._cache
+    fake_outputs = loss_module.discriminator(speech_hat)
+    real_outputs = loss_module.discriminator(speech_real)
+    expected_adv_loss = loss_module.generator_adv_loss(fake_outputs)
+    expected_feat_match_loss = 2.0 * loss_module.feat_match_loss(
         fake_outputs, real_outputs
     )
-    expected_mel_loss = 45.0 * objective.mel_loss(speech_hat, speech_real)
+    expected_mel_loss = 45.0 * loss_module.mel_loss(speech_hat, speech_real)
 
     torch.testing.assert_close(stats["adv_loss"].squeeze(), expected_adv_loss)
     torch.testing.assert_close(
@@ -161,26 +161,26 @@ def test_generator_loss_with_auxiliary_losses():
 
 
 def test_generator_cache_rejects_second_generator_forward():
-    objective = make_objective()
+    loss_module = make_loss()
     tokenizer_output = make_tokenizer_output()
     speech = torch.randn(1, 10)
     spembs = torch.randn(1, 2)
 
-    objective(tokenizer_output, speech, spembs)
+    loss_module(tokenizer_output, speech, spembs)
 
     with pytest.raises(RuntimeError, match="already cached"):
-        objective(tokenizer_output, speech, spembs)
+        loss_module(tokenizer_output, speech, spembs)
 
 
 def test_generator_cache_rejects_different_discriminator_batch():
-    objective = make_objective()
+    loss_module = make_loss()
     tokenizer_output = make_tokenizer_output()
     speech = torch.randn(1, 10)
     different_speech = torch.randn(1, 10)
     spembs = torch.randn(1, 2)
 
-    objective(tokenizer_output, speech, spembs)
+    loss_module(tokenizer_output, speech, spembs)
 
     with pytest.raises(RuntimeError, match="different speech tensor"):
-        objective.forward_discriminator(tokenizer_output, different_speech, spembs)
-    assert objective._cache is None
+        loss_module.forward_discriminator(tokenizer_output, different_speech, spembs)
+    assert loss_module._cache is None
