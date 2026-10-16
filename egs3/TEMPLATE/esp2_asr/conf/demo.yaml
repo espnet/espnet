@@ -15,13 +15,14 @@ recipe_dir: .
 ##########################################################
 # `model.dir_or_tag` selects the packed model used by the demo.
 # - local packed directory relative to the demo dir, e.g. `../model_pack`
-# - remote model tag understood by `espnet_model_zoo`
+# - Hugging Face repo containing a recipe archive with conf/inference.yaml
 #
-# The model takes no call-time arguments: what it needs (beam size and the
-# like) is in the packed `conf/inference.yaml`.
+# Include --inference_config when running pack_model: the default app reads
+# conf/inference.yaml and builds its native ASR backend directly.
 model:
   dir_or_tag: exp/${exp_tag}/model_pack
-  trust_user_code: false
+  device: auto
+  sample_rate: 16000  # Must match the rate used to train the ASR model.
 
 ##########################################################
 #                     UI DEFINITION                      #
@@ -35,14 +36,13 @@ model:
 # `ui.inputs` and `ui.outputs` define the default Gradio wiring used by
 # `src/app.py`.
 # - `key`: model-facing field name
-# - `type`: registered built-in UI asset type such as `audio` or `text`
+# - `type`: UI component type (`audio` for speech, `text` for transcription)
 # - `label`: UI label shown in Gradio
 #
-# The default app binds input/output components positionally. Keep the order of
-# these entries aligned with the values expected by the app and returned by the
-# inference function.
+# The ASR app uses the `speech` input and `text` output labels below.
+# Supply a recipe-local app_script for a different input/output layout.
 ui:
-  app_script: src/app.py
+  app_script: ${config_path:../src/app.py}
   title: ${set_corpus_and_system:} demo
   description: README.md
   inputs:
@@ -75,7 +75,7 @@ pack:
   # Standard pip specifiers and git+https:// entries are both supported.
   # Example git install: git+https://github.com/espnet/espnet@main
   requirements:
-    - git+https://github.com/espnet/espnet.git
+    - espnet[asr,demo] @ git+https://github.com/espnet/espnet.git
   readme: ${config_path:../src/hf_demo_readme.md}
   readme_context:
     title: ${ui.title}

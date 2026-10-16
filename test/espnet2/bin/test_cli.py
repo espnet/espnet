@@ -27,30 +27,41 @@ def _fake_module(monkeypatch, name, attr, obj):
 
 
 class _FakeModel:
-    """Stands in for an esp2_s2t Inference: records what it was asked."""
+    """Stand in for a native speech-to-text backend and record its calls."""
 
     def __init__(self, result, error=None):
         self.result = result
-        self.error = error  # what the Inference raises before decoding, if anything
+        self.error = error  # what the backend raises before decoding, if anything
         self.tag = self.system = self.device = None
+        self.s2t_model = types.SimpleNamespace(token_list=None)
         self.calls = []
 
-    def __call__(self, audio, **prompt):
+    def decode_long(self, audio, *, lang_sym, task_sym):
+        prompt = {"task": task_sym[1:-1]}
+        if lang_sym != "<nolang>":
+            prompt["language"] = lang_sym[1:-1]
         if self.error is not None:
             raise self.error
         self.calls.append((audio, prompt))
-        return {"text": self.result, "segments": []}
+        return [(0.0, 1.0, self.result)]
+
+    def no_language(self):
+        return "<nolang>"
 
 
 def _fake_load(monkeypatch, model):
-    """Make espnet3.api.inference.load hand out `model`, recording the call."""
-    import espnet3.api.inference as api
+    """Replace the native backend constructor, recording its tag and device."""
 
-    def load(tag, *, system=None, device="auto", **kwargs):
-        model.tag, model.system, model.device = tag, system, device
+    def from_pretrained(model_tag=None, device="auto", **kwargs):
+        model.tag, model.system, model.device = model_tag, "s2t", device
         return model
 
-    monkeypatch.setattr(api, "load", load)
+    _fake_module(
+        monkeypatch,
+        "espnet2.bin.s2t_inference",
+        "Speech2Text",
+        types.SimpleNamespace(from_pretrained=from_pretrained),
+    )
     return model
 
 
@@ -455,7 +466,7 @@ def test_enhance_writes_one_file_when_there_is_one_output(monkeypatch, tmp_path)
     assert out.exists()
 
 
-@pytest.mark.parametrize("command", ["asr", "translate", "enhance"])
+@pytest.mark.parametrize("command", ["asr", "translate", "enhance", "describe"])
 def test_a_missing_file_fails_before_a_model_is_fetched(command, capsys, monkeypatch):
     def explode(*a, **k):  # pragma: no cover - the point is that it is not reached
         raise AssertionError("downloaded a model for a file that is not there")
@@ -583,6 +594,8 @@ def test_the_help_lists_every_command(capsys):
         "translate",
         "synthesize",
         "enhance",
+        "describe",
+        "render",
         "demo",
         "models",
     ):
@@ -626,19 +639,17 @@ def test_a_tag_for_another_task_is_explained(monkeypatch, tmp_path, capsys):
     audio = tmp_path / "a.wav"
     audio.write_bytes(b"")
 
-    import espnet3.api.inference as api
     from espnet2.utils.pretrained import ModelTagError
 
     def load(tag, **kwargs):
         raise ModelTagError(f"{tag} was published with tts_train_config")
 
-    monkeypatch.setattr(api, "load", load)
+    monkeypatch.setattr(cli, "_build", lambda loader, args, task: load(args.model))
 
     assert cli.main(["transcribe", str(audio), "--model", "espnet/a-tts-model"]) == 1
 
     err = capsys.readouterr().err
-    assert "does not look like a model for `espnet transcribe`" in err
-    assert "espnet models" in err and "tts_train_config" in err
+    assert "was published with tts_train_config" in err and "tts_train_config" in err
 
 
 def test_the_name_a_release_had_still_works(monkeypatch, tmp_path, capsys):

@@ -34,12 +34,12 @@ from typing import Any
 
 import numpy as np
 import soundfile as sf
-from torch.utils.data import Dataset as TorchDataset
 
 from egs3.spgispeech.esp2_asr.dataset.builder import (
     SPGISpeechBuilder,
     resolve_source_root,
 )
+from espnet3.components.data.base_dataset import BaseDataset
 from espnet3.utils.config_utils import load_config_with_defaults
 
 _CONFIG_RESOURCE = resources.files(__package__).joinpath("config.yaml")
@@ -130,7 +130,7 @@ def _resolve_split(split: str, source_root: Path) -> tuple[SPGISpeechExample, ..
     raise ValueError(f"Unhandled split '{split}'")
 
 
-class SPGISpeechDataset(TorchDataset):
+class SPGISpeechDataset(BaseDataset):
     """Torch dataset that reads SPGISpeech from the raw corpus directly.
 
     Args:
@@ -158,6 +158,8 @@ class SPGISpeechDataset(TorchDataset):
         >>> sorted(sample.keys())
         ['speech', 'text']
     """
+
+    fields = {"speech": np.ndarray, "text": str}
 
     def __init__(
         self,

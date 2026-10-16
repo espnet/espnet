@@ -14,7 +14,7 @@
 recipe_dir: .
 # Common case:
 # - pass both `--training_config` and `--inference_config`
-# - `run.py` copies `training_config.exp_tag` / `training_config.exp_dir` here
+# - `launch()` copies `training_config.exp_tag` / `training_config.exp_dir` here
 # - `${self_name:}` resolves to the stem of the config file passed to
 #   `--inference_config`
 # - if `inference_dir` is omitted, `conf/<name>.yaml` becomes `${exp_dir}/<name>`
@@ -43,6 +43,16 @@ inference_dir: ${exp_dir}/${self_name:}
 # Only `data_src_args` is passed to the recipe `Dataset` constructor.
 # Top-level fields such as `name` and `transform` are consumed by
 # `DataOrganizer`.
+#
+# The recipe `Dataset` class must inherit
+# `espnet3.components.data.base_dataset.BaseDataset` and declare `fields`:
+# a mapping from each key `__getitem__` returns to accepted Python types,
+# e.g. `fields = {"speech": np.ndarray, "text": str}`. The first item of each
+# instance is checked against this declaration.
+#
+# An inference-only dataset only needs to declare the fields it actually
+# returns (e.g. `speech` and `utt_id`); it does not need to declare `text`
+# or other training-only fields it does not provide.
 #
 # Example:
 # dataset:
@@ -79,30 +89,27 @@ parallel:
 ##########################################################
 #                    MODEL AND OUTPUT                    #
 ##########################################################
-# The model is the system's `Inference` (espnet3.api.inference): it declares
-# what it takes and returns, so nothing below needs to say. Its arguments are
-# the ones `espnet2.bin.asr_inference.Speech2Text` takes; `device` is added by
-# the provider. For a transducer, set
-# `backend_class: espnet2.bin.asr_transducer_inference.Speech2Text`; the
-# `Inference` asks it for decoded text itself.
+# The model is the native backend. Its arguments are the ones
+# `espnet2.bin.asr_inference.Speech2Text` takes; `device` is added by the
+# provider. For a transducer, set `_target_` to
+# `espnet2.bin.asr_transducer_inference.Speech2Text` and set
+# `return_decoded_hyp: true` to return decoded text.
 model:
-  _target_: espnet3.systems.esp2_asr.inference.Inference
+  _target_: espnet2.bin.asr_inference.Speech2Text
   # asr_train_config: ${exp_dir}/config.yaml
   # asr_model_file: ${exp_dir}/valid.acc.ave.pth
   # beam_size: 10
 
 # Nothing but the model's outputs is written here: `text.scp` is what the
 # model said. The reference for scoring is the dataset's `text` column, and
-# `measure` reads it from the data (`ref_key: dataset:text` in metrics.yaml),
-# so it is not copied by this stage.
+# `measure` reads it from the data (bind `ref` to `dataset:text` in the
+# metrics config's `inputs:`), so it is not copied by this stage.
 
-# Only for a model that is not an `Inference`: the dataset field(s) passed to
-# it. If `dataset[i]` returns `{"speech": ..., "text": ..., "utt_id": ...}` and
+# The dataset field(s) passed to the backend. If `dataset[i]` returns `{"speech": ..., "text": ..., "utt_id": ...}` and
 # `input_key: speech`, inference uses `dataset[i]["speech"]` as model input;
-# `input_key: [speech, text]` calls `model(speech=..., text=...)`. An
-# `Inference` declares its inputs, so leave this unset.
+# `input_key: [speech, text]` calls `model(speech=..., text=...)`.
 #
-# input_key: speech
+input_key: speech
 
 # Optional output key list.
 # These keys must exist in the dict returned by `output_fn`.
@@ -128,18 +135,15 @@ model:
 # search, which is 1.5-2.5x faster than one utterance at a time on a GPU.
 # A long utterance next to short ones pads them all, so 4 is a safe default;
 # 8-16 pays off when the test set is roughly sorted by length. A batch that does
-# not fit in memory is split in halves and retried with a warning; a single
-# utterance that does not fit raises an error that names its length.
-# Set to `null` for a model or `output_fn` that only supports one item per call;
-# an `Inference` decodes a batch together only when its system says so
-# (`run_batch`), and one at a time otherwise, so any value is safe.
+# not fit in memory raises an error with input lengths and advice to lower
+# `batch_size`. Set to `null` for a model or `output_fn` that only supports one
+# item per call. If batching is unsupported, the runner retries items one at
+# a time and emits a warning.
 batch_size: 4
 
-# Only for a model that is not an `Inference`: a recipe function converting
-# raw model outputs into dicts such as {"utt_id": "...", "hyp": "..."}. With an
-# `Inference` there is nothing to declare here - what it outputs is in the
-# class (`text` for ASR) and the runner writes it as it is (`text.scp`).
-# Setting this together with an `Inference` is an error, not ignored.
+# A recipe function converting raw model outputs into dicts such as
+# {"utt_id": "...", "text": "..."}. The default converts native ASR n-best
+# results to one record per utterance; the runner writes `text.scp`.
 #
 # Each output field must be a single value.
 # - Primitive values (`str`, `int`, `float`, `bool`) are written directly to SCP.
@@ -147,11 +151,10 @@ batch_size: 4
 #   written to SCP.
 # - Bare top-level `list` / `tuple` outputs are not supported.
 #
-# output_fn: src.inference.build_output
+output_fn: egs3.TEMPLATE.esp2_asr.src.inference.build_output
 
-# Optional artifact writers for non-scalar outputs. An `Inference`'s audio
-# outputs are written as WAV at their own rate without any of this; declare a
-# field here only to write it differently.
+# Optional artifact writers for non-scalar outputs. To write audio as WAV,
+# configure its sample rate explicitly.
 # Primitive values (str/int/float/bool) are written directly into SCP files.
 # Non-primitive values can be saved under:
 #   `${inference_dir}/<test_name>/split.<rank>/<field>/<utt_id>.*`
@@ -186,9 +189,8 @@ batch_size: 4
 #               PROVIDER AND RUNNER SETTING              #
 ##########################################################
 # The provider builds `model` on the device it picks; the runner runs it
-# over the dataset shards. For an `Inference` the runner writes what the
-# declaration says; for any other model it needs `input_key` (and an
-# `output_fn` to shape the result).
+# over the dataset shards, using `input_key` to select dataset columns and
+# `output_fn` to shape the result.
 provider:
   _target_: espnet3.systems.base.inference_provider.InferenceProvider
 runner:

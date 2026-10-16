@@ -1,10 +1,6 @@
 #!/usr/bin/env python3
 
-"""Validate a packed ESPnet3 publication bundle through ``espnet3.api.inference.load``.
-
-The way every front end loads a published model: without trusting bundled
-code, from a file path, expecting the contract's ``text``.
-"""
+"""Validate a packed publication using the recipe's native ASR backend."""
 
 from __future__ import annotations
 
@@ -14,10 +10,12 @@ import urllib.request
 from pathlib import Path
 from typing import Any
 
+import librosa
 import numpy as np
 import soundfile as sf
+from omegaconf import OmegaConf
 
-from espnet3.api.inference import Audio, InferenceAPI, load
+from egs3.TEMPLATE.esp2_asr.src.app import build_model, create_predict
 
 
 def _parse_args() -> argparse.Namespace:
@@ -35,7 +33,7 @@ def _parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--model-tag",
         default=None,
-        help="Optional remote model tag, checked via espnet3.api.inference.load().",
+        help="Optional remote model archive, checked with the native ASR backend.",
     )
     return parser.parse_args()
 
@@ -76,12 +74,19 @@ def _load_sample_audio() -> tuple[dict[str, Any], Path]:
     return {"speech": np.asarray(speech, dtype=np.float32)}, sample_path
 
 
-def _run_api_check(model: InferenceAPI, sample_path: Path) -> None:
-    """Check the contract every front end relies on, on a real bundle."""
-    result = model(str(sample_path))
-    assert isinstance(result["text"], str), result
-    same = model(Audio.read(sample_path, model.sample_rate))
-    assert same["text"] == result["text"], (same, result)
+def _run_backend_check(reference: str | Path, sample_path: Path) -> None:
+    """Decode with the native backend and compare the recipe app's result."""
+    model = build_model(
+        Path.cwd(),
+        OmegaConf.create({"dir_or_tag": str(reference), "device": "cpu"}),
+    )
+    speech, _ = librosa.load(str(sample_path), sr=16000, mono=True)
+    best = model(speech=speech)[0]
+    if isinstance(best, list):
+        best = best[0]
+    text = best[0] or ""
+    assert isinstance(text, str), best
+    assert create_predict(model, 16000)(str(sample_path)) == text
 
 
 def main() -> None:
@@ -98,10 +103,10 @@ def main() -> None:
         raise FileNotFoundError(f"Packed metadata not found: {meta_path}")
 
     _, sample_path = _load_sample_audio()
-    _run_api_check(load(pack_dir), sample_path)
+    _run_backend_check(pack_dir, sample_path)
 
     if args.model_tag:
-        _run_api_check(load(args.model_tag), sample_path)
+        _run_backend_check(args.model_tag, sample_path)
 
 
 if __name__ == "__main__":

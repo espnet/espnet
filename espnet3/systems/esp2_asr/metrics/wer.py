@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Dict, Iterable
+from typing import Dict, Iterable, List, Sequence
 
 try:
     import jiwer
@@ -17,26 +17,41 @@ from espnet3.components.metrics.base_metric import BaseMetric
 class WER(BaseMetric):
     """Compute WER for hypotheses.
 
-    This metric expects hypothesis and reference strings and produces a
-    percentage score along with alignment visualization output.
+    Reads ``data["ref"]``/``data["hyp"]``, the declared names; the metrics
+    config's ``inputs:`` binds them to a source (see
+    :func:`~espnet3.contract.metrics.check_metric_inputs`).
+
+    Examples:
+        >>> list(WER().inputs)
+        ['ref', 'hyp']
     """
 
-    def __init__(
-        self,
-        ref_key: str = "ref",
-        hyp_key: str = "hyp",
-        clean_types: Iterable[str] | None = None,
-    ) -> None:
+    inputs = {"ref": str, "hyp": str}
+    outputs = ("WER",)
+
+    def __init__(self, clean_types: Iterable[str] | None = None) -> None:
         """Initialize the WER metric.
 
         Args:
-            ref_key: Key name for reference text entries.
-            hyp_key: Key name for hypothesis text entries.
             clean_types: Optional cleaner types passed to TextCleaner.
         """
         self.cleaner = TextCleaner(clean_types)
-        self.ref_key = ref_key
-        self.hyp_key = hyp_key
+        super().__init__()
+        self.add_state("hits", 0, "sum")
+        self.add_state("substitutions", 0, "sum")
+        self.add_state("deletions", 0, "sum")
+        self.add_state("insertions", 0, "sum")
+        self._alignments: List[str] = []
+
+    def reset(self) -> None:
+        """Reset the counts and drop alignment text from an unfinished run.
+
+        Examples:
+            >>> metric = WER()
+            >>> metric.reset()
+        """
+        super().reset()
+        self._alignments = []
 
     def _clean(self, text: str) -> str:
         """Clean text and provide a placeholder for empty strings.
@@ -62,57 +77,76 @@ class WER(BaseMetric):
                 "Please install it with `pip install espnet[asr]`."
             )
 
-    def __call__(
-        self,
-        data: Dict[str, Path],
-        test_name: str,
-        inference_dir: Path,
-    ) -> Dict[str, float]:
-        """Compute WER, write alignment details, and return the metric.
+    def update(self, *, ref: Sequence[str], hyp: Sequence[str]) -> None:
+        """Add the word error counts of one batch to the state.
 
         Args:
-            data (Dict[str, Path]): Mapping of metric input aliases to file
-                paths. This metric expects ``data[self.ref_key]`` and
-                ``data[self.hyp_key]`` to be SCP files whose utterance IDs are
-                aligned in the same order.
-            test_name (str): Test set name used for output directory naming.
-            inference_dir (Path): Base hypothesis/reference directory for
-                alignment outputs.
-
-        Returns:
-            Dict[str, float]:
-                ``{"WER": <percentage>}``
+            ref: Reference texts, one per utterance.
+            hyp: Hypothesis texts, aligned with ``ref``.
 
         Raises:
             RuntimeError: If ``jiwer`` is not installed.
-            AssertionError: If the reference and hypothesis SCP files are not
-                aligned by utterance ID.
 
-        Example:
-            The expected inputs are paths, not preloaded string lists:
-
-            >>> metric(
-            ...     {
-            ...         "ref": Path("test-other/ref.scp"),
-            ...         "hyp": Path("test-other/hyp.scp")
-            ...     },
-            ...     "test-clean",
-            ...     Path("infer"),
-            ... )
+        Examples:
+            >>> metric = WER()
+            >>> metric.update(ref=["a b c"], hyp=["a x c"])
         """
         self._ensure_jiwer()
-        refs = []
-        hyps = []
-        for _, row in self.iter_inputs(data, self.ref_key, self.hyp_key):
-            refs.append(self._clean(row[self.ref_key]))
-            hyps.append(self._clean(row[self.hyp_key]))
+        if not ref:
+            return
+        out = jiwer.process_words(
+            [self._clean(r) for r in ref], [self._clean(h) for h in hyp]
+        )
+        self.hits += out.hits
+        self.substitutions += out.substitutions
+        self.deletions += out.deletions
+        self.insertions += out.insertions
+        if self.collect_artifacts:
+            self._alignments.append(jiwer.visualize_alignment(out, show_measures=False))
 
-        score = jiwer.wer(refs, hyps) * 100
-        details = jiwer.process_words(refs, hyps)
+    def compute(self) -> Dict[str, float]:
+        """Return the WER of everything added so far, from the summed counts.
 
-        test_dir = Path(inference_dir) / test_name
-        test_dir.mkdir(parents=True, exist_ok=True)
-        with (test_dir / "wer_alignment").open("w", encoding="utf-8") as f:
-            f.write(jiwer.visualize_alignment(details))
+        Returns:
+            Dict[str, float]: ``{"WER": <percentage>}``, rounded to 2 places.
 
-        return {"WER": round(score, 2)}
+        Raises:
+            ValueError: If the references have no words.
+
+        Examples:
+            >>> metric = WER()
+            >>> metric.update(ref=["a b c"], hyp=["a x c"])
+            >>> metric.compute()
+            {'WER': 33.33}
+        """
+        n = self.hits + self.substitutions + self.deletions
+        if n == 0:
+            raise ValueError("nothing to score: the references have no words")
+        errors = self.substitutions + self.deletions + self.insertions
+        return {"WER": round(100 * errors / n, 2)}
+
+    def write_artifacts(self, test_dir: Path) -> None:
+        """Write the alignments kept by this ``__call__`` to ``test_dir/wer_alignment``.
+
+        The file holds only the rows seen by the ``__call__`` that wrote it,
+        then one summary line from the summed counts; the kept text is cleared
+        afterwards.
+
+        Args:
+            test_dir: The test set's output directory, already created.
+
+        Examples:
+            >>> metric.write_artifacts(Path("infer/test-clean"))
+        """
+        n = self.hits + self.substitutions + self.deletions
+        errors = self.substitutions + self.deletions + self.insertions
+        rate = 100 * errors / n if n else 0.0
+        summary = (
+            f"\nWER: {rate:.2f} (hits={self.hits}, "
+            f"substitutions={self.substitutions}, deletions={self.deletions}, "
+            f"insertions={self.insertions})\n"
+        )
+        (test_dir / "wer_alignment").write_text(
+            "".join(self._alignments) + summary, encoding="utf-8"
+        )
+        self._alignments = []
