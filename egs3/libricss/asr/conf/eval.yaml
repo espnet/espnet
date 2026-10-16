@@ -1,0 +1,111 @@
+##########################################################
+#              LIBRICSS DATA / STAGE SETTINGS            #
+##########################################################
+# LibriCSS is an evaluation-only benchmark: no model is trained in this
+# recipe, hence the `eval` name -- run.py exposes this file as
+# --eval_config, an alias of the template's --training_config flag (the
+# framework keeps it in its training_config slot). It carries (a) the
+# dataset creation settings consumed by the DatasetBuilder and (b) the
+# `libricss` block with parameters for the recipe-local `segment` and
+# `diarize` stages.
+#
+# Default flow (webrtcvad segmentation + spectral diarization):
+#   python run.py --eval_config conf/eval.yaml \
+#       --inference_config conf/inference.yaml \
+#       --metrics_config conf/metrics.yaml --stages all
+#
+# Paths recipe_dir/data_dir/exp_tag/exp_dir are inherited from
+# egs3/TEMPLATE/asr/conf/training.yaml:
+#   data_dir: ${recipe_dir}/data
+#   exp_dir:  ${recipe_dir}/exp/${exp_tag}   (exp_tag = this file's stem)
+
+# Where the raw corpus is downloaded / expected (overridable via the
+# LIBRICSS environment variable or create_dataset.source_dir).
+dataset_dir: ${recipe_dir}/download/libricss
+
+##########################################################
+#                 create_dataset STAGE                   #
+##########################################################
+# Consumed by dataset/builder.py (LibriCSSBuilder). It downloads
+# for_release.zip from Google Drive (requires `pip install gdown`), unzips
+# it, extracts the selected microphone channel of every meeting, and writes:
+#   data/wavs/<reco>.wav
+#   data/<split>/wav.scp
+#   data/<split>/oracle/{segments,utt2spk,text}
+create_dataset:
+  recipe_dir: ${recipe_dir}
+  download_dir: ${dataset_dir}
+  source_dir:               # optional: existing corpus dir containing for_release/
+  mic: 0                    # microphone channel to extract (0..6)
+  gdrive_id: "1Piioxd5G_85K9Bhcr8ebdhXx0CnaHy7l"
+  dev_sessions:             # dev split; all remaining sessions go to eval
+    - session0
+
+# Test splits. These entries make create_dataset invoke the recipe
+# DatasetBuilder; the actual inference datasets are declared in
+# conf/inference.yaml.
+dataset:
+  test:
+    - name: dev
+      data_src_args:
+        split: dev
+    - name: eval
+      data_src_args:
+        split: eval
+
+##########################################################
+#        TRAINING BOILERPLATE DISABLED (EVAL-ONLY)       #
+##########################################################
+# main() merges the template defaults (egs3/TEMPLATE/asr/conf/training.yaml)
+# UNDER this file, which would otherwise pull in training machinery. This
+# recipe's stage list (run.py STAGES) has no train/collect_stats/fit stages,
+# so those blocks are nulled here to keep the effective config honest.
+# tokenizer/model are already null in the template defaults; num_device/
+# parallel/seed are left as-is (harmless scalars read by the runner setup).
+optimizer: null
+scheduler: null
+scheduler_interval: null
+scheduler_monitor: null
+best_model_criterion: null
+dataloader: null
+trainer: null
+fit: null
+
+##########################################################
+#           segment / diarize STAGE PARAMETERS           #
+##########################################################
+libricss:
+  # Splits processed by the `segment` and `diarize` stages.
+  splits: [dev, eval]
+
+  segment:
+    # "vad": webrtcvad speech activity detection, ported from
+    #   egs/libri_css/asr1/local/segmentation/apply_webrtcvad.py
+    #   (requires `pip install webrtcvad`).
+    # "oracle": corpus-provided segments from data/<split>/oracle/.
+    mode: vad
+    vad:
+      mode: 0            # webrtcvad aggressiveness; 0 = least aggressive
+      frame_ms: 30       # webrtcvad supports 10/20/30 ms frames
+      padding_ms: 300    # ring-buffer padding around triggered regions
+
+  diarize:
+    # Pretrained speaker embedding model (espnet_model_zoo tag). The egs1
+    # recipe used the Kaldi VoxCeleb x-vector (0012_diarization_v1); this is
+    # its closest ESPnet equivalent. Alternatives:
+    #   espnet/voxcelebs12_ecapa_mel (stronger, slower)
+    spk_model_tag: espnet/voxcelebs12_xvector_mel
+    device: auto         # auto | cpu | cuda
+    dtype: float32
+    # Subsegmentation for embedding extraction, matching
+    # extract_xvectors.sh --window 1.5 --period 0.75 --min-segment 0.5
+    window_sec: 1.5
+    period_sec: 0.75
+    min_segment_sec: 0.5
+    # NME spectral clustering (spec_clust.py defaults)
+    num_clusters:        # null = estimate automatically via NME
+    max_num_clusters: 10
+    pmax: 20             # max neighbor count for affinity binarization
+    pbest: 0             # 0 = select automatically via NME
+    random_state: 0
+    write_rttm: true     # write ${exp_dir}/diarized/<split>/rttm for DER tools

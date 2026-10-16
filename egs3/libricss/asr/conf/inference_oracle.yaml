@@ -1,0 +1,32 @@
+##########################################################
+#          LIBRICSS INFERENCE SETTINGS (ORACLE)          #
+##########################################################
+# Decodes the oracle (corpus-provided) segments written by the `segment`
+# stage with `libricss.segment.mode: oracle` (see conf/eval_oracle.yaml).
+# The `diarize` stage is not used in this flow.
+#
+# The Dataset adds each segment's oracle transcript as "text", so
+# build_output fills ref.scp and plain-WER metrics can score it.
+
+dataset:
+  test:
+    - name: dev
+      data_src_args:
+        split: dev
+        manifest_dir: ${exp_dir}/segments
+    - name: eval
+      data_src_args:
+        split: eval
+        manifest_dir: ${exp_dir}/segments
+
+model:
+  # Same acoustic model as the diarized flow for comparability (see the
+  # comment in conf/inference.yaml about the egs1 LM-rescoring deviation).
+  _target_: espnet2.bin.asr_inference.Speech2Text.from_pretrained
+  model_tag: Shinji Watanabe/librispeech_asr_train_asr_transformer_e18_raw_bpe_sp_valid.acc.best
+  beam_size: 20
+  ctc_weight: 0.3
+
+input_key: speech
+batch_size: 4
+output_fn: src.inference.build_output
