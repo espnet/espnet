@@ -31,7 +31,7 @@ class DummyTokenizer(torch.nn.Module):
         return self._output(speech, speech_lengths)
 
 
-class DummyASRObjective(torch.nn.Module):
+class DummyASRLoss(torch.nn.Module):
     def __init__(self):
         super().__init__()
         self.last_loss = None
@@ -45,7 +45,7 @@ class DummyASRObjective(torch.nn.Module):
         return tokenizer_output.assignment, tokenizer_output.lengths
 
 
-class DummyReconstructionObjective(torch.nn.Module):
+class DummyReconstructionLoss(torch.nn.Module):
     def __init__(self):
         super().__init__()
         self.discriminator = torch.nn.Linear(1, 1)
@@ -72,13 +72,13 @@ class DummyReconstructionObjective(torch.nn.Module):
 def make_model():
     return ESPnetGANSpeechTokenizerModel(
         tokenizer=DummyTokenizer(),
-        asr_objective=DummyASRObjective(),
-        reconstruction_objective=DummyReconstructionObjective(),
+        asr_loss=DummyASRLoss(),
+        reconstruction_loss=DummyReconstructionLoss(),
         reconstruction_weight=0.25,
     )
 
 
-def test_generator_combines_objectives_and_tokenizes_once():
+def test_generator_combines_losses_and_tokenizes_once():
     model = make_model()
     result = model(
         speech=torch.randn(2, 4),
@@ -90,8 +90,8 @@ def test_generator_combines_objectives_and_tokenizes_once():
     )
 
     expected = (
-        0.75 * model.asr_objective.last_loss
-        + 0.25 * model.reconstruction_objective.last_loss
+        0.75 * model.asr_loss.last_loss
+        + 0.25 * model.reconstruction_loss.last_loss
     )
     torch.testing.assert_close(result["loss"], expected[None])
     assert result["optim_idx"] == 0
@@ -120,7 +120,7 @@ def test_discriminator_uses_cache_without_running_tokenizer():
     # The generator already ran the tokenizer, so the cache avoids another call.
     assert model.tokenizer.forward_calls == 1
     # Cached waveforms let the discriminator run without tokenizer outputs.
-    assert model.reconstruction_objective.last_discriminator_tokenizer_output is None
+    assert model.reconstruction_loss.last_discriminator_tokenizer_output is None
     assert "reconstruction_discriminator_loss" in result["stats"]
 
 
@@ -138,7 +138,7 @@ def test_discriminator_tokenizes_on_cache_miss():
     assert model.tokenizer.forward_calls == 1
     # The freshly computed tokenizer output is passed to the discriminator path.
     assert (
-        model.reconstruction_objective.last_discriminator_tokenizer_output is not None
+        model.reconstruction_loss.last_discriminator_tokenizer_output is not None
     )
 
 
@@ -149,8 +149,8 @@ def test_reconstruction_weight_must_be_between_zero_and_one(
     with pytest.raises(ValueError, match="reconstruction_weight"):
         ESPnetGANSpeechTokenizerModel(
             tokenizer=DummyTokenizer(),
-            asr_objective=DummyASRObjective(),
-            reconstruction_objective=DummyReconstructionObjective(),
+            asr_loss=DummyASRLoss(),
+            reconstruction_loss=DummyReconstructionLoss(),
             reconstruction_weight=reconstruction_weight,
         )
 

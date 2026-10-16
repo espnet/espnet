@@ -4,13 +4,8 @@ from typing import Any, Dict, Mapping, Optional
 
 import torch
 
-from espnet2.tok.objective.abs_objective import (
-    AbsSpeechTokenizerObjective,
-)
-from espnet2.tok.objective.asr import ASRObjective
-from espnet2.tok.objective.reconstruction.hifigan import (
-    HiFiGANReconstructionObjective,
-)
+from espnet2.tok.asr_loss import ASRLoss
+from espnet2.tok.hifigan_loss import HiFiGANReconstructionLoss
 from espnet2.tok.output import SpeechTokenizerOutput
 from espnet2.tok.tokenizer import SpeechTokenizer
 from espnet2.torch_utils.device_funcs import force_gatherable
@@ -18,9 +13,9 @@ from espnet2.train.abs_gan_espnet_model import AbsGANESPnetModel
 
 
 class ESPnetGANSpeechTokenizerModel(AbsGANESPnetModel):
-    """Optimize a shared speech tokenizer with downstream objectives.
+    """Optimize a shared speech tokenizer with downstream losses.
 
-    The model combines ASR and speech reconstruction while keeping the objective
+    The model combines ASR and speech reconstruction while keeping the loss
     boundary open to additional downstream tasks. GAN discriminator updates are
     exposed separately from the shared main loss.
     """
@@ -28,29 +23,27 @@ class ESPnetGANSpeechTokenizerModel(AbsGANESPnetModel):
     def __init__(
         self,
         tokenizer: SpeechTokenizer,
-        asr_objective: ASRObjective,
-        reconstruction_objective: HiFiGANReconstructionObjective,
+        asr_loss: ASRLoss,
+        reconstruction_loss: HiFiGANReconstructionLoss,
         reconstruction_weight: float = 0.1,
         extract_feats_in_collect_stats: bool = False,
-        additional_objectives: Optional[
-            Mapping[str, AbsSpeechTokenizerObjective]
-        ] = None,
-        additional_objective_weights: Optional[Mapping[str, float]] = None,
+        additional_losses: Optional[Mapping[str, torch.nn.Module]] = None,
+        additional_loss_weights: Optional[Mapping[str, float]] = None,
     ) -> None:
-        """Initialize a shared tokenizer with weighted downstream objectives.
+        """Initialize a shared tokenizer with weighted downstream losses.
 
         Args:
             tokenizer: Shared SSL and differentiable-k-means tokenizer.
-            asr_objective: Standard ESPnet ASR objective.
-            reconstruction_objective: Adversarial waveform reconstruction.
-            reconstruction_weight: Objective interpolation weight. ASR receives weight
+            asr_loss: Standard ESPnet ASR loss.
+            reconstruction_loss: Adversarial waveform reconstruction.
+            reconstruction_weight: Loss interpolation weight. ASR receives weight
                 ``1 - alpha`` and reconstruction receives ``alpha``.
             extract_feats_in_collect_stats: Whether collect-stats must build
                 this model. Speech-tokenizer inputs need shapes only.
-            additional_objectives: Optional downstream objectives. Each
+            additional_losses: Optional downstream losses. Each
                 consumes the same tokenizer output and training batch.
-            additional_objective_weights: Loss weights keyed identically to
-                ``additional_objectives``.
+            additional_loss_weights: Loss weights keyed identically to
+                ``additional_losses``.
         """
         super().__init__()
         if not 0.0 <= reconstruction_weight <= 1.0:
@@ -58,51 +51,51 @@ class ESPnetGANSpeechTokenizerModel(AbsGANESPnetModel):
                 "reconstruction_weight must be in [0, 1]: " f"{reconstruction_weight}"
             )
 
-        additional_objectives = dict(additional_objectives or {})
+        additional_losses = dict(additional_losses or {})
         reserved_names = {"asr", "reconstruction"}
-        duplicate_names = reserved_names.intersection(additional_objectives)
+        duplicate_names = reserved_names.intersection(additional_losses)
         if duplicate_names:
             raise ValueError(
-                "Additional objective names are reserved: " f"{sorted(duplicate_names)}"
+                "Additional loss names are reserved: " f"{sorted(duplicate_names)}"
             )
-        additional_weights = dict(additional_objective_weights or {})
-        if set(additional_weights) != set(additional_objectives):
+        additional_weights = dict(additional_loss_weights or {})
+        if set(additional_weights) != set(additional_losses):
             raise ValueError(
-                "additional_objective_weights must contain exactly the keys in "
-                "additional_objectives"
+                "additional_loss_weights must contain exactly the keys in "
+                "additional_losses"
             )
         if any(weight < 0.0 for weight in additional_weights.values()):
-            raise ValueError("Additional objective weights must be non-negative")
+            raise ValueError("Additional loss weights must be non-negative")
 
         self.tokenizer = tokenizer
         self.extract_feats_in_collect_stats = extract_feats_in_collect_stats
-        self.objectives = torch.nn.ModuleDict(
+        self.losses = torch.nn.ModuleDict(
             {
-                "asr": asr_objective,
-                "reconstruction": reconstruction_objective,
-                **additional_objectives,
+                "asr": asr_loss,
+                "reconstruction": reconstruction_loss,
+                **additional_losses,
             }
         )
-        self.objective_weights = {
+        self.loss_weights = {
             "asr": 1.0 - reconstruction_weight,
             "reconstruction": reconstruction_weight,
             **additional_weights,
         }
 
     @property
-    def asr_objective(self) -> ASRObjective:
-        """Return the ASR objective."""
-        return self.objectives["asr"]
+    def asr_loss(self) -> ASRLoss:
+        """Return the ASR loss."""
+        return self.losses["asr"]
 
     @property
-    def reconstruction_objective(self) -> HiFiGANReconstructionObjective:
-        """Return the adversarial reconstruction objective."""
-        return self.objectives["reconstruction"]
+    def reconstruction_loss(self) -> HiFiGANReconstructionLoss:
+        """Return the adversarial reconstruction loss."""
+        return self.losses["reconstruction"]
 
     def _tokenize(
         self, speech: torch.Tensor, speech_lengths: torch.Tensor
     ) -> SpeechTokenizerOutput:
-        """Run the shared tokenizer once for all main objectives."""
+        """Run the shared tokenizer once for all main losses."""
         return self.tokenizer(speech, speech_lengths)
 
     def _forward_generator(
@@ -116,7 +109,7 @@ class ESPnetGANSpeechTokenizerModel(AbsGANESPnetModel):
     ) -> Dict[str, Any]:
         """Compute the weighted ASR and reconstruction main loss."""
         tokenizer_output = self._tokenize(speech, speech_lengths)
-        objective_batch = dict(
+        loss_batch = dict(
             speech=speech,
             speech_lengths=speech_lengths,
             text=text,
@@ -127,20 +120,20 @@ class ESPnetGANSpeechTokenizerModel(AbsGANESPnetModel):
 
         total_loss: Optional[torch.Tensor] = None
         stats: Dict[str, Any] = {}
-        for name, objective in self.objectives.items():
-            objective_loss, objective_stats, _ = objective(
-                tokenizer_output, **objective_batch
+        for name, loss_module in self.losses.items():
+            module_loss, module_stats, _ = loss_module(
+                tokenizer_output, **loss_batch
             )
-            weighted_loss = self.objective_weights[name] * objective_loss
+            weighted_loss = self.loss_weights[name] * module_loss
             total_loss = (
                 weighted_loss if total_loss is None else total_loss + weighted_loss
             )
             stats[f"{name}_weighted_loss"] = weighted_loss.detach()
-            for key, value in objective_stats.items():
+            for key, value in module_stats.items():
                 stats[f"{name}_{key}"] = value
 
         if total_loss is None:
-            raise RuntimeError("At least one main objective is required")
+            raise RuntimeError("At least one main loss is required")
         stats["generator_loss"] = total_loss.detach()
         total_loss, stats, weight = force_gatherable(
             (total_loss, stats, speech.size(0)), total_loss.device
@@ -156,11 +149,11 @@ class ESPnetGANSpeechTokenizerModel(AbsGANESPnetModel):
     ) -> Dict[str, Any]:
         """Compute only discriminator loss, avoiding tokenizer work on cache hit."""
         tokenizer_output = None
-        if not self.reconstruction_objective.has_cached_generator_outputs:
+        if not self.reconstruction_loss.has_cached_generator_outputs:
             with torch.no_grad():
                 tokenizer_output = self._tokenize(speech, speech_lengths)
-        loss, objective_stats, weight = (
-            self.reconstruction_objective.forward_discriminator(
+        loss, loss_stats, weight = (
+            self.reconstruction_loss.forward_discriminator(
                 tokenizer_output=tokenizer_output,
                 speech=speech,
                 spembs=spembs,
@@ -170,7 +163,7 @@ class ESPnetGANSpeechTokenizerModel(AbsGANESPnetModel):
         )
         stats = {
             f"reconstruction_discriminator_{key}": value
-            for key, value in objective_stats.items()
+            for key, value in loss_stats.items()
         }
         stats["discriminator_loss"] = loss.detach()
         return {"loss": loss, "stats": stats, "weight": weight, "optim_idx": 1}
@@ -214,7 +207,7 @@ class ESPnetGANSpeechTokenizerModel(AbsGANESPnetModel):
 
     def encode_asr(self, speech: torch.Tensor, speech_lengths: torch.Tensor):
         """Tokenize speech and run the ASR encoder."""
-        return self.asr_objective.encode(self.tokenize(speech, speech_lengths))
+        return self.asr_loss.encode(self.tokenize(speech, speech_lengths))
 
     def synthesize(
         self,
@@ -224,7 +217,7 @@ class ESPnetGANSpeechTokenizerModel(AbsGANESPnetModel):
     ):
         """Tokenize speech and reconstruct waveform with speaker conditioning."""
         tokenizer_output = self.tokenize(speech, speech_lengths)
-        return self.reconstruction_objective.synthesize(tokenizer_output, spembs=spembs)
+        return self.reconstruction_loss.synthesize(tokenizer_output, spembs=spembs)
 
     def collect_feats(self, **batch: torch.Tensor) -> Dict[str, torch.Tensor]:
         """Return no offline statistics; the SSL frontend runs inside the model."""
