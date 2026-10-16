@@ -10,24 +10,33 @@ its text-side counterpart.
 | Text / structured text | SPLET |
 
 This is a **skeleton**. It fixes the package layout, the interface and the
-metric contract, and it implements exactly one metric — word/character error
-rate — to pin that contract down. Everything else in espnet/espnet#6760 is
-still to be written, and the directories where it goes say what is expected of
-it.
+metric contract, and implements word/character error rate in the utterance
+tier and BLEU/chrF/TER (through sacrebleu) in the corpus tier. Everything else
+in espnet/espnet#6760 is still to be written, and the directories where it goes
+say what is expected of it.
 
 ## Status
 
 | | |
 | --- | --- |
-| Implemented | WER, CER; the normalization pipeline; the utterance tier; `splet-measure` |
-| Contract only | the session tier (`splet/session_metrics`), the corpus tier (`splet/corpus_metrics`) |
-| Not started | cpWER, ORC-WER, DER, JER, BLEU/chrF/TER, Whisper normalization, structured prediction |
+| Implemented | WER, CER; BLEU, chrF, TER via sacrebleu; the normalization pipeline; the utterance and corpus tiers; `splet-measure` |
+| Contract only | the session tier (`splet/session_metrics`) |
+| Not started | cpWER, ORC-WER, DER, JER, multi-reference BLEU, Whisper normalization, structured prediction |
 | Not validated | the S/D/I split against sclite; everything against existing recipe results |
 
 WER and CER agree with `jiwer` on the corpus figure, which is what espnet3's
 current metrics use (`test/splet/test_error_rate.py::test_matches_jiwer`).
 Nothing here has been checked against SCTK yet, so do not report an S/D/I
 breakdown from SPLET as SCTK-compatible.
+
+BLEU, chrF and TER are sacrebleu's own numbers, and the summary's `metadata`
+carries the signature sacrebleu reports for each. They match the `sacrebleu` commands that
+`egs2/TEMPLATE/st1/st.sh` runs, with and without `-lc`
+(`test/splet/test_bleu.py`); `splet/egs/st.yaml` is the case-sensitive
+pass. The case-insensitive pass also strips punctuation with
+`remove_punctuation.pl` first, which SPLET's `remove_punctuation` does not
+match on non-ASCII symbols. st.sh's Moses tokenize/detokenize round trip is
+not part of SPLET: measure detokenized text, as st.sh does.
 
 ## Running it
 
@@ -49,7 +58,8 @@ avoids the word.
 `--io` chooses how the two files are read: `kaldi` (a Kaldi `text` file),
 `jsonl` (one JSON object per line, with `turns` for speaker-attributed or
 timestamped output), or `dir`. Per-utterance results are written to
-`--output_file` as JSON lines; the corpus summary is printed.
+`--output_file` as JSON lines; the corpus summary, including corpus-tier
+metrics such as BLEU, is printed.
 
 ## The interface
 
