@@ -10,7 +10,7 @@ import torch.nn.functional as F
 from typeguard import typechecked
 
 from espnet2.tok.output import SpeechTokenizerOutput
-from espnet2.tok.quantizer.abs_quantizer import (
+from espnet2.tok.abs_quantizer import (
     AbsSpeechTokenizerQuantizer,
 )
 

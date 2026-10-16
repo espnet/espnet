@@ -5,7 +5,7 @@ import numpy as np
 import pytest
 import torch
 
-from espnet2.tok.quantizer.differentiable_kmeans import (
+from espnet2.tok.quantizer_differentiable_kmeans import (
     DifferentiableKMeans,
 )
 
