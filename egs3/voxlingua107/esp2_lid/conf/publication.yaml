@@ -1,0 +1,23 @@
+##########################################################
+#                  PUBLICATION SETTING                   #
+##########################################################
+# Common usage:
+#   python run.py --stages pack_model \
+#       --training_config conf/training.yaml \
+#       --inference_config conf/inference.yaml \
+#       --metrics_config conf/metrics.yaml \
+#       --publication_config conf/publication.yaml
+#   python run.py --stages upload_model \
+#       --training_config conf/training.yaml \
+#       --publication_config conf/publication.yaml
+
+pack_model:
+  include:
+    - ${recipe_dir}/src
+    - ${recipe_dir}/dataset
+    - ${stats_dir}/train/lang2utt
+  readme_context:
+    lang: multilingual
+
+upload_model:
+  hf_repo: espnet/voxlingua107_lid_${exp_tag}
