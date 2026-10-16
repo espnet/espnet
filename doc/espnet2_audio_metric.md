@@ -46,18 +46,18 @@ The unused legacy training/task/model-package, packing, and evaluator aliases
 have been removed, together with their compatibility-only tests. This PR adds
 no legacy recipe or shell-script links.
 
-### Remaining inference consumer migration
+### Consumer migration status
 
 Only `espnet2.bin.universa_inference` remains temporarily. Its removal is tracked
 in [PR #6759](https://github.com/espnet/espnet/pull/6759), following
 [the migration agreement in #6827](https://github.com/espnet/espnet/pull/6827#issuecomment-6047947493).
-The specific outstanding dependencies are:
+The affected consumers and their migration status are:
 
 | Consumer | Migration and removal condition |
 | --- | --- |
 | VERSA Uni-VERSA and ARECHO loaders | [VERSA PR #106](https://github.com/wavlab-speech/versa/pull/106) switches both imports and the ESPnet installation pin to AQA, and filters inference diagnostics out of scores. Merge this consumer update before removing the shim. |
-| Six ESPnet Uni-VERSA model cards | Replace their link to the [historical Colab](https://colab.research.google.com/drive/1y2mp5TqaiF7-a-_7iNUK2dXvSv4Tmejj) with canonical AQA examples. The notebook imports `UniversaInference` and installs the historical `espnet_inference` fork. Prepared card/notebook updates still require authenticated publication. |
-| Four ESPnet ARECHO model cards | Replace `egs2/universa_unite/uni_versa1` and the historical checkout instructions with the AQA API and `aqa1` / `aqa.sh` recipe instructions. Prepared updates still require authenticated publication. |
+| Six ESPnet Uni-VERSA model cards | Published canonical AQA examples on 2026-10-15, replacing the historical Colab link with the AQA guide. See the [no-reference card commit](https://huggingface.co/espnet/universa-wavlm_base_urgent24_multi-metric_noref/commit/ed903eaa4f2e3552056e4cc12a8aaf6e0e3b5d10) and [older-package artifact notice](https://huggingface.co/espnet/universa-base_urgent24_multi-metric/commit/d16bb2a5bb222fd7ecc710c03a7af34bc8e4ae8b). |
+| Four ESPnet ARECHO model cards | Published the AQA API and `aqa1` / `aqa.sh` instructions on 2026-10-15, replacing the historical recipe/checkout instructions. See the [base card commit](https://huggingface.co/espnet/arecho_base_v0/commit/f3ec00dce7b1152f2490a1cff040db94bfe51ec5) and [scale card commit](https://huggingface.co/espnet/arecho_scale_v0/commit/69dee7470c6cc9e1990638482dfc152acc27f364). |
 
 The six Uni-VERSA cards are `espnet/universa-base_urgent24_multi-metric`,
 `espnet/universa-wavlm_base_urgent24_multi-metric`, and the latter's `_noref`,
@@ -69,9 +69,12 @@ The six Uni-VERSA cards are `espnet/universa-base_urgent24_multi-metric`,
 Remove the inference shim after those consumers have migrated and their AQA
 strict loading, save/reload, fine-tuning, and inference checks pass.
 The current consumer smoke tests use tiny checkpoints; they do not establish
-that every published large-weight variant has completed that sequence. The old notebook installs a separate historical
-fork, so it does not consume the removed task/model-package wrappers on current
-ESPnet. Historical artifact filenames such as `universa_train_.../13epoch.pth`
+that every published large-weight variant has completed that sequence.
+All ten live model cards were read back and matched the prepared updates; their
+original configuration sections are unchanged. The cards now point to the
+canonical inference example below instead of the historical Colab. The old
+notebook itself remains historical: it installs a separate fork and does not
+consume the removed task/model-package wrappers on current ESPnet. Historical artifact filenames such as `universa_train_.../13epoch.pth`
 are actual published paths, not public recipe entry points; do not rename them.
 
 ### Canonical inference example
