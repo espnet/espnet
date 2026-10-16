@@ -27,30 +27,41 @@ def _fake_module(monkeypatch, name, attr, obj):
 
 
 class _FakeModel:
-    """Stands in for an esp2_s2t Inference: records what it was asked."""
+    """Stand in for a native speech-to-text backend and record its calls."""
 
     def __init__(self, result, error=None):
         self.result = result
-        self.error = error  # what the Inference raises before decoding, if anything
+        self.error = error  # what the backend raises before decoding, if anything
         self.tag = self.system = self.device = None
+        self.s2t_model = types.SimpleNamespace(token_list=None)
         self.calls = []
 
-    def __call__(self, audio, **prompt):
+    def decode_long(self, audio, *, lang_sym, task_sym):
+        prompt = {"task": task_sym[1:-1]}
+        if lang_sym != "<nolang>":
+            prompt["language"] = lang_sym[1:-1]
         if self.error is not None:
             raise self.error
         self.calls.append((audio, prompt))
-        return {"text": self.result, "segments": []}
+        return [(0.0, 1.0, self.result)]
+
+    def no_language(self):
+        return "<nolang>"
 
 
 def _fake_load(monkeypatch, model):
-    """Make espnet3.api.inference.load hand out `model`, recording the call."""
-    import espnet3.api.inference as api
+    """Replace the native backend constructor, recording its tag and device."""
 
-    def load(tag, *, system=None, device="auto", **kwargs):
-        model.tag, model.system, model.device = tag, system, device
+    def from_pretrained(model_tag=None, device="auto", **kwargs):
+        model.tag, model.system, model.device = model_tag, "s2t", device
         return model
 
-    monkeypatch.setattr(api, "load", load)
+    _fake_module(
+        monkeypatch,
+        "espnet2.bin.s2t_inference",
+        "Speech2Text",
+        types.SimpleNamespace(from_pretrained=from_pretrained),
+    )
     return model
 
 
@@ -583,7 +594,6 @@ def test_the_help_lists_every_command(capsys):
         "translate",
         "synthesize",
         "enhance",
-        "run",
         "describe",
         "render",
         "demo",
@@ -629,19 +639,17 @@ def test_a_tag_for_another_task_is_explained(monkeypatch, tmp_path, capsys):
     audio = tmp_path / "a.wav"
     audio.write_bytes(b"")
 
-    import espnet3.api.inference as api
     from espnet2.utils.pretrained import ModelTagError
 
     def load(tag, **kwargs):
         raise ModelTagError(f"{tag} was published with tts_train_config")
 
-    monkeypatch.setattr(api, "load", load)
+    monkeypatch.setattr(cli, "_build", lambda loader, args, task: load(args.model))
 
     assert cli.main(["transcribe", str(audio), "--model", "espnet/a-tts-model"]) == 1
 
     err = capsys.readouterr().err
-    assert "does not look like a model for `espnet transcribe`" in err
-    assert "espnet models" in err and "tts_train_config" in err
+    assert "was published with tts_train_config" in err and "tts_train_config" in err
 
 
 def test_the_name_a_release_had_still_works(monkeypatch, tmp_path, capsys):
@@ -1033,146 +1041,3 @@ def test_demo_runs_when_the_metadata_says_nothing_about_the_task(monkeypatch):
 
     assert cli.main(["demo", "--model", "espnet/undocumented"]) == 0
     assert s2t.tag == "espnet/undocumented"
-
-
-# --- `espnet run`: any model, by its declaration ---
-
-
-class _Declared(_FakeModel):
-    """A fake Inference with a declaration, as `espnet run` reads it."""
-
-    def __init__(self, result):
-        from espnet3.api.inference import Field
-
-        super().__init__(result)
-        self.inputs = (
-            Field("speech", "audio", "Speech"),
-            Field("language", "text", "Language", optional=True),
-        )
-        self.outputs = (
-            Field("text", "text", "Transcription"),
-            Field("segments", "segments", "Segments"),
-        )
-
-    def __call__(self, *args, **prompt):
-        self.calls.append(prompt)
-        return self.result
-
-
-def _declared_model(monkeypatch, result=None):
-    result = result or {
-        "text": "hello world",
-        "segments": [{"text": "hello world", "start": 0.0, "end": 1.25}],
-    }
-    return _fake_load(monkeypatch, _Declared(result))
-
-
-def test_run_takes_inputs_by_name_and_prints_each_output(monkeypatch, capsys):
-    model = _declared_model(monkeypatch)
-
-    argv = [
-        "run",
-        "espnet/some_owsm",
-        "--system",
-        "s2t",
-        "speech=a.wav",
-        "language=jpn",
-    ]
-    assert cli.main(argv) == 0
-
-    assert (model.tag, model.system) == ("espnet/some_owsm", "s2t")
-    assert model.calls == [{"speech": "a.wav", "language": "jpn"}]
-    assert (
-        capsys.readouterr().out
-        == "== text\nhello world\n== segments\n0.00\t1.25\thello world\n"
-    )
-
-
-def test_run_lists_the_declaration(monkeypatch, capsys):
-    _declared_model(monkeypatch)
-
-    assert cli.main(["run", "espnet/some_owsm", "--list"]) == 0
-
-    assert capsys.readouterr().out == (
-        "inputs:\n  speech=<audio>\n  language=<text>  (optional)\n"
-        "outputs:\n  text  (text)\n  segments  (segments)\n"
-    )
-
-
-def test_run_refuses_an_input_the_model_does_not_declare(monkeypatch, capsys):
-    model = _declared_model(monkeypatch)
-
-    assert cli.main(["run", "espnet/some_owsm", "speech=a.wav", "beam=4"]) == 1
-
-    assert (
-        "'beam=4': give inputs as name=value, one of speech, language"
-        in capsys.readouterr().err
-    )
-    assert model.calls == []
-
-
-def test_run_names_a_required_input_left_out(monkeypatch, capsys):
-    _declared_model(monkeypatch)
-
-    assert cli.main(["run", "espnet/some_owsm", "language=jpn"]) == 1
-
-    err = capsys.readouterr().err
-    assert "missing input(s) ['speech']" in err and "speech=<audio>" in err
-
-
-def test_run_writes_an_audio_output_as_a_wave(monkeypatch, tmp_path, capsys):
-    from espnet3.api.inference import Audio, Field
-
-    model = _declared_model(
-        monkeypatch, {"audio": Audio(np.zeros(800, dtype=np.float32), 8000)}
-    )
-    model.outputs = (Field("audio", "audio", "Rendered"),)
-
-    assert cli.main(["run", "x", "speech=a.wav", "-o", str(tmp_path / "out")]) == 0
-
-    written = tmp_path / "out" / "audio.wav"
-    assert capsys.readouterr().out.strip() == str(written)
-    data, rate = soundfile.read(written)
-    assert rate == 8000 and len(data) == 800
-
-
-def test_run_reports_a_value_the_model_refuses(monkeypatch, capsys):
-    _declared_model(monkeypatch)
-
-    def refuse(self, *args, **prompt):
-        raise ValueError("language 'xx': this model has no <xx>")
-
-    monkeypatch.setattr(_Declared, "__call__", refuse)
-
-    assert cli.main(["run", "x", "speech=a.wav", "language=xx"]) == 1
-    assert "this model has no <xx>" in capsys.readouterr().err
-
-
-def test_run_takes_an_input_after_an_option_and_other_commands_do_not(
-    monkeypatch, capsys
-):
-    model = _declared_model(monkeypatch)
-
-    # an input after an option is left over by argparse on every Python; an
-    # input list that was empty before the option is filled by 3.12.7+ itself
-    argv = ["run", "x", "speech=a.wav", "--system", "s2t", "language=jpn"]
-    assert cli.main(argv) == 0
-    assert model.calls == [{"speech": "a.wav", "language": "jpn"}]
-
-    with pytest.raises(SystemExit) as e:
-        cli.main(["models", "speech=a.wav"])
-    assert e.value.code == 2
-    assert "unrecognized arguments: speech=a.wav" in capsys.readouterr().err
-
-
-def test_run_reports_a_tag_load_cannot_serve(monkeypatch, capsys):
-    import espnet3.api.inference as api
-    from espnet2.utils.pretrained import ModelTagError
-
-    def load(tag, **kwargs):
-        raise ModelTagError(f"{tag} is not a pack_model bundle")
-
-    monkeypatch.setattr(api, "load", load)
-
-    assert cli.main(["run", "espnet/nope", "speech=a.wav"]) == 1
-    assert "not a pack_model bundle" in capsys.readouterr().err

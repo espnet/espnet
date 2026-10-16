@@ -85,7 +85,7 @@ def test_build_model_cpu(monkeypatch):
 
     import torch
 
-    import espnet3.api.inference.loading as provider_mod
+    import espnet3.systems.base.inference_provider as provider_mod
 
     monkeypatch.setattr(torch.cuda, "is_available", lambda: False)
 
@@ -107,7 +107,7 @@ def test_build_model_cuda_defaults_to_logical_device_zero(monkeypatch):
 
     import torch
 
-    import espnet3.api.inference.loading as provider_mod
+    import espnet3.systems.base.inference_provider as provider_mod
 
     monkeypatch.setattr(torch.cuda, "is_available", lambda: True)
     import torch
@@ -131,7 +131,7 @@ def test_build_model_cuda_uses_logical_device_index(monkeypatch):
 
     import torch
 
-    import espnet3.api.inference.loading as provider_mod
+    import espnet3.systems.base.inference_provider as provider_mod
 
     monkeypatch.setattr(torch.cuda, "is_available", lambda: True)
     import torch
@@ -155,7 +155,7 @@ def test_build_model_cuda_respects_explicit_device(monkeypatch):
 
     import torch
 
-    import espnet3.api.inference.loading as provider_mod
+    import espnet3.systems.base.inference_provider as provider_mod
 
     monkeypatch.setattr(torch.cuda, "is_available", lambda: True)
 
@@ -340,3 +340,100 @@ def test_inference_params_affect_runner_forward(tmp_path, flip, expected):
     scp_path = tmp_path / "test" / "hyp.scp"
     assert scp_path.exists()
     assert scp_path.read_text().strip() == f"utt1 {expected}"
+
+
+class NativeASRProvider(InferenceProvider):
+    @staticmethod
+    def build_dataset(config):
+        import numpy as np
+
+        return [
+            {"utt_id": f"u{i}", "speech": np.sin(np.arange(2000 + i * 160) / 20)}
+            for i in range(2)
+        ]
+
+
+# Builds a real ASR model and decodes it; the first run pays the import cost,
+# which exceeds the default 10-second execution timeout on CI.
+@pytest.mark.execution_timeout(60)
+@pytest.mark.parametrize("batch_size", [None, 2])
+def test_native_asr_recipe_writes_the_backends_text(tmp_path, batch_size):
+    """Exercise model construction, native decoding, formatting and SCP writing."""
+    from espnet2.tasks.asr import ASRTask
+    from espnet3.parallel.parallel import set_parallel
+
+    tokens = tmp_path / "tokens.txt"
+    tokens.write_text("<blank>\n<unk>\na\nb\n<sos/eos>\n", encoding="utf-8")
+    ASRTask.main(
+        cmd=[
+            "--dry_run",
+            "true",
+            "--output_dir",
+            str(tmp_path / "train"),
+            "--token_list",
+            str(tokens),
+            "--token_type",
+            "char",
+            "--encoder",
+            "transformer",
+            "--encoder_conf",
+            "{output_size: 8, attention_heads: 2, linear_units: 8, num_blocks: 1}",
+            "--decoder",
+            "transformer",
+            "--decoder_conf",
+            "{attention_heads: 2, linear_units: 8, num_blocks: 1}",
+        ]
+    )
+    overrides = OmegaConf.create(
+        {
+            "inference_dir": str(tmp_path / "decode"),
+            "dataset": {"test": [{"name": "test"}]},
+            "model": {
+                "asr_train_config": str(tmp_path / "train" / "config.yaml"),
+                "beam_size": 1,
+                "ctc_weight": 1.0,
+            },
+            "batch_size": batch_size,
+            "provider": {"_target_": f"{__name__}.NativeASRProvider"},
+            "runner": {
+                "_target_": "espnet3.systems.base.inference_runner.InferenceRunner"
+            },
+            "parallel": {"env": "local", "n_workers": 1},
+        }
+    )
+    from espnet3.utils.config_utils import load_default_config
+
+    config = OmegaConf.merge(
+        load_default_config("inference.yaml", "egs3.TEMPLATE.esp2_asr"), overrides
+    )
+    set_parallel(None)
+    model = NativeASRProvider.build_model(config)
+    expected = [
+        f"{item['utt_id']} {model(speech=item['speech'])[0][0] or ''}"
+        for item in NativeASRProvider.build_dataset(config)
+    ]
+    # Build another instance with identical initialized weights.
+    checkpoint = tmp_path / "model.pth"
+    import torch
+
+    torch.save(model.asr_model.state_dict(), checkpoint)
+    config.model.asr_model_file = str(checkpoint)
+    # The retained recipe demo builds the same native model from its archive.
+    from egs3.TEMPLATE.esp2_asr.src.app import build_model
+
+    pack = tmp_path / "model_pack"
+    (pack / "conf").mkdir(parents=True)
+    OmegaConf.save(config, pack / "conf" / "inference.yaml")
+    demo_model = build_model(
+        tmp_path, OmegaConf.create({"dir_or_tag": "model_pack", "device": "cpu"})
+    )
+    for item, expected_line in zip(NativeASRProvider.build_dataset(config), expected):
+        text = demo_model(speech=item["speech"])[0][0] or ""
+        assert f"{item['utt_id']} {text}" == expected_line
+    try:
+        infer(config)
+        assert (
+            tmp_path / "decode" / "test" / "text.scp"
+        ).read_text().splitlines() == expected
+    finally:
+        set_parallel(None)

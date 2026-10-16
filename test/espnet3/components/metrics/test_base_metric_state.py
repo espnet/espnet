@@ -1,12 +1,11 @@
 import pytest
 
-from espnet3.api.inference import Field
 from espnet3.components.metrics.base_metric import BaseMetric
 
 
 class Counter(BaseMetric):
-    inputs = (Field("ref", "text"),)
-    outputs = (Field("n", "number"),)
+    inputs = {"ref": str}
+    outputs = ("n",)
 
     def __init__(self):
         super().__init__()
@@ -85,8 +84,6 @@ def test_add_state_works_without_super_init():
 
 def test_a_metric_without_update_or_compute_cannot_be_built():
     class NoCompute(BaseMetric):
-        inputs = (Field("ref", "text"),)
-        outputs = (Field("n", "number"),)
 
         def update(self, *, ref):
             pass
@@ -97,8 +94,6 @@ def test_a_metric_without_update_or_compute_cannot_be_built():
 
 def test_a_metric_without_update_cannot_be_built():
     class NoUpdate(BaseMetric):
-        inputs = (Field("ref", "text"),)
-        outputs = (Field("n", "number"),)
 
         def compute(self):
             return {"n": 0}
@@ -108,8 +103,8 @@ def test_a_metric_without_update_cannot_be_built():
 
 
 class Scores(BaseMetric):
-    inputs = (Field("ref", "text"),)
-    outputs = (Field("mean", "number"),)
+    inputs = {"ref": str}
+    outputs = ("mean",)
 
     def __init__(self):
         super().__init__()
