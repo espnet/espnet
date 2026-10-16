@@ -1689,6 +1689,31 @@ class Speech2Text:
 
 
 @typechecked
+def _decode_long_result(
+    speech2text: Speech2Text,
+    speech: Union[torch.Tensor, np.ndarray],
+    lang_sym: Optional[str],
+    task_sym: Optional[str],
+    nbest: int,
+) -> ListOfHypothesis:
+    """Decode long-form audio via Speech2Text.decode_long and format results."""
+    long_utts = speech2text.decode_long(
+        speech=speech,
+        lang_sym=lang_sym,
+        task_sym=task_sym,
+    )
+    joined_text = " ".join(u[2] for u in long_utts if u[2])
+    if speech2text.tokenizer is not None:
+        token = speech2text.tokenizer.text2tokens(joined_text)
+        token_int = speech2text.converter.tokens2ids(token)
+    else:
+        token = []
+        token_int = []
+    hyp = Hypothesis(score=0.0, scores={}, states={}, yseq=[])
+    return [(joined_text, token, token_int, joined_text, hyp)] * nbest
+
+
+@typechecked
 def inference(
     output_dir: str,
     maxlenratio: float,
@@ -1731,6 +1756,16 @@ def inference(
     max_seq_len: int,
     max_mask_parallel: int,
 ):
+    """Run S2T inference on input data.
+
+    Utterances whose duration exceeds speech_length * fs are routed to
+    Speech2Text.decode_long(...) instead of being trimmed. Joined segment texts
+    are written to text and text_nospecial. For these long-form utterances:
+      - token / token_int: Tokenized sequence and token IDs of the joined text
+        if a tokenizer is available, otherwise empty lists.
+      - score: Set to 0.0 in the output Hypothesis, as decode_long returns
+        segmented text without a combined hypothesis sequence score.
+    """
     if word_lm_train_config is not None:
         raise NotImplementedError("Word LM is not implemented")
     if ngpu > 1:
@@ -1806,6 +1841,12 @@ def inference(
 
     # 7 .Start for-loop
     # FIXME(kamo): The output format should be discussed about
+    max_speech_samples = int(
+        speech2text.preprocessor_conf["fs"]
+        * speech2text.preprocessor_conf["speech_length"]
+    )
+    n_long_utt = 0
+
     with DatadirWriter(output_dir) as writer:
         for keys, batch in loader:
             assert isinstance(batch, dict), type(batch)
@@ -1815,8 +1856,49 @@ def inference(
 
             # One n-best list of
             # (text, token, token_int, text_nospecial, hyp_object) per key
+            lengths = batch.get("speech_lengths")
+            is_long = [
+                (
+                    int(lengths[b])
+                    if lengths is not None
+                    else batch["speech"][b].size(-1)
+                )
+                > max_speech_samples
+                for b in range(_bs)
+            ]
+
+            placeholder = [
+                [
+                    " ",
+                    ["<space>"],
+                    [2],
+                    " ",
+                    Hypothesis(score=0.0, scores={}, states={}, yseq=[]),
+                ]
+            ] * nbest
+
             try:
-                if batch_size > 1:
+                if any(is_long):
+                    batch_results = []
+                    for b, key in enumerate(keys):
+                        one = {k: v[b : b + 1] for k, v in batch.items()}
+                        if is_long[b]:
+                            n_long_utt += 1
+                            raw = batch["speech"][b]
+                            if lengths is not None:
+                                raw = raw[: int(lengths[b])]
+                            batch_results.append(
+                                _decode_long_result(
+                                    speech2text, raw, lang_sym, task_sym, nbest
+                                )
+                            )
+                        else:
+                            try:
+                                batch_results.append(speech2text.batch_decode(**one)[0])
+                            except TooShortUttError as one_e:
+                                logging.warning(f"Utterance {key} {one_e}")
+                                batch_results.append(placeholder)
+                elif batch_size > 1:
                     batch_results = speech2text.batch_decode(**batch)
                 else:
                     batch_results = [
@@ -1829,8 +1911,6 @@ def inference(
                         )
                     ]
             except TooShortUttError as e:
-                hyp = Hypothesis(score=0.0, scores={}, states={}, yseq=[])
-                placeholder = [[" ", ["<space>"], [2], " ", hyp]] * nbest
                 if _bs == 1:
                     logging.warning(f"Utterance {keys} {e}")
                     batch_results = [placeholder]
@@ -1878,6 +1958,8 @@ def inference(
                         ibest_writer[f"encoder_interctc_layer{idx}.txt"][key] = (
                             " ".join(text)
                         )
+
+    logging.info(f"Total utterances decoded via decode_long: {n_long_utt}")
 
 
 def get_parser():
