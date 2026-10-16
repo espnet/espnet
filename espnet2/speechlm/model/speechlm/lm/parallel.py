@@ -76,6 +76,11 @@ def build_parallel_hf_class(model_hf_tag):
                 pretrained_model_name_or_path: HF model path or identifier
                 multimodal_io: Dict of IO handlers for different modalities
                 vocab_meta: Dict with vocab, intervals, weights, and size info
+                is_train: False builds the base model from its config without
+                    loading its weights, for a caller that is about to load a
+                    checkpoint over the whole model - which inference always
+                    does, strictly - so the base weights would be overwritten
+                    before use (16 GB for Qwen3-8B-Base).
                 **kwargs: Additional HF model loading arguments
 
             Returns:
@@ -85,9 +90,21 @@ def build_parallel_hf_class(model_hf_tag):
             tie_word_embeddings = kwargs.pop("tie_word_embeddings", False)
             z_loss_weight = kwargs.pop("z_loss_weight", 0.0)
 
-            model = super(ParallelLLM, cls).from_pretrained(
-                pretrained_model_name_or_path, **kwargs
-            )
+            if is_train:
+                model = super(ParallelLLM, cls).from_pretrained(
+                    pretrained_model_name_or_path, **kwargs
+                )
+            else:
+                from transformers.initialization import no_init_weights
+
+                # Allocated but not initialised: every weight is about to be
+                # overwritten. Buffers - the rotary frequencies, which no
+                # checkpoint carries - are still computed as usual.
+                with no_init_weights():
+                    model = cls._from_config(
+                        AutoConfig.from_pretrained(pretrained_model_name_or_path),
+                        **kwargs,
+                    )
 
             model.z_loss_weight = z_loss_weight
 
