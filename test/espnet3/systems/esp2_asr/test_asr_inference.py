@@ -418,18 +418,27 @@ def test_native_asr_recipe_writes_the_backends_text(tmp_path, batch_size):
 
     torch.save(model.asr_model.state_dict(), checkpoint)
     config.model.asr_model_file = str(checkpoint)
-    # The retained recipe demo builds the same native model from its archive.
-    from egs3.TEMPLATE.esp2_asr.src.app import build_model
+    # The publication API should decode the packed model through the same
+    # inference config and output formatter as the recipe's infer stage.
+    from espnet3.publication import InferenceModel
 
     pack = tmp_path / "model_pack"
     (pack / "conf").mkdir(parents=True)
     OmegaConf.save(config, pack / "conf" / "inference.yaml")
-    demo_model = build_model(
-        tmp_path, OmegaConf.create({"dir_or_tag": "model_pack", "device": "cpu"})
+    OmegaConf.save(
+        OmegaConf.create(
+            {
+                "schema_version": 1,
+                "yaml_files": {"inference_config": "conf/inference.yaml"},
+            }
+        ),
+        pack / "meta.yaml",
     )
+    publication_model = InferenceModel.from_packed(pack, trust_user_code=True)
     for item, expected_line in zip(NativeASRProvider.build_dataset(config), expected):
-        text = demo_model(speech=item["speech"])[0][0] or ""
-        assert f"{item['utt_id']} {text}" == expected_line
+        result = publication_model(item, idx=item["utt_id"])
+        assert isinstance(result, dict)
+        assert f"{result['utt_id']} {result['text']}" == expected_line
     try:
         infer(config)
         assert (
