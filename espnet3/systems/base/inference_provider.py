@@ -16,6 +16,41 @@ logger = logging.getLogger(__name__)
 _LOGGED_ENV = False
 
 
+def _convert_relative_paths_to_absolute(obj: Any, seen: set | None = None) -> None:
+    """Resolve existing relative file paths held by a constructed model.
+
+    Model components can open tokenizer and configuration files lazily, after
+    the bundle-root working directory has been restored. Bind those paths while
+    the model is still being constructed from its packed configuration.
+    """
+    if seen is None:
+        seen = set()
+    oid = id(obj)
+    if oid in seen:
+        return
+    seen.add(oid)
+    obj_vars = getattr(obj, "__dict__", None)
+    if not obj_vars:
+        return
+    for attr, val in list(obj_vars.items()):
+        if isinstance(val, str):
+            if not os.path.isabs(val):
+                candidate = os.path.abspath(val)
+                if os.path.isfile(candidate):
+                    try:
+                        setattr(obj, attr, candidate)
+                    except (AttributeError, TypeError):
+                        pass
+        elif isinstance(val, dict):
+            for value in val.values():
+                _convert_relative_paths_to_absolute(value, seen)
+        elif isinstance(val, (list, tuple)):
+            for value in val:
+                _convert_relative_paths_to_absolute(value, seen)
+        elif not isinstance(val, (int, float, bool, bytes, type(None))):
+            _convert_relative_paths_to_absolute(val, seen)
+
+
 class InferenceProvider(EnvironmentProvider, ABC):
     """EnvironmentProvider specialized for dataset/model inference setup.
 
@@ -187,6 +222,16 @@ class InferenceProvider(EnvironmentProvider, ABC):
             os.getenv("CUDA_VISIBLE_DEVICES"),
             torch.cuda.device_count() if torch.cuda.is_available() else 0,
         )
+        recipe_dir = getattr(config, "recipe_dir", None)
+        if recipe_dir:
+            cwd = os.getcwd()
+            os.chdir(str(recipe_dir))
+            try:
+                model = instantiate(config.model, device=device)
+                _convert_relative_paths_to_absolute(model)
+                return model
+            finally:
+                os.chdir(cwd)
         return instantiate(config.model, device=device)
 
     @staticmethod
