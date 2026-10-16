@@ -27,7 +27,7 @@ def build_demo(
         demo_config_path,
     )
 
-    def decode(**values):
+    def decode(values, **kwargs):
         return {"text": f"speech={int(values.get('speech') is not None)}"}
 
     session = load_demo_session(demo_dir, demo_config_path, model=decode)

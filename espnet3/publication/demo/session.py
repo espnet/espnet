@@ -37,7 +37,7 @@ class DemoSession:
     Args:
         demo_dir: Packed demo directory.
         demo_cfg: Loaded packed demo config.
-        model: Loaded inference model.
+        model: Callable inference model or recipe-specific model override.
         registry: Asset registry for this demo session.
     """
 
@@ -45,7 +45,7 @@ class DemoSession:
         self,
         demo_dir: Path,
         demo_cfg: DictConfig,
-        model: InferenceModel,
+        model: Any,
         registry: UIAssetRegistry,
     ) -> None:
         """Initialize from already-loaded demo config, model, and registry."""
@@ -170,6 +170,7 @@ class DemoSession:
 def load_demo_session(
     demo_dir: str | Path,
     demo_config_path: str | Path,
+    model: Any | None = None,
 ) -> DemoSession:
     """Load a packed demo into a runtime session.
 
@@ -177,6 +178,8 @@ def load_demo_session(
         demo_dir: Packed demo directory.
         demo_config_path: Explicit packed demo config path. Relative paths are
             resolved from ``demo_dir``.
+        model: Optional callable model override, useful for recipe-specific
+            inference logic. When omitted, the packed inference model is loaded.
     Returns:
         DemoSession: Loaded runtime session for the packed demo.
 
@@ -202,7 +205,8 @@ def load_demo_session(
     )
     demo_cfg = load_config_with_defaults(str(config_path))
     logger.info("Loaded demo config | path=%s", config_path)
-    model = _build_demo_model(demo_cfg, demo_root)
+    if model is None:
+        model = _build_demo_model(demo_cfg, demo_root)
     registry = DEFAULT_UI_ASSETS.clone()
     logger.info(
         "Demo session ready | input_key=%s title=%s",
