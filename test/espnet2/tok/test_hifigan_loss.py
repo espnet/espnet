@@ -85,7 +85,8 @@ def test_synthesize():
 
     condition = loss_module._prepare_condition(tokenizer_output, spembs)
     token_features = torch.matmul(
-        tokenizer_output.assignment.detach(), loss_module.embedding.embed.weight.detach()
+        tokenizer_output.assignment.detach(),
+        loss_module.embedding.embed.weight.detach(),
     )
     expected_condition = torch.cat(
         [token_features, spembs.unsqueeze(1).expand(-1, 5, -1)], dim=-1

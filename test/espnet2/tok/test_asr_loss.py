@@ -2,8 +2,8 @@ import pytest
 import torch
 
 from espnet2.tok.asr_loss import ASRLoss
-from espnet2.tok.token_embedding import TokenEmbedding
 from espnet2.tok.output import SpeechTokenizerOutput
+from espnet2.tok.token_embedding import TokenEmbedding
 
 
 class DummyASRModel(torch.nn.Module):

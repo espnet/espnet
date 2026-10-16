@@ -127,9 +127,7 @@ class HiFiGANReconstructionLoss(torch.nn.Module):
         self.lambda_feat_match = lambda_feat_match
         self.lambda_mel = lambda_mel
         self.cache_generator_outputs = cache_generator_outputs
-        self._cache: Optional[
-            Tuple[torch.Tensor, torch.Tensor, torch.Tensor]
-        ] = None
+        self._cache: Optional[Tuple[torch.Tensor, torch.Tensor, torch.Tensor]] = None
 
     @property
     def is_adversarial(self) -> bool:
