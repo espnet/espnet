@@ -14,8 +14,10 @@ Models: espnet/bagpiper-sft does both directions, espnet/bagpiper-tts-sft is
 the speech-focused one (BAGPIPER_MODEL_TAG switches). Either is an 8B model
 with an audio encoder and a codec attached; BAGPIPER_URL points the page at
 one that is already served instead of loading it here. The ESPnet vLLM fork
-renders audio only with espnet/bagpiper-tts-sft, so a served page is that
-model's, whatever BAGPIPER_MODEL_TAG says.
+documents audio generation with espnet/bagpiper-tts-sft, so deploy that
+checkpoint for served rendering: BAGPIPER_URL connects to the deployment and
+cannot select or replace its checkpoint, and BAGPIPER_MODEL_TAG affects
+local loading only.
 """
 
 # The ZeroGPU package patches torch as it is imported, so it has to come

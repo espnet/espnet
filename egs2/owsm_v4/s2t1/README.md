@@ -88,7 +88,7 @@ Finally, we convert the filtered data into Kaldi format using `local/convert_to_
 The [ESPnet vLLM fork](https://github.com/espnet/vllm) runs encoder-decoder OWSM with ESPnet's own frontend and encoder and a vLLM decoder with paged KV caches. Export a native checkpoint and run it by following the fork's [OWSM guide](https://github.com/espnet/vllm/blob/main/examples/espnet/OWSM.md). Before you use it, note these limits from that guide:
 
 - **Checkpoints.** The fork checks nine public checkpoints on H100 in float32 with `TRITON_ATTN`: v1, v2, v2 E-Branchformer, v3, v3.1 E-Branchformer small, v3.2, and v4 base/small/medium. BF16 with FlashAttention has not matched native tokens and log-probabilities. CTC-based OWSM is a different architecture, and the fork rejects it.
-- **Decoding.** The fork samples the autoregressive decoder. It does not implement ESPnet's hybrid CTC/attention beam search, language-model fusion, timestamp pairing, or long-form segmentation, so its transcripts are not the native `Speech2Text` output. Keep native ESPnet for the results reported above.
+- **Decoding.** The fork supports greedy autoregressive decoding and sampling, but it does not implement hybrid CTC/attention beam search, external language-model fusion, timestamp pairing filters, or long-form segmentation. It is therefore not a drop-in replacement for every native decoding configuration. Its reported greedy-token agreement under the validated settings does not establish equivalence to the decoding settings used for the results above.
 - **Input length.** By default, clips are padded to the 30-second training window, and longer clips are rejected. Split long recordings first.
 
 
