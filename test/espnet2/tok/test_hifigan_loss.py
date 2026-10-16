@@ -1,8 +1,6 @@
 import torch
 
-from espnet2.tok.objective.reconstruction.hifigan import (
-    HiFiGANReconstructionObjective,
-)
+from espnet2.tok.hifigan_loss import HiFiGANReconstructionLoss
 from espnet2.tok.output import SpeechTokenizerOutput
 
 TINY_GENERATOR_PARAMS = {
@@ -49,7 +47,7 @@ TINY_DISCRIMINATOR_PARAMS = {
 
 
 def make_objective(cache_generator_outputs=True):
-    return HiFiGANReconstructionObjective(
+    return HiFiGANReconstructionLoss(
         num_tokens=4,
         token_embed_dim=3,
         speaker_embed_dim=2,

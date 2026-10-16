@@ -1,7 +1,7 @@
 import pytest
 import torch
 
-from espnet2.tok.modules.token_embedding import TokenEmbedding
+from espnet2.tok.token_embedding import TokenEmbedding
 
 
 def test_token_ids_and_one_hot_have_identical_outputs():

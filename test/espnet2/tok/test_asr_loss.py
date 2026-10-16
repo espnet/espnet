@@ -1,8 +1,8 @@
 import pytest
 import torch
 
-from espnet2.tok.modules.token_embedding import TokenEmbedding
-from espnet2.tok.objective.asr import ASRObjective
+from espnet2.tok.asr_loss import ASRLoss
+from espnet2.tok.token_embedding import TokenEmbedding
 from espnet2.tok.output import SpeechTokenizerOutput
 
 
@@ -36,7 +36,7 @@ def make_tokenizer_output(assignment):
 def test_forward_embeds_assignments_and_preserves_gradient():
     asr_model = DummyASRModel()
     embedding = TokenEmbedding(4, 3, use_positional_encoding=False)
-    objective = ASRObjective(asr_model, embedding)
+    objective = ASRLoss(asr_model, embedding)
     assignment = torch.nn.functional.one_hot(
         torch.tensor([[0, 2], [1, 3]]), num_classes=4
     ).float()
@@ -61,7 +61,7 @@ def test_forward_embeds_assignments_and_preserves_gradient():
 def test_encode_uses_the_same_embedding():
     asr_model = DummyASRModel()
     embedding = TokenEmbedding(4, 3, use_positional_encoding=False)
-    objective = ASRObjective(asr_model, embedding)
+    objective = ASRLoss(asr_model, embedding)
     assignment = torch.nn.functional.one_hot(
         torch.tensor([[0, 2]]), num_classes=4
     ).float()
@@ -75,7 +75,7 @@ def test_encode_uses_the_same_embedding():
 
 def test_rejects_asr_model_with_an_existing_frontend():
     with pytest.raises(ValueError, match="frontend=None"):
-        ASRObjective(
+        ASRLoss(
             DummyASRModel(frontend=torch.nn.Identity()),
             TokenEmbedding(4, 4),
         )

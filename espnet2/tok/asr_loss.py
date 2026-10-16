@@ -1,18 +1,15 @@
-"""ASR objective for speech-tokenizer training."""
+"""ASR loss for speech-tokenizer training."""
 
 from typing import Dict, Optional, Tuple
 
 import torch
 
 from espnet2.asr.espnet_model import ESPnetASRModel
-from espnet2.tok.modules.token_embedding import TokenEmbedding
-from espnet2.tok.objective.abs_objective import (
-    AbsSpeechTokenizerObjective,
-)
 from espnet2.tok.output import SpeechTokenizerOutput
+from espnet2.tok.token_embedding import TokenEmbedding
 
 
-class ASRObjective(AbsSpeechTokenizerObjective):
+class ASRLoss(torch.nn.Module):
     """Apply an ESPnet ASR model to embedded differentiable speech tokens.
 
     This objective will reuse the joint CTC/attention ASR components while
@@ -37,8 +34,8 @@ class ASRObjective(AbsSpeechTokenizerObjective):
         super().__init__()
         if getattr(asr_model, "frontend", None) is not None:
             raise ValueError(
-                "ASRObjective expects an ESPnetASRModel built with frontend=None; "
-                "the objective owns its TokenEmbedding frontend"
+                "ASRLoss expects an ESPnetASRModel built with frontend=None; "
+                "the loss owns its TokenEmbedding frontend"
             )
         self.asr_model = asr_model
         self.embedding = embedding

@@ -1,4 +1,4 @@
-"""HiFi-GAN waveform reconstruction for speech-tokenizer training."""
+"""HiFi-GAN waveform reconstruction loss for speech-tokenizer training."""
 
 from typing import Any, Dict, Optional, Tuple
 
@@ -16,15 +16,12 @@ from espnet2.gan_tts.hifigan.loss import (
     MelSpectrogramLoss,
 )
 from espnet2.gan_tts.utils import get_random_segments, get_segments
-from espnet2.tok.modules.token_embedding import TokenEmbedding
-from espnet2.tok.objective.reconstruction.abs_reconstruction import (
-    AbsReconstructionObjective,
-)
 from espnet2.tok.output import SpeechTokenizerOutput
+from espnet2.tok.token_embedding import TokenEmbedding
 from espnet2.torch_utils.device_funcs import force_gatherable
 
 
-class HiFiGANReconstructionObjective(AbsReconstructionObjective):
+class HiFiGANReconstructionLoss(torch.nn.Module):
     """Reconstruct speech from differentiable tokens with HiFi-GAN.
 
     The objective will own its token embedding, speaker-conditioned generator,
