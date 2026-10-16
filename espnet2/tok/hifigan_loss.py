@@ -32,6 +32,11 @@ class HiFiGANReconstructionLoss(torch.nn.Module):
     embedding before the standard ESPnet HiFi-GAN generator.  Generator,
     discriminator, and mel-loss parameters are supplied by the recipe so that
     sampling-rate and frontend-specific settings remain in the configuration.
+
+    When generator outputs are cached during training, call forward() followed
+    by forward_discriminator() with the same speech tensor.
+    The cache is single-use, and an invalid call order or a different batch
+    raises an error instead of silently reusing stale generated waveforms.
     """
 
     def __init__(
@@ -122,7 +127,9 @@ class HiFiGANReconstructionLoss(torch.nn.Module):
         self.lambda_feat_match = lambda_feat_match
         self.lambda_mel = lambda_mel
         self.cache_generator_outputs = cache_generator_outputs
-        self._cache: Optional[Tuple[torch.Tensor, torch.Tensor]] = None
+        self._cache: Optional[
+            Tuple[torch.Tensor, torch.Tensor, torch.Tensor]
+        ] = None
 
     @property
     def is_adversarial(self) -> bool:
@@ -222,7 +229,13 @@ class HiFiGANReconstructionLoss(torch.nn.Module):
             tokenizer_output, speech, spembs
         )
         if self.training and self.cache_generator_outputs:
-            self._cache = (speech_hat.detach(), speech_real.detach())
+            if self._cache is not None:
+                raise RuntimeError(
+                    "Generator outputs are already cached. Call "
+                    "forward_discriminator with the same batch before the next "
+                    "generator forward."
+                )
+            self._cache = (speech_hat.detach(), speech_real.detach(), speech)
 
         fake_outputs = self.discriminator(speech_hat)
         with torch.no_grad():
@@ -253,7 +266,14 @@ class HiFiGANReconstructionLoss(torch.nn.Module):
     ) -> Tuple[torch.Tensor, Dict[str, torch.Tensor], torch.Tensor]:
         """Compute discriminator loss, reusing cached generated waveform."""
         if self.cache_generator_outputs and self._cache is not None:
-            speech_hat, speech_real = self._cache
+            speech_hat, speech_real, cached_speech = self._cache
+            self._cache = None
+            if cached_speech is not speech:
+                raise RuntimeError(
+                    "The cached generator outputs belong to a different speech "
+                    "tensor. Call forward and forward_discriminator consecutively "
+                    "with the same batch."
+                )
         else:
             if tokenizer_output is None:
                 raise RuntimeError(

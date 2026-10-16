@@ -1,3 +1,4 @@
+import pytest
 import torch
 
 from espnet2.tok.hifigan_loss import HiFiGANReconstructionLoss
@@ -116,3 +117,29 @@ def test_generator_and_discriminator_losses_with_cache():
     assert any(p.grad is not None for p in objective.discriminator.parameters())
     assert all(p.grad is None for p in objective.generator.parameters())
     assert all(p.grad is None for p in objective.embedding.parameters())
+
+
+def test_generator_cache_rejects_second_generator_forward():
+    objective = make_objective()
+    tokenizer_output = make_tokenizer_output()
+    speech = torch.randn(1, 10)
+    spembs = torch.randn(1, 2)
+
+    objective(tokenizer_output, speech, spembs)
+
+    with pytest.raises(RuntimeError, match="already cached"):
+        objective(tokenizer_output, speech, spembs)
+
+
+def test_generator_cache_rejects_different_discriminator_batch():
+    objective = make_objective()
+    tokenizer_output = make_tokenizer_output()
+    speech = torch.randn(1, 10)
+    different_speech = torch.randn(1, 10)
+    spembs = torch.randn(1, 2)
+
+    objective(tokenizer_output, speech, spembs)
+
+    with pytest.raises(RuntimeError, match="different speech tensor"):
+        objective.forward_discriminator(tokenizer_output, different_speech, spembs)
+    assert objective._cache is None
