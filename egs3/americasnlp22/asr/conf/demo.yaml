@@ -1,0 +1,21 @@
+##########################################################
+#                      DEMO SETTING                      #
+##########################################################
+# Quick usage:
+#   python run.py --stages pack_demo   --demo_config conf/demo.yaml
+#   python run.py --stages upload_demo --demo_config conf/demo.yaml
+#
+# Assumptions:
+# - `pack_model` has already created the model pack referenced by
+#   `model.dir_or_tag`, or that field points to a Hugging Face model repo.
+# - `ui.app_script` points to the Gradio launcher copied into the packed demo.
+
+##########################################################
+#                    MODEL REFERENCE                     #
+##########################################################
+# `dir_or_tag` can point to:
+# - a local packed model directory created by `pack_model`
+# - a Hugging Face model repo tag usable by `InferenceModel.from_pretrained()`
+# Relative local paths are resolved from the packed demo directory at runtime.
+model:
+  trust_user_code: true
