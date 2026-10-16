@@ -436,6 +436,56 @@ def test_metric_to_float_rejects_unsupported_type():
         _metric_to_float({"loss": 1.0})
 
 
+@pytest.mark.parametrize("max_epochs", [1, 2])
+def test_average_includes_final_checkpoint_after_fit(tmp_path, max_epochs):
+    """Lightning runs ModelCheckpoint after ordinary validation callbacks."""
+    import lightning as L
+    from torch.utils.data import DataLoader, TensorDataset
+
+    class TinyModel(L.LightningModule):
+        def __init__(self):
+            super().__init__()
+            self.weight = torch.nn.Parameter(torch.tensor(1.0))
+
+        def training_step(self, batch, batch_idx):
+            return self.weight.square()
+
+        def validation_step(self, batch, batch_idx):
+            self.log("valid/loss", self.weight.square())
+
+        def configure_optimizers(self):
+            return torch.optim.SGD(self.parameters(), lr=0.1)
+
+    checkpoint = ModelCheckpoint(
+        dirpath=tmp_path,
+        monitor="valid/loss",
+        save_top_k=2,
+        save_on_train_epoch_end=False,
+    )
+    average = AverageCheckpointsCallback(str(tmp_path), [checkpoint])
+    trainer = L.Trainer(
+        accelerator="cpu",
+        devices=1,
+        max_epochs=max_epochs,
+        logger=False,
+        enable_progress_bar=False,
+        enable_model_summary=False,
+        num_sanity_val_steps=0,
+        callbacks=[checkpoint, average],
+    )
+    data = DataLoader(TensorDataset(torch.ones(1)), batch_size=1)
+    trainer.fit(TinyModel(), data, data)
+    saved = torch.load(
+        tmp_path / f"valid.loss.ave_{max_epochs}best.pth", weights_only=True
+    )
+    values = [
+        torch.load(p, weights_only=True)["state_dict"]["weight"]
+        for p in checkpoint.best_k_models
+    ]
+    assert len(values) == max_epochs
+    assert torch.allclose(saved["weight"], torch.stack(values).mean(0))
+
+
 # ---------------------------------------------------------------
 # trainer-callbacks#07: end-to-end coverage with a real Lightning run
 # ---------------------------------------------------------------
@@ -487,7 +537,7 @@ def _patch_tiny_dataset(monkeypatch):
 
 @pytest.mark.execution_timeout(60)
 def test_default_callbacks_e2e_produces_real_best_and_averaged_checkpoints(
-    tmp_path, _patch_tiny_dataset, monkeypatch
+    tmp_path, _patch_tiny_dataset
 ):
     """Drive 3 real training epochs through get_default_callbacks() and CSVLogger.
 
@@ -497,25 +547,20 @@ def test_default_callbacks_e2e_produces_real_best_and_averaged_checkpoints(
     torch.load/save mocked out, so a real Lightning run was never exercised.
     This test trains a tiny real model for 3 epochs and asserts:
     (1) the top-2 best checkpoints and the averaged ``.pth`` both exist,
-    (2) the averaged weights equal the real mean of whichever 2 checkpoints
-        were actually used for the last averaging pass (no mocking), and
+    (2) the averaged weights equal the real mean of the final top-2
+        checkpoints (no mocking), and
     (3) get_default_callbacks()'s returned list matches its documented order
         contract.
 
-    Discovered while writing this test: Lightning's CallbackConnector moves
-    every ``ModelCheckpoint`` to the *end* of the runtime callback list
-    regardless of the order passed to ``Trainer(callbacks=...)``, so
-    ``AverageCheckpointsCallback.on_validation_end`` always runs with the
-    *previous* epoch's ``best_k_models`` (ModelCheckpoint for the current
-    epoch has not saved yet). The averaged ``.pth`` is therefore always one
-    epoch stale relative to the freshest checkpoint. This does not corrupt
-    the average (it is still a real mean of 2 real top-k checkpoints), but it
-    means "the current epoch's checkpoint" and "what got averaged" can
-    diverge by one epoch -- worth being aware of when comparing average vs.
-    best-checkpoint metrics. Assertion (3) below therefore checks the
-    *construction-time* order contract from ``get_default_callbacks()``
-    itself, not runtime ``trainer.callbacks`` order, since the latter is
-    reshuffled by Lightning, not by ESPnet3.
+    Lightning's CallbackConnector moves every ``ModelCheckpoint`` to the
+    *end* of the runtime callback list regardless of the order passed to
+    ``Trainer(callbacks=...)``, so ``AverageCheckpointsCallback.on_validation_end``
+    runs with the *previous* epoch's ``best_k_models``. The callback therefore
+    averages once more in ``on_train_end``, after the last checkpoint is saved,
+    which assertion (2) checks. Assertion (3) checks the *construction-time*
+    order contract from ``get_default_callbacks()`` itself, not runtime
+    ``trainer.callbacks`` order, since the latter is reshuffled by Lightning,
+    not by ESPnet3.
 
     EMA-enabled verification is out of scope here (not wired into
     get_default_callbacks by default); see the finding's outlook.
@@ -565,30 +610,6 @@ def test_default_callbacks_e2e_produces_real_best_and_averaged_checkpoints(
         best_model_criterion=OmegaConf.create([["valid/loss", 2, "min"]]),
     )
 
-    # Record exactly which checkpoints were on hand each time
-    # AverageCheckpointsCallback actually ran, so assertion (2) below can
-    # compare against the real inputs to the *last* averaging pass rather
-    # than assuming it matches the final (post-training) best_k_models.
-    # Checkpoints get evicted by later top-k pruning, so load their tensors
-    # now (while the files still exist) rather than storing paths to load
-    # after training completes.
-    seen_checkpoint_states = []
-    original_on_validation_end = AverageCheckpointsCallback.on_validation_end
-
-    def _recording_on_validation_end(self, trainer, pl_module):
-        for ckpt_callback in self.best_ckpt_callbacks:
-            seen_checkpoint_states.append(
-                [
-                    torch.load(p, map_location="cpu", weights_only=False)["state_dict"]
-                    for p in ckpt_callback.best_k_models
-                ]
-            )
-        return original_on_validation_end(self, trainer, pl_module)
-
-    monkeypatch.setattr(
-        AverageCheckpointsCallback, "on_validation_end", _recording_on_validation_end
-    )
-
     wrapper.fit()
 
     callbacks = wrapper.trainer.callbacks
@@ -602,9 +623,12 @@ def test_default_callbacks_e2e_produces_real_best_and_averaged_checkpoints(
     ave_path = exp_dir / "valid.loss.ave_2best.pth"
     assert ave_path.is_file()
 
-    # (2) the averaged weights are the real mean of whichever 2 checkpoints
-    # were actually on hand for the last averaging pass (see docstring).
-    real_states = seen_checkpoint_states[-1]
+    # (2) the averaged weights are the real mean of the final top-2
+    # checkpoints, including the last epoch's (see docstring).
+    real_states = [
+        torch.load(p, map_location="cpu", weights_only=False)["state_dict"]
+        for p in best_ckpt_callback.best_k_models
+    ]
     assert len(real_states) == 2
     # ESPnetLightningModule.state_dict() delegates directly to the wrapped
     # model's own state_dict(), so checkpoint keys are unprefixed ("linear.*",
