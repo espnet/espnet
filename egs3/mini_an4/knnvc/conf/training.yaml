@@ -1,0 +1,130 @@
+##########################################################
+#        kNN-VC smoke recipe on the mini_an4 corpus      #
+##########################################################
+# Exercises every kNN-VC stage on CPU in seconds, with no download. The
+# encoder is a stub standing in for WavLM (src/stub_encoder.py) and the
+# HiFi-GAN is deliberately tiny, so this recipe checks that the pipeline runs,
+# not that it converts voices. Use egs3/librispeech_100/knnvc for that.
+#
+#   python run.py --stages create_dataset prepare_features train infer \
+#       --training_config conf/training.yaml \
+#       --inference_config conf/inference.yaml
+
+create_dataset:
+  recipe_dir: ${recipe_dir}
+
+prepare_features:
+  features_dir: ${data_dir}/features
+  dataset:
+    - name: train
+      data_src_args:
+        kind: audio
+        recipe_dir: ${recipe_dir}
+  encoder:
+    _target_: src.stub_encoder.StubEncoder
+    output_dim: 32
+  prematch: true
+  topk: 2
+  device: cpu
+
+dataset:
+  train:
+    - data_src_args:
+        kind: vocoder
+        recipe_dir: ${recipe_dir}
+        features_dir: ${prepare_features.features_dir}
+        segment_frames: 8
+  valid:
+    - data_src_args:
+        kind: vocoder
+        recipe_dir: ${recipe_dir}
+        features_dir: ${prepare_features.features_dir}
+        segment_frames: 8
+
+model:
+  _target_: espnet3.systems.knnvc.vocoder.KNNVCVocoderModel
+  generator:
+    in_channels: 32
+    projection_channels: 8
+    channels: 16
+    kernel_size: 3
+    upsample_scales: [10, 8]
+    upsample_kernel_sizes: [20, 16]
+    resblock_kernel_sizes: [3]
+    resblock_dilations: [[1, 2]]
+  discriminator:
+    scales: 1
+    periods: [2, 3]
+    scale_discriminator_params:
+      in_channels: 1
+      out_channels: 1
+      kernel_sizes: [5, 3, 3, 3]
+      channels: 4
+      max_downsample_channels: 8
+      max_groups: 2
+      bias: true
+      downsample_scales: [2, 1]
+      nonlinear_activation: LeakyReLU
+      nonlinear_activation_params: {negative_slope: 0.1}
+    period_discriminator_params:
+      in_channels: 1
+      out_channels: 1
+      kernel_sizes: [5, 3]
+      channels: 4
+      downsample_scales: [3, 1]
+      max_downsample_channels: 8
+      bias: true
+      nonlinear_activation: LeakyReLU
+      nonlinear_activation_params: {negative_slope: 0.1}
+      use_weight_norm: true
+      use_spectral_norm: false
+  mel:
+    fs: 16000
+    n_fft: 128
+    hop_length: 80
+    win_length: 128
+    n_mels: 8
+    fmin: 0
+    fmax: 8000
+
+optimizers:
+  generator:
+    optimizer:
+      _target_: torch.optim.AdamW
+      lr: 2.0e-4
+      betas: [0.8, 0.99]
+    params: generator
+  discriminator:
+    optimizer:
+      _target_: torch.optim.AdamW
+      lr: 2.0e-4
+      betas: [0.8, 0.99]
+    params: discriminator
+
+schedulers:
+  generator:
+    scheduler:
+      _target_: torch.optim.lr_scheduler.ExponentialLR
+      gamma: 0.999
+    interval: epoch
+  discriminator:
+    scheduler:
+      _target_: torch.optim.lr_scheduler.ExponentialLR
+      gamma: 0.999
+    interval: epoch
+
+dataloader:
+  train:
+    batch_size: 2
+    num_workers: 0
+  valid:
+    batch_size: 1
+    num_workers: 0
+
+trainer:
+  accelerator: cpu
+  devices: 1
+  max_epochs: 1
+  limit_train_batches: 2
+  limit_val_batches: 1
+  log_every_n_steps: 1

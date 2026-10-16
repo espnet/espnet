@@ -1,0 +1,174 @@
+##########################################################
+#                    TRAINING SETTING                    #
+##########################################################
+# Quick usage:
+#   python run.py --stages create_dataset   --training_config conf/training.yaml
+#   python run.py --stages prepare_features --training_config conf/training.yaml
+#   python run.py --stages train            --training_config conf/training.yaml
+#
+# Shared default merged under every VC recipe's training config (see
+# `load_and_merge_config` in `run.py`). Only task-family scaffolding lives
+# here; the encoder checkpoint, dataset entries and model block are left for
+# the recipe config to fill in.
+#
+# Main stages and what this config is used for:
+# - `create_dataset`:    uses `dataset` (dataset references -> DatasetBuilder)
+# - `prepare_features`:  uses `prepare_features` and `parallel`
+# - `train`:             uses `dataset`, `dataloader`, `model`, `optimizers`,
+#                        `schedulers`, `trainer`
+
+##########################################################
+#                  SYSTEM AND PATH SETTING               #
+##########################################################
+num_device: 1
+num_nodes: 1
+
+# VC models are plain Hydra targets; no espnet2 task bridge is used.
+task:
+
+recipe_dir: .
+data_dir: ${recipe_dir}/data
+exp_tag: ${self_name:}
+exp_dir: ${recipe_dir}/exp/${exp_tag}
+# No `stats_dir`: VC has no `collect_stats` stage, and the dataloader batches
+# fixed-length segments instead of using espnet2 shape files. No
+# `inference_dir` either: that key belongs to the inference config, which is
+# where `run.py` reads it from.
+
+# Frozen encoder checkpoint shared by `prepare_features` (training config) and
+# the `infer` model. The same two keys are repeated in `inference.yaml`:
+# `run.py` only propagates `exp_tag`/`exp_dir` out of the training config, so
+# an inference run cannot read them from here. Set `wavlm_checkpoint` to a
+# local copy to avoid the download.
+wavlm_checkpoint: https://github.com/bshall/knn-vc/releases/download/v0.1/WavLM-Large.pt
+wavlm_layer: 6
+
+##########################################################
+#                 DATASET CREATION SETTING               #
+##########################################################
+# Keyword arguments forwarded to every `DatasetBuilder` method by the
+# `create_dataset` stage. `source_dir` optionally points at a corpus root
+# outside the recipe (`<recipe_dir>/download` and $LIBRISPEECH are checked
+# too).
+create_dataset:
+  recipe_dir: ${recipe_dir}
+  source_dir:
+
+##########################################################
+#                FEATURE PREPARATION SETTING             #
+##########################################################
+# Consumed by `KNNVCSystem.prepare_features` (the kNN-VC "prematching" step).
+# - `features_dir`: where `<feature_name>.npy` files and `feats.<name>.scp`
+#   manifests are written; point the vocoder dataset entries at the same path.
+# - `dataset`: list of dataset reference entries producing audio items. The
+#   recipe `Dataset` must implement `get_pool_key(idx)` (whose utterances
+#   prematch against each other) and `get_feature_name(idx)`.
+# - `encoder`: Hydra config of the frozen feature encoder.
+# - `prematch` / `topk`: kNN prematching of every utterance against the other
+#   utterances of its own pool (`Dataset.get_pool_key`).
+# - `device`: encoder device (null = CUDA when available).
+prepare_features:
+  features_dir: ${data_dir}/features
+  dataset:
+  encoder:
+  prematch: true
+  topk: 4
+  device:
+  batch_size:
+
+##########################################################
+#                    DATASET DEFINITION                  #
+##########################################################
+dataset:
+  _target_: espnet3.components.data.data_organizer.DataOrganizer
+  _recursive_: false
+  recipe_dir: ${recipe_dir}
+  train:
+  valid:
+  test:
+  preprocessor:
+
+##########################################################
+#                      MODEL SETTING                     #
+##########################################################
+model:
+
+##########################################################
+#            OPTIMIZER & SCHEDULER SETTING               #
+##########################################################
+# Vocoders are GANs: use the named multi-optimizer path. Names must match the
+# `OptimizationStep` names returned by the model (`generator`,
+# `discriminator`). Single-optimizer keys are left null on purpose.
+optimizer:
+scheduler:
+scheduler_interval:
+scheduler_monitor:
+
+optimizers:
+schedulers:
+
+##########################################################
+#                OTHER TRAINING SETTING                  #
+##########################################################
+best_model_criterion:
+  - - valid/mel_loss
+    - 3
+    - min
+
+seed: 1234
+init:
+
+##########################################################
+#                   PARALLELIZATION SETTING              #
+##########################################################
+# Used by `prepare_features`. `env: local` runs one shard on the driver.
+parallel:
+  env: local
+  n_workers: 1
+
+##########################################################
+#                   DATALOADER SETTING                   #
+##########################################################
+# Standard PyTorch DataLoaders (no espnet2 iter_factory): the recipe dataset
+# crops every training item to a fixed segment, so plain batching is enough.
+dataloader:
+  collate_fn:
+    _target_: espnet2.train.collate_fn.CommonCollateFn
+    int_pad_value: -1
+  train:
+    iter_factory:
+    batch_size: 16
+    shuffle: true
+    num_workers: 4
+    drop_last: true
+    pin_memory: true
+  valid:
+    iter_factory:
+    batch_size: 1
+    shuffle: false
+    num_workers: 1
+    drop_last: false
+
+##########################################################
+#                    TRAINER SETTING                     #
+##########################################################
+# These settings map to `lightning.Trainer(...)`. Do not set
+# `gradient_clip_val` here: clipping is per optimizer in the multi-optimizer
+# path.
+trainer:
+  accelerator: auto
+  devices: ${num_device}
+  num_nodes: ${num_nodes}
+  strategy: auto
+  max_epochs: 100
+  check_val_every_n_epoch: 1
+  log_every_n_steps: 100
+  logger:
+    - _target_: lightning.pytorch.loggers.TensorBoardLogger
+      save_dir: ${exp_dir}/tensorboard
+      name: tb_logger
+
+##########################################################
+#                      FIT SETTING                       #
+##########################################################
+fit: {}

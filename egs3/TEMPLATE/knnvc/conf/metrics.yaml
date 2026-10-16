@@ -1,0 +1,32 @@
+##########################################################
+#                 METRIC SCORING SETTING                 #
+##########################################################
+# Quick usage:
+#   python run.py --stages measure --metrics_config conf/metrics.yaml
+#
+# Shared default merged under every VC recipe's metrics config. The `infer`
+# stage writes `wav.scp` (converted audio), `ref.scp` (source transcript) and
+# `target_speaker.scp` per test set; plug metrics consuming those here, e.g. an
+# ASR-based WER or a speaker-verification EER.
+#
+# `ASRIntelligibility` transcribes the converted audio (`wav.scp`) and scores it
+# against the source transcript (`ref.scp`): the protocol behind the WER/CER the
+# kNN-VC authors report. Recipes inherit it; set `metrics:` in a recipe's own
+# metrics.yaml to score differently. `asr` is any tag
+# `Speech2Text.from_pretrained` accepts, and scores are only comparable across
+# systems scored by the same ASR. Set `device: cuda` to use a GPU.
+
+recipe_dir: .
+exp_tag:
+exp_dir: ${recipe_dir}/exp/${exp_tag}
+
+dataset:
+
+metrics:
+  - metric:
+      _target_: espnet3.systems.knnvc.metrics.intelligibility.ASRIntelligibility
+      asr: espnet/simpleoier_librispeech_asr_train_asr_conformer7_wavlm_large_raw_en_bpe5000_sp
+      device: cpu
+    inputs:
+      wav: wav
+      ref: ref
