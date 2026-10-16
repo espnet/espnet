@@ -77,11 +77,12 @@ def tiny_qwen3(tmp_path):
         architectures=["Qwen3ForCausalLM"],
     )
     torch.manual_seed(0)
-    transformers.Qwen3ForCausalLM(config).save_pretrained(tmp_path)
+    # saved in bfloat16, so the config records a dtype other than the default
+    transformers.Qwen3ForCausalLM(config).to(torch.bfloat16).save_pretrained(tmp_path)
     return str(tmp_path)
 
 
-def _build(path, is_train, monkeypatch):
+def _build(path, is_train, monkeypatch, **options):
     from espnet2.speechlm.model.speechlm.lm.parallel import build_parallel_hf_class
 
     cls = build_parallel_hf_class(path)
@@ -91,13 +92,13 @@ def _build(path, is_train, monkeypatch):
             raise AssertionError("loaded the base model's weights")
 
         monkeypatch.setattr(transformers.Qwen3ForCausalLM, "from_pretrained", refuse)
+    options = {"attn_implementation": "sdpa", "dtype": "float32", **options}
     return cls.from_pretrained(
         path,
         multimodal_io=nn.ModuleDict({"text": _TextIO()}),
         vocab_meta=_vocab_meta(),
         is_train=is_train,
-        attn_implementation="sdpa",
-        dtype="float32",
+        **options,
     )
 
 
@@ -150,3 +151,75 @@ def test_weights_loaded_over_the_inference_build_compute_the_same(
         expected = base.model(inputs_embeds=embeds).last_hidden_state
         actual = built.model(inputs_embeds=embeds).last_hidden_state
     torch.testing.assert_close(actual, expected)
+
+
+# ---------------------------------------------------------------------------
+# The options a model_conf can carry, which from_pretrained accepts
+# ---------------------------------------------------------------------------
+@pytest.mark.parametrize(
+    "options",
+    [
+        {"local_files_only": True},
+        {"revision": "main"},
+        {"local_files_only": True, "revision": "main", "cache_dir": None},
+        # weight-reading options have nothing to act on, and must not fail
+        {"low_cpu_mem_usage": True, "use_safetensors": True},
+    ],
+    ids=["local_files_only", "revision", "hub-options", "weight-options"],
+)
+def test_inference_build_takes_the_hub_options(tiny_qwen3, monkeypatch, options):
+    model = _build(tiny_qwen3, False, monkeypatch, **options)
+    assert not any(t.is_meta for t in model.parameters())
+
+
+def test_hub_options_reach_the_config(tiny_qwen3, monkeypatch):
+    """The config is read under the same revision and offline rules."""
+    seen = {}
+    original = transformers.AutoConfig.from_pretrained
+
+    def recording(*args, **kwargs):
+        seen.update(kwargs)
+        return original(*args, **kwargs)
+
+    monkeypatch.setattr(transformers.AutoConfig, "from_pretrained", recording)
+    from espnet2.speechlm.model.speechlm.lm import parallel
+
+    monkeypatch.setattr(parallel.AutoConfig, "from_pretrained", recording)
+    _build(tiny_qwen3, False, monkeypatch, local_files_only=True, revision="main")
+    assert seen["local_files_only"] is True
+    assert seen["revision"] == "main"
+
+
+@pytest.mark.parametrize(
+    "dtype_option",
+    [{"dtype": "auto"}, {"dtype": None}, {"torch_dtype": "auto"}],
+    ids=["auto", "unset", "torch_dtype-auto"],
+)
+def test_auto_dtype_is_the_one_from_pretrained_picks(
+    tiny_qwen3, monkeypatch, dtype_option
+):
+    """A dtype of "auto", or none at all, means the one the config records."""
+    expected = transformers.Qwen3ForCausalLM.from_pretrained(
+        tiny_qwen3, dtype="auto"
+    ).dtype
+    assert expected == torch.bfloat16  # what the fixture saved
+    options = {"dtype": None, **dtype_option}
+    if options["dtype"] is None:
+        options.pop("dtype")
+    from espnet2.speechlm.model.speechlm.lm.parallel import build_parallel_hf_class
+
+    cls = build_parallel_hf_class(tiny_qwen3)
+    monkeypatch.setattr(
+        transformers.Qwen3ForCausalLM,
+        "from_pretrained",
+        lambda *a, **k: pytest.fail("loaded the base model's weights"),
+    )
+    model = cls.from_pretrained(
+        tiny_qwen3,
+        multimodal_io=nn.ModuleDict({"text": _TextIO()}),
+        vocab_meta=_vocab_meta(),
+        is_train=False,
+        attn_implementation="sdpa",
+        **options,
+    )
+    assert model.model.layers[0].self_attn.q_proj.weight.dtype == expected

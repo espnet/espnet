@@ -27,6 +27,78 @@ def configure_moe_model(model):
     return model
 
 
+# `from_pretrained` options that say where the config comes from. The
+# config-only build reads the config, so these go to `AutoConfig`.
+_HUB_KWARGS = (
+    "cache_dir",
+    "code_revision",
+    "force_download",
+    "local_files_only",
+    "proxies",
+    "revision",
+    "subfolder",
+    "token",
+    "trust_remote_code",
+)
+# `from_pretrained` options about reading or placing the weights. The
+# config-only build reads none, and its caller moves the model afterwards.
+_WEIGHT_LOADING_KWARGS = (
+    "device_map",
+    "disable_mmap",
+    "ignore_mismatched_sizes",
+    "key_mapping",
+    "low_cpu_mem_usage",
+    "offload_folder",
+    "offload_state_dict",
+    "use_safetensors",
+    "variant",
+    "weights_only",
+)
+
+
+def _from_config_without_weights(cls, name_or_path, kwargs):
+    """Build `cls` as `from_pretrained` would, without reading its weights.
+
+    For inference, which loads a checkpoint strictly over the whole model
+    right after. Takes the same options `from_pretrained` does: the Hub ones
+    go to the config, the weight-reading ones have nothing to act on, the
+    dtype is resolved the same way ("auto" and no dtype both mean the one
+    the config records), and whatever is left overrides config attributes
+    exactly as `from_pretrained` lets it.
+    """
+    from transformers.initialization import no_init_weights
+
+    kwargs = dict(kwargs)
+    hub = {key: kwargs.pop(key) for key in _HUB_KWARGS if key in kwargs}
+    for key in _WEIGHT_LOADING_KWARGS:
+        kwargs.pop(key, None)
+    dtype = kwargs.pop("dtype", None)
+    torch_dtype = kwargs.pop("torch_dtype", None)
+    dtype = dtype if dtype is not None else torch_dtype
+    attn = {
+        key: kwargs.pop(key)
+        for key in ("attn_implementation", "experts_implementation")
+        if key in kwargs
+    }
+
+    config, unused = AutoConfig.from_pretrained(
+        name_or_path, return_unused_kwargs=True, **hub, **kwargs
+    )
+    if dtype is None or dtype == "auto":
+        # from_pretrained would fall back to the weights' own dtype when the
+        # config records none; reading weights is what this path avoids, so
+        # it takes torch's default instead. The strict load copies into
+        # whatever was allocated, and both inference entry points then cast
+        # the model to the dtype their decoding config asks for.
+        dtype = getattr(config, "dtype", None) or torch.get_default_dtype()
+
+    # Allocated but not initialised: every weight is about to be overwritten.
+    # Buffers - the rotary frequencies, which no checkpoint carries - are
+    # still computed as usual.
+    with no_init_weights():
+        return cls._from_config(config, dtype=dtype, **attn, **unused)
+
+
 def ParallelHFModel(model_hf_tag, **kwargs):
     """Factory function to create a parallel multimodal LLM from HuggingFace model.
 
@@ -95,16 +167,9 @@ def build_parallel_hf_class(model_hf_tag):
                     pretrained_model_name_or_path, **kwargs
                 )
             else:
-                from transformers.initialization import no_init_weights
-
-                # Allocated but not initialised: every weight is about to be
-                # overwritten. Buffers - the rotary frequencies, which no
-                # checkpoint carries - are still computed as usual.
-                with no_init_weights():
-                    model = cls._from_config(
-                        AutoConfig.from_pretrained(pretrained_model_name_or_path),
-                        **kwargs,
-                    )
+                model = _from_config_without_weights(
+                    cls, pretrained_model_name_or_path, kwargs
+                )
 
             model.z_loss_weight = z_loss_weight
 
