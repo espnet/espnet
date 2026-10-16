@@ -25,7 +25,7 @@ The model is [`espnet/bagpiper-sft`](https://huggingface.co/espnet/bagpiper-sft)
 Captions](https://arxiv.org/abs/2602.05220).
 [`espnet/bagpiper-tts-sft`](https://huggingface.co/espnet/bagpiper-tts-sft) is
 the speech-focused sibling — multi-talker, intent-to-speech, role-play,
-singing — and `BAGPIPER_MODEL_TAG` switches this Space to it.
+singing — and `BAGPIPER_MODEL_TAG` switches this page to it.
 
 ## Run it yourself
 
@@ -39,7 +39,14 @@ codec. Set `BAGPIPER_URL=http://127.0.0.1:9811/v1` to point the page at a
 model already served by the [ESPnet vLLM
 fork](https://github.com/espnet/vllm) instead of loading one here — the
 serving command is in
-[`egs2/bagpiper/speechlm1/README.md`](https://github.com/espnet/espnet/tree/master/egs2/bagpiper/speechlm1).
+[`egs2/bagpiper_tts/speechlm1/README.md`](https://github.com/espnet/espnet/tree/master/egs2/bagpiper_tts/speechlm1#vllm-serving).
+
+The fork serves `espnet/bagpiper-tts-sft`, not the general model: it
+documents audio output from `espnet/bagpiper-sft` as unsupported, because its
+decoder does not enforce the text-then-audio turn that checkpoint needs. So
+**Render through a server is the TTS model's**, and the description it takes
+is a spoken scene. To render with `espnet/bagpiper-sft` — music and
+environmental sound included — load it here instead.
 
 ## Elsewhere
 
@@ -62,10 +69,11 @@ So run it yourself, one of three ways:
 - **on a GPU** — `python app.py`, with `ESPNET_BAGPIPER_ATTN=sdpa` on
   anything before Hopper;
 - **against a served model** — `BAGPIPER_URL=http://127.0.0.1:9811/v1
-  python app.py`, which needs no GPU on this side. If what is served is
-  `espnet/bagpiper-tts-sft`, set `ESPNET_BAGPIPER_TTS_SYSTEM=` (empty): the
+  ESPNET_BAGPIPER_TTS_SYSTEM= python app.py`, which needs no GPU on this
+  side. What is served is `espnet/bagpiper-tts-sft`, the one checkpoint the
+  fork renders with, and `ESPNET_BAGPIPER_TTS_SYSTEM=` (empty) says so: the
   serving command calls every checkpoint `bagpiper`, and that one was
-  trained with no system turn;
+  trained with no system turn. `BAGPIPER_MODEL_TAG` does nothing here;
 - **from a cluster** — run it inside a batch job and forward the port:
   `ssh -L 7860:<node>:7860 <cluster>`, then open `localhost:7860`.
 
