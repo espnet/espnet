@@ -1,6 +1,6 @@
 """Embedding for token IDs and differentiable token distributions."""
 
-from typing import Optional, Tuple, Type
+from typing import Tuple, Type
 
 import torch
 from typeguard import typechecked
@@ -33,8 +33,6 @@ class TokenEmbedding(AbsFrontend):
         pos_enc_class: Positional-encoding class.  It must accept the embedding
             dimension and dropout rate as its first two arguments.
         positional_dropout_rate: Dropout rate used by positional encoding.
-        padding_idx: Optional padding index for integer token inputs.  A padded
-            distribution should instead be represented by an all-zero vector.
     """
 
     @typechecked
@@ -45,7 +43,6 @@ class TokenEmbedding(AbsFrontend):
         use_positional_encoding: bool = True,
         pos_enc_class: Type[torch.nn.Module] = PositionalEncoding,
         positional_dropout_rate: float = 0.1,
-        padding_idx: Optional[int] = None,
     ) -> None:
         super().__init__()
         if input_size <= 0:
@@ -57,15 +54,9 @@ class TokenEmbedding(AbsFrontend):
                 "positional_dropout_rate must be in [0, 1]: "
                 f"{positional_dropout_rate}"
             )
-        if padding_idx is not None and not -input_size <= padding_idx < input_size:
-            raise ValueError(
-                f"padding_idx must be in [-{input_size}, {input_size}): "
-                f"{padding_idx}"
-            )
-
         self.input_size = input_size
         self.embed_dim = embed_dim
-        self.embed = torch.nn.Embedding(input_size, embed_dim, padding_idx=padding_idx)
+        self.embed = torch.nn.Embedding(input_size, embed_dim)
         self.pos_enc = (
             pos_enc_class(embed_dim, positional_dropout_rate)
             if use_positional_encoding
@@ -79,7 +70,8 @@ class TokenEmbedding(AbsFrontend):
 
         Args:
             input: Integer token IDs of shape ``(B, T)`` or floating-point
-                token distributions of shape ``(B, T, K)``.
+                token distributions of shape ``(B, T, K)``.  Padded
+                distributions must be all-zero vectors.
             input_lengths: Valid lengths of shape ``(B,)``.
 
         Returns:

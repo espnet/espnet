@@ -47,7 +47,13 @@ TINY_DISCRIMINATOR_PARAMS = {
 }
 
 
-def make_objective(cache_generator_outputs=True):
+def make_objective(cache_generator_outputs=True, **kwargs):
+    loss_params = {
+        "use_feat_match_loss": False,
+        "use_mel_loss": False,
+        "cache_generator_outputs": cache_generator_outputs,
+    }
+    loss_params.update(kwargs)
     return HiFiGANReconstructionLoss(
         num_tokens=4,
         token_embed_dim=3,
@@ -55,9 +61,7 @@ def make_objective(cache_generator_outputs=True):
         segment_size=4,
         generator_params=TINY_GENERATOR_PARAMS,
         discriminator_params=TINY_DISCRIMINATOR_PARAMS,
-        use_feat_match_loss=False,
-        use_mel_loss=False,
-        cache_generator_outputs=cache_generator_outputs,
+        **loss_params,
     )
 
 
@@ -117,6 +121,43 @@ def test_generator_and_discriminator_losses_with_cache():
     assert any(p.grad is not None for p in objective.discriminator.parameters())
     assert all(p.grad is None for p in objective.generator.parameters())
     assert all(p.grad is None for p in objective.embedding.parameters())
+
+
+def test_generator_loss_with_auxiliary_losses():
+    objective = make_objective(
+        use_feat_match_loss=True,
+        use_mel_loss=True,
+        mel_loss_params={
+            "fs": 16000,
+            "n_fft": 4,
+            "hop_length": 1,
+            "win_length": 4,
+            "n_mels": 2,
+        },
+    )
+    tokenizer_output = make_tokenizer_output()
+    speech = torch.randn(1, 10)
+    spembs = torch.randn(1, 2)
+
+    loss, stats, _ = objective(tokenizer_output, speech, spembs)
+    speech_hat, speech_real, _ = objective._cache
+    fake_outputs = objective.discriminator(speech_hat)
+    real_outputs = objective.discriminator(speech_real)
+    expected_adv_loss = objective.generator_adv_loss(fake_outputs)
+    expected_feat_match_loss = 2.0 * objective.feat_match_loss(
+        fake_outputs, real_outputs
+    )
+    expected_mel_loss = 45.0 * objective.mel_loss(speech_hat, speech_real)
+
+    torch.testing.assert_close(stats["adv_loss"].squeeze(), expected_adv_loss)
+    torch.testing.assert_close(
+        stats["feat_match_loss"].squeeze(), expected_feat_match_loss
+    )
+    torch.testing.assert_close(stats["mel_loss"].squeeze(), expected_mel_loss)
+    torch.testing.assert_close(
+        loss.squeeze(),
+        expected_adv_loss + expected_feat_match_loss + expected_mel_loss,
+    )
 
 
 def test_generator_cache_rejects_second_generator_forward():

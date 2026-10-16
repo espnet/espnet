@@ -31,6 +31,25 @@ def test_distribution_path_propagates_gradient_to_assignments():
     assert module.embed.weight.grad is not None
 
 
+def test_zero_distribution_represents_padding():
+    module = TokenEmbedding(4, 3, use_positional_encoding=False)
+    assignments = torch.tensor(
+        [
+            [
+                [0.0, 1.0, 0.0, 0.0],
+                [0.0, 0.0, 1.0, 0.0],
+                [0.0, 0.0, 0.0, 0.0],
+            ]
+        ]
+    )
+
+    output, _ = module(assignments, torch.tensor([2]))
+
+    torch.testing.assert_close(output[0, 0], module.embed.weight[1])
+    torch.testing.assert_close(output[0, 1], module.embed.weight[2])
+    torch.testing.assert_close(output[0, 2], torch.zeros(3))
+
+
 @pytest.mark.parametrize(
     "input, lengths, message",
     [
