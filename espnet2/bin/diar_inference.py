@@ -18,11 +18,13 @@ from espnet2.enh.loss.criterions.time_domain import SISNRLoss
 from espnet2.enh.loss.wrappers.pit_solver import PITSolver
 from espnet2.fileio.npy_scp import NpyScpWriter
 from espnet2.fileio.sound_scp import SoundScpWriter
+from espnet2.legacy.utils.cli_utils import get_commandline_args
 from espnet2.tasks.diar import DiarizationTask
 from espnet2.tasks.enh_s2t import EnhS2TTask
 from espnet2.torch_utils.device_funcs import to_device
 from espnet2.torch_utils.set_all_random_seed import set_all_random_seed
 from espnet2.utils import config_argparse
+from espnet2.utils.pretrained import download_pretrained
 from espnet2.utils.types import (
     humanfriendly_parse_size_or_none,
     int_or_none,
@@ -30,7 +32,6 @@ from espnet2.utils.types import (
     str2triple_str,
     str_or_none,
 )
-from espnet.utils.cli_utils import get_commandline_args
 
 
 class DiarizeSpeech:
@@ -356,17 +357,7 @@ class DiarizeSpeech:
 
         """
         if model_tag is not None:
-            try:
-                from espnet_model_zoo.downloader import ModelDownloader
-
-            except ImportError:
-                logging.error(
-                    "`espnet_model_zoo` is not installed. "
-                    "Please install via `pip install -U espnet_model_zoo`."
-                )
-                raise
-            d = ModelDownloader()
-            kwargs.update(**d.download_and_unpack(model_tag))
+            kwargs.update(download_pretrained(model_tag))
 
         return DiarizeSpeech(**kwargs)
 

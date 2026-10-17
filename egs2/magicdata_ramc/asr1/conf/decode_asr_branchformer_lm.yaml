@@ -1,0 +1,10 @@
+# Decode config with LM rescoring and wider beam.
+# Compared to decode_asr_branchformer.yaml (beam=10, lm_weight=0):
+#   - beam_size 10 -> 20 (item 5: bigger beam)
+#   - lm_weight 0.0 -> 0.3 (item 2: enable LM rescoring)
+beam_size: 20
+ctc_weight: 0.4
+lm_weight: 0.3
+penalty: 0.0
+maxlenratio: 0.0
+minlenratio: 0.0

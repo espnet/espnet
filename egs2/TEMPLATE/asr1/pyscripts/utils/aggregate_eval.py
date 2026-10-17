@@ -55,9 +55,10 @@ def aggregate_results(logdir: str, scoredir: str, nj: int) -> None:
                 score_info.append(json.loads(line))
     # score cer, wer
     cer_wer_score = {}
-    with open("{}/utt_result.txt".format(scoredir), "w") as f, open(
-        "{}/avg_result.txt".format(scoredir), "w"
-    ) as f2:
+    with (
+        open("{}/utt_result.txt".format(scoredir), "w") as f,
+        open("{}/avg_result.txt".format(scoredir), "w") as f2,
+    ):
         for info in tqdm(score_info):
             f.write("{}\n".format(info))
         score_info = [

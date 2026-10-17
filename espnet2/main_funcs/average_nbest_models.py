@@ -6,6 +6,7 @@ from typing import Collection, Optional, Sequence, Union
 import torch
 from typeguard import typechecked
 
+from espnet2.torch_utils.safe_torch_load import safe_torch_load
 from espnet2.train.reporter import Reporter
 
 
@@ -76,24 +77,25 @@ def average_nbest_models(
                 for e, _ in epoch_and_values[:n]:
                     if e not in _loaded:
                         if use_deepspeed:
-                            _loaded[e] = torch.load(
+                            _loaded[e] = safe_torch_load(
                                 output_dir
                                 / f"checkpoint_{e}"
                                 / f"{e}"
                                 / "mp_rank_00_model_states.pt",
                                 map_location="cpu",
-                                weights_only=False,
                             )["module"]
                         else:
-                            _loaded[e] = torch.load(
+                            _loaded[e] = safe_torch_load(
                                 output_dir / f"{e}epoch.pth",
                                 map_location="cpu",
-                                weights_only=False,
                             )
                     states = _loaded[e]
 
                     if avg is None:
-                        avg = states
+                        # A copy of the dict, not the dict: `states` stays in
+                        # `_loaded` for the other criteria and nbest values,
+                        # and the sums below are assigned to the keys of `avg`.
+                        avg = states.copy()
                     else:
                         # Accumulated
                         for k in avg:

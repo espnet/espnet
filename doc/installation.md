@@ -1,9 +1,6 @@
 ## Installation
 ### Requirements
 
-- Python 3.7+
-- gcc 4.9+ for PyTorch1.10.2+
-
 (If you'll use a conda environment at the installation step2,
 the following packages are installed using conda, so you can skip them.)
 
@@ -42,7 +39,7 @@ to prepare the appropriate environments.
 
 
 ### Step 1) [Optional] Install Kaldi
-- If you use ESPnet1 (under egs/), you must compile Kaldi.
+- ESPnet 1 is no longer supported.
 - If you use ESPnet2 (under egs2/), You can skip the installation of Kaldi.
 
 <details><summary>Click to compile Kaldi...</summary><div>
@@ -173,8 +170,87 @@ We also have [prebuilt Kaldi binaries](https://github.com/espnet/espnet/blob/mas
         $ cd <espnet-root>/tools
         $ rm -f activate_python.sh && touch activate_python.sh
         ```
-1. Install ESPnet
 
+1. Install ESPnet via `pyproject.toml`
+
+    ESPnet adopts the modern Python packaging standard using `pyproject.toml`.
+    `pip install -e .` installs what running a pretrained model needs, espnet2
+    or espnet3 (Hydra and OmegaConf, which an espnet3 model is loaded through,
+    are included). Training, with espnet2 or espnet3, needs the `train` extra
+    (Lightning, TensorBoard, W&B, torch_optimizer, matplotlib, Dask), which
+    `make` in `tools/` installs for you. The task extras add the packages a task's models and
+    metrics use. For example:
+
+    * For training with the recipes (extras combine, so add the task's):
+
+        ```sh
+        $ cd <espnet-root>
+        $ pip install -e ".[asr,train]"
+        ```
+
+    * For ASR:
+
+        ```sh
+        $ cd <espnet-root>
+        $ pip install -e ".[asr]"
+        ```
+
+    * For TTS:
+
+        ```sh
+        $ cd <espnet-root>
+        $ pip install -e ".[tts]"
+        ```
+
+    * For all tasks (ASR, TTS, enhancement, speaker tasks):
+
+        ```sh
+        $ cd <espnet-root>
+        $ pip install -e ".[all]"
+        ```
+
+        You can also install development tools (linters, test runners) or documentation tools:
+
+        ```sh
+        $ cd <espnet-root>
+        $ pip install -e ".[dev,test,doc]"
+        ```
+
+    2. Check installation
+        Run the following to validate your installation:
+
+        ```sh
+        cd tools
+        bash -c ". ./activate_python.sh; python3 check_install.py"
+        ```
+
+    3. [Optional] How dependency groups are organized
+        The ESPnet `pyproject.toml` defines optional dependency groups:
+
+        | Group      | Purpose                       |
+        | ---------- | ----------------------------- |
+        | `train`    | Training with espnet2 or espnet3 (Lightning, TensorBoard, W&B, Dask, ...) |
+        | `asr`      | ASR-specific dependencies     |
+        | `asr2`     | ASR2-specific dependencies    |
+        | `tts`      | TTS-specific dependencies     |
+        | `enh`      | Speech enhancement            |
+        | `st`       | Speech Translation            |
+        | `s2t`      | Speech to Text (e.g., OWSM)   |
+        | `spk`      | Speaker recognition           |
+        | `speechlm` | Speech language models        |
+        | `mcp`      | The `espnet-mcp` server for agents |
+        | `dev`      | Code formatting and linting   |
+        | `test`     | Unit test dependencies (includes `train`) |
+        | `doc`      | Documentation generation      |
+        | `all`      | `train` and every task group above except `sds`, plus fairscale, transformers and evaluate — not `dev`, `test`, `doc` |
+
+        You can mix and match groups as needed:
+
+        ```sh
+        pip install -e ".[asr,tts,test]"
+        ```
+
+2. Install ESPnet (Legacy)
     ```sh
     $ cd <espnet-root>/tools
     $ make
@@ -185,14 +261,14 @@ We also have [prebuilt Kaldi binaries](https://github.com/espnet/espnet/blob/mas
 
     ```sh
     $ cd <espnet-root>/tools
-    $ make TH_VERSION=1.10.1
+    $ make TH_VERSION=2.11.0
     ```
 
     Note that the CUDA version is derived from `nvcc` command. If you'd like to specify the other CUDA version, you need to give `CUDA_VERSION`.
 
     ```sh
     $ cd <espnet-root>/tools
-    $ make TH_VERSION=1.10.1 CUDA_VERSION=11.3
+    $ make TH_VERSION=2.11.0 CUDA_VERSION=12.8
     ```
 
     If you don't have `nvcc` command, packages are installed for CPU mode by default.

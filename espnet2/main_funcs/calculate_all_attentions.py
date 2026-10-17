@@ -4,8 +4,7 @@ from typing import Dict, List
 import torch
 
 from espnet2.gan_tts.jets.alignments import AlignmentModule
-from espnet2.train.abs_espnet_model import AbsESPnetModel
-from espnet.nets.pytorch_backend.rnn.attentions import (
+from espnet2.legacy.nets.pytorch_backend.rnn.attentions import (
     AttAdd,
     AttCov,
     AttCovLoc,
@@ -21,7 +20,10 @@ from espnet.nets.pytorch_backend.rnn.attentions import (
     AttMultiHeadMultiResLoc,
     NoAtt,
 )
-from espnet.nets.pytorch_backend.transformer.attention import MultiHeadedAttention
+from espnet2.legacy.nets.pytorch_backend.transformer.attention import (
+    MultiHeadedAttention,
+)
+from espnet2.train.abs_espnet_model import AbsESPnetModel
 
 
 @torch.no_grad()

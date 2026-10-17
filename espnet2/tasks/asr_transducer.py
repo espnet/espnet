@@ -98,7 +98,7 @@ class ASRTransducerTask(AbsTask):
             parser: Transducer arguments parser.
 
         """
-        group = parser.add_argument_group(description="Task related.")
+        group = parser.add_argument_group("Task related.")
 
         required = parser.get_default("required")
         required += ["token_list"]
@@ -140,7 +140,7 @@ class ASRTransducerTask(AbsTask):
             help="The keyword arguments for the joint network class.",
         )
 
-        group = parser.add_argument_group(description="Preprocess related.")
+        group = parser.add_argument_group("Preprocess related.")
 
         group.add_argument(
             "--use_preprocessor",

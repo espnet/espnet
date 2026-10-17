@@ -28,9 +28,11 @@ dir_dict = {
 }
 # mapping = {"train": "train", "valid": "dev", "test": "eval"}
 for x in dir_dict:
-    with open(os.path.join("data", x, "wav.scp"), "w") as wav_scp_f, open(
-        os.path.join("data", x, "utt2spk"), "w"
-    ) as utt2spk_f, open(os.path.join("data", x, "text"), "w") as text_f:
+    with (
+        open(os.path.join("data", x, "wav.scp"), "w") as wav_scp_f,
+        open(os.path.join("data", x, "utt2spk"), "w") as utt2spk_f,
+        open(os.path.join("data", x, "text"), "w") as text_f,
+    ):
         dir_list = os.listdir(voxceleb_root + dir_dict[x])
         for dir_name in dir_list:
             if dir_name == "txt":

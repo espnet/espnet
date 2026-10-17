@@ -25,6 +25,8 @@ coverage.xml*
 test_utils/bats-core/
 test_utils/bats-support/
 test_utils/bats-assert/
+# written by test/espnet3/components/modeling/test_model_with_optim_scheduler.py
+test_utils/espnet3/tb/
 shellcheck*
 check_shellcheck*
 test_spm.vocab
@@ -36,6 +38,10 @@ test_spm.model
 constraints.txt
 featbin
 ubuntu16-featbin.tar.gz
+pyproject.toml.tmp
+build/
+logs/
+core
 
 out/config.yaml
 hub/
@@ -48,6 +54,7 @@ dist
 
 # recipe related
 egs*/*/*/data*
+egs*/*/*/manifest*
 egs*/*/*/db
 egs*/*/*/downloads
 egs*/*/*/dump
@@ -89,6 +96,7 @@ tools/swig/
 tools/warp-ctc/
 tools/warp-transducer/
 tools/*.done
+tools/*.done_start_time
 tools/PESQ*
 tools/hts_engine_API*
 tools/open_jtalk*

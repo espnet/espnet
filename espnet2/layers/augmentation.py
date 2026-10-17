@@ -77,6 +77,15 @@ class DataAugmentation:
         ],
         apply_n: Tuple[int, int] = [1, 1],
     ):
+        # A config read by hydra arrives as omegaconf's ListConfig, whose
+        # elements are ListConfig too, so the isinstance(list) test below
+        # would mis-read every effect. Convert it, without importing
+        # omegaconf: it belongs to the training install, and this module is
+        # imported on the inference path.
+        if type(effects).__module__.startswith("omegaconf"):
+            from omegaconf import OmegaConf
+
+            effects = OmegaConf.to_container(effects, resolve=True)
         self.effects = tuple(
             [tup[1] if isinstance(tup[1], list) else tup[1:] for tup in effects]
         )

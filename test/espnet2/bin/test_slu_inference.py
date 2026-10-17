@@ -1,6 +1,5 @@
 import string
 from argparse import ArgumentParser
-from distutils.version import LooseVersion
 from pathlib import Path
 
 import numpy as np
@@ -8,11 +7,9 @@ import pytest
 import torch
 
 from espnet2.bin.slu_inference import Speech2Understand, get_parser, main
+from espnet2.legacy.nets.beam_search import Hypothesis
 from espnet2.tasks.lm import LMTask
 from espnet2.tasks.slu import SLUTask
-from espnet.nets.beam_search import Hypothesis
-
-is_torch_1_5_plus = LooseVersion(torch.__version__) >= LooseVersion("1.5.0")
 
 
 def test_get_parser():

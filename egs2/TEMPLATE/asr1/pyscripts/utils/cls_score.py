@@ -71,12 +71,12 @@ def calculate_multilabel_stats(output, target):
             auc = metrics.roc_auc_score(target[:, k], output[:, k], average=None)
 
         # Precisions, recalls
-        (precisions, recalls, thresholds) = metrics.precision_recall_curve(
+        precisions, recalls, thresholds = metrics.precision_recall_curve(
             target[:, k], output[:, k]
         )
 
         # FPR, TPR
-        (fpr, tpr, thresholds) = metrics.roc_curve(target[:, k], output[:, k])
+        fpr, tpr, thresholds = metrics.roc_curve(target[:, k], output[:, k])
 
         dict = {
             "precisions": precisions,

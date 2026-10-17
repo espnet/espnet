@@ -7,6 +7,8 @@ import os
 
 import numpy as np
 
+from espnet2.torch_utils.safe_torch_load import safe_torch_load
+
 
 def main():
     if args.log is not None:
@@ -86,16 +88,7 @@ def main():
             if file_size > 10 * 1024 * 1024 * 1024:  # 10GB limit
                 raise ValueError(f"File too large (>10GB): {path}")
 
-            try:
-                states = torch.load(
-                    path, map_location=torch.device("cpu"), weights_only=True
-                )["model"]
-            except Exception as e:
-                # Fallback for older checkpoints that may contain custom objects
-                print(f"Warning: Loading {path} with weights_only=False due to: {e}")
-                states = torch.load(
-                    path, map_location=torch.device("cpu"), weights_only=False
-                )["model"]
+            states = safe_torch_load(path, map_location=torch.device("cpu"))["model"]
             if avg is None:
                 avg = states
             else:

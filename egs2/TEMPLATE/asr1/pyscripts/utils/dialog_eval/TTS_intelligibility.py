@@ -1,6 +1,11 @@
 from typing import Tuple
 
 import numpy as np
+from pyscripts.utils.dialog_eval.model_cache import (
+    espnet_wer_args,
+    owsm_wer_args,
+    whisper_wer_args,
+)
 
 from espnet2.sds.utils.utils import int2float
 
@@ -61,25 +66,15 @@ def handle_espnet_TTS_intelligibility(
         Whisper CER: 6.50
     """
     try:
-        from versa import (
-            espnet_levenshtein_metric,
-            espnet_wer_setup,
-            owsm_levenshtein_metric,
-            owsm_wer_setup,
-            whisper_levenshtein_metric,
-            whisper_wer_setup,
-        )
+        from versa.corpus_metrics.espnet_wer import espnet_levenshtein_metric
+        from versa.corpus_metrics.owsm_wer import owsm_levenshtein_metric
+        from versa.corpus_metrics.whisper_wer import whisper_levenshtein_metric
     except Exception as e:
         print("Error: Versa is not properly installed.")
         raise e
     score_modules_espnet = {
         "module": espnet_levenshtein_metric,
-        "args": espnet_wer_setup(
-            model_tag="default",
-            beam_size=1,
-            text_cleaner="whisper_en",
-            use_gpu=True,
-        ),
+        "args": espnet_wer_args(),
     }
     dict1 = score_modules_espnet["module"](
         score_modules_espnet["args"],
@@ -107,12 +102,7 @@ def handle_espnet_TTS_intelligibility(
     )
     score_modules_owsm = {
         "module": owsm_levenshtein_metric,
-        "args": owsm_wer_setup(
-            model_tag="default",
-            beam_size=1,
-            text_cleaner="whisper_en",
-            use_gpu=True,
-        ),
+        "args": owsm_wer_args(),
     }
     dict1 = score_modules_owsm["module"](
         score_modules_owsm["args"],
@@ -128,12 +118,7 @@ def handle_espnet_TTS_intelligibility(
     ) / (dict1["owsm_cer_delete"] + dict1["owsm_cer_replace"] + dict1["owsm_cer_equal"])
     score_modules_whisper = {
         "module": whisper_levenshtein_metric,
-        "args": whisper_wer_setup(
-            model_tag="default",
-            beam_size=1,
-            text_cleaner="whisper_en",
-            use_gpu=True,
-        ),
+        "args": whisper_wer_args(),
     }
     dict1 = score_modules_whisper["module"](
         score_modules_whisper["args"],

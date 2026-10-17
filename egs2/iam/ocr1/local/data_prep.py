@@ -24,7 +24,7 @@ import os
 import numpy as np
 from PIL import Image
 
-from espnet.utils.cli_writers import file_writer_helper
+from espnet2.legacy.utils.cli_writers import file_writer_helper
 
 
 def prepare_text(lines_file_path, output_dir, split_ids):

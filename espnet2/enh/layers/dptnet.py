@@ -8,7 +8,7 @@
 import torch.nn as nn
 
 from espnet2.enh.layers.tcn import choose_norm
-from espnet.nets.pytorch_backend.nets_utils import get_activation
+from espnet2.legacy.nets.pytorch_backend.nets_utils import get_activation
 
 
 class ImprovedTransformerLayer(nn.Module):

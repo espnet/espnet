@@ -9,9 +9,10 @@ idir = sys.argv[1]
 
 tokenizer = PhonemeTokenizer("espeak_ng_english_us_vits")
 
-with open(f"{idir}/text", encoding="utf-8") as itext, open(
-    f"{idir}/text.phn", "w", encoding="utf-8"
-) as otext:
+with (
+    open(f"{idir}/text", encoding="utf-8") as itext,
+    open(f"{idir}/text.phn", "w", encoding="utf-8") as otext,
+):
     for line in itext:
         utt, text = line.strip("\n").split(" ", maxsplit=1)
         tokens = tokenizer.text2tokens(text)

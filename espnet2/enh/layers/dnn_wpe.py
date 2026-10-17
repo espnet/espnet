@@ -6,7 +6,7 @@ from torch_complex.tensor import ComplexTensor
 from espnet2.enh.layers.complex_utils import to_double, to_float
 from espnet2.enh.layers.mask_estimator import MaskEstimator
 from espnet2.enh.layers.wpe import wpe_one_iteration
-from espnet.nets.pytorch_backend.nets_utils import make_pad_mask
+from espnet2.legacy.nets.pytorch_backend.nets_utils import make_pad_mask
 
 
 class DNN_WPE(torch.nn.Module):

@@ -269,7 +269,7 @@ class S2STTask(STTask):
 
     @classmethod
     def add_task_arguments(cls, parser: argparse.ArgumentParser):
-        group = parser.add_argument_group(description="Task related")
+        group = parser.add_argument_group("Task related")
         group.add_argument(
             "--s2st_type",
             type=str,
@@ -312,7 +312,6 @@ class S2STTask(STTask):
             default=None,
             help="The initialization method",
             choices=[
-                "chainer",
                 "xavier_uniform",
                 "xavier_normal",
                 "kaiming_uniform",
@@ -363,7 +362,7 @@ class S2STTask(STTask):
             help="The keyword arguments for model class.",
         )
 
-        group = parser.add_argument_group(description="Preprocess related")
+        group = parser.add_argument_group("Preprocess related")
         group.add_argument(
             "--use_preprocessor",
             type=str2bool,

@@ -12,10 +12,13 @@ import torch
 
 from espnet2.asr.ctc import CTC
 from espnet2.asr.decoder.abs_decoder import AbsDecoder
+from espnet2.legacy.nets.beam_search import Hypothesis
+from espnet2.legacy.nets.beam_search_partially_AR import PartiallyARBeamSearch
+from espnet2.legacy.nets.scorer_interface import (
+    MaskParallelScorerInterface,
+    ScorerInterface,
+)
 from espnet2.text.token_id_converter import TokenIDConverter
-from espnet.nets.beam_search import Hypothesis
-from espnet.nets.beam_search_partially_AR import PartiallyARBeamSearch
-from espnet.nets.scorer_interface import MaskParallelScorerInterface, ScorerInterface
 
 warnings.filterwarnings("ignore", category=UserWarning)
 
@@ -137,24 +140,30 @@ class PartiallyARInference(torch.nn.Module):
 
         # prepare required variables for retrieving information from y_hat
         y_hat_tokens = y_hat[y_idx]
-        mask_num = torch.sum(yseq_with_mask == self.mask_token)
+        mask_num = int(torch.sum(yseq_with_mask == self.mask_token))
 
         # then use `add_mask` to register masks to the beam search class,
         # run beam search, and get the best hypotheses.
         # Since we might get OOM with the too many batch size,
         # we restrict the maximum number of masks to be processed at the same time.
-        if self.max_mask_parallel == -1:
-            self.max_mask_parallel = mask_num + 1
+        max_mask_parallel = (
+            mask_num if self.max_mask_parallel == -1 else self.max_mask_parallel
+        )
 
-        result = y_in[0].clone().tolist()
-        for i in range((mask_num // self.max_mask_parallel) + 1):
-            bs_iter = i * self.max_mask_parallel
-            max_iter = min(self.max_mask_parallel, mask_num - bs_iter)
+        # collapse only consecutive masks so each merged mask receives one hypothesis
+        y_in_list = y_in[0].tolist()
+        result = [
+            token
+            for j, token in enumerate(y_in_list)
+            if token != self.mask_token or j == 0 or y_in_list[j - 1] != self.mask_token
+        ]
+        for bs_iter in range(0, mask_num, max_mask_parallel):
+            max_iter = min(max_mask_parallel, mask_num - bs_iter)
             self.beam_search.init_masks()
 
             # register masks to the beam search class
             for m in range(bs_iter, bs_iter + max_iter):
-                mask_idx = self._get_mask_idx(yseq_with_mask, i)
+                mask_idx = self._get_mask_idx(yseq_with_mask, m)
                 yhat_idx = mask_idx + merged_mask_len[mask_idx]
                 prev_tokens = (
                     [self.sos] + y_hat_tokens[:yhat_idx].tolist()
@@ -164,7 +173,7 @@ class PartiallyARInference(torch.nn.Module):
                 next_token = (
                     yseq_with_mask[0, mask_idx + 1].tolist()
                     if mask_idx < len(yseq_with_mask[0]) - 1
-                    else [self.eos]
+                    else self.eos
                 )
                 self.beam_search.add_mask(self.primer + prev_tokens, next_token)
 

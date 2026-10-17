@@ -54,11 +54,12 @@ for subset in mysubsets.keys():
     odir = "data/{}_babel".format(mysubsets[subset])
     os.makedirs(odir, exist_ok=True)
 
-    with open(odir + "/text", "w", encoding="utf-8") as text, open(
-        odir + "/wav.scp", "w"
-    ) as wavscp, open(odir + "/utt2spk", "w") as utt2spk, open(
-        odir + "/segments", "w"
-    ) as segments:
+    with (
+        open(odir + "/text", "w", encoding="utf-8") as text,
+        open(odir + "/wav.scp", "w") as wavscp,
+        open(odir + "/utt2spk", "w") as utt2spk,
+        open(odir + "/segments", "w") as segments,
+    ):
         for part in ["scripted", "conversational"]:
             for audio in glob.glob(os.path.join(idir, part, subset, "audio", "*.sph")):
                 recoid = os.path.split(audio)[1][:-4]

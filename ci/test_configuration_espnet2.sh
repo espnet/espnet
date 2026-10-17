@@ -2,9 +2,76 @@
 
 set -euo pipefail
 
+task="asr"
+if [ $# -gt 2 ]; then
+    echo "Usage: $0 [task[:shard/shards]]"
+    exit 1;
+elif [ $# -eq 1 ]; then
+    task="$1"
+elif [ $# -eq 0 ]; then
+    task="asr"
+fi
+
+# A task may be given as task:shard/shards - "asr:2/3" is the second third of
+# the asr configs. The asr task validated all 156 egs2/*/asr1/conf/train_asr*
+# files in one job, 64 min of the run's critical path once the prebuilt image
+# removed environment setup, against 24 min for the next longest (lm).
+#
+# Validated rather than parsed loosely, because every way of getting it wrong
+# ends in silently testing less. "asr:2" would otherwise leave shard=2 shards=2
+# through ${spec%/*} and ${spec#*/}, running 78 of the 156 configs and exiting 0.
+shard=1
+shards=1
+case "${task}" in
+    *:*)
+        spec="${task#*:}"
+        task="${task%%:*}"
+        case "${spec}" in
+            *[!0-9/]* | */*/* | */ | /* | "")
+                echo "$0: malformed shard spec '${spec}': expected index/total" >&2
+                exit 1
+                ;;
+            */*) ;;
+            *)
+                echo "$0: malformed shard spec '${spec}': expected index/total" >&2
+                exit 1
+                ;;
+        esac
+        shard="${spec%/*}"
+        shards="${spec#*/}"
+        if [ "${shard}" -lt 1 ] || [ "${shards}" -lt 1 ] \
+                || [ "${shard}" -gt "${shards}" ]; then
+            echo "$0: shard ${shard}/${shards} is out of range" >&2
+            exit 1
+        fi
+        ;;
+esac
+
+# Round-robin rather than contiguous blocks. Measured over the 155 configs a
+# green run actually validates, the times are tight around the median - 22.3 s
+# median, 34.4 s p90, 51.4 s max - so taking every Nth file gives near-equal
+# shards, and it stays balanced as recipes are added or removed instead of
+# drifting until someone re-cuts hardcoded boundaries.
+#
+# The caller increments its counter before any skip, so which files land in
+# which shard does not depend on the optional packages installed.
+in_this_shard() {
+    [ "${shards}" -eq 1 ] && return 0
+    [ $(( ($1 - 1) % shards + 1 )) -eq "${shard}" ]
+}
+
+# Root in the CI container, an unprivileged user on a runner: sudo is needed in
+# one and absent in the other. Resolve it once instead of assuming either.
+SUDO=$(command -v sudo || true)
+
 source tools/activate_python.sh
 PYTHONPATH="${PYTHONPATH:-}:$(pwd)/tools/s3prl"
 export PYTHONPATH
+# Use sysmon core on Python 3.12+ to avoid sys.settrace performance regression
+# (CPython gh-107674: tracing overhead ~7x on 3.12 vs ~3x on 3.10)
+if python3 -c "import sys; exit(0 if sys.version_info >= (3,12) else 1)"; then
+    export COVERAGE_CORE=sysmon
+fi
 python="coverage run --append"
 
 gen_dummy_coverage(){
@@ -12,9 +79,6 @@ gen_dummy_coverage(){
     # Please put this command after cd ./egs2/foo/bar
     touch empty.py; ${python} empty.py
 }
-
-#### Make sure chainer-independent ####
-python3 -m pip uninstall -y chainer
 
 # [ESPnet2] Validate configuration files
 echo "<blank>" > dummy_token_list
@@ -46,65 +110,97 @@ if python3 -c 'import torch as t; from packaging.version import parse as L; asse
         "egs2/librispeech/asr1/conf/train_asr_rnnt.yaml",
      ]'
 
-    for f in egs2/*/asr1/conf/train_asr*.yaml; do
-        if [[ ${s3prl_confs} =~ \"${f}\" ]]; then
-            if ! python3 -c "import s3prl" &> /dev/null; then
-                continue
+    if [ "${task}" == "asr" ] || [ "${task}" == "all" ]; then
+        i=0
+        for f in egs2/*/asr1/conf/train_asr*.yaml; do
+            i=$((i + 1))
+            in_this_shard "${i}" || continue
+            if [[ ${s3prl_confs} =~ \"${f}\" ]]; then
+                if ! python3 -c "import s3prl" &> /dev/null; then
+                    continue
+                fi
             fi
-        fi
-        if [[ ${warprnnt_confs} =~ \"${f}\" ]]; then
-            if ! python3 -c "from warprnnt_pytorch import RNNTLoss" &> /dev/null; then
-                continue
+            if [[ ${warprnnt_confs} =~ \"${f}\" ]]; then
+                if ! python3 -c "from warprnnt_pytorch import RNNTLoss" &> /dev/null; then
+                    continue
+                fi
             fi
-        fi
-        if [ "$f" == "egs2/how2_2000h/asr1/conf/train_asr_conformer_lf.yaml" ]; then
-            if ! python3 -c "import longformer" > /dev/null; then
-                continue
+            if [ "$f" == "egs2/how2_2000h/asr1/conf/train_asr_conformer_lf.yaml" ]; then
+                if ! python3 -c "import longformer" > /dev/null; then
+                    continue
+                fi
             fi
-        fi
-        if [ "$f" == "egs2/stop/asr1/conf/train_asr_whisper_full_correct.yaml" ]; then
-            if ! python3 -c "import whisper" > /dev/null; then
-                continue
+            if [ "$f" == "egs2/stop/asr1/conf/train_asr_whisper_full_correct.yaml" ]; then
+                if ! python3 -c "import whisper" > /dev/null; then
+                    continue
+                fi
             fi
-        fi
-        if [ "$f" == "egs2/uslu14/asr1/conf/train_asr_whisper_full_correct_specaug.yaml" ]; then
-            if ! python3 -c "import whisper" > /dev/null; then
-                continue
+            if [ "$f" == "egs2/uslu14/asr1/conf/train_asr_whisper_full_correct_specaug.yaml" ]; then
+                if ! python3 -c "import whisper" > /dev/null; then
+                    continue
+                fi
             fi
-        fi
-        ${python} -m espnet2.bin.asr_train --config "${f}" --iterator_type none --dry_run true --output_dir out --token_list dummy_token_list
-        sudo rm -rf /root/.cache/huggingface*
-        rm -rf hf_cache hub
-    done
-
-    for f in egs2/*/asr1/conf/train_transducer*.yaml; do
-        ${python} -m espnet2.bin.asr_transducer_train --config "${f}" --iterator_type none --dry_run true --output_dir out --token_list dummy_token_list
-    done
-
-    for f in egs2/*/asr1/conf/train_lm*.yaml; do
-        ${python} -m espnet2.bin.lm_train --config "${f}" --iterator_type none --dry_run true --output_dir out --token_list dummy_token_list
-    done
-
-    for f in egs2/*/tts1/conf/train*.yaml; do
-        ${python} -m espnet2.bin.tts_train --config "${f}" --iterator_type none --normalize none --dry_run true --output_dir out --token_list dummy_token_list
-    done
-
-    for f in egs2/*/enh1/conf/train*.yaml; do
-        ${python} -m espnet2.bin.enh_train --config "${f}" --iterator_type none --dry_run true --output_dir out
-    done
-
-    if python3 -c 'import torch as t; from packaging.version import parse as L; assert L(t.__version__) >= L("1.12.0")' &> /dev/null; then
-        for f in egs2/*/ssl1/conf/train*.yaml; do
-            ${python} -m espnet2.bin.hubert_train --config "${f}" --iterator_type none --normalize none --dry_run true --output_dir out --token_list dummy_token_list --num_classes 10
+            echo "::group::=== Test ASR configuration: ${f} ==="
+            ${python} -m espnet2.bin.asr_train --config "${f}" --iterator_type none --dry_run true --output_dir out --token_list dummy_token_list
+            echo "::endgroup::"
+            ${SUDO} rm -rf /root/.cache/huggingface*
+            rm -rf hf_cache hub
         done
     fi
 
-    for f in egs2/*/enh_asr1/conf/train_enh_asr*.yaml; do
-        ${python} -m espnet2.bin.enh_s2t_train --config "${f}" --iterator_type none --dry_run true --output_dir out --token_list dummy_token_list
-    done
+    if [ "${task}" == "asr_transducer" ] || [ "${task}" == "all" ]; then
+        for f in egs2/*/asr1/conf/train_transducer*.yaml; do
+            echo "::group::=== Test ASR Transducer configuration: ${f} ==="
+            ${python} -m espnet2.bin.asr_transducer_train --config "${f}" --iterator_type none --dry_run true --output_dir out --token_list dummy_token_list
+            echo "::endgroup::"
+        done
+    fi
+
+    if [ "${task}" == "lm" ] || [ "${task}" == "all" ]; then
+        for f in egs2/*/asr1/conf/train_lm*.yaml; do
+            echo "::group::=== Test LM configuration: ${f} ==="
+            ${python} -m espnet2.bin.lm_train --config "${f}" --iterator_type none --dry_run true --output_dir out --token_list dummy_token_list
+            echo "::endgroup::"
+        done
+    fi
+
+    if [ "${task}" == "tts" ] || [ "${task}" == "all" ]; then
+        for f in egs2/*/tts1/conf/train*.yaml; do
+            echo "::group::=== Test TTS configuration: ${f} ==="
+            ${python} -m espnet2.bin.tts_train --config "${f}" --iterator_type none --normalize none --dry_run true --output_dir out --token_list dummy_token_list
+            echo "::endgroup::"
+        done
+    fi
+
+    if [ "${task}" == "enh" ] || [ "${task}" == "all" ]; then
+        for f in egs2/*/enh1/conf/train*.yaml; do
+            echo "::group::=== Test Enhancement configuration: ${f} ==="
+            ${python} -m espnet2.bin.enh_train --config "${f}" --iterator_type none --dry_run true --output_dir out
+            echo "::endgroup::"
+        done
+    fi
+
+    if [ "${task}" == "ssl" ] || [ "${task}" == "all" ]; then
+        if python3 -c 'import torch as t; from packaging.version import parse as L; assert L(t.__version__) >= L("1.12.0")' &> /dev/null; then
+            for f in egs2/*/ssl1/conf/train*.yaml; do
+                echo "::group::=== Test SSL configuration: ${f} ==="
+                ${python} -m espnet2.bin.hubert_train --config "${f}" --iterator_type none --normalize none --dry_run true --output_dir out --token_list dummy_token_list --num_classes 10
+                echo "::endgroup::"
+            done
+        fi
+    fi
+
+    if [ "${task}" == "enh_asr" ] || [ "${task}" == "all" ]; then
+        for f in egs2/*/enh_asr1/conf/train_enh_asr*.yaml; do
+            echo "::group::=== Test Enhancement-ASR configuration: ${f} ==="
+            ${python} -m espnet2.bin.enh_s2t_train --config "${f}" --iterator_type none --dry_run true --output_dir out --token_list dummy_token_list
+            echo "::endgroup::"
+        done
+    fi
 fi
 
 # These files must be same each other.
+echo "::group::=== Check configuration files ==="
 for base in cmd.sh conf/slurm.conf conf/queue.conf conf/pbs.conf; do
     file1=
     for f in egs2/*/*/"${base}"; do
@@ -114,12 +210,14 @@ for base in cmd.sh conf/slurm.conf conf/queue.conf conf/pbs.conf; do
         diff "${file1}" "${f}" || { echo "Error: ${file1} and ${f} differ: To solve: for f in egs2/*/*/${base}; do cp egs2/TEMPLATE/asr1/${base} \${f}; done" ; exit 1; }
     done
 done
+echo "::endgroup::"
 
 
-echo "==== [ESPnet2] test setup.sh ==="
+echo "::group::=== [ESPnet2] test setup.sh ==="
 for d in egs2/TEMPLATE/*; do
     if [ -d "${d}" ]; then
         d="${d##*/}"
         egs2/TEMPLATE/"$d"/setup.sh egs2/test/"${d}"
     fi
 done
+echo "::endgroup::"

@@ -3,6 +3,7 @@
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
 """Sinc convolutions."""
+
 import math
 from typing import Union
 

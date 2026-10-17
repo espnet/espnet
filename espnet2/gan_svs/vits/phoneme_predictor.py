@@ -4,7 +4,7 @@
 import torch
 from typeguard import typechecked
 
-from espnet.nets.pytorch_backend.conformer.encoder import Encoder
+from espnet2.legacy.nets.pytorch_backend.conformer.encoder import Encoder
 
 
 class PhonemePredictor(torch.nn.Module):

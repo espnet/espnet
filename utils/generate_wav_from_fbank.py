@@ -18,9 +18,13 @@ import torch
 from scipy.io.wavfile import write
 from sklearn.preprocessing import StandardScaler
 
-from espnet.nets.pytorch_backend.wavenet import WaveNet, decode_mu_law, encode_mu_law
-from espnet.utils.cli_readers import file_reader_helper
-from espnet.utils.cli_utils import get_commandline_args
+from espnet2.legacy.nets.pytorch_backend.wavenet import (
+    WaveNet,
+    decode_mu_law,
+    encode_mu_law,
+)
+from espnet2.legacy.utils.cli_readers import file_reader_helper
+from espnet2.legacy.utils.cli_utils import get_commandline_args
 
 
 class TimeInvariantMLSAFilter(object):

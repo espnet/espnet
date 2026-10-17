@@ -1,0 +1,38 @@
+# BEATs base encoder pre-training on AudioSet-2M (arXiv:2212.09058, Table 4).
+# fbank_mean/std are corpus stats over the AS-2M train set (computed by stage 4).
+init: none
+num_att_plot: 0
+
+encoder: beats
+encoder_conf:
+    beats_config:
+        layer_wise_gradient_decay_ratio: 1.0
+        encoder_layerdrop: 0.0
+        dropout: 0.1
+        codebook_vocab_size: 1024  # keep in sync with n_targets in run.sh
+        fbank_mean: 15.66439
+        fbank_std: 6.38312
+        decoder_layers: 3
+        deep_norm: true
+        use_flash_attn: false
+        relative_position_embedding: true
+        num_buckets: 320
+        max_distance: 800
+        gru_rel_pos: true
+    use_weighted_representation: false
+    is_pretraining: true
+
+model_conf:
+    ignore_id: -2
+    label_smoothing: 0.1
+    waveform_input: false
+
+# batch_bins: per-GPU frame budget summed over speech + target-token shapes.
+# ~7.1K steps/epoch; 56 epochs ≈ the paper's 400K-step schedule (see README).
+batch_type: length
+batch_bins: 420000
+max_epoch: 56
+
+num_workers: 4
+use_deepspeed: true
+deepspeed_config: conf/ds_beats.json

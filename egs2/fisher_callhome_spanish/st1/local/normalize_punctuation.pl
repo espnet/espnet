@@ -1,1 +1,1 @@
-../../../../egs/fisher_callhome_spanish/st1/local/normalize_punctuation.pl
+../../asr1/local/normalize_punctuation.pl

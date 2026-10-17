@@ -177,3 +177,26 @@ def test_encoder_invalid_stochastic_depth_rate():
             num_blocks=2,
             stochastic_depth_rate=[0.1, 0.1, 0.1],
         )
+
+
+@pytest.mark.parametrize("arch", ["sum", "weighted_sum", "concat", "concat_fusion"])
+def test_multiconvformer_output_does_not_depend_on_batch_neighbours(arch):
+    """Padded frames are masked before every kernel and the fusion convolution."""
+    from test.espnet2.asr.encoder.padding_invariance import (
+        COMMON,
+        D_IN,
+        assert_alone_equals_batched,
+    )
+
+    torch.manual_seed(0)
+    assert_alone_equals_batched(
+        MultiConvConformerEncoder(
+            D_IN,
+            cgmlp_linear_units=64,
+            multicgmlp_type=arch,
+            multicgmlp_kernel_sizes="3,7",
+            multicgmlp_merge_conv_kernel=7,
+            rel_pos_type="latest",
+            **COMMON,
+        )
+    )

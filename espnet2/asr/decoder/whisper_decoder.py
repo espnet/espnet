@@ -5,7 +5,7 @@ import torch
 from typeguard import typechecked
 
 from espnet2.asr.decoder.abs_decoder import AbsDecoder
-from espnet.nets.scorer_interface import BatchScorerInterface
+from espnet2.legacy.nets.scorer_interface import BatchScorerInterface
 
 
 class ExpandedTokenEmbedding(torch.nn.Module):

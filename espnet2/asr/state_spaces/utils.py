@@ -1,11 +1,19 @@
 # This code is derived from https://github.com/HazyResearch/state-spaces
 
 """Utilities for dealing with collection objects (lists, dicts) and configs."""
+
 import functools
 from typing import Callable, Mapping, Sequence
 
-import hydra
-from omegaconf import DictConfig, ListConfig
+try:
+    import hydra
+    from omegaconf import DictConfig, ListConfig
+except ImportError:
+    import logging
+
+    logging.warning(
+        "If you are running state-space model, run `pip install espnet['asr']`."
+    )
 
 
 def is_list(x):

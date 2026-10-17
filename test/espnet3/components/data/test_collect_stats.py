@@ -1,0 +1,723 @@
+# tests/test_collect_stats.py
+import multiprocessing as mp
+from pathlib import Path
+
+import numpy as np
+import pytest
+import torch
+from hydra.utils import instantiate
+from omegaconf import OmegaConf
+
+# Import the functions under test (adjust import path if your file/module path differs)
+from espnet3.components.data.collect_stats import (
+    _build_model,
+    _chunk_indices,
+    _instantiate_dataset,
+    collect_stats,
+    collect_stats_batch,
+)
+
+mp.set_start_method("fork", force=True)
+
+# ===============================================================
+# Test Case Summary for Collect Stats
+# ===============================================================
+
+# Normal Cases
+# | Test Function Name                  | Description                          |
+# |--------------------------------------|-------------------------------------|
+# | test_collect_stats_local_basic       | Verifies that local mode aggregates |
+# | test_collect_stats_local_basic       |  counts/sums correctly and       　 |
+# |                                      | writes expected feature/statistics files    |
+# | test_collect_stats_parallel_basic    | Verifies that parallel mode         |
+# |                                      | (runner + shard outputs) matches local      |
+# |                                      | aggregation logic and writes expected files |
+# | test_collect_stats_entry_point_basic | Verifies top-level collect_stats() function |
+# |                                      | works for different modes and produces      |
+# |                                      | correct aggregated results                  |
+
+TEST_MODEL_TARGET = "test.espnet3.components.data.test_collect_stats." "DummyModel"
+TEST_ORGANIZER_TARGET = (
+    "test.espnet3.components.data.test_collect_stats." "DummyOrganizer"
+)
+TEST_COLLATE_TARGET = "test.espnet3.components.data.test_collect_stats." "DummyCollate"
+
+
+# -----------------------------
+# Dummy components for testing
+# -----------------------------
+
+
+class DummyDataset:
+    """Minimal dataset that returns (uid, sample_dict).
+
+    Each item has a variable time length and fixed feature dim.
+    """
+
+    def __init__(self, n=10, base_len=3, dim=4, use_espnet_preprocessor=False):
+        self.n = n
+        self.base_len = base_len
+        self.dim = dim
+        # Precompute lengths to keep things deterministic
+        self.lengths = [self.base_len + (i % 3) for i in range(self.n)]
+        self.use_espnet_preprocessor = use_espnet_preprocessor
+
+    def __len__(self):
+        return self.n
+
+    def __getitem__(self, idx):
+        uid = f"utt{idx:03d}"
+        T = self.lengths[idx]
+        # Create a simple pattern to let us verify sums deterministically
+        # Shape: [T, D]
+        x = torch.full((T, self.dim), float(idx), dtype=torch.float32)
+        if self.use_espnet_preprocessor:
+            return uid, {"x": x, "length": T}
+        else:
+            return {"x": x, "length": T}
+
+
+class DummyOrganizer:
+    """Hydra-instantiable organizer that exposes .train and .valid datasets."""
+
+    def __init__(
+        self, n_train=8, n_valid=5, base_len=3, dim=4, use_espnet_preprocessor=False
+    ):
+        self.train = DummyDataset(
+            n=n_train,
+            base_len=base_len,
+            dim=dim,
+            use_espnet_preprocessor=use_espnet_preprocessor,
+        )
+        self.valid = DummyDataset(
+            n=n_valid,
+            base_len=base_len,
+            dim=dim,
+            use_espnet_preprocessor=use_espnet_preprocessor,
+        )
+
+
+class DummyCollate:
+    """Collate that pads to max length and returns:
+
+    (uids, {"x": [B, T, D], "lengths": [B]})
+    """
+
+    def __init__(self, int_pad_value: int = -1):
+        self.pad = int_pad_value
+
+    def __call__(self, items):
+        uids = [u for (u, _) in items]
+        seqs = [s["x"] for (_, s) in items]
+        lengths = torch.tensor([s["length"] for (_, s) in items], dtype=torch.long)
+        max_len = int(max([len(x) for x in seqs]))
+        dim = int(seqs[0].shape[-1])
+        B = len(seqs)
+        x = torch.full((B, max_len, dim), self.pad, dtype=torch.float32)
+        for i, seq in enumerate(seqs):
+            T = seq.shape[0]
+            x[i, :T] = seq
+        return uids, {"x": x, "lengths": lengths}
+
+
+class DummyModel:
+    """Model with collect_feats(**batch) that returns torch tensors:
+
+    - "mel": [B, T, D] (copied from input)
+    - "mel_lengths": [B]
+    """
+
+    def __init__(self, scale: float = 1.0):
+        self.scale = scale
+        self.device = torch.device("cpu")
+
+    def to(self, device):
+        self.device = device
+        return self
+
+    def eval(self):
+        return self
+
+    @torch.no_grad()
+    def collect_feats(self, *, x: torch.Tensor, lengths: torch.Tensor):
+        # Return the batch as "mel", scaled to let us test aggregation
+        mel = (x * self.scale).to(self.device)
+        mel_lengths = lengths.to(self.device)
+        return {"mel": mel, "mel_lengths": mel_lengths}
+
+
+class NoCollectModel:
+    def to(self, device):
+        return self
+
+    def eval(self):
+        return self
+
+
+# ---------------------------------------
+# Hydra configs for instantiate(...) calls
+# ---------------------------------------
+
+
+def make_model_cfg(scale: float = 1.0):
+    # Use a direct class reference to avoid import path brittleness
+    return OmegaConf.create(
+        {
+            "_target_": TEST_MODEL_TARGET,
+            "scale": scale,
+        }
+    )
+
+
+def make_dataset_cfg(
+    n_train=8, n_valid=5, base_len=3, dim=4, use_espnet_preprocessor=False
+):
+    return OmegaConf.create(
+        {
+            "_target_": TEST_ORGANIZER_TARGET,
+            "n_train": n_train,
+            "n_valid": n_valid,
+            "base_len": base_len,
+            "dim": dim,
+            "use_espnet_preprocessor": use_espnet_preprocessor,
+        }
+    )
+
+
+def make_dataloader_cfg(use_custom_collate: bool = True):
+    if use_custom_collate:
+        return OmegaConf.create(
+            {
+                "train": {},
+                "valid": {},
+                "collate_fn": {
+                    "_target_": TEST_COLLATE_TARGET,
+                    "int_pad_value": -1,
+                },
+            }
+        )
+    else:
+        # Fallback path to CommonCollateFn (not used here)
+        return OmegaConf.create(
+            {
+                "train": {},
+                "valid": {},
+            }
+        )
+
+
+def make_parallel_cfg(n_workers=2):
+    # Matches your parallel.py expectations
+    return OmegaConf.create({"env": "local", "n_workers": n_workers, "options": {}})
+
+
+# -----------------
+# Helper assertions
+# -----------------
+
+
+def _expected_total_count(dataset):
+    # Sum of all per-utterance time lengths
+    return sum(dataset.lengths)
+
+
+def _load_npz_counts(dirpath: Path, feat_key: str):
+    p = dirpath / f"{feat_key}_stats.npz"
+    assert p.exists(), f"Expected stats file not found: {p}"
+    data = np.load(p)
+    return data["count"], data["sum"], data["sum_square"]
+
+
+# ------------
+# The tests
+# ------------
+@pytest.mark.execution_timeout(30)
+@pytest.mark.parametrize("use_parallel", [False, True])
+@pytest.mark.parametrize("use_espnet_preprocessor", [False, True])
+def test_collect_stats_local_basic(
+    tmp_path: Path, use_parallel, use_espnet_preprocessor
+):
+    # Verify that local (non-parallel) path aggregates counts/sums correctly
+    # and writes expected files.
+    model_cfg = make_model_cfg(scale=1.0)
+    ds_cfg = make_dataset_cfg(
+        n_train=6,
+        n_valid=0,
+        base_len=3,
+        dim=4,
+        use_espnet_preprocessor=use_espnet_preprocessor,
+    )
+    dl_cfg = make_dataloader_cfg(use_custom_collate=True)
+    par_cfg = make_parallel_cfg(n_workers=2) if use_parallel else None
+
+    out_dir = tmp_path / "out"
+    out_dir.mkdir(parents=True, exist_ok=True)
+
+    # Run "train" split locally
+    collect_stats(
+        model_config=model_cfg,
+        dataset_config=ds_cfg,
+        dataloader_config=dl_cfg,
+        mode="train",
+        output_dir=out_dir,
+        task=None,
+        parallel_config=par_cfg,
+        write_collected_feats=True,
+        batch_size=3,
+    )
+
+    mode_dir = out_dir / "train"
+    assert (mode_dir / "stats_keys").exists(), "stats_keys not written"
+
+    for k in ["mel", "mel_lengths"]:
+        npz = mode_dir / f"{k}_stats.npz"
+        assert npz.exists(), f"{npz} missing"
+        scp = mode_dir / "collect_feats" / f"{k}.scp"
+        assert scp.exists(), f"{scp} missing"
+
+    ds = instantiate(ds_cfg).train
+    total_count = _expected_total_count(ds)
+    cnt, s, sq = _load_npz_counts(mode_dir, "mel")
+    assert int(cnt) == total_count, "Total frame count mismatch for mel"
+
+
+def test_build_model_rejects_missing_collect_feats():
+    cfg = OmegaConf.create(
+        {
+            "model_config": {"_target_": f"{__name__}.NoCollectModel"},
+        }
+    )
+
+    with pytest.raises(
+        AttributeError, match="missing required callable 'collect_feats'"
+    ):
+        _build_model(cfg)
+
+
+def test_collect_stats_batch_rejects_invalid_collate_shape():
+    dataset = DummyDataset(n=2)
+    model = DummyModel()
+
+    def bad_collate(_items):
+        return {"x": torch.zeros(1)}
+
+    with pytest.raises(RuntimeError, match="return \\(uids, batch_dict\\)"):
+        collect_stats_batch(
+            [0, 1],
+            model=model,
+            dataset=dataset,
+            collate_fn=bad_collate,
+            device=torch.device("cpu"),
+        )
+
+
+def test_collect_stats_batch_rejects_non_mapping_features():
+    dataset = DummyDataset(n=2)
+    model = DummyModel()
+
+    def bad_collate(_items):
+        return ["utt0", "utt1"], ["not", "a", "mapping"]
+
+    with pytest.raises(RuntimeError, match="return a mapping for batch tensors"):
+        collect_stats_batch(
+            [0, 1],
+            model=model,
+            dataset=dataset,
+            collate_fn=bad_collate,
+            device=torch.device("cpu"),
+        )
+
+
+def test_collect_stats_batch_rejects_conflicting_kwargs():
+    dataset = DummyDataset(n=2)
+    model = DummyModel()
+    collate = DummyCollate()
+
+    with pytest.raises(ValueError, match="kwargs conflict with batch tensors"):
+        collect_stats_batch(
+            [0, 1],
+            model=model,
+            dataset=dataset,
+            collate_fn=collate,
+            device=torch.device("cpu"),
+            collect_stats_kwargs={"x": torch.zeros(1)},
+        )
+
+
+def test_chunk_indices_rejects_non_positive_batch_size():
+    with pytest.raises(ValueError, match="batch_size must be a positive integer"):
+        _chunk_indices(10, 0)
+
+
+def test_instantiate_dataset_rejects_missing_split():
+    dataset_cfg = make_dataset_cfg(n_train=1, n_valid=0)
+
+    with pytest.raises(ValueError, match="does not provide split 'test'"):
+        _instantiate_dataset(dataset_cfg, "test")
+
+
+# ----------------------------
+# Entry-point level smoke tests
+# ----------------------------
+
+
+@pytest.mark.execution_timeout(30)
+@pytest.mark.parametrize("use_parallel", [False, True])
+def test_collect_stats_entrypoint_train(tmp_path: Path, use_parallel):
+    # Smoke-test the public entrypoint `collect_stats` for the 'train' split,
+    # both in local (no parallel_config) and parallel (with parallel_config) modes.
+    # erifies that stats are saved and key files exist.
+    # Also checks that *_lengths features are persisted (since they matter).
+    model_cfg = make_model_cfg(scale=1.5)
+    ds_cfg = make_dataset_cfg(n_train=6, n_valid=0, base_len=3, dim=4)
+    dl_cfg = make_dataloader_cfg(use_custom_collate=True)
+    par_cfg = make_parallel_cfg(n_workers=2) if use_parallel else None
+
+    out_dir = tmp_path / "out_ep"
+    out_dir.mkdir(parents=True, exist_ok=True)
+
+    # Call the public entrypoint
+    collect_stats(
+        model_config=model_cfg,
+        dataset_config=ds_cfg,
+        dataloader_config=dl_cfg,
+        mode="train",
+        output_dir=out_dir,
+        task=None,
+        parallel_config=par_cfg,
+        write_collected_feats=True,
+        batch_size=2,
+    )
+
+    mode_dir = out_dir / "train"
+
+    # Basic files
+    assert (mode_dir / "stats_keys").exists(), "stats_keys not written by entrypoint"
+    # Stats exist for both mel and mel_lengths
+    for k in ["mel", "mel_lengths"]:
+        npz = mode_dir / f"{k}_stats.npz"
+        assert npz.exists(), f"{npz} not written by entrypoint"
+
+    # Feature scps exist (including lengths)
+    for k in ["mel", "mel_lengths"]:
+        scp = mode_dir / "collect_feats" / f"{k}.scp"
+        assert scp.exists(), f"{scp} not written by entrypoint"
+
+    # Count check matches dataset total frames for mel
+    ds = instantiate(ds_cfg).train
+    total_count = _expected_total_count(ds)
+    cnt, s, sq = _load_npz_counts(mode_dir, "mel")
+    assert int(cnt) == total_count, "Total frame count mismatch in entrypoint(train)"
+
+
+@pytest.mark.execution_timeout(30)
+@pytest.mark.parametrize("use_parallel", [False, True])
+def test_collect_stats_entrypoint_valid(tmp_path: Path, use_parallel):
+    # Same as above but for 'valid' split, to ensure both branches work.
+    model_cfg = make_model_cfg(scale=1.0)
+    ds_cfg = make_dataset_cfg(n_train=0, n_valid=5, base_len=2, dim=3)
+    dl_cfg = make_dataloader_cfg(use_custom_collate=True)
+    par_cfg = make_parallel_cfg(n_workers=2) if use_parallel else None
+
+    out_dir = tmp_path / "out_ep_valid"
+    out_dir.mkdir(parents=True, exist_ok=True)
+
+    collect_stats(
+        model_config=model_cfg,
+        dataset_config=ds_cfg,
+        dataloader_config=dl_cfg,
+        mode="valid",
+        output_dir=out_dir,
+        task=None,
+        parallel_config=par_cfg,
+        write_collected_feats=True,
+        batch_size=2,
+    )
+
+    mode_dir = out_dir / "valid"
+    assert (mode_dir / "stats_keys").exists()
+    for k in ["mel", "mel_lengths"]:
+        assert (mode_dir / f"{k}_stats.npz").exists()
+        assert (mode_dir / "collect_feats" / f"{k}.scp").exists()
+
+
+@pytest.mark.parametrize("flag", [True, False])
+def test_collect_stats_rejects_multiple_iterator(tmp_path: Path, flag):
+    model_cfg = make_model_cfg(scale=1.0)
+    ds_cfg = make_dataset_cfg(n_train=4, n_valid=0, base_len=3, dim=4)
+    dl_cfg = make_dataloader_cfg(use_custom_collate=True)
+    dl_cfg.train.multiple_iterator = flag
+
+    with pytest.raises(RuntimeError, match="multiple_iterator"):
+        collect_stats(
+            model_config=model_cfg,
+            dataset_config=ds_cfg,
+            dataloader_config=dl_cfg,
+            mode="train",
+            output_dir=tmp_path / "out_reject",
+            task=None,
+            parallel_config=None,
+            write_collected_feats=False,
+            batch_size=2,
+        )
+
+
+@pytest.mark.parametrize(
+    "train_mode, expected",
+    [(None, False), (False, False), (True, True)],
+)
+def test_collect_stats_builds_a_data_organizer_without_training_mode(
+    monkeypatch, train_mode, expected
+):
+    """The train split is read as ESPnet2 reads it for statistics: train=False.
+
+    Training mode, and with it the augmentation, is applied only on request.
+    """
+    from test.espnet3.components.data.test_data_organizer import (
+        ESPNET_TRAIN_FLAG_PREPROCESSOR_TARGET,
+        DummyDataset,
+        _entry,
+    )
+
+    import espnet3.components.data.data_organizer as data_organizer_module
+
+    monkeypatch.setattr(
+        data_organizer_module,
+        "instantiate_dataset_reference",
+        lambda config, recipe_dir=None: DummyDataset(),
+    )
+
+    dataset_cfg = OmegaConf.create(
+        {
+            "_target_": "espnet3.components.data.data_organizer.DataOrganizer",
+            "_recursive_": False,  # as recipes write it: the organizer builds
+            "train": [_entry("train_dummy")],
+            "valid": [_entry("valid_dummy")],
+            "preprocessor": {"_target_": ESPNET_TRAIN_FLAG_PREPROCESSOR_TARGET},
+        }
+    )
+    args = () if train_mode is None else (train_mode,)
+    train = _instantiate_dataset(dataset_cfg, "train", *args)
+    assert train[0]["was_train"] is expected
+
+
+def build_test_organizer(**kwargs):
+    """A factory function as an organizer target, which hydra allows."""
+    return DummyOrganizer(**kwargs)
+
+
+def test_collect_stats_builds_an_organizer_named_by_a_factory_function():
+    """Only a DataOrganizer class gets train_mode; a factory is built as is."""
+    dataset_cfg = make_dataset_cfg(n_train=2, n_valid=1)
+    dataset_cfg._target_ = f"{__name__}.build_test_organizer"
+    assert len(_instantiate_dataset(dataset_cfg, "train")) == 2
+
+
+@pytest.mark.parametrize("train_mode, expected", [(None, False), (True, True)])
+def test_collect_stats_hands_train_mode_to_every_dataset_build(
+    tmp_path: Path, monkeypatch, train_mode, expected
+):
+    """The length count and the build that feeds the model both see it."""
+    import espnet3.components.data.collect_stats as module
+    import espnet3.parallel.parallel as parallel_module
+
+    # build in this process, where the recording stand-in is installed: an
+    # earlier test may have left a Dask cluster configured
+    monkeypatch.setattr(parallel_module, "parallel_config", None)
+    seen = []
+    real = module._instantiate_dataset
+
+    def recording(dataset_config, mode, train_mode=False):
+        seen.append(train_mode)
+        return real(dataset_config, mode, train_mode)
+
+    monkeypatch.setattr(module, "_instantiate_dataset", recording)
+    collect_stats(
+        model_config=make_model_cfg(scale=1.0),
+        dataset_config=make_dataset_cfg(n_train=4, n_valid=1, base_len=3, dim=4),
+        dataloader_config=make_dataloader_cfg(use_custom_collate=True),
+        mode="train",
+        output_dir=tmp_path / "out",
+        task=None,
+        parallel_config=None,
+        batch_size=2,
+        **({} if train_mode is None else {"train_mode": train_mode}),
+    )
+    assert len(seen) >= 2 and set(seen) == {expected}
+
+
+# ---------------------------------------------------------------
+# Shapes are derived from the batch, not from collect_feats
+# ---------------------------------------------------------------
+
+
+class TextModel:
+    """Model shaped like espnet2's ASR/ST: takes text, returns only feats.
+
+    ``collect_feats`` accepting a token stream and dropping it is the normal
+    case (``espnet2/st/espnet_model.py``), which is why shapes cannot be read
+    back off its return value.
+    """
+
+    def to(self, device):
+        return self
+
+    def eval(self):
+        return self
+
+    def collect_feats(self, speech, speech_lengths, text, text_lengths, **kwargs):
+        frames = int(speech.shape[1]) // 2
+        return {
+            "feats": torch.randn(speech.shape[0], frames, 4),
+            "feats_lengths": torch.full((speech.shape[0],), frames, dtype=torch.long),
+        }
+
+
+class TextDataset:
+    """Dataset whose samples carry one waveform and one token stream."""
+
+    use_espnet_preprocessor = True
+
+    def __init__(self, n=4):
+        self.n = n
+
+    def __len__(self):
+        return self.n
+
+    def __getitem__(self, idx):
+        return f"utt{idx:03d}", {
+            "speech": torch.randn(8 * (idx + 1)),
+            "text": torch.arange(2 + idx),
+        }
+
+
+def text_collate(items):
+    """Pad both streams and name the length vectors as CommonCollateFn does."""
+    uids = [uid for uid, _ in items]
+    batch_size = len(items)
+    speech_lengths = torch.tensor([len(s["speech"]) for _, s in items])
+    text_lengths = torch.tensor([len(s["text"]) for _, s in items])
+    speech = torch.zeros(batch_size, int(speech_lengths.max()))
+    text = torch.full((batch_size, int(text_lengths.max())), -1, dtype=torch.long)
+    for i, (_, sample) in enumerate(items):
+        speech[i, : len(sample["speech"])] = sample["speech"]
+        text[i, : len(sample["text"])] = sample["text"]
+    return uids, {
+        "speech": speech,
+        "speech_lengths": speech_lengths,
+        "text": text,
+        "text_lengths": text_lengths,
+    }
+
+
+def test_collect_stats_batch_records_text_shapes():
+    """Every batch stream gets a shape, at its true length.
+
+    Regression test: shapes used to be read off ``collect_feats``'s return
+    value, so ``text_shape`` was never written and a length-bounded batch
+    sampler had nothing to read.
+    """
+    dataset = TextDataset(n=3)
+    stats, shape_info = collect_stats_batch(
+        idxs=[0, 1, 2],
+        model=TextModel(),
+        dataset=dataset,
+        collate_fn=text_collate,
+        device=torch.device("cpu"),
+    )
+
+    assert "text" in shape_info, "text_shape was not written"
+    assert "speech" in shape_info, "speech_shape was not written"
+    # Unpadded: utt000 has 2 tokens even though the batch pads to 4.
+    assert [shape_info["text"][f"utt{i:03d}"] for i in range(3)] == ["2", "3", "4"]
+    assert [shape_info["speech"][f"utt{i:03d}"] for i in range(3)] == ["8", "16", "24"]
+    # feats_shape still comes from collect_feats, in frames x dim.
+    assert shape_info["feats"]["utt000"] == "12,4"
+    # Statistics remain feats-only.
+    assert set(stats) == {"feats", "feats_lengths"}
+
+
+class TextOrganizer:
+    """Organizer exposing the text-bearing dataset above."""
+
+    def __init__(self, n_train=4, n_valid=2):
+        self.train = TextDataset(n=n_train)
+        self.valid = TextDataset(n=n_valid)
+
+
+@pytest.mark.execution_timeout(30)
+@pytest.mark.parametrize("use_parallel", [False, True])
+def test_collect_stats_writes_text_shape_file(tmp_path: Path, use_parallel):
+    """The new shape keys survive sharding and aggregation onto disk."""
+    out_dir = tmp_path / "out"
+    collect_stats(
+        model_config=OmegaConf.create(
+            {"_target_": f"{__name__}.TextModel"},
+        ),
+        dataset_config=OmegaConf.create(
+            {"_target_": f"{__name__}.TextOrganizer", "n_train": 4, "n_valid": 2},
+        ),
+        dataloader_config=OmegaConf.create(
+            {
+                "train": {},
+                "valid": {},
+                "collate_fn": {"_target_": f"{__name__}.Collate"},
+            },
+        ),
+        mode="train",
+        output_dir=out_dir,
+        task=None,
+        parallel_config=make_parallel_cfg(n_workers=2) if use_parallel else None,
+        write_collected_feats=False,
+        batch_size=2,
+    )
+
+    mode_dir = out_dir / "train"
+    text_shape = mode_dir / "text_shape"
+    assert text_shape.is_file(), "text_shape was not aggregated onto disk"
+    assert (mode_dir / "speech_shape").is_file()
+    assert (mode_dir / "feats_shape").is_file()
+
+    # One line per utterance, each the unpadded token count.
+    rows = dict(
+        line.split() for line in text_shape.read_text().splitlines() if line.strip()
+    )
+    assert rows == {f"utt{i:03d}": str(2 + i) for i in range(4)}
+
+
+class Collate:
+    """Hydra-instantiable wrapper around ``text_collate``."""
+
+    def __call__(self, items):
+        return text_collate(items)
+
+
+class MutatingModel(TextModel):
+    """Model whose ``collect_feats`` writes to its inputs in place.
+
+    Nothing forbids this -- the batch is handed to the model as live tensors --
+    so the shape pass has to read the batch before the forward, not after.
+    """
+
+    def collect_feats(self, speech, speech_lengths, text, text_lengths, **kwargs):
+        feats = super().collect_feats(
+            speech, speech_lengths, text, text_lengths, **kwargs
+        )
+        speech_lengths.fill_(1)
+        text_lengths.fill_(1)
+        return feats
+
+
+def test_collect_stats_batch_reads_shapes_before_forward():
+    """Shapes describe the batch as collated, not as the model left it."""
+    stats, shape_info = collect_stats_batch(
+        idxs=[0, 1, 2],
+        model=MutatingModel(),
+        dataset=TextDataset(n=3),
+        collate_fn=text_collate,
+        device=torch.device("cpu"),
+    )
+
+    # Had the shape pass run after collect_feats, every length would be "1".
+    assert [shape_info["text"][f"utt{i:03d}"] for i in range(3)] == ["2", "3", "4"]
+    assert [shape_info["speech"][f"utt{i:03d}"] for i in range(3)] == ["8", "16", "24"]

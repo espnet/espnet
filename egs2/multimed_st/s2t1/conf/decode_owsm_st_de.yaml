@@ -1,0 +1,7 @@
+beam_size: 5
+ctc_weight: 0.0
+maxlenratio: 1.0
+minlenratio: 0.0
+lang_sym: "<eng>"
+task_sym: "<st_deu>"
+predict_time: false

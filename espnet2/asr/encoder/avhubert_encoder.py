@@ -7,6 +7,7 @@
 
 
 """Encoder definition."""
+
 import contextlib
 import copy
 import logging
@@ -25,7 +26,7 @@ from filelock import FileLock
 from typeguard import typechecked
 
 from espnet2.asr.encoder.abs_encoder import AbsEncoder
-from espnet.nets.pytorch_backend.nets_utils import make_pad_mask
+from espnet2.legacy.nets.pytorch_backend.nets_utils import make_pad_mask
 
 logger = logging.getLogger(__name__)
 
@@ -159,10 +160,8 @@ class FairseqAVHubertEncoder(AbsEncoder):
             del ckpt
             model.load_state_dict(state)
         else:
-            logging.info(
-                "Training from scratch without \
-                         using pre-trained AV-HuBERT model"
-            )
+            logging.info("Training from scratch without \
+                         using pre-trained AV-HuBERT model")
 
         self.pretrained_params = copy.deepcopy(model.state_dict())
 

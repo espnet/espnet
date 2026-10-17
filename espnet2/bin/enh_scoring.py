@@ -16,10 +16,10 @@ from typeguard import typechecked
 from espnet2.enh.loss.criterions.time_domain import SISNRLoss
 from espnet2.fileio.datadir_writer import DatadirWriter
 from espnet2.fileio.sound_scp import SoundScpReader
+from espnet2.legacy.utils.cli_utils import get_commandline_args
 from espnet2.train.dataset import kaldi_loader
 from espnet2.utils import config_argparse
 from espnet2.utils.types import str2bool
-from espnet.utils.cli_utils import get_commandline_args
 
 si_snr_loss = SISNRLoss()
 
@@ -222,6 +222,9 @@ def scoring(
                         float(dnsmos_score["P808_MOS"])
                     )
                 if pesq:
+                    # `sample_rate` is also used by the other metrics and for the
+                    # following speakers and utterances, so it must not be changed.
+                    pesq_rate = sample_rate
                     if sample_rate == 8000:
                         mode = "nb"
                         ref_ = ref[i]
@@ -238,7 +241,7 @@ def scoring(
                         inf_ = librosa.resample(
                             inf[int(perm[i])], orig_sr=sample_rate, target_sr=16000
                         )
-                        sample_rate = 16000
+                        pesq_rate = 16000
                         logging.warning(
                             "The sample rate is higher than 16000 Hz. "
                             "PESQ is calculated in the wideband mode and "
@@ -250,7 +253,7 @@ def scoring(
                             f"but got {sample_rate}"
                         )
                     pesq_score = pesq(
-                        sample_rate,
+                        pesq_rate,
                         ref_,
                         inf_,
                         mode=mode,

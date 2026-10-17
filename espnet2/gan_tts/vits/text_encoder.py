@@ -12,8 +12,8 @@ from typing import Tuple
 
 import torch
 
-from espnet.nets.pytorch_backend.conformer.encoder import Encoder
-from espnet.nets.pytorch_backend.nets_utils import make_non_pad_mask
+from espnet2.legacy.nets.pytorch_backend.conformer.encoder import Encoder
+from espnet2.legacy.nets.pytorch_backend.nets_utils import make_non_pad_mask
 
 
 class TextEncoder(torch.nn.Module):

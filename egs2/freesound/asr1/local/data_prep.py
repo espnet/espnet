@@ -38,9 +38,11 @@ for split in ["train", "valid", "test"]:
 
 utt_id_dict = {}
 for x in dir_dict:
-    with open(os.path.join("data", x, "wav.scp"), "w") as wav_scp_f, open(
-        os.path.join("data", x, "utt2spk"), "w"
-    ) as utt2spk_f, open(os.path.join("data", x, "text"), "w") as text_f:
+    with (
+        open(os.path.join("data", x, "wav.scp"), "w") as wav_scp_f,
+        open(os.path.join("data", x, "utt2spk"), "w") as utt2spk_f,
+        open(os.path.join("data", x, "text"), "w") as text_f,
+    ):
         for line in dir_dict[x]:
             wav_path = line["audio_filepath"]
             offset = line["offset"]

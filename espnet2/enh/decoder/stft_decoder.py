@@ -1,13 +1,10 @@
 import torch
 import torch_complex
-from packaging.version import parse as V
 from torch_complex.tensor import ComplexTensor
 
 from espnet2.enh.decoder.abs_decoder import AbsDecoder
 from espnet2.enh.layers.complex_utils import is_torch_complex_tensor
 from espnet2.layers.stft import Stft
-
-is_torch_1_9_plus = V(torch.__version__) >= V("1.9.0")
 
 
 class STFTDecoder(AbsDecoder):
@@ -66,9 +63,7 @@ class STFTDecoder(AbsDecoder):
                 If not None, reconfigure iSTFT window and hop lengths for a new
                 sampling rate while keeping their duration fixed.
         """
-        if not isinstance(input, ComplexTensor) and (
-            is_torch_1_9_plus and not torch.is_complex(input)
-        ):
+        if not isinstance(input, ComplexTensor) and (not torch.is_complex(input)):
             raise TypeError("Only support complex tensors for stft decoder")
         if fs is not None:
             self._reconfig_for_fs(fs)
@@ -120,9 +115,9 @@ class STFTDecoder(AbsDecoder):
         self.stft.win_length = self.win_length * fs // self.default_fs
         self.stft.hop_length = self.hop_length * fs // self.default_fs
 
-    def _get_window_func(self):
+    def _get_window_func(self, *, device=None, dtype=None):
         window_func = getattr(torch, f"{self.window}_window")
-        window = window_func(self.win_length)
+        window = window_func(self.win_length, device=device, dtype=dtype)
         n_pad_left = (self.n_fft - window.shape[0]) // 2
         n_pad_right = self.n_fft - window.shape[0] - n_pad_left  # noqa
         return window
@@ -160,7 +155,9 @@ class STFTDecoder(AbsDecoder):
         n_pad_left = (self.n_fft - self.win_length) // 2
         output_wav = output_wav[..., n_pad_left : n_pad_left + self.win_length]
 
-        return output_wav * self._get_window_func()
+        return output_wav * self._get_window_func(
+            device=output_wav.device, dtype=output_wav.dtype
+        )
 
     def streaming_merge(self, chunks, ilens=None):
         """streaming_merge. It merges the frame-level processed audio chunks
@@ -189,7 +186,9 @@ class STFTDecoder(AbsDecoder):
         for i, chunk in enumerate(chunks):
             output[:, i * hop_size : i * hop_size + frame_size] += chunk
 
-        window_sq = self._get_window_func().pow(2)
+        window_sq = self._get_window_func(
+            device=chunks[0].device, dtype=chunks[0].dtype
+        ).pow(2)
         window_envelop = torch.zeros((batch_size, audio_len), dtype=chunks[0].dtype).to(
             chunks[0].device
         )
@@ -199,7 +198,9 @@ class STFTDecoder(AbsDecoder):
 
         # We need to trim the front padding away if center.
         start = (frame_size // 2) if self.center else 0
-        end = -(frame_size // 2) if ilens.max() is None else start + ilens.max()
+        end = -start if start else None
+        if ilens is not None:
+            end = start + ilens.max()
 
         return output[..., start:end]
 
@@ -238,7 +239,7 @@ if __name__ == "__main__":
     swavs = [decoder.forward_streaming(s) for s in sframes]
     merged = decoder.streaming_merge(swavs, ilens)
 
-    if not (is_torch_1_9_plus and encoder.use_builtin_complex):
+    if not encoder.use_builtin_complex:
         sframes = torch_complex.cat(sframes, dim=1)
     else:
         sframes = torch.cat(sframes, dim=1)

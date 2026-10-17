@@ -12,12 +12,13 @@ stage=0       # start from 0 if you need to start from data preparation
 stop_stage=100
 SECONDS=0
 lang=en # en de fr cy tt kab ca zh-TW it fa eu es ru tr nl eo zh-CN rw pt zh-HK cs pl uk
+# CommonVoice is not distributed through a public URL anymore. Set this to the
+# (time-limited, signed) link obtained after accepting the terms on
+# https://commonvoice.mozilla.org/en/datasets to download it automatically,
+# or see the message printed by local/download_commonvoice.sh.
+cv_data_url=
 
  . utils/parse_options.sh || exit 1;
-
-# base url for downloads.
-# Deprecated url:https://voice-prod-bundler-ee1969a6ce8178826482b88e843c335139bd3fb4.s3.amazonaws.com/cv-corpus-3/$lang.tar.gz
-data_url=https://voice-prod-bundler-ee1969a6ce8178826482b88e843c335139bd3fb4.s3.amazonaws.com/cv-corpus-5.1-2020-06-22/${lang}.tar.gz
 
 log() {
     local fname=${BASH_SOURCE[1]##*/}
@@ -44,9 +45,9 @@ log "data preparation started"
 
 if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
     log "stage1: Download data to ${COMMONVOICE}"
-    log "The default data of this recipe is from commonvoice 5.1, for newer version, you need to register at \
-         https://commonvoice.mozilla.org/"
-    local/download_and_untar.sh ${COMMONVOICE} ${data_url} ${lang}.tar.gz
+    log "The default data of this recipe is from commonvoice 5.1"
+    local/download_commonvoice.sh \
+        "${COMMONVOICE}/cv-corpus-5.1-2020-06-22/${lang}" "${lang}" cv-corpus-5.1-2020-06-22 "${cv_data_url}"
 fi
 
 if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then

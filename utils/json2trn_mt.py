@@ -12,7 +12,7 @@ import json
 import logging
 import sys
 
-from espnet.utils.cli_utils import get_commandline_args
+from espnet2.legacy.utils.cli_utils import get_commandline_args
 
 
 def get_parser():

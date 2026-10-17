@@ -6,7 +6,7 @@ set -u
 set -o pipefail
 
 # spectrogram-related arguments
-fs=24000 # 24000 or 441000
+fs=24000 # 24000 or 44100
 
 if [ $fs -eq 24000 ]; then
     fmin=0

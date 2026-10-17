@@ -2,14 +2,11 @@ from collections import OrderedDict
 from typing import Dict, List, Optional, Tuple, Union
 
 import torch
-from packaging.version import parse as V
 from torch_complex.tensor import ComplexTensor
 
 from espnet2.enh.layers.complex_utils import is_complex
 from espnet2.enh.layers.tcn import TemporalConvNet
 from espnet2.enh.separator.abs_separator import AbsSeparator
-
-is_torch_1_9_plus = V(torch.__version__) >= V("1.9.0")
 
 
 class TCNSeparator(AbsSeparator):
@@ -134,7 +131,11 @@ class TCNSeparator(AbsSeparator):
         receptive_field = self.tcn.receptive_field
 
         if buffer is None:
-            buffer = torch.zeros((B, receptive_field, N), device=input_frame.device)
+            buffer = torch.zeros(
+                (B, receptive_field, N),
+                device=input_frame.device,
+                dtype=input_frame.dtype,
+            )
 
         buffer = torch.roll(buffer, shifts=-1, dims=1)
         buffer[:, -1, :] = input_frame[:, 0, :]

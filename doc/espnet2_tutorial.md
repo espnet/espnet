@@ -27,9 +27,8 @@
 You can find the new recipes in `egs2` (shorthand for *Examples for ESPnet2*):
 
 ```
-espnet/  # Python modules of espnet1
 espnet2/ # Python modules of espnet2
-egs/     # espnet1 recipes
+espnet3/ # Python modules of espnet3
 egs2/    # espnet2 recipes
 ```
 

@@ -1,10 +1,7 @@
 import pytest
 import torch
-from packaging.version import parse as V
 
 from espnet2.enh.encoder.stft_encoder import STFTEncoder
-
-is_torch_1_12_1_plus = V(torch.__version__) >= V("1.12.1")
 
 
 @pytest.mark.parametrize("n_fft", [512])
@@ -45,7 +42,6 @@ def test_STFTEncoder_backward(
     y.abs().sum().backward()
 
 
-@pytest.mark.skipif(not is_torch_1_12_1_plus, reason="torch.complex32 is used")
 @pytest.mark.parametrize("n_fft", [512])
 @pytest.mark.parametrize("win_length", [512])
 @pytest.mark.parametrize("hop_length", [128])
@@ -108,3 +104,18 @@ def test_STFTEncoder_reconfig_for_fs():
     assert y_16k.size(1) == y_8k.size(1) == y_32k.size(1)
     assert y_16k.size(-1) == y_8k.size(-1) * 2 - 1
     assert y_32k.size(-1) == y_16k.size(-1) * 2 - 1
+
+
+@pytest.mark.parametrize("center", [False, True])
+@pytest.mark.parametrize("offset", [0, 13])
+@pytest.mark.parametrize("sample_stride", [1, 2])
+def test_streaming_frame_audio_view(center, offset, sample_stride):
+    audio = torch.arange(4 * 160, dtype=torch.float32).reshape(4, 160)
+    audio = audio[1::2, offset : offset + 96 : sample_stride]
+    encoder = STFTEncoder(n_fft=16, win_length=16, hop_length=4, center=center)
+    expected = audio
+    if center:
+        expected = torch.nn.functional.pad(expected, (8, 8), "reflect")
+    expected = expected.unfold(-1, 16, 4)
+    actual = torch.stack(encoder.streaming_frame(audio), dim=1)
+    torch.testing.assert_close(actual, expected, rtol=0, atol=0)

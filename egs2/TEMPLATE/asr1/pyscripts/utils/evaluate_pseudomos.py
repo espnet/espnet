@@ -167,9 +167,13 @@ def main():
 
     if args.mos_toolkit == "utmos":
         # Load predictor for UTMOS22.
-        predictor = torch.hub.load("tarepan/SpeechMOS:v1.2.0", "utmos22_strong").to(
-            device
-        )
+        # trust_repo=True suppresses PyTorch >= 2.0's interactive
+        # confirmation prompt; tarepan/SpeechMOS is a trusted source.
+        predictor = torch.hub.load(
+            "tarepan/SpeechMOS:v1.2.0",
+            "utmos22_strong",
+            trust_repo=True,
+        ).to(device)
     else:
         raise NotImplementedError(f"Not supported {args.mos_toolkit}.")
 

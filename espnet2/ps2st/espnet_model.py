@@ -4,9 +4,9 @@ import torch
 import yaml
 from typeguard import typechecked
 
+from espnet2.legacy.nets.beam_search import BeamSearch
 from espnet2.torch_utils.device_funcs import force_gatherable
 from espnet2.train.abs_espnet_model import AbsESPnetModel
-from espnet.nets.beam_search import BeamSearch
 
 from .qwen2_scorer import Qwen2HFScorer
 
@@ -16,11 +16,17 @@ try:
         AutoProcessor,
         Qwen2AudioForConditionalGeneration,
     )
-    from transformers.modeling_utils import no_init_weights
 
     is_transformers_available = True
 except ImportError:
     is_transformers_available = False
+
+if is_transformers_available:
+    try:
+        # transformers < v5
+        from transformers.modeling_utils import no_init_weights
+    except ImportError:
+        from transformers.initialization import no_init_weights
 
 
 class ESPnetQwen2AudioModel(AbsESPnetModel):
@@ -52,7 +58,6 @@ class ESPnetQwen2AudioModel(AbsESPnetModel):
             # Load Qwen2-Audio model and processor using standard transformers approach
             self.qwen2audio_model = Qwen2AudioForConditionalGeneration.from_pretrained(
                 model_name,
-                trust_remote_code=True,
             )
         else:
             config = AutoConfig.from_pretrained(model_name)
@@ -66,14 +71,20 @@ class ESPnetQwen2AudioModel(AbsESPnetModel):
             config.text_config.num_attention_heads = 4
             config.text_config.num_key_value_heads = 4
             config.text_config.intermediate_size = 256
+            # The checkpoint config asks for bfloat16, but only the submodules
+            # built through `AutoModel.from_config` honour it: since transformers
+            # v5.10 `lm_head` and `audio_tower` are created on the outer model at
+            # the default dtype, which leaves the dummy model half bfloat16 and
+            # half float32. Build the whole thing in float32 instead.
+            config.dtype = torch.float32
+            config.text_config.dtype = torch.float32
+            config.audio_config.dtype = torch.float32
             with no_init_weights():
                 self.qwen2audio_model = Qwen2AudioForConditionalGeneration(config)
 
         self.qwen2audio_model.to("cpu")
         self.qwen2audio_model.eval()
-        self.processor = AutoProcessor.from_pretrained(
-            model_name, trust_remote_code=True
-        )
+        self.processor = AutoProcessor.from_pretrained(model_name)
 
         # Get actual vocabulary size from the model
         self.vocab_size = self.qwen2audio_model.config.vocab_size
@@ -165,11 +176,17 @@ class ESPnetQwen2AudioModel(AbsESPnetModel):
             feature_attention_mask,
         )
 
+        # `Qwen2AudioForConditionalGeneration.language_model` was moved under
+        # `.model` in transformers v5.10, so read the token ids from the text
+        # sub-config instead, which is the config the text model is built from
+        # in every supported version.
+        text_config = self.qwen2audio_model.config.get_text_config()
+
         beam_search = BeamSearch(
             beam_size=self.decode_config["beam_size"],
             vocab_size=self.qwen2audio_model.config.vocab_size,
-            sos=self.qwen2audio_model.language_model.config.bos_token_id,
-            eos=self.qwen2audio_model.language_model.config.eos_token_id,
+            sos=text_config.bos_token_id,
+            eos=text_config.eos_token_id,
             scorers={"decoder": scorer},
             weights={"decoder": 1.0},
             normalize_length=False,

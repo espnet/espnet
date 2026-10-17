@@ -7,7 +7,7 @@ def is_flash_attn_supported() -> bool:
         return False
 
     # Approximate list of supported GPUs, might be missing some
-    AMPERE_GPUs = ["RTX 20", "RTX 30", "A10", "A20", "A30", "A40", "A50", "A60"]
+    AMPERE_GPUs = ["RTX 20", "RTX 30", "A10", "A20", "A30", "A40", "A50", "A60", "A100"]
     ADA_GPUs = ["RTX 40", "RTX 45", "RTX 50", "RTX 60", "L4"]
     HOPPER_GPUs = ["H100", "H200"]
 

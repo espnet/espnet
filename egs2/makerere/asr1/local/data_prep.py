@@ -34,9 +34,11 @@ if __name__ == "__main__":
             audio_list = all_audio_list[int(len(all_audio_list) * 0.8) :]
         # print('audio_list', len(audio_list))
 
-        with open(os.path.join("data", x, "text"), "w") as text_f, open(
-            os.path.join("data", x, "wav.scp"), "w"
-        ) as wav_scp_f, open(os.path.join("data", x, "utt2spk"), "w") as utt2spk_f:
+        with (
+            open(os.path.join("data", x, "text"), "w") as text_f,
+            open(os.path.join("data", x, "wav.scp"), "w") as wav_scp_f,
+            open(os.path.join("data", x, "utt2spk"), "w") as utt2spk_f,
+        ):
             i = 0
             for audio_path in audio_list:
                 filename = os.path.basename(audio_path)

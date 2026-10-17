@@ -1,8 +1,8 @@
 import torch
 from typeguard import typechecked
 
+from espnet2.legacy.nets.pytorch_backend.e2e_tts_tacotron2 import GuidedAttentionLoss
 from espnet2.s2st.losses.abs_loss import AbsS2STLoss
-from espnet.nets.pytorch_backend.e2e_tts_tacotron2 import GuidedAttentionLoss
 
 
 class S2STGuidedAttentionLoss(AbsS2STLoss):

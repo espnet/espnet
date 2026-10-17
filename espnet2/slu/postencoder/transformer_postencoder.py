@@ -2,25 +2,28 @@
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
 """Encoder definition."""
+
 from typing import Optional, Tuple
 
 import torch
 from typeguard import typechecked
 
 from espnet2.asr.postencoder.abs_postencoder import AbsPostEncoder
-from espnet.nets.pytorch_backend.nets_utils import make_pad_mask
-from espnet.nets.pytorch_backend.transformer.attention import MultiHeadedAttention
-from espnet.nets.pytorch_backend.transformer.embedding import PositionalEncoding
-from espnet.nets.pytorch_backend.transformer.encoder_layer import EncoderLayer
-from espnet.nets.pytorch_backend.transformer.layer_norm import LayerNorm
-from espnet.nets.pytorch_backend.transformer.multi_layer_conv import (
+from espnet2.legacy.nets.pytorch_backend.nets_utils import make_pad_mask
+from espnet2.legacy.nets.pytorch_backend.transformer.attention import (
+    MultiHeadedAttention,
+)
+from espnet2.legacy.nets.pytorch_backend.transformer.embedding import PositionalEncoding
+from espnet2.legacy.nets.pytorch_backend.transformer.encoder_layer import EncoderLayer
+from espnet2.legacy.nets.pytorch_backend.transformer.layer_norm import LayerNorm
+from espnet2.legacy.nets.pytorch_backend.transformer.multi_layer_conv import (
     Conv1dLinear,
     MultiLayeredConv1d,
 )
-from espnet.nets.pytorch_backend.transformer.positionwise_feed_forward import (
+from espnet2.legacy.nets.pytorch_backend.transformer.positionwise_feed_forward import (
     PositionwiseFeedForward,
 )
-from espnet.nets.pytorch_backend.transformer.repeat import repeat
+from espnet2.legacy.nets.pytorch_backend.transformer.repeat import repeat
 
 
 class TransformerPostEncoder(AbsPostEncoder):
@@ -46,6 +49,7 @@ class TransformerPostEncoder(AbsPostEncoder):
         positionwise_layer_type: linear of conv1d
         positionwise_conv_kernel_size: kernel size of positionwise conv1d layer
         padding_idx: padding_idx for input_layer=embed
+        use_sdpa: whether to use PyTorch's scaled_dot_product_attention
     """
 
     @typechecked
@@ -66,6 +70,7 @@ class TransformerPostEncoder(AbsPostEncoder):
         positionwise_layer_type: str = "linear",
         positionwise_conv_kernel_size: int = 1,
         padding_idx: int = -1,
+        use_sdpa: bool = False,
     ):
         super().__init__()
         self._output_size = output_size
@@ -116,7 +121,10 @@ class TransformerPostEncoder(AbsPostEncoder):
             lambda lnum: EncoderLayer(
                 output_size,
                 MultiHeadedAttention(
-                    attention_heads, output_size, attention_dropout_rate
+                    attention_heads,
+                    output_size,
+                    attention_dropout_rate,
+                    use_sdpa=use_sdpa,
                 ),
                 positionwise_layer(*positionwise_layer_args),
                 dropout_rate,

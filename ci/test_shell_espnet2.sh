@@ -1,5 +1,8 @@
 #!/usr/bin/env bash
 
+# shellcheck source=tools/installers/download_with_retry.sh
+. ./tools/installers/download_with_retry.sh
+
 if [ ! -e tools/kaldi ]; then
     git clone https://github.com/kaldi-asr/kaldi --depth 1 tools/kaldi
 fi
@@ -19,7 +22,9 @@ if ! [ -x "$(command -v shellcheck)" ]; then
     # tar -xvf shellcheck-stable.linux.x86_64.tar.xz
 
     # Workaround to avoid issue introduces in v0.11.0
-    wget https://github.com/koalaman/shellcheck/releases/download/v0.10.0/shellcheck-v0.10.0.linux.x86_64.tar.xz
+    download_with_retry \
+        https://github.com/koalaman/shellcheck/releases/download/v0.10.0/shellcheck-v0.10.0.linux.x86_64.tar.xz \
+        shellcheck-v0.10.0.linux.x86_64.tar.xz
     tar -xvf shellcheck-v0.10.0.linux.x86_64.tar.xz
 fi
 . tools/activate_python.sh
@@ -30,7 +35,7 @@ set -euo pipefail
 echo "=== run shellcheck ==="
 rm -fv tools/Miniconda*.sh  # exclude from schellcheck
 rm -fv tools/Miniforge*.sh  # exclude from schellcheck
-find ci doc egs2/TEMPLATE/*/scripts egs2/TEMPLATE/*/setup.sh tools/*.sh -name "*.sh" -printf "=> %p\n" -execdir shellcheck -Calways -x -e SC2001 -e SC1091 -e SC2086 {} \; | tee check_shellcheck
+find utils ci doc egs2/TEMPLATE/*/scripts egs2/TEMPLATE/*/setup.sh tools/*.sh -name "*.sh" -printf "=> %p\n" -execdir shellcheck -Calways -x -e SC2001 -e SC1091 -e SC2086 {} \; | tee check_shellcheck
 find egs2/*/*/local/data.sh -printf "=> %p\n" -execdir sh -c 'cd .. ; shellcheck -Calways -x -e SC2001 -e SC1091 -e SC2086 local/$1 ; ' -- {} \; | tee -a check_shellcheck
 find egs2 \( -name "run.sh" -o -name asr.sh -o -name tts.sh -o -name enh.sh \) -printf "=> %p\n" -execdir shellcheck -Calways -x -e SC2001 -e SC1091 -e SC2086 {} \; | tee -a check_shellcheck
 

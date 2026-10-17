@@ -2,14 +2,11 @@ from collections import OrderedDict
 from typing import Dict, List, Optional, Tuple, Union
 
 import torch
-from packaging.version import parse as V
 from torch_complex.tensor import ComplexTensor
 
 from espnet2.enh.layers.complex_utils import is_complex
 from espnet2.enh.separator.abs_separator import AbsSeparator
-from espnet.nets.pytorch_backend.rnn.encoders import RNN
-
-is_torch_1_9_plus = V(torch.__version__) >= V("1.9.0")
+from espnet2.legacy.nets.pytorch_backend.rnn.encoders import RNN
 
 
 class RNNSeparator(AbsSeparator):
@@ -152,6 +149,6 @@ class RNNSeparator(AbsSeparator):
             zip(["mask_spk{}".format(i + 1) for i in range(len(masks))], masks)
         )
         if self.predict_noise:
-            others["noise1"] = input * mask_noise
+            others["noise1"] = input_frame * mask_noise
 
         return masked, states, others

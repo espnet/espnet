@@ -14,7 +14,7 @@ class AbsS2STAuxAttention(torch.nn.Module, ABC):
     # the name will be the key that appears in the reporter
     @property
     def name(self) -> str:
-        return NotImplementedError
+        raise NotImplementedError
 
     @abstractmethod
     def forward(

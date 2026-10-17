@@ -23,7 +23,7 @@ from packaging.version import parse as V
 from torch.utils.data import DataLoader
 from typeguard import typechecked
 
-from espnet import __version__
+from espnet2 import __version__
 from espnet2.iterators.abs_iter_factory import AbsIterFactory
 from espnet2.iterators.category_chunk_iter_factory import CategoryChunkIterFactory
 from espnet2.iterators.category_iter_factory import CategoryIterFactory
@@ -31,6 +31,7 @@ from espnet2.iterators.chunk_iter_factory import ChunkIterFactory
 from espnet2.iterators.multiple_iter_factory import MultipleIterFactory
 from espnet2.iterators.sequence_iter_factory import SequenceIterFactory
 from espnet2.layers.create_adapter import create_adapter
+from espnet2.legacy.utils.cli_utils import get_commandline_args
 from espnet2.main_funcs.collect_stats import collect_stats
 from espnet2.optimizers.optim_groups import configure_optimizer
 from espnet2.optimizers.sgd import SGD
@@ -51,9 +52,11 @@ from espnet2.schedulers.tristage_lr import TristageLR
 from espnet2.schedulers.warmup_lr import WarmupLR
 from espnet2.schedulers.warmup_reducelronplateau import WarmupReduceLROnPlateau
 from espnet2.schedulers.warmup_step_lr import WarmupStepLR
+from espnet2.torch_utils.initialize import INITIALIZATIONS
 from espnet2.torch_utils.load_pretrained_model import load_pretrained_model
 from espnet2.torch_utils.model_summary import model_summary
 from espnet2.torch_utils.pytorch_version import pytorch_cudnn_version
+from espnet2.torch_utils.safe_torch_load import UnsafeLoadRefusedError, safe_torch_load
 from espnet2.torch_utils.set_all_random_seed import set_all_random_seed
 from espnet2.train.abs_espnet_model import AbsESPnetModel
 from espnet2.train.class_choices import ClassChoices
@@ -89,18 +92,13 @@ from espnet2.utils.types import (
     str_or_none,
 )
 from espnet2.utils.yaml_no_alias_safe_dump import yaml_no_alias_safe_dump
-from espnet.utils.cli_utils import get_commandline_args
 
 try:
     import wandb
 except Exception:
     wandb = None
 
-if V(torch.__version__) >= V("1.5.0"):
-    from torch.multiprocessing.spawn import ProcessContext
-else:
-    from torch.multiprocessing.spawn import SpawnContext as ProcessContext
-
+from torch.multiprocessing.spawn import ProcessContext
 
 optim_classes = dict(
     adam=torch.optim.Adam,
@@ -113,12 +111,8 @@ optim_classes = dict(
     lbfgs=torch.optim.LBFGS,
     rmsprop=torch.optim.RMSprop,
     rprop=torch.optim.Rprop,
+    radam=torch.optim.RAdam,
 )
-if V(torch.__version__) >= V("1.10.0"):
-    # From 1.10.0, RAdam is officially supported
-    optim_classes.update(
-        radam=torch.optim.RAdam,
-    )
 try:
     import torch_optimizer
 
@@ -209,6 +203,38 @@ class IteratorOptions:
     num_batches: Optional[int]
     num_iters_per_epoch: Optional[int]
     train: bool
+
+
+def _drop_init_this_version_removed(args: argparse.Namespace) -> None:
+    """Ignore an initialization this version no longer has, when loading.
+
+    `--init` says how to fill the parameters *before* training. Loading a
+    trained model fills them from the checkpoint instead, so the setting has
+    no effect here - but `build_model` applies it anyway and raises on a
+    value it does not recognise, which is how a model published with
+    `init: chainer` stopped loading when that choice was removed in June 2025
+    (9e9897a4703). espnet_model_zoo's daily run found it on jv_openslr35,
+    published against espnet 0.9.7.
+
+    A value this version does know is left alone: it is wasted work before
+    the state dict overwrites it, but `load_state_dict` here is not strict,
+    so a parameter the checkpoint does not carry keeps what the
+    initialization gave it.
+
+    Only called when there is a checkpoint to load. Building from a config
+    alone leaves the model with whatever the initialization gives it, so an
+    unknown one there is a real problem and still says so.
+    """
+    init = getattr(args, "init", None)
+    if init is None or init in INITIALIZATIONS:
+        return
+    logging.warning(
+        "this model was trained with init=%s, which this version of espnet "
+        "does not have. Ignoring it: the weights come from the checkpoint, "
+        "not from an initialization.",
+        init,
+    )
+    args.init = None
 
 
 class AbsTask(ABC):
@@ -698,6 +724,12 @@ class AbsTask(ABC):
             help="Set the model log period",
         )
         group.add_argument(
+            "--wandb_allow_val_change",
+            type=str2bool,
+            default=True,
+            help="Allow wandb config values to be changed after initialization",
+        )
+        group.add_argument(
             "--detect_anomaly",
             type=str2bool,
             default=False,
@@ -869,14 +901,14 @@ class AbsTask(ABC):
             "--batch_type",
             type=str,
             default="folded",
-            choices=list(BATCH_TYPES),
+            choices=list(BATCH_TYPES) + list(CATEGORY_BATCH_TYPES),
             help=_batch_type_help,
         )
         group.add_argument(
             "--valid_batch_type",
             type=str_or_none,
             default=None,
-            choices=list(BATCH_TYPES) + [None],
+            choices=list(BATCH_TYPES) + list(CATEGORY_BATCH_TYPES) + [None],
             help="If not given, the value of --batch_type is used",
         )
         group.add_argument("--fold_length", type=int, action="append", default=[])
@@ -1608,7 +1640,10 @@ class AbsTask(ABC):
                         id=args.wandb_id,
                         resume=args.resume,
                     )
-                    wandb.config.update(args)
+                    wandb.config.update(
+                        args,
+                        allow_val_change=args.wandb_allow_val_change,
+                    )
                 else:
                     # wandb also supports grouping for distributed training,
                     # but we only log aggregated data,
@@ -1949,9 +1984,44 @@ class AbsTask(ABC):
                 "category2utt mandatory for category iterator, but not found"
             )
 
-        if iter_options.batch_type in CATEGORY_BATCH_TYPES:
+        if (
+            iter_options.batch_type in CATEGORY_BATCH_TYPES
+            or iter_options.batch_type == "folded"
+        ):
+            # Note(qingzheng): Handle category-based batch sampling for category
+            # iterator type.
+            #
+            # This covers two scenarios:
+            # 1. Explicit category batch types (catbel, catpow, catpow_balance_dataset):
+            #    Use the specified category sampler directly.
+            # 2. Legacy "folded" batch type with category iterator:
+            #    In older configurations, when iterator_type=category was set,
+            #    they typically does not specify the batch_type, which makes the
+            #    batch_type default to "folded". However, the intended behavior
+            #    in the case of setting iterator_type to category, is to use
+            #    category-balanced sampler (catbel). We maintain backward
+            #    compatibility by mapping the batch_type "folded" to "catbel"
+            #    in the case of setting iterator_type to "category".
+
+            if iter_options.batch_type == "folded":
+                logging.warning(
+                    "Detected iterator_type='category' with batch_type='folded'. "
+                    "In older ESPnet versions (< 202509), when iterator_type was "
+                    "set to 'category', the batch_type would default to 'folded' as "
+                    "the older design does not require the batch_type to be specified, "
+                    "but the intended behavior was to use category-balanced sampling "
+                    "(catbel batch sampler). We map 'folded' to 'catbel' to maintain "
+                    "this behavior. If you actually want to use the folded batch "
+                    "sampler, please set iterator_type='sequence' and "
+                    "batch_type='folded' instead."
+                )
+
             batch_sampler, sampler_args = build_category_batch_sampler(
-                type=iter_options.batch_type,
+                type=(
+                    iter_options.batch_type
+                    if iter_options.batch_type != "folded"
+                    else "catbel"
+                ),
                 batch_size=iter_options.batch_size,
                 batch_bins=iter_options.batch_bins,
                 shape_files=iter_options.shape_files,
@@ -1982,6 +2052,21 @@ class AbsTask(ABC):
                 batch_size=iter_options.batch_size,
                 key_file=key_file,
             )
+        elif iter_options.batch_type in BATCH_TYPES.keys():
+            # If the batch_type is set to other than the category batch types,
+            # folded, and unsorted, we fallback to treat it as a sequence iterator.
+            logging.warning(
+                f"The batch type {iter_options.batch_type} is not compatible "
+                f"with iterator_type=category. Please use a category batch type. "
+                f"Available category batch types: {CATEGORY_BATCH_TYPES.keys()} "
+                f"Here we fallback to treat it as a sequence iterator."
+            )
+            sequence_iter_factory = cls.build_sequence_iter_factory(
+                args=args,
+                iter_options=iter_options,
+                mode=mode,
+            )
+            return sequence_iter_factory
         else:
             raise ValueError(
                 f"batch_type={iter_options.batch_type} is not supported"
@@ -2034,7 +2119,11 @@ class AbsTask(ABC):
                 seed=args.seed,
                 num_iters_per_epoch=iter_options.num_iters_per_epoch,
                 sampler_args=sampler_args,
-                batch_type=iter_options.batch_type,
+                batch_type=(
+                    iter_options.batch_type
+                    if iter_options.batch_type != "folded"
+                    else "catbel"
+                ),
                 shuffle=iter_options.train,
                 num_workers=args.num_workers,
                 collate_fn=iter_options.collate_fn,
@@ -2426,6 +2515,10 @@ class AbsTask(ABC):
         with config_file.open("r", encoding="utf-8") as f:
             args = yaml.safe_load(f)
         args = argparse.Namespace(**args)
+        if model_file is not None:
+            # only when a checkpoint is about to overwrite the parameters;
+            # with none, the initialization is all the model will have
+            _drop_init_this_version_removed(args)
         model = cls.build_model(args)
         if not isinstance(model, AbsESPnetModel):
             raise RuntimeError(
@@ -2445,22 +2538,30 @@ class AbsTask(ABC):
                 #   in PyTorch<=1.4
                 device = f"cuda:{torch.cuda.current_device()}"
             try:
-                state_dict = torch.load(
+                state_dict = safe_torch_load(
                     model_file,
                     map_location="cpu" if device == "mps" else device,
-                    weights_only=False,
                 )
                 # for deepspeed checkpoints
                 if "module" in state_dict:
                     state_dict = state_dict["module"]
+                # for lightning checkpoints
+                if "state_dict" in state_dict:
+                    state_dict = state_dict["state_dict"]
+
                 model.load_state_dict(
                     state_dict,
                     strict=False,
                 )
+            except UnsafeLoadRefusedError:
+                raise
             except RuntimeError:
                 # Note(simpleoier): the following part is to be compatible with
-                #   pretrained model using earlier versions before `0a625088`
-                state_dict = torch.load(
+                #   pretrained model using earlier versions before `0a625088`.
+                #   This RuntimeError is raised by model.load_state_dict above
+                #   (due to key mismatches), not by safe_torch_load.  We reload
+                #   the file here to apply legacy key renaming before retrying.
+                state_dict = safe_torch_load(
                     model_file, map_location="cpu" if device == "mps" else device
                 )
                 if any(["frontend.upstream.model" in k for k in state_dict.keys()]):

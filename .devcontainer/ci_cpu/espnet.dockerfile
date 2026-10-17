@@ -1,4 +1,4 @@
-ARG USE_IMAGE=ubuntu:latest
+ARG USE_IMAGE=ubuntu:24.04
 
 FROM ${USE_IMAGE}
 LABEL maintainer="Nelson Yalta <nyalta21@gmail.com>"
@@ -49,7 +49,7 @@ RUN apt-get update && \
         zlib1g-dev \
         pandoc ffmpeg nodejs npm \
         && \
-    curl -s https://packagecloud.io/install/repositories/github/git-lfs/script.deb.sh | bash && \
+    curl -sf --retry 3 https://packagecloud.io/install/repositories/github/git-lfs/script.deb.sh | bash && \
     apt-get -y install --no-install-recommends \
         git-lfs \
         && \
@@ -58,8 +58,9 @@ RUN apt-get update && \
 
 # Latest version of git
 ENV TZ=Etc/UTC
-ENV TH_VERSION=2.0.1
-ENV USE_CONDA=false
+ENV TH_VERSION=2.11.0
+ENV ESPNET_PYTHON_VERSION=3.12
+ENV USE_CONDA=true
 ENV CHAINER_VERSION=6.0.0
 ENV PATH=/opt/miniconda/bin:${PATH}
 
@@ -72,13 +73,5 @@ RUN mkdir -p /workspaces && \
 
 WORKDIR /opt
 USER ${USERNAME}
-
-RUN wget --tries=3 -nv "https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh" -O miniconda.sh && \
-    bash miniconda.sh -b -p /opt/miniconda && \
-    /opt/miniconda/bin/conda config --prepend channels https://software.repos.intel.com/python/conda/ && \
-    rm miniconda.sh && \
-    conda install -y python=3.10 && \
-    conda install -c conda-forge libstdcxx-ng && \
-    conda clean -a -y
 
 WORKDIR /workspaces

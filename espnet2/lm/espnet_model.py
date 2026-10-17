@@ -4,10 +4,10 @@ import torch
 import torch.nn.functional as F
 from typeguard import typechecked
 
+from espnet2.legacy.nets.pytorch_backend.nets_utils import make_pad_mask
 from espnet2.lm.abs_model import AbsLM
 from espnet2.torch_utils.device_funcs import force_gatherable
 from espnet2.train.abs_espnet_model import AbsESPnetModel
-from espnet.nets.pytorch_backend.nets_utils import make_pad_mask
 
 
 class ESPnetLanguageModel(AbsESPnetModel):
@@ -74,7 +74,7 @@ class ESPnetLanguageModel(AbsESPnetModel):
     ) -> Tuple[torch.Tensor, torch.Tensor]:
         """Compute negative log likelihood(nll) from transformer language model
 
-        To avoid OOM, this fuction seperate the input into batches.
+        To avoid OOM, this function separates the input into batches.
         Then call nll for each batch and combine and return results.
         Args:
             text: (Batch, Length)

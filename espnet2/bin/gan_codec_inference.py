@@ -19,12 +19,13 @@ from typeguard import typechecked
 from espnet2.fileio.npy_scp import NpyScpWriter
 from espnet2.gan_codec.dac import DAC
 from espnet2.gan_codec.soundstream import SoundStream
+from espnet2.legacy.utils.cli_utils import get_commandline_args
 from espnet2.tasks.gan_codec import GANCodecTask
 from espnet2.torch_utils.device_funcs import to_device
 from espnet2.torch_utils.set_all_random_seed import set_all_random_seed
 from espnet2.utils import config_argparse
+from espnet2.utils.pretrained import download_pretrained
 from espnet2.utils.types import float_or_none, str2bool, str2triple_str, str_or_none
-from espnet.utils.cli_utils import get_commandline_args
 
 
 class AudioCoding:
@@ -39,7 +40,7 @@ class AudioCoding:
         self,
         train_config: Union[Path, str, None] = None,
         model_file: Union[Path, str, None] = None,
-        target_bandwidth: Union[Path, str, None] = None,
+        target_bandwidth: Union[Path, str, float, None] = None,
         dtype: str = "float32",
         device: Union[str, torch.device] = "cpu",
         seed: int = 777,
@@ -151,17 +152,7 @@ class AudioCoding:
 
         """
         if model_tag is not None:
-            try:
-                from espnet_model_zoo.downloader import ModelDownloader
-
-            except ImportError:
-                logging.error(
-                    "`espnet_model_zoo` is not installed. "
-                    "Please install via `pip install -U espnet_model_zoo`."
-                )
-                raise
-            d = ModelDownloader()
-            kwargs.update(**d.download_and_unpack(model_tag))
+            kwargs.update(download_pretrained(model_tag))
 
         return AudioCoding(**kwargs)
 

@@ -1164,7 +1164,7 @@ if ! "${skip_scoring}"; then
         log "Stage 9: Scoring: TTS scoring via versa logs on ${_gen_dir}"
         _data=${data_feats}/${test_sets}
 
-        log "Scoring TTS evaluation via VERSA, using default ${versa_config}. You can visit https://github.com/shinjiwlab/versa?tab=readme-ov-file#list-of-metrics for more supported metrics."
+        log "Scoring TTS evaluation via VERSA, using default ${versa_config}. You can visit https://github.com/wavlab-speech/versa?tab=readme-ov-file#list-of-metrics for more supported metrics."
         _opts=
         _eval_dir=${_gen_dir}/scoring/versa_eval
         mkdir -p ${_eval_dir}

@@ -14,6 +14,79 @@ See the following pages before asking the question:
 - [ESPnet2 TTS FAQ](../../TEMPLATE/tts1/README.md#faq)
 
 
+# FastSpeech2 XPU Shape-Bucketing (Inference Optimization)
+
+Shape-bucketing pads encoder (text-token) and decoder (mel-frame) tensors to
+fixed bucket boundaries so that oneDNN / GEMM primitives are created once and
+reused across batches with varying lengths.  This eliminates costly primitive
+re-creation and pairs especially well with `torch.compile` on Intel CPU / XPU
+devices.
+
+## Performance
+
+| Configuration | Batch size | Latency | Speed-up |
+|---|---|---|---|
+| Baseline (no bucketing) | 8 | 166 ms | 1.0x |
+| **With shape-bucketing** | 8 | **89 ms** | **~1.9x** |
+
+*Measured on Intel Xeon / XPU with `torch.compile`.*
+
+## Quick Start
+
+### Option 1 — Environment variable (works with any existing trained model)
+
+```sh
+ESPNET_BUCKET_INFER=1 \
+./run.sh --stage 8 --stop_stage 8 \
+         --train_config conf/tuning/train_fastspeech2.yaml \
+         --inference_config conf/tuning/decode_fastspeech_xpu_bucket.yaml
+```
+
+### Option 2 — Config-only (bucket_infer baked into the training config)
+
+```sh
+# Training
+./run.sh \
+    --train_config conf/tuning/train_fastspeech2_xpu_bucket.yaml \
+    --inference_config conf/tuning/decode_fastspeech_xpu_bucket.yaml
+```
+
+```sh
+# Inference only (pre-trained model)
+./run.sh --stage 8 --stop_stage 8 \
+    --train_config conf/tuning/train_fastspeech2_xpu_bucket.yaml \
+    --inference_config conf/tuning/decode_fastspeech_xpu_bucket.yaml
+```
+
+### Combining with torch.compile
+
+For maximum throughput, use `torch.compile` with `reduce-overhead` mode (PyTorch ≥ 2.1):
+
+```sh
+ESPNET_BUCKET_INFER=1 \
+python -m espnet2.bin.tts_inference \
+    --model_file <model.pth> \
+    --train_config conf/tuning/train_fastspeech2.yaml \
+    --compile_mode reduce-overhead \
+    ...
+```
+
+## Config Files
+
+| Config | Description |
+|---|---|
+| `conf/tuning/train_fastspeech2_xpu_bucket.yaml` | Training config with `bucket_infer: true` and bucket sizes baked in |
+| `conf/tuning/decode_fastspeech_xpu_bucket.yaml` | Decode config for bucketed inference |
+| `conf/tuning/train_fastspeech2.yaml` | Standard training config (use `ESPNET_BUCKET_INFER=1` env var at inference) |
+
+## Default Bucket Boundaries
+
+- **Encoder** (text tokens): `[16, 32, 64, 96, 128, 192, 256, 384, 512]`
+- **Decoder** (mel frames): `[64, 128, 192, 256, 384, 512, 768, 1024, 1536, 2048]`
+
+These defaults cover typical English TTS corpora. Override them in the training config's `tts_conf` section if needed.
+
+
 # SIXTH RESULTS
 
 - Initial JETS model

@@ -4,9 +4,12 @@ set -euo pipefail
 
 . tools/activate_python.sh
 
+# ci/install.sh no longer installs the doc extra: only this script needs it,
+# and it was otherwise installed in every one of the ~100 CI jobs.
+python3 -m pip install -e ".[doc]"
+
 clean_outputs() {
     rm -rf dist
-    rm -rf espnet_bin
     rm -rf espnet2_bin
     rm -rf utils_py
 
@@ -48,48 +51,61 @@ mkdir -p doc/_gen/guide
 export LD_LIBRARY_PATH=${LD_LIBRARY_PATH-}
 set -euo pipefail
 # generate tools doc
+echo "::group::generate tools doc"
 mkdir utils_py
 ./doc/argparse2rst.py \
     --title utils_py \
     --output_dir utils_py \
     ./utils/*.py
 mv utils_py ./doc/_gen/tools
+echo "::endgroup::"
 
-mkdir espnet_bin
-./doc/argparse2rst.py \
-    --title espnet_bin \
-    --output_dir espnet_bin \
-    ./espnet/bin/*.py
-mv espnet_bin ./doc/_gen/tools
-
+echo "::group::generate espnet2_bin doc"
 mkdir espnet2_bin
 ./doc/argparse2rst.py \
     --title espnet2_bin \
     --output_dir espnet2_bin \
     ./espnet2/bin/*.py
 mv espnet2_bin ./doc/_gen/tools
+echo "::endgroup::"
 
+echo "::group::generate utils/tools doc"
 build_and_convert "utils/*.sh" utils
 build_and_convert "tools/sentencepiece_commands/spm_decode" spm
 build_and_convert "tools/sentencepiece_commands/spm_encode" spm
 # There seems no help prepared for spm_train command.
+echo "::endgroup::"
 
 # incorporate espnet/notebook repository to docs
+echo "::group::incorporate notebook to docs"
 ./doc/notebook2rst.sh
+echo "::endgroup::"
 
 # incorporate recipe template readme.md to docs
+echo "::group::incorporate recipe to docs"
 python ./doc/recipe2md.py --src ./egs2/TEMPLATE --dst ./doc/recipe
+echo "::endgroup::"
 
 # generate package doc
-python ./doc/members2rst.py --root espnet --dst ./doc/_gen/guide --exclude espnet.bin
+echo "::group::generate package doc"
 python ./doc/members2rst.py --root espnet2 --dst ./doc/_gen/guide --exclude espnet2.bin
 python ./doc/members2rst.py --root espnetez --dst ./doc/_gen/guide
+echo "::endgroup::"
+
+# Two pages at one address make vuepress-plugin-search-pro throw
+# "SlimSearch: duplicate ID" after everything below has run, naming neither
+# page. Fail here instead, with both names.
+echo "::group::check page addresses"
+python3 ./ci/check_doc_pages.py
+echo "::endgroup::"
 
 # build markdown
+echo "::group::build markdown"
 cp ./doc/index.rst ./doc/_gen/index.rst
 cp ./doc/conf.py ./doc/_gen/
 rm -f ./doc/_gen/tools/espnet2_bin/*_train.rst
 sphinx-build -M markdown ./doc/_gen ./doc/build
+echo "::endgroup::"
 
 # copy markdown files to specific directory.
 cp -r ./doc/build/markdown/* ./doc/vuepress/src/
@@ -116,7 +132,7 @@ python ./doc/convert_md_to_homepage.py ./doc/vuepress/src/recipe
 cd ./doc/vuepress
 python create_menu.py --root ./src
 
-npm i
+npm ci
 # npm run docs:dev
 npm run docs:build
 mv src/.vuepress/dist ../../

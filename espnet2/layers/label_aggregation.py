@@ -3,7 +3,7 @@ from typing import Optional, Tuple
 import torch
 from typeguard import typechecked
 
-from espnet.nets.pytorch_backend.nets_utils import make_pad_mask
+from espnet2.legacy.nets.pytorch_backend.nets_utils import make_pad_mask
 
 
 class LabelAggregate(torch.nn.Module):

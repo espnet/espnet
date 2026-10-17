@@ -70,12 +70,8 @@ for lang in ${langs}; do
         if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
             log "sub-stage 0: Download Data to ${COMMONVOICE}"
 
-            # base url for downloads.
-            data_url=https://mozilla-common-voice-datasets.s3.dualstack.us-west-2.amazonaws.com/cv-corpus-9.0-2022-04-27/cv-corpus-9.0-2022-04-27-${lang}.tar.gz
-
-            local/voxforge/download_and_untar.sh ${COMMONVOICE} ${data_url} ${lang}.tar.gz
-            # (Optional) remove archived file
-            # rm -f ${COMMONVOICE}/${lang}.tar.gz
+            local/commonvoice/download_commonvoice.sh \
+                "${COMMONVOICE}/cv-corpus-9.0-2022-04-27/${lang}" "${lang}" cv-corpus-9.0-2022-04-27
         fi
 
         train_subset=train_"$(echo "${lang}" | tr - _)"_commonvoice
@@ -748,12 +744,8 @@ for lang in ${extra_langs}; do
         if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
             log "sub-stage 0: Download Data to ${COMMONVOICE}"
 
-            # base url for downloads.
-            data_url=https://mozilla-common-voice-datasets.s3.dualstack.us-west-2.amazonaws.com/cv-corpus-9.0-2022-04-27/cv-corpus-9.0-2022-04-27-${lang}.tar.gz
-
-            local/voxforge/download_and_untar.sh ${COMMONVOICE} ${data_url} ${lang}.tar.gz
-            # (Optional) remove archieve files
-            # rm -f ${COMMONVOICE}/${lang}.tar.gz
+            local/commonvoice/download_commonvoice.sh \
+                "${COMMONVOICE}/cv-corpus-9.0-2022-04-27/${lang}" "${lang}" cv-corpus-9.0-2022-04-27
         fi
 
         train_subset=train_"$(echo "${lang}" | tr - _)"_commonvoice

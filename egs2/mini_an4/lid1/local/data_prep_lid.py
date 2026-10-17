@@ -33,13 +33,13 @@ sph_dir = {"train": "an4_clstk", "test": "an4test_clstk"}
 train_langs = set()
 
 for x in [("train_minian4", "train"), ("test_minian4", "test")]:
-    with open(
-        os.path.join(an4_root, "etc", "an4_" + x[1] + ".transcription")
-    ) as transcript_f, open(
-        os.path.join("data", x[0], "wav.scp"), "w"
-    ) as wav_scp_f, open(
-        os.path.join("data", x[0], "utt2lang"), "w"
-    ) as utt2lang_f:
+    with (
+        open(
+            os.path.join(an4_root, "etc", "an4_" + x[1] + ".transcription")
+        ) as transcript_f,
+        open(os.path.join("data", x[0], "wav.scp"), "w") as wav_scp_f,
+        open(os.path.join("data", x[0], "utt2lang"), "w") as utt2lang_f,
+    ):
         wav_scp_f.truncate()
         utt2lang_f.truncate()
 

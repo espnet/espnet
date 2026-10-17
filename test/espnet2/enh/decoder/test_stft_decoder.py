@@ -1,14 +1,10 @@
 import pytest
 import torch
 import torch_complex
-from packaging.version import parse as V
 from torch_complex import ComplexTensor
 
 from espnet2.enh.decoder.stft_decoder import STFTDecoder
 from espnet2.enh.encoder.stft_encoder import STFTEncoder
-
-is_torch_1_12_1_plus = V(torch.__version__) >= V("1.12.1")
-is_torch_1_9_plus = V(torch.__version__) >= V("1.9.0")
 
 
 @pytest.mark.parametrize("n_fft", [512])
@@ -98,7 +94,7 @@ def test_stft_enc_dec_streaming(n_fft, win_length, hop_length, onesided):
     swavs = [decoder.forward_streaming(s) for s in sframes]
     merged = decoder.streaming_merge(swavs, ilens)
 
-    if not (is_torch_1_9_plus and encoder.use_builtin_complex):
+    if not encoder.use_builtin_complex:
         sframes = torch_complex.cat(sframes, dim=1)
     else:
         sframes = torch.cat(sframes, dim=1)
@@ -109,7 +105,6 @@ def test_stft_enc_dec_streaming(n_fft, win_length, hop_length, onesided):
     torch.testing.assert_close(wav, merged)
 
 
-@pytest.mark.skipif(not is_torch_1_12_1_plus, reason="torch.complex32 is used")
 @pytest.mark.parametrize("n_fft", [512])
 @pytest.mark.parametrize("win_length", [512])
 @pytest.mark.parametrize("hop_length", [128])
@@ -162,3 +157,69 @@ def test_STFTDecoder_reconfig_for_fs():
 
     x = torch.rand(1, 32, 257, dtype=torch.complex64)
     y_16k, _ = decoder(x, ilens * 2)
+
+
+@pytest.mark.parametrize("device", ["cpu", "cuda"])
+@pytest.mark.parametrize("dtype", [torch.float32, torch.float64])
+@pytest.mark.parametrize("win_length", [24, 32])
+@pytest.mark.parametrize("onesided", [False, True])
+def test_streaming_stft_device_and_dtype(device, dtype, win_length, onesided):
+    if device == "cuda" and not torch.cuda.is_available():
+        pytest.skip("CUDA is unavailable")
+    torch.manual_seed(0)
+    audio = torch.randn(2, 96, device=device, dtype=dtype)
+    config = dict(n_fft=32, win_length=win_length, hop_length=8, onesided=onesided)
+    encoder = STFTEncoder(**config)
+    decoder = STFTDecoder(**config)
+    lengths = torch.tensor([96, 96], device=device)
+    expected_spectrum = torch.stft(
+        audio,
+        n_fft=32,
+        hop_length=8,
+        win_length=win_length,
+        window=torch.hann_window(win_length, device=device, dtype=dtype),
+        onesided=onesided,
+        return_complex=True,
+    ).transpose(1, 2)
+    spectra = [
+        encoder.forward_streaming(frame) for frame in encoder.streaming_frame(audio)
+    ]
+    chunks = [decoder.forward_streaming(spectrum) for spectrum in spectra]
+    merged = decoder.streaming_merge(chunks, lengths)
+    assert merged.device == audio.device
+    assert merged.dtype == audio.dtype
+    tolerance = 1e-5 if dtype == torch.float32 else 1e-12
+    torch.testing.assert_close(
+        torch.cat(spectra, dim=1), expected_spectrum, rtol=tolerance, atol=tolerance
+    )
+    torch.testing.assert_close(merged, audio, rtol=tolerance, atol=tolerance)
+
+
+@pytest.mark.parametrize("center", [False, True])
+@pytest.mark.parametrize("onesided", [False, True])
+@pytest.mark.parametrize("win_length", [24, 32])
+def test_streaming_merge_without_lengths(center, onesided, win_length):
+    torch.manual_seed(0)
+    audio = torch.randn(2, 83)
+    config = dict(
+        n_fft=32,
+        win_length=win_length,
+        hop_length=8,
+        window="hamming",
+        center=center,
+        onesided=onesided,
+    )
+    encoder = STFTEncoder(**config)
+    decoder = STFTDecoder(**config)
+    chunks = [
+        decoder.forward_streaming(encoder.forward_streaming(frame))
+        for frame in encoder.streaming_frame(audio)
+    ]
+    merged = decoder.streaming_merge(chunks)
+    expected_length = win_length + 8 * (len(chunks) - 1)
+    if center:
+        expected_length -= win_length
+    assert merged.shape == (2, expected_length)
+    torch.testing.assert_close(merged, audio[:, :expected_length])
+    explicit = decoder.streaming_merge(chunks, torch.tensor([expected_length] * 2))
+    torch.testing.assert_close(merged, explicit)

@@ -1,1 +1,1 @@
-../../../../egs/chime4/asr1/local/ndx2flist.pl
+../../../wsj/asr1/local/ndx2flist.pl

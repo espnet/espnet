@@ -13,9 +13,10 @@ for subset in ["train", "test"]:
     odir = "data/{}_alffa".format(subset)
     os.makedirs(odir, exist_ok=True)
 
-    with open(os.path.join(odir, "text"), "w", encoding="utf-8") as otext, open(
-        os.path.join(idir, "data", subset, "text"), encoding="utf-8"
-    ) as itext:
+    with (
+        open(os.path.join(odir, "text"), "w", encoding="utf-8") as otext,
+        open(os.path.join(idir, "data", subset, "text"), encoding="utf-8") as itext,
+    ):
         for line in itext:
             line = line.replace("<UNK>", "<spn>")
             line = line.replace(".", " ")
@@ -31,9 +32,10 @@ for subset in ["train", "test"]:
             parts[1] = parts[1].replace("-", " ")
             otext.write("{}\n".format(" ".join(parts)))
 
-    with open(os.path.join(odir, "wav.scp"), "w") as owavscp, open(
-        os.path.join(idir, "data", subset, "wav.scp")
-    ) as iwavscp:
+    with (
+        open(os.path.join(odir, "wav.scp"), "w") as owavscp,
+        open(os.path.join(idir, "data", subset, "wav.scp")) as iwavscp,
+    ):
         for line in iwavscp:
             parts = line.strip().split(maxsplit=1)
             parts[1] = parts[1].replace("/my_dir/wav/", "asr_swahili/data/test/wav5/")

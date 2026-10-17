@@ -1,0 +1,348 @@
+import logging
+
+import pytest
+from omegaconf import OmegaConf
+
+import espnet3.systems.base.system as sysmod
+from espnet3.contract.stages import stage_log_dir
+from espnet3.systems.base.system import BaseSystem
+
+
+def test_base_system_rejects_args():
+    system = BaseSystem()
+    with pytest.raises(TypeError):
+        system.create_dataset(1)
+
+
+def test_base_system_get_required_config_returns_value():
+    config = OmegaConf.create({"save_path": "data/out"})
+    assert BaseSystem._get_required_config(config, "save_path", "msg") == "data/out"
+
+
+def test_base_system_get_required_config_raises_on_missing_key():
+    config = OmegaConf.create({"other": 1})
+    with pytest.raises(RuntimeError, match="save_path must be set"):
+        BaseSystem._get_required_config(config, "save_path", "save_path must be set")
+
+
+def test_base_system_get_required_config_raises_on_none_config():
+    with pytest.raises(RuntimeError, match="section must be set"):
+        BaseSystem._get_required_config(None, "section", "section must be set")
+
+
+def test_stage_log_dir_reads_the_declared_config_key(tmp_path):
+    train_cfg = OmegaConf.create(
+        {"exp_dir": str(tmp_path / "exp"), "data_dir": str(tmp_path / "data")}
+    )
+    system = BaseSystem(training_config=train_cfg)
+
+    assert stage_log_dir(system, "create_dataset") == tmp_path / "data"
+
+
+def test_stage_log_dir_falls_back_to_default_when_value_is_absent(tmp_path):
+    train_cfg = OmegaConf.create({"exp_dir": str(tmp_path / "exp")})
+    system = BaseSystem(training_config=train_cfg)
+
+    assert stage_log_dir(system, "create_dataset") == system._default_log_dir
+
+
+def test_stage_log_dir_falls_back_to_cwd_logs_without_training_config():
+    system = BaseSystem()
+
+    assert stage_log_dir(system, "pack_model") == system._default_log_dir
+    assert system._default_log_dir.name == "logs"
+
+
+def test_base_system_invokes_helpers(tmp_path, monkeypatch):
+    train_cfg = OmegaConf.create({"exp_dir": str(tmp_path / "exp"), "model": {}})
+    infer_cfg = OmegaConf.create({"inference_dir": str(tmp_path / "infer")})
+    measure_cfg = OmegaConf.create({"inference_dir": str(tmp_path / "infer")})
+
+    calls = {}
+
+    def fake_collect(cfg):
+        calls["collect"] = cfg
+        return "collect"
+
+    def fake_train(cfg):
+        calls["train"] = cfg
+        return "train"
+
+    def fake_infer(cfg):
+        calls["infer"] = cfg
+        return "infer"
+
+    def fake_metric(cfg, inference_config=None):
+        calls["measure"] = cfg
+        calls["measure_inference_config"] = inference_config
+        return {"metric": 1.0}
+
+    def fake_pack_demo(system):
+        calls["pack_demo"] = system
+        return "pack_demo"
+
+    def fake_upload_demo(system):
+        calls["upload_demo"] = system
+        return "upload_demo"
+
+    monkeypatch.setattr(sysmod, "collect_stats", fake_collect)
+    monkeypatch.setattr(sysmod, "train", fake_train)
+    monkeypatch.setattr(sysmod, "infer", fake_infer)
+    monkeypatch.setattr(sysmod, "measure", fake_metric)
+    monkeypatch.setattr(sysmod, "_pack_demo", fake_pack_demo)
+    monkeypatch.setattr(sysmod, "_upload_demo", fake_upload_demo)
+
+    system = BaseSystem(
+        training_config=train_cfg,
+        inference_config=infer_cfg,
+        metrics_config=measure_cfg,
+    )
+
+    assert system.exp_dir.is_dir()
+    assert system.collect_stats() == "collect"
+    assert system.train() == "train"
+    assert system.infer() == "infer"
+    assert system.measure() == {"metric": 1.0}
+    assert system.pack_demo() == "pack_demo"
+    assert system.upload_demo() == "upload_demo"
+    assert calls["collect"] is train_cfg
+    assert calls["train"] is train_cfg
+    assert calls["infer"] is infer_cfg
+    assert calls["measure"] is measure_cfg
+    assert calls["measure_inference_config"] is infer_cfg
+    assert calls["pack_demo"] is system
+    assert calls["upload_demo"] is system
+
+
+def test_base_system_create_dataset_requires_dataset_config(tmp_path):
+    train_cfg = OmegaConf.create(
+        {
+            "exp_dir": str(tmp_path / "exp"),
+        }
+    )
+    system = BaseSystem(training_config=train_cfg)
+    with pytest.raises(RuntimeError, match="training_config.dataset must be set"):
+        system.create_dataset()
+
+
+def test_base_system_create_dataset_prepares_dataset_references(tmp_path, monkeypatch):
+    train_cfg = OmegaConf.create(
+        {
+            "exp_dir": str(tmp_path / "exp"),
+            "recipe_dir": str(tmp_path / "recipe"),
+            "create_dataset": {
+                "recipe_dir": str(tmp_path / "recipe"),
+                "archive_path": "a.tar.gz",
+            },
+            "dataset": {
+                "train": [{"data_src": "mini_an4/esp2_asr"}],
+                # Same source in valid; dedup means only one prepare run.
+                "valid": [{"data_src": "mini_an4/esp2_asr"}],
+                "test": None,
+            },
+        }
+    )
+    system = BaseSystem(training_config=train_cfg)
+    calls = []
+
+    class DummyBuilder:
+        def is_source_prepared(self, **kwargs):
+            calls.append(("is_source_prepared", kwargs))
+            return True
+
+        def prepare_source(self, **kwargs):
+            calls.append(("prepare_source", kwargs))
+
+        def is_built(self, **kwargs):
+            calls.append(("is_built", kwargs))
+            return True
+
+        def build(self, **kwargs):
+            calls.append(("build", kwargs))
+
+    class DummyModule:
+        DatasetBuilder = DummyBuilder
+
+    monkeypatch.setattr(
+        sysmod,
+        "load_dataset_module",
+        lambda data_src=None, recipe_dir=None: DummyModule(),
+    )
+
+    assert system.create_dataset() is None
+    expected_kwargs = {
+        "archive_path": "a.tar.gz",
+        "recipe_dir": str(tmp_path / "recipe"),
+    }
+    assert calls == [
+        ("is_source_prepared", expected_kwargs),
+        ("is_built", expected_kwargs),
+    ]
+
+
+def test_base_system_create_dataset_logs_progress(tmp_path, monkeypatch, caplog):
+    train_cfg = OmegaConf.create(
+        {
+            "exp_dir": str(tmp_path / "exp"),
+            "recipe_dir": str(tmp_path / "recipe"),
+            "create_dataset": {"recipe_dir": str(tmp_path / "recipe")},
+            "dataset": {
+                "train": [{"data_src": "mini_an4/esp2_asr"}],
+                "valid": None,
+                "test": None,
+            },
+        }
+    )
+    system = BaseSystem(training_config=train_cfg)
+
+    class DummyBuilder:
+        def is_source_prepared(self, **kwargs):
+            return True
+
+        def prepare_source(self, **kwargs):
+            return None
+
+        def is_built(self, **kwargs):
+            return True
+
+        def build(self, **kwargs):
+            return None
+
+    class DummyModule:
+        DatasetBuilder = DummyBuilder
+
+    monkeypatch.setattr(
+        sysmod,
+        "load_dataset_module",
+        lambda data_src=None, recipe_dir=None: DummyModule(),
+    )
+
+    with caplog.at_level(logging.INFO):
+        system.create_dataset()
+
+    assert "starting dataset creation process" in caplog.text
+    assert "Ensuring dataset is prepared: mini_an4/esp2_asr" in caplog.text
+    assert "Dataset creation completed" in caplog.text
+
+
+def test_base_system_create_dataset_runs_prepare_and_build_when_needed(
+    tmp_path, monkeypatch
+):
+    train_cfg = OmegaConf.create(
+        {
+            "exp_dir": str(tmp_path / "exp"),
+            "recipe_dir": str(tmp_path / "recipe"),
+            "create_dataset": {"recipe_dir": str(tmp_path / "recipe")},
+            "dataset": {
+                "train": [{"data_src": "mini_an4/esp2_asr"}],
+                "valid": None,
+                "test": None,
+            },
+        }
+    )
+    system = BaseSystem(training_config=train_cfg)
+    calls = []
+
+    class DummyBuilder:
+        def is_source_prepared(self, **kwargs):
+            calls.append(("is_source_prepared", kwargs))
+            return False
+
+        def prepare_source(self, **kwargs):
+            calls.append(("prepare_source", kwargs))
+
+        def is_built(self, **kwargs):
+            calls.append(("is_built", kwargs))
+            return False
+
+        def build(self, **kwargs):
+            calls.append(("build", kwargs))
+
+    class DummyModule:
+        DatasetBuilder = DummyBuilder
+
+    monkeypatch.setattr(
+        sysmod,
+        "load_dataset_module",
+        lambda data_src=None, recipe_dir=None: DummyModule(),
+    )
+
+    assert system.create_dataset() is None
+    expected_kwargs = {"recipe_dir": str(tmp_path / "recipe")}
+    assert calls == [
+        ("is_source_prepared", expected_kwargs),
+        ("prepare_source", expected_kwargs),
+        ("is_built", expected_kwargs),
+        ("build", expected_kwargs),
+    ]
+
+
+def test_base_system_create_dataset_raises_when_no_dataset_entries(tmp_path):
+    train_cfg = OmegaConf.create(
+        {
+            "exp_dir": str(tmp_path / "exp"),
+            "dataset": {"train": None, "valid": None, "test": None},
+        }
+    )
+    system = BaseSystem(training_config=train_cfg)
+    with pytest.raises(RuntimeError, match="must include at least one entry"):
+        system.create_dataset()
+
+
+def test_base_system_create_dataset_local_ref_dedup(tmp_path, monkeypatch):
+    train_cfg = OmegaConf.create(
+        {
+            "exp_dir": str(tmp_path / "exp"),
+            "recipe_dir": str(tmp_path / "recipe"),
+            "create_dataset": {"recipe_dir": str(tmp_path / "recipe")},
+            "dataset": {
+                "train": [{"data_src_args": {"split": "train"}}],
+                "valid": [{"data_src_args": {"split": "valid"}}],
+                "test": None,
+            },
+        }
+    )
+    system = BaseSystem(training_config=train_cfg)
+    calls = []
+
+    class DummyBuilder:
+        def is_source_prepared(self, **kwargs):
+            calls.append(("is_source_prepared", kwargs))
+            return True
+
+        def prepare_source(self, **kwargs):
+            calls.append(("prepare_source", kwargs))
+
+        def is_built(self, **kwargs):
+            calls.append(("is_built", kwargs))
+            return True
+
+        def build(self, **kwargs):
+            calls.append(("build", kwargs))
+
+    class DummyModule:
+        DatasetBuilder = DummyBuilder
+
+    monkeypatch.setattr(
+        sysmod,
+        "load_dataset_module",
+        lambda data_src=None, recipe_dir=None: DummyModule(),
+    )
+
+    assert system.create_dataset() is None
+    expected_kwargs = {"recipe_dir": str(tmp_path / "recipe")}
+    # Local entries should be deduplicated and prepared only once.
+    assert calls == [
+        ("is_source_prepared", expected_kwargs),
+        ("is_built", expected_kwargs),
+    ]
+
+
+def test_base_system_rejects_subclass_args():
+    class CustomSystem(BaseSystem):
+        def train(self, *, extra=None):
+            return super().train(extra=extra)
+
+    system = CustomSystem()
+    with pytest.raises(TypeError):
+        system.train(extra="oops")

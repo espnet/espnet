@@ -17,7 +17,7 @@ import numpy as np
 import soundfile
 from pystoi.stoi import stoi
 
-from espnet.utils.cli_utils import get_commandline_args
+from espnet2.legacy.utils.cli_utils import get_commandline_args
 
 
 def eval_STOI(ref, y, fs, extended=False, compute_permutation=True):
@@ -358,7 +358,7 @@ def main():
         # 4. Evaluates
         for evaltype in args.evaltypes:
             if evaltype == "SDR":
-                (sdr, isr, sir, sar, perm) = museval.metrics.bss_eval(
+                sdr, isr, sir, sar, perm = museval.metrics.bss_eval(
                     ref_signals,
                     enh_signals,
                     window=np.inf,

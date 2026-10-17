@@ -68,7 +68,11 @@ class XMLReader(collections.abc.Mapping):
                 break
         tempo = int(tempo)
 
-        part = score.parts[0].flat
+        part = score.parts[0]
+        if hasattr(part, "flatten"):
+            part = part.flatten()
+        else:
+            part = part.flat
         notes_list = []
         prepitch = -1
         st = 0
@@ -122,7 +126,7 @@ class XMLReader(collections.abc.Mapping):
         return self.data[key]
 
     def __contains__(self, item):
-        return item
+        return item in self.data
 
     def __len__(self):
         return len(self.data)
@@ -266,7 +270,7 @@ class MIDReader(collections.abc.Mapping):
         return self.data[key]
 
     def __contains__(self, item):
-        return item
+        return item in self.data
 
     def __len__(self):
         return len(self.data)
@@ -312,7 +316,7 @@ class SingingScoreReader(collections.abc.Mapping):
         return self.data[key]
 
     def __contains__(self, item):
-        return item
+        return item in self.data
 
     def __len__(self):
         return len(self.data)

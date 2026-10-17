@@ -1,0 +1,8 @@
+# Recipe-local ignores.
+# Root .gitignore already covers data/, dump/, exp/, logs/, downloads/.
+# Add anything else that's recipe-specific and shouldn't be committed.
+
+# External pretrained checkpoints used by the warm-start variants
+# (passed via run.sh --pretrained_model ... or by local/train_lm_warmstart.sh).
+# They are fetched at runtime from HuggingFace, not part of the source tree.
+pretrained/

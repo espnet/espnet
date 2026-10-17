@@ -107,9 +107,10 @@ def main():
             files.append(file)
 
     all_chars = set()
-    with open(os.path.join(out_dir, "text"), "w", encoding="utf-8") as text, open(
-        os.path.join(out_dir, "utt2spk"), "w", encoding="utf-8"
-    ) as utt2spk:
+    with (
+        open(os.path.join(out_dir, "text"), "w", encoding="utf-8") as text,
+        open(os.path.join(out_dir, "utt2spk"), "w", encoding="utf-8") as utt2spk,
+    ):
         for file in files:
             spk = file.split(".cha")[0]
 

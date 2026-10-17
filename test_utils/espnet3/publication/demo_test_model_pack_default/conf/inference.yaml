@@ -1,0 +1,4 @@
+provider:
+  _target_: demo_test_provider.DemoTestProvider
+input_key:
+  - speech

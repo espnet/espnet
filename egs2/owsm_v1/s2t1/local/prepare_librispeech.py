@@ -28,11 +28,14 @@ def collect_data(
             if chapter.is_dir():
                 utts = []
                 audio = str((chapter / f"{chapter.name}.mp3").resolve())
-                with open(
-                    chapter / f"{speaker}-{chapter.name}.sents.seg.txt", "r"
-                ) as seg_f, open(
-                    chapter / f"{speaker}-{chapter.name}.sents.trans.txt", "r"
-                ) as trans_f:
+                with (
+                    open(
+                        chapter / f"{speaker}-{chapter.name}.sents.seg.txt", "r"
+                    ) as seg_f,
+                    open(
+                        chapter / f"{speaker}-{chapter.name}.sents.trans.txt", "r"
+                    ) as trans_f,
+                ):
                     seg_lines = [line.strip() for line in seg_f.readlines()]
                     trans_lines = [line.strip() for line in trans_f.readlines()]
                     assert len(seg_lines) == len(trans_lines)

@@ -4,12 +4,23 @@ import warnings
 from pathlib import Path
 from typing import Iterable, List, Optional, Union
 
-import g2p_en
-import jamo
 from packaging.version import parse as V
 from typeguard import typechecked
 
 from espnet2.text.abs_tokenizer import AbsTokenizer
+
+# One try per package. Bundled, a missing jamo - Korean - takes g2p_en - English
+# - down with it, and the error then tells you to install the tts extra you have
+# already installed. Neither package implies the other.
+try:
+    import g2p_en
+except ImportError:
+    g2p_en = None
+
+try:
+    import jamo
+except ImportError:
+    jamo = None
 
 g2p_choices = [
     None,
@@ -54,8 +65,27 @@ def split_by_space(text) -> List[str]:
         return text.split(" ")
 
 
+def _import_pyopenjtalk():
+    """Import pyopenjtalk, or say how to install it.
+
+    pyopenjtalk publishes no wheels, so it is built from source and cannot be
+    a dependency of the tts extra; every Japanese g2p goes through here.
+    """
+    try:
+        import pyopenjtalk
+    except ImportError as e:
+        raise ImportError(
+            "pyopenjtalk is required for Japanese g2p (every pyopenjtalk* "
+            "g2p_type). It is not installed by any espnet extra because it "
+            "has no wheels and is built from source. Install it with "
+            "`pip install pyopenjtalk` (needs cmake), or with "
+            "`cd tools && ./installers/install_pyopenjtalk.sh`."
+        ) from e
+    return pyopenjtalk
+
+
 def pyopenjtalk_g2p(text) -> List[str]:
-    import pyopenjtalk
+    pyopenjtalk = _import_pyopenjtalk()
 
     # phones is a str object separated by space
     phones = pyopenjtalk.g2p(text, kana=False)
@@ -64,7 +94,7 @@ def pyopenjtalk_g2p(text) -> List[str]:
 
 
 def _extract_fullcontext_label(text):
-    import pyopenjtalk
+    pyopenjtalk = _import_pyopenjtalk()
 
     if V(pyopenjtalk.__version__) >= V("0.3.0"):
         return pyopenjtalk.make_label(pyopenjtalk.run_frontend(text))
@@ -94,7 +124,7 @@ def pyopenjtalk_g2p_accent_with_pause(text) -> List[str]:
 
 
 def pyopenjtalk_g2p_kana(text) -> List[str]:
-    import pyopenjtalk
+    pyopenjtalk = _import_pyopenjtalk()
 
     kanas = pyopenjtalk.g2p(text, kana=True)
     return list(kanas)
@@ -250,6 +280,8 @@ class G2p_en:
     """
 
     def __init__(self, no_space: bool = False):
+        if g2p_en is None:
+            raise RuntimeError("g2p_en is not installed: pip install espnet[tts]")
         self.no_space = no_space
         self.g2p = None
 
@@ -325,6 +357,8 @@ class Jaso:
     VALID_CHARS = JAMO_LEADS + JAMO_VOWELS + JAMO_TAILS + PUNC + SPACE
 
     def __init__(self, space_symbol=" ", no_space=False):
+        if jamo is None:
+            raise RuntimeError("jamo is not installed: pip install espnet[tts]")
         self.space_symbol = space_symbol
         self.no_space = no_space
 
@@ -451,14 +485,19 @@ class PhonemeTokenizer(AbsTokenizer):
         elif g2p_type == "g2p_en_no_space":
             self.g2p = G2p_en(no_space=True)
         elif g2p_type == "pyopenjtalk":
+            _import_pyopenjtalk()
             self.g2p = pyopenjtalk_g2p
         elif g2p_type == "pyopenjtalk_kana":
+            _import_pyopenjtalk()
             self.g2p = pyopenjtalk_g2p_kana
         elif g2p_type == "pyopenjtalk_accent":
+            _import_pyopenjtalk()
             self.g2p = pyopenjtalk_g2p_accent
         elif g2p_type == "pyopenjtalk_accent_with_pause":
+            _import_pyopenjtalk()
             self.g2p = pyopenjtalk_g2p_accent_with_pause
         elif g2p_type == "pyopenjtalk_prosody":
+            _import_pyopenjtalk()
             self.g2p = pyopenjtalk_g2p_prosody
         elif g2p_type == "pypinyin_g2p":
             self.g2p = pypinyin_g2p
@@ -594,6 +633,14 @@ class PhonemeTokenizer(AbsTokenizer):
                 self.non_linguistic_symbols = set()
         else:
             self.non_linguistic_symbols = set(non_linguistic_symbols)
+        # An empty symbol, e.g. from a blank line of the file, matches at every
+        # position and text2tokens would never advance.
+        self.non_linguistic_symbols.discard("")
+        # A shorter symbol can be a prefix of a longer one. Set order is not
+        # stable, so the longer symbol is tried first.
+        self._ordered_symbols = tuple(
+            sorted(self.non_linguistic_symbols, key=len, reverse=True)
+        )
         self.remove_non_linguistic_symbols = remove_non_linguistic_symbols
 
     def __repr__(self):
@@ -608,11 +655,19 @@ class PhonemeTokenizer(AbsTokenizer):
     def text2tokens(self, line: str) -> List[str]:
         tokens = []
         while len(line) != 0:
-            for w in self.non_linguistic_symbols:
+            for w in self._ordered_symbols:
                 if line.startswith(w):
-                    if not self.remove_non_linguistic_symbols:
-                        tokens.append(line[: len(w)])
                     line = line[len(w) :]
+                    if not self.remove_non_linguistic_symbols:
+                        tokens.append(w)
+                    elif line.startswith(" "):
+                        # Take the space that separated the symbol from the
+                        # next word with it, or the no-g2p path splits the
+                        # doubled space into an empty token.
+                        line = line[1:]
+                    elif not line and tokens and tokens[-1] == " ":
+                        # The same for a symbol that ended the line.
+                        tokens.pop()
                     break
             else:
                 t = line[0]

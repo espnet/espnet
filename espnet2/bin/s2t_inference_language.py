@@ -12,13 +12,15 @@ import torch.quantization
 from typeguard import typechecked
 
 from espnet2.fileio.datadir_writer import DatadirWriter
+from espnet2.legacy.nets.pytorch_backend.transformer.subsampling import TooShortUttError
+from espnet2.legacy.utils.cli_utils import get_commandline_args
 from espnet2.tasks.s2t import S2TTask
 from espnet2.torch_utils.device_funcs import to_device
+from espnet2.torch_utils.quantization import quantize_dynamic
 from espnet2.torch_utils.set_all_random_seed import set_all_random_seed
 from espnet2.utils import config_argparse
+from espnet2.utils.pretrained import download_pretrained
 from espnet2.utils.types import str2bool, str2triple_str, str_or_none
-from espnet.nets.pytorch_backend.transformer.subsampling import TooShortUttError
-from espnet.utils.cli_utils import get_commandline_args
 
 
 class Speech2Language:
@@ -55,7 +57,7 @@ class Speech2Language:
         if quantize_s2t_model:
             logging.info("Use quantized s2t model for decoding.")
 
-            s2t_model = torch.quantization.quantize_dynamic(
+            s2t_model = quantize_dynamic(
                 s2t_model, qconfig_spec=qconfig_spec, dtype=quantize_dtype
             )
 
@@ -159,17 +161,7 @@ class Speech2Language:
 
         """
         if model_tag is not None:
-            try:
-                from espnet_model_zoo.downloader import ModelDownloader
-
-            except ImportError:
-                logging.error(
-                    "`espnet_model_zoo` is not installed. "
-                    "Please install via `pip install -U espnet_model_zoo`."
-                )
-                raise
-            d = ModelDownloader()
-            kwargs.update(**d.download_and_unpack(model_tag))
+            kwargs.update(download_pretrained(model_tag))
 
         return Speech2Language(**kwargs)
 

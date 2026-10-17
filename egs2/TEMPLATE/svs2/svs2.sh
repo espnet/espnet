@@ -1284,7 +1284,7 @@ if ! "${skip_eval}"; then
 
         if ! "${skip_versa}"; then
             log "Scoring SVS evaluation via VERSA, using default ${versa_cpu_config} and ${versa_gpu_config}. \
-You can visit https://github.com/shinjiwlab/versa?tab=readme-ov-file#list-of-metrics \
+You can visit https://github.com/wavlab-speech/versa?tab=readme-ov-file#list-of-metrics \
 for more supported metrics."
 
             for dset in ${test_sets}; do

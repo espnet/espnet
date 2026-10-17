@@ -13,7 +13,7 @@ import torch.nn.functional as F
 from typeguard import typechecked
 
 from espnet2.asr.decoder.abs_decoder import AbsDecoder
-from espnet.nets.pytorch_backend.nets_utils import make_pad_mask
+from espnet2.legacy.nets.pytorch_backend.nets_utils import make_pad_mask
 
 try:
     from transformers import AutoModelForCausalLM, AutoModelForSeq2SeqLM, AutoTokenizer
@@ -23,7 +23,7 @@ try:
 except ImportError:
     is_transformers_available = False
 
-from espnet.nets.scorer_interface import BatchScorerInterface
+from espnet2.legacy.nets.scorer_interface import BatchScorerInterface
 
 
 class HuggingFaceTransformersDecoder(AbsDecoder, BatchScorerInterface):
@@ -43,7 +43,7 @@ class HuggingFaceTransformersDecoder(AbsDecoder, BatchScorerInterface):
         causal_lm: bool = False,
         prefix: str = "",
         postfix: str = "",
-        overriding_architecture_config: Optional[Union[str, dict]] = {},
+        overriding_architecture_config: Optional[Union[str, dict]] = None,
         load_pretrained_weights: bool = True,
         separate_lm_head: bool = False,
     ):
@@ -64,7 +64,8 @@ class HuggingFaceTransformersDecoder(AbsDecoder, BatchScorerInterface):
             overriding_architecture_config (str or dict, optional): Path to the
                 configuration json file or the json dictionary itself. Defaults
                 to None. If this is set, it can be used to override the
-                default decoder configuration.
+                default decoder configuration. Custom model code is disabled;
+                any `trust_remote_code` override is ignored.
             load_pretrained_weights (bool): Whether to load the pre-trained
                 weights. Defaults to True.
             separate_lm_head (bool): True ensures that the language model
@@ -92,69 +93,108 @@ class HuggingFaceTransformersDecoder(AbsDecoder, BatchScorerInterface):
         self.load_pretrained_weights = load_pretrained_weights
         self.separate_lm_head = separate_lm_head
 
-        self.overriding_architecture_config = overriding_architecture_config
         if isinstance(overriding_architecture_config, str):
             # It is path to a json config file
-            self.overriding_architecture_config = read_json_config(
+            overriding_architecture_config = read_json_config(
                 overriding_architecture_config
             )
+        self.overriding_architecture_config = dict(overriding_architecture_config or {})
+        # Model-provided architecture settings cannot authorize executing code.
+        # Keep this disabled in the stored config reused by Speech2Text as well.
+        if self.overriding_architecture_config.get("trust_remote_code"):
+            logging.warning(
+                "Ignoring trust_remote_code in overriding_architecture_config: "
+                "custom model code is disabled."
+            )
+        self.overriding_architecture_config["trust_remote_code"] = False
+
+        # Prevent meta tensor initialization when ignore_mismatched_sizes is used
+        # to avoid aten::equal NotImplementedError during weight tying
+        if self.overriding_architecture_config.get("ignore_mismatched_sizes", False):
+            if "_fast_init" not in self.overriding_architecture_config:
+                self.overriding_architecture_config["_fast_init"] = False
+            # Also disable low_cpu_mem_usage to prevent meta tensor initialization
+            if "low_cpu_mem_usage" not in self.overriding_architecture_config:
+                self.overriding_architecture_config["low_cpu_mem_usage"] = False
 
         self.causal_lm = causal_lm
 
-        if self.causal_lm:
-            model = AutoModelForCausalLM.from_pretrained(
-                model_name_or_path, **self.overriding_architecture_config
-            )
-            self.decoder = get_hugging_face_model_network(model)
+        # Temporarily patch torch.equal to handle meta tensors during model init
+        original_equal = torch.equal
 
-            if hasattr(self.decoder, "word_embeddings"):
-                self.decoder_word_embeddings = self.decoder.word_embeddings
-            elif hasattr(self.decoder, "embed_in"):
-                self.decoder_word_embeddings = self.decoder.embed_in
-            elif hasattr(self.decoder, "embed_tokens"):
-                self.decoder_word_embeddings = self.decoder.embed_tokens
+        def meta_safe_equal(a, b):
+            """Wrapper for torch.equal that handles meta tensors."""
+            if a.device.type == "meta" or b.device.type == "meta":
+                # For meta tensors, just check shapes and dtypes
+                return a.shape == b.shape and a.dtype == b.dtype
+            return original_equal(a, b)
+
+        torch.equal = meta_safe_equal
+        try:
+            if self.causal_lm:
+                model = AutoModelForCausalLM.from_pretrained(
+                    model_name_or_path, **self.overriding_architecture_config
+                )
+                self.decoder = get_hugging_face_model_network(model)
+
+                if hasattr(self.decoder, "word_embeddings"):
+                    self.decoder_word_embeddings = self.decoder.word_embeddings
+                elif hasattr(self.decoder, "embed_in"):
+                    self.decoder_word_embeddings = self.decoder.embed_in
+                elif hasattr(self.decoder, "embed_tokens"):
+                    self.decoder_word_embeddings = self.decoder.embed_tokens
+                else:
+                    raise Exception("Can not find the word embeddings attribute")
+
+                if (
+                    self.decoder.config.pad_token_id is not None
+                    and self.decoder.config.pad_token_id != -1
+                ):
+                    self.decoder_pad_token_id = self.decoder.config.pad_token_id
+                else:
+                    self.decoder_pad_token_id = 1
+
+                tokenizer = AutoTokenizer.from_pretrained(
+                    model_name_or_path, trust_remote_code=False
+                )
+                self.tokenizer_padding_side = tokenizer.padding_side
+
+                self.prefix = self.decoder_word_embeddings(
+                    tokenizer.encode(prefix, return_tensors="pt").long()
+                ).detach()
+
+                self.postfix = self.decoder_word_embeddings(
+                    tokenizer.encode(postfix, return_tensors="pt").long()
+                ).detach()
             else:
-                raise Exception("Can not find the word embeddings attribute")
+                model = AutoModelForSeq2SeqLM.from_pretrained(
+                    model_name_or_path, **self.overriding_architecture_config
+                )
 
-            if (
-                self.decoder.config.pad_token_id is not None
-                and self.decoder.config.pad_token_id != -1
-            ):
-                self.decoder_pad_token_id = self.decoder.config.pad_token_id
+                if hasattr(model, "model"):
+                    self.decoder = model.model.decoder
+                else:
+                    self.decoder = model.decoder
+
+            model.resize_token_embeddings(vocab_size)
+
+            if self.separate_lm_head:
+                self.lm_head = copy.deepcopy(get_hugging_face_model_lm_head(model))
             else:
-                self.decoder_pad_token_id = 1
-
-            tokenizer = AutoTokenizer.from_pretrained(model_name_or_path)
-            self.tokenizer_padding_side = tokenizer.padding_side
-
-            self.prefix = self.decoder_word_embeddings(
-                tokenizer.encode(prefix, return_tensors="pt").long()
-            ).detach()
-
-            self.postfix = self.decoder_word_embeddings(
-                tokenizer.encode(postfix, return_tensors="pt").long()
-            ).detach()
-        else:
-            model = AutoModelForSeq2SeqLM.from_pretrained(
-                model_name_or_path, **self.overriding_architecture_config
-            )
-
-            if hasattr(model, "model"):
-                self.decoder = model.model.decoder
-            else:
-                self.decoder = model.decoder
-
-        model.resize_token_embeddings(vocab_size)
-
-        if self.separate_lm_head:
-            self.lm_head = copy.deepcopy(get_hugging_face_model_lm_head(model))
-        else:
-            self.lm_head = get_hugging_face_model_lm_head(model)
+                self.lm_head = get_hugging_face_model_lm_head(model)
+        finally:
+            # Restore original torch.equal
+            torch.equal = original_equal
 
         self.model_name_or_path = model_name_or_path
 
-        self.decoder_pretrained_params = copy.deepcopy(self.decoder.state_dict())
-        self.lm_head_pretrained_params = copy.deepcopy(self.lm_head.state_dict())
+        # Materialize meta tensors before deepcopy to avoid aten::equal errors
+        self.decoder_pretrained_params = self._materialize_and_copy_state_dict(
+            self.decoder
+        )
+        self.lm_head_pretrained_params = self._materialize_and_copy_state_dict(
+            self.lm_head
+        )
 
         if encoder_output_size != self.decoder.config.hidden_size:
             self.linear_in = torch.nn.Linear(
@@ -162,6 +202,40 @@ class HuggingFaceTransformersDecoder(AbsDecoder, BatchScorerInterface):
             )
         else:
             self.linear_in = torch.nn.Identity()
+
+    def _materialize_and_copy_state_dict(self, module):
+        """Helper to materialize meta tensors before deepcopy.
+
+        When using ignore_mismatched_sizes=True with HuggingFace Transformers,
+        models may be initialized with meta tensors. The deepcopy operation
+        can trigger torch.equal which doesn't support meta tensors, causing
+        NotImplementedError. This method materializes any meta tensors to CPU
+        before copying.
+
+        Args:
+            module: The PyTorch module to copy state dict from.
+
+        Returns:
+            A deep copy of the module's state dict with materialized tensors.
+        """
+        state_dict = module.state_dict()
+        # Check if any tensor is on meta device and materialize if needed
+        has_meta = any(
+            isinstance(v, torch.Tensor) and v.device.type == "meta"
+            for v in state_dict.values()
+        )
+        if has_meta:
+            # Materialize meta tensors to CPU
+            materialized_state_dict = {}
+            for key, value in state_dict.items():
+                if isinstance(value, torch.Tensor) and value.device.type == "meta":
+                    # Create a new tensor on CPU with the same shape and dtype
+                    materialized_state_dict[key] = torch.empty_like(value, device="cpu")
+                else:
+                    materialized_state_dict[key] = value
+            return copy.deepcopy(materialized_state_dict)
+        else:
+            return copy.deepcopy(state_dict)
 
     def forward(
         self,

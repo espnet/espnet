@@ -11,8 +11,8 @@ import torch.nn.functional as F
 from typeguard import typechecked
 
 from espnet2.layers.stft import Stft
+from espnet2.legacy.nets.pytorch_backend.nets_utils import pad_list
 from espnet2.tts.feats_extract.abs_feats_extract import AbsFeatsExtract
-from espnet.nets.pytorch_backend.nets_utils import pad_list
 
 
 class Energy(AbsFeatsExtract):

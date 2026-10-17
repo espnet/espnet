@@ -1,0 +1,1 @@
+../../TEMPLATE/speechlm1/path.sh

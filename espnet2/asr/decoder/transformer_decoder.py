@@ -2,6 +2,7 @@
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
 """Decoder definition."""
+
 import logging
 from typing import Any, List, Sequence, Tuple
 
@@ -9,21 +10,31 @@ import torch
 from typeguard import typechecked
 
 from espnet2.asr.decoder.abs_decoder import AbsDecoder
-from espnet.nets.pytorch_backend.nets_utils import make_pad_mask
-from espnet.nets.pytorch_backend.transformer.attention import MultiHeadedAttention
-from espnet.nets.pytorch_backend.transformer.decoder_layer import DecoderLayer
-from espnet.nets.pytorch_backend.transformer.dynamic_conv import DynamicConvolution
-from espnet.nets.pytorch_backend.transformer.dynamic_conv2d import DynamicConvolution2D
-from espnet.nets.pytorch_backend.transformer.embedding import PositionalEncoding
-from espnet.nets.pytorch_backend.transformer.layer_norm import LayerNorm
-from espnet.nets.pytorch_backend.transformer.lightconv import LightweightConvolution
-from espnet.nets.pytorch_backend.transformer.lightconv2d import LightweightConvolution2D
-from espnet.nets.pytorch_backend.transformer.mask import subsequent_mask
-from espnet.nets.pytorch_backend.transformer.positionwise_feed_forward import (
+from espnet2.legacy.nets.pytorch_backend.nets_utils import make_pad_mask
+from espnet2.legacy.nets.pytorch_backend.transformer.attention import (
+    MultiHeadedAttention,
+)
+from espnet2.legacy.nets.pytorch_backend.transformer.decoder_layer import DecoderLayer
+from espnet2.legacy.nets.pytorch_backend.transformer.dynamic_conv import (
+    DynamicConvolution,
+)
+from espnet2.legacy.nets.pytorch_backend.transformer.dynamic_conv2d import (
+    DynamicConvolution2D,
+)
+from espnet2.legacy.nets.pytorch_backend.transformer.embedding import PositionalEncoding
+from espnet2.legacy.nets.pytorch_backend.transformer.layer_norm import LayerNorm
+from espnet2.legacy.nets.pytorch_backend.transformer.lightconv import (
+    LightweightConvolution,
+)
+from espnet2.legacy.nets.pytorch_backend.transformer.lightconv2d import (
+    LightweightConvolution2D,
+)
+from espnet2.legacy.nets.pytorch_backend.transformer.mask import subsequent_mask
+from espnet2.legacy.nets.pytorch_backend.transformer.positionwise_feed_forward import (
     PositionwiseFeedForward,
 )
-from espnet.nets.pytorch_backend.transformer.repeat import repeat
-from espnet.nets.scorer_interface import (
+from espnet2.legacy.nets.pytorch_backend.transformer.repeat import repeat
+from espnet2.legacy.nets.scorer_interface import (
     BatchScorerInterface,
     MaskParallelScorerInterface,
 )
@@ -254,6 +265,7 @@ class BaseTransformerDecoder(
         states: List[Any],
         xs: torch.Tensor,
         return_hs: bool = False,
+        xs_mask: torch.Tensor = None,
     ) -> Tuple[torch.Tensor, List[Any]]:
         """Score new token batch.
 
@@ -262,7 +274,11 @@ class BaseTransformerDecoder(
             states (List[Any]): Scorer states for prefix tokens.
             xs (torch.Tensor):
                 The encoder feature that generates ys (n_batch, xlen, n_feat).
-
+            return_hs (bool): Whether to return the decoder hidden states.
+            xs_mask (torch.Tensor): Non-padding mask of `xs` (n_batch, 1, xlen).
+                Needed when `xs` holds utterances of different lengths, as in
+                utterance-batched beam search; without it the cross attention
+                also attends to the padded encoder frames.
 
         Returns:
             tuple[torch.Tensor, List[Any]]: Tuple of
@@ -286,11 +302,21 @@ class BaseTransformerDecoder(
         ys_mask = subsequent_mask(ys.size(-1), device=xs.device).unsqueeze(0)
         if return_hs:
             (logp, hs), states = self.forward_one_step(
-                ys, ys_mask, xs, cache=batch_state, return_hs=return_hs
+                ys,
+                ys_mask,
+                xs,
+                memory_mask=xs_mask,
+                cache=batch_state,
+                return_hs=return_hs,
             )
         else:
             logp, states = self.forward_one_step(
-                ys, ys_mask, xs, cache=batch_state, return_hs=return_hs
+                ys,
+                ys_mask,
+                xs,
+                memory_mask=xs_mask,
+                cache=batch_state,
+                return_hs=return_hs,
             )
 
         # transpose state of [layer, batch] into [batch, layer]
@@ -401,6 +427,7 @@ class TransformerDecoder(BaseTransformerDecoder):
         qk_norm: bool = False,
         use_flash_attn: bool = True,
         gradient_checkpoint_layers: List[int] = [],
+        use_sdpa: bool = False,
     ):
         super().__init__(
             vocab_size=vocab_size,
@@ -438,6 +465,7 @@ class TransformerDecoder(BaseTransformerDecoder):
                     use_flash_attn,
                     True,
                     False,
+                    use_sdpa,
                 ),
                 MultiHeadedAttention(
                     attention_heads,

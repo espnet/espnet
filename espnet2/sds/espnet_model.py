@@ -1,10 +1,7 @@
 import time
-from contextlib import contextmanager
 from typing import Optional, Tuple
 
 import numpy as np
-import torch
-from packaging.version import parse as V
 from typeguard import typechecked
 
 from espnet2.sds.asr.espnet_asr import ESPnetASRModel
@@ -18,15 +15,6 @@ from espnet2.sds.tts.espnet_tts import ESPnetTTSModel
 from espnet2.sds.utils.chat import Chat
 from espnet2.sds.vad.webrtc_vad import WebrtcVADModel
 from espnet2.train.abs_espnet_model import AbsESPnetModel
-
-if V(torch.__version__) >= V("1.6.0"):
-    from torch.cuda.amp import autocast
-else:
-    # Nothing to do if torch<1.6.0
-    @contextmanager
-    def autocast(enabled=True):
-        yield
-
 
 try:
     import gradio as gr
@@ -329,7 +317,7 @@ class ESPnetSDSModelInterface(AbsESPnetModel):
             print("VAD: end of speech detected")
             start_time = time.time()
             if self.client is not None:
-                (text_str, audio_output) = self.client(array, orig_sr)
+                text_str, audio_output = self.client(array, orig_sr)
                 asr_output_str = ""
                 latency_TTS = time.time() - start_time
             else:

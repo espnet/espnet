@@ -1,0 +1,47 @@
+# ======== Training ========
+batch_size: 32
+max_epoch: 30
+
+# ======== Optimizer ========
+optim: adam
+optim_conf:
+    lr: 1.0e-3
+
+# ======== Learning rate scheduler ========
+scheduler: warmuplr
+scheduler_conf:
+    warmup_steps: 3180 # 10 epochs (batch size 32)
+
+# ======== Checkpointing and logging ========
+patience: 5
+best_model_criterion:
+-   - valid
+    - acc
+    - max
+keep_nbest_models: 1
+num_att_plot: 0
+
+# ======== Model architecture ========
+frontend: s3prl
+frontend_conf:
+    frontend_conf:
+        upstream: wavlm_base_plus
+    download_dir: ./hub
+    multilayer_feature: true
+
+freeze_param:
+- frontend.upstream
+
+encoder: transformer
+encoder_conf:
+    output_size: 128
+    attention_heads: 4
+    linear_units: 1024
+    num_blocks: 4
+    dropout_rate: 0.4
+    input_layer: linear
+
+# ======== Classification task settings ========
+model_conf:
+    classification_type: multi-class
+    log_epoch_metrics: true

@@ -12,7 +12,6 @@ from typing import Any, Dict, List, Optional, Sequence, Tuple, Union
 
 import numpy as np
 import torch
-from packaging.version import parse as V
 from typeguard import typechecked
 
 from espnet2.asr_transducer.beam_search_transducer import (
@@ -22,14 +21,16 @@ from espnet2.asr_transducer.beam_search_transducer import (
 from espnet2.asr_transducer.frontend.online_audio_processor import OnlineAudioProcessor
 from espnet2.asr_transducer.utils import TooShortUttError
 from espnet2.fileio.datadir_writer import DatadirWriter
+from espnet2.legacy.utils.cli_utils import get_commandline_args
 from espnet2.tasks.asr_transducer import ASRTransducerTask
 from espnet2.tasks.lm import LMTask
 from espnet2.text.build_tokenizer import build_tokenizer
 from espnet2.text.token_id_converter import TokenIDConverter
+from espnet2.torch_utils.quantization import quantize_dynamic
 from espnet2.torch_utils.set_all_random_seed import set_all_random_seed
 from espnet2.utils import config_argparse
+from espnet2.utils.pretrained import download_pretrained
 from espnet2.utils.types import str2bool, str2triple_str, str_or_none
-from espnet.utils.cli_utils import get_commandline_args
 
 
 class Speech2Text:
@@ -55,6 +56,8 @@ class Speech2Text:
         decoding_window: Size of the decoding window (in milliseconds).
         left_context: Number of previous frames the attention module can see
                       in current chunk (used by Conformer and Branchformer block).
+        return_decoded_hyp: Whether __call__ returns decoded results in the
+            ``(text, token, token_int, hyp)`` format instead of raw hypotheses.
 
     """
 
@@ -79,6 +82,7 @@ class Speech2Text:
         streaming: bool = False,
         decoding_window: int = 640,
         left_context: int = 32,
+        return_decoded_hyp: bool = False,
     ) -> None:
         """Construct a Speech2Text object."""
         super().__init__()
@@ -99,16 +103,9 @@ class Speech2Text:
             else:
                 q_config = {torch.nn.Linear}
 
-            if quantize_dtype == "float16" and (V(torch.__version__) < V("1.5.0")):
-                raise ValueError(
-                    "float16 dtype for dynamic quantization is not supported with torch"
-                    " version < 1.5.0. Switching to qint8 dtype instead."
-                )
             q_dtype = getattr(torch, quantize_dtype)
 
-            asr_model = torch.quantization.quantize_dynamic(
-                asr_model, q_config, dtype=q_dtype
-            ).eval()
+            asr_model = quantize_dynamic(asr_model, q_config, dtype=q_dtype).eval()
         else:
             asr_model.to(dtype=getattr(torch, dtype)).eval()
 
@@ -172,6 +169,7 @@ class Speech2Text:
         self.device = device
         self.dtype = dtype
         self.nbest = nbest
+        self.return_decoded_hyp = return_decoded_hyp
 
         self.converter = converter
         self.tokenizer = tokenizer
@@ -247,14 +245,17 @@ class Speech2Text:
 
     @torch.no_grad()
     @typechecked
-    def __call__(self, speech: Union[torch.Tensor, np.ndarray]) -> List[Hypothesis]:
+    def __call__(
+        self, speech: Union[torch.Tensor, np.ndarray]
+    ) -> Union[List[Hypothesis], List[Any]]:
         """Speech2Text call.
 
         Args:
             speech: Speech data. (S)
 
         Returns:
-            nbest_hypothesis: N-best hypothesis.
+            N-best hypotheses or decoded results depending on
+            ``return_decoded_hyp``.
 
         """
 
@@ -276,6 +277,9 @@ class Speech2Text:
         enc_out, _ = self.asr_model.encoder(feats, feats_length)
 
         nbest_hyps = self.beam_search(enc_out[0])
+
+        if self.return_decoded_hyp:
+            return self.hypotheses_to_results(nbest_hyps)
 
         return nbest_hyps
 
@@ -319,17 +323,7 @@ class Speech2Text:
 
         """
         if model_tag is not None:
-            try:
-                from espnet_model_zoo.downloader import ModelDownloader
-
-            except ImportError:
-                logging.error(
-                    "`espnet_model_zoo` is not installed. "
-                    "Please install via `pip install -U espnet_model_zoo`."
-                )
-                raise
-            d = ModelDownloader()
-            kwargs.update(**d.download_and_unpack(model_tag))
+            kwargs.update(download_pretrained(model_tag))
 
         return Speech2Text(**kwargs)
 

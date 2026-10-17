@@ -1,1 +1,1 @@
-../../../../egs/an4/asr1/local/data_prep.py
+../../asr1/local/data_prep.py

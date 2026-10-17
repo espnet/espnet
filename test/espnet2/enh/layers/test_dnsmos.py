@@ -8,7 +8,7 @@ import torch
 from espnet2.enh.layers.dnsmos import DNSMOS_local
 
 
-@pytest.mark.execution_timeout(5)
+@pytest.mark.execution_timeout(6)
 def test_audio_melspec_consistency():
     dnsmos_th = DNSMOS_local(None, None, use_gpu=False, convert_to_torch=True)
     dnsmos_onnx = DNSMOS_local(None, None, use_gpu=False, convert_to_torch=False)

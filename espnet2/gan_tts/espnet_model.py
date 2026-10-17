@@ -3,11 +3,10 @@
 
 """GAN-based text-to-speech ESPnet model."""
 
-from contextlib import contextmanager
 from typing import Any, Dict, Optional
 
 import torch
-from packaging.version import parse as V
+from torch.amp import autocast
 from typeguard import typechecked
 
 from espnet2.gan_tts.abs_gan_tts import AbsGANTTS
@@ -15,14 +14,6 @@ from espnet2.layers.abs_normalize import AbsNormalize
 from espnet2.layers.inversible_interface import InversibleInterface
 from espnet2.train.abs_gan_espnet_model import AbsGANESPnetModel
 from espnet2.tts.feats_extract.abs_feats_extract import AbsFeatsExtract
-
-if V(torch.__version__) >= V("1.6.0"):
-    from torch.cuda.amp import autocast
-else:
-    # Nothing to do if torch < 1.6.0
-    @contextmanager
-    def autocast(enabled=True):  # NOQA
-        yield
 
 
 class ESPnetGANTTSModel(AbsGANESPnetModel):
@@ -109,7 +100,7 @@ class ESPnetGANTTSModel(AbsGANESPnetModel):
                 - optim_idx (int): Optimizer index (0 for G and 1 for D).
 
         """
-        with autocast(False):
+        with autocast("cuda", enabled=False):
             # Extract features
             feats = None
             if self.feats_extract is not None:

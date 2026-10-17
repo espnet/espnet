@@ -14,6 +14,7 @@
 # limitations under the License.
 
 """Normalization layers."""
+
 import functools
 
 import torch

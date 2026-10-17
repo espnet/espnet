@@ -1,5 +1,5 @@
 optim: adadelta
-init: chainer
+init: normal
 max_epoch: 25
 batch_type: folded
 batch_size: 30

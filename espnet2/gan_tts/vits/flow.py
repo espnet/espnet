@@ -49,7 +49,7 @@ class LogFlow(torch.nn.Module):
         x_mask: torch.Tensor,
         inverse: bool = False,
         eps: float = 1e-5,
-        **kwargs
+        **kwargs,
     ) -> Union[torch.Tensor, Tuple[torch.Tensor, torch.Tensor]]:
         """Calculate forward propagation.
 

@@ -1,19 +1,15 @@
 import string
 from argparse import ArgumentParser
-from distutils.version import LooseVersion
 from pathlib import Path
 from typing import List
 
 import numpy as np
 import pytest
-import torch
 
 from espnet2.asr_transducer.beam_search_transducer import Hypothesis
 from espnet2.bin.asr_transducer_inference import Speech2Text, get_parser, main
 from espnet2.tasks.asr_transducer import ASRTransducerTask
 from espnet2.tasks.lm import LMTask
-
-is_torch_1_5_plus = LooseVersion(torch.__version__) >= LooseVersion("1.5.0")
 
 
 def test_get_parser():
@@ -174,6 +170,24 @@ def test_Speech2Text(use_lm, token_type, asr_config_file, lm_config_file):
 
 
 @pytest.mark.execution_timeout(10)
+def test_Speech2Text_return_decoded_hyp(asr_config_file):
+    speech2text = Speech2Text(
+        asr_train_config=asr_config_file,
+        beam_size=1,
+        token_type="char",
+        return_decoded_hyp=True,
+    )
+    speech = np.random.randn(10000)
+    results = speech2text(speech)
+
+    for text, token, token_int, hyp in results:
+        assert text is None or isinstance(text, str)
+        assert isinstance(token, List)
+        assert isinstance(token_int, List)
+        assert isinstance(hyp, Hypothesis)
+
+
+@pytest.mark.execution_timeout(10)
 @pytest.mark.parametrize(
     "use_lm, token_type, beam_search_config, decoding_window, left_context",
     [
@@ -254,28 +268,17 @@ def test_pretrained_speech2Text(asr_config_file):
     ],
 )
 def test_Speech2Text_quantization(asr_config_file, lm_config_file, quantize_params):
-    if not is_torch_1_5_plus and quantize_params.get("quantize_dtype") == "float16":
-        with pytest.raises(ValueError):
-            speech2text = Speech2Text(
-                asr_train_config=asr_config_file,
-                lm_train_config=None,
-                beam_size=1,
-                token_type="char",
-                quantize_asr_model=True,
-                **quantize_params,
-            )
-    else:
-        speech2text = Speech2Text(
-            asr_train_config=asr_config_file,
-            lm_train_config=None,
-            beam_size=1,
-            token_type="char",
-            quantize_asr_model=True,
-            **quantize_params,
-        )
+    speech2text = Speech2Text(
+        asr_train_config=asr_config_file,
+        lm_train_config=None,
+        beam_size=1,
+        token_type="char",
+        quantize_asr_model=True,
+        **quantize_params,
+    )
 
-        speech = np.random.randn(100000)
-        _ = speech2text(speech)
+    speech = np.random.randn(100000)
+    _ = speech2text(speech)
 
 
 def test_Speech2Text_quantization_wrong_module(asr_config_file, lm_config_file):
