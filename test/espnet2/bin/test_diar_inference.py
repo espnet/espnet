@@ -172,6 +172,8 @@ def diarsep_config_file(tmp_path: Path):
         (16000, None, None, False, 2),
         (35000, 2.4, 1.2, False, 2),
         (34000, 2.4, 1.2, True, 2),
+        (20001, 1.0, 0.7, False, 2),
+        (12345, 0.9, 0.3, False, 2),
     ],
 )
 @pytest.mark.parametrize("multiply_diar_result", [True, False])
@@ -892,3 +894,27 @@ def test_segment_times_of_a_long_recording_are_exact():
     probs[-3:] = 1.0
     (seg,) = frames_to_segments(probs, 128 / 16000, 0.5, 1)
     assert seg.start == (frames - 3) * 128 / 16000 and seg.end == frames * 0.008
+
+
+def test_segment_wise_diarization_tiles_the_input(diar_config_file, monkeypatch):
+    """Independent segments start at multiples of the segment length.
+
+    2.4 s at 8 kHz is 19200 samples, but int(3 * 2.4 * 8000) is 57599.
+    """
+    diarize_speech = DiarizeSpeech(
+        train_config=diar_config_file, segment_size=2.4, num_spk=2
+    )
+    encode = diarize_speech.encode
+    segments = []
+
+    def record(speech, lengths):
+        segments.append(speech)
+        return encode(speech, lengths)
+
+    monkeypatch.setattr(diarize_speech, "encode", record)
+    wav = torch.rand(1, 60000)
+    diarize_speech(wav, fs=8000)
+    assert len(segments) == 4
+    np.testing.assert_array_equal(
+        torch.cat(segments, dim=1)[:, :60000].numpy(), wav.numpy()
+    )

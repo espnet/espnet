@@ -51,7 +51,14 @@ def config_file(tmp_path: Path):
 @pytest.mark.parametrize("batch_size", [1, 2])
 @pytest.mark.parametrize(
     "input_size, segment_size, hop_size, normalize_segment_scale",
-    [(16000, None, None, False), (35000, 2.4, 0.8, False), (35000, 2.4, 0.8, True)],
+    [
+        (16000, None, None, False),
+        (35000, 2.4, 0.8, False),
+        (35000, 2.4, 0.8, True),
+        (20001, 1.0, 0.7, False),
+        (12345, 0.9, 0.3, False),
+        (40000, 2.01, 1.0, False),
+    ],
 )
 def test_SeparateSpeech(
     config_file, batch_size, input_size, segment_size, hop_size, normalize_segment_scale
@@ -64,6 +71,31 @@ def test_SeparateSpeech(
     )
     wav = torch.rand(batch_size, input_size)
     separate_speech(wav, fs=8000)
+
+
+def test_segment_wise_enhancement_starts_at_multiples_of_hop(config_file, monkeypatch):
+    """Overlapping segments start at i * hop, even where the float product drifts.
+
+    At 8 kHz a 0.7 s hop is 5600 samples, but int(3 * 0.7 * 8000) is 16799.
+    """
+    separate_speech = SeparateSpeech(
+        train_config=config_file, segment_size=1.0, hop_size=0.7
+    )
+    encoder = separate_speech.enh_model.encoder
+    forward = encoder.forward
+    segments = []
+
+    def record(speech, lengths, **kwargs):
+        segments.append(speech)
+        return forward(speech, lengths, **kwargs)
+
+    monkeypatch.setattr(encoder, "forward", record)
+    wav = torch.rand(1, 30000)
+    separate_speech(wav, fs=8000)
+    assert len(segments) == 5
+    for i, seg in enumerate(segments):
+        n = min(8000, 30000 - i * 5600)
+        assert torch.equal(seg[:, :n], wav[:, i * 5600 : i * 5600 + n]), i
 
 
 @pytest.fixture()
@@ -161,7 +193,13 @@ def enh_s2t_config_file(tmp_path: Path, token_list):
 @pytest.mark.parametrize("batch_size", [1, 2])
 @pytest.mark.parametrize(
     "input_size, segment_size, hop_size, normalize_segment_scale",
-    [(16000, None, None, False), (35000, 2.4, 0.8, False), (35000, 2.4, 0.8, True)],
+    [
+        (16000, None, None, False),
+        (35000, 2.4, 0.8, False),
+        (35000, 2.4, 0.8, True),
+        (20001, 1.0, 0.7, False),
+        (12345, 0.9, 0.3, False),
+    ],
 )
 def test_enh_s2t_SeparateSpeech(
     enh_s2t_config_file,

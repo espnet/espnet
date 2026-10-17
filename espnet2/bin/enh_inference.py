@@ -278,18 +278,18 @@ class SeparateSpeech:
             else:
                 additional["mode"] = "no_dereverb"
 
-        if self.segmenting and lengths[0] > self.segment_size * fs:
+        T = round(self.segment_size * fs) if self.segmenting else None
+        if self.segmenting and lengths[0] > T:
             # Segment-wise speech enhancement/separation
-            overlap_length = int(np.round(fs * (self.segment_size - self.hop_size)))
-            num_segments = int(
-                np.ceil((speech_mix.size(1) - overlap_length) / (self.hop_size * fs))
-            )
-            t = T = int(self.segment_size * fs)
+            H = round(self.hop_size * fs)
+            overlap_length = T - H
+            num_segments = (speech_mix.size(1) - overlap_length + H - 1) // H
+            t = T
             pad_shape = speech_mix[:, :T].shape
             enh_waves = []
             range_ = trange if self.show_progressbar else range
             for i in range_(num_segments):
-                st = int(i * self.hop_size * fs)
+                st = i * H
                 en = st + T
                 if en >= lengths[0]:
                     # en - st < T (last segment)
