@@ -56,14 +56,14 @@ class LabelAggregate(torch.nn.Module):
             input[:, (max_length - pad) : max_length, :] = input[
                 :, (max_length - 2 * pad) : (max_length - pad), :
             ]
-            nframe = (
-                torch.div(
-                    max_length - self.win_length, self.hop_length, rounding_mode="trunc"
-                )
-                + 1
-            )
 
         # Step2: framing
+        nframe = (
+            torch.div(
+                max_length - self.win_length, self.hop_length, rounding_mode="trunc"
+            )
+            + 1
+        )
         output = input.as_strided(
             (bs, nframe, self.win_length, label_dim),
             (max_length * label_dim, self.hop_length * label_dim, label_dim, 1),
