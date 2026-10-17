@@ -6,7 +6,6 @@ from __future__ import annotations
 
 import argparse
 import os
-import urllib.request
 from pathlib import Path
 from typing import Any
 
@@ -38,25 +37,21 @@ def _parse_args() -> argparse.Namespace:
 
 def _download_sample_audio(tmp_dir: Path) -> Path:
     """Download one short WAV file for publication smoke checks."""
-    asset_name = "tutorial-assets/steam-train-whistle-daniel_simon.wav"
+    asset_name = "tutorial-assets/Lab41-SRI-VOiCES-src-sp0307-ch127535-sg0042.wav"
     sample_path = tmp_dir / Path(asset_name).name
     sample_path.parent.mkdir(parents=True, exist_ok=True)
-    try:
-        from torchaudio.utils import download_asset
+    import torchaudio.utils
 
-        downloaded = Path(download_asset(asset_name, path=str(sample_path)))
-        if downloaded.is_file():
-            return downloaded
-    except Exception:
-        pass
+    # torchaudio 2.9 removed the public ``download_asset`` helper. The project
+    # currently supports torchaudio 2.11, where the same downloader remains
+    # available under its internal name.
+    download_asset = getattr(torchaudio.utils, "download_asset", None)
+    if download_asset is None:
+        download_asset = getattr(torchaudio.utils, "_download_asset", None)
+    if download_asset is None:
+        raise RuntimeError("torchaudio does not provide an asset downloader")
 
-    sample_url = (
-        "https://download.pytorch.org/torchaudio/"
-        "tutorial-assets/steam-train-whistle-daniel_simon.wav"
-    )
-    with urllib.request.urlopen(sample_url, timeout=15) as response:
-        sample_path.write_bytes(response.read())
-    return sample_path
+    return Path(download_asset(asset_name, path=sample_path))
 
 
 def _load_sample_audio() -> dict[str, Any]:
