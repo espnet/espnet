@@ -750,7 +750,7 @@ If you use ESPnet in your research, please cite the main paper:
 ```
 
 <details>
-<summary>Task-specific papers (TTS, ST, SE, SLU, SVS, UASR, S2T, SUM, SPK)</summary>
+<summary>Task-specific papers (TTS, ST, SE, SLU, SVS, UASR, S2T, SUM, SPK, LID)</summary>
 
 ```bibtex
 @inproceedings{hayashi2020espnet,
@@ -912,6 +912,14 @@ If you use ESPnet in your research, please cite the main paper:
   booktitle={2025 IEEE Workshop on Applications of Signal Processing to Audio and Acoustics (WASPAA)},
   year={2025},
   organization={IEEE}
+}
+@inproceedings{wang2025geolid,
+  title={Geolocation-Aware Robust Spoken Language Identification},
+  author={Qingzheng Wang and Hye-jin Shim and Jiancheng Sun and Shinji Watanabe},
+  booktitle={2025 IEEE Automatic Speech Recognition and Understanding Workshop (ASRU)},
+  year={2025},
+  organization={IEEE},
+  url={https://arxiv.org/abs/2508.17148}
 }
 @inproceedings{someki2026espnet3,
   title={{ESPnet3}: Infrastructure for Scalable Speech and Audio Research in the Foundation Model Era},
