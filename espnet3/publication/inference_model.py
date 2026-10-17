@@ -18,13 +18,14 @@ Typical call flow:
 
 from __future__ import annotations
 
+import inspect
 import sys
 from pathlib import Path
 from typing import Any, Mapping, Sequence
 
 import yaml
 from espnet_model_zoo.downloader import ModelDownloader
-from hydra.utils import get_class
+from hydra.utils import get_class, get_object
 from omegaconf import DictConfig, ListConfig, OmegaConf
 
 from espnet3.systems.base.inference_provider import InferenceProvider
@@ -99,6 +100,89 @@ def _uses_bundled_code(
         if isinstance(value, (list, tuple)):
             stack.extend(value)
     return False
+
+
+_ALLOWED_TARGET_PREFIXES = (
+    "espnet2.",
+    "espnet3.",
+    "lightning.",
+    "torch.optim.",
+)
+
+_DENIED_TARGETS = frozenset(
+    {
+        "torch.load",
+        "torch.jit.load",
+        "torch.serialization.load",
+        "builtins.eval",
+        "builtins.exec",
+        "builtins.__import__",
+        "os.system",
+        "subprocess.run",
+        "subprocess.Popen",
+        "subprocess.call",
+        "subprocess.check_output",
+    }
+)
+
+
+def _iter_target_strings(config: DictConfig) -> list[str]:
+    """Return every ``_target_`` string in the config tree.
+
+    Hydra instantiates recursively, so a ``_target_`` nested inside an
+    argument has to be checked just like a top-level target.
+    """
+    targets = []
+    stack = [OmegaConf.to_container(config, resolve=False)]
+    while stack:
+        value = stack.pop()
+        if isinstance(value, Mapping):
+            target = value.get("_target_")
+            if isinstance(target, str):
+                targets.append(target)
+            stack.extend(value.values())
+        elif isinstance(value, (list, tuple)):
+            stack.extend(value)
+    return targets
+
+
+def _resolve_target(target: str):
+    """Return ``(object, '<module>.<qualname>')`` for a target, or None."""
+    try:
+        obj = get_object(target)
+    except Exception:
+        return None
+    module = getattr(obj, "__module__", None)
+    qualname = getattr(obj, "__qualname__", None) or getattr(obj, "__name__", None)
+    if not module or not qualname:
+        return None
+    return obj, f"{module}.{qualname}"
+
+
+def _disallowed_targets(config: DictConfig) -> list[str]:
+    """Return Hydra targets outside the classes allowed in an untrusted pack.
+
+    The name as written and the resolved object's actual module are both
+    checked. This prevents attribute paths through an allowed module from
+    resolving to an outside callable. Targets must resolve to classes, which
+    is what model bundles use. This narrows the executable surface; it does
+    not make arbitrary arguments to allowed classes safe.
+    """
+    disallowed = set()
+    for target in _iter_target_strings(config):
+        if target in _DENIED_TARGETS or not target.startswith(_ALLOWED_TARGET_PREFIXES):
+            disallowed.add(target)
+            continue
+        resolved = _resolve_target(target)
+        if resolved is None:
+            disallowed.add(f"{target} (does not resolve)")
+            continue
+        obj, origin = resolved
+        if origin in _DENIED_TARGETS or not origin.startswith(_ALLOWED_TARGET_PREFIXES):
+            disallowed.add(f"{target} (resolves to {origin})")
+        elif not inspect.isclass(obj):
+            disallowed.add(f"{target} (resolves to {origin}, which is not a class)")
+    return sorted(disallowed)
 
 
 class InferenceModel:
@@ -296,6 +380,21 @@ class InferenceModel:
                 inference_config_path,
                 bundle_root=bundle_root,
             )
+
+        # Bundled-code checks do not catch a target that names an installed
+        # callable. Hydra would still import and execute that target, including
+        # recursively nested targets in its arguments.
+        if not trust_user_code:
+            disallowed = _disallowed_targets(inference_config)
+            if disallowed:
+                raise ValueError(
+                    "This inference config instantiates targets outside the "
+                    "namespaces a published bundle may build from: "
+                    + ", ".join(disallowed)
+                    + ". Hydra executes every `_target_`, so loading this "
+                    "bundle would run them. Set trust_user_code=True only if "
+                    "you trust the publisher of this bundle."
+                )
 
         return cls(inference_config)
 

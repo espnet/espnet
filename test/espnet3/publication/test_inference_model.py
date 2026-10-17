@@ -40,7 +40,9 @@ class BatchEchoModel:
 def _make_pack_dir(
     tmp_path: Path,
     *,
-    model_target: str = "builtins.object",
+    # A real bundle points to an ESPnet class. The trust gate resolves this
+    # target even when model construction is mocked.
+    model_target: str = "espnet2.spk.encoder.identity_encoder.IdentityEncoder",
     input_key: str | list = "speech",
     output_fn: str | None = None,
     with_src_module: bool = False,
@@ -616,3 +618,70 @@ def test_forward_batch_falls_back_on_runtime_error(
     args, _ = mock_logger.warning.call_args
     assert "CUDA OOM" in str(args[1])
     assert results == ["cfg:a@cpu", "cfg:b@cpu"]
+
+
+@pytest.mark.parametrize(
+    "model_target",
+    ["builtins.dict", "os.system", "pathlib.Path", "torch.load"],
+)
+def test_from_packed_refuses_installed_callable_targets(tmp_path, model_target):
+    bundle_root = _make_pack_dir(tmp_path, model_target=model_target)
+    with pytest.raises(ValueError, match="outside the "):
+        InferenceModel.from_packed(bundle_root, trust_user_code=False)
+
+
+def test_from_packed_refuses_nested_target(tmp_path):
+    bundle_root = _make_pack_dir(tmp_path)
+    probe = tmp_path / "gate_probe"
+    config_path = bundle_root / "conf" / "inference.yaml"
+    config_path.write_text(
+        "\n".join(
+            [
+                "recipe_dir: .",
+                "input_key: speech",
+                "model:",
+                "  _target_: espnet2.bin.asr_inference.Speech2Text",
+                "  nested:",
+                "    _target_: pathlib.Path.write_text",
+                "    self:",
+                "      _target_: pathlib.Path",
+                f"      _args_: ['{probe}']",
+                "    data: written",
+            ]
+        ),
+        encoding="utf-8",
+    )
+    assert not probe.exists()
+
+    with pytest.raises(ValueError, match="pathlib.Path"):
+        InferenceModel.from_packed(bundle_root, trust_user_code=False)
+
+    assert not probe.exists()
+
+
+def test_from_packed_allows_espnet_targets(tmp_path, mock_build_model):
+    bundle_root = _make_pack_dir(
+        tmp_path,
+        model_target="espnet2.spk.encoder.identity_encoder.IdentityEncoder",
+    )
+    assert InferenceModel.from_packed(bundle_root, trust_user_code=False) is not None
+
+
+def test_from_packed_allows_disallowed_target_with_trust(tmp_path, mock_build_model):
+    bundle_root = _make_pack_dir(tmp_path, model_target="builtins.dict")
+    assert InferenceModel.from_packed(bundle_root, trust_user_code=True) is not None
+
+
+def test_from_packed_refuses_alias_through_allowed_module(tmp_path):
+    bundle_root = _make_pack_dir(
+        tmp_path,
+        model_target="espnet3.systems.base.inference_provider.os.system",
+    )
+    with pytest.raises(ValueError, match="resolves to"):
+        InferenceModel.from_packed(bundle_root, trust_user_code=False)
+
+
+def test_from_packed_refuses_function_in_allowed_namespace(tmp_path):
+    bundle_root = _make_pack_dir(tmp_path, model_target="espnet2.bin.launch.main")
+    with pytest.raises(ValueError, match="not a class"):
+        InferenceModel.from_packed(bundle_root, trust_user_code=False)

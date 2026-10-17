@@ -36,6 +36,8 @@ class CallArgsEchoProvider:
         return model
 
 
+# These packs name providers defined in this test module. Declare trust here
+# because these tests exercise demo construction, not the publication trust gate.
 def _write_model_pack(
     demo_dir: Path,
     provider_target: str = "test.espnet3.demo.test_app_builder.DummyProvider",
@@ -67,7 +69,7 @@ def test_build_demo_with_custom_provider(tmp_path: Path) -> None:
     (demo_dir / "demo.yaml").write_text(
         "model:\n"
         "  dir_or_tag: model_pack\n"
-        "  trust_user_code: false\n"
+        "  trust_user_code: true\n"
         "  call_args: {}\n"
         "ui:\n"
         "  title: null\n"
@@ -99,7 +101,7 @@ def test_build_demo_uses_inline_description(tmp_path: Path) -> None:
     (demo_dir / "demo.yaml").write_text(
         "model:\n"
         "  dir_or_tag: model_pack\n"
-        "  trust_user_code: false\n"
+        "  trust_user_code: true\n"
         "  call_args: {}\n"
         "ui:\n"
         "  title: null\n"
@@ -132,7 +134,7 @@ def test_default_assets_pass_through_inputs_and_outputs(tmp_path: Path) -> None:
     (demo_dir / "demo.yaml").write_text(
         "model:\n"
         "  dir_or_tag: model_pack\n"
-        "  trust_user_code: false\n"
+        "  trust_user_code: true\n"
         "  call_args:\n"
         "    beam_size: 2\n"
         "ui:\n"
@@ -172,7 +174,7 @@ def test_create_inference_fn_accepts_explicit_key_lists(tmp_path: Path) -> None:
     (demo_dir / "demo.yaml").write_text(
         "model:\n"
         "  dir_or_tag: model_pack\n"
-        "  trust_user_code: false\n"
+        "  trust_user_code: true\n"
         "  call_args:\n"
         "    beam_size: 3\n"
         "ui:\n"
@@ -283,7 +285,7 @@ def test_build_input_component_requires_type(tmp_path: Path) -> None:
     (demo_dir / "demo.yaml").write_text(
         "model:\n"
         "  dir_or_tag: model_pack\n"
-        "  trust_user_code: false\n"
+        "  trust_user_code: true\n"
         "  call_args: {}\n"
         "ui:\n"
         "  title: null\n"
