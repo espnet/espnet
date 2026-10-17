@@ -1,84 +1,281 @@
-"""Metric contracts independent of inference models and their outputs."""
+"""Checking a metric's declared inputs/outputs against what it is given."""
 
-from collections.abc import Mapping
-from numbers import Real
+from __future__ import annotations
 
-from espnet3.contract.data import DatasetContractError, check_fields
+from typing import Any, Mapping, Optional
 
+from espnet3.contract import KINDS, Field, check_declaration
+
+#: A metric input source naming a test-set column instead of an inference
+#: SCP file (bind a declared name to ``dataset:text`` in ``inputs:``);
+#: must match ``espnet3.systems.base.metric.DATASET_PREFIX``.
 DATASET_PREFIX = "dataset:"
 
 
 class MetricContractError(ValueError):
-    """A metric declaration, batch, binding or result is invalid."""
+    """A metric's declaration does not match reality.
+
+    Raised when metric inputs or outputs do not match their declarations.
+
+    Examples:
+        >>> raise MetricContractError("WER.outputs field 'wer' must be number")
+        Traceback (most recent call last):
+        espnet3.contract.metrics.MetricContractError: WER.outputs field ...
+    """
 
 
-def check_metric_contract(metric):
-    """Require input Python types and a nonempty tuple of numeric output names."""
-    try:
-        check_fields(metric, "inputs")
-    except DatasetContractError as error:
-        raise MetricContractError(str(error)) from error
-    outputs = getattr(metric, "outputs", None)
-    if (
-        not isinstance(outputs, tuple)
-        or not outputs
-        or not all(isinstance(name, str) and name for name in outputs)
-        or len(set(outputs)) != len(outputs)
-    ):
-        raise MetricContractError("outputs must be a nonempty tuple of distinct names")
+def require_metric_declaration(obj) -> None:
+    """Raise unless ``obj`` declares ``inputs``/``outputs``.
+
+    Every ``BaseMetric`` instance must opt into the contract - as its
+    class's own attributes, or as the instance's own (set in
+    ``__init__``, for a metric whose contract depends on its own
+    configuration); there is no undeclared fallback.
+
+    Args:
+        obj: The class to check, or an instance whose own attributes (set
+            in its ``__init__``) declare a contract its class does not.
+
+    Examples:
+        >>> class Undeclared:
+        ...     pass
+        >>> require_metric_declaration(Undeclared)
+        Traceback (most recent call last):
+        TypeError: Undeclared does not declare inputs/outputs; declare ...
+    """
+    cls = obj if isinstance(obj, type) else type(obj)
+    raise TypeError(
+        f"{cls.__qualname__} does not declare inputs/outputs; declare "
+        "`inputs`/`outputs` (class attributes, or set on `self` before "
+        "calling super().__init__())."
+    )
 
 
-def check_metric_inputs(metric, inputs):
-    """Validate explicit input bindings without importing an inference model."""
-    declared = metric.inputs
-    unknown = set(inputs) - set(declared)
-    missing = [
-        name
-        for name, expected in declared.items()
-        if name not in inputs and not isinstance(None, expected)
-    ]
-    if unknown or missing:
+def check_metric_declaration(obj) -> None:
+    """Raise ``TypeError`` unless every declared output has kind ``number``.
+
+    Called in addition to the shared ``check_declaration`` (non-empty
+    tuples, distinct names, ...); this is the one rule specific to metrics.
+
+    Args:
+        obj: The class to check, or an instance whose own attributes (set
+            in its ``__init__``) declare a contract its class does not.
+
+    Examples:
+        >>> class BadMetric:
+        ...     outputs = (Field("transcript", "text"),)
+        >>> check_metric_declaration(BadMetric)
+        Traceback (most recent call last):
+        TypeError: BadMetric.outputs field 'transcript' must have kind 'number', ...
+    """
+    cls = obj if isinstance(obj, type) else type(obj)
+    for f in obj.outputs:
+        if f.kind != "number":
+            raise TypeError(
+                f"{cls.__qualname__}.outputs field {f.name!r} must have kind "
+                f"'number', not {f.kind!r}"
+            )
+
+
+def check_metric_contract(metric: Any) -> None:
+    """Raise unless ``metric`` declares a valid ``inputs``/``outputs`` contract.
+
+    ``BaseMetric.__init__`` already calls this on construction, but a
+    subclass that overrides ``__init__`` without calling
+    ``super().__init__()`` skips that - so ``measure()`` calls this again
+    on every metric it instantiates, before trusting its declaration for
+    anything. There is no undeclared fallback either way.
+
+    Args:
+        metric: A ``BaseMetric`` instance (or any object exposing
+            ``inputs``/``outputs`` the same way).
+
+    Raises:
+        TypeError: Neither ``inputs`` nor ``outputs`` is declared, or the
+            declaration is malformed (see ``check_declaration``,
+            ``check_metric_declaration``).
+
+    Examples:
+        >>> from espnet3.components.metrics.base_metric import BaseMetric
+        >>> class Undeclared(BaseMetric):
+        ...     def __init__(self):
+        ...         pass  # declares nothing, and skips super().__init__()
+        ...     def update(self, **values):
+        ...         pass
+        ...     def compute(self):
+        ...         return {}
+        >>> metric = Undeclared()  # construction alone does not catch it
+        >>> check_metric_contract(metric)
+        Traceback (most recent call last):
+        TypeError: Undeclared does not declare inputs/outputs; declare ...
+    """
+    if not (hasattr(metric, "inputs") or hasattr(metric, "outputs")):
+        require_metric_declaration(metric)
+    check_declaration(metric)
+    check_metric_declaration(metric)
+
+
+def check_metric_inputs(metric: Any, inputs: Any) -> Optional[Mapping[str, str]]:
+    """Validate metric input bindings without inspecting an inference model.
+
+    ``inputs`` maps each name declared by the metric to a source: either an
+    inference artifact stem or ``dataset:<column>``. Whether an inference
+    artifact exists is checked when the source is resolved for a test set.
+    """
+    fields = getattr(metric, "inputs", ())
+    if not fields:
+        return None
+    if inputs is None:
         raise MetricContractError(
-            f"{type(metric).__name__} inputs: missing {missing}, "
+            f"{type(metric).__name__} declares inputs; bind them in the metrics config"
+        )
+
+    if isinstance(inputs, Mapping):
+        bindings = dict(inputs)
+    else:
+        bindings = {name: name for name in inputs}
+
+    if isinstance(fields, tuple) and all(isinstance(field, Field) for field in fields):
+        declared = {field.name for field in fields}
+        required = {field.name for field in fields if not field.optional}
+    else:
+        declared = set(fields)
+        required = {
+            name for name, expected in fields.items() if not isinstance(None, expected)
+        }
+
+    missing = required - set(bindings)
+    unknown = set(bindings) - declared
+    if missing or unknown:
+        raise MetricContractError(
+            f"{type(metric).__name__} inputs: missing {sorted(missing)}, "
             f"unknown {sorted(unknown)}"
         )
-    for name, source in inputs.items():
+    for name, source in bindings.items():
         if not isinstance(source, str) or not source or source == DATASET_PREFIX:
             raise MetricContractError(
                 f"input {name!r} needs an SCP stem or dataset column"
             )
-    return inputs
+    return bindings
 
 
-def check_metric_batch(metric, values):
-    """Check required inputs, aligned list/tuple lengths and per-item types."""
-    check_metric_inputs(metric, {name: name for name in values})
-    lengths = {}
-    for name, value in values.items():
-        expected = metric.inputs[name]
-        if value is None and isinstance(None, expected):
-            continue
-        if not isinstance(value, (list, tuple)):
-            raise MetricContractError(f"input {name!r} must be a list or tuple")
-        lengths[name] = len(value)
-        for index, item in enumerate(value):
-            if not isinstance(item, expected):
-                raise MetricContractError(
-                    f"input {name!r}[{index}] must match {expected}, "
-                    f"got {type(item).__name__}"
-                )
-    if len(set(lengths.values())) > 1:
-        raise MetricContractError(f"metric batch lengths differ: {lengths}")
+def check_metric_output(metric: Any, result: Mapping[str, Any]) -> None:
+    """Raise unless ``result`` has every declared output, each of kind ``number``.
 
+    Args:
+        metric: A ``BaseMetric`` instance.
+        result: What ``metric(...)`` returned.
 
-def check_metric_output(metric, result):
-    """Require all declared output names and real numeric values."""
-    if not isinstance(result, Mapping):
-        raise MetricContractError("metric result must be a mapping")
-    missing = set(metric.outputs) - set(result)
+    Raises:
+        MetricContractError: A declared output is missing from ``result``,
+            or its value is not the declared kind.
+
+    Examples:
+        >>> from espnet3.components.metrics.base_metric import BaseMetric
+        >>> class ExampleMetric(BaseMetric):
+        ...     inputs = (Field("ref", "text"),)
+        ...     outputs = (Field("score", "number"),)
+        ...     def update(self, **values):
+        ...         pass
+        ...     def compute(self):
+        ...         return {"score": 0.0}
+        >>> check_metric_output(ExampleMetric(), {"score": 4.3})
+        >>> check_metric_output(ExampleMetric(), {})
+        Traceback (most recent call last):
+        espnet3.contract.metrics.MetricContractError: ExampleMetric ...
+    """
+    outputs = getattr(metric, "outputs", None)
+    if not outputs:
+        return
+    missing = [f.name for f in outputs if f.name not in result]
     if missing:
-        raise MetricContractError(f"metric result is missing {sorted(missing)}")
-    for name in metric.outputs:
-        value = result[name]
-        if isinstance(value, bool) or not isinstance(value, Real):
-            raise MetricContractError(f"metric output {name!r} must be a real number")
+        raise MetricContractError(
+            f"{type(metric).__name__} declares outputs {[f.name for f in outputs]} "
+            f"but returned {sorted(result)}; missing {missing}"
+        )
+    for f in outputs:
+        try:
+            KINDS[f.kind].check(result[f.name], f, model=None, output=True)
+        except TypeError as e:
+            raise MetricContractError(
+                f"{type(metric).__name__}.outputs field {f.name!r} must be "
+                f"{f.kind}: {e}"
+            ) from e
+
+
+def check_metric_batch(metric: Any, values: Mapping[str, Any]) -> None:
+    """Raise unless ``values`` is one good batch for ``metric.update``.
+
+    ``values`` maps each declared input name to a list or tuple with one
+    element per utterance. Checks, in order: no undeclared name; every
+    required name present (an optional one may be absent or ``None``);
+    each value a list or tuple; all lengths equal; every element
+    accepted by its field's kind (``Kind.accepts``, no model needed).
+
+    Args:
+        metric: A ``BaseMetric`` instance.
+        values: The keyword arguments given to ``update``.
+
+    Raises:
+        MetricContractError: The batch breaks one of the checks. The
+            message names the input and, for a bad element, its position
+            and the expected kind.
+
+    Examples:
+        >>> from espnet3.systems.esp2_asr.metrics.wer import WER
+        >>> check_metric_batch(WER(), {"ref": ["a b"], "hyp": ["a c"]})
+        >>> check_metric_batch(WER(), {"ref": ["a b"], "hyp": [3]})
+        Traceback (most recent call last):
+        espnet3.contract.metrics.MetricContractError: WER input ...
+    """
+    name = type(metric).__name__
+    fields = {f.name: f for f in getattr(metric, "inputs", ())}
+    declared = ", ".join(fields)
+    for key in values:
+        if key not in fields:
+            raise MetricContractError(
+                f"{name} got input {key!r}; declared inputs: {declared}"
+            )
+    given = {}
+    for key, field in fields.items():
+        value = values.get(key)
+        if value is None:
+            if field.optional:
+                continue
+            raise MetricContractError(
+                f"{name} input {key!r} is missing; declared inputs: {declared}"
+            )
+        if not isinstance(value, (list, tuple)):
+            raise MetricContractError(
+                f"{name} input {key!r} must be a list or tuple, "
+                f"not {type(value).__name__}"
+            )
+        given[key] = value
+    if given:
+        first, *rest = given
+        for key in rest:
+            if len(given[key]) != len(given[first]):
+                raise MetricContractError(
+                    f"{name} input {key!r} has {len(given[key])} items, "
+                    f"{first!r} has {len(given[first])}"
+                )
+    for key, value in given.items():
+        field = fields[key]
+        for i, elem in enumerate(value):
+            if not KINDS[field.kind].accepts(elem, field):
+                raise MetricContractError(
+                    f"{name} input {key!r}[{i}] is {type(elem).__name__}, "
+                    f"must be {field.kind}"
+                )
+
+
+__all__ = [
+    "DATASET_PREFIX",
+    "Field",
+    "MetricContractError",
+    "check_metric_batch",
+    "check_metric_declaration",
+    "check_metric_inputs",
+    "check_metric_output",
+    "require_metric_declaration",
+]
