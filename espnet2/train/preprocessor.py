@@ -2398,7 +2398,7 @@ class LIDPreprocessor(CommonPreprocessor):
                 "Error: lang2vec is not found.\n"
                 "Please install lang2vec by:\n"
                 "  pip install lang2vec"
-            )
+            ) from e
 
         langs = list(self.lang2label.keys())
         self.lang2vec = {}

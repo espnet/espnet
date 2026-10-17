@@ -2,7 +2,6 @@ import pytest
 import torch
 
 from espnet2.lid.espnet_model_upstream_condition import ESPnetLIDUpstreamConditionModel
-from espnet2.lid.frontend.s3prl_condition import S3prlFrontendCondition
 from espnet2.lid.loss.aamsoftmax_sc_topk_lang2vec import AAMSoftmaxSCTopKLang2Vec
 
 
