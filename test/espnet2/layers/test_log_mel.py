@@ -37,14 +37,27 @@ def test_backward_not_leaf_in():
 def test_log_base(log_base):
     layer = LogMel(n_fft=16, n_mels=2, log_base=log_base).double()
     x = torch.linspace(1.0, 2.0, 72, dtype=torch.float64).reshape(2, 4, 9)
+    x.requires_grad_()
     lengths = torch.tensor([4, 2])
 
     actual, actual_lengths = layer(x, lengths)
 
-    mel = np.maximum(x.numpy() @ layer.melmat.numpy(), 1e-10)
+    mel = np.maximum(x.detach().numpy() @ layer.melmat.numpy(), 1e-10)
     expected = np.log(mel)
     if log_base is not None:
         expected /= np.log(log_base)
     expected[1, 2:] = 0.0
-    np.testing.assert_allclose(actual.numpy(), expected, rtol=1e-12, atol=1e-12)
+    np.testing.assert_allclose(
+        actual.detach().numpy(), expected, rtol=1e-12, atol=1e-12
+    )
     assert torch.equal(actual_lengths, lengths)
+
+    actual.sum().backward()
+    sensitivity = 1.0 / mel
+    sensitivity[1, 2:] = 0.0
+    expected_gradient = sensitivity @ layer.melmat.numpy().T
+    if log_base is not None:
+        expected_gradient /= np.log(log_base)
+    np.testing.assert_allclose(
+        x.grad.numpy(), expected_gradient, rtol=1e-12, atol=1e-12
+    )
