@@ -16,6 +16,7 @@ from egs3.librispeech_100.esp2_asr.dataset.builder import (
     resolve_source_root,
 )
 from espnet3.components.data.base_dataset import BaseDataset
+from espnet3.contract import Field
 from espnet3.utils.config_utils import load_config_with_defaults
 
 _CONFIG_RESOURCE = resources.files(__package__).joinpath("config.yaml")
@@ -94,7 +95,7 @@ class LibriSpeech100Dataset(BaseDataset):
         ['speech', 'text']
     """
 
-    fields = {"speech": np.ndarray, "text": str}
+    fields = (Field("speech", "audio"), Field("text", "text"))
 
     def __init__(
         self,

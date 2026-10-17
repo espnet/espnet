@@ -125,6 +125,10 @@ def check_metric_inputs(metric: Any, inputs: Any) -> Optional[Mapping[str, str]]
     fields = getattr(metric, "inputs", ())
     if not fields:
         return None
+    if inputs is None:
+        raise MetricContractError(
+            f"{type(metric).__name__} declares inputs; bind them in the metrics config"
+        )
 
     if isinstance(inputs, Mapping):
         bindings = dict(inputs)
