@@ -14,7 +14,6 @@ import pytest
 import torch
 import yaml
 
-from espnet3.api.inference import Audio
 from espnet3.systems.base.inference_runner import InferenceRunner
 from espnet3.systems.f5tts.inference import (
     F5TTSInference,
@@ -681,7 +680,7 @@ def test_a_chunk_that_generates_no_frames_is_dropped(engine, monkeypatch):
     np.testing.assert_array_equal(wav, np.zeros(1, dtype=np.float32))
 
 
-# ------------------------------------------- Inference (espnet3.api.inference)
+# --------------------------------------------------------------- Inference
 
 
 class _RecordingEngine:
@@ -713,17 +712,16 @@ def test_inference_declares_the_f5tts_fields():
     ]
 
 
-def test_inference_returns_audio_at_the_vocoder_rate():
-    """The output is an ``Audio`` at 24 kHz and the inputs reach the engine."""
+def test_inference_returns_the_waveform_at_the_vocoder_rate():
+    """The output is the engine's float32 waveform and the inputs reach it."""
     backend = _RecordingEngine()
     model = Inference(backend)
 
     output = model("hello", np.zeros(2400, dtype=np.float32), "a prompt")
 
     assert model.sample_rate == 24000
-    assert isinstance(output["wav"], Audio)
-    assert output["wav"].rate == 24000
-    assert output["wav"].array.shape == (480,)
+    assert output["wav"].dtype == np.float32
+    assert output["wav"].shape == (480,)
     text, reference_audio, reference_text = backend.calls[0]
     assert (text, reference_text) == ("hello", "a prompt")
     assert reference_audio.shape == (2400,)
@@ -742,6 +740,19 @@ def test_inference_resamples_what_gradio_hands_over():
     assert abs(len(reference_audio) - 24000) <= 1
     assert abs(float(np.median(reference_audio)) - 0.5) < 0.01
     assert reference_text == "hi"
+
+
+def test_inference_reads_a_reference_file(tmp_path):
+    """A path is read and resampled to the engine's rate."""
+    import soundfile as sf
+
+    path = tmp_path / "prompt.wav"
+    sf.write(path, np.zeros(16000, dtype=np.float32), 16000)
+    backend = _RecordingEngine()
+
+    Inference(backend)("hello", str(path), "a prompt")
+
+    assert abs(len(backend.calls[0][1]) - 24000) <= 1
 
 
 def test_inference_downmixes_a_stereo_reference():
@@ -768,24 +779,23 @@ def test_inference_requires_text_a_reference_and_its_transcript():
     # An empty box in the demo arrives as None, which counts as not given.
     with pytest.raises(TypeError, match="reference_text"):
         model("hello", audio, None)
+    with pytest.raises(TypeError, match="reference_speech"):
+        model("hello", 42, "a prompt")
 
 
 def test_inference_runs_a_batch_item_by_item():
-    """``batch`` runs the engine once per item, in order."""
+    """Lists run the engine once per item, in order, and give one dict each."""
     backend = _RecordingEngine()
     model = Inference(backend)
     reference = np.zeros(2400, dtype=np.float32)
 
-    outputs = model.batch(
-        [
-            {"text": "first", "reference_speech": reference, "reference_text": "a"},
-            {"text": "second", "reference_speech": reference, "reference_text": "b"},
-        ]
-    )
+    outputs = model(["first", "second"], [reference, reference], ["a", "b"])
 
-    assert [output["wav"].rate for output in outputs] == [24000, 24000]
+    assert [output["wav"].shape for output in outputs] == [(480,), (480,)]
     assert [call[0] for call in backend.calls] == ["first", "second"]
     assert [call[2] for call in backend.calls] == ["a", "b"]
+    with pytest.raises(TypeError, match="length"):
+        model(["first", "second"], [reference], ["a", "b"])
 
 
 def test_inference_builds_the_engine_from_its_own_arguments(
@@ -803,16 +813,23 @@ def test_inference_builds_the_engine_from_its_own_arguments(
 
     assert isinstance(model.backend, F5TTSInference)
     output = model("abc", np.random.RandomState(0).randn(4800).astype(np.float32), "ab")
-    assert output["wav"].array.dtype == np.float32
-    assert output["wav"].array.ndim == 1
+    assert output["wav"].dtype == np.float32
+    assert output["wav"].ndim == 1
+    with pytest.raises(TypeError, match="not both"):
+        Inference(model.backend, device="cpu")
+    with pytest.raises(TypeError, match="needs an engine"):
+        Inference()
 
 
 def test_inference_serves_the_infer_stage_runner(engine):
-    """``InferenceRunner`` picks the declared inputs out of the item by name.
+    """The runner reads ``input_key`` and ``output_fn`` stamps the ``utt_id``.
 
-    No ``input_key`` is given: the declaration says what to read, the item's
-    ``utt_id`` becomes the record's id, and undeclared columns are ignored.
+    What the template inference config says: the three inputs are picked out
+    of the item by name, the record gets the item's id, and undeclared
+    columns are ignored.
     """
+    from egs3.TEMPLATE.f5tts.src.inference import build_output
+
     model = Inference(engine)
     reference = np.random.RandomState(0).randn(4800).astype(np.float32)
     dataset = {
@@ -825,8 +842,14 @@ def test_inference_serves_the_infer_stage_runner(engine):
         }
     }
 
-    output = InferenceRunner.forward(0, dataset=dataset, model=model)
+    output = InferenceRunner.forward(
+        0,
+        dataset=dataset,
+        model=model,
+        input_key=["text", "reference_speech", "reference_text"],
+        output_fn=build_output,
+    )
 
     assert output["utt_id"] == "u0"
-    assert output["wav"].rate == 24000
+    assert output["wav"].dtype == np.float32 and output["wav"].ndim == 1
     assert "speaker" not in output

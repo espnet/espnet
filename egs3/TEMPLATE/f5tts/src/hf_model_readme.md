@@ -29,15 +29,17 @@ ${model_detail_section}
 ## Usage
 
 ```python
-from espnet3.api.inference import load
+from espnet3.publication import InferenceModel
 
-model = load("${hf_repo}")
+model = InferenceModel.from_pretrained("${hf_repo}")
 output = model(
-    "The text to synthesize.",
-    "reference.wav",  # the voice to clone: a path, or a (rate, samples) pair
-    "The transcript of the reference recording.",
+    {
+        "text": "The text to synthesize.",
+        "reference_speech": "reference.wav",  # a path, or a (rate, samples) pair
+        "reference_text": "The reference transcript.",
+    }
 )
-samples, sample_rate = output["wav"].array, output["wav"].rate
+samples, sample_rate = output["wav"], model.model.sample_rate
 ```
 
 ## Packaging

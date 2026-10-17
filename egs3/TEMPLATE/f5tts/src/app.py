@@ -1,12 +1,12 @@
 """Recipe-local Gradio launcher for ESPnet3 F5-TTS demos.
 
 The generic launcher (``egs3/TEMPLATE/esp2_asr/src/app.py``) binds the demo
-session's inference function straight to the Gradio components; the session
-already turns the model's ``Audio`` into the ``(sample_rate, samples)`` pair
-``gr.Audio`` plays. This launcher adds what a text-to-speech UI needs on top:
-an untouched text box arrives as ``""``, which is passed on as "not given" so
-the contract refuses it by name instead of synthesizing from an empty
-transcript, and that refusal is shown in the UI rather than as a bare error.
+session's inference function straight to the Gradio components. This launcher
+adds what a text-to-speech UI needs on top: the returned waveform is paired
+with the model's sample rate, which is what ``gr.Audio`` plays; an untouched
+text box arrives as ``""``, which is passed on as "not given" so the model
+refuses it by name instead of synthesizing from an empty transcript; and that
+refusal is shown in the UI rather than as a bare error.
 """
 
 from __future__ import annotations
@@ -109,6 +109,11 @@ def build_demo(
             app = build_demo(Path("exp/training/demo"))
             app.launch()
 
+    Raises:
+        TypeError: If the packed model is not
+            ``espnet3.systems.f5tts.inference.Inference``, whose sample rate
+            the played audio is labelled with.
+
     Note:
         Reference speech is passed to the model as Gradio delivers it, a
         ``(rate, samples)`` pair; ``Inference`` resamples it to the model's
@@ -135,15 +140,23 @@ def build_demo(
         session.input_specs,
         session.output_specs,
     )
+    # The session returns the model's bare waveform; gr.Audio plays a
+    # (rate, samples) pair, and the rate is the model's.
+    sample_rate = getattr(getattr(session.model, "model", None), "sample_rate", None)
+    if sample_rate is None:
+        raise TypeError(
+            "the packed model must be espnet3.systems.f5tts.inference.Inference, "
+            f"which has a sample_rate; got {type(session.model).__name__}"
+        )
 
     def synthesize(*values):
-        """Run the packed model on the UI values; the session shapes the outputs."""
+        """Run the packed model on the UI values and pair the waveform with its rate."""
         # An untouched Gradio text box holds "", which the model would take
-        # as an empty transcript; None means "not given", which the contract
+        # as an empty transcript; None means "not given", which the model
         # refuses for a required field with a message naming it.
         values = [None if value == "" else value for value in values]
         try:
-            return inference_fn(*values)
+            return sample_rate, inference_fn(*values)
         except TypeError as error:
             # A missing or malformed input, e.g. no reference speech or no
             # transcript: show the reason in the UI instead of a bare "Error".

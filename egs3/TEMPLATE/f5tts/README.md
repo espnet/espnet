@@ -56,9 +56,15 @@ machine override the metric in your recipe's `metrics.yaml` with
 ## Using a packed model
 
 ```python
-from espnet3.api.inference import load
+from espnet3.publication import InferenceModel
 
-model = load("exp/training/model_pack")  # or a Hugging Face tag
-output = model("The text to synthesize.", "reference.wav", "The reference transcript.")
-samples, sample_rate = output["wav"].array, output["wav"].rate
+model = InferenceModel.from_packed("exp/training/model_pack")  # or .from_pretrained(tag)
+output = model(
+    {
+        "text": "The text to synthesize.",
+        "reference_speech": "reference.wav",  # a path, or a (rate, samples) pair
+        "reference_text": "The reference transcript.",
+    }
+)
+samples, sample_rate = output["wav"], model.model.sample_rate
 ```

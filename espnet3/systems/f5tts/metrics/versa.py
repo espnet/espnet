@@ -20,7 +20,7 @@ from typing import Any, Dict, Iterator, List, Optional, Sequence, Set
 import yaml
 from omegaconf import OmegaConf
 
-from espnet3.api import Field
+from espnet3.contract import Field
 from espnet3.components.metrics.base_metric import BaseMetric
 
 logger = logging.getLogger(__name__)

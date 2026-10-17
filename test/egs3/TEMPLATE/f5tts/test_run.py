@@ -3,6 +3,7 @@
 from pathlib import Path
 
 import pytest
+from hydra.utils import get_class
 from omegaconf import OmegaConf
 
 from espnet3.contract.stages import StageContractError, stage_names
@@ -81,10 +82,14 @@ def test_inference_scaffold_rebuilds_the_model_from_the_trained_config() -> None
     assert model["train_config"] == "${exp_dir}/config.yaml"
     assert model["checkpoint_path"] == "${exp_dir}/last.ckpt"
     assert model["use_ema"] is True
-    # An Inference declares its inputs and outputs; the runner refuses these.
-    assert "input_key" not in config
-    assert "output_fn" not in config
-    assert "output_artifacts" not in config
+    # The runner reads the three inputs by name, the output_fn stamps the
+    # utt_id, and the waveform is written as audio at the vocoder's rate.
+    assert list(config.input_key) == ["text", "reference_speech", "reference_text"]
+    assert config.output_fn == "egs3.TEMPLATE.f5tts.src.inference.build_output"
+    assert OmegaConf.to_container(config.output_artifacts) == {
+        "wav": {"type": "wav", "sample_rate": 24000}
+    }
+    assert config.batch_size is None
     assert (
         config.provider._target_
         == "espnet3.systems.base.inference_provider.InferenceProvider"
@@ -131,7 +136,12 @@ def test_metrics_scaffold_binds_the_inference_declaration() -> None:
     (entry,) = metrics_config.metrics
     metric = instantiate(entry.metric)
 
-    assert check_metric_inputs(metric, entry, inference_config) == {
+    # The metric's `wav` input is the field the Inference returns and the
+    # infer stage writes; the metrics config binds it to that SCP stem.
+    assert [f.name for f in get_class(inference_config.model._target_).outputs] == [
+        "wav"
+    ]
+    assert check_metric_inputs(metric, entry.inputs) == {
         "wav": "wav",
         "ref": "dataset:ref_wav_path",
         "text": "dataset:text",

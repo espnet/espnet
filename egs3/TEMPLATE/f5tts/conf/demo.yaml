@@ -16,17 +16,20 @@ recipe_dir: .
 
 # `model.dir_or_tag` is the packed model the demo loads: a local bundle
 # (resolved relative to the packed demo directory at runtime) or a Hugging
-# Face model tag. The packed inference config names only
-# `espnet3.systems.f5tts.inference.Inference`, so the bundle's own code is
-# never imported and `trust_user_code` stays false. The model takes no
-# call-time arguments; sampling settings live in the packed `conf/inference.yaml`.
+# Face model tag, loaded through `espnet3.publication.InferenceModel`. The
+# packed inference config names only `espnet3.systems.f5tts.inference.Inference`
+# and the template's `output_fn`, so the bundle's own code is never imported
+# and `trust_user_code` stays false. The model takes no call-time arguments;
+# sampling settings live in the packed `conf/inference.yaml`.
 model:
   dir_or_tag: exp/${exp_tag}/model_pack
   trust_user_code: false
 
 # `ui.inputs` / `ui.outputs` are the fields of
-# `espnet3.systems.f5tts.inference.Inference`, bound positionally by
-# `src/app.py` (the recipe's copy of the template's launcher). All three
+# `espnet3.systems.f5tts.inference.Inference` (its `input_key` and `wav`),
+# bound positionally by `src/app.py` (the recipe's copy of the template's
+# launcher), which hands the reference over as Gradio delivers it and plays
+# the returned waveform at the model's rate. All three
 # inputs are required: an empty "Reference transcript" box is reported as
 # missing, not guessed from the target text. `ui.description` is shown above
 # the inputs: a file `pack_demo` copies into the bundle, named relative to

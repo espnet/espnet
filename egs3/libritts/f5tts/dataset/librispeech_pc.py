@@ -25,7 +25,7 @@ import soundfile as sf
 import torch
 import torchaudio
 
-from espnet3.api import Field
+from espnet3.contract import Field
 from espnet3.components.data.base_dataset import BaseDataset
 
 

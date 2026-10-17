@@ -86,7 +86,7 @@ class F5TTSSystem(BaseSystem):
         Note:
             The config is written as resolved by ``run.py``, so its paths
             are relative to the recipe directory, which is also the working
-            directory ``espnet3.api.inference.load`` builds a bundle in.
+            directory ``pack_model`` copies a bundle from.
         """
         self._reject_stage_args("train", args, kwargs)
         exp_dir = Path(self.training_config.exp_dir)

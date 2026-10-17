@@ -14,7 +14,7 @@ import yaml
 from hydra.utils import get_class
 from omegaconf import OmegaConf
 
-from espnet3.api.inference import Audio, load
+from espnet3.publication import InferenceModel
 from espnet3.systems.f5tts.system import F5TTSSystem
 from espnet3.systems.launch import launch
 from espnet3.utils.config_utils import load_default_config
@@ -41,6 +41,15 @@ def _reference():
     """Reference speech as ``gr.Audio`` hands it over: (rate, int16 samples)."""
     noise = np.random.RandomState(0).randn(22050)
     return 44100, (0.1 * noise * 32767).astype(np.int16)
+
+
+def _item(reference=None):
+    """One sample the way ``InferenceModel`` and the demo pass it: by field name."""
+    return {
+        "text": "a cab",
+        "reference_speech": _reference() if reference is None else reference,
+        "reference_text": "abba",
+    }
 
 
 PACKAGE = "egs3.TEMPLATE.f5tts"
@@ -120,7 +129,7 @@ def test_pack_model_writes_a_self_contained_bundle(recipe_dir, stub_vocoder):
     # Nothing the bundle loads points back into the recipe directory.
     for name in ("inference.yaml", "training.yaml"):
         assert str(recipe_dir) not in (bundle / "conf" / name).read_text()
-    assert 'load("espnet/minicorpus_f5tts_training")' in (
+    assert 'InferenceModel.from_pretrained("espnet/minicorpus_f5tts_training")' in (
         bundle / "README.md"
     ).read_text(encoding="utf-8")
 
@@ -136,32 +145,41 @@ def test_packed_model_loads_and_synthesizes_after_moving(
     monkeypatch.chdir(tmp_path)
     shutil.rmtree(recipe_dir)
 
-    model = load(moved)
+    model = InferenceModel.from_packed(moved)
 
-    assert type(model).__name__ == "Inference"
-    assert model.sample_rate == 24000
-    output = model("a cab", _reference(), "abba")
-    assert isinstance(output["wav"], Audio)
-    assert output["wav"].rate == 24000
-    assert output["wav"].array.ndim == 1 and output["wav"].array.size > 0
+    assert type(model.model).__name__ == "Inference"
+    assert model.model.sample_rate == 24000
+    output = model(_item())
+    assert output["wav"].dtype == np.float32
+    assert output["wav"].ndim == 1 and output["wav"].size > 0
 
 
 def test_packed_model_needs_no_bundled_code(recipe_dir, stub_vocoder):
-    """The packed inference config names only the system's Inference."""
+    """The packed config names only the system's Inference and the template's output_fn.
+
+    Nothing in the bundle itself is imported, so it loads untrusted.
+    """
     _pack_model()
     bundle = recipe_dir / "exp" / "training" / "model_pack"
 
     packed = yaml.safe_load((bundle / "conf" / "inference.yaml").read_text())
     assert packed["model"]["_target_"] == "espnet3.systems.f5tts.inference.Inference"
-    for key in ("input_key", "output_fn", "output_artifacts"):
-        assert key not in packed, key
+    assert packed["input_key"] == ["text", "reference_speech", "reference_text"]
+    assert packed["output_fn"] == "egs3.TEMPLATE.f5tts.src.inference.build_output"
+    assert packed["output_artifacts"]["wav"] == {"type": "wav", "sample_rate": 24000}
 
-    # Loads with the default trust_user_code=False, and runs as the contract
-    # says: declared inputs in, an Audio out.
-    model = load(bundle)
-    output = model("a cab", _reference(), "abba")
-    assert isinstance(output["wav"], Audio)
-    assert output["wav"].array.dtype == np.float32
+    # Loads with the default trust_user_code=False, and runs: the three
+    # inputs in by name, the utt_id-stamped record out.
+    model = InferenceModel.from_packed(bundle)
+    output = model(_item(), idx="u0")
+    assert output["utt_id"] == "u0"
+    assert output["wav"].dtype == np.float32
+    # A path is read and resampled like the Gradio pair.
+    import soundfile as sf
+
+    prompt = recipe_dir / "prompt16k.wav"
+    sf.write(prompt, np.zeros(16000, dtype=np.float32), 16000)
+    assert model(_item(str(prompt)))["wav"].ndim == 1
 
 
 def test_pack_demo_builds_a_working_demo(recipe_dir, stub_vocoder):

@@ -204,7 +204,7 @@ TOY_DATASET = '''"""Toy LibriTTS-shaped dataset for the template tests."""
 import numpy as np
 import soundfile as sf
 
-from espnet3.api import Field
+from espnet3.contract import Field
 from espnet3.components.data.base_dataset import BaseDataset
 
 
