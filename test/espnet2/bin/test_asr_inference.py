@@ -283,6 +283,44 @@ def asr_config_file_streaming(tmp_path: Path, token_list):
     return tmp_path / "asr_streaming" / "config.yaml"
 
 
+@pytest.mark.parametrize("speech_length", [16000, 16050])
+@pytest.mark.parametrize("chunk", [128, 205, 410, 640, 1000, 1600])
+@pytest.mark.parametrize(
+    "n_fft,win_length,hop_length", [(512, 512, 128), (512, 400, 160), (256, 256, 128)]
+)
+def test_Speech2Text_streaming_frontend(
+    asr_config_file_streaming, chunk, n_fft, win_length, hop_length, speech_length
+):
+    config = yaml.safe_load(asr_config_file_streaming.read_text())
+    config["frontend"] = "default"
+    config["encoder_conf"] = dict(look_ahead=16, hop_size=16, block_size=40)
+    config["frontend_conf"] = dict(
+        n_fft=n_fft, win_length=win_length, hop_length=hop_length
+    )
+    config["normalize"] = None
+    asr_config_file_streaming.write_text(yaml.safe_dump(config))
+    speech2text = Speech2TextStreaming(
+        asr_train_config=asr_config_file_streaming, beam_size=1
+    )
+    speech = torch.randn(speech_length, generator=torch.Generator().manual_seed(0))
+    with torch.no_grad():
+        offline, _ = speech2text.asr_model._extract_feats(
+            speech[None], torch.tensor([speech.numel()])
+        )
+        feats, states = [], None
+        for start in range(0, speech.numel(), chunk):
+            feat, _, states = speech2text.apply_frontend(
+                speech[start : start + chunk],
+                states,
+                is_final=start + chunk >= speech.numel(),
+            )
+            if feat is not None:
+                feats.append(feat)
+    streamed = torch.cat(feats, dim=1)
+    assert streamed.shape == offline.shape
+    torch.testing.assert_close(streamed, offline, rtol=0, atol=1e-5)
+
+
 @pytest.mark.execution_timeout(20)
 def test_Speech2Text_streaming_from_pretrained(asr_config_file_streaming):
     with open(asr_config_file_streaming, "r", encoding="utf-8") as f:

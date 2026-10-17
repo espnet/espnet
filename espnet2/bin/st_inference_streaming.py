@@ -310,27 +310,45 @@ class Speech2TextStreaming:
     def apply_frontend(
         self, speech: torch.Tensor, prev_states=None, is_final: bool = False
     ):
+        # A buffer can contain startup samples without any processed frames.
+        is_first = prev_states is None or prev_states.get("is_first", False)
         if prev_states is not None:
             buf = prev_states["waveform_buffer"]
             speech = torch.cat([buf, speech], dim=0)
+
+        n_trim = math.ceil(math.ceil(self.win_length / self.hop_length) / 2)
+        # Keep the overlap and enough left context for final STFT reflection padding.
+        n_overlap = max(
+            (n_trim * 2 - 1) * self.hop_length,
+            (self.n_fft // 2 // self.hop_length + 1) * self.hop_length,
+        )
+        n_trim_start = n_overlap // self.hop_length + 1 - n_trim
+        has_enough_samples = speech.size(0) > max(self.win_length, n_overlap)
+        if not has_enough_samples:
+            if is_final:
+                # Preserve the true final length once extraction has started.
+                if is_first and speech.size(0) <= self.win_length:
+                    pad = torch.zeros(
+                        self.win_length - speech.size(0),
+                        dtype=speech.dtype,
+                        device=speech.device,
+                    )
+                    speech = torch.cat([speech, pad], dim=0)
+            else:
+                feats = None
+                feats_lengths = None
+                next_states = {"waveform_buffer": speech.clone(), "is_first": is_first}
+                return feats, feats_lengths, next_states
 
         if is_final:
             speech_to_process = speech
             waveform_buffer = None
         else:
-            n_frames = (
-                speech.size(0) - (self.win_length - self.hop_length)
-            ) // self.hop_length
-            n_residual = (
-                speech.size(0) - (self.win_length - self.hop_length)
-            ) % self.hop_length
-            speech_to_process = speech.narrow(
-                0, 0, (self.win_length - self.hop_length) + n_frames * self.hop_length
-            )
+            n_frames = speech.size(0) // self.hop_length
+            n_residual = speech.size(0) % self.hop_length
+            speech_to_process = speech.narrow(0, 0, n_frames * self.hop_length)
             waveform_buffer = speech.narrow(
-                0,
-                speech.size(0) - (self.win_length - self.hop_length) - n_residual,
-                (self.win_length - self.hop_length) + n_residual,
+                0, speech.size(0) - n_overlap - n_residual, n_overlap + n_residual
             ).clone()
 
         # data: (Nsamples,) -> (1, Nsamples)
@@ -352,29 +370,26 @@ class Speech2TextStreaming:
 
         # Trimming
         if is_final:
-            if prev_states is None:
+            if is_first:
                 pass
             else:
                 feats = feats.narrow(
                     1,
-                    math.ceil(math.ceil(self.win_length / self.hop_length) / 2),
-                    feats.size(1)
-                    - math.ceil(math.ceil(self.win_length / self.hop_length) / 2),
+                    n_trim_start,
+                    feats.size(1) - n_trim_start,
                 )
         else:
-            if prev_states is None:
+            if is_first:
                 feats = feats.narrow(
                     1,
                     0,
-                    feats.size(1)
-                    - math.ceil(math.ceil(self.win_length / self.hop_length) / 2),
+                    feats.size(1) - n_trim,
                 )
             else:
                 feats = feats.narrow(
                     1,
-                    math.ceil(math.ceil(self.win_length / self.hop_length) / 2),
-                    feats.size(1)
-                    - 2 * math.ceil(math.ceil(self.win_length / self.hop_length) / 2),
+                    n_trim_start,
+                    feats.size(1) - n_trim_start - n_trim,
                 )
 
         feats_lengths = feats.new_full([1], dtype=torch.long, fill_value=feats.size(1))
@@ -403,19 +418,21 @@ class Speech2TextStreaming:
         if isinstance(speech, np.ndarray):
             speech = torch.tensor(speech)
 
+        enc = None
         if isinstance(
             self.st_model.encoder, ContextualBlockTransformerEncoder
         ) or isinstance(self.st_model.encoder, ContextualBlockConformerEncoder):
             feats, feats_lengths, self.frontend_states = self.apply_frontend(
                 speech, self.frontend_states, is_final=is_final
             )
-            enc, _, self.encoder_states = self.st_model.encoder(
-                feats,
-                feats_lengths,
-                self.encoder_states,
-                is_final=is_final,
-                infer_mode=True,
-            )
+            if feats is not None:
+                enc, _, self.encoder_states = self.st_model.encoder(
+                    feats,
+                    feats_lengths,
+                    self.encoder_states,
+                    is_final=is_final,
+                    infer_mode=True,
+                )
         else:
             speech = speech.unsqueeze(0).to(getattr(torch, self.dtype))
             lengths = speech.new_full([1], dtype=torch.long, fill_value=speech.size(1))
@@ -423,14 +440,18 @@ class Speech2TextStreaming:
             batch = to_device(batch, device=self.device)
             enc, enc_lengths = self.st_model.encode(**batch)
 
-        nbest_hyps = self.beam_search(
-            x=enc[0],
-            maxlenratio=self.maxlenratio,
-            minlenratio=self.minlenratio,
-            is_final=is_final,
-        )
+        if enc is not None:
+            nbest_hyps = self.beam_search(
+                x=enc[0],
+                maxlenratio=self.maxlenratio,
+                minlenratio=self.minlenratio,
+                is_final=is_final,
+            )
 
-        ret = self.assemble_hyps(nbest_hyps)
+            ret = self.assemble_hyps(nbest_hyps)
+        else:
+            ret = []
+
         if is_final:
             self.reset()
         return ret
