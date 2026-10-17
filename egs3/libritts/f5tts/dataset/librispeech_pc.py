@@ -25,8 +25,8 @@ import soundfile as sf
 import torch
 import torchaudio
 
-from espnet3.contract import Field
 from espnet3.components.data.base_dataset import BaseDataset
+from espnet3.contract import Field
 
 
 def _find_utterance_flac(root: Path, utterance_id: str) -> Path:
