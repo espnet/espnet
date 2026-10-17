@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 
 # DO NOT RUN THIS SCRIPT DIRECTLY!!!!!!!!
-log "DO NOT RUN THIS SCRIPT DIRECTLY!!!!!!!!!"
-log "Please see the script for each dataset preparation!"
-log "Please see local/README.md for more details!"
+echo "Prepare each dataset using local/prepare_*.sh before training."
+echo "Please see the script for each dataset preparation!"
+echo "Please see local/README.md for more details!"
 exit 1
 
 # NOTE

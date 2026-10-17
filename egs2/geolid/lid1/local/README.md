@@ -41,7 +41,7 @@ bash local/prepare_voxpopuli.sh
 
 ### 3. Data Preprocessing
 
-Run the data preprocessing stages (stage 3-4) for each dataset:
+Run the waveform preparation stage (stage 3) for each dataset:
 
 ```bash
 # Example: Process FLEURS dataset
@@ -64,6 +64,10 @@ Repeat this process for all datasets. The complete list of dataset splits to pro
 - **VoxLingua107**: `train_voxlingua107_lang`, `dev_voxlingua107_lang`
 - **VoxPopuli**: `train_voxpopuli_lang`, `dev_voxpopuli_lang`, `test_voxpopuli_lang`
 
+Babel filtering expects materialized 16 kHz waveforms from stage 3. After dumping
+both Babel splits, run `bash local/filter_babel_over_10s.sh`; it keeps utterances
+of at least 10 seconds and regenerates the matching language lists.
+
 ### 4. Dataset Combination
 
 After ensuring all datasets have completed the dump stage processing, run the combination script:
@@ -71,6 +75,10 @@ After ensuring all datasets have completed the dump stage processing, run the co
 ```bash
 bash local/combine.sh
 ```
+
+The combination script checks for duplicate utterance IDs and matching waveform,
+language and duration keys, and leaves the source dumps unchanged. It generates
+`lang2utt`, `category2utt`, `utt2dataset` and `dataset2utt`.
 
 This will generate the final combined dataset: `dump/raw/train_all_no_filter_lang`
 

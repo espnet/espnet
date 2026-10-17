@@ -2319,7 +2319,14 @@ class LIDPreprocessor(CommonPreprocessor):
         self._make_label_mapping()
         self.nlang = len(self.lang2utt)
 
-        if self.use_lang2vec and self.lang2vec_type is not None:
+        if self.use_lang2vec and self.lang2vec_type not in {
+            "geo",
+            "phonology_knn",
+            "syntax_knn",
+            "inventory_knn",
+        }:
+            raise ValueError(f"Unsupported lang2vec_type: {self.lang2vec_type}")
+        if self.use_lang2vec:
             logging.info(f"Using lang2vec {self.lang2vec_type}")
             self.get_lang2vec()
 
@@ -2400,16 +2407,16 @@ class LIDPreprocessor(CommonPreprocessor):
         for lang in langs:
             try:
                 lang_result = l2v.get_features([lang], self.lang2vec_type)
-                vec = np.array(lang_result[lang])
+                vec = np.asarray(lang_result[lang], dtype=np.float32)
                 self.lang2vec[lang] = vec
                 if vector_dim is None:
                     vector_dim = len(vec)
             except Exception as e:
                 if vector_dim is not None:
-                    self.lang2vec[lang] = np.zeros(vector_dim)
+                    self.lang2vec[lang] = np.zeros(vector_dim, dtype=np.float32)
                 elif self.lang2vec_type == "geo":
                     vector_dim = 299
-                    self.lang2vec[lang] = np.zeros(vector_dim)
+                    self.lang2vec[lang] = np.zeros(vector_dim, dtype=np.float32)
                 else:
                     raise e
 

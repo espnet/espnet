@@ -17,35 +17,79 @@ For further details on the geolocation-aware LID methodology, please refer to ou
 
 First, ensure you have ESPnet installed. If not, follow the [ESPnet installation instructions](https://espnet.github.io/espnet/installation.html).
 
-This project requires **modified versions** of s3prl and transformers for geolocation conditioning functionality.
+The recipe uses the official `transformers` package. Neither a custom Transformers
+installation nor S3PRL is required for geolocation conditioning. Training also uses
+`lang2vec`; dataset preparation requires `datasets`, `pandas`, and `pycountry`.
 
-**Install Modified s3prl:**
 ```bash
-# If you have already installed s3prl, please uninstall it first
-pip uninstall s3prl  # (Optional if already installed)
-
-# Clone and install the modified version
-git clone -b lid https://github.com/Qingzheng-Wang/s3prl.git
-cd s3prl
-pip install -e .
-cd ..
+pip install 'transformers>=4.51.3' lang2vec datasets pandas pycountry
 ```
 
-**Install Modified Transformers:**
-```bash
-# If you have already installed transformers, please uninstall it first
-pip uninstall transformers  # (Optional if already installed)
+The checkpoint-local models have been tested with official Transformers 4.51.3
+and 5.14.1. The conditioning implementation is in
+`espnet2/lid/huggingface/modeling_wav2vec2_condition.py`.
 
-# Clone and install the modified version
-git clone -b v4.51.3-qingzheng https://github.com/Qingzheng-Wang/transformers.git
-cd transformers
-pip install -e .
-cd ..
+### Inference with Transformers
+
+Each model linked below includes `config.json`, `model.safetensors`, a feature
+extractor configuration, and the custom `modeling_*.py` / `configuration_geolid.py`
+files. These files load through the standard AutoClass API:
+
+```python
+import soundfile as sf
+import torch
+from transformers import AutoFeatureExtractor, AutoModelForAudioClassification
+
+repo = "espnet/geolid_vl107only_shared_trainable"
+extractor = AutoFeatureExtractor.from_pretrained(repo)
+model = AutoModelForAudioClassification.from_pretrained(
+    repo, trust_remote_code=True
+).eval()
+audio, sample_rate = sf.read("speech.wav", dtype="float32")
+assert sample_rate == 16000 and audio.ndim == 1  # mono, at least 50 ms
+inputs = extractor(audio, sampling_rate=16000, return_tensors="pt")
+with torch.inference_mode():
+    outputs = model(**inputs)
+label = outputs.logits.argmax(-1).item()
+print(model.config.id2label[label])
 ```
 
-⚠️ **Important:** Make sure to use the exact versions specified above for compatibility.
+`trust_remote_code=True` loads the modeling files shipped with the checkpoint.
+For reproducible deployments, pass a reviewed commit hash as `revision` to both
+calls. This inference path needs only PyTorch and Transformers (plus an audio
+reader); ESPnet and S3PRL are not required. The outputs contain classification
+scores, language embeddings, and intermediate geolocation predictions.
 
-### Quick Start
+The released models' language IDs were recovered from their original model-card
+language lists and the recipe's sorted `lang2utt` construction. `conversion.json`
+records this provenance. The original ESPnet `.pth` files are retained.
+
+Published checkpoints set `legacy_inference=true`, preserving the pooling variance
+floor and padded mean-normalization behavior used in 2025. Old ESPnet configs
+without this field default to that behavior. New training configs explicitly use
+`legacy_inference: false` to follow current ESPnet. The results below are the
+original published evaluations; no models were retrained for this migration.
+
+### Export an ESPnet checkpoint
+
+From this recipe directory, with ESPnet installed:
+
+```bash
+python local/export_huggingface.py \
+    --checkpoint /path/to/valid.accuracy.best.pth \
+    --training-config /path/to/config.yaml \
+    --lang2utt /path/to/original/training/lang2utt \
+    --output-dir /path/to/new-hf-checkpoint
+```
+
+The exporter checks the architecture, loads weights strictly, and writes a
+self-contained safetensors checkpoint. It supports the five published
+configurations, including the early independent/frozen parameter names. It does
+not retrain or quantize weights. If `--lang2utt` is omitted, labels remain numeric
+`LABEL_i` values and `label_mapping_verified` is false; do not substitute the
+labels of a test set. Use an empty output directory.
+
+### ESPnet training and evaluation
 
 **Step 1: Navigate to project directory**
 ```bash
@@ -53,6 +97,11 @@ cd espnet/egs2/geolid/lid1
 ```
 
 If you would like to train the model or run inference using our prepared datasets (instead of your own), please first follow the [data preparation instructions](local/README.md) to set up the required data.
+
+The standard entry point is `./run.sh`, using `conf/train.yaml` (VoxLingua107-only,
+shared trainable conditioning). Variants live in `conf/tuning/`; the historical
+configuration paths remain as symlinks for existing experiments. Data preparation
+is described in `local/README.md`; begin at stage 4 after preparing the dumps.
 
 **Option 1: Train with Combined Dataset**
 ```bash
@@ -71,7 +120,7 @@ We also provide pre-trained models for immediate use:
 
 ```bash
 # Download the exp_combined to egs2/geolid/lid1
-hf download espnet/geolid_vl107only_shared_trainable --local-dir . --exclude "README.md" "meta.yaml" ".gitattributes"
+hf download espnet/geolid_vl107only_shared_trainable --local-dir . --include "exp_voxlingua107_only/*"
 
 ./run_voxlingua107_only.sh --skip_data_prep false --skip_train true --lid_config conf/voxlingua107_only/mms_ecapa_upcon_32_44_it0.4_shared_trainable.yaml --stage 6 --stop_stage 8
 
@@ -104,58 +153,16 @@ Below is a summary table of the training and evaluation datasets used in this pr
 
 **Accuracy (%) on In-domain and Out-of-domain Test Sets**
 
-<style>
-.hf-model-cell {
-    max-width: 120px;
-    overflow-x: auto;
-    white-space: nowrap;
-    scrollbar-width: thin;
-    scrollbar-color: #888 #f1f1f1;
-}
-
-.config-cell {
-    max-width: 100px;
-    overflow-x: auto;
-    white-space: nowrap;
-    scrollbar-width: thin;
-    scrollbar-color: #888 #f1f1f1;
-}
-
-.hf-model-cell::-webkit-scrollbar,
-.config-cell::-webkit-scrollbar {
-    height: 6px;
-}
-
-.hf-model-cell::-webkit-scrollbar-track,
-.config-cell::-webkit-scrollbar-track {
-    background: #f1f1f1;
-    border-radius: 3px;
-}
-
-.hf-model-cell::-webkit-scrollbar-thumb,
-.config-cell::-webkit-scrollbar-thumb {
-    background: #888;
-    border-radius: 3px;
-}
-
-.hf-model-cell::-webkit-scrollbar-thumb:hover,
-.config-cell::-webkit-scrollbar-thumb:hover {
-    background: #555;
-}
-</style>
-
-<div style="overflow-x: auto;">
-
 | Config                    | 🤗 HF Repo | VoxLingua107 | Babel | FLEURS | ML-SUPERB2.0 Dev | ML-SUPERB2.0 Dialect | VoxPopuli | Macro Avg. |
 | ------------------------- | ----------- | ------------ | ----- | ------ | ---------------- | -------------------- | --------- | ---------- |
-| <div class="config-cell">`conf/voxlingua107_only/mms_ecapa_upcon_32_44_it0.4_independent_frozen.yaml`</div> | <div class="hf-model-cell">[espnet/geolid_vl107only_independent_frozen](https://huggingface.co/espnet/geolid_vl107only_independent_frozen)</div> | 94.2         | 87.1  | 95.0   | 89.0             | 77.2                 | 90.4      | 88.8       |
-| <div class="config-cell">`conf/voxlingua107_only/mms_ecapa_upcon_32_44_it0.4_independent_trainable.yaml`</div> | <div class="hf-model-cell">[espnet/geolid_vl107only_independent_trainable](https://huggingface.co/espnet/geolid_vl107only_independent_trainable)</div> | 93.7         | 85.3  | 93.7   | 88.3             | 70.3                 | 86.5      | 86.3       |
-| <div class="config-cell">`conf/voxlingua107_only/mms_ecapa_upcon_32_44_it0.4_shared_frozen.yaml`</div> | <div class="hf-model-cell">[espnet/geolid_vl107only_shared_frozen](https://huggingface.co/espnet/geolid_vl107only_shared_frozen)</div> | 94.3         | 85.9  | 94.3   | 88.8             | 80.7                 | 89.2      | 88.8       |
-| <div class="config-cell">`conf/voxlingua107_only/mms_ecapa_upcon_32_44_it0.4_shared_trainable.yaml`</div> | <div class="hf-model-cell">[espnet/geolid_vl107only_shared_trainable](https://huggingface.co/espnet/geolid_vl107only_shared_trainable)</div> | 94.9         | 87.7  | 93.5   | 89.3             | 78.8                 | 89.5      | 88.9       |
-| <div class="config-cell">`conf/combined/mms_ecapa_upcon_32_44_it0.4_shared_trainable.yaml`</div> | <div class="hf-model-cell">[espnet/geolid_combined_shared_trainable](https://huggingface.co/espnet/geolid_combined_shared_trainable)</div> | 94.4         | 95.4  | 97.7   | 88.6             | 86.8                 | 99.0      | 93.7       |
+| `conf/voxlingua107_only/mms_ecapa_upcon_32_44_it0.4_independent_frozen.yaml` | [espnet/geolid_vl107only_independent_frozen](https://huggingface.co/espnet/geolid_vl107only_independent_frozen) | 94.2         | 87.1  | 95.0   | 89.0             | 77.2                 | 90.4      | 88.8       |
+| `conf/voxlingua107_only/mms_ecapa_upcon_32_44_it0.4_independent_trainable.yaml` | [espnet/geolid_vl107only_independent_trainable](https://huggingface.co/espnet/geolid_vl107only_independent_trainable) | 93.7         | 85.3  | 93.7   | 88.3             | 70.3                 | 86.5      | 86.3       |
+| `conf/voxlingua107_only/mms_ecapa_upcon_32_44_it0.4_shared_frozen.yaml` | [espnet/geolid_vl107only_shared_frozen](https://huggingface.co/espnet/geolid_vl107only_shared_frozen) | 94.3         | 85.9  | 94.3   | 88.8             | 80.7                 | 89.2      | 88.8       |
+| `conf/voxlingua107_only/mms_ecapa_upcon_32_44_it0.4_shared_trainable.yaml` | [espnet/geolid_vl107only_shared_trainable](https://huggingface.co/espnet/geolid_vl107only_shared_trainable) | 94.9         | 87.7  | 93.5   | 89.3             | 78.8                 | 89.5      | 88.9       |
+| `conf/combined/mms_ecapa_upcon_32_44_it0.4_shared_trainable.yaml` | [espnet/geolid_combined_shared_trainable](https://huggingface.co/espnet/geolid_combined_shared_trainable) | 94.4         | 95.4  | 97.7   | 88.6             | 86.8                 | 99.0      | 93.7       |
 
 
-</div>
+
 
 
 ## Citation
@@ -165,7 +172,7 @@ Below is a summary table of the training and evaluation datasets used in this pr
   author={Qingzheng Wang, Hye-jin Shim, Jiancheng Sun, and Shinji Watanabe},
   title={Geolocation-Aware Robust Spoken Language Identification},
   year={2025},
-  booktitle={Procedings of ASRU},
+  booktitle={Proceedings of ASRU},
 }
 
 @inproceedings{watanabe2018espnet,

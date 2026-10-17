@@ -158,7 +158,7 @@ class AAMSoftmaxSCTopKLang2Vec(AbsLoss):
         Returns:
             output: (batch, nclasses)
         """
-        sine = torch.sqrt(1.0 - torch.pow(cosine, 2))
+        sine = torch.sqrt((1.0 - torch.pow(cosine, 2)).clamp(min=0))
 
         phi = cosine * self.cos_m - sine * self.sin_m  # cos(theta + m)
 
@@ -229,10 +229,11 @@ class AAMSoftmaxSCTopKLang2Vec(AbsLoss):
             and self.lang2vec_weight is not None
         ):
             assert (
-                0 < self.lang2vec_weight < 1
-            ), f"lang2vec_weight should be in (0, 1), but got {self.lang2vec_weight}"
+                0 <= self.lang2vec_weight <= 1
+            ), f"lang2vec_weight should be in [0, 1], but got {self.lang2vec_weight}"
             lang2vec_loss = self.lang2vec_loss(self.lang2vec_head(input), lang2vec)
-            loss *= 1 - self.lang2vec_weight
-            loss += self.lang2vec_weight * lang2vec_loss
+            loss = (
+                1 - self.lang2vec_weight
+            ) * class_loss + self.lang2vec_weight * lang2vec_loss
 
         return loss, accuracy, pred_lids, class_loss, lang2vec_loss

@@ -8,7 +8,7 @@ log() {
 }
 
 # Configuration
-dataset_path="/scratch/bbjs/shared/corpora/babel"
+dataset_path="downloads/babel"
 lists_dir="conf/lists"
 
 . utils/parse_options.sh
@@ -53,7 +53,7 @@ process_language() {
     local train_list="$4"
     local dev_list="$5"
 
-    local base_dir="/scratch/bbjs/shared/corpora/babel/${lang_code}/conversational"
+    local base_dir="${dataset_path}/${lang_code}/conversational"
     local train_audio_dir="$base_dir/training/audio"
     local dev_audio_dir="$base_dir/dev/audio"
     local train_output="conf/lists/$lang_dir/$train_list"

@@ -1,3 +1,4 @@
+import argparse
 import os
 import sys
 import traceback
@@ -11,9 +12,7 @@ except Exception:
     traceback.print_exc()
     print("Error importing datasets library")
     print("datasets can be installed via espnet/tools/installers/install_datasets")
-    exit()
-
-ds = datasets.load_dataset("espnet/ml_superb_hf")
+    raise SystemExit(1)
 
 
 def save_audio_to_disk(sample, set_name, lang):
@@ -31,6 +30,7 @@ def parse_args():
 
 args = parse_args()
 dataset_path = args.dataset_path
+ds = datasets.load_dataset("espnet/ml_superb_hf")
 
 set_names = ["train", "dev", "dev_dialect"]
 pass_langs = ["nno", "nob", "nor"]

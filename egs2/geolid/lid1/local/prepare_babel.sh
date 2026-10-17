@@ -105,7 +105,7 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
     log "Combining all languages into train/dev sets"
     for split in train dev; do
         out_dir="data/${split}_babel_lang"
-        mkdir -p "$out_dir"
+        mkdir -p "$out_dir" data/.backup
         touch ${out_dir}/{utt2lang,segments,wav.scp}
 
         for d in data/${split}_BABEL_*; do

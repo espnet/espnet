@@ -28,7 +28,7 @@ def main(args):
 
     for train_set in train_sets:
         train_set_name = os.path.basename(train_set)
-        utt2spk_path = os.path.join(train_set, "utt2spk")
+        utt2spk_path = os.path.join(train_set, "utt2lang")
         with open(utt2spk_path, "r") as f:
             for line in f:
                 utt, lang = line.strip().split()

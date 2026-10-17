@@ -31,11 +31,17 @@ from espnet2.asr.encoder.abs_encoder import AbsEncoder
 from espnet2.asr.frontend.abs_frontend import AbsFrontend
 from espnet2.asr.specaug.abs_specaug import AbsSpecAug
 from espnet2.layers.abs_normalize import AbsNormalize
+from espnet2.layers.utterance_mvn import UtteranceMVN
 from espnet2.lid.espnet_model import ESPnetLIDModel
 from espnet2.lid.frontend.s3prl_condition import S3prlFrontendCondition
+from espnet2.lid.huggingface.modeling_layers import (
+    LegacyChnAttnStatPooling,
+    legacy_mean_normalize,
+)
 from espnet2.lid.loss.aamsoftmax_sc_topk_lang2vec import AAMSoftmaxSCTopKLang2Vec
 from espnet2.spk.loss.abs_loss import AbsLoss
 from espnet2.spk.pooling.abs_pooling import AbsPooling
+from espnet2.spk.pooling.chn_attn_stat_pooling import ChnAttnStatPooling
 from espnet2.spk.projector.abs_projector import AbsProjector
 from espnet2.torch_utils.device_funcs import force_gatherable
 
@@ -74,6 +80,8 @@ class ESPnetLIDUpstreamConditionModel(ESPnetLIDModel):
                                           conditioning projection
         shared_conditioning_proj: if True, share conditioning projection across
                                   layers
+        legacy_inference: preserve the pooling and padded normalization used by
+            the 2025 checkpoints. Set False when training with current ESPnet.
 
     Reference:
         Geolocation-Aware Robust Spoken Language Identification
@@ -103,6 +111,7 @@ class ESPnetLIDUpstreamConditionModel(ESPnetLIDModel):
         cutoff_gradient_from_backbone: Optional[bool] = True,
         cutoff_gradient_before_condproj: Optional[bool] = False,
         shared_conditioning_proj: Optional[bool] = False,
+        legacy_inference: bool = True,
     ):
 
         super().__init__(
@@ -120,7 +129,53 @@ class ESPnetLIDUpstreamConditionModel(ESPnetLIDModel):
             f"as frontend, but got {type(self.frontend)}"
         )
 
-        self.upstream_encoder = self.frontend.upstream.upstream.model.encoder
+        if not isinstance(self.loss, AAMSoftmaxSCTopKLang2Vec):
+            raise ValueError("Upstream conditioning requires AAMSoftmaxSCTopKLang2Vec.")
+        if lang2vec_conditioning_layers:
+            if any(
+                value is None
+                for value in (
+                    self.loss.lang2vec_dim,
+                    self.loss.lang2vec_type,
+                    self.loss.lang2vec_weight,
+                )
+            ):
+                raise ValueError(
+                    "Conditioning requires lang2vec_dim, lang2vec_type "
+                    "and lang2vec_weight in loss_conf."
+                )
+            num_layers = self.frontend.upstream.upstream.model.config.num_hidden_layers
+            if len(set(lang2vec_conditioning_layers)) != len(
+                lang2vec_conditioning_layers
+            ) or any(i < 0 or i >= num_layers for i in lang2vec_conditioning_layers):
+                raise ValueError(
+                    f"Conditioning layers must be unique indices in [0, {num_layers})."
+                )
+        if not 0 <= inter_lang2vec_loss_weight <= 1:
+            raise ValueError("inter_lang2vec_loss_weight must be in [0, 1].")
+
+        self.legacy_inference = legacy_inference
+        if legacy_inference:
+            if not isinstance(self.pooling, ChnAttnStatPooling):
+                raise ValueError("legacy_inference requires chn_attn_stat pooling.")
+            if (
+                not isinstance(self.normalize, UtteranceMVN)
+                or not self.normalize.norm_means
+                or self.normalize.norm_vars
+            ):
+                raise ValueError("legacy_inference requires mean-only UtteranceMVN.")
+            legacy_pool = LegacyChnAttnStatPooling(self.pooling.output_size() // 2)
+            legacy_pool.load_state_dict(self.pooling.state_dict())
+            self.pooling = legacy_pool
+            for key in pooling_condition or {}:
+                pool = pooling_condition[key]
+                if not isinstance(pool, ChnAttnStatPooling):
+                    raise ValueError(
+                        "legacy_inference requires chn_attn_stat conditioning pooling."
+                    )
+                legacy_pool = LegacyChnAttnStatPooling(pool.output_size() // 2)
+                legacy_pool.load_state_dict(pool.state_dict())
+                pooling_condition[key] = legacy_pool
 
         self.upstream_encoder.ecapa_encoder = encoder_condition
         self.upstream_encoder.pooling = pooling_condition
@@ -188,6 +243,53 @@ class ESPnetLIDUpstreamConditionModel(ESPnetLIDModel):
 
         self.apply_intermediate_lang2vec_loss = apply_intermediate_lang2vec_loss
         self.inter_lang2vec_loss_weight = inter_lang2vec_loss_weight
+
+    def _load_from_state_dict(
+        self,
+        state_dict,
+        prefix,
+        local_metadata,
+        strict,
+        missing_keys,
+        unexpected_keys,
+        error_msgs,
+    ):
+        # Early independent/frozen checkpoints used a different projection name.
+        encoder_prefix = prefix + "frontend.upstream.upstream.model.encoder."
+        for key in list(state_dict):
+            if key.startswith(encoder_prefix + "conditioning_projs."):
+                suffix = key[len(encoder_prefix + "conditioning_projs.") :]
+                layer, parameter = suffix.split(".", 1)
+                state_dict[
+                    encoder_prefix
+                    + f"lang2vec_conditioning_projs.{layer}.0.{parameter}"
+                ] = state_dict.pop(key)
+            elif key.startswith(prefix + "upstream_encoder."):
+                canonical = encoder_prefix + key[len(prefix + "upstream_encoder.") :]
+                if canonical in state_dict and torch.equal(
+                    state_dict[key], state_dict[canonical]
+                ):
+                    del state_dict[key]
+        # The first release did not save the otherwise redundant classifier alias.
+        for name in self.loss.state_dict():
+            source = prefix + "loss." + name
+            target = encoder_prefix + "aamsoftmax_loss." + name
+            if target not in state_dict and source in state_dict:
+                state_dict[target] = state_dict[source]
+        super()._load_from_state_dict(
+            state_dict,
+            prefix,
+            local_metadata,
+            strict,
+            missing_keys,
+            unexpected_keys,
+            error_msgs,
+        )
+
+    @property
+    def upstream_encoder(self):
+        # A property avoids registering the entire encoder twice in state_dict.
+        return self.frontend.upstream.upstream.model.encoder
 
     @typechecked
     def forward(
@@ -260,7 +362,7 @@ class ESPnetLIDUpstreamConditionModel(ESPnetLIDModel):
                 intermediate_lang2vec_preds is not None
                 and self.inter_lang2vec_loss_weight > 0
                 and self.apply_intermediate_lang2vec_loss
-                and self.upstream_encoder.lang2vec_conditioning_layers is not None
+                and self.upstream_encoder.lang2vec_conditioning_layers
             ):
                 inter_lang2vec_losses = self._calc_intermediate_lang2vec_pred_loss(
                     intermediate_lang2vec_preds,
@@ -307,9 +409,13 @@ class ESPnetLIDUpstreamConditionModel(ESPnetLIDModel):
             #     (1 - inter_lang2vec_loss_weight) * lang2vec_loss +
             #     inter_lang2vec_loss_weight * inter_lang2vec_loss_mean
             # )
-            loss = (
-                1 - self.loss.lang2vec_weight
-            ) * lid_class_loss_all + self.loss.lang2vec_weight * lang2vec_loss_all
+            if lang2vec_loss_all is None:
+                loss = lid_class_loss_all
+            else:
+                loss = (
+                    (1 - self.loss.lang2vec_weight) * lid_class_loss_all
+                    + self.loss.lang2vec_weight * lang2vec_loss_all
+                )
         else:
             # NOTE(qingzheng): if use aamsoftmax_sc_topk_lang2vec loss but not
             # specify the lang2vec in preprocessor, it will jump to this branch,
@@ -335,18 +441,18 @@ class ESPnetLIDUpstreamConditionModel(ESPnetLIDModel):
         speech: torch.Tensor,
         speech_lengths: torch.Tensor,
         lid_labels: Optional[torch.Tensor] = None,
-    ) -> Tuple[torch.Tensor, torch.Tensor]:
+    ) -> Tuple[torch.Tensor, torch.Tensor, Tuple[torch.Tensor, ...]]:
         batch_size = speech.shape[0]
         speech_lengths = (
             speech_lengths
             if speech_lengths is not None
-            else torch.ones(batch_size).int() * speech.shape[1]
+            else speech.new_full((batch_size,), speech.shape[1], dtype=torch.long)
         )
 
         # 1. extract feats
         if self.frontend is not None:
-            feats, feat_lengths, intermediate_lang2vec_preds = self.frontend(
-                speech, speech_lengths, lid_labels
+            feats, feat_lengths, intermediate_lang2vec_preds = (
+                self.frontend.forward_with_condition(speech, speech_lengths)
             )
         else:
             feats = speech
@@ -358,7 +464,9 @@ class ESPnetLIDUpstreamConditionModel(ESPnetLIDModel):
             feats, _ = self.specaug(feats, feat_lengths)
 
         # 3. normalize
-        if self.normalize is not None:
+        if self.legacy_inference:
+            feats = legacy_mean_normalize(feats, feat_lengths)
+        elif self.normalize is not None:
             feats, _ = self.normalize(feats, feat_lengths)
 
         return feats, feat_lengths, intermediate_lang2vec_preds
@@ -377,3 +485,7 @@ class ESPnetLIDUpstreamConditionModel(ESPnetLIDModel):
             inter_lang2vec_losses.append(inter_lang2vec_loss)
 
         return inter_lang2vec_losses
+
+    def collect_feats(self, speech, speech_lengths, **kwargs):
+        feats, _, _ = self.extract_feats(speech, speech_lengths)
+        return {"feats": feats}

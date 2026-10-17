@@ -15,23 +15,19 @@ for line in utt2lang_lines:
         for hin_lang in indian_langs:
             if hin_lang in uttid:
                 lang = hin_lang
-                uttid = uttid.replace("hin", lang)
+                uttid = uttid.replace("hin_", f"{lang}_", 1)
                 break
-        else:
-            raise ValueError(f"{indian_langs} not in {uttid}")
     filtered_utt2lang_lines.append(f"{uttid} {lang}\n")
 
 filtered_wav_scp_lines = []
 for line in wav_scp_lines:
-    uttid, path = line.strip().split()
+    uttid, path = line.strip().split(maxsplit=1)
     if utt2lang_origin[uttid] == "hin":
         for hin_lang in indian_langs:
             if hin_lang in uttid:
                 lang = hin_lang
-                uttid = uttid.replace("hin", lang)
+                uttid = uttid.replace("hin_", f"{lang}_", 1)
                 break
-        else:
-            raise ValueError(f"{indian_langs} not in {uttid}")
 
     filtered_wav_scp_lines.append(f"{uttid} {path}\n")
 
