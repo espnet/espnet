@@ -1,0 +1,24 @@
+##########################################################
+#                  PUBLICATION SETTING                   #
+##########################################################
+# Quick usage:
+#   python run.py --stages pack_model \
+#       --training_config conf/training.yaml \
+#       --inference_config conf/inference.yaml \
+#       --publication_config conf/publication.yaml
+#   python run.py --stages upload_model \
+#       --training_config conf/training.yaml \
+#       --publication_config conf/publication.yaml
+#
+# Merged over `egs3/TEMPLATE/f5tts/conf/publication.yaml`, which holds the
+# bundle layout, the README template and the upload settings. Only the
+# bundle contents differ here: this recipe's `create_token_list` writes its
+# list to `${data_dir}/tokens`, and the packed training config points there.
+# OmegaConf replaces a list rather than extending it, so the template's
+# entries are restated.
+pack_model:
+  include:
+    # The demo launcher (`src/app.py`) the packed demo is built from.
+    - src
+    # The token list written by `create_token_list`.
+    - ${data_dir}/tokens
