@@ -141,9 +141,7 @@ def check_metric_inputs(metric: Any, inputs: Any) -> Optional[Mapping[str, str]]
     else:
         declared = set(fields)
         required = {
-            name
-            for name, expected in fields.items()
-            if not isinstance(None, expected)
+            name for name, expected in fields.items() if not isinstance(None, expected)
         }
 
     missing = required - set(bindings)

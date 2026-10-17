@@ -30,9 +30,7 @@ class Kind(ABC):
     """
 
     @abstractmethod
-    def check(
-        self, value: Any, field: Field, model: Any, *, output: bool
-    ) -> Any:
+    def check(self, value: Any, field: Field, model: Any, *, output: bool) -> Any:
         """Return ``value`` as this kind holds it, or raise ``TypeError``.
 
         The kind decides the form; ``field`` supplies the name for the
