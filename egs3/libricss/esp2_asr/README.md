@@ -113,8 +113,8 @@ separate `exp/eval_oracle/` tree.
 
 For a quick end-to-end validation without full-scale decoding, trim tiny
 manifests out of the real `segment`/`diarize` outputs and decode them with
-the optional `*_smoke` configs (a few seconds of audio; ~20 s per flow on
-CPU including model load):
+the optional `*_smoke` configs (a few seconds of audio; 1.5–2 min per flow
+on CPU on a Ryzen 7 2700X, including the ~25 s model load):
 
 ```bash
 # after: --stages segment diarize (diarized flow) and
@@ -162,9 +162,9 @@ minimum, matching Kaldi's `extract_xvectors.sh`), and NME-SC parameters
 
 ## Results
 
-Measured with this recipe on the full corpus (RTX 3090, beam 20, ASR-only
-decoding, `pad_missing_speakers: true`), against the ESPnet1 reference
-numbers (same LibriSpeech Transformer ASR + Transformer LM rescoring, Kaldi
+Measured with this recipe on the full corpus (beam 20, ASR-only decoding,
+`pad_missing_speakers: true`), against the ESPnet1 reference numbers (same
+LibriSpeech Transformer ASR + Transformer LM rescoring, Kaldi
 `0012_diarization_v1` x-vectors + NME-SC, egs1 scoring):
 
 | flow | metric | split | this recipe | egs1 reference |
@@ -172,7 +172,7 @@ numbers (same LibriSpeech Transformer ASR + Transformer LM rescoring, Kaldi
 | oracle | WER | dev | 20.27 | 19.20 |
 | oracle | WER | eval | 21.20 | 19.72 |
 | diarized (spectral) | SA-WER | dev | 28.88 | 28.07 |
-| diarized (spectral) | SA-WER | eval | 29.24 | 27.01 |
+| diarized (spectral) | SA-WER | eval | 29.25 | 27.01 |
 
 The +1–2 point gaps are the expected cost of the deviations below (no LM
 rescoring; for the diarized flow, a different speaker-embedding extractor
@@ -184,6 +184,12 @@ non-overlapping conditions to 39.03 on `OV40`; SA-WER eval from ~15.0 to
 in `exp/eval/inference/<split>/sawer_details.json` (diarized) and
 `exp/eval_oracle/inference_oracle/<split>/condition_wer_details.json`
 (oracle).
+
+The numbers reproduce across hosts and software stacks: a run with torch
+2.13.0 and Python 3.12 (Ryzen 5 7500F, RTX 5090) and one with torch 2.14.0
+and Python 3.13 (Ryzen 7 2700X, RTX 3090) gave identical oracle WERs and
+dev SA-WERs, and eval SA-WERs 0.01 apart (29.24 vs. 29.25), from slightly
+different speaker turns on 3 of the 54 eval recordings.
 
 Three documented deviations from egs1:
 
@@ -202,29 +208,36 @@ Three documented deviations from egs1:
 
 ## Runtime notes
 
-Measured on a shared RTX 3090 (12-core CPU host), full corpus (~10 h of
-audio, 60 recordings):
+Full corpus (~10 h of audio, 60 recordings), measured on two hosts: a
+Ryzen 5 7500F with an RTX 5090, and a Ryzen 7 2700X (12 CPUs) with an RTX
+3090. Where they differ, both are given, in that order:
 
-- `segment`: ~15 s for the diarized flow (5,892 webrtcvad segments across
-  both splits), ~3 s for the oracle flow.
-- `diarize`: ~1.2 min for all 60 recordings (~41 k x-vector embeddings of
-  1.5 s subsegments, one call each — `Speech2Embedding` has no batched
-  interface; `device: auto` uses CUDA when available). The NME sweep runs
-  ~19 small LAPACK eigendecompositions per recording, which OpenBLAS makes
-  drastically slower under thread oversubscription (`eigvalsh` on a
-  750×750 matrix: ~16 ms at 1–2 threads vs ~5.8 s at 12), so
-  `src/spectral_clustering.py` caps BLAS/OpenMP threads at 2 via
+- `create_dataset`: ~2 min (second host) to extract one microphone channel
+  of the 60 recordings, once the corpus is downloaded and unpacked.
+- `segment`: ~15 / ~20 s for the diarized flow (5,892 webrtcvad segments
+  across both splits), ~3 s / under 1 s for the oracle flow.
+- `diarize`: ~1.2 / ~2.4 min for all 60 recordings (~41 k x-vector
+  embeddings of 1.5 s subsegments, one call each — `Speech2Embedding` has
+  no batched interface; `device: auto` uses CUDA when available). The NME
+  sweep runs ~19 small LAPACK eigendecompositions per recording, which
+  OpenBLAS makes drastically slower under thread oversubscription
+  (`eigvalsh` on a 750×750 matrix: ~16 ms at 1–2 threads vs ~5.8 s at 12),
+  so `src/spectral_clustering.py` caps BLAS/OpenMP threads at 2 via
   `threadpoolctl` (ships with scikit-learn; no-op if absent) and uses
   vectorized neighbor/threshold helpers. Outputs are byte-identical to the
-  uncapped code (verified on the full corpus); the cap cuts this stage
-  from ~34 min to ~1.2 min.
-- `infer`: ~27 min for the diarized flow (8,714 turns) and ~45 min for the
-  oracle flow (5,023 utterances) on GPU — roughly 14–20× real time at
-  `batch_size: 4`, whose peak GPU memory is ~5.4 GiB (a batch of the four
-  longest oracle segments, ~34 s each); `batch_size: 1` needs ~3.3 GiB. On
-  CPU, decoding runs at ~0.6× real time per stream (beam 20), so use a GPU
-  for the full corpus.
-- `measure`: ~1 s.
+  uncapped code (verified on the full corpus); on the first host, the cap
+  cuts this stage from ~34 min to ~1.2 min.
+- `infer`: ~27 / ~48 min for the diarized flow (8,715 turns, 9.3 h) and
+  ~45 / ~68 min for the oracle flow (5,023 utterances, 10.4 h) on GPU —
+  14–21× / 9–12× real time at `batch_size: 4`, whose peak GPU memory is
+  ~5.4 GiB (a batch of the four longest oracle segments, ~34 s each);
+  `batch_size: 1` needs ~3.3 GiB. The beam search is bound by single-thread
+  CPU speed (the GPU stays at ~30% utilization while decoding takes one
+  core), which is where most of the difference between the hosts comes
+  from. On CPU, decoding runs at ~0.5× real time per stream (beam 20), so
+  use a GPU for the full corpus.
+- `measure`: ~10–20 s the first time, which reads the `dataset:` columns
+  from the test set; ~1 s afterwards, from the cached columns.
 
 As a diarization sanity signal, NME-SC estimated exactly 8 speakers — the
 true per-meeting count — on 5 of the 6 dev recordings (10 on `OV40`, the
