@@ -17,6 +17,12 @@ class ESPnetGANSpeechTokenizerModel(AbsGANESPnetModel):
 
     The model combines ASR and speech reconstruction. GAN discriminator updates
     are exposed separately from the shared main loss.
+
+    The discriminator step reuses the waveform cached by the generator step of
+    the same batch, so training must run generator-first
+    (``generator_first=true``, as enforced by ``SpeechTokenizerGANTrainer``).
+    With ``GANTrainer``'s default discriminator-first order, the second batch
+    finds the previous batch's cache and raises an error.
     """
 
     def __init__(

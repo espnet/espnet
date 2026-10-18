@@ -1,3 +1,5 @@
+from test.espnet2.tok.test_hifigan_loss import make_loss
+
 import pytest
 import torch
 
@@ -6,9 +8,9 @@ from espnet2.tok.output import SpeechTokenizerOutput
 
 
 class DummyTokenizer(torch.nn.Module):
-    def __init__(self):
+    def __init__(self, logits=(0.2, 0.8)):
         super().__init__()
-        self.logits = torch.nn.Parameter(torch.tensor([0.2, 0.8]))
+        self.logits = torch.nn.Parameter(torch.tensor(logits))
         self.forward_calls = 0
         self.encode_calls = 0
 
@@ -169,6 +171,51 @@ def test_discriminator_tokenizes_on_cache_miss():
     assert model.tokenizer.forward_calls == 1
     # The freshly computed tokenizer output is passed to the discriminator path.
     assert model.reconstruction_loss.last_discriminator_tokenizer_output is not None
+
+
+def make_model_with_hifigan_loss():
+    # make_loss() builds a 4-token, 2-dim-speaker tiny HiFi-GAN with caching.
+    return ESPnetGANSpeechTokenizerModel(
+        tokenizer=DummyTokenizer(logits=(0.1, 0.2, 0.3, 0.4)),
+        asr_loss=DummyASRLoss(),
+        reconstruction_loss=make_loss(),
+        reconstruction_weight=0.5,
+    )
+
+
+def make_batch():
+    return {
+        "speech": torch.randn(2, 8),
+        "speech_lengths": torch.tensor([8, 6]),
+        "text": torch.ones(2, 2, dtype=torch.long),
+        "text_lengths": torch.tensor([2, 1]),
+        "spembs": torch.randn(2, 2),
+    }
+
+
+def test_generator_first_reuses_cache_across_batches():
+    model = make_model_with_hifigan_loss()
+    model.train()
+    for _ in range(2):
+        batch = make_batch()
+        model(forward_generator=True, **batch)
+        assert model.reconstruction_loss.has_cached_generator_outputs
+        model(forward_generator=False, **batch)
+        assert not model.reconstruction_loss.has_cached_generator_outputs
+
+    # The discriminator step reused the cache instead of tokenizing again.
+    assert model.tokenizer.forward_calls == 2
+
+
+def test_discriminator_first_fails_on_stale_cache():
+    model = make_model_with_hifigan_loss()
+    model.train()
+    first, second = make_batch(), make_batch()
+    model(forward_generator=False, **first)
+    model(forward_generator=True, **first)
+
+    with pytest.raises(RuntimeError, match="different speech tensor"):
+        model(forward_generator=False, **second)
 
 
 @pytest.mark.parametrize("reconstruction_weight", [-0.1, 1.1])
