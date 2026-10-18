@@ -193,7 +193,7 @@ def test_inference_rejects_test_entry_without_name(tmp_path, monkeypatch):
         {
             "parallel": {"env": "local"},
             "inference_dir": str(tmp_path / "infer"),
-            "dataset": {"test": [{"data_src": "mini_an4/asr"}]},
+            "dataset": {"test": [{"data_src": "mini_an4/esp2_asr"}]},
             "input_key": "speech",
             "mock_dataset_length": 1,
             "provider": {"_target_": f"{__name__}.DummyProvider"},
@@ -344,6 +344,44 @@ def test_materialize_output_value_rejects_top_level_list(tmp_path: Path):
             output_dir=tmp_path,
             artifact_config=None,
         )
+
+
+class _CountingOrganizer:
+    """Fake DataOrganizer that records how many times it was constructed."""
+
+    construct_count = 0
+
+    def __init__(self):
+        type(self).construct_count += 1
+        self.test = {"test_a": "dataset_instance"}
+
+
+def test_build_dataset_instantiates_organizer_once_for_dictconfig():
+    _CountingOrganizer.construct_count = 0
+    config = OmegaConf.create(
+        {
+            "dataset": {"_target_": f"{__name__}._CountingOrganizer"},
+            "test_set": "test_a",
+        }
+    )
+
+    result = InferenceProvider.build_dataset(config)
+
+    assert result == "dataset_instance"
+    assert _CountingOrganizer.construct_count == 1
+
+
+def test_build_dataset_instantiates_organizer_once_for_plain_dict():
+    _CountingOrganizer.construct_count = 0
+    config = {
+        "dataset": {"_target_": f"{__name__}._CountingOrganizer"},
+        "test_set": "test_a",
+    }
+
+    result = InferenceProvider.build_dataset(config)
+
+    assert result == "dataset_instance"
+    assert _CountingOrganizer.construct_count == 1
 
 
 def test_inference_with_explicit_output_keys_filters_scp_outputs(tmp_path, monkeypatch):

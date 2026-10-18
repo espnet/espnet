@@ -26,15 +26,82 @@ def _fake_module(monkeypatch, name, attr, obj):
     return module
 
 
-class _Recorder:
-    """Stands in for an inference class: records how it was built and called."""
+class _FakeModel:
+    """Stand in for a native speech-to-text backend and record its calls."""
 
-    def __init__(self, result):
+    def __init__(self, result, error=None):
+        self.result = result
+        self.error = error  # what the backend raises before decoding, if anything
+        self.tag = self.system = self.device = None
+        self.s2t_model = types.SimpleNamespace(token_list=None)
+        self.calls = []
+
+    def decode_long(self, audio, *, lang_sym, task_sym):
+        prompt = {"task": task_sym[1:-1]}
+        if lang_sym != "<nolang>":
+            prompt["language"] = lang_sym[1:-1]
+        if self.error is not None:
+            raise self.error
+        self.calls.append((audio, prompt))
+        return [(0.0, 1.0, self.result)]
+
+    def no_language(self):
+        return "<nolang>"
+
+
+def _fake_load(monkeypatch, model):
+    """Replace the native backend constructor, recording its tag and device."""
+
+    def from_pretrained(model_tag=None, device="auto", **kwargs):
+        model.tag, model.system, model.device = model_tag, "s2t", device
+        return model
+
+    _fake_module(
+        monkeypatch,
+        "espnet2.bin.s2t_inference",
+        "Speech2Text",
+        types.SimpleNamespace(from_pretrained=from_pretrained),
+    )
+    return model
+
+
+class _Recorder:
+    """Stands in for an ESPnet2 inference class: records how it was built and called."""
+
+    def __init__(self, result, ctc_only=True, nolang="<nolang>", tokens=None):
         self.result = result
         self.tag = None
         self.device = None
         self.calls = []
         self.fs = 16000
+        # what `espnet phonemize` reads off a loaded checkpoint: whether there is
+        # a decoder to segment long audio with, and how this model spells
+        # "work the language out yourself"
+        self.ctc_only = ctc_only
+        self.preprocessor_conf = {"speech_length": 20, "fs": 16000}
+        if nolang is not None:
+            self.preprocessor_conf["nolang_symbol"] = nolang
+        self.s2t_model = types.SimpleNamespace(
+            token_list=list(tokens) if tokens is not None else None
+        )
+
+    def read_audio(self, path):
+        # two windows of the length above, so that a test can see both
+        return np.zeros(20 * 16000 * 2, dtype=np.float32)
+
+    def no_language(self):
+        # Speech2Text.no_language, which the command line only rewords: the
+        # config's symbol, then either spelling, each checked against the
+        # token list
+        tokens = set(self.s2t_model.token_list or ())
+        for candidate in (
+            self.preprocessor_conf.get("nolang_symbol"),
+            "<nolang>",
+            "<unk>",
+        ):
+            if candidate and (not tokens or candidate in tokens):
+                return candidate
+        raise ValueError("this model has no symbol for an unknown language")
 
     def from_pretrained(self, model_tag=None, device=None, **kwargs):
         self.tag, self.device = model_tag, device
@@ -73,28 +140,36 @@ def test_every_default_names_a_model_in_the_espnet_organisation():
         assert tag.startswith("espnet/"), (task, tag)
 
 
-def test_asr_prints_the_transcript(monkeypatch, tmp_path, capsys):
+def test_transcribe_prints_the_transcript(monkeypatch, tmp_path, capsys):
+    import torch
+
+    monkeypatch.setattr(torch.cuda, "is_available", lambda: False)
     audio = tmp_path / "a.wav"
     audio.write_bytes(b"")
-    rec = _Recorder("hello there")
-    _fake_module(monkeypatch, "espnet2.bin.s2t_inference", "Speech2Text", rec)
+    model = _fake_load(monkeypatch, _FakeModel("hello there"))
 
-    assert cli.main(["asr", str(audio)]) == 0
+    assert cli.main(["transcribe", str(audio)]) == 0
 
     assert capsys.readouterr().out.strip() == "hello there"
-    assert rec.tag == cli.DEFAULT_MODELS["asr"]
-    assert rec.device == "cpu"
-    args, kwargs = rec.calls[0]
-    assert args == (str(audio),)
-    # no language given means the model detects it
-    assert kwargs == {"lang_sym": "<nolang>", "task_sym": "<asr>"}
+    # the default model, through the s2t system, --device auto resolved
+    # before the command ran (no GPU here: cpu)
+    assert (model.tag, model.system, model.device) == (
+        cli.DEFAULT_MODELS["transcribe"],
+        "s2t",
+        "cpu",
+    )
+    # transcription asked for by name; no language given means the model works it out
+    assert model.calls == [(str(audio), {"task": "asr"})]
 
 
 def test_asr_passes_the_language_and_the_chosen_model(monkeypatch, tmp_path):
     audio = tmp_path / "a.wav"
     audio.write_bytes(b"")
-    rec = _Recorder("x")
-    _fake_module(monkeypatch, "espnet2.bin.s2t_inference", "Speech2Text", rec)
+    rec = _fake_load(monkeypatch, _FakeModel("x"))
+    import torch
+
+    monkeypatch.setattr(torch.cuda, "is_available", lambda: True)  # so cuda passes
+    monkeypatch.setattr(torch.cuda, "device_count", lambda: 1)
 
     assert (
         cli.main(
@@ -113,24 +188,236 @@ def test_asr_passes_the_language_and_the_chosen_model(monkeypatch, tmp_path):
     )
 
     assert rec.tag == "espnet/other" and rec.device == "cuda"
-    assert rec.calls[0][1]["lang_sym"] == "<jpn>"
+    assert rec.calls[0][1] == {"task": "asr", "language": "jpn"}
+
+
+def test_phonemize_prints_ipa_without_the_slashes(monkeypatch, tmp_path, capsys):
+    audio = tmp_path / "a.wav"
+    audio.write_bytes(b"")
+    # POWSM writes one phone between each pair of slashes
+    rec = _fake_load(monkeypatch, _FakeModel("/ð//ə//s//e//ɪ/"))
+
+    assert cli.main(["phonemize", str(audio)]) == 0
+
+    assert capsys.readouterr().out.strip() == "ðəseɪ"
+    assert rec.tag == cli.DEFAULT_MODELS["phonemize"]
+    assert rec.calls == [(str(audio), {"task": "pr"})]
+
+
+def test_phonemize_can_print_one_phone_at_a_time(monkeypatch, tmp_path, capsys):
+    audio = tmp_path / "a.wav"
+    audio.write_bytes(b"")
+    # the point of the slashes: pʰ is one phone, not p followed by ʰ
+    _fake_load(monkeypatch, _FakeModel("/pʰ//ɔ//s//ə//m/"))
+
+    assert cli.main(["phonemize", str(audio), "--spaced"]) == 0
+
+    assert capsys.readouterr().out.strip() == "pʰ ɔ s ə m"
+
+
+def test_phonemize_passes_a_language_when_one_is_given(monkeypatch, tmp_path):
+    audio = tmp_path / "a.wav"
+    audio.write_bytes(b"")
+    rec = _fake_load(monkeypatch, _FakeModel("/a/"))
+
+    assert cli.main(["phonemize", str(audio), "--language", "jpn"]) == 0
+
+    assert rec.calls[0][1] == {"task": "pr", "language": "jpn"}
+
+
+def test_phonemize_prints_what_a_model_said_when_there_are_no_slashes(
+    monkeypatch, tmp_path, capsys
+):
+    audio = tmp_path / "a.wav"
+    audio.write_bytes(b"")
+    _fake_load(monkeypatch, _FakeModel("hello there"))
+
+    assert cli.main(["phonemize", str(audio)]) == 0
+
+    # swallowing it would be worse than printing a transcript nobody wanted
+    assert capsys.readouterr().out.strip() == "hello there"
+
+
+class _FakeSegment:
+    """What ForcedAligner returns: an utterance, when it was said, and how sure.
+
+    A token has the same four fields, which is what lets the command print
+    both with one line of formatting.
+    """
+
+    def __init__(self, text, start, end, score=0.9, tokens=None):
+        self.text, self.start, self.end, self.score = text, start, end, score
+        self.tokens = (
+            tokens
+            if tokens is not None
+            else [_FakeSegment(text.split()[0], start, start + 0.1, 0.8, tokens=[])]
+        )
+
+
+class _FakeAligner:
+    def __init__(self, **kwargs):
+        self.kwargs = kwargs
+        self.calls = []
+
+    def from_pretrained(self, model_tag=None, device=None, **kwargs):
+        self.tag, self.device = model_tag, device
+        return self
+
+    def __call__(self, speech, utterances):
+        self.calls.append((speech, list(utterances)))
+        return [
+            _FakeSegment(text, i * 1.0, i * 1.0 + 0.5)
+            for i, text in enumerate(utterances)
+        ]
+
+
+def _fake_aligner(monkeypatch, aligner=None):
+    aligner = aligner or _FakeAligner()
+    _fake_module(monkeypatch, "espnet2.bin.align", "ForcedAligner", aligner)
+    return aligner
+
+
+def test_align_prints_a_line_an_utterance(monkeypatch, tmp_path, capsys):
+    audio = tmp_path / "a.wav"
+    audio.write_bytes(b"")
+    rec = _fake_aligner(monkeypatch)
+
+    assert cli.main(["align", str(audio), "--text", "one", "--text", "two"]) == 0
+
+    lines = capsys.readouterr().out.strip().split("\n")
+    assert [line.split("\t")[-1] for line in lines] == ["one", "two"]
+    assert lines[0].startswith("0.00\t0.50\t")
+    assert rec.tag == cli.DEFAULT_MODELS["align"]
+    assert rec.calls == [(str(audio), ["one", "two"])]
+
+
+def test_align_can_print_each_token(monkeypatch, tmp_path, capsys):
+    audio = tmp_path / "a.wav"
+    audio.write_bytes(b"")
+    _fake_aligner(monkeypatch)
+
+    assert cli.main(["align", str(audio), "--text", "one two", "--tokens"]) == 0
+
+    lines = capsys.readouterr().out.strip().split("\n")
+    # the utterance, then the tokens it was made of, indented
+    assert len(lines) == 2 and lines[1].startswith("  ")
+
+
+def test_align_reads_a_file_of_utterances(monkeypatch, tmp_path, capsys):
+    audio = tmp_path / "a.wav"
+    audio.write_bytes(b"")
+    utterances = tmp_path / "utts.txt"
+    utterances.write_text("one\n\ntwo\n")  # blank lines are not utterances
+    rec = _fake_aligner(monkeypatch)
+
+    assert cli.main(["align", str(audio), "--text-file", str(utterances)]) == 0
+
+    assert rec.calls[0][1] == ["one", "two"]
+
+
+def test_align_passes_the_device_it_was_given(monkeypatch, tmp_path):
+    audio = tmp_path / "a.wav"
+    audio.write_bytes(b"")
+    rec = _fake_aligner(monkeypatch)
+    import torch
+
+    # a machine with an MPS device, so that the name passes the check in main()
+    monkeypatch.setattr(torch.backends.mps, "is_available", lambda: True)
+
+    assert cli.main(["align", str(audio), "--text", "one", "--device", "mps"]) == 0
+
+    assert rec.device == "mps"
+
+
+def test_align_reports_text_that_cannot_fit(monkeypatch, tmp_path, capsys):
+    audio = tmp_path / "a.wav"
+    audio.write_bytes(b"")
+
+    class _TooMuch(_FakeAligner):
+        def __call__(self, speech, utterances):
+            raise ValueError("120 tokens to align against 40 frames")
+
+    _fake_aligner(monkeypatch, _TooMuch())
+
+    assert cli.main(["align", str(audio), "--text", "one"]) == 1
+
+    # the aligner's own sentence, not a traceback
+    assert "120 tokens to align against 40 frames" in capsys.readouterr().err
+
+
+def test_align_needs_text_and_only_one_way_of_giving_it(monkeypatch, tmp_path, capsys):
+    audio = tmp_path / "a.wav"
+    audio.write_bytes(b"")
+
+    assert cli.main(["align", str(audio)]) == 1
+    assert "--text" in capsys.readouterr().err
+
+    assert cli.main(["align", str(audio), "--text", "one", "--text-file", "f.txt"]) == 1
+    assert "not both" in capsys.readouterr().err
 
 
 def test_translate_builds_the_target_token(monkeypatch, tmp_path):
     audio = tmp_path / "a.wav"
     audio.write_bytes(b"")
-    rec = _Recorder("bonjour")
-    _fake_module(monkeypatch, "espnet2.bin.s2t_inference", "Speech2Text", rec)
+    rec = _fake_load(monkeypatch, _FakeModel("bonjour"))
 
     assert cli.main(["translate", str(audio), "--to", "fra", "--language", "eng"]) == 0
 
-    assert rec.calls[0][1] == {"lang_sym": "<eng>", "task_sym": "<st_fra>"}
+    assert rec.calls[0][1] == {"task": "st_fra", "language": "eng"}
 
 
 def test_translate_requires_a_target():
     with pytest.raises(SystemExit) as e:
         cli.main(["translate", "a.wav"])
     assert e.value.code == 2  # argparse's "bad usage"
+
+
+OWSM_TOKENS = ["<blank>", "<unk>", "<na>", "<nolang>", "<eng>", "<jpn>", "<asr>"]
+OWSM_TOKENS += ["<st_deu>", "<st_eng>", "<st_jpn>"]
+
+
+@pytest.mark.parametrize(
+    "argv",
+    [
+        ["transcribe", "--language", "en"],
+        ["translate", "--language", "en", "--to", "eng"],
+        ["phonemize", "--language", "en"],
+    ],
+)
+def test_a_language_the_model_lacks_is_a_sentence_not_a_traceback(
+    monkeypatch, tmp_path, capsys, argv
+):
+    # the esp2_s2t Inference checks the symbol before decoding and raises a
+    # ValueError that names the fix; the command line prints it and stops
+    audio = tmp_path / "a.wav"
+    audio.write_bytes(b"")
+    rec = _fake_load(
+        monkeypatch,
+        _FakeModel(
+            "x",
+            error=ValueError("language 'en': this model has no <en>; pass ISO 639-3"),
+        ),
+    )
+
+    assert cli.main([argv[0], str(audio), *argv[1:]]) == 1
+
+    err = capsys.readouterr().err
+    assert "'en'" in err and "ISO 639-3" in err
+    assert rec.calls == []  # nothing was decoded with a symbol it lacks
+
+
+def test_stream_checks_the_language_before_it_starts(monkeypatch, tmp_path, capsys):
+    said = []
+    _stub_live(monkeypatch, [np.zeros(16000, dtype=np.float32)], said)
+    rec = _Recorder([("x", ["x"], [1], "x", None)], tokens=OWSM_TOKENS)
+    _fake_module(monkeypatch, "espnet2.bin.s2t_inference", "Speech2Text", rec)
+    audio = tmp_path / "a.wav"
+    soundfile.write(audio, np.zeros(16000, dtype=np.float32), 16000)
+
+    assert cli.main(["transcribe", str(audio), "--stream", "--language", "en"]) == 1
+
+    assert said == [] and rec.calls == []
+    assert "'en'" in capsys.readouterr().err
 
 
 def test_tts_writes_a_wave(monkeypatch, tmp_path):
@@ -179,7 +466,7 @@ def test_enhance_writes_one_file_when_there_is_one_output(monkeypatch, tmp_path)
     assert out.exists()
 
 
-@pytest.mark.parametrize("command", ["asr", "translate", "enhance"])
+@pytest.mark.parametrize("command", ["asr", "translate", "enhance", "describe"])
 def test_a_missing_file_fails_before_a_model_is_fetched(command, capsys, monkeypatch):
     def explode(*a, **k):  # pragma: no cover - the point is that it is not reached
         raise AssertionError("downloaded a model for a file that is not there")
@@ -300,8 +587,22 @@ def test_the_help_lists_every_command(capsys):
         cli.main(["--help"])
     assert e.value.code == 0
     out = capsys.readouterr().out
-    for command in ("asr", "translate", "tts", "enhance", "demo", "models"):
+    for command in (
+        "transcribe",
+        "phonemize",
+        "align",
+        "translate",
+        "synthesize",
+        "enhance",
+        "describe",
+        "render",
+        "demo",
+        "models",
+    ):
         assert command in out
+    # and the names they had in a release, where someone looking for the one
+    # they remember will look
+    assert "(asr)" in out and "(tts)" in out
 
 
 def test_an_output_without_an_extension_is_refused(monkeypatch, tmp_path, capsys):
@@ -338,23 +639,55 @@ def test_a_tag_for_another_task_is_explained(monkeypatch, tmp_path, capsys):
     audio = tmp_path / "a.wav"
     audio.write_bytes(b"")
 
-    class Mismatch:
-        @staticmethod
-        def from_pretrained(model_tag=None, device=None, **kwargs):
-            raise TypeError("__init__() got an unexpected keyword argument 'x'")
+    from espnet2.utils.pretrained import ModelTagError
 
-    _fake_module(
-        monkeypatch,
-        "espnet2.bin.s2t_inference",
-        "Speech2Text",
-        Mismatch,
-    )
+    def load(tag, **kwargs):
+        raise ModelTagError(f"{tag} was published with tts_train_config")
 
-    assert cli.main(["asr", str(audio), "--model", "espnet/a-tts-model"]) == 1
+    monkeypatch.setattr(cli, "_build", lambda loader, args, task: load(args.model))
+
+    assert cli.main(["transcribe", str(audio), "--model", "espnet/a-tts-model"]) == 1
 
     err = capsys.readouterr().err
-    assert "does not look like a model for `espnet asr`" in err
-    assert "espnet models" in err
+    assert "was published with tts_train_config" in err and "tts_train_config" in err
+
+
+def test_the_name_a_release_had_still_works(monkeypatch, tmp_path, capsys):
+    audio = tmp_path / "a.wav"
+    audio.write_bytes(b"")
+    _fake_load(monkeypatch, _FakeModel("hello there"))
+
+    assert cli.main(["asr", str(audio)]) == 0
+
+    printed = capsys.readouterr()
+    assert printed.out.strip() == "hello there"
+    # and it says where the name went, once, on stderr, so a pipe is unharmed
+    assert "`asr` is now `transcribe`" in printed.err
+
+
+def test_the_new_name_says_nothing_about_the_old_one(monkeypatch, tmp_path, capsys):
+    audio = tmp_path / "a.wav"
+    audio.write_bytes(b"")
+    _fake_load(monkeypatch, _FakeModel("hello there"))
+
+    assert cli.main(["transcribe", str(audio)]) == 0
+
+    assert capsys.readouterr().err == ""
+
+
+def test_both_names_reach_the_same_command(monkeypatch, tmp_path, capsys):
+    import torch
+
+    out = tmp_path / "out.wav"
+    rec = _Recorder({"wav": torch.from_numpy(np.zeros(160, dtype=np.float32))})
+    _fake_module(monkeypatch, "espnet2.bin.tts_inference", "Text2Speech", rec)
+
+    assert cli.main(["tts", "hello", "-o", str(out)]) == 0
+    assert cli.main(["synthesize", "hello", "-o", str(out)]) == 0
+
+    # one parser, two names: the same model and the same call
+    assert rec.tag == cli.DEFAULT_MODELS["synthesize"]
+    assert len(rec.calls) == 2 and rec.calls[0] == rec.calls[1]
 
 
 def test_multichannel_audio_keeps_its_channels(tmp_path):
@@ -450,9 +783,29 @@ def test_an_unknown_device_is_refused_by_the_parser():
     assert "unknown device" in r.stderr
 
 
-@pytest.mark.parametrize("device", ["cpu", "mps", "cuda", "cuda:1"])
+@pytest.mark.parametrize("device", ["auto", "cpu", "mps", "cuda", "cuda:1"])
 def test_the_devices_torch_understands_are_accepted(device):
     assert cli._device(device) == device
+
+
+@pytest.mark.parametrize("command", ["transcribe", "synthesize"])
+def test_a_device_this_machine_lacks_is_a_sentence_before_the_download(
+    monkeypatch, tmp_path, capsys, command
+):
+    """The name parses; whether torch has it is found when the model loads."""
+    import torch
+
+    monkeypatch.setattr(torch.cuda, "is_available", lambda: False)
+    audio = tmp_path / "a.wav"
+    audio.write_bytes(b"")
+    _fake_load(monkeypatch, _FakeModel("x"))  # never reached
+    _fake_module(monkeypatch, "espnet2.bin.tts_inference", "Text2Speech", _Recorder({}))
+    arg = str(audio) if command == "transcribe" else "hello"
+
+    assert cli.main([command, arg, "--device", "cuda:0"]) == 1
+
+    err = capsys.readouterr().err
+    assert err.startswith("espnet: cuda:0 asked for, but torch sees no CUDA device")
 
 
 def test_a_write_failure_is_reported_like_the_others(monkeypatch, tmp_path, capsys):
@@ -476,46 +829,6 @@ def test_tts_checks_the_output_before_fetching_a_model(monkeypatch, capsys):
     assert cli.main(["tts", "hello", "-o", "out"]) == 1
 
     assert "file extension" in capsys.readouterr().err
-
-
-def test_only_an_unexpected_keyword_is_blamed_on_the_model(monkeypatch, tmp_path):
-    audio = tmp_path / "a.wav"
-    audio.write_bytes(b"")
-
-    class Bug:
-        def __init__(self, s2t_train_config=None, **kwargs):
-            pass
-
-        @staticmethod
-        def from_pretrained(model_tag=None, device=None, **kwargs):
-            raise TypeError("unsupported operand type(s) for +: 'int' and 'str'")
-
-    _fake_module(monkeypatch, "espnet2.bin.s2t_inference", "Speech2Text", Bug)
-
-    # a TypeError from inside the model must not be reported as "wrong model"
-    with pytest.raises(TypeError, match="unsupported operand"):
-        cli.main(["asr", str(audio)])
-
-
-def test_a_keyword_the_constructor_does_take_is_not_blamed_on_the_model(
-    monkeypatch, tmp_path
-):
-    audio = tmp_path / "a.wav"
-    audio.write_bytes(b"")
-
-    class Bug:
-        def __init__(self, device=None, **kwargs):
-            pass
-
-        @staticmethod
-        def from_pretrained(model_tag=None, device=None, **kwargs):
-            # raised from deeper inside, about an argument this class accepts
-            raise TypeError("f() got an unexpected keyword argument 'device'")
-
-    _fake_module(monkeypatch, "espnet2.bin.s2t_inference", "Speech2Text", Bug)
-
-    with pytest.raises(TypeError, match="'device'"):
-        cli.main(["asr", str(audio)])
 
 
 # --- `espnet demo`: the browser app, built but never launched for real ---
@@ -542,9 +855,23 @@ class _FakeOWSM:
             ]
         )
 
+    preprocessor_conf = {"speech_length": 30, "nolang_symbol": "<nolang>"}
+    # OWSM-CTC: read off the CTC head, no decoder to search over
+    ctc_only = True
+
     def from_pretrained(self, model_tag=None, device=None, **kwargs):
         self.tag, self.device = model_tag, device
         return self
+
+    def no_language(self):
+        return self.preprocessor_conf["nolang_symbol"]
+
+    def decode_window(self, speech, lang_sym=None, task_sym=None, text_prev="<na>"):
+        # Speech2Text.decode_window: the checkpoint chooses its own way, and
+        # this one is CTC-only. text_prev is what a task with a written input
+        # is given - POWSM's <g2p> and <p2g> - and what primes the search on a
+        # checkpoint that has one; this fake ignores it, as a CTC head does.
+        return self.best_path(speech, lang_sym=lang_sym, task_sym=task_sym)[0][0]
 
     def best_path(self, speech, *args, **kwargs):
         # what the page calls for a single window: the CTC head, no search
@@ -560,11 +887,13 @@ class _FakeOWSM:
 def _fake_demo(monkeypatch, s2t=None, device="cpu", task="s2t"):
     """Wire up a gradio that records instead of serving, and a fake model."""
     import espnet
-    from espnet2.bin import demo
 
     gradio = mock.MagicMock()
     monkeypatch.setitem(sys.modules, "gradio", gradio)
-    monkeypatch.setattr(demo, "default_device", lambda: device)
+    import torch
+
+    monkeypatch.setattr(torch.cuda, "is_available", lambda: device == "cuda")
+    monkeypatch.setattr(torch.cuda, "device_count", lambda: 1)
     # the task check is one Hub request; the tests answer it themselves
     monkeypatch.setattr(espnet, "_infer_task", lambda tag: task)
     s2t = s2t or _FakeOWSM()
@@ -603,7 +932,7 @@ def test_demo_uses_the_gpu_when_there_is_one_and_the_flag_when_given(monkeypatch
     gradio, s2t = _fake_demo(monkeypatch, device="cuda")
 
     assert cli.main(["demo"]) == 0
-    assert s2t.device == "cuda"  # no --device: the demo asks torch
+    assert s2t.device == "cuda"  # no --device: auto, and torch sees a GPU
 
     gradio, s2t = _fake_demo(monkeypatch, device="cuda")
     assert cli.main(["demo", "--device", "cpu"]) == 0
@@ -635,7 +964,8 @@ def test_demo_menus_come_from_the_checkpoint(monkeypatch):
     # the two dropdowns are this checkpoint's own tokens, not a fixed list
     languages, targets = [call.args[0] for call in gradio.Dropdown.call_args_list]
     assert languages == ["Detect automatically", "English (eng)", "Japanese (jpn)"]
-    assert targets == ["Transcribe", "Translate to German (deu)"]
+    # each task named by the abbreviation its field uses, then glossed
+    assert targets == ["ASR: transcribe", "ST: translate to German (deu)"]
 
 
 def _predict(gradio):
@@ -649,7 +979,9 @@ def test_the_demo_decodes_a_short_recording(monkeypatch):
     from espnet2.bin import demo
 
     gradio, s2t = _fake_demo(monkeypatch)
-    monkeypatch.setattr(demo, "read_audio", lambda path: np.zeros(16000 * 5, "float32"))
+    monkeypatch.setattr(
+        demo, "read_audio", lambda path, rate=16000: np.zeros(16000 * 5, "float32")
+    )
     assert cli.main(["demo"]) == 0
 
     language, text = _predict(gradio)("a.wav", demo.DETECT, demo.ASR_LABEL, False)
@@ -668,7 +1000,7 @@ def test_the_demo_trims_audio_past_the_cap_and_says_so(monkeypatch):
 
     gradio, s2t = _fake_demo(monkeypatch)
     long_audio = np.zeros(16000 * (demo.MAX_SECS + 30), "float32")
-    monkeypatch.setattr(demo, "read_audio", lambda path: long_audio)
+    monkeypatch.setattr(demo, "read_audio", lambda path, rate=16000: long_audio)
     assert cli.main(["demo"]) == 0
 
     _predict(gradio)("a.wav", "English (eng)", demo.ASR_LABEL, True)

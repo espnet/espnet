@@ -16,6 +16,7 @@ from omegaconf import ListConfig
 from espnet2.torch_utils.device_funcs import is_out_of_memory_error
 from espnet3.parallel.base_runner import BaseRunner, concatenate_shard_files
 from espnet3.parallel.env_provider import EnvironmentProvider
+from espnet3.utils.scp_utils import check_utt_id
 from espnet3.utils.writer_utils import write_artifact
 
 logger = logging.getLogger(__name__)
@@ -62,6 +63,7 @@ def _materialize_output_value(
 ):
     if isinstance(value, (str, int, float, bool)):
         return value
+    idx_value = check_utt_id(idx_value)
 
     if isinstance(value, np.generic):
         return value.item()
@@ -104,23 +106,10 @@ def _materialize_output_value(
 
 
 class InferenceRunner(BaseRunner):
-    """Inference runner with strict output-format validation.
+    """Execute a configured backend and persist its formatted results.
 
-    This runner implements ``forward`` to call a recipe-provided output
-    function. The key names are configurable via ``idx_key`` and
-    ``hyp_key``/``ref_key``. ``hyp_key`` and ``ref_key`` may be a single
-    string or a list of strings to support multiple hypothesis/reference
-    fields. ``idx_key`` is the key used to map each inference result to
-    its source dataset index when writing SCP files.
-
-    Output format requirements:
-        - The result is a dict with the configured keys plus any extra fields.
-        - A sample identifier key must exist under ``idx_key`` so SCP outputs
-          can map each result back to the corresponding dataset sample.
-        - The sample identifier must be a single value, not a list or tuple.
-        - ``hyp_key`` and ``ref_key`` values may be scalars or lists/tuples.
-          If lists are returned, each entry is written to its own SCP file
-          (e.g., ``hyp0.scp``, ``hyp1.scp``).
+    input_key, output_fn and output_artifacts belong to the recipe. This
+    runner makes no assumptions about the model's class or declarations.
     """
 
     def __init__(
@@ -207,43 +196,11 @@ class InferenceRunner(BaseRunner):
 
     @staticmethod
     def forward(idx, dataset=None, model=None, **kwargs):
-        """Run inference for one or more dataset items and return output dict(s).
-
-        Args:
-            idx: Integer index or an iterable of integer indices into the dataset.
-            dataset: Dataset providing inference entries.
-            model: Inference model callable on the configured input.
-            **kwargs: Expects ``input_key`` and optionally ``output_fn_path``.
-                ``model_kwargs`` may be used to pass extra keyword arguments
-                through to the underlying model callable.
-
-        Returns:
-            Dict containing ``idx`` and output fields for a single item, or a list
-            of dicts for batched inputs (as returned by ``output_fn``).
-
-        Raises:
-            RuntimeError: If required input settings are missing.
-            KeyError: If required input keys are missing from the dataset item(s).
-            RuntimeError: If batched inference fails; includes guidance to disable
-                batching when unsupported.
-
-        Notes:
-            - ``input_key`` may be a string or a list/tuple of strings.
-            - Batched inputs are passed to the model as lists per key; padding is
-              the model's responsibility.
-
-        Examples:
-            >>> # Single-item inference
-            >>> out = InferenceRunner.forward(
-            ...     0, dataset=dataset, model=model,
-            ...     input_key="speech", output_fn_path="m.mod.out_fn"
-            ... )
-            >>> # Batched inference
-            >>> out = InferenceRunner.forward(
-            ...     [0, 1], dataset=dataset, model=model,
-            ...     input_key=["speech", "text"], output_fn_path="m.mod.out_fn"
-            ... )
-        """
+        """Call the configured backend on one dataset item or a batch."""
+        model_kwargs = kwargs.get("model_kwargs") or {}
+        if not isinstance(model_kwargs, Mapping):
+            raise TypeError("model_kwargs must be a mapping when provided.")
+        model_kwargs = dict(model_kwargs)
         if "input_key" not in kwargs:
             raise RuntimeError("input_key must be provided for inference.")
         input_key = kwargs["input_key"]
@@ -251,10 +208,6 @@ class InferenceRunner(BaseRunner):
         if output_fn is None:
             output_fn_path = kwargs.get("output_fn_path")
             output_fn = _load_output_fn(output_fn_path) if output_fn_path else None
-        model_kwargs = kwargs.get("model_kwargs") or {}
-        if not isinstance(model_kwargs, Mapping):
-            raise TypeError("model_kwargs must be a mapping when provided.")
-        model_kwargs = dict(model_kwargs)
 
         keys = (
             list(input_key)
@@ -376,7 +329,8 @@ class InferenceRunner(BaseRunner):
             )
             writers["field_keys"].update(field_keys)
 
-            idx_value = output[idx_key]
+            # the id heads every SCP line and names every artifact file
+            idx_value = check_utt_id(output[idx_key])
             for field_key in field_keys:
                 value = _materialize_output_value(
                     idx_value=idx_value,
@@ -472,7 +426,7 @@ class InferenceRunner(BaseRunner):
             ... )
             >>> runner(range(len(test_dataset)))
             True
-            >>> # hyp.scp and ref.scp are written under /exp/decode
+            >>> # one .scp per output (text.scp for ASR) under /exp/decode
         """
         super().__call__(indices)
         return True
@@ -480,6 +434,7 @@ class InferenceRunner(BaseRunner):
 
 @lru_cache(maxsize=None)
 def _load_output_fn(path: str):
+    """Import the recipe's dotted output-formatting function."""
     module_path, func_name = path.rsplit(".", 1)
     module = import_module(module_path)
     return getattr(module, func_name)
