@@ -58,6 +58,7 @@ class LabelAggregate(torch.nn.Module):
             ]
 
         # Step2: framing
+        input = input.contiguous()
         nframe = (
             torch.div(
                 max_length - self.win_length, self.hop_length, rounding_mode="trunc"
