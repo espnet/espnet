@@ -96,9 +96,7 @@ class ESPnetGANSpeechTokenizerModel(AbsGANESPnetModel):
         total_loss: Optional[torch.Tensor] = None
         stats: Dict[str, Any] = {}
         for name, loss_module in self.losses.items():
-            module_loss, module_stats, _ = loss_module(
-                tokenizer_output, **loss_batch
-            )
+            module_loss, module_stats, _ = loss_module(tokenizer_output, **loss_batch)
             weighted_loss = self.loss_weights[name] * module_loss
             total_loss = (
                 weighted_loss if total_loss is None else total_loss + weighted_loss
@@ -127,14 +125,12 @@ class ESPnetGANSpeechTokenizerModel(AbsGANESPnetModel):
         if not self.reconstruction_loss.has_cached_generator_outputs:
             with torch.no_grad():
                 tokenizer_output = self._tokenize(speech, speech_lengths)
-        loss, loss_stats, weight = (
-            self.reconstruction_loss.forward_discriminator(
-                tokenizer_output=tokenizer_output,
-                speech=speech,
-                spembs=spembs,
-                speech_lengths=speech_lengths,
-                **kwargs,
-            )
+        loss, loss_stats, weight = self.reconstruction_loss.forward_discriminator(
+            tokenizer_output=tokenizer_output,
+            speech=speech,
+            spembs=spembs,
+            speech_lengths=speech_lengths,
+            **kwargs,
         )
         stats = {
             f"reconstruction_discriminator_{key}": value

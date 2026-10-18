@@ -90,8 +90,7 @@ def test_generator_combines_losses_and_tokenizes_once():
     )
 
     expected = (
-        0.75 * model.asr_loss.last_loss
-        + 0.25 * model.reconstruction_loss.last_loss
+        0.75 * model.asr_loss.last_loss + 0.25 * model.reconstruction_loss.last_loss
     )
     torch.testing.assert_close(result["loss"], expected[None])
     assert result["optim_idx"] == 0
@@ -137,9 +136,7 @@ def test_discriminator_tokenizes_on_cache_miss():
     # A cache miss requires tokenization for waveform generation.
     assert model.tokenizer.forward_calls == 1
     # The freshly computed tokenizer output is passed to the discriminator path.
-    assert (
-        model.reconstruction_loss.last_discriminator_tokenizer_output is not None
-    )
+    assert model.reconstruction_loss.last_discriminator_tokenizer_output is not None
 
 
 @pytest.mark.parametrize("reconstruction_weight", [-0.1, 1.1])
