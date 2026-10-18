@@ -375,7 +375,7 @@ def test_native_asr_recipe_writes_the_backends_text(tmp_path, batch_size):
             "batch_size": batch_size,
             "provider": {"_target_": f"{__name__}.NativeASRProvider"},
             "runner": {
-                    "_target_": "espnet3.systems.esp2_asr.inference.ASRInferenceRunner"
+                "_target_": "espnet3.systems.esp2_asr.inference.ASRInferenceRunner"
             },
             "parallel": {"env": "local", "n_workers": 1},
         }

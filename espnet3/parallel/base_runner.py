@@ -425,9 +425,7 @@ class BaseRunner(ABC):
                     prepared, original = prepare_inference_inputs(
                         env["dataset"], item, contract, env.get("model")
                     )
-                    result = cls.forward(
-                        item, **{**forward_env, "dataset": prepared}
-                    )
+                    result = cls.forward(item, **{**forward_env, "dataset": prepared})
                     result = validate_inference_outputs(
                         result,
                         item,

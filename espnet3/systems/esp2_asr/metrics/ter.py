@@ -12,8 +12,8 @@ except ImportError:
 
 from espnet2.text.cleaner import TextCleaner
 from espnet2.text.sentencepiece_tokenizer import SentencepiecesTokenizer
-from espnet3.contract import Field
 from espnet3.components.metrics.base_metric import BaseMetric
+from espnet3.contract import Field
 
 
 class TER(BaseMetric):

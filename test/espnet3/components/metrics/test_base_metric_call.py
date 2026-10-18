@@ -1,5 +1,5 @@
-from espnet3.contract import Field
 from espnet3.components.metrics.base_metric import BaseMetric
+from espnet3.contract import Field
 from espnet3.contract.metrics import check_metric_output
 
 

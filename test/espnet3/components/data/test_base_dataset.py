@@ -3,8 +3,8 @@
 import numpy as np
 import pytest
 
-from espnet3.contract import Field
 from espnet3.components.data.base_dataset import BaseDataset
+from espnet3.contract import Field
 from espnet3.contract.data import DatasetContractError
 
 

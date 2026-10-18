@@ -3,8 +3,8 @@
 import pytest
 from omegaconf import OmegaConf
 
-from espnet3.contract import Field
 from espnet3.components.metrics.base_metric import BaseMetric
+from espnet3.contract import Field
 from espnet3.contract.metrics import (
     MetricContractError,
     check_metric_declaration,

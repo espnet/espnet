@@ -12,7 +12,6 @@ from urllib.error import URLError
 from urllib.request import urlopen
 
 from playwright.sync_api import sync_playwright
-
 from test_integration_espnet3_publication_check import _download_sample_audio
 
 SYSTEM_CONFIGS = {
