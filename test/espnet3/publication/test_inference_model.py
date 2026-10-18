@@ -867,3 +867,73 @@ def test_from_packed_refuses_function_in_allowed_namespace(tmp_path):
     bundle_root = _make_pack_dir(tmp_path, model_target="espnet2.bin.launch.main")
     with pytest.raises(ValueError, match="not a class"):
         InferenceModel.from_packed(bundle_root, trust_user_code=False)
+
+
+@pytest.mark.parametrize("batched", [False, True])
+def test_publication_rejects_unknown_input_even_with_optional_fields(
+    tmp_path, monkeypatch, batched
+):
+    """A misspelled optional input cannot silently disappear."""
+    bundle = _make_pack_dir(tmp_path, input_key=["speech", "prompt"])
+    path = bundle / "conf" / "inference.yaml"
+    config = yaml.safe_load(path.read_text())
+    config["contract"] = {
+        "inputs": {
+            "speech": {"kind": "text"},
+            "prompt": {"kind": "text", "optional": True},
+        },
+        "outputs": {"text": {"kind": "text"}},
+    }
+    path.write_text(yaml.safe_dump(config))
+    seen = []
+
+    def backend(speech, prompt=None):
+        seen.append(speech)
+        return {"text": "ok"}
+
+    monkeypatch.setattr(
+        InferenceProvider, "build_model", staticmethod(lambda _: backend)
+    )
+    model = InferenceModel.from_packed(bundle)
+    sample = {"speech": "input", "promtp": "typo"}
+    with pytest.raises(TypeError, match="promtp"):
+        model.forward_batch([sample]) if batched else model(sample)
+    assert seen == []
+    assert model({"speech": "input", "utt_id": "u1"}) == {"text": "ok", "utt_id": "u1"}
+
+
+@pytest.mark.parametrize("remote", [False, True])
+def test_model_constructor_overrides_reach_instantiation(tmp_path, monkeypatch, remote):
+    """Local and downloaded bundles apply constructor overrides without editing files."""
+    bundle = _make_pack_dir(tmp_path, model_target="builtins.dict")
+
+    class Downloader:
+        def download_and_unpack(self, tag):
+            return {"inference_config": str(bundle / "conf" / "inference.yaml")}
+
+    monkeypatch.setattr(
+        "espnet3.publication.inference_model.ModelDownloader", Downloader
+    )
+    loader = InferenceModel.from_pretrained if remote else InferenceModel.from_packed
+    model = loader(
+        "org/model" if remote else bundle,
+        trust_user_code=True,
+        prefix="updated",
+        beam_size=5,
+    )
+    assert model.model["prefix"] == "updated"
+    assert model.model["beam_size"] == 5
+    original = yaml.safe_load((bundle / "conf" / "inference.yaml").read_text())
+    assert original["model"]["prefix"] == "cfg:"
+    assert "beam_size" not in original["model"]
+
+
+def test_constructor_overrides_cannot_bypass_trust_validation(
+    tmp_path, mock_build_model
+):
+    """New nested targets are checked before backend construction."""
+    bundle = _make_pack_dir(tmp_path)
+    with pytest.raises(ValueError, match="pathlib.Path"):
+        InferenceModel.from_packed(bundle, argument={"_target_": "pathlib.Path"})
+    with pytest.raises(ValueError, match="control keys"):
+        InferenceModel.from_packed(bundle, _target_="os.system")

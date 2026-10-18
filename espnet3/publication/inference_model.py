@@ -186,6 +186,14 @@ def _disallowed_targets(config: DictConfig) -> list[str]:
     return sorted(disallowed)
 
 
+def _apply_model_overrides(config, overrides):
+    """Merge constructor overrides before checking all Hydra targets for trust."""
+    if overrides:
+        if config.get("model") is None:
+            raise ValueError("inference config has no model to override")
+        config.model = OmegaConf.merge(config.model, overrides)
+
+
 class InferenceModel:
     """User-facing inference wrapper for packaged ESPnet models.
 
@@ -277,6 +285,7 @@ class InferenceModel:
         pack_dir: str | Path,
         trust_user_code: bool = False,
         device: str | None = None,
+        **model_overrides: Any,
     ) -> "InferenceModel":
         """Build an inference model from a packed model directory.
 
@@ -302,6 +311,9 @@ class InferenceModel:
                 config references modules shipped inside the bundle.
             device: Optional runtime device override. Set it to ``"auto"`` to
                 let the provider select a device automatically.
+            **model_overrides: Constructor arguments merged into ``model``
+                before trust validation, e.g. ``beam_size=5``. Hydra control
+                keys such as ``_target_`` cannot be overridden.
 
         Returns:
             InferenceModel: Inference model loaded from ``pack_model`` output.
@@ -327,6 +339,8 @@ class InferenceModel:
             ...     trust_user_code=True,
             ... )
         """
+        if any(name.startswith("_") for name in model_overrides):
+            raise ValueError("Model overrides cannot change Hydra control keys")
         bundle_root = Path(pack_dir).resolve()
         if not bundle_root.is_dir():
             raise FileNotFoundError(
@@ -375,6 +389,7 @@ class InferenceModel:
             inference_config_path,
             bundle_root=bundle_root,
         )
+        _apply_model_overrides(inference_config, model_overrides)
         bundled_modules = _get_bundled_module_names(bundle_root)
 
         contract_config = getattr(inference_config, "contract", None)
@@ -398,6 +413,7 @@ class InferenceModel:
                 inference_config_path,
                 bundle_root=bundle_root,
             )
+            _apply_model_overrides(inference_config, model_overrides)
 
         # Bundled-code checks do not catch a target that names an installed
         # callable. Hydra would still import and execute that target, including
@@ -433,6 +449,7 @@ class InferenceModel:
         model_tag: str,
         trust_user_code: bool = False,
         device: str | None = None,
+        **model_overrides: Any,
     ) -> "InferenceModel":
         """Download a packaged model and build an inference model from it.
 
@@ -450,6 +467,7 @@ class InferenceModel:
                 ``espnet_model_zoo``.
             trust_user_code: Forwarded to :meth:`from_packed`.
             device: Forwarded to :meth:`from_packed`.
+            **model_overrides: Model constructor arguments forwarded to from_packed.
 
         Returns:
             InferenceModel: Downloaded inference model.
@@ -480,7 +498,9 @@ class InferenceModel:
             )
         inference_config_path = Path(artifacts["inference_config"])
         pack_dir = inference_config_path.parent.parent
-        return cls.from_packed(pack_dir, trust_user_code=trust_user_code, device=device)
+        return cls.from_packed(
+            pack_dir, trust_user_code=trust_user_code, device=device, **model_overrides
+        )
 
     @property
     def primary_input_key(self) -> str:
@@ -504,6 +524,7 @@ class InferenceModel:
             keys = (
                 self.input_key if isinstance(self.input_key, list) else [self.input_key]
             )
+            unknown = set(sample) - set(keys) - {self.idx_key}
             inputs = {}
             optional_keys = (
                 {spec.name for spec in self.contract.inputs if spec.optional}
@@ -516,6 +537,8 @@ class InferenceModel:
                         continue
                     raise KeyError(f"Input key '{key}' not found in sample.")
                 inputs[key] = sample[key]
+            if unknown:
+                raise TypeError(f"Unknown inference input(s): {sorted(unknown)}")
             return inputs, sample
 
         key = self.primary_input_key

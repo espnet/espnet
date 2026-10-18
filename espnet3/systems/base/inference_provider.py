@@ -2,6 +2,7 @@
 
 import logging
 import os
+import threading
 from abc import ABC
 from typing import Any, Callable, Dict
 
@@ -14,6 +15,7 @@ from espnet3.utils.logging_utils import log_instance_dict
 
 logger = logging.getLogger(__name__)
 _LOGGED_ENV = False
+_MODEL_BUILD_LOCK = threading.RLock()
 
 
 def _convert_relative_paths_to_absolute(obj: Any, seen: set | None = None) -> None:
@@ -223,7 +225,11 @@ class InferenceProvider(EnvironmentProvider, ABC):
             torch.cuda.device_count() if torch.cuda.is_available() else 0,
         )
         recipe_dir = getattr(config, "recipe_dir", None)
-        if recipe_dir:
+        # A build without recipe_dir must also wait while another build has
+        # temporarily changed the process-wide working directory.
+        with _MODEL_BUILD_LOCK:
+            if not recipe_dir:
+                return instantiate(config.model, device=device)
             cwd = os.getcwd()
             os.chdir(str(recipe_dir))
             try:
@@ -232,7 +238,6 @@ class InferenceProvider(EnvironmentProvider, ABC):
                 return model
             finally:
                 os.chdir(cwd)
-        return instantiate(config.model, device=device)
 
     @staticmethod
     def _resolve_device(config: DictConfig) -> str:
