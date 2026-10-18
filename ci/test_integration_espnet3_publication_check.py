@@ -63,47 +63,23 @@ def _load_sample_audio() -> dict[str, Any]:
         or "/tmp"
     )
     sample_path = _download_sample_audio(temp_root / "espnet3-publication-assets")
-    speech, _sample_rate = sf.read(str(sample_path), dtype="float32")
-    return {"speech": np.asarray(speech, dtype=np.float32)}
-
-
-def _is_nonempty_value(value: Any) -> bool:
-    if value is None:
-        return False
-    if isinstance(value, str):
-        return bool(value.strip())
-    if isinstance(value, (bytes, bytearray)):
-        return bool(value)
-    shape = getattr(value, "shape", None)
-    if shape is not None:
-        try:
-            return all(int(dim) > 0 for dim in shape)
-        except TypeError:
-            return True
-    try:
-        return len(value) > 0
-    except TypeError:
-        return True
+    speech, sample_rate = sf.read(str(sample_path), dtype="float32")
+    return {"speech": (sample_rate, np.asarray(speech, dtype=np.float32))}
 
 
 def _validate_output(result: Any, expected_utt_id: str | None = None) -> None:
-    if isinstance(result, dict):
-        if expected_utt_id is not None:
-            assert result.get("utt_id") == expected_utt_id
-        if "wav" in result:
-            assert _is_nonempty_value(result["wav"])
-            return
-        if "hyp" in result:
-            assert isinstance(result["hyp"], str)
-            return
-        payload_keys = [key for key in result if key not in {"utt_id", "ref"}]
-        assert payload_keys, "Expected at least one payload key in inference output."
-        assert any(_is_nonempty_value(result[key]) for key in payload_keys)
-        return
-    assert _is_nonempty_value(result)
+    assert isinstance(result, dict)
+    assert set(result) == {"utt_id", "text"}
+    assert isinstance(result["text"], str)
+    if expected_utt_id is not None:
+        assert result["utt_id"] == expected_utt_id
 
 
 def _run_smoke_check(session: InferenceModel, sample: dict[str, Any]) -> None:
+    assert session.contract is not None
+    assert [spec.name for spec in session.contract.inputs] == ["speech"]
+    assert [spec.name for spec in session.contract.outputs] == ["text"]
+    assert session.contract.inputs[0].options["sample_rate"] == 16000
     input_keys = (
         session.input_key
         if isinstance(session.input_key, list)
@@ -125,6 +101,7 @@ def _run_smoke_check(session: InferenceModel, sample: dict[str, Any]) -> None:
 
 
 def main() -> None:
+    """Check the packed model and, optionally, its remote publication."""
     args = _parse_args()
     pack_dir = Path(os.environ["PACK_DIR"]).resolve()
     inference_config = pack_dir / "conf" / "inference.yaml"
