@@ -1,0 +1,44 @@
+##########################################################
+#                   INFERENCE SETTING                    #
+##########################################################
+# Inference settings shared by conf/tuning/inference_<lang>.yaml, which only
+# select the language (`lang` is mandatory):
+#
+#   python run.py --stages infer \
+#       --training_config conf/tuning/training_tav.yaml \
+#       --inference_config conf/tuning/inference_tav.yaml
+#
+# `exp_tag`/`exp_dir` are copied from the training config passed alongside,
+# and `inference_dir` defaults to `${exp_dir}/<stem of the inference config>`,
+# e.g. `exp/training_tav/inference_tav`. `input_key: speech`, `batch_size: 4`
+# and the `output_fn` writing `text.scp` are TEMPLATE defaults.
+lang: ???
+
+##########################################################
+#                    DATASET DEFINITION                  #
+##########################################################
+# The corpus has no test split; like egs2, the dev set is scored, with the
+# 0.1-38 s filter of validation (egs2 decodes its filtered valid set).
+# `data_src` is omitted, so ESPnet3 loads `${recipe_dir}/dataset/__init__.py`.
+dataset:
+  test:
+    - name: dev_${lang}
+      data_src_args:
+        lang: ${lang}
+        split: dev
+        min_wav_duration: 0.1
+        max_wav_duration: 38
+
+##########################################################
+#                    MODEL AND OUTPUT                    #
+##########################################################
+# Search settings from egs2's conf/decode_asr.yaml (beam_size 5, ctc_weight
+# 1.0, lm_weight 0.0) on the checkpoint selected by `valid/cer_ctc`: the
+# average of the top-1 checkpoint, i.e. egs2's `valid.cer_ctc.best.pth`.
+model:
+  _target_: espnet2.bin.asr_inference.Speech2Text
+  asr_train_config: ${exp_dir}/config.yaml
+  asr_model_file: ${exp_dir}/valid.cer_ctc.ave_1best.pth
+  beam_size: 5
+  ctc_weight: 1.0
+  lm_weight: 0.0
