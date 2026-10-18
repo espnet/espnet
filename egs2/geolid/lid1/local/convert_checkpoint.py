@@ -140,7 +140,10 @@ def main():
         tensor_values_changed=False,
         source_tensor_count=len(source),
         converted_tensor_count=len(converted),
-        runtime="Stock S3prlFrontend and current ESPnet normalization/pooling; no legacy inference emulation",
+        runtime=(
+            "Stock S3prlFrontend and current ESPnet normalization/pooling; "
+            "no legacy inference emulation"
+        ),
     )
     (args.output_dir / "conversion.json").write_text(
         json.dumps(report, indent=2) + "\n"
