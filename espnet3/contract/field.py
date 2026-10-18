@@ -2,8 +2,9 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
-from typing import Optional
+from collections.abc import Mapping
+from dataclasses import dataclass, field as dataclass_field
+from typing import Any, Optional
 
 from espnet3.contract.kinds import KINDS
 
@@ -33,6 +34,8 @@ class Field:
             array, what a single-channel backend takes; ``None`` gives
             every channel as ``(channels, samples)``; a count ``N`` demands
             exactly ``N``. Other kinds ignore it.
+        options: Kind-specific settings, such as ``sample_rate`` or
+            ``normalize``. The registered Kind validates these options.
 
     Raises:
         ValueError: If ``kind`` is not registered in :data:`KINDS`,
@@ -55,6 +58,7 @@ class Field:
     label: str = ""
     optional: bool = False
     channels: Optional[int] = 1
+    options: Mapping[str, Any] = dataclass_field(default_factory=dict, repr=False)
 
     def __post_init__(self) -> None:
         """Check the kind and the name, and fill in the label."""
@@ -63,6 +67,9 @@ class Field:
                 f"Field {self.name!r} has kind {self.kind!r}; "
                 f"known kinds are {sorted(KINDS)}"
             )
+        if not isinstance(self.options, Mapping):
+            raise TypeError("Field.options must be a mapping")
+        KINDS[self.kind].validate_options(self.options)
         if not self.name.isidentifier():
             raise ValueError(f"Field name {self.name!r} must be a Python identifier")
         if self.channels is not None and self.channels < 1:

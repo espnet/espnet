@@ -5,6 +5,8 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from typing import TYPE_CHECKING, Any
 
+from espnet3.contract.normalizers import NORMALIZERS
+
 if TYPE_CHECKING:
     from espnet3.contract.field import Field
 
@@ -29,10 +31,64 @@ class Kind(ABC):
         'messages'
     """
 
+    option_names = frozenset({"normalize"})
+    normalizers = {}
+
+    def validate_options(self, options) -> None:
+        """Validate field options. Custom Kinds may add names and constraints.
+
+        Example::
+
+            option_names = Kind.option_names | {"max_length"}
+
+            def validate_options(self, options):
+                super().validate_options(options)
+                if options.get("max_length", 1) <= 0:
+                    raise ValueError("max_length must be positive")
+        """
+        unknown = set(options) - self.option_names
+        if unknown:
+            raise ValueError(
+                f"Unknown {type(self).__name__} option(s): {sorted(unknown)}"
+            )
+        names = options.get("normalize", ()) or ()
+        if isinstance(names, str):
+            names = [names]
+        if not isinstance(names, (list, tuple)) or any(
+            not isinstance(name, str) for name in names
+        ):
+            raise TypeError("normalize must contain normalizer names")
+        unknown = set(names) - (self.normalizers.keys() | NORMALIZERS.keys())
+        if unknown:
+            raise ValueError(f"Unknown inference normalizer(s): {sorted(unknown)}")
+
+    def check_configured(self, value, field, model, options, *, output):
+        """Check a value using per-field options; override for Kind-specific rules."""
+        return self.check(value, field, model, output=output)
+
+    def apply(self, value, field, model, options, *, output):
+        """Check, normalize, and recheck a value using this Kind's configuration."""
+        result = self.check_configured(value, field, model, options, output=output)
+        names = options.get("normalize", ()) or ()
+        if isinstance(names, str):
+            names = [names]
+        normalizers = self.normalizers | NORMALIZERS
+        for name in names:
+            result = normalizers[name](result)
+        if names:
+            result = self.check_configured(result, field, model, options, output=output)
+        return result
+
+    def to_model_input(self, value, field):
+        """Convert a checked value to the representation consumed by the runner."""
+        return value
+
+    def to_demo_output(self, value):
+        """Convert a checked output to the value consumed by a demo component."""
+        return value
+
     @abstractmethod
-    def check(
-        self, value: Any, field: Field, model: Any, *, output: bool
-    ) -> Any:
+    def check(self, value: Any, field: Field, model: Any, *, output: bool) -> Any:
         """Return ``value`` as this kind holds it, or raise ``TypeError``.
 
         The kind decides the form; ``field`` supplies the name for the

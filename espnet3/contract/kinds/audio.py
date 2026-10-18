@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from pathlib import Path
+from types import SimpleNamespace
 from typing import Any, Optional, Sequence
 
 import numpy as np
@@ -257,6 +258,53 @@ class AudioKind(Kind):
     exactly ``N`` channels, or a ``TypeError``. Pieces of a stream
     concatenate in time.
     """
+
+    option_names = Kind.option_names | {"sample_rate", "rate_policy"}
+
+    def validate_options(self, options) -> None:
+        """Validate the target sample rate and mismatch policy."""
+        super().validate_options(options)
+        rate = options.get("sample_rate")
+        if rate is not None and (
+            isinstance(rate, bool) or not isinstance(rate, int) or rate <= 0
+        ):
+            raise ValueError("sample_rate must be a positive integer")
+        if options.get("rate_policy", "resample") not in ("resample", "reject"):
+            raise ValueError("rate_policy must be 'resample' or 'reject'")
+
+    def check_configured(self, value, field, model, options, *, output):
+        """Apply the field's rate policy before the standard audio check."""
+        rate = options.get("sample_rate")
+        if rate is None:
+            rate = getattr(model, "sample_rate", None)
+        if options.get("rate_policy", "resample") == "reject":
+            source_rate = None
+            if isinstance(value, Audio):
+                source_rate = value.rate
+            elif isinstance(value, (str, Path)):
+                value = Audio.read(value)
+                source_rate = value.rate
+            elif isinstance(value, (tuple, list)) and len(value) == 2:
+                if isinstance(value[0], (int, np.integer)):
+                    source_rate = value[0]
+            if source_rate is not None and rate is not None and source_rate != rate:
+                raise ValueError(
+                    f"{field.name!r} has sample rate {source_rate}; expected {rate}"
+                )
+        return self.check(
+            value, field, SimpleNamespace(sample_rate=rate), output=output
+        )
+
+    def to_model_input(self, value, field):
+        """Native audio backends consume waveform arrays."""
+        return value.array
+
+    def to_demo_output(self, value):
+        """Return Audio as (rate, samples), with channels last for Gradio."""
+        if not isinstance(value, Audio):
+            return value
+        array = value.array
+        return value.rate, array.T if array.ndim == 2 else array
 
     def check(self, value, field, model, *, output):
         """Coerce what a caller holds, then apply the field's channel count.

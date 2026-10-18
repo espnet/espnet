@@ -8,6 +8,12 @@ from espnet3.contract.kinds.base import Kind
 class TextKind(Kind):
     """``text``: a ``str``; pieces append."""
 
+    normalizers = {
+        "strip": str.strip,
+        "to_lower": str.lower,
+        "to_upper": str.upper,
+    }
+
     def check(self, value, field, model, *, output):
         """Require a ``str``; return it unchanged.
 
