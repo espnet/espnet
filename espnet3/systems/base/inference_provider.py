@@ -16,44 +16,6 @@ logger = logging.getLogger(__name__)
 _LOGGED_ENV = False
 
 
-def _convert_relative_paths_to_absolute(obj: Any, seen: set | None = None) -> None:
-    """Recursively rewrite relative file-path strings in an object graph to absolute.
-
-    Must be called while ``os.getcwd()`` is the bundle root so that
-    ``os.path.isfile`` correctly identifies bundle assets.  This prevents
-    lazy-initialized components (e.g. ``SentencePieceTokenizer``) from
-    failing once ``os.chdir`` restores the original working directory.
-    Only string attributes that resolve to an existing file are rewritten;
-    all others are left unchanged.
-    """
-    if seen is None:
-        seen = set()
-    oid = id(obj)
-    if oid in seen:
-        return
-    seen.add(oid)
-    obj_vars = getattr(obj, "__dict__", None)
-    if not obj_vars:
-        return
-    for attr, val in list(obj_vars.items()):
-        if isinstance(val, str):
-            if not os.path.isabs(val):
-                candidate = os.path.abspath(val)
-                if os.path.isfile(candidate):
-                    try:
-                        setattr(obj, attr, candidate)
-                    except (AttributeError, TypeError):
-                        pass
-        elif isinstance(val, dict):
-            for v in val.values():
-                _convert_relative_paths_to_absolute(v, seen)
-        elif isinstance(val, (list, tuple)):
-            for v in val:
-                _convert_relative_paths_to_absolute(v, seen)
-        elif not isinstance(val, (int, float, bool, bytes, type(None))):
-            _convert_relative_paths_to_absolute(val, seen)
-
-
 class InferenceProvider(EnvironmentProvider, ABC):
     """EnvironmentProvider specialized for dataset/model inference setup.
 
@@ -206,7 +168,6 @@ class InferenceProvider(EnvironmentProvider, ABC):
         """
         if isinstance(config, dict):
             config = OmegaConf.create(config)
-            organizer = instantiate(config.dataset)
 
         if isinstance(config, DictConfig):
             organizer = instantiate(config.dataset)
@@ -217,60 +178,16 @@ class InferenceProvider(EnvironmentProvider, ABC):
 
     @staticmethod
     def build_model(config: DictConfig):
-        """Construct and return the model instance.
-
-        Implemented by subclasses to build a model from ``config``.
-        During parallel or distributed execution, the ``config`` object passed here
-        is the configuration that the user passed when instantiating the class.
-
-        Args:
-            config (DictConfig): Configuration.
-
-        Returns:
-            Any: Model object (type defined by subclass).
-
-        Raises:
-            NotImplementedError: Always in the base class; implement in subclass.
-
-        Example:
-            >>> # Minimal sketch; actual keys depend on your subclass
-            >>> from omegaconf import OmegaConf
-            >>> config = OmegaConf.create({
-            >>>     "model": {"checkpoint": "exp/model.pth", "device": "cpu"}
-            >>> })
-            >>> model = MyInferenceProvider.build_model(config)  # doctest: +SKIP
-
-        Notes:
-            - This method should handle **loading weights** and placing the
-              model on the appropriate device.
-            - Do not perform training/optimization here, this is for inference
-              setup only.
-        """
+        """Build config.model directly on this worker's logical device."""
         if isinstance(config, dict):
             config = OmegaConf.create(config)
-
         device = InferenceProvider._resolve_device(config)
-        logger.info(
-            "Instantiating model %s on %s (CUDA_VISIBLE_DEVICES=%s, visible_gpus=%s)",
-            getattr(config.model, "_target_", None),
-            device,
+        logger.debug(
+            "CUDA_VISIBLE_DEVICES=%s, visible_gpus=%s",
             os.getenv("CUDA_VISIBLE_DEVICES"),
             torch.cuda.device_count() if torch.cuda.is_available() else 0,
         )
-        # Match ESPnet2 packaged-model loading, where bare relative paths in
-        # copied training configs resolve from the bundle root.
-        recipe_dir = getattr(config, "recipe_dir", None)
-        if recipe_dir:
-            cwd = os.getcwd()
-            os.chdir(str(recipe_dir))
-            try:
-                model = instantiate(config.model, device=device)
-                _convert_relative_paths_to_absolute(model)
-                return model
-            finally:
-                os.chdir(cwd)
-        else:
-            return instantiate(config.model, device=device)
+        return instantiate(config.model, device=device)
 
     @staticmethod
     def _resolve_device(config: DictConfig) -> str:

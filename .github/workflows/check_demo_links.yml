@@ -12,6 +12,11 @@
 # request must not go red because a Space was restarting. Like
 # report_broken_workflows.yml, it cannot report its own failure - what it
 # leaves behind then is a stale issue.
+#
+# A runner shares its address with everyone else on it, so the Hub can throttle
+# this job for requests it did not make. The scanner waits one rate-limit
+# window out before giving up, which is why the job is allowed more than the
+# half minute it otherwise takes.
 
 name: check demo links
 
@@ -32,6 +37,9 @@ concurrency:
 jobs:
   check:
     runs-on: ubuntu-latest
+    # the scan takes half a minute, or up to a rate-limit window longer; the
+    # default of six hours would hold a runner for an afternoon if an API hung
+    timeout-minutes: 20
     if: github.repository == 'espnet/espnet'
     steps:
       # See ci_on_ubuntu.yml: the default persists GITHUB_TOKEN in .git/config.

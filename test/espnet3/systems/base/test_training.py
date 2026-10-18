@@ -113,7 +113,14 @@ def test_train_saves_config_and_calls_fit(tmp_path, monkeypatch):
 
 
 def test_instantiate_model_without_task_calls_instantiate(monkeypatch):
-    cfg = OmegaConf.create({"model": {"_target_": "dummy.Model"}})
+    cfg = OmegaConf.create(
+        {
+            "model": {
+                "_target_": "dummy.Model",
+                "freeze_param": ["frontend"],
+            }
+        }
+    )
     calls = {}
 
     def fake_instantiate(config):
@@ -125,10 +132,19 @@ def test_instantiate_model_without_task_calls_instantiate(monkeypatch):
 
     assert result == "dummy_model"
     assert calls["model"]._target_ == "dummy.Model"
+    assert "freeze_param" not in calls["model"]
 
 
 def test_instantiate_model_with_task_calls_get_espnet_model(monkeypatch):
-    cfg = OmegaConf.create({"task": "asr", "model": {"_target_": "dummy.Model"}})
+    cfg = OmegaConf.create(
+        {
+            "task": "asr",
+            "model": {
+                "_target_": "dummy.Model",
+                "freeze_param": ["frontend"],
+            },
+        }
+    )
     calls = {}
 
     def fake_get_espnet_model(task, model_config):
@@ -142,6 +158,7 @@ def test_instantiate_model_with_task_calls_get_espnet_model(monkeypatch):
     assert result == "espnet_model"
     assert calls["task"] == "asr"
     assert calls["model_config"]["_target_"] == "dummy.Model"
+    assert "freeze_param" not in calls["model_config"]
 
 
 def test_build_trainer_assembles_components(tmp_path, monkeypatch):

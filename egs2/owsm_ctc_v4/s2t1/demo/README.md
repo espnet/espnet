@@ -34,8 +34,19 @@ long-form decoding - so the two models can be compared on the same audio:
 | text prompt | not supported by OWSM-CTC | supported |
 | source | this directory | [`egs2/owsm_v4/s2t1/demo`](../../../owsm_v4/s2t1/demo) |
 
-The language menu and the translation targets are read from the checkpoint, so
-a model covering more languages needs no edit here.
+## The page is not here
+
+`app.py` loads a model, picks a device and asks for a slice of GPU time. The
+page is [`espnet2.bin.demo`](../../../../espnet2/bin/demo.py), the module
+`espnet demo` serves, which reads what to offer off the checkpoint: the
+language menu, the translation targets, the decoding window, and whether
+there is a decoder to prime with a text prompt. So `python app.py` and
+`espnet demo --model espnet/owsm_ctc_v4_1B` are the same page, and a fix to
+either is a fix to both.
+
+This app used to carry its own copy of that page, and so did
+`egs2/owsm_v4/s2t1/demo`; `test/espnet2/bin/test_demo_apps.py` existed to
+keep the three in step. The copies are gone.
 
 The hosted demo takes audio of up to two minutes and asks ZeroGPU for a
 matching slice of GPU time; the model itself has no such limit, so run the app
@@ -66,6 +77,14 @@ To publish, from the ESPnet checkout:
 hf auth login
 hf upload espnet/owsm-ctc-v4 egs2/owsm_ctc_v4/s2t1/demo . --repo-type space
 ```
+
+**Not before the release named in `requirements.txt`.** A Space installs
+espnet from PyPI, so an app that imports something only master has is a Space
+that builds and then fails to start. This app imports `espnet2.bin.demo`,
+whose `build_app` took its `wrap` argument in 202610.post2 - hence
+`espnet[demo]>=202610.post2`, which pip will refuse until that release
+exists. Uploading this directory before then replaces a working Space with a
+broken one, which is exactly what happened on 2026-09-20.
 
 ## Citation
 

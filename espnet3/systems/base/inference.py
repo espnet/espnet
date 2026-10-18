@@ -80,6 +80,11 @@ def infer(config: DictConfig):
     field must be a single value. If you need structured content, return a
     ``dict`` and let it be serialized as JSON.
 
+    ``input_key`` selects the dataset columns passed to the native backend.
+    ``output_fn`` formats its results as records when needed. A reference for
+    scoring is not written here; ``measure`` reads it from the dataset (bind
+    ``ref`` to ``dataset:text`` in the metrics config's ``inputs:``).
+
     Args:
         config: Hydra/OmegaConf configuration containing the dataset,
             inference directory, provider/runner definitions, and optional
@@ -117,8 +122,7 @@ def infer(config: DictConfig):
         input_key = getattr(config, "input_key", None)
         if input_key is None:
             raise RuntimeError("inference_config.input_key must be set.")
-
-        if isinstance(input_key, (list, tuple)) and not input_key:
+        elif isinstance(input_key, (list, tuple)) and not input_key:
             raise RuntimeError("inference_config.input_key must not be empty.")
 
         output_keys = getattr(config, "output_keys", None)

@@ -18,6 +18,7 @@ import sys
 import types
 
 import pytest
+import torch
 
 import espnet
 
@@ -121,12 +122,13 @@ def test_importing_espnet_does_not_drag_in_torch():
 @pytest.mark.parametrize("task", sorted(espnet.TASKS))
 def test_each_task_dispatches_to_its_own_class(task, monkeypatch):
     rec = _fake_class(monkeypatch, task, _Recorder())
+    monkeypatch.setattr(torch.cuda, "is_available", lambda: False)
 
     built = espnet.load("espnet/some-model", task=task)
 
     assert built is rec
     assert rec.tag == "espnet/some-model"
-    assert rec.device == "cpu"
+    assert rec.device == "cpu"  # "auto", resolved before the class sees it
 
 
 def test_every_task_names_a_class_that_exists():
@@ -142,6 +144,8 @@ def test_every_task_names_a_class_that_exists():
 
 def test_device_and_extra_arguments_reach_the_constructor(monkeypatch):
     rec = _fake_class(monkeypatch, "asr", _Recorder())
+    monkeypatch.setattr(torch.cuda, "is_available", lambda: True)
+    monkeypatch.setattr(torch.cuda, "device_count", lambda: 2)
 
     espnet.load("espnet/some-asr", task="asr", device="cuda:1", beam_size=1)
 
@@ -206,8 +210,9 @@ def test_the_task_is_inferred_from_the_hub_labels(labels, task, monkeypatch):
 def test_asr_and_s2t_are_split_by_the_packed_meta_yaml(
     keys, task, monkeypatch, tmp_path
 ):
-    # both are automatic-speech-recognition on the Hub, so the labels alone
-    # cannot choose between Speech2Text and Speech2TextGreedySearch
+    # both are automatic-speech-recognition on the Hub, and the two tasks
+    # now name classes of the same name in different modules, so the labels
+    # alone cannot choose asr_inference from s2t_inference
     import yaml
 
     meta = tmp_path / "meta.yaml"
