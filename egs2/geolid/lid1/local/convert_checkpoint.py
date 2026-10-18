@@ -130,7 +130,8 @@ def main():
     args.output_dir.mkdir(parents=True, exist_ok=True)
     torch.save(converted, args.output_dir / "model.pth")
     (args.output_dir / "languages.txt").write_text("\n".join(languages) + "\n")
-    config["lang2utt"] = "languages.txt"
+    # ModelDownloader resolves paths containing a directory separator.
+    config["lang2utt"] = "./languages.txt"
     (args.output_dir / "config.yaml").write_text(
         yaml.safe_dump(config, sort_keys=False)
     )
