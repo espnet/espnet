@@ -151,11 +151,11 @@ train = [
   "dask[distributed]",
   "dask_jobqueue",
 ]
-# Three of the packages below are ESPnet-maintained forks of projects whose
+# Two of the packages below are ESPnet-maintained forks of projects whose
 # upstream releases do not work here, published to PyPI under their own names:
-# espnet-ctc-segmentation, espnet-g2p-en and espnet-s3prl. Their import names
-# are unchanged (ctc_segmentation, g2p_en, s3prl), and each carries a
-# FORK_NOTICE.md saying what differs from upstream and why.
+# espnet-g2p-en and espnet-s3prl. Their import names are unchanged (g2p_en,
+# s3prl), and each carries a FORK_NOTICE.md saying what differs from upstream
+# and why.
 #
 # They must be declared like this, by name and version. A direct reference -
 # "name @ git+https://..." - makes PyPI reject the whole distribution with
@@ -173,7 +173,7 @@ splet = [
 ]
 
 asr = [
-  "espnet-ctc-segmentation>=1.7.4.post1",  # fork of lumaku/ctc-segmentation
+  "ctc-segmentation==1.7.5",
   "editdistance",
   "opt_einsum",
   "jiwer",
