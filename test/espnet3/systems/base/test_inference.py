@@ -291,6 +291,31 @@ def test_inference_without_output_fn_uses_model_output(tmp_path, monkeypatch):
     ]
 
 
+def test_infer_applies_contract_through_runner_and_writes_output(tmp_path, monkeypatch):
+    cfg = OmegaConf.create(
+        {
+            "parallel": {"env": "local"},
+            "inference_dir": str(tmp_path / "infer"),
+            "dataset": {"test": [{"name": "test_a"}]},
+            "input_key": "speech",
+            "mock_dataset": [{"utt_id": "u1", "speech": "  HELLO  "}],
+            "provider": {"_target_": f"{__name__}.StreamingProvider"},
+            "runner": {
+                "_target_": "espnet3.systems.base.inference_runner.InferenceRunner"
+            },
+            "contract": {
+                "inputs": {"speech": {"kind": "text", "normalize": ["strip"]}},
+                "outputs": {"speech": {"kind": "text", "normalize": ["to_lower"]}},
+            },
+        }
+    )
+    monkeypatch.setattr(inference_mod, "set_parallel", lambda arg: None)
+
+    inference_mod.infer(cfg)
+
+    assert _read_scp(tmp_path / "infer" / "test_a" / "speech.scp") == ["u1 hello"]
+
+
 def test_inference_without_idx_key_uses_default_utt_id(tmp_path, monkeypatch):
     cfg = OmegaConf.create(
         {

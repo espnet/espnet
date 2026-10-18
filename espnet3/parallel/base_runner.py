@@ -98,6 +98,11 @@ class BaseRunner(ABC):
         Keep this as a ``@staticmethod`` so that it is pickle-safe for Dask
         and does not capture ``self``.
 
+        When ``inference_contract`` is present, the shard loop prepares the
+        selected dataset samples before this method and validates its result
+        afterward, including when a subclass overrides ``forward``. See
+        ``InferenceRunner.forward`` for the inference YAML and result shape.
+
         Args:
             idx (int | Iterable[int]): The input index or batch of indices to process.
             dataset: Dataset object provided via the environment.
@@ -397,8 +402,42 @@ class BaseRunner(ABC):
         shard_dir = Path(state["shard_dir"])
         try:
             cls._get_done_path(shard_dir).unlink(missing_ok=True)
+            from espnet3.contract.inference import (
+                prepare_inference_inputs,
+                resolve_inference_contract,
+                validate_inference_outputs,
+            )
+
+            contract = resolve_inference_contract(
+                env.get("inference_contract"), env.get("inference_contract_root")
+            )
+            if contract is not None:
+                if env.get("output_fn") or env.get("output_fn_path"):
+                    raise ValueError(
+                        "output_fn cannot be combined with an inference contract"
+                    )
+                contract.validate_input_keys(env.get("input_key"))
+                forward_env = dict(env)
+                forward_env["inference_contract"] = contract
+
             for item in items:
-                result = cls.forward(item, **env)
+                if contract is not None:
+                    prepared, original = prepare_inference_inputs(
+                        env["dataset"], item, contract, env.get("model")
+                    )
+                    result = cls.forward(
+                        item, **{**forward_env, "dataset": prepared}
+                    )
+                    result = validate_inference_outputs(
+                        result,
+                        item,
+                        contract,
+                        env.get("model"),
+                        original,
+                        env.get("idx_key", "utt_id"),
+                    )
+                else:
+                    result = cls.forward(item, **env)
                 state = cls.reduce_state(state, result, shard_id=shard_id, **env)
             cls.finalize_state(state, shard_id=shard_id, **env)
             cls._get_done_path(shard_dir).write_text("", encoding="utf-8")
