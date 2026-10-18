@@ -212,13 +212,11 @@ fi
 test_sets_ood="" # out-of-domain test sets
 test_sets_id=""  # in-domain test sets
 test_sets_all=""
-temp="${train_set#*_}"
-train_name="${temp%_*}" # if train_fleurs_cs_lang, then we get fleurs_cs
+train_name=$(echo "${train_set}" | cut -d'_' -f2)
 
 # Check if the test set is in-domain or out-of-domain
 for test_set in ${test_sets}; do
-    temp="${test_set#*_}"
-    test_name="${temp%_*}" # if test_fleurs_cs_lang, then we get fleurs_cs
+    test_name=$(echo "${test_set}" | cut -d'_' -f2)
     if [ "${train_name}" != "${test_name}" ]; then
         test_sets_ood+="${test_set} "
         test_sets_all+="${test_set}_cross_${train_set} "
@@ -513,7 +511,7 @@ if [ ${stage} -le 6 ] && [ ${stop_stage} -ge 6 ]; then
     # Prepare out-of-domain test sets
     if [ -n "${test_sets_ood}" ]; then
         log "Out-of-domain test sets: ${test_sets_ood}"
-        bash ./local/prepare_ood_test.sh \
+        ./local/prepare_ood_test.sh \
             --dump_dir ${data_feats} \
             --train_set ${train_set} \
             --test_sets "${test_sets_ood}"

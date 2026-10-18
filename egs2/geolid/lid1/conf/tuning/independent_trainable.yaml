@@ -1,0 +1,2 @@
+model_conf:
+  shared_conditioning_proj: false

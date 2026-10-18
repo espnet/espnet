@@ -1,0 +1,3 @@
+model_conf:
+  shared_conditioning_proj: false
+  cutoff_gradient_from_backbone: true

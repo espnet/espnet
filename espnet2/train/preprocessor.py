@@ -2243,9 +2243,6 @@ class SpkPreprocessor(CommonPreprocessor):
         else:
             data["spk_labels"] = np.asarray([int(data["spk_labels"])])
 
-        if "task_tokens" in data:
-            data["task_tokens"] = np.asarray([int(data["task_tokens"])])
-
         return data
 
     @typechecked
@@ -2266,7 +2263,7 @@ class LIDPreprocessor(CommonPreprocessor):
         train (bool): Whether to use in training mode.
         lang2utt (str): Path to the `lang2utt` file.
         target_duration (float): Target duration in seconds, if
-                                 fix_duration, clip to this duration.
+        fix_duration, clip to this duration.
         fix_duration (bool): Whether to fix the duration of the audio.
         sample_rate (int): Sampling rate.
         rir_scp (str): Path to the RIR scp file.
@@ -2314,10 +2311,9 @@ class LIDPreprocessor(CommonPreprocessor):
         self.use_lang2vec = use_lang2vec
         self.lang2vec_type = lang2vec_type
 
-        with open(lang2utt, "r") as f_l2u:
-            self.lang2utt = f_l2u.readlines()
+        with open(lang2utt, "r") as f_s2u:
+            self.lang2utt = f_s2u.readlines()
         self._make_label_mapping()
-        self.nlang = len(self.lang2utt)
 
         if self.use_lang2vec and self.lang2vec_type not in {
             "geo",
@@ -2400,25 +2396,21 @@ class LIDPreprocessor(CommonPreprocessor):
                 "  pip install lang2vec"
             ) from e
 
-        langs = list(self.lang2label.keys())
         self.lang2vec = {}
-        vector_dim = None
-
-        for lang in langs:
+        missing = []
+        for lang in self.lang2label:
             try:
-                lang_result = l2v.get_features([lang], self.lang2vec_type)
-                vec = np.asarray(lang_result[lang], dtype=np.float32)
-                self.lang2vec[lang] = vec
-                if vector_dim is None:
-                    vector_dim = len(vec)
-            except Exception as e:
-                if vector_dim is not None:
-                    self.lang2vec[lang] = np.zeros(vector_dim, dtype=np.float32)
-                elif self.lang2vec_type == "geo":
-                    vector_dim = 299
-                    self.lang2vec[lang] = np.zeros(vector_dim, dtype=np.float32)
-                else:
-                    raise e
+                result = l2v.get_features([lang], self.lang2vec_type)
+            except Exception as error:
+                missing.append(f"{lang} ({error})")
+                continue
+            # Do not hide malformed feature values as missing-language errors.
+            vector = np.asarray(result[lang], dtype=np.float32)
+            if vector.ndim != 1 or not np.isfinite(vector).all():
+                raise ValueError(f"Invalid lang2vec features for {lang}")
+            self.lang2vec[lang] = vector
+        if missing:
+            raise ValueError("Missing lang2vec features: " + "; ".join(missing))
 
     def _speech_process(self, data: Dict[np.ndarray, str]):
         audio = data["speech"]
@@ -2538,9 +2530,6 @@ class LIDPreprocessor(CommonPreprocessor):
         iso3_labels = data["lid_labels"]
         int_label = self.lang2label[iso3_labels]
         data["lid_labels"] = np.asarray([int_label], dtype=np.int64)
-
-        if "task_tokens" in data:
-            data["task_tokens"] = np.asarray([int(data["task_tokens"])])
 
         if self.use_lang2vec and self.lang2vec_type is not None:
             data["lang2vecs"] = self.lang2vec[

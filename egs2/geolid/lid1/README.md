@@ -13,124 +13,125 @@ For further details on the geolocation-aware LID methodology, please refer to ou
 
 ## Usage
 
-### Prerequisites
-
-First, ensure you have ESPnet installed. If not, follow the [ESPnet installation instructions](https://espnet.github.io/espnet/installation.html).
-
-The recipe uses the official `transformers` package. Neither a custom Transformers
-installation nor S3PRL is required for geolocation conditioning. Training also uses
-`lang2vec`; dataset preparation requires `datasets`, `pandas`, and `pycountry`.
+Install ESPnet and the official SSL frontend dependencies:
 
 ```bash
-pip install 'transformers>=4.51.3' lang2vec datasets pandas pycountry
+pip install espnet-s3prl transformers
+cd egs2/geolid/lid1
+pip install -r local/requirements.txt
 ```
 
-The checkpoint-local models have been tested with official Transformers 4.51.3
-and 5.14.1. The conditioning implementation is in
-`espnet2/lid/huggingface/modeling_wav2vec2_condition.py`.
+The recipe uses the stock `S3prlFrontend`, configured in `conf/train.yaml`:
 
-### Inference with Transformers
+```yaml
+frontend: s3prl
+frontend_conf:
+  frontend_conf:
+    upstream: hf_wav2vec2_custom
+    path_or_url: facebook/mms-1b
+  multilayer_feature: true
+```
 
-Each model linked below includes `config.json`, `model.safetensors`, a feature
-extractor configuration, and the custom `modeling_*.py` / `configuration_geolid.py`
-files. These files load through the standard AutoClass API:
+`ESPnetLIDUpstreamConditionModel` replaces encoder layers 32, 36, 40 and 44
+(zero-based) with `Lang2VecConditionedLayer` wrappers. Each wrapper runs the
+original SSL layer, pools its output, predicts a lang2vec vector and adds the
+projected vector to the frame representations before the next SSL layer. The
+model creates the projections, optionally shares them across layers, and collects
+the intermediate predictions for auxiliary losses. `config.layerdrop` is set to
+zero so these layers always execute. Attention and waveform preprocessing remain
+in stock Transformers and S3PRL. There is no custom Transformers class, personal
+fork, or checkpoint-local model code.
+
+### Inference with a published ESPnet model
+
+The five models below are normal ESPnet checkpoints (`config.yaml`, `model.pth`,
+`meta.yaml` and `languages.txt`). After installing this recipe's ESPnet revision:
 
 ```python
 import soundfile as sf
 import torch
-from transformers import AutoFeatureExtractor, AutoModelForAudioClassification
+from espnet_model_zoo.downloader import ModelDownloader
+from espnet2.tasks.lid import LIDTask
 
-repo = "espnet/geolid_vl107only_shared_trainable"
-extractor = AutoFeatureExtractor.from_pretrained(repo)
-model = AutoModelForAudioClassification.from_pretrained(
-    repo, trust_remote_code=True
-).eval()
+files = ModelDownloader().download_and_unpack(
+    "espnet/geolid_vl107only_shared_trainable"
+)
+model, train_args = LIDTask.build_model_from_file(
+    files["train_config"], files["model_file"], device="cpu"
+)
+model.eval()
 audio, sample_rate = sf.read("speech.wav", dtype="float32")
-assert sample_rate == 16000 and audio.ndim == 1  # mono, at least 50 ms
-inputs = extractor(audio, sampling_rate=16000, return_tensors="pt")
+assert sample_rate == 16000 and audio.ndim == 1
+speech = torch.from_numpy(audio)[None]
 with torch.inference_mode():
-    outputs = model(**inputs)
-label = outputs.logits.argmax(-1).item()
-print(model.config.id2label[label])
+    embeddings, prediction = model(
+        speech, torch.tensor([len(audio)]), extract_embd=True
+    )
+with open(train_args.lang2utt) as stream:
+    languages = [line.split()[0] for line in stream]
+print(languages[prediction.item()])
 ```
 
-`trust_remote_code=True` loads the modeling files shipped with the checkpoint.
-For reproducible deployments, pass a reviewed commit hash as `revision` to both
-calls. This inference path needs only PyTorch and Transformers (plus an audio
-reader); ESPnet and S3PRL are not required. The outputs contain classification
-scores, language embeddings, and intermediate geolocation predictions.
+The checkpoints were **converted, not retrained**. The conversion only renames
+parameter keys and removes verified duplicate aliases; learned tensor values are
+unchanged. Language order was recovered from the original model-card language
+lists and the original recipe's sorted label construction. `languages.txt`
+records that classifier order; it is not the original training utterance list.
+Each repo includes `conversion.json` and a strict-loading/inference smoke-test
+report in `validation.json`.
 
-The released models' language IDs were recovered from their original model-card
-language lists and the recipe's sorted `lang2utt` construction. `conversion.json`
-records this provenance. The original ESPnet `.pth` files are retained.
+Runtime uses current ESPnet normalization and pooling. Legacy numerical behavior
+is not emulated. The results below are historical paper results, not a new corpus
+evaluation of these converted models. The models inherit **CC-BY-NC-4.0** from
+[MMS-1B](https://huggingface.co/facebook/mms-1b); the earlier CC-BY-4.0 model-card
+metadata has been corrected on all five repositories.
 
-Published checkpoints set `legacy_inference=true`, preserving the pooling variance
-floor and padded mean-normalization behavior used in 2025. Old ESPnet configs
-without this field default to that behavior. New training configs explicitly use
-`legacy_inference: false` to follow current ESPnet. The results below are the
-original published evaluations; no models were retrained for this migration.
-
-### Export an ESPnet checkpoint
-
-From this recipe directory, with ESPnet installed:
+### Convert an original checkpoint
 
 ```bash
-python local/export_huggingface.py \
-    --checkpoint /path/to/valid.accuracy.best.pth \
-    --training-config /path/to/config.yaml \
-    --lang2utt /path/to/original/training/lang2utt \
-    --output-dir /path/to/new-hf-checkpoint
+python local/convert_checkpoint.py \
+    --checkpoint /path/to/original/valid.accuracy.best.pth \
+    --config /path/to/original/config.yaml \
+    --languages /path/to/languages.txt \
+    --output-dir /path/to/converted
 ```
 
-The exporter checks the architecture, loads weights strictly, and writes a
-self-contained safetensors checkpoint. It supports the five published
-configurations, including the early independent/frozen parameter names. It does
-not retrain or quantize weights. If `--lang2utt` is omitted, labels remain numeric
-`LABEL_i` values and `label_mapping_verified` is false; do not substitute the
-labels of a test set. Use an empty output directory.
+Use an empty output directory and one ISO-639-3 code per line in classifier-index
+order. The script supports the original shared, independent and early frozen
+projection names. Legacy key handling exists only in this conversion script.
 
-### ESPnet training and evaluation
+### Training and recipe evaluation
 
-**Step 1: Navigate to project directory**
-```bash
-cd espnet/egs2/geolid/lid1
-```
-
-If you would like to train the model or run inference using our prepared datasets (instead of your own), please first follow the [data preparation instructions](local/README.md) to set up the required data.
-
-The standard entry point is `./run.sh`, using `conf/train.yaml` (VoxLingua107-only,
-shared trainable conditioning). Variants live in `conf/tuning/`; the historical
-configuration paths remain as symlinks for existing experiments. Data preparation
-is described in `local/README.md`; begin at stage 4 after preparing the dumps.
-
-**Option 1: Train with Combined Dataset**
-```bash
-# Uses all available datasets for training
-./run_combined.sh --stage 4 --stop_stage 8
-```
-
-**Option 2: Train with VoxLingua107 Only**
-```bash
-# Four different configurations available
-# Check run_voxlingua107_only.sh for configuration details
-./run_voxlingua107_only.sh --stage 4 --stop_stage 8
-```
-
-We also provide pre-trained models for immediate use:
+Follow [local/README.md](local/README.md) to prepare the datasets and waveform
+dumps. Missing lang2vec languages are reported as an error; zero vectors are
+never silently substituted.
 
 ```bash
-# Download the exp_combined to egs2/geolid/lid1
-hf download espnet/geolid_vl107only_shared_trainable --local-dir . --include "exp_voxlingua107_only/*"
+# VoxLingua107, shared trainable conditioning (conf/train.yaml)
+./run.sh --stage 4 --stop_stage 7
 
-./run_voxlingua107_only.sh --skip_data_prep false --skip_train true --lid_config conf/voxlingua107_only/mms_ecapa_upcon_32_44_it0.4_shared_trainable.yaml --stage 6 --stop_stage 8
+# Variant: merge only these changed settings onto conf/train.yaml
+./run.sh --tuning_config conf/tuning/independent_frozen.yaml --stage 4 --stop_stage 7
 
+# Combined training
+./run_combined.sh --stage 4 --stop_stage 7
 ```
 
-To run inference with checkpoints trained on the combined training set, please use the script `run_combined.sh`.
+`conf/tuning/` contains only overrides. `run.sh` writes the merged configuration
+to `exp/configs/`. The training schedules are 15,000 optimizer updates for
+VoxLingua107 and 16,500 for combined training. Combined training balances datasets;
+validation uses the language-based `catpow` sampler and does not require
+`dataset2utt` or `utt2dataset` files. RIR augmentation is disabled and `rir_scp` is
+null by default.
 
-If you want to perform inference on your own prepared datasets, modify the test_sets field in the corresponding run script.
+For recipe evaluation, download a converted model and point `--lid_exp` at it
+(after preparing the corresponding waveform dumps):
 
-See the [Results](#results) section below for detailed performance metrics and Hugging Face model links.
+```bash
+hf download espnet/geolid_vl107only_shared_trainable --local-dir exp/pretrained
+./run.sh --stage 6 --stop_stage 7 --skip_train true \
+    --lid_exp exp/pretrained --inference_model model.pth
+```
 
 ## Train and Evaluation Datasets
 
@@ -155,11 +156,11 @@ Below is a summary table of the training and evaluation datasets used in this pr
 
 | Config                    | 🤗 HF Repo | VoxLingua107 | Babel | FLEURS | ML-SUPERB2.0 Dev | ML-SUPERB2.0 Dialect | VoxPopuli | Macro Avg. |
 | ------------------------- | ----------- | ------------ | ----- | ------ | ---------------- | -------------------- | --------- | ---------- |
-| `conf/voxlingua107_only/mms_ecapa_upcon_32_44_it0.4_independent_frozen.yaml` | [espnet/geolid_vl107only_independent_frozen](https://huggingface.co/espnet/geolid_vl107only_independent_frozen) | 94.2         | 87.1  | 95.0   | 89.0             | 77.2                 | 90.4      | 88.8       |
-| `conf/voxlingua107_only/mms_ecapa_upcon_32_44_it0.4_independent_trainable.yaml` | [espnet/geolid_vl107only_independent_trainable](https://huggingface.co/espnet/geolid_vl107only_independent_trainable) | 93.7         | 85.3  | 93.7   | 88.3             | 70.3                 | 86.5      | 86.3       |
-| `conf/voxlingua107_only/mms_ecapa_upcon_32_44_it0.4_shared_frozen.yaml` | [espnet/geolid_vl107only_shared_frozen](https://huggingface.co/espnet/geolid_vl107only_shared_frozen) | 94.3         | 85.9  | 94.3   | 88.8             | 80.7                 | 89.2      | 88.8       |
-| `conf/voxlingua107_only/mms_ecapa_upcon_32_44_it0.4_shared_trainable.yaml` | [espnet/geolid_vl107only_shared_trainable](https://huggingface.co/espnet/geolid_vl107only_shared_trainable) | 94.9         | 87.7  | 93.5   | 89.3             | 78.8                 | 89.5      | 88.9       |
-| `conf/combined/mms_ecapa_upcon_32_44_it0.4_shared_trainable.yaml` | [espnet/geolid_combined_shared_trainable](https://huggingface.co/espnet/geolid_combined_shared_trainable) | 94.4         | 95.4  | 97.7   | 88.6             | 86.8                 | 99.0      | 93.7       |
+| `conf/tuning/independent_frozen.yaml` | [espnet/geolid_vl107only_independent_frozen](https://huggingface.co/espnet/geolid_vl107only_independent_frozen) | 94.2         | 87.1  | 95.0   | 89.0             | 77.2                 | 90.4      | 88.8       |
+| `conf/tuning/independent_trainable.yaml` | [espnet/geolid_vl107only_independent_trainable](https://huggingface.co/espnet/geolid_vl107only_independent_trainable) | 93.7         | 85.3  | 93.7   | 88.3             | 70.3                 | 86.5      | 86.3       |
+| `conf/tuning/shared_frozen.yaml` | [espnet/geolid_vl107only_shared_frozen](https://huggingface.co/espnet/geolid_vl107only_shared_frozen) | 94.3         | 85.9  | 94.3   | 88.8             | 80.7                 | 89.2      | 88.8       |
+| `conf/train.yaml` | [espnet/geolid_vl107only_shared_trainable](https://huggingface.co/espnet/geolid_vl107only_shared_trainable) | 94.9         | 87.7  | 93.5   | 89.3             | 78.8                 | 89.5      | 88.9       |
+| `conf/tuning/combined.yaml` | [espnet/geolid_combined_shared_trainable](https://huggingface.co/espnet/geolid_combined_shared_trainable) | 94.4         | 95.4  | 97.7   | 88.6             | 86.8                 | 99.0      | 93.7       |
 
 
 
@@ -169,7 +170,7 @@ Below is a summary table of the training and evaluation datasets used in this pr
 
 ```BibTex
 @inproceedings{wang2025geolid,
-  author={Qingzheng Wang, Hye-jin Shim, Jiancheng Sun, and Shinji Watanabe},
+  author={Qingzheng Wang and Hye-jin Shim and Jiancheng Sun and Shinji Watanabe},
   title={Geolocation-Aware Robust Spoken Language Identification},
   year={2025},
   booktitle={Proceedings of ASRU},

@@ -52,88 +52,37 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     fi
 fi
 
-# =======================
-# Stage 2: Prepare list files
-# =======================
-if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
-    log "Stage 2: Preparing BABEL list files"
-
-    bash local/prepare_babel_lists.sh --dataset_path ${dataset_path} --lists_dir conf/lists
-
-    if [ $? -ne 0 ]; then
-        log "Error: Failed to generate list files"
-        exit 1
-    fi
-
-    log "✅ List files preparation complete"
-fi
-
-# =======================
-# Stage 3: Prepare Kaldi-format files
-# =======================
-if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
-    log "Stage 3: Preparing Kaldi-format files per language"
-
+# The shared Babel preparer handles audio commands and transcript segmentation.
+if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 2 ]; then
     for entry in "${langs[@]}"; do
         read -r lang iso3 train_list dev_list <<< "$entry"
         base_path="${dataset_path}/${lang}/conversational"
         lexicon_path="${base_path}/reference_materials/lexicon.txt"
-
         for split in training dev; do
-            outname="train_${lang}"
-            [ "$split" == "dev" ] && outname="dev_${lang}"
-            out_dir="data/${outname}_${iso3}"
-
-            log "Processing $lang ($iso3) $split -> $out_dir"
-            mkdir -p "$out_dir"
-            if [ "$split" == "training" ]; then
-                local/prepare_babel.pl \
-                    --iso3 "$iso3" --vocab "$lexicon_path" --fragmentMarkers \-\*\~ \
-                    --filelist "conf/lists/${train_list}.filenames" \
-                    "${base_path}/${split}" "$out_dir" > "$out_dir/skipped_utts.log"
-            elif [ "$split" == "dev" ]; then
-                local/prepare_babel.pl \
-                    --iso3 "$iso3" --vocab "$lexicon_path" --fragmentMarkers \-\*\~ \
-                    --filelist "conf/lists/${dev_list}.filenames" \
-                    "${base_path}/${split}" "$out_dir" > "$out_dir/skipped_utts.log"
-            fi
+            out_split=train
+            [ "$split" == dev ] && out_split=dev
+            source_dir="data/local/babel/${out_split}_${iso3}"
+            mkdir -p "${source_dir}"
+            perl ../../babel/asr1/local/prepare_acoustic_training_data.pl \
+                --vocab "${lexicon_path}" --fragmentMarkers \-\*\~ \
+                "${base_path}/${split}" "${source_dir}" > "${source_dir}/skipped_utts.log"
+            python local/prepare_babel.py "${source_dir}" "data/local/babel/${out_split}_${iso3}_lid" "${iso3}"
         done
-
     done
-
-    # Combine all languages
-    log "Combining all languages into train/dev sets"
     for split in train dev; do
         out_dir="data/${split}_babel_lang"
-        mkdir -p "$out_dir" data/.backup
-        touch ${out_dir}/{utt2lang,segments,wav.scp}
-
-        for d in data/${split}_BABEL_*; do
-            log "Merging $d into $out_dir"
-            for f in utt2lang segments wav.scp; do
-                [ -f "$d/$f" ] && cat "$d/$f" >> "$out_dir/$f"
+        mkdir -p "${out_dir}"
+        for file in utt2lang segments wav.scp; do
+            : > "${out_dir}/${file}"
+            for entry in "${langs[@]}"; do
+                read -r lang iso3 train_list dev_list <<< "$entry"
+                cat "data/local/babel/${split}_${iso3}_lid/${file}" >> "${out_dir}/${file}"
             done
+            sort "${out_dir}/${file}" -o "${out_dir}/${file}"
         done
-
-        for f in utt2lang segments wav.scp; do
-            sort "$out_dir/$f" -o "$out_dir/$f"
-        done
-
-        utils/utt2spk_to_spk2utt.pl "$out_dir/utt2lang" > "$out_dir/lang2utt"
-
-        # Move intermediate files to .backup
-        for d in data/${split}_BABEL_*; do
-            log "Backing up $d to data/.backup/"
-            mv "$d" data/.backup/
-        done
-
+        utils/utt2spk_to_spk2utt.pl "${out_dir}/utt2lang" > "${out_dir}/lang2utt"
+        cp "${out_dir}/lang2utt" "${out_dir}/category2utt"
     done
-
-    for x in ${partitions}; do
-        cp "data/${x}/lang2utt" "data/${x}/category2utt"
-    done
-
-    log "✅ Kaldi preparation and merging complete"
 fi
 
 # =======================

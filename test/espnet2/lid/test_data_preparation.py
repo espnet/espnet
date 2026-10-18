@@ -61,3 +61,73 @@ def test_filter_and_combine(tmp_path):
     duplicate = subprocess.run(command + [filtered], capture_output=True, text=True)
     assert duplicate.returncode != 0
     assert "Duplicate utterance long" in duplicate.stderr
+
+
+def test_fleurs_all_splits(tmp_path):
+    import csv
+
+    import pytest
+
+    pytest.importorskip("pycountry")
+    source = tmp_path / "tsv"
+    source.mkdir()
+    for split in ("train", "dev", "test"):
+        wav = tmp_path / f"{split}.wav"
+        wav.touch()
+        with (source / f"{split}.tsv").open("w") as stream:
+            writer = csv.DictWriter(
+                stream, fieldnames=["path", "sentence"], delimiter="\t"
+            )
+            writer.writeheader()
+            writer.writerow({"path": str(wav), "sentence": "[en_us] test"})
+    output = tmp_path / "data"
+    subprocess.run(
+        [
+            sys.executable,
+            LOCAL / "prepare_fleurs.py",
+            "--source_dir",
+            source,
+            "--output_dir",
+            output,
+        ],
+        check=True,
+    )
+    for split in ("train", "dev", "test"):
+        assert (
+            output / f"{split}_fleurs_lang" / "utt2lang"
+        ).read_text() == f"eng_{split} eng\n"
+
+
+def test_ml_superb_manifest_conversion(tmp_path):
+    source, output = tmp_path / "source", tmp_path / "lid"
+    for split in ("train", "dev", "dev_dialect"):
+        folder = source / split
+        folder.mkdir(parents=True)
+        (folder / "wav.scp").write_text("item /audio/item.wav\n")
+        (folder / "text").write_text("item [azj] transcript\n")
+    subprocess.run(
+        [
+            sys.executable,
+            LOCAL / "prepare_ml_superb2.py",
+            "--source_dir",
+            source,
+            "--output_dir",
+            output,
+        ],
+        check=True,
+    )
+    assert (output / "dev_ml_superb2_lang/utt2lang").read_text() == "aze_item aze\n"
+
+
+def test_babel_rerun_is_idempotent(tmp_path):
+    source, output = tmp_path / "source", tmp_path / "lid"
+    source.mkdir()
+    (source / "segments").write_text("utt recording 0.0 2.0\n")
+    (source / "wav.scp").write_text("recording sox audio.sph -t wav - |\n")
+    for _ in range(2):
+        subprocess.run(
+            [sys.executable, LOCAL / "prepare_babel.py", source, output, "yue"],
+            check=True,
+        )
+    assert (output / "utt2lang").read_text() == "yue_utt yue\n"
+    assert (output / "segments").read_text() == "yue_utt yue_recording 0.0 2.0\n"

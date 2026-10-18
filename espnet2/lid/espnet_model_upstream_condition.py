@@ -29,19 +29,14 @@ from typeguard import typechecked
 
 from espnet2.asr.encoder.abs_encoder import AbsEncoder
 from espnet2.asr.frontend.abs_frontend import AbsFrontend
+from espnet2.asr.frontend.s3prl import S3prlFrontend
 from espnet2.asr.specaug.abs_specaug import AbsSpecAug
 from espnet2.layers.abs_normalize import AbsNormalize
-from espnet2.layers.utterance_mvn import UtteranceMVN
+from espnet2.lid.conditioned_layer import Lang2VecConditionedLayer
 from espnet2.lid.espnet_model import ESPnetLIDModel
-from espnet2.lid.frontend.s3prl_condition import S3prlFrontendCondition
-from espnet2.lid.huggingface.modeling_layers import (
-    LegacyChnAttnStatPooling,
-    legacy_mean_normalize,
-)
 from espnet2.lid.loss.aamsoftmax_sc_topk_lang2vec import AAMSoftmaxSCTopKLang2Vec
 from espnet2.spk.loss.abs_loss import AbsLoss
 from espnet2.spk.pooling.abs_pooling import AbsPooling
-from espnet2.spk.pooling.chn_attn_stat_pooling import ChnAttnStatPooling
 from espnet2.spk.projector.abs_projector import AbsProjector
 from espnet2.torch_utils.device_funcs import force_gatherable
 
@@ -80,8 +75,6 @@ class ESPnetLIDUpstreamConditionModel(ESPnetLIDModel):
                                           conditioning projection
         shared_conditioning_proj: if True, share conditioning projection across
                                   layers
-        legacy_inference: preserve the pooling and padded normalization used by
-            the 2025 checkpoints. Set False when training with current ESPnet.
 
     Reference:
         Geolocation-Aware Robust Spoken Language Identification
@@ -111,7 +104,6 @@ class ESPnetLIDUpstreamConditionModel(ESPnetLIDModel):
         cutoff_gradient_from_backbone: Optional[bool] = True,
         cutoff_gradient_before_condproj: Optional[bool] = False,
         shared_conditioning_proj: Optional[bool] = False,
-        legacy_inference: bool = True,
     ):
 
         super().__init__(
@@ -124,8 +116,8 @@ class ESPnetLIDUpstreamConditionModel(ESPnetLIDModel):
             loss=loss,
         )
 
-        assert isinstance(self.frontend, S3prlFrontendCondition), (
-            f"ESPnetLIDUpstreamConditionModel only supports S3prlFrontendCondition "
+        assert isinstance(self.frontend, S3prlFrontend), (
+            f"ESPnetLIDUpstreamConditionModel only supports S3prlFrontend "
             f"as frontend, but got {type(self.frontend)}"
         )
 
@@ -154,142 +146,60 @@ class ESPnetLIDUpstreamConditionModel(ESPnetLIDModel):
         if not 0 <= inter_lang2vec_loss_weight <= 1:
             raise ValueError("inter_lang2vec_loss_weight must be in [0, 1].")
 
-        self.legacy_inference = legacy_inference
-        if legacy_inference:
-            if not isinstance(self.pooling, ChnAttnStatPooling):
-                raise ValueError("legacy_inference requires chn_attn_stat pooling.")
-            if (
-                not isinstance(self.normalize, UtteranceMVN)
-                or not self.normalize.norm_means
-                or self.normalize.norm_vars
-            ):
-                raise ValueError("legacy_inference requires mean-only UtteranceMVN.")
-            legacy_pool = LegacyChnAttnStatPooling(self.pooling.output_size() // 2)
-            legacy_pool.load_state_dict(self.pooling.state_dict())
-            self.pooling = legacy_pool
-            for key in pooling_condition or {}:
-                pool = pooling_condition[key]
-                if not isinstance(pool, ChnAttnStatPooling):
-                    raise ValueError(
-                        "legacy_inference requires chn_attn_stat conditioning pooling."
-                    )
-                legacy_pool = LegacyChnAttnStatPooling(pool.output_size() // 2)
-                legacy_pool.load_state_dict(pool.state_dict())
-                pooling_condition[key] = legacy_pool
-
-        self.upstream_encoder.ecapa_encoder = encoder_condition
-        self.upstream_encoder.pooling = pooling_condition
-        self.upstream_encoder.projector = projector_condition
-
-        if lang2vec_conditioning_layers is not None:
-            lang2vec_conditioning_layers = sorted(lang2vec_conditioning_layers)
-            # lang2vec_head is the "GeoPred" layer noted in the paper if use geo vector
-            lang2vec_head = nn.ModuleDict()
-            for layer_idx in lang2vec_conditioning_layers:
-                projector_condition_output_size = projector_condition[
-                    str(layer_idx)
-                ].output_size()
-                lang2vec_head[str(layer_idx)] = nn.Sequential(
-                    nn.Linear(projector_condition_output_size, self.loss.lang2vec_dim),
-                )
-            self.upstream_encoder.lang2vec_head = lang2vec_head
-
-        self.upstream_encoder.lang2vec_conditioning_layers = (
-            lang2vec_conditioning_layers
-        )
-
-        self.upstream_encoder.apply_intermediate_lang2vec_condition = (
-            apply_intermediate_lang2vec_condition
-        )
-
-        # Each conditioning projection layer is independent
-        if (
-            lang2vec_conditioning_layers is not None
-            and apply_intermediate_lang2vec_condition
-        ):
-            if shared_conditioning_proj:
-                lang2vec_conditioning_projs = nn.Linear(
-                    self.loss.lang2vec_dim,
-                    self.upstream_encoder.config.hidden_size,
-                )
-            else:
-                lang2vec_conditioning_projs = nn.ModuleDict()
-                for layer_idx in lang2vec_conditioning_layers:
-                    lang2vec_conditioning_projs[str(layer_idx)] = nn.Sequential(
-                        nn.Linear(
-                            self.loss.lang2vec_dim,
-                            self.upstream_encoder.config.hidden_size,
-                        ),
-                    )
-            self.upstream_encoder.lang2vec_conditioning_projs = (
-                lang2vec_conditioning_projs
+        self.lang2vec_conditioning_layers = sorted(lang2vec_conditioning_layers or [])
+        upstream = self.frontend.upstream.upstream.model
+        # Conditioned layers must never be skipped during training.
+        upstream.config.layerdrop = 0.0
+        shared_projection = None
+        if shared_conditioning_proj and apply_intermediate_lang2vec_condition:
+            shared_projection = nn.Linear(
+                self.loss.lang2vec_dim, frontend.output_size()
             )
-            self.upstream_encoder.shared_conditioning_proj = shared_conditioning_proj
+        for index in self.lang2vec_conditioning_layers:
+            key = str(index)
+            projection = shared_projection
+            if apply_intermediate_lang2vec_condition and projection is None:
+                projection = nn.Linear(self.loss.lang2vec_dim, frontend.output_size())
+            if projection is not None and cutoff_gradient_from_backbone:
+                projection.requires_grad_(False)
+            upstream.encoder.layers[index] = Lang2VecConditionedLayer(
+                layer=upstream.encoder.layers[index],
+                encoder=encoder_condition[key],
+                pooling=pooling_condition[key],
+                projector=projector_condition[key],
+                prediction=nn.Linear(
+                    projector_condition[key].output_size(), self.loss.lang2vec_dim
+                ),
+                conditioning_layer=projection,
+                detach_prediction=cutoff_gradient_before_condproj,
+                detach_condition=cutoff_gradient_from_backbone,
+            )
 
-        self.upstream_encoder.cutoff_gradient_from_backbone = (
-            cutoff_gradient_from_backbone
-        )
-        self.upstream_encoder.cutoff_gradient_before_condproj = (
-            cutoff_gradient_before_condproj
-        )
-
-        assert isinstance(self.loss, AAMSoftmaxSCTopKLang2Vec), (
-            f"ESPnetLIDUpstreamConditionModel only supports AAMSoftmaxSCTopKLang2Vec, "
-            f"but got {type(self.loss)}"
-        )
-        # NOTE(qingzheng): Keep this line (assign aamsoftmax_loss to frontend)
-        # for compatibility with early model checkpoints.
-        self.upstream_encoder.aamsoftmax_loss = self.loss
-
+        # Update the stock frontend's initialization snapshot for the wrappers so
+        # reload_pretrained_parameters() still works with an explicit --init.
+        pretrained = self.frontend.pretrained_params
+        updated = {}
+        for name, value in self.frontend.upstream.state_dict().items():
+            original_name = name
+            for index in self.lang2vec_conditioning_layers:
+                prefix = f"upstream.model.encoder.layers.{index}.layer."
+                if name.startswith(prefix):
+                    original_name = prefix[:-6] + name[len(prefix) :]
+                    break
+            updated[name] = (
+                pretrained[original_name]
+                if original_name in pretrained
+                else value.detach().clone()
+            )
+        self.frontend.pretrained_params = updated
         self.apply_intermediate_lang2vec_loss = apply_intermediate_lang2vec_loss
         self.inter_lang2vec_loss_weight = inter_lang2vec_loss_weight
 
-    def _load_from_state_dict(
-        self,
-        state_dict,
-        prefix,
-        local_metadata,
-        strict,
-        missing_keys,
-        unexpected_keys,
-        error_msgs,
-    ):
-        # Early independent/frozen checkpoints used a different projection name.
-        encoder_prefix = prefix + "frontend.upstream.upstream.model.encoder."
-        for key in list(state_dict):
-            if key.startswith(encoder_prefix + "conditioning_projs."):
-                suffix = key[len(encoder_prefix + "conditioning_projs.") :]
-                layer, parameter = suffix.split(".", 1)
-                state_dict[
-                    encoder_prefix
-                    + f"lang2vec_conditioning_projs.{layer}.0.{parameter}"
-                ] = state_dict.pop(key)
-            elif key.startswith(prefix + "upstream_encoder."):
-                canonical = encoder_prefix + key[len(prefix + "upstream_encoder.") :]
-                if canonical in state_dict and torch.equal(
-                    state_dict[key], state_dict[canonical]
-                ):
-                    del state_dict[key]
-        # The first release did not save the otherwise redundant classifier alias.
-        for name in self.loss.state_dict():
-            source = prefix + "loss." + name
-            target = encoder_prefix + "aamsoftmax_loss." + name
-            if target not in state_dict and source in state_dict:
-                state_dict[target] = state_dict[source]
-        super()._load_from_state_dict(
-            state_dict,
-            prefix,
-            local_metadata,
-            strict,
-            missing_keys,
-            unexpected_keys,
-            error_msgs,
-        )
-
     @property
-    def upstream_encoder(self):
-        # A property avoids registering the entire encoder twice in state_dict.
-        return self.frontend.upstream.upstream.model.encoder
+    def conditioned_layers(self):
+        """Return wrappers in execution order without registering duplicates."""
+        layers = self.frontend.upstream.upstream.model.encoder.layers
+        return [layers[i] for i in self.lang2vec_conditioning_layers]
 
     @typechecked
     def forward(
@@ -362,7 +272,7 @@ class ESPnetLIDUpstreamConditionModel(ESPnetLIDModel):
                 intermediate_lang2vec_preds is not None
                 and self.inter_lang2vec_loss_weight > 0
                 and self.apply_intermediate_lang2vec_loss
-                and self.upstream_encoder.lang2vec_conditioning_layers
+                and self.lang2vec_conditioning_layers
             ):
                 inter_lang2vec_losses = self._calc_intermediate_lang2vec_pred_loss(
                     intermediate_lang2vec_preds,
@@ -372,7 +282,7 @@ class ESPnetLIDUpstreamConditionModel(ESPnetLIDModel):
                 inter_lang2vec_loss_mean = 0.0
 
                 for layer_idx, inter_lang2vec_loss in zip(
-                    self.upstream_encoder.lang2vec_conditioning_layers,
+                    self.lang2vec_conditioning_layers,
                     inter_lang2vec_losses,
                 ):
                     stats[f"inter_{lang2vec_type}_loss_layer{layer_idx}"] = (
@@ -449,24 +359,27 @@ class ESPnetLIDUpstreamConditionModel(ESPnetLIDModel):
             else speech.new_full((batch_size,), speech.shape[1], dtype=torch.long)
         )
 
-        # 1. extract feats
-        if self.frontend is not None:
-            feats, feat_lengths, intermediate_lang2vec_preds = (
-                self.frontend.forward_with_condition(speech, speech_lengths)
+        # Collect predictions as interCTC collects intermediate_outs. Clear both
+        # before and after forward so graphs cannot leak between minibatches.
+        for layer in self.conditioned_layers:
+            layer.intermediate_out = None
+        try:
+            feats, feat_lengths = self.frontend(speech, speech_lengths)
+            intermediate_lang2vec_preds = tuple(
+                layer.intermediate_out for layer in self.conditioned_layers
             )
-        else:
-            feats = speech
-            feat_lengths = None
-            intermediate_lang2vec_preds = None
+            if any(pred is None for pred in intermediate_lang2vec_preds):
+                raise RuntimeError("An SSL conditioning layer did not execute.")
+        finally:
+            for layer in self.conditioned_layers:
+                layer.intermediate_out = None
 
         # 2. apply augmentations
         if self.specaug is not None and self.training:
             feats, _ = self.specaug(feats, feat_lengths)
 
         # 3. normalize
-        if self.legacy_inference:
-            feats = legacy_mean_normalize(feats, feat_lengths)
-        elif self.normalize is not None:
+        if self.normalize is not None:
             feats, _ = self.normalize(feats, feat_lengths)
 
         return feats, feat_lengths, intermediate_lang2vec_preds

@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+set -euo pipefail
 
 . ./path.sh || exit 1;
 . ./cmd.sh || exit 1;
@@ -11,8 +12,9 @@ dev_set="dev_ml_superb2_lang"
 dev_dialect_set="dev_dialect_ml_superb2_lang"
 partitions="${train_set} ${dev_set} ${dev_dialect_set}"
 
+mkdir -p data/{train,dev,dev_dialect,raw_audio,local}
+python ../../ml_superb2/asr1/local/download.py
 python local/prepare_ml_superb2.py
-python local/fix_ml_superb2_dev_dialect.py
 
 for x in ${partitions}; do
 

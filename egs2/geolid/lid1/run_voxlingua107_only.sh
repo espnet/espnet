@@ -27,16 +27,7 @@ tsne_set="dev_voxlingua107_lang"
 
 # Train
 feats_type="raw"
-# Four configs provided, each for a different conditioning projection layer type:
-# 1. Shared + Trainable:
-#    conf/voxlingua107_only/mms_ecapa_upcon_32_44_it0.4_shared_trainable.yaml
-# 2. Shared + Frozen:
-#    conf/voxlingua107_only/mms_ecapa_upcon_32_44_it0.4_shared_frozen.yaml
-# 3. Independent + Trainable:
-#    conf/voxlingua107_only/mms_ecapa_upcon_32_44_it0.4_independent_trainable.yaml
-# 4. Independent + Frozen:
-#    conf/voxlingua107_only/mms_ecapa_upcon_32_44_it0.4_independent_frozen.yaml
-config_dir="conf/voxlingua107_only/mms_ecapa_upcon_32_44_it0.4_shared_trainable.yaml"
+config_dir="conf/train.yaml"
 exp_dir="exp_voxlingua107_only"
 
 # Inference

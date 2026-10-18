@@ -2,7 +2,8 @@ import pytest
 
 
 @pytest.fixture
-def tiny_geolid(tmp_path):
+def tiny_geolid(tmp_path, request):
+    pytest.importorskip("s3prl")
     transformers = pytest.importorskip("transformers")
     from espnet2.tasks.lid import LIDTask
 
@@ -12,8 +13,8 @@ def tiny_geolid(tmp_path):
         num_attention_heads=2,
         intermediate_size=16,
         conv_dim=[8],
-        conv_stride=[2],
-        conv_kernel=[3],
+        conv_stride=[320],
+        conv_kernel=[400],
         num_conv_pos_embeddings=4,
         num_conv_pos_embedding_groups=2,
         do_stable_layer_norm=True,
@@ -24,14 +25,16 @@ def tiny_geolid(tmp_path):
         feat_proj_dropout=0.0,
         mask_time_prob=0.0,
         mask_feature_prob=0.0,
-        layerdrop=0.0,
+        layerdrop=0.8,
     )
     base = tmp_path / "base"
     transformers.Wav2Vec2Model(config).save_pretrained(base)
+    transformers.Wav2Vec2FeatureExtractor(return_attention_mask=True).save_pretrained(
+        base
+    )
     args = LIDTask.get_parser().parse_args([])
     args.model = "upstream_condition"
     args.model_conf = dict(
-        legacy_inference=False,
         lang2vec_conditioning_layers=[0, 1],
         shared_conditioning_proj=True,
         apply_intermediate_lang2vec_loss=True,
@@ -39,9 +42,10 @@ def tiny_geolid(tmp_path):
         cutoff_gradient_from_backbone=False,
         cutoff_gradient_before_condproj=True,
     )
-    args.frontend = "s3prl_condition"
+    args.model_conf.update(getattr(request, "param", {}))
+    args.frontend = "s3prl"
     args.frontend_conf = dict(
-        frontend_conf=dict(upstream="hf_wav2vec2_condition", path_or_url=str(base)),
+        frontend_conf=dict(upstream="hf_wav2vec2_custom", path_or_url=str(base)),
         multilayer_feature=True,
     )
     args.encoder = "ecapa_tdnn"

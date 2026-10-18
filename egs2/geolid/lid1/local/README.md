@@ -20,7 +20,9 @@ This directory contains scripts for preparing multiple language identification d
 
 ### 2. Individual Dataset Preparation
 
-Before running, edit the dataset path configuration in each script:
+Install `local/requirements.txt` first. It pins `datasets<4` because the shared
+FLEURS preparer uses the `google/xtreme_s` dataset loading script. Set
+`VOXLINGUA107` in `db.sh`; pass other local corpus paths as command-line options:
 
 ```bash
 # Prepare BABEL dataset
@@ -87,3 +89,31 @@ This will generate the final combined dataset: `dump/raw/train_all_no_filter_lan
 ```
 Download datasets → Configure paths → Run prepare_*.sh → Run dump stages → Combine datasets
 ```
+
+## Shared preparation code
+
+- VoxLingua107 calls `egs2/voxlingua107/lid1/local/data.sh` and links its Python
+  preparer. Its standard directories are copied to GeoLID's `_lang` names only
+  after preparation completes, avoiding the previous path mismatch.
+- FLEURS calls `egs2/fleurs/asr1/local/create_dataset.py`, including its train,
+  validation/dev and test splits. The local Python adapter converts its TSVs
+  to language labels and waveform manifests.
+- ML-SUPERB2 calls `egs2/ml_superb2/asr1/local/download.py`, reusing its language
+  normalization and dialect correction; the local adapter reads the resulting
+  text labels and waveform paths.
+- Babel calls `egs2/babel/asr1/local/prepare_acoustic_training_data.pl` for
+  transcription segmentation and audio commands. The local adapter adds language
+  prefixes and `utt2lang`; merge outputs are truncated on reruns.
+
+Only the combined training dump needs `dataset2utt` and `utt2dataset`. Validation
+uses language balancing (`valid_batch_type: catpow`).
+
+The standard stage-1 entrypoint prepares VoxLingua107 by default. To select
+additional corpora (after arranging the locally licensed/downloaded audio):
+
+```bash
+./run.sh --stage 1 --stop_stage 1 \
+    --local_data_opts "--datasets voxlingua107,fleurs,ml_superb2,babel,voxpopuli"
+```
+
+Alternatively, invoke the individual preparation scripts above.

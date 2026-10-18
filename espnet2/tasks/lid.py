@@ -21,7 +21,6 @@ from espnet2.layers.global_mvn import GlobalMVN
 from espnet2.layers.utterance_mvn import UtteranceMVN
 from espnet2.lid.espnet_model import ESPnetLIDModel
 from espnet2.lid.espnet_model_upstream_condition import ESPnetLIDUpstreamConditionModel
-from espnet2.lid.frontend.s3prl_condition import S3prlFrontendCondition
 from espnet2.lid.loss.aamsoftmax_sc_topk_lang2vec import AAMSoftmaxSCTopKLang2Vec
 from espnet2.spk.encoder.conformer_encoder import MfaConformerEncoder
 from espnet2.spk.encoder.ecapa_tdnn_encoder import EcapaTdnnEncoder
@@ -76,7 +75,6 @@ frontend_choices = ClassChoices(
         melspec_torch=MelSpectrogramTorch,
         sliding_window=SlidingWindow,
         s3prl=S3prlFrontend,
-        s3prl_condition=S3prlFrontendCondition,
     ),
     type_check=AbsFrontend,
     default=None,
@@ -261,11 +259,9 @@ class LIDTask(AbsTask):
             "--lang2utt",
             type=str,
             default="",
-            help=(
-                "Directory of the train lang2utt file to be used in label mapping. "
-                "Note that both train and validation use the same lang2utt file, "
-                "since we can only support the same categories during validation."
-            ),
+            help="Directory of the train lang2utt file to be used in label mapping"
+            "Note that both train and validation use the same lang2utt file, since"
+            "we can only support the same categories during validation",
         )
 
         group.add_argument(
@@ -396,45 +392,23 @@ class LIDTask(AbsTask):
         )
         projector_output_size = projector.output_size()
 
-        lang2vec_conditioning_layers = args.model_conf.get(
-            "lang2vec_conditioning_layers", None
-        )
-        if lang2vec_conditioning_layers is not None:
-            lang2vec_conditioning_layers = sorted(lang2vec_conditioning_layers)
-
-            encoder_condition = nn.ModuleDict()
-            pooling_condition = nn.ModuleDict()
-            projector_condition = nn.ModuleDict()
-
-            for layer_idx in lang2vec_conditioning_layers:
-                encoder_condition_class = encoder_condition_choices.get_class(
-                    args.encoder_condition
-                )
-                encoder_condition[str(layer_idx)] = encoder_condition_class(
-                    input_size=input_size, **args.encoder_condition_conf
-                )
-                encoder_condition_output_size = encoder_condition[
-                    str(layer_idx)
-                ].output_size()
-
-                pooling_condition_class = pooling_condition_choices.get_class(
-                    args.pooling_condition
-                )
-                pooling_condition[str(layer_idx)] = pooling_condition_class(
-                    input_size=encoder_condition_output_size,
-                    **args.pooling_condition_conf,
-                )
-                pooling_condition_output_size = pooling_condition[
-                    str(layer_idx)
-                ].output_size()
-
-                projector_condition_class = projector_condition_choices.get_class(
-                    args.projector_condition
-                )
-                projector_condition[str(layer_idx)] = projector_condition_class(
-                    input_size=pooling_condition_output_size,
-                    **args.projector_condition_conf,
-                )
+        condition_modules = {}
+        if args.model == "upstream_condition":
+            for name in ("encoder", "pooling", "projector"):
+                condition_modules[name + "_condition"] = nn.ModuleDict()
+            for layer in args.model_conf.get("lang2vec_conditioning_layers", []):
+                size = input_size
+                for name, choices in (
+                    ("encoder", encoder_condition_choices),
+                    ("pooling", pooling_condition_choices),
+                    ("projector", projector_condition_choices),
+                ):
+                    key = name + "_condition"
+                    module = choices.get_class(getattr(args, key))(
+                        input_size=size, **getattr(args, key + "_conf")
+                    )
+                    condition_modules[key][str(layer)] = module
+                    size = module.output_size()
 
         loss_class = loss_choices.get_class(args.loss)
         loss = loss_class(
@@ -445,34 +419,17 @@ class LIDTask(AbsTask):
         if model_arg is None:
             model_arg = "espnet"
         model_class = model_choices.get_class(model_arg)
-        if (
-            lang2vec_conditioning_layers is not None
-            and model_arg == "upstream_condition"
-        ):
-            model = model_class(
-                frontend=frontend,
-                specaug=specaug,
-                normalize=normalize,
-                encoder=encoder,
-                pooling=pooling,
-                projector=projector,
-                loss=loss,
-                encoder_condition=encoder_condition,
-                pooling_condition=pooling_condition,
-                projector_condition=projector_condition,
-                **args.model_conf,
-            )
-        else:
-            model = model_class(
-                frontend=frontend,
-                specaug=specaug,
-                normalize=normalize,
-                encoder=encoder,
-                pooling=pooling,
-                projector=projector,
-                loss=loss,
-                **args.model_conf,
-            )
+        model = model_class(
+            frontend=frontend,
+            specaug=specaug,
+            normalize=normalize,
+            encoder=encoder,
+            pooling=pooling,
+            projector=projector,
+            loss=loss,
+            **condition_modules,
+            **args.model_conf,
+        )
 
         if args.init is not None:
             initialize(model, args.init)

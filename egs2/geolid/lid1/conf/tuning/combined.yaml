@@ -1,0 +1,15 @@
+# Combined training; validation uses language balancing (no dataset maps).
+max_epoch: 33
+accum_grad: 4
+num_iters_per_epoch: 2000
+batch_type: catpow_balance_dataset
+batch_bins: 1440000
+max_batch_size: 6
+category_upsampling_factor: 0.5
+dataset_upsampling_factor: 0.3
+optim_conf:
+  lr: 1.0e-05
+scheduler_conf:
+  max_steps: 16500
+  warmup_ratio: 0.1
+  hold_ratio: 0.4

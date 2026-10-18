@@ -24,7 +24,7 @@ tsne_set="train_all_no_filter_lang"
 
 # Train
 feats_type="raw"
-config_dir="conf/combined/mms_ecapa_upcon_32_44_it0.4_shared_trainable.yaml"
+tuning_config="conf/tuning/combined.yaml"
 exp_dir="exp_combined"
 
 # Inference
@@ -32,7 +32,7 @@ inference_model="valid.accuracy.best.pth"
 inference_batch_size=4
 max_utt_per_lang_for_tsne=100
 
-./lid.sh \
+./run.sh \
     --feats_type ${feats_type} \
     --train_set "${train_set}" \
     --valid_set "${valid_set}" \
@@ -45,6 +45,6 @@ max_utt_per_lang_for_tsne=100
     --nj 8 \
     --ngpu 1 \
     --expdir "${exp_dir}" \
-    --lid_config ${config_dir} \
+    --tuning_config ${tuning_config} \
     --max_utt_per_lang_for_tsne ${max_utt_per_lang_for_tsne} \
     "$@"
