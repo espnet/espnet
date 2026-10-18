@@ -176,3 +176,15 @@ def test_stock_gradient_checkpointing(tiny_geolid):
     )
     loss.backward()
     assert model.conditioned_layers[0].prediction.weight.grad is not None
+
+
+def test_classification_reuses_standard_loss():
+    from espnet2.spk.loss.aamsoftmax_subcenter_intertopk import (
+        ArcMarginProduct_intertopk_subcenter,
+    )
+
+    base = ArcMarginProduct_intertopk_subcenter(nout=4, nclasses=4, k_top=2)
+    augmented = AAMSoftmaxSCTopKLang2Vec(nout=4, nclasses=4, k_top=2)
+    augmented.load_state_dict(base.state_dict(), strict=True)
+    inputs, labels = torch.randn(2, 4), torch.tensor([0, 1])
+    torch.testing.assert_close(augmented(inputs, labels)[0], base(inputs, labels)[0])
