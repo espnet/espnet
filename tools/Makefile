@@ -168,12 +168,12 @@ espnet.done: pytorch.done conda_packages.done lightning.done
 	$(call start_timer,espnet.done)
 	@echo NUMPY_VERSION=$(shell . ./activate_python.sh && python3 -c "import numpy; print(numpy.__version__)")
 	# Install additional packages that cannot be included in setup.py due to package build issues.
-	# The same two forks this used to install from git, now published under their
-	# own names because PyPI rejects a distribution whose metadata contains a git
-	# URL. They are also declared in the asr and tts extras; the distributions are
-	# identical, so nothing installs two copies of ctc_segmentation or g2p_en.
+	# The fork this used to install from git, now published under its own name
+	# because PyPI rejects a distribution whose metadata contains a git URL. It is
+	# also declared in the tts extra; the distributions are identical, so nothing
+	# installs two copies of g2p_en.
 	. ./activate_python.sh && python3 -m pip install espnet-g2p-en
-	. ./activate_python.sh && python3 -m pip install espnet-ctc-segmentation
+	. ./activate_python.sh && python3 -m pip install "ctc-segmentation==1.7.5"
 	# torch==$(TH_VERSION) on the same line, not because it is missing - it was
 	# installed above - but to hold it still. Unpinned, this resolve is free to
 	# move torch anywhere the dependency range allows, and it did: it dropped
