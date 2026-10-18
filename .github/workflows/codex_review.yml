@@ -13,7 +13,8 @@ jobs:
   request-codex-review:
     runs-on: ubuntu-latest
     permissions:
-      issues: write # PR conversation comments use the Issues API
+      issues: write
+      pull-requests: write
 
     steps:
       - name: Request Codex review
