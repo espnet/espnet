@@ -22,4 +22,3 @@ model:
 
 input_key: speech
 batch_size: 2
-output_fn: src.inference.build_output

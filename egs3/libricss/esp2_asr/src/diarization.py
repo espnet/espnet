@@ -332,6 +332,10 @@ def run_diarization(eval_config) -> None:
             )
         out_split = out_root / split
         out_split.mkdir(parents=True, exist_ok=True)
+        # Drop manifests left by an earlier run, so that recordings missing
+        # from this run cannot leak into the next stage.
+        for stale in out_split.glob("*.json"):
+            stale.unlink()
         rttm_lines: List[str] = []
         manifests = sorted(split_dir.glob("*.json"))
         if not manifests:

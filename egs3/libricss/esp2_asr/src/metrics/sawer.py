@@ -34,18 +34,18 @@ import json
 import logging
 from collections import defaultdict
 from pathlib import Path
-from typing import Any, Dict, List, Tuple
+from typing import Any, Dict, List, Optional, Sequence, Tuple
 
 import numpy as np
 
 from espnet3.components.metrics.base_metric import BaseMetric
 
 try:  # recipe-dir import
-    from src.metrics.common import pair_word_counts, read_scp
+    from src.metrics.common import pair_word_counts, read_scp, wer_percent
     from src.textnorm import normalize_text
 except ImportError:  # package-style import fallback
     from ..textnorm import normalize_text
-    from .common import pair_word_counts, read_scp
+    from .common import pair_word_counts, read_scp, wer_percent
 
 logger = logging.getLogger(__name__)
 
@@ -53,10 +53,21 @@ _COST_EMPTY_REF = 1000.0  # egs1: NaN WER pairs get cost 1000
 
 
 class SAWER(BaseMetric):
-    """CHiME-6 style speaker-attributed WER per overlap condition."""
+    """CHiME-6 style speaker-attributed WER per overlap condition.
 
-    ref_key = "ref"
-    hyp_key = "hyp"
+    Inputs, one row per diarized segment (bound in ``conf/metrics.yaml``):
+    ``hyp`` (transcript), ``spk`` (diarized speaker label), ``reco``
+    (recording id) and ``start`` (segment start time in seconds). The
+    reference speaker streams are read from ``data_dir`` instead, because
+    they are not aligned with the diarized segments.
+
+    The result holds ``SA-WER`` (overall) plus one ``SA-WER_<condition>``
+    entry per overlap condition present in the scored data; only the
+    overall value is a declared output.
+    """
+
+    inputs = {"hyp": str, "spk": str, "reco": str, "start": str}
+    outputs = ("SA-WER",)
 
     def __init__(self, data_dir: str | Path, pad_missing_speakers: bool = True):
         """Initialize the metric.
@@ -72,24 +83,33 @@ class SAWER(BaseMetric):
         """
         self.data_dir = Path(data_dir)
         self.pad_missing_speakers = bool(pad_missing_speakers)
+        super().__init__()
+        # Speaker matching needs every segment of a recording at once, so
+        # rows are collected and scored in compute().
+        self.add_state("hyps", [], "cat")
+        self.add_state("spks", [], "cat")
+        self.add_state("recos", [], "cat")
+        self.add_state("starts", [], "cat")
+        self._test_name: Optional[str] = None
+        self._details: Optional[Dict[str, Any]] = None
 
     # ------------------------------------------------------------------
     # Input loading
     # ------------------------------------------------------------------
-    def _load_hyp(self, data: Dict[str, Path]) -> Dict[str, Dict[str, str]]:
-        """Group hypotheses into reco -> spk -> concatenated text."""
+    def _group_hyp(self) -> Dict[str, Dict[str, str]]:
+        """Group the collected hypotheses into reco -> spk -> concatenated text."""
         streams: Dict[str, Dict[str, List[Tuple[float, str]]]] = defaultdict(
             lambda: defaultdict(list)
         )
-        for _utt, row in self.iter_inputs(data, "hyp", "spk", "reco", "start"):
-            if not row["hyp"].strip():
+        for hyp, spk, reco, start in zip(self.hyps, self.spks, self.recos, self.starts):
+            if not hyp.strip():
                 # egs1 drops empty-hyp lines before grouping.
                 continue
             try:
-                start = float(row["start"]) if row["start"] else 0.0
+                start = float(start) if start else 0.0
             except ValueError:
                 start = 0.0
-            streams[row["reco"]][row["spk"]].append((start, normalize_text(row["hyp"])))
+            streams[reco][spk].append((start, normalize_text(hyp)))
 
         out: Dict[str, Dict[str, str]] = {}
         for reco, spks in streams.items():
@@ -231,24 +251,63 @@ class SAWER(BaseMetric):
         }
 
     # ------------------------------------------------------------------
-    # Entry point
+    # Metric interface
     # ------------------------------------------------------------------
     def __call__(
-        self, data: Dict[str, Path], test_name: str, output_dir: Path
+        self, data: Dict[str, Path], test_name: str, output_dir: Optional[Path] = None
     ) -> Dict[str, float]:
-        """Compute SA-WER for one test set (split).
+        """Score one test set (split); records ``test_name`` for the references.
 
         Args:
-            data: SCP paths for the configured ``inputs`` (hyp, spk, reco,
-                start).
-            test_name: Split name, e.g. ``dev`` or ``eval``.
-            output_dir: Inference root directory; details are written to
-                ``<output_dir>/<test_name>/sawer_details.json``.
+            data: SCP paths for the declared inputs (hyp, spk, reco, start).
+            test_name: Split name, e.g. ``dev`` or ``eval``; selects
+                ``data_dir/<test_name>/oracle``.
+            output_dir: Inference root directory; when given, details are
+                written to ``<output_dir>/<test_name>/sawer_details.json``.
 
         Returns:
             Overall and per-condition SA-WER values in percent.
         """
-        hyp_by_reco = self._load_hyp(data)
+        self._test_name = test_name
+        self._details = None
+        return super().__call__(data, test_name, output_dir)
+
+    def update(
+        self,
+        *,
+        hyp: Sequence[str],
+        spk: Sequence[str],
+        reco: Sequence[str],
+        start: Sequence[str],
+    ) -> None:
+        """Collect one batch of diarized segments.
+
+        Args:
+            hyp: Hypothesis transcripts, one per segment.
+            spk: Diarized speaker labels, aligned with ``hyp``.
+            reco: Recording ids, aligned with ``hyp``.
+            start: Segment start times in seconds, aligned with ``hyp``.
+        """
+        self.hyps.extend(hyp)
+        self.spks.extend(spk)
+        self.recos.extend(reco)
+        self.starts.extend(start)
+
+    def compute(self) -> Dict[str, float]:
+        """Match speakers per recording and return SA-WER values in percent.
+
+        Raises:
+            ValueError: If no test set was given (call the metric as
+                ``metric(data, test_name)``), or the total reference word
+                count is zero.
+        """
+        test_name = self._test_name
+        if test_name is None:
+            raise ValueError(
+                "SAWER reads its references per test set; call it as "
+                "metric(data, test_name)."
+            )
+        hyp_by_reco = self._group_hyp()
         ref_by_reco = self._load_ref(test_name)
 
         cond_totals: Dict[str, Dict[str, int]] = defaultdict(
@@ -277,28 +336,28 @@ class SAWER(BaseMetric):
                 "all empty."
             )
 
-        def _wer(t: Dict[str, int]) -> float:
-            err = t["ins"] + t["del"] + t["sub"]
-            return 100.0 * err / t["wc"] if t["wc"] > 0 else 0.0
-
-        details = {
+        self._details = {
             "test_name": test_name,
             "config": {"pad_missing_speakers": self.pad_missing_speakers},
-            "overall": {**overall, "wer": round(_wer(overall), 2)},
+            "overall": {**overall, "wer": wer_percent(overall)},
             "conditions": {
-                cond: {**cond_totals[cond], "wer": round(_wer(cond_totals[cond]), 2)}
+                cond: {**cond_totals[cond], "wer": wer_percent(cond_totals[cond])}
                 for cond in sorted(cond_totals)
             },
             "recordings": reco_details,
         }
-        details_path = Path(output_dir) / test_name / "sawer_details.json"
-        details_path.parent.mkdir(parents=True, exist_ok=True)
-        with details_path.open("w", encoding="utf-8") as f:
-            json.dump(details, f, indent=2, ensure_ascii=False)
-        logger.info("Wrote SA-WER details to %s", details_path)
 
-        results: Dict[str, float] = {"SA-WER": round(_wer(overall), 2)}
+        results: Dict[str, float] = {"SA-WER": wer_percent(overall)}
         for cond in sorted(cond_totals):
-            results[f"SA-WER_{cond}"] = round(_wer(cond_totals[cond]), 2)
+            results[f"SA-WER_{cond}"] = wer_percent(cond_totals[cond])
         logger.info("[%s] SA-WER: %s", test_name, results)
         return results
+
+    def write_artifacts(self, test_dir: Path) -> None:
+        """Write the per-recording matching details to ``sawer_details.json``."""
+        if self._details is None:
+            return
+        details_path = Path(test_dir) / "sawer_details.json"
+        with details_path.open("w", encoding="utf-8") as f:
+            json.dump(self._details, f, indent=2, ensure_ascii=False)
+        logger.info("Wrote SA-WER details to %s", details_path)

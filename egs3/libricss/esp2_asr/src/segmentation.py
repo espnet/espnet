@@ -283,6 +283,10 @@ def run_segmentation(eval_config) -> None:
 
         out_split = out_root / split
         out_split.mkdir(parents=True, exist_ok=True)
+        # Drop manifests left by an earlier run, so that recordings missing
+        # from this run cannot leak into the next stage.
+        for stale in out_split.glob("*.json"):
+            stale.unlink()
         total_segments = 0
         for i, (reco, wav) in enumerate(sorted(wav_scp.items()), 1):
             if mode == "oracle":

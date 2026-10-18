@@ -4,12 +4,15 @@
 # Decodes the speaker turns produced by the `segment` + `diarize` stages.
 # For the oracle-segment flow use conf/inference_oracle.yaml instead.
 #
-#   python run.py --stages infer --inference_config conf/inference.yaml
+#   python run.py --stages infer --eval_config conf/eval.yaml \
+#       --inference_config conf/inference.yaml
 #
-# Outputs per split under ${inference_dir}/<split>/:
-#   hyp.scp ref.scp spk.scp reco.scp start.scp end.scp
-# (ref.scp is empty in the diarized flow; the SA-WER metric builds its own
-# reference streams from data/<split>/oracle/.)
+# (--eval_config supplies exp_dir, which locates the diarized manifests.)
+#
+# Output per split: ${inference_dir}/<split>/text.scp, the model's
+# transcripts (written by the template's default output_fn). The segment
+# metadata (speaker label, recording, start time) stays in the dataset;
+# conf/metrics.yaml reads it as `dataset:<column>` inputs.
 
 dataset:
   test:
@@ -37,4 +40,3 @@ model:
 
 input_key: speech
 batch_size: 4
-output_fn: src.inference.build_output

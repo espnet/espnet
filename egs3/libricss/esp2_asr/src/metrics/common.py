@@ -77,3 +77,9 @@ def read_scp(path: Path) -> Dict[str, str]:
             parts = line.split(maxsplit=1)
             entries[parts[0]] = parts[1] if len(parts) > 1 else ""
     return entries
+
+
+def wer_percent(totals: Dict[str, int]) -> float:
+    """Return ``100 * (ins + del + sub) / wc`` rounded to 2 places (0 if wc=0)."""
+    err = totals["ins"] + totals["del"] + totals["sub"]
+    return round(100.0 * err / totals["wc"], 2) if totals["wc"] > 0 else 0.0

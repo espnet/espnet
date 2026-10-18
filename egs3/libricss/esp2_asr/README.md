@@ -42,14 +42,17 @@ or by setting `create_dataset.source_dir` in `conf/eval.yaml`.
 
 ## Requirements
 
-On top of a standard ESPnet install (`pip install espnet[asr]` for `jiwer`):
+On top of a standard ESPnet install (`tools/`'s `make` installs
+`espnet[train]`, which the ESPnet3 runner needs):
 
 ```bash
+pip install jiwer            # `measure` stage        (or espnet[asr])
 pip install gdown            # corpus download        (or espnet[egs2])
 pip install webrtcvad-wheels # `segment` stage, mode: vad (provides the
                              # `webrtcvad` module; the original `webrtcvad`
                              # package often fails to build on new Pythons)
 pip install scikit-learn     # `diarize` stage, NME spectral clustering
+                             #                        (or espnet[egs2])
 ```
 
 The `diarize` stage needs the ESPnet2 speaker toolkit
@@ -63,13 +66,18 @@ neither `webrtcvad` nor `scikit-learn`.
 create_dataset -> segment -> diarize -> infer -> measure
 ```
 
-`segment` and `diarize` are recipe-local stages added to the ESPnet3
-template system (see `run.py`). `segment` writes per-recording JSON
-manifests to `${exp_dir}/segments/<split>/`; `diarize` consumes them and
-writes speaker-labeled manifests to `${exp_dir}/diarized/<split>/` (plus an
-`rttm` file usable with external DER tools). `infer` decodes the manifest
-segments and writes `hyp.scp` plus `spk/reco/start/end` sidecar SCP files;
-`measure` scores them.
+`run.py` defines `LibriCSSSystem`, an `ASRSystem` whose declared stages
+are exactly this flow: `segment` and `diarize` are recipe-local stages,
+and the training stages are not declared. `segment` writes per-recording
+JSON manifests to `${exp_dir}/segments/<split>/`; `diarize` consumes them
+and writes speaker-labeled manifests to `${exp_dir}/diarized/<split>/`
+(plus an `rttm` file usable with external DER tools). Both clear the
+manifests of an earlier run first. `dataset/` reads these manifests:
+`infer` decodes each manifest segment into `text.scp`, and `measure`
+scores it, reading the segment metadata (speaker label, recording, start
+time and, in the oracle flow, the transcript) from the same dataset as
+`dataset:<column>` inputs. `measure` caches those columns under
+`<inference_dir>/<split>/dataset/`; the next `infer` run clears them.
 
 ### Diarized flow (SA-WER)
 
@@ -134,11 +142,14 @@ deletions; the oracle smoke WER is a meaningful, if tiny, sample.
 
 The recipe's root config is `conf/eval.yaml` (oracle variant:
 `conf/eval_oracle.yaml`) — named `eval` because nothing is trained here.
-`run.py` exposes it as `--eval_config`, an alias of the template's
-`--training_config` flag (the framework slot keeps its name internally);
-the training-only template blocks merged in from `egs3/TEMPLATE/asr`
+`run.py` exposes it as `--eval_config`, an alias of the `--training_config`
+flag (the framework slot keeps its name internally); the training-only
+template blocks merged in from `egs3/TEMPLATE/esp2_asr`
 (optimizer/scheduler/dataloader/trainer/fit) are nulled out in these files
-because no reachable stage consumes them.
+because no declared stage consumes them. Pass `--eval_config` (and, for
+`measure`, `--inference_config`) also when running `infer` or `measure` on
+their own: the inference and metrics configs take `exp_dir` and
+`inference_dir` from them.
 
 Everything recipe-specific lives in the `libricss` block of the eval
 configs (see the comments there): VAD aggressiveness/frame/padding

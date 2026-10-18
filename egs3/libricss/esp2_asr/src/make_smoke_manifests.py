@@ -56,6 +56,10 @@ def main() -> None:
 
     out_dir = dst / "dev"
     out_dir.mkdir(parents=True, exist_ok=True)
+    # Drop manifests left by an earlier run, so that recordings missing
+    # from this run cannot leak into the next stage.
+    for stale in out_dir.glob("*.json"):
+        stale.unlink()
     total = 0
     for reco in sorted(chosen):
         mf, data, cands = per_reco[reco]

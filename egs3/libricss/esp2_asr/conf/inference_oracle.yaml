@@ -5,8 +5,11 @@
 # stage with `libricss.segment.mode: oracle` (see conf/eval_oracle.yaml).
 # The `diarize` stage is not used in this flow.
 #
-# The Dataset adds each segment's oracle transcript as "text", so
-# build_output fills ref.scp and plain-WER metrics can score it.
+#   python run.py --stages infer --eval_config conf/eval_oracle.yaml \
+#       --inference_config conf/inference_oracle.yaml
+#
+# The Dataset adds each segment's oracle transcript as its "text" column,
+# which conf/metrics_oracle.yaml scores against as `ref: dataset:text`.
 
 dataset:
   test:
@@ -29,4 +32,3 @@ model:
 
 input_key: speech
 batch_size: 4
-output_fn: src.inference.build_output

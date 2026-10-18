@@ -3,8 +3,8 @@
 ##########################################################
 # LibriCSS is an evaluation-only benchmark: no model is trained in this
 # recipe, hence the `eval` name -- run.py exposes this file as
-# --eval_config, an alias of the template's --training_config flag (the
-# framework keeps it in its training_config slot). It carries (a) the
+# --eval_config, an alias of the --training_config flag (the framework
+# keeps it in its training_config slot). It carries (a) the
 # dataset creation settings consumed by the DatasetBuilder and (b) the
 # `libricss` block with parameters for the recipe-local `segment` and
 # `diarize` stages.
@@ -15,7 +15,7 @@
 #       --metrics_config conf/metrics.yaml --stages all
 #
 # Paths recipe_dir/data_dir/exp_tag/exp_dir are inherited from
-# egs3/TEMPLATE/asr/conf/training.yaml:
+# egs3/TEMPLATE/esp2_asr/conf/training.yaml:
 #   data_dir: ${recipe_dir}/data
 #   exp_dir:  ${recipe_dir}/exp/${exp_tag}   (exp_tag = this file's stem)
 
@@ -56,10 +56,11 @@ dataset:
 ##########################################################
 #        TRAINING BOILERPLATE DISABLED (EVAL-ONLY)       #
 ##########################################################
-# main() merges the template defaults (egs3/TEMPLATE/asr/conf/training.yaml)
-# UNDER this file, which would otherwise pull in training machinery. This
-# recipe's stage list (run.py STAGES) has no train/collect_stats/fit stages,
-# so those blocks are nulled here to keep the effective config honest.
+# launch() merges the template defaults
+# (egs3/TEMPLATE/esp2_asr/conf/training.yaml) UNDER this file, which would
+# otherwise pull in training machinery. This recipe's stage list
+# (LibriCSSSystem.stages in run.py) has no train/collect_stats stages, so
+# those blocks are nulled here to keep the effective config honest.
 # tokenizer/model are already null in the template defaults; num_device/
 # parallel/seed are left as-is (harmless scalars read by the runner setup).
 optimizer: null

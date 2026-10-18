@@ -7,13 +7,19 @@
 # diarizer's speaker labels) are matched to oracle reference speaker streams
 # with the Hungarian algorithm; reported per overlap condition and overall.
 #
-#   python run.py --stages measure --metrics_config conf/metrics.yaml
+#   python run.py --stages measure --eval_config conf/eval.yaml \
+#       --inference_config conf/inference.yaml \
+#       --metrics_config conf/metrics.yaml
 #
-# `inputs` selects the sidecar SCP files written by the infer stage:
-#   hyp.scp   transcripts
-#   spk.scp   diarized speaker label per segment
-#   reco.scp  recording (meeting) id per segment
-#   start.scp segment start time in seconds (for chronological ordering)
+# (--eval_config/--inference_config supply exp_dir/inference_dir and the
+# test-set definition the `dataset:` inputs are read from.)
+#
+# `inputs` binds each SA-WER input to its source:
+#   hyp    text.scp written by the infer stage (the transcripts)
+#   spk    diarized speaker label per segment      (dataset column)
+#   reco   recording (meeting) id per segment      (dataset column)
+#   start  segment start time in seconds, for chronological ordering
+#          (dataset column)
 
 data_dir: ${recipe_dir}/data
 
@@ -25,4 +31,8 @@ metrics:
       # unmatched hypothesis speakers as insertions (CHiME-style). The ESPnet1
       # scoring dropped unmatched speakers instead; set to false to mimic it.
       pad_missing_speakers: true
-    inputs: [hyp, spk, reco, start]
+    inputs:
+      hyp: text
+      spk: dataset:spk
+      reco: dataset:reco
+      start: dataset:start
