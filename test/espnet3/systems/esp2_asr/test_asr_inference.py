@@ -233,16 +233,8 @@ def test_forward_batch_with_batched_inputs():
     ]
 
 
-def test_forward_batch_falls_back_to_single_items(caplog):
-    """A model or output_fn that takes no batch is run one item at a time.
-
-    `batch_size` is set by default in the ASR recipes, and not every
-    `Speech2Text` (the transducer one, for instance) accepts a list, so the
-    runner must degrade to single-item calls rather than fail the shard. It
-    says so once.
-    """
-    import logging
-
+def test_forward_batch_failure_propagates():
+    """A model that rejects a batch fails without per-item retry."""
     dataset = [
         {"utt_id": "utt1", "speech": "audio1", "text": "ref1"},
         {"utt_id": "utt2", "speech": "audio2", "text": "ref2"},
@@ -255,14 +247,7 @@ def test_forward_batch_falls_back_to_single_items(caplog):
             return [[f"hyp-{speech}"]]
 
     output_path = f"{__name__}._output_fn"
-    with caplog.at_level(logging.WARNING):
-        out = InferenceRunner.forward(
-            [0, 1],
-            dataset=dataset,
-            model=DummyModel(),
-            input_key="speech",
-            output_fn_path=output_path,
-        )
+    with pytest.raises(TypeError, match="single utterance"):
         InferenceRunner.forward(
             [0, 1],
             dataset=dataset,
@@ -270,12 +255,6 @@ def test_forward_batch_falls_back_to_single_items(caplog):
             input_key="speech",
             output_fn_path=output_path,
         )
-    assert out == [
-        {"utt_id": "utt1", "hyp": "hyp-audio1", "ref": "ref1"},
-        {"utt_id": "utt2", "hyp": "hyp-audio2", "ref": "ref2"},
-    ]
-    notes = [r for r in caplog.records if "one at a time" in r.getMessage()]
-    assert len(notes) == 1, [r.getMessage() for r in caplog.records]
 
 
 def test_forward_requires_fields():
@@ -396,7 +375,7 @@ def test_native_asr_recipe_writes_the_backends_text(tmp_path, batch_size):
             "batch_size": batch_size,
             "provider": {"_target_": f"{__name__}.NativeASRProvider"},
             "runner": {
-                "_target_": "espnet3.systems.base.inference_runner.InferenceRunner"
+                    "_target_": "espnet3.systems.esp2_asr.inference.ASRInferenceRunner"
             },
             "parallel": {"env": "local", "n_workers": 1},
         }
