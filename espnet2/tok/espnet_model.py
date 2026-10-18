@@ -1,6 +1,6 @@
 """Top-level ESPnet model for speech-tokenizer training."""
 
-from typing import Any, Dict, Mapping, Optional
+from typing import Any, Dict, Optional
 
 import torch
 
@@ -15,9 +15,8 @@ from espnet2.train.abs_gan_espnet_model import AbsGANESPnetModel
 class ESPnetGANSpeechTokenizerModel(AbsGANESPnetModel):
     """Optimize a shared speech tokenizer with downstream losses.
 
-    The model combines ASR and speech reconstruction while keeping the loss
-    boundary open to additional downstream tasks. GAN discriminator updates are
-    exposed separately from the shared main loss.
+    The model combines ASR and speech reconstruction. GAN discriminator updates
+    are exposed separately from the shared main loss.
     """
 
     def __init__(
@@ -27,8 +26,6 @@ class ESPnetGANSpeechTokenizerModel(AbsGANESPnetModel):
         reconstruction_loss: HiFiGANReconstructionLoss,
         reconstruction_weight: float = 0.1,
         extract_feats_in_collect_stats: bool = False,
-        additional_losses: Optional[Mapping[str, torch.nn.Module]] = None,
-        additional_loss_weights: Optional[Mapping[str, float]] = None,
     ) -> None:
         """Initialize a shared tokenizer with weighted downstream losses.
 
@@ -40,10 +37,6 @@ class ESPnetGANSpeechTokenizerModel(AbsGANESPnetModel):
                 ``1 - alpha`` and reconstruction receives ``alpha``.
             extract_feats_in_collect_stats: Whether collect-stats must build
                 this model. Speech-tokenizer inputs need shapes only.
-            additional_losses: Optional downstream losses. Each
-                consumes the same tokenizer output and training batch.
-            additional_loss_weights: Loss weights keyed identically to
-                ``additional_losses``.
         """
         super().__init__()
         if not 0.0 <= reconstruction_weight <= 1.0:
@@ -51,35 +44,17 @@ class ESPnetGANSpeechTokenizerModel(AbsGANESPnetModel):
                 "reconstruction_weight must be in [0, 1]: " f"{reconstruction_weight}"
             )
 
-        additional_losses = dict(additional_losses or {})
-        reserved_names = {"asr", "reconstruction"}
-        duplicate_names = reserved_names.intersection(additional_losses)
-        if duplicate_names:
-            raise ValueError(
-                "Additional loss names are reserved: " f"{sorted(duplicate_names)}"
-            )
-        additional_weights = dict(additional_loss_weights or {})
-        if set(additional_weights) != set(additional_losses):
-            raise ValueError(
-                "additional_loss_weights must contain exactly the keys in "
-                "additional_losses"
-            )
-        if any(weight < 0.0 for weight in additional_weights.values()):
-            raise ValueError("Additional loss weights must be non-negative")
-
         self.tokenizer = tokenizer
         self.extract_feats_in_collect_stats = extract_feats_in_collect_stats
         self.losses = torch.nn.ModuleDict(
             {
                 "asr": asr_loss,
                 "reconstruction": reconstruction_loss,
-                **additional_losses,
             }
         )
         self.loss_weights = {
             "asr": 1.0 - reconstruction_weight,
             "reconstruction": reconstruction_weight,
-            **additional_weights,
         }
 
     @property
