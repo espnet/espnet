@@ -8,6 +8,7 @@ import numpy as np
 import pytest
 import yaml
 
+from espnet3.contract.kinds.audio import Audio
 from espnet3.publication import InferenceModel
 from espnet3.systems.base.inference_provider import InferenceProvider
 from espnet3.systems.base.inference_runner import InferenceRunner
@@ -453,9 +454,10 @@ def test_packed_contract_enforces_audio_sample_rate(
     else:
         result = model.forward_batch([sample]) if batched else model(sample)
         waveform = seen[0][0] if batched else seen[0]
-        assert isinstance(waveform, np.ndarray)
-        assert waveform.dtype == np.float32
-        assert waveform.shape == (160,)
+        assert isinstance(waveform, Audio)
+        assert waveform.rate == 16000
+        assert waveform.array.dtype == np.float32
+        assert waveform.array.shape == (160,)
         assert result == (
             [{"text": "ok", "utt_id": "0"}]
             if batched

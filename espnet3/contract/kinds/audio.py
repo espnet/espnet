@@ -23,10 +23,8 @@ class Audio:
     ever sees ``audio.array`` at ``audio.rate``.
 
     Every channel is kept: ``array`` is ``(samples,)`` for mono and
-    ``(channels, samples)`` otherwise. Which of the two a hook receives is
-    the field's choice (``Field(..., channels=...)``): the default, one
-    channel, hands a single-channel backend the 1-D array it takes;
-    ``None`` or a count hands a multichannel model every channel.
+    ``(channels, samples)`` otherwise. ``Field.channels`` can constrain the
+    count; explicit normalizers select or average channels.
 
     Args:
         array: The samples. Integer PCM is scaled to ``[-1, 1]``; a 2-D
@@ -252,12 +250,18 @@ class Audio:
 class AudioKind(Kind):
     """``audio``: an :class:`Audio` at the model's rate, with the field's channels.
 
-    ``Field(..., channels=1)`` (the default) hands the hook the reference
-    channel as a 1-D array; ``channels=None`` every channel as
-    ``(channels, samples)``, mono included as one row; ``channels=N``
-    exactly ``N`` channels, or a ``TypeError``. Pieces of a stream
-    concatenate in time.
+    Every channel and the sample rate are preserved by default. ``channels=N``
+    validates the channel count. Use ``first_channel`` or ``mean_channels``
+    normalizers to explicitly convert multichannel audio to mono.
     """
+
+    normalizers = {
+        "first_channel": lambda audio: audio.mono(),
+        "mean_channels": lambda audio: Audio(
+            audio.array.mean(axis=0) if audio.array.ndim == 2 else audio.array,
+            audio.rate,
+        ),
+    }
 
     option_names = Kind.option_names | {"sample_rate", "rate_policy"}
 
@@ -295,10 +299,6 @@ class AudioKind(Kind):
             value, field, SimpleNamespace(sample_rate=rate), output=output
         )
 
-    def to_model_input(self, value, field):
-        """Native audio backends consume waveform arrays."""
-        return value.array
-
     def to_demo_output(self, value):
         """Return Audio as (rate, samples), with channels last for Gradio."""
         if not isinstance(value, Audio):
@@ -307,7 +307,7 @@ class AudioKind(Kind):
         return value.rate, array.T if array.ndim == 2 else array
 
     def check(self, value, field, model, *, output):
-        """Coerce what a caller holds, then apply the field's channel count.
+        """Coerce what a caller holds, then validate the field's channel count.
 
         Args:
             value: What the caller gave, or what the hook returned - a
@@ -328,7 +328,7 @@ class AudioKind(Kind):
             >>> kind, stereo_in = AudioKind(), (16000, stereo)
             >>> mono_field = Field("speech", "audio")
             >>> kind.check(stereo_in, mono_field, model, output=False).array.ndim
-            1
+            2
             >>> any_channels = Field("mix", "audio", channels=None)
             >>> kind.check(stereo_in, any_channels, model, output=False).channels
             2
@@ -348,14 +348,12 @@ class AudioKind(Kind):
         else:
             audio = Audio.coerce(value, rate)
         want = field.channels
-        if want == 1:
-            return audio.mono()
         if want is not None and audio.channels != want:
             where = "returned" if output else "given"
             raise TypeError(
                 f"{field.name!r} {where} with {audio.channels} channel(s), needs {want}"
             )
-        return audio.multichannel()
+        return audio
 
     def join(self, first, second):
         """Concatenate the samples in time."""

@@ -34,28 +34,6 @@ def _contract():
     )
 
 
-def _run_contracted(forward, idx, *, dataset, model, **env):
-    """Exercise the same explicit input/forward/output sequence as the runner."""
-    contract = resolve_inference_contract(
-        env.get("inference_contract"), env.get("inference_contract_root")
-    )
-    if contract is None:
-        return forward(idx, dataset=dataset, model=model, **env)
-    if env.get("output_fn") or env.get("output_fn_path"):
-        raise ValueError("output_fn cannot be combined with an inference contract")
-    contract.validate_input_keys(env.get("input_key"))
-    prepared, original = prepare_inference_inputs(dataset, idx, contract, model)
-    result = forward(
-        idx,
-        dataset=prepared,
-        model=model,
-        **{**env, "inference_contract": contract},
-    )
-    return validate_inference_outputs(
-        result, idx, contract, model, original, env.get("idx_key", "utt_id")
-    )
-
-
 def test_custom_kind_controls_options_and_model_input(monkeypatch):
     """New modalities define their own options without editing inference code."""
 
@@ -91,8 +69,7 @@ def test_custom_kind_controls_options_and_model_input(monkeypatch):
         seen.append(tokens)
         return {"tokens": list(tokens)}
 
-    result = _run_contracted(
-        InferenceRunner.forward,
+    result = InferenceRunner.forward(
         0,
         dataset=[{"tokens": [1, 2]}],
         model=model,
@@ -115,7 +92,7 @@ def test_audio_kind_options_work_under_another_registered_name(monkeypatch):
         }
     )
     result = contract.prepare_input({"wave": (8000, np.ones(80))}, model=None)
-    assert result["wave"].shape == (160,)
+    assert result["wave"].array.shape == (160,)
 
 
 @pytest.mark.parametrize(
@@ -140,14 +117,19 @@ def test_custom_runner_uses_contract_on_both_sides_of_forward():
     class CustomRunner(InferenceRunner):
         @staticmethod
         def forward(idx, *, dataset, model, **kwargs):
-            sample = dataset[idx]
+            contract = resolve_inference_contract(kwargs["inference_contract"])
+            contract.validate_input_keys(kwargs["input_key"])
+            prepared, original = prepare_inference_inputs(dataset, idx, contract, model)
+            sample = prepared[idx]
             seen.append(sample["speech"])
-            return model(speech=sample["speech"])
+            result = model(speech=sample["speech"])
+            return validate_inference_outputs(
+                result, idx, contract, model, original, kwargs.get("idx_key", "utt_id")
+            )
 
     source = np.ones(800, dtype=np.int16)
     sample = {"utt_id": "utt-1", "speech": (8000, source)}
-    result = _run_contracted(
-        CustomRunner.forward,
+    result = CustomRunner.forward(
         0,
         dataset=[sample],
         model=lambda speech: {"text": "  HELLO  "},
@@ -156,8 +138,8 @@ def test_custom_runner_uses_contract_on_both_sides_of_forward():
     )
 
     assert result == {"text": "hello", "utt_id": "utt-1"}
-    assert seen[0].shape == (1600,)
-    assert seen[0].dtype == np.float32
+    assert seen[0].array.shape == (1600,)
+    assert seen[0].array.dtype == np.float32
     assert sample["speech"][0] == 8000
 
 
@@ -180,8 +162,7 @@ def test_reject_audio_rate_before_calling_backend():
         return {"text": "hello"}
 
     with pytest.raises(ValueError, match="sample rate 44100"):
-        _run_contracted(
-            InferenceRunner.forward,
+        InferenceRunner.forward(
             0,
             dataset=[{"speech": (44100, np.zeros(100))}],
             model=backend,
@@ -236,8 +217,7 @@ def test_batch_failure_propagates_without_retry():
         return {"text": text}
 
     with pytest.raises(TypeError, match="batch unsupported"):
-        _run_contracted(
-            InferenceRunner.forward,
+        InferenceRunner.forward(
             [0, 1],
             dataset=[{"text": " A "}, {"text": " B "}],
             model=backend,
@@ -257,8 +237,7 @@ def test_batched_mapping_of_field_lists_is_split_per_sample():
         }
     )
 
-    result = _run_contracted(
-        InferenceRunner.forward,
+    result = InferenceRunner.forward(
         [0, 1],
         dataset=[{"text": "A"}, {"text": "B"}],
         model=lambda text: {"text": text},
@@ -326,7 +305,7 @@ def test_registered_audio_normalizer_can_reuse_a_recipe_transform():
         {"speech": np.ones(10, dtype=np.float32)}, model=None
     )
 
-    np.testing.assert_allclose(prepared["speech"], 0.5)
+    np.testing.assert_allclose(prepared["speech"].array, 0.5)
 
 
 def test_contract_imports_recipe_module_in_worker_context(tmp_path, monkeypatch):
@@ -341,8 +320,7 @@ def test_contract_imports_recipe_module_in_worker_context(tmp_path, monkeypatch)
     )
     monkeypatch.setattr(sys, "path", [p for p in sys.path if p != str(tmp_path)])
 
-    result = _run_contracted(
-        InferenceRunner.forward,
+    result = InferenceRunner.forward(
         0,
         dataset=[{"text": "hello"}],
         model=lambda text: {"text": text},
@@ -368,8 +346,7 @@ def test_contract_rejects_legacy_output_fn():
     )
 
     with pytest.raises(ValueError, match="output_fn cannot be combined"):
-        _run_contracted(
-            InferenceRunner.forward,
+        InferenceRunner.forward(
             0,
             dataset=[{"text": "hello"}],
             model=lambda text: {"text": text},
@@ -377,3 +354,56 @@ def test_contract_rejects_legacy_output_fn():
             inference_contract=contract,
             output_fn=lambda **kwargs: kwargs,
         )
+
+
+@pytest.mark.parametrize("rate", [8000, 16000])
+def test_audio_preserves_rate_and_all_channels_without_a_fixed_rate(rate):
+    """Variable-rate models receive Audio with every channel and its rate."""
+    contract = load_inference_contract(
+        {
+            "inputs": {"speech": {"kind": "audio"}},
+            "outputs": {"speech": {"kind": "audio"}},
+        }
+    )
+    source = np.stack([np.full(160, 0.25), np.full(160, 0.75)])
+    seen = []
+
+    def backend(speech):
+        seen.append(speech)
+        return {"speech": speech}
+
+    result = InferenceRunner.forward(
+        0,
+        dataset=[{"speech": (rate, source)}],
+        model=backend,
+        input_key="speech",
+        inference_contract=contract,
+    )
+    assert isinstance(seen[0], Audio)
+    assert seen[0].rate == rate
+    np.testing.assert_array_equal(seen[0].array, source)
+    np.testing.assert_array_equal(result["speech"].array, source)
+    assert result["speech"].rate == rate
+
+
+@pytest.mark.parametrize(
+    ("normalizer", "expected"),
+    [
+        ("first_channel", 0.25),
+        ("mean_channels", 0.5),
+    ],
+)
+def test_audio_channel_reduction_is_explicit(normalizer, expected):
+    """Channel selection or averaging happens only when requested in config."""
+    contract = load_inference_contract(
+        {
+            "inputs": {"speech": {"kind": "audio", "normalize": [normalizer]}},
+            "outputs": {"text": {"kind": "text"}},
+        }
+    )
+    source = np.stack([np.full(160, 0.25), np.full(160, 0.75)])
+    audio = contract.prepare_input({"speech": (16000, source)}, model=None)["speech"]
+    assert audio.rate == 16000
+    assert audio.array.shape == (160,)
+    np.testing.assert_allclose(audio.array, expected)
+    np.testing.assert_allclose(source[1], 0.75)

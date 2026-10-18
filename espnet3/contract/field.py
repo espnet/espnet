@@ -30,11 +30,9 @@ class Field:
             underscores spaced and the first letter capitalised.
         optional: An input the caller may leave out; the hook then does
             not receive it. Outputs are never optional.
-        channels: For ``audio`` only: how many channels the hook sees.
-            ``1`` (the default) gives the reference channel as a 1-D
-            array, what a single-channel backend takes; ``None`` gives
-            every channel as ``(channels, samples)``; a count ``N`` demands
-            exactly ``N``. Other kinds ignore it.
+        channels: Required audio channel count, or ``None`` (default) to
+            preserve every channel. Channel selection and averaging are
+            explicit audio normalizers.
         options: Kind-specific settings, such as ``sample_rate`` or
             ``normalize``. The registered Kind validates these options.
 
@@ -43,22 +41,22 @@ class Field:
             ``name`` is not an identifier, or ``channels`` is below 1.
 
     Examples:
-        >>> Field("speech", "audio")
-        Field(name='speech', kind='audio', label='Speech', optional=False, channels=1)
+        >>> Field("speech", "audio").kind
+        'audio'
         >>> Field("reference_speech", "audio", optional=True).label
         'Reference speech'
         >>> Field("text", "text", "Transcription").label
         'Transcription'
         >>> Field("mixture", "audio", channels=None).channels   # a multichannel model
-        >>> Field("speech", "audio").channels                   # the reference channel
-        1
+        >>> Field("speech", "audio").channels is None
+        True
     """
 
     name: str
     kind: str
     label: str = ""
     optional: bool = False
-    channels: Optional[int] = 1
+    channels: Optional[int] = None
     options: Mapping[str, Any] = dataclass_field(default_factory=dict, repr=False)
 
     def __post_init__(self) -> None:

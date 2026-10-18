@@ -13,7 +13,11 @@ import torch
 from omegaconf import ListConfig
 
 from espnet2.torch_utils.device_funcs import is_out_of_memory_error
-from espnet3.contract.inference import InferenceContract
+from espnet3.contract.inference import (
+    prepare_inference_inputs,
+    resolve_inference_contract,
+    validate_inference_outputs,
+)
 from espnet3.contract.kinds.audio import Audio
 from espnet3.parallel.base_runner import BaseRunner, concatenate_shard_files
 from espnet3.parallel.env_provider import EnvironmentProvider
@@ -201,8 +205,8 @@ class InferenceRunner(BaseRunner):
             return keys
         return [key for key in output.keys() if key != idx_key]
 
-    @staticmethod
-    def forward(idx, dataset=None, model=None, **kwargs):
+    @classmethod
+    def forward(cls, idx, dataset=None, model=None, **kwargs):
         """Call ``model`` with one item or a batch from ``dataset``.
 
         Example ``conf/inference.yaml``::
@@ -218,13 +222,12 @@ class InferenceRunner(BaseRunner):
                 text: {kind: text, normalize: [strip, to_lower],
                        label: Transcription}
 
-        The infer stage and ``InferenceModel`` call
-        The shard loop checks contract inputs before calling ``forward`` and
-        validates named outputs after it returns::
+        ``forward`` checks inputs, calls the model, formats its output, and
+        validates the result. Both infer and ``InferenceModel`` use this path::
 
             dataset[0] = {"utt_id": "u1", "speech": (44100, waveform)}
-            # forward sees dataset[0]["speech"] as a 16 kHz waveform array.
-            model(speech=waveform_16k)  # -> {"text": "  HELLO  "}
+            # forward receives Audio at 16 kHz with every channel preserved.
+            model(speech=audio_16k)  # -> {"text": "  HELLO  "}
             # boundary returns {"text": "hello", "utt_id": "u1"}
 
         ``input_key`` must match ``contract.inputs``. Outputs must have the
@@ -232,27 +235,34 @@ class InferenceRunner(BaseRunner):
         array has no rate to check; pass ``Audio``, ``(rate, array)``, or a path
         when the rate matters. ``output_fn`` and ``contract`` cannot coexist.
 
-        To keep a raw ESPnet2 ``Speech2Text`` model, extract its result in a
-        custom runner (``batch_size: null``)::
+        Override ``format_output`` to adapt raw model results::
 
-            # inference.yaml:
-            # model: {_target_: espnet2.bin.asr_inference.Speech2Text}
-            # runner: {_target_: src.inference.ASRRunner}
             class ASRRunner(InferenceRunner):
                 @staticmethod
-                def forward(idx, dataset=None, model=None, **kwargs):
-                    best = model(speech=dataset[idx]["speech"])[0]
-                    return {"text": best[0] or ""}
+                def format_output(result, *, batched):
+                    def best(hypotheses):
+                        return {"text": hypotheses[0][0] or ""}
+                    return [best(r) for r in result] if batched else best(result)
 
-        For a backend that accepts batches, return one mapping per index::
+        If overriding ``forward`` itself, apply the shared checks explicitly::
 
-            class BatchTextRunner(InferenceRunner):
-                @staticmethod
-                def forward(idx, dataset=None, model=None, **kwargs):
-                    if isinstance(idx, (list, tuple)):
-                        speech = [dataset[i]["speech"] for i in idx]
-                        return [{"text": t} for t in model(speech=speech)]
-                    return {"text": model(speech=dataset[idx]["speech"])}
+            @staticmethod
+            def forward(idx, dataset=None, model=None, **kwargs):
+                contract = resolve_inference_contract(
+                    kwargs.get("inference_contract"),
+                    kwargs.get("inference_contract_root"),
+                )
+                if contract is None:
+                    return model(speech=dataset[idx]["speech"])
+                contract.validate_input_keys(kwargs["input_key"])
+                prepared, original = prepare_inference_inputs(
+                    dataset, idx, contract, model
+                )
+                result = model(speech=prepared[idx]["speech"])
+                return validate_inference_outputs(
+                    result, idx, contract, model, original,
+                    kwargs.get("idx_key", "utt_id"),
+                )
 
         Optional inputs must also appear in ``input_key``::
 
@@ -274,66 +284,60 @@ class InferenceRunner(BaseRunner):
             from espnet3.contract import register_normalizer
             register_normalizer("my_normalizer", normalize_text)
 
-        Overrides keep ``@staticmethod`` and ``idx, dataset, model, **kwargs``.
-        Contract input is already normalized; return named outputs without
-        manually adding ``utt_id``. Direct ``forward`` calls skip contract
-        checks. Bundled recipe code needs ``trust_user_code=True`` when loaded.
+        Custom ``forward`` implementations own their contract checks; calling
+        ``super().forward`` uses the default checked path. ``format_output``
+        receives raw model results and returns named outputs before validation.
+        Changes after ``super().forward`` require output validation again.
+        Bundled recipe code needs ``trust_user_code=True`` when loaded.
         Without a contract, the legacy ``output_fn`` path still applies.
         """
         model_kwargs = kwargs.get("model_kwargs") or {}
         if not isinstance(model_kwargs, Mapping):
             raise TypeError("model_kwargs must be a mapping when provided.")
-        model_kwargs = dict(model_kwargs)
         if "input_key" not in kwargs:
             raise RuntimeError("input_key must be provided for inference.")
         input_key = kwargs["input_key"]
-        contract = kwargs.get("inference_contract")
+        contract = resolve_inference_contract(
+            kwargs.get("inference_contract"), kwargs.get("inference_contract_root")
+        )
+        if contract is not None:
+            if kwargs.get("output_fn") or kwargs.get("output_fn_path"):
+                raise ValueError(
+                    "output_fn cannot be combined with an inference contract"
+                )
+            contract.validate_input_keys(input_key)
+            dataset, original = prepare_inference_inputs(dataset, idx, contract, model)
         optional_keys = (
             {spec.name for spec in contract.inputs if spec.optional}
-            if isinstance(contract, InferenceContract)
+            if contract is not None
             else set()
         )
         output_fn = kwargs.get("output_fn")
         if output_fn is None:
             output_fn_path = kwargs.get("output_fn_path")
             output_fn = _load_output_fn(output_fn_path) if output_fn_path else None
-
         keys = (
             list(input_key)
             if isinstance(input_key, (list, tuple, ListConfig))
             else [input_key]
         )
-
-        is_batched = isinstance(idx, (list, tuple))
-        if not is_batched:
-            data = dataset[idx]
-            inputs_dict = {}
-            for key in keys:
-                if key not in data:
-                    if key in optional_keys:
-                        continue
-                    raise KeyError(f"Input key '{key}' not found in dataset item.")
-                inputs_dict[key] = data[key]
-            model_output = model(**inputs_dict, **model_kwargs)
-            if output_fn is None:
-                return model_output
-            return output_fn(data=data, model_output=model_output, idx=idx)
-
-        indices = list(idx)
-        data_batch = [dataset[i] for i in indices]
+        batched = isinstance(idx, (list, tuple))
+        indices = list(idx) if batched else [idx]
+        samples = [dataset[i] for i in indices]
         inputs_dict = {}
         for key in keys:
-            present = [key in data for data in data_batch]
+            present = [key in sample for sample in samples]
             if not all(present):
                 if key in optional_keys and not any(present):
                     continue
                 raise KeyError(f"Input key '{key}' not found in dataset item.")
-            inputs_dict[key] = [data[key] for data in data_batch]
-
+            values = [sample[key] for sample in samples]
+            inputs_dict[key] = values if batched else values[0]
+        inputs_dict = cls.prepare_model_inputs(inputs_dict)
         try:
-            model_output = model(**inputs_dict, **model_kwargs)
+            result = model(**inputs_dict, **dict(model_kwargs))
         except Exception as exc:  # noqa: BLE001
-            if not is_out_of_memory_error(exc):
+            if not batched or not is_out_of_memory_error(exc):
                 raise
             raise RuntimeError(
                 f"Batched inference ran out of memory on {len(indices)} "
@@ -343,9 +347,28 @@ class InferenceRunner(BaseRunner):
                 "or sort the test set by length so that long utterances "
                 "are not padded to each other."
             ) from exc
-        if output_fn is None:
-            return model_output
-        return output_fn(data=data_batch, model_output=model_output, idx=indices)
+        if output_fn is not None:
+            result = output_fn(
+                data=samples if batched else samples[0],
+                model_output=result,
+                idx=idx,
+            )
+        result = cls.format_output(result, batched=batched)
+        if contract is not None:
+            result = validate_inference_outputs(
+                result, idx, contract, model, original, kwargs.get("idx_key", "utt_id")
+            )
+        return result
+
+    @staticmethod
+    def prepare_model_inputs(inputs):
+        """Adapt checked Kind values to a backend's argument representation."""
+        return inputs
+
+    @staticmethod
+    def format_output(result, *, batched):
+        """Convert raw model results to named outputs before contract validation."""
+        return result
 
     @staticmethod
     def open_writers(

@@ -35,6 +35,11 @@ model:
 # Inputs and outputs are generated from conf/inference.yaml's contract.
 # Set ui.inputs or ui.outputs explicitly to override that layout. Custom
 # kinds need a matching UI asset registered in the demo session registry.
+# In your ui.app_script (e.g. src/app.py), before building components:
+#   from src.my_ui import CustomUI
+#   session = load_demo_session(demo_dir, demo_config_path)
+#   session.registry.register("custom_kind", CustomUI)
+# Include src/my_ui.py via pack.include when the script imports it.
 ui:
   app_script: ${config_path:../src/app.py}
   title: ${set_corpus_and_system:} demo

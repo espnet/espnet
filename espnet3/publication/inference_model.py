@@ -28,11 +28,7 @@ from espnet_model_zoo.downloader import ModelDownloader
 from hydra.utils import get_class, get_object
 from omegaconf import DictConfig, ListConfig, OmegaConf
 
-from espnet3.contract.inference import (
-    load_inference_contract,
-    prepare_inference_inputs,
-    validate_inference_outputs,
-)
+from espnet3.contract.inference import load_inference_contract
 from espnet3.systems.base.inference_provider import InferenceProvider
 from espnet3.systems.base.inference_runner import InferenceRunner, _load_output_fn
 from espnet3.utils.config_utils import load_config_with_defaults
@@ -571,17 +567,7 @@ class InferenceModel:
             "model_kwargs": extra_kwargs,
         }
         dataset = {idx: data}
-        if self.contract is None:
-            return self.runner_cls.forward(
-                idx, dataset=dataset, model=self.model, **env
-            )
-        prepared, original = prepare_inference_inputs(
-            dataset, idx, self.contract, self.model
-        )
-        result = self.runner_cls.forward(idx, dataset=prepared, model=self.model, **env)
-        return validate_inference_outputs(
-            result, idx, self.contract, self.model, original, self.idx_key
-        )
+        return self.runner_cls.forward(idx, dataset=dataset, model=self.model, **env)
 
     def __call__(self, sample: Any, idx: Any = 0, **extra_kwargs: Any) -> Any:
         """Alias for :meth:`forward`.
@@ -643,25 +629,9 @@ class InferenceModel:
             "inference_contract": self.contract,
             "idx_key": self.idx_key,
         }
-        if self.contract is None:
-            batch_result = self.runner_cls.forward(
-                index_list, dataset=dataset, model=self.model, **env
-            )
-        else:
-            prepared, original = prepare_inference_inputs(
-                dataset, index_list, self.contract, self.model
-            )
-            batch_result = self.runner_cls.forward(
-                index_list, dataset=prepared, model=self.model, **env
-            )
-            batch_result = validate_inference_outputs(
-                batch_result,
-                index_list,
-                self.contract,
-                self.model,
-                original,
-                self.idx_key,
-            )
+        batch_result = self.runner_cls.forward(
+            index_list, dataset=dataset, model=self.model, **env
+        )
         if isinstance(batch_result, (list, tuple)) and len(batch_result) == len(
             sample_list
         ):

@@ -142,8 +142,9 @@ batch_size: 4
 
 # The same contract is applied around the runner for infer, publication and
 # demo. An audio input with a known rate is resampled to 16 kHz before the
-# backend receives its waveform. Bare arrays carry no rate and are assumed
-# to be at the declared rate. Set rate_policy: reject to refuse mismatches.
+# runner receives Audio with every channel preserved. Bare arrays carry no rate
+# and are assumed to be at the declared rate. Set rate_policy: reject to refuse
+# mismatches.
 # Custom kinds or normalizers can be registered from a recipe module with
 # `imports: [src.contracts]`. A normalizer receives the Kind's checked value
 # (for audio, an Audio object) and returns the same Kind. This lets a recipe
@@ -156,6 +157,8 @@ contract:
       label: Input Audio
       sample_rate: 16000
       rate_policy: resample
+      # Explicit mono conversion, if required by the model:
+      # normalize: [mean_channels]  # or [first_channel]
   outputs:
     text:
       kind: text

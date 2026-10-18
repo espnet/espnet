@@ -1,5 +1,7 @@
 """The ASR runner formats native Speech2Text hypotheses for the contract."""
 
+import pytest
+
 from espnet3.systems.esp2_asr.inference import ASRInferenceRunner
 
 
@@ -39,3 +41,83 @@ def test_asr_runner_formats_batched_native_results():
     )
 
     assert result == [{"text": "A"}, {"text": "B"}]
+
+
+@pytest.mark.parametrize("batched", [False, True])
+def test_asr_forward_validates_after_formatting(batched):
+    """Direct calls normalize inputs and validate the final named ASR results."""
+    seen = []
+
+    def model(speech):
+        seen.append(speech)
+        if isinstance(speech, list):
+            return [[("  HELLO!  ", [], [], None)] for _ in speech]
+        return [("  HELLO!  ", [], [], None)]
+
+    contract = {
+        "inputs": {"speech": {"kind": "text", "normalize": ["strip"]}},
+        "outputs": {"text": {"kind": "text", "normalize": ["strip", "to_lower"]}},
+    }
+    result = ASRInferenceRunner.forward(
+        [0, 1] if batched else 0,
+        dataset=[{"speech": " A ", "utt_id": "a"}, {"speech": " B ", "utt_id": "b"}],
+        model=model,
+        input_key="speech",
+        inference_contract=contract,
+    )
+    assert seen == ([["A", "B"]] if batched else ["A"])
+    expected = {"text": "hello!", "utt_id": "a"}
+    assert result == (
+        [expected, {"text": "hello!", "utt_id": "b"}] if batched else expected
+    )
+
+
+def test_asr_forward_rejects_invalid_formatted_output():
+    """A malformed hypothesis is rejected after the ASR formatter runs."""
+    with pytest.raises(TypeError, match="must be str"):
+        ASRInferenceRunner.forward(
+            0,
+            dataset=[{"speech": "input"}],
+            model=lambda speech: [(123, [], [], None)],
+            input_key="speech",
+            inference_contract={
+                "inputs": {"speech": {"kind": "text"}},
+                "outputs": {"text": {"kind": "text"}},
+            },
+        )
+
+
+def test_asr_runner_forward_survives_pickling():
+    """Worker serialization preserves the subclass output formatter."""
+    import pickle
+
+    forward = pickle.loads(pickle.dumps(ASRInferenceRunner.forward))
+    assert forward(
+        0, dataset=[{"speech": "audio"}], model=FakeSpeech2Text(), input_key="speech"
+    ) == {"text": "ONE"}
+
+
+def test_asr_runner_preserves_all_channels_for_native_backend():
+    """The ESPnet2 adapter changes array layout without selecting a channel."""
+    import numpy as np
+
+    source = np.stack([np.full(160, 0.25), np.full(160, 0.75)])
+    seen = []
+
+    def backend(speech):
+        seen.append(speech)
+        return [("ok", [], [], None)]
+
+    result = ASRInferenceRunner.forward(
+        0,
+        dataset=[{"speech": (16000, source)}],
+        model=backend,
+        input_key="speech",
+        inference_contract={
+            "inputs": {"speech": {"kind": "audio", "sample_rate": 16000}},
+            "outputs": {"text": {"kind": "text"}},
+        },
+    )
+    assert seen[0].shape == (160, 2)
+    np.testing.assert_array_equal(seen[0], source.T)
+    assert result["text"] == "ok"
