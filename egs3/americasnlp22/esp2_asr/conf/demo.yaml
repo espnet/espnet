@@ -1,0 +1,16 @@
+##########################################################
+#                      DEMO SETTING                      #
+##########################################################
+# Quick usage (after `pack_model`):
+#   python run.py --stages pack_demo \
+#       --training_config conf/tuning/training_<lang>.yaml \
+#       --demo_config conf/demo.yaml
+#
+# Everything else is the TEMPLATE default: `model.dir_or_tag` points to
+# `exp/${exp_tag}/model_pack`, and the TEMPLATE `src/app.py` builds the
+# native Speech2Text backend from that packed model.
+pack:
+  # The XLS-R frontend needs s3prl at inference time.
+  requirements:
+    - espnet[asr,demo] @ git+https://github.com/espnet/espnet.git
+    - espnet-s3prl
