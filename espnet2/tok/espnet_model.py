@@ -77,8 +77,8 @@ class ESPnetGANSpeechTokenizerModel(AbsGANESPnetModel):
         self,
         speech: torch.Tensor,
         speech_lengths: torch.Tensor,
-        text: torch.Tensor,
-        text_lengths: torch.Tensor,
+        text: Optional[torch.Tensor],
+        text_lengths: Optional[torch.Tensor],
         spembs: torch.Tensor,
         **kwargs: torch.Tensor,
     ) -> Dict[str, Any]:
@@ -96,6 +96,8 @@ class ESPnetGANSpeechTokenizerModel(AbsGANESPnetModel):
         total_loss: Optional[torch.Tensor] = None
         stats: Dict[str, Any] = {}
         for name, loss_module in self.losses.items():
+            if self.loss_weights[name] == 0.0:
+                continue
             module_loss, module_stats, _ = loss_module(tokenizer_output, **loss_batch)
             weighted_loss = self.loss_weights[name] * module_loss
             total_loss = (
@@ -151,9 +153,11 @@ class ESPnetGANSpeechTokenizerModel(AbsGANESPnetModel):
     ) -> Dict[str, Any]:
         """Return main-generator or discriminator loss for its optimizer."""
         if forward_generator:
-            if text is None or text_lengths is None:
+            if self.loss_weights["asr"] > 0.0 and (
+                text is None or text_lengths is None
+            ):
                 raise ValueError(
-                    "text and text_lengths are required for generator loss"
+                    "text and text_lengths are required when ASR loss is active"
                 )
             return self._forward_generator(
                 speech=speech,

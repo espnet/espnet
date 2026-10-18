@@ -69,12 +69,12 @@ class DummyReconstructionLoss(torch.nn.Module):
         return tokenizer_output.assignment[:, :1, :1], tokenizer_output.lengths
 
 
-def make_model():
+def make_model(reconstruction_weight=0.25):
     return ESPnetGANSpeechTokenizerModel(
         tokenizer=DummyTokenizer(),
         asr_loss=DummyASRLoss(),
         reconstruction_loss=DummyReconstructionLoss(),
-        reconstruction_weight=0.25,
+        reconstruction_weight=reconstruction_weight,
     )
 
 
@@ -101,6 +101,38 @@ def test_generator_combines_losses_and_tokenizes_once():
 
     result["loss"].backward()
     assert model.tokenizer.logits.grad is not None
+
+
+def test_generator_skips_inactive_asr_loss_without_text():
+    model = make_model(reconstruction_weight=1.0)
+    result = model(
+        speech=torch.randn(2, 4),
+        speech_lengths=torch.tensor([4, 3]),
+        spembs=torch.randn(2, 3),
+        forward_generator=True,
+    )
+
+    assert model.asr_loss.last_loss is None
+    assert model.reconstruction_loss.last_loss is not None
+    assert "asr_loss" not in result["stats"]
+    assert "reconstruction_loss" in result["stats"]
+
+
+def test_generator_skips_inactive_reconstruction_loss():
+    model = make_model(reconstruction_weight=0.0)
+    result = model(
+        speech=torch.randn(2, 4),
+        speech_lengths=torch.tensor([4, 3]),
+        text=torch.ones(2, 2, dtype=torch.long),
+        text_lengths=torch.tensor([2, 1]),
+        spembs=torch.randn(2, 3),
+        forward_generator=True,
+    )
+
+    assert model.asr_loss.last_loss is not None
+    assert model.reconstruction_loss.last_loss is None
+    assert "asr_loss" in result["stats"]
+    assert "reconstruction_loss" not in result["stats"]
 
 
 def test_discriminator_uses_cache_without_running_tokenizer():
