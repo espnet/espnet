@@ -1,0 +1,26 @@
+name: Request Codex review
+
+# Most ESPnet pull requests come from forks. pull_request_target is required
+# so the base repository's GITHUB_TOKEN can post a comment on those PRs.
+# This workflow must not check out or execute code from the pull request.
+on:
+  pull_request_target:
+    types: [opened, reopened, ready_for_review]
+
+permissions: {}
+
+jobs:
+  request-codex-review:
+    if: github.event.pull_request.draft == false
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write # PR conversation comments use the Issues API
+
+    steps:
+      - name: Request Codex review
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          gh api             --method POST             "repos/${GH_REPO}/issues/${PR_NUMBER}/comments"             -f body='@codex review'
