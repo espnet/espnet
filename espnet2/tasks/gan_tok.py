@@ -9,13 +9,6 @@ from typeguard import typechecked
 
 from espnet2.asr.ctc import CTC
 from espnet2.asr.espnet_model import ESPnetASRModel
-from espnet2.tok.abs_quantizer import AbsSpeechTokenizerQuantizer
-from espnet2.tok.asr_loss import ASRLoss
-from espnet2.tok.espnet_model import ESPnetGANSpeechTokenizerModel
-from espnet2.tok.hifigan_loss import HiFiGANReconstructionLoss
-from espnet2.tok.quantizer_differentiable_kmeans import DifferentiableKMeans
-from espnet2.tok.token_embedding import TokenEmbedding
-from espnet2.tok.tokenizer import SpeechTokenizer
 from espnet2.tasks.abs_task import AbsTask, optim_classes
 from espnet2.tasks.asr import (
     ASRTask,
@@ -28,6 +21,13 @@ from espnet2.tasks.asr import (
     specaug_choices,
 )
 from espnet2.text.phoneme_tokenizer import g2p_choices
+from espnet2.tok.abs_quantizer import AbsSpeechTokenizerQuantizer
+from espnet2.tok.asr_loss import ASRLoss
+from espnet2.tok.espnet_model import ESPnetGANSpeechTokenizerModel
+from espnet2.tok.hifigan_loss import HiFiGANReconstructionLoss
+from espnet2.tok.quantizer_differentiable_kmeans import DifferentiableKMeans
+from espnet2.tok.token_embedding import TokenEmbedding
+from espnet2.tok.tokenizer import SpeechTokenizer
 from espnet2.train.class_choices import ClassChoices
 from espnet2.train.collate_fn import CommonCollateFn
 from espnet2.train.preprocessor import CommonPreprocessor
@@ -246,9 +246,7 @@ class GANSpeechTokenizerTask(AbsTask):
         """Build the configured waveform-reconstruction loss."""
         reconstruction_conf = dict(args.reconstruction_loss_conf)
         reconstruction_conf.pop("num_tokens", None)
-        loss_class = reconstruction_loss_choices.get_class(
-            args.reconstruction_loss
-        )
+        loss_class = reconstruction_loss_choices.get_class(args.reconstruction_loss)
         return loss_class(num_tokens=num_tokens, **reconstruction_conf)
 
     @classmethod
@@ -262,9 +260,7 @@ class GANSpeechTokenizerTask(AbsTask):
         quantizer = quantizer_choices.get_class(args.quantizer)(**args.quantizer_conf)
         tokenizer = SpeechTokenizer(frontend, quantizer, **args.tokenizer_conf)
 
-        asr_loss = cls._build_asr_loss(
-            args, token_list, quantizer.num_clusters
-        )
+        asr_loss = cls._build_asr_loss(args, token_list, quantizer.num_clusters)
         reconstruction_loss = cls._build_reconstruction_loss(
             args, quantizer.num_clusters
         )

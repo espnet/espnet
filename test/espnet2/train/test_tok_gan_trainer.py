@@ -1,8 +1,8 @@
 import torch
 
 from espnet2.asr.frontend.abs_frontend import AbsFrontend
-from espnet2.tok.output import SpeechTokenizerOutput
 from espnet2.tok.abs_quantizer import AbsSpeechTokenizerQuantizer
+from espnet2.tok.output import SpeechTokenizerOutput
 from espnet2.tok.tokenizer import SpeechTokenizer
 from espnet2.train.tok_gan_trainer import SpeechTokenizerGANTrainer
 
