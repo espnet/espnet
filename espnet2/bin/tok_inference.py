@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Extract discrete speech tokens without constructing downstream objectives."""
+"""Extract discrete speech tokens without constructing downstream losses."""
 
 import argparse
 import logging

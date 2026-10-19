@@ -7,10 +7,8 @@ import yaml
 from espnet2.asr.frontend.abs_frontend import AbsFrontend
 from espnet2.bin import tok_inference
 from espnet2.bin.tok_inference import build_tokenizer, get_parser, main
+from espnet2.tok.abs_quantizer import AbsSpeechTokenizerQuantizer
 from espnet2.tok.output import SpeechTokenizerOutput
-from espnet2.tok.quantizer.abs_quantizer import (
-    AbsSpeechTokenizerQuantizer,
-)
 from espnet2.tok.tokenizer import SpeechTokenizer
 
 
@@ -83,7 +81,7 @@ def test_build_tokenizer_loads_tokenizer_state_only(tmp_path, monkeypatch, prefi
                 "frontend_conf": {"scale": 2.0},
                 "quantizer": "dummy",
                 "quantizer_conf": {"threshold": 0.5},
-                "tokenizer_conf": {"freeze_epochs": 1},
+                "tokenizer_conf": {"freeze_steps": 1},
             },
             stream,
         )
@@ -91,7 +89,7 @@ def test_build_tokenizer_loads_tokenizer_state_only(tmp_path, monkeypatch, prefi
     expected = SpeechTokenizer(
         DummyFrontend(scale=3.0),
         DummyQuantizer(threshold=1.5),
-        freeze_epochs=1,
+        freeze_steps=1,
     )
     checkpoint = {
         "model": {
@@ -99,7 +97,7 @@ def test_build_tokenizer_loads_tokenizer_state_only(tmp_path, monkeypatch, prefi
             for name, value in expected.state_dict().items()
         }
     }
-    checkpoint["model"]["objectives.unused"] = torch.tensor(10.0)
+    checkpoint["model"]["losses.unused"] = torch.tensor(10.0)
     model_file = tmp_path / "model.pth"
     torch.save(checkpoint, model_file)
 
@@ -132,7 +130,7 @@ def test_build_tokenizer_rejects_checkpoint_without_tokenizer_state(
             stream,
         )
     model_file = tmp_path / "model.pth"
-    torch.save({"model": {"objectives.unused": torch.tensor(1.0)}}, model_file)
+    torch.save({"model": {"losses.unused": torch.tensor(1.0)}}, model_file)
 
     with pytest.raises(RuntimeError, match=r"No tokenizer\.\* parameters"):
         build_tokenizer(
