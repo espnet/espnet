@@ -1,7 +1,7 @@
 # VCTK Phonological Tokenizer
 
 This recipe trains a phonological tokenizer on VCTK with ASR and
-speaker-conditioned waveform reconstruction objectives.
+speaker-conditioned waveform reconstruction losses.
 
 Set `VCTK` in `db.sh` to the corpus or download directory, then run:
 
