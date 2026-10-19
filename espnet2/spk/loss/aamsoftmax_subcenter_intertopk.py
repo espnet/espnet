@@ -8,6 +8,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
+from espnet2.spk.loss.aamsoftmax import sine_from_cosine
 from espnet2.spk.loss.abs_loss import AbsLoss
 
 
@@ -146,7 +147,7 @@ class ArcMarginProduct_intertopk_subcenter(AbsLoss):
             accuracy = None
             return loss, accuracy, preds
 
-        sine = torch.sqrt(1.0 - torch.pow(cosine, 2))
+        sine = sine_from_cosine(cosine)
 
         # Apply angular margin to positive samples:
         # cos(θ + m) = cosθ·cos(m) - sinθ·sin(m)
