@@ -157,6 +157,7 @@ contract:
       label: Input Audio
       sample_rate: 16000
       rate_policy: resample
+      channels: 1
       # Explicit mono conversion, if required by the model:
       # normalize: [mean_channels]  # or [first_channel]
   outputs:
