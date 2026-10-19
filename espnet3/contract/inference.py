@@ -33,10 +33,7 @@ class InferenceContract:
                 if spec.optional:
                     prepared.pop(spec.name, None)
                     continue
-                raise ValueError(
-                    f"Required inference input {spec.name!r} is missing in dataset item. "
-                    "Do not mix samples with and without optional inputs in one batch."
-                )
+                raise KeyError(f"Required inference input {spec.name!r} is missing")
             value = KINDS[spec.kind].apply(
                 sample[spec.name], spec, model, spec.options, output=False
             )
