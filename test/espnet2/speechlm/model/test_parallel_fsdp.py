@@ -4,7 +4,7 @@
 """Compare ParallelLLM._loss gradients and updates with an unsharded model.
 
 Run the optional real-Liger check on two or four GPUs with
-``python -m pytest -o addopts= test/espnet2/speechlm/model/test_parallel_fsdp.py -k cuda``.
+``pytest -o addopts= test/espnet2/speechlm/model/test_parallel_fsdp.py -k cuda``.
 """
 
 import copy
