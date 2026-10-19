@@ -44,7 +44,7 @@ resolve this default — set `model.dir_or_tag` explicitly in that case.
 | Section | Description |
 | --- | --- |
 | `model.dir_or_tag` | local packed-model directory, or a Hugging Face tag understood by `espnet_model_zoo` |
-| `model.trust_user_code` | forwarded to `InferenceModel` when loading the packed model |
+| `model.trust_user_code` | forwarded to `InferenceModel` when loading the packed model; also gates `contract.imports` |
 | `model.call_args` | constant kwargs passed at call time: `model(sample, **call_args)` |
 | `ui.app_script` | Gradio launcher script copied into the bundle as `app.py` |
 | `ui.title`, `ui.description` | demo title and description (a file path is copied in; inline text is shown as-is) |
@@ -133,6 +133,13 @@ packed.
 
 `ui.app_script` is copied into the packed demo as `app.py`. `ui.description`
 can be a markdown/text file path (copied into the bundle) or inline text.
+
+By default, the Gradio UI widgets are generated from the `contract` section of
+the packed `inference.yaml`. The `ui.inputs` and `ui.outputs` entries override
+or extend this default mapping. If your model uses a custom kind not built
+into ESPnet, you must register a corresponding UI class in the demo's
+`session.registry` (see the comment in the ASR template's
+`conf/demo.yaml`).
 
 `ui.inputs`/`ui.outputs` entries have:
 

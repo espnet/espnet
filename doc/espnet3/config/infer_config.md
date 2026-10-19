@@ -20,6 +20,7 @@ Typical inference runs need:
 
 Optional:
 
+- `contract`
 - `output_fn`
 - `output_keys`
 - `idx_key`
@@ -34,7 +35,8 @@ Optional:
 | `dataset` | test-set definitions resolved through `DataOrganizer` |
 | `model` | inference-time model entrypoint and arguments |
 | `input_key` | which dataset field or fields are passed into the model |
-| `output_fn` | import path to the formatting function used by `InferenceRunner` |
+| `contract` | declares model inputs and outputs with their kinds, sample rates, channels, and normalizers (recommended) |
+| `output_fn` | import path to the formatting function used by `InferenceRunner` (legacy; cannot be combined with `contract`) |
 | `output_keys`, `idx_key` | controls SCP output names and utterance ID key |
 | `batch_size` | enables batched runner execution |
 | `parallel` | local, multi-worker, or cluster execution settings |
@@ -51,6 +53,7 @@ Optional:
 | `parallel.env` | `local` |
 | `parallel.n_workers` | `1` |
 | `input_key` | `speech` |
+| `contract` | unset |
 | `output_fn` | unset (model output must already be a dict, or a list of dicts in batched mode) |
 | `provider._target_` | `espnet3.systems.base.inference_provider.InferenceProvider` |
 | `runner._target_` | `espnet3.systems.base.inference_runner.InferenceRunner` |
@@ -83,6 +86,20 @@ model:
   _target_: espnet2.bin.asr_inference.Speech2Text
   asr_train_config: ${exp_dir}/config.yaml
   asr_model_file: ${exp_dir}/last.ckpt
+
+# Use contract instead of output_fn
+contract:
+  inputs:
+    speech:
+      kind: audio
+      label: Input Audio
+      sample_rate: 16000
+      rate_policy: resample
+      channels: 1
+  outputs:
+    text:
+      kind: text
+      label: Transcription
 ```
 
 ## Model definition
@@ -93,7 +110,9 @@ recipes this is often an `espnet2.bin.*` helper such as
 
 When you use a custom inference stack, provide your own `_target_` and
 arguments. The instantiated object should accept the inputs named by
-`input_key`, and `output_fn` should know how to interpret the return value.
+`input_key`. With a contract, the runner validates the model's output against
+the contract's output fields; without a contract, `output_fn` interprets the
+return value.
 
 See [Model](../core/components/model.html) for model implementation details.
 
@@ -116,6 +135,97 @@ The exact filenames are determined by:
 - `output_keys` if it is set
 - otherwise the keys returned by `output_fn` for the first sample, excluding
   `idx_key`
+- or the contract `outputs` names if a contract is used
+
+## Contract
+
+The `contract` section in `inference.yaml` declares the model's inputs and
+outputs with their types, constraints, and optional normalizations. This is the
+recommended way to describe model behavior; it replaces the legacy `output_fn`
+approach and provides built-in validation.
+
+A minimal contract for audio-to-text ASR looks like:
+
+```yaml
+contract:
+  imports:
+    - src.contracts  # optional: load custom kinds/normalizers from a recipe module
+  inputs:
+    speech:
+      kind: audio
+      label: Input Audio
+      sample_rate: 16000
+      rate_policy: resample  # resample mismatched rates; use `reject` to refuse them
+      channels: 1           # require exactly 1 channel; remove to pass multichannel through
+      # normalize: [mean_channels]  # optional: apply normalization before model sees input
+  outputs:
+    text:
+      kind: text
+      label: Transcription
+      # normalize: [strip, to_lower]  # optional: apply text normalization
+```
+
+### Contract fields
+
+- `inputs` and `outputs` are mappings from field names to field descriptors.
+- Each descriptor must include a `kind` (e.g., `audio`, `text`, `number`,
+  `segments`).
+- Optional fields are marked with `optional: true`.
+- Audio fields can specify `sample_rate`, `rate_policy` (`resample` or
+  `reject`), `channels` (exact channel count required), and `normalize`
+  (list of normalizers like `mean_channels`, `first_channel`).
+- Text and other kinds accept `normalize` with normalizers appropriate to that
+  kind.
+- Unknown keys in the contract raise a `ValueError` during loading.
+
+### Built-in kinds
+
+- `audio`: An audio signal with optional sample rate and channel information.
+  - Options: `sample_rate`, `rate_policy`, `channels`, `normalize`
+- `text`: A text string.
+  - Options: `normalize`
+- `number`: A numeric value.
+- `segments`: A list of segments with start/end times.
+
+### Normalizers
+
+Normalizers are functions that transform values of a specific kind. Built-in
+normalizers include:
+
+- Audio: `mean_channels`, `first_channel`
+- Text: `strip`, `to_lower`
+
+Custom kinds and normalizers can be registered via `register_kind` and
+`register_normalizer` from `espnet3.contract`, then loaded through the
+`imports` list. Loading custom code from a published bundle requires
+`trust_user_code: true` in the model configuration.
+
+### Input/output matching
+
+- `input_key` must match the names declared in `contract.inputs` exactly; no
+duplicates are allowed.
+- Optional inputs are declared with `optional: true` in the contract and must
+also be present in `input_key`. Within one batch, all samples must either all
+have or all lack an optional input, otherwise a `KeyError` is raised.
+- The model output must match the contract's output field names; the runner
+validates this and produces SCP files named after the output fields.
+
+### Audio behavior
+
+When an audio input has a known sample rate, it is automatically resampled to
+the declared `sample_rate` (using `rate_policy: resample`). The model receives
+an `Audio` object with all channels preserved unless `channels: N` is set,
+which validates the exact channel count. For stereo input with a mono model,
+add `normalize: [mean_channels]` or `[first_channel]` to the input descriptor.
+
+### Legacy and exclusions
+
+- `output_fn` cannot be combined with a contract; setting both raises
+  `ValueError("output_fn cannot be combined with an inference contract")`.
+- The ESPnet2 ASR system moved n-best text formatting from `output_fn` into the
+  runner, so the ASR template no longer sets `output_fn`.
+- The contract travels with the packed model in `inference.yaml`, so
+  `InferenceModel.from_pretrained` and `from_packed` apply it automatically.
 
 ## Output control
 

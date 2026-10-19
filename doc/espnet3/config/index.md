@@ -12,9 +12,15 @@ stage reads exactly one of them; there are no CLI key-value overrides.
   />
   <DocCard
     title="inference.yaml"
-    desc="Decoder settings, test sets, and output layout for the infer stage."
+    desc="Decoder settings, test sets, output layout, and inference contract for the infer stage."
     icon="tabler:bolt"
     href="./infer_config.html"
+  />
+  <DocCard
+    title="Contract"
+    desc="Declarative description of model inputs and outputs with kinds, constraints, and normalizers."
+    icon="tabler:file-contract"
+    href="./contract.html"
   />
   <DocCard
     title="publication.yaml"
