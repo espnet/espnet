@@ -1,15 +1,14 @@
 from argparse import Namespace
+from test.espnet2.tok.test_hifigan_loss import (
+    TINY_DISCRIMINATOR_PARAMS,
+    TINY_GENERATOR_PARAMS,
+)
 from types import SimpleNamespace
 
 import joblib
 import numpy as np
 import pytest
 import torch
-
-from test.espnet2.tok.test_hifigan_loss import (
-    TINY_DISCRIMINATOR_PARAMS,
-    TINY_GENERATOR_PARAMS,
-)
 
 from espnet2.tasks.gan_tok import GANSpeechTokenizerTask
 from espnet2.train.gan_trainer import GANTrainer
@@ -224,6 +223,5 @@ def test_build_model_and_run_generator_discriminator_steps(tmp_path):
         assert model.tokenizer.current_step.item() == 1
         assert model.tokenizer.quantizer.num_updates.item() == 1
         assert (
-            model.reconstruction_loss.has_cached_generator_outputs
-            is forward_generator
+            model.reconstruction_loss.has_cached_generator_outputs is forward_generator
         )
