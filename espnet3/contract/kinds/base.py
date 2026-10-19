@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
+from dataclasses import replace
 from typing import TYPE_CHECKING, Any
 
 from espnet3.contract.normalizers import NORMALIZERS
@@ -68,10 +69,13 @@ class Kind(ABC):
 
     def apply(self, value, field, model, options, *, output):
         """Check, normalize, and recheck a value using this Kind's configuration."""
-        result = self.check_configured(value, field, model, options, output=output)
         names = options.get("normalize", ()) or ()
         if isinstance(names, str):
             names = [names]
+        # A normalizer may change the channel count, so the field's channels
+        # are only checked once, after normalization.
+        first = replace(field, channels=None) if names else field
+        result = self.check_configured(value, first, model, options, output=output)
         normalizers = self.normalizers | NORMALIZERS
         for name in names:
             result = normalizers[name](result)

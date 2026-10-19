@@ -157,6 +157,10 @@ contract:
       label: Input Audio
       sample_rate: 16000
       rate_policy: resample
+      # Exactly this many channels reach the model. Multichannel input is
+      # rejected unless a normalizer below reduces it first (normalizers run
+      # before this check). Remove `channels` for a multichannel model to pass
+      # the input through unchanged, or set `channels: N` to require N.
       channels: 1
       # Explicit mono conversion, if required by the model:
       # normalize: [mean_channels]  # or [first_channel]

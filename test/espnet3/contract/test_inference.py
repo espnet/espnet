@@ -12,7 +12,7 @@ from espnet3.contract.inference import (
     validate_inference_outputs,
 )
 from espnet3.contract.kinds.audio import Audio, AudioKind
-from espnet3.contract.normalizers import register_normalizer
+from espnet3.contract.normalizers import NORMALIZERS, register_normalizer
 from espnet3.systems.base.inference_runner import (
     InferenceRunner,
     _materialize_output_value,
@@ -407,3 +407,98 @@ def test_audio_channel_reduction_is_explicit(normalizer, expected):
     assert audio.array.shape == (160,)
     np.testing.assert_allclose(audio.array, expected)
     np.testing.assert_allclose(source[1], 0.75)
+
+
+def _stereo():
+    return np.stack([np.full(160, 0.25), np.full(160, 0.75)])
+
+
+def _mono():
+    return np.full(160, 0.25)
+
+
+def _channels_seen_by_model(spec, source, batched):
+    """Run the runner and return the channel count of each audio the model got."""
+    contract = load_inference_contract(
+        {"inputs": {"speech": spec}, "outputs": {"text": {"kind": "text"}}}
+    )
+    seen = []
+
+    def backend(speech):
+        seen.append(speech)
+        items = speech if batched else [speech]
+        return [{"text": "x"} for _ in items] if batched else {"text": "x"}
+
+    sample = {"speech": (16000, source)}
+    InferenceRunner.forward(
+        [0, 1] if batched else 0,
+        dataset=[sample, sample],
+        model=backend,
+        input_key="speech",
+        inference_contract=contract,
+    )
+    items = seen[0] if batched else [seen[0]]
+    assert all(isinstance(item, Audio) for item in items)
+    return [item.channels for item in items]
+
+
+@pytest.mark.parametrize("batched", [False, True])
+@pytest.mark.parametrize(
+    ("spec", "source", "expected"),
+    [
+        # No channels declared: whatever the input has reaches the model.
+        ({"kind": "audio"}, _stereo, 2),
+        ({"kind": "audio"}, _mono, 1),
+        # channels declared: the model gets exactly that many.
+        ({"kind": "audio", "channels": 2}, _stereo, 2),
+        ({"kind": "audio", "channels": 1}, _mono, 1),
+        # Normalizers run before the channel check, so a reduction satisfies it.
+        ({"kind": "audio", "normalize": ["mean_channels"]}, _stereo, 1),
+        ({"kind": "audio", "normalize": ["first_channel"]}, _stereo, 1),
+        (
+            {"kind": "audio", "channels": 1, "normalize": ["mean_channels"]},
+            _stereo,
+            1,
+        ),
+        (
+            {"kind": "audio", "channels": 1, "normalize": ["first_channel"]},
+            _stereo,
+            1,
+        ),
+    ],
+)
+def test_model_receives_expected_audio_channels(spec, source, expected, batched):
+    """The model sees the declared channel count, or the input's own if none."""
+    counts = _channels_seen_by_model(spec, source(), batched)
+    assert counts == [expected] * len(counts)
+
+
+def test_model_receives_channels_kept_by_a_custom_normalizer(monkeypatch):
+    """A normalizer that keeps both channels satisfies ``channels: 2``."""
+    monkeypatch.setitem(
+        NORMALIZERS,
+        "scale_audio",
+        lambda audio: Audio(audio.array * 0.5, audio.rate),
+    )
+    spec = {"kind": "audio", "channels": 2, "normalize": ["scale_audio"]}
+    assert _channels_seen_by_model(spec, _stereo(), batched=False) == [2]
+
+
+@pytest.mark.parametrize("batched", [False, True])
+@pytest.mark.parametrize(
+    ("spec", "source", "message"),
+    [
+        # A reduction that contradicts the declaration is rejected before the model.
+        (
+            {"kind": "audio", "channels": 2, "normalize": ["mean_channels"]},
+            _stereo,
+            "needs 2",
+        ),
+        # Multichannel audio is never reduced unless a normalizer is configured.
+        ({"kind": "audio", "channels": 1}, _stereo, "needs 1"),
+    ],
+)
+def test_model_is_not_called_when_channels_do_not_match(spec, source, message, batched):
+    """A final channel mismatch stops the call before the model runs."""
+    with pytest.raises(TypeError, match=message):
+        _channels_seen_by_model(spec, source(), batched)
