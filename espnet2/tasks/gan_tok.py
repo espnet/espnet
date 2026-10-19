@@ -9,18 +9,12 @@ from typeguard import typechecked
 
 from espnet2.asr.ctc import CTC
 from espnet2.asr.espnet_model import ESPnetASRModel
+from espnet2.tok.abs_quantizer import AbsSpeechTokenizerQuantizer
+from espnet2.tok.asr_loss import ASRLoss
 from espnet2.tok.espnet_model import ESPnetGANSpeechTokenizerModel
-from espnet2.tok.modules.token_embedding import TokenEmbedding
-from espnet2.tok.objective.asr import ASRObjective
-from espnet2.tok.objective.reconstruction.hifigan import (
-    HiFiGANReconstructionObjective,
-)
-from espnet2.tok.quantizer.abs_quantizer import (
-    AbsSpeechTokenizerQuantizer,
-)
-from espnet2.tok.quantizer.differentiable_kmeans import (
-    DifferentiableKMeans,
-)
+from espnet2.tok.hifigan_loss import HiFiGANReconstructionLoss
+from espnet2.tok.quantizer_differentiable_kmeans import DifferentiableKMeans
+from espnet2.tok.token_embedding import TokenEmbedding
 from espnet2.tok.tokenizer import SpeechTokenizer
 from espnet2.tasks.abs_task import AbsTask, optim_classes
 from espnet2.tasks.asr import (
@@ -48,9 +42,9 @@ quantizer_choices = ClassChoices(
     type_check=AbsSpeechTokenizerQuantizer,
     default="differentiable_kmeans",
 )
-reconstruction_objective_choices = ClassChoices(
-    "reconstruction_objective",
-    classes={"hifigan": HiFiGANReconstructionObjective},
+reconstruction_loss_choices = ClassChoices(
+    "reconstruction_loss",
+    classes={"hifigan": HiFiGANReconstructionLoss},
     default="hifigan",
 )
 
@@ -88,7 +82,7 @@ class GANSpeechTokenizerTask(AbsTask):
         asr_encoder_choices,
         asr_postencoder_choices,
         asr_decoder_choices,
-        reconstruction_objective_choices,
+        reconstruction_loss_choices,
     ]
 
     @classmethod
@@ -230,32 +224,32 @@ class GANSpeechTokenizerTask(AbsTask):
         return ASRTask.build_model(asr_args)
 
     @classmethod
-    def _build_asr_objective(
+    def _build_asr_loss(
         cls,
         args: argparse.Namespace,
         token_list: List[str],
         num_tokens: int,
-    ) -> ASRObjective:
-        """Build the ASR token embedding and objective."""
+    ) -> ASRLoss:
+        """Build the ASR token embedding and loss."""
         embedding_conf = dict(args.asr_embedding_conf)
         embedding_conf.pop("input_size", None)
         embedding = TokenEmbedding(input_size=num_tokens, **embedding_conf)
         asr_model = cls._build_asr_model(args, token_list, embedding.output_size())
-        return ASRObjective(asr_model, embedding)
+        return ASRLoss(asr_model, embedding)
 
     @classmethod
-    def _build_reconstruction_objective(
+    def _build_reconstruction_loss(
         cls,
         args: argparse.Namespace,
         num_tokens: int,
-    ) -> HiFiGANReconstructionObjective:
-        """Build the configured waveform-reconstruction objective."""
-        reconstruction_conf = dict(args.reconstruction_objective_conf)
+    ) -> HiFiGANReconstructionLoss:
+        """Build the configured waveform-reconstruction loss."""
+        reconstruction_conf = dict(args.reconstruction_loss_conf)
         reconstruction_conf.pop("num_tokens", None)
-        objective_class = reconstruction_objective_choices.get_class(
-            args.reconstruction_objective
+        loss_class = reconstruction_loss_choices.get_class(
+            args.reconstruction_loss
         )
-        return objective_class(num_tokens=num_tokens, **reconstruction_conf)
+        return loss_class(num_tokens=num_tokens, **reconstruction_conf)
 
     @classmethod
     @typechecked
@@ -268,16 +262,16 @@ class GANSpeechTokenizerTask(AbsTask):
         quantizer = quantizer_choices.get_class(args.quantizer)(**args.quantizer_conf)
         tokenizer = SpeechTokenizer(frontend, quantizer, **args.tokenizer_conf)
 
-        asr_objective = cls._build_asr_objective(
+        asr_loss = cls._build_asr_loss(
             args, token_list, quantizer.num_clusters
         )
-        reconstruction_objective = cls._build_reconstruction_objective(
+        reconstruction_loss = cls._build_reconstruction_loss(
             args, quantizer.num_clusters
         )
         return ESPnetGANSpeechTokenizerModel(
             tokenizer=tokenizer,
-            asr_objective=asr_objective,
-            reconstruction_objective=reconstruction_objective,
+            asr_loss=asr_loss,
+            reconstruction_loss=reconstruction_loss,
             **args.model_conf,
         )
 
@@ -287,7 +281,7 @@ class GANSpeechTokenizerTask(AbsTask):
     ) -> List[torch.optim.Optimizer]:
         """Separate all main parameters from discriminator-only parameters."""
         discriminator_parameters = list(
-            model.reconstruction_objective.discriminator.parameters()
+            model.reconstruction_loss.discriminator.parameters()
         )
         discriminator_ids = {id(parameter) for parameter in discriminator_parameters}
         main_parameters = [

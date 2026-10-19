@@ -87,14 +87,14 @@ def test_build_collate_fn_keeps_speaker_embeddings_non_sequence():
     assert "spembs_lengths" not in batch
 
 
-class DummyReconstructionObjective(torch.nn.Module):
+class DummyReconstructionLoss(torch.nn.Module):
     def __init__(self):
         super().__init__()
         self.generator = torch.nn.Linear(2, 2)
         self.discriminator = torch.nn.Linear(2, 1)
 
 
-class DummyASRObjective(torch.nn.Module):
+class DummyASRLoss(torch.nn.Module):
     def __init__(self):
         super().__init__()
         self.asr_model = torch.nn.Linear(2, 2)
@@ -104,8 +104,8 @@ class DummyGANModel(torch.nn.Module):
     def __init__(self):
         super().__init__()
         self.tokenizer = torch.nn.Linear(2, 2)
-        self.asr_objective = DummyASRObjective()
-        self.reconstruction_objective = DummyReconstructionObjective()
+        self.asr_loss = DummyASRLoss()
+        self.reconstruction_loss = DummyReconstructionLoss()
 
 
 def test_build_optimizers_separates_discriminator_parameters():
@@ -133,13 +133,13 @@ def test_build_optimizers_separates_discriminator_parameters():
     }
     expected_discriminator_ids = {
         id(parameter)
-        for parameter in model.reconstruction_objective.discriminator.parameters()
+        for parameter in model.reconstruction_loss.discriminator.parameters()
     }
 
     assert main_ids.isdisjoint(discriminator_ids)
     assert discriminator_ids == expected_discriminator_ids
     assert id(model.tokenizer.weight) in main_ids
-    assert id(model.asr_objective.asr_model.weight) in main_ids
-    assert id(model.reconstruction_objective.generator.weight) in main_ids
+    assert id(model.asr_loss.asr_model.weight) in main_ids
+    assert id(model.reconstruction_loss.generator.weight) in main_ids
     assert main_optimizer.param_groups[0]["lr"] == pytest.approx(1.0e-3)
     assert discriminator_optimizer.param_groups[0]["lr"] == pytest.approx(2.0e-3)
