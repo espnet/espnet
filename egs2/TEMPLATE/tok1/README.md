@@ -1,7 +1,7 @@
 # Speech Tokenizer
 
 This directory is the ESPnet2 recipe template for training a differentiable
-speech tokenizer with ASR and speaker-conditioned reconstruction objectives.
+speech tokenizer with ASR and speaker-conditioned reconstruction losses.
 
 ## Recipe flow
 
@@ -13,10 +13,10 @@ speech tokenizer with ASR and speaker-conditioned reconstruction objectives.
 6. Extract one speaker embedding per utterance.
 7. Train offline K-means centroids, or validate an external centroid model.
 8. Collect shapes for speech, text, and speaker embeddings.
-9. Train the speech tokenizer and its downstream objectives.
-10. Extract discrete token sequences without loading downstream objectives.
+9. Train the speech tokenizer and its downstream losses.
+10. Extract discrete token sequences without loading downstream losses.
 
-The GAN task uses two optimizers and `SpeechTokenizerGANTrainer`.
+The GAN task uses two optimizers and `GANTrainer`.
 Speaker embeddings are required for reconstruction during training.
 
 ## Creating a corpus recipe
