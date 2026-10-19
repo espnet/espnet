@@ -1,7 +1,11 @@
 # Copyright 2026 Carnegie Mellon University
 # Apache 2.0 (http://www.apache.org/licenses/LICENSE-2.0)
 
-"""Compare ParallelLLM._loss gradients and updates with an unsharded model."""
+"""Compare ParallelLLM._loss gradients and updates with an unsharded model.
+
+Run the optional real-Liger check on two or four GPUs with
+``python -m pytest -o addopts= test/espnet2/speechlm/model/test_parallel_fsdp.py -k cuda``.
+"""
 
 import copy
 import math
@@ -16,7 +20,7 @@ import torch.multiprocessing as mp
 from packaging.version import Version
 from torch import nn
 from torch.distributed.device_mesh import init_device_mesh
-from torch.distributed.fsdp import fully_shard
+from torch.distributed.fsdp import MixedPrecisionPolicy, fully_shard
 
 
 class _TorchLinearCE:
@@ -24,7 +28,9 @@ class _TorchLinearCE:
 
     @staticmethod
     def apply(hidden, weight, target, bias, ce_weight, ignore_index, *args):
-        logits = torch.nn.functional.linear(hidden, weight, bias)
+        logits = torch.nn.functional.linear(
+            hidden.float(), weight.float(), bias.float() if bias is not None else None
+        )
         loss = torch.nn.functional.cross_entropy(
             logits, target, weight=ce_weight, ignore_index=ignore_index, reduction="sum"
         )
@@ -34,21 +40,37 @@ class _TorchLinearCE:
 class _LossHarness(nn.Module):
     """Call the real _loss with small modules in place of a pretrained backbone."""
 
-    def __init__(self, loss_impl):
+    def __init__(self, loss_impl, tied, reference_compute_dtype=None):
         super().__init__()
         self.trunk = nn.Linear(4, 4, bias=False)
+        self.embed_tokens = nn.Embedding(12, 4)
         self.lm_head = nn.Linear(4, 12, bias=False)
+        if tied:
+            self.lm_head.weight = self.embed_tokens.weight
         self.stream_emb = nn.Embedding(4, 4)
         self.num_stream = 4
         self.multimodal_vocab_range = (8, 12)
         self.register_buffer("vocab_weight", torch.ones(12))
         self._loss_impl = loss_impl
         self._loss_stats = {}
+        self.reference_compute_dtype = reference_compute_dtype
 
     def forward(self, hidden, target, mask, scale):
-        return self._loss_impl(
-            self, (self.trunk(hidden), None), (target, mask), scale=scale
-        )
+        dtype = self.reference_compute_dtype
+        input_embeds = self.embed_tokens(target)
+        if dtype is not None:
+            # Emulate FSDP's low-precision unsharded weights while retaining
+            # fp32 parameters and optimizer state in the unsharded reference.
+            input_embeds = input_embeds.to(dtype)
+            hidden = hidden.to(dtype)
+            mask = mask.to(dtype)
+            scale = scale.to(dtype) if isinstance(scale, torch.Tensor) else scale
+        hidden = hidden + input_embeds.sum(dim=2)
+        if dtype is not None:
+            hidden = torch.nn.functional.linear(hidden, self.trunk.weight.to(dtype))
+        else:
+            hidden = self.trunk(hidden)
+        return self._loss_impl(self, (hidden, None), (target, mask), scale=scale)
 
 
 def _batch(rank, step, micro, device):
@@ -63,7 +85,9 @@ def _batch(rank, step, micro, device):
     return hidden, target, mask
 
 
-def _check_gradients_and_updates(rank, mesh_shape, device_type, rendezvous):
+def _check_gradients_and_updates(
+    rank, mesh_shape, device_type, tied, mixed_precision, rendezvous
+):
     torch.set_num_threads(1)
     world_size = math.prod(mesh_shape)
     device = torch.device(device_type, rank) if device_type == "cuda" else "cpu"
@@ -101,8 +125,17 @@ def _check_gradients_and_updates(rank, mesh_shape, device_type, rendezvous):
             loss_module, "LigerFusedLinearCrossEntropyFunction", kernel
         ):
             torch.manual_seed(6503)
-            model = _LossHarness(loss_impl).to(device)
+            model = _LossHarness(loss_impl, tied).to(device)
             reference = copy.deepcopy(model)
+            if mixed_precision:
+                reference.reference_compute_dtype = torch.bfloat16
+            mp_policy = (
+                MixedPrecisionPolicy(
+                    param_dtype=torch.bfloat16, reduce_dtype=torch.float32
+                )
+                if mixed_precision
+                else MixedPrecisionPolicy()
+            )
             mesh = init_device_mesh(
                 device_type,
                 mesh_shape,
@@ -110,18 +143,33 @@ def _check_gradients_and_updates(rank, mesh_shape, device_type, rendezvous):
                     ("replicate", "shard") if len(mesh_shape) == 2 else ("shard",)
                 ),
             )
-            for module in (model.trunk, model.lm_head, model.stream_emb):
-                fully_shard(module, mesh=mesh)
-            fully_shard(model, mesh=mesh)
-            # Match SpeechLM's explicit prefetch of the directly accessed weights.
-            model.trunk.set_modules_to_forward_prefetch(
-                [model.lm_head, model.stream_emb]
+            if tied:
+                fully_shard(model.embed_tokens, mesh=mesh, mp_policy=mp_policy)
+                model.lm_head.weight = model.embed_tokens.weight
+            else:
+                fully_shard(model.embed_tokens, mesh=mesh, mp_policy=mp_policy)
+                fully_shard(model.lm_head, mesh=mesh, mp_policy=mp_policy)
+            for module in (model.trunk, model.stream_emb):
+                fully_shard(module, mesh=mesh, mp_policy=mp_policy)
+            model.to(device)
+            fully_shard(
+                model,
+                mesh=mesh,
+                mp_policy=mp_policy,
+                ignored_params={model.lm_head.weight} if tied else None,
             )
+            if tied:
+                assert model.lm_head.weight is model.embed_tokens.weight
+            model.trunk.set_modules_to_forward_prefetch([model.stream_emb])
             optimizer = torch.optim.SGD(model.parameters(), lr=0.1, momentum=0.9)
             ref_optimizer = torch.optim.SGD(
                 reference.parameters(), lr=0.1, momentum=0.9
             )
-            tolerance = 2e-4 if device_type == "cuda" else 1e-6
+            # BF16 rounds the shared embedding's forward and backward paths,
+            # so the distributed result needs a wider tolerance than fp32.
+            tolerance = (
+                2e-2 if mixed_precision else (2e-4 if device_type == "cuda" else 1e-6)
+            )
 
             for step in range(2):
                 optimizer.zero_grad(set_to_none=True)
@@ -176,14 +224,46 @@ def _check_gradients_and_updates(rank, mesh_shape, device_type, rendezvous):
 
 @pytest.mark.execution_timeout(180)
 @pytest.mark.parametrize("mesh_shape", [(2,), (2, 2)], ids=["fsdp", "hsdp"])
-def test_fsdp_loss_matches_unsharded_reference(mesh_shape, tmp_path):
+@pytest.mark.parametrize("tied", [False, True], ids=["untied", "tied"])
+@pytest.mark.parametrize("mixed_precision", [False, True], ids=["fp32", "bf16"])
+def test_fsdp_loss_matches_unsharded_reference(
+    mesh_shape, tied, mixed_precision, tmp_path
+):
     if not dist.is_available() or not dist.is_gloo_available():
         pytest.skip("requires Gloo")
     if Version(torch.__version__.split("+")[0]) < Version("2.11"):
         pytest.skip("CPU FSDP regression uses the SpeechLM PyTorch 2.11 runtime")
     mp.spawn(
         _check_gradients_and_updates,
-        args=(mesh_shape, "cpu", (tmp_path / "store").as_uri()),
+        args=(mesh_shape, "cpu", tied, mixed_precision, (tmp_path / "store").as_uri()),
+        nprocs=math.prod(mesh_shape),
+        join=True,
+    )
+
+
+@pytest.mark.execution_timeout(180)
+@pytest.mark.parametrize("mesh_shape", [(2,), (2, 2)], ids=["fsdp", "hsdp"])
+@pytest.mark.parametrize("tied", [False, True], ids=["untied", "tied"])
+@pytest.mark.parametrize("mixed_precision", [False, True], ids=["fp32", "bf16"])
+def test_fsdp_loss_matches_unsharded_reference_cuda(
+    mesh_shape, tied, mixed_precision, tmp_path
+):
+    if (
+        not dist.is_available()
+        or not dist.is_nccl_available()
+        or torch.cuda.device_count() < math.prod(mesh_shape)
+    ):
+        pytest.skip("requires NCCL and one CUDA device per rank")
+    pytest.importorskip("liger_kernel.ops.fused_linear_cross_entropy")
+    mp.spawn(
+        _check_gradients_and_updates,
+        args=(
+            mesh_shape,
+            "cuda",
+            tied,
+            mixed_precision,
+            (tmp_path / "store").as_uri(),
+        ),
         nprocs=math.prod(mesh_shape),
         join=True,
     )

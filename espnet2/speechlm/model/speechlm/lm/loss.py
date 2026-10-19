@@ -86,6 +86,8 @@ def fused_cross_entropy_loss(
     # FSDP does not reduce its gradient. Each rank contributes a different
     # local loss: average those contributions over every DP mesh dimension
     # (both replication and sharding for HSDP), matching FSDP's normalization.
+    # This backward communicates the full head on every microbatch, even when
+    # the trainer defers FSDP all-reduce with set_requires_all_reduce(False).
     if hasattr(lm_head_weight, "full_tensor"):
         lm_head_weight = lm_head_weight.full_tensor(
             grad_placements=[Partial("avg")] * lm_head_weight.device_mesh.ndim
