@@ -904,7 +904,7 @@ def test_publication_rejects_unknown_input_even_with_optional_fields(
 
 @pytest.mark.parametrize("remote", [False, True])
 def test_model_constructor_overrides_reach_instantiation(tmp_path, monkeypatch, remote):
-    """Local and downloaded bundles apply constructor overrides without editing files."""
+    """Local and downloaded bundles apply constructor overrides in memory."""
     bundle = _make_pack_dir(tmp_path, model_target="builtins.dict")
 
     class Downloader:
