@@ -314,6 +314,8 @@ contract:
 
 ```python
 # In src/contracts.py
+import numpy as np
+
 from espnet3.contract import Kind, register_kind, register_normalizer
 
 
@@ -325,7 +327,7 @@ class SpectrogramKind(Kind):
 
 
 register_kind("spectrogram", SpectrogramKind())
-register_normalizer("normalize_db", lambda spec: 20 * spec.clip(1e-5).log10())
+register_normalizer("normalize_db", lambda spec: 20 * np.log10(np.clip(spec, 1e-5, None)))
 ```
 
 ```yaml
