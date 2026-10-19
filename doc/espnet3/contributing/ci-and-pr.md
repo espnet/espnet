@@ -127,6 +127,7 @@ The common ones are:
 - docstring style issues
 - shell formatting or shellcheck failures
 - missing tests
+- packed-model inference contract validation failures (`ci/test_integration_espnet3_publication_check.py`)
 
 Most of these can be caught locally before you push.
 
