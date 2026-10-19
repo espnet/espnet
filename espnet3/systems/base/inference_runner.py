@@ -328,8 +328,14 @@ class InferenceRunner(BaseRunner):
         for key in keys:
             present = [key in sample for sample in samples]
             if not all(present):
-                if key in optional_keys and not any(present):
-                    continue
+                if key in optional_keys:
+                    if not any(present):
+                        continue
+                    raise KeyError(
+                        f"Input key '{key}' not found in dataset item. Optional "
+                        "inputs cannot be mixed within one batch: some samples "
+                        "provide it and others do not."
+                    )
                 raise KeyError(f"Input key '{key}' not found in dataset item.")
             values = [sample[key] for sample in samples]
             inputs_dict[key] = values if batched else values[0]
