@@ -35,7 +35,7 @@ below for exact class, function, argument, and return-value details.
 - [`InferenceModel`](../guide/espnet3/publication/InferenceModel.html),
   [`pack_model`](../guide/espnet3/utils/pack_model.html), and
   [`pack_demo`](../guide/espnet3/publication/pack_demo.html).
-- [`espnet3.contract`](./core/contract.html): `Field`, `register_kind`, `register_normalizer`
+- [`espnet3.contract`](./config/contract.html): `Field`, `register_kind`, `register_normalizer`
 
 ## Related guides
 
