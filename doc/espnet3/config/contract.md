@@ -130,7 +130,7 @@ ESPnet3 provides four built-in kinds:
 
 ## Normalizers
 
-Normalizers are functions that transform values of a specific kind. They run before validation and model execution.
+Normalizers are functions that transform a checked value of a kind. For each field the value is first checked, then the listed normalizers run in order, then the result is checked again against the field (so `channels` is enforced on the normalized audio).
 
 ### Built-in Normalizers
 
@@ -143,18 +143,22 @@ Normalizers are functions that transform values of a specific kind. They run bef
 
 - `strip`: Removes leading/trailing whitespace
 - `to_lower`: Converts text to lowercase
+- `to_upper`: Converts text to uppercase
 
 ### Custom Normalizers
 
-Custom normalizers can be registered using `register_normalizer` from `espnet3.contract`:
+Custom normalizers are registered by name with `register_normalizer(name, function)` from `espnet3.contract`. The function receives the Kind's checked value (for audio, an `Audio` object) and returns a value of the same Kind. Names are shared by all kinds and must be unique unless `replace=True` is passed.
 
 ```python
 from espnet3.contract import register_normalizer
+from espnet3.contract.kinds.audio import Audio
 
-@register_normalizer("audio", "custom_normalizer")
-def custom_audio_normalizer(audio):
-    # Transform audio here
-    return transformed_audio
+
+def halve_volume(audio):
+    return Audio(audio.array * 0.5, audio.rate)
+
+
+register_normalizer("halve_volume", halve_volume)
 ```
 
 Custom normalizers are loaded through the `imports` list in the contract:
@@ -251,14 +255,16 @@ ESPnet3 provides registration functions for extending the contract system:
 ```python
 from espnet3.contract import register_kind, register_normalizer
 
-# Register a new kind
-register_kind("my_kind", MyKindValidator)
+# A kind is an instance of a Kind subclass that implements `check`.
+register_kind("my_kind", MyKind())
 
-# Register a normalizer for a kind
-register_normalizer("my_kind", "my_normalizer", my_normalizer_function)
+# A normalizer is a plain function registered under a unique name.
+register_normalizer("my_normalizer", my_normalizer_function)
 ```
 
-These functions are available from the `espnet3.contract` module.
+`register_kind(name, kind, *, replace=False)` and
+`register_normalizer(name, function, *, replace=False)` raise `ValueError` if
+the name is already registered, unless `replace=True` is given.
 
 ## Examples
 
@@ -308,19 +314,18 @@ contract:
 
 ```python
 # In src/contracts.py
-from espnet3.contract import register_kind, register_normalizer
+from espnet3.contract import Kind, register_kind, register_normalizer
 
-class SpectrogramKind:
-    def validate(self, value):
-        # Validation logic
-        pass
 
-register_kind("spectrogram", SpectrogramKind)
+class SpectrogramKind(Kind):
+    def check(self, value, field, model, *, output):
+        if getattr(value, "ndim", None) != 2:
+            raise TypeError(f"{field.name!r} must be a 2-D array")
+        return value
 
-@register_normalizer("spectrogram", "normalize_db")
-def normalize_to_db(spec):
-    # Convert spectrogram to dB scale
-    return spec_to_db(spec)
+
+register_kind("spectrogram", SpectrogramKind())
+register_normalizer("normalize_db", lambda spec: 20 * spec.clip(1e-5).log10())
 ```
 
 ```yaml
@@ -332,6 +337,7 @@ contract:
     spectrogram:
       kind: spectrogram
       label: Input Spectrogram
+      normalize: [normalize_db]
   outputs:
     logits:
       kind: number
