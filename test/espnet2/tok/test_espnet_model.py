@@ -27,6 +27,7 @@ class DummyTokenizer(torch.nn.Module):
     def forward(self, speech, speech_lengths, count_update=True):
         self.forward_calls += 1
         self.count_update = count_update
+        self.grad_enabled = torch.is_grad_enabled()
         return self._output(speech, speech_lengths)
 
     def encode(self, speech, speech_lengths):
@@ -171,6 +172,7 @@ def test_discriminator_tokenizes_on_cache_miss():
     # A cache miss requires tokenization for waveform generation.
     assert model.tokenizer.forward_calls == 1
     assert model.tokenizer.count_update is False
+    assert model.tokenizer.grad_enabled is False
     # The freshly computed tokenizer output is passed to the discriminator path.
     assert model.reconstruction_loss.last_discriminator_tokenizer_output is not None
 
