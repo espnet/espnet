@@ -19,10 +19,8 @@ class ESPnetGANSpeechTokenizerModel(AbsGANESPnetModel):
     are exposed separately from the shared main loss.
 
     The discriminator step reuses the waveform cached by the generator step of
-    the same batch, so training must run generator-first
-    (``generator_first=true``, as enforced by ``SpeechTokenizerGANTrainer``).
-    With ``GANTrainer``'s default discriminator-first order, the second batch
-    finds the previous batch's cache and raises an error.
+    the same batch, so training must run generator-first. With discriminator-first
+    order, the second batch finds the previous batch's cache and raises an error.
     """
 
     def __init__(
@@ -74,10 +72,15 @@ class ESPnetGANSpeechTokenizerModel(AbsGANESPnetModel):
         return self.losses["reconstruction"]
 
     def _tokenize(
-        self, speech: torch.Tensor, speech_lengths: torch.Tensor
+        self,
+        speech: torch.Tensor,
+        speech_lengths: torch.Tensor,
+        count_update: bool = True,
     ) -> SpeechTokenizerOutput:
         """Run the shared tokenizer once for all main losses."""
-        return self.tokenizer(speech, speech_lengths)
+        return self.tokenizer(
+            speech, speech_lengths, count_update=count_update
+        )
 
     def _forward_generator(
         self,
@@ -132,7 +135,9 @@ class ESPnetGANSpeechTokenizerModel(AbsGANESPnetModel):
         tokenizer_output = None
         if not self.reconstruction_loss.has_cached_generator_outputs:
             with torch.no_grad():
-                tokenizer_output = self._tokenize(speech, speech_lengths)
+                tokenizer_output = self._tokenize(
+                    speech, speech_lengths, count_update=False
+                )
         loss, loss_stats, weight = self.reconstruction_loss.forward_discriminator(
             tokenizer_output=tokenizer_output,
             speech=speech,

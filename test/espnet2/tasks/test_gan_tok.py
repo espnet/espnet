@@ -5,10 +5,15 @@ import pytest
 import torch
 
 from espnet2.tasks.gan_tok import GANSpeechTokenizerTask
+from espnet2.train.gan_trainer import GANTrainer
 
 
 def test_add_arguments():
-    GANSpeechTokenizerTask.get_parser()
+    parser = GANSpeechTokenizerTask.get_parser()
+    args = parser.parse_args(["--token_list", "tokens.txt"])
+
+    assert GANSpeechTokenizerTask.trainer is GANTrainer
+    assert args.generator_first is True
 
 
 def test_add_arguments_help():

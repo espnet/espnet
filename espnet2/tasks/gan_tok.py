@@ -31,7 +31,7 @@ from espnet2.tok.tokenizer import SpeechTokenizer
 from espnet2.train.class_choices import ClassChoices
 from espnet2.train.collate_fn import CommonCollateFn
 from espnet2.train.preprocessor import CommonPreprocessor
-from espnet2.train.tok_gan_trainer import SpeechTokenizerGANTrainer
+from espnet2.train.gan_trainer import GANTrainer
 from espnet2.utils.get_default_kwargs import get_default_kwargs
 from espnet2.utils.nested_dict_action import NestedDictAction
 from espnet2.utils.types import str2bool, str_or_none
@@ -72,7 +72,7 @@ class GANSpeechTokenizerTask(AbsTask):
     """Build adversarial ASR and reconstruction training with two optimizers."""
 
     num_optimizers: int = 2
-    trainer = SpeechTokenizerGANTrainer
+    trainer = GANTrainer
     class_choices_list = [
         frontend_choices,
         quantizer_choices,
@@ -89,6 +89,7 @@ class GANSpeechTokenizerTask(AbsTask):
     @typechecked
     def add_task_arguments(cls, parser: argparse.ArgumentParser) -> None:
         """Add tokenizer, ASR, reconstruction, and preprocessing arguments."""
+        parser.set_defaults(generator_first=True)
         parser.get_default("required")[:] += ["token_list"]
         group = parser.add_argument_group("Task related")
         group.add_argument("--token_list", type=str_or_none, default=None)
