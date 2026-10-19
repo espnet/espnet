@@ -127,10 +127,12 @@ batch_result = model.forward_batch([audio_a, audio_b])
 ```
 
 `InferenceModel` loads the packed `conf/inference.yaml` (located through
-`meta.yaml`), reconstructs the configured provider/runner backend, and calls
-the same optional recipe `output_fn` used during inference. Set
-`trust_user_code=True` only when the bundled recipe code (e.g. `src/`) is
-intentionally trusted, since it is imported from the bundle at load time.
+`meta.yaml`), reconstructs the configured provider/runner backend, and applies
+the inference contract for validation and processing (resample, channel check,
+output validation). It then calls the same optional recipe `output_fn` used during inference for legacy recipes. Set
+`trust_user_code=True` when the packed `inference.yaml` references bundled
+`src.*` modules (e.g., custom kinds/normalizers via `contract.imports`); the
+bundle root is then added to `sys.path`.
 
 ## 5. `upload_model`
 

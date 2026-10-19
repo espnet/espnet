@@ -37,7 +37,8 @@ Keep the core settings in `inference.yaml`. For the full list, see
 | `dataset`       | definition of the test set(s); each entry under `dataset.test` needs a `name`, which becomes its output subdirectory |
 | `inference_dir` | root output location (default `${exp_dir}/${self_name:}`, i.e. `${exp_dir}/<inference config filename>`) |
 | `input_key`     | dataset field or fields passed into the model |
-| `output_fn`     | function used to format the output files      |
+| `contract`      | declares model inputs and outputs with kinds, sample rates, channels, and normalizers (recommended) |
+| `output_fn`     | legacy formatting function; cannot be combined with `contract` |
 | `parallel`      | local or distributed runner settings, see [below](#multi-gpu-and-parallel-inference) |
 | `runner.resume` | whether to reuse a previous run's shard outputs, see [below](#resuming-a-partial-or-failed-run) |
 
@@ -48,6 +49,8 @@ worker process, with `TypeError: 'NoneType' object is not callable`. Neither err
 config field, so check `dataset.test`/`model` first if `infer` fails this way.
 
 ## 3. Outputs
+
+With a **contract**, the runner produces output fields named in `contract.outputs` and validates them; the SCP file types follow the output kinds. With **`output_fn`** (legacy), the output keys are determined by the return values of the formatting function.
 
 Inference writes one directory per test set:
 
@@ -168,7 +171,7 @@ Resume only checks that the **shard plan** (how many shards, and which
 dataset indices went into each one) is unchanged between runs -- it does not
 fingerprint the model or provider config. If you change
 `inference_config.model` (e.g. point at a different checkpoint), `input_key`,
-`output_fn`, or any other provider setting and re-run with `resume: true` (the
+`contract`, `output_fn`, or any other provider setting and re-run with `resume: true` (the
 default), already-`.done` shards are skipped and their stale SCP output from
 the *previous* model/config is reused silently.
 
@@ -223,7 +226,7 @@ The runner is responsible for:
 
 - pulling one sample or one batch from the dataset
 - calling the model with the configured `input_key`
-- normalizing the result through `output_fn`
+- checking the result against the contract (or `output_fn` for legacy recipes)
 - returning values that can be written into SCP files
 
 Conceptually:
@@ -254,7 +257,13 @@ Any integer `batch_size`, including `1`, chunks indices into lists and calls `fo
 setting it to `1`; a mismatch here fails with `RuntimeError: Batched inference failed...`.
 :::
 
+**Optional Inputs Rule**: Within one batch, all samples must either all have or all lack an optional input declared in the contract. Mixing optional inputs within a batch raises a `KeyError`: "Optional inputs cannot be mixed within one batch".
+
 ### `output_fn`
+
+::: tip ESPnet2 ASR System
+For the ESPnet2 ASR system, n-best text formatting has moved from `output_fn` into the runner. The ASR template no longer sets `output_fn`. This section applies only to systems without a contract.
+:::
 
 `output_fn` is called right after the model returns.
 
@@ -302,6 +311,48 @@ There a two common paths when using a custom models:
 2. replace `InferenceRunner` when the normal flow is not enough
 
 It is generally recommended to keep `InferenceRunner` and only replace it for special use cases.
+
+### Declaring a contract for a custom model
+
+When using a custom model with a contract, you must ensure your model's inputs and outputs match the contract declaration. The contract provides validation and automatic preprocessing (e.g., resampling, channel normalization).
+
+Example `inference.yaml` with contract:
+
+```yaml
+dataset:
+  test:
+    - name: test
+      data_src: mini_an4/asr
+      data_src_args:
+        split: test
+
+model:
+  _target_: src.inference.MyGreedyDecoder
+  checkpoint_path: ${exp_dir}/last.ckpt
+  beam_size: 1
+
+input_key: speech
+
+contract:
+  inputs:
+    speech:
+      kind: audio
+      label: Input Audio
+      sample_rate: 16000
+      rate_policy: resample
+      channels: 1
+  outputs:
+    text:
+      kind: text
+      label: Transcription
+
+provider:
+  _target_: espnet3.systems.base.inference_provider.InferenceProvider
+runner:
+  _target_: espnet3.systems.base.inference_runner.InferenceRunner
+```
+
+Your custom model's `forward()` method should accept keyword arguments matching the input keys and return a dictionary matching the output field names. The runner will validate the output against the contract.
 
 ### Example: Custom Decoding Algorithm
 

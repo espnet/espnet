@@ -110,6 +110,7 @@ The demo has three layers with separate responsibilities:
 1. **`demo.yaml`** declares the model reference (`model.dir_or_tag`), model
    call-time kwargs (`model.call_args`), the UI input/output specs
    (`ui.inputs`/`ui.outputs`), and the app script to copy (`ui.app_script`).
+   By default, the input/output specs are generated from the contract section of the packed `inference.yaml`; `ui.inputs`/`ui.outputs` override or extend this default.
 2. **`load_demo_session()`** loads that config and builds a `DemoSession`
    (`espnet3.publication.demo.session`). The session resolves the packed
    model through `InferenceModel`, resolves UI assets from the registry, and
@@ -148,8 +149,7 @@ For the full list of options, see [Demo configuration](../config/demo_config.htm
 | `upload_demo.hf_repo` | target Hugging Face Space                                        |
 
 For ordinary UI changes, edit `ui.inputs`/`ui.outputs` — each entry's `key`
-must match the packed model's input/output contract — and reuse the
-built-in `audio`/`text` asset types. Example:
+must match the packed model's input/output contract. By default, the Gradio UI widgets are generated from the contract section of the packed `inference.yaml`. The `ui.inputs` and `ui.outputs` entries override or extend this default mapping. If your model uses a custom kind not built into ESPnet, you must register a corresponding UI class in the demo's `session.registry`. Example:
 
 ```yaml
 ui:
