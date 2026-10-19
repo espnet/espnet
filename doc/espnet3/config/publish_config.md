@@ -220,6 +220,9 @@ summary, and a results table built from `metrics.json` when present). Set
 the `files`/`yaml_files` maps (as bundle-relative paths), and environment
 versions (`torch`, `espnet`, `python`). `InferenceModel.from_packed()` reads
 `meta.yaml.yaml_files.inference_config` to locate the packed inference config.
+The inference contract defined in `conf/inference.yaml` travels with the packed
+model and is automatically applied by `InferenceModel` for validation and
+processing.
 
 ## `InferenceModel`
 
