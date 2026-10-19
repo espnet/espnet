@@ -78,9 +78,7 @@ class ESPnetGANSpeechTokenizerModel(AbsGANESPnetModel):
         count_update: bool = True,
     ) -> SpeechTokenizerOutput:
         """Run the shared tokenizer once for all main losses."""
-        return self.tokenizer(
-            speech, speech_lengths, count_update=count_update
-        )
+        return self.tokenizer(speech, speech_lengths, count_update=count_update)
 
     def _forward_generator(
         self,
