@@ -1,8 +1,15 @@
 from argparse import Namespace
+from types import SimpleNamespace
 
+import joblib
 import numpy as np
 import pytest
 import torch
+
+from test.espnet2.tok.test_hifigan_loss import (
+    TINY_DISCRIMINATOR_PARAMS,
+    TINY_GENERATOR_PARAMS,
+)
 
 from espnet2.tasks.gan_tok import GANSpeechTokenizerTask
 from espnet2.train.gan_trainer import GANTrainer
@@ -148,3 +155,75 @@ def test_build_optimizers_separates_discriminator_parameters():
     assert id(model.reconstruction_loss.generator.weight) in main_ids
     assert main_optimizer.param_groups[0]["lr"] == pytest.approx(1.0e-3)
     assert discriminator_optimizer.param_groups[0]["lr"] == pytest.approx(2.0e-3)
+
+
+def test_build_model_and_run_generator_discriminator_steps(tmp_path):
+    token_list = tmp_path / "tokens.txt"
+    token_list.write_text("<blank>\na\nb\n<sos/eos>\n", encoding="utf-8")
+    centroid_path = tmp_path / "kmeans.mdl"
+    joblib.dump(
+        SimpleNamespace(cluster_centers_=np.zeros((4, 2), dtype=np.float32)),
+        centroid_path,
+    )
+
+    parser = GANSpeechTokenizerTask.get_parser()
+    args = parser.parse_args(["--token_list", str(token_list)])
+    args.frontend_conf = {
+        "n_fft": 8,
+        "win_length": 8,
+        "hop_length": 2,
+        "n_mels": 2,
+        "frontend_conf": None,
+    }
+    args.quantizer_conf = {"centroid_path": str(centroid_path)}
+    args.asr_embedding_conf = {
+        "embed_dim": 4,
+        "use_positional_encoding": False,
+    }
+    args.asr_encoder_conf = {
+        "num_layers": 1,
+        "hidden_size": 4,
+        "output_size": 4,
+        "subsample": [1],
+    }
+    args.asr_model_conf.update(
+        ctc_weight=1.0,
+        report_cer=False,
+        report_wer=False,
+    )
+    args.reconstruction_loss_conf = {
+        "token_embed_dim": 3,
+        "speaker_embed_dim": 2,
+        "segment_size": 4,
+        "generator_params": TINY_GENERATOR_PARAMS,
+        "discriminator_params": TINY_DISCRIMINATOR_PARAMS,
+        "use_feat_match_loss": False,
+        "use_mel_loss": False,
+    }
+
+    model = GANSpeechTokenizerTask.build_model(args)
+    optimizers = GANSpeechTokenizerTask.build_optimizers(args, model)
+    batch = {
+        "speech": torch.randn(1, 32),
+        "speech_lengths": torch.tensor([32]),
+        "text": torch.tensor([[1, 2]], dtype=torch.long),
+        "text_lengths": torch.tensor([2]),
+        "spembs": torch.randn(1, 2),
+    }
+
+    assert model.tokenizer.current_step.item() == 0
+    assert model.tokenizer.quantizer.num_updates.item() == 0
+    for optim_idx, (forward_generator, optimizer) in enumerate(
+        zip((True, False), optimizers)
+    ):
+        optimizer.zero_grad()
+        result = model(forward_generator=forward_generator, **batch)
+        assert result["optim_idx"] == optim_idx
+        result["loss"].backward()
+        optimizer.step()
+        assert model.tokenizer.current_step.item() == 1
+        assert model.tokenizer.quantizer.num_updates.item() == 1
+        assert (
+            model.reconstruction_loss.has_cached_generator_outputs
+            is forward_generator
+        )
