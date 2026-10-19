@@ -130,11 +130,27 @@ def build_output(data, model_output, idx):
     }
 ```
 
-Then `inference.yaml` points to it:
+Then `inference.yaml` can use either the legacy `output_fn` or a contract:
 
 ```yaml
+# Legacy approach (still supported):
 output_fn: src.inference.build_output
+
+# Recommended approach with contract:
+contract:
+  inputs:
+    speech:
+      kind: audio
+      label: Input Audio
+      sample_rate: 16000
+      channels: 1
+  outputs:
+    text:
+      kind: text
+      label: Transcription
 ```
+
+With a contract, your model's `forward()` method should accept keyword arguments matching the input keys and return a dictionary matching the output field names. The runner will validate the output against the contract.
 
 ## Reusing an existing checkpoint
 

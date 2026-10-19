@@ -513,7 +513,22 @@ parallel:
 model:
 
 input_key: speech
+
+# Legacy approach (still supported):
 output_fn: src.inference.build_output
+
+# Recommended approach with contract:
+contract:
+  inputs:
+    speech:
+      kind: audio
+      label: Input Audio
+      sample_rate: 16000
+      channels: 1
+  outputs:
+    text:
+      kind: text
+      label: Transcription
 
 provider:
   _target_: espnet3.systems.base.inference_provider.InferenceProvider
@@ -528,7 +543,7 @@ Think of ESPnet3 inference as:
 
 - old decode config
 - plus dataset selection
-- plus output writing contract
+- plus input/output contract (or output writing contract for legacy recipes)
 - plus runtime execution backend
 
 all combined in one file.

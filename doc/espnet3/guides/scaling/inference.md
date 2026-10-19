@@ -88,6 +88,8 @@ def forward(idx, dataset, model, **env):
 Leave `batch_size` unset (or `batch_size: null`) when your model or
 `output_fn` only supports single-sample inference.
 
+**Optional Inputs Rule**: Within one batch, all samples must either all have or all lack an optional input declared in the contract. Mixing optional inputs within a batch raises a `KeyError`: "Optional inputs cannot be mixed within one batch".
+
 ## HPC cluster: SLURM and PBS
 
 Use a JobQueue backend to submit each Dask worker as a scheduler job.

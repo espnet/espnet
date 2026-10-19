@@ -271,8 +271,7 @@ Then the practical requirement is:
 For training, that usually means the batch produced by the dataloader and
 collate function must match what the model or Lightning wrapper expects.
 
-For inference, it means `input_key` and `output_fn` must line up with the
-dataset and model.
+For inference, it means `input_key` must match `contract.inputs`, and the model output must match `contract.outputs`.
 
 So the migration rule is:
 
