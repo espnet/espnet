@@ -5,6 +5,7 @@ from pathlib import Path
 
 import pytest
 import torch
+import yaml
 
 PATH = (
     Path(__file__).resolve().parents[3] / "egs2/geolid/lid1/local/convert_checkpoint.py"
@@ -65,3 +66,59 @@ def test_early_independent_projection_names():
     assert torch.equal(
         converted[converter.PREFIX + "layers.32.conditioning_layer.weight"], weight
     )
+
+
+def test_converted_config_standard_inference(tiny_geolid, tmp_path):
+    import soundfile as sf
+
+    from espnet2.bin.lid_inference import main
+
+    args, model, base = tiny_geolid
+    source = vars(args).copy()
+    source["use_amp"] = True
+    # Older training configurations may lack fields added to TrainerOptions.
+    del source["ddp_comm_hook"]
+    config = converter.convert_config(source)
+    assert config["use_amp"] is True
+    assert config["ddp_comm_hook"] is None
+    config["frontend_conf"]["frontend_conf"]["path_or_url"] = str(base)
+    labels = tmp_path / "languages.txt"
+    labels.write_text("eng\nfra\nspa\nzho\n")
+    config["lang2utt"] = str(labels)
+    config_path = tmp_path / "config.yaml"
+    config_path.write_text(yaml.safe_dump(config))
+    checkpoint = tmp_path / "model.pth"
+    torch.save(model.state_dict(), checkpoint)
+    audio = tmp_path / "speech.wav"
+    sf.write(audio, torch.randn(16000).numpy() * 0.01, 16000)
+    wav_scp = tmp_path / "wav.scp"
+    wav_scp.write_text(f"test_utterance {audio}\n")
+    output = tmp_path / "output"
+    output.mkdir()
+    main(
+        [
+            "--output_dir",
+            str(output),
+            "--ngpu",
+            "0",
+            "--lid_train_config",
+            str(config_path),
+            "--lid_model_file",
+            str(checkpoint),
+            "--data_path_and_name_and_type",
+            f"{wav_scp},speech,sound",
+            "--use_preprocessor",
+            "false",
+            "--fix_duration",
+            "false",
+            "--num_workers",
+            "0",
+            "--extract_embd",
+            "false",
+            "--save_tsne_plot",
+            "false",
+        ]
+    )
+    result = (output / f"{tmp_path.name}_lids").read_text().split()
+    assert result[0] == "test_utterance"
+    assert result[1] in labels.read_text().splitlines()

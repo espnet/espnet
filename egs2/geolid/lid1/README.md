@@ -128,10 +128,22 @@ For recipe evaluation, download a converted model and point `--lid_exp` at it
 (after preparing the corresponding waveform dumps):
 
 ```bash
-hf download espnet/geolid_vl107only_shared_trainable --local-dir exp/pretrained
+python - <<'PY'
+from pathlib import Path
+from shutil import copyfile
+from espnet_model_zoo.downloader import ModelDownloader
+
+files = ModelDownloader().download_and_unpack("espnet/geolid_vl107only_shared_trainable")
+destination = Path("exp/pretrained")
+destination.mkdir(parents=True, exist_ok=True)
+copyfile(files["train_config"], destination / "config.yaml")
+copyfile(files["model_file"], destination / "model.pth")
+PY
 ./run.sh --stage 6 --stop_stage 7 --skip_train true \
     --lid_exp exp/pretrained --inference_model model.pth
 ```
+
+`ModelDownloader` resolves the bundled language-label path in the configuration.
 
 ## Train and Evaluation Datasets
 

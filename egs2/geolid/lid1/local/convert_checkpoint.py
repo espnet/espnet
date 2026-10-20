@@ -9,11 +9,15 @@ benchmark of the converted model.
 """
 
 import argparse
+import dataclasses
 import json
 from pathlib import Path
 
 import torch
 import yaml
+
+from espnet2.tasks.lid import LIDTask
+from espnet2.train.trainer import TrainerOptions
 
 PREFIX = "frontend.upstream.upstream.model.encoder."
 
@@ -83,6 +87,11 @@ def convert_config(source):
     )
     keys = {key for module in modules for key in (module, module + "_conf")}
     config = {key: value for key, value in source.items() if key in keys}
+    # lid_inference builds TrainerOptions from the saved training configuration.
+    # Use current defaults for fields absent from older training runs.
+    defaults = vars(LIDTask.get_parser().parse_args([]))
+    for field in dataclasses.fields(TrainerOptions):
+        config[field.name] = source.get(field.name, defaults[field.name])
     config["model_conf"] = dict(config["model_conf"])
     config["model_conf"].pop("legacy_inference", None)
     config["frontend"] = "s3prl"
