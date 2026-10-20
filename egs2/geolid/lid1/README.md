@@ -187,6 +187,12 @@ Below is a summary table of the training and evaluation datasets used in this pr
 
 **Accuracy (%) on In-domain and Out-of-domain Test Sets**
 
+Here, a **converted model** is an original pretrained GeoLID checkpoint adapted
+to the current ESPnet implementation by remapping parameter keys and removing
+verified duplicate aliases. The learned tensor values are unchanged, and no
+retraining was performed. These models use current ESPnet normalization and
+pooling, so their predictions can differ from those of the original implementation.
+
 The converted column reports measured utterance-level accuracy on all **1,609
 VoxLingua107 dev utterances**, with correct counts in parentheses. All other
 columns, including Macro Avg., are historical paper results and do not describe
