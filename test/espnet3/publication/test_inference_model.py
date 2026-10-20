@@ -465,6 +465,63 @@ def test_packed_contract_enforces_audio_sample_rate(
         )
 
 
+@pytest.mark.parametrize("batched", [False, True])
+@pytest.mark.parametrize(
+    ("shape", "normalize", "channels"),
+    [
+        ((441,), [], 1),
+        ((441, 2), ["mean_channels"], 1),
+    ],
+)
+def test_packed_contract_normalizes_gradio_audio(
+    tmp_path, monkeypatch, batched, shape, normalize, channels
+):
+    """Gradio audio (``(rate, int16)``) reaches the model as 16 kHz float32.
+
+    The demo launchers hand Gradio values to ``InferenceModel`` unchanged, so
+    the contract has to do the PCM-to-float conversion, the resampling and any
+    stereo-to-mono reduction (review of #6917).
+    """
+    bundle = _make_pack_dir(tmp_path)
+    config_path = bundle / "conf" / "inference.yaml"
+    config = yaml.safe_load(config_path.read_text())
+    config["contract"] = {
+        "inputs": {
+            "speech": {
+                "kind": "audio",
+                "sample_rate": 16000,
+                "rate_policy": "resample",
+                "channels": channels,
+                "normalize": normalize,
+            }
+        },
+        "outputs": {"text": {"kind": "text"}},
+    }
+    config_path.write_text(yaml.safe_dump(config))
+    seen = []
+
+    def backend(speech):
+        seen.append(speech)
+        if isinstance(speech, list):
+            return [{"text": "ok"} for _ in speech]
+        return {"text": "ok"}
+
+    monkeypatch.setattr(
+        InferenceProvider, "build_model", staticmethod(lambda _: backend)
+    )
+    model = InferenceModel.from_packed(bundle)
+    sample = {"speech": (44100, np.full(shape, 16384, dtype=np.int16))}
+    model.forward_batch([sample]) if batched else model(sample)
+
+    waveform = seen[0][0] if batched else seen[0]
+    assert isinstance(waveform, Audio)
+    assert waveform.rate == 16000
+    assert waveform.array.dtype == np.float32
+    assert waveform.array.shape == (160,)
+    assert np.abs(waveform.array).max() <= 1.0
+    np.testing.assert_allclose(waveform.array.mean(), 0.5, atol=0.05)
+
+
 def test_from_packed_uses_configured_provider_and_runner_targets(tmp_path, monkeypatch):
     bundle_root = _make_pack_dir(
         tmp_path,
