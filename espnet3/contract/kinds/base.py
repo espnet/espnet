@@ -46,6 +46,19 @@ class Kind(ABC):
                 super().validate_options(options)
                 if options.get("max_length", 1) <= 0:
                     raise ValueError("max_length must be positive")
+
+        Args:
+            options: The field's kind-specific options, including ``normalize``.
+
+        Returns:
+            None.
+
+        Examples:
+            >>> from espnet3.contract.kinds.text import TextKind
+            >>> TextKind().validate_options({"normalize": ["strip"]})
+            >>> TextKind().validate_options({"bogus": 1})
+            Traceback (most recent call last):
+            ValueError: Unknown TextKind option(s): ['bogus']
         """
         unknown = set(options) - self.option_names
         if unknown:
@@ -64,11 +77,49 @@ class Kind(ABC):
             raise ValueError(f"Unknown inference normalizer(s): {sorted(unknown)}")
 
     def check_configured(self, value, field, model, options, *, output):
-        """Check a value using per-field options; override for Kind-specific rules."""
+        """Check a value using per-field options; override for Kind-specific rules.
+
+        Args:
+            value: What the caller gave, or what the hook returned.
+            field: The declaration the value is for.
+            model: The instance, for what it knows (its ``sample_rate``).
+            options: The field's kind-specific options.
+            output: Whether the value is a hook's result.
+
+        Returns:
+            ``value`` in the form this kind holds it.
+
+        Examples:
+            >>> from espnet3.contract import Field
+            >>> from espnet3.contract.kinds.text import TextKind
+            >>> field = Field("text", "text")
+            >>> TextKind().check_configured("hi", field, None, {}, output=False)
+            'hi'
+        """
         return self.check(value, field, model, output=output)
 
     def apply(self, value, field, model, options, *, output):
-        """Check, normalize, and recheck a value using this Kind's configuration."""
+        """Check, normalize, and recheck a value using this Kind's configuration.
+
+        Args:
+            value: What the caller gave, or what the hook returned.
+            field: The declaration the value is for.
+            model: The instance, for what it knows (its ``sample_rate``).
+            options: The field's kind-specific options, including ``normalize``.
+            output: Whether the value is a hook's result.
+
+        Returns:
+            The value after the checks and the listed normalizers.
+
+        Examples:
+            >>> from espnet3.contract import Field
+            >>> from espnet3.contract.kinds.text import TextKind
+            >>> options = {"normalize": ["strip", "to_lower"]}
+            >>> TextKind().apply(
+            ...     "  Hi ", Field("text", "text"), None, options, output=False
+            ... )
+            'hi'
+        """
         names = options.get("normalize", ()) or ()
         if isinstance(names, str):
             names = [names]
@@ -84,11 +135,37 @@ class Kind(ABC):
         return result
 
     def to_model_input(self, value, field):
-        """Convert a checked value to the representation consumed by the runner."""
+        """Convert a checked value to the representation consumed by the runner.
+
+        Args:
+            value: A value already checked by this kind.
+            field: The declaration the value is for.
+
+        Returns:
+            What the runner hands to the backend; ``value`` unless overridden.
+
+        Examples:
+            >>> from espnet3.contract import Field
+            >>> from espnet3.contract.kinds.text import TextKind
+            >>> TextKind().to_model_input("hi", Field("text", "text"))
+            'hi'
+        """
         return value
 
     def to_demo_output(self, value):
-        """Convert a checked output to the value consumed by a demo component."""
+        """Convert a checked output to the value consumed by a demo component.
+
+        Args:
+            value: An output already checked by this kind.
+
+        Returns:
+            What the demo component shows; ``value`` unless overridden.
+
+        Examples:
+            >>> from espnet3.contract.kinds.text import TextKind
+            >>> TextKind().to_demo_output("hi")
+            'hi'
+        """
         return value
 
     @abstractmethod

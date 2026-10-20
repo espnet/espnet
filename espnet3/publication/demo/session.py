@@ -98,6 +98,7 @@ class DemoSession:
 
     @staticmethod
     def _specs_from_contract(contract, direction: str) -> list[dict[str, Any]]:
+        """List the UI specs of a contract's ``inputs`` or ``outputs``."""
         if contract is None:
             raise ValueError(
                 f"Demo ui.{direction} requires an inference contract or explicit specs"

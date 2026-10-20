@@ -109,7 +109,7 @@ class BaseRunner(ABC):
         Raises:
             NotImplementedError: Always in the base class; implement in subclass.
 
-        Example:
+        Examples:
             >>> class MyRunner(BaseRunner):
             ...     @staticmethod
             ...     def forward(idx, dataset, model, **env):

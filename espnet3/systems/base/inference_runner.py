@@ -60,6 +60,7 @@ def _materialize_output_value(
     output_dir: Path,
     artifact_config: dict | None,
 ):
+    """Return a value an SCP file can hold, writing an artifact when needed."""
     if isinstance(value, (str, int, float, bool)):
         return value
     idx_value = check_utt_id(idx_value)
@@ -290,6 +291,34 @@ class InferenceRunner(BaseRunner):
         Changes after ``super().forward`` require output validation again.
         Bundled recipe code needs ``trust_user_code=True`` when loaded.
         Without a contract, the legacy ``output_fn`` path still applies.
+
+        Args:
+            idx: One dataset index, or a list of them for a batch.
+            dataset: The dataset to read items from.
+            model: The backend called with the checked inputs.
+            **kwargs: ``input_key``, ``inference_contract``, ``idx_key``,
+                ``model_kwargs`` and the legacy ``output_fn`` /
+                ``output_fn_path``.
+
+        Returns:
+            One named output mapping, or a list of them for a batch.
+
+        Examples:
+            >>> from espnet3.contract.inference import load_inference_contract
+            >>> contract = load_inference_contract(
+            ...     {
+            ...         "inputs": {"text": {"kind": "text"}},
+            ...         "outputs": {"text": {"kind": "text"}},
+            ...     }
+            ... )
+            >>> InferenceRunner.forward(
+            ...     0,
+            ...     dataset=[{"text": "hi"}],
+            ...     model=lambda text: {"text": text},
+            ...     input_key="text",
+            ...     inference_contract=contract,
+            ... )
+            {'text': 'hi', 'utt_id': '0'}
         """
         model_kwargs = kwargs.get("model_kwargs") or {}
         if not isinstance(model_kwargs, Mapping):
@@ -368,12 +397,37 @@ class InferenceRunner(BaseRunner):
 
     @staticmethod
     def prepare_model_inputs(inputs):
-        """Adapt checked Kind values to a backend's argument representation."""
+        """Adapt checked Kind values to a backend's argument representation.
+
+        Args:
+            inputs: The backend's keyword arguments, already checked by their
+                kinds (a list per key for a batch).
+
+        Returns:
+            The arguments the backend is called with; ``inputs`` unless a
+            system overrides it.
+
+        Examples:
+            >>> InferenceRunner.prepare_model_inputs({"text": "hi"})
+            {'text': 'hi'}
+        """
         return inputs
 
     @staticmethod
     def format_output(result, *, batched):
-        """Convert raw model results to named outputs before contract validation."""
+        """Convert raw model results to named outputs before contract validation.
+
+        Args:
+            result: What the backend returned.
+            batched: Whether the call was a batch.
+
+        Returns:
+            The named outputs; ``result`` unless a system overrides it.
+
+        Examples:
+            >>> InferenceRunner.format_output({"text": "hi"}, batched=False)
+            {'text': 'hi'}
+        """
         return result
 
     @staticmethod

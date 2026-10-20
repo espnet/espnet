@@ -299,7 +299,25 @@ class AudioKind(Kind):
     option_names = Kind.option_names | {"sample_rate", "rate_policy"}
 
     def validate_options(self, options) -> None:
-        """Validate the target sample rate and mismatch policy."""
+        """Validate the target sample rate and mismatch policy.
+
+        Args:
+            options: The field's options: ``sample_rate``, ``rate_policy`` and
+                ``normalize``.
+
+        Returns:
+            None.
+
+        Raises:
+            ValueError: If ``sample_rate`` is not a positive integer or
+                ``rate_policy`` is not ``resample`` or ``reject``.
+
+        Examples:
+            >>> AudioKind().validate_options({"sample_rate": 16000})
+            >>> AudioKind().validate_options({"rate_policy": "keep"})
+            Traceback (most recent call last):
+            ValueError: rate_policy must be 'resample' or 'reject'
+        """
         super().validate_options(options)
         rate = options.get("sample_rate")
         if rate is not None and (
@@ -310,7 +328,31 @@ class AudioKind(Kind):
             raise ValueError("rate_policy must be 'resample' or 'reject'")
 
     def check_configured(self, value, field, model, options, *, output):
-        """Apply the field's rate policy before the standard audio check."""
+        """Apply the field's rate policy before the standard audio check.
+
+        Args:
+            value: Audio in any form :meth:`Audio.coerce` accepts.
+            field: The declaration the value is for.
+            model: The instance; its ``sample_rate`` is the default rate.
+            options: The field's options: ``sample_rate`` and ``rate_policy``.
+            output: Whether the value is a hook's result.
+
+        Returns:
+            An ``Audio`` at the target rate.
+
+        Raises:
+            ValueError: If the policy is ``reject`` and the rates differ.
+
+        Examples:
+            >>> from espnet3.contract import Field
+            >>> value = (16000, np.zeros(16000, dtype=np.float32))
+            >>> audio = AudioKind().check_configured(
+            ...     value, Field("speech", "audio"), None,
+            ...     {"sample_rate": 16000}, output=False,
+            ... )
+            >>> audio.rate
+            16000
+        """
         rate = options.get("sample_rate")
         if rate is None:
             rate = getattr(model, "sample_rate", None)
@@ -333,7 +375,20 @@ class AudioKind(Kind):
         )
 
     def to_demo_output(self, value):
-        """Return Audio as (rate, samples), with channels last for Gradio."""
+        """Return Audio as (rate, samples), with channels last for Gradio.
+
+        Args:
+            value: A checked output; anything but ``Audio`` is returned as is.
+
+        Returns:
+            A ``(rate, samples)`` pair for an ``Audio``, else ``value``.
+
+        Examples:
+            >>> audio = Audio(np.zeros((2, 8000), dtype=np.float32), 8000)
+            >>> rate, samples = AudioKind().to_demo_output(audio)
+            >>> rate, samples.shape
+            (8000, (8000, 2))
+        """
         if not isinstance(value, Audio):
             return value
         array = value.array

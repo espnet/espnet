@@ -90,6 +90,12 @@ def infer(config: DictConfig):
         config: Hydra/OmegaConf configuration containing the dataset,
             inference directory, provider/runner definitions, and optional
             ``output_artifacts`` writer settings.
+
+    Returns:
+        None.
+
+    Examples:
+        >>> infer(config)  # doctest: +SKIP
     """
     start = time.perf_counter()
     set_parallel(getattr(config, "parallel", None))
