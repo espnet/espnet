@@ -139,6 +139,12 @@ class DemoSession:
         Returns:
             Callable: Function suitable for ``gr.Button.click`` that
             maps UI values to model input keys and runs inference.
+
+        Examples:
+            >>> session = load_demo_session(demo_dir, "demo.yaml")  # doctest: +SKIP
+            >>> specs = (session.input_specs, session.output_specs)  # doctest: +SKIP
+            >>> fn = session.create_inference_fn(*specs)  # doctest: +SKIP
+            >>> text = fn("hello")  # doctest: +SKIP
         """
         resolved_input_specs = input_specs or []
         resolved_output_specs = output_specs or []
@@ -163,6 +169,7 @@ class DemoSession:
             )
 
         def run_inference(*values: Any) -> Any:
+            """Run the model on the UI values and return its UI outputs."""
             logger.info(
                 "Demo inference start | num_inputs=%d input_keys=%s output_keys=%s",
                 len(values),
@@ -213,12 +220,18 @@ def load_demo_session(
             resolved from ``demo_dir``.
         model: Optional callable model override, useful for recipe-specific
             inference logic. When omitted, the packed inference model is loaded.
+
     Returns:
         DemoSession: Loaded runtime session for the packed demo.
 
     Raises:
         FileNotFoundError: If the demo directory or packed demo config is
             missing.
+
+    Examples:
+        >>> session = load_demo_session("demo", "demo.yaml")  # doctest: +SKIP
+        >>> session.title  # doctest: +SKIP
+        'My demo'
     """
     demo_root = Path(demo_dir).resolve()
     if not demo_root.is_dir():
@@ -258,6 +271,11 @@ def _build_demo_model(
     demo_cfg,
     demo_dir: Path,
 ) -> InferenceModel:
+    """Load the packed inference model that a demo config refers to.
+
+    ``model.dir_or_tag`` is a directory (absolute, or relative to
+    ``demo_dir``) holding a packed model, or a tag to download.
+    """
     model_cfg = demo_cfg.model
     dir_or_tag = model_cfg.get("dir_or_tag")
     if not dir_or_tag:

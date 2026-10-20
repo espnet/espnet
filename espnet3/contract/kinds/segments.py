@@ -50,5 +50,19 @@ class SegmentsKind(Kind):
         return value
 
     def join(self, first, second):
-        """Append the segments."""
+        """Append the segments.
+
+        Args:
+            first: The segments gathered so far.
+            second: The segments that follow.
+
+        Returns:
+            One list holding both.
+
+        Examples:
+            >>> a = [{"text": "hi", "start": 0.0, "end": 0.4}]
+            >>> b = [{"text": "yo", "start": 0.4, "end": 0.8}]
+            >>> len(SegmentsKind().join(a, b))
+            2
+        """
         return first + second

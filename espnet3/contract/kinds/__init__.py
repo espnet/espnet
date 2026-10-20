@@ -42,6 +42,9 @@ def register_kind(name: str, kind: Kind, *, replace: bool = False) -> None:
         replace: Allow redefining a name already registered; off by
             default, so two systems cannot silently disagree on one.
 
+    Returns:
+        None.
+
     Raises:
         TypeError: If ``kind`` is not a :class:`Kind`.
         ValueError: If ``name`` is taken and ``replace`` is false.

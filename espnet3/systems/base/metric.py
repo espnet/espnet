@@ -229,6 +229,12 @@ def measure(metrics_config: DictConfig, inference_config: DictConfig | None = No
     Raises:
         ValueError: If no test sets can be resolved from either
             ``metrics_config.dataset.test`` or ``metrics_config.inference_dir``.
+
+    Examples:
+        >>> results = measure(metrics_config, inference_config)  # doctest: +SKIP
+        >>> wer = results["espnet3.systems.esp2_asr.metrics.wer.WER"]  # doctest: +SKIP
+        >>> wer["test-clean"]  # doctest: +SKIP
+        {'WER': 4.3}
     """
     test_sets = _resolve_test_sets(metrics_config)
     results = {}

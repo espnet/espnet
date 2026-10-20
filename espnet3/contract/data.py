@@ -30,6 +30,9 @@ def require_fields(obj, attr: str) -> None:
             not.
         attr: The attribute name, such as ``"fields"``.
 
+    Returns:
+        Nothing; it always raises ``TypeError``.
+
     Examples:
         >>> class Undeclared:
         ...     pass
@@ -56,6 +59,9 @@ def check_fields(obj, attr: str) -> Optional[Tuple[Field, ...]]:
             (set in its ``__init__``) declare a contract its class does
             not.
         attr: The attribute name, such as ``"fields"``.
+
+    Returns:
+        The declared fields, or ``None`` when ``obj`` does not declare ``attr``.
 
     Raises:
         TypeError: ``obj.<attr>`` is declared but malformed.
@@ -93,6 +99,9 @@ def check_item(fields: Tuple[Field, ...], item: Any, where: str) -> None:
         item: One dataset sample, taken from the recipe's own
             ``__getitem__``, before any transform or preprocessor.
         where: Where ``item`` came from, for the error.
+
+    Returns:
+        None.
 
     Raises:
         DatasetContractError: ``item`` is not a mapping, lacks a required

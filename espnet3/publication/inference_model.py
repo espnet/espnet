@@ -71,6 +71,37 @@ def _get_bundled_module_names(bundle_root: Path) -> set[str]:
     return bundled_modules
 
 
+def _check_bundled_module_conflicts(
+    bundled_modules: set[str], bundle_root: Path
+) -> None:
+    """Reject bundled module names already imported from somewhere else.
+
+    Called by :meth:`InferenceModel.from_packed` before the bundle root is put on
+    ``sys.path``. Python reuses an entry in ``sys.modules`` without looking at
+    ``sys.path``, so a bundle's ``src`` would silently resolve to a ``src``
+    imported earlier (another recipe or bundle) and run that code instead.
+    """
+    root = bundle_root.resolve()
+    conflicts = []
+    for name in sorted(bundled_modules):
+        module = sys.modules.get(name)
+        if module is None:
+            continue
+        locations = [getattr(module, "__file__", None)]
+        locations.extend(getattr(module, "__path__", None) or [])
+        locations = [Path(location).resolve() for location in locations if location]
+        if not any(root in (loc, *loc.parents) for loc in locations):
+            where = locations[0] if locations else "an unknown location"
+            conflicts.append(f"{name} (already imported from {where})")
+    if conflicts:
+        raise ValueError(
+            "The bundle ships modules whose names were already imported from "
+            "elsewhere, so its code would not be the code that runs: "
+            + ", ".join(conflicts)
+            + ". Load the bundle in a fresh process or rename the bundled modules."
+        )
+
+
 def _uses_bundled_code(
     config: DictConfig,
     bundled_modules: set[str],
@@ -406,6 +437,7 @@ class InferenceModel:
                     "Set trust_user_code=True to allow imports from the "
                     "published bundle."
                 )
+            _check_bundled_module_conflicts(bundled_modules, bundle_root)
             bundle_root_str = str(bundle_root)
             if bundle_root_str not in sys.path:
                 sys.path.insert(0, bundle_root_str)
@@ -513,7 +545,20 @@ class InferenceModel:
 
     @property
     def primary_input_key(self) -> str:
-        """Return the single configured input key."""
+        """Return the single configured input key.
+
+        Returns:
+            The only entry of ``input_key``, or ``input_key`` itself when it is
+            a string.
+
+        Raises:
+            RuntimeError: If ``input_key`` lists more than one key.
+
+        Examples:
+            >>> model = InferenceModel.from_packed("pack_dir")  # doctest: +SKIP
+            >>> model.primary_input_key  # doctest: +SKIP
+            'speech'
+        """
         if isinstance(self.input_key, list):
             if len(self.input_key) != 1:
                 raise RuntimeError(

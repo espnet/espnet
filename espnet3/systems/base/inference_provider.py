@@ -2,9 +2,11 @@
 
 import logging
 import os
+import sys
 import threading
 from abc import ABC
-from typing import Any, Callable, Dict
+from contextlib import contextmanager
+from typing import Any, Callable, Dict, Iterator
 
 import torch
 from hydra.utils import instantiate
@@ -51,6 +53,27 @@ def _convert_relative_paths_to_absolute(obj: Any, seen: set | None = None) -> No
                 _convert_relative_paths_to_absolute(value, seen)
         elif not isinstance(val, (int, float, bool, bytes, type(None))):
             _convert_relative_paths_to_absolute(val, seen)
+
+
+@contextmanager
+def _chdir_without_relative_imports(directory: str) -> Iterator[None]:
+    """Change into ``directory`` without making it importable.
+
+    ``sys.path`` entries such as ``""`` or ``"."`` resolve against the working
+    directory, so moving into a published bundle would let its files shadow
+    installed modules while the model is built. Relative entries are taken out
+    of ``sys.path`` for the duration and put back afterwards.
+    """
+    cwd = os.getcwd()
+    relative = [(i, p) for i, p in enumerate(sys.path) if not os.path.isabs(p)]
+    sys.path[:] = [p for p in sys.path if os.path.isabs(p)]
+    os.chdir(directory)
+    try:
+        yield
+    finally:
+        os.chdir(cwd)
+        for index, entry in relative:
+            sys.path.insert(min(index, len(sys.path)), entry)
 
 
 class InferenceProvider(EnvironmentProvider, ABC):
@@ -215,7 +238,24 @@ class InferenceProvider(EnvironmentProvider, ABC):
 
     @staticmethod
     def build_model(config: DictConfig):
-        """Build config.model directly on this worker's logical device."""
+        """Build ``config.model`` directly on this worker's logical device.
+
+        Args:
+            config: Inference config with a ``model`` entry. A ``recipe_dir``
+                entry makes the model build inside that directory, so relative
+                paths in ``model`` resolve against it.
+
+        Returns:
+            The instantiated model.
+
+        Examples:
+            >>> from omegaconf import OmegaConf
+            >>> config = OmegaConf.create(
+            ...     {"device": "cpu", "model": {"_target_": "torch.nn.Identity"}}
+            ... )
+            >>> InferenceProvider.build_model(config)
+            Identity()
+        """
         if isinstance(config, dict):
             config = OmegaConf.create(config)
         device = InferenceProvider._resolve_device(config)
@@ -230,14 +270,10 @@ class InferenceProvider(EnvironmentProvider, ABC):
         with _MODEL_BUILD_LOCK:
             if not recipe_dir:
                 return instantiate(config.model, device=device)
-            cwd = os.getcwd()
-            os.chdir(str(recipe_dir))
-            try:
+            with _chdir_without_relative_imports(str(recipe_dir)):
                 model = instantiate(config.model, device=device)
                 _convert_relative_paths_to_absolute(model)
                 return model
-            finally:
-                os.chdir(cwd)
 
     @staticmethod
     def _resolve_device(config: DictConfig) -> str:

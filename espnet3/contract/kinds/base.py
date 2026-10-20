@@ -105,6 +105,15 @@ class Kind(ABC):
             output: Whether the value is a hook's result rather than a
                 caller's argument; a kind may accept different forms for
                 each.
+
+        Returns:
+            ``value`` in the form this kind holds it.
+
+        Examples:
+            >>> from espnet3.contract import Field
+            >>> from espnet3.contract.kinds.text import TextKind
+            >>> TextKind().check("hi", Field("text", "text"), None, output=False)
+            'hi'
         """
 
     def join(self, first: Any, second: Any) -> Any:
@@ -124,6 +133,11 @@ class Kind(ABC):
 
         Raises:
             NotImplementedError: Always, unless the kind overrides it.
+
+        Examples:
+            >>> from espnet3.contract.kinds.text import TextKind
+            >>> TextKind().join("a", "b")
+            'ab'
         """
         raise NotImplementedError(
             f"{type(self).__name__} does not say how two pieces join; "
@@ -137,6 +151,22 @@ class Kind(ABC):
         a list of arrays is several utterances, a ``[rate, samples]`` pair
         is one; a list of turns is one conversation, a list of those is
         several. Override when a kind can say it more cheaply.
+
+        Args:
+            value: What the caller gave.
+            field: The declaration the value is for.
+            model: The instance, for what it knows (its ``sample_rate``).
+
+        Returns:
+            ``True`` when ``value`` is a list with one entry per sample.
+
+        Examples:
+            >>> from espnet3.contract import Field
+            >>> from espnet3.contract.kinds.text import TextKind
+            >>> TextKind().is_batch(["a", "b"], Field("text", "text"), None)
+            True
+            >>> TextKind().is_batch("a", Field("text", "text"), None)
+            False
         """
         if not isinstance(value, list):
             return False
@@ -156,6 +186,13 @@ class Kind(ABC):
         "no"; override when a kind's :meth:`check` needs the model for
         something a model-free caller cannot supply (``audio`` needs a
         rate when none is carried).
+
+        Args:
+            value: The value to test.
+            field: The declaration the value is for.
+
+        Returns:
+            ``True`` when ``check`` accepts ``value`` without a model.
 
         Examples:
             >>> from espnet3.contract import Field

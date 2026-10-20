@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import importlib
 import sys
 from pathlib import Path
 from unittest.mock import patch
@@ -126,6 +127,19 @@ def _make_pack_dir(
             encoding="utf-8",
         )
     return bundle_root
+
+
+@pytest.fixture(autouse=True)
+def _forget_bundled_src_modules():
+    """Each test ships its own ``src``; none may see another test's import."""
+
+    def forget():
+        for name in [m for m in sys.modules if m == "src" or m.startswith("src.")]:
+            del sys.modules[name]
+
+    forget()
+    yield
+    forget()
 
 
 @pytest.fixture
@@ -520,6 +534,49 @@ def test_packed_contract_normalizes_gradio_audio(
     assert waveform.array.shape == (160,)
     assert np.abs(waveform.array).max() <= 1.0
     np.testing.assert_allclose(waveform.array.mean(), 0.5, atol=0.05)
+
+
+def test_from_packed_rejects_bundled_module_already_imported_elsewhere(
+    tmp_path, monkeypatch
+):
+    """A bundled ``src`` must not silently resolve to another ``src``."""
+    bundle_root = _make_pack_dir(
+        tmp_path,
+        model_target="src.custom_code.CustomModel",
+        with_src_module=True,
+    )
+    other = tmp_path / "other" / "src"
+    other.mkdir(parents=True)
+    (other / "__init__.py").write_text("")
+    monkeypatch.setattr(sys, "path", list(sys.path))
+    monkeypatch.syspath_prepend(str(other.parent))
+    monkeypatch.delitem(sys.modules, "src", raising=False)
+    importlib.import_module("src")
+    monkeypatch.setitem(sys.modules, "src", sys.modules["src"])
+
+    with pytest.raises(ValueError, match=r"src \(already imported from"):
+        InferenceModel.from_packed(bundle_root, trust_user_code=True)
+
+
+def test_from_packed_accepts_bundled_module_already_imported_from_bundle(
+    tmp_path, monkeypatch
+):
+    """Loading the same bundle twice is not a conflict."""
+    bundle_root = _make_pack_dir(
+        tmp_path,
+        model_target="src.custom_code.CustomModel",
+        with_src_module=True,
+    )
+    monkeypatch.setattr(sys, "path", list(sys.path))
+    monkeypatch.delitem(sys.modules, "src", raising=False)
+    monkeypatch.delitem(sys.modules, "src.custom_code", raising=False)
+
+    first = InferenceModel.from_packed(bundle_root, trust_user_code=True)
+    second = InferenceModel.from_packed(bundle_root, trust_user_code=True)
+
+    assert first({"speech": "a"}) == second({"speech": "a"}) == "cfg:a"
+    monkeypatch.delitem(sys.modules, "src", raising=False)
+    monkeypatch.delitem(sys.modules, "src.custom_code", raising=False)
 
 
 def test_from_packed_uses_configured_provider_and_runner_targets(tmp_path, monkeypatch):
