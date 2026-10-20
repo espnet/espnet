@@ -68,11 +68,12 @@ class ESPnetLIDUpstreamConditionModel(ESPnetLIDModel):
         apply_intermediate_lang2vec_condition: whether to apply lang2vec
                                                conditioning at intermediate layers
         inter_lang2vec_loss_weight: weight for the intermediate lang2vec loss
-        cutoff_gradient_from_backbone: whether to cutoff gradient from upstream
-                                       (frontend) backbone to the conditioning
-                                       projection
-        cutoff_gradient_before_condproj: whether to cutoff gradient before
-                                          conditioning projection
+        cutoff_gradient_from_backbone: if True, detach the projected residual
+            before adding it to the SSL hidden states AND freeze the conditioning
+            projection parameters. The SSL backbone and auxiliary prediction
+            heads remain trainable.
+        cutoff_gradient_before_condproj: if True, detach the predicted lang2vec
+            vector before projection. This alone does not freeze the projection.
         shared_conditioning_proj: if True, share conditioning projection across
                                   layers
 
@@ -210,6 +211,7 @@ class ESPnetLIDUpstreamConditionModel(ESPnetLIDModel):
         task_tokens: Optional[torch.Tensor] = None,
         lang2vecs: Optional[torch.Tensor] = None,
         extract_embd: bool = False,
+        lang2vec_mask: Optional[torch.Tensor] = None,
         **kwargs,
     ) -> Union[
         Tuple[torch.Tensor, torch.Tensor],
@@ -227,6 +229,8 @@ class ESPnetLIDUpstreamConditionModel(ESPnetLIDModel):
             one-hot speaker labels used in the train phase
             task_tokens: (Batch, )
             task tokens used in case of token-based trainings
+            lang2vec_mask: (Batch, 1), optional mask for languages with auxiliary
+                supervision. Excluded languages still contribute classification loss.
         """
 
         if lid_labels is not None:
@@ -257,15 +261,13 @@ class ESPnetLIDUpstreamConditionModel(ESPnetLIDModel):
 
         # 4. calculate loss
         # NOTE: if lid_labels is None, loss and accuracy are None
-        if lang2vecs is not None:
-            loss, accuracy, pred_lids, class_loss, lang2vec_loss = self.loss(
-                lang_embd, lid_labels, lang2vecs
+        if lang2vecs is not None and (lang2vec_mask is None or lang2vec_mask.any()):
+            class_loss, accuracy, pred_lids, lang2vec_loss = self.loss(
+                lang_embd, lid_labels, lang2vecs, lang2vec_mask
             )
             lang2vec_type = self.loss.lang2vec_type
             stats["class_loss"] = class_loss.detach()
-            if (
-                lang2vec_loss is not None
-            ):  # lang2vec_loss is None when setting apply_last to False in the loss
+            if lang2vec_loss is not None:
                 stats[f"{lang2vec_type}_loss_downstream"] = lang2vec_loss.detach()
 
             if (
@@ -277,6 +279,7 @@ class ESPnetLIDUpstreamConditionModel(ESPnetLIDModel):
                 inter_lang2vec_losses = self._calc_intermediate_lang2vec_pred_loss(
                     intermediate_lang2vec_preds,
                     lang2vecs,
+                    lang2vec_mask,
                 )
 
                 inter_lang2vec_loss_mean = 0.0
@@ -296,9 +299,7 @@ class ESPnetLIDUpstreamConditionModel(ESPnetLIDModel):
                 )
 
                 lang2vec_loss_all = 0.0
-                if (
-                    lang2vec_loss is not None
-                ):  # which means do not apply lang2vec loss on the last layer
+                if lang2vec_loss is not None:
                     lang2vec_loss_all += (
                         1 - self.inter_lang2vec_loss_weight
                     ) * lang2vec_loss
@@ -312,27 +313,15 @@ class ESPnetLIDUpstreamConditionModel(ESPnetLIDModel):
             else:
                 lang2vec_loss_all = lang2vec_loss
 
-            lid_class_loss_all = class_loss
-
-            # NOTE(qingzheng): recaulculate the loss, loss fomula:
-            # loss = (1 - lang2vec_weight) * class_loss+ lang2vec_weight * (
-            #     (1 - inter_lang2vec_loss_weight) * lang2vec_loss +
-            #     inter_lang2vec_loss_weight * inter_lang2vec_loss_mean
-            # )
+            # Weight classification and auxiliary supervision once, here.
             if lang2vec_loss_all is None:
-                loss = lid_class_loss_all
+                loss = class_loss
             else:
                 loss = (
-                    (1 - self.loss.lang2vec_weight) * lid_class_loss_all
-                    + self.loss.lang2vec_weight * lang2vec_loss_all
-                )
+                    1 - self.loss.lang2vec_weight
+                ) * class_loss + self.loss.lang2vec_weight * lang2vec_loss_all
         else:
-            # NOTE(qingzheng): if use aamsoftmax_sc_topk_lang2vec loss but not
-            # specify the lang2vec in preprocessor, it will jump to this branch,
-            # but aamsoftmax_sc_topk_lang2vec default return 5 outputs, so use [:3]
-            # to restrict here only retrieve the first 3 outputs
-            outputs = self.loss(lang_embd, lid_labels)
-            loss, accuracy, pred_lids = outputs[:3]
+            loss, accuracy, pred_lids, _ = self.loss(lang_embd, lid_labels)
             if loss is not None:
                 stats["class_loss"] = loss.detach()
 
@@ -388,12 +377,14 @@ class ESPnetLIDUpstreamConditionModel(ESPnetLIDModel):
         self,
         intermediate_lang2vec_preds: List[torch.Tensor],
         lang2vecs: torch.Tensor,
+        lang2vec_mask: Optional[torch.Tensor] = None,
     ) -> List[torch.Tensor]:
         inter_lang2vec_losses = []
         for intermediate_lang2vec_pred in intermediate_lang2vec_preds:
-            inter_lang2vec_loss = self.loss.lang2vec_loss(
+            inter_lang2vec_loss = self.loss.compute_lang2vec_loss(
                 intermediate_lang2vec_pred,
                 lang2vecs,
+                lang2vec_mask,
             )
             inter_lang2vec_losses.append(inter_lang2vec_loss)
 

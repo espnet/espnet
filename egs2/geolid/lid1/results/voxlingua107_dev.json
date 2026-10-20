@@ -1,0 +1,73 @@
+{
+  "dataset": "VoxLingua107",
+  "split": "dev",
+  "utterances": 1609,
+  "languages": 33,
+  "metric": "utterance-level accuracy (%)",
+  "entrypoint": "espnet2.bin.lid_inference",
+  "implementation_revision": "af67930739efa0bc7164beac8c79e556bd898a00",
+  "device": "cuda",
+  "dtype": "float32",
+  "batch_size": 4,
+  "num_workers": 8,
+  "use_preprocessor": false,
+  "fix_duration": false,
+  "input_order": "wav.scp sorted by utterance ID; standard ESPnet streaming iterator",
+  "manifest_sha256": "6ad3c8fc6c74fab2720fe186525fc3bd20c4ab7b1be35d227c5c7f5456ba6c54",
+  "environment": {
+    "python": "3.12.3 (main, Jun 19 2026, 12:46:00) [GCC 13.3.0]",
+    "torch": "2.11.0+cu128",
+    "torch_cuda_build": "12.8",
+    "torchaudio": "2.11.0+cu128",
+    "transformers": "5.14.1",
+    "espnet_s3prl": "2026.5.14",
+    "soundfile": "0.14.0"
+  },
+  "models": [
+    {
+      "repo_id": "espnet/geolid_vl107only_independent_frozen",
+      "evaluated_hf_revision": "d7712d80caec806727c7600ca720d39473013fb8",
+      "model_sha256": "ef51b1d2501e5e80ac8dae7cf31df1c5f5f6d02ca0a19df36af08d316ddc990b",
+      "correct": 1517,
+      "utterances": 1609,
+      "accuracy_percent": 94.28216283405843,
+      "paper_accuracy_percent": 94.2
+    },
+    {
+      "repo_id": "espnet/geolid_vl107only_independent_trainable",
+      "evaluated_hf_revision": "606354eb94879df320d9f409182e5f0f92fe25a8",
+      "model_sha256": "a21908ba968a4b424b5001dada89bbb751f9fb1df8521317abe2d49724c8853f",
+      "correct": 1509,
+      "utterances": 1609,
+      "accuracy_percent": 93.78495960223742,
+      "paper_accuracy_percent": 93.7
+    },
+    {
+      "repo_id": "espnet/geolid_vl107only_shared_frozen",
+      "evaluated_hf_revision": "bd484260221ead3f909716e7a56ed971e83b023c",
+      "model_sha256": "474629a2b7af4900619e02d67330d0fa044ce68918ea75e29077583cd85f071f",
+      "correct": 1518,
+      "utterances": 1609,
+      "accuracy_percent": 94.34431323803605,
+      "paper_accuracy_percent": 94.3
+    },
+    {
+      "repo_id": "espnet/geolid_vl107only_shared_trainable",
+      "evaluated_hf_revision": "f7af6414035861ca7c4f996a14d446fb7c3ceef8",
+      "model_sha256": "9ee7a22cb3eb843e7d1ffe973dfe2589209e033e971817985a54911216759a8e",
+      "correct": 1525,
+      "utterances": 1609,
+      "accuracy_percent": 94.77936606587943,
+      "paper_accuracy_percent": 94.9
+    },
+    {
+      "repo_id": "espnet/geolid_combined_shared_trainable",
+      "evaluated_hf_revision": "9571f926d6e356682b5b2a1691ecb5b1c65dee2a",
+      "model_sha256": "639919c81bff70ccceee5a6f064844b04d2d71c222393a19908eb002fb47596b",
+      "correct": 1502,
+      "utterances": 1609,
+      "accuracy_percent": 93.34990677439403,
+      "paper_accuracy_percent": 94.4
+    }
+  ]
+}

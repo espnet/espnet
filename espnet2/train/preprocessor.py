@@ -2243,6 +2243,9 @@ class SpkPreprocessor(CommonPreprocessor):
         else:
             data["spk_labels"] = np.asarray([int(data["spk_labels"])])
 
+        if "task_tokens" in data:
+            data["task_tokens"] = np.asarray([int(data["task_tokens"])])
+
         return data
 
     @typechecked
@@ -2278,6 +2281,9 @@ class LIDPreprocessor(CommonPreprocessor):
                 - `db_range` (Tuple[float, float]) is the range of noise levels in dB.
         noise_apply_prob (float): Probability of applying noise.
         short_noise_thres (float): Threshold of short noise.
+        lang2vec_exclude_languages (List[str]): Languages explicitly excluded from
+            auxiliary lang2vec supervision, while retaining classification labels.
+            Other missing lang2vec entries remain errors.
     """
 
     def __init__(
@@ -2296,6 +2302,7 @@ class LIDPreprocessor(CommonPreprocessor):
         short_noise_thres: float = 0.5,
         use_lang2vec: bool = False,
         lang2vec_type: str = None,
+        lang2vec_exclude_languages: Optional[List[str]] = None,
     ):
         super().__init__(train, rir_scp=rir_scp, rir_apply_prob=rir_apply_prob)
 
@@ -2310,6 +2317,7 @@ class LIDPreprocessor(CommonPreprocessor):
         self.lang2utt_path = lang2utt
         self.use_lang2vec = use_lang2vec
         self.lang2vec_type = lang2vec_type
+        self.lang2vec_exclude_languages = set(lang2vec_exclude_languages or [])
 
         with open(lang2utt, "r") as f_s2u:
             self.lang2utt = f_s2u.readlines()
@@ -2399,6 +2407,8 @@ class LIDPreprocessor(CommonPreprocessor):
         self.lang2vec = {}
         missing = []
         for lang in self.lang2label:
+            if lang in self.lang2vec_exclude_languages:
+                continue
             try:
                 result = l2v.get_features([lang], self.lang2vec_type)
             except Exception as error:
@@ -2411,6 +2421,20 @@ class LIDPreprocessor(CommonPreprocessor):
             self.lang2vec[lang] = vector
         if missing:
             raise ValueError("Missing lang2vec features: " + "; ".join(missing))
+        excluded = self.lang2vec_exclude_languages.intersection(self.lang2label)
+        if excluded:
+            if not self.lang2vec:
+                raise ValueError(
+                    "At least one language must have lang2vec supervision."
+                )
+            logging.warning(
+                "Excluding languages from lang2vec supervision only: %s",
+                ", ".join(sorted(excluded)),
+            )
+            # Collation needs equal-sized targets. These placeholders are masked
+            # out of every auxiliary loss, never treated as observed features.
+            for lang in excluded:
+                self.lang2vec[lang] = np.zeros_like(next(iter(self.lang2vec.values())))
 
     def _speech_process(self, data: Dict[np.ndarray, str]):
         audio = data["speech"]
@@ -2535,6 +2559,11 @@ class LIDPreprocessor(CommonPreprocessor):
             data["lang2vecs"] = self.lang2vec[
                 iso3_labels
             ]  # ndarray, (bs, lang2vec_dim)
+            if self.lang2vec_exclude_languages:
+                data["lang2vec_mask"] = np.asarray(
+                    [iso3_labels not in self.lang2vec_exclude_languages],
+                    dtype=np.int64,
+                )
 
         return data
 

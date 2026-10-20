@@ -1,0 +1,120 @@
+{
+  "result": "passed",
+  "config": "egs2/geolid/lid1/conf/tuning/combined.yaml",
+  "config_sha256": "8920d9c6fc5f5905741a860da244e082b93c31251a539856d59d134dc6d1563e",
+  "classification_languages": 157,
+  "geo_supervised_languages": 156,
+  "excluded_auxiliary_languages": [
+    "tok"
+  ],
+  "features": "actual installed lang2vec geo vectors (299 dimensions)",
+  "audio": "synthetic variable-length 16 kHz waveforms, 1.5 and 2 seconds; startup test only",
+  "backbone": "stock S3prlFrontend with pretrained facebook/mms-1b; full-size combined recipe architecture",
+  "torch": "2.11.0+cu128",
+  "gpu": "NVIDIA H200",
+  "parameters": 977139592,
+  "updates": [
+    {
+      "labels": [
+        "eng",
+        "tok"
+      ],
+      "microbatches": 4,
+      "losses": [
+        16.864360809326172,
+        16.71526336669922,
+        16.224287033081055,
+        15.586639404296875
+      ],
+      "gradient_norm": 2506.784423828125,
+      "classifier_updated": true,
+      "auxiliary_supervised": true
+    },
+    {
+      "labels": [
+        "tok",
+        "tok"
+      ],
+      "microbatches": 4,
+      "losses": [
+        20.27105712890625,
+        19.383909225463867,
+        22.578510284423828,
+        21.58454132080078
+      ],
+      "gradient_norm": 2123.095947265625,
+      "classifier_updated": true,
+      "auxiliary_supervised": false
+    }
+  ],
+  "amp_overflow_skips": [
+    {
+      "labels": [
+        "eng",
+        "tok"
+      ],
+      "scale_before": 65536.0,
+      "scale_after": 32768.0
+    },
+    {
+      "labels": [
+        "eng",
+        "tok"
+      ],
+      "scale_before": 32768.0,
+      "scale_after": 16384.0
+    },
+    {
+      "labels": [
+        "eng",
+        "tok"
+      ],
+      "scale_before": 16384.0,
+      "scale_after": 8192.0
+    },
+    {
+      "labels": [
+        "eng",
+        "tok"
+      ],
+      "scale_before": 8192.0,
+      "scale_after": 4096.0
+    },
+    {
+      "labels": [
+        "eng",
+        "tok"
+      ],
+      "scale_before": 4096.0,
+      "scale_after": 2048.0
+    },
+    {
+      "labels": [
+        "eng",
+        "tok"
+      ],
+      "scale_before": 2048.0,
+      "scale_after": 1024.0
+    },
+    {
+      "labels": [
+        "eng",
+        "tok"
+      ],
+      "scale_before": 1024.0,
+      "scale_after": 512.0
+    }
+  ],
+  "seconds": 24.344737499952316,
+  "peak_gpu_memory_bytes": 20122877440,
+  "lang2vec_version": "1.1.2",
+  "seed": 6212,
+  "batch_size": 2,
+  "waveform_samples": [
+    24000,
+    32000
+  ],
+  "use_amp": true,
+  "initialization": "Pretrained MMS-1B backbone with newly initialized GeoLID heads; no converted checkpoint was trained or modified.",
+  "validation_script_sha256": "831b6809aabb91cf442a28d2ef8824fcab249453b7c6f260f9adb866a3ffe5f0"
+}

@@ -24,7 +24,7 @@ tsne_set="train_all_no_filter_lang"
 
 # Train
 feats_type="raw"
-tuning_config="conf/tuning/combined.yaml"
+lid_config="conf/tuning/combined.yaml"
 exp_dir="exp_combined"
 
 # Inference
@@ -45,6 +45,6 @@ max_utt_per_lang_for_tsne=100
     --nj 8 \
     --ngpu 1 \
     --expdir "${exp_dir}" \
-    --tuning_config ${tuning_config} \
+    --lid_config "${lid_config}" \
     --max_utt_per_lang_for_tsne ${max_utt_per_lang_for_tsne} \
     "$@"

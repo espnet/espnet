@@ -9,6 +9,7 @@ model_conf:
   apply_intermediate_lang2vec_loss: true
   apply_intermediate_lang2vec_condition: true
   inter_lang2vec_loss_weight: 0.4
+  # True detaches the residual AND freezes the conditioning projection.
   cutoff_gradient_from_backbone: false
   cutoff_gradient_before_condproj: true
   shared_conditioning_proj: true

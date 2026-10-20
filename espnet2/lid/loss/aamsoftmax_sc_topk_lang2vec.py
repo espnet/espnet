@@ -55,18 +55,28 @@ class AAMSoftmaxSCTopKLang2Vec(ArcMarginProduct_intertopk_subcenter):
             else:
                 raise ValueError(f"Unknown lang2vec type: {lang2vec_type}")
 
-    def forward(self, input, label=None, lang2vec=None):
-        """Return total loss, accuracy, predictions, and separate loss components."""
+    def compute_lang2vec_loss(self, prediction, target, mask=None):
+        """Exclude explicitly unsupervised rows from auxiliary loss reduction."""
+        if mask is not None:
+            mask = mask.reshape(-1).bool()
+            prediction, target = prediction[mask], target[mask]
+        if prediction.shape[0] == 0:
+            return prediction.sum()
+        return self.lang2vec_loss(prediction, target)
+
+    def forward(self, input, label=None, lang2vec=None, lang2vec_mask=None):
+        """Return classification loss, accuracy, predictions, and auxiliary loss.
+
+        The model weights the loss components, including intermediate supervision.
+        """
         class_loss, accuracy, predictions = super().forward(input, label)
-        loss = class_loss
         auxiliary = None
         if (
             label is not None
             and lang2vec is not None
             and hasattr(self, "lang2vec_head")
         ):
-            auxiliary = self.lang2vec_loss(self.lang2vec_head(input), lang2vec)
-            loss = (
-                1 - self.lang2vec_weight
-            ) * class_loss + self.lang2vec_weight * auxiliary
-        return loss, accuracy, predictions, class_loss, auxiliary
+            auxiliary = self.compute_lang2vec_loss(
+                self.lang2vec_head(input), lang2vec, lang2vec_mask
+            )
+        return class_loss, accuracy, predictions, auxiliary
