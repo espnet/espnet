@@ -429,6 +429,15 @@ class InferenceModel:
                     "bundle would run them. Set trust_user_code=True only if "
                     "you trust the publisher of this bundle."
                 )
+            # ``output_fn`` is imported and called outside Hydra, so the
+            # ``_target_`` check above does not cover it.
+            output_fn = getattr(inference_config, "output_fn", None)
+            if output_fn:
+                raise ValueError(
+                    f"This inference config sets output_fn={output_fn!r}, which "
+                    "is imported and run as user code. Set trust_user_code=True "
+                    "only if you trust the publisher of this bundle."
+                )
 
         if device is not None:
             # Work on a copy: callers may reuse the config, and ``auto`` means

@@ -640,11 +640,18 @@ def test_forward_applies_output_fn(tmp_path, mock_build_model, monkeypatch):
         "espnet3.publication.inference_model._load_output_fn", fake_load
     )
 
-    session = InferenceModel.from_packed(bundle_root)
+    session = InferenceModel.from_packed(bundle_root, trust_user_code=True)
     result = session("hello", idx=42)
 
     assert result["hyp"] == "cfg:hello@cpu"
     assert result["idx"] == 42
+
+
+def test_from_packed_rejects_output_fn_without_trust(tmp_path, mock_build_model):
+    """An output_fn is user code, so it needs trust_user_code like bundled modules."""
+    bundle_root = _make_pack_dir(tmp_path, output_fn="os.path.join")
+    with pytest.raises(ValueError, match="output_fn"):
+        InferenceModel.from_packed(bundle_root)
 
 
 def test_forward_without_output_fn_returns_raw_model_output(tmp_path, mock_build_model):
@@ -667,7 +674,7 @@ def test_forward_passes_idx_to_output_fn(tmp_path, mock_build_model, monkeypatch
         "espnet3.publication.inference_model._load_output_fn", fake_load
     )
 
-    session = InferenceModel.from_packed(bundle_root)
+    session = InferenceModel.from_packed(bundle_root, trust_user_code=True)
     session("x", idx="utt-99")
 
     assert captured == ["utt-99"]
@@ -712,7 +719,7 @@ def test_forward_batch_uses_custom_indices(tmp_path, mock_build_model, monkeypat
         "espnet3.publication.inference_model._load_output_fn", fake_load
     )
 
-    session = InferenceModel.from_packed(bundle_root)
+    session = InferenceModel.from_packed(bundle_root, trust_user_code=True)
     with pytest.raises(ValueError, match="one result per input sample"):
         session.forward_batch(["a", "b"], indices=[10, 20])
     assert captured == [[10, 20]]
@@ -735,7 +742,7 @@ def test_forward_batch_defaults_indices_to_range(
         "espnet3.publication.inference_model._load_output_fn", fake_load
     )
 
-    session = InferenceModel.from_packed(bundle_root)
+    session = InferenceModel.from_packed(bundle_root, trust_user_code=True)
     with pytest.raises(ValueError, match="one result per input sample"):
         session.forward_batch(["a", "b", "c"])
     assert captured == [[0, 1, 2]]
