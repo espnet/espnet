@@ -236,7 +236,24 @@ class InferenceProvider(EnvironmentProvider, ABC):
 
     @staticmethod
     def build_model(config: DictConfig):
-        """Build config.model directly on this worker's logical device."""
+        """Build ``config.model`` directly on this worker's logical device.
+
+        Args:
+            config: Inference config with a ``model`` entry. A ``recipe_dir``
+                entry makes the model build inside that directory, so relative
+                paths in ``model`` resolve against it.
+
+        Returns:
+            The instantiated model.
+
+        Examples:
+            >>> from omegaconf import OmegaConf
+            >>> config = OmegaConf.create(
+            ...     {"device": "cpu", "model": {"_target_": "torch.nn.Identity"}}
+            ... )
+            >>> InferenceProvider.build_model(config)
+            Identity()
+        """
         if isinstance(config, dict):
             config = OmegaConf.create(config)
         device = InferenceProvider._resolve_device(config)

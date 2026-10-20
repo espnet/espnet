@@ -38,5 +38,17 @@ class TextKind(Kind):
         return value
 
     def join(self, first, second):
-        """Append the text."""
+        """Append the text.
+
+        Args:
+            first: The text gathered so far.
+            second: The text that follows.
+
+        Returns:
+            The two strings joined.
+
+        Examples:
+            >>> TextKind().join("a", "b")
+            'ab'
+        """
         return first + second

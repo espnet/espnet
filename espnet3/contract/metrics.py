@@ -36,6 +36,9 @@ def require_metric_declaration(obj) -> None:
         obj: The class to check, or an instance whose own attributes (set
             in its ``__init__``) declare a contract its class does not.
 
+    Returns:
+        Nothing; it always raises ``TypeError``.
+
     Examples:
         >>> class Undeclared:
         ...     pass
@@ -60,6 +63,9 @@ def check_metric_declaration(obj) -> None:
     Args:
         obj: The class to check, or an instance whose own attributes (set
             in its ``__init__``) declare a contract its class does not.
+
+    Returns:
+        None.
 
     Examples:
         >>> class BadMetric:
@@ -89,6 +95,9 @@ def check_metric_contract(metric: Any) -> None:
     Args:
         metric: A ``BaseMetric`` instance (or any object exposing
             ``inputs``/``outputs`` the same way).
+
+    Returns:
+        None.
 
     Raises:
         TypeError: Neither ``inputs`` nor ``outputs`` is declared, or the
@@ -121,6 +130,23 @@ def check_metric_inputs(metric: Any, inputs: Any) -> Optional[Mapping[str, str]]
     ``inputs`` maps each name declared by the metric to a source: either an
     inference artifact stem or ``dataset:<column>``. Whether an inference
     artifact exists is checked when the source is resolved for a test set.
+
+    Args:
+        metric: A ``BaseMetric`` instance (or any object exposing ``inputs``).
+        inputs: The config's ``inputs`` binding: a mapping from declared name
+            to source, or a list of names that are their own sources.
+
+    Returns:
+        The bindings as a ``dict`` from declared name to source, or ``None``
+        when the metric declares no inputs.
+
+    Examples:
+        >>> from espnet3.systems.esp2_asr.metrics.wer import WER
+        >>> check_metric_inputs(WER(), {"ref": "dataset:text", "hyp": "text"})
+        {'ref': 'dataset:text', 'hyp': 'text'}
+        >>> check_metric_inputs(WER(), {"ref": "text"})
+        Traceback (most recent call last):
+        espnet3.contract.metrics.MetricContractError: WER inputs: missing ...
     """
     fields = getattr(metric, "inputs", ())
     if not fields:
@@ -165,6 +191,9 @@ def check_metric_output(metric: Any, result: Mapping[str, Any]) -> None:
     Args:
         metric: A ``BaseMetric`` instance.
         result: What ``metric(...)`` returned.
+
+    Returns:
+        None.
 
     Raises:
         MetricContractError: A declared output is missing from ``result``,
@@ -215,6 +244,9 @@ def check_metric_batch(metric: Any, values: Mapping[str, Any]) -> None:
     Args:
         metric: A ``BaseMetric`` instance.
         values: The keyword arguments given to ``update``.
+
+    Returns:
+        None.
 
     Raises:
         MetricContractError: The batch breaks one of the checks. The

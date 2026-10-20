@@ -82,12 +82,28 @@ class Audio:
 
     @property
     def channels(self) -> int:
-        """How many channels: 1 for a 1-D array."""
+        """Count the channels: 1 for a 1-D array.
+
+        Returns:
+            The number of channels.
+
+        Examples:
+            >>> Audio(np.zeros((2, 8000), dtype=np.float32), 8000).channels
+            2
+        """
         return 1 if self.array.ndim == 1 else self.array.shape[0]
 
     @property
     def duration(self) -> float:
-        """Duration in seconds."""
+        """Measure the duration in seconds.
+
+        Returns:
+            The number of samples divided by the sample rate.
+
+        Examples:
+            >>> Audio(np.zeros(8000, dtype=np.float32), 8000).duration
+            1.0
+        """
         return self.array.shape[-1] / self.rate
 
     def mono(self, channel: int = 0) -> "Audio":
@@ -98,6 +114,9 @@ class Audio:
 
         Args:
             channel: Which channel, 0 by default.
+
+        Returns:
+            The selected channel as a 1-D ``Audio``, or ``self`` when mono.
 
         Examples:
             >>> Audio(np.zeros((2, 8000), dtype=np.float32), 8000).mono().array.shape
@@ -111,6 +130,9 @@ class Audio:
         """Return this audio as ``(channels, samples)``; mono becomes ``(1, samples)``.
 
         For a hook that wants one rank whatever came in.
+
+        Returns:
+            The audio as ``(channels, samples)``; ``self`` when already 2-D.
 
         Examples:
             >>> Audio(np.zeros(8000, dtype=np.float32), 8000).multichannel().array.shape
@@ -175,8 +197,19 @@ class Audio:
     def concat(cls, pieces: Sequence["Audio"]) -> "Audio":
         """Join consecutive pieces of one signal in time.
 
+        Args:
+            pieces: The consecutive pieces, all at one rate with one channel count.
+
+        Returns:
+            One ``Audio`` holding the pieces back to back.
+
         Raises:
             ValueError: If the pieces differ in rate or in channel count.
+
+        Examples:
+            >>> piece = Audio(np.zeros(8000, dtype=np.float32), 8000)
+            >>> Audio.concat([piece, piece]).duration
+            2.0
         """
         rates = {p.rate for p in pieces}
         if len(rates) != 1:
@@ -310,7 +343,20 @@ class AudioKind(Kind):
         return audio.multichannel()
 
     def join(self, first, second):
-        """Concatenate the samples in time."""
+        """Concatenate two pieces of audio in time.
+
+        Args:
+            first: The audio gathered so far.
+            second: The audio that follows it.
+
+        Returns:
+            The two as one ``Audio``.
+
+        Examples:
+            >>> piece = Audio(np.zeros(8000, dtype=np.float32), 8000)
+            >>> AudioKind().join(piece, piece).duration
+            2.0
+        """
         return Audio.concat([first, second])
 
     def accepts(self, value, field):
@@ -324,6 +370,13 @@ class AudioKind(Kind):
         :meth:`Audio.coerce` accepts when given a fixed rate, without
         requiring one: an :class:`Audio`, a path, a ``(rate, samples)``
         pair, or a bare array/tensor.
+
+        Args:
+            value: The value to test.
+            field: The declaration the value is for.
+
+        Returns:
+            ``True`` when ``value`` could be audio, ``False`` otherwise.
 
         Examples:
             >>> from espnet3.contract import Field

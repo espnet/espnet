@@ -483,7 +483,20 @@ class InferenceModel:
 
     @property
     def primary_input_key(self) -> str:
-        """Return the single configured input key."""
+        """Return the single configured input key.
+
+        Returns:
+            The only entry of ``input_key``, or ``input_key`` itself when it is
+            a string.
+
+        Raises:
+            RuntimeError: If ``input_key`` lists more than one key.
+
+        Examples:
+            >>> model = InferenceModel.from_packed("pack_dir")  # doctest: +SKIP
+            >>> model.primary_input_key  # doctest: +SKIP
+            'speech'
+        """
         if isinstance(self.input_key, list):
             if len(self.input_key) != 1:
                 raise RuntimeError(

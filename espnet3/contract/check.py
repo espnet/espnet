@@ -20,6 +20,9 @@ def check_declaration(
         inputs_attr: The name of the inputs attribute to check.
         outputs_attr: The name of the outputs attribute to check.
 
+    Returns:
+        None.
+
     Raises:
         TypeError: With the rule that was broken.
 
