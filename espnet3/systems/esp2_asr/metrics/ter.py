@@ -13,6 +13,7 @@ except ImportError:
 from espnet2.text.cleaner import TextCleaner
 from espnet2.text.sentencepiece_tokenizer import SentencepiecesTokenizer
 from espnet3.components.metrics.base_metric import BaseMetric
+from espnet3.contract import Field
 
 
 class TER(BaseMetric):
@@ -23,17 +24,17 @@ class TER(BaseMetric):
     like WER over the resulting token sequences. This mirrors espnet2's Stage 13
     scoring, which computes ``ter`` at the ``bpe`` token level.
 
-    Reads ``data["ref"]``/``data["hyp"]``, the declared names; the metrics
-    config's ``inputs:`` binds them to a source (see
-    :func:`~espnet3.contract.metrics.check_metric_inputs`).
+    Reads ``data["ref"]``/``data["hyp"]``, the declared names; the
+    metrics config's ``inputs:`` binds them to a source (see
+    :class:`~espnet3.contract.metrics.check_metric_inputs`).
 
     Examples:
-        >>> list(TER.inputs)
+        >>> [f.name for f in TER.inputs]
         ['ref', 'hyp']
     """
 
-    inputs = {"ref": str, "hyp": str}
-    outputs = ("TER",)
+    inputs = (Field("ref", "text"), Field("hyp", "text"))
+    outputs = (Field("TER", "number"),)
 
     def __init__(
         self,

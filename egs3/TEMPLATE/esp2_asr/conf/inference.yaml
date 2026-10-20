@@ -46,9 +46,10 @@ inference_dir: ${exp_dir}/${self_name:}
 #
 # The recipe `Dataset` class must inherit
 # `espnet3.components.data.base_dataset.BaseDataset` and declare `fields`:
-# a mapping from each key `__getitem__` returns to accepted Python types,
-# e.g. `fields = {"speech": np.ndarray, "text": str}`. The first item of each
-# instance is checked against this declaration.
+# a tuple of `espnet3.contract.Field` declarations, e.g.
+# `fields = (Field("speech", "audio"), Field("text", "text"))` after
+# importing `Field` from `espnet3.contract`. The first item of each instance
+# is checked against this declaration.
 #
 # An inference-only dataset only needs to declare the fields it actually
 # returns (e.g. `speech` and `utt_id`); it does not need to declare `text`
