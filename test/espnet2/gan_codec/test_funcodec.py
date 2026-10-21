@@ -134,6 +134,16 @@ def make_mel_loss_args(**kwargs):
         ({}, {}, {}, False, False),
         ({"quantizer_kmeans_init": False}, {}, {}, False, True),
         ({"encdec_true_skip": True}, {}, {}, True, True),
+        (
+            {
+                "codec_domain": ["mag_oracle_phase", "mag_oracle_phase"],
+                "encdec_channels": 1,
+            },
+            {},
+            {},
+            True,
+            True,
+        ),
     ],
 )
 def test_funcodec(dict_g, dict_d, dict_loss, average, include):
@@ -180,3 +190,31 @@ def test_funcodec(dict_g, dict_d, dict_loss, average, include):
     optimizer_d.zero_grad()
     loss_d.backward()
     optimizer_d.step()
+
+
+@pytest.mark.parametrize("audio_normalize", [False, True])
+def test_funcodec_generator_dual_decoder_outputs_waveform(audio_normalize):
+    y = torch.randn(2, 1, 128)
+    model_g = FunCodecGenerator(**make_generator_args(audio_normalize=audio_normalize))
+    y_hat, _, _, y_hat_real = model_g(y, use_dual_decoder=True)
+    assert y_hat_real.shape == y_hat.shape == y.shape
+    MultiScaleMelSpectrogramLoss(**make_mel_loss_args())(y_hat_real, y).backward()
+
+
+def test_funcodec_generator_audio_normalize_restores_volume():
+    torch.manual_seed(0)
+    y = torch.randn(2, 1, 128)
+    model_g = FunCodecGenerator(
+        **make_generator_args(
+            audio_normalize=True,
+            quantizer_target_bandwidth=[15],
+            quantizer_kmeans_init=False,
+        )
+    )
+    model_g.eval()
+    with torch.no_grad():
+        y_hat = model_g(y)[0]
+        y_hat_loud = model_g(100 * y)[0]
+    # The input is divided by its volume, so the output has to be multiplied
+    # back by it: a 100 times louder input gives a 100 times louder output.
+    torch.testing.assert_close(y_hat_loud, 100 * y_hat, rtol=1e-4, atol=1e-5)

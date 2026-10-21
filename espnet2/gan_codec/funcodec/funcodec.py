@@ -759,10 +759,13 @@ class FunCodecGenerator(nn.Module):
         #     encoder_out, quantized.detach()
         # ) + self.l2_quantization_loss(encoder_out, quantized.detach())
 
+        # scale carries the input volume (audio_normalize) and, for
+        # mag_oracle_phase, the input phase, both needed to rebuild the waveform.
         resyn_audio = self.decoder(quantized)[:, :, :, : x.shape[3]]
-        resyn_audio = self.freq_to_time_transfer(resyn_audio)
+        resyn_audio = self.freq_to_time_transfer(resyn_audio, scale)
         if use_dual_decoder:
-            resyn_audio_real = self.decoder(encoder_out)
+            resyn_audio_real = self.decoder(encoder_out)[:, :, :, : x.shape[3]]
+            resyn_audio_real = self.freq_to_time_transfer(resyn_audio_real, scale)
         else:
             resyn_audio_real = None
         return resyn_audio, commit_loss, quantization_loss, resyn_audio_real
