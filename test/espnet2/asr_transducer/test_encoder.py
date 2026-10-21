@@ -2,7 +2,14 @@ import pytest
 import torch
 
 from espnet2.asr_transducer.encoder.encoder import Encoder
-from espnet2.asr_transducer.utils import TooShortUttError
+from espnet2.asr_transducer.encoder.modules.attention import (
+    RelPositionMultiHeadedAttention,
+)
+from espnet2.asr_transducer.utils import (
+    TooShortUttError,
+    make_chunk_mask,
+    make_source_mask,
+)
 
 
 @pytest.mark.parametrize(
@@ -486,3 +493,141 @@ def test_input_block_output_lengths(input_conf):
             assert batch_lens[i].item() == out_len.item()
 
     assert batch_out.size(1) == batch_lens.max().item()
+
+
+def _build_sdpa_encoder(block_type, simplified_att_score, use_sdpa, streaming=False):
+    """Build identical small encoders for the default and SDPA paths."""
+    torch.manual_seed(0)
+    return Encoder(
+        20,
+        [
+            {
+                "block_type": block_type,
+                "hidden_size": 16,
+                "linear_size": 32,
+                "heads": 2,
+                "conv_mod_kernel_size": 3,
+                "num_blocks": 2,
+                "att_dropout_rate": 0.2,
+            }
+        ],
+        input_conf={"conv_size": 4},
+        main_conf={
+            "simplified_att_score": simplified_att_score,
+            "use_sdpa": use_sdpa,
+            "dynamic_chunk_training": streaming,
+            "pos_enc_max_len": 128,
+        },
+    ).eval()
+
+
+@pytest.mark.parametrize("block_type", ["conformer", "branchformer", "ebranchformer"])
+@pytest.mark.parametrize("simplified_att_score", [False, True])
+def test_use_sdpa_reaches_the_attention_and_matches_the_default(
+    block_type, simplified_att_score
+):
+    """Every block receives use_sdpa and preserves valid outputs with padding."""
+    default = _build_sdpa_encoder(block_type, simplified_att_score, False)
+    sdpa = _build_sdpa_encoder(block_type, simplified_att_score, True)
+    for encoder, use_sdpa in [(default, False), (sdpa, True)]:
+        assert len(encoder.encoders.blocks) == 2
+        for block in encoder.encoders.blocks:
+            assert isinstance(block.self_att, RelPositionMultiHeadedAttention)
+            assert block.self_att.use_sdpa is use_sdpa
+
+    x = torch.randn(2, 80, 20)
+    lengths = torch.tensor([80, 55])
+    x[1, 55:] = 0.0
+    with torch.no_grad():
+        expected, expected_lengths = default(x, lengths)
+        actual, actual_lengths = sdpa(x, lengths)
+
+    assert actual.shape == expected.shape
+    assert torch.equal(actual_lengths, expected_lengths)
+    valid = ~make_source_mask(actual_lengths)
+    assert torch.allclose(actual[valid], expected[valid], atol=1e-5)
+    assert all(block.self_att.attn is None for block in sdpa.encoders.blocks)
+
+
+@pytest.mark.parametrize("block_type", ["conformer", "branchformer", "ebranchformer"])
+@pytest.mark.parametrize("simplified_att_score", [False, True])
+def test_use_sdpa_streaming_matches_the_default(block_type, simplified_att_score):
+    """Chunk forwarding matches with both empty and populated left-context caches."""
+    default = _build_sdpa_encoder(block_type, simplified_att_score, False, True)
+    sdpa = _build_sdpa_encoder(block_type, simplified_att_score, True, True)
+    x = torch.randn(1, 78, 20)
+    left_context = 5
+    default.reset_cache(left_context, x.device)
+    sdpa.reset_cache(left_context, x.device)
+    processed_frames = torch.tensor([0])
+
+    with torch.no_grad():
+        for start in [0, 24, 48]:
+            chunk = x[:, start : start + 30]
+            lengths = torch.tensor([chunk.size(1)])
+            expected = default.chunk_forward(
+                chunk, lengths, processed_frames, left_context=left_context
+            )
+            actual = sdpa.chunk_forward(
+                chunk, lengths, processed_frames, left_context=left_context
+            )
+            assert actual.shape == expected.shape
+            assert torch.allclose(actual, expected, atol=1e-5)
+            for block in default.encoders.blocks:
+                assert block.self_att.attn.size(-1) == expected.size(1) + left_context
+            processed_frames += expected.size(1)
+
+
+@pytest.mark.parametrize("simplified_att_score", [False, True])
+def test_use_sdpa_with_chunk_and_padding_masks(simplified_att_score):
+    """SDPA combines dynamic chunk and padding masks for both score variants."""
+    torch.manual_seed(0)
+    default = RelPositionMultiHeadedAttention(
+        2, 16, dropout_rate=0.2, simplified_attention_score=simplified_att_score
+    ).eval()
+    assert default.use_sdpa is False
+    torch.manual_seed(0)
+    sdpa = RelPositionMultiHeadedAttention(
+        2,
+        16,
+        dropout_rate=0.2,
+        simplified_attention_score=simplified_att_score,
+        use_sdpa=True,
+    ).eval()
+    x = torch.randn(2, 12, 16)
+    pos_enc = torch.randn(1, 23, 16)
+    mask = make_source_mask(torch.tensor([12, 3]))
+    chunk_mask = make_chunk_mask(12, 3, num_left_chunks=1)
+    # Later chunks in the shorter utterance have fully masked padded queries.
+    assert (chunk_mask.unsqueeze(0) | mask.unsqueeze(1)).all(-1).any()
+
+    with torch.no_grad():
+        expected = default(x, x, x, pos_enc, mask, chunk_mask=chunk_mask)
+        actual = sdpa(x, x, x, pos_enc, mask, chunk_mask=chunk_mask)
+
+    assert torch.isfinite(actual).all()
+    assert torch.allclose(actual[~mask], expected[~mask], atol=1e-5)
+    assert sdpa.attn is None
+
+
+@pytest.mark.parametrize("simplified_att_score", [False, True])
+def test_use_sdpa_training_backward(simplified_att_score):
+    """Training with SDPA and nonzero dropout propagates finite gradients."""
+    torch.manual_seed(0)
+    attention = RelPositionMultiHeadedAttention(
+        2,
+        16,
+        dropout_rate=0.2,
+        simplified_attention_score=simplified_att_score,
+        use_sdpa=True,
+    ).train()
+    x = torch.randn(2, 12, 16, requires_grad=True)
+    pos_enc = torch.randn(1, 23, 16, requires_grad=True)
+    mask = make_source_mask(torch.tensor([12, 9]))
+    out = attention(x, x, x, pos_enc, mask)
+    assert torch.isfinite(out).all()
+    out.square().mean().backward()
+
+    for tensor in [x, pos_enc, *attention.parameters()]:
+        assert tensor.grad is not None
+        assert torch.isfinite(tensor.grad).all()
