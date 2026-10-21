@@ -8,5 +8,13 @@ declarations at their respective boundaries.
 from espnet3.contract.check import check_declaration
 from espnet3.contract.field import Field
 from espnet3.contract.kinds import KINDS, Kind, register_kind
+from espnet3.contract.normalizers import register_normalizer
 
-__all__ = ["KINDS", "Field", "Kind", "check_declaration", "register_kind"]
+__all__ = [
+    "KINDS",
+    "Field",
+    "Kind",
+    "check_declaration",
+    "register_kind",
+    "register_normalizer",
+]
