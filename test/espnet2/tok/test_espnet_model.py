@@ -211,6 +211,23 @@ def test_generator_first_reuses_cache_across_batches():
     assert model.tokenizer.forward_calls == 2
 
 
+def test_clear_generator_cache_allows_next_generator_forward():
+    model = make_model_with_hifigan_loss()
+    model.train()
+
+    model(forward_generator=True, **make_batch())
+    assert model.reconstruction_loss.has_cached_generator_outputs
+
+    model.clear_generator_cache()
+    assert not model.reconstruction_loss.has_cached_generator_outputs
+
+    model(forward_generator=True, **make_batch())
+    assert model.reconstruction_loss.has_cached_generator_outputs
+
+    with pytest.raises(RuntimeError, match="already cached"):
+        model(forward_generator=True, **make_batch())
+
+
 def test_discriminator_first_fails_on_stale_cache():
     model = make_model_with_hifigan_loss()
     model.train()
