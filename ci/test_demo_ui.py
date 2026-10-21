@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import argparse
+import json
 import os
 import re
 import select
@@ -155,6 +157,15 @@ def check_demo_ui_labels(system_name: str, config: dict, audio_path: Path) -> st
                 )
                 run_button.wait_for()
 
+                # A missing required audio input must fail through the actual
+                # Gradio request, then the same app must accept valid audio.
+                run_button.click()
+                page.get_by_text("Error", exact=True).last.wait_for(timeout=30000)
+                output_box = page.get_by_role(
+                    "textbox", name=re.compile("transcription", re.I)
+                )
+                assert not output_box.input_value()
+
                 with tempfile.TemporaryDirectory() as temp_dir_name:
                     temp_dir = Path(temp_dir_name)
                     page.locator("input[type='file'][accept*='audio']").set_input_files(
@@ -181,7 +192,7 @@ def check_demo_ui_labels(system_name: str, config: dict, audio_path: Path) -> st
                     "el => (el.tagName === 'TEXTAREA' || el.tagName === 'INPUT')"
                     " ? el.value : (el.textContent || '')"
                 )
-                return output_value.strip()
+                return output_value
             finally:
                 browser.close()
     finally:
@@ -189,13 +200,28 @@ def check_demo_ui_labels(system_name: str, config: dict, audio_path: Path) -> st
 
 
 def main() -> None:
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--reference-file", type=Path, default=None)
+    args = parser.parse_args()
+    reference = (
+        json.loads(args.reference_file.read_text(encoding="utf-8"))
+        if args.reference_file is not None
+        else None
+    )
     with tempfile.TemporaryDirectory() as temp_dir_name:
-        audio_path = _download_sample_audio(Path(temp_dir_name))
+        audio_path = (
+            Path(reference["audio_path"])
+            if reference is not None
+            else _download_sample_audio(Path(temp_dir_name))
+        )
         outputs = {
             system_name: check_demo_ui_labels(system_name, config, audio_path)
             for system_name, config in sorted(SYSTEM_CONFIGS.items())
         }
     assert outputs["default_asr"] == outputs["custom_asr_image"], outputs
+    if reference is not None:
+        for name, text in outputs.items():
+            assert text == reference["text"], (name, text, reference["text"])
 
 
 if __name__ == "__main__":

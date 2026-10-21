@@ -5,6 +5,35 @@ import pytest
 from espnet3.systems.esp2_asr.inference import ASRInferenceRunner
 
 
+@pytest.mark.parametrize("text", [None, "", "  ", "日本語。"])
+def test_nbest_preserves_best_text_and_valid_empty_values(text):
+    result = ASRInferenceRunner.format_output(
+        [(text, [], [], None), ("second", [], [], None)], batched=False
+    )
+    assert result == {"text": "" if text is None else text}
+
+
+@pytest.mark.parametrize("result", [None, {}, "text", [()], [[]], ["hello"]])
+def test_malformed_nbest_is_not_a_successful_empty_transcription(result):
+    with pytest.raises((TypeError, ValueError)):
+        ASRInferenceRunner.format_output(result, batched=False)
+
+
+@pytest.mark.parametrize("text", [0, False, [], 123])
+def test_false_values_other_than_none_are_not_coerced_to_empty_text(text):
+    with pytest.raises(TypeError, match="must be str"):
+        ASRInferenceRunner.forward(
+            0,
+            dataset=[{"speech": "input"}],
+            model=lambda speech: [(text, [], [], None)],
+            input_key="speech",
+            inference_contract={
+                "inputs": {"speech": {"kind": "text"}},
+                "outputs": {"text": {"kind": "text"}},
+            },
+        )
+
+
 class FakeSpeech2Text:
     """Return native ESPnet2 hypotheses without building a model."""
 

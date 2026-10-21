@@ -47,10 +47,20 @@ class ASRInferenceRunner(InferenceRunner):
     @staticmethod
     def _format_one(hypotheses):
         """Return the best hypothesis as a named text field."""
+        if not isinstance(hypotheses, (list, tuple)):
+            raise TypeError("ASR hypotheses must be a list or tuple")
+        if not hypotheses:
+            # Streaming frontends may need more samples before producing
+            # their first hypothesis. An empty text is still valid text.
+            return {"text": ""}
         best = hypotheses[0]
         if isinstance(best, list):
+            if not best:
+                raise ValueError("ASR best hypothesis must not be empty")
             best = best[0]
-        return {"text": best[0] or ""}
+        if not isinstance(best, (list, tuple)) or len(best) != 4:
+            raise TypeError("ASR hypothesis must contain text, tokens, ids and score")
+        return {"text": "" if best[0] is None else best[0]}
 
     @staticmethod
     def format_output(result, *, batched):

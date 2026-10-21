@@ -328,7 +328,7 @@ class NativeASRProvider(InferenceProvider):
 
         return [
             {"utt_id": f"u{i}", "speech": np.sin(np.arange(2000 + i * 160) / 20)}
-            for i in range(2)
+            for i in range(3)
         ]
 
 
@@ -414,10 +414,31 @@ def test_native_asr_recipe_writes_the_backends_text(tmp_path, batch_size):
         pack / "meta.yaml",
     )
     publication_model = InferenceModel.from_packed(pack, trust_user_code=True)
+    from espnet3.publication.demo.assets import DEFAULT_UI_ASSETS
+    from espnet3.publication.demo.session import DemoSession
+
+    demo = DemoSession(
+        pack,
+        OmegaConf.create(
+            {"model": {"call_args": {}}, "ui": {"title": None, "description": None}}
+        ),
+        publication_model,
+        DEFAULT_UI_ASSETS.clone(),
+    )
+    callback = demo.create_inference_fn(demo.input_specs, demo.output_specs)
+    samples = NativeASRProvider.build_dataset(config)
+    batch_results = publication_model.forward_batch(samples)
+    assert len(batch_results) == len(samples)
+    assert [f"{item['utt_id']} {item['text']}" for item in batch_results] == expected
+    reversed_results = publication_model.forward_batch(list(reversed(samples)))
+    assert [item["text"] for item in reversed_results] == [
+        item["text"] for item in reversed(batch_results)
+    ]
     for item, expected_line in zip(NativeASRProvider.build_dataset(config), expected):
         result = publication_model(item, idx=item["utt_id"])
         assert isinstance(result, dict)
         assert f"{result['utt_id']} {result['text']}" == expected_line
+        assert callback((16000, item["speech"])) == result["text"]
     try:
         infer(config)
         assert (
@@ -425,3 +446,14 @@ def test_native_asr_recipe_writes_the_backends_text(tmp_path, batch_size):
         ).read_text().splitlines() == expected
     finally:
         set_parallel(None)
+
+    from hydra.errors import InstantiationException
+
+    checkpoint.unlink()
+    with pytest.raises((FileNotFoundError, InstantiationException)) as caught:
+        InferenceModel.from_packed(pack, trust_user_code=True)
+    cause = caught.value
+    while cause.__cause__ is not None:
+        cause = cause.__cause__
+    assert isinstance(cause, FileNotFoundError)
+    assert cause.filename == str(checkpoint)

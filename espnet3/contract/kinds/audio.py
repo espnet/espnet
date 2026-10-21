@@ -27,11 +27,14 @@ class Audio:
     count; explicit normalizers select or average channels.
 
     Args:
-        array: The samples. Integer PCM is scaled to ``[-1, 1]``; a 2-D
+        array: The samples. Integer PCM is scaled to ``[-1, 1]`` using
+            its bit-depth midpoint (signed int16 is divided by 32768).
+            Floating samples are not rescaled or clipped. A 2-D
             array is stored channels-first, taking the shorter axis as
             channels (``(samples, channels)`` from soundfile and Gradio,
             ``(channels, samples)`` from torchaudio), and one channel is
-            mono.
+            mono. Ambiguous one/two-frame mono/stereo arrays keep their
+            channels-first layout. Samples must be real and finite.
         rate: Samples per second.
 
     Raises:
@@ -56,19 +59,29 @@ class Audio:
     def __post_init__(self) -> None:
         """Bring the samples to float32, channels first, and check shape and rate."""
         array = np.asarray(self.array)
+        if not (
+            np.issubdtype(array.dtype, np.integer)
+            or np.issubdtype(array.dtype, np.floating)
+        ):
+            raise TypeError("audio samples must be real numeric values")
         if np.issubdtype(array.dtype, np.unsignedinteger):
             # 8-bit WAV: unsigned, centred on 128, not on zero
             mid = (np.iinfo(array.dtype).max + 1) / 2
             array = (array.astype(np.float64) - mid) / mid
         elif np.issubdtype(array.dtype, np.integer):
-            # PCM as the file or the microphone delivered it
-            array = array / np.iinfo(array.dtype).max
-        array = array.astype(np.float32, copy=False)
+            # Signed PCM has one more negative value than positive values.
+            array = array / float(-np.iinfo(array.dtype).min)
+        with np.errstate(over="ignore", invalid="ignore"):
+            array = array.astype(np.float32, copy=False)
+        if not np.isfinite(array).all():
+            raise ValueError("audio samples must be finite (no NaN or Inf)")
         if array.ndim == 2:
             # (samples, channels) as soundfile and Gradio lay it out,
             # (channels, samples) as torchaudio does: channels are the short
             # axis, there being far fewer of them than samples.
-            if array.shape[0] > array.shape[1]:
+            # A very short mono/stereo signal cannot reveal its axis order.
+            # Prefer the internal (channels, samples) convention in that case.
+            if array.shape[0] > array.shape[1] and array.shape[0] > 2:
                 array = array.T
             if array.shape[0] == 1:
                 array = array[0]  # one channel is mono
@@ -255,6 +268,10 @@ class Audio:
             2
         """
         if isinstance(value, Audio):
+            # Audio is frozen, but its NumPy buffer can still be modified by
+            # callers or normalizers after construction.
+            if not np.isfinite(value.array).all():
+                raise ValueError("audio samples must be finite (no NaN or Inf)")
             return value if rate is None else value.resample(rate)
         if isinstance(value, (str, Path)):
             return cls.read(value, rate)
