@@ -38,8 +38,7 @@ def test_build_model_requires_skipping_inactive_discriminator():
     with pytest.raises(
         ValueError,
         match=(
-            "skip_discriminator_prob must be 1.0 when "
-            "reconstruction_weight is 0.0"
+            "skip_discriminator_prob must be 1.0 when " "reconstruction_weight is 0.0"
         ),
     ):
         GANSpeechTokenizerTask.build_model(args)
