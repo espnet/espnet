@@ -183,6 +183,10 @@ class ESPnetGANSpeechTokenizerModel(AbsGANESPnetModel):
             **kwargs,
         )
 
+    def clear_generator_cache(self) -> None:
+        """Discard cached generator outputs when the discriminator step is skipped."""
+        self.reconstruction_loss._cache = None
+
     def tokenize(
         self, speech: torch.Tensor, speech_lengths: torch.Tensor
     ) -> SpeechTokenizerOutput:

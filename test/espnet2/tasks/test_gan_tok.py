@@ -22,6 +22,29 @@ def test_add_arguments():
     assert args.generator_first is True
 
 
+def test_build_model_requires_skipping_inactive_discriminator():
+    parser = GANSpeechTokenizerTask.get_parser()
+    args = parser.parse_args(
+        [
+            "--token_list",
+            "tokens.txt",
+            "--model_conf",
+            "reconstruction_weight=0.0",
+            "--skip_discriminator_prob",
+            "0.0",
+        ]
+    )
+
+    with pytest.raises(
+        ValueError,
+        match=(
+            "skip_discriminator_prob must be 1.0 when "
+            "reconstruction_weight is 0.0"
+        ),
+    ):
+        GANSpeechTokenizerTask.build_model(args)
+
+
 def test_add_arguments_help():
     parser = GANSpeechTokenizerTask.get_parser()
     with pytest.raises(SystemExit):
