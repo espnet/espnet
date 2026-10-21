@@ -12,22 +12,23 @@ except ImportError:
 
 from espnet2.text.cleaner import TextCleaner
 from espnet3.components.metrics.base_metric import BaseMetric
+from espnet3.contract import Field
 
 
 class CER(BaseMetric):
     """Compute CER for a dataset.
 
-    Reads ``data["ref"]``/``data["hyp"]``, the declared names; the metrics
-    config's ``inputs:`` binds them to a source (see
-    :func:`~espnet3.contract.metrics.check_metric_inputs`).
+    Reads ``data["ref"]``/``data["hyp"]``, the declared names; the
+    metrics config's ``inputs:`` binds them to a source (see
+    :class:`~espnet3.contract.metrics.check_metric_inputs`).
 
     Examples:
-        >>> list(CER().inputs)
+        >>> [f.name for f in CER().inputs]
         ['ref', 'hyp']
     """
 
-    inputs = {"ref": str, "hyp": str}
-    outputs = ("CER",)
+    inputs = (Field("ref", "text"), Field("hyp", "text"))
+    outputs = (Field("CER", "number"),)
 
     def __init__(self, clean_types: Iterable[str] | None = None) -> None:
         """Initialize the CER metric.

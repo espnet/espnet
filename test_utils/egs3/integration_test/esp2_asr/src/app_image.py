@@ -21,7 +21,7 @@ def build_demo(
     """Build a demo app with a custom image input block."""
     assert demo_config_path is not None
 
-    def decode(**values):
+    def decode(values, **kwargs):
         return {
             "text": (
                 f"speech={int(values.get('speech') is not None)} "

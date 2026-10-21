@@ -12,22 +12,23 @@ except ImportError:
 
 from espnet2.text.cleaner import TextCleaner
 from espnet3.components.metrics.base_metric import BaseMetric
+from espnet3.contract import Field
 
 
 class WER(BaseMetric):
     """Compute WER for hypotheses.
 
-    Reads ``data["ref"]``/``data["hyp"]``, the declared names; the metrics
-    config's ``inputs:`` binds them to a source (see
-    :func:`~espnet3.contract.metrics.check_metric_inputs`).
+    Reads ``data["ref"]``/``data["hyp"]``, the declared names; the
+    metrics config's ``inputs:`` binds them to a source (see
+    :class:`~espnet3.contract.metrics.check_metric_inputs`).
 
     Examples:
-        >>> list(WER().inputs)
+        >>> [f.name for f in WER().inputs]
         ['ref', 'hyp']
     """
 
-    inputs = {"ref": str, "hyp": str}
-    outputs = ("WER",)
+    inputs = (Field("ref", "text"), Field("hyp", "text"))
+    outputs = (Field("WER", "number"),)
 
     def __init__(self, clean_types: Iterable[str] | None = None) -> None:
         """Initialize the WER metric.

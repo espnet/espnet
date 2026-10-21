@@ -5,11 +5,10 @@ import logging
 from pathlib import Path
 
 from hydra.utils import get_class, instantiate
-from omegaconf import DictConfig, ListConfig, OmegaConf, open_dict
+from omegaconf import DictConfig, OmegaConf, open_dict
 
 from espnet3.components.metrics.base_metric import BaseMetric
 from espnet3.contract.metrics import (
-    DATASET_PREFIX,
     check_metric_contract,
     check_metric_inputs,
     check_metric_output,
@@ -45,6 +44,9 @@ def _resolve_test_sets(metrics_config: DictConfig) -> list[str]:
         test_sets,
     )
     return test_sets
+
+
+DATASET_PREFIX = "dataset:"
 
 
 def _dataset_column_scp(
@@ -134,13 +136,6 @@ def _dataset_column_scp(
     return path
 
 
-def _input_bindings(inputs) -> dict[str, str]:
-    """Map each metric input name to its source; a list names each source itself."""
-    if isinstance(inputs, (list, tuple, ListConfig)):
-        return {name: name for name in inputs}
-    return dict(inputs)
-
-
 def _resolve_inputs(
     inputs,
     metrics_config: DictConfig,
@@ -152,7 +147,7 @@ def _resolve_inputs(
     An input is an ``.scp`` file the ``infer`` stage wrote, or a
     ``dataset:<column>`` column of the test set, written on demand.
     """
-    input_map = _input_bindings(inputs)
+    input_map = {k: k for k in inputs} if isinstance(inputs, list) else dict(inputs)
     inference_dir = Path(metrics_config.inference_dir)
     from_scp = {
         a: f for a, f in input_map.items() if not str(f).startswith(DATASET_PREFIX)
@@ -209,15 +204,19 @@ def measure(metrics_config: DictConfig, inference_config: DictConfig | None = No
         then ``measure()`` scores both ``test-clean`` and ``test-other``
         when ``metrics_config.dataset.test`` is omitted.
 
-    A metric's inputs are bound by its config's ``inputs:`` (metric input
-    name -> source), required for every metric. A source is either a
+    A metric's inputs are bound by its config's ``inputs:`` (declared name
+    -> source; see ``espnet3.contract.metrics.check_metric_inputs``),
+    required for every metric that declares one. A source is either a
     ``.scp`` file the ``infer`` stage wrote (binding ``hyp`` to ``text``
     reads ``<test_name>/text.scp``), or a column of the test set itself,
     named ``dataset:<column>`` (binding ``ref`` to ``dataset:text`` reads
     the transcript from the data and writes it to
-    ``<test_name>/dataset/text.scp`` on first use). A column that is not a
-    scalar, such as a reference waveform, is written as an artifact beside
-    it, as a ``dataset_artifacts`` entry for that column says.
+    ``<test_name>/dataset/text.scp`` on first use). The reference is the
+    data's, so it comes from the data, not from what inference wrote. A
+    column that is not a scalar - a reference waveform for an audio metric -
+    is written as an artifact beside it, as a ``dataset_artifacts`` entry
+    for that column (``type: wav``, ``sample_rate: ...``) says, ``.npy``
+    by default.
 
     Args:
         metrics_config: Omegaconf configuration with inference and metric settings.
@@ -229,8 +228,13 @@ def measure(metrics_config: DictConfig, inference_config: DictConfig | None = No
 
     Raises:
         ValueError: If no test sets can be resolved from either
-            ``metrics_config.dataset.test`` or ``metrics_config.inference_dir``,
-            or a metric configures no ``inputs``.
+            ``metrics_config.dataset.test`` or ``metrics_config.inference_dir``.
+
+    Examples:
+        >>> results = measure(metrics_config, inference_config)  # doctest: +SKIP
+        >>> wer = results["espnet3.systems.esp2_asr.metrics.wer.WER"]  # doctest: +SKIP
+        >>> wer["test-clean"]  # doctest: +SKIP
+        {'WER': 4.3}
     """
     test_sets = _resolve_test_sets(metrics_config)
     results = {}
@@ -240,6 +244,7 @@ def measure(metrics_config: DictConfig, inference_config: DictConfig | None = No
         metric = instantiate(metric_config.metric)
         if not isinstance(metric, BaseMetric):
             raise TypeError(f"{type(metric)} is not a valid BaseMetric instance")
+        check_metric_contract(metric)
 
         log_component(
             logger,
@@ -248,17 +253,11 @@ def measure(metrics_config: DictConfig, inference_config: DictConfig | None = No
             obj=metric,
             max_depth=2,
         )
-        inputs = metric_config.get("inputs")
-        if not inputs:
-            raise ValueError("Each metric must configure its inputs mapping.")
-        check_metric_contract(metric)
-        bindings = _input_bindings(inputs)
-        check_metric_inputs(metric, bindings)
+        configured_inputs = metric_config.get("inputs")
+        inputs = check_metric_inputs(metric, configured_inputs) or {}
         results[get_class_path(metric)] = {}
         for test_name in test_sets:
-            data = _resolve_inputs(
-                bindings, metrics_config, test_name, inference_config
-            )
+            data = _resolve_inputs(inputs, metrics_config, test_name, inference_config)
             metric_result = metric(data, test_name, metrics_config.inference_dir)
             check_metric_output(metric, metric_result)
             results[get_class_path(metric)].update({test_name: metric_result})
