@@ -30,6 +30,8 @@ def convert_state_dict(source, layers):
             name = PREFIX + name.removeprefix("upstream_encoder.")
         if name.startswith(PREFIX + "aamsoftmax_loss."):
             name = "loss." + name.removeprefix(PREFIX + "aamsoftmax_loss.")
+        if name.startswith("loss.lang2vec_head.0."):
+            name = "lang2vec_head." + name.removeprefix("loss.lang2vec_head.0.")
         if name in canonical and not torch.equal(canonical[name], value):
             raise ValueError(f"Conflicting checkpoint aliases: {name}")
         canonical[name] = value
@@ -41,7 +43,19 @@ def convert_state_dict(source, layers):
             suffix = name.removeprefix(PREFIX)
             parts = suffix.split(".")
             group = parts[0]
-            if group == "layers" and int(parts[1]) in layers:
+            if (
+                group == "layers"
+                and int(parts[1]) in layers
+                and parts[2]
+                not in {
+                    "layer",
+                    "encoder",
+                    "pooling",
+                    "projector",
+                    "prediction",
+                    "conditioning_layer",
+                }
+            ):
                 targets = [PREFIX + f"layers.{parts[1]}.layer." + ".".join(parts[2:])]
             elif group in {"ecapa_encoder", "pooling", "projector", "lang2vec_head"}:
                 module = {
@@ -94,6 +108,19 @@ def convert_config(source):
         config[field.name] = source.get(field.name, defaults[field.name])
     config["model_conf"] = dict(config["model_conf"])
     config["model_conf"].pop("legacy_inference", None)
+    config["model"] = "lang2vec"
+    config["loss"] = "aamsoftmax_sc_topk"
+    config["loss_conf"] = dict(config["loss_conf"])
+    for key in ("lang2vec_dim", "lang2vec_weight"):
+        if key in config["loss_conf"]:
+            config["model_conf"][key] = config["loss_conf"].pop(key)
+    feature_type = config["loss_conf"].pop("lang2vec_type", None)
+    if feature_type is not None:
+        if feature_type not in ("geo", "phonology_knn", "syntax_knn", "inventory_knn"):
+            raise ValueError(f"Unsupported legacy lang2vec type: {feature_type}")
+        config["model_conf"]["lang2vec_loss"] = (
+            "mse" if feature_type == "geo" else "bce"
+        )
     config["frontend"] = "s3prl"
     config["frontend_conf"] = dict(config["frontend_conf"])
     config["frontend_conf"]["frontend_conf"] = dict(

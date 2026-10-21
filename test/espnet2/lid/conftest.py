@@ -33,8 +33,11 @@ def tiny_geolid(tmp_path, request):
         base
     )
     args = LIDTask.get_parser().parse_args([])
-    args.model = "upstream_condition"
+    args.model = "lang2vec"
     args.model_conf = dict(
+        lang2vec_dim=3,
+        lang2vec_loss="mse",
+        lang2vec_weight=0.2,
         lang2vec_conditioning_layers=[0, 1],
         shared_conditioning_proj=True,
         apply_intermediate_lang2vec_loss=True,
@@ -59,9 +62,7 @@ def tiny_geolid(tmp_path, request):
     args.projector_condition_conf = dict(output_size=4)
     args.normalize = "utterance_mvn"
     args.normalize_conf = dict(norm_vars=False)
-    args.loss = "aamsoftmax_sc_topk_lang2vec"
-    args.loss_conf = dict(
-        lang2vec_dim=3, lang2vec_type="geo", lang2vec_weight=0.2, k_top=2
-    )
+    args.loss = "aamsoftmax_sc_topk"
+    args.loss_conf = dict(k_top=2)
     args.lang_num = 4
     return args, LIDTask.build_model(args), base

@@ -34,14 +34,13 @@ from espnet2.asr.specaug.abs_specaug import AbsSpecAug
 from espnet2.layers.abs_normalize import AbsNormalize
 from espnet2.lid.conditioned_layer import Lang2VecConditionedLayer
 from espnet2.lid.espnet_model import ESPnetLIDModel
-from espnet2.lid.loss.aamsoftmax_sc_topk_lang2vec import AAMSoftmaxSCTopKLang2Vec
 from espnet2.spk.loss.abs_loss import AbsLoss
 from espnet2.spk.pooling.abs_pooling import AbsPooling
 from espnet2.spk.projector.abs_projector import AbsProjector
 from espnet2.torch_utils.device_funcs import force_gatherable
 
 
-class ESPnetLIDUpstreamConditionModel(ESPnetLIDModel):
+class ESPnetLang2VecLIDModel(ESPnetLIDModel):
     """ESPnet LID model with upstream lang2vec conditioning and downstream prediction.
 
     Args:
@@ -76,6 +75,17 @@ class ESPnetLIDUpstreamConditionModel(ESPnetLIDModel):
             vector before projection. This alone does not freeze the projection.
         shared_conditioning_proj: if True, share conditioning projection across
                                   layers
+        lang2vec_dim: Dimension of the recipe's per-language target vectors.
+        lang2vec_loss: "mse" for continuous targets (e.g. geo), or "bce" for
+            binary targets (e.g. syntax_knn), using logits before the sigmoid.
+        lang2vec_weight: Weight of the auxiliary losses. The classification
+            loss receives weight 1 - lang2vec_weight on supervised batches.
+
+    The classification head is the standard aamsoftmax_sc_topk loss. A linear
+    head predicts lang2vec targets from the final utterance embedding; additional
+    linear heads predict the same targets at the selected SSL layers. These
+    predictions condition the speech representation. Language metadata is used
+    only as a training target, never as an inference input.
 
     Reference:
         Geolocation-Aware Robust Spoken Language Identification
@@ -105,6 +115,9 @@ class ESPnetLIDUpstreamConditionModel(ESPnetLIDModel):
         cutoff_gradient_from_backbone: Optional[bool] = True,
         cutoff_gradient_before_condproj: Optional[bool] = False,
         shared_conditioning_proj: Optional[bool] = False,
+        lang2vec_dim: int = 299,
+        lang2vec_loss: str = "mse",
+        lang2vec_weight: float = 0.2,
     ):
 
         super().__init__(
@@ -118,25 +131,22 @@ class ESPnetLIDUpstreamConditionModel(ESPnetLIDModel):
         )
 
         assert isinstance(self.frontend, S3prlFrontend), (
-            f"ESPnetLIDUpstreamConditionModel only supports S3prlFrontend "
+            f"ESPnetLang2VecLIDModel only supports S3prlFrontend "
             f"as frontend, but got {type(self.frontend)}"
         )
 
-        if not isinstance(self.loss, AAMSoftmaxSCTopKLang2Vec):
-            raise ValueError("Upstream conditioning requires AAMSoftmaxSCTopKLang2Vec.")
+        if lang2vec_dim <= 0:
+            raise ValueError("lang2vec_dim must be positive.")
+        if not 0 <= lang2vec_weight <= 1:
+            raise ValueError("lang2vec_weight must be in [0, 1].")
+        if lang2vec_loss not in ("mse", "bce"):
+            raise ValueError("lang2vec_loss must be 'mse' or 'bce'.")
+        self.lang2vec_head = nn.Linear(projector.output_size(), lang2vec_dim)
+        self.lang2vec_loss = (
+            nn.MSELoss() if lang2vec_loss == "mse" else nn.BCEWithLogitsLoss()
+        )
+        self.lang2vec_weight = lang2vec_weight
         if lang2vec_conditioning_layers:
-            if any(
-                value is None
-                for value in (
-                    self.loss.lang2vec_dim,
-                    self.loss.lang2vec_type,
-                    self.loss.lang2vec_weight,
-                )
-            ):
-                raise ValueError(
-                    "Conditioning requires lang2vec_dim, lang2vec_type "
-                    "and lang2vec_weight in loss_conf."
-                )
             num_layers = self.frontend.upstream.upstream.model.config.num_hidden_layers
             if len(set(lang2vec_conditioning_layers)) != len(
                 lang2vec_conditioning_layers
@@ -153,46 +163,31 @@ class ESPnetLIDUpstreamConditionModel(ESPnetLIDModel):
         upstream.config.layerdrop = 0.0
         shared_projection = None
         if shared_conditioning_proj and apply_intermediate_lang2vec_condition:
-            shared_projection = nn.Linear(
-                self.loss.lang2vec_dim, frontend.output_size()
-            )
+            shared_projection = nn.Linear(lang2vec_dim, frontend.output_size())
         for index in self.lang2vec_conditioning_layers:
             key = str(index)
             projection = shared_projection
             if apply_intermediate_lang2vec_condition and projection is None:
-                projection = nn.Linear(self.loss.lang2vec_dim, frontend.output_size())
+                projection = nn.Linear(lang2vec_dim, frontend.output_size())
             if projection is not None and cutoff_gradient_from_backbone:
                 projection.requires_grad_(False)
-            upstream.encoder.layers[index] = Lang2VecConditionedLayer(
+            wrapper = Lang2VecConditionedLayer(
                 layer=upstream.encoder.layers[index],
                 encoder=encoder_condition[key],
                 pooling=pooling_condition[key],
                 projector=projector_condition[key],
                 prediction=nn.Linear(
-                    projector_condition[key].output_size(), self.loss.lang2vec_dim
+                    projector_condition[key].output_size(), lang2vec_dim
                 ),
                 conditioning_layer=projection,
                 detach_prediction=cutoff_gradient_before_condproj,
                 detach_condition=cutoff_gradient_from_backbone,
             )
 
-        # Update the stock frontend's initialization snapshot for the wrappers so
-        # reload_pretrained_parameters() still works with an explicit --init.
-        pretrained = self.frontend.pretrained_params
-        updated = {}
-        for name, value in self.frontend.upstream.state_dict().items():
-            original_name = name
-            for index in self.lang2vec_conditioning_layers:
-                prefix = f"upstream.model.encoder.layers.{index}.layer."
-                if name.startswith(prefix):
-                    original_name = prefix[:-6] + name[len(prefix) :]
-                    break
-            updated[name] = (
-                pretrained[original_name]
-                if original_name in pretrained
-                else value.detach().clone()
+            self.frontend.wrap_upstream_layer(
+                f"upstream.model.encoder.layers.{index}", wrapper
             )
-        self.frontend.pretrained_params = updated
+
         self.apply_intermediate_lang2vec_loss = apply_intermediate_lang2vec_loss
         self.inter_lang2vec_loss_weight = inter_lang2vec_loss_weight
 
@@ -208,7 +203,6 @@ class ESPnetLIDUpstreamConditionModel(ESPnetLIDModel):
         speech: torch.Tensor,
         speech_lengths: torch.Tensor,
         lid_labels: Optional[torch.Tensor] = None,
-        task_tokens: Optional[torch.Tensor] = None,
         lang2vecs: Optional[torch.Tensor] = None,
         extract_embd: bool = False,
         lang2vec_mask: Optional[torch.Tensor] = None,
@@ -223,12 +217,10 @@ class ESPnetLIDUpstreamConditionModel(ESPnetLIDModel):
         Args:
             speech: (Batch, samples)
             speech_lengths: (Batch,)
-            extract_embd: a flag which doesn't go through the classification
-                head when set True
+            extract_embd: Return embeddings and predicted language labels.
             lid_labels: (Batch, )
-            one-hot speaker labels used in the train phase
-            task_tokens: (Batch, )
-            task tokens used in case of token-based trainings
+                Integer language labels used during training.
+            lang2vecs: (Batch, lang2vec_dim), auxiliary training targets.
             lang2vec_mask: (Batch, 1), optional mask for languages with auxiliary
                 supervision. Excluded languages still contribute classification loss.
         """
@@ -238,18 +230,13 @@ class ESPnetLIDUpstreamConditionModel(ESPnetLIDModel):
                 speech.shape,
                 lid_labels.shape,
             )
-        if task_tokens is not None:
-            assert speech.shape[0] == task_tokens.shape[0], (
-                speech.shape,
-                task_tokens.shape,
-            )
         batch_size = speech.shape[0]
         stats = dict()
 
         # 1. extract feats
         # Must transfer speech_lengths to extract_feats to get correct feat_lengths
         feats, feat_lengths, intermediate_lang2vec_preds = self.extract_feats(
-            speech, speech_lengths, lid_labels
+            speech, speech_lengths
         )
         frame_level_feats = self.encode_frame(feats)
 
@@ -259,74 +246,39 @@ class ESPnetLIDUpstreamConditionModel(ESPnetLIDModel):
         # 3. (optionally) go through further projection(s)
         lang_embd = self.project_lang_embd(utt_level_feat)
 
-        # 4. calculate loss
-        # NOTE: if lid_labels is None, loss and accuracy are None
-        if lang2vecs is not None and (lang2vec_mask is None or lang2vec_mask.any()):
-            class_loss, accuracy, pred_lids, lang2vec_loss = self.loss(
-                lang_embd, lid_labels, lang2vecs, lang2vec_mask
-            )
-            lang2vec_type = self.loss.lang2vec_type
-            stats["class_loss"] = class_loss.detach()
-            if lang2vec_loss is not None:
-                stats[f"{lang2vec_type}_loss_downstream"] = lang2vec_loss.detach()
-
-            if (
-                intermediate_lang2vec_preds is not None
-                and self.inter_lang2vec_loss_weight > 0
-                and self.apply_intermediate_lang2vec_loss
-                and self.lang2vec_conditioning_layers
-            ):
-                inter_lang2vec_losses = self._calc_intermediate_lang2vec_pred_loss(
-                    intermediate_lang2vec_preds,
-                    lang2vecs,
-                    lang2vec_mask,
-                )
-
-                inter_lang2vec_loss_mean = 0.0
-
-                for layer_idx, inter_lang2vec_loss in zip(
-                    self.lang2vec_conditioning_layers,
-                    inter_lang2vec_losses,
-                ):
-                    stats[f"inter_{lang2vec_type}_loss_layer{layer_idx}"] = (
-                        inter_lang2vec_loss.detach()
-                    )
-                    inter_lang2vec_loss_mean += inter_lang2vec_loss
-
-                inter_lang2vec_loss_mean /= len(inter_lang2vec_losses)
-                stats[f"inter_{lang2vec_type}_loss_mean"] = (
-                    inter_lang2vec_loss_mean.detach()
-                )
-
-                lang2vec_loss_all = 0.0
-                if lang2vec_loss is not None:
-                    lang2vec_loss_all += (
-                        1 - self.inter_lang2vec_loss_weight
-                    ) * lang2vec_loss
-                    lang2vec_loss_all += (
-                        self.inter_lang2vec_loss_weight * inter_lang2vec_loss_mean
-                    )
-                else:
-                    lang2vec_loss_all = inter_lang2vec_loss_mean
-
-                stats[f"{lang2vec_type}_loss_all"] = lang2vec_loss_all.detach()
-            else:
-                lang2vec_loss_all = lang2vec_loss
-
-            # Weight classification and auxiliary supervision once, here.
-            if lang2vec_loss_all is None:
-                loss = class_loss
-            else:
-                loss = (
-                    1 - self.loss.lang2vec_weight
-                ) * class_loss + self.loss.lang2vec_weight * lang2vec_loss_all
-        else:
-            loss, accuracy, pred_lids, _ = self.loss(lang_embd, lid_labels)
-            if loss is not None:
-                stats["class_loss"] = loss.detach()
-
+        class_loss, accuracy, pred_lids = self.loss(lang_embd, lid_labels)
         if extract_embd:
             return lang_embd, pred_lids
+        if class_loss is None:
+            raise ValueError("lid_labels are required when extract_embd is False")
+        stats["class_loss"] = class_loss.detach()
+        loss = class_loss
+        if lang2vecs is not None and (lang2vec_mask is None or lang2vec_mask.any()):
+            auxiliary = self.compute_lang2vec_loss(
+                self.lang2vec_head(lang_embd), lang2vecs, lang2vec_mask
+            )
+            stats["lang2vec_loss_downstream"] = auxiliary.detach()
+            if (
+                self.apply_intermediate_lang2vec_loss
+                and self.inter_lang2vec_loss_weight > 0
+                and self.lang2vec_conditioning_layers
+            ):
+                intermediate_losses = self._calc_intermediate_lang2vec_pred_loss(
+                    intermediate_lang2vec_preds, lang2vecs, lang2vec_mask
+                )
+                for index, value in zip(
+                    self.lang2vec_conditioning_layers, intermediate_losses
+                ):
+                    stats[f"inter_lang2vec_loss_layer{index}"] = value.detach()
+                intermediate = torch.stack(intermediate_losses).mean()
+                stats["inter_lang2vec_loss_mean"] = intermediate.detach()
+                auxiliary = (
+                    1 - self.inter_lang2vec_loss_weight
+                ) * auxiliary + self.inter_lang2vec_loss_weight * intermediate
+                stats["lang2vec_loss_all"] = auxiliary.detach()
+            loss = (
+                1 - self.lang2vec_weight
+            ) * class_loss + self.lang2vec_weight * auxiliary
 
         stats["loss"] = loss.detach()
         if accuracy is not None:  # if not provide labels, accuracy is None
@@ -339,7 +291,6 @@ class ESPnetLIDUpstreamConditionModel(ESPnetLIDModel):
         self,
         speech: torch.Tensor,
         speech_lengths: torch.Tensor,
-        lid_labels: Optional[torch.Tensor] = None,
     ) -> Tuple[torch.Tensor, torch.Tensor, Tuple[torch.Tensor, ...]]:
         batch_size = speech.shape[0]
         speech_lengths = (
@@ -381,7 +332,7 @@ class ESPnetLIDUpstreamConditionModel(ESPnetLIDModel):
     ) -> List[torch.Tensor]:
         inter_lang2vec_losses = []
         for intermediate_lang2vec_pred in intermediate_lang2vec_preds:
-            inter_lang2vec_loss = self.loss.compute_lang2vec_loss(
+            inter_lang2vec_loss = self.compute_lang2vec_loss(
                 intermediate_lang2vec_pred,
                 lang2vecs,
                 lang2vec_mask,
@@ -389,6 +340,15 @@ class ESPnetLIDUpstreamConditionModel(ESPnetLIDModel):
             inter_lang2vec_losses.append(inter_lang2vec_loss)
 
         return inter_lang2vec_losses
+
+    def compute_lang2vec_loss(self, prediction, target, mask=None):
+        """Reduce auxiliary loss over rows with observed targets only."""
+        if mask is not None:
+            mask = mask.reshape(-1).bool()
+            prediction, target = prediction[mask], target[mask]
+        if prediction.shape[0] == 0:
+            return prediction.sum()
+        return self.lang2vec_loss(prediction, target)
 
     def collect_feats(self, speech, speech_lengths, **kwargs):
         feats, _, _ = self.extract_feats(speech, speech_lengths)

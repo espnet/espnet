@@ -39,7 +39,7 @@ for x in ${splits}; do
 done
 
 if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
-    python -c 'import datasets; assert int(datasets.__version__.split(".")[0]) < 4, "Install local/requirements.txt: xtreme_s requires datasets<4"'
+    python -c 'import datasets; assert int(datasets.__version__.split(".")[0]) < 4, "FLEURS preparation requires datasets<4; see local/README.md"'
     mkdir -p downloads/all data
     HF_DATASETS_TRUST_REMOTE_CODE=1 python ../../fleurs/asr1/local/create_dataset.py \
         --lang all --nlsyms_txt data/fleurs_nlsyms.txt

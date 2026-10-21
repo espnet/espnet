@@ -1,57 +1,6 @@
 import pytest
 import torch
 
-from espnet2.lid.espnet_model_upstream_condition import ESPnetLIDUpstreamConditionModel
-from espnet2.lid.loss.aamsoftmax_sc_topk_lang2vec import AAMSoftmaxSCTopKLang2Vec
-
-
-def test_import_espnet_lid_upstream_condition_model():
-    """Test that ESPnetLIDUpstreamConditionModel can be imported."""
-    assert ESPnetLIDUpstreamConditionModel is not None
-
-
-@pytest.mark.parametrize("training", [True, False])
-@pytest.mark.parametrize(
-    "lang2vec_type", ["geo", "phonology_knn", "syntax_knn", "inventory_knn"]
-)
-def test_aamsoftmax_sc_topk_lang2vec_loss(training, lang2vec_type):
-
-    inputs = torch.randn(2, 198, requires_grad=True)
-    lid_labels = torch.randint(0, 10, (2,)).long()
-    if lang2vec_type == "geo":
-        lang2vecs = torch.randn(2, 299)
-        lang2vec_dim = 299  # mock data
-    else:
-        lang2vecs = torch.randn(2, 28)
-        lang2vec_dim = 28  # mock data
-
-    aamsoftmax_sc_topk_lang2vec_loss = AAMSoftmaxSCTopKLang2Vec(
-        nout=198,  # Use fixed embedding dimension
-        nclasses=10,
-        scale=15,
-        margin=0.3,
-        easy_margin=False,
-        K=3,
-        mp=0.06,
-        k_top=5,
-        do_lm=False,
-        lang2vec_dim=lang2vec_dim,
-        lang2vec_type=lang2vec_type,
-        lang2vec_weight=0.2,
-    )
-
-    kwargs = {
-        "input": inputs,
-        "label": lid_labels,
-        "lang2vec": lang2vecs,
-    }
-
-    classification, _, _, auxiliary = aamsoftmax_sc_topk_lang2vec_loss(**kwargs)
-    assert torch.isfinite(classification) and torch.isfinite(auxiliary)
-    if training:
-        (classification + auxiliary).backward()
-        assert aamsoftmax_sc_topk_lang2vec_loss.lang2vec_head[0].weight.grad is not None
-
 
 @pytest.mark.parametrize(
     "condition,intermediate", [(True, True), (False, True), (True, False)]
@@ -68,7 +17,9 @@ def test_training_and_inference(tiny_geolid, condition, intermediate):
         speech, lengths, lid_labels=torch.tensor([0, 1]), lang2vecs=torch.randn(2, 3)
     )
     assert torch.isfinite(loss)
-    auxiliary = stats["geo_loss_all" if intermediate else "geo_loss_downstream"]
+    auxiliary = stats[
+        "lang2vec_loss_all" if intermediate else "lang2vec_loss_downstream"
+    ]
     torch.testing.assert_close(
         loss.detach(), 0.8 * stats["class_loss"] + 0.2 * auxiliary
     )
@@ -87,37 +38,18 @@ def test_training_and_inference(tiny_geolid, condition, intermediate):
         assert not any(k.startswith("upstream_encoder.") for k in model.state_dict())
 
 
-@pytest.mark.parametrize("weight", [0.0, 0.2, 1.0])
-def test_loss_components_are_not_mutated(weight):
-    module = AAMSoftmaxSCTopKLang2Vec(
-        nout=4,
-        nclasses=4,
-        k_top=2,
-        lang2vec_dim=3,
-        lang2vec_type="geo",
-        lang2vec_weight=weight,
-    )
-    x, labels, targets = torch.randn(2, 4), torch.tensor([0, 1]), torch.randn(2, 3)
-    expected = module(x, labels)[0]
-    classification, _, _, auxiliary = module(x, labels, targets)
-    torch.testing.assert_close(classification, expected)
-    torch.testing.assert_close(
-        auxiliary, torch.nn.functional.mse_loss(module.lang2vec_head(x), targets)
-    )
-
-
 @pytest.mark.parametrize("supervised", [True, False])
 def test_masked_lang2vec_training(tiny_geolid, supervised, monkeypatch):
     _, model, _ = tiny_geolid
     predictions = []
-    original = model.loss.compute_lang2vec_loss
+    original = model.compute_lang2vec_loss
 
     def record(prediction, target, mask=None):
         prediction.retain_grad()
         predictions.append(prediction)
         return original(prediction, target, mask)
 
-    monkeypatch.setattr(model.loss, "compute_lang2vec_loss", record)
+    monkeypatch.setattr(model, "compute_lang2vec_loss", record)
     targets = torch.full((2, 3), float("nan"))
     if supervised:
         targets[0] = torch.randn(3)
@@ -141,18 +73,11 @@ def test_masked_lang2vec_training(tiny_geolid, supervised, monkeypatch):
     else:
         torch.testing.assert_close(loss.detach(), stats["class_loss"])
         assert not predictions
-        assert model.loss.lang2vec_head[0].weight.grad is None
+        assert model.lang2vec_head.weight.grad is None
 
 
-def test_all_masked_auxiliary_component():
-    module = AAMSoftmaxSCTopKLang2Vec(
-        nout=4,
-        nclasses=4,
-        k_top=2,
-        lang2vec_dim=3,
-        lang2vec_type="geo",
-        lang2vec_weight=0.2,
-    )
+def test_all_masked_auxiliary_component(tiny_geolid):
+    _, module, _ = tiny_geolid
     prediction = torch.randn(2, 3, requires_grad=True)
     loss = module.compute_lang2vec_loss(
         prediction, torch.full_like(prediction, float("nan")), torch.zeros(2, 1)
@@ -240,13 +165,73 @@ def test_stock_gradient_checkpointing(tiny_geolid):
     assert model.conditioned_layers[0].prediction.weight.grad is not None
 
 
-def test_classification_reuses_standard_loss():
+def test_default_model_classification_contract(tiny_geolid):
     from espnet2.spk.loss.aamsoftmax_subcenter_intertopk import (
         ArcMarginProduct_intertopk_subcenter,
     )
+    from espnet2.tasks.lid import LIDTask
 
-    base = ArcMarginProduct_intertopk_subcenter(nout=4, nclasses=4, k_top=2)
-    augmented = AAMSoftmaxSCTopKLang2Vec(nout=4, nclasses=4, k_top=2)
-    augmented.load_state_dict(base.state_dict(), strict=True)
-    inputs, labels = torch.randn(2, 4), torch.tensor([0, 1])
-    torch.testing.assert_close(augmented(inputs, labels)[0], base(inputs, labels)[0])
+    args, conditioned, _ = tiny_geolid
+    assert type(conditioned.loss) is ArcMarginProduct_intertopk_subcenter
+    args.model = "espnet"
+    args.model_conf = {}
+    model = LIDTask.build_model(args)
+    loss, _, _ = model(
+        torch.randn(2, 1600),
+        torch.tensor([1600, 980]),
+        lid_labels=torch.tensor([0, 1]),
+    )
+    assert torch.isfinite(loss)
+    loss.backward()
+
+
+@pytest.mark.parametrize(
+    "tiny_geolid", [{"lang2vec_loss": "mse"}, {"lang2vec_loss": "bce"}], indirect=True
+)
+def test_auxiliary_loss_and_gradient(tiny_geolid):
+    args, model, _ = tiny_geolid
+    inputs = torch.randn(2, 4, requires_grad=True)
+    targets = torch.rand(2, 3)
+    prediction = model.lang2vec_head(inputs)
+    actual = model.compute_lang2vec_loss(prediction, targets)
+    criterion = (
+        torch.nn.functional.mse_loss
+        if args.model_conf["lang2vec_loss"] == "mse"
+        else torch.nn.functional.binary_cross_entropy_with_logits
+    )
+    torch.testing.assert_close(actual, criterion(prediction, targets))
+    actual.backward()
+    assert model.lang2vec_head.weight.grad.abs().sum() > 0
+    assert inputs.grad.abs().sum() > 0
+
+
+@pytest.mark.parametrize("implementation", ["eager", "sdpa"])
+def test_attention_backends_preserve_valid_lengths(tiny_geolid, implementation):
+    _, model, _ = tiny_geolid
+    upstream = model.frontend.upstream.upstream.model
+    upstream.set_attn_implementation(implementation)
+    model.eval()
+    lengths_seen = []
+    handles = [
+        layer.pooling.register_forward_pre_hook(
+            lambda module, args, kwargs: lengths_seen.append(
+                kwargs["feat_lengths"].clone()
+            ),
+            with_kwargs=True,
+        )
+        for layer in model.conditioned_layers
+    ]
+    try:
+        with torch.no_grad():
+            embeddings, predictions = model(
+                torch.randn(2, 1600), torch.tensor([1600, 980]), extract_embd=True
+            )
+        assert torch.isfinite(embeddings).all()
+        assert predictions.shape == (2,)
+        # Valid convolution output lengths, independently of the attention mask.
+        assert len(lengths_seen) == 2
+        for lengths in lengths_seen:
+            torch.testing.assert_close(lengths, torch.tensor([4, 2]))
+    finally:
+        for handle in handles:
+            handle.remove()

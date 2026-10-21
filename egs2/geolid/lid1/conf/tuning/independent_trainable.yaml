@@ -1,6 +1,9 @@
 # VoxLingua107, independent trainable conditioning projections.
-model: upstream_condition
+model: lang2vec
 model_conf:
+  lang2vec_dim: 299
+  lang2vec_loss: mse
+  lang2vec_weight: 0.2
   lang2vec_conditioning_layers:
   - 32
   - 36
@@ -44,18 +47,14 @@ preprocessor_conf:
   noise_apply_prob: 0.0
   rir_apply_prob: 0.0
   rir_scp: null
-  use_lang2vec: true
-  lang2vec_type: geo
-loss: aamsoftmax_sc_topk_lang2vec
+  lang2vec_table: data/voxlingua107_lang2vec.txt
+loss: aamsoftmax_sc_topk
 loss_conf:
   margin: 0.5
   scale: 30
   K: 3
   mp: 0.06
   k_top: 5
-  lang2vec_dim: 299
-  lang2vec_type: geo
-  lang2vec_weight: 0.2
 num_att_plot: 0
 num_workers: 8
 cudnn_deterministic: false

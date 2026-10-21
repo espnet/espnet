@@ -1,4 +1,0 @@
-# google/xtreme_s uses a dataset loading script, removed in datasets 4.
-datasets>=2.16,<4
-pycountry
-lang2vec

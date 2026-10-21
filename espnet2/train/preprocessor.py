@@ -2281,9 +2281,10 @@ class LIDPreprocessor(CommonPreprocessor):
                 - `db_range` (Tuple[float, float]) is the range of noise levels in dB.
         noise_apply_prob (float): Probability of applying noise.
         short_noise_thres (float): Threshold of short noise.
-        lang2vec_exclude_languages (List[str]): Languages explicitly excluded from
-            auxiliary lang2vec supervision, while retaining classification labels.
-            Other missing lang2vec entries remain errors.
+        lang2vec_table (str): Optional per-language target table, one row per
+            language: ``<language> <v1> ... <vN>``. Languages absent from this
+            table retain their classification labels but receive a zero mask
+            for auxiliary supervision.
     """
 
     def __init__(
@@ -2300,9 +2301,7 @@ class LIDPreprocessor(CommonPreprocessor):
         ] = None,
         noise_apply_prob: float = 1.0,
         short_noise_thres: float = 0.5,
-        use_lang2vec: bool = False,
-        lang2vec_type: str = None,
-        lang2vec_exclude_languages: Optional[List[str]] = None,
+        lang2vec_table: Optional[str] = None,
     ):
         super().__init__(train, rir_scp=rir_scp, rir_apply_prob=rir_apply_prob)
 
@@ -2315,24 +2314,14 @@ class LIDPreprocessor(CommonPreprocessor):
         self.fix_duration = fix_duration
         self.train = train
         self.lang2utt_path = lang2utt
-        self.use_lang2vec = use_lang2vec
-        self.lang2vec_type = lang2vec_type
-        self.lang2vec_exclude_languages = set(lang2vec_exclude_languages or [])
 
         with open(lang2utt, "r") as f_s2u:
             self.lang2utt = f_s2u.readlines()
         self._make_label_mapping()
 
-        if self.use_lang2vec and self.lang2vec_type not in {
-            "geo",
-            "phonology_knn",
-            "syntax_knn",
-            "inventory_knn",
-        }:
-            raise ValueError(f"Unsupported lang2vec_type: {self.lang2vec_type}")
-        if self.use_lang2vec:
-            logging.info(f"Using lang2vec {self.lang2vec_type}")
-            self.get_lang2vec()
+        if lang2vec_table is not None:
+            self.lang2vec = self._read_lang2vec_table(lang2vec_table)
+            self.lang2vec_dim = len(next(iter(self.lang2vec.values())))
 
         self.rir_scp = rir_scp
 
@@ -2394,47 +2383,33 @@ class LIDPreprocessor(CommonPreprocessor):
             self.lang2label[lang] = label_idx
             label_idx += 1
 
-    def get_lang2vec(self):
-        try:
-            import lang2vec.lang2vec as l2v
-        except Exception as e:
-            raise ImportError(
-                "Error: lang2vec is not found.\n"
-                "Please install lang2vec by:\n"
-                "  pip install lang2vec"
-            ) from e
-
-        self.lang2vec = {}
-        missing = []
-        for lang in self.lang2label:
-            if lang in self.lang2vec_exclude_languages:
-                continue
-            try:
-                result = l2v.get_features([lang], self.lang2vec_type)
-            except Exception as error:
-                missing.append(f"{lang} ({error})")
-                continue
-            # Do not hide malformed feature values as missing-language errors.
-            vector = np.asarray(result[lang], dtype=np.float32)
-            if vector.ndim != 1 or not np.isfinite(vector).all():
-                raise ValueError(f"Invalid lang2vec features for {lang}")
-            self.lang2vec[lang] = vector
-        if missing:
-            raise ValueError("Missing lang2vec features: " + "; ".join(missing))
-        excluded = self.lang2vec_exclude_languages.intersection(self.lang2label)
-        if excluded:
-            if not self.lang2vec:
-                raise ValueError(
-                    "At least one language must have lang2vec supervision."
-                )
-            logging.warning(
-                "Excluding languages from lang2vec supervision only: %s",
-                ", ".join(sorted(excluded)),
-            )
-            # Collation needs equal-sized targets. These placeholders are masked
-            # out of every auxiliary loss, never treated as observed features.
-            for lang in excluded:
-                self.lang2vec[lang] = np.zeros_like(next(iter(self.lang2vec.values())))
+    @staticmethod
+    def _read_lang2vec_table(path):
+        """Read finite, equally sized language targets without external packages."""
+        targets = {}
+        dimension = None
+        with open(path, encoding="utf-8") as stream:
+            for number, line in enumerate(stream, 1):
+                fields = line.split()
+                if not fields:
+                    continue
+                language = fields[0]
+                if language in targets:
+                    raise ValueError(
+                        f"Duplicate language {language} in {path}:{number}"
+                    )
+                vector = np.asarray(fields[1:], dtype=np.float32)
+                if not vector.size or not np.isfinite(vector).all():
+                    raise ValueError(f"Invalid language target in {path}:{number}")
+                if dimension is not None and vector.size != dimension:
+                    raise ValueError(
+                        f"Inconsistent target dimension in {path}:{number}"
+                    )
+                dimension = vector.size
+                targets[language] = vector
+        if not targets:
+            raise ValueError(f"Empty language target table: {path}")
+        return targets
 
     def _speech_process(self, data: Dict[np.ndarray, str]):
         audio = data["speech"]
@@ -2555,15 +2530,14 @@ class LIDPreprocessor(CommonPreprocessor):
         int_label = self.lang2label[iso3_labels]
         data["lid_labels"] = np.asarray([int_label], dtype=np.int64)
 
-        if self.use_lang2vec and self.lang2vec_type is not None:
-            data["lang2vecs"] = self.lang2vec[
-                iso3_labels
-            ]  # ndarray, (bs, lang2vec_dim)
-            if self.lang2vec_exclude_languages:
-                data["lang2vec_mask"] = np.asarray(
-                    [iso3_labels not in self.lang2vec_exclude_languages],
-                    dtype=np.int64,
-                )
+        if self.lang2vec is not None:
+            observed = iso3_labels in self.lang2vec
+            data["lang2vecs"] = (
+                self.lang2vec[iso3_labels].copy()
+                if observed
+                else np.zeros(self.lang2vec_dim, dtype=np.float32)
+            )
+            data["lang2vec_mask"] = np.asarray([observed], dtype=np.int64)
 
         return data
 

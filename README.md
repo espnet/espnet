@@ -436,13 +436,12 @@ Demonstration
 - Performing two-pass spoken language understanding where the second pass model attends to both acoustic and semantic information.  [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1p2cbGIPpIIcynuDl4ZVHDpmNPl8Nh_ci?usp=sharing)
 
 ### LID: Spoken Language Identification
-- **State-of-the-art performance** in spoken language identification benchmarks
 - Architecture
     - Frontend: Self-supervised models integrated via S3PRL, such as MMS, XLS-R, etc.
     - Encoder: ECAPA-TDNN, xvector, etc.
     - Pooling methods: Statistical pooling, attentive statistics pooling, etc.
 - Supports AAMSoftmax loss with subcenter regularization and topk penalty
-- Support integration of geolocation metadata for context-aware prediction
+- Optional lang2vec auxiliary targets and conditioning on predicted language features; inference uses speech only.
 - Supports category-balanced sampling for imbalanced language datasets
 - Supports language embeddings extraction, t-SNE visualization, distributed inference, and cross-dataset evaluation
 

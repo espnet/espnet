@@ -6,7 +6,13 @@ datasets="voxlingua107"
 for dataset in ${datasets//,/ }; do
     case "${dataset}" in
         voxlingua107|fleurs|ml_superb2|babel|voxpopuli)
-            bash "local/prepare_${dataset}.sh" ;;
+            bash "local/prepare_${dataset}.sh"
+            if [ "${dataset}" = voxlingua107 ]; then
+                python3 local/prepare_lang2vec.py \
+                    --lang2utt data/train_voxlingua107_lang/lang2utt \
+                    --output data/voxlingua107_lang2vec.txt
+            fi
+            ;;
         *) echo "Unknown GeoLID dataset: ${dataset}" >&2; exit 1 ;;
     esac
 done

@@ -20,7 +20,11 @@ def test_conversion_strict_load(tiny_geolid):
     source = {}
     prefix = converter.PREFIX
     for key, value in model.state_dict().items():
-        old = key
+        old = (
+            ("loss.lang2vec_head.0." + key.removeprefix("lang2vec_head."))
+            if key.startswith("lang2vec_head.")
+            else key
+        )
         for i in (0, 1):
             layer = prefix + f"layers.{i}."
             if key.startswith(layer):
@@ -122,3 +126,36 @@ def test_converted_config_standard_inference(tiny_geolid, tmp_path):
     result = (output / f"{tmp_path.name}_lids").read_text().split()
     assert result[0] == "test_utterance"
     assert result[1] in labels.read_text().splitlines()
+
+
+def test_conversion_accepts_previous_stock_frontend_layout(tiny_geolid):
+    _, model, _ = tiny_geolid
+    source = {
+        (
+            ("loss.lang2vec_head.0." + k.removeprefix("lang2vec_head."))
+            if k.startswith("lang2vec_head.")
+            else k
+        ): v
+        for k, v in model.state_dict().items()
+    }
+    model.load_state_dict(converter.convert_state_dict(source, [0, 1]), strict=True)
+
+
+def test_legacy_config_moves_auxiliary_options(tiny_geolid):
+    args, _, _ = tiny_geolid
+    source = vars(args).copy()
+    source["model"] = "upstream_condition"
+    source["loss"] = "aamsoftmax_sc_topk_lang2vec"
+    source["model_conf"] = dict(source["model_conf"])
+    for key in ("lang2vec_dim", "lang2vec_weight", "lang2vec_loss"):
+        source["model_conf"].pop(key)
+    source["loss_conf"] = dict(
+        k_top=2, lang2vec_dim=3, lang2vec_weight=0.2, lang2vec_type="syntax_knn"
+    )
+    config = converter.convert_config(source)
+    assert config["model"] == "lang2vec"
+    assert config["loss"] == "aamsoftmax_sc_topk"
+    assert config["loss_conf"] == {"k_top": 2}
+    assert config["model_conf"]["lang2vec_dim"] == 3
+    assert config["model_conf"]["lang2vec_loss"] == "bce"
+    assert config["model_conf"]["lang2vec_weight"] == 0.2

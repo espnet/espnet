@@ -20,8 +20,11 @@ This directory contains scripts for preparing multiple language identification d
 
 ### 2. Individual Dataset Preparation
 
-Install `local/requirements.txt` first. It pins `datasets<4` because the shared
-FLEURS preparer uses the `google/xtreme_s` dataset loading script. Set
+Install the data preparation requirements with
+`python -m pip install 'datasets>=2.16,<4' pycountry`. The shared FLEURS preparer
+uses the `google/xtreme_s` dataset loading script, removed in `datasets` 4.
+Install target preparation support through `cd tools && make lang2vec.done`
+from the repository root. Set
 `VOXLINGUA107` in `db.sh`; pass other local corpus paths as command-line options:
 
 ```bash
@@ -47,7 +50,7 @@ Run the waveform preparation stage (stage 3) for each dataset:
 
 ```bash
 # Example: Process FLEURS dataset
-./run_combined.sh --stage 3 --stop_stage 3 \
+./run.sh --stage 3 --stop_stage 3 \
     --train_set train_fleurs_lang \
     --valid_set dev_fleurs_lang \
     --test_sets test_fleurs_lang
@@ -82,7 +85,21 @@ The combination script checks for duplicate utterance IDs and matching waveform,
 language and duration keys, and leaves the source dumps unchanged. It generates
 `lang2utt`, `category2utt`, `utt2dataset` and `dataset2utt`.
 
-This will generate the final combined dataset: `dump/raw/train_all_no_filter_lang`
+This generates `dump/raw/train_all_no_filter_lang` and the language target table
+`data/combined_lang2vec.txt`. The latter omits `tok`, which has no URIEL geo
+features; `tok` remains a classification label. Other missing features fail
+preparation. Run this step **after stage 3 and before stage 4**. Then start
+training with the single combined command in the [recipe README](../README.md).
+
+For VoxLingua107-only training, stage 1 creates `data/voxlingua107_lang2vec.txt`.
+If preparing individual corpora directly instead, generate that table before
+stage 4:
+
+```bash
+python local/prepare_lang2vec.py \
+    --lang2utt dump/raw/train_voxlingua107_lang/lang2utt \
+    --output data/voxlingua107_lang2vec.txt
+```
 
 ## Workflow Summary
 
