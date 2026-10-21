@@ -199,7 +199,8 @@ class DifferentiableKMeans(AbsSpeechTokenizerQuantizer):
         self, features: torch.Tensor, feature_lengths: torch.Tensor
     ) -> SpeechTokenizerOutput:
         """Sample hard straight-through assignments for differentiable training."""
-        if self.training:
+        update_state = self.training and torch.is_grad_enabled()
+        if update_state:
             self._anneal_temperature()
         logits = self._distance_logits(features)
         soft_assignment = F.gumbel_softmax(
@@ -218,7 +219,7 @@ class DifferentiableKMeans(AbsSpeechTokenizerQuantizer):
             soft_assignment,
             assignment,
         )
-        if self.training:
+        if update_state:
             self.num_updates.add_(1)
         return output
 

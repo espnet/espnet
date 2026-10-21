@@ -119,7 +119,7 @@ def test_temperature_must_be_positive(centroid_path):
         quantizer.set_temperature(0.0)
 
 
-def test_temperature_anneals_only_during_training(centroid_path):
+def test_temperature_anneals_only_during_training_with_gradients(centroid_path):
     path, _ = centroid_path
     quantizer = DifferentiableKMeans(
         path,
@@ -132,6 +132,10 @@ def test_temperature_anneals_only_during_training(centroid_path):
 
     quantizer.train()
     quantizer(features, lengths)
+    assert quantizer.temperature.item() == pytest.approx(2.0)
+    assert quantizer.num_updates.item() == 1
+    with torch.no_grad():
+        quantizer(features, lengths)
     assert quantizer.temperature.item() == pytest.approx(2.0)
     assert quantizer.num_updates.item() == 1
     quantizer(features, lengths)
