@@ -7,7 +7,7 @@ import torch
 from omegaconf import OmegaConf
 
 from espnet2.tasks.lm import LMTask
-from espnet3.systems.esp2_asr.lm_system import LMSystem
+from espnet3.systems.esp2_lm.system import ESP2LMSystem
 from espnet3.utils.config_utils import load_and_merge_config
 
 
@@ -20,11 +20,11 @@ def lm_config(tmp_path):
     tokens.write_text("<blank>\n<unk>\nHELLO\nWORLD\n<sos/eos>\n")
     path = tmp_path / "training_lm.yaml"
     dataset_entry = {
-        "data_src": "espnet3.systems.esp2_asr.lm_dataset",
+        "data_src": "espnet3.systems.esp2_lm.src.dataset",
         "data_src_args": {"text_path": str(text)},
     }
     config = {
-        "task": "espnet3.systems.esp2_asr.lm_task.LMTask",
+        "task": "espnet3.systems.esp2_lm.task.LMTask",
         "seed": 0,
         "exp_dir": str(tmp_path / "exp"),
         "stats_dir": str(tmp_path / "stats"),
@@ -79,13 +79,13 @@ def lm_config(tmp_path):
     }
     OmegaConf.save(OmegaConf.create(config), path)
     return load_and_merge_config(
-        path, "training.yaml", default_package="egs3.TEMPLATE.esp2_asr"
+        path, "training.yaml", default_package="egs3.TEMPLATE.esp2_lm"
     )
 
 
 def test_text_shapes_match_public_tokenization(lm_config):
     """Use public tokenizer lengths and vocabulary dimensions for numel batches."""
-    LMSystem(training_config=lm_config).collect_stats()
+    ESP2LMSystem(training_config=lm_config).collect_stats()
     for split in ("train", "valid"):
         shape = Path(lm_config.stats_dir) / split / "text_shape"
         assert shape.read_text().splitlines() == ["0 2,5", "1 1,5"]
@@ -104,7 +104,7 @@ def test_training_resume_and_shallow_fusion_checkpoint(lm_config, architecture):
             "unit": 16,
             "layer": 1,
         }
-    system = LMSystem(training_config=lm_config)
+    system = ESP2LMSystem(training_config=lm_config)
     system.collect_stats()
     system.train()
     exp = Path(lm_config.exp_dir)

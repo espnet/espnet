@@ -3,18 +3,21 @@
 from pathlib import Path
 
 import soundfile as sf
-from torch.utils.data import Dataset as TorchDataset
 
 from egs3.an4.esp2_asr.dataset.builder import RECIPE_ROOT, SPLITS, read_manifest
+from espnet3.components.data.base_dataset import BaseDataset
+from espnet3.contract import Field
 
 
-class An4Dataset(TorchDataset):
+class An4Dataset(BaseDataset):
     """Read prepared audio without downloading or mutating data in workers.
 
     Args:
         split: One of train, valid, or test.
         recipe_dir: Directory containing the prepared data/manifest directory.
     """
+
+    fields = (Field("speech", "audio"), Field("text", "text"))
 
     def __init__(self, split: str, recipe_dir: str | Path | None = None):
         """Load an ordered manifest without reading its waveforms.

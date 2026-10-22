@@ -1,4 +1,4 @@
-"""Validate the LM model and training mapping to the shared LMSystem."""
+"""Validate the LM model and training mapping to the shared ESP2LMSystem."""
 
 from pathlib import Path
 
@@ -13,8 +13,12 @@ RECIPE = ROOT / "egs3/an4/esp2_asr"
 def test_lm_settings_preserve_source_model():
     """Keep the source LM architecture and optimizer through ESPnet3 configs."""
     source = yaml.safe_load((ROOT / "egs2/an4/asr1/conf/train_lm.yaml").read_text())
-    config = load_and_merge_config(RECIPE / "conf/training_lm.yaml", "training.yaml")
-    assert config.task == "espnet3.systems.esp2_asr.lm_task.LMTask"
+    config = load_and_merge_config(
+        RECIPE / "conf/training_lm.yaml",
+        "training.yaml",
+        default_package="egs3.TEMPLATE.esp2_lm",
+    )
+    assert config.task == "espnet3.systems.esp2_lm.task.LMTask"
     assert config.model.lm == source["lm"]
     assert config.model.lm_conf == source["lm_conf"]
     assert config.optimizer.lr == source["optim_conf"]["lr"]

@@ -2,8 +2,9 @@
 
 Ports `egs2/an4/asr1` using the existing ESPnet3 `ASRSystem`, data loader,
 statistics collector, Lightning module/trainer, checkpoint callbacks and metrics.
-The recipe adds dataset preparation, configuration and inference output formatting.
-LM training uses the new shared `LMSystem` and an ESPnet2-derived `LMTask`;
+The recipe adds dataset preparation and configuration; inference uses the shared
+provider, ASR runner and audio/text contract.
+LM training uses the new shared `ESP2LMSystem` and an ESPnet2-derived `LMTask`;
 ASR and LM both use the existing ESPnet3 data loader and Lightning trainer.
 
 The first 100 lexical training utterance IDs form validation. Training audio uses
@@ -33,14 +34,14 @@ ESPnet3 revision the shared collector removes normalization from its in-memory
 config; a fresh train invocation reloads GlobalMVN from YAML. Do not combine
 `collect_stats train` in a single invocation.
 
-`conf/training_lm.yaml` configures the ESPnet3 `LMSystem`. Prepare the ASR
+`conf/training_lm.yaml` configures the ESPnet3 `ESP2LMSystem`. Prepare the ASR
 text and tokenizer first, then run the three LM commands above. The text helper
 only combines ID-prefixed training text; it does not launch ESPnet2 training.
 The LM reuses the ASR tokenizer and the source LM model/optimizer settings.
 The public trainer requires a scheduler, so a standard ConstantLR with factor
 1 preserves the source fixed learning rate of 0.1. A config-node interpolation
 replaces TEMPLATE warmup arguments when selecting this scheduler.
-`LMSystem.collect_stats` tokenizes through the public data organizer and writes
+`ESP2LMSystem.collect_stats` tokenizes through the public data organizer and writes
 text lengths, including the vocabulary-size dimension used for LM numel batches.
 Training is inherited from `BaseSystem`, including normal pre-training validation,
 AMP, gradient accumulation, clipping and checkpoint callbacks.
@@ -51,6 +52,46 @@ select an existing average in the inference config. To resume LM training, set
 `fit.ckpt_path` to `exp/lm/last.ckpt`; resume is not automatic. The inherited
 checkpoint timing and metric reductions may differ from native ESPnet2 LM
 training. No separate perplexity stage is provided by this entrypoint.
+
+## Shared inference and publication
+
+Both entrypoints use `espnet3.systems.launch.launch`. The LM system is in
+`espnet3.systems.esp2_lm`, with an independent
+`egs3/TEMPLATE/esp2_lm/conf/training.yaml`; it declares only `collect_stats`
+and `train`. ASR and LM datasets declare their raw fields through `BaseDataset`.
+
+Inference inherits the provider, runner, `input_key` and contract from the ASR
+TEMPLATE. Only speech enters the model: mono, finite audio is checked, known
+sample rates are resampled to 16 kHz, and empty recognized text remains valid.
+The shared runner writes `text.scp` with index-based IDs. During `measure`, each
+WER/CER/TER entry pairs `hyp: text` with `ref: dataset:text`; the shared reference
+materializer reads the same selected dataset and writes `dataset/text.scp`.
+After changing a dataset selection, use a fresh inference directory or remove
+its old dataset-column cache before scoring again.
+
+After training both models and running inference/measurement, pack them with:
+
+```bash
+python run.py --stages pack_model \
+  --training_config conf/training_sinc_rnn.yaml \
+  --inference_config conf/inference.yaml --metrics_config conf/metrics.yaml \
+  --publication_config conf/publication.yaml
+```
+
+`conf/publication.yaml` includes the SentencePiece model, token list, GlobalMVN
+statistics, averaged LM checkpoint and native ASR/LM YAML files. Run the recipe
+from this directory with its default relative paths. Native ESPnet2 model YAML
+is read without OmegaConf, so those YAML files are copied unchanged through
+`pack_model.files`, retaining their recipe-relative asset paths. Custom absolute
+paths in native model YAML are not automatically portable. For a custom
+experiment or devkit vocabulary, update publication `tokenizer_dir`, `stats_dir`,
+`lm_exp_dir` and the selected LM checkpoint alongside inference/metrics settings.
+
+The packed model uses the same shared boundary via `InferenceModel.from_packed`;
+pass `{"speech": waveform}`, without reference text. Publication and demo defaults
+are inherited from TEMPLATE. The fixture test moves the bundle, hides the source
+model/tokenizer/statistics directories, and verifies packed inference and the
+demo callback against the recipe result.
 
 ## ESPnet2 mapping and ESPnet3 behavior
 
@@ -107,7 +148,23 @@ fusion weight. Shared LM tests cover RNN/Transformer model construction, text
 shapes, actual training, checkpoint export and Lightning checkpoint resume.
 Public recipe functions document their arguments, return values and usage examples.
 
-Review revision validation (2026-09-23): 18 recipe tests passed. A shared
+Contract migration validation (2026-10-22, CPU): 27 recipe tests and 7 shared
+LM tests passed. An additional 339 shared launcher, contract, inference,
+metric and publication tests passed. CLI help and dry runs resolve the ASR
+and LM stages; Black, isort, flake8 and pycodestyle pass for the contributed
+Python files. Public function docstrings retain Args/Returns/Examples, and
+LMTask's AST still matches ESPnet2 after removing docstrings.
+
+The small synthetic-corpus test runs preparation, tokenizer training, statistics,
+two epochs of reduced ASR/LM training, nonzero LM fusion and all three metrics.
+It compares corpus scores with chunked updates after reset, checks reference IDs,
+and loads a relocated ASR+LM bundle through both packed inference and the demo
+callback. Boundary tests cover empty text, invalid/nonfinite/stereo audio and
+known-rate resampling. These are interface regressions, not new quality results;
+full-corpus training, GPU execution and multi-GPU execution were not rerun for
+this contract update. Historical GPU results below are unchanged.
+
+Earlier review validation (2026-09-23): 18 recipe tests passed. A shared
 regression run passed 39 tests covering the new LM code, ASRSystem and the base
 training/system interfaces. Black, isort, pycodestyle and flake8 checks passed.
 The copied LMTask has the same Python syntax tree as ESPnet2 except docstrings.
@@ -123,13 +180,13 @@ These bounded overrides belong to the smoke experiment, not the delivered
 recipe defaults. Slurm job 68454 completed successfully in 2 minutes 16 seconds
 for both recipes' remaining validation; AN4 LM training had already completed
 in job 68452 before an experiment-only subset-argument error was corrected.
-Full-budget training with the new LMSystem and multi-GPU LM training have not
+Full-budget training with this LM training implementation and multi-GPU LM training have not
 been validated.
 
-The `esp2_asr` paths follow the upstream rename in
-[PR #6795](https://github.com/espnet/espnet/pull/6795). This branch includes that
-change and currently depends on its merge; the rename is not a recipe-specific
-framework rewrite.
+The entrypoints and contracts follow the merged implementation in
+[PR #6931](https://github.com/espnet/espnet/pull/6931), at master
+`9b18b5ce301df1571f7d3401f7bc9fce90266721`. The existing shared ASR modules are
+used at their installed paths; this recipe does not reorganize them.
 
 ### Historical native GPU CTC results (before LMSystem)
 

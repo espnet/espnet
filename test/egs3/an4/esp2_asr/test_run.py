@@ -14,17 +14,24 @@ RECIPE = Path(__file__).resolve().parents[4] / "egs3/an4/esp2_asr"
 def test_complete_stage_pipeline_on_fixture(corpus, monkeypatch):
     """Train, load and score ASR with a nonzero trained LM fusion weight."""
     import json
+    import shutil
 
     import yaml
+    from hydra.utils import instantiate
 
     from egs3.an4.esp2_asr.src import tokenizer as tokenizer_module
     from egs3.an4.esp2_asr.src.language_model import prepare_lm_text
-    from egs3.TEMPLATE.esp2_asr.run import DEFAULT_STAGES, build_parser, main
-    from espnet3.systems.esp2_asr.lm_system import LMSystem
+    from espnet3.publication import InferenceModel
+    from espnet3.publication.demo.assets import DEFAULT_UI_ASSETS
+    from espnet3.publication.demo.session import DemoSession
     from espnet3.systems.esp2_asr.system import ASRSystem
+    from espnet3.systems.esp2_lm.system import ESP2LMSystem
+    from espnet3.systems.launch import launch
+    from espnet3.utils.publication_utils import pack_model
 
     recipe = corpus
     source = corpus / "downloads/an4"
+    monkeypatch.chdir(recipe)
     monkeypatch.setattr(
         tokenizer_module,
         "gather_training_text",
@@ -33,10 +40,10 @@ def test_complete_stage_pipeline_on_fixture(corpus, monkeypatch):
     training = load_and_merge_config(
         RECIPE / "conf/training_sinc_rnn.yaml", "training.yaml", resolve=False
     )
-    training.recipe_dir = str(RECIPE)
-    training.data_dir = str(recipe / "data")
-    training.exp_dir = str(recipe / "experiment")
-    training.stats_dir = str(recipe / "statistics")
+    training.recipe_dir = "."
+    training.data_dir = str(Path(".") / "data")
+    training.exp_dir = str(Path(".") / "experiment")
+    training.stats_dir = str(Path(".") / "statistics")
     training.create_dataset = {
         "recipe_dir": str(recipe),
         "source_dir": str(source),
@@ -47,7 +54,7 @@ def test_complete_stage_pipeline_on_fixture(corpus, monkeypatch):
         training.dataset[split][0].data_src_args.recipe_dir = str(recipe)
         training.dataloader[split].iter_factory.num_workers = 0
     training.tokenizer.vocab_size = 30
-    training.tokenizer.save_path = str(recipe / "tokenizer")
+    training.tokenizer.save_path = str(Path(".") / "tokenizer")
     training.model.encoder_conf.update(
         num_layers=1, hidden_size=16, output_size=16, subsample=[1]
     )
@@ -68,16 +75,16 @@ def test_complete_stage_pipeline_on_fixture(corpus, monkeypatch):
     inference = load_and_merge_config(
         RECIPE / "conf/inference.yaml", "inference.yaml", resolve=False
     )
-    inference.recipe_dir = str(RECIPE)
-    inference.exp_dir = str(recipe / "experiment")
-    inference.inference_dir = str(recipe / "inference")
+    inference.recipe_dir = "."
+    inference.exp_dir = str(Path(".") / "experiment")
+    inference.inference_dir = str(Path(".") / "inference")
     inference.batch_size = None
     inference.model.update(
-        asr_model_file=str(recipe / "experiment/valid.acc.ave_1best.pth"),
+        asr_model_file=str(Path(".") / "experiment/valid.acc.ave_1best.pth"),
         beam_size=2,
         maxlenratio=0.1,
-        lm_train_config=str(recipe / "lm/config.yaml"),
-        lm_file=str(recipe / "lm/valid.loss.ave_1best.pth"),
+        lm_train_config=str(Path(".") / "lm/config.yaml"),
+        lm_file=str(Path(".") / "lm/valid.loss.ave_1best.pth"),
     )
     for entry in inference.dataset.test:
         entry.data_src = "egs3.an4.esp2_asr.dataset"
@@ -85,7 +92,7 @@ def test_complete_stage_pipeline_on_fixture(corpus, monkeypatch):
     metrics = load_and_merge_config(
         RECIPE / "conf/metrics.yaml", "metrics.yaml", resolve=False
     )
-    metrics.metrics[2].metric.bpemodel = str(recipe / "tokenizer/unigram.model")
+    metrics.metrics[2].metric.bpemodel = str(Path(".") / "tokenizer/unigram.model")
     configs = {"training": training, "inference": inference, "metrics": metrics}
     for name, config in configs.items():
         OmegaConf.save(config, recipe / f"{name}.yaml")
@@ -93,8 +100,8 @@ def test_complete_stage_pipeline_on_fixture(corpus, monkeypatch):
     def run(stages):
         argv = ["--stages", *stages]
         for name in configs:
-            argv += [f"--{name}_config", str(recipe / f"{name}.yaml")]
-        main(build_parser(DEFAULT_STAGES).parse_args(argv), ASRSystem, DEFAULT_STAGES)
+            argv += [f"--{name}_config", str(Path(".") / f"{name}.yaml")]
+        launch(ASRSystem, argv=argv)
 
     # Reload YAML for train: stock collect_stats removes normalization in memory.
     run(["create_dataset", "train_tokenizer", "collect_stats"])
@@ -105,12 +112,15 @@ def test_complete_stage_pipeline_on_fixture(corpus, monkeypatch):
         == "global_mvn"
     )
     lm = load_and_merge_config(
-        RECIPE / "conf/training_lm.yaml", "training.yaml", resolve=False
+        RECIPE / "conf/training_lm.yaml",
+        "training.yaml",
+        default_package="egs3.TEMPLATE.esp2_lm",
+        resolve=False,
     )
-    lm.recipe_dir = str(RECIPE)
-    lm.data_dir = str(recipe / "data")
-    lm.exp_dir = str(recipe / "lm")
-    lm.tokenizer_dir = str(recipe / "tokenizer")
+    lm.recipe_dir = "."
+    lm.data_dir = str(Path(".") / "data")
+    lm.exp_dir = str(Path(".") / "lm")
+    lm.tokenizer_dir = str(Path(".") / "tokenizer")
     lm.external_text = None
     lm.num_device = 1
     lm.model = {
@@ -149,16 +159,94 @@ def test_complete_stage_pipeline_on_fixture(corpus, monkeypatch):
     OmegaConf.save(lm, lm_path)
     prepare_lm_text(lm)
     lm_stages = ["collect_stats", "train"]
-    main(
-        build_parser(lm_stages).parse_args(
-            ["--stages", *lm_stages, "--training_config", str(lm_path)]
-        ),
-        LMSystem,
-        lm_stages,
+    launch(
+        ESP2LMSystem,
+        argv=["--stages", *lm_stages, "--training_config", str(lm_path)],
     )
     assert (recipe / "lm/last.ckpt").is_file()
     run(["infer", "measure"])
     assert (recipe / "experiment/valid.acc.ave_1best.pth").is_file()
-    assert (recipe / "inference/test/hyp.scp").is_file()
+    assert (recipe / "inference/test/text.scp").is_file()
     scores = json.loads((recipe / "inference/metrics.json").read_text())
     assert scores
+
+    # Each scorer consumes the raw dataset text and the same indexed hypotheses.
+    for entry in inference.dataset.test:
+        split = entry.name
+        output = recipe / "inference" / split
+        hypotheses = dict(
+            line.split(" ", 1)
+            for line in (output / "text.scp").read_text().splitlines()
+        )
+        references = dict(
+            line.split(" ", 1)
+            for line in (output / "dataset/text.scp").read_text().splitlines()
+        )
+        assert list(hypotheses) == list(references)
+        for specification in metrics.metrics:
+            metric = instantiate(specification.metric)
+            ref, hyp = list(references.values()), list(hypotheses.values())
+            metric.update(ref=ref, hyp=hyp)
+            expected = metric.compute()
+            assert expected == scores[specification.metric._target_][split]
+            metric.reset()
+            for reference, hypothesis in zip(ref, hyp):
+                metric.update(ref=[reference], hyp=[hypothesis])
+            assert metric.compute() == expected
+
+    # Pack real ASR+LM checkpoints and relocate the bundle before loading it.
+    publication = load_and_merge_config(
+        RECIPE / "conf/publication.yaml", "publication.yaml", resolve=False
+    )
+    publication.recipe_dir = "."
+    publication.exp_dir = str(Path(".") / "experiment")
+    publication.inference_dir = str(Path(".") / "inference")
+    publication.tokenizer_dir = str(Path(".") / "tokenizer")
+    publication.stats_dir = str(Path(".") / "statistics")
+    publication.lm_exp_dir = str(Path(".") / "lm")
+    publication.pack_model.files.language_model = str(
+        Path(".") / "lm/valid.loss.ave_1best.pth"
+    )
+    publication.pack_model.out_dir = str(Path(".") / "model_pack")
+    publication.pack_model.include = []
+    publication.pack_model.readme = None
+    training.recipe_dir = "."
+    inference.recipe_dir = "."
+    bundle = pack_model(training, publication, inference, metrics)
+    relocated = recipe / "relocated_pack"
+    shutil.move(bundle, relocated)
+    from espnet3.systems.base.inference_provider import InferenceProvider
+
+    sample_config = OmegaConf.create(OmegaConf.to_container(inference, resolve=True))
+    sample_config.test_set = "test"
+    sample = InferenceProvider.build_dataset(sample_config)[0]
+    expected = (
+        (recipe / "inference/test/text.scp")
+        .read_text()
+        .splitlines()[0]
+        .split(" ", 1)[1]
+    )
+    for path in (
+        recipe / "experiment",
+        recipe / "lm",
+        recipe / "tokenizer",
+        recipe / "statistics",
+    ):
+        path.rename(path.with_name(path.name + "_unavailable"))
+    packed = InferenceModel.from_packed(relocated, device="cpu")
+    with pytest.raises(TypeError, match="Unknown inference input"):
+        packed(sample, idx=0)
+    assert packed({"speech": sample["speech"]}, idx=0) == {
+        "text": expected,
+        "utt_id": "0",
+    }
+    demo = DemoSession(
+        relocated,
+        OmegaConf.create(
+            {"model": {"call_args": {}}, "ui": {"title": None, "description": None}}
+        ),
+        packed,
+        DEFAULT_UI_ASSETS.clone(),
+    )
+    callback = demo.create_inference_fn(demo.input_specs, demo.output_specs)
+    assert callback((16000, sample["speech"])) == expected

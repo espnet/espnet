@@ -4,7 +4,7 @@ import pickle
 
 import pytest
 
-from espnet3.systems.esp2_asr.lm_dataset import LMTextDataset
+from espnet3.systems.esp2_lm.src.dataset import LMTextDataset
 
 
 def test_text_order_unicode_and_worker_serialization(tmp_path):

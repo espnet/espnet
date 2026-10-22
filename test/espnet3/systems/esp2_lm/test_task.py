@@ -26,9 +26,7 @@ def test_source_models_and_losses_are_preserved(lm, model_config):
     torch.manual_seed(0)
     original = get_espnet_model("espnet2.tasks.lm.LMTask", config).eval()
     torch.manual_seed(0)
-    migrated = get_espnet_model(
-        "espnet3.systems.esp2_asr.lm_task.LMTask", config
-    ).eval()
+    migrated = get_espnet_model("espnet3.systems.esp2_lm.task.LMTask", config).eval()
     inputs = {"text": torch.tensor([[2, 3]]), "text_lengths": torch.tensor([2])}
     torch.testing.assert_close(original(**inputs)[0], migrated(**inputs)[0])
     assert original.state_dict().keys() == migrated.state_dict().keys()

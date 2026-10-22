@@ -1,0 +1,88 @@
+# Shared defaults for ESP2LMSystem: collect_stats -> train.
+# Recipes provide text datasets, preprocessing, token_list and LM architecture.
+# This template has no acoustic model, ASR tokenizer stage or inference role.
+# Use the existing ESPnet3 data organizer, trainer and checkpoint callbacks.
+# LM token 0 is ignored by the source loss; shapes use text length and vocab size.
+num_device: 1
+num_nodes: 1
+task: espnet3.systems.esp2_lm.task.LMTask
+recipe_dir: .
+data_dir: ${recipe_dir}/data
+exp_tag: ${self_name:}
+exp_dir: ${recipe_dir}/exp/${exp_tag}
+stats_dir: ${exp_dir}/stats
+dataset:
+  _target_: espnet3.components.data.data_organizer.DataOrganizer
+  _recursive_: false
+  recipe_dir: ${recipe_dir}
+  train: null
+  valid: null
+  test: null
+  preprocessor: null
+model: null
+optimizer:
+  _target_: torch.optim.Adam
+  lr: 0.002
+  weight_decay: 1.0e-06
+scheduler:
+  _target_: espnet2.schedulers.warmup_lr.WarmupLR
+  warmup_steps: 15000
+scheduler_interval: step
+scheduler_monitor: null
+best_model_criterion:
+- - valid/loss
+  - 3
+  - min
+seed: null
+init: null
+parallel:
+  env: local
+  n_workers: 1
+  allow_overwrite_lock: false
+dataloader:
+  collate_fn:
+    _target_: espnet2.train.collate_fn.CommonCollateFn
+    int_pad_value: 0
+  train:
+    batch_distribution: per_gpu
+    total_shards: 1
+    dist_world_size: 1
+    iter_factory:
+      _target_: espnet2.iterators.sequence_iter_factory.SequenceIterFactory
+      shuffle: true
+      collate_fn: ${dataloader.collate_fn}
+      batches:
+        type: unsorted
+        shape_files:
+        - ${stats_dir}/train/text_shape
+        batch_size: 4
+        batch_bins: 4000000
+  valid:
+    batch_distribution: per_gpu
+    total_shards: 1
+    dist_world_size: 1
+    iter_factory:
+      _target_: espnet2.iterators.sequence_iter_factory.SequenceIterFactory
+      shuffle: false
+      collate_fn: ${dataloader.collate_fn}
+      batches:
+        type: ${dataloader.train.iter_factory.batches.type}
+        shape_files:
+        - ${stats_dir}/valid/text_shape
+        batch_size: ${dataloader.train.iter_factory.batches.batch_size}
+        batch_bins: ${dataloader.train.iter_factory.batches.batch_bins}
+trainer:
+  accelerator: auto
+  devices: ${num_device}
+  num_nodes: ${num_nodes}
+  accumulate_grad_batches: 1
+  check_val_every_n_epoch: 1
+  gradient_clip_val: 1.0
+  log_every_n_steps: 100
+  max_epochs: 100
+  logger:
+  - _target_: lightning.pytorch.loggers.TensorBoardLogger
+    save_dir: ${exp_dir}/tensorboard
+    name: tb_logger
+  strategy: auto
+fit: {}

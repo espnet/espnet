@@ -3,10 +3,11 @@
 from array import array
 from pathlib import Path
 
-from torch.utils.data import Dataset as TorchDataset
+from espnet3.components.data.base_dataset import BaseDataset
+from espnet3.contract import Field
 
 
-class LMTextDataset(TorchDataset):
+class LMTextDataset(BaseDataset):
     """Index text by byte offset without holding the full LM corpus in memory.
 
     Args:
@@ -16,6 +17,8 @@ class LMTextDataset(TorchDataset):
         >>> dataset = LMTextDataset("data/lm/train.txt")
         >>> sample = dataset[0]  # Only the text field reaches the preprocessor.
     """
+
+    fields = (Field("text", "text"),)
 
     def __init__(self, text_path):
         """Index nonempty transcripts in their original file order.
