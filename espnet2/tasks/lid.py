@@ -20,7 +20,6 @@ from espnet2.layers.abs_normalize import AbsNormalize
 from espnet2.layers.global_mvn import GlobalMVN
 from espnet2.layers.utterance_mvn import UtteranceMVN
 from espnet2.lid.espnet_model import ESPnetLIDModel
-from espnet2.lid.espnet_model_lang2vec import ESPnetLang2VecLIDModel
 from espnet2.spk.encoder.conformer_encoder import MfaConformerEncoder
 from espnet2.spk.encoder.ecapa_tdnn_encoder import EcapaTdnnEncoder
 from espnet2.spk.encoder.identity_encoder import IdentityEncoder
@@ -58,7 +57,6 @@ model_choices = ClassChoices(
     "model",
     classes=dict(
         espnet=ESPnetLIDModel,
-        lang2vec=ESPnetLang2VecLIDModel,
     ),
     type_check=AbsESPnetModel,
     default="espnet",
@@ -391,10 +389,11 @@ class LIDTask(AbsTask):
         projector_output_size = projector.output_size()
 
         condition_modules = {}
-        if args.model == "lang2vec":
+        conditioning_layers = args.model_conf.get("lang2vec_conditioning_layers") or []
+        if conditioning_layers:
             for name in ("encoder", "pooling", "projector"):
                 condition_modules[name + "_condition"] = nn.ModuleDict()
-            for layer in args.model_conf.get("lang2vec_conditioning_layers", []):
+            for layer in conditioning_layers:
                 size = input_size
                 for name, choices in (
                     ("encoder", encoder_condition_choices),

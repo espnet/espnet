@@ -33,7 +33,6 @@ def tiny_geolid(tmp_path, request):
         base
     )
     args = LIDTask.get_parser().parse_args([])
-    args.model = "lang2vec"
     args.model_conf = dict(
         lang2vec_dim=3,
         lang2vec_loss="mse",

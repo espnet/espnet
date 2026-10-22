@@ -1,5 +1,5 @@
 # Combined training, shared trainable conditioning projections.
-model: lang2vec
+model: espnet
 model_conf:
   lang2vec_dim: 299
   lang2vec_loss: mse

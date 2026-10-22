@@ -90,3 +90,65 @@ def test_stage6_ood_entrypoint(recipe_environment):
     assert (result / "wav.scp").read_text() == "seen /audio/seen.wav\n"
     for name in ("lang2utt", "category2utt"):
         assert (result / name).read_text() == "eng seen\n"
+
+
+@pytest.mark.parametrize("dataset", ["babel", "voxpopuli"])
+def test_stage1_forwards_corpus_path(recipe_environment, dataset):
+    recipe = recipe_environment
+    (recipe / "local/data.sh").symlink_to(RECIPE / "local/data.sh")
+    (recipe / "local" / f"prepare_{dataset}.sh").write_text(
+        "set -eu\n"
+        '[ "$1" = --dataset_path ]\n'
+        'printf "%s\\n" "$2" > corpus_path.txt\n'
+    )
+    subprocess.run(
+        [
+            "./local/data.sh",
+            "--datasets",
+            dataset,
+            f"--{dataset}_path",
+            "/corpora/custom",
+        ],
+        cwd=recipe,
+        check=True,
+    )
+    assert (recipe / "corpus_path.txt").read_text() == "/corpora/custom\n"
+
+
+def test_combine_entrypoint_custom_dump_and_output(recipe_environment, monkeypatch):
+    recipe = recipe_environment
+    for name in ("combine.sh", "combine_lid_data.py", "prepare_lang2vec.py"):
+        (recipe / "local" / name).symlink_to(RECIPE / "local" / name)
+    dump = recipe / "custom_dump/raw"
+    corpora = ("fleurs", "ml_superb2", "voxlingua107", "voxpopuli", "babel_over_10s")
+    for corpus in corpora:
+        source = dump / f"train_{corpus}_lang"
+        source.mkdir(parents=True)
+        (source / "wav.scp").write_text(f"{corpus}_utt /audio/{corpus}.wav\n")
+        (source / "utt2lang").write_text(f"{corpus}_utt eng\n")
+        (source / "utt2num_samples").write_text(f"{corpus}_utt 160000\n")
+        (source / "audio_format").write_text("wav\n")
+        (source / "feats_type").write_text("raw\n")
+    package = recipe / "lang2vec"
+    package.mkdir()
+    (package / "__init__.py").touch()
+    (package / "lang2vec.py").write_text(
+        "def get_features(languages, feature):\n" "    return {'eng': [0.25, 0.5]}\n"
+    )
+    monkeypatch.setenv("PYTHONPATH", str(recipe))
+    subprocess.run(
+        [
+            "bash",
+            "local/combine.sh",
+            "--dump_dir",
+            "custom_dump/raw",
+            "--train_out",
+            "custom_dump/raw/custom_train",
+        ],
+        cwd=recipe,
+        check=True,
+    )
+    output = dump / "custom_train"
+    assert len((output / "wav.scp").read_text().splitlines()) == 5
+    assert len((output / "dataset2utt").read_text().splitlines()) == 5
+    assert (recipe / "data/combined_lang2vec.txt").read_text() == "eng 0.25 0.5\n"

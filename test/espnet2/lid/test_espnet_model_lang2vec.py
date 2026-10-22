@@ -118,7 +118,9 @@ def test_intermediate_predictions_do_not_leak(tiny_geolid):
     with torch.no_grad():
         for _ in range(2):
             _, _, predictions = model.extract_feats(
-                torch.randn(2, 1600), torch.tensor([1600, 980])
+                torch.randn(2, 1600),
+                torch.tensor([1600, 980]),
+                return_intermediate=True,
             )
             assert len(predictions) == 2
             assert all(p.shape == (2, 3) for p in predictions)
@@ -178,9 +180,11 @@ def test_default_model_classification_contract(tiny_geolid):
 
     args, conditioned, _ = tiny_geolid
     assert type(conditioned.loss) is ArcMarginProduct_intertopk_subcenter
-    args.model = "espnet"
     args.model_conf = {}
     model = LIDTask.build_model(args)
+    assert model.frontend.upstream.upstream.model.config.layerdrop == 0.8
+    assert model.conditioned_layers == []
+    assert model.lang2vec_head is None
     loss, _, _ = model(
         torch.randn(2, 1600),
         torch.tensor([1600, 980]),
@@ -240,3 +244,38 @@ def test_attention_backends_preserve_valid_lengths(tiny_geolid, implementation):
     finally:
         for handle in handles:
             handle.remove()
+
+
+def test_conditioned_checkpoint_keys_and_strict_reload(tiny_geolid):
+    from espnet2.lid.espnet_model import ESPnetLIDModel
+    from espnet2.tasks.lid import LIDTask
+
+    args, model, _ = tiny_geolid
+    assert type(model) is ESPnetLIDModel
+    state = model.state_dict()
+    assert state["lang2vec_head.weight"].shape == (3, 4)
+    assert state["lang2vec_head.bias"].shape == (3,)
+    prefixes = [
+        f"frontend.upstream.upstream.model.encoder.layers.{index}." for index in (0, 1)
+    ]
+    for prefix in prefixes:
+        # Preserve published wrapper names, including both aliases of a shared
+        # conditioning projection; strict loading must not need a tensor rename.
+        assert state[prefix + "layer.attention.q_proj.weight"].shape == (8, 8)
+        assert state[prefix + "prediction.weight"].shape == (3, 4)
+        assert state[prefix + "conditioning_layer.weight"].shape == (8, 3)
+    assert (
+        state[prefixes[0] + "conditioning_layer.weight"].data_ptr()
+        == state[prefixes[1] + "conditioning_layer.weight"].data_ptr()
+    )
+    restored = LIDTask.build_model(args)
+    restored.load_state_dict(state, strict=True)
+    assert set(restored.state_dict()) == set(state)
+    model.eval()
+    restored.eval()
+    speech, lengths = torch.randn(2, 1600), torch.tensor([1600, 980])
+    with torch.no_grad():
+        expected = model(speech, lengths, extract_embd=True)
+        actual = restored(speech, lengths, extract_embd=True)
+    for value, reference in zip(actual, expected):
+        torch.testing.assert_close(value, reference)

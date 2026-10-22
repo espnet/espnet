@@ -108,12 +108,18 @@ def convert_config(source):
         config[field.name] = source.get(field.name, defaults[field.name])
     config["model_conf"] = dict(config["model_conf"])
     config["model_conf"].pop("legacy_inference", None)
-    config["model"] = "lang2vec"
+    # Lang2vec conditioning is an optional part of the standard LID model.
+    # Previously converted checkpoints already use the same parameter names.
+    config["model"] = "espnet"
     config["loss"] = "aamsoftmax_sc_topk"
     config["loss_conf"] = dict(config["loss_conf"])
     for key in ("lang2vec_dim", "lang2vec_weight"):
         if key in config["loss_conf"]:
             config["model_conf"][key] = config["loss_conf"].pop(key)
+    if source.get("model") == "lang2vec":
+        # The former dedicated model enabled auxiliary training by default.
+        # Keep that behavior when migrating to the disabled-by-default model.
+        config["model_conf"].setdefault("lang2vec_weight", 0.2)
     feature_type = config["loss_conf"].pop("lang2vec_type", None)
     if feature_type is not None:
         if feature_type not in ("geo", "phonology_knn", "syntax_knn", "inventory_knn"):

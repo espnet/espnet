@@ -1,5 +1,5 @@
 # VoxLingua107, independent trainable conditioning projections.
-model: lang2vec
+model: espnet
 model_conf:
   lang2vec_dim: 299
   lang2vec_loss: mse

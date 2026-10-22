@@ -83,6 +83,7 @@ def test_converted_config_standard_inference(tiny_geolid, tmp_path):
     # Older training configurations may lack fields added to TrainerOptions.
     del source["ddp_comm_hook"]
     config = converter.convert_config(source)
+    assert config["model"] == "espnet"
     assert config["use_amp"] is True
     assert config["ddp_comm_hook"] is None
     config["frontend_conf"]["frontend_conf"]["path_or_url"] = str(base)
@@ -153,9 +154,78 @@ def test_legacy_config_moves_auxiliary_options(tiny_geolid):
         k_top=2, lang2vec_dim=3, lang2vec_weight=0.2, lang2vec_type="syntax_knn"
     )
     config = converter.convert_config(source)
-    assert config["model"] == "lang2vec"
+    assert config["model"] == "espnet"
     assert config["loss"] == "aamsoftmax_sc_topk"
     assert config["loss_conf"] == {"k_top": 2}
     assert config["model_conf"]["lang2vec_dim"] == 3
     assert config["model_conf"]["lang2vec_loss"] == "bce"
     assert config["model_conf"]["lang2vec_weight"] == 0.2
+
+
+@pytest.mark.parametrize("model_choice", ["lang2vec", "espnet"])
+def test_current_checkpoint_config_migration(tiny_geolid, model_choice):
+    args, model, _ = tiny_geolid
+    source = vars(args).copy()
+    source["model"] = model_choice
+    config = converter.convert_config(source)
+    assert config["model"] == "espnet"
+    assert config["model_conf"] == source["model_conf"]
+    assert config["loss_conf"] == source["loss_conf"]
+    assert converter.convert_config(config) == config
+    state = model.state_dict()
+    converted = converter.convert_state_dict(
+        state, config["model_conf"]["lang2vec_conditioning_layers"]
+    )
+    assert converted.keys() == state.keys()
+    assert all(converted[key] is value for key, value in state.items())
+    model.load_state_dict(converted, strict=True)
+
+
+@pytest.mark.parametrize(
+    "model_choice,model_weight,loss_weight,expected_weight",
+    [
+        ("lang2vec", None, None, 0.2),
+        ("espnet", None, None, None),
+        ("lang2vec", 0.0, None, 0.0),
+        ("lang2vec", 0.4, None, 0.4),
+        ("lang2vec", None, 0.0, 0.0),
+        ("lang2vec", 0.4, 0.6, 0.6),
+    ],
+)
+def test_config_preserves_auxiliary_weight_defaults(
+    model_choice, model_weight, loss_weight, expected_weight
+):
+    source = vars(converter.LIDTask.get_parser().parse_args([]))
+    source["model"] = model_choice
+    source["frontend_conf"] = {"frontend_conf": {}}
+    if model_weight is not None:
+        source["model_conf"]["lang2vec_weight"] = model_weight
+    if loss_weight is not None:
+        source["loss_conf"]["lang2vec_weight"] = loss_weight
+
+    config = converter.convert_config(source)
+
+    assert config["model"] == "espnet"
+    assert config["model_conf"].get("lang2vec_weight") == expected_weight
+    assert "lang2vec_weight" not in config["loss_conf"]
+    assert converter.convert_config(config) == config
+
+
+@pytest.mark.parametrize(
+    "tiny_geolid", [{"lang2vec_conditioning_layers": []}], indirect=True
+)
+def test_default_weight_migration_keeps_downstream_head(tiny_geolid):
+    args, model, _ = tiny_geolid
+    source = vars(args).copy()
+    source["model"] = "lang2vec"
+    source["model_conf"] = dict(source["model_conf"])
+    del source["model_conf"]["lang2vec_weight"]
+
+    config = converter.convert_config(source)
+    args.model = config["model"]
+    args.model_conf = config["model_conf"]
+    restored = converter.LIDTask.build_model(args)
+
+    assert restored.conditioned_layers == []
+    assert restored.lang2vec_weight == model.lang2vec_weight == 0.2
+    restored.load_state_dict(model.state_dict(), strict=True)

@@ -14,13 +14,14 @@ See *Geolocation-Aware Robust Spoken Language Identification*
 ## Usage
 
 After setting up ESPnet's tools environment, install the optional dependencies
-through the standard installers:
+through the standard installers. The recipe checks these dependencies in
+`local/path.sh` and reports installation commands when any are missing:
 
 ```bash
 cd tools
 make s3prl.done transformers.done lang2vec.done
 cd ../egs2/geolid/lid1
-python -m pip install 'datasets>=2.16,<4' pycountry
+python3 -m pip install 'datasets>=2.16,<4' pycountry
 ```
 
 S3PRL's `hf_wav2vec2_custom` upstream imports Transformers; `espnet-s3prl` does
@@ -30,7 +31,7 @@ The recipe-specific `datasets<4` and `pycountry` requirements are for corpus
 preparation; the shared FLEURS loader requires dataset scripts removed in
 `datasets` 4. Babel preparation, which is also required for combined training,
 additionally needs `sph2pipe`; see the installation command in the
-[data preparation guide](local/README.md#2-individual-dataset-preparation).
+[data preparation guide](local/README.md#dependencies-and-corpus-paths).
 
 The recipe uses the stock `S3prlFrontend`, configured in `conf/train.yaml`:
 
@@ -43,7 +44,7 @@ frontend_conf:
   multilayer_feature: true
 ```
 
-`ESPnetLang2VecLIDModel` replaces encoder layers 32, 36, 40 and 44
+`ESPnetLIDModel` optionally replaces encoder layers 32, 36, 40 and 44
 (zero-based) with `Lang2VecConditionedLayer` wrappers. Each wrapper runs the
 original SSL layer, pools its output, predicts a lang2vec vector and adds the
 projected vector to the frame representations before the next SSL layer. The
@@ -53,8 +54,9 @@ zero so these layers always execute. Attention and waveform preprocessing remain
 in stock Transformers and S3PRL. No custom Transformers class or
 checkpoint-local model code is needed.
 
-The model is selected with `model: lang2vec`. Classification uses the existing
-`loss: aamsoftmax_sc_topk` without modifying its three-value return contract.
+The configurations use the standard `model: espnet`; lang2vec supervision and
+conditioning are optional features configured through `model_conf`. Classification
+uses the existing `loss: aamsoftmax_sc_topk` without modifying its three-value return contract.
 A linear head in the model predicts language features from the final utterance
 embedding. The intermediate heads predict the same targets. `lang2vec_loss:
 mse` uses mean squared error for continuous geo vectors; `bce` uses binary
@@ -129,49 +131,66 @@ Use an empty output directory and one ISO-639-3 code per line in classifier-inde
 order. The script supports the original shared, independent and early frozen
 projection names, and the earlier converted layout. It moves the auxiliary head
 from `loss.lang2vec_head.0.*` to `lang2vec_head.*` and moves auxiliary options
-from `loss_conf` to `model_conf`. Legacy key handling exists only in this
-conversion script.
+from `loss_conf` to `model_conf`. It also updates earlier `model: lang2vec`
+configurations to `model: espnet`, preserving their auxiliary loss settings
+and already converted parameter names. Legacy key handling exists only in
+this conversion script.
 
 ### Training and recipe evaluation
 
-Follow [local/README.md](local/README.md) for the corpus preparation commands.
-There is one entrypoint, `run.sh`. Stage 1 prepares VoxLingua107 by default and
-writes `data/voxlingua107_lang2vec.txt`. A target table contains one language
-per row: `<lang> <v1> ... <vN>`. The generic LID preprocessor reads the table via
-`lang2vec_table` and emits targets and a mask; it does not query lang2vec.
+Use `run.sh` to select either setup. The default prepares VoxLingua107 and
+writes `data/voxlingua107_lang2vec.txt`. Before combined preparation, arrange the
+licensed Babel audio and downloaded VoxPopuli audio as described in the
+[data preparation guide](local/README.md).
 
 ```bash
 # Default: VoxLingua107, shared trainable conditioning
 ./run.sh
 
+# Combined: prepare all five corpora, filter Babel, combine, train and evaluate
+./run.sh --setup combined
+
+# Optional corpus locations (defaults: downloads/babel and downloads/voxpopuli)
+./run.sh --setup combined \
+    --local_data_opts "--babel_path /corpora/babel --voxpopuli_path /corpora/voxpopuli"
+
+# Prepare data only; stage 3 also filters Babel and creates the combined dump
+./run.sh --setup combined --stop_stage 3
+
+# Resume from existing combined dumps without repeating preparation
+./run.sh --setup combined --stage 4 --stop_stage 7
+
 # Variant: pass the self-contained configuration directly
 ./run.sh --lid_config conf/tuning/independent_frozen.yaml --stage 4 --stop_stage 7
 ```
 
-For combined training, prepare each corpus and run stage 3 for its train/dev/test
-splits first. For example:
+Both setups use the shared `lid.sh` stages. Combined preparation runs stages 1–3
+separately for each corpus, then keeps Babel utterances of at least 10 seconds
+and combines the training dumps before stage 4. Stopping at stage 1 or 2 does
+not filter or combine incomplete dumps; resuming at stage 3 uses the prepared
+data directories. `--skip_data_prep true` retains the shared pipeline meaning:
+skip stages 1 and 2 while still running waveform preparation in stage 3.
 
-```bash
-./run.sh --stage 3 --stop_stage 3 \
-    --train_set train_fleurs_lang --valid_set dev_fleurs_lang \
-    --test_sets test_fleurs_lang
-# Repeat for the other corpora as listed in local/README.md.
-bash local/filter_babel_over_10s.sh
-bash local/combine.sh
-./run.sh --lid_config conf/tuning/combined.yaml \
-    --train_set train_all_no_filter_lang --valid_set dev_ml_superb2_lang \
-    --test_sets "dev_voxlingua107_lang test_voxpopuli_lang test_fleurs_lang dev_ml_superb2_lang dev_dialect_ml_superb2_lang dev_babel_over_10s_lang" \
-    --expdir exp_combined --tsne_set train_all_no_filter_lang \
-    --stage 4 --stop_stage 7
-```
+Combined training defaults to `conf/tuning/combined.yaml`,
+`dump/raw/train_all_no_filter_lang`, validation on `dev_ml_superb2_lang`, and
+experiment directory `exp_combined`. It evaluates VoxLingua107 dev, VoxPopuli
+test, FLEURS test, ML-SUPERB2 dev and dialect dev, and filtered Babel dev.
+`--lid_config`, `--expdir`, `--train_set`, `--valid_set`, `--test_sets` and
+`--tsne_set` override the final training/evaluation choices; a custom
+`--train_set` also names the combined output. Dataset selections, `lid_config`
+and `expdir` can also be supplied in a shell `--config` file; explicit flags
+take precedence. The preparation calls retain each corpus's own split names. Shared options such as `--nj`, `--ngpu`, `--python`
+and `--dumpdir` are forwarded. Combined preparation requires raw 16 kHz audio
+and no speed perturbation; incompatible options fail before preparation.
 
-`local/combine.sh` must run between stages 3 and 4. It combines the waveform
-dumps and prepares `data/combined_lang2vec.txt` using `local/prepare_lang2vec.py
---exclude tok`. URIEL has no geo vector for Toki Pona: all 157 classification
-labels are retained, but the table has only the 156 observed targets. Missing
-features for any other language cause target preparation to fail. The
-preprocessor masks languages absent from the table out of both auxiliary
-losses; all-masked batches use classification loss alone.
+`local/combine.sh` creates the dataset balancing maps and
+`data/combined_lang2vec.txt` using `local/prepare_lang2vec.py --exclude tok`.
+URIEL has no geo vector for Toki Pona: all 157 classification labels are
+retained, but the table has only the 156 observed targets. Missing features for
+any other language cause target preparation to fail. Each target-table row is
+`<lang> <v1> ... <vN>`. The generic LID preprocessor reads the table via
+`lang2vec_table`, without querying lang2vec, and masks missing targets out of
+both auxiliary losses. All-masked batches use classification loss alone.
 
 To regenerate target tables from existing dumps:
 
