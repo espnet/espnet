@@ -1,9 +1,9 @@
-# ESPnet3 LMSystem configuration; shares the ASR tokenizer for shallow fusion.
+# ESPnet3 ESP2LMSystem configuration; shares the ASR tokenizer for shallow fusion.
 # Prepare data with src.language_model, then run run_lm.py collect_stats/train.
 # Source: egs2/voices/asr1/conf/tuning/train_lm_transformer2.yaml.
 
 # Paths are relative to the recipe directory, independently of the ASR exp_tag.
-task: espnet3.systems.esp2_asr.lm_task.LMTask
+task: espnet3.systems.esp2_lm.task.LMTask
 num_device: 4
 seed: 0
 exp_tag: lm
@@ -22,11 +22,11 @@ external_text:
 # ASR duration filtering. DataOrganizer handles preprocessing and batching.
 dataset:
   train:
-  - data_src: espnet3.systems.esp2_asr.lm_dataset
+  - data_src: espnet3.systems.esp2_lm.src.dataset
     data_src_args:
       text_path: ${exp_dir}/lm_train.txt
   valid:
-  - data_src: espnet3.systems.esp2_asr.lm_dataset
+  - data_src: espnet3.systems.esp2_lm.src.dataset
     data_src_args:
       text_path: ${valid_text}
   preprocessor:
@@ -36,7 +36,7 @@ dataset:
     bpemodel: ${tokenizer_dir}/unigram.model
     text_cleaner: null
 
-# Only model construction uses the copied LMTask. LMSystem.train delegates to
+# Only model construction uses the copied LMTask. ESP2LMSystem.train delegates to
 # the existing ESPnet3 Lightning trainer; no ESPnet2 training CLI is launched.
 model:
   token_list: ${tokenizer_dir}/tokens.txt

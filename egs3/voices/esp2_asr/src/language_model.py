@@ -1,4 +1,4 @@
-"""Prepare recipe LM text before running the ESPnet3 LMSystem."""
+"""Prepare recipe LM text before running the ESPnet3 ESP2LMSystem."""
 
 import argparse
 import gzip
@@ -27,7 +27,7 @@ def prepare_lm_text(config):
 
         >>> config = load_and_merge_config(
         ...     "conf/training_lm.yaml", "training.yaml",
-        ...     default_package="egs3.TEMPLATE.esp2_asr",
+        ...     default_package="egs3.TEMPLATE.esp2_lm",
         ... )
         >>> text_path = prepare_lm_text(config)
         >>> text_path.is_file()
@@ -81,7 +81,7 @@ def main():
     parser.add_argument("--config", required=True, type=Path)
     args = parser.parse_args()
     config = load_and_merge_config(
-        args.config, "training.yaml", default_package="egs3.TEMPLATE.esp2_asr"
+        args.config, "training.yaml", default_package="egs3.TEMPLATE.esp2_lm"
     )
     prepare_lm_text(config)
 

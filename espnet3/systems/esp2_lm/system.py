@@ -4,14 +4,15 @@ from pathlib import Path
 
 from hydra.utils import instantiate
 
+from espnet3.contract.stages import StageSpec
 from espnet3.systems.base.system import BaseSystem
 
 
-class LMSystem(BaseSystem):
+class ESP2LMSystem(BaseSystem):
     """Use the base training stage and collect token lengths for LM batching.
 
     Supply an ESPnet3 training config with ``task`` set to
-    ``espnet3.systems.esp2_asr.lm_task.LMTask``. The dataset uses the ASR
+    ``espnet3.systems.esp2_lm.task.LMTask``. The dataset uses the ASR
     tokenizer through CommonPreprocessor; the collator must pad text with 0.
     Training, precision, optimization and checkpoint averaging are inherited
     unchanged from BaseSystem. No acoustic normalization statistics are needed.
@@ -22,14 +23,18 @@ class LMSystem(BaseSystem):
         inference_config: Optional inherited inference configuration.
         metrics_config: Optional inherited measurement configuration.
         publication_config: Optional inherited publication configuration.
-        stage_log_mapping: Optional inherited stage log directory overrides.
         demo_config: Optional inherited demo configuration.
 
     Examples:
-        >>> system = LMSystem(training_config=config)
+        >>> system = ESP2LMSystem(training_config=config)
         >>> system.collect_stats()
         >>> system.train()
     """
+
+    stages = (
+        StageSpec(name="collect_stats", config="training", log_dir="stats_dir"),
+        StageSpec(name="train", config="training", log_dir="exp_dir"),
+    )
 
     def collect_stats(self, *args, **kwargs):
         """Write token-length shapes using the configured public preprocessor.
@@ -52,7 +57,7 @@ class LMSystem(BaseSystem):
             FileNotFoundError: Text or tokenizer files have not been prepared.
 
         Examples:
-            >>> system = LMSystem(training_config=config)
+            >>> system = ESP2LMSystem(training_config=config)
             >>> system.collect_stats()
             >>> (Path(config.stats_dir) / "train/text_shape").is_file()
             True

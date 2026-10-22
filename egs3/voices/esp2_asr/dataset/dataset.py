@@ -3,12 +3,13 @@
 from pathlib import Path
 
 import soundfile as sf
-from torch.utils.data import Dataset as TorchDataset
 
 from egs3.voices.esp2_asr.dataset.builder import RECIPE_ROOT, SPLITS, read_manifest
+from espnet3.components.data.base_dataset import BaseDataset
+from espnet3.contract import Field
 
 
-class VoicesDataset(TorchDataset):
+class VoicesDataset(BaseDataset):
     """Load a prepared devkit split, optionally selecting a recording condition.
 
     Args:
@@ -21,6 +22,8 @@ class VoicesDataset(TorchDataset):
         ValueError: A split, condition, or limit is invalid.
         FileNotFoundError: Dataset preparation has not completed.
     """
+
+    fields = (Field("speech", "audio"), Field("text", "text"))
 
     def __init__(self, split, recipe_dir=None, condition="all", limit=None):
         """Load an ordered manifest without reading its waveforms.

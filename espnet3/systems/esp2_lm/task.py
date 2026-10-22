@@ -1,7 +1,7 @@
 """ESPnet2 LM task for the ESPnet3 LM system.
 
 Copied from espnet2/tasks/lm.py; model construction and preprocessing are
-unchanged. The LMSystem uses this task with the public ESPnet3 trainer.
+unchanged. The ESP2LMSystem uses this task with the public ESPnet3 trainer.
 """
 
 import argparse
@@ -51,7 +51,7 @@ model_choices = ClassChoices(
 
 
 class LMTask(AbsTask):
-    """ESPnet2 LMTask copy used for model construction by LMSystem.
+    """ESPnet2 LMTask copy used for model construction by ESP2LMSystem.
 
     Training is owned by the existing ESPnet3 Lightning pipeline. This task
     preserves espnet2.tasks.lm behavior; only documentation is added.
@@ -276,7 +276,7 @@ class LMTask(AbsTask):
         Examples:
             >>> from espnet3.utils.task_utils import get_espnet_model
             >>> model = get_espnet_model(
-            ...     "espnet3.systems.esp2_asr.lm_task.LMTask",
+            ...     "espnet3.systems.esp2_lm.task.LMTask",
             ...     {"token_list": "tokens.txt", "lm": "seq_rnn"},
             ... )
         """
