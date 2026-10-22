@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from pathlib import Path
+from types import SimpleNamespace
 from typing import Any, Optional, Sequence
 
 import numpy as np
@@ -22,17 +23,18 @@ class Audio:
     ever sees ``audio.array`` at ``audio.rate``.
 
     Every channel is kept: ``array`` is ``(samples,)`` for mono and
-    ``(channels, samples)`` otherwise. Which of the two a hook receives is
-    the field's choice (``Field(..., channels=...)``): the default, one
-    channel, hands a single-channel backend the 1-D array it takes;
-    ``None`` or a count hands a multichannel model every channel.
+    ``(channels, samples)`` otherwise. ``Field.channels`` can constrain the
+    count; explicit normalizers select or average channels.
 
     Args:
-        array: The samples. Integer PCM is scaled to ``[-1, 1]``; a 2-D
+        array: The samples. Integer PCM is scaled to ``[-1, 1]`` using
+            its bit-depth midpoint (signed int16 is divided by 32768).
+            Floating samples are not rescaled or clipped. A 2-D
             array is stored channels-first, taking the shorter axis as
             channels (``(samples, channels)`` from soundfile and Gradio,
             ``(channels, samples)`` from torchaudio), and one channel is
-            mono.
+            mono. Ambiguous one/two-frame mono/stereo arrays keep their
+            channels-first layout. Samples must be real and finite.
         rate: Samples per second.
 
     Raises:
@@ -57,19 +59,29 @@ class Audio:
     def __post_init__(self) -> None:
         """Bring the samples to float32, channels first, and check shape and rate."""
         array = np.asarray(self.array)
+        if not (
+            np.issubdtype(array.dtype, np.integer)
+            or np.issubdtype(array.dtype, np.floating)
+        ):
+            raise TypeError("audio samples must be real numeric values")
         if np.issubdtype(array.dtype, np.unsignedinteger):
             # 8-bit WAV: unsigned, centred on 128, not on zero
             mid = (np.iinfo(array.dtype).max + 1) / 2
             array = (array.astype(np.float64) - mid) / mid
         elif np.issubdtype(array.dtype, np.integer):
-            # PCM as the file or the microphone delivered it
-            array = array / np.iinfo(array.dtype).max
-        array = array.astype(np.float32, copy=False)
+            # Signed PCM has one more negative value than positive values.
+            array = array / float(-np.iinfo(array.dtype).min)
+        with np.errstate(over="ignore", invalid="ignore"):
+            array = array.astype(np.float32, copy=False)
+        if not np.isfinite(array).all():
+            raise ValueError("audio samples must be finite (no NaN or Inf)")
         if array.ndim == 2:
             # (samples, channels) as soundfile and Gradio lay it out,
             # (channels, samples) as torchaudio does: channels are the short
             # axis, there being far fewer of them than samples.
-            if array.shape[0] > array.shape[1]:
+            # A very short mono/stereo signal cannot reveal its axis order.
+            # Prefer the internal (channels, samples) convention in that case.
+            if array.shape[0] > array.shape[1] and array.shape[0] > 2:
                 array = array.T
             if array.shape[0] == 1:
                 array = array[0]  # one channel is mono
@@ -256,6 +268,10 @@ class Audio:
             2
         """
         if isinstance(value, Audio):
+            # Audio is frozen, but its NumPy buffer can still be modified by
+            # callers or normalizers after construction.
+            if not np.isfinite(value.array).all():
+                raise ValueError("audio samples must be finite (no NaN or Inf)")
             return value if rate is None else value.resample(rate)
         if isinstance(value, (str, Path)):
             return cls.read(value, rate)
@@ -284,15 +300,119 @@ class Audio:
 class AudioKind(Kind):
     """``audio``: an :class:`Audio` at the model's rate, with the field's channels.
 
-    ``Field(..., channels=1)`` (the default) hands the hook the reference
-    channel as a 1-D array; ``channels=None`` every channel as
-    ``(channels, samples)``, mono included as one row; ``channels=N``
-    exactly ``N`` channels, or a ``TypeError``. Pieces of a stream
-    concatenate in time.
+    Every channel and the sample rate are preserved by default. ``channels=N``
+    validates the channel count. Use ``first_channel`` or ``mean_channels``
+    normalizers to explicitly convert multichannel audio to mono.
     """
 
+    normalizers = {
+        "first_channel": lambda audio: audio.mono(),
+        "mean_channels": lambda audio: Audio(
+            audio.array.mean(axis=0) if audio.array.ndim == 2 else audio.array,
+            audio.rate,
+        ),
+    }
+
+    option_names = Kind.option_names | {"sample_rate", "rate_policy"}
+
+    def validate_options(self, options) -> None:
+        """Validate the target sample rate and mismatch policy.
+
+        Args:
+            options: The field's options: ``sample_rate``, ``rate_policy`` and
+                ``normalize``.
+
+        Returns:
+            None.
+
+        Raises:
+            ValueError: If ``sample_rate`` is not a positive integer or
+                ``rate_policy`` is not ``resample`` or ``reject``.
+
+        Examples:
+            >>> AudioKind().validate_options({"sample_rate": 16000})
+            >>> AudioKind().validate_options({"rate_policy": "keep"})
+            Traceback (most recent call last):
+            ValueError: rate_policy must be 'resample' or 'reject'
+        """
+        super().validate_options(options)
+        rate = options.get("sample_rate")
+        if rate is not None and (
+            isinstance(rate, bool) or not isinstance(rate, int) or rate <= 0
+        ):
+            raise ValueError("sample_rate must be a positive integer")
+        if options.get("rate_policy", "resample") not in ("resample", "reject"):
+            raise ValueError("rate_policy must be 'resample' or 'reject'")
+
+    def check_configured(self, value, field, model, options, *, output):
+        """Apply the field's rate policy before the standard audio check.
+
+        Args:
+            value: Audio in any form :meth:`Audio.coerce` accepts.
+            field: The declaration the value is for.
+            model: The instance; its ``sample_rate`` is the default rate.
+            options: The field's options: ``sample_rate`` and ``rate_policy``.
+            output: Whether the value is a hook's result.
+
+        Returns:
+            An ``Audio`` at the target rate.
+
+        Raises:
+            ValueError: If the policy is ``reject`` and the rates differ.
+
+        Examples:
+            >>> from espnet3.contract import Field
+            >>> value = (16000, np.zeros(16000, dtype=np.float32))
+            >>> audio = AudioKind().check_configured(
+            ...     value, Field("speech", "audio"), None,
+            ...     {"sample_rate": 16000}, output=False,
+            ... )
+            >>> audio.rate
+            16000
+        """
+        rate = options.get("sample_rate")
+        if rate is None:
+            rate = getattr(model, "sample_rate", None)
+        if options.get("rate_policy", "resample") == "reject":
+            source_rate = None
+            if isinstance(value, Audio):
+                source_rate = value.rate
+            elif isinstance(value, (str, Path)):
+                value = Audio.read(value)
+                source_rate = value.rate
+            elif isinstance(value, (tuple, list)) and len(value) == 2:
+                if isinstance(value[0], (int, np.integer)):
+                    source_rate = value[0]
+            if source_rate is not None and rate is not None and source_rate != rate:
+                raise ValueError(
+                    f"{field.name!r} has sample rate {source_rate}; expected {rate}"
+                )
+        return self.check(
+            value, field, SimpleNamespace(sample_rate=rate), output=output
+        )
+
+    def to_demo_output(self, value):
+        """Return Audio as (rate, samples), with channels last for Gradio.
+
+        Args:
+            value: A checked output; anything but ``Audio`` is returned as is.
+
+        Returns:
+            A ``(rate, samples)`` pair for an ``Audio``, else ``value``.
+
+        Examples:
+            >>> audio = Audio(np.zeros((2, 8000), dtype=np.float32), 8000)
+            >>> rate, samples = AudioKind().to_demo_output(audio)
+            >>> rate, samples.shape
+            (8000, (8000, 2))
+        """
+        if not isinstance(value, Audio):
+            return value
+        array = value.array
+        return value.rate, array.T if array.ndim == 2 else array
+
     def check(self, value, field, model, *, output):
-        """Coerce what a caller holds, then apply the field's channel count.
+        """Coerce what a caller holds, then validate the field's channel count.
 
         Args:
             value: What the caller gave, or what the hook returned - a
@@ -313,7 +433,7 @@ class AudioKind(Kind):
             >>> kind, stereo_in = AudioKind(), (16000, stereo)
             >>> mono_field = Field("speech", "audio")
             >>> kind.check(stereo_in, mono_field, model, output=False).array.ndim
-            1
+            2
             >>> any_channels = Field("mix", "audio", channels=None)
             >>> kind.check(stereo_in, any_channels, model, output=False).channels
             2
@@ -333,14 +453,12 @@ class AudioKind(Kind):
         else:
             audio = Audio.coerce(value, rate)
         want = field.channels
-        if want == 1:
-            return audio.mono()
         if want is not None and audio.channels != want:
             where = "returned" if output else "given"
             raise TypeError(
                 f"{field.name!r} {where} with {audio.channels} channel(s), needs {want}"
             )
-        return audio.multichannel()
+        return audio
 
     def join(self, first, second):
         """Concatenate two pieces of audio in time.
