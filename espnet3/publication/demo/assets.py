@@ -113,6 +113,26 @@ class DefaultTextUI(UIAsset):
         return self.gradio_module.Textbox(label=spec["label"])
 
 
+class DefaultSegmentsUI(UIAsset):
+    """Default Gradio asset for the ``segments`` kind.
+
+    ``segments`` is a list of ``{"text", "start", "end"}`` dicts -- what a
+    model that times its output returns, such as the s2t long-form backend.
+    ``SegmentsKind`` does not override ``to_demo_output``, so the list
+    arrives as it is and ``gr.JSON`` shows it without converting anything. A
+    table would read better, but a ``gr.Dataframe`` wants rows rather than
+    dicts, which would mean changing what the kind hands every consumer.
+    """
+
+    def build_input(self, spec: dict[str, Any]) -> Any:
+        """Build a ``gr.JSON`` input component."""
+        return self.gradio_module.JSON(label=spec["label"])
+
+    def build_output(self, spec: dict[str, Any]) -> Any:
+        """Build a ``gr.JSON`` output component."""
+        return self.gradio_module.JSON(label=spec["label"])
+
+
 class UIAssetRegistry:
     """Registry of named UI asset definitions.
 
@@ -181,3 +201,4 @@ class UIAssetRegistry:
 DEFAULT_UI_ASSETS: UIAssetRegistry = UIAssetRegistry()
 DEFAULT_UI_ASSETS.register("audio", DefaultAudioUI)
 DEFAULT_UI_ASSETS.register("text", DefaultTextUI)
+DEFAULT_UI_ASSETS.register("segments", DefaultSegmentsUI)
