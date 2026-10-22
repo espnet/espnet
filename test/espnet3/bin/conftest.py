@@ -11,10 +11,10 @@ import espnet3.bin.clone.resolver as resolver_module
 def fake_egs3(tmp_path, monkeypatch):
     """Create a small egs3 layout and make the resolver use it."""
     for path in (
-        "mini_an4/asr",
-        "librispeech/asr",
-        "TEMPLATE/asr",
-        ".hidden/asr",
+        "mini_an4/esp2_asr",
+        "librispeech/esp2_asr",
+        "TEMPLATE/esp2_asr",
+        ".hidden/esp2_asr",
         "__pycache__",
     ):
         (tmp_path / path).mkdir(parents=True, exist_ok=True)

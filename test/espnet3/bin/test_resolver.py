@@ -23,7 +23,7 @@ def test_get_egs3_root_supports_namespace_package(tmp_path, monkeypatch):
 
 
 def test_resolve_recipe_returns_correct_path(fake_egs3):
-    assert resolve_recipe("mini_an4/asr") == fake_egs3 / "mini_an4" / "asr"
+    assert resolve_recipe("mini_an4/esp2_asr") == fake_egs3 / "mini_an4" / "esp2_asr"
 
 
 @pytest.mark.parametrize("recipe", ("mini_an4", "a/b/c", "", "/", "mini_an4/"))
@@ -43,7 +43,9 @@ def test_resolve_recipe_rejects_egs3_root(fake_egs3):
         resolve_recipe("./.")
 
 
-@pytest.mark.parametrize("recipe", ("unknown/asr", "mini_an4/tts", "nosuchdataset/asr"))
+@pytest.mark.parametrize(
+    "recipe", ("unknown/esp2_asr", "mini_an4/tts", "nosuchdataset/esp2_asr")
+)
 def test_resolve_recipe_rejects_missing_recipe(fake_egs3, recipe):
     with pytest.raises(FileNotFoundError, match=recipe):
         resolve_recipe(recipe)
@@ -58,17 +60,17 @@ def test_resolve_recipe_rejects_file_at_recipe_path(fake_egs3):
 
 def test_resolve_recipe_error_lists_available_recipes(fake_egs3):
     with pytest.raises(FileNotFoundError) as error:
-        resolve_recipe("unknown/asr")
-    assert "librispeech/asr" in str(error.value)
-    assert "mini_an4/asr" in str(error.value)
+        resolve_recipe("unknown/esp2_asr")
+    assert "librispeech/esp2_asr" in str(error.value)
+    assert "mini_an4/esp2_asr" in str(error.value)
 
 
 def test_resolve_recipe_accepts_surrounding_slashes(fake_egs3):
-    assert resolve_recipe("/mini_an4/asr/") == fake_egs3 / "mini_an4" / "asr"
+    assert resolve_recipe("/mini_an4/esp2_asr/") == fake_egs3 / "mini_an4" / "esp2_asr"
 
 
 def test_list_recipes_returns_sorted_visible_recipes(fake_egs3):
-    assert list_recipes() == ["librispeech/asr", "mini_an4/asr"]
+    assert list_recipes() == ["librispeech/esp2_asr", "mini_an4/esp2_asr"]
 
 
 @pytest.mark.parametrize(
@@ -76,7 +78,7 @@ def test_list_recipes_returns_sorted_visible_recipes(fake_egs3):
     ("not_a_dir.txt", "empty_dataset", "mini_an4/_private", "mini_an4/README.md"),
 )
 def test_list_available_ignores_non_recipe_entries(tmp_path, path):
-    (tmp_path / "mini_an4" / "asr").mkdir(parents=True)
+    (tmp_path / "mini_an4" / "esp2_asr").mkdir(parents=True)
     target = tmp_path / path
     if target.suffix:
         target.parent.mkdir(parents=True, exist_ok=True)
@@ -84,7 +86,7 @@ def test_list_available_ignores_non_recipe_entries(tmp_path, path):
     else:
         target.mkdir(parents=True, exist_ok=True)
     assert path not in _list_available(tmp_path)
-    assert "mini_an4/asr" in _list_available(tmp_path)
+    assert "mini_an4/esp2_asr" in _list_available(tmp_path)
 
 
 def test_list_available_returns_empty_for_empty_egs3(tmp_path):

@@ -150,7 +150,7 @@ def test_integration_run_py_help_exits_cleanly(cloned_mini_an4):
     assert "--stages" in result.stdout
 
 
-@pytest.mark.parametrize("recipe", ("unknown/asr", "no_slash"))
+@pytest.mark.parametrize("recipe", ("unknown/esp2_asr", "no_slash"))
 def test_run_rejects_unknown_or_invalid_recipe(fake_egs3, tmp_path, recipe):
     dest = tmp_path / "project"
     with pytest.raises((FileNotFoundError, ValueError)):
@@ -162,42 +162,50 @@ def test_run_rejects_existing_destination(fake_egs3, tmp_path):
     dest = tmp_path / "existing"
     dest.mkdir()
     with pytest.raises(FileExistsError, match="already exists"):
-        run(argparse.Namespace(list=False, recipe="mini_an4/asr", project=str(dest)))
+        run(
+            argparse.Namespace(
+                list=False, recipe="mini_an4/esp2_asr", project=str(dest)
+            )
+        )
     file_dest = tmp_path / "existing_file"
     file_dest.write_text("not a directory")
     with pytest.raises(FileExistsError, match="already exists"):
         run(
             argparse.Namespace(
-                list=False, recipe="mini_an4/asr", project=str(file_dest)
+                list=False, recipe="mini_an4/esp2_asr", project=str(file_dest)
             )
         )
 
 
 def test_run_creates_explicit_and_default_destination(fake_egs3, tmp_path, monkeypatch):
     explicit = tmp_path / "a" / "b" / "c"
-    run(argparse.Namespace(list=False, recipe="mini_an4/asr", project=str(explicit)))
+    run(
+        argparse.Namespace(
+            list=False, recipe="mini_an4/esp2_asr", project=str(explicit)
+        )
+    )
     assert explicit.is_dir()
     workdir = tmp_path / "workdir"
     workdir.mkdir()
     monkeypatch.chdir(workdir)
-    run(argparse.Namespace(list=False, recipe="mini_an4/asr", project=None))
-    assert (workdir / "mini_an4" / "asr").is_dir()
+    run(argparse.Namespace(list=False, recipe="mini_an4/esp2_asr", project=None))
+    assert (workdir / "mini_an4" / "esp2_asr").is_dir()
 
 
 def test_default_destination_strips_recipe_slashes(fake_egs3, tmp_path, monkeypatch):
     workdir = tmp_path / "workdir"
     workdir.mkdir()
     monkeypatch.chdir(workdir)
-    run(argparse.Namespace(list=False, recipe="/mini_an4/asr/", project=None))
-    assert (workdir / "mini_an4" / "asr").is_dir()
+    run(argparse.Namespace(list=False, recipe="/mini_an4/esp2_asr/", project=None))
+    assert (workdir / "mini_an4" / "esp2_asr").is_dir()
 
 
 def test_run_rejects_existing_default_destination(fake_egs3, tmp_path, monkeypatch):
     workdir = tmp_path / "workdir"
-    (workdir / "mini_an4" / "asr").mkdir(parents=True)
+    (workdir / "mini_an4" / "esp2_asr").mkdir(parents=True)
     monkeypatch.chdir(workdir)
     with pytest.raises(FileExistsError):
-        run(argparse.Namespace(list=False, recipe="mini_an4/asr", project=None))
+        run(argparse.Namespace(list=False, recipe="mini_an4/esp2_asr", project=None))
 
 
 def test_run_rejects_missing_recipe(tmp_path):
@@ -214,21 +222,21 @@ def test_run_rejects_missing_recipe(tmp_path):
 def test_clone_list_uses_resolver_output(fake_egs3, capsys):
     run(argparse.Namespace(list=True, recipe=None, project=None))
     output = capsys.readouterr().out
-    assert "mini_an4/asr" in output and "librispeech/asr" in output
+    assert "mini_an4/esp2_asr" in output and "librispeech/esp2_asr" in output
 
 
 def test_espnet3_main_clones_recipe(fake_egs3, tmp_path, capsys):
     from espnet3.bin.main import main
 
     project = tmp_path / "project"
-    assert main(["clone", "mini_an4/asr", "--project", str(project)]) == 0
+    assert main(["clone", "mini_an4/esp2_asr", "--project", str(project)]) == 0
     assert project.is_dir()
 
 
 def test_espnet3_main_reports_user_errors_without_traceback(fake_egs3, capsys):
     from espnet3.bin.main import main
 
-    assert main(["clone", "unknown/asr"]) == 1
+    assert main(["clone", "unknown/esp2_asr"]) == 1
     captured = capsys.readouterr()
     assert captured.out == ""
     assert captured.err.startswith("espnet3:")
@@ -243,7 +251,7 @@ def test_clone_list_handles_empty_and_does_not_clone(
     workdir = tmp_path / "workdir"
     workdir.mkdir()
     monkeypatch.chdir(workdir)
-    run(argparse.Namespace(list=True, recipe="mini_an4/asr", project=None))
+    run(argparse.Namespace(list=True, recipe="mini_an4/esp2_asr", project=None))
     assert not (workdir / "mini_an4").exists()
 
 
@@ -251,10 +259,10 @@ def test_add_arguments_registers_clone_subcommand():
     parser = argparse.ArgumentParser()
     subparsers = parser.add_subparsers(dest="command")
     add_arguments(subparsers)
-    args = parser.parse_args(["clone", "mini_an4/asr", "--project", "project"])
-    assert args.recipe == "mini_an4/asr" and args.project == "project"
+    args = parser.parse_args(["clone", "mini_an4/esp2_asr", "--project", "project"])
+    assert args.recipe == "mini_an4/esp2_asr" and args.project == "project"
     assert args.func is run
-    args = parser.parse_args(["clone", "mini_an4/asr"])
+    args = parser.parse_args(["clone", "mini_an4/esp2_asr"])
     assert args.project is None
     args = parser.parse_args(["clone", "--project", "project"])
     assert args.recipe is None
