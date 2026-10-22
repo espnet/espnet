@@ -82,16 +82,6 @@ class CLIError(RuntimeError):
     """Something the user can fix, reported without a traceback."""
 
 
-def cmd_clone(args) -> int:
-    """Clone a recipe, reporting its expected failures in ESPnet's CLI style."""
-    from espnet3.cli.clone.command import run
-
-    try:
-        return run(args)
-    except (FileNotFoundError, FileExistsError, ValueError) as e:
-        raise CLIError(str(e)) from e
-
-
 def _version() -> str:
     """The installed version, so that a bug report can name one."""
     try:
@@ -862,14 +852,6 @@ def build_parser() -> argparse.ArgumentParser:
     sub.add_parser(
         "models", help="show the default model of each command"
     ).set_defaults(func=cmd_models)
-
-    # Recipe tooling is a subcommand of the installed `espnet` command, like
-    # the other user-facing commands above. Importing its parser is cheap and
-    # does not load a model or a training stack.
-    from espnet3.cli.clone.command import add_arguments as add_clone_arguments
-
-    clone_parser = add_clone_arguments(sub)
-    clone_parser.set_defaults(func=cmd_clone)
     return parser
 
 

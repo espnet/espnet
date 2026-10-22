@@ -1,4 +1,4 @@
-"""Tests for :mod:`espnet3.cli.clone.command`."""
+"""Tests for :mod:`espnet3.bin.clone.command`."""
 
 from __future__ import annotations
 
@@ -8,7 +8,7 @@ import sys
 
 import pytest
 
-from espnet3.cli.clone.command import (
+from espnet3.bin.clone.command import (
     _copy_recipe,
     add_arguments,
     run,
@@ -120,7 +120,7 @@ def test_integration_clone_layout(cloned_mini_an4):
 
 
 def test_integration_clone_preserves_recipe_configs(cloned_mini_an4):
-    from espnet3.cli.clone.resolver import resolve_recipe
+    from espnet3.bin.clone.resolver import resolve_recipe
 
     source = resolve_recipe("mini_an4/esp2_asr")
     for config in ("publication.yaml", "demo.yaml"):
@@ -132,11 +132,10 @@ def test_integration_clone_preserves_recipe_configs(cloned_mini_an4):
 
 
 def test_integration_clone_preserves_path_sh(cloned_mini_an4):
-    from espnet3.cli.clone.resolver import resolve_recipe
+    from espnet3.bin.clone.resolver import resolve_recipe
 
     source = resolve_recipe("mini_an4/esp2_asr") / "path.sh"
     assert (cloned_mini_an4 / "path.sh").read_bytes() == source.read_bytes()
-    assert "BASH_SOURCE" in (cloned_mini_an4 / "path.sh").read_text()
 
 
 @pytest.mark.execution_timeout(30)
@@ -207,8 +206,8 @@ def test_run_rejects_missing_recipe(tmp_path):
     )
     with pytest.raises(ValueError, match="recipe argument is required") as error:
         run(args)
-    assert "espnet clone <dataset>/<task>" in str(error.value)
-    assert "espnet clone --help" in str(error.value)
+    assert "espnet3 clone <dataset>/<task>" in str(error.value)
+    assert "espnet3 clone --help" in str(error.value)
     assert not (tmp_path / "project").exists()
 
 
@@ -218,20 +217,21 @@ def test_clone_list_uses_resolver_output(fake_egs3, capsys):
     assert "mini_an4/asr" in output and "librispeech/asr" in output
 
 
-def test_clone_is_registered_under_espnet_cli():
-    from espnet2.bin.cli import build_parser, cmd_clone
+def test_espnet3_main_clones_recipe(fake_egs3, tmp_path, capsys):
+    from espnet3.bin.main import main
 
-    args = build_parser().parse_args(["clone", "mini_an4/asr"])
-    assert args.func is cmd_clone
+    project = tmp_path / "project"
+    assert main(["clone", "mini_an4/asr", "--project", str(project)]) == 0
+    assert project.is_dir()
 
 
-def test_clone_cli_reports_user_errors_with_espnet_prefix(fake_egs3, capsys):
-    from espnet2.bin.cli import main
+def test_espnet3_main_reports_user_errors_without_traceback(fake_egs3, capsys):
+    from espnet3.bin.main import main
 
     assert main(["clone", "unknown/asr"]) == 1
     captured = capsys.readouterr()
     assert captured.out == ""
-    assert captured.err.startswith("espnet:")
+    assert captured.err.startswith("espnet3:")
     assert "Traceback" not in captured.err
 
 

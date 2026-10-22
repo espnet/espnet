@@ -1,4 +1,4 @@
-"""Tests for :mod:`espnet3.cli.clone.resolver`."""
+"""Tests for :mod:`espnet3.bin.clone.resolver`."""
 
 from __future__ import annotations
 
@@ -7,7 +7,7 @@ from types import ModuleType
 
 import pytest
 
-from espnet3.cli.clone.resolver import (
+from espnet3.bin.clone.resolver import (
     _get_egs3_root,
     _list_available,
     list_recipes,

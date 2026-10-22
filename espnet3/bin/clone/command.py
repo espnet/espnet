@@ -44,25 +44,25 @@ _EPILOG = """\
 examples:
   Clone using the recipe name as destination (./mini_an4/esp2_asr/):
 
-    espnet clone mini_an4/esp2_asr
+    espnet3 clone mini_an4/esp2_asr
     cd mini_an4/esp2_asr
     python run.py --stages create_dataset train \\
         --training_config conf/training.yaml
 
   Clone into a custom directory:
 
-    espnet clone mini_an4/esp2_asr --project my_asr
+    espnet3 clone mini_an4/esp2_asr --project my_asr
     cd my_asr
     python run.py --stages create_dataset train \\
         --training_config conf/training.yaml
 
   List all available recipes:
 
-    espnet clone --list
+    espnet3 clone --list
 
   Run all stages end-to-end after cloning:
 
-    espnet clone librispeech_100/esp2_asr --project ls_asr
+    espnet3 clone librispeech_100/esp2_asr --project ls_asr
     cd ls_asr
     python run.py --stages all \\
         --training_config conf/training.yaml \\
@@ -77,14 +77,14 @@ what gets cloned:
 _MISSING_RECIPE = """\
 recipe argument is required.
 
-  espnet clone <dataset>/<task> [--project <dir>]
+  espnet3 clone <dataset>/<task> [--project <dir>]
 
 examples:
-  espnet clone mini_an4/esp2_asr                    # clones to ./mini_an4/esp2_asr/
-  espnet clone mini_an4/esp2_asr --project my_asr   # clones to ./my_asr/
+  espnet3 clone mini_an4/esp2_asr                    # clones to ./mini_an4/esp2_asr/
+  espnet3 clone mini_an4/esp2_asr --project my_asr   # clones to ./my_asr/
 
-run 'espnet clone --list' to see all available recipes.
-run 'espnet clone --help' for full usage.\
+run 'espnet3 clone --list' to see all available recipes.
+run 'espnet3 clone --help' for full usage.\
 """
 
 
@@ -165,7 +165,7 @@ def run(args) -> int:
         ```
     """
     if args.list:
-        from espnet3.cli.clone.resolver import list_recipes
+        from espnet3.bin.clone.resolver import list_recipes
 
         recipes = list_recipes()
         if not recipes:
@@ -179,7 +179,7 @@ def run(args) -> int:
     if args.recipe is None:
         raise ValueError(_MISSING_RECIPE)
 
-    from espnet3.cli.clone.resolver import resolve_recipe
+    from espnet3.bin.clone.resolver import resolve_recipe
 
     recipe_path = resolve_recipe(args.recipe)
     recipe_name = args.recipe.strip("/")

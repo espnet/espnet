@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import pytest
 
-import espnet3.cli.clone.resolver as resolver_module
+import espnet3.bin.clone.resolver as resolver_module
 
 
 @pytest.fixture
