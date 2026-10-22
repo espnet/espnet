@@ -71,20 +71,92 @@ def whitespace_setup() -> Callable[[str], str]:
     return lambda text: re.sub(r"\s+", " ", text).strip()
 
 
-def remove_tokens_setup(tokens: Optional[Iterable[str]] = None) -> Callable[[str], str]:
-    """Delete whole whitespace-separated tokens.
+#: What a recipe means by nlsyms when it does not say.
+DEFAULT_NON_SPEECH = ("<unk>", "<noise>", "<sos>", "<eos>", "<blank>")
 
-    The usual targets are the non-speech markers a recipe leaves in its
-    references: ``<unk>``, ``<noise>``, ``[laughter]``, and so on.
+MATCH_CHOICES = ("token", "substring")
+
+
+def remove_tokens_setup(
+    tokens: Optional[Iterable[str]] = None,
+    match: str = "token",
+    tokens_file: Optional[str] = None,
+) -> Callable[[str], str]:
+    """Delete non-speech markers such as ``<unk>``, ``<noise>``, ``[laughter]``.
+
+    ESPnet removes these inside its tokenizers, and the two tokenizers do it
+    differently. Which one a recipe used decides its denominator, so the
+    choice is explicit here rather than guessed from the metric.
 
     Args:
-        tokens: The tokens to delete. None means the default non-speech
-            markers; an empty list means delete nothing.
+        tokens: The markers to delete. None means
+            :data:`DEFAULT_NON_SPEECH` unless ``tokens_file`` is given; an
+            empty list means delete nothing.
+        match: ``token`` matches a whole whitespace-separated token, which is
+            what ``espnet2.text.word_tokenizer`` does and what WER wants.
+            ``substring`` matches anywhere in the text, which is what
+            ``espnet2.text.char_tokenizer`` does and what CER wants. Its
+            space handling is copied from there too: removing a marker from
+            between two spaces would leave both behind and the CER
+            denominator would count them, so when anything is removed, runs
+            of spaces collapse and leading and trailing ones go. When
+            nothing is removed the text is left alone, doubled spaces
+            included -- CharTokenizer._merge_spaces runs under `if removed`,
+            and a normalizer that tidied unconditionally would report a
+            different denominator than the recipe it is reproducing.
+        tokens_file: An ``nlsyms_txt`` file, one marker per line, as 33 egs2
+            recipes point at. Read the way ESPnet reads it: trailing
+            whitespace stripped, blank lines dropped. Combined with ``tokens``
+            when both are given.
+
+    Returns:
+        The normalizer.
+
+    Raises:
+        ValueError: If ``match`` is not one of :data:`MATCH_CHOICES`.
     """
-    if tokens is None:
-        tokens = ["<unk>", "<noise>", "<sos>", "<eos>", "<blank>"]
-    drop = set(tokens)
-    return lambda text: " ".join(t for t in text.split() if t not in drop)
+    if match not in MATCH_CHOICES:
+        raise ValueError(f"unknown match '{match}'; expected {list(MATCH_CHOICES)}")
+
+    drop = set()
+    if tokens_file is not None:
+        with open(tokens_file, encoding="utf-8") as handle:
+            drop.update(line.rstrip() for line in handle)
+    if tokens is not None:
+        drop.update(tokens)
+    elif tokens_file is None:
+        drop.update(DEFAULT_NON_SPEECH)
+    # An empty marker matches at every position, so a scan over it would never
+    # advance. ESPnet discards it for the same reason.
+    drop.discard("")
+
+    if match == "token":
+        return lambda text: " ".join(t for t in text.split() if t not in drop)
+
+    # Longest first: a shorter marker can be a prefix of a longer one, and
+    # matching the short one would leave the rest of the long one behind.
+    ordered = tuple(sorted(drop, key=len, reverse=True))
+
+    def _remove(text: str) -> str:
+        if not ordered:
+            return text
+        out = []
+        removed = False
+        index = 0
+        while index < len(text):
+            for marker in ordered:
+                if text.startswith(marker, index):
+                    index += len(marker)
+                    removed = True
+                    break
+            else:
+                out.append(text[index])
+                index += 1
+        if not removed:
+            return text
+        return re.sub(" +", " ", "".join(out)).strip(" ")
+
+    return _remove
 
 
 def unicode_setup(form: str = "NFKC") -> Callable[[str], str]:
