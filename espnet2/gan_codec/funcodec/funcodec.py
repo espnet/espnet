@@ -446,8 +446,10 @@ class FunCodec(AbsGANCodec):
                 * codec (Tensor): Generated neural codec (T_code, N_stream).
 
         """
-        codec = self.generator.encode(x)
-        wav = self.generator.decode(codec)
+        # Unlike decode(codes), this has the input at hand, so it passes the
+        # input volume (audio_normalize) and phase (mag_oracle_phase) back.
+        codec, scale, n_frames = self.generator._encode(x)
+        wav = self.generator.decode(codec, scale=scale, n_frames=n_frames)
 
         return {"wav": wav, "codec": codec}
 
@@ -779,7 +781,20 @@ class FunCodecGenerator(nn.Module):
         Returns:
             torch.Tensor: neural codecs in shape ().
         """
+        codes, _, _ = self._encode(x, target_bw)
+        return codes
 
+    def _encode(self, x: torch.Tensor, target_bw: Optional[float] = None):
+        """Encode, and also return what decode() needs to rebuild the input.
+
+        Args:
+            x (torch.Tensor): Input tensor of shape (B, 1, T).
+            target_bw (Optional[float]): Target bandwidth.
+        Returns:
+            torch.Tensor: neural codecs.
+            Any: scale from time_to_freq_transfer.
+            int: number of encoder input frames.
+        """
         x, scale = self.time_to_freq_transfer(x)
         encoder_out = self.encoder(x)
         if target_bw is None:
@@ -787,19 +802,37 @@ class FunCodecGenerator(nn.Module):
         else:
             bw = target_bw
         codes = self.quantizer.encode(encoder_out, self.frame_rate, bw)
-        return codes
+        return codes, scale, x.shape[-1]
 
-    def decode(self, codes: torch.Tensor):
+    def decode(
+        self,
+        codes: torch.Tensor,
+        scale: Any = None,
+        n_frames: Optional[int] = None,
+    ):
         """FunCodec codec decoding.
+
+        Without scale, the output stays at the normalized level when
+        audio_normalize is set, and mag_oracle_phase cannot be decoded.
 
         Args:
             codecs (torch.Tensor): neural codecs in shape ().
+            scale (Any): scale returned by _encode, if available.
+            n_frames (Optional[int]): number of frames to trim the decoder
+                output to, as in forward.
         Returns:
             torch.Tensor: resynthesized audio.
         """
+        if self.codec_domain[1] == "mag_oracle_phase" and scale is None:
+            raise ValueError(
+                "mag_oracle_phase needs the input phase; "
+                "use FunCodec.inference() instead of decode(codes)."
+            )
         quantized = self.quantizer.decode(codes)
         resyn_audio = self.decoder(quantized)
-        resyn_audio = self.freq_to_time_transfer(resyn_audio)
+        if n_frames is not None:
+            resyn_audio = resyn_audio[..., :n_frames]
+        resyn_audio = self.freq_to_time_transfer(resyn_audio, scale)
         return resyn_audio
 
 

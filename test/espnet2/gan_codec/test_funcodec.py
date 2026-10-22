@@ -7,7 +7,11 @@ import numpy as np  # noqa
 import pytest
 import torch
 
-from espnet2.gan_codec.funcodec.funcodec import FunCodecDiscriminator, FunCodecGenerator
+from espnet2.gan_codec.funcodec.funcodec import (
+    FunCodec,
+    FunCodecDiscriminator,
+    FunCodecGenerator,
+)
 from espnet2.gan_codec.shared.loss.freq_loss import MultiScaleMelSpectrogramLoss
 from espnet2.gan_tts.hifigan.loss import (
     DiscriminatorAdversarialLoss,
@@ -180,3 +184,46 @@ def test_funcodec(dict_g, dict_d, dict_loss, average, include):
     optimizer_d.zero_grad()
     loss_d.backward()
     optimizer_d.step()
+
+
+def make_funcodec(**kwargs):
+    args_g = make_generator_args(
+        quantizer_target_bandwidth=[15], quantizer_kmeans_init=False, **kwargs
+    )
+    args_g.pop("sample_rate")
+    model = FunCodec(
+        sampling_rate=120,
+        generator_params=args_g,
+        discriminator_params=make_discriminator_args(),
+        mel_loss_params=make_mel_loss_args(),
+    )
+    return model.eval()
+
+
+def test_funcodec_inference_audio_normalize_restores_volume():
+    torch.manual_seed(0)
+    y = torch.randn(2, 1, 128)
+    model = make_funcodec(audio_normalize=True)
+    with torch.no_grad():
+        out = model.inference(y)
+        out_loud = model.inference(100 * y)
+        torch.testing.assert_close(
+            out_loud["wav"], 100 * out["wav"], rtol=1e-4, atol=1e-5
+        )
+        # The codes carry no volume, so decode(codes) cannot tell them apart.
+        torch.testing.assert_close(out_loud["codec"], out["codec"])
+        torch.testing.assert_close(
+            model.decode(out_loud["codec"]), model.decode(out["codec"])
+        )
+
+
+def test_funcodec_inference_mag_oracle_phase():
+    y = torch.randn(2, 1, 128)
+    model = make_funcodec(
+        codec_domain=["mag_oracle_phase", "mag_oracle_phase"], encdec_channels=1
+    )
+    with torch.no_grad():
+        out = model.inference(y)
+        assert out["wav"].shape == y.shape
+        with pytest.raises(ValueError, match="mag_oracle_phase"):
+            model.decode(out["codec"])

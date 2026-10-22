@@ -54,3 +54,17 @@ def test_AudioCoding_decode(config_file):
     decode_dict = audio_coding.decode(encode_dict["codes"])
     assert "resyn_audio" in decode_dict
     assert isinstance(decode_dict["resyn_audio"], torch.Tensor)
+
+
+@pytest.mark.execution_timeout(5)
+def test_AudioCoding_resynthesis_matches_decode_of_codes(config_file):
+    # Resynthesis goes through model.inference(); for codecs that need nothing
+    # beyond the codes, it equals decoding the encode_only codes.
+    audio_coding = AudioCoding(train_config=config_file)
+    wav = torch.rand(1, 16000)
+    output_dict = audio_coding(wav)
+    codes = audio_coding(wav, encode_only=True)["codes"]
+    torch.testing.assert_close(output_dict["codes"], codes)
+    torch.testing.assert_close(
+        output_dict["resyn_audio"], audio_coding.decode(codes)["resyn_audio"]
+    )
