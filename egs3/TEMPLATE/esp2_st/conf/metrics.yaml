@@ -27,8 +27,12 @@ exp_dir: ${recipe_dir}/exp/${exp_tag}
 metrics:
   - metric:
       _target_: espnet3.systems.esp2_st.metrics.bleu.BLEU
-      ref_key: ref        # reference text key -> `<test_name>/ref.scp`
-      hyp_key: hyp        # hypothesis text key -> `<test_name>/hyp.scp`
       clean_types:        # optional TextCleaner pipeline
       tokenize: "13a"     # sacreBLEU default; use zh / ja-mecab for those
       also_lowercase: true
+    # Which source feeds each declared input. `text` is the SCP the infer
+    # stage wrote; `dataset:text` is the test set's own column, which
+    # `measure` reads from the data rather than from what inference wrote.
+    inputs:
+      ref: dataset:text
+      hyp: text

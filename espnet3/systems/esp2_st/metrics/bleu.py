@@ -11,7 +11,7 @@ except ImportError:
     sacrebleu = None
 
 from espnet2.text.cleaner import TextCleaner
-from espnet3.api.inference import Field
+from espnet3.contract import Field
 from espnet3.components.metrics.base_metric import BaseMetric
 from espnet3.systems.esp2_st.src.normalization import remove_punctuation
 

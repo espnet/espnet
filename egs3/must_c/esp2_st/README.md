@@ -117,15 +117,18 @@ either side cannot be loaded), the `global_mvn` statistics the config
 references, and `metrics.json` for the numbers above.
 
 ```python
-from espnet3.api.inference import load
+from espnet3.publication.inference_model import InferenceModel
 
-model = load("espnet/must_c_esp2_st_train_st_conformer")
+model = InferenceModel.from_pretrained(
+    "espnet/must_c_esp2_st_train_st_conformer",
+    trust_user_code=True,
+)
 print(model("utt.wav")["text"])
 ```
 
-No `trust_user_code=True`: the bundle's `meta.yaml` names this system, so
-`load` builds `espnet3.systems.esp2_st.inference.Inference` and imports none
-of the recipe's own code.
+`trust_user_code=True` is required because the packed inference config names
+this recipe's own dataset modules; the bundle carries them alongside the
+checkpoint.
 
 
 ### Comparison
