@@ -77,11 +77,8 @@ class ESP2STSystem(BaseSystem):
         StageSpec(name="measure", config="metrics", log_dir="inference_dir"),
         StageSpec(name="pack_model", config=("training", "publication")),
         StageSpec(name="upload_model", config="publication"),
-        # No pack_demo/upload_demo: they need a `demo` role, and this
-        # template ships no conf/demo.yaml nor the src/app.py its
-        # `ui.app_script` would name, so the role was never usable. A
-        # declared role without its TEMPLATE config is what the review
-        # asks us not to leave behind; add both back together.
+        StageSpec(name="pack_demo", config="demo", log_dir="pack.out_dir"),
+        StageSpec(name="upload_demo", config="demo", log_dir="pack.out_dir"),
     )
 
     def train(self, *args, **kwargs):
