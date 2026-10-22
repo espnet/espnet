@@ -93,19 +93,19 @@ class AudioCoding:
         if self.always_fix_seed:
             set_all_random_seed(self.seed)
 
-        codes = self.model.encode(**batch, **cfg)
-        output_dict = dict(codes=codes)
-
         if encode_only:
-            return output_dict
-        else:
-            # TODO(jiatong): to consider multichannel cases
-            if len(audio.shape) == 1:
-                resyn_audio = self.model.decode(codes).view(-1)
-            else:
-                resyn_audio = self.model.decode(codes)
-            output_dict.update(resyn_audio=resyn_audio)
-            return output_dict
+            codes = self.model.encode(**batch, **cfg)
+            return dict(codes=codes)
+
+        # Resynthesize through inference() rather than decode(encode()), so
+        # the codec can use information that is not part of the codes, such as
+        # the input volume that FunCodec divides out with audio_normalize.
+        output = self.model.inference(**batch, **cfg)
+        codes, resyn_audio = output["codec"], output["wav"]
+        # TODO(jiatong): to consider multichannel cases
+        if len(audio.shape) == 1:
+            resyn_audio = resyn_audio.view(-1)
+        return dict(codes=codes, resyn_audio=resyn_audio)
 
     @torch.no_grad()
     @typechecked

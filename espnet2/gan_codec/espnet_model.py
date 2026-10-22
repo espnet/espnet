@@ -84,6 +84,32 @@ class ESPnetGANCodecModel(AbsGANESPnetModel):
         batch.update(kwargs)
         return self.codec.encode(**batch)
 
+    def inference(self, audio: torch.Tensor, **kwargs) -> Dict[str, torch.Tensor]:
+        """Codec Encoding and Decoding Process.
+
+        Unlike ``decode(encode(audio))``, this lets the codec pass information
+        that is not part of the codes (e.g., the input volume) to the decoder.
+
+        Args:
+            audio (Tensor): Audio waveform tensor
+                (B, 1, T_wav) or (B, T_wav) or (T_wav)
+
+        Returns:
+            Dict[str, Tensor]:
+                * wav (Tensor): Generated waveform (B, 1, n_sample)
+                * codec (Tensor): Generated codecs (N_stream, B, T)
+        """
+
+        # convert to [B, n_channle=1, n_sample] anyway
+        if audio.dim() == 1:
+            audio = audio.view(1, 1, -1)
+        elif audio.dim() == 2:
+            audio = audio.unsqueeze(1)
+
+        batch = dict(x=audio)
+        batch.update(kwargs)
+        return self.codec.inference(**batch)
+
     def encode_continuous(self, audio):
         """Codec Encoding Process without quantization.
 
