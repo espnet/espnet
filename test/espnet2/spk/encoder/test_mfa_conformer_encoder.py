@@ -52,3 +52,13 @@ def test_use_sdpa_matches_the_default(rel_pos_type):
         sdpa_out = sdpa_encoder(x)
     assert default_out.shape == sdpa_out.shape == (2, 16, 7)
     assert torch.allclose(default_out, sdpa_out, atol=1e-5)
+
+
+def test_abs_pos_keeps_every_batch_item():
+    x = torch.randn(2, 20, 16)
+    encoder = _encoder("legacy", "abs_pos", "selfattn").eval()
+    with torch.no_grad():
+        out = encoder(x)
+        single = encoder(x[1:])
+    assert out.shape == (2, 16, 7)
+    assert torch.allclose(out[1:], single, atol=1e-5)
