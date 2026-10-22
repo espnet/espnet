@@ -24,8 +24,10 @@ class DummyTokenizer(torch.nn.Module):
             lengths=speech_lengths,
         )
 
-    def forward(self, speech, speech_lengths):
+    def forward(self, speech, speech_lengths, count_update=True):
         self.forward_calls += 1
+        self.count_update = count_update
+        self.grad_enabled = torch.is_grad_enabled()
         return self._output(speech, speech_lengths)
 
     def encode(self, speech, speech_lengths):
@@ -169,6 +171,8 @@ def test_discriminator_tokenizes_on_cache_miss():
     assert result["optim_idx"] == 1
     # A cache miss requires tokenization for waveform generation.
     assert model.tokenizer.forward_calls == 1
+    assert model.tokenizer.count_update is False
+    assert model.tokenizer.grad_enabled is False
     # The freshly computed tokenizer output is passed to the discriminator path.
     assert model.reconstruction_loss.last_discriminator_tokenizer_output is not None
 
@@ -205,6 +209,23 @@ def test_generator_first_reuses_cache_across_batches():
 
     # The discriminator step reused the cache instead of tokenizing again.
     assert model.tokenizer.forward_calls == 2
+
+
+def test_clear_generator_cache_allows_next_generator_forward():
+    model = make_model_with_hifigan_loss()
+    model.train()
+
+    model(forward_generator=True, **make_batch())
+    assert model.reconstruction_loss.has_cached_generator_outputs
+
+    model.clear_generator_cache()
+    assert not model.reconstruction_loss.has_cached_generator_outputs
+
+    model(forward_generator=True, **make_batch())
+    assert model.reconstruction_loss.has_cached_generator_outputs
+
+    with pytest.raises(RuntimeError, match="already cached"):
+        model(forward_generator=True, **make_batch())
 
 
 def test_discriminator_first_fails_on_stale_cache():

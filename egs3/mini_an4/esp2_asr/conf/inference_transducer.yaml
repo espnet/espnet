@@ -51,3 +51,6 @@ model:
   asr_train_config: ${exp_dir}/config.yaml
   asr_model_file: ${exp_dir}/last.ckpt
   beam_size: 1
+
+# The ESPnet2 transducer decoder accepts one waveform per call.
+batch_size: null
