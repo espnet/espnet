@@ -18,7 +18,7 @@ logger = logging.getLogger(__name__)
 _SIDES = ("tgt", "src")
 
 
-class STSystem(BaseSystem):
+class ESP2STSystem(BaseSystem):
     """System for speech translation, with one vocabulary per side.
 
     ``espnet2.tasks.st.STTask`` carries two vocabularies, not one:
@@ -57,7 +57,7 @@ class STSystem(BaseSystem):
     ``use_src_lang=false`` trains the target model only.
 
     Examples:
-        >>> [s.name for s in STSystem.stages[:2]]
+        >>> [s.name for s in ESP2STSystem.stages[:2]]
         ['create_dataset', 'train_tokenizer']
     """
 
@@ -89,7 +89,7 @@ class STSystem(BaseSystem):
                 the training config.
         """
         self._reject_stage_args("train", args, kwargs)
-        logger.info("STSystem.train(): starting training process")
+        logger.info("ESP2STSystem.train(): starting training process")
 
         dataset_dir = getattr(self.training_config, "dataset_dir", None)
         dataset_config = getattr(self.training_config, "dataset", None)
@@ -295,7 +295,7 @@ class STSystem(BaseSystem):
         sides = [s for s in _SIDES if getattr(config, s, None) is not None]
         if not sides:
             raise RuntimeError(
-                "STSystem expects tokenizer.tgt (and optionally tokenizer.src). "
+                "ESP2STSystem expects tokenizer.tgt (and optionally tokenizer.src). "
                 "For a single shared vocabulary use ASRSystem."
             )
 

@@ -246,7 +246,7 @@ def gather_training_text(
 
     Args:
         side: Which stream to return. ``"src"`` and ``"tgt"`` return one side,
-            as ``STSystem`` needs for the two separate vocabularies egs2's
+            as ``ESP2STSystem`` needs for the two separate vocabularies egs2's
             ``st.sh`` builds (``src_nbpe``/``tgt_nbpe``). ``"joint"`` (default)
             concatenates both, for a single shared vocabulary.
         tgt_lang: Target language of the pair to read. Only used when no HF

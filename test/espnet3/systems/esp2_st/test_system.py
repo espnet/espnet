@@ -1,6 +1,6 @@
-"""Tests for STSystem's two-vocabulary tokenizer and text-shape handling.
+"""Tests for ESP2STSystem's two-vocabulary tokenizer and text-shape handling.
 
-STSystem is exercised through ``__new__`` with a hand-built ``training_config``
+ESP2STSystem is exercised through ``__new__`` with a hand-built ``training_config``
 rather than a real constructor: the methods under test read only that config
 and the filesystem, and building a full System would pull in a model and a
 dataset for no added coverage.
@@ -11,7 +11,7 @@ from pathlib import Path
 import pytest
 from omegaconf import OmegaConf
 
-from espnet3.systems.esp2_st.system import STSystem
+from espnet3.systems.esp2_st.system import ESP2STSystem
 
 
 def _write_tokenizer(save_path: Path, model_type: str, n_tokens: int) -> None:
@@ -36,7 +36,7 @@ def _system(tmp_path: Path, *, tgt=True, src=True, tgt_vocab=8, src_vocab=5):
             "model_type": "bpe",
             "save_path": str(tmp_path / "bpe_src"),
         }
-    system = STSystem.__new__(STSystem)
+    system = ESP2STSystem.__new__(ESP2STSystem)
     system.training_config = OmegaConf.create(
         {"tokenizer": tokenizer, "stats_dir": str(tmp_path / "stats")}
     )
@@ -155,7 +155,7 @@ def test_append_vocab_size_skips_unconfigured_side(tmp_path: Path):
 def test_train_tokenizer_requires_a_configured_side(tmp_path: Path):
     system = _system(tmp_path, tgt=False, src=False)
 
-    with pytest.raises(RuntimeError, match="STSystem expects tokenizer.tgt"):
+    with pytest.raises(RuntimeError, match="ESP2STSystem expects tokenizer.tgt"):
         system.train_tokenizer()
 
 
@@ -169,7 +169,7 @@ def test_gather_texts_reuses_an_existing_training_file(tmp_path: Path):
         "save_path": str(tmp_path / "bpe_tgt"),
         "train_file": str(train_path),
     }
-    system = STSystem.__new__(STSystem)
+    system = ESP2STSystem.__new__(ESP2STSystem)
     system.training_config = OmegaConf.create({"tokenizer": {"tgt": side}})
 
     path, texts = system._gather_texts("tgt", system.training_config.tokenizer.tgt)
@@ -181,7 +181,7 @@ def test_gather_texts_reuses_an_existing_training_file(tmp_path: Path):
 def test_gather_texts_requires_train_file(tmp_path: Path):
     """The path is declared in config, never derived from data_dir."""
     side = {"vocab_size": 8, "model_type": "bpe", "save_path": str(tmp_path / "b")}
-    system = STSystem.__new__(STSystem)
+    system = ESP2STSystem.__new__(ESP2STSystem)
     system.training_config = OmegaConf.create({"tokenizer": {"tgt": side}})
 
     with pytest.raises(RuntimeError, match="train_file is required"):
@@ -198,7 +198,7 @@ def test_gather_texts_refuses_to_reuse_when_disallowed(tmp_path: Path):
         "reuse_existing_text": False,
     }
     (tmp_path / "text.txt").write_text("hallo\n", encoding="utf-8")
-    system = STSystem.__new__(STSystem)
+    system = ESP2STSystem.__new__(ESP2STSystem)
     system.training_config = OmegaConf.create({"tokenizer": {"tgt": side}})
 
     with pytest.raises(RuntimeError, match="already exists"):
@@ -219,7 +219,7 @@ def test_gather_texts_runs_a_text_builder(tmp_path: Path, monkeypatch):
         "train_file": str(tmp_path / "built.txt"),
         "text_builder": {"_target_": "fake_builder.build", "tgt_lang": "de"},
     }
-    system = STSystem.__new__(STSystem)
+    system = ESP2STSystem.__new__(ESP2STSystem)
     system.training_config = OmegaConf.create({"tokenizer": {"tgt": side}})
 
     path, texts = system._gather_texts("tgt", system.training_config.tokenizer.tgt)
@@ -240,7 +240,7 @@ def test_gather_texts_rejects_an_empty_builder_result(tmp_path: Path, monkeypatc
         "train_file": str(tmp_path / "built.txt"),
         "text_builder": {"_target_": "empty_builder.build"},
     }
-    system = STSystem.__new__(STSystem)
+    system = ESP2STSystem.__new__(ESP2STSystem)
     system.training_config = OmegaConf.create({"tokenizer": {"tgt": side}})
 
     with pytest.raises(RuntimeError, match="returned no text"):

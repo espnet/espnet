@@ -95,7 +95,7 @@ dataset:
 ##########################################################
 #                       TOKENIZER                        #
 ##########################################################
-# Two SentencePiece models; STSystem trains whichever sides are present.
+# Two SentencePiece models; ESP2STSystem trains whichever sides are present.
 tokenizer:
   tgt:
     vocab_size: 4000            # egs2 tgt_nbpe
@@ -246,7 +246,7 @@ best_model_criterion:
 # batch_bins, egs2 -> espnet3. egs2 bins over THREE shape files
 # (st.sh:1345-1349: speech_shape + text_shape + src_text_shape, the text ones
 # 2-D "L,V" so one token costs 4000 bins). espnet3's collect_stats emits only
-# feats via collect_feats, so STSystem.collect_stats also records the token
+# feats via collect_feats, so ESP2STSystem.collect_stats also records the token
 # streams and appends the vocabulary size. Without the text terms a
 # short-utterance batch grows unbounded and OOMs (measured: 1,732 utterances
 # in batch 0, dead on a 40 GB A100).

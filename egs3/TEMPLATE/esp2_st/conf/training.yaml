@@ -108,7 +108,7 @@ dataset:
 ##########################################################
 #                   TOKENIZER SETTING                    #
 ##########################################################
-# Used by the `train_tokenizer` stage in `espnet3.systems.esp2_st.system.STSystem`.
+# Used by the `train_tokenizer` stage in `espnet3.systems.esp2_st.system.ESP2STSystem`.
 # `text_builder._target_` must name a callable returning either:
 # - a path to a text file, or
 # - an iterable of training strings
