@@ -40,7 +40,7 @@ dataset:
 #                    MODEL AND OUTPUT                    #
 ##########################################################
 model:
-  _target_: espnet3.systems.esp2_enh.inference.Inference
+  _target_: espnet3.systems.esp2_enh.src.inference.Inference
   train_config: ${exp_dir}/config.yaml
   model_file: ${exp_dir}/last.ckpt
   normalize_output_wav: true

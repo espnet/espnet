@@ -9,8 +9,8 @@ import soundfile as sf
 import torch
 
 from espnet2.enh.loss.criterions.time_domain import SISNRLoss
-from espnet3.api.inference import Field
 from espnet3.components.metrics.base_metric import BaseMetric
+from espnet3.contract import Field
 
 
 def load_audio(path: str | Path, sample_rate: int | None = None) -> np.ndarray:

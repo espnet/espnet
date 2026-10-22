@@ -2,7 +2,7 @@
 
 from typing import Any
 
-from espnet3.api.inference import Field
+from espnet3.contract import Field
 from espnet3.systems.esp2_enh.metrics.sisnr import MeanScore, waveform
 
 try:

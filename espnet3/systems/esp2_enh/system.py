@@ -7,7 +7,7 @@ from espnet3.systems.base.system import BaseSystem
 logger = logging.getLogger(__name__)
 
 
-class EnhancementSystem(BaseSystem):
+class ESP2EnhSystem(BaseSystem):
     """Speech enhancement system."""
 
     def __init__(

@@ -86,7 +86,7 @@ cd ./egs3/mini_an4/esp2_enh || exit
 gen_dummy_coverage
 echo "==== [ESPnet3] ENH ===="
 source path.sh
-# No train_tokenizer: EnhancementSystem does not implement it.
+# No train_tokenizer: ESP2EnhSystem does not implement it.
 ${python} run.py \
     --stages create_dataset collect_stats train infer measure \
     --training_config conf/training.yaml \

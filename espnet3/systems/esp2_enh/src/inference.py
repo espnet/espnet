@@ -1,27 +1,21 @@
-"""The ESPnet2 enhancement system's side of :mod:`espnet3.api.inference`.
+"""Speech enhancement with an ESPnet2 ``SeparateSpeech`` model.
 
 The model behind an ``enh`` recipe is
 :class:`espnet2.bin.enh_inference.SeparateSpeech`, which takes a batch of
 noisy waveforms and returns one batch of waveforms per output speaker. This
-adapter returns the first speaker as ``enhanced``. Building the
-``SeparateSpeech`` and loading a bundle come from
-:class:`espnet3.systems.base.backend_inference.BackendInference`.
+class returns the first speaker as ``enhanced``. The shared
+:class:`~espnet3.systems.base.inference_runner.InferenceRunner` calls it with
+``speech_mix`` already checked by the contract in ``conf/inference.yaml``.
 
 Examples:
     In the ``infer`` stage, ``inference.yaml`` names this class with
-    ``SeparateSpeech``'s own arguments::
+    ``SeparateSpeech``'s own arguments (the provider adds ``device``)::
 
         model:
-          _target_: espnet3.systems.esp2_enh.inference.Inference
+          _target_: espnet3.systems.esp2_enh.src.inference.Inference
           train_config: ${exp_dir}/config.yaml
           model_file: ${exp_dir}/last.ckpt
           normalize_output_wav: true
-
-    From a ``pack_model`` bundle::
-
-        >>> model = Inference.from_pretrained("exp/training/model_pack")
-        >>> model("noisy.wav")["enhanced"].rate
-        16000
 """
 
 from __future__ import annotations
@@ -30,43 +24,39 @@ from typing import Any, Mapping, Sequence
 
 import numpy as np
 
-from espnet3.api.inference import Audio, Field
-from espnet3.systems.base.backend_inference import BackendInference
+from espnet2.bin.enh_inference import SeparateSpeech
+from espnet3.contract.kinds.audio import Audio
 
 
-class Inference(BackendInference):
+class Inference:
     """Enhance speech with an ESPnet2 enhancement model.
 
     Args:
         backend: An already-built ``SeparateSpeech``, or ``None`` to build one
             from ``kwargs``.
-        sample_rate: The rate the model was trained at. Input audio is
-            resampled to it and the enhanced audio is returned at it.
-        **kwargs: ``device``, ``backend_class`` and ``SeparateSpeech``'s own
-            arguments, as :class:`BackendInference` takes them.
+        sample_rate: The rate the model was trained at. The enhanced audio is
+            returned at it.
+        **kwargs: ``SeparateSpeech``'s own arguments, ``device`` included.
 
     Examples:
         >>> model = Inference(train_config="exp/config.yaml",
-        ...                   model_file="exp/last.ckpt")
-        >>> model.batch([{"speech_mix": "a.wav"}, {"speech_mix": "b.wav"}])
+        ...                   model_file="exp/last.ckpt", device="cpu")
+        >>> model(speech_mix=[Audio(a, 16000), Audio(b, 16000)])
         [{'enhanced': Audio(...)}, {'enhanced': Audio(...)}]
     """
-
-    backend_class = "espnet2.bin.enh_inference.SeparateSpeech"
-    inputs = (Field("speech_mix", "audio", "Noisy speech"),)
-    outputs = (Field("enhanced", "audio", "Enhanced speech"),)
 
     def __init__(
         self, backend: Any = None, *, sample_rate: int = 16000, **kwargs: Any
     ) -> None:
         """Build or keep the backend and remember the model's rate."""
-        super().__init__(backend, **kwargs)
-        self._sample_rate = int(sample_rate)
+        self.backend = SeparateSpeech(**kwargs) if backend is None else backend
+        self.sample_rate = int(sample_rate)
 
-    @property
-    def sample_rate(self) -> int:
-        """The rate the model was trained at."""
-        return self._sample_rate
+    def __call__(self, speech_mix):
+        """Enhance one ``Audio``, or a list of them as one batch."""
+        if isinstance(speech_mix, list):
+            return self.run_batch([{"speech_mix": item} for item in speech_mix])
+        return self.run(speech_mix)
 
     def run(self, speech_mix: Audio) -> Mapping[str, Any]:
         """Return the enhanced version of one utterance."""

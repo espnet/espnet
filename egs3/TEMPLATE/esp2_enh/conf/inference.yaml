@@ -56,17 +56,38 @@ parallel:
 #                    MODEL AND OUTPUT                    #
 ##########################################################
 # The model is the enhancement system's `Inference`
-# (espnet3.systems.esp2_enh.inference): it takes `speech_mix` and returns
+# (espnet3.systems.esp2_enh.src.inference): it takes `speech_mix` and returns
 # `enhanced`, written as `enhanced.scp` plus one wav per utterance at
 # `sample_rate`. Its other arguments are the ones
 # `espnet2.bin.enh_inference.SeparateSpeech` takes; `device` is added by the
 # provider. The clean reference is not written here: `measure` reads it from
 # the dataset's `speech_ref1` column.
 model:
-  _target_: espnet3.systems.esp2_enh.inference.Inference
+  _target_: espnet3.systems.esp2_enh.src.inference.Inference
   # train_config: ${exp_dir}/config.yaml
   # model_file: ${exp_dir}/last.ckpt
   # sample_rate: 16000
+
+input_key: speech_mix
+
+# Checked around the model for infer, publication and demo. Input audio at
+# another rate is resampled to 16 kHz, and the first channel of a multichannel
+# input is the one enhanced.
+contract:
+  inputs:
+    speech_mix:
+      kind: audio
+      label: Noisy Speech
+      sample_rate: 16000
+      channels: 1
+      normalize:
+        - first_channel
+  outputs:
+    enhanced:
+      kind: audio
+      label: Enhanced Speech
+      sample_rate: 16000
+      channels: 1
 
 provider:
   _target_: espnet3.systems.base.inference_provider.InferenceProvider

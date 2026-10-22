@@ -31,7 +31,7 @@ ${model_detail_section}
 ```python
 from espnet3.publication import InferenceModel
 
-${usage_load_call}
+model = InferenceModel.from_pretrained("${hf_repo}")
 result = model(sample)
 ```
 
