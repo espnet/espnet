@@ -14,7 +14,7 @@ locations. Review manifests, locks, completion markers, and merge semantics;
 reusing an output directory with a different item plan must fail clearly or be
 handled by an explicit migration.
 
-For model inference, implement the public [Inference API](../api/AGENT.md).
+For model inference, follow the [inference contract](../inference/AGENT.md).
 Model-level batching belongs in the model's batch hook; worker and shard
 parallelism belongs in the runner/provider. Do not capture a runner instance in
 a worker closure when the contract expects static worker functions and explicit

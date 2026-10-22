@@ -21,7 +21,7 @@ dispatcher.
 
 Use `systems/base/` for behavior shared across task families. Keep model-facing
 inference implementations in their task family and conform them to the public
-[Inference API](../api/AGENT.md). Do not put dataset sharding or output-writing
+[inference contract](../inference/AGENT.md). Do not put dataset sharding or output-writing
 logic inside a model's inference class; those belong to the runner/provider and
 writer contracts.
 

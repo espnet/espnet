@@ -24,7 +24,7 @@ Tools that support `AGENTS.md` should start at the repository-root
 
 - [Recipe guidance](egs3/AGENT.md) for `egs3/` work.
 - [ESPnet3 package index](espnet3/AGENT.md), then the matching guide for
-  [API](espnet3/api/AGENT.md), [components](espnet3/components/AGENT.md),
+  [inference](espnet3/inference/AGENT.md), [components](espnet3/components/AGENT.md),
   [parallel execution](espnet3/parallel/AGENT.md),
   [publication](espnet3/publication/AGENT.md),
   [systems](espnet3/systems/AGENT.md), or [utilities](espnet3/utils/AGENT.md).
@@ -80,15 +80,22 @@ including metrics, runners, publication bundles, and demos.
 ## Tests and changes
 
 Place tests alongside the corresponding `test/espnet3/` or recipe test area.
-Test observable behavior and failure cases; avoid changing a library interface
-only to make a test easier to write. Run focused checks first, then any broader
-CI command appropriate to the change.
+Every new or changed unit test set must cover at least one normal case (valid
+input gives the expected result) and one abnormal case (invalid input or a
+documented failure raises the expected error with an actionable message). Test
+observable behavior; avoid changing a library interface only to make a test
+easier to write.
+
+Before pushing, lint the changed files and run the pytest files that cover the
+changed behavior (see [CI guidance](ci/AGENT.md) for the commands). Fix failures
+rather than pushing them, and report any check you could not run. Then run any
+broader CI command appropriate to the change.
 
 Keep diffs focused. Do not commit credentials, machine-specific paths, or
 unrelated formatting changes. See [CI guidance](ci/AGENT.md) for the commands
 that match the repository's current checks.
 
-`.agent/` is shared project guidance. Code ownership and review requests for
+`.agents/` is shared project guidance. Code ownership and review requests for
 these files are declared in [`.github/CODEOWNERS`](../.github/CODEOWNERS);
 ordinary branch protection and review rules determine whether approval is
 required.
