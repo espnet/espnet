@@ -143,7 +143,7 @@ dataset:
 #                   TOKENIZER SETTING                    #
 ##########################################################
 # One shared vocabulary over the whole mixture, trained by
-# `espnet3.systems.esp2_s2t.system.OWSMSystem`.
+# `espnet3.systems.esp2_s2t.system.ESP2S2TSystem`.
 #   nlsyms                the OWSM special symbols, as a list, a file, or a
 #                         callable. Without them SentencePiece splits <eng> into
 #                         '<','e','n','g','>'.

@@ -43,7 +43,7 @@ def _reservoir_sample(lines: Iterable[str], k: int | None, seed: int):
     return kept, seen
 
 
-class OWSMSystem(BaseSystem):
+class ESP2S2TSystem(BaseSystem):
     """System for OWSM-style speech-to-text.
 
     ``espnet2.tasks.s2t.S2TTask`` trains on one vocabulary, like ASR, but its

@@ -13,7 +13,7 @@ from pathlib import Path
 import pytest
 from omegaconf import OmegaConf
 
-from espnet3.systems.esp2_s2t.system import OWSMSystem
+from espnet3.systems.esp2_s2t.system import ESP2S2TSystem
 
 REPO_ROOT = Path(__file__).resolve().parents[4]
 SYSTEM_SOURCE = REPO_ROOT / "espnet3" / "systems" / "esp2_s2t" / "system.py"
@@ -57,7 +57,7 @@ def test_package_does_not_depend_on_other_system_packages():
 def test_missing_nlsyms_is_rejected(tmp_path):
     config = _config(tmp_path)
     del config.tokenizer.nlsyms
-    system = OWSMSystem(training_config=config)
+    system = ESP2S2TSystem(training_config=config)
     with pytest.raises(RuntimeError, match="nlsyms"):
         system.train_tokenizer()
 
@@ -65,13 +65,13 @@ def test_missing_nlsyms_is_rejected(tmp_path):
 def test_nlsyms_can_come_from_a_file(tmp_path):
     symbols = tmp_path / "nlsyms.txt"
     symbols.write_text("<na>\n<nospeech>\n<eng>\n<asr>\n", encoding="utf-8")
-    system = OWSMSystem(training_config=_config(tmp_path, nlsyms=str(symbols)))
+    system = ESP2S2TSystem(training_config=_config(tmp_path, nlsyms=str(symbols)))
     assert system._special_symbols() == ["<na>", "<nospeech>", "<eng>", "<asr>"]
 
 
 def test_vocab_size_must_exceed_the_reserved_symbols(tmp_path):
     """The symbols occupy the vocabulary before a single piece is learned."""
-    system = OWSMSystem(training_config=_config(tmp_path, vocab_size=4))
+    system = ESP2S2TSystem(training_config=_config(tmp_path, vocab_size=4))
     with pytest.raises(RuntimeError, match="must exceed"):
         system.train_tokenizer()
 
@@ -83,7 +83,7 @@ def test_existing_training_text_is_reused(tmp_path):
     train_file.parent.mkdir(parents=True)
     train_file.write_text("<eng><asr><0.00> hello<1.00>", encoding="utf-8")
 
-    system = OWSMSystem(training_config=config)
+    system = ESP2S2TSystem(training_config=config)
     assert system._gather_text(train_file) == ["<eng><asr><0.00> hello<1.00>"]
 
 
@@ -93,7 +93,7 @@ def test_reuse_can_be_turned_off(tmp_path):
     train_file.parent.mkdir(parents=True)
     train_file.write_text("anything", encoding="utf-8")
 
-    system = OWSMSystem(training_config=config)
+    system = ESP2S2TSystem(training_config=config)
     with pytest.raises(RuntimeError, match="already exists"):
         system._gather_text(train_file)
 
@@ -115,7 +115,7 @@ def test_text_builder_is_instantiated_by_hydra(tmp_path, monkeypatch):
             "corpora": ["spgispeech", "must_c"],
         },
     )
-    system = OWSMSystem(training_config=config)
+    system = ESP2S2TSystem(training_config=config)
     train_file = tmp_path / "data" / "train_tokenizer" / "train.txt"
 
     texts = system._gather_text(train_file)
@@ -129,7 +129,7 @@ def test_text_builder_is_instantiated_by_hydra(tmp_path, monkeypatch):
 
 
 def test_missing_text_builder_target_is_rejected(tmp_path):
-    system = OWSMSystem(training_config=_config(tmp_path, text_builder={}))
+    system = ESP2S2TSystem(training_config=_config(tmp_path, text_builder={}))
     with pytest.raises(RuntimeError, match="_target_"):
         system._gather_text(tmp_path / "absent.txt")
 
@@ -152,7 +152,7 @@ def test_symbols_survive_tokenization(tmp_path):
         encoding="utf-8",
     )
 
-    OWSMSystem(training_config=config).train_tokenizer()
+    ESP2S2TSystem(training_config=config).train_tokenizer()
 
     model = Path(config.tokenizer.save_path) / "bpe.model"
     assert model.is_file()
@@ -190,7 +190,7 @@ def test_text_shapes_become_two_dimensional(tmp_path):
     _write_tokens(tmp_path, 50)
     config = _stats_config(tmp_path)
     config.tokenizer.vocab_scaled_shapes = ["text", "text_prev"]
-    system = OWSMSystem(training_config=config)
+    system = ESP2S2TSystem(training_config=config)
     streams = ("text", "text_prev", "text_ctc")
     stats = _write_shapes(tmp_path, "train", streams, "a 7\nb 9\n")
     _write_shapes(tmp_path, "valid", streams, "a 7\nb 9\n")
@@ -220,7 +220,7 @@ def test_no_stream_is_scaled_unless_the_recipe_asks(tmp_path):
     would make the stage raise wherever those files are not written.
     """
     _write_tokens(tmp_path, 50)
-    system = OWSMSystem(training_config=_stats_config(tmp_path))
+    system = ESP2S2TSystem(training_config=_stats_config(tmp_path))
     stats = _write_shapes(tmp_path, "train", ("text",))
     _write_shapes(tmp_path, "valid", ("text",))
 
@@ -233,7 +233,7 @@ def test_appending_vocab_size_is_idempotent(tmp_path):
     _write_tokens(tmp_path, 50)
     config = _stats_config(tmp_path)
     config.tokenizer.vocab_scaled_shapes = ["text", "text_prev"]
-    system = OWSMSystem(training_config=config)
+    system = ESP2S2TSystem(training_config=config)
     _write_shapes(tmp_path, "train", ("text", "text_prev"))
     stats = _write_shapes(tmp_path, "valid", ("text", "text_prev"))
 
@@ -248,7 +248,7 @@ def test_text_ctc_can_be_scaled_by_request(tmp_path):
     _write_tokens(tmp_path, 50)
     config = _stats_config(tmp_path)
     config.tokenizer.vocab_scaled_shapes = ["text", "text_prev", "text_ctc"]
-    system = OWSMSystem(training_config=config)
+    system = ESP2S2TSystem(training_config=config)
     streams = ("text", "text_prev", "text_ctc")
     stats = _write_shapes(tmp_path, "train", streams)
     _write_shapes(tmp_path, "valid", streams)
@@ -263,7 +263,7 @@ def test_a_configured_stream_without_a_shape_file_is_rejected(tmp_path):
     _write_tokens(tmp_path, 50)
     config = _stats_config(tmp_path)
     config.tokenizer.vocab_scaled_shapes = ["text", "text_prev"]
-    system = OWSMSystem(training_config=config)
+    system = ESP2S2TSystem(training_config=config)
     _write_shapes(tmp_path, "train", ("text",))
     _write_shapes(tmp_path, "valid", ("text", "text_prev"))
 
@@ -308,7 +308,7 @@ def test_gather_samples_and_reports(tmp_path, monkeypatch, caplog):
         sample_seed=7,
         text_builder={"_target_": "owsm_big_builder.build"},
     )
-    system = OWSMSystem(training_config=config)
+    system = ESP2S2TSystem(training_config=config)
     train_file = tmp_path / "data" / "train_tokenizer" / "train.txt"
 
     with caplog.at_level("INFO"):
@@ -332,7 +332,7 @@ def test_nlsyms_can_be_a_callable(tmp_path):
     sys.path.insert(0, str(tmp_path))
     try:
         config = _config(tmp_path, nlsyms={"_target_": "owsm_syms.symbols"})
-        system = OWSMSystem(training_config=config)
+        system = ESP2S2TSystem(training_config=config)
         assert system._special_symbols() == ["<na>", "<nospeech>", "<eng>", "<asr>"]
     finally:
         sys.path.remove(str(tmp_path))
