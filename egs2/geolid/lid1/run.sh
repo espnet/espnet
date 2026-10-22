@@ -23,6 +23,7 @@ for ((argpos=1; argpos<$#; argpos++)); do
             echo "$0: missing config '${!next_arg}'" >&2
             exit 2
         fi
+        # shellcheck source=/dev/null
         . "${!next_arg}"
     fi
 done
@@ -38,7 +39,7 @@ while [ $# -gt 0 ]; do
             echo "Combined preparation runs in stages 1-3; resume training at stage 4."
             exec ./lid.sh --help
             ;;
-        --*=*|[!\-]*) echo "$0: expected --option value, got '$1'" >&2; exit 2 ;;
+        --*=*|[!-]*) echo "$0: expected --option value, got '$1'" >&2; exit 2 ;;
     esac
     if [ $# -lt 2 ]; then
         echo "$0: missing value for $1" >&2
