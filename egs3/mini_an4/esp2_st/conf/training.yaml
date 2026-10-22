@@ -13,7 +13,7 @@
 #                  SYSTEM AND PATH SETTING               #
 ##########################################################
 system: espnet3.systems.esp2_st.system.ESP2STSystem
-task: espnet2.tasks.st.STTask
+task: espnet3.systems.esp2_st.task.STTask
 
 ##########################################################
 #                    DATASET DEFINITION                  #

@@ -17,9 +17,11 @@
 num_device: 1
 num_nodes: 1
 
-# Optional ESPnet task class path used by `get_espnet_model(...)`.
-# If unset, `model` is instantiated directly via Hydra.
-task:
+# The ESPnet task class used by `get_espnet_model(...)`. Unlike the ASR
+# template, which leaves this unset because its recipes choose between
+# tasks, every ST recipe builds an ESPnetSTModel, so the default is named
+# here; a recipe only has to override it to use another.
+task: espnet3.systems.esp2_st.task.STTask
 
 # Path scaffold relative to the recipe root.
 recipe_dir: .
