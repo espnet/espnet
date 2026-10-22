@@ -76,12 +76,13 @@ parallel:
 ##########################################################
 #                    MODEL AND OUTPUT                    #
 ##########################################################
-# The model is the system's `Inference` (espnet3.api.inference): it declares
-# what it takes and returns, so nothing below needs to say. Its arguments are
-# the ones `espnet2.bin.st_inference.Speech2Text` takes; `device` is added by
-# the provider.
+# Speech2TextShortSafe, not Speech2Text: egs2 does not length-filter test
+# sets, so one utterance too short to subsample would otherwise abort the
+# set. The adapter keeps it and scores a blank translation, as st.sh does.
+# Its arguments are the ones `espnet2.bin.st_inference.Speech2Text` takes;
+# `device` is added by the provider.
 model:
-  _target_: espnet3.systems.esp2_st.inference.Inference
+  _target_: espnet3.systems.esp2_st.src.backend.Speech2TextShortSafe
   # st_train_config: ${exp_dir}/config.yaml
   # st_model_file: ${exp_dir}/valid.acc.ave_10best.pth
   # beam_size: 10
@@ -91,16 +92,36 @@ model:
 # `measure` reads it from the data (`ref_key: dataset:text` in metrics.yaml),
 # so this stage does not copy it.
 
-# Only for a model that is not an `Inference`: the dataset field(s) passed to
-# it. If `dataset[i]` returns `{"speech": ..., "text": ..., "utt_id": ...}` and
-# `input_key: speech`, inference uses `dataset[i]["speech"]` as model input;
-# `input_key: [speech, text]` calls `model(speech=..., text=...)`. An
-# `Inference` declares its inputs, so leave this unset.
+# The dataset field(s) passed to the model. If `dataset[i]` returns
+# `{"speech": ..., "text": ..., "utt_id": ...}` and `input_key: speech`,
+# inference uses `dataset[i]["speech"]` as model input. It is not derived
+# from `contract.inputs`, so it has to agree with them.
+input_key: speech
+
+# What the runner is handed and what it must return. `speech` reaches the
+# model as one mono waveform at this rate; a recording at another rate is
+# resampled (`rate_policy` defaults to resample) and a multichannel one is
+# reduced by `first_channel` before the `channels: 1` check.
 #
-# input_key: speech
+# The rate is explicit because `Speech2Text` exposes no `sample_rate` of its
+# own. Both recipes train at 16 kHz; a recipe whose frontend differs must
+# say so here.
+contract:
+  inputs:
+    speech:
+      kind: audio
+      label: Input Audio
+      sample_rate: 16000
+      channels: 1
+      normalize:
+      - first_channel
+  outputs:
+    text:
+      kind: text
+      label: Translation
 
 # Optional output key list.
-# These keys must exist in the dict returned by `output_fn`.
+# These keys must exist in the runner's named result.
 # Only the fields listed here are written as SCP files under
 # `${inference_dir}/<test_name>/`.
 # If omitted, keys are inferred from the first returned sample except for
@@ -179,4 +200,4 @@ batch_size: null
 provider:
   _target_: espnet3.systems.base.inference_provider.InferenceProvider
 runner:
-  _target_: espnet3.systems.base.inference_runner.InferenceRunner
+  _target_: espnet3.systems.esp2_st.src.inference_runner.ESP2STInferenceRunner

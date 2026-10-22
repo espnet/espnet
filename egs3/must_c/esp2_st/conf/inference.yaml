@@ -48,12 +48,12 @@ dataset:
 ##########################################################
 #                    MODEL AND OUTPUT                    #
 ##########################################################
-# The system's `Inference`: it declares what it takes and returns, so this
-# config needs no `input_key` or `output_fn`. It also scores the 54
-# tst-COMMON utterances that are too short for conv2d subsampling rather
-# than raising on them.
+# Only the checkpoint and beam differ from the template, which supplies the
+# backend adapter, `input_key`, the contract and the ST runner. The adapter
+# is what keeps the 54 tst-COMMON utterances that are too short for conv2d
+# subsampling, scoring each a blank translation instead of raising.
 model:
-  _target_: espnet3.systems.esp2_st.inference.Inference
+  _target_: espnet3.systems.esp2_st.src.backend.Speech2TextShortSafe
   st_train_config: ${exp_dir}/config.yaml
   # Weight average over the top-10 `valid/acc` checkpoints, written by
   # `AverageCheckpointsCallback` (espnet3/components/callbacks/default_callbacks.py).
