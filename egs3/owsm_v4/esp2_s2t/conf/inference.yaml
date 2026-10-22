@@ -3,13 +3,16 @@
 # Defaults come from egs3/TEMPLATE/esp2_s2t/conf/inference.yaml.
 
 model:
-  _target_: espnet3.systems.esp2_s2t.inference.Inference
-  s2t_train_config: ${exp_dir}/config.yaml
-  s2t_model_file: ${exp_dir}/valid.acc.ave.pth
-  beam_size: 5
-  ctc_weight: 0.0
-  maxlenratio: 0.0
-  nbest: 1
+  _target_: espnet3.systems.esp2_s2t.src.longform_backend.S2TLongFormBackend
+  _recursive_: false
+  model:
+    _target_: espnet2.bin.s2t_inference.Speech2Text
+    s2t_train_config: ${exp_dir}/config.yaml
+    s2t_model_file: ${exp_dir}/valid.acc.ave.pth
+    beam_size: 5
+    ctc_weight: 0.0
+    maxlenratio: 0.0
+    nbest: 1
 
 cache:
   cache_dir: ${oc.env:OWSM_CACHE,${recipe_dir}/data/hf}

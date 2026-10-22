@@ -12,6 +12,7 @@ into the contracted ``text`` and ``segments``.
 from __future__ import annotations
 
 import logging
+from collections.abc import Mapping
 from typing import Any, Iterator, Optional, Sequence
 
 import numpy as np
@@ -29,7 +30,13 @@ class S2TLongFormBackend:
     """Decode a recording of any length with an OWSM-style checkpoint.
 
     Args:
-        model: A constructed ``espnet2.bin.s2t_inference.Speech2Text``.
+        model: A constructed ``espnet2.bin.s2t_inference.Speech2Text``, or the
+            config to build one from. ``InferenceProvider`` calls
+            ``instantiate(config.model, device=device)``, which reaches this
+            wrapper rather than the checkpoint, so the config form is built
+            here with ``device`` passed on. Use ``_recursive_: false`` on this
+            node so the inner config arrives unbuilt.
+        device: Where to put the checkpoint, when one is built here.
         **unused: Ignored, so a config may carry keys this does not read.
 
     Examples:
@@ -38,7 +45,13 @@ class S2TLongFormBackend:
         [(0.0, 4.2, 'hello there')]
     """
 
-    def __init__(self, model: Any, **unused: Any) -> None:
+    def __init__(
+        self, model: Any, device: Optional[str] = None, **unused: Any
+    ) -> None:
+        if isinstance(model, Mapping) and "_target_" in model:
+            from hydra.utils import instantiate
+
+            model = instantiate(model, device=device)
         self.model = model
 
     @property
