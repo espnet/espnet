@@ -3,7 +3,7 @@
 from omegaconf import OmegaConf
 
 from espnet3.systems.base.system import BaseSystem
-from espnet3.systems.esp2_enh import EnhancementSystem
+from espnet3.systems.esp2_enh import ESP2EnhSystem
 
 
 def test_enhancement_system_keeps_stage_configs(tmp_path):
@@ -11,7 +11,7 @@ def test_enhancement_system_keeps_stage_configs(tmp_path):
     infer_cfg = OmegaConf.create({"inference_dir": str(tmp_path / "infer")})
     metrics_cfg = OmegaConf.create({"metrics": []})
 
-    system = EnhancementSystem(
+    system = ESP2EnhSystem(
         training_config=train_cfg,
         inference_config=infer_cfg,
         metrics_config=metrics_cfg,

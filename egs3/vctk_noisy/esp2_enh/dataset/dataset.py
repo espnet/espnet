@@ -10,8 +10,8 @@ import numpy as np
 import soundfile as sf
 
 from egs3.vctk_noisy.esp2_enh.dataset.builder import resolve_dataset_dir
-from espnet3.api.inference import Field
 from espnet3.components.data.base_dataset import BaseDataset
+from espnet3.contract import Field
 
 # Same speaker hold-out as egs2/vctk_noisy/enh1/local/vctk_data_prep.sh
 _VALID_SPEAKERS = frozenset({"p226", "p287"})
