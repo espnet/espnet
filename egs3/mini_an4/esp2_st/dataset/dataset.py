@@ -11,8 +11,8 @@ import numpy as np
 import soundfile as sf
 
 from egs3.mini_an4.esp2_st.dataset.builder import MiniAn4STBuilder
-from espnet3.contract import Field
 from espnet3.components.data.base_dataset import BaseDataset
+from espnet3.contract import Field
 from espnet3.utils.config_utils import load_config_with_defaults
 
 _CONFIG_RESOURCE = resources.files(__package__).joinpath("config.yaml")
