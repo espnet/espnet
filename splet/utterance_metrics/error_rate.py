@@ -23,13 +23,20 @@ from typing import Any, Callable, Dict, List, Optional
 from splet.alignment import levenshtein_alignment, resolve_backend, resolve_costs
 from splet.normalizers import build_normalizer
 
+try:
+    import sentencepiece as _sentencepiece
+except ImportError:  # pragma: no cover - exercised by the no-extras CI job
+    _sentencepiece = None
+
 
 def _word_tokenizer() -> Callable[[str], List[str]]:
     """Split on whitespace."""
     return lambda text: text.split()
 
 
-def _char_tokenizer(remove_space: bool = False) -> Callable[[str], List[str]]:
+def _char_tokenizer(
+    remove_space: bool = False, space_symbol: Optional[str] = None
+) -> Callable[[str], List[str]]:
     """Split into characters.
 
     Args:
@@ -38,17 +45,86 @@ def _char_tokenizer(remove_space: bool = False) -> Callable[[str], List[str]]:
             therefore what the current espnet3 CER reports. Recipes that
             measure CER with spaces removed need this set to True to reproduce
             their published numbers.
+        space_symbol: Emit this token for a space instead of the space
+            itself. ``espnet2.text.char_tokenizer`` uses ``<space>``, and
+            a recipe scored through ``tokenize_text`` counts that symbol
+            in its CER denominator.
+
+    Raises:
+        ValueError: If both arguments are given, which asks for a space
+            to be dropped and kept at once.
+    """
+    if remove_space and space_symbol is not None:
+        raise ValueError(
+            "remove_space and space_symbol cannot both be set: one drops "
+            "the space, the other keeps it under a name"
+        )
+
+    def _tokenize(text: str) -> List[str]:
+        if remove_space:
+            return list("".join(text.split()))
+        if space_symbol is None:
+            return list(text)
+        return [space_symbol if ch == " " else ch for ch in text]
+
+    return _tokenize
+
+
+def _noascii_tokenizer() -> Callable[[str], List[str]]:
+    """Split into characters, but keep runs of ASCII whole.
+
+    sclite's ``-c NOASCII``, whose documentation says it "does not split
+    ASCII words". It is finer than that, which matters for code-switched
+    text: the split is per run, not per word, so ``AI的`` is two tokens
+    (``AI``, ``的``) rather than one or three. Verified against sclite
+    2.10, which also keeps trailing punctuation in the ASCII run.
     """
 
     def _tokenize(text: str) -> List[str]:
-        return list("".join(text.split()) if remove_space else text)
+        tokens: List[str] = []
+        for word in text.split():
+            run = ""
+            for character in word:
+                if character.isascii():
+                    run += character
+                    continue
+                if run:
+                    tokens.append(run)
+                    run = ""
+                tokens.append(character)
+            if run:
+                tokens.append(run)
+        return tokens
 
     return _tokenize
+
+
+def _sentencepiece_tokenizer(model: str) -> Callable[[str], List[str]]:
+    """Split into the pieces of a SentencePiece model.
+
+    Args:
+        model: Path to the ``.model`` file. A token error rate is only
+            comparable against another one from the same model, so there
+            is no default.
+
+    Raises:
+        ImportError: If sentencepiece is not installed.
+    """
+    if _sentencepiece is None:
+        raise ImportError(
+            "tokenizer='sentencepiece' requires sentencepiece: "
+            "pip install sentencepiece"
+        )
+    processor = _sentencepiece.SentencePieceProcessor()
+    processor.Load(model)
+    return lambda text: processor.EncodeAsPieces(text)
 
 
 TOKENIZER_CHOICES: Dict[str, Callable[..., Callable[[str], List[str]]]] = {
     "word": _word_tokenizer,
     "char": _char_tokenizer,
+    "noascii": _noascii_tokenizer,
+    "sentencepiece": _sentencepiece_tokenizer,
 }
 
 #: How a configured case policy folds the text it is given. ``fold`` is

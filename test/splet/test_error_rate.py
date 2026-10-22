@@ -238,3 +238,89 @@ def test_case_and_optional_deletion_are_recorded_in_the_metadata():
     block = metadata(modules)["metrics"]["wer"]
     assert block["case"] == "sensitive"
     assert block["optional_deletion_is_correct"] is True
+
+
+@pytest.mark.parametrize(
+    "text, tokens",
+    [
+        ("hello world", ["hello", "world"]),
+        ("世界", ["世", "界"]),
+        ("hello 世界", ["hello", "世", "界"]),
+        # The split is per ASCII run, not per word: sclite scores "AI的" as
+        # two tokens, which is the case that decides the rule.
+        ("AI的", ["AI", "的"]),
+        ("的AI的", ["的", "AI", "的"]),
+        ("世hello界", ["世", "hello", "界"]),
+        # Punctuation is ASCII, so it stays inside the run.
+        ("ab,的", ["ab,", "的"]),
+    ],
+)
+def test_noascii_tokenization_matches_sclite(text, tokens):
+    """Each case was scored by sclite 2.10 with -c NOASCII; N is len(tokens)."""
+    from splet.utterance_metrics.error_rate import TOKENIZER_CHOICES
+
+    assert TOKENIZER_CHOICES["noascii"]()(text) == tokens
+
+
+def test_char_tokenizer_can_name_the_space():
+    state = error_rate_setup(
+        metric_id="cer", tokenizer="char", tokenizer_conf={"space_symbol": "<space>"}
+    )
+    result = error_rate_metric(state, "a b", "a b")
+    assert result["cer_ref_len"] == 3
+    assert result["cer"] == 0.0
+
+
+def test_char_tokenizer_refuses_to_both_drop_and_name_the_space():
+    with pytest.raises(ValueError, match="cannot both be set"):
+        error_rate_setup(
+            metric_id="cer",
+            tokenizer="char",
+            tokenizer_conf={"remove_space": True, "space_symbol": "<space>"},
+        )
+
+
+def test_token_error_rate_is_registered_and_spelled_out():
+    """Not "ter": sacrebleu's TER is translation edit rate, a different thing."""
+    from splet.metric_registry import METRIC_CHOICES
+
+    spec = METRIC_CHOICES["token_error_rate"]
+    assert spec.defaults == {"tokenizer": "sentencepiece"}
+    assert spec.requires == ("reference",)
+    assert "ter" not in METRIC_CHOICES
+
+
+def test_sentencepiece_token_error_rate(tmp_path):
+    spm = pytest.importorskip("sentencepiece")
+    corpus = tmp_path / "corpus.txt"
+    corpus.write_text(
+        "\n".join(["the cat sat on the mat", "a dog ran fast", "hello world"] * 40),
+        encoding="utf-8",
+    )
+    spm.SentencePieceTrainer.Train(
+        input=str(corpus),
+        model_prefix=str(tmp_path / "m"),
+        vocab_size=50,
+        character_coverage=1.0,
+        # The exact vocabulary a tiny corpus supports varies with the
+        # sentencepiece version; without this the trainer refuses rather
+        # than shrinking.
+        hard_vocab_limit=False,
+    )
+    state = error_rate_setup(
+        metric_id="token_error_rate",
+        tokenizer="sentencepiece",
+        tokenizer_conf={"model": str(tmp_path / "m.model")},
+    )
+    same = error_rate_metric(state, "the cat sat", "the cat sat")
+    assert same["token_error_rate"] == 0.0
+    assert same["token_error_rate_ref_len"] > 0
+
+    differ = error_rate_metric(state, "the dog sat", "the cat sat")
+    assert differ["token_error_rate_errors"] > 0
+
+
+def test_sentencepiece_needs_a_model():
+    pytest.importorskip("sentencepiece")
+    with pytest.raises(TypeError):
+        error_rate_setup(tokenizer="sentencepiece")
