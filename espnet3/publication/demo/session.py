@@ -9,6 +9,7 @@ from typing import Any
 
 from omegaconf import DictConfig, OmegaConf
 
+from espnet3.contract.kinds import KINDS
 from espnet3.publication.demo.assets import (
     DEFAULT_UI_ASSETS,
     UIAssetRegistry,
@@ -81,13 +82,34 @@ class DemoSession:
         call_args = OmegaConf.to_container(mapping, resolve=True)
         self.call_args = call_args
 
-        self.input_specs = [
-            OmegaConf.to_container(spec, resolve=True)
-            for spec in self.demo_cfg.ui.inputs
-        ]
-        self.output_specs = [
-            OmegaConf.to_container(spec, resolve=True)
-            for spec in self.demo_cfg.ui.outputs
+        contract = getattr(self.model, "contract", None)
+        input_specs = self.demo_cfg.ui.get("inputs")
+        output_specs = self.demo_cfg.ui.get("outputs")
+        self.input_specs = (
+            [OmegaConf.to_container(spec, resolve=True) for spec in input_specs]
+            if input_specs is not None
+            else self._specs_from_contract(contract, "inputs")
+        )
+        self.output_specs = (
+            [OmegaConf.to_container(spec, resolve=True) for spec in output_specs]
+            if output_specs is not None
+            else self._specs_from_contract(contract, "outputs")
+        )
+
+    @staticmethod
+    def _specs_from_contract(contract, direction: str) -> list[dict[str, Any]]:
+        """List the UI specs of a contract's ``inputs`` or ``outputs``."""
+        if contract is None:
+            raise ValueError(
+                f"Demo ui.{direction} requires an inference contract or explicit specs"
+            )
+        return [
+            {
+                "key": spec.name,
+                "type": spec.kind,
+                "label": spec.label,
+            }
+            for spec in getattr(contract, direction)
         ]
 
     def build_input_component(self, spec: dict[str, Any]) -> Any:
@@ -137,6 +159,15 @@ class DemoSession:
             if output_keys is not None
             else [spec["key"] for spec in resolved_output_specs]
         )
+        output_kinds = {
+            spec["key"]: KINDS.get(spec["type"])
+            for spec in [*self.output_specs, *resolved_output_specs]
+        }
+        contract = getattr(self.model, "contract", None)
+        if contract is not None:
+            output_kinds.update(
+                {field.name: KINDS[field.kind] for field in contract.outputs}
+            )
 
         def run_inference(*values: Any) -> Any:
             """Run the model on the UI values and return its UI outputs."""
@@ -163,6 +194,9 @@ class DemoSession:
                 outputs = []
                 for key in resolved_output_keys:
                     value = result[key] if isinstance(result, dict) else result
+                    kind = output_kinds.get(key)
+                    if kind is not None:
+                        value = kind.to_demo_output(value)
                     outputs.append(value)
                 if len(outputs) == 1:
                     outputs = outputs[0]
@@ -248,11 +282,14 @@ def _build_demo_model(
     if not dir_or_tag:
         raise ValueError("demo config must contain model.dir_or_tag.")
     model_trust_user_code = bool(model_cfg.get("trust_user_code", False))
+    device = model_cfg.get("device")
+    device_kwargs = {"device": device} if device is not None else {}
     logger.info(
         "Building demo inference model | dir_or_tag=%s trust_user_code=%s "
-        "base_dir=%s",
+        "device=%s base_dir=%s",
         dir_or_tag,
         model_trust_user_code,
+        device,
         demo_dir,
     )
     raw_ref = str(dir_or_tag)
@@ -271,8 +308,10 @@ def _build_demo_model(
         return InferenceModel.from_packed(
             resolved_candidate,
             trust_user_code=model_trust_user_code,
+            **device_kwargs,
         )
     return InferenceModel.from_pretrained(
         raw_ref,
         trust_user_code=model_trust_user_code,
+        **device_kwargs,
     )
