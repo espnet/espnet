@@ -233,16 +233,8 @@ def test_forward_batch_with_batched_inputs():
     ]
 
 
-def test_forward_batch_falls_back_to_single_items(caplog):
-    """A model or output_fn that takes no batch is run one item at a time.
-
-    `batch_size` is set by default in the ASR recipes, and not every
-    `Speech2Text` (the transducer one, for instance) accepts a list, so the
-    runner must degrade to single-item calls rather than fail the shard. It
-    says so once.
-    """
-    import logging
-
+def test_forward_batch_failure_propagates():
+    """A model that rejects a batch fails without per-item retry."""
     dataset = [
         {"utt_id": "utt1", "speech": "audio1", "text": "ref1"},
         {"utt_id": "utt2", "speech": "audio2", "text": "ref2"},
@@ -255,14 +247,7 @@ def test_forward_batch_falls_back_to_single_items(caplog):
             return [[f"hyp-{speech}"]]
 
     output_path = f"{__name__}._output_fn"
-    with caplog.at_level(logging.WARNING):
-        out = InferenceRunner.forward(
-            [0, 1],
-            dataset=dataset,
-            model=DummyModel(),
-            input_key="speech",
-            output_fn_path=output_path,
-        )
+    with pytest.raises(TypeError, match="single utterance"):
         InferenceRunner.forward(
             [0, 1],
             dataset=dataset,
@@ -270,12 +255,6 @@ def test_forward_batch_falls_back_to_single_items(caplog):
             input_key="speech",
             output_fn_path=output_path,
         )
-    assert out == [
-        {"utt_id": "utt1", "hyp": "hyp-audio1", "ref": "ref1"},
-        {"utt_id": "utt2", "hyp": "hyp-audio2", "ref": "ref2"},
-    ]
-    notes = [r for r in caplog.records if "one at a time" in r.getMessage()]
-    assert len(notes) == 1, [r.getMessage() for r in caplog.records]
 
 
 def test_forward_requires_fields():
@@ -349,7 +328,7 @@ class NativeASRProvider(InferenceProvider):
 
         return [
             {"utt_id": f"u{i}", "speech": np.sin(np.arange(2000 + i * 160) / 20)}
-            for i in range(2)
+            for i in range(3)
         ]
 
 
@@ -396,7 +375,7 @@ def test_native_asr_recipe_writes_the_backends_text(tmp_path, batch_size):
             "batch_size": batch_size,
             "provider": {"_target_": f"{__name__}.NativeASRProvider"},
             "runner": {
-                "_target_": "espnet3.systems.base.inference_runner.InferenceRunner"
+                "_target_": "espnet3.systems.esp2_asr.inference.ASRInferenceRunner"
             },
             "parallel": {"env": "local", "n_workers": 1},
         }
@@ -418,18 +397,48 @@ def test_native_asr_recipe_writes_the_backends_text(tmp_path, batch_size):
 
     torch.save(model.asr_model.state_dict(), checkpoint)
     config.model.asr_model_file = str(checkpoint)
-    # The retained recipe demo builds the same native model from its archive.
-    from egs3.TEMPLATE.esp2_asr.src.app import build_model
+    # The publication API should decode the packed model through the same
+    # inference config and output formatter as the recipe's infer stage.
+    from espnet3.publication import InferenceModel
 
     pack = tmp_path / "model_pack"
     (pack / "conf").mkdir(parents=True)
     OmegaConf.save(config, pack / "conf" / "inference.yaml")
-    demo_model = build_model(
-        tmp_path, OmegaConf.create({"dir_or_tag": "model_pack", "device": "cpu"})
+    OmegaConf.save(
+        OmegaConf.create(
+            {
+                "schema_version": 1,
+                "yaml_files": {"inference_config": "conf/inference.yaml"},
+            }
+        ),
+        pack / "meta.yaml",
     )
+    publication_model = InferenceModel.from_packed(pack, trust_user_code=True)
+    from espnet3.publication.demo.assets import DEFAULT_UI_ASSETS
+    from espnet3.publication.demo.session import DemoSession
+
+    demo = DemoSession(
+        pack,
+        OmegaConf.create(
+            {"model": {"call_args": {}}, "ui": {"title": None, "description": None}}
+        ),
+        publication_model,
+        DEFAULT_UI_ASSETS.clone(),
+    )
+    callback = demo.create_inference_fn(demo.input_specs, demo.output_specs)
+    samples = NativeASRProvider.build_dataset(config)
+    batch_results = publication_model.forward_batch(samples)
+    assert len(batch_results) == len(samples)
+    assert [f"{item['utt_id']} {item['text']}" for item in batch_results] == expected
+    reversed_results = publication_model.forward_batch(list(reversed(samples)))
+    assert [item["text"] for item in reversed_results] == [
+        item["text"] for item in reversed(batch_results)
+    ]
     for item, expected_line in zip(NativeASRProvider.build_dataset(config), expected):
-        text = demo_model(speech=item["speech"])[0][0] or ""
-        assert f"{item['utt_id']} {text}" == expected_line
+        result = publication_model(item, idx=item["utt_id"])
+        assert isinstance(result, dict)
+        assert f"{result['utt_id']} {result['text']}" == expected_line
+        assert callback((16000, item["speech"])) == result["text"]
     try:
         infer(config)
         assert (
@@ -437,3 +446,14 @@ def test_native_asr_recipe_writes_the_backends_text(tmp_path, batch_size):
         ).read_text().splitlines() == expected
     finally:
         set_parallel(None)
+
+    from hydra.errors import InstantiationException
+
+    checkpoint.unlink()
+    with pytest.raises((FileNotFoundError, InstantiationException)) as caught:
+        InferenceModel.from_packed(pack, trust_user_code=True)
+    cause = caught.value
+    while cause.__cause__ is not None:
+        cause = cause.__cause__
+    assert isinstance(cause, FileNotFoundError)
+    assert cause.filename == str(checkpoint)

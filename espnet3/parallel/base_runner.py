@@ -48,11 +48,11 @@ class BaseRunner(ABC):
     This class handles:
         - Switching among local, parallel, and asynchronous (distributed) modes.
         - Injecting per-worker environments supplied by an :class:`EnvironmentProvider`.
-        - Keeping ``forward`` as a ``@staticmethod`` for pickle-safety.
+        - Calling ``forward`` without capturing a runner instance.
 
     Subclass contract:
-        - Implement ``@staticmethod forward(idx, dataset, model, **env) -> Any``
-          without capturing ``self``. ``idx`` may be a single index or a batch
+        - Implement ``forward(idx, dataset, model, **env) -> Any`` as a static
+          or class method without capturing ``self``. ``idx`` may be an index or a batch
           of indices depending on ``batch_size``.
         - Provide an :class:`EnvironmentProvider` that builds the required env
           (e.g., dataset/model) for local and worker executions.
@@ -95,8 +95,7 @@ class BaseRunner(ABC):
     def forward(idx: int | Iterable[int], dataset, model, **env) -> Any:
         """Compute items for the given index or batch (to be implemented by subclasses).
 
-        Keep this as a ``@staticmethod`` so that it is pickle-safe for Dask
-        and does not capture ``self``.
+        Use a static or class method so Dask does not capture ``self``.
 
         Args:
             idx (int | Iterable[int]): The input index or batch of indices to process.
@@ -110,7 +109,7 @@ class BaseRunner(ABC):
         Raises:
             NotImplementedError: Always in the base class; implement in subclass.
 
-        Example:
+        Examples:
             >>> class MyRunner(BaseRunner):
             ...     @staticmethod
             ...     def forward(idx, dataset, model, **env):
