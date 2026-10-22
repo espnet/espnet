@@ -40,6 +40,10 @@ TEXTS = [
     "<noise> only",
     "a <noise> ",
     "  <unk>  x  ",
+    # espnet/espnet#6863: a marker strictly inside a word leaves no space
+    # behind at all, which is a different path through _merge_spaces than
+    # a marker surrounded by them.
+    "hel<noise>lo world",
 ]
 
 
@@ -130,3 +134,28 @@ def test_removing_punctuation_before_markers_destroys_them():
         [{"name": "remove_tokens"}, {"name": "remove_punctuation"}]
     )
     assert "noise" not in right("a <noise> b")
+
+
+def test_satisfies_the_assertions_of_espnet_6863():
+    """The upstream fix this reproduces, checked against its own test.
+
+    espnet/espnet#6863 made CharTokenizer merge the spaces a removed marker
+    leaves behind, because the character error rate was charging one error
+    per tag in the reference while the word error rate of the same pair was
+    zero. SPLET has to agree with the fixed tokenizer, not the old one, so
+    its four assertions are pinned here as well: the same expectation that
+    it checks, reached through the SPLET pipeline.
+    """
+    expected = CharTokenizer(
+        non_linguistic_symbols=["<noise>"], remove_non_linguistic_symbols=True
+    ).text2tokens("hello world")
+    normalize = remove_tokens_setup(["<noise>"], match="substring")
+    tokenize = TOKENIZER_CHOICES["char"](space_symbol="<space>")
+
+    for text in (
+        "hello <noise> world",
+        "<noise> hello world <noise>",
+        "hello <noise><noise> world",
+        "hel<noise>lo world",
+    ):
+        assert tokenize(normalize(text)) == expected, text
