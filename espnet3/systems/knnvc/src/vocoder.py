@@ -129,7 +129,7 @@ class KNNVCGenerator(torch.nn.Module):
     ``Linear(hubert_dim, hifi_dim)`` applied to the WavLM features before the
     first convolution. This module reproduces that layout on top of
     ``espnet2.gan_tts.hifigan.HiFiGANGenerator`` so the released checkpoints
-    can be loaded (see :mod:`~espnet3.systems.knnvc.checkpoint`) and
+    can be loaded (see :mod:`~espnet3.systems.knnvc.src.checkpoint`) and
     so training uses the same network as the paper.
 
     Args:

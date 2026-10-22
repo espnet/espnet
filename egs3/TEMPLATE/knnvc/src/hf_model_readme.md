@@ -57,7 +57,12 @@ converted = result["wav"]                   # 16 kHz mono numpy array
 ```
 
 The sample is a dict because the model has several inputs; its keys are the
-`input_key` entries of the bundled inference config.
+`input_key` entries of the bundled inference config. `reference_speech` must
+be a list of utterances (each a 16 kHz array, an `Audio`, a `(rate, samples)`
+pair or a path); the bundled contract checks every input and returns the
+result as an `espnet3` `Audio` under `wav`. That contract registers a
+recipe kind from `egs3.TEMPLATE.knnvc.src.contracts`, so the bundle loads
+only with `trust_user_code=True`.
 
 The WavLM-Large checkpoint is fetched from the kNN-VC release on first use;
 set `wavlm_checkpoint` in the bundled inference config to a local copy to

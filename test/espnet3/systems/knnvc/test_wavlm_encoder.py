@@ -6,7 +6,7 @@ from pathlib import Path
 import pytest
 import torch
 
-from espnet3.systems.knnvc.wavlm_encoder import WavLMEncoder
+from espnet3.systems.knnvc.src.wavlm_encoder import WavLMEncoder
 
 # ===============================================================
 # Test Case Summary
@@ -59,7 +59,7 @@ def test_rejects_layer_beyond_checkpoint_depth(tmp_path):
 
 def test_encoder_module_path_is_stable():
     """The recipe configs name this class by dotted path; keep it importable."""
-    assert WavLMEncoder.__module__ == "espnet3.systems.knnvc.wavlm_encoder"
+    assert WavLMEncoder.__module__ == "espnet3.systems.knnvc.src.wavlm_encoder"
     assert Path(WavLMEncoder.__module__.replace(".", "/") + ".py").name
     assert WavLMEncoder.sample_rate == 16000
     assert WavLMEncoder.hop_length == 320

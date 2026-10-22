@@ -42,7 +42,7 @@ dataset:
         segment_frames: 8
 
 model:
-  _target_: espnet3.systems.knnvc.vocoder.KNNVCVocoderModel
+  _target_: espnet3.systems.knnvc.src.vocoder.KNNVCVocoderModel
   generator:
     in_channels: 32
     projection_channels: 8

@@ -20,7 +20,7 @@ The model logic is unchanged -- only formatting, to satisfy ESPnet's linters
 loads via ``WavLM(WavLMConfig(ckpt["cfg"]))`` and reproduces the upstream
 features.
 
-Use :class:`espnet3.systems.knnvc.wavlm_encoder.WavLMEncoder` rather
+Use :class:`espnet3.systems.knnvc.src.wavlm_encoder.WavLMEncoder` rather
 than these classes directly.
 """
 

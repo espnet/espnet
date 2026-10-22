@@ -22,9 +22,11 @@ from typing import Any, Dict, List, Optional
 
 import numpy as np
 import soundfile as sf
-from torch.utils.data import Dataset as TorchDataset
 
+import egs3.TEMPLATE.knnvc.src.contracts  # noqa: F401  registers the kinds below
 from egs3.librispeech_100.knnvc.dataset.builder import resolve_source_root
+from espnet3.components.data.base_dataset import BaseDataset
+from espnet3.contract import Field
 from espnet3.utils.config_utils import load_config_with_defaults
 
 _CONFIG_RESOURCE = resources.files(__package__).joinpath("config.yaml")
@@ -39,6 +41,19 @@ _KINDS = ("audio", "vocoder", "conversion")
 _PREMATCH_POOLS = ("chapter", "speaker")
 _SUBSETS = (None, "train", "valid")
 FEATURE_SUFFIX = ".npy"
+
+# What one item of each view holds, as `BaseDataset` checks it.
+_FIELDS = {
+    "audio": (Field("speech", "audio"),),
+    "vocoder": (Field("feats", "features"), Field("speech", "audio")),
+    "conversion": (
+        Field("speech", "audio"),
+        Field("reference_speech", "reference_audio"),
+        Field("target_speaker", "text"),
+        Field("pair_id", "text"),
+        Field("text", "text"),
+    ),
+}
 
 
 @dataclass(frozen=True)
@@ -112,7 +127,7 @@ def _read_audio(path: Path) -> np.ndarray:
     return np.ascontiguousarray(array, dtype=np.float32)
 
 
-class LibriSpeech100Dataset(TorchDataset):
+class LibriSpeech100Dataset(BaseDataset):
     """LibriSpeech dataset for the kNN-VC recipe.
 
     Args:
@@ -143,13 +158,17 @@ class LibriSpeech100Dataset(TorchDataset):
         max_reference_seconds: Cap on the total duration of the target
             speaker's reference utterances (``conversion`` only).
 
-    Item contract:
+    Item contract (``fields``, set per ``kind``; the first item of every
+    instance is checked against it):
 
     - ``kind="audio"``: ``{"speech": float32 (samples,)}``;
     - ``kind="vocoder"``: ``{"feats": float32 (frames, dim), "speech": float32
-      (frames * hop_length,)}``;
+      (frames * hop_length,)}`` (``feats`` is the ``features`` kind of
+      ``egs3.TEMPLATE.knnvc.src.contracts``);
     - ``kind="conversion"``: ``{"speech", "reference_speech": list[array],
-      "target_speaker": str, "pair_id": str, "text": str}``.
+      "target_speaker": str, "pair_id": str, "text": str}``
+      (``reference_speech`` is its ``reference_audio`` kind). ``pair_id`` is
+      the sample identifier (``idx_key``) of the ``infer`` stage.
 
     Raises:
         ValueError: On unknown ``split`` / ``kind`` / ``subset`` or when
@@ -200,6 +219,7 @@ class LibriSpeech100Dataset(TorchDataset):
                 f"Expected one of: {_PREMATCH_POOLS}"
             )
         self.kind = kind
+        self.fields = _FIELDS[kind]
         self.prematch_pool = prematch_pool
         self.hop_length = _HOP_LENGTH
         self.sample_rate = _SAMPLE_RATE

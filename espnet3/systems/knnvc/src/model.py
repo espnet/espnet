@@ -14,13 +14,13 @@ import torchaudio
 from hydra.utils import instantiate
 from omegaconf import OmegaConf
 
-from espnet3.systems.knnvc.checkpoint import load_generator_state_dict
-from espnet3.systems.knnvc.matcher import match_features
-from espnet3.systems.knnvc.vocoder import (
+from espnet3.systems.knnvc.src.checkpoint import load_generator_state_dict
+from espnet3.systems.knnvc.src.matcher import match_features
+from espnet3.systems.knnvc.src.vocoder import (
     KNNVCGenerator,
     build_generator_params,
 )
-from espnet3.systems.knnvc.wavlm_encoder import WavLMEncoder
+from espnet3.systems.knnvc.src.wavlm_encoder import WavLMEncoder
 
 logger = logging.getLogger(__name__)
 
@@ -31,22 +31,23 @@ _MIN_LOUDNESS_SECONDS = 0.4
 class KNNVCModel:
     """Any-to-any voice conversion with kNN-VC, callable per utterance.
 
-    This is the ``model:`` target of the ``infer`` stage. ESPnet3's
-    ``InferenceRunner`` calls it as ``model(**inputs)`` with the dataset fields
-    named by ``inference_config.input_key``. A recipe's ``conversion`` dataset
-    must provide ``speech`` (the source utterance), ``reference_speech`` (the
-    target speaker's utterances) and, optionally, ``target_speaker`` as a cache
+    This is the ``model:`` target of the ``infer`` stage.
+    :class:`~espnet3.systems.knnvc.src.inference_runner.KNNVCInferenceRunner`
+    calls it as ``model(**inputs)`` with the dataset fields named by
+    ``inference_config.input_key``, once the inference contract has checked
+    them: ``speech`` (the source utterance), ``reference_speech`` (the target
+    speaker's utterances, one array each) and ``target_speaker`` as a cache
     key.
 
     Args:
         vocoder_checkpoint: Path or URL of the HiFi-GAN generator weights. Any
             layout accepted by
-            :func:`espnet3.systems.knnvc.checkpoint.load_generator_state_dict`
+            :func:`espnet3.systems.knnvc.src.checkpoint.load_generator_state_dict`
             works, so both an ESPnet3 training checkpoint and the official
             ``prematch_g_02500000.pt`` can be used.
         encoder: Optional frozen feature encoder, either a built instance or a
             Hydra config. Leave it unset for the paper's setup, which builds a
-            :class:`espnet3.systems.knnvc.wavlm_encoder.WavLMEncoder`
+            :class:`espnet3.systems.knnvc.src.wavlm_encoder.WavLMEncoder`
             from ``wavlm_checkpoint``/``layer``; set it to run kNN-VC on
             another self-supervised encoder, which must expose
             ``encode(speech, pad_to_hop)``, ``sample_rate`` and ``device``. The
@@ -80,11 +81,12 @@ class KNNVCModel:
         .. code-block:: yaml
 
             model:
-              _target_: espnet3.systems.knnvc.model.KNNVCModel
+              _target_: espnet3.systems.knnvc.src.model.KNNVCModel
               vocoder_checkpoint: ${exp_dir}/valid.mel_loss.ave_3best.pth
               wavlm_checkpoint: /path/to/WavLM-Large.pt
               topk: 4
-            input_key: [speech, reference_speech, target_speaker]
+            # input_key, idx_key, contract and runner come from
+            # egs3/TEMPLATE/knnvc/conf/inference.yaml
 
         Direct use:
 

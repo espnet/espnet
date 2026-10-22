@@ -3,7 +3,7 @@
 The real kNN-VC encoder is WavLM-Large: a 1.2 GB checkpoint and far too slow
 for the smoke recipe this corpus exists for. :class:`StubEncoder` has the same
 surface that :class:`~espnet3.systems.knnvc.system.KNNVCSystem` and
-:class:`~espnet3.systems.knnvc.model.KNNVCModel` require of an encoder --
+:class:`~espnet3.systems.knnvc.src.model.KNNVCModel` require of an encoder --
 ``encode(speech, pad_to_hop)``, ``sample_rate``, ``hop_length`` and ``device``
 -- and produces deterministic features by projecting fixed-size waveform
 windows. It exercises every stage; it does not convert voices.

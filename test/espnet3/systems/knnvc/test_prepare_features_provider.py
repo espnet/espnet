@@ -6,8 +6,8 @@ import pytest
 from omegaconf import OmegaConf
 
 from espnet3.parallel.parallel import set_parallel
-from espnet3.systems.knnvc.prepare_features_provider import PrepareFeaturesProvider
-from espnet3.systems.knnvc.prepare_features_runner import PoolFeatureCache
+from espnet3.systems.knnvc.src.prepare_features_provider import PrepareFeaturesProvider
+from espnet3.systems.knnvc.src.prepare_features_runner import PoolFeatureCache
 
 # ===============================================================
 # Test Case Summary

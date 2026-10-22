@@ -9,6 +9,9 @@ from __future__ import annotations
 import numpy as np
 import torch
 
+from espnet3.components.data.base_dataset import BaseDataset
+from espnet3.contract import Field
+
 SAMPLE_RATE = 16000
 HOP_LENGTH = 320
 FEATURE_DIM = 8
@@ -36,8 +39,10 @@ INTERLEAVED_UTTERANCES = [
 ]
 
 
-class TinyAudioDataset:
+class TinyAudioDataset(BaseDataset):
     """Synthetic audio dataset implementing the ``prepare_features`` contract."""
+
+    fields = (Field("speech", "audio"),)
 
     def __init__(
         self, split: str = "train", interleaved: bool = False, **_kwargs
@@ -61,8 +66,10 @@ class TinyAudioDataset:
         return f"{self.split}/{speaker}/{utt_id}"
 
 
-class DatasetWithoutContract:
+class DatasetWithoutContract(BaseDataset):
     """Dataset lacking ``get_pool_key`` / ``get_feature_name``."""
+
+    fields = (Field("speech", "audio"),)
 
     def __init__(self, **_kwargs) -> None:
         pass

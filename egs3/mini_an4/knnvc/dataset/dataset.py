@@ -3,23 +3,68 @@
 The same three ``kind``s as ``egs3/librispeech_100/knnvc``, over the an4 audio
 that ships with the repository: ``audio`` for ``prepare_features``, ``vocoder``
 for ``train`` and ``conversion`` for ``infer``. Speaker directories are the
-prematching pools, standing in for LibriSpeech's chapter directories.
+prematching pools, standing in for LibriSpeech's chapter directories. The
+``conversion`` view carries the source transcript from an4's
+``etc/an4_train.transcription``, so ``measure`` can score it as the
+LibriSpeech recipe does; the one bundled utterance without a transcript
+(``cen7-fash-b``) serves as a reference only, never as a source.
 """
 
 from __future__ import annotations
 
 import random
+import re
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 import numpy as np
 import soundfile as sf
-from torch.utils.data import Dataset as TorchDataset
 
+import egs3.TEMPLATE.knnvc.src.contracts  # noqa: F401  registers the kinds below
 from egs3.mini_an4.knnvc.dataset.builder import speaker_root
+from espnet3.components.data.base_dataset import BaseDataset
+from espnet3.contract import Field
 
 FEATURE_SUFFIX = ".npy"
 _KINDS = ("audio", "vocoder", "conversion")
+_FIELDS = {
+    "audio": (Field("speech", "audio"),),
+    "vocoder": (Field("feats", "features"), Field("speech", "audio")),
+    "conversion": (
+        Field("speech", "audio"),
+        Field("reference_speech", "reference_audio"),
+        Field("target_speaker", "text"),
+        Field("pair_id", "text"),
+        Field("text", "text"),
+    ),
+}
+# `<s> YES </s> (an251-fash-b)`: the words, then the utterance id in parentheses.
+_TRANSCRIPTION_LINE = re.compile(
+    r"^(?:<s>\s*)?(?P<words>.*?)(?:\s*</s>)?\s*\((?P<utt>\S+)\)$"
+)
+
+
+def _read_transcripts(root: Path) -> Dict[str, str]:
+    """Map utterance id to transcript from ``an4/etc/an4_train.transcription``.
+
+    Args:
+        root: The speaker directory root, ``.../an4/wav/an4_clstk``.
+
+    Returns:
+        ``{"an251-fash-b": "YES", ...}`` for the training speakers.
+
+    Raises:
+        FileNotFoundError: If the transcription file is not extracted.
+    """
+    path = root.parents[1] / "etc" / "an4_train.transcription"
+    if not path.is_file():
+        raise FileNotFoundError(f"an4 transcripts not found: {path}")
+    transcripts: Dict[str, str] = {}
+    for line in path.read_text(encoding="utf-8").splitlines():
+        match = _TRANSCRIPTION_LINE.match(line.strip())
+        if match:
+            transcripts[match.group("utt")] = match.group("words").strip()
+    return transcripts
 
 
 def _read_audio(path: Path) -> np.ndarray:
@@ -30,11 +75,12 @@ def _read_audio(path: Path) -> np.ndarray:
     return np.ascontiguousarray(array)
 
 
-class MiniAn4KNNVCDataset(TorchDataset):
+class MiniAn4KNNVCDataset(BaseDataset):
     """an4 utterances served in the three kNN-VC stage views.
 
     Args:
-        kind: ``"audio"``, ``"vocoder"`` or ``"conversion"``.
+        kind: ``"audio"``, ``"vocoder"`` or ``"conversion"``; the declared
+            ``fields`` follow it, as in ``egs3/librispeech_100/knnvc``.
         recipe_dir: Recipe root; defaults to this recipe's directory.
         features_dir: Root of the ``prepare_features`` output (``vocoder``).
         hop_length: Encoder frame hop in samples.
@@ -67,6 +113,7 @@ class MiniAn4KNNVCDataset(TorchDataset):
             raise ValueError("features_dir is required for kind='vocoder'")
 
         self.kind = kind
+        self.fields = _FIELDS[kind]
         self.hop_length = int(hop_length)
         self.segment_frames = segment_frames
         self.features_dir = Path(features_dir) if features_dir else None
@@ -79,11 +126,15 @@ class MiniAn4KNNVCDataset(TorchDataset):
             )
 
         self.pairs: List[tuple] = []
+        self.transcripts: Dict[str, str] = {}
         if kind == "conversion":
+            self.transcripts = _read_transcripts(root)
             rng = random.Random(seed)
             speakers = sorted({path.parent.name for path in self.paths})
             pairs = []
             for path in self.paths:
+                if path.stem not in self.transcripts:
+                    continue  # no transcript to score against: reference only
                 targets = [s for s in speakers if s != path.parent.name]
                 if targets:
                     pairs.append((path, rng.choice(targets)))
@@ -112,6 +163,7 @@ class MiniAn4KNNVCDataset(TorchDataset):
             "reference_speech": [_read_audio(p) for p in references],
             "target_speaker": target,
             "pair_id": f"{path.stem}_to_{target}",
+            "text": self.transcripts[path.stem],
         }
 
     def _vocoder_item(self, idx: int) -> Dict[str, np.ndarray]:

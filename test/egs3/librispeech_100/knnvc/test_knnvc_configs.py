@@ -15,7 +15,10 @@ from espnet3.utils.config_utils import load_and_merge_config
 # | test_recipe_publication_config_keeps_features_out_of_the_bundle |          |
 # |                          | The published checkpoint is one pack_model keeps. |
 # | test_recipe_metrics_config_scores_intelligibility |                     |
-# |                          | measure has a real metric reading wav + ref.    |
+# |                          | measure has a real metric reading wav + text.   |
+# | test_recipe_inference_configs_inherit_the_contract |                    |
+# |                          | model target, input_key, idx_key, contract and  |
+# |                          | runner come from the TEMPLATE; no output_fn.    |
 # | test_pretrained_inference_config_uses_a_released_generator |               |
 # |                          | inference_pretrained.yaml points at one of the    |
 # |                          | authors' two released generators, not a `do_` state.|
@@ -28,13 +31,13 @@ def test_recipe_training_config_merges_over_template(tmp_path: Path) -> None:
     cfg = load_and_merge_config(
         recipe_config, "training.yaml", default_package="egs3.TEMPLATE.knnvc"
     )
-    assert cfg.model._target_ == "espnet3.systems.knnvc.vocoder.KNNVCVocoderModel"
+    assert cfg.model._target_ == "espnet3.systems.knnvc.src.vocoder.KNNVCVocoderModel"
     assert set(cfg.optimizers) == {"generator", "discriminator"}
     assert set(cfg.schedulers) == {"generator", "discriminator"}
     assert cfg.optimizers.generator.params == "generator"
     assert (
         cfg.prepare_features.encoder._target_
-        == "espnet3.systems.knnvc.wavlm_encoder.WavLMEncoder"
+        == "espnet3.systems.knnvc.src.wavlm_encoder.WavLMEncoder"
     )
     assert cfg.prepare_features.encoder.layer == 6
     # The vocoder datasets read from the prepare_features output directory.
@@ -103,5 +106,27 @@ def test_recipe_metrics_config_scores_intelligibility() -> None:
     entry = cfg.metrics[0]
     assert entry.metric._target_.endswith("intelligibility.ASRIntelligibility")
     assert entry.metric.asr, "the ASR used for scoring must be named"
-    # Both inputs are files the infer stage writes.
-    assert dict(entry.inputs) == {"wav": "wav", "ref": "ref"}
+    # The converted audio comes from infer, the transcript from the data.
+    assert dict(entry.inputs) == {"wav": "wav", "ref": "dataset:text"}
+
+
+def test_recipe_inference_configs_inherit_the_contract() -> None:
+    """Both inference overlays only add the vocoder; the boundary is shared."""
+    for name in ("inference.yaml", "inference_pretrained.yaml"):
+        cfg = load_and_merge_config(
+            _REPO_ROOT / "egs3/librispeech_100/knnvc/conf" / name,
+            "inference.yaml",
+            default_package="egs3.TEMPLATE.knnvc",
+        )
+        assert cfg.model._target_ == "espnet3.systems.knnvc.src.model.KNNVCModel"
+        assert cfg.model.vocoder_checkpoint
+        assert list(cfg.input_key) == ["speech", "reference_speech", "target_speaker"]
+        assert list(cfg.contract.inputs) == list(cfg.input_key)
+        assert cfg.idx_key == "pair_id"
+        assert cfg.batch_size is None
+        assert "output_fn" not in cfg
+        assert cfg.contract.inputs.reference_speech.kind == "reference_audio"
+        assert list(cfg.contract.imports) == ["egs3.TEMPLATE.knnvc.src.contracts"]
+        assert list(cfg.contract.outputs) == ["wav"]
+        assert cfg.runner._target_.endswith("inference_runner.KNNVCInferenceRunner")
+        assert cfg.dataset.test[0].data_src_args.kind == "conversion"

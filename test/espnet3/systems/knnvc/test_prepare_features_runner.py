@@ -10,9 +10,9 @@ import torch
 from omegaconf import OmegaConf
 
 from espnet3.parallel.parallel import set_parallel
-from espnet3.systems.knnvc.matcher import match_features
-from espnet3.systems.knnvc.prepare_features_provider import PrepareFeaturesProvider
-from espnet3.systems.knnvc.prepare_features_runner import (
+from espnet3.systems.knnvc.src.matcher import match_features
+from espnet3.systems.knnvc.src.prepare_features_provider import PrepareFeaturesProvider
+from espnet3.systems.knnvc.src.prepare_features_runner import (
     FEATURE_SUFFIX,
     PoolFeatureCache,
     PrepareFeaturesRunner,

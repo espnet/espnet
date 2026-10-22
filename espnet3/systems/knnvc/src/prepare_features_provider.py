@@ -10,7 +10,7 @@ from omegaconf import DictConfig, OmegaConf
 
 from espnet3.components.data.dataset_module import instantiate_dataset_reference
 from espnet3.parallel.env_provider import EnvironmentProvider
-from espnet3.systems.knnvc.prepare_features_runner import PoolFeatureCache
+from espnet3.systems.knnvc.src.prepare_features_runner import PoolFeatureCache
 
 
 class PrepareFeaturesProvider(EnvironmentProvider):
@@ -18,7 +18,7 @@ class PrepareFeaturesProvider(EnvironmentProvider):
 
     Each worker needs the audio dataset (to read waveforms), the frozen
     feature encoder (a Hydra ``_target_`` such as
-    :class:`espnet3.systems.knnvc.wavlm_encoder.WavLMEncoder`), the
+    :class:`espnet3.systems.knnvc.src.wavlm_encoder.WavLMEncoder`), the
     pool-key-to-indices map used to build prematching pools, and the stage
     options. Heavy objects (the encoder) are constructed inside
     ``build_worker_setup_fn`` so every Dask worker owns its own copy.

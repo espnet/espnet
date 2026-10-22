@@ -4,7 +4,7 @@ import pytest
 import torch
 import torch.nn.functional as F
 
-from espnet3.systems.knnvc.matcher import (
+from espnet3.systems.knnvc.src.matcher import (
     compute_cosine_distances,
     match_features,
 )

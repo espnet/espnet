@@ -16,10 +16,10 @@ import numpy as np
 import torch
 import torch.nn.functional as F
 
-from espnet3.systems.knnvc.checkpoint import (
+from espnet3.systems.knnvc.src.checkpoint import (
     load_state_dict_from_path_or_url,
 )
-from espnet3.systems.knnvc.vendored_wavlm import WavLM, WavLMConfig
+from espnet3.systems.knnvc.src.vendored_wavlm import WavLM, WavLMConfig
 
 logger = logging.getLogger(__name__)
 
@@ -33,7 +33,7 @@ class WavLMEncoder(torch.nn.Module):
     - the ``prepare_features`` stage of
       :class:`espnet3.systems.knnvc.system.KNNVCSystem`, to precompute (optionally
       prematched) vocoder training features for every corpus utterance;
-    - :class:`espnet3.systems.knnvc.model.KNNVCModel` at inference time, to
+    - :class:`espnet3.systems.knnvc.src.model.KNNVCModel` at inference time, to
       encode the source utterance and the target speaker's reference set.
 
     The model is always kept in ``eval()`` mode with gradients disabled.
@@ -58,7 +58,7 @@ class WavLMEncoder(torch.nn.Module):
         .. code-block:: yaml
 
             encoder:
-              _target_: espnet3.systems.knnvc.wavlm_encoder.WavLMEncoder
+              _target_: espnet3.systems.knnvc.src.wavlm_encoder.WavLMEncoder
               checkpoint: /path/to/WavLM-Large.pt
               layer: 6
     """

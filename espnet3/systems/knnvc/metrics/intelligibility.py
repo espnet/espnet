@@ -5,15 +5,16 @@ conversion: the converted waveform is transcribed and compared against the
 source transcript. The authors report 6.29% WER and 2.34% CER on LibriSpeech
 dev-clean for the prematched vocoder (https://github.com/bshall/knn-vc).
 
-The ``infer`` stage already writes everything this needs: ``wav.scp`` points at
-the converted audio and ``ref.scp`` carries the source transcript.
+The ``infer`` stage writes ``wav.scp``, the converted audio; the transcript is
+the test set's own ``text`` column, bound as ``dataset:text`` in the metrics
+config.
 """
 
 from __future__ import annotations
 
 import logging
 from pathlib import Path
-from typing import Any, Dict, Iterable, List, Optional
+from typing import Any, Dict, Iterable, List, Optional, Sequence
 
 import numpy as np
 import soundfile as sf
@@ -25,12 +26,25 @@ except ImportError:
 
 from espnet2.text.cleaner import TextCleaner
 from espnet3.components.metrics.base_metric import BaseMetric
+from espnet3.contract import Field
+from espnet3.contract.kinds.audio import Audio
 
 logger = logging.getLogger(__name__)
+
+_COUNTS = ("hits", "substitutions", "deletions", "insertions")
 
 
 class ASRIntelligibility(BaseMetric):
     """Transcribe converted audio and score it against the source transcript.
+
+    Declares ``ref`` (``text``) and ``wav`` (``audio``) as inputs; the
+    metrics config binds them, ``ref`` to the test set's transcript column
+    (``dataset:text``) and ``wav`` to the ``wav.scp`` of the ``infer`` stage.
+    ``update`` gets the SCP values, so ``wav`` holds paths to the converted
+    WAV files; an :class:`~espnet3.contract.kinds.audio.Audio` or a bare
+    array at ``sample_rate`` is accepted too, for a caller with decoded
+    audio in hand. Word and character edit counts are summed over every
+    batch, and :meth:`compute` turns them into one corpus WER and CER.
 
     Args:
         asr: Either a model tag understood by
@@ -39,12 +53,11 @@ class ASRIntelligibility(BaseMetric):
             ``[(text, ...), ...]`` interface. There is no default: which ASR
             scores the conversions is a recipe's choice, and passing a built
             object lets a recipe score with any ASR it likes.
-        wav_key: Metric input alias holding the converted-audio SCP.
-        ref_key: Metric input alias holding the reference transcript SCP.
         clean_types: Optional cleaner types passed to ``TextCleaner``, applied
             to both sides before scoring.
         device: Device the ASR model runs on when built from a tag.
-        sample_rate: Sample rate the ASR model expects.
+        sample_rate: Sample rate the ASR model expects; a WAV at another
+            rate is refused.
 
     Example:
         .. code-block:: yaml
@@ -56,26 +69,40 @@ class ASRIntelligibility(BaseMetric):
                   device: cuda
                 inputs:
                   wav: wav
-                  ref: ref
+                  ref: dataset:text
+
+        >>> metric = ASRIntelligibility(asr=built_speech2text)
+        >>> metric.update(ref=["the cat sat"], wav=["converted/utt1.wav"])
+        >>> metric.compute()
+        {'ASR_WER': 0.0, 'ASR_CER': 0.0}
     """
+
+    inputs = (Field("ref", "text"), Field("wav", "audio"))
+    outputs = (Field("ASR_WER", "number"), Field("ASR_CER", "number"))
 
     def __init__(
         self,
         asr: Any,
-        wav_key: str = "wav",
-        ref_key: str = "ref",
         clean_types: Optional[Iterable[str]] = None,
         device: str = "cpu",
         sample_rate: int = 16000,
     ) -> None:
         """Store the scoring configuration; the ASR model is built lazily."""
         self.asr = asr
-        self.wav_key = wav_key
-        self.ref_key = ref_key
         self.cleaner = TextCleaner(clean_types)
         self.device = device
         self.sample_rate = int(sample_rate)
         self._speech2text = None if isinstance(asr, str) else asr
+        super().__init__()
+        for prefix in ("word_", "char_"):
+            for name in _COUNTS:
+                self.add_state(prefix + name, 0, "sum")
+        self._alignments: List[str] = []
+
+    def reset(self) -> None:
+        """Reset the counts and drop alignment text from an unfinished run."""
+        super().reset()
+        self._alignments = []
 
     def _ensure_jiwer(self) -> None:
         """Raise a clear error if the optional jiwer dependency is missing.
@@ -89,12 +116,8 @@ class ASRIntelligibility(BaseMetric):
                 "Please install it with `pip install espnet[asr]`."
             )
 
-    def build_asr(self):
-        """Return the ASR model, building it from the tag on first use.
-
-        Returns:
-            The object used to transcribe, built once and reused.
-        """
+    def _build_asr(self):
+        """Return the ASR model, building it from the tag on first use."""
         if self._speech2text is None:
             from espnet2.bin.asr_inference import Speech2Text
 
@@ -109,77 +132,100 @@ class ASRIntelligibility(BaseMetric):
         cleaned = self.cleaner(text).strip()
         return cleaned if cleaned else "."
 
-    def _read(self, path: str) -> np.ndarray:
-        """Read one converted waveform as float32 mono.
+    def _samples(self, wav: Any) -> np.ndarray:
+        """Return one converted utterance as float32 mono at ``sample_rate``.
 
         Args:
-            path: Path to a WAV file written by the ``infer`` stage.
-
-        Returns:
-            Waveform array.
+            wav: A path to a WAV file written by the ``infer`` stage, an
+                ``Audio``, or a bare array taken to be at ``sample_rate``.
 
         Raises:
-            ValueError: If the file's sample rate is not ``sample_rate``.
+            ValueError: If a file's (or an ``Audio``'s) rate is not
+                ``sample_rate``.
         """
-        speech, rate = sf.read(path, dtype="float32")
-        if rate != self.sample_rate:
-            raise ValueError(
-                f"{path} is {rate} Hz but the ASR model expects {self.sample_rate} Hz"
-            )
-        if speech.ndim > 1:
-            speech = speech.mean(axis=1)
-        return np.ascontiguousarray(speech)
+        if isinstance(wav, (str, Path)):
+            speech, rate = sf.read(str(wav), dtype="float32")
+            if rate != self.sample_rate:
+                raise ValueError(
+                    f"{wav} is {rate} Hz but the ASR model expects "
+                    f"{self.sample_rate} Hz"
+                )
+            if speech.ndim > 1:
+                speech = speech.mean(axis=1)
+            return np.ascontiguousarray(speech)
+        if isinstance(wav, Audio):
+            if wav.rate != self.sample_rate:
+                raise ValueError(
+                    f"audio is {wav.rate} Hz but the ASR model expects "
+                    f"{self.sample_rate} Hz"
+                )
+            return wav.mono().array
+        if hasattr(wav, "detach"):
+            wav = wav.detach().cpu().numpy()
+        return np.ascontiguousarray(np.asarray(wav, dtype=np.float32)).reshape(-1)
 
-    def transcribe(self, path: str) -> str:
-        """Transcribe one converted utterance.
-
-        Args:
-            path: Path to the WAV file.
-
-        Returns:
-            The best hypothesis, or an empty string if the model returned none.
-        """
-        results = self.build_asr()(self._read(path))
+    def _transcribe(self, wav: Any) -> str:
+        """Return the best hypothesis for one utterance, or ``""`` if none."""
+        results = self._build_asr()(self._samples(wav))
         if not results:
             return ""
         return results[0][0]
 
-    def __call__(
-        self,
-        data: Dict[str, Path],
-        test_name: str,
-        inference_dir: Path,
-    ) -> Dict[str, float]:
-        """Transcribe every converted utterance and score it.
+    def update(self, *, ref: Sequence[str], wav: Sequence[Any]) -> None:
+        """Transcribe one batch and add its word and character edit counts.
 
         Args:
-            data: Mapping of metric input aliases to SCP paths; needs
-                ``wav_key`` (converted audio) and ``ref_key`` (transcript).
-            test_name: Test set name, used for the alignment output directory.
-            inference_dir: Directory the alignment file is written under.
-
-        Returns:
-            ``{"ASR_WER": <percentage>, "ASR_CER": <percentage>}``.
+            ref: Source transcripts, one per converted utterance.
+            wav: The converted utterances (paths, ``Audio`` or arrays),
+                aligned with ``ref``.
 
         Raises:
             RuntimeError: If ``jiwer`` is not installed.
         """
         self._ensure_jiwer()
-        refs: List[str] = []
-        hyps: List[str] = []
-        for _, row in self.iter_inputs(data, self.ref_key, self.wav_key):
-            refs.append(self._clean(row[self.ref_key]))
-            hyps.append(self._clean(self.transcribe(row[self.wav_key])))
+        if not ref:
+            return
+        refs = [self._clean(text) for text in ref]
+        hyps = [self._clean(self._transcribe(one)) for one in wav]
+        word_out = jiwer.process_words(refs, hyps)
+        char_out = jiwer.process_characters(refs, hyps)
+        for prefix, out in (("word_", word_out), ("char_", char_out)):
+            for name in _COUNTS:
+                setattr(
+                    self,
+                    prefix + name,
+                    getattr(self, prefix + name) + getattr(out, name),
+                )
+        if self.collect_artifacts:
+            self._alignments.append(
+                jiwer.visualize_alignment(word_out, show_measures=False)
+            )
 
-        word_details = jiwer.process_words(refs, hyps)
-        char_details = jiwer.process_characters(refs, hyps)
+    def _rate(self, prefix: str) -> float:
+        """Return the error rate of the ``prefix`` counts as a percentage."""
+        hits, subs, dels, ins = (getattr(self, prefix + name) for name in _COUNTS)
+        n = hits + subs + dels
+        if n == 0:
+            raise ValueError("nothing to score: the references have no words")
+        return round(100 * (subs + dels + ins) / n, 2)
 
-        test_dir = Path(inference_dir) / test_name
-        test_dir.mkdir(parents=True, exist_ok=True)
-        with (test_dir / "asr_wer_alignment").open("w", encoding="utf-8") as f:
-            f.write(jiwer.visualize_alignment(word_details))
+    def compute(self) -> Dict[str, float]:
+        """Return the corpus WER and CER of everything added so far.
 
-        return {
-            "ASR_WER": round(word_details.wer * 100, 2),
-            "ASR_CER": round(char_details.cer * 100, 2),
-        }
+        Returns:
+            ``{"ASR_WER": <percentage>, "ASR_CER": <percentage>}``.
+
+        Raises:
+            ValueError: If the references have no words.
+        """
+        return {"ASR_WER": self._rate("word_"), "ASR_CER": self._rate("char_")}
+
+    def write_artifacts(self, test_dir: Path) -> None:
+        """Write the word alignments of this run to ``test_dir/asr_wer_alignment``."""
+        summary = (
+            f"\nASR_WER: {self._rate('word_'):.2f} ASR_CER: {self._rate('char_'):.2f}\n"
+        )
+        (test_dir / "asr_wer_alignment").write_text(
+            "".join(self._alignments) + summary, encoding="utf-8"
+        )
+        self._alignments = []

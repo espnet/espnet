@@ -6,13 +6,13 @@ from test.espnet3.systems.knnvc.tiny import TINY_GENERATOR
 import pytest
 import torch
 
-from espnet3.systems.knnvc.checkpoint import (
+from espnet3.systems.knnvc.src.checkpoint import (
     convert_knn_vc_generator_state_dict,
     is_knn_vc_generator_state_dict,
     load_generator_state_dict,
     load_state_dict_from_path_or_url,
 )
-from espnet3.systems.knnvc.vocoder import KNNVCGenerator
+from espnet3.systems.knnvc.src.vocoder import KNNVCGenerator
 
 # ===============================================================
 # Test Case Summary

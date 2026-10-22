@@ -5,10 +5,13 @@
 #   python run.py --stages infer \
 #       --training_config conf/training.yaml --inference_config conf/inference.yaml
 #
-# Shared default merged under every VC recipe's inference config.
-# Each test entry yields conversion pairs; the model is called as
-# `model(**{key: item[key] for key in input_key})` and must return the
-# converted waveform, which `output_fn` wraps for SCP/WAV writing.
+# Shared default merged under every kNN-VC recipe's inference config. Each
+# test entry yields conversion pairs (the recipe dataset's `kind: conversion`
+# view). `KNNVCInferenceRunner` hands the checked item fields to the model and
+# names its converted waveform `wav`; the contract below checks it and the
+# runner writes `${inference_dir}/<test_name>/wav.scp` plus one WAV per pair.
+# Nothing else is written: the source transcript a metric scores against is
+# the test set's own `text` column, which `measure` reads from the data.
 
 recipe_dir: .
 exp_tag:
@@ -34,21 +37,58 @@ parallel:
 # The inference model. kNN-VC builds its frozen encoder from
 # `wavlm_checkpoint`/`wavlm_layer` above; add an `encoder:` block with a
 # `_target_` to run on a different self-supervised encoder, which must be the
-# same one the vocoder was trained on.
+# same one the vocoder was trained on. A recipe adds `vocoder_checkpoint` and
+# the other `KNNVCModel` arguments it wants to set.
 model:
+  _target_: espnet3.systems.knnvc.src.model.KNNVCModel
 
-# Dataset fields forwarded to the model, in order. kNN-VC uses
-# [speech, reference_speech, target_speaker].
+# The conversion item's fields passed to the model, in this order; they must
+# match `contract.inputs`.
 input_key:
-# Conversions are run one utterance at a time (reference sets differ in size).
+  - speech
+  - reference_speech
+  - target_speaker
+# The item field naming each conversion, `<source_utt>_to_<target_speaker>`.
+# It heads every wav.scp line, names the WAV file, and is what `measure`
+# matches the dataset's `text` column on.
+idx_key: pair_id
+# Conversions run one pair per call: reference sets differ in size, so the
+# runner refuses a batch. Leave this unset.
 batch_size:
-output_fn: egs3.TEMPLATE.knnvc.src.inference.build_output
-output_artifacts:
-  wav:
-    type: wav
-    sample_rate: 16000
+
+# The same contract wraps the runner for infer, publication and the demo.
+# `speech` is one 16 kHz mono utterance: a known rate is resampled, a bare
+# array is taken to be at 16 kHz, stereo is refused. `reference_speech` is a
+# non-empty *list* of such utterances (`reference_audio`, defined in this
+# TEMPLATE's `src/contracts.py`): kNN-VC trims and encodes each one on its
+# own, so they are not concatenated into one `audio` field. The model
+# returns a bare array, which `wav` turns into 16 kHz mono audio. Loading
+# the bundled contract from a published model requires `trust_user_code=True`.
+contract:
+  imports:
+    - egs3.TEMPLATE.knnvc.src.contracts
+  inputs:
+    speech:
+      kind: audio
+      label: Source utterance
+      sample_rate: 16000
+      channels: 1
+    reference_speech:
+      kind: reference_audio
+      label: Target speaker references
+      sample_rate: 16000
+      channels: 1
+    target_speaker:
+      kind: text
+      label: Target speaker id
+  outputs:
+    wav:
+      kind: audio
+      label: Converted waveform
+      sample_rate: 16000
+      channels: 1
 
 provider:
   _target_: espnet3.systems.base.inference_provider.InferenceProvider
 runner:
-  _target_: espnet3.systems.base.inference_runner.InferenceRunner
+  _target_: espnet3.systems.knnvc.src.inference_runner.KNNVCInferenceRunner

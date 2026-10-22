@@ -43,9 +43,10 @@ python run.py --stages infer \
 ```
 
 Converted audio is written to
-`exp/training/inference_pretrained/dev-clean/wav/<source_utt>_to_<target_spk>.wav`
-and listed in `wav.scp`; `ref.scp` keeps the source transcripts for ASR-based
-scoring.
+`exp/training/inference_pretrained/dev-clean/split.<rank>/wav/<source_utt>_to_<target_spk>.wav`
+and listed in `wav.scp`, one line per conversion pair keyed by its `pair_id`.
+Nothing else is written: the source transcript for ASR-based scoring is the
+dev-clean `text` column, which `measure` reads from the data.
 
 The authors released two generators and both load here without conversion
 work on your part:
@@ -66,7 +67,8 @@ them are discriminator and optimizer states for resuming training at step
 - `wavlm_checkpoint` (a TEMPLATE default in both `training.yaml` and
   `inference*.yaml`) accepts a local path; by default the WavLM-Large checkpoint
   is fetched from the kNN-VC GitHub release. Override it in both files when
-  using a local copy, since `run.py` does not propagate it between configs.
+  using a local copy, since `launch()` only propagates the experiment path
+  fields (`exp_tag`/`exp_dir`) between configs.
 - `create_dataset` needs `train-clean-100` and `dev-clean`; `infer` alone only
   needs the split it converts, so the pretrained-checkpoint workflow above runs
   with `dev-clean` only. Point `create_dataset.source_dir` at the corpus root
@@ -146,16 +148,19 @@ python run.py --stages measure \
 ```
 
 `measure` runs `ASRIntelligibility`, inherited from the TEMPLATE's
-`metrics.yaml`: it transcribes the converted
-audio `infer` writes to `wav.scp` and scores it against the source transcript
-in `ref.scp`, reporting `ASR_WER` and `ASR_CER`. That is the protocol behind the
-authors' dev-clean numbers (6.29% WER and 2.34% CER for the prematched
-vocoder). Scores are only comparable across systems scored by the same ASR;
-`asr` takes any tag `Speech2Text.from_pretrained` accepts.
+`metrics.yaml`: it transcribes the converted audio `infer` writes to `wav.scp`
+and scores it against the source transcript, the test set's own `text`
+column (bound as `ref: dataset:text`, written to `dev-clean/dataset/text.scp`
+on first use, keyed by the same `pair_id`), reporting `ASR_WER` and
+`ASR_CER`. That is the protocol behind the authors' dev-clean numbers (6.29%
+WER and 2.34% CER for the prematched vocoder). Scores are only comparable
+across systems scored by the same ASR; `asr` takes any tag
+`Speech2Text.from_pretrained` accepts.
 
 The paper's third metric, speaker-verification EER, is not implemented. It
-needs the target speaker's audio at scoring time, and `infer` writes only
-`target_speaker.scp`, the speaker's id.
+needs the target speaker's audio at scoring time; a metric that binds
+`dataset:reference_speech` could read it (one artifact per reference
+utterance), but none is shipped.
 
 ## Publishing
 
@@ -167,7 +172,10 @@ python run.py --stages pack_model \
 ```
 
 The bundle carries the averaged generator weights, the recipe's `dataset/`
-module and the resolved configs, and is loadable from outside the recipe tree:
+module and the resolved configs, and is loadable from outside the recipe tree.
+Its inference contract registers the `reference_audio` kind from
+`egs3.TEMPLATE.knnvc.src.contracts` (part of the installed `espnet` package),
+so loading it requires `trust_user_code=True`:
 
 ```python
 from espnet3.publication import InferenceModel
@@ -192,7 +200,7 @@ All credit for kNN-VC goes to its authors. This recipe reuses:
   <https://github.com/bshall/knn-vc/releases/tag/v0.1>;
 - the WavLM model code, vendored from the kNN-VC repository (which carries it
   over from microsoft/unilm, MIT License) in
-  `espnet3/systems/knnvc/vendored_wavlm.py`. The model logic is
+  `espnet3/systems/knnvc/src/vendored_wavlm.py`. The model logic is
   unchanged; the two upstream files were merged, their relative import
   resolved, and comments rewrapped to satisfy ESPnet's linters;
 - HiFi-GAN (Kong et al., 2020, <https://github.com/jik876/hifi-gan>), used here

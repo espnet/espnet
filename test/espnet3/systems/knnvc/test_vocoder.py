@@ -10,7 +10,7 @@ from test.espnet3.systems.knnvc.tiny import (
 import torch
 
 from espnet3.components.modeling.optimization_spec import OptimizationStep
-from espnet3.systems.knnvc.vocoder import (
+from espnet3.systems.knnvc.src.vocoder import (
     DEFAULT_GENERATOR_PARAMS,
     KNNVCGenerator,
     KNNVCVocoderModel,

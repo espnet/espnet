@@ -7,6 +7,8 @@ import numpy as np
 import pytest
 from omegaconf import OmegaConf
 
+from espnet3.contract.stages import stage_log_dir, stage_names
+from espnet3.systems.base.system import BaseSystem
 from espnet3.systems.knnvc.system import KNNVCSystem
 
 # ===============================================================
@@ -22,6 +24,8 @@ from espnet3.systems.knnvc.system import KNNVCSystem
 # |                                             | raise RuntimeError.          |
 # | test_prepare_features_rejects_stage_args    | Stage arguments raise        |
 # |                                             | TypeError.                   |
+# | test_declared_stages                        | prepare_features sits before |
+# |                          | train; no collect_stats, tokenizer or demo stage.|
 # | test_stage_log_dir_mapping                  | prepare_features logs go to  |
 # |                                             | features_dir.                |
 # | test_indices_are_grouped_by_pool            | Utterances reach the runner  |
@@ -96,10 +100,28 @@ def test_prepare_features_rejects_stage_args(tmp_path):
         system.prepare_features("unexpected")
 
 
+def test_declared_stages():
+    names = stage_names(KNNVCSystem)
+    assert names == [
+        "create_dataset",
+        "prepare_features",
+        "train",
+        "infer",
+        "measure",
+        "pack_model",
+        "upload_model",
+    ]
+    # The vocoder needs no feature statistics, and the demo UI has no asset
+    # type for a reference-utterance set yet.
+    base = set(stage_names(BaseSystem))
+    assert set(names) - base == {"prepare_features"}
+    assert base - set(names) == {"collect_stats", "pack_demo", "upload_demo"}
+
+
 def test_stage_log_dir_mapping(tmp_path):
     system = KNNVCSystem(training_config=_training_config(tmp_path))
-    assert system.stage_log_dirs["prepare_features"] == Path(tmp_path / "features")
-    assert system.stage_log_dirs["train"] == Path(tmp_path / "exp")
+    assert stage_log_dir(system, "prepare_features") == Path(tmp_path / "features")
+    assert stage_log_dir(system, "train") == Path(tmp_path / "exp")
 
 
 def test_indices_are_grouped_by_pool(tmp_path, monkeypatch):

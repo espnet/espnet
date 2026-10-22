@@ -11,7 +11,7 @@ import numpy as np
 import torch
 
 from espnet3.parallel.base_runner import BaseRunner, concatenate_shard_files
-from espnet3.systems.knnvc.matcher import match_features
+from espnet3.systems.knnvc.src.matcher import match_features
 
 logger = logging.getLogger(__name__)
 

@@ -30,7 +30,6 @@ dataset:
         max_reference_seconds: 300
 
 model:
-  _target_: espnet3.systems.knnvc.model.KNNVCModel
   # Non-prematched alternative:
   #   .../releases/download/v0.1/g_02500000.pt
   vocoder_checkpoint: https://github.com/bshall/knn-vc/releases/download/v0.1/prematch_g_02500000.pt
@@ -38,5 +37,3 @@ model:
   layer: ${wavlm_layer}
   topk: 4
   tgt_loudness_db: -16
-
-input_key: [speech, reference_speech, target_speaker]

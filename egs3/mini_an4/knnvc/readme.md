@@ -34,7 +34,9 @@ about ten seconds.
 | `prepare_features` | encodes 6 utterances, prematched within each of 3 speaker pools |
 | `train` | 2 batches through the GAN path, both optimizers stepping |
 | `infer` | converts 2 source/target-speaker pairs to WAV |
+| `measure` | ASR WER/CER of those WAVs against an4's transcripts (downloads an ASR model, so CI skips it) |
 
 One an4 speaker has a single utterance, so the run also covers the case where a
 prematching pool has nothing to match against and the features are written
-unmatched.
+unmatched. One utterance (`cen7-fash-b`) ships without a transcript, so it is
+only ever a reference, never a conversion source.

@@ -7,9 +7,9 @@ import numpy as np
 import pytest
 import torch
 
-import espnet3.systems.knnvc.model as model_module
-from espnet3.systems.knnvc.model import KNNVCModel
-from espnet3.systems.knnvc.vocoder import KNNVCGenerator
+import espnet3.systems.knnvc.src.model as model_module
+from espnet3.systems.knnvc.src.model import KNNVCModel
+from espnet3.systems.knnvc.src.vocoder import KNNVCGenerator
 
 # ===============================================================
 # Test Case Summary

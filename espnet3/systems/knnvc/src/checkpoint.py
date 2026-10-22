@@ -81,7 +81,7 @@ def convert_knn_vc_generator_state_dict(
 
     Returns:
         A new state dict loadable into a ``KNNVCGenerator`` built with
-        :data:`espnet3.systems.knnvc.vocoder.DEFAULT_GENERATOR_PARAMS`.
+        :data:`espnet3.systems.knnvc.src.vocoder.DEFAULT_GENERATOR_PARAMS`.
 
     Raises:
         KeyError: If a key does not match any known HiFi-GAN generator parameter,

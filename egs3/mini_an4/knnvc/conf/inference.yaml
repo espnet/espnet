@@ -15,7 +15,6 @@ dataset:
         seed: 0
 
 model:
-  _target_: espnet3.systems.knnvc.model.KNNVCModel
   vocoder_checkpoint: ${exp_dir}/last.ckpt
   encoder:
     _target_: src.stub_encoder.StubEncoder
@@ -33,4 +32,3 @@ model:
   tgt_loudness_db:
 
 device: cpu
-input_key: [speech, reference_speech, target_speaker]

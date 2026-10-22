@@ -12,13 +12,17 @@ from __future__ import annotations
 import logging
 import time
 from pathlib import Path
+from typing import ClassVar
 
 from omegaconf import OmegaConf
 
+from espnet3.contract.stages import StageSpec
 from espnet3.parallel.parallel import set_parallel
 from espnet3.systems.base.system import BaseSystem
-from espnet3.systems.knnvc.prepare_features_provider import PrepareFeaturesProvider
-from espnet3.systems.knnvc.prepare_features_runner import PrepareFeaturesRunner
+from espnet3.systems.knnvc.src.prepare_features_provider import (
+    PrepareFeaturesProvider,
+)
+from espnet3.systems.knnvc.src.prepare_features_runner import PrepareFeaturesRunner
 
 logger = logging.getLogger(__name__)
 
@@ -26,42 +30,40 @@ logger = logging.getLogger(__name__)
 class KNNVCSystem(BaseSystem):
     """Voice-conversion system (encoder -> converter -> vocoder recipes).
 
-    Stage order used by ``egs3/TEMPLATE/knnvc/run.py``::
+    The declared stage order, which ``launch(KNNVCSystem)`` runs for
+    ``--stages all``::
 
         create_dataset -> prepare_features -> train -> infer -> measure
-        -> pack_model -> upload_model -> pack_demo -> upload_demo
+        -> pack_model -> upload_model
 
-    ``collect_stats`` is intentionally absent: the HiFi-GAN vocoder needs no
-    feature statistics.
+    Two stages of :class:`BaseSystem` are left out on purpose:
 
-    Additional stage-log mapping:
+    - ``collect_stats``: the HiFi-GAN vocoder needs no feature statistics;
+    - ``pack_demo`` / ``upload_demo``: a VC demo takes a variable-length set
+      of target-speaker reference utterances as one input, which the shared
+      demo UI asset types (``audio``, ``text``) cannot express yet.
 
-    .. list-table::
-       :header-rows: 1
+    ``prepare_features`` logs under
+    ``training_config.prepare_features.features_dir``.
 
-       * - Stage
-         - Path reference
-       * - ``prepare_features``
-         - ``training_config.prepare_features.features_dir``
+    Examples:
+        >>> [s.name for s in KNNVCSystem.stages[:3]]
+        ['create_dataset', 'prepare_features', 'train']
     """
 
-    def __init__(
-        self,
-        training_config=None,
-        inference_config=None,
-        metrics_config=None,
-        **kwargs,
-    ) -> None:
-        """Initialize the VC system with the ``prepare_features`` log mapping."""
-        super().__init__(
-            training_config=training_config,
-            inference_config=inference_config,
-            metrics_config=metrics_config,
-            stage_log_mapping={
-                "prepare_features": "training_config.prepare_features.features_dir",
-            },
-            **kwargs,
-        )
+    stages: ClassVar[tuple[StageSpec, ...]] = (
+        StageSpec(name="create_dataset", config="training", log_dir="data_dir"),
+        StageSpec(
+            name="prepare_features",
+            config="training",
+            log_dir="prepare_features.features_dir",
+        ),
+        StageSpec(name="train", config="training", log_dir="exp_dir"),
+        StageSpec(name="infer", config="inference", log_dir="inference_dir"),
+        StageSpec(name="measure", config="metrics", log_dir="inference_dir"),
+        StageSpec(name="pack_model", config=("training", "publication")),
+        StageSpec(name="upload_model", config="publication"),
+    )
 
     def prepare_features(self, *args, **kwargs):
         """Precompute (prematched) encoder features for vocoder training.
@@ -96,7 +98,7 @@ class KNNVCSystem(BaseSystem):
                ``get_feature_name(idx)`` (see ``PrepareFeaturesProvider``).
            * - ``encoder``
              - Hydra config of the encoder, e.g.
-               ``espnet3.systems.knnvc.wavlm_encoder.WavLMEncoder``.
+               ``espnet3.systems.knnvc.src.wavlm_encoder.WavLMEncoder``.
            * - ``prematch``
              - Replace each frame by the mean of its ``topk`` nearest frames
                within the same pool (default ``true``).
@@ -116,7 +118,7 @@ class KNNVCSystem(BaseSystem):
                     - name: train-clean-100
                       data_src_args: {split: train-clean-100, kind: audio}
                   encoder:
-                    _target_: espnet3.systems.knnvc.wavlm_encoder.WavLMEncoder
+                    _target_: espnet3.systems.knnvc.src.wavlm_encoder.WavLMEncoder
                     checkpoint: /path/to/WavLM-Large.pt
                     layer: 6
                   prematch: true

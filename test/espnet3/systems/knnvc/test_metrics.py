@@ -6,6 +6,8 @@ import numpy as np
 import pytest
 import soundfile as sf
 
+from espnet3.contract.kinds.audio import Audio
+from espnet3.contract.metrics import MetricContractError
 from espnet3.systems.knnvc.metrics.intelligibility import ASRIntelligibility
 
 # ===============================================================
@@ -20,6 +22,12 @@ from espnet3.systems.knnvc.metrics.intelligibility import ASRIntelligibility
 # | test_rejects_wrong_sample_rate              | A non-16k WAV raises.        |
 # | test_prebuilt_asr_is_used_as_is             | A built ASR is not replaced  |
 # |                                             | by a download.               |
+# | test_chunks_score_like_one_batch            | Summed counts give the same  |
+# |                          | WER/CER whether update sees one or many batches. |
+# | test_update_accepts_decoded_audio           | Audio and arrays score like  |
+# |                          | paths; a wrong-rate Audio is refused.            |
+# | test_state_roundtrip                        | reset/state/merge/load give  |
+# |                                             | the same compute().          |
 
 
 class FakeASR:
@@ -86,8 +94,52 @@ def test_prebuilt_asr_is_used_as_is(tmp_path):
     asr = FakeASR(["hello"])
     metric = ASRIntelligibility(asr=asr)
 
-    assert metric.build_asr() is asr
+    assert metric._build_asr() is asr
 
     data = _write_case(tmp_path, ["hello"])
     metric(data, "test", tmp_path / "out")
     assert asr.calls == 1
+
+
+def test_chunks_score_like_one_batch(tmp_path):
+    refs = ["the cat sat", "a dog ran", "one two three", "four"]
+    hyps = ["the cat sat", "a dog walked", "one two", "four five"]
+    data = _write_case(tmp_path, refs)
+
+    whole = ASRIntelligibility(asr=FakeASR(hyps))
+    scores = whole(data, "test")
+
+    chunked = ASRIntelligibility(asr=FakeASR(hyps))
+    chunked.chunk_size = 1
+    assert chunked(data, "test") == scores
+    assert chunked.state() == whole.state()
+
+    # The declared inputs are checked before update runs.
+    with pytest.raises(MetricContractError, match="hyp"):
+        whole.update(ref=["a"], hyp=["a"])
+    with pytest.raises(ValueError, match="nothing to score"):
+        ASRIntelligibility(asr=FakeASR([])).compute()
+
+
+def test_update_accepts_decoded_audio():
+    metric = ASRIntelligibility(asr=FakeASR(["the cat sat", "a dog ran"]))
+    samples = np.zeros(8000, dtype=np.float32)
+    metric.update(ref=["the cat sat"], wav=[Audio(samples, 16000)])
+    metric.update(ref=["a dog ran"], wav=[samples])
+    assert metric.compute() == {"ASR_WER": 0.0, "ASR_CER": 0.0}
+
+    with pytest.raises(ValueError, match="expects 16000 Hz"):
+        metric.update(ref=["hello"], wav=[Audio(samples, 8000)])
+
+
+def test_state_roundtrip(tmp_path):
+    data = _write_case(tmp_path, ["the cat sat", "a dog ran"])
+    metric = ASRIntelligibility(asr=FakeASR(["the cat sat", "a dog walked"]))
+    scores = metric(data, "test")
+    state = metric.state()
+    assert state["word_substitutions"] == 1 and state["word_hits"] == 5
+
+    metric.reset()
+    assert all(value == 0 for value in metric.state().values())
+    metric.load_state(metric.merge_states([state, state]))
+    assert metric.compute() == scores

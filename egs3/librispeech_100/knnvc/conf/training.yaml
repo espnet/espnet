@@ -29,7 +29,7 @@ prepare_features:
         split: dev-clean
         kind: audio
   encoder:
-    _target_: espnet3.systems.knnvc.wavlm_encoder.WavLMEncoder
+    _target_: espnet3.systems.knnvc.src.wavlm_encoder.WavLMEncoder
     checkpoint: ${wavlm_checkpoint}
     layer: ${wavlm_layer}
   prematch: true
@@ -55,7 +55,7 @@ dataset:
         segment_frames:             # whole utterances, as in the official validation loop
 
 model:
-  _target_: espnet3.systems.knnvc.vocoder.KNNVCVocoderModel
+  _target_: espnet3.systems.knnvc.src.vocoder.KNNVCVocoderModel
   lambda_adv: 1.0
   lambda_feat_match: 2.0
   lambda_mel: 45.0
