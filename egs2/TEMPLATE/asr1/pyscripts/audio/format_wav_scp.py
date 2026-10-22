@@ -260,6 +260,9 @@ def main():
             with Path(args.scp).open("r") as fscp:
                 for line in tqdm(fscp):
                     uttid, wavpath = line.strip().split(None, 1)
+                    if wavpath == "None":
+                        yield uttid, (None, None), None, None
+                        continue
 
                     # B.a. Without segments and using pipe inputs
                     if wavpath.endswith("|"):
@@ -293,6 +296,11 @@ def main():
 
     with out_num_samples.open("w") as fnum_samples:
         for uttid, (wave, rate), wavpath, subtypes in tqdm(generator()):
+            if wave is None:
+                scp_writer = fscp_out if fscp_out is not None else writer.fscp
+                scp_writer.write(f"{uttid} None\n")
+                fnum_samples.write(f"{uttid} 0\n")
+                continue
             save_asis = True
             if args.fs is not None and args.fs != rate:
                 # FIXME(kamo): To use sox?

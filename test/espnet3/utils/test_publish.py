@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+from pathlib import Path
 from types import SimpleNamespace
 
 import httpx
@@ -12,6 +13,7 @@ from espnet3.systems.esp2_asr.system import ASRSystem
 from espnet3.utils import publication_utils as publish
 from espnet3.utils.publication_utils import (
     _build_results_table,
+    _infer_recipe_name,
     _render_readme,
     _resolve_results,
 )
@@ -534,7 +536,7 @@ def test_pack_model_excludes_inference_dir_and_copies_metrics_json(tmp_path):
     assert "| dataset | WER |" in readme
     assert "| test | 5.0 |" in readme
     assert "Metrics were not bundled." not in readme
-    assert 'from_pretrained("espnet/test-repo", trust_user_code=True)' in readme
+    assert "to build its backend" in readme
 
 
 def test_pack_model_excludes_recursive_log_and_tensorboard_patterns(tmp_path):
@@ -655,10 +657,7 @@ def test_pack_model_writes_readme_with_full_context(tmp_path):
     assert "language: en" in readme
     assert "license: apache-2.0" in readme
     assert "My model." in readme
-    assert (
-        'model = InferenceModel.from_packed("/path/to/packed_model", '
-        "trust_user_code=True)" in readme
-    )
+    assert "to build its backend" in readme
 
 
 def test_pack_model_drops_readme_lines_for_missing_context(
@@ -1005,6 +1004,60 @@ def test_pack_model_external_include_placed_at_bundle_root(tmp_path):
     )
 
     assert (out_dir / "shared_tokenizer" / "tokenizer.model").exists()
+
+
+# ---------------------------------------------------------------------------
+# recipe path in README reflects the esp2_asr rename
+# ---------------------------------------------------------------------------
+
+
+def test_infer_recipe_name_reflects_renamed_system_directory():
+    repo_root = Path(publish.__file__).resolve().parents[2]
+    recipe_root = repo_root / "egs3" / "mini_an4" / "esp2_asr"
+
+    assert _infer_recipe_name(recipe_root) == "egs3/mini_an4/esp2_asr"
+
+
+def test_pack_model_readme_recipe_line_uses_renamed_path(tmp_path, monkeypatch):
+    repo_root = Path(publish.__file__).resolve().parents[2]
+    recipe_dir = repo_root / "egs3" / "mini_an4" / "esp2_asr"
+    exp_dir = tmp_path / "exp"
+    exp_dir.mkdir()
+    out_dir = tmp_path / "model_pack"
+    publication_config = OmegaConf.create(
+        {
+            "pack_model": {
+                "out_dir": str(out_dir),
+                "readme": "egs3/TEMPLATE/esp2_asr/src/hf_model_readme.md",
+                "readme_context": {
+                    "task": "asr",
+                    "lang": "en",
+                    "license": "apache-2.0",
+                    "description": "Test.",
+                },
+            }
+        }
+    )
+    system = _make_system(
+        exp_dir=exp_dir,
+        recipe_dir=recipe_dir,
+        publication_config=publication_config,
+        task="espnet3.systems.esp2_asr.task.ASRTask",
+    )
+    monkeypatch.setattr(
+        publish,
+        "get_git_metadata",
+        lambda cwd=None: {"short_commit": "abc123", "worktree": "clean"},
+    )
+
+    out_dir = publish.pack_model(
+        training_config=system.training_config,
+        publication_config=system.publication_config,
+    )
+
+    readme = (out_dir / "README.md").read_text(encoding="utf-8")
+    assert "- Recipe: `egs3/mini_an4/esp2_asr`" in readme
+    assert "egs3/mini_an4/asr" not in readme
 
 
 # ---------------------------------------------------------------------------
@@ -1376,3 +1429,15 @@ def test_upload_model_empty_delete_patterns_passes_none(tmp_path, monkeypatch):
     publish.upload_model(system)
 
     assert upload_calls[0]["delete_patterns"] is None
+
+
+def test_meta_records_a_system_only_when_the_task_path_names_one():
+    from omegaconf import OmegaConf
+
+    from espnet3.utils.publication_utils import _system_for_meta
+
+    named = OmegaConf.create({"task": "espnet3.systems.esp2_asr.task.ASRTask"})
+    assert _system_for_meta(named) == "esp2_asr"
+    for task in ("espnet2.tasks.asr.ASRTask", "", None):
+        assert _system_for_meta(OmegaConf.create({"task": task})) is None
+    assert _system_for_meta(OmegaConf.create({})) is None

@@ -55,8 +55,8 @@ def test_the_translation_targets_are_the_st_symbols():
 
     _, targets = demo.menus(TOKENS)
     assert targets == [
-        ("Translate to English (eng)", "eng"),
-        ("Translate to German (deu)", "deu"),
+        ("ST: translate to English (eng)", "eng"),
+        ("ST: translate to German (deu)", "deu"),
     ]
 
 
@@ -378,3 +378,23 @@ def test_a_gradio_that_is_installed_but_broken_is_not_called_missing(monkeypatch
 
     with pytest.raises(ModuleNotFoundError, match="pandas"):
         demo.load_gradio()
+
+
+def test_every_task_is_named_by_its_abbreviation():
+    """The menu and the papers a reader arrives from use the same word."""
+    for label, abbreviation in (
+        (demo.ASR_LABEL, "ASR"),
+        (demo.PHONES_LABEL, "PR"),
+        (demo.G2P_LABEL, "G2P"),
+        (demo.P2G_LABEL, "P2G"),
+    ):
+        assert label.startswith(abbreviation + ":"), label
+        # and glossed, because an abbreviation alone is not a user guide
+        assert len(label) > len(abbreviation) + 2, label
+
+
+def test_the_box_for_a_written_input_shows_an_example():
+    """IPA between slashes is not a spelling anyone guesses unaided."""
+    for label in (demo.G2P_LABEL, demo.P2G_LABEL):
+        assert "e.g." in demo.PROMPT_LABELS[label], label
+    assert "/p//a//t/" in demo.PROMPT_LABELS[demo.P2G_LABEL]

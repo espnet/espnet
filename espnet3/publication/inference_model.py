@@ -12,21 +12,23 @@ Typical call flow:
 - read ``meta.yaml``
 - locate and resolve ``conf/inference.yaml``
 - optionally allow bundled recipe code when ``trust_user_code=True``
-- instantiate the backend model and optional ``output_fn``
+- instantiate the backend model and inference contract
 - run ``forward()`` or ``forward_batch()``
 """
 
 from __future__ import annotations
 
+import inspect
 import sys
 from pathlib import Path
 from typing import Any, Mapping, Sequence
 
 import yaml
 from espnet_model_zoo.downloader import ModelDownloader
-from hydra.utils import get_class
+from hydra.utils import get_class, get_object
 from omegaconf import DictConfig, ListConfig, OmegaConf
 
+from espnet3.contract.inference import load_inference_contract
 from espnet3.systems.base.inference_provider import InferenceProvider
 from espnet3.systems.base.inference_runner import InferenceRunner, _load_output_fn
 from espnet3.utils.config_utils import load_config_with_defaults
@@ -69,6 +71,37 @@ def _get_bundled_module_names(bundle_root: Path) -> set[str]:
     return bundled_modules
 
 
+def _check_bundled_module_conflicts(
+    bundled_modules: set[str], bundle_root: Path
+) -> None:
+    """Reject bundled module names already imported from somewhere else.
+
+    Called by :meth:`InferenceModel.from_packed` before the bundle root is put on
+    ``sys.path``. Python reuses an entry in ``sys.modules`` without looking at
+    ``sys.path``, so a bundle's ``src`` would silently resolve to a ``src``
+    imported earlier (another recipe or bundle) and run that code instead.
+    """
+    root = bundle_root.resolve()
+    conflicts = []
+    for name in sorted(bundled_modules):
+        module = sys.modules.get(name)
+        if module is None:
+            continue
+        locations = [getattr(module, "__file__", None)]
+        locations.extend(getattr(module, "__path__", None) or [])
+        locations = [Path(location).resolve() for location in locations if location]
+        if not any(root in (loc, *loc.parents) for loc in locations):
+            where = locations[0] if locations else "an unknown location"
+            conflicts.append(f"{name} (already imported from {where})")
+    if conflicts:
+        raise ValueError(
+            "The bundle ships modules whose names were already imported from "
+            "elsewhere, so its code would not be the code that runs: "
+            + ", ".join(conflicts)
+            + ". Load the bundle in a fresh process or rename the bundled modules."
+        )
+
+
 def _uses_bundled_code(
     config: DictConfig,
     bundled_modules: set[str],
@@ -101,6 +134,97 @@ def _uses_bundled_code(
     return False
 
 
+_ALLOWED_TARGET_PREFIXES = (
+    "espnet2.",
+    "espnet3.",
+    "lightning.",
+    "torch.optim.",
+)
+
+_DENIED_TARGETS = frozenset(
+    {
+        "torch.load",
+        "torch.jit.load",
+        "torch.serialization.load",
+        "builtins.eval",
+        "builtins.exec",
+        "builtins.__import__",
+        "os.system",
+        "subprocess.run",
+        "subprocess.Popen",
+        "subprocess.call",
+        "subprocess.check_output",
+    }
+)
+
+
+def _iter_target_strings(config: DictConfig) -> list[str]:
+    """Return every ``_target_`` string in the config tree.
+
+    Hydra instantiates recursively, so a ``_target_`` nested inside an
+    argument has to be checked just like a top-level target.
+    """
+    targets = []
+    stack = [OmegaConf.to_container(config, resolve=False)]
+    while stack:
+        value = stack.pop()
+        if isinstance(value, Mapping):
+            target = value.get("_target_")
+            if isinstance(target, str):
+                targets.append(target)
+            stack.extend(value.values())
+        elif isinstance(value, (list, tuple)):
+            stack.extend(value)
+    return targets
+
+
+def _resolve_target(target: str):
+    """Return ``(object, '<module>.<qualname>')`` for a target, or None."""
+    try:
+        obj = get_object(target)
+    except Exception:
+        return None
+    module = getattr(obj, "__module__", None)
+    qualname = getattr(obj, "__qualname__", None) or getattr(obj, "__name__", None)
+    if not module or not qualname:
+        return None
+    return obj, f"{module}.{qualname}"
+
+
+def _disallowed_targets(config: DictConfig) -> list[str]:
+    """Return Hydra targets outside the classes allowed in an untrusted pack.
+
+    The name as written and the resolved object's actual module are both
+    checked. This prevents attribute paths through an allowed module from
+    resolving to an outside callable. Targets must resolve to classes, which
+    is what model bundles use. This narrows the executable surface; it does
+    not make arbitrary arguments to allowed classes safe.
+    """
+    disallowed = set()
+    for target in _iter_target_strings(config):
+        if target in _DENIED_TARGETS or not target.startswith(_ALLOWED_TARGET_PREFIXES):
+            disallowed.add(target)
+            continue
+        resolved = _resolve_target(target)
+        if resolved is None:
+            disallowed.add(f"{target} (does not resolve)")
+            continue
+        obj, origin = resolved
+        if origin in _DENIED_TARGETS or not origin.startswith(_ALLOWED_TARGET_PREFIXES):
+            disallowed.add(f"{target} (resolves to {origin})")
+        elif not inspect.isclass(obj):
+            disallowed.add(f"{target} (resolves to {origin}, which is not a class)")
+    return sorted(disallowed)
+
+
+def _apply_model_overrides(config, overrides):
+    """Merge constructor overrides before checking all Hydra targets for trust."""
+    if overrides:
+        if config.get("model") is None:
+            raise ValueError("inference config has no model to override")
+        config.model = OmegaConf.merge(config.model, overrides)
+
+
 class InferenceModel:
     """User-facing inference wrapper for packaged ESPnet models.
 
@@ -112,10 +236,9 @@ class InferenceModel:
     ``run.py``.
 
     Internally the wrapper rebuilds the backend declared in
-    ``conf/inference.yaml`` through :class:`InferenceProvider`, normalizes
-    sample inputs to match ``input_key``, and optionally applies the recipe's
-    ``output_fn`` so the published model returns the same payload shape used by
-    recipe inference.
+    ``conf/inference.yaml`` through :class:`InferenceProvider` and sends
+    samples through the same runner and inference contract as recipe inference.
+    Older bundles may still use a recipe ``output_fn``.
 
     The inference model can be built from:
 
@@ -151,8 +274,8 @@ class InferenceModel:
 
         Called by :meth:`from_packed` and :meth:`from_pretrained` after bundle
         discovery and trust checks are complete. This constructor instantiates
-        the backend model, normalizes ``input_key`` into either a string or a
-        list of strings, and loads the optional recipe ``output_fn``.
+        the backend model, loads its inference contract, and normalizes
+        ``input_key`` into either a string or a list of strings.
 
         Args:
             inference_config: Resolved inference config loaded from the packed
@@ -169,14 +292,22 @@ class InferenceModel:
         )
         self.runner_cls = get_class(runner_target) if runner_target else InferenceRunner
 
-        self.model = provider_cls.build_model(inference_config)
+        self.contract = load_inference_contract(
+            getattr(inference_config, "contract", None)
+        )
+        self.idx_key = getattr(inference_config, "idx_key", "utt_id")
         input_key = getattr(inference_config, "input_key", "speech")
         self.input_key = (
             list(input_key)
             if isinstance(input_key, (list, tuple, ListConfig))
             else input_key
         )
+        if self.contract is not None:
+            self.contract.validate_input_keys(self.input_key)
         output_fn_path = getattr(inference_config, "output_fn", None)
+        if self.contract is not None and output_fn_path:
+            raise ValueError("output_fn cannot be combined with an inference contract")
+        self.model = provider_cls.build_model(inference_config)
         self.output_fn = _load_output_fn(output_fn_path) if output_fn_path else None
 
     @classmethod
@@ -184,6 +315,8 @@ class InferenceModel:
         cls,
         pack_dir: str | Path,
         trust_user_code: bool = False,
+        device: str | None = None,
+        **model_overrides: Any,
     ) -> "InferenceModel":
         """Build an inference model from a packed model directory.
 
@@ -207,6 +340,11 @@ class InferenceModel:
             trust_user_code: Set to ``True`` to allow importing bundled recipe
                 code from the pack directory. Required when the inference
                 config references modules shipped inside the bundle.
+            device: Optional runtime device override. Set it to ``"auto"`` to
+                let the provider select a device automatically.
+            **model_overrides: Constructor arguments merged into ``model``
+                before trust validation, e.g. ``beam_size=5``. Hydra control
+                keys such as ``_target_`` cannot be overridden.
 
         Returns:
             InferenceModel: Inference model loaded from ``pack_model`` output.
@@ -232,6 +370,8 @@ class InferenceModel:
             ...     trust_user_code=True,
             ... )
         """
+        if any(name.startswith("_") for name in model_overrides):
+            raise ValueError("Model overrides cannot change Hydra control keys")
         bundle_root = Path(pack_dir).resolve()
         if not bundle_root.is_dir():
             raise FileNotFoundError(
@@ -280,15 +420,24 @@ class InferenceModel:
             inference_config_path,
             bundle_root=bundle_root,
         )
+        _apply_model_overrides(inference_config, model_overrides)
         bundled_modules = _get_bundled_module_names(bundle_root)
 
-        if _uses_bundled_code(inference_config, bundled_modules):
+        contract_config = getattr(inference_config, "contract", None)
+        contract_imports = (
+            list(contract_config.get("imports", [])) if contract_config else []
+        )
+        if contract_imports and not trust_user_code:
+            raise ValueError("contract.imports requires trust_user_code=True")
+
+        if _uses_bundled_code(inference_config, bundled_modules) or contract_imports:
             if not trust_user_code:
                 raise ValueError(
                     "This inference config references bundled user code. "
                     "Set trust_user_code=True to allow imports from the "
                     "published bundle."
                 )
+            _check_bundled_module_conflicts(bundled_modules, bundle_root)
             bundle_root_str = str(bundle_root)
             if bundle_root_str not in sys.path:
                 sys.path.insert(0, bundle_root_str)
@@ -296,6 +445,42 @@ class InferenceModel:
                 inference_config_path,
                 bundle_root=bundle_root,
             )
+            _apply_model_overrides(inference_config, model_overrides)
+
+        # Bundled-code checks do not catch a target that names an installed
+        # callable. Hydra would still import and execute that target, including
+        # recursively nested targets in its arguments.
+        if not trust_user_code:
+            disallowed = _disallowed_targets(inference_config)
+            if disallowed:
+                raise ValueError(
+                    "This inference config instantiates targets outside the "
+                    "namespaces a published bundle may build from: "
+                    + ", ".join(disallowed)
+                    + ". Hydra executes every `_target_`, so loading this "
+                    "bundle would run them. Set trust_user_code=True only if "
+                    "you trust the publisher of this bundle."
+                )
+            # ``output_fn`` is imported and called outside Hydra, so the
+            # ``_target_`` check above does not cover it.
+            output_fn = getattr(inference_config, "output_fn", None)
+            if output_fn:
+                raise ValueError(
+                    f"This inference config sets output_fn={output_fn!r}, which "
+                    "is imported and run as user code. Set trust_user_code=True "
+                    "only if you trust the publisher of this bundle."
+                )
+
+        if device is not None:
+            # Work on a copy: callers may reuse the config, and ``auto`` means
+            # defer device selection to InferenceProvider's normal policy.
+            inference_config = OmegaConf.create(
+                OmegaConf.to_container(inference_config, resolve=False)
+            )
+            if device == "auto":
+                inference_config.pop("device", None)
+            else:
+                OmegaConf.update(inference_config, "device", device, force_add=True)
 
         return cls(inference_config)
 
@@ -304,6 +489,8 @@ class InferenceModel:
         cls,
         model_tag: str,
         trust_user_code: bool = False,
+        device: str | None = None,
+        **model_overrides: Any,
     ) -> "InferenceModel":
         """Download a packaged model and build an inference model from it.
 
@@ -314,10 +501,14 @@ class InferenceModel:
         delegates to :meth:`from_packed` for the actual config loading and
         backend construction.
 
+        ``device`` is forwarded to :meth:`from_packed` as a runtime override.
+
         Args:
             model_tag: Pretrained model identifier understood by
                 ``espnet_model_zoo``.
             trust_user_code: Forwarded to :meth:`from_packed`.
+            device: Forwarded to :meth:`from_packed`.
+            **model_overrides: Model constructor arguments forwarded to from_packed.
 
         Returns:
             InferenceModel: Downloaded inference model.
@@ -348,11 +539,26 @@ class InferenceModel:
             )
         inference_config_path = Path(artifacts["inference_config"])
         pack_dir = inference_config_path.parent.parent
-        return cls.from_packed(pack_dir, trust_user_code=trust_user_code)
+        return cls.from_packed(
+            pack_dir, trust_user_code=trust_user_code, device=device, **model_overrides
+        )
 
     @property
     def primary_input_key(self) -> str:
-        """Return the single configured input key."""
+        """Return the single configured input key.
+
+        Returns:
+            The only entry of ``input_key``, or ``input_key`` itself when it is
+            a string.
+
+        Raises:
+            RuntimeError: If ``input_key`` lists more than one key.
+
+        Examples:
+            >>> model = InferenceModel.from_packed("pack_dir")  # doctest: +SKIP
+            >>> model.primary_input_key  # doctest: +SKIP
+            'speech'
+        """
         if isinstance(self.input_key, list):
             if len(self.input_key) != 1:
                 raise RuntimeError(
@@ -372,11 +578,21 @@ class InferenceModel:
             keys = (
                 self.input_key if isinstance(self.input_key, list) else [self.input_key]
             )
+            unknown = set(sample) - set(keys) - {self.idx_key}
             inputs = {}
+            optional_keys = (
+                {spec.name for spec in self.contract.inputs if spec.optional}
+                if self.contract is not None
+                else set()
+            )
             for key in keys:
                 if key not in sample:
+                    if key in optional_keys:
+                        continue
                     raise KeyError(f"Input key '{key}' not found in sample.")
                 inputs[key] = sample[key]
+            if unknown:
+                raise TypeError(f"Unknown inference input(s): {sorted(unknown)}")
             return inputs, sample
 
         key = self.primary_input_key
@@ -393,18 +609,18 @@ class InferenceModel:
         This is the main execution method used by :meth:`__call__` and by
         :meth:`forward_batch`. It normalizes the sample to match the configured
         model input signature, calls the instantiated backend, and then applies
-        the optional recipe ``output_fn``.
+        the configured output contract.
 
         Args:
             sample: Either a raw input value for single-input models or a
                 mapping containing the configured input key(s).
-            idx: Optional sample identifier forwarded to ``output_fn``.
+            idx: Optional sample identifier attached to contracted output.
             **extra_kwargs: Additional keyword arguments forwarded to the
                 underlying model callable (e.g. ``beam_size`` for demo
                 overrides).
 
         Returns:
-            Any: Backend output, or the transformed output from ``output_fn``.
+            Any: Validated backend output when a contract is configured.
 
         Raises:
             KeyError: If a required input field is missing.
@@ -420,14 +636,15 @@ class InferenceModel:
             ... )
         """
         data = self._normalize_sample_for_runner(sample)
-        return self.runner_cls.forward(
-            idx,
-            dataset={idx: data},
-            model=self.model,
-            input_key=self.input_key,
-            output_fn=self.output_fn,
-            model_kwargs=extra_kwargs,
-        )
+        env = {
+            "input_key": self.input_key,
+            "output_fn": self.output_fn,
+            "inference_contract": self.contract,
+            "idx_key": self.idx_key,
+            "model_kwargs": extra_kwargs,
+        }
+        dataset = {idx: data}
+        return self.runner_cls.forward(idx, dataset=dataset, model=self.model, **env)
 
     def __call__(self, sample: Any, idx: Any = 0, **extra_kwargs: Any) -> Any:
         """Alias for :meth:`forward`.
@@ -444,17 +661,13 @@ class InferenceModel:
     ) -> list[Any]:
         """Run inference for a batch of samples.
 
-        This helper first tries the same batched execution path used by
-        :class:`InferenceRunner`, so published models can benefit from recipe
-        backends that already support batched inputs. If that batched call
-        fails, or if the returned value does not preserve the one-result-per-
-        sample contract of :class:`InferenceModel`, it falls back to
-        per-sample :meth:`forward` calls.
+        This helper uses the runner's batched execution path. The configured
+        runner must support batches; errors are propagated to the caller.
 
         Args:
             samples: Sequence of raw inputs or sample mappings.
             indices: Optional per-sample identifiers forwarded to
-                ``output_fn``. Defaults to ``range(len(samples))``.
+                the output records. Defaults to ``range(len(samples))``.
 
         Returns:
             list[Any]: One output per sample.
@@ -484,47 +697,24 @@ class InferenceModel:
             self._normalize_sample_for_runner(sample) for sample in sample_list
         ]
 
-        batch_result = None
-        if len(set(index_list)) == len(index_list):
-            dataset = {
-                idx: sample for idx, sample in zip(index_list, normalized_samples)
-            }
-            try:
-                batch_result = self.runner_cls.forward(
-                    index_list,
-                    dataset=dataset,
-                    model=self.model,
-                    input_key=self.input_key,
-                    output_fn=self.output_fn,
-                )
-            except (TypeError, NotImplementedError):
-                logger.debug(
-                    "Runner does not support batched inference;"
-                    " falling back to per-sample.",
-                    exc_info=True,
-                )
-                batch_result = None
-            except RuntimeError as e:
-                logger.warning(
-                    "Batched inference raised RuntimeError (%s);"
-                    " falling back to per-sample."
-                    " This may indicate CUDA OOM or a shape mismatch.",
-                    e,
-                )
-                batch_result = None
-
-        if isinstance(batch_result, list) and len(batch_result) == len(sample_list):
-            return batch_result
-        if isinstance(batch_result, tuple) and len(batch_result) == len(sample_list):
+        if len(set(index_list)) != len(index_list):
+            raise ValueError("indices must be unique for batched inference.")
+        dataset = {idx: sample for idx, sample in zip(index_list, normalized_samples)}
+        env = {
+            "input_key": self.input_key,
+            "output_fn": self.output_fn,
+            "inference_contract": self.contract,
+            "idx_key": self.idx_key,
+        }
+        batch_result = self.runner_cls.forward(
+            index_list, dataset=dataset, model=self.model, **env
+        )
+        if isinstance(batch_result, (list, tuple)) and len(batch_result) == len(
+            sample_list
+        ):
             return list(batch_result)
-
-        return [
-            self.runner_cls.forward(
-                idx,
-                dataset={idx: data},
-                model=self.model,
-                input_key=self.input_key,
-                output_fn=self.output_fn,
-            )
-            for data, idx in zip(normalized_samples, index_list)
-        ]
+        raise ValueError(
+            "Batched inference must return a sequence with one result per "
+            "input sample; "
+            f"got {type(batch_result).__name__}."
+        )
