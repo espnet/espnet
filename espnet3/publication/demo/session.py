@@ -9,6 +9,7 @@ from typing import Any
 
 from omegaconf import DictConfig, OmegaConf
 
+from espnet3.contract.kinds import KINDS
 from espnet3.publication.demo.assets import (
     DEFAULT_UI_ASSETS,
     UIAssetRegistry,
@@ -37,7 +38,7 @@ class DemoSession:
     Args:
         demo_dir: Packed demo directory.
         demo_cfg: Loaded packed demo config.
-        model: Loaded inference model.
+        model: Callable inference model or recipe-specific model override.
         registry: Asset registry for this demo session.
     """
 
@@ -45,7 +46,7 @@ class DemoSession:
         self,
         demo_dir: Path,
         demo_cfg: DictConfig,
-        model: InferenceModel,
+        model: Any,
         registry: UIAssetRegistry,
     ) -> None:
         """Initialize from already-loaded demo config, model, and registry."""
@@ -81,13 +82,34 @@ class DemoSession:
         call_args = OmegaConf.to_container(mapping, resolve=True)
         self.call_args = call_args
 
-        self.input_specs = [
-            OmegaConf.to_container(spec, resolve=True)
-            for spec in self.demo_cfg.ui.inputs
-        ]
-        self.output_specs = [
-            OmegaConf.to_container(spec, resolve=True)
-            for spec in self.demo_cfg.ui.outputs
+        contract = getattr(self.model, "contract", None)
+        input_specs = self.demo_cfg.ui.get("inputs")
+        output_specs = self.demo_cfg.ui.get("outputs")
+        self.input_specs = (
+            [OmegaConf.to_container(spec, resolve=True) for spec in input_specs]
+            if input_specs is not None
+            else self._specs_from_contract(contract, "inputs")
+        )
+        self.output_specs = (
+            [OmegaConf.to_container(spec, resolve=True) for spec in output_specs]
+            if output_specs is not None
+            else self._specs_from_contract(contract, "outputs")
+        )
+
+    @staticmethod
+    def _specs_from_contract(contract, direction: str) -> list[dict[str, Any]]:
+        """List the UI specs of a contract's ``inputs`` or ``outputs``."""
+        if contract is None:
+            raise ValueError(
+                f"Demo ui.{direction} requires an inference contract or explicit specs"
+            )
+        return [
+            {
+                "key": spec.name,
+                "type": spec.kind,
+                "label": spec.label,
+            }
+            for spec in getattr(contract, direction)
         ]
 
     def build_input_component(self, spec: dict[str, Any]) -> Any:
@@ -118,6 +140,12 @@ class DemoSession:
         Returns:
             Callable: Function suitable for ``gr.Button.click`` that
             maps UI values to model input keys and runs inference.
+
+        Examples:
+            >>> session = load_demo_session(demo_dir, "demo.yaml")  # doctest: +SKIP
+            >>> specs = (session.input_specs, session.output_specs)  # doctest: +SKIP
+            >>> fn = session.create_inference_fn(*specs)  # doctest: +SKIP
+            >>> text = fn("hello")  # doctest: +SKIP
         """
         resolved_input_specs = input_specs or []
         resolved_output_specs = output_specs or []
@@ -131,8 +159,18 @@ class DemoSession:
             if output_keys is not None
             else [spec["key"] for spec in resolved_output_specs]
         )
+        output_kinds = {
+            spec["key"]: KINDS.get(spec["type"])
+            for spec in [*self.output_specs, *resolved_output_specs]
+        }
+        contract = getattr(self.model, "contract", None)
+        if contract is not None:
+            output_kinds.update(
+                {field.name: KINDS[field.kind] for field in contract.outputs}
+            )
 
         def run_inference(*values: Any) -> Any:
+            """Run the model on the UI values and return its UI outputs."""
             logger.info(
                 "Demo inference start | num_inputs=%d input_keys=%s output_keys=%s",
                 len(values),
@@ -156,6 +194,9 @@ class DemoSession:
                 outputs = []
                 for key in resolved_output_keys:
                     value = result[key] if isinstance(result, dict) else result
+                    kind = output_kinds.get(key)
+                    if kind is not None:
+                        value = kind.to_demo_output(value)
                     outputs.append(value)
                 if len(outputs) == 1:
                     outputs = outputs[0]
@@ -170,6 +211,7 @@ class DemoSession:
 def load_demo_session(
     demo_dir: str | Path,
     demo_config_path: str | Path,
+    model: Any | None = None,
 ) -> DemoSession:
     """Load a packed demo into a runtime session.
 
@@ -177,12 +219,20 @@ def load_demo_session(
         demo_dir: Packed demo directory.
         demo_config_path: Explicit packed demo config path. Relative paths are
             resolved from ``demo_dir``.
+        model: Optional callable model override, useful for recipe-specific
+            inference logic. When omitted, the packed inference model is loaded.
+
     Returns:
         DemoSession: Loaded runtime session for the packed demo.
 
     Raises:
         FileNotFoundError: If the demo directory or packed demo config is
             missing.
+
+    Examples:
+        >>> session = load_demo_session("demo", "demo.yaml")  # doctest: +SKIP
+        >>> session.title  # doctest: +SKIP
+        'My demo'
     """
     demo_root = Path(demo_dir).resolve()
     if not demo_root.is_dir():
@@ -202,7 +252,8 @@ def load_demo_session(
     )
     demo_cfg = load_config_with_defaults(str(config_path))
     logger.info("Loaded demo config | path=%s", config_path)
-    model = _build_demo_model(demo_cfg, demo_root)
+    if model is None:
+        model = _build_demo_model(demo_cfg, demo_root)
     registry = DEFAULT_UI_ASSETS.clone()
     logger.info(
         "Demo session ready | input_key=%s title=%s",
@@ -221,16 +272,24 @@ def _build_demo_model(
     demo_cfg,
     demo_dir: Path,
 ) -> InferenceModel:
+    """Load the packed inference model that a demo config refers to.
+
+    ``model.dir_or_tag`` is a directory (absolute, or relative to
+    ``demo_dir``) holding a packed model, or a tag to download.
+    """
     model_cfg = demo_cfg.model
     dir_or_tag = model_cfg.get("dir_or_tag")
     if not dir_or_tag:
         raise ValueError("demo config must contain model.dir_or_tag.")
     model_trust_user_code = bool(model_cfg.get("trust_user_code", False))
+    device = model_cfg.get("device")
+    device_kwargs = {"device": device} if device is not None else {}
     logger.info(
         "Building demo inference model | dir_or_tag=%s trust_user_code=%s "
-        "base_dir=%s",
+        "device=%s base_dir=%s",
         dir_or_tag,
         model_trust_user_code,
+        device,
         demo_dir,
     )
     raw_ref = str(dir_or_tag)
@@ -249,8 +308,10 @@ def _build_demo_model(
         return InferenceModel.from_packed(
             resolved_candidate,
             trust_user_code=model_trust_user_code,
+            **device_kwargs,
         )
     return InferenceModel.from_pretrained(
         raw_ref,
         trust_user_code=model_trust_user_code,
+        **device_kwargs,
     )

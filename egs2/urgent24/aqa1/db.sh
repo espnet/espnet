@@ -1,0 +1,1 @@
+../../TEMPLATE/aqa1/db.sh

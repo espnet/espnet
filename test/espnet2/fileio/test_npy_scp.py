@@ -29,6 +29,7 @@ def test_NpyScpReader(tmp_path: Path):
     assert len(target) == len(desired)
     assert "abc" in target
     assert "def" in target
+    assert "zzz" not in target
     assert tuple(target.keys()) == tuple(desired)
     assert tuple(target) == tuple(desired)
     assert target.get_path("abc") == str(npy_path1)

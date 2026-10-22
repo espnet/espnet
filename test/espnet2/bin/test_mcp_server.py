@@ -36,6 +36,8 @@ def test_tools_are_listed_with_their_docs():
         "align",
         "synthesize",
         "enhance",
+        "describe",
+        "render",
     }
     assert tools["transcribe"].input_schema["required"] == ["audio_path"]
     assert set(tools["transcribe"].input_schema["properties"]) == {
@@ -49,28 +51,38 @@ def test_tools_are_listed_with_their_docs():
 
 
 class FakeASR:
+    """A native speech-to-text backend stand-in.
+
+    It refuses what the real one refuses, with the real one's sentences, so
+    that the server's relay of them is what is tested here.
+    """
+
+    languages = ("eng", "deu", "jpn")
+    targets = ("deu", "eng")
+
     def __init__(self):
         self.calls = []
-        self.s2t_model = SimpleNamespace(
-            token_list=[
-                "<nolang>",
-                "<eng>",
-                "<deu>",
-                "<jpn>",
-                "<asr>",
-                "<st_deu>",
-                "<st_eng>",
-            ]
-        )
 
-    def decode_long(self, speech, lang_sym, task_sym):
-        self.calls.append((speech, lang_sym, task_sym))
-        # decode_long returns one (start, end, text) per segment; the two
-        # segments are joined by the server, so a single-word return here
-        # would not show that the join happens.
-        words = "hallo welt" if task_sym == "<st_deu>" else "hello world"
-        first, second = words.split()
-        return [(0.0, 1.0, first), (1.0, 2.0, second)]
+    def decode_long(self, audio, *, lang_sym, task_sym):
+        prompt = {"task": task_sym[1:-1]}
+        if lang_sym != "<nolang>":
+            prompt["language"] = lang_sym[1:-1]
+        language, task = prompt.get("language"), prompt["task"]
+        if language is not None and language not in self.languages:
+            raise ValueError(
+                f"language {language!r}: this model has no <{language}>; pass "
+                "ISO 639-3, three letters: eng, deu, jpn, zho, fra, spa ..."
+            )
+        if task.startswith("st_") and task[3:] not in self.targets:
+            raise ValueError(
+                f"task {task!r}: this model has no <{task}>; it takes asr, or "
+                f"st_<ISO 639-3> to translate, into {', '.join(self.targets)}"
+            )
+        self.calls.append((audio, prompt))
+        return [(0.0, 1.0, "hallo welt" if task == "st_deu" else "hello world")]
+
+    def no_language(self):
+        return "<nolang>"
 
 
 def test_transcribe_maps_codes_to_symbols(monkeypatch, wav):
@@ -82,9 +94,10 @@ def test_transcribe_maps_codes_to_symbols(monkeypatch, wav):
         call(server, "translate", audio_path=str(wav), language="eng", to="deu")
         == "hallo welt"
     )
+    # by name; no language means the model works it out
     assert fake.calls == [
-        (str(wav), "<nolang>", "<asr>"),
-        (str(wav), "<eng>", "<st_deu>"),
+        (str(wav), {"task": "asr"}),
+        (str(wav), {"task": "st_deu", "language": "eng"}),
     ]
 
 
@@ -114,7 +127,7 @@ def test_transcribe_rejects_what_the_model_cannot_do(monkeypatch, wav, tmp_path)
             server.call_tool("transcribe", {"audio_path": str(wav), "language": "en"})
         )
     # fra is ISO 639-3, so the answer is the targets the model has
-    with pytest.raises(ToolError, match="target '<st_fra>'.*targets are deu, eng"):
+    with pytest.raises(ToolError, match="no <st_fra>.*into deu, eng"):
         asyncio.run(
             server.call_tool("translate", {"audio_path": str(wav), "to": "fra"})
         )
@@ -124,19 +137,14 @@ def test_transcribe_rejects_what_the_model_cannot_do(monkeypatch, wav, tmp_path)
         )
 
 
-class FakePOWSM:
+class FakePOWSM(FakeASR):
     """POWSM writes each phone between slashes; the server takes them out."""
 
-    def __init__(self):
-        self.calls = []
-        self.s2t_model = SimpleNamespace(token_list=["<unk>", "<eng>", "<pr>"])
+    languages = ("eng",)
 
-    def no_language(self):
-        return "<unk>"
-
-    def decode_long(self, speech, lang_sym, task_sym):
-        self.calls.append((speech, lang_sym, task_sym))
-        return [(0.0, 1.0, "/ð//ə/"), (1.0, 2.0, "/s//eɪ//l/")]
+    def decode_long(self, audio, **prompt):
+        super().decode_long(audio, **prompt)
+        return [(0.0, 1.0, "/ð//ə/ /s//eɪ//l/")]
 
 
 def test_phonemize_returns_one_token_a_phone(monkeypatch, wav):
@@ -146,9 +154,8 @@ def test_phonemize_returns_one_token_a_phone(monkeypatch, wav):
 
     assert call(server, "phonemize", audio_path=str(wav)) == "ð ə s eɪ l"
 
-    # the model's own symbol for "work the language out yourself", which is
-    # <unk> for POWSM and <nolang> for OWSM
-    assert fake.calls == [(str(wav), "<unk>", "<pr>")]
+    # phones by name; no language means the model works it out
+    assert fake.calls == [(str(wav), {"task": "pr"})]
 
 
 def test_phonemize_takes_a_language_the_model_has(monkeypatch, wav):
@@ -157,7 +164,7 @@ def test_phonemize_takes_a_language_the_model_has(monkeypatch, wav):
     server = mcp_server.build_server()
 
     call(server, "phonemize", audio_path=str(wav), language="eng")
-    assert fake.calls[-1][1] == "<eng>"
+    assert fake.calls[-1][1] == {"task": "pr", "language": "eng"}
 
     with pytest.raises(ToolError, match="ISO 639-3"):
         asyncio.run(
@@ -275,6 +282,27 @@ def test_enhance_resamples_and_writes(monkeypatch, wav, tmp_path):
     assert fs == 16000 and len(data) == 16000
 
 
+def test_speech_to_text_loader_builds_the_native_backend(monkeypatch):
+    import sys
+    import types
+
+    seen = []
+    backend = types.SimpleNamespace(
+        from_pretrained=lambda model_tag, **kw: seen.append(
+            {"model_tag": model_tag, **kw}
+        )
+        or "model"
+    )
+    module = types.ModuleType("espnet2.bin.s2t_inference")
+    module.Speech2Text = backend
+    monkeypatch.setitem(sys.modules, module.__name__, module)
+    monkeypatch.setattr(torch.cuda, "is_available", lambda: False)
+    monkeypatch.setattr(mcp_server, "DEVICE", "auto")
+
+    assert mcp_server._s2t("espnet/some_owsm") == "model"
+    assert seen == [{"model_tag": "espnet/some_owsm", "device": "cpu"}]
+
+
 def test_build_server_names_the_missing_package(monkeypatch):
     monkeypatch.setattr(mcp_server, "MCPServer", None)
     with pytest.raises(ImportError, match=r"espnet\[mcp\]"):
@@ -294,3 +322,79 @@ def test_enhancement_rate_is_validated_at_import(monkeypatch):
         # Reload once more with the runner's own environment restored, so the
         # module globals other tests read match it again.
         importlib.reload(mcp_server)
+
+
+class _FakeBagpiper:
+    """A served Bagpiper, without a server."""
+
+    def __init__(self, text="a bell rings", audio=None):
+        self.text, self.audio = text, audio
+        self.asked = []
+
+    def describe(self, audio, prompt=None, **kwargs):
+        self.asked.append((audio, prompt))
+        return self.text
+
+    def render(self, scene, **kwargs):
+        self.asked.append(scene)
+        return self.audio, self.text
+
+
+def _bagpiper(monkeypatch, model):
+    monkeypatch.setattr(mcp_server, "_bagpiper", lambda: model)
+    return model
+
+
+def test_describe_answers_about_the_audio(monkeypatch, wav):
+    model = _bagpiper(monkeypatch, _FakeBagpiper())
+
+    answer = call(mcp_server.build_server(), "describe", audio_path=str(wav))
+
+    assert answer == "a bell rings"
+    assert model.asked == [(str(wav), "What sound is in this audio?")]
+
+
+def test_describe_refuses_a_missing_file(monkeypatch):
+    _bagpiper(monkeypatch, _FakeBagpiper())
+
+    with pytest.raises(ToolError):
+        mcp_server.describe("/nowhere/missing.wav")
+
+
+def test_render_writes_the_wav_it_was_given(monkeypatch, tmp_path):
+    from test.espnet2.bin.test_speechlm_inference import wav_bytes
+
+    _bagpiper(monkeypatch, _FakeBagpiper(audio=wav_bytes()))
+    out = tmp_path / "made" / "bell.wav"
+
+    written = call(
+        mcp_server.build_server(),
+        "render",
+        scene="A bell rings twice.",
+        output_path=str(out),
+    )
+
+    assert written == str(out.resolve())
+    assert out.read_bytes() == wav_bytes()
+
+
+def test_render_reports_a_text_only_answer(monkeypatch, tmp_path):
+    _bagpiper(monkeypatch, _FakeBagpiper(text="I would render a bell."))
+
+    with pytest.raises(ToolError) as raised:
+        mcp_server.render("read this aloud: hello", str(tmp_path / "x.wav"))
+
+    assert "described scene" in str(raised.value)
+    assert not (tmp_path / "x.wav").exists()
+
+
+def test_a_server_that_is_not_running_is_reported_as_such(monkeypatch):
+    """The other tools download; this one has an address, and says so."""
+    monkeypatch.setattr(mcp_server, "BAGPIPER_URL", "http://127.0.0.1:9/v1")
+    mcp_server._bagpiper.cache_clear()
+
+    with pytest.raises(RuntimeError) as raised:
+        mcp_server._bagpiper().describe(__file__)
+
+    assert "docker run" in str(raised.value) or "README" in str(raised.value)
+    mcp_server._bagpiper.cache_clear()

@@ -51,6 +51,10 @@ Whatever `espnet2.bin` class does the work. It takes `model_tag` through
 `from_pretrained`, and `test/espnet2/bin/test_from_pretrained_routing.py`
 holds every such class to one way of fetching a published model.
 
+ESPnet3 recipes construct native inference classes through their provider.
+The Runner passes configured dataset columns directly to the backend and
+uses the recipe's output formatter to produce SCP records.
+
 ### 2. The command line — `espnet2/bin/cli.py`
 
 - a verb in `DEFAULT_MODELS`, pointing at the flagship checkpoint

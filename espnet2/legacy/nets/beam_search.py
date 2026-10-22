@@ -8,6 +8,7 @@ import torch
 
 from espnet2.legacy.nets.e2e_asr_common import end_detect
 from espnet2.legacy.nets.scorer_interface import PartialScorerInterface, ScorerInterface
+from espnet2.legacy.nets.scorers.ctc import CTCPrefixScorer
 
 logger = logging.getLogger(__name__)
 
@@ -194,14 +195,40 @@ class BeamSearch(torch.nn.Module):
                 hit = (h, hit[1], i)
             cache[id(h)] = hit
             summaries.append(hit[1])
-        return end_detect(summaries, i)
+        # `end_detect` looks for hypotheses as long as one that ended in the
+        # last few steps of a search that began from <sos>. A search that
+        # begins from a longer primer has every hypothesis longer by the rest
+        # of the primer, and without counting that it stopped that many steps
+        # late: one more decoding step for every token of a prompt.
+        return end_detect(summaries, i + self._primer_length() - 1)
 
     def set_hyp_primer(self, hyp_primer: List[int] = None) -> None:
         """Set the primer sequence for decoding.
 
-        Used for OpenAI Whisper models.
+        Every hypothesis starts from this sequence instead of ``[<sos>]``.
+        It contains control tokens and optional prompt text, never acoustic
+        output labels. CTC scores only the labels generated after it.
+
+        Examples in ESPnet:
+            * Whisper ASR (``asr_inference``):
+              ``[<|startoftranscript|>, <|en|>, <|transcribe|>, <|notimestamps|>]``.
+            * OWSM / S2T (``s2t_inference._build_hyp_primer``):
+              ``[<sos>, <lang>, <task>, <notime>]``. A previous-segment prompt
+              adds ``[<sop>] + text_prev`` before those control tokens.
+            * Whisper ST (``st_inference``): language and task control tokens,
+              as in the Whisper ASR primer above, with the translation task.
+            * LM generation (``lm_inference``): the text to continue. There
+              is no CTC scorer in this case.
+
+        Prefix-constrained decoding, where the primer is a transcript already
+        covered by the audio, is not supported by this interface. Such labels
+        would have to be counted by CTC, unlike a decoder prompt.
         """
         self.hyp_primer = hyp_primer
+
+    def _primer_length(self) -> int:
+        """Return how many tokens every hypothesis starts from."""
+        return 1 if self.hyp_primer is None else len(self.hyp_primer)
 
     def init_hyp(self, x: torch.Tensor) -> List[Hypothesis]:
         """Get an initial hypothesis data.
@@ -303,8 +330,12 @@ class BeamSearch(torch.nn.Module):
         """
         scores = dict()
         states = dict()
+        # CTC counts the output labels, not the primer. Keep one token in
+        # place of <sos>; other partial scorers retain their original context.
+        ctc_yseq = hyp.yseq[self._primer_length() - 1 :]
         for k, d in self.part_scorers.items():
-            scores[k], states[k] = d.score_partial(hyp.yseq, ids, hyp.states[k], x)
+            yseq = ctc_yseq if isinstance(d, CTCPrefixScorer) else hyp.yseq
+            scores[k], states[k] = d.score_partial(yseq, ids, hyp.states[k], x)
         return scores, states
 
     def beam(
