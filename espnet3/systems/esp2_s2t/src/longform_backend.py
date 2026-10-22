@@ -45,9 +45,7 @@ class S2TLongFormBackend:
         [(0.0, 4.2, 'hello there')]
     """
 
-    def __init__(
-        self, model: Any, device: Optional[str] = None, **unused: Any
-    ) -> None:
+    def __init__(self, model: Any, device: Optional[str] = None, **unused: Any) -> None:
         if isinstance(model, Mapping) and "_target_" in model:
             from hydra.utils import instantiate
 
