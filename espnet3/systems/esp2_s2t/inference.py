@@ -1,346 +1,99 @@
-"""The ESPnet2 s2t system's side of :mod:`espnet3.api.inference`.
-
-The system is named for the code that reads its models - ESPnet2's ``s2t``
-task, and its ``s2t_ctc`` variant - rather than for a model: that code
-serves every OWSM release so far (v1 to v4), OWSM-CTC and POWSM, and a
-release built on other code would be another system. ``load(tag,
-system="s2t")`` reaches it, as ``espnet.load(tag, task="s2t")`` does.
-
-The model behind such a tag is
-:class:`espnet2.bin.s2t_inference.Speech2Text` - OWSM, OWSM-CTC and POWSM
-checkpoints - whose ``decode_long`` takes one recording of any length and
-returns ``(start, end, text)`` per utterance, cutting the recording up the
-way that checkpoint was trained to be read. This adapter is the whole
-distance between that and the contract: the model's prompt symbols
-(language, task, the text said before) as optional inputs, the utterances
-as ``segments`` and their texts joined as ``text``, each utterance yielded
-as soon as it is decoded. Building the ``Speech2Text``, loading a bundle
-and the rate come from
-:class:`espnet3.systems.base.backend_inference.BackendInference`.
-
-Examples:
-    A published OWSM checkpoint, which has no bundle and so no ``meta.yaml``
-    to name its system::
-
-        >>> from espnet3.api.inference import load
-        >>> model = load("espnet/owsm_v4_base_102M", system="s2t")
-        >>> model("talk.wav")
-        {'text': 'hello world ...', 'segments': [{'text': 'hello world',
-         'start': 0.0, 'end': 2.4}, ...]}
-        >>> model("talk.wav", language="jpn")              # ISO 639-3
-        >>> model("talk.wav", language="deu", task="st_eng")  # translate
-
-    Each utterance as it is decoded, rather than all of them at the end::
-
-        >>> for piece in model.stream([{"speech": "talk.wav"}]):
-        ...     print(piece["text"], end="", flush=True)
-
-    Any ``Speech2Text`` argument replaces the checkpoint's, as ESPnet2's
-    ``from_pretrained`` takes it::
-
-        >>> load("espnet/owsm_v4_base_102M", system="s2t", beam_size=5)
-
-    In the ``infer`` stage, ``inference.yaml`` names this class where it
-    named ``Speech2Text``, with the same arguments::
-
-        model:
-          _target_: espnet3.systems.esp2_s2t.inference.Inference
-          s2t_train_config: ${exp_dir}/config.yaml
-          s2t_model_file: ${exp_dir}/valid.acc.ave.pth
-          beam_size: 5
-"""
+"""S2T output formatting for the shared inference runner."""
 
 from __future__ import annotations
 
-import logging
-from typing import Any, Iterable, Iterator, Mapping, Optional, Sequence
-
-from espnet2.legacy.nets.pytorch_backend.transformer.subsampling import (
-    TooShortUttError,
-)
-from espnet3.api.inference import Audio, Field
-from espnet3.api.inference.base import gather
-from espnet3.systems.base.backend_inference import BackendInference
-
-logger = logging.getLogger(__name__)
+from espnet3.contract.kinds.audio import Audio
+from espnet3.systems.base.inference_runner import InferenceRunner
 
 
-class Inference(BackendInference):
-    """Transcribe or translate with an OWSM model.
+class ESP2S2TInferenceRunner(InferenceRunner):
+    """Turn an OWSM-style backend's utterances into ``text`` and ``segments``.
 
-    Built three ways, all ending in ``self.backend`` (see
-    :class:`BackendInference`): ``Inference.from_pretrained(tag_or_dir)``
-    from a ``pack_model`` bundle or a published checkpoint;
-    ``Inference(s2t_train_config=..., s2t_model_file=..., beam_size=...)``
-    from ``Speech2Text``'s own arguments; ``Inference(speech2text)`` around
-    one already built.
-
-    Called with one recording of any length it returns ``{"text": str,
-    "segments": [...]}``: the model's utterances with their start and end
-    in seconds, and their texts joined by spaces. The recording is read
-    through the backend's ``decode_long``, so a CTC-only checkpoint is read
-    in overlapping buffers and gives one segment, an encoder-decoder one
-    utterance by utterance on its own timestamps.
-
-    The optional inputs are the prompt symbols the model takes, named
-    without their angle brackets and checked against the checkpoint's
-    vocabulary before anything is decoded:
-
-    - ``language``: ISO 639-3, such as ``"eng"`` or ``"jpn"``. Left out,
-      the model works the language out itself, by the checkpoint's own
-      symbol for that (``no_language()``: ``<nolang>`` for OWSM, ``<unk>``
-      for POWSM) - not by the backend's ``lang_sym``, whose constructor
-      default is English.
-    - ``task``: ``"asr"``, or ``"st_eng"`` and the like for translation.
-      Left out, the backend's own ``task_sym``, ``<asr>`` unless built
-      otherwise.
-    - ``previous_text``: what was said just before the recording, given to
-      the model as its first condition; each later utterance is then also
-      conditioned on the text decoded before it (``condition_on_prev_text``).
-
-    Examples:
-        >>> model = Inference.from_pretrained("espnet/owsm_v4_base_102M")
-        >>> model("talk.wav")["text"]
-        >>> model("talk.wav", language="jpn", task="st_eng")["segments"]
-        >>> model.sample_rate       # the rate the checkpoint was trained at
-        16000
+    The backend (:class:`~espnet3.systems.esp2_s2t.src.longform_backend.
+    S2TLongFormBackend`) returns ``(start, end, text)`` for every utterance it
+    found in a recording; both contracted outputs are read off that list, so a
+    long recording is one row of joined text and a segment per utterance.
     """
 
-    backend_class = "espnet2.bin.s2t_inference.Speech2Text"
-    inputs = (
-        Field("speech", "audio", "Speech"),
-        Field("language", "text", "Language", optional=True),
-        Field("task", "text", "Task", optional=True),
-        Field("previous_text", "text", "Previous text", optional=True),
-    )
-    outputs = (
-        Field("text", "text", "Transcription"),
-        Field("segments", "segments", "Segments"),
-    )
+    @staticmethod
+    def prepare_model_inputs(inputs):
+        """Hand the backend plain waveforms rather than :class:`Audio`.
 
-    def _known(self, symbol: str) -> bool:
-        """Whether the checkpoint's vocabulary has ``symbol``.
+        Args:
+            inputs: The backend's keyword arguments; ``speech`` holds an
+                ``Audio`` (a list of them for a batch).
 
-        A model that does not list its tokens is given the benefit of the
-        doubt, as the backend's ``no_language()`` gives it.
+        Returns:
+            A copy of ``inputs`` whose ``speech`` is the samples array.
+
+        Examples:
+            >>> import numpy as np
+            >>> audio = Audio(np.zeros(8000, dtype=np.float32), 16000)
+            >>> out = ESP2S2TInferenceRunner.prepare_model_inputs(
+            ...     {"speech": audio}
+            ... )
+            >>> out["speech"].shape
+            (8000,)
         """
-        tokens = getattr(getattr(self.backend, "s2t_model", None), "token_list", None)
-        return not tokens or symbol in tokens
 
-    def _language(self, language: Optional[str]) -> str:
-        """Return the language symbol to decode with.
+        def waveform(value):
+            """Return the samples of an ``Audio``, mono as 1-D."""
+            if not isinstance(value, Audio):
+                return value
+            return value.array.T if value.array.ndim == 2 else value.array
 
-        Raises:
-            ValueError: If ``language`` is not in the checkpoint's
-                vocabulary, or none was given and the checkpoint has no
-                symbol for working the language out itself.
+        inputs = dict(inputs)
+        speech = inputs["speech"]
+        inputs["speech"] = (
+            [waveform(value) for value in speech]
+            if isinstance(speech, list)
+            else waveform(speech)
+        )
+        return inputs
+
+    @staticmethod
+    def _format_one(utterances):
+        """Return the joined text and one segment per utterance.
+
+        Args:
+            utterances: ``(start, end, text)`` tuples, in time order. Empty
+                for a recording the model found nothing in, including one
+                too short for the encoder to subsample -- that is scored as
+                an empty hypothesis rather than dropped, so the reference
+                still counts against the model.
+
+        Returns:
+            ``{"text": ..., "segments": [...]}``.
         """
-        if language is not None:
-            symbol = f"<{language}>"
-            if not self._known(symbol):
-                raise ValueError(
-                    f"language {language!r}: this model has no {symbol}; pass "
-                    "ISO 639-3, three letters: eng, deu, jpn, zho, fra, spa ..."
-                )
-            return symbol
-        try:
-            return self.backend.no_language()
-        except ValueError as e:
-            raise ValueError(f"{e}; pass language=<ISO 639-3>") from e
-
-    def _task(self, task: Optional[str]) -> Optional[str]:
-        """Return the task symbol to decode with, or ``None`` for the backend's own.
-
-        Raises:
-            ValueError: If ``task`` is not in the checkpoint's vocabulary.
-        """
-        if task is None:
-            return None
-        symbol = f"<{task}>"
-        if not self._known(symbol):
-            # the translation targets are few, one <st_xxx> each, so they are
-            # named: `kor` is ISO 639-3, and "use ISO 639-3" would not help
-            targets = ", ".join(sorted(self._targets())) or "nothing"
-            raise ValueError(
-                f"task {task!r}: this model has no {symbol}; it takes asr, or "
-                f"st_<ISO 639-3> to translate, into {targets}"
-            )
-        return symbol
-
-    def _targets(self) -> list[str]:
-        """Return the languages the checkpoint translates into, by its <st_xxx>."""
-        tokens = getattr(getattr(self.backend, "s2t_model", None), "token_list", None)
-        return [t[len("<st_") : -1] for t in tokens or () if t.startswith("<st_")]
-
-    def run_stream(
-        self, chunks: Iterable[Mapping[str, Any]]
-    ) -> Iterator[Mapping[str, Any]]:
-        """Yield each utterance as the model decodes it.
-
-        The model reads the whole recording to cut it up, so the input is
-        gathered first; what streams is the output, one chunk per utterance
-        as ``decode_long`` would list it. A text piece is what is new: the
-        utterance's text, with the space that joins it to the one before.
-        ``run`` is the default, which gathers these.
-
-        Yields:
-            ``{"text": piece, "segments": [one segment]}`` per utterance,
-            and ``{"text": "", "segments": []}`` for a recording the model
-            found nothing in - including one too short for the encoder to
-            subsample, which espnet2 raises ``TooShortUttError`` for and
-            which is scored here as an empty hypothesis.
-        """
-        inputs = gather(self.inputs, chunks)
-        speech: Audio = inputs["speech"]
-        kwargs: dict[str, Any] = {
-            "lang_sym": self._language(inputs.get("language")),
-            "task_sym": self._task(inputs.get("task")),
+        if utterances is None:
+            return {"text": "", "segments": []}
+        if not isinstance(utterances, (list, tuple)):
+            raise TypeError("s2t results must be a list of (start, end, text)")
+        segments = []
+        for utterance in utterances:
+            if not isinstance(utterance, (list, tuple)) or len(utterance) != 3:
+                raise TypeError("each s2t utterance must be (start, end, text)")
+            start, end, text = utterance
+            segments.append({"text": text, "start": start, "end": end})
+        return {
+            "text": " ".join(segment["text"] for segment in segments),
+            "segments": segments,
         }
-        previous = inputs.get("previous_text")
-        if previous is not None:
-            kwargs.update(init_text=previous, condition_on_prev_text=True)
-        if self._phones_by_window(kwargs["task_sym"]):
-            utterances = self._phones_window_by_window(
-                speech, kwargs["lang_sym"], previous
-            )
-        else:
-            utterances = self.backend.iter_long(speech.array, **kwargs)
-        first = True
-        try:
-            for utterance in utterances:
-                out = _output([utterance])
-                if not first:
-                    out["text"] = " " + out["text"]
-                yield out
-                first = False
-        except TooShortUttError as e:
-            # The reference is still scored, so an empty hypothesis counts
-            # against it; raising would instead drop the utterance and
-            # flatter the model.
-            logger.warning("%s: emitting an empty hypothesis", e)
-        if first:
-            yield _output([])
 
-    def run_batch(self, items: Sequence[Mapping[str, Any]]) -> Sequence[Mapping]:
-        """Decode the items that fit one window in one beam search each group.
+    @staticmethod
+    def format_output(result, *, batched):
+        """Format one recording's utterances, or a batch of them.
 
-        ``Speech2Text.batch_decode`` decodes a minibatch of single-window
-        utterances together, with one language and task symbol for the
-        batch; so the items that end at least a second before the model's
-        window does and carry no ``previous_text`` are grouped by their
-        symbols and decoded a group at a time, with ``predict_time`` so that
-        their segments are read off the timestamps exactly as
-        ``decode_long`` reads a window. The last second is left out because
-        ``decode_long`` reads an utterance ending there as cut off and
-        leaves it for the next window, which a batch item would not have.
-        A longer recording, an item with ``previous_text``, phones on an
-        encoder-decoder checkpoint (decoded a window at a time) and a group
-        of one go through :meth:`run`, as does everything on a CTC-only
-        checkpoint, whose ``batch_decode`` searches the CTC head while
-        ``decode_long`` takes its best path, and on a backend without
-        ``batch_decode`` or whose config does not say its window.
+        Args:
+            result: The backend's return: ``(start, end, text)`` tuples, or a
+                list of those lists when ``batched``.
+            batched: Whether ``result`` covers several recordings.
+
+        Returns:
+            One ``{"text", "segments"}`` mapping, or a list of them.
         """
-        batchable = self._batchable_samples()
-        if (
-            batchable is None
-            or len(items) < 2
-            or getattr(self.backend, "ctc_only", False)
-            or not callable(getattr(self.backend, "batch_decode", None))
-        ):
-            return super().run_batch(items)
-        outputs: list = [None] * len(items)
-        groups: dict[tuple, list[int]] = {}
-        for i, item in enumerate(items):
-            key = (self._language(item.get("language")), self._task(item.get("task")))
-            if (
-                item.get("previous_text") is not None
-                or len(item["speech"].array) > batchable
-                or self._phones_by_window(key[1])
-            ):
-                outputs[i] = self.run(**item)
-                continue
-            groups.setdefault(key, []).append(i)
-        for (lang_sym, task_sym), index in groups.items():
-            if len(index) == 1:
-                outputs[index[0]] = self.run(**items[index[0]])
-                continue
-            try:
-                results = self.backend.batch_decode(
-                    [items[i]["speech"].array for i in index],
-                    lang_sym=lang_sym,
-                    task_sym=task_sym,
-                    predict_time=True,
-                )
-            except TooShortUttError:
-                # The search is over the whole group, so one clip too short
-                # to subsample fails all of them; they are decoded one by
-                # one instead, where only that clip comes back empty.
-                for i in index:
-                    outputs[i] = self.run(**items[i])
-                continue
-            if len(results) != len(index):
-                raise RuntimeError(
-                    f"batch_decode returned {len(results)} results for "
-                    f"{len(index)} utterances"
-                )
-            for i, nbest in zip(index, results):
-                outputs[i] = _output(self.backend.window_utterances(nbest[0][2]))
-        return outputs
-
-    def _phones_by_window(self, task_sym: Optional[str]) -> bool:
-        """Whether this task on this checkpoint is decoded a window at a time.
-
-        Phone recognition has no timestamps to cut a recording up by, and an
-        encoder-decoder checkpoint asked for phones over the silence a short
-        window is padded with repeats what it has already said, for as long
-        as the window lasts; so each window is decoded on its own, as the
-        POWSM model card does. A CTC-only checkpoint has neither problem and
-        takes the long-form path, as every other task does.
-        """
-        task_sym = task_sym or getattr(self.backend, "task_sym", None)
-        return task_sym == "<pr>" and not getattr(self.backend, "ctc_only", False)
-
-    def _phones_window_by_window(
-        self, speech: Audio, lang_sym: str, previous_text: Optional[str] = None
-    ):
-        """Yield phones for each window of the model's length, one segment each.
-
-        ``previous_text`` conditions the first window, as ``decode_long``'s
-        ``init_text`` conditions the first segment.
-        """
-        conf = self.backend.preprocessor_conf
-        window = int(conf["fs"] * conf["speech_length"])
-        array, rate = speech.array, self.sample_rate
-        for start in range(0, max(len(array), 1), window):
-            results = self.backend(
-                array[start : start + window],
-                text_prev=previous_text if start == 0 else None,
-                lang_sym=lang_sym,
-                task_sym="<pr>",
-            )
-            text = results[0][3] if results else ""  # without the special tokens
-            end = min(start + window, len(array))
-            yield (start / rate, end / rate, text)
-
-    def _batchable_samples(self) -> Optional[int]:
-        """Return the longest recording a batch item may be, or ``None`` if unsaid.
-
-        One window of the model (``speech_length`` seconds at ``fs``) less
-        the second before its end, where ``decode_long`` reads an utterance
-        as cut off.
-        """
-        conf = getattr(self.backend, "preprocessor_conf", None) or {}
-        if "fs" not in conf or "speech_length" not in conf:
-            return None
-        return int(conf["fs"] * (conf["speech_length"] - 1))
-
-
-def _output(utterances: Sequence[tuple]) -> dict:
-    """Return the outputs for a list of ``(start, end, text)`` utterances."""
-    return {
-        "text": " ".join(text for _, _, text in utterances),
-        "segments": [
-            {"text": text, "start": start, "end": end}
-            for start, end, text in utterances
-        ],
-    }
+        if not batched:
+            return ESP2S2TInferenceRunner._format_one(result)
+        if not isinstance(result, (list, tuple)):
+            raise TypeError("a batched s2t result must be a list")
+        return [ESP2S2TInferenceRunner._format_one(one) for one in result]

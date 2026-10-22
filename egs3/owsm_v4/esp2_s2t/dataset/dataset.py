@@ -16,8 +16,8 @@ from egs3.owsm_v4.esp2_s2t.dataset.utils import (
     sub_dataset_config,
     task_token,
 )
-from espnet3.api.inference import Field
 from espnet3.components.data.base_dataset import BaseDataset
+from espnet3.contract import Field
 
 
 def read_span(wav_path: str, start_time: float, end_time: float) -> np.ndarray:

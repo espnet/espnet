@@ -6,7 +6,7 @@ from pathlib import Path
 
 import pytest
 
-from espnet3.api.inference import Field
+from espnet3.contract import Field
 from espnet3.contract.metrics import MetricContractError
 from espnet3.systems.esp2_s2t.metrics.cer import CER
 from espnet3.systems.esp2_s2t.metrics.tags import strip_tags, tag_pattern

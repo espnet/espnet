@@ -12,8 +12,8 @@ except ImportError:
 
 from espnet2.text.cleaner import TextCleaner
 from espnet2.text.sentencepiece_tokenizer import SentencepiecesTokenizer
-from espnet3.api.inference import Field
 from espnet3.components.metrics.base_metric import BaseMetric
+from espnet3.contract import Field
 from espnet3.systems.esp2_s2t.metrics.tags import configured_pattern, strip_tags
 
 
