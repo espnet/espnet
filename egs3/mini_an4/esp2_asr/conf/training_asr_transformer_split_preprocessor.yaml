@@ -39,12 +39,12 @@ dataset:
     token_list: ${tokenizer.save_path}/tokens.txt
     bpemodel: ${tokenizer.save_path}/bpe.model
     train:
-      _target_: src.preprocessor.MiniAn4TokenizeSpeedPerturbPreprocessor
+      _target_: egs3.mini_an4.esp2_asr.src.preprocessor.MiniAn4TokenizeSpeedPerturbPreprocessor
       fs: 16000
       speed_perturb_factors: [0.95, 1.05]
       speed_perturb_prob: 0.1
     valid:
-      _target_: src.preprocessor.MiniAn4TokenizeSpeedPerturbPreprocessor
+      _target_: egs3.mini_an4.esp2_asr.src.preprocessor.MiniAn4TokenizeSpeedPerturbPreprocessor
       fs: 16000
       speed_perturb_prob: 0.0
 

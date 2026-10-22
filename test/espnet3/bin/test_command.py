@@ -266,3 +266,50 @@ def test_add_arguments_registers_clone_subcommand():
     assert args.project is None
     args = parser.parse_args(["clone", "--project", "project"])
     assert args.recipe is None
+
+
+def _prefix_of(recipe):
+    return f"egs3.{recipe.parent.name}.{recipe.name}."
+
+
+def test_copy_recipe_strips_own_module_prefix(fake_recipe, tmp_path):
+    prefix = _prefix_of(fake_recipe)
+    (fake_recipe / "dataset" / "dataset.py").write_text(
+        f"from {prefix}dataset.builder import Builder\n"
+        f"import {prefix}src.util\n"
+        "from egs3.other.esp2_asr.dataset import X\n"
+        "from espnet3.utils import y\n"
+    )
+    (fake_recipe / "conf" / "t.yaml").write_text(
+        f"_target_: {prefix}src.preprocessor.P\n"
+    )
+    dest = tmp_path / "dest"
+    _copy_recipe(fake_recipe, dest)
+    assert (dest / "dataset" / "dataset.py").read_text() == (
+        "from dataset.builder import Builder\n"
+        "import src.util\n"
+        "from egs3.other.esp2_asr.dataset import X\n"
+        "from espnet3.utils import y\n"
+    )
+    assert (dest / "conf" / "t.yaml").read_text() == "_target_: src.preprocessor.P\n"
+
+
+def test_copy_recipe_leaves_source_recipe_untouched(fake_recipe, tmp_path):
+    prefix = _prefix_of(fake_recipe)
+    original = f"from {prefix}dataset.builder import Builder\n"
+    (fake_recipe / "dataset" / "dataset.py").write_text(original)
+    _copy_recipe(fake_recipe, tmp_path / "dest")
+    assert (fake_recipe / "dataset" / "dataset.py").read_text() == original
+
+
+def test_copy_recipe_does_not_rewrite_binary_files(fake_recipe, tmp_path):
+    blob = _prefix_of(fake_recipe).encode() + b"\x00\x01binary"
+    (fake_recipe / "assets" / "blob.bin").write_bytes(blob)
+    _copy_recipe(fake_recipe, tmp_path / "dest")
+    assert (tmp_path / "dest" / "assets" / "blob.bin").read_bytes() == blob
+
+
+def test_copy_recipe_without_prefix_keeps_files_byte_identical(fake_recipe, tmp_path):
+    dest = tmp_path / "dest"
+    _copy_recipe(fake_recipe, dest)
+    assert (dest / "run.py").read_bytes() == (fake_recipe / "run.py").read_bytes()

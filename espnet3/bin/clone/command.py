@@ -210,6 +210,40 @@ def _copy_recipe(src: Path, dest: Path) -> None:
         return _ignore_recipe_artifacts(directory, names, source)
 
     shutil.copytree(source, dest, symlinks=False, ignore=ignore)
+    _strip_recipe_module_prefix(dest, f"egs3.{source.parent.name}.{source.name}.")
+
+
+def _strip_recipe_module_prefix(root: Path, prefix: str) -> None:
+    """Rewrite a recipe's dotted module paths so they are relative to ``root``.
+
+    Recipes import their own modules by absolute path, for example
+    ``egs3.mini_an4.esp2_asr.dataset.builder``. A cloned copy lives outside
+    ``egs3``, where that path would import the installed recipe instead of the
+    copy, so the recipe prefix is removed (``dataset.builder``). The clone's
+    ``path.sh`` puts ``root`` on ``PYTHONPATH``, which resolves the result.
+
+    Args:
+        root: Directory of the cloned recipe.
+        prefix: Dotted prefix to remove, including the trailing dot, such as
+            ``"egs3.mini_an4.esp2_asr."``.
+
+    Notes:
+        Every regular file is checked as bytes. Binary files (containing a NUL
+        byte) and files without the prefix are left untouched.
+
+    Examples:
+        >>> _strip_recipe_module_prefix(
+        ...     Path("my_asr"), "egs3.mini_an4.esp2_asr."
+        ... )  # doctest: +SKIP
+    """
+    needle = prefix.encode()
+    for path in root.rglob("*"):
+        if path.is_symlink() or not path.is_file():
+            continue
+        data = path.read_bytes()
+        if needle not in data or b"\0" in data:
+            continue
+        path.write_bytes(data.replace(needle, b""))
 
 
 def _ignore_recipe_artifacts(
