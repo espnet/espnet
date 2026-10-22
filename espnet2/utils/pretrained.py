@@ -7,32 +7,18 @@ from typing import Any, Dict
 
 
 class ModelTagError(RuntimeError):
-    """The tag names a model that this inference class cannot load.
-
-    Its own type because both front ends - ``espnet2.bin.cli`` and
-    ``espnet.load`` - report it as a choice the user can correct rather than
-    as a traceback. ``espnet3.api.inference`` raises it too, for a tag its
-    loader cannot serve.
-    """
+    """The tag names a model that this inference class cannot load."""
 
 
 class Espnet3BundleError(ModelTagError):
-    """The tag is an ESPnet3 ``pack_model`` bundle, which no ESPnet2 class loads.
-
-    ``espnet.load`` catches it and hands the tag, already downloaded into the
-    same cache, to ``espnet3.api.inference.load``; the command line reports
-    it like any other tag it cannot serve.
-
-    Attributes:
-        model_tag: The tag that was downloaded.
-    """
+    """An archived recipe bundle, not a native ESPnet2 model tag."""
 
     def __init__(self, model_tag: str) -> None:
-        """Name the tag and the loaders that serve it."""
+        """Explain how to use an archived recipe bundle."""
         super().__init__(
-            f"{model_tag} was published with espnet3's pack_model; load it with "
-            f"espnet.load({model_tag!r}) or espnet3.api.inference.load"
-            f"({model_tag!r}) instead."
+            f"{model_tag} was published with espnet3's pack_model, which "
+            "ESPnet2 cannot load. Its conf/inference.yaml names the backend to "
+            "build, as the recipe's demo app does (src/app.py build_model)."
         )
         self.model_tag = model_tag
 
@@ -45,7 +31,7 @@ def download_pretrained(model_tag: str) -> Dict:
     espnet3's ``pack_model`` is recognised: its ``meta.yaml`` names
     ``inference_config`` / ``training_config`` rather than the
     ``<task>_train_config`` / ``<task>_model_file`` pairs these classes take,
-    and it has to be loaded through espnet3.
+    and is used through its recipe configuration.
     """
     _refuse_if_speechlm(model_tag)
 

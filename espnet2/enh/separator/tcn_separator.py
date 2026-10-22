@@ -131,7 +131,11 @@ class TCNSeparator(AbsSeparator):
         receptive_field = self.tcn.receptive_field
 
         if buffer is None:
-            buffer = torch.zeros((B, receptive_field, N), device=input_frame.device)
+            buffer = torch.zeros(
+                (B, receptive_field, N),
+                device=input_frame.device,
+                dtype=input_frame.dtype,
+            )
 
         buffer = torch.roll(buffer, shifts=-1, dims=1)
         buffer[:, -1, :] = input_frame[:, 0, :]

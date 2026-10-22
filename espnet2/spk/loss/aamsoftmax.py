@@ -11,6 +11,32 @@ import torch.nn.functional as F
 from espnet2.spk.loss.abs_loss import AbsLoss
 
 
+def sine_from_cosine(cosine: torch.Tensor) -> torch.Tensor:
+    """Compute sqrt(1 - cos^2) with finite gradients at |cos| >= 1.
+
+    sqrt has an infinite derivative at 0, so the plain expression gives NaN
+    gradients when an embedding is exactly aligned with a class weight
+    (|cos| == 1), which bf16 rounding makes common near convergence; values of
+    |cos| slightly above 1 from rounding would also give NaN in the forward.
+    Entries with 1 - cos^2 <= 0 are set to 0 and their sqrt argument is
+    replaced by 1, so the masked branch has a finite (zero) gradient. Forward
+    values equal sqrt((1 - cos^2).clamp(0, 1)) for all inputs.
+
+    Args:
+        cosine: Cosine similarities of any shape.
+
+    Returns:
+        Sine values of the same shape as ``cosine``.
+    """
+    sine_sq = 1.0 - cosine.pow(2)
+    valid = sine_sq > 0
+    return torch.where(
+        valid,
+        torch.sqrt(torch.where(valid, sine_sq, torch.ones_like(sine_sq))),
+        torch.zeros_like(sine_sq),
+    )
+
+
 class AAMSoftmax(AbsLoss):
     """Additive angular margin softmax.
 
@@ -85,7 +111,7 @@ class AAMSoftmax(AbsLoss):
             accuracy = None
             return loss, accuracy, preds
 
-        sine = torch.sqrt((1.0 - cosine.pow(2)).clamp(0, 1))
+        sine = sine_from_cosine(cosine)
 
         # Apply angular margin to positive samples:
         # cos(θ + m) = cosθ·cos(m) - sinθ·sin(m)
