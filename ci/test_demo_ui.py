@@ -16,14 +16,14 @@ from playwright.sync_api import sync_playwright
 
 SYSTEM_CONFIGS = {
     "default_asr": {
-        "demo_dir": "egs3/mini_an4/esp2_asr/exp/demo_ui_default",
+        "demo_dir": "exp/demo_ui_default",
         "expected_texts": ["Input Audio", "Transcription"],
         "expected_image_inputs": 0,
         "expected_output": "speech=1",
         "run_label": "Run",
     },
     "custom_asr_image": {
-        "demo_dir": "egs3/mini_an4/esp2_asr/exp/demo_ui_custom",
+        "demo_dir": "exp/demo_ui_custom",
         "expected_texts": ["Input Audio", "Transcription", "Reference Image"],
         "expected_image_inputs": 1,
         "expected_output": "speech=1 image=1",
@@ -32,8 +32,9 @@ SYSTEM_CONFIGS = {
 }
 
 
-def _repo_root() -> Path:
-    return Path(__file__).resolve().parents[1]
+def _recipe_root() -> Path:
+    """The recipe the packed demos were built in: the current directory."""
+    return Path.cwd()
 
 
 def _wait_for_url(proc: subprocess.Popen, port: int, timeout: float = 60.0) -> str:
@@ -114,7 +115,7 @@ def _write_test_image(path: Path) -> None:
 
 
 def check_demo_ui_labels(system_name: str, config: dict) -> None:
-    demo_dir = _repo_root() / config["demo_dir"]
+    demo_dir = _recipe_root() / config["demo_dir"]
     expected_texts = list(config.get("expected_texts", []))
     expected_image_inputs = int(config.get("expected_image_inputs", 0))
     expected_output = str(config.get("expected_output", ""))
