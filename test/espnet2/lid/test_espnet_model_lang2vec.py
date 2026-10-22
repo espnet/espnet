@@ -74,6 +74,11 @@ def test_masked_lang2vec_training(tiny_geolid, supervised, monkeypatch):
         torch.testing.assert_close(loss.detach(), stats["class_loss"])
         assert not predictions
         assert model.lang2vec_head.weight.grad is None
+        auxiliary_stats = [
+            value for name, value in stats.items() if "lang2vec_loss" in name
+        ]
+        assert auxiliary_stats
+        assert all(torch.isnan(value) for value in auxiliary_stats)
 
 
 def test_all_masked_auxiliary_component(tiny_geolid):

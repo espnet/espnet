@@ -252,17 +252,28 @@ class ESPnetLang2VecLIDModel(ESPnetLIDModel):
         if class_loss is None:
             raise ValueError("lid_labels are required when extract_embd is False")
         stats["class_loss"] = class_loss.detach()
+        # The trainer reduces each statistic in insertion order across ranks.
+        # Keep the same keys even when one rank has no auxiliary targets; NaN
+        # tells recursive_average to exclude that rank from auxiliary reporting.
+        missing_stat = class_loss.detach().new_full((), float("nan"))
+        stats["lang2vec_loss_downstream"] = missing_stat
+        use_intermediate_loss = (
+            self.apply_intermediate_lang2vec_loss
+            and self.inter_lang2vec_loss_weight > 0
+            and bool(self.lang2vec_conditioning_layers)
+        )
+        if use_intermediate_loss:
+            for index in self.lang2vec_conditioning_layers:
+                stats[f"inter_lang2vec_loss_layer{index}"] = missing_stat
+            stats["inter_lang2vec_loss_mean"] = missing_stat
+            stats["lang2vec_loss_all"] = missing_stat
         loss = class_loss
         if lang2vecs is not None and (lang2vec_mask is None or lang2vec_mask.any()):
             auxiliary = self.compute_lang2vec_loss(
                 self.lang2vec_head(lang_embd), lang2vecs, lang2vec_mask
             )
             stats["lang2vec_loss_downstream"] = auxiliary.detach()
-            if (
-                self.apply_intermediate_lang2vec_loss
-                and self.inter_lang2vec_loss_weight > 0
-                and self.lang2vec_conditioning_layers
-            ):
+            if use_intermediate_loss:
                 intermediate_losses = self._calc_intermediate_lang2vec_pred_loss(
                     intermediate_lang2vec_preds, lang2vecs, lang2vec_mask
                 )

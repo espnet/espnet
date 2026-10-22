@@ -28,7 +28,9 @@ not install it as a dependency. No GeoLID library code imports Transformers or
 lang2vec directly. `lang2vec` is needed only to prepare training target tables.
 The recipe-specific `datasets<4` and `pycountry` requirements are for corpus
 preparation; the shared FLEURS loader requires dataset scripts removed in
-`datasets` 4.
+`datasets` 4. Babel preparation, which is also required for combined training,
+additionally needs `sph2pipe`; see the installation command in the
+[data preparation guide](local/README.md#2-individual-dataset-preparation).
 
 The recipe uses the stock `S3prlFrontend`, configured in `conf/train.yaml`:
 

@@ -20,12 +20,23 @@ This directory contains scripts for preparing multiple language identification d
 
 ### 2. Individual Dataset Preparation
 
+Run the following commands from `egs2/geolid/lid1`.
 Install the data preparation requirements with
 `python -m pip install 'datasets>=2.16,<4' pycountry`. The shared FLEURS preparer
 uses the `google/xtreme_s` dataset loading script, removed in `datasets` 4.
-Install target preparation support through `cd tools && make lang2vec.done`
-from the repository root. Set
-`VOXLINGUA107` in `db.sh`; pass other local corpus paths as command-line options:
+Install target preparation support with `make -C ../../../tools lang2vec.done`.
+
+Babel preparation, including the combined setup, also needs `sph2pipe` to decode
+SPHERE audio. Install it through ESPnet's standard tools target:
+
+```bash
+make -C ../../../tools sph2pipe
+```
+
+The recipe's `path.sh` adds the installed decoder to `PATH`. This extra dependency
+is not needed for the default VoxLingua107-only setup.
+
+Set `VOXLINGUA107` in `db.sh`; pass other local corpus paths as command-line options:
 
 ```bash
 # Prepare BABEL dataset
