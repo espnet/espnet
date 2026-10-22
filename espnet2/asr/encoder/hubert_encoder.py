@@ -532,9 +532,9 @@ class FairseqHubertPretrainEncoder(AbsEncoder):
         self.use_amp = use_amp
         try:
             from fairseq.data.dictionary import Dictionary
-            from fairseq.models.hubert.hubert import HubertConfig  # noqa: H301
-            from fairseq.models.hubert.hubert import HubertModel  # noqa: H301
             from fairseq.models.hubert.hubert import (  # noqa: H301
+                HubertConfig,
+                HubertModel,
                 HubertPretrainingConfig,
             )
         except Exception as e:

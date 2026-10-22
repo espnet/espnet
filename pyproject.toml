@@ -22,8 +22,8 @@ license = { "text" = "Apache Software License" }
 # We didn't specify torch-related packages as it highly depends on environment.
 dependencies = [
     # What `pip install espnet` has to be able to do: load a pretrained model
-    # through any from_pretrained in espnet2/bin, or an espnet3 bundle through
-    # espnet3.api.inference.load, and run it. Nothing here is for training -
+    # through a from_pretrained constructor in espnet2/bin and run it.
+    # Nothing here is for training -
     # that stack (lightning, tensorboard, wandb, torch_optimizer, matplotlib,
     # nltk, and datasets, dask for espnet3) is the [train] extra, which [all]
     # includes.
@@ -65,15 +65,8 @@ dependencies = [
     # it arrived only through huggingface_hub.
     "tqdm>=4.64",
     "espnet_model_zoo",
-    # An espnet3 bundle is read and built through them: omegaconf resolves its
-    # conf/inference.yaml and hydra instantiates the model it names, so
-    # without them `pip install espnet` cannot load an espnet3 model at all.
-    # Pure Python, and imported only when such a bundle is loaded; they bring
-    # antlr4-python3-runtime==4.9.* (omegaconf pins it). The floors are what
-    # espnet3 uses (hydra.utils.get_object is 1.3) and CI runs (omegaconf
-    # 2.3); the caps are the next minor release, since hydra's minor releases
-    # have changed how configs are composed and instantiated, and hydra-core
-    # 1.3 itself caps omegaconf below 2.4.
+    # Configuration composition and model construction for ESPnet3 recipes.
+    # Keep Hydra/OmegaConf within the versions exercised by training CI.
     "hydra-core>=1.3,<1.4",
     "omegaconf>=2.3,<2.4",
     # The supported set is exactly {2.11.0, 2.13.0, 2.14.0}, and three places
@@ -159,11 +152,11 @@ train = [
   "dask[distributed]",
   "dask_jobqueue",
 ]
-# Three of the packages below are ESPnet-maintained forks of projects whose
+# Two of the packages below are ESPnet-maintained forks of projects whose
 # upstream releases do not work here, published to PyPI under their own names:
-# espnet-ctc-segmentation, espnet-g2p-en and espnet-s3prl. Their import names
-# are unchanged (ctc_segmentation, g2p_en, s3prl), and each carries a
-# FORK_NOTICE.md saying what differs from upstream and why.
+# espnet-g2p-en and espnet-s3prl. Their import names are unchanged (g2p_en,
+# s3prl), and each carries a FORK_NOTICE.md saying what differs from upstream
+# and why.
 #
 # They must be declared like this, by name and version. A direct reference -
 # "name @ git+https://..." - makes PyPI reject the whole distribution with
@@ -181,7 +174,7 @@ splet = [
 ]
 
 asr = [
-  "espnet-ctc-segmentation>=1.7.4.post1",  # fork of lumaku/ctc-segmentation
+  "ctc-segmentation==1.7.5",
   "editdistance",
   "opt_einsum",
   "jiwer",
@@ -310,11 +303,6 @@ mcp = [
   "espnet[enh]",
 ]
 
-# Demo notebooks (espnet3/publication/notebook.py) are written with nbformat.
-notebook = [
-  "nbformat>=5.0",
-]
-
 dev = [
   "black",
   "flake8>=3.7.8",
@@ -342,8 +330,6 @@ test = [
   "playwright",
   # test_mcp_server.py imports mcp outright; macOS CI installs only .[test].
   "mcp>=2.0",
-  # test_notebook.py writes and validates the generated Demos page
-  "espnet[notebook]",
 ]
 
 doc = [
@@ -372,7 +358,6 @@ all = [
   "espnet[speechlm]",
   "espnet[egs2]",
   "espnet[mcp]",
-  "espnet[notebook]",
   "fairscale",
   "transformers",
   "evaluate",
