@@ -131,7 +131,7 @@ def _unknown_task(model_tag: str) -> NoReturn:
 def load(
     model_tag: str,
     task: Optional[str] = None,
-    device: str = "cpu",
+    device: str = "auto",
     **kwargs: Any,
 ):
     """Load a published ESPnet model and return its inference object.
@@ -151,8 +151,11 @@ def load(
             repository does, because the two classes take differently named
             constructor arguments. An explicit ``task`` always wins and skips
             the lookup entirely.
-        device: ``cpu``, ``mps``, ``cuda`` or ``cuda:<n>``.
-        **kwargs: Passed on to the inference class, e.g. ``beam_size=1``.
+        device: ``auto`` (the default: ``cuda`` when torch sees a CUDA
+            device, else ``cpu``), ``cpu``, ``mps``, ``cuda`` or
+            ``cuda:<n>``, checked against this machine before the download.
+        **kwargs: Any constructor argument of the inference class, e.g.
+            ``beam_size=5, ctc_weight=0.3`` for ``Speech2Text``.
 
     Returns:
         The espnet2 inference object for the task: ``Speech2Text`` (``asr``
@@ -168,8 +171,12 @@ def load(
     Raises:
         ValueError: ``task`` is not an espnet task, or none was given and the
             model's metadata does not name one.
-        ModelTagError: the tag names a model this task cannot load.
+        ModelTagError: the tag names a model this task cannot load,
+            including an archived recipe bundle.
     """
+    from espnet2.torch_utils.resolve_device import resolve_device
+
+    device = resolve_device(device)
     if task is None:
         task = _infer_task(model_tag)
     elif task not in TASKS:

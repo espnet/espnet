@@ -23,14 +23,16 @@ class _RecordingLiger:
 
     def __init__(self):
         self.calls = []
+        self.outputs = 3
 
     def apply(self, *args):
         self.calls.append(args)
-        return (
-            torch.zeros((), requires_grad=True),  # loss
-            torch.zeros(()),  # z_loss
+        result = (
+            torch.tensor(float(len(self.calls)), requires_grad=True),  # loss
+            torch.tensor(float(len(self.calls))) * args[6],  # weighted z_loss
             torch.zeros(()),  # token_accuracy
         )
+        return result + (None,) if self.outputs == 4 else result
 
 
 @pytest.fixture
@@ -256,6 +258,34 @@ class TestStreamZeroPlusMultimodal:
             z_loss_weight=1e-5,
         )
         assert "z_loss_mm" in stats
+
+
+@pytest.mark.parametrize("outputs", [3, 4])
+@pytest.mark.parametrize("z_weight", [0.0, 1e-5])
+@pytest.mark.parametrize("streams", [1, 4])
+def test_liger_returns_and_z_loss_statistics(
+    recording_liger, outputs, z_weight, streams
+):
+    recording_liger.outputs = outputs
+    hidden, input_ids, loss_mask, lm_head = _make_inputs(N=streams, V=50)
+    loss, _, stats = loss_mod.fused_cross_entropy_loss(
+        hidden,
+        input_ids,
+        loss_mask,
+        lm_head,
+        multimodal_vocab_range=(10, 40) if streams > 1 else None,
+        num_stream=streams,
+        training=True,
+        z_loss_weight=z_weight,
+    )
+    expected = 3.0 if streams > 1 else 1.0
+    assert loss.item() == pytest.approx(expected)
+    assert stats["z_loss"].item() == pytest.approx(expected * z_weight)
+    assert stats["z_loss_s0"].item() == pytest.approx(1.0 if z_weight else 0.0)
+    if streams > 1:
+        assert stats["z_loss_mm"].item() == pytest.approx(2.0 if z_weight else 0.0)
+    for value in stats.values():
+        assert torch.isfinite(value).all()
 
 
 class TestDTensorLmHead:

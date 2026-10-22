@@ -4,6 +4,7 @@ import logging
 import re
 from importlib import resources
 from pathlib import Path
+from typing import Any
 
 from omegaconf import DictConfig, ListConfig, OmegaConf
 
@@ -114,7 +115,7 @@ def set_corpus_and_system(value: str) -> str:
     This resolver is used as ``${set_corpus_and_system:}`` in YAML configs.
     ``_normalize_relative_resolver_paths`` rewrites it to
     ``${set_corpus_and_system:<corpus>_<system>}`` (e.g.
-    ``${set_corpus_and_system:mini_an4_asr}``) by extracting the corpus and
+    ``${set_corpus_and_system:mini_an4_esp2_asr}``) by extracting the corpus and
     system names from the ``egs3/<corpus>/<system>/`` portion of the config
     file path. The resolver itself simply returns that injected value.
 
@@ -140,7 +141,7 @@ def set_corpus_and_system(value: str) -> str:
 
         After loading via ``load_and_merge_config``, resolves to::
 
-            espnet/mini_an4_asr_<exp_tag>
+            espnet/mini_an4_esp2_asr_<exp_tag>
     """
     if not value:
         raise RuntimeError(
@@ -459,7 +460,7 @@ def _resolve_egs3_path(path: Path, as_package: bool = False) -> str | None:
     Args:
         path (Path): Config file path or the ``conf/`` directory.
         as_package (bool): When ``False`` (default) returns
-            ``"<corpus>_<system>"`` (e.g. ``"mini_an4_asr"``). When ``True``
+            ``"<corpus>_<system>"`` (e.g. ``"mini_an4_esp2_asr"``). When ``True``
             returns the TEMPLATE package import path
             (e.g. ``"egs3.TEMPLATE.esp2_asr"``).
 
@@ -574,3 +575,39 @@ def _build_config_path(base_path: Path, entry: str) -> Path:
     if not entry_path.suffix:
         entry += ".yaml"
     return base_path / entry
+
+
+def convert_to_dict(value: Any) -> Any:
+    """Return ``value`` with any OmegaConf container turned into plain Python.
+
+    Hydra hands nested blocks over as ``DictConfig``/``ListConfig`` unless the
+    config opts into ``_convert_``. Those unpack through ``**`` well enough, but
+    they leak into components' stored attributes and into checkpointed hparams,
+    so callers that keep the value around convert it once with this helper.
+
+    Args:
+        value (Any): Any config value. ``DictConfig`` and ``ListConfig`` are
+            converted recursively with interpolations resolved; anything else is
+            returned unchanged, so plain Python and direct Python calls pass
+            straight through.
+
+    Returns:
+        Any: ``dict`` for a ``DictConfig``, ``list`` for a ``ListConfig``,
+        otherwise ``value`` itself.
+
+    Example:
+        >>> from omegaconf import OmegaConf
+        >>> convert_to_dict(OmegaConf.create({"depth": 18}))
+        {'depth': 18}
+        >>> convert_to_dict({"depth": 18})
+        {'depth': 18}
+
+    Note:
+        Conversion happens before the value reaches a component, so a config
+        list such as ``mask_fraction_range: [0.7, 1.0]`` arrives as a real
+        ``list`` and is coerced by the component's own signature rather than
+        being stored as a ``ListConfig``.
+    """
+    if isinstance(value, (DictConfig, ListConfig)):
+        return OmegaConf.to_container(value, resolve=True)
+    return value

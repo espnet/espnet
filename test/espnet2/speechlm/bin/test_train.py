@@ -177,7 +177,24 @@ class TestMainDispatch:
                 for m in ctx_mgrs:
                     m.stop()
 
-    def test_dispatch_deepspeed(self, train_module, tmp_path):
+    @pytest.mark.parametrize(
+        "valid_specifiers, expected_paths",
+        [
+            (["text_only:valid:valid.json"], ["valid.json"]),
+            (
+                [
+                    "dialogue:valid:/reader's files/valid.json",
+                    'text_only:extra:/back\\slash "files"/extra.json',
+                ],
+                ["/reader's files/valid.json", '/back\\slash "files"/extra.json'],
+            ),
+        ],
+    )
+    def test_dispatch_deepspeed(
+        self, train_module, tmp_path, valid_specifiers, expected_paths
+    ):
+        from espnet2.speechlm.dataloader.iterator import _parse_data_specifier
+
         train_cfg = {
             "trainer": {"type": "deepspeed", "max_step": 1},
             "data_loading": {
@@ -189,7 +206,28 @@ class TestMainDispatch:
             "seed": 0,
         }
         argv = self._make_args(tmp_path, train_cfg, "deepspeed")
+        train_specs = [
+            "text_only:first:/reader's files/train.json",
+            r"dialogue:second:/back\slash.json",
+        ]
+        index = argv.index("--train-unregistered-specifier")
+        argv[index : index + 2] = [
+            arg
+            for spec in train_specs
+            for arg in ("--train-unregistered-specifier", spec)
+        ]
+        index = argv.index("--valid-unregistered-specifier")
+        argv[index : index + 2] = [
+            arg
+            for spec in valid_specifiers
+            for arg in ("--valid-unregistered-specifier", spec)
+        ]
+        registered = ["dialogue:reader's books", r"dialogue:back\slash"]
+        for spec in registered:
+            argv.extend(["--valid-registered-specifier", spec])
         ctxs = self._patches(train_module)
+        factory = MagicMock()
+        ctxs.append(patch.object(train_module, "DataIteratorFactory", factory))
 
         ds_trainer_cls = MagicMock()
         ds_trainer_cls.return_value.run.return_value = None
@@ -211,6 +249,19 @@ class TestMainDispatch:
 
         ds_trainer_cls.assert_called_once()
         ds_trainer_cls.return_value.run.assert_called_once()
+        assert factory.call_args_list[0].args == (train_specs, [])
+        # Each factory receives one literal list element, with no re-quoting.
+        paths = []
+        names = []
+        for call in factory.call_args_list[1:]:
+            parsed, reg = _parse_data_specifier(
+                call.kwargs.get("unregistered_specifier", []),
+                call.kwargs.get("registered_specifier", []),
+            )
+            paths.extend(entry[2] for entry in parsed)
+            names.extend(entry[1] for entry in reg)
+        assert paths == expected_paths
+        assert names == [spec.split(":")[1] for spec in registered]
 
     def test_dispatch_titan_no_pp(self, train_module, tmp_path):
         train_cfg = {
@@ -309,3 +360,70 @@ class TestMainDispatch:
 
         with pytest.raises(ValueError, match="Unknown trainer type"):
             self._run(train_module, argv, ctxs)
+
+
+# ---------------------------------------------------------------------------
+# record_token_layout
+# ---------------------------------------------------------------------------
+INTERVALS = {"text": [(0, 5)], "discrete_audio": [(5, 9)]}
+
+# The same config in the three YAML shapes a saved config has turned up in.
+# The first is what a hand-written config looks like; the other two broke the
+# earlier version of this writer, which appended its record as text.
+CONFIG_FORMS = {
+    "block": "job_type: speechlm\nmultimodal_io:\n  text: {}\n  discrete_audio: {}\n",
+    "document end marker": (
+        "job_type: speechlm\nmultimodal_io:\n  text: {}\n  discrete_audio: {}\n...\n"
+    ),
+    "flow-style root": (
+        "{job_type: speechlm, multimodal_io: {text: {}, discrete_audio: {}}}\n"
+    ),
+}
+
+
+class TestRecordTokenLayout:
+    @pytest.mark.parametrize("form", list(CONFIG_FORMS))
+    def test_the_config_still_loads_and_keeps_its_order(
+        self, train_module, tmp_path, form
+    ):
+        """Whichever YAML shape it was saved in."""
+        config_path = tmp_path / "train.yaml"
+        config_path.write_text(CONFIG_FORMS[form])
+
+        train_module.record_token_layout(config_path, INTERVALS)
+
+        saved = yaml.safe_load(config_path.read_text())
+        # the order of multimodal_io is what hands out the token ids
+        assert list(saved["multimodal_io"]) == ["text", "discrete_audio"]
+        assert saved["vocab_intervals"] == {
+            "text": [[0, 5]],
+            "discrete_audio": [[5, 9]],
+        }
+        assert saved["job_type"] == "speechlm"
+
+    def test_a_record_already_there_is_left_alone(self, train_module, tmp_path):
+        """A resumed run must not overwrite the layout the first run recorded."""
+        config_path = tmp_path / "train.yaml"
+        config_path.write_text(CONFIG_FORMS["block"])
+        train_module.record_token_layout(config_path, INTERVALS)
+        after_first = config_path.read_text()
+
+        train_module.record_token_layout(config_path, {"text": [(99, 100)]})
+
+        assert config_path.read_text() == after_first
+
+    def test_the_record_survives_a_trip_through_the_loader(
+        self, train_module, tmp_path
+    ):
+        """Tuples in, lists out: the comparison on load is against plain YAML."""
+        config_path = tmp_path / "train.yaml"
+        config_path.write_text(CONFIG_FORMS["block"])
+
+        train_module.record_token_layout(config_path, INTERVALS)
+
+        layout = yaml.safe_load(config_path.read_text())["vocab_intervals"]
+        assert all(
+            isinstance(pair, list) and all(isinstance(x, int) for x in pair)
+            for pairs in layout.values()
+            for pair in pairs
+        )

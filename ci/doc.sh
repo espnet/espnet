@@ -132,7 +132,7 @@ python ./doc/convert_md_to_homepage.py ./doc/vuepress/src/recipe
 cd ./doc/vuepress
 python create_menu.py --root ./src
 
-npm i
+npm ci
 # npm run docs:dev
 npm run docs:build
 mv src/.vuepress/dist ../../
