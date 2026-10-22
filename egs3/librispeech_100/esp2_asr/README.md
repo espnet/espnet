@@ -97,3 +97,4 @@ four sets.
 ## Pretrained Models
 
 - [`conf/tuning/training_e_branchformer.yaml`](https://huggingface.co/ms180/librispeech_100h_e_branchformer)
+- [`conf/tuning/training_conformer_ctc.yaml`](https://huggingface.co/YuCeong-May/Conformer-CTC)
