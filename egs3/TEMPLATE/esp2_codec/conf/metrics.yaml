@@ -6,7 +6,7 @@
 #
 # Recipe configs fill in the `metrics` list; see
 # `egs3/libritts/esp2_codec/conf/metrics.yaml` for a working example built on the
-# shared `espnet3.components.metrics.versa.VersaMetric` (PESQ/STOI/mel-cepstral
+# shared `espnet3.systems.esp2_codec.metrics.versa.VersaMetric` (PESQ/STOI/mel-cepstral
 # distortion and more).
 #
 # `metrics: []` is deliberate rather than a populated example: OmegaConf

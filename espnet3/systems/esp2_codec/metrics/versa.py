@@ -35,7 +35,7 @@ class VersaMetric(BaseMetric):
         ```yaml
         metrics:
           - metric:
-              _target_: espnet3.components.metrics.versa.VersaMetric
+              _target_: espnet3.systems.esp2_codec.metrics.versa.VersaMetric
               score_config:
                 - name: signal_metric
                 - name: pseudo_mos

@@ -1,4 +1,4 @@
-"""Unit tests for espnet3.components.metrics.versa."""
+"""Unit tests for espnet3.systems.esp2_codec.metrics.versa."""
 
 import json
 import sys
@@ -7,7 +7,7 @@ import pytest
 import yaml
 from omegaconf import OmegaConf
 
-from espnet3.components.metrics.versa import VersaMetric
+from espnet3.systems.esp2_codec.metrics.versa import VersaMetric
 
 
 def _write_jsonl(path, records):
@@ -102,7 +102,9 @@ class TestCall:
             _write_jsonl(tmp_path / "out.json", [{"mcd": 3.0}])
             (tmp_path / "out.json").rename(output_file)
 
-        monkeypatch.setattr("espnet3.components.metrics.versa.subprocess.run", fake_run)
+        monkeypatch.setattr(
+            "espnet3.systems.esp2_codec.metrics.versa.subprocess.run", fake_run
+        )
         metric = VersaMetric(score_config=[{"name": "signal_metric"}], use_gpu=False)
         output_dir = tmp_path / "inference"
 
@@ -129,7 +131,9 @@ class TestCall:
             _write_jsonl(tmp_path / "out.json", [{"mcd": 1.0}])
             (tmp_path / "out.json").rename(output_file)
 
-        monkeypatch.setattr("espnet3.components.metrics.versa.subprocess.run", fake_run)
+        monkeypatch.setattr(
+            "espnet3.systems.esp2_codec.metrics.versa.subprocess.run", fake_run
+        )
         data = self._make_data(tmp_path)
         text = tmp_path / "text"
         text.write_text("utt1 hello\n", encoding="utf-8")
@@ -146,7 +150,7 @@ class TestCall:
 
 class TestSummarize:
     def test_logs_plain_metrics(self, caplog):
-        with caplog.at_level("INFO", logger="espnet3.components.metrics.versa"):
+        with caplog.at_level("INFO", logger="espnet3.systems.esp2_codec.metrics.versa"):
             VersaMetric.summarize({"mcd": 1.2345}, "test")
 
         assert "VERSA scores - test" in caplog.text
@@ -165,7 +169,7 @@ class TestSummarize:
             "espnet_cer_equal": 99.0,
         }
 
-        with caplog.at_level("INFO", logger="espnet3.components.metrics.versa"):
+        with caplog.at_level("INFO", logger="espnet3.systems.esp2_codec.metrics.versa"):
             VersaMetric.summarize(scores, "test")
 
         assert "WER components" in caplog.text
