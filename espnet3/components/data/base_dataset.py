@@ -8,7 +8,7 @@ from typing import Any, Callable, ClassVar, Mapping, Tuple
 
 from torch.utils.data import Dataset as TorchDataset
 
-from espnet3.api import Field
+from espnet3.contract import Field
 from espnet3.contract.data import (
     check_fields,
     check_item,
@@ -59,6 +59,7 @@ def _checked_once(getitem: Callable) -> Callable:
 
     @functools.wraps(getitem)
     def wrapper(self, index):
+        """Return the item, checking the first one against ``self.fields``."""
         item = getitem(self, index)
         if not getattr(self, "_fields_checked", False):
             fields = check_fields(self, "fields")

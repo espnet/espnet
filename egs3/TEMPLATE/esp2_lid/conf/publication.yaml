@@ -13,6 +13,7 @@ pack_model:
   include:
     - src
     - dataset
+    - ${stats_dir}/train/lang2utt  # the language order of the classifier
   exclude:
     - inference
     - inference_*

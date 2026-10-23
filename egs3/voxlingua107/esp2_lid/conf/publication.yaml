@@ -12,10 +12,6 @@
 #       --publication_config conf/publication.yaml
 
 pack_model:
-  include:
-    - ${recipe_dir}/src
-    - ${recipe_dir}/dataset
-    - ${stats_dir}/train/lang2utt
   readme_context:
     lang: multilingual
 

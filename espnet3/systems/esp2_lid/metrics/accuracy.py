@@ -3,8 +3,8 @@
 from collections import Counter
 from typing import Dict, Sequence
 
-from espnet3.api.inference import Field
 from espnet3.components.metrics.base_metric import BaseMetric
+from espnet3.contract import Field
 
 
 class Accuracy(BaseMetric):

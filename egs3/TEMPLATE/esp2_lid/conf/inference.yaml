@@ -16,14 +16,27 @@ parallel:
   # Replace a stale shard lock left by an interrupted run. Do not enable while
   # another run may still be writing to the same output directory.
   allow_overwrite_lock: false
-# The system's `Inference` declares its input (`speech`) and output
-# (`language`), so the runner writes `<test_name>/language.scp` with no
-# `input_key` or `output_fn`. Its arguments are `Speech2Language`'s.
+# `Speech2Language` predicts a language from the `speech` field. The
+# contract checks the input (mono 16 kHz audio; `sample_rate` must equal the
+# training `frontend_conf.fs`) and the `language` output, which the runner
+# writes to `<test_name>/language.scp`. Recipes set the checkpoint arguments.
 model:
-  _target_: espnet3.systems.esp2_lid.inference.Inference
+  _target_: espnet3.systems.esp2_lid.src.speech2language.Speech2Language
+input_key: speech
 batch_size: 4
+contract:
+  inputs:
+    speech:
+      kind: audio
+      sample_rate: 16000
+      channels: 1
+      normalize:
+        - first_channel
+  outputs:
+    language:
+      kind: text
 provider:
   _target_: espnet3.systems.base.inference_provider.InferenceProvider
 runner:
-  _target_: espnet3.systems.base.inference_runner.InferenceRunner
+  _target_: espnet3.systems.esp2_lid.src.inference_runner.ESP2LIDInferenceRunner
 stats_dir: ${recipe_dir}/exp/stats
