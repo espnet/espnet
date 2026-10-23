@@ -1,98 +1,90 @@
 ##########################################################
-#                    DEMO PACK SETTING                   #
+#                      DEMO SETTING                      #
 ##########################################################
 # Quick usage:
-#   python run.py --stages pack_demo   --demo_config conf/demo.yaml
-#   python run.py --stages upload_demo --demo_config conf/demo.yaml
+#   python run.py --stages pack_demo \
+#       --training_config conf/training.yaml --demo_config conf/demo.yaml
+#   python run.py --stages upload_demo \
+#       --training_config conf/training.yaml --demo_config conf/demo.yaml
 #
-# Main stages and what this config is used for:
-# - `pack_demo`: packs `demo.yaml`, `ui.app_script`, and `pack.include`
-# - `upload_demo`: uploads the packed demo directory
+# Shared default merged under every esp2_gan_tts recipe's demo config. Pass
+# `--training_config` too: `launch()` copies its `exp_tag` here, which
+# `model.dir_or_tag` and `upload_demo.hf_repo` are built from. `pack_model`
+# must already have written the bundle `model.dir_or_tag` points at.
+
 recipe_dir: .
 
 ##########################################################
-#                    MODEL SOURCE                        #
+#                     MODEL SOURCE                       #
 ##########################################################
-# `model.dir_or_tag` selects the packed model used by the demo.
-# - local packed directory relative to the demo dir, e.g. `../model_pack`
-# - remote model tag understood by `espnet_model_zoo`
-#
-# `model.call_args` is passed at inference call time as:
-#   model(sample, **call_args)
-# Use this only for runtime kwargs consumed by the published model callable.
-# Initialization-time overrides are intentionally not supported here; keep
-# those in the packed `conf/inference.yaml`.
+# `model.dir_or_tag` is the packed model the demo loads: a local bundle
+# (resolved relative to the packed demo directory at runtime) or a Hugging
+# Face model tag, loaded through `espnet3.publication.InferenceModel`. The
+# packed inference config names only installed espnet code and declares its
+# contract inline, so the bundle's own files are never imported and
+# `trust_user_code` stays false.
 model:
   dir_or_tag: exp/${exp_tag}/model_pack
   trust_user_code: false
-  call_args: {}
+
+##########################################################
+#               SPEAKER EMBEDDING SETTING                #
+##########################################################
+# The model is conditioned on a speaker embedding (`spembs` in the inference
+# contract), which no browser widget can produce. `src/app.py` therefore
+# takes a reference recording instead and runs the same extractor as the
+# `compute_xvectors` stage on it. Keep `toolkit` / `pretrained_model` equal
+# to the `xvector` block of the training config, or the embedding the demo
+# builds does not match the space the model was trained in.
+xvector:
+  toolkit: espnet
+  pretrained_model: espnet/voxcelebs12_rawnet3
+  device: cpu
 
 ##########################################################
 #                     UI DEFINITION                      #
 ##########################################################
-# `ui.app_script` is copied into the packed demo as `app.py`.
+# `ui.app_script` is the launcher `pack_demo` copies into the packed demo as
+# `app.py`: the template's, which turns the reference recording into the
+# embedding the model takes. `ui.description` is a markdown/text file
+# `pack_demo` copies into the bundle, or inline text.
 #
-# `ui.description` may be:
-# - a markdown/text file path; `pack_demo` copies that file into the bundle
-# - inline text; the app shows it directly
-#
-# `ui.inputs` and `ui.outputs` define the default Gradio wiring used by
-# `src/app.py`.
-# - `key`: model-facing field name
-# - `type`: registered built-in UI asset type such as `audio` or `text`
-# - `label`: UI label shown in Gradio
-#
-# The default app binds input/output components positionally. Keep the order of
-# these entries aligned with the values expected by the app and returned by the
-# inference function.
-# A TTS demo is text in / audio out. `key` values match the contract used by
-# the TTS inference config: `text` in (see `input_key` in conf/inference.yaml)
-# and `wav` out (the key `src/inference.py:build_output` returns).
-#
-# A multi-speaker model also needs a speaker embedding, which no built-in UI
-# asset can produce from a raw waveform. Such a recipe should point
-# `ui.app_script` at its own `src/app.py`, which can build any Gradio
-# component it likes and derive the embedding itself; see
-# `egs3/libritts/esp2_gan_tts/src/app.py`.
+# `ui.inputs` is set explicitly because the widgets differ from the model's
+# inputs: the page shows a text box and an audio widget, and the launcher
+# maps them onto the contract's `text` and `spembs`. The output widgets come
+# from the packed inference contract (the synthesized speech).
 ui:
-  app_script: src/app.py
+  app_script: ${config_path:../src/app.py}
   title: ${set_corpus_and_system:} demo
   description: README.md
   inputs:
     - key: text
       type: text
-      label: "Input Text"
-  outputs:
-    - key: wav
+      label: Text to synthesize
+    - key: reference_speech
       type: audio
-      label: "Synthesized Audio"
+      label: Reference recording (voice to clone)
 
 ##########################################################
 #                    PACKING SETTING                     #
 ##########################################################
-# `pack.include` copies extra files or directories into the packed demo.
-# Globs are supported, e.g. `assets/**/*.png`.
-#
-# `pack.exclude` removes matches from copied include directories. Patterns use
-# the same style as publication bundle excludes, e.g.:
-# - `**/*.log`
-# - `**/tensorboard/**`
-#
-# `pack.readme` renders the Hugging Face Space README.md. Values under
-# `readme_context` override the defaults inferred by `pack_demo`.
+# `pack.out_dir` is the packed demo directory, relative to the recipe
+# directory; `pack.include` / `pack.exclude` copy extra files into it.
+# `pack.requirements` is written to the demo's requirements.txt: the `train`
+# extra brings in Hydra, which builds the model from the packed configs; the
+# `tts` extra brings in the g2p dependencies of the text preprocessing. A
+# recipe whose `xvector.toolkit` is `speechbrain` adds that package.
+# `pack.readme` renders the Space README from `readme_context`.
 pack:
   out_dir: demo
   include: []
   exclude: []
-  # Python packages written to requirements.txt in the packed demo.
-  # Standard pip specifiers and git+https:// entries are both supported.
-  # Example git install: git+https://github.com/espnet/espnet@main
   requirements:
-    - git+https://github.com/espnet/espnet.git
+    - "espnet[train,tts] @ git+https://github.com/espnet/espnet.git"
   readme: ${config_path:../src/hf_demo_readme.md}
   readme_context:
     title: ${ui.title}
-    emoji: "\U0001f5e3\ufe0f"
+    emoji: "\U0001f5e3️"
     color_from: blue
     color_to: green
     sdk: gradio
@@ -111,16 +103,10 @@ pack:
 ##########################################################
 #                    UPLOAD SETTING                      #
 ##########################################################
-# Upload target used by `upload_demo`.
+# `update: false` refuses to overwrite an existing Space; `delete_patterns`
+# applies only when `update: true` (`["*"]` replaces, `[]` adds).
 upload_demo:
   hf_repo: espnet/${set_corpus_and_system:}_${exp_tag}
-  # organization: your-org
-  # update: false (default) raises an error if the Space already exists,
-  # preventing accidental overwrites of a published demo.
-  # Set to true to upload over an existing Space.
   update: false
-  # Glob patterns of existing Space files to delete before uploading.
-  # Only used when update: true. Default ["*"] fully replaces the Space
-  # contents. Set to [] for an additive upload.
   delete_patterns:
     - "*"

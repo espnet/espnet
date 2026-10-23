@@ -1,7 +1,7 @@
 # ESPnet3 LibriTTS VITS recipe
 
 Multi-speaker English TTS on LibriTTS using VITS with x-vector speaker
-conditioning, run through `espnet3.systems.esp2_gan_tts.system.GANTTSSystem`.
+conditioning, run through `espnet3.systems.esp2_gan_tts.system.ESP2GANTTSSystem`.
 The configs under `conf/` are merged over
 `egs3/TEMPLATE/esp2_gan_tts/conf/`, so they only list what this recipe
 changes.
@@ -43,6 +43,7 @@ python run.py --stages measure \
 # 9) Bundle the trained model for release (packs the phoneme token list too)
 python run.py --stages pack_model \
     --training_config conf/training.yaml \
+    --inference_config conf/inference.yaml \
     --publication_config conf/publication.yaml
 
 # 10) Upload it to the Hugging Face Hub (run `hf auth login` first)
@@ -51,8 +52,8 @@ python run.py --stages upload_model \
     --publication_config conf/publication.yaml
 
 # 11) Pack the Gradio demo, then upload it as a Space
-python run.py --stages pack_demo   --demo_config conf/demo.yaml
-python run.py --stages upload_demo --demo_config conf/demo.yaml
+python run.py --stages pack_demo   --training_config conf/training.yaml --demo_config conf/demo.yaml
+python run.py --stages upload_demo --training_config conf/training.yaml --demo_config conf/demo.yaml
 ```
 
 Stages always execute in this order, whatever order `--stages` lists them
@@ -76,16 +77,25 @@ This model was trained against SpeechBrain ECAPA-TDNN embeddings, so
 `espnet/voxcelebs12_rawnet3` extractor, which needs no extra dependency;
 switching requires retraining with a matching `spk_embed_dim`.
 
+## Inference and scoring
+
+`infer` passes each test transcript and its x-vector to `Text2Speech`, which
+tokenizes the raw text with the phoneme token list, cleaner and g2p recorded
+in `exp/${exp_tag}/config.yaml`, and writes one 22.05 kHz WAV per utterance
+under `exp/${exp_tag}/inference/<test>/` listed in `wav.scp`. `measure` runs
+[versa](https://github.com/wavlab-speech/versa), which has to be installed in
+the same environment, and reads the ground-truth recording and transcript of
+each utterance from the test set itself (`dataset:wav_path` and
+`dataset:raw_text` in the template's `conf/metrics.yaml`).
+
 ## Demo
 
-`pack_demo` builds a Gradio app from `src/app.py`. Because this recipe trains a
-multi-speaker VITS, the demo takes **text plus a reference audio clip**: it runs
+`pack_demo` ships the template's `src/app.py`. Because this recipe trains a
+multi-speaker VITS, the demo takes **text plus a reference recording**: it runs
 the same SpeechBrain ECAPA extractor as the `compute_xvectors` stage to turn
-that clip into the `spembs` the model needs, then synthesizes the text in that
-voice.
-
-`src/app.py` defaults to the same ECAPA model the `compute_xvectors` stage
-uses, so `conf/demo.yaml` carries no x-vector settings. If you retrain against
-a different embedding model, override `xvector.pretrained_model` in
-`conf/demo.yaml` to match, or the embedding the demo builds will not match the
-space the model was trained in.
+that recording into the `spembs` the model needs, then synthesizes the text in
+that voice through the packed model's inference contract. `conf/demo.yaml`
+names that extractor under `xvector` and adds `speechbrain` to the Space's
+requirements; if you retrain against a different embedding model, change both
+to match, or the embedding the demo builds will not match the space the model
+was trained in.

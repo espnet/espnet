@@ -111,6 +111,29 @@ def test_load_default_config_metrics_binds_versa_to_the_dataset_columns() -> Non
     }
 
 
+def test_load_default_config_publication_ships_the_checkpoint_and_tokens() -> None:
+    cfg = load_default_config("publication.yaml", PACKAGE)
+    assert [str(p) for p in cfg.pack_model.include] == ["./data/tokens"]
+    # The packed inference config loads `${exp_dir}/last.ckpt`, so the bulk
+    # copy must keep it; no recipe code is shipped.
+    assert "last.ckpt" not in cfg.pack_model.exclude
+    assert "src" not in cfg.pack_model.include
+    assert "dataset" not in cfg.pack_model.include
+
+
+def test_load_default_config_demo_wires_the_reference_recording() -> None:
+    cfg = load_default_config("demo.yaml", PACKAGE)
+    assert cfg.model.trust_user_code is False
+    assert cfg.ui.app_script.endswith("egs3/TEMPLATE/esp2_gan_tts/src/app.py")
+    assert [spec.key for spec in cfg.ui.inputs] == ["text", "reference_speech"]
+    assert [spec.type for spec in cfg.ui.inputs] == ["text", "audio"]
+    assert "outputs" not in cfg.ui
+    # Same extractor as the training template's compute_xvectors defaults.
+    training = load_default_config("training.yaml", PACKAGE)
+    assert cfg.xvector.toolkit == training.xvector.toolkit
+    assert cfg.xvector.pretrained_model == training.xvector.pretrained_model
+
+
 def test_load_and_merge_config_user_overrides_template_defaults(tmp_path: Path) -> None:
     user = tmp_path / "train_user.yaml"
     user.write_text(
@@ -150,6 +173,20 @@ def test_libritts_recipe_overlays_hold_only_their_deltas() -> None:
     assert inference.dataset.test[0].data_src_args.xvector_dir.endswith(
         "spkrec-ecapa-voxceleb_valid"
     )
+
+    demo = load_and_merge_config(
+        RECIPE_CONF / "demo.yaml", "demo.yaml", default_package=PACKAGE, resolve=False
+    )
+    assert demo.xvector.toolkit == "speechbrain"
+    assert demo.xvector.pretrained_model == "speechbrain/spkrec-ecapa-voxceleb"
+    assert "speechbrain" in demo.pack.requirements
+    assert demo.ui.app_script.endswith("egs3/TEMPLATE/esp2_gan_tts/src/app.py")
+    assert demo.model.trust_user_code is False
+
+    publication = load_and_merge_config(
+        RECIPE_CONF / "publication.yaml", "publication.yaml", default_package=PACKAGE
+    )
+    assert [str(p) for p in publication.pack_model.include] == ["./data/tokens"]
 
 
 def test_load_and_merge_config_none_path_returns_none() -> None:
