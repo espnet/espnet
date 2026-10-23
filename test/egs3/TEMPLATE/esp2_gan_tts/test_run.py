@@ -46,21 +46,41 @@ def test_load_default_config_train_contains_expected_targets() -> None:
     assert cfg.xvector.pretrained_model == "espnet/voxcelebs12_rawnet3"
     assert cfg.create_token_list.token_type == "phn"
     assert cfg.trainer.gan.generator_first is False
+    # Text2Speech rebuilds its text preprocessing from `args.cleaner` /
+    # `args.g2p` of the written config.yaml, so the model block carries them.
+    assert cfg.model.cleaner == "tacotron"
+    assert cfg.model.g2p == "espeak_ng_english_us_vits"
 
 
-def test_load_default_config_infer_contains_expected_targets() -> None:
+def test_load_default_config_infer_declares_the_contract() -> None:
     cfg = load_default_config("inference.yaml", PACKAGE)
     assert cfg.dataset.recipe_dir == "."
     assert cfg.dataset._recursive_ is False
     assert [entry.name for entry in cfg.dataset.test] == ["valid", "test"]
-    assert "train" not in cfg.dataset.preprocessor
+    # Raw text goes to Text2Speech, which tokenizes it itself; the dataset
+    # serves the references and skips the waveform.
+    assert cfg.dataset.preprocessor is None
+    for entry in cfg.dataset.test:
+        assert entry.data_src_args.load_speech is False
+        assert entry.data_src_args.inference is True
     assert cfg.model._target_ == "espnet2.bin.tts_inference.Text2Speech"
+    assert cfg.input_key == ["text", "spembs"]
+    assert cfg.batch_size is None
+    assert list(cfg.contract.inputs) == ["text", "spembs"]
+    assert cfg.contract.inputs.text.kind == "text"
+    assert cfg.contract.inputs.spembs.kind == "vector"
+    assert list(cfg.contract.outputs) == ["wav"]
+    assert cfg.contract.outputs.wav.kind == "audio"
+    assert cfg.contract.outputs.wav.sample_rate == 22050
+    assert cfg.contract.outputs.wav.channels == 1
+    assert "output_fn" not in cfg and "output_artifacts" not in cfg
     assert (
         cfg.provider._target_
         == "espnet3.systems.base.inference_provider.InferenceProvider"
     )
     assert (
-        cfg.runner._target_ == "espnet3.systems.base.inference_runner.InferenceRunner"
+        cfg.runner._target_
+        == "espnet3.systems.esp2_gan_tts.src.inference_runner.TTSInferenceRunner"
     )
 
 
@@ -101,6 +121,21 @@ create_token_list:
     assert cfg.remove_long_short.max_wav_duration == 20.0
     assert cfg.dataset.preprocessor.token_list.endswith("tokens/phn_tokens.txt")
     assert cfg.dataset.preprocessor.text_cleaner == ["tacotron"]
+    assert cfg.model.cleaner == "tacotron"
+
+
+def test_libritts_recipe_overlays_hold_only_their_deltas() -> None:
+    """The recipe inherits the contract, runner and launcher from the template."""
+    inference = load_and_merge_config(
+        RECIPE_CONF / "inference.yaml", "inference.yaml", default_package=PACKAGE
+    )
+    assert inference.xvector.spk_embed_tag == "spkrec-ecapa-voxceleb"
+    assert inference.dataset.preprocessor is None
+    assert inference.input_key == ["text", "spembs"]
+    assert list(inference.contract.inputs) == ["text", "spembs"]
+    assert inference.dataset.test[0].data_src_args.xvector_dir.endswith(
+        "spkrec-ecapa-voxceleb_valid"
+    )
 
 
 def test_load_and_merge_config_none_path_returns_none() -> None:

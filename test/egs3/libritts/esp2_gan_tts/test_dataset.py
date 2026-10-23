@@ -167,21 +167,21 @@ def test_dataset_resamples_mismatched_audio_with_warning(
     assert native[0]["speech"].shape == (round(0.1 * SOURCE_FS),)
 
 
-def test_template_preprocessor_rate_matches_builder() -> None:
-    """One rate for the data (builder) and the preprocessor (template)."""
+def test_template_rates_match_builder() -> None:
+    """One rate for the data (builder), the preprocessor and the output contract."""
     cfg = load_default_config("training.yaml", "egs3.TEMPLATE.esp2_gan_tts")
     assert cfg.dataset.preprocessor.fs == TARGET_FS
     inference = load_default_config("inference.yaml", "egs3.TEMPLATE.esp2_gan_tts")
-    assert inference.dataset.preprocessor.fs == TARGET_FS
+    # No preprocessor at inference: Text2Speech tokenizes the raw text itself.
+    assert inference.dataset.preprocessor is None
+    assert inference.contract.outputs.wav.sample_rate == TARGET_FS
 
 
 def test_recipe_model_rates_match_builder() -> None:
-    """The recipe's mel loss, sampling_rate and output wav rate all agree."""
+    """The recipe's mel loss and sampling_rate agree with the data rate."""
     recipe_conf = Path(__file__).resolve().parents[4] / (
         "egs3/libritts/esp2_gan_tts/conf"
     )
     training = OmegaConf.load(recipe_conf / "training.yaml")
-    inference = OmegaConf.load(recipe_conf / "inference.yaml")
     assert training.model.tts_conf.mel_loss_params.fs == TARGET_FS
     assert training.model.tts_conf.sampling_rate == TARGET_FS
-    assert inference.output_artifacts.wav.sample_rate == TARGET_FS

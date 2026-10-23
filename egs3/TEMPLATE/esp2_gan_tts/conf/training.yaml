@@ -155,8 +155,16 @@ dataset:
 #                      MODEL SETTING                     #
 ##########################################################
 # Filled in by the recipe (espnet2 GAN-TTS `model` block: token_list,
-# feats_extract, tts, tts_conf, ...).
+# feats_extract, tts, tts_conf, ...). `cleaner` and `g2p` are GANTTSTask
+# arguments like `token_list` / `token_type`; the model itself ignores them.
+# `train` writes them into `${exp_dir}/config.yaml`, from which
+# `espnet2.bin.tts_inference.Text2Speech` rebuilds the text preprocessing it
+# applies to raw text at inference time (`build_preprocess_fn` reads
+# `args.cleaner` / `args.g2p`). The preprocessor block above is written to
+# that file as `text_cleaner` / `g2p_type`, which Text2Speech does not read.
 model:
+  cleaner: ${create_token_list.cleaner}
+  g2p: ${create_token_list.g2p}
 
 ##########################################################
 #            OPTIMIZER & SCHEDULER SETTING               #
