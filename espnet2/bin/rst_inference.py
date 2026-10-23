@@ -104,7 +104,10 @@ def _load_feature_predictor(config_path, model_path, device):
 
 
 def get_parser():
-    parser = argparse.ArgumentParser()
+    parser = argparse.ArgumentParser(
+        description="Speech restoration inference",
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+    )
     parser.add_argument(
         "--config",
         default=None,

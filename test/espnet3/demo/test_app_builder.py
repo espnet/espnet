@@ -3,6 +3,7 @@ from __future__ import annotations
 from argparse import Namespace
 from pathlib import Path
 
+import numpy as np
 import pytest
 from omegaconf import OmegaConf
 
@@ -10,7 +11,8 @@ import egs3.TEMPLATE.esp2_asr.src.app as demo_module
 import espnet3.publication.demo.assets as demo_assets_module
 import espnet3.publication.demo.session as demo_session_module
 from egs3.TEMPLATE.esp2_asr.src.app import build_demo
-from espnet3.publication.demo.session import load_demo_session
+from espnet3.contract.kinds.audio import Audio
+from espnet3.publication.demo.session import DemoSession, load_demo_session
 
 
 class DummyProvider:
@@ -36,6 +38,8 @@ class CallArgsEchoProvider:
         return model
 
 
+# These packs name providers defined in this test module. Declare trust here
+# because these tests exercise demo construction, not the publication trust gate.
 def _write_model_pack(
     demo_dir: Path,
     provider_target: str = "test.espnet3.demo.test_app_builder.DummyProvider",
@@ -67,7 +71,7 @@ def test_build_demo_with_custom_provider(tmp_path: Path) -> None:
     (demo_dir / "demo.yaml").write_text(
         "model:\n"
         "  dir_or_tag: model_pack\n"
-        "  trust_user_code: false\n"
+        "  trust_user_code: true\n"
         "  call_args: {}\n"
         "ui:\n"
         "  title: null\n"
@@ -90,6 +94,108 @@ def test_build_demo_with_custom_provider(tmp_path: Path) -> None:
     assert markdowns[0].value == "# Demo\n\nDescription"
 
 
+def test_demo_uses_inference_contract_for_ui_and_inference(tmp_path: Path) -> None:
+    demo_dir = tmp_path / "demo"
+    demo_dir.mkdir()
+    _write_model_pack(demo_dir)
+    inference_yaml = demo_dir / "model_pack" / "conf" / "inference.yaml"
+    with inference_yaml.open("a", encoding="utf-8") as stream:
+        stream.write(
+            "contract:\n"
+            "  inputs:\n"
+            "    speech:\n"
+            "      kind: text\n"
+            "  outputs:\n"
+            "    hyp:\n"
+            "      kind: text\n"
+            "      normalize: [to_lower]\n"
+        )
+    (demo_dir / "demo.yaml").write_text(
+        "model:\n"
+        "  dir_or_tag: model_pack\n"
+        "  trust_user_code: true\n"
+        "ui:\n"
+        "  title: null\n"
+        "  description: null\n",
+        encoding="utf-8",
+    )
+
+    session = load_demo_session(demo_dir, "demo.yaml")
+
+    assert session.input_specs == [{"key": "speech", "type": "text", "label": "Speech"}]
+    assert session.output_specs == [{"key": "hyp", "type": "text", "label": "Hyp"}]
+    assert (
+        session.create_inference_fn(session.input_specs, session.output_specs)("HELLO")
+        == "ok"
+    )
+
+
+def test_demo_converts_contracted_stereo_audio_for_gradio(tmp_path: Path) -> None:
+    """Audio Kind outputs are passed to Gradio as rate and samples by channel."""
+    config = OmegaConf.create(
+        {
+            "model": {"call_args": {}},
+            "ui": {
+                "title": None,
+                "description": None,
+                "inputs": [{"key": "text", "type": "text", "label": "Text"}],
+                "outputs": [{"key": "audio", "type": "audio", "label": "Audio"}],
+            },
+        }
+    )
+    session = DemoSession(
+        tmp_path,
+        config,
+        lambda item: {"audio": Audio(np.zeros((2, 160)), 16000)},
+        demo_assets_module.DEFAULT_UI_ASSETS.clone(),
+    )
+
+    rate, samples = session.create_inference_fn(
+        session.input_specs, session.output_specs
+    )("hello")
+
+    assert rate == 16000
+    assert samples.shape == (160, 2)
+
+
+def test_demo_uses_custom_kind_output_conversion(tmp_path, monkeypatch):
+    """A contract Kind controls conversion even with an explicit text widget."""
+    from espnet3.contract import KINDS
+    from espnet3.contract.inference import load_inference_contract
+    from espnet3.contract.kinds.text import TextKind
+
+    class DisplayText(TextKind):
+        def to_demo_output(self, value):
+            return value.upper()
+
+    monkeypatch.setitem(KINDS, "display_text", DisplayText())
+
+    def model(item):
+        return {"text": "hello"}
+
+    model.contract = load_inference_contract(
+        {
+            "inputs": {"text": {"kind": "text"}},
+            "outputs": {"text": {"kind": "display_text"}},
+        }
+    )
+    config = OmegaConf.create(
+        {
+            "model": {"call_args": {}},
+            "ui": {
+                "title": None,
+                "description": None,
+                "outputs": [{"key": "text", "type": "text", "label": "Text"}],
+            },
+        }
+    )
+    session = DemoSession(
+        tmp_path, config, model, demo_assets_module.DEFAULT_UI_ASSETS.clone()
+    )
+    infer = session.create_inference_fn(session.input_specs, session.output_specs)
+    assert infer("input") == "HELLO"
+
+
 def test_build_demo_uses_inline_description(tmp_path: Path) -> None:
     gr = pytest.importorskip("gradio")
     _ = gr
@@ -99,7 +205,7 @@ def test_build_demo_uses_inline_description(tmp_path: Path) -> None:
     (demo_dir / "demo.yaml").write_text(
         "model:\n"
         "  dir_or_tag: model_pack\n"
-        "  trust_user_code: false\n"
+        "  trust_user_code: true\n"
         "  call_args: {}\n"
         "ui:\n"
         "  title: null\n"
@@ -132,7 +238,7 @@ def test_default_assets_pass_through_inputs_and_outputs(tmp_path: Path) -> None:
     (demo_dir / "demo.yaml").write_text(
         "model:\n"
         "  dir_or_tag: model_pack\n"
-        "  trust_user_code: false\n"
+        "  trust_user_code: true\n"
         "  call_args:\n"
         "    beam_size: 2\n"
         "ui:\n"
@@ -172,7 +278,7 @@ def test_create_inference_fn_accepts_explicit_key_lists(tmp_path: Path) -> None:
     (demo_dir / "demo.yaml").write_text(
         "model:\n"
         "  dir_or_tag: model_pack\n"
-        "  trust_user_code: false\n"
+        "  trust_user_code: true\n"
         "  call_args:\n"
         "    beam_size: 3\n"
         "ui:\n"
@@ -283,7 +389,7 @@ def test_build_input_component_requires_type(tmp_path: Path) -> None:
     (demo_dir / "demo.yaml").write_text(
         "model:\n"
         "  dir_or_tag: model_pack\n"
-        "  trust_user_code: false\n"
+        "  trust_user_code: true\n"
         "  call_args: {}\n"
         "ui:\n"
         "  title: null\n"
@@ -311,6 +417,7 @@ def test_build_demo_model_loads_pretrained_tag(monkeypatch, tmp_path: Path) -> N
             "model": {
                 "dir_or_tag": "espnet/test-model",
                 "trust_user_code": True,
+                "device": "cpu",
                 "call_args": {},
             },
             "ui": {
@@ -327,9 +434,10 @@ def test_build_demo_model_loads_pretrained_tag(monkeypatch, tmp_path: Path) -> N
     class DummyModel:
         model = None
 
-    def fake_from_pretrained(model_tag, trust_user_code=False):
+    def fake_from_pretrained(model_tag, trust_user_code=False, device=None):
         captured["model_tag"] = model_tag
         captured["trust_user_code"] = trust_user_code
+        captured["device"] = device
         return DummyModel()
 
     monkeypatch.setattr(
@@ -346,3 +454,4 @@ def test_build_demo_model_loads_pretrained_tag(monkeypatch, tmp_path: Path) -> N
     assert isinstance(model, DummyModel)
     assert captured["model_tag"] == "espnet/test-model"
     assert captured["trust_user_code"] is True
+    assert captured["device"] == "cpu"

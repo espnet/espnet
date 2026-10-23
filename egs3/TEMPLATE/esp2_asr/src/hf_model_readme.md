@@ -26,14 +26,11 @@ ${description}
 ${model_summary_section}
 ${model_detail_section}
 
-## Usage
+## Inference
 
-```python
-from espnet3.publication import InferenceModel
-
-${usage_load_call}
-result = model(sample)
-```
+Use the original recipe's inference configuration to build its backend and
+run the `infer` stage. This archive contains the checkpoint and configuration
+artifacts; model construction and result formatting are defined by the recipe.
 
 ## Packaging
 

@@ -460,3 +460,264 @@ def test_collect_stats_rejects_multiple_iterator(tmp_path: Path, flag):
             write_collected_feats=False,
             batch_size=2,
         )
+
+
+@pytest.mark.parametrize(
+    "train_mode, expected",
+    [(None, False), (False, False), (True, True)],
+)
+def test_collect_stats_builds_a_data_organizer_without_training_mode(
+    monkeypatch, train_mode, expected
+):
+    """The train split is read as ESPnet2 reads it for statistics: train=False.
+
+    Training mode, and with it the augmentation, is applied only on request.
+    """
+    from test.espnet3.components.data.test_data_organizer import (
+        ESPNET_TRAIN_FLAG_PREPROCESSOR_TARGET,
+        DummyDataset,
+        _entry,
+    )
+
+    import espnet3.components.data.data_organizer as data_organizer_module
+
+    monkeypatch.setattr(
+        data_organizer_module,
+        "instantiate_dataset_reference",
+        lambda config, recipe_dir=None: DummyDataset(),
+    )
+
+    dataset_cfg = OmegaConf.create(
+        {
+            "_target_": "espnet3.components.data.data_organizer.DataOrganizer",
+            "_recursive_": False,  # as recipes write it: the organizer builds
+            "train": [_entry("train_dummy")],
+            "valid": [_entry("valid_dummy")],
+            "preprocessor": {"_target_": ESPNET_TRAIN_FLAG_PREPROCESSOR_TARGET},
+        }
+    )
+    args = () if train_mode is None else (train_mode,)
+    train = _instantiate_dataset(dataset_cfg, "train", *args)
+    assert train[0]["was_train"] is expected
+
+
+def build_test_organizer(**kwargs):
+    """A factory function as an organizer target, which hydra allows."""
+    return DummyOrganizer(**kwargs)
+
+
+def test_collect_stats_builds_an_organizer_named_by_a_factory_function():
+    """Only a DataOrganizer class gets train_mode; a factory is built as is."""
+    dataset_cfg = make_dataset_cfg(n_train=2, n_valid=1)
+    dataset_cfg._target_ = f"{__name__}.build_test_organizer"
+    assert len(_instantiate_dataset(dataset_cfg, "train")) == 2
+
+
+@pytest.mark.parametrize("train_mode, expected", [(None, False), (True, True)])
+def test_collect_stats_hands_train_mode_to_every_dataset_build(
+    tmp_path: Path, monkeypatch, train_mode, expected
+):
+    """The length count and the build that feeds the model both see it."""
+    import espnet3.components.data.collect_stats as module
+    import espnet3.parallel.parallel as parallel_module
+
+    # build in this process, where the recording stand-in is installed: an
+    # earlier test may have left a Dask cluster configured
+    monkeypatch.setattr(parallel_module, "parallel_config", None)
+    seen = []
+    real = module._instantiate_dataset
+
+    def recording(dataset_config, mode, train_mode=False):
+        seen.append(train_mode)
+        return real(dataset_config, mode, train_mode)
+
+    monkeypatch.setattr(module, "_instantiate_dataset", recording)
+    collect_stats(
+        model_config=make_model_cfg(scale=1.0),
+        dataset_config=make_dataset_cfg(n_train=4, n_valid=1, base_len=3, dim=4),
+        dataloader_config=make_dataloader_cfg(use_custom_collate=True),
+        mode="train",
+        output_dir=tmp_path / "out",
+        task=None,
+        parallel_config=None,
+        batch_size=2,
+        **({} if train_mode is None else {"train_mode": train_mode}),
+    )
+    assert len(seen) >= 2 and set(seen) == {expected}
+
+
+# ---------------------------------------------------------------
+# Shapes are derived from the batch, not from collect_feats
+# ---------------------------------------------------------------
+
+
+class TextModel:
+    """Model shaped like espnet2's ASR/ST: takes text, returns only feats.
+
+    ``collect_feats`` accepting a token stream and dropping it is the normal
+    case (``espnet2/st/espnet_model.py``), which is why shapes cannot be read
+    back off its return value.
+    """
+
+    def to(self, device):
+        return self
+
+    def eval(self):
+        return self
+
+    def collect_feats(self, speech, speech_lengths, text, text_lengths, **kwargs):
+        frames = int(speech.shape[1]) // 2
+        return {
+            "feats": torch.randn(speech.shape[0], frames, 4),
+            "feats_lengths": torch.full((speech.shape[0],), frames, dtype=torch.long),
+        }
+
+
+class TextDataset:
+    """Dataset whose samples carry one waveform and one token stream."""
+
+    use_espnet_preprocessor = True
+
+    def __init__(self, n=4):
+        self.n = n
+
+    def __len__(self):
+        return self.n
+
+    def __getitem__(self, idx):
+        return f"utt{idx:03d}", {
+            "speech": torch.randn(8 * (idx + 1)),
+            "text": torch.arange(2 + idx),
+        }
+
+
+def text_collate(items):
+    """Pad both streams and name the length vectors as CommonCollateFn does."""
+    uids = [uid for uid, _ in items]
+    batch_size = len(items)
+    speech_lengths = torch.tensor([len(s["speech"]) for _, s in items])
+    text_lengths = torch.tensor([len(s["text"]) for _, s in items])
+    speech = torch.zeros(batch_size, int(speech_lengths.max()))
+    text = torch.full((batch_size, int(text_lengths.max())), -1, dtype=torch.long)
+    for i, (_, sample) in enumerate(items):
+        speech[i, : len(sample["speech"])] = sample["speech"]
+        text[i, : len(sample["text"])] = sample["text"]
+    return uids, {
+        "speech": speech,
+        "speech_lengths": speech_lengths,
+        "text": text,
+        "text_lengths": text_lengths,
+    }
+
+
+def test_collect_stats_batch_records_text_shapes():
+    """Every batch stream gets a shape, at its true length.
+
+    Regression test: shapes used to be read off ``collect_feats``'s return
+    value, so ``text_shape`` was never written and a length-bounded batch
+    sampler had nothing to read.
+    """
+    dataset = TextDataset(n=3)
+    stats, shape_info = collect_stats_batch(
+        idxs=[0, 1, 2],
+        model=TextModel(),
+        dataset=dataset,
+        collate_fn=text_collate,
+        device=torch.device("cpu"),
+    )
+
+    assert "text" in shape_info, "text_shape was not written"
+    assert "speech" in shape_info, "speech_shape was not written"
+    # Unpadded: utt000 has 2 tokens even though the batch pads to 4.
+    assert [shape_info["text"][f"utt{i:03d}"] for i in range(3)] == ["2", "3", "4"]
+    assert [shape_info["speech"][f"utt{i:03d}"] for i in range(3)] == ["8", "16", "24"]
+    # feats_shape still comes from collect_feats, in frames x dim.
+    assert shape_info["feats"]["utt000"] == "12,4"
+    # Statistics remain feats-only.
+    assert set(stats) == {"feats", "feats_lengths"}
+
+
+class TextOrganizer:
+    """Organizer exposing the text-bearing dataset above."""
+
+    def __init__(self, n_train=4, n_valid=2):
+        self.train = TextDataset(n=n_train)
+        self.valid = TextDataset(n=n_valid)
+
+
+@pytest.mark.execution_timeout(30)
+@pytest.mark.parametrize("use_parallel", [False, True])
+def test_collect_stats_writes_text_shape_file(tmp_path: Path, use_parallel):
+    """The new shape keys survive sharding and aggregation onto disk."""
+    out_dir = tmp_path / "out"
+    collect_stats(
+        model_config=OmegaConf.create(
+            {"_target_": f"{__name__}.TextModel"},
+        ),
+        dataset_config=OmegaConf.create(
+            {"_target_": f"{__name__}.TextOrganizer", "n_train": 4, "n_valid": 2},
+        ),
+        dataloader_config=OmegaConf.create(
+            {
+                "train": {},
+                "valid": {},
+                "collate_fn": {"_target_": f"{__name__}.Collate"},
+            },
+        ),
+        mode="train",
+        output_dir=out_dir,
+        task=None,
+        parallel_config=make_parallel_cfg(n_workers=2) if use_parallel else None,
+        write_collected_feats=False,
+        batch_size=2,
+    )
+
+    mode_dir = out_dir / "train"
+    text_shape = mode_dir / "text_shape"
+    assert text_shape.is_file(), "text_shape was not aggregated onto disk"
+    assert (mode_dir / "speech_shape").is_file()
+    assert (mode_dir / "feats_shape").is_file()
+
+    # One line per utterance, each the unpadded token count.
+    rows = dict(
+        line.split() for line in text_shape.read_text().splitlines() if line.strip()
+    )
+    assert rows == {f"utt{i:03d}": str(2 + i) for i in range(4)}
+
+
+class Collate:
+    """Hydra-instantiable wrapper around ``text_collate``."""
+
+    def __call__(self, items):
+        return text_collate(items)
+
+
+class MutatingModel(TextModel):
+    """Model whose ``collect_feats`` writes to its inputs in place.
+
+    Nothing forbids this -- the batch is handed to the model as live tensors --
+    so the shape pass has to read the batch before the forward, not after.
+    """
+
+    def collect_feats(self, speech, speech_lengths, text, text_lengths, **kwargs):
+        feats = super().collect_feats(
+            speech, speech_lengths, text, text_lengths, **kwargs
+        )
+        speech_lengths.fill_(1)
+        text_lengths.fill_(1)
+        return feats
+
+
+def test_collect_stats_batch_reads_shapes_before_forward():
+    """Shapes describe the batch as collated, not as the model left it."""
+    stats, shape_info = collect_stats_batch(
+        idxs=[0, 1, 2],
+        model=MutatingModel(),
+        dataset=TextDataset(n=3),
+        collate_fn=text_collate,
+        device=torch.device("cpu"),
+    )
+
+    # Had the shape pass run after collect_feats, every length would be "1".
+    assert [shape_info["text"][f"utt{i:03d}"] for i in range(3)] == ["2", "3", "4"]
+    assert [shape_info["speech"][f"utt{i:03d}"] for i in range(3)] == ["8", "16", "24"]

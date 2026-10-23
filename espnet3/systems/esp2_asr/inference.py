@@ -1,130 +1,84 @@
-"""The ESPnet2 ASR system's side of :mod:`espnet3.api.inference`.
-
-The model behind an ``asr`` bundle is
-:class:`espnet2.bin.asr_inference.Speech2Text`, which takes one waveform and
-returns an n-best list of ``(text, tokens, token_ids, hypothesis)``. This
-adapter is the whole distance between that and the contract: the best
-text, under the key every transcriber uses. Building the ``Speech2Text``,
-loading a bundle and the frontend's rate come from
-:class:`espnet3.systems.base.backend_inference.BackendInference`.
-
-Examples:
-    From a bundle, by directory or Hub tag::
-
-        >>> from espnet3.systems.esp2_asr.inference import Inference
-        >>> model = Inference.from_pretrained("exp/train/model_pack")
-        >>> model("utt.wav")
-        {'text': 'hello world'}
-
-    Or, without naming the system, through the bundle's ``meta.yaml``::
-
-        >>> from espnet3.api.inference import load
-        >>> load("espnet/some_asr_pack", device="cuda:0")("utt.wav")["text"]
-
-    In the ``infer`` stage, ``inference.yaml`` names this class where it
-    named ``Speech2Text``, with the same arguments; for a transducer, name
-    that class as ``backend_class`` and set ``return_decoded_hyp: true``::
-
-        model:
-          _target_: espnet3.systems.esp2_asr.inference.Inference
-          asr_train_config: ${exp_dir}/config.yaml
-          asr_model_file: ${exp_dir}/valid.acc.ave.pth
-          beam_size: 10
-"""
+"""ASR-specific output formatting for the shared inference runner."""
 
 from __future__ import annotations
 
-from typing import Any, Mapping, Sequence
-
-from espnet3.api.inference import Audio, Field
-from espnet3.systems.base.backend_inference import BackendInference, parse_rate
-
-# espnet2.asr.frontend.default.DefaultFrontend(fs=16000): what an ESPnet2
-# model runs at when its training config says nothing about the rate.
-DEFAULT_FRONTEND_RATE = 16000
+from espnet3.contract.kinds.audio import Audio
+from espnet3.systems.base.inference_runner import InferenceRunner
 
 
-class Inference(BackendInference):
-    """Transcribe with an ESPnet2 ASR model.
+class ASRInferenceRunner(InferenceRunner):
+    """Convert ESPnet2 ASR n-best results to the contracted ``text`` field."""
 
-    Built three ways, all ending in ``self.backend`` (see
-    :class:`BackendInference`):
-
-    - ``Inference.from_pretrained(tag_or_dir, device=...)`` from a
-      ``pack_model`` bundle or Hub tag;
-    - ``Inference(asr_train_config=..., asr_model_file=..., beam_size=...)``
-      from ``Speech2Text``'s own arguments, which is what ``inference.yaml``
-      does, plus ``backend_class=`` for the transducer ``Speech2Text``;
-    - ``Inference(speech2text)`` around one already built.
-
-    Called with one utterance (a path, a ``(rate, samples)`` pair, an array
-    or an :class:`~espnet3.api.inference.Audio`) it returns ``{"text": str}``;
-    ``model.batch(items)`` decodes several in one beam search.
-
-    Examples:
-        >>> model = Inference.from_pretrained("espnet/some_asr_pack")
-        >>> model("utt.wav")
-        {'text': 'hello world'}
-        >>> model.batch([{"speech": "a.wav"}, {"speech": "b.wav"}])
-        [{'text': '...'}, {'text': '...'}]
-        >>> model.sample_rate       # the frontend's rate, read off the config
-        16000
-    """
-
-    backend_class = "espnet2.bin.asr_inference.Speech2Text"
-    inputs = (Field("speech", "audio", "Speech"),)
-    outputs = (Field("text", "text", "Transcription"),)
-
-    @property
-    def sample_rate(self) -> int:
-        """The frontend's rate: ``frontend_conf.fs``, else ESPnet2's 16 kHz.
-
-        An ESPnet2 training config may leave ``frontend_conf`` empty, as the
-        mini_an4 recipe does; the frontend it builds then runs at
-        :class:`~espnet2.asr.frontend.default.DefaultFrontend`'s own default
-        of 16 kHz, so that is the rate, not a guess. A backend that is not a
-        ``Speech2Text`` (no ``asr_train_args``) falls back to the base
-        class, which raises.
-        """
-        args = getattr(self.backend, "asr_train_args", None)
-        if args is None:
-            return (
-                super().sample_rate
-            )  # not a Speech2Text: its own attribute, or an error
-        conf = getattr(args, "frontend_conf", None) or {}
-        return parse_rate(conf.get("fs", DEFAULT_FRONTEND_RATE))
-
-    def run(self, speech: Audio) -> Mapping[str, Any]:
-        """Return the best hypothesis' text.
+    @staticmethod
+    def prepare_model_inputs(inputs):
+        """Pass all channels to ESPnet2 in its samples-first array layout.
 
         Args:
-            speech: The utterance, at :attr:`sample_rate`.
+            inputs: The backend's keyword arguments; ``speech`` holds an
+                ``Audio`` (a list of them for a batch).
 
         Returns:
-            ``{"text": str}``. For a joint enhancement-and-ASR model, which
-            returns one n-best list per speaker, the first speaker's.
+            A copy of ``inputs`` whose ``speech`` is a ``(samples, channels)``
+            array for stereo audio, or a 1-D array for mono.
+
+        Examples:
+            >>> import numpy as np
+            >>> audio = Audio(np.zeros((2, 8000), dtype=np.float32), 16000)
+            >>> out = ASRInferenceRunner.prepare_model_inputs({"speech": audio})
+            >>> out["speech"].shape
+            (8000, 2)
         """
-        return _text(self.backend(speech.array))
 
-    def run_batch(self, items: Sequence[Mapping[str, Any]]) -> Sequence[Mapping]:
-        """Decode a batch in one beam search when the backend can.
+        def waveform(value):
+            """Return the samples of an ``Audio``, samples first."""
+            if not isinstance(value, Audio):
+                return value
+            return value.array.T if value.array.ndim == 2 else value.array
 
-        ``espnet2.bin.asr_inference.Speech2Text`` decodes a list of
-        waveforms together (``batch_decode``), 1.5-2.5x faster on a GPU
-        than one at a time; a backend without it, such as the transducer
-        ``Speech2Text``, gets the items one by one.
+        inputs = dict(inputs)
+        speech = inputs["speech"]
+        inputs["speech"] = (
+            [waveform(value) for value in speech]
+            if isinstance(speech, list)
+            else waveform(speech)
+        )
+        return inputs
+
+    @staticmethod
+    def _format_one(hypotheses):
+        """Return the best hypothesis as a named text field."""
+        if not isinstance(hypotheses, (list, tuple)):
+            raise TypeError("ASR hypotheses must be a list or tuple")
+        if not hypotheses:
+            # Streaming frontends may need more samples before producing
+            # their first hypothesis. An empty text is still valid text.
+            return {"text": ""}
+        best = hypotheses[0]
+        if isinstance(best, list):
+            if not best:
+                raise ValueError("ASR best hypothesis must not be empty")
+            best = best[0]
+        if not isinstance(best, (list, tuple)) or len(best) != 4:
+            raise TypeError("ASR hypothesis must contain text, tokens, ids and score")
+        return {"text": "" if best[0] is None else best[0]}
+
+    @staticmethod
+    def format_output(result, *, batched):
+        """Format best text hypotheses before the shared contract checks.
+
+        Args:
+            result: The n-best results of ``Speech2Text`` (a list of them for a
+                batch).
+            batched: Whether the call was a batch.
+
+        Returns:
+            ``{"text": ...}`` for one call, or a list of them for a batch.
+
+        Examples:
+            >>> result = [("hello", ["h"], [1], None)]
+            >>> ASRInferenceRunner.format_output(result, batched=False)
+            {'text': 'hello'}
         """
-        if len(items) < 2 or not callable(getattr(self.backend, "batch_decode", None)):
-            return super().run_batch(items)
-        results = self.backend([item["speech"].array for item in items])
-        return [_text(nbest) for nbest in results]
-
-
-def _text(nbest: Any) -> dict:
-    """Return the best hypothesis' text from an n-best list."""
-    best = nbest[0]
-    # Speech2Text returns (text, tokens, token_ids, hyp); a joint enh+ASR
-    # model returns one such list per speaker, of which this is the first.
-    if isinstance(best, list):
-        best = best[0]
-    return {"text": best[0]}
+        if batched:
+            return [ASRInferenceRunner._format_one(item) for item in result]
+        return ASRInferenceRunner._format_one(result)

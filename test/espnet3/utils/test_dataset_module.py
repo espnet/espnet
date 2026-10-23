@@ -3,6 +3,12 @@ from pathlib import Path
 import pytest
 
 from espnet3.components.data import dataset_module as dm
+from espnet3.components.data.base_dataset import BaseDataset
+from espnet3.components.data.data_organizer import DatasetConfig
+from espnet3.contract import Field
+
+_BASE_IMPORT = "from espnet3.components.data.base_dataset import BaseDataset"
+_FIELD_IMPORT = "from espnet3.contract import Field"
 
 
 def _write(path: Path, text: str) -> None:
@@ -15,6 +21,8 @@ def _create_local_recipe_dataset(tmp_path: Path) -> None:
         tmp_path / "dataset" / "__init__.py",
         "\n".join(
             [
+                _BASE_IMPORT,
+                _FIELD_IMPORT,
                 "class DatasetBuilder:",
                 "    def is_source_prepared(self, **kwargs):",
                 "        return True",
@@ -28,9 +36,12 @@ def _create_local_recipe_dataset(tmp_path: Path) -> None:
                 "    def build(self, **kwargs):",
                 "        return None",
                 "",
-                "class Dataset:",
+                "class Dataset(BaseDataset):",
+                '    fields = (Field("text", "text"),)',
                 "    def __init__(self, **kwargs):",
                 "        self.kwargs = kwargs",
+                "    def __getitem__(self, index):",
+                "        return {'text': 'hi'}",
                 "",
                 "def get_data_root(recipe_dir=None):",
                 "    from pathlib import Path",
@@ -46,6 +57,8 @@ def _create_module_path_dataset(tmp_path: Path) -> str:
         tmp_path / f"{module_name}.py",
         "\n".join(
             [
+                _BASE_IMPORT,
+                _FIELD_IMPORT,
                 "class DatasetBuilder:",
                 "    def is_source_prepared(self, **kwargs):",
                 "        return True",
@@ -59,9 +72,12 @@ def _create_module_path_dataset(tmp_path: Path) -> str:
                 "    def build(self, **kwargs):",
                 "        return None",
                 "",
-                "class Dataset:",
+                "class Dataset(BaseDataset):",
+                '    fields = (Field("text", "text"),)',
                 "    def __init__(self, **kwargs):",
                 "        self.kwargs = kwargs",
+                "    def __getitem__(self, index):",
+                "        return {'text': 'hi'}",
             ]
         ),
     )
@@ -95,9 +111,14 @@ def test_is_tag_distinguishes_slash_from_dotted_path():
 def test_instantiate_dataset_reference_keeps_explicit_split(monkeypatch):
     called = {}
 
-    class DummyDataset:
+    class DummyDataset(BaseDataset):
+        fields = (Field("text", "text"),)
+
         def __init__(self, **kwargs):
             called.update(kwargs)
+
+        def __getitem__(self, index):
+            return {"text": "hi"}
 
     class DummyModule:
         Dataset = DummyDataset
@@ -141,9 +162,14 @@ def test_instantiate_dataset_reference_without_ref_keeps_kwargs(tmp_path):
 def test_tag_ref_resolves_and_passes_kwargs(monkeypatch):
     captured = {}
 
-    class DummyDataset:
+    class DummyDataset(BaseDataset):
+        fields = (Field("text", "text"),)
+
         def __init__(self, **kwargs):
             self.kwargs = kwargs
+
+        def __getitem__(self, index):
+            return {"text": "hi"}
 
     class DummyModule:
         Dataset = DummyDataset
@@ -185,9 +211,14 @@ def test_module_path_ref_resolves_direct_module(tmp_path, monkeypatch):
 def test_instantiate_dataset_reference_passes_only_kwargs_to_dataset(monkeypatch):
     captured = {}
 
-    class DummyDataset:
+    class DummyDataset(BaseDataset):
+        fields = (Field("text", "text"),)
+
         def __init__(self, **kwargs):
             captured.update(kwargs)
+
+        def __getitem__(self, index):
+            return {"text": "hi"}
 
     class DummyModule:
         Dataset = DummyDataset
@@ -238,6 +269,26 @@ def test_parse_dataset_reference_config_keeps_data_src_args():
     assert data_src_args == {"split": "train"}
 
 
+def test_parse_dataset_reference_config_omitted_data_src_args_parses():
+    """A plain dict omitting data_src_args must not fail dict() conversion."""
+    data_src, data_src_args = dm.parse_dataset_reference_config(
+        {"data_src": "mini_an4/asr"}
+    )
+
+    assert data_src == "mini_an4/asr"
+    assert data_src_args == {}
+
+
+def test_parse_dataset_reference_config_dataset_config_default_parses():
+    """DatasetConfig defaults data_src_args to None; parsing must still succeed."""
+    data_src, data_src_args = dm.parse_dataset_reference_config(
+        DatasetConfig(data_src="mini_an4/asr")
+    )
+
+    assert data_src == "mini_an4/asr"
+    assert data_src_args == {}
+
+
 def test_instantiate_dataset_reference_blank_data_src_uses_local_module(tmp_path):
     _create_local_recipe_dataset(tmp_path)
 
@@ -257,3 +308,20 @@ def test_instantiate_dataset_reference_invalid_kwargs_raises_type_error(tmp_path
             {"data_src_args": "not-a-mapping"},
             recipe_dir=tmp_path,
         )
+
+
+def test_instantiate_dataset_reference_rejects_dataset_outside_base(monkeypatch):
+    class NotBaseDataset:
+        def __init__(self, **kwargs):
+            raise AssertionError("must not be instantiated before the base check")
+
+    class DummyModule:
+        Dataset = NotBaseDataset
+
+    monkeypatch.setattr(
+        dm,
+        "load_dataset_module",
+        lambda data_src=None, recipe_dir=None: DummyModule(),
+    )
+    with pytest.raises(TypeError, match="does not inherit BaseDataset"):
+        dm.instantiate_dataset_reference({"data_src_args": {}})
