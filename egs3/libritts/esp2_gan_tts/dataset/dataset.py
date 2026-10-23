@@ -12,9 +12,10 @@ import numpy as np
 import soundfile as sf
 import torch
 import torchaudio
-from torch.utils.data import Dataset as TorchDataset
 
 from egs3.libritts.esp2_gan_tts.dataset.builder import LibriTTSBuilder
+from espnet3.components.data.base_dataset import BaseDataset
+from espnet3.contract import Field
 from espnet3.utils.config_utils import load_config_with_defaults
 
 logger = logging.getLogger(__name__)
@@ -82,13 +83,20 @@ def _read_manifest(path: Path) -> list[ManifestEntry]:
 # ---------------------------------------------------------------------------
 
 
-class LibriTTSDataset(TorchDataset):
+class LibriTTSDataset(BaseDataset):
     """LibriTTS dataset returning text/speech/spembs samples.
 
-    The output keys match what VITS via ``GANTTSTask`` consumes:
-      - ``text``  : raw transcript string (tokenized later by ``CommonPreprocessor``)
-      - ``speech``: float32 waveform
-      - ``spembs``: float32 speaker embedding (x-vector) loaded from a ``.pt`` file
+    The item fields are declared on each instance (``BaseDataset.fields``),
+    since they depend on the constructor flags, and checked on the first
+    item:
+      - ``text``  : raw transcript string (tokenized by ``CommonPreprocessor``
+        during training, by ``Text2Speech`` itself at inference)
+      - ``speech``: float32 waveform, when ``load_speech``
+      - ``spembs``: float32 speaker embedding (x-vector) loaded from a ``.pt``
+        file, when ``load_xvector``
+      - ``utt_id``, ``wav_path``, ``raw_text``: the utterance id that heads
+        every inference output and the references the ``measure`` stage
+        scores against, when ``inference``; all plain ``str``
 
     Examples:
         Declared from ``conf/training.yaml`` through ``DataOrganizer``:
@@ -111,6 +119,7 @@ class LibriTTSDataset(TorchDataset):
         )
         len(ds)         # -> number of manifest rows
         ds[0]["text"]   # -> 'It is a ...'
+        [f.name for f in ds.fields]  # -> ['text']
         ```
     """
 
@@ -125,7 +134,7 @@ class LibriTTSDataset(TorchDataset):
         inference: bool = False,
         fs: int | None = int(_BUILDER_CFG["fs"]),
     ) -> None:
-        """Load one split's manifest and record what each sample should carry.
+        """Load one split's manifest and declare what each sample carries.
 
         Args:
             split: Split name (``train`` / ``valid`` / ``test``). Selects the
@@ -136,7 +145,8 @@ class LibriTTSDataset(TorchDataset):
                 *recipe_dir*. Takes precedence over *split*; the recipe uses
                 it to point at the ``remove_long_short`` filtered manifests.
             load_speech: Read the waveform into ``speech``. Turn off for
-                text-only passes such as token-list creation.
+                text-only passes such as token-list creation, and at
+                inference, where Text2Speech never reads it.
             load_xvector: Load the per-utterance x-vector into ``spembs``.
             xvector_dir: Directory of ``<utt_id>.pt`` embeddings written by
                 the ``compute_xvectors`` stage. Required when *load_xvector*.
@@ -173,6 +183,22 @@ class LibriTTSDataset(TorchDataset):
         self.inference = inference
         self.fs = None if fs is None else int(fs)
         self._warned_resample = False
+
+        fields = [Field("text", "text")]
+        if self.load_speech:
+            fields.append(Field("speech", "audio"))
+        if self.load_xvector:
+            fields.append(Field("spembs", "vector"))
+        if self.inference:
+            fields.extend(
+                (
+                    Field("utt_id", "text"),
+                    Field("wav_path", "text"),
+                    Field("raw_text", "text"),
+                )
+            )
+        self.fields = tuple(fields)
+
         recipe_root = (
             Path(recipe_dir).resolve()
             if recipe_dir is not None
@@ -221,11 +247,12 @@ class LibriTTSDataset(TorchDataset):
         self._entries = _read_manifest(resolved_manifest)
 
     def __len__(self) -> int:
+        """Return the number of manifest rows."""
         return len(self._entries)
 
     def __getitem__(self, idx: int) -> dict[str, Any]:
+        """Return row ``idx`` with the fields declared in ``self.fields``."""
         entry = self._entries[int(idx)]
-        # utt_id, wav_path, and raw_text are included for inference purposes only.
         sample: dict[str, Any] = {
             "text": entry.text,
         }
@@ -265,12 +292,13 @@ class LibriTTSDataset(TorchDataset):
                 spembs = spembs.numpy()
             sample["spembs"] = np.asarray(spembs, dtype=np.float32).squeeze()
         if self.inference:
-            # For inference, we additionally return utt_id,
-            # raw_text, and wav_path for metrics calculation.
-            metadata = {
-                "utt_id": np.asarray(entry.utt_id),
-                "wav_path": str(entry.wav_path),
-                "raw_text": entry.text,
-            }
-            sample.update(metadata)
+            # The utterance id heads every inference output; wav_path and
+            # raw_text are the references the measure stage scores against.
+            sample.update(
+                {
+                    "utt_id": str(entry.utt_id),
+                    "wav_path": str(entry.wav_path),
+                    "raw_text": entry.text,
+                }
+            )
         return sample

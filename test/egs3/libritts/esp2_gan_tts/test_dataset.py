@@ -5,6 +5,7 @@ from pathlib import Path
 
 import numpy as np
 import soundfile as sf
+import torch
 from omegaconf import OmegaConf
 
 from egs3.libritts.esp2_gan_tts.dataset import builder as builder_module
@@ -120,10 +121,66 @@ def test_dataset_reads_resampled_audio(tmp_path: Path) -> None:
     sample = dataset[0]
 
     assert set(sample) == {"text", "speech", "utt_id", "wav_path", "raw_text"}
+    assert [f.name for f in dataset.fields] == [
+        "text",
+        "speech",
+        "utt_id",
+        "wav_path",
+        "raw_text",
+    ]
     assert sample["speech"].dtype == np.float32
     assert sample["speech"].ndim == 1
     assert abs(len(sample["speech"]) - round(0.1 * TARGET_FS)) <= 1
-    assert str(sample["utt_id"]) == "103_203_000001_000000"
+    # Plain strings: the id heads every inference output line, the paths and
+    # transcript are read back by the measure stage.
+    assert sample["utt_id"] == "103_203_000001_000000"
+    assert isinstance(sample["utt_id"], str)
+    assert isinstance(sample["wav_path"], str)
+    assert sample["raw_text"] == sample["text"]
+
+
+def test_dataset_declares_its_fields_from_the_flags(tmp_path: Path) -> None:
+    """The item contract follows load_speech / load_xvector / inference."""
+    _make_libritts_tree(tmp_path)
+    LibriTTSBuilder().build(recipe_dir=tmp_path)
+    xvector_dir = tmp_path / "xvec"
+    xvector_dir.mkdir()
+    for row in (tmp_path / "data" / "manifest" / "test.tsv").read_text().splitlines():
+        utt_id = row.split("\t")[0]
+        torch.save(torch.ones(192), xvector_dir / f"{utt_id}.pt")
+
+    # The inference shape: no waveform, the embedding, the references.
+    dataset = LibriTTSDataset(
+        "test",
+        recipe_dir=tmp_path,
+        load_speech=False,
+        xvector_dir=xvector_dir,
+        inference=True,
+    )
+    assert [f.name for f in dataset.fields] == [
+        "text",
+        "spembs",
+        "utt_id",
+        "wav_path",
+        "raw_text",
+    ]
+    assert [f.kind for f in dataset.fields] == ["text", "vector"] + ["text"] * 3
+    sample = dataset[0]  # the first item is checked against the declaration
+    assert set(sample) == {"text", "spembs", "utt_id", "wav_path", "raw_text"}
+    assert sample["spembs"].shape == (192,)
+    assert sample["spembs"].dtype == np.float32
+
+    # The training shape: waveform and embedding, nothing else.
+    dataset = LibriTTSDataset("test", recipe_dir=tmp_path, xvector_dir=xvector_dir)
+    assert [f.name for f in dataset.fields] == ["text", "speech", "spembs"]
+    assert set(dataset[0]) == {"text", "speech", "spembs"}
+
+    # Text only.
+    dataset = LibriTTSDataset(
+        "test", recipe_dir=tmp_path, load_speech=False, load_xvector=False
+    )
+    assert [f.name for f in dataset.fields] == ["text"]
+    assert set(dataset[0]) == {"text"}
 
 
 def test_dataset_resamples_mismatched_audio_with_warning(
