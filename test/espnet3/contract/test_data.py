@@ -3,7 +3,7 @@
 import numpy as np
 import pytest
 
-from espnet3.api.inference import Field
+from espnet3.contract import Field
 from espnet3.contract.data import (
     DatasetContractError,
     check_fields,

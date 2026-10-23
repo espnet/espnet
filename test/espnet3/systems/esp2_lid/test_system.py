@@ -7,7 +7,7 @@ import soundfile as sf
 from omegaconf import OmegaConf
 
 import espnet3.systems.esp2_lid.src.collect_stats as stats_module
-from espnet3.systems.esp2_lid.system import LIDSystem
+from espnet3.systems.esp2_lid.system import ESP2LIDSystem
 from espnet3.utils.config_utils import load_and_merge_config
 
 
@@ -113,7 +113,7 @@ def test_lid_system_collect_stats(tmp_path, extract_features):
             rows.append(f"{index}\t{audio}\t{language}\n")
         (directory / "manifest.tsv").write_text("".join(rows))
 
-    LIDSystem(training_config=config).collect_stats()
+    ESP2LIDSystem(training_config=config).collect_stats()
 
     for mode in ("train", "valid"):
         directory = Path(config.stats_dir) / mode

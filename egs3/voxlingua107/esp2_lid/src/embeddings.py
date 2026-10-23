@@ -99,7 +99,7 @@ def main():
     argparser.add_argument("--seed", type=int, default=0)
     args = argparser.parse_args()
 
-    from espnet3.systems.esp2_lid.inference import Speech2Language
+    from espnet3.systems.esp2_lid.src.speech2language import Speech2Language
 
     model = Speech2Language(
         args.lid_train_config,

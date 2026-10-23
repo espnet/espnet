@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Any, Mapping, Optional
 
-from espnet3.api import KINDS, Field, check_declaration
+from espnet3.contract import KINDS, Field, check_declaration
 
 #: A metric input source naming a test-set column instead of an inference
 #: SCP file (bind a declared name to ``dataset:text`` in ``inputs:``);
@@ -15,9 +15,7 @@ DATASET_PREFIX = "dataset:"
 class MetricContractError(ValueError):
     """A metric's declaration does not match reality.
 
-    Raised when a metric's declared inputs do not match what the
-    configured model declares, or when a metric's return value does not
-    match its declared outputs.
+    Raised when metric inputs or outputs do not match their declarations.
 
     Examples:
         >>> raise MetricContractError("WER.outputs field 'wer' must be number")
@@ -37,6 +35,9 @@ def require_metric_declaration(obj) -> None:
     Args:
         obj: The class to check, or an instance whose own attributes (set
             in its ``__init__``) declare a contract its class does not.
+
+    Returns:
+        Nothing; it always raises ``TypeError``.
 
     Examples:
         >>> class Undeclared:
@@ -62,6 +63,9 @@ def check_metric_declaration(obj) -> None:
     Args:
         obj: The class to check, or an instance whose own attributes (set
             in its ``__init__``) declare a contract its class does not.
+
+    Returns:
+        None.
 
     Examples:
         >>> class BadMetric:
@@ -92,6 +96,9 @@ def check_metric_contract(metric: Any) -> None:
         metric: A ``BaseMetric`` instance (or any object exposing
             ``inputs``/``outputs`` the same way).
 
+    Returns:
+        None.
+
     Raises:
         TypeError: Neither ``inputs`` nor ``outputs`` is declared, or the
             declaration is malformed (see ``check_declaration``,
@@ -117,181 +124,65 @@ def check_metric_contract(metric: Any) -> None:
     check_metric_declaration(metric)
 
 
-def declared_outputs(config: Any) -> Optional[tuple]:
-    """Return the configured model's declared outputs, or ``None``.
+def check_metric_inputs(metric: Any, inputs: Any) -> Optional[Mapping[str, str]]:
+    """Validate metric input bindings without inspecting an inference model.
 
-    Mirrors ``espnet3.systems.base.inference_runner.declared_input_names``:
-    the model class is found via ``get_class`` without building it, so
-    this touches no checkpoint and no device. ``None`` means the
-    configured model is not declared at all - unset, or not an
-    :class:`~espnet3.api.inference.InferenceAPI` subclass. A target that
-    cannot be imported raises instead of reading as undeclared.
-
-    ``outputs`` is read from the class, as the contract declares it
-    (``ClassVar``, checked at class definition): unlike ``BaseMetric``,
-    no ``InferenceAPI`` subclass in ``espnet3`` sets ``self.outputs``.
-
-    Raises:
-        MetricContractError: ``model._target_`` is set but cannot be
-            imported; the import error is chained as ``__cause__``.
-
-    Examples:
-        >>> from omegaconf import OmegaConf
-        >>> cfg = OmegaConf.create(
-        ...     {"model": {"_target_": "espnet3.systems.esp2_asr.inference.Inference"}}
-        ... )
-        >>> [f.name for f in declared_outputs(cfg)]
-        ['text']
-    """
-    from hydra.utils import get_class
-
-    from espnet3.api.inference import InferenceAPI
-
-    target = getattr(getattr(config, "model", None), "_target_", None)
-    if not isinstance(target, str) or not target:
-        return None
-    try:
-        cls = get_class(target)
-    except Exception as exc:
-        raise MetricContractError(
-            f"cannot import the configured model {target!r}"
-        ) from exc
-    if isinstance(cls, type) and issubclass(cls, InferenceAPI):
-        return cls.outputs
-    return None
-
-
-def _declared_inputs(metric: Any, metric_config: Any) -> Mapping[str, str]:
-    """Map each declared input's name -> the source ``metric_config.inputs`` gives.
-
-    The one place a metric's inputs are bound to a source: ``inputs:`` is
-    keyed by the declared :class:`~espnet3.api.inference.Field` name
-    (``WER``'s ``ref``/``hyp``), the same key the metric itself reads
-    ``data`` by - there is no separate renaming step. It may be a mapping
-    (name -> source) or a list (name and source are the same, e.g.
-    ``inputs: [ref, hyp]``). Required for every non-optional declared
-    input; an optional one may be left out.
-
-    Raises:
-        MetricContractError: ``metric_config`` has no ``inputs:`` at all
-            while the metric declares a required input, a required name
-            is missing from it, or it names something the metric does
-            not declare.
-    """
-    fields = getattr(metric, "inputs", ())
-    declared = {f.name for f in fields}
-    required = {f.name for f in fields if not f.optional}
-
-    raw = getattr(metric_config, "inputs", None) if metric_config is not None else None
-    if raw is None:
-        example = "\n".join(f"  {f.name}: <source>" for f in fields)
-        raise MetricContractError(
-            f"{type(metric).__name__} declares inputs {sorted(declared)}; bind "
-            "them in the metrics config, one source per name:\n"
-            f"inputs:\n{example}"
-        )
-    inputs = dict(raw) if isinstance(raw, Mapping) else {name: name for name in raw}
-
-    missing = required - set(inputs)
-    if missing:
-        raise MetricContractError(
-            f"{type(metric).__name__} declares required inputs {sorted(missing)}, "
-            f"missing from the config's inputs: names {sorted(inputs)}"
-        )
-    extra = set(inputs) - declared
-    if extra:
-        raise MetricContractError(
-            f"{type(metric).__name__} config inputs {sorted(extra)} are not "
-            f"declared; declares {sorted(declared)}"
-        )
-    return inputs
-
-
-def check_metric_inputs(
-    metric: Any, metric_config: Any, inference_config: Any
-) -> Optional[Mapping[str, str]]:
-    """Raise unless each declared input matches what the configured model declares.
-
-    Checked once per metric (not once per test set: the declaration does
-    not vary by test set). A plain source (not ``dataset:<column>``) must
-    name one of the model's declared ``outputs``, of the same kind; a
-    ``dataset:<column>`` source is the test set's own data rather than
-    something inference wrote, so it is not checked here.
+    ``inputs`` maps each name declared by the metric to a source: either an
+    inference artifact stem or ``dataset:<column>``. Whether an inference
+    artifact exists is checked when the source is resolved for a test set.
 
     Args:
-        metric: A ``BaseMetric`` instance.
-        metric_config: The metric's config node, for its ``inputs``
-            mapping (declared name -> source); see :func:`_declared_inputs`.
-        inference_config: The inference config; only ``model._target_`` is
-            read (see :func:`declared_outputs`).
+        metric: A ``BaseMetric`` instance (or any object exposing ``inputs``).
+        inputs: The config's ``inputs`` binding: a mapping from declared name
+            to source, or a list of names that are their own sources.
 
     Returns:
-        The same name -> source mapping :func:`_declared_inputs` built,
-        for ``measure`` to resolve to files with (no second parse of
-        ``metric_config.inputs``); ``None`` if the metric declares no
-        inputs at all.
-
-    Raises:
-        MetricContractError: ``inputs:`` is missing or does not match the
-            declaration (see :func:`_declared_inputs`), the configured
-            model declares no outputs at all, a plain-source input names
-            none of them, or a kind disagrees.
+        The bindings as a ``dict`` from declared name to source, or ``None``
+        when the metric declares no inputs.
 
     Examples:
-        >>> from espnet3.components.metrics.base_metric import BaseMetric
-        >>> from omegaconf import OmegaConf
-        >>> class ExampleMetric(BaseMetric):
-        ...     inputs = (Field("ref", "text"),)
-        ...     outputs = (Field("score", "number"),)
-        ...     def update(self, **values):
-        ...         pass
-        ...     def compute(self):
-        ...         return {"score": 0.0}
-        >>> cfg = OmegaConf.create(
-        ...     {"model": {"_target_": "espnet3.systems.esp2_asr.inference.Inference"}}
-        ... )
-        >>> metric_cfg = OmegaConf.create({"inputs": {"ref": "text"}})
-        >>> check_metric_inputs(ExampleMetric(), metric_cfg, cfg)
-        {'ref': 'text'}
+        >>> from espnet3.systems.esp2_asr.metrics.wer import WER
+        >>> check_metric_inputs(WER(), {"ref": "dataset:text", "hyp": "text"})
+        {'ref': 'dataset:text', 'hyp': 'text'}
+        >>> check_metric_inputs(WER(), {"ref": "text"})
+        Traceback (most recent call last):
+        espnet3.contract.metrics.MetricContractError: WER inputs: missing ...
     """
-    fields = getattr(metric, "inputs", None)
+    fields = getattr(metric, "inputs", ())
     if not fields:
         return None
+    if inputs is None:
+        raise MetricContractError(
+            f"{type(metric).__name__} declares inputs; bind them in the metrics config"
+        )
 
-    inputs = _declared_inputs(metric, metric_config)
-    outputs = None
-    outputs_checked = False
+    if isinstance(inputs, Mapping):
+        bindings = dict(inputs)
+    else:
+        bindings = {name: name for name in inputs}
 
-    for f in fields:
-        source = inputs.get(f.name)
-        if source is None:
-            continue
-        if str(source).startswith(DATASET_PREFIX):
-            continue
-        if not outputs_checked:
-            outputs = declared_outputs(inference_config)
-            outputs_checked = True
-        if outputs is None:
-            target = getattr(getattr(inference_config, "model", None), "_target_", None)
+    if isinstance(fields, tuple) and all(isinstance(field, Field) for field in fields):
+        declared = {field.name for field in fields}
+        required = {field.name for field in fields if not field.optional}
+    else:
+        declared = set(fields)
+        required = {
+            name for name, expected in fields.items() if not isinstance(None, expected)
+        }
+
+    missing = required - set(bindings)
+    unknown = set(bindings) - declared
+    if missing or unknown:
+        raise MetricContractError(
+            f"{type(metric).__name__} inputs: missing {sorted(missing)}, "
+            f"unknown {sorted(unknown)}"
+        )
+    for name, source in bindings.items():
+        if not isinstance(source, str) or not source or source == DATASET_PREFIX:
             raise MetricContractError(
-                f"inference config model {target!r} declares no outputs; "
-                "name an espnet3.api.inference.InferenceAPI subclass as model"
+                f"input {name!r} needs an SCP stem or dataset column"
             )
-        match = next((o for o in outputs if o.name == source), None)
-        if match is None:
-            raise MetricContractError(
-                f"{type(metric).__name__} wants input {f.name!r} -> {source!r}, "
-                "but the inference config's model declares outputs "
-                f"{[o.name for o in outputs]}; bind {f.name!r} to one of them "
-                "in the metrics config's inputs:, or to a `dataset:<column>`"
-            )
-        if match.kind != f.kind:
-            raise MetricContractError(
-                f"{type(metric).__name__} input {f.name!r} wants kind {f.kind!r} "
-                f"but the inference config's model declares {source!r} as "
-                f"{match.kind!r}"
-            )
-    return inputs
+    return bindings
 
 
 def check_metric_output(metric: Any, result: Mapping[str, Any]) -> None:
@@ -300,6 +191,9 @@ def check_metric_output(metric: Any, result: Mapping[str, Any]) -> None:
     Args:
         metric: A ``BaseMetric`` instance.
         result: What ``metric(...)`` returned.
+
+    Returns:
+        None.
 
     Raises:
         MetricContractError: A declared output is missing from ``result``,
@@ -350,6 +244,9 @@ def check_metric_batch(metric: Any, values: Mapping[str, Any]) -> None:
     Args:
         metric: A ``BaseMetric`` instance.
         values: The keyword arguments given to ``update``.
+
+    Returns:
+        None.
 
     Raises:
         MetricContractError: The batch breaks one of the checks. The
@@ -412,6 +309,5 @@ __all__ = [
     "check_metric_declaration",
     "check_metric_inputs",
     "check_metric_output",
-    "declared_outputs",
     "require_metric_declaration",
 ]

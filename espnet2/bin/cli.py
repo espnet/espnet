@@ -98,12 +98,8 @@ def _device(value: str) -> str:
 
 
 def _resolve_device(value: str) -> str:
-    """Turn ``auto`` into cuda or cpu, and refuse a device this machine lacks.
-
-    ``espnet3.api.inference.resolve_device`` does both; this only makes
-    its sentence the command's own, rather than a traceback.
-    """
-    from espnet3.api.inference import resolve_device
+    """Resolve and validate the requested device for the native backend."""
+    from espnet2.torch_utils.resolve_device import resolve_device
 
     try:
         return resolve_device(value)
@@ -149,11 +145,8 @@ def _write_audio(path: str, wave, rate: int) -> None:
 def _build(loader, args, task: str):
     """Load an ESPnet2 inference class, or say why this tag cannot serve this command.
 
-    For the commands whose model has no espnet3 ``Inference`` yet (speech
-    synthesis, enhancement, alignment, the demo, live transcription). The
-    loading and the "wrong task" message are shared with ``espnet.load``,
-    so that both front ends explain a mismatched tag the same way; only the
-    wording of the fix is this command line's own.
+    Loading and wrong-task errors are shared with espnet.load. Only the
+    wording of the remedy belongs to this command line.
     """
     return build_pretrained(
         loader,
@@ -165,34 +158,29 @@ def _build(loader, args, task: str):
 
 
 def _load_s2t(args, task: str):
-    """Load the speech-to-text model behind ``--model`` through espnet3's API.
+    """Build the native speech-to-text backend for a task command."""
+    from espnet2.bin.s2t_inference import Speech2Text
 
-    ``espnet3.api.inference.load`` hands the tag to the ``esp2_s2t``
-    system, whose ``Inference`` reads any OWSM, OWSM-CTC or POWSM
-    checkpoint and takes the language and task by name; so this command
-    line holds no knowledge of the model's symbols or its window.
-    """
-    from espnet3.api.inference import load
-
-    try:
-        return load(args.model, system="s2t", device=args.device)
-    except ModelTagError as e:
-        raise CLIError(
-            f"{args.model} does not look like a model for `espnet {task}`. Pass "
-            f"--model with a {task} model; `espnet models` names the default. "
-            f"({e})"
-        ) from e
+    return _build(Speech2Text, args, task)
 
 
 def _say(model, audio: str, **prompt) -> str:
-    """Return the model's text for one recording of any length.
-
-    ``prompt`` is the model's language and task by name (``language="jpn"``,
-    ``task="st_eng"``); a name the checkpoint lacks is the model's own
-    sentence about it, which this command line only reports.
-    """
+    """Decode a recording directly with the native backend."""
+    language = prompt.get("language")
+    task = prompt.get("task", "asr")
     try:
-        return model(audio, **prompt)["text"]
+        lang_sym = _language(
+            model, argparse.Namespace(language=language, model="this model")
+        )
+        task_sym = f"<{task}>"
+        if not _in_vocabulary(model, task_sym):
+            raise CLIError(f"this model has no {task_sym}")
+        return " ".join(
+            text
+            for _, _, text in model.decode_long(
+                audio, lang_sym=lang_sym, task_sym=task_sym
+            )
+        )
     except ValueError as e:
         raise CLIError(str(e)) from e
 
@@ -331,7 +319,7 @@ def cmd_phonemize(args) -> int:
     model = _load_s2t(args, "phonemize")
     # how a recording is cut up for phones - an encoder-decoder checkpoint
     # one window at a time, a CTC-only one whole - is the model's own
-    # knowledge, in espnet3.systems.esp2_s2t
+    # knowledge is handled by the native backend
     decoded = _say(model, args.audio, task="pr", **_prompt(args))
     print(phones(decoded, spaced=args.spaced))
     return 0
@@ -751,7 +739,10 @@ def main(argv: Optional[List[str]] = None) -> int:
             f"rather than two. The old name still works.",
             file=sys.stderr,
         )
-    args = build_parser().parse_args(argv)
+    parser = build_parser()
+    args, extra = parser.parse_known_args(argv)
+    if extra:
+        parser.error(f"unrecognized arguments: {' '.join(extra)}")
     try:
         if hasattr(args, "device"):  # every command that loads a model
             args.device = _resolve_device(args.device)

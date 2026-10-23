@@ -7,7 +7,7 @@ from espnet3.systems.base.system import BaseSystem
 from espnet3.systems.esp2_lid.src.collect_stats import collect_speech_shapes
 
 
-class LIDSystem(BaseSystem):
+class ESP2LIDSystem(BaseSystem):
     """Language identification system.
 
     The stages are the base system's, without the demo stages: there is no
@@ -15,7 +15,7 @@ class LIDSystem(BaseSystem):
     language mappings the category samplers read.
 
     Examples:
-        >>> [s.name for s in LIDSystem.stages]
+        >>> [s.name for s in ESP2LIDSystem.stages]
         ['create_dataset', 'collect_stats', 'train', 'infer', 'measure', \
 'pack_model', 'upload_model']
     """

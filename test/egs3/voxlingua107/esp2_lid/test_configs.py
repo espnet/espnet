@@ -5,7 +5,7 @@ from pathlib import Path
 import pytest
 from omegaconf import OmegaConf
 
-from espnet3.systems.esp2_lid.system import LIDSystem
+from espnet3.systems.esp2_lid.system import ESP2LIDSystem
 from espnet3.utils.config_utils import load_and_merge_config, load_default_config
 from espnet3.utils.publication_utils import pack_model
 
@@ -18,19 +18,28 @@ def test_lid_template_configs_define_inference_measure_and_publication():
     publication = load_default_config("publication.yaml", "egs3.TEMPLATE.esp2_lid")
 
     assert inference.provider._target_.endswith("InferenceProvider")
-    assert inference.runner._target_.endswith("InferenceRunner")
+    assert inference.runner._target_ == (
+        "espnet3.systems.esp2_lid.src.inference_runner.ESP2LIDInferenceRunner"
+    )
     assert training.seed is None
     assert training.dataloader.train.iter_factory.seed == 0
     assert training.dataloader.valid.iter_factory.seed == 0
     assert training.trainer.accumulate_grad_batches == 1
-    assert inference.model._target_ == "espnet3.systems.esp2_lid.inference.Inference"
+    assert inference.model._target_ == (
+        "espnet3.systems.esp2_lid.src.speech2language.Speech2Language"
+    )
+    assert inference.input_key == "speech"
+    assert inference.batch_size == 4
+    assert list(inference.contract.inputs) == ["speech"]
+    assert inference.contract.inputs.speech.sample_rate == 16000
+    assert list(inference.contract.outputs) == ["language"]
     assert metrics.metrics[0].metric._target_.endswith(
         "esp2_lid.metrics.accuracy.Accuracy"
     )
     for metric in metrics.metrics:
         assert dict(metric.inputs) == {"ref": "dataset:lid_labels", "hyp": "language"}
     assert publication.pack_model.readme.endswith("src/hf_model_readme.md")
-    assert [stage.name for stage in LIDSystem.stages] == [
+    assert [stage.name for stage in ESP2LIDSystem.stages] == [
         "create_dataset",
         "collect_stats",
         "train",
@@ -42,8 +51,8 @@ def test_lid_template_configs_define_inference_measure_and_publication():
 
 
 @pytest.mark.parametrize("name", ["inference.yaml", "inference_prepared.yaml"])
-def test_voxlingua_inference_configs_use_the_lid_inference(name):
-    """Name the system's Inference, so infer writes the declared language.scp."""
+def test_voxlingua_inference_configs_inherit_the_template(name):
+    """Keep only checkpoint arguments, so infer uses the template's contract."""
     config = load_and_merge_config(
         Path("egs3/voxlingua107/esp2_lid/conf") / name,
         config_name="inference.yaml",
@@ -51,8 +60,13 @@ def test_voxlingua_inference_configs_use_the_lid_inference(name):
         resolve=False,
     )
 
-    assert config.model._target_ == "espnet3.systems.esp2_lid.inference.Inference"
-    for key in ("input_key", "output_fn", "output_keys"):
+    assert config.model._target_ == (
+        "espnet3.systems.esp2_lid.src.speech2language.Speech2Language"
+    )
+    assert config.runner._target_.endswith("ESP2LIDInferenceRunner")
+    assert config.input_key == "speech"
+    assert config.batch_size == 4
+    for key in ("output_fn", "output_keys"):
         assert key not in config
 
 
