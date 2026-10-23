@@ -9,8 +9,8 @@ import numpy as np
 import soundfile as sf
 
 from egs3.mini_an4.esp2_lid.dataset.builder import resolve_manifest_path
-from espnet3.api.inference import Field
 from espnet3.components.data.base_dataset import BaseDataset
+from espnet3.contract import Field
 
 
 class MiniAn4LIDDataset(BaseDataset):

@@ -23,9 +23,9 @@ dataset:
 ##########################################################
 #                    MODEL AND OUTPUT                    #
 ##########################################################
-# Writes `<test_name>/language.scp`, the predicted speaker ids.
+# Writes `<test_name>/language.scp`, the predicted language labels (AN4
+# speaker ids, used as languages).
 model:
-  _target_: espnet3.systems.esp2_lid.inference.Inference
   lid_train_config: ${exp_dir}/config.yaml
   lid_model_file: ${exp_dir}/valid.accuracy.best.pth
   lang2utt: ${stats_dir}/train/lang2utt

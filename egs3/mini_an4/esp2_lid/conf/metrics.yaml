@@ -9,19 +9,4 @@
 
 inference_dir: ${exp_dir}/inference
 
-##########################################################
-#                    METRIC DEFINITION                   #
-##########################################################
-# `ref` is the test set's `lid_labels` column, read from the data;
-# `hyp` is `<test_name>/language.scp`, written by `infer`.
-metrics:
-  - metric:
-      _target_: espnet3.systems.esp2_lid.metrics.accuracy.Accuracy
-    inputs:
-      ref: dataset:lid_labels
-      hyp: language
-  - metric:
-      _target_: espnet3.systems.esp2_lid.metrics.classification_report.ClassificationReport
-    inputs:
-      ref: dataset:lid_labels
-      hyp: language
+# The metrics and their `inputs` come from egs3/TEMPLATE/esp2_lid/conf/metrics.yaml.
