@@ -1,0 +1,16 @@
+##########################################################
+#           LIBRITTS VITS PUBLICATION SETTING            #
+##########################################################
+# Quick usage:
+#   python run.py --stages pack_model \
+#       --training_config conf/training.yaml \
+#       --inference_config conf/inference.yaml \
+#       --publication_config conf/publication.yaml
+#   python run.py --stages upload_model \
+#       --training_config conf/training.yaml \
+#       --publication_config conf/publication.yaml
+#
+# Merged over egs3/TEMPLATE/esp2_gan_tts/conf/publication.yaml, which already
+# bundles `${exp_dir}` (checkpoint and espnet2-style config) plus the
+# `${data_dir}/tokens` directory this recipe's `create_token_list` writes
+# `phn_tokens.txt` to. Nothing is overridden here.

@@ -1,0 +1,22 @@
+##########################################################
+#            LIBRITTS VITS INFERENCE SETTING             #
+##########################################################
+# Quick usage:
+#   python run.py --stages infer \
+#       --training_config conf/training.yaml \
+#       --inference_config conf/inference.yaml
+#
+# Merged over egs3/TEMPLATE/esp2_gan_tts/conf/inference.yaml, which supplies
+# the paths, the valid/test dataset block, the Text2Speech model reference
+# (rebuilt from `${exp_dir}/config.yaml`, which also carries this recipe's
+# phoneme token list and g2p), `input_key: [text, spembs]`, the text-and-
+# embedding-in / audio-out `contract` at 22.05 kHz and the provider/runner
+# classes. `exp_tag`/`exp_dir` are copied in from the training config by
+# `launch()`, so only recipe-specific keys live here.
+
+##########################################################
+#               SPEAKER EMBEDDING SETTING                #
+##########################################################
+# Must match `xvector` in conf/training.yaml.
+xvector:
+  spk_embed_tag: spkrec-ecapa-voxceleb
