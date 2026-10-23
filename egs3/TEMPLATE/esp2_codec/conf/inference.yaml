@@ -5,13 +5,12 @@
 #   python run.py --stages infer --inference_config conf/inference.yaml
 #
 # Outputs:
-# - `${inference_dir}/<test_name>/*.scp`
-# - each SCP stores `utt_id value` pairs for one inference field
+# - `${inference_dir}/<test_name>/wav.scp`
+# - each line is `utt_id path`, the path of one resynthesized WAV file
 #
-# Recipe configs fill in `model` (typically
-# `espnet2.bin.gan_codec_inference.AudioCoding` for the encode -> decode
-# roundtrip) plus `output_fn`/`output_artifacts`; see
-# `egs3/libritts/esp2_codec/conf/inference.yaml` for a working example.
+# Shared default merged under every codec recipe's inference config. A recipe
+# names its test sets under `dataset.test` and the checkpoint under `model`;
+# see `egs3/libritts/esp2_codec/conf/inference.yaml` for a working example.
 
 ##########################################################
 #                    PATHS AND INPUTS                    #
@@ -19,7 +18,7 @@
 recipe_dir: .
 # Common case:
 # - pass both `--training_config` and `--inference_config`
-# - `run.py` copies `training_config.exp_tag` / `training_config.exp_dir` here
+# - `launch()` copies `training_config.exp_tag` / `training_config.exp_dir` here
 # - `${self_name:}` resolves to the stem of the config file passed to
 #   `--inference_config`
 # - if `inference_dir` is omitted, `conf/<name>.yaml` becomes `${exp_dir}/<name>`
@@ -37,14 +36,21 @@ inference_dir: ${exp_dir}/${self_name:}
 # - `data_src_args` is forwarded to `Dataset(...)`
 # - `transform` is optional and runs before `preprocessor`
 #
+# The recipe `Dataset` class must inherit
+# `espnet3.components.data.base_dataset.BaseDataset` and declare `fields`:
+# for a codec that is the waveform `audio`, plus `utt_id` (heads every output
+# line) and the ground-truth path the `measure` stage scores against.
+#
 # Example:
 # dataset:
 #   test:
 #     - name: test
 #       data_src_args:
 #         split: test
+#         inference: true
 dataset:
   _target_: espnet3.components.data.data_organizer.DataOrganizer
+  _recursive_: false
   recipe_dir: ${recipe_dir}
   test:
   preprocessor:
@@ -55,23 +61,68 @@ dataset:
 parallel:
   env: local
   n_workers: 1
+  # Replace a stale shard lock left by an interrupted run. Do not enable while
+  # another run may still be writing to the same output directory.
+  allow_overwrite_lock: false
 
 ##########################################################
 #                    MODEL AND OUTPUT                    #
 ##########################################################
+# `model` takes the arguments of `espnet2.bin.gan_codec_inference.AudioCoding`
+# (`train_config`, `model_file`, `target_bandwidth`, ...); `device` is added
+# by the provider. A recipe names the checkpoint:
+#
+# model:
+#   train_config: ${exp_dir}/config.yaml
+#   model_file: ${exp_dir}/valid.mel_loss.ave_5best.pth
 model:
+  _target_: espnet2.bin.gan_codec_inference.AudioCoding
 
-# Key name(s) selected from each dataset sample and passed to the model.
-# GAN-codec datasets return `{"audio": ...}`, matching
-# `CommonPreprocessor(speech_name="audio")`.
+# The dataset field passed to the model. GAN-codec datasets return
+# `{"audio": ...}`, matching `CommonPreprocessor(speech_name="audio")`; it must
+# be exactly the name `contract.inputs` declares.
 input_key: audio
 
-output_fn: null
+# AudioCoding encodes one waveform per call, so there is no batching.
+batch_size:
+
+# What the model takes and returns, checked around every call: the `infer`
+# stage, `InferenceModel` on a packed bundle, and the demo, which also builds
+# its widgets from these fields and their labels. The input arrives in any
+# form the caller holds (a path, the `(rate, samples)` pair `gr.Audio`
+# returns, an array, a tensor), is resampled to the codec's rate and averaged
+# to one channel, as the training preprocessor's `force_single_channel` does;
+# `channels: 1` then rejects anything else. The output is the resynthesized
+# mono waveform at the same rate, written as a WAV file. A recipe for a codec
+# at another rate overrides `sample_rate` on both fields.
+contract:
+  inputs:
+    audio:
+      kind: audio
+      label: Input audio
+      sample_rate: 24000
+      channels: 1
+      normalize:
+        - mean_channels
+  outputs:
+    wav:
+      kind: audio
+      label: Resynthesized audio
+      sample_rate: 24000
+      channels: 1
+
+# How the `wav` output is written; the rate must match the contract above.
+output_artifacts:
+  wav:
+    type: wav
+    sample_rate: 24000
 
 ##########################################################
 #               PROVIDER AND RUNNER SETTING              #
 ##########################################################
+# The provider builds `model`; `CodecInferenceRunner` hands AudioCoding the
+# bare waveform and keeps its `resyn_audio` as the contracted `wav`.
 provider:
   _target_: espnet3.systems.base.inference_provider.InferenceProvider
 runner:
-  _target_: espnet3.systems.base.inference_runner.InferenceRunner
+  _target_: espnet3.systems.esp2_codec.src.inference_runner.CodecInferenceRunner
