@@ -10,8 +10,8 @@ Replaces doc/make_release_note_from_milestone.py, which only generated notes.
     # check, and print the notes
     python doc/make_release.py <github_token> <milestone>
 
-    # also write version.txt and the README entry, and create or update
-    # the draft release
+    # also write version.txt, the README entry and the docker default
+    # version, and create or update the draft release
     python doc/make_release.py <github_token> <milestone> --apply
 
 Everything this does is reversible. It never creates a tag and never uploads
@@ -61,6 +61,16 @@ PUBLISH_WORKFLOW = REPO_ROOT / ".github" / "workflows" / "publish_python_package
 # What the What's new entry says until a person writes the real summary. A
 # release that still carries it has a README that says nothing about itself.
 README_PLACEHOLDER = "TODO: what this release is about, in one or two lines."
+
+# Files that name the current release themselves, because what reads them
+# cannot read version.txt: a `docker build` run by hand takes the Dockerfile's
+# default, and the README shows the command to copy. Each entry is a file and
+# a pattern whose one group is the version. 202610.post1 and 202610.post2 both
+# went out with these still saying 202610.
+VERSION_PINS = [
+    (REPO_ROOT / "docker" / "inference.dockerfile", r"^ARG ESPNET_VERSION=(\S+)$"),
+    (REPO_ROOT / "docker" / "README.md", r"--build-arg ESPNET_VERSION=(\S+)"),
+]
 
 # The labels the notes are grouped under, in the order they appear.
 PICKUP_LABELS = [
@@ -350,6 +360,57 @@ def update_readme(version):
     print("  replace its placeholder line with what the release is about")
 
 
+def pinned_versions():
+    """What each of VERSION_PINS says, as (path, versions); an empty list if none."""
+    found = []
+    for path, pattern in VERSION_PINS:
+        text = path.read_text() if path.is_file() else ""
+        found.append((path, re.findall(pattern, text, re.M)))
+    return found
+
+
+def pins_up_to_date(version, will_apply):
+    """The files in VERSION_PINS have to name this release.
+
+    A file the pattern no longer finds anything in is a problem even under
+    --apply, because --apply would not find it either.
+    """
+    problems = []
+    for path, versions in pinned_versions():
+        where = path.relative_to(REPO_ROOT)
+        if not versions:
+            problems.append(
+                f"{where} no longer names a release where this script looks - "
+                "update VERSION_PINS in doc/make_release.py"
+            )
+        elif not will_apply and any(v != version for v in versions):
+            problems.append(
+                f"{where} says {', '.join(sorted(set(versions)))}, not {version} "
+                "(--apply writes it)"
+            )
+    return problems
+
+
+def update_pins(version):
+    """Write this release into every file in VERSION_PINS."""
+
+    def replace(match):
+        start, end = match.span(1)
+        offset = match.start()
+        return (
+            match.group(0)[: start - offset] + version + match.group(0)[end - offset :]
+        )
+
+    for path, pattern in VERSION_PINS:
+        if not path.is_file():
+            continue
+        text = path.read_text()
+        updated = re.sub(pattern, replace, text, flags=re.M)
+        if updated != text:
+            path.write_text(updated)
+            print(f"wrote {path.relative_to(REPO_ROOT)}: ESPNET_VERSION = {version}")
+
+
 def preflight(client, slug, repo, milestone, version, open_items, will_apply):
     """Everything that has to be true before a release can go out.
 
@@ -390,6 +451,7 @@ def preflight(client, slug, repo, milestone, version, open_items, will_apply):
         problems.append("could not reach PyPI to check whether this version exists")
 
     problems += readme_up_to_date(version, will_apply)
+    problems += pins_up_to_date(version, will_apply)
     problems += next_milestone_exists(repo, version)
     problems += merged_without_milestone(client, slug, repo, version)
     problems += trusted_publishing_ready()
@@ -483,6 +545,7 @@ def apply_changes(repo, milestone, version, notes):
         print("  commit it, open a pull request, and merge before tagging")
 
     update_readme(version)
+    update_pins(version)
 
     title = f"ESPnet version {version}"
     for release in repo.get_releases():
@@ -506,7 +569,8 @@ def main():
     parser.add_argument(
         "--apply",
         action="store_true",
-        help="also write version.txt and create or update the draft release",
+        help="also write version.txt, the README entry and the docker default "
+        "version, and create or update the draft release",
     )
     parser.add_argument(
         "--force",

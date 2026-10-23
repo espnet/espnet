@@ -301,6 +301,18 @@ def _infer_system_name(training_config: DictConfig, recipe_root: Path) -> str:
     return recipe_root.name
 
 
+def _system_for_meta(training_config: DictConfig) -> str | None:
+    """Return the system name present in the training task path, if any."""
+    task_value = getattr(training_config, "task", None)
+    if isinstance(task_value, str) and task_value:
+        parts = task_value.split(".")
+        if "systems" in parts:
+            index = parts.index("systems")
+            if index + 1 < len(parts) - 1:
+                return parts[index + 1]
+    return None
+
+
 def _instantiate_publication_model(training_config: DictConfig):
     """Instantiate the training model for README metadata generation."""
     task = training_config.get("task")
@@ -426,14 +438,6 @@ def _build_readme_context(
     git_meta = get_git_metadata(recipe_root)
     results_section = _build_results_table(results_path)
     hf_repo = getattr(getattr(publication_config, "upload_model", None), "hf_repo", "")
-    usage_load_call = (
-        f'model = InferenceModel.from_pretrained("{hf_repo}", trust_user_code=True)'
-        if hf_repo
-        else (
-            "model = InferenceModel.from_packed("
-            '"/path/to/packed_model", trust_user_code=True)'
-        )
-    )
     model_summary_section = ""
     model_detail_section = ""
     try:
@@ -474,7 +478,6 @@ def _build_readme_context(
         "task": _infer_system_name(training_config, recipe_root),
         "task_class": str(getattr(training_config, "task", "") or ""),
         "train_config": OmegaConf.to_yaml(training_config, resolve=True),
-        "usage_load_call": usage_load_call,
     }
 
 
@@ -507,9 +510,7 @@ def _write_meta(
     """Write meta.yaml into the bundle output directory.
 
     Called at the end of ``pack_model`` to record all bundled artifact paths
-    and environment versions. ``InferenceModel.from_packed`` reads this file
-    to locate the inference config, and ``espnet3.api.inference.load`` reads
-    ``system`` to find the ``Inference`` class that serves the bundle.
+    and environment versions for the archived recipe artifacts.
 
     """
     from espnet3.publication.schema import PACK_SCHEMA_VERSION
@@ -675,7 +676,7 @@ def pack_model(
         out_dir,
         files=files,
         yaml_files=yaml_files,
-        system=_infer_system_name(training_config, recipe_root),
+        system=_system_for_meta(training_config),
     )
     logger.info("Packed model to %s", out_dir)
     return out_dir

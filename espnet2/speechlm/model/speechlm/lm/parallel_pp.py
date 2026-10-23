@@ -71,6 +71,7 @@ def build_parallel_pp_hf_class(model_hf_tag):
             parallel_dims,
             pp_layout: List[int],
             vpp_index: int = 0,
+            is_train=True,
             **kwargs,
         ):
             """Load a pretrained model and prune it to the local PP stage.
@@ -113,8 +114,8 @@ def build_parallel_pp_hf_class(model_hf_tag):
             # (0b) PP bypasses HF's causal mask creation and relies on
             # Flash Attention to infer the mask from position_ids.
             attn_impl = kwargs.get("attn_implementation", "")
-            assert "flash_attention" in attn_impl, (
-                f"Pipeline parallelism requires Flash Attention "
+            assert not is_train or "flash_attention" in attn_impl, (
+                f"Training with pipeline parallelism requires Flash Attention "
                 f"(got attn_implementation={attn_impl!r}). "
                 f"Set attn_implementation: flash_attention_2 or "
                 f"flash_attention_3 in model_conf."

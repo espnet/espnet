@@ -1,10 +1,15 @@
 """F5-TTS for ESPnet3 (DiT backbone + conditional flow matching).
 
+The listed modules now live under the `src/` directory.
+
 Self-contained package: the model (``f5tts``, ``cfm``, ``dit``, ``modules``,
 ``rotary``, ``solvers``, ``utils``), its mel front end (``vocoder_mel``), its
 zh+en tokenizer (``pinyin``, ``preprocessor``) and the inference engine
 (``inference``). ``f5tts.F5TTS`` is the ESPnet3 model itself, which training
 configs reach through ``model._target_`` with ``task:`` left unset.
+``system.F5TTSSystem`` is the staged pipeline a recipe under
+``egs3/<corpus_name>/f5tts/`` runs; its two data stages live in
+``remove_long_short`` and ``create_token_list``.
 
 The model is described in:
 

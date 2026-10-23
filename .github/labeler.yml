@@ -67,11 +67,11 @@ TTS:
           - "espnet2/tasks/gan_tts.py"
           - "espnet2/bin/tts*_*"
           - "espnet2/bin/gan_tts_*"
-          - "espnet3/systems/tts/**"
+          - "espnet3/systems/f5tts/**"
           - "test/espnet2/tts/**"
           - "egs2/*/tts1/**"
           - "egs2/*/tts2/**"
-          - "egs3/*/tts/**"
+          - "egs3/*/f5tts/**"
 
 SE:
   - changed-files:
