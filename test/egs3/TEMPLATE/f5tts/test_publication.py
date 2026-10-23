@@ -11,9 +11,9 @@ from pathlib import Path
 import numpy as np
 import pytest
 import yaml
-from hydra.utils import get_class
 from omegaconf import OmegaConf
 
+from espnet3.contract.kinds.audio import Audio
 from espnet3.publication import InferenceModel
 from espnet3.systems.f5tts.system import F5TTSSystem
 from espnet3.systems.launch import launch
@@ -77,20 +77,15 @@ def test_publication_scaffold_packs_what_an_f5tts_bundle_needs() -> None:
     assert config.upload_model["update"] is False  # `.update` is a dict method
 
 
-def test_demo_scaffold_wires_the_inference_contract_fields() -> None:
-    """The demo inputs and outputs are the fields ``Inference`` declares."""
+def test_demo_scaffold_leaves_the_widgets_to_the_inference_contract() -> None:
+    """The demo declares no widgets of its own; the session reads the contract."""
     config = load_default_config("demo.yaml", PACKAGE)
-    inference_class = get_class("espnet3.systems.f5tts.src.inference.Inference")
 
-    assert [(spec.key, spec.type) for spec in config.ui.inputs] == [
-        (field.name, field.kind) for field in inference_class.inputs
-    ]
-    assert [(spec.key, spec.type) for spec in config.ui.outputs] == [
-        (field.name, field.kind) for field in inference_class.outputs
-    ]
+    assert config.ui.get("inputs") is None
+    assert config.ui.get("outputs") is None
     assert config.ui.app_script == "src/app.py"
-    # The packed inference config names only the system's Inference, so the
-    # bundle's own code is never imported.
+    # The packed inference config names only the system's Inference and
+    # declares its contract inline, so the bundle's own code is never imported.
     assert config.model.trust_user_code is False
     assert "call_args" not in config.model
     # The demo needs the training stack to rebuild the model and the vocoder.
@@ -150,36 +145,55 @@ def test_packed_model_loads_and_synthesizes_after_moving(
     assert type(model.model).__name__ == "Inference"
     assert model.model.sample_rate == 24000
     output = model(_item())
-    assert output["wav"].dtype == np.float32
-    assert output["wav"].ndim == 1 and output["wav"].size > 0
+    assert isinstance(output["wav"], Audio)
+    assert output["wav"].rate == 24000
+    assert output["wav"].array.dtype == np.float32
+    assert output["wav"].array.ndim == 1 and output["wav"].array.size > 0
 
 
 def test_packed_model_needs_no_bundled_code(recipe_dir, stub_vocoder):
-    """The packed config names only the system's Inference and the template's output_fn.
+    """The packed config names only the system's Inference and its contract.
 
-    Nothing in the bundle itself is imported, so it loads untrusted.
+    Nothing in the bundle itself is imported, so it loads untrusted; the
+    contract travels in the config, not in code.
     """
     _pack_model()
     bundle = recipe_dir / "exp" / "training" / "model_pack"
 
     packed = yaml.safe_load((bundle / "conf" / "inference.yaml").read_text())
-    assert packed["model"]["_target_"] == "espnet3.systems.f5tts.src.inference.Inference"
+    assert (
+        packed["model"]["_target_"] == "espnet3.systems.f5tts.src.inference.Inference"
+    )
     assert packed["input_key"] == ["text", "reference_speech", "reference_text"]
-    assert packed["output_fn"] == "egs3.TEMPLATE.f5tts.src.inference.build_output"
-    assert packed["output_artifacts"]["wav"] == {"type": "wav", "sample_rate": 24000}
+    assert "output_fn" not in packed
+    assert list(packed["contract"]["inputs"]) == packed["input_key"]
+    assert packed["contract"]["outputs"]["wav"]["sample_rate"] == 24000
+    assert "imports" not in packed["contract"]
 
     # Loads with the default trust_user_code=False, and runs: the three
-    # inputs in by name, the utt_id-stamped record out.
+    # inputs in by name, the utt_id-stamped record out, the waveform as an
+    # Audio at the contract's rate.
     model = InferenceModel.from_packed(bundle)
+    assert model.contract is not None
     output = model(_item(), idx="u0")
     assert output["utt_id"] == "u0"
-    assert output["wav"].dtype == np.float32
-    # A path is read and resampled like the Gradio pair.
+    assert output["wav"].rate == 24000
+    assert output["wav"].array.dtype == np.float32
+    # A path is read and resampled by the contract like the Gradio pair, and
+    # a stereo pair is reduced to its first channel rather than refused.
     import soundfile as sf
 
     prompt = recipe_dir / "prompt16k.wav"
     sf.write(prompt, np.zeros(16000, dtype=np.float32), 16000)
-    assert model(_item(str(prompt)))["wav"].ndim == 1
+    assert model(_item(str(prompt)))["wav"].array.ndim == 1
+    rate, mono = _reference()
+    stereo = (rate, np.stack([mono, mono], axis=1))
+    assert model(_item(stereo))["wav"].array.ndim == 1
+    # The contract refuses what is not audio, by the input's name.
+    with pytest.raises(TypeError, match="audio"):
+        model(_item(42))
+    with pytest.raises(TypeError, match="unknown"):
+        model({**_item(), "unknown": 1})
 
 
 def test_pack_demo_builds_a_working_demo(recipe_dir, stub_vocoder):
@@ -198,6 +212,7 @@ def test_pack_demo_builds_a_working_demo(recipe_dir, stub_vocoder):
     assert "espnet[train,tts]" in requirements
     demo_config = yaml.safe_load((demo_dir / "demo.yaml").read_text())
     assert demo_config["ui"]["app_script"] == "src/app.py"
+    assert "inputs" not in demo_config["ui"]  # the widgets come from the contract
     assert demo_config["upload_demo"]["hf_repo"] == "espnet/minicorpus_f5tts_training"
     # The template's input guide and the recipe's example prompt travel along.
     assert (demo_dir / demo_config["ui"]["description"]).is_file()
@@ -213,9 +228,21 @@ def test_pack_demo_builds_a_working_demo(recipe_dir, stub_vocoder):
     finally:
         sys.modules.pop("app", None)
 
-    # The guide is rendered above the inputs; the example row below them.
+    # The guide is rendered above the inputs; the example row below them. The
+    # widgets and their labels are the contract's.
     kinds = [type(block).__name__ for block in blocks.blocks.values()]
     assert kinds.index("Markdown") < kinds.index("Textbox") < kinds.index("Dataset")
+    labels = [
+        block.label
+        for block in blocks.blocks.values()
+        if isinstance(block, (gradio.Textbox, gradio.Audio))
+    ]
+    assert labels == [
+        "Text to synthesize",
+        "Reference speech (voice to clone)",
+        "Reference transcript",
+        "Synthesized speech",
+    ]
     (dataset,) = [b for b in blocks.blocks.values() if isinstance(b, gradio.Dataset)]
     assert [row[0] for row in dataset.samples] == ["a cab"]
     # The page opens with the first example filled in.
@@ -234,6 +261,7 @@ def test_pack_demo_builds_a_working_demo(recipe_dir, stub_vocoder):
         for block_function in blocks.fns.values()
         if getattr(block_function.fn, "__name__", "") == "synthesize"
     ]
+    # The session turns the model's Audio into the pair gr.Audio plays.
     sample_rate, samples = handler("a cab", _reference(), "abba")
     assert sample_rate == 24000
     assert samples.dtype == np.float32 and samples.ndim == 1 and samples.size > 0
@@ -245,8 +273,12 @@ def test_pack_demo_builds_a_working_demo(recipe_dir, stub_vocoder):
     ]
     assert audio_output.postprocess((sample_rate, samples)) is not None
 
-    with pytest.raises(gradio.Error, match="reference_speech"):
+    # An empty widget is reported by the label the page shows, before the
+    # model is called; an empty transcript box counts as empty.
+    with pytest.raises(gradio.Error, match="Reference speech"):
         handler("a cab", None, "abba")
-    # An empty transcript box means "not given", which is refused by name.
-    with pytest.raises(gradio.Error, match="reference_text"):
-        handler("a cab", _reference(), "")
+    with pytest.raises(gradio.Error, match="Reference transcript"):
+        handler("a cab", _reference(), "  ")
+    # What the contract refuses is shown in the UI too.
+    with pytest.raises(gradio.Error, match="audio"):
+        handler("a cab", 42, "abba")

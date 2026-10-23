@@ -1,12 +1,14 @@
 """Recipe-local Gradio launcher for ESPnet3 F5-TTS demos.
 
 The generic launcher (``egs3/TEMPLATE/esp2_asr/src/app.py``) binds the demo
-session's inference function straight to the Gradio components. This launcher
-adds what a text-to-speech UI needs on top: the returned waveform is paired
-with the model's sample rate, which is what ``gr.Audio`` plays; an untouched
-text box arrives as ``""``, which is passed on as "not given" so the model
-refuses it by name instead of synthesizing from an empty transcript; and that
-refusal is shown in the UI rather than as a bare error.
+session's inference function straight to the Gradio components; the session
+builds the components from the packed inference contract and turns the
+model's ``Audio`` into the ``(sample_rate, samples)`` pair ``gr.Audio``
+plays. This launcher adds what a text-to-speech UI needs on top: the input
+guide is shown above the inputs, an untouched box is reported by its label
+instead of being synthesized from, a refused input is shown in the UI rather
+than as a bare error, and the recipe's example rows fill the inputs at a
+click, the first one when the page opens.
 """
 
 from __future__ import annotations
@@ -43,8 +45,8 @@ def _read_example_rows(demo_cfg, demo_dir: Path) -> list[list]:
         demo_dir: The packed demo directory the paths are relative to.
 
     Returns:
-        One list per example, in the order of ``ui.inputs``; empty when the
-        config has no ``ui.examples``.
+        One list per example, in the order of the contract's inputs; empty
+        when the config has no ``ui.examples``.
 
     Raises:
         FileNotFoundError: If an example names a file that is not in the
@@ -78,15 +80,43 @@ def _read_example_rows(demo_cfg, demo_dir: Path) -> list[list]:
     return rows
 
 
+def _missing_inputs(specs: list[dict], values: tuple) -> list[str]:
+    """Return the labels of the inputs the visitor left empty.
+
+    An untouched text box arrives as ``""`` and an empty audio widget as
+    ``None``; every F5-TTS input is required, so either is reported by the
+    label the page shows rather than handed to the model.
+
+    Args:
+        specs: The session's input specs, in widget order.
+        values: The widget values, in the same order.
+
+    Returns:
+        The labels of the empty inputs, in widget order.
+
+    Example:
+        .. code-block:: python
+
+            _missing_inputs(specs, ("hello", None, ""))
+            # -> ["Reference speech (voice to clone)", "Reference transcript"]
+    """
+    return [
+        spec["label"]
+        for spec, value in zip(specs, values)
+        if value is None or (isinstance(value, str) and not value.strip())
+    ]
+
+
 def build_demo(
     demo_dir: Path,
     demo_config_path: Path | None = None,
 ):
     """Build the Gradio Blocks app for one packed F5-TTS demo.
 
-    Input and output components are read from the packed ``demo.yaml``. With
-    the template's ``conf/demo.yaml`` that is: target text, reference speech
-    and reference transcript in, synthesized speech out.
+    Input and output components are built from the packed inference config's
+    contract (or from ``ui.inputs`` / ``ui.outputs`` when the demo config
+    sets them). With the template's configs that is: target text, reference
+    speech and reference transcript in, synthesized speech out.
 
     Args:
         demo_dir: Packed demo directory, containing ``demo.yaml`` and the
@@ -109,16 +139,12 @@ def build_demo(
             app = build_demo(Path("exp/training/demo"))
             app.launch()
 
-    Raises:
-        TypeError: If the packed model is not
-            ``espnet3.systems.f5tts.src.inference.Inference``, whose sample rate
-            the played audio is labelled with.
-
     Note:
         Reference speech is passed to the model as Gradio delivers it, a
-        ``(rate, samples)`` pair; ``Inference`` resamples it to the model's
-        rate. A packed config that names the bare ``F5TTSInference`` engine
-        instead does no such conversion and is not supported by this app.
+        ``(rate, samples)`` pair; the packed contract resamples it to the
+        model's rate and keeps its first channel. The session returns the
+        synthesized ``Audio`` as the ``(rate, samples)`` pair ``gr.Audio``
+        plays.
     """
     # Resolve first: a relative config path is joined onto the demo directory
     # by `load_demo_session`, which would double a relative `demo_dir`.
@@ -140,26 +166,18 @@ def build_demo(
         session.input_specs,
         session.output_specs,
     )
-    # The session returns the model's bare waveform; gr.Audio plays a
-    # (rate, samples) pair, and the rate is the model's.
-    sample_rate = getattr(getattr(session.model, "model", None), "sample_rate", None)
-    if sample_rate is None:
-        raise TypeError(
-            "the packed model must be espnet3.systems.f5tts.src.inference.Inference, "
-            f"which has a sample_rate; got {type(session.model).__name__}"
-        )
 
     def synthesize(*values):
-        """Run the packed model on the UI values and pair the waveform with its rate."""
-        # An untouched Gradio text box holds "", which the model would take
-        # as an empty transcript; None means "not given", which the model
-        # refuses for a required field with a message naming it.
-        values = [None if value == "" else value for value in values]
+        """Run the packed model on the UI values; the session shapes the outputs."""
+        missing = _missing_inputs(session.input_specs, values)
+        if missing:
+            raise gr.Error("Required: " + ", ".join(missing))
         try:
-            return sample_rate, inference_fn(*values)
-        except TypeError as error:
-            # A missing or malformed input, e.g. no reference speech or no
-            # transcript: show the reason in the UI instead of a bare "Error".
+            return inference_fn(*values)
+        except (TypeError, ValueError) as error:
+            # A malformed input the contract or the engine refused, e.g. a
+            # file that is not audio: show the reason in the UI instead of a
+            # bare "Error".
             raise gr.Error(str(error)) from error
 
     if spaces is not None:
@@ -199,7 +217,7 @@ def build_demo(
             outputs=output_components,
         )
 
-        # `ui.examples`: rows of input values in the order of `ui.inputs`; an
+        # `ui.examples`: rows of input values in the order of the inputs; an
         # audio value is a path relative to the demo directory, which is where
         # the app runs from. A click fills the inputs; Synthesize runs them.
         examples = _read_example_rows(session.demo_cfg, demo_dir)

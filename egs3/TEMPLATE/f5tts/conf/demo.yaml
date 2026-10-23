@@ -17,46 +17,35 @@ recipe_dir: .
 # `model.dir_or_tag` is the packed model the demo loads: a local bundle
 # (resolved relative to the packed demo directory at runtime) or a Hugging
 # Face model tag, loaded through `espnet3.publication.InferenceModel`. The
-# packed inference config names only `espnet3.systems.f5tts.src.inference.Inference`
-# and the template's `output_fn`, so the bundle's own code is never imported
-# and `trust_user_code` stays false. The model takes no call-time arguments;
-# sampling settings live in the packed `conf/inference.yaml`.
+# packed inference config names only
+# `espnet3.systems.f5tts.src.inference.Inference` and declares its contract
+# inline, so the bundle's own code is never imported and `trust_user_code`
+# stays false. The model takes no call-time arguments; sampling settings live
+# in the packed `conf/inference.yaml`.
 model:
   dir_or_tag: exp/${exp_tag}/model_pack
   trust_user_code: false
 
-# `ui.inputs` / `ui.outputs` are the fields of
-# `espnet3.systems.f5tts.src.inference.Inference` (its `input_key` and `wav`),
-# bound positionally by `src/app.py` (the recipe's copy of the template's
-# launcher), which hands the reference over as Gradio delivers it and plays
-# the returned waveform at the model's rate. All three
-# inputs are required: an empty "Reference transcript" box is reported as
-# missing, not guessed from the target text. `ui.description` is shown above
-# the inputs: a file `pack_demo` copies into the bundle, named relative to
-# the recipe or to the repository root (this template's `src/demo_description.md`,
-# which explains the three inputs), or inline text.
-# `ui.examples` fills the inputs at a click: one row per example, the values in
-# the order of `ui.inputs`, an audio value being a path inside the packed demo
-# (list the file under `pack.include` so `pack_demo` copies it there).
+# The input and output widgets are built from the packed inference config's
+# `contract` (its fields, kinds and labels: the target text, the reference
+# speech and its transcript in, the synthesized speech out), so `ui.inputs` /
+# `ui.outputs` are not listed here; set them only to override that layout.
+# `src/app.py` (the recipe's copy of the template's launcher) binds them
+# positionally, hands the reference over as Gradio delivers it and plays the
+# `(rate, samples)` pair the session returns. All three inputs are required:
+# an empty box is reported by its label, not guessed. `ui.description` is
+# shown above the inputs: a file `pack_demo` copies into the bundle, named
+# relative to the recipe or to the repository root (this template's
+# `src/demo_description.md`, which explains the three inputs), or inline text.
+# `ui.examples` fills the inputs at a click: one row per example, the values
+# in the order of the contract's inputs, an audio value being a path inside
+# the packed demo (list the file under `pack.include` so `pack_demo` copies
+# it there).
 ui:
   app_script: src/app.py
   title: ${set_corpus_and_system:} demo
   description: egs3/TEMPLATE/f5tts/src/demo_description.md
   examples:
-  inputs:
-    - key: text
-      type: text
-      label: "Text to synthesize"
-    - key: reference_speech
-      type: audio
-      label: "Reference speech (voice to clone)"
-    - key: reference_text
-      type: text
-      label: "Reference transcript"
-  outputs:
-    - key: wav
-      type: audio
-      label: "Synthesized speech"
 
 # `pack.out_dir` is the packed demo directory, relative to the recipe
 # directory; `pack.include` / `pack.exclude` copy extra files into it.

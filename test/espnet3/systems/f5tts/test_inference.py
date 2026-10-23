@@ -13,7 +13,10 @@ import numpy as np
 import pytest
 import torch
 import yaml
+from omegaconf import OmegaConf
 
+from espnet3.contract.inference import load_inference_contract
+from espnet3.contract.kinds.audio import Audio
 from espnet3.systems.base.inference_runner import InferenceRunner
 from espnet3.systems.f5tts.src.f5tts import F5TTS
 from espnet3.systems.f5tts.src.inference import (
@@ -22,6 +25,7 @@ from espnet3.systems.f5tts.src.inference import (
     _chunk_text,
     _cross_fade,
 )
+from espnet3.utils.config_utils import load_default_config
 
 TOKENS = ["<blank>", "<unk>", "a", "b", "c", " ", "<sos/eos>"]
 MODEL_CONF = dict(
@@ -713,15 +717,17 @@ def test_inference_declares_the_f5tts_fields():
 
 
 def test_inference_returns_the_waveform_at_the_vocoder_rate():
-    """The output is the engine's float32 waveform and the inputs reach it."""
+    """The output is the engine's float32 waveform, as an Audio at its rate."""
     backend = _RecordingEngine()
     model = Inference(backend)
 
     output = model("hello", np.zeros(2400, dtype=np.float32), "a prompt")
 
     assert model.sample_rate == 24000
-    assert output["wav"].dtype == np.float32
-    assert output["wav"].shape == (480,)
+    assert isinstance(output["wav"], Audio)
+    assert output["wav"].rate == 24000
+    assert output["wav"].array.dtype == np.float32
+    assert output["wav"].array.shape == (480,)
     text, reference_audio, reference_text = backend.calls[0]
     assert (text, reference_text) == ("hello", "a prompt")
     assert reference_audio.shape == (2400,)
@@ -791,7 +797,7 @@ def test_inference_runs_a_batch_item_by_item():
 
     outputs = model(["first", "second"], [reference, reference], ["a", "b"])
 
-    assert [output["wav"].shape for output in outputs] == [(480,), (480,)]
+    assert [output["wav"].array.shape for output in outputs] == [(480,), (480,)]
     assert [call[0] for call in backend.calls] == ["first", "second"]
     assert [call[2] for call in backend.calls] == ["a", "b"]
     with pytest.raises(TypeError, match="length"):
@@ -813,23 +819,28 @@ def test_inference_builds_the_engine_from_its_own_arguments(
 
     assert isinstance(model.backend, F5TTSInference)
     output = model("abc", np.random.RandomState(0).randn(4800).astype(np.float32), "ab")
-    assert output["wav"].dtype == np.float32
-    assert output["wav"].ndim == 1
+    assert output["wav"].array.dtype == np.float32
+    assert output["wav"].array.ndim == 1
     with pytest.raises(TypeError, match="not both"):
         Inference(model.backend, device="cpu")
     with pytest.raises(TypeError, match="needs an engine"):
         Inference()
 
 
+def _template_contract():
+    """The contract ``egs3/TEMPLATE/f5tts/conf/inference.yaml`` declares."""
+    config = load_default_config("inference.yaml", "egs3.TEMPLATE.f5tts")
+    return load_inference_contract(OmegaConf.to_container(config.contract))
+
+
 def test_inference_serves_the_infer_stage_runner(engine):
-    """The runner reads ``input_key`` and ``output_fn`` stamps the ``utt_id``.
+    """The runner reads ``input_key``, checks the contract and stamps the ``utt_id``.
 
     What the template inference config says: the three inputs are picked out
-    of the item by name, the record gets the item's id, and undeclared
-    columns are ignored.
+    of the item by name, the record gets the item's id, the waveform comes
+    back as an Audio at the contract's rate, and undeclared columns are
+    ignored.
     """
-    from egs3.TEMPLATE.f5tts.src.inference import build_output
-
     model = Inference(engine)
     reference = np.random.RandomState(0).randn(4800).astype(np.float32)
     dataset = {
@@ -847,9 +858,45 @@ def test_inference_serves_the_infer_stage_runner(engine):
         dataset=dataset,
         model=model,
         input_key=["text", "reference_speech", "reference_text"],
-        output_fn=build_output,
+        inference_contract=_template_contract(),
     )
 
     assert output["utt_id"] == "u0"
-    assert output["wav"].dtype == np.float32 and output["wav"].ndim == 1
+    assert isinstance(output["wav"], Audio) and output["wav"].rate == 24000
+    assert output["wav"].array.dtype == np.float32 and output["wav"].array.ndim == 1
     assert "speaker" not in output
+
+
+def test_the_contract_shapes_the_reference_before_the_model_sees_it():
+    """A stereo 48 kHz Gradio pair reaches the engine mono at 24 kHz."""
+    backend = _RecordingEngine()
+    stereo_at_48k = (48000, np.zeros((48000, 2), dtype=np.int16))
+    dataset = {
+        "u1": {
+            "text": "hello",
+            "reference_speech": stereo_at_48k,
+            "reference_text": "hi",
+        }
+    }
+
+    output = InferenceRunner.forward(
+        "u1",
+        dataset=dataset,
+        model=Inference(backend),
+        input_key=["text", "reference_speech", "reference_text"],
+        inference_contract=_template_contract(),
+    )
+
+    _, reference_audio, _ = backend.calls[0]
+    assert reference_audio.ndim == 1
+    assert abs(len(reference_audio) - 24000) <= 1
+    assert output["utt_id"] == "u1"
+    # A missing input is refused by the contract before the model runs.
+    with pytest.raises(KeyError, match="reference_text"):
+        InferenceRunner.forward(
+            "u2",
+            dataset={"u2": {"text": "hello", "reference_speech": stereo_at_48k}},
+            model=Inference(backend),
+            input_key=["text", "reference_speech", "reference_text"],
+            inference_contract=_template_contract(),
+        )

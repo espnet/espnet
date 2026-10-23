@@ -9,13 +9,17 @@ holds it (a path, the ``(rate, samples)`` pair ``gr.Audio`` returns, an array
 or a tensor) and resamples it to the engine's rate, and refuses a missing
 input by name.
 
-A recipe's ``infer`` stage names :class:`Inference` as its ``model`` and
-gives ``input_key`` (``text``, ``reference_speech``, ``reference_text``), an
-``output_fn`` that stamps the sample's ``utt_id`` onto the result
-(``egs3.TEMPLATE.f5tts.src.inference.build_output``) and ``output_artifacts``
-with ``wav: {type: wav, sample_rate: 24000}`` so ``wav.scp`` points at audio
-files. The bare engine can still be named instead; it then takes the
-reference as a bare array at its own rate.
+A recipe's ``infer`` stage names :class:`Inference` as its ``model``, gives
+``input_key`` (``text``, ``reference_speech``, ``reference_text``) and
+declares the same three inputs and the ``wav`` output in its ``contract``
+(``egs3/TEMPLATE/f5tts/conf/inference.yaml``). The shared runner checks the
+inputs against that contract (the reference arrives as an
+:class:`~espnet3.contract.kinds.audio.Audio` at the declared rate, first
+channel only), checks the returned ``wav`` the same way, attaches the
+sample's ``utt_id`` and writes the waveform as a WAV file that ``wav.scp``
+points at. :class:`espnet3.publication.InferenceModel` and the demo go
+through the same contract. The bare engine can still be named instead; it
+then takes the reference as a bare array at its own rate.
 
 The model is rebuilt from the *training* config by instantiating that config's
 own ``model`` block (``espnet3.systems.f5tts.src.f5tts.F5TTS``), so it stays in
@@ -643,9 +647,11 @@ class Inference:
     - ``Inference(f5tts_inference)`` around an engine already built.
 
     Called with the target text, a reference utterance and its transcript it
-    returns ``{"wav": samples}``: a mono ``float32`` waveform at
-    :attr:`sample_rate`. Lists of the three inputs run item by item and
-    return one dict per item, which is the batched shape the runner writes.
+    returns ``{"wav": audio}``: a mono ``float32``
+    :class:`~espnet3.contract.kinds.audio.Audio` at :attr:`sample_rate`, so
+    the waveform carries its own rate. Lists of the three inputs run item by
+    item and return one dict per item, which is the batched shape the runner
+    writes.
 
     Args:
         backend: An engine already built; exclusive with the keyword
@@ -667,12 +673,11 @@ class Inference:
             ...     {"text": "hello world", "reference_speech": "prompt.wav",
             ...      "reference_text": "the prompt transcript"}
             ... )
-            >>> output["wav"].dtype, output["wav"].ndim
-            (dtype('float32'), 1)
-            >>> model.model.sample_rate
-            24000
+            >>> output["wav"].array.dtype, output["wav"].rate
+            (dtype('float32'), 24000)
 
-        In ``inference.yaml``, for the ``infer`` stage:
+        In ``inference.yaml``, for the ``infer`` stage (the template's
+        ``contract`` block declares the three inputs and the output):
 
         .. code-block:: yaml
 
@@ -682,9 +687,17 @@ class Inference:
               checkpoint_path: ${exp_dir}/last.ckpt
               ode_solver_steps: 32
             input_key: [text, reference_speech, reference_text]
-            output_fn: egs3.TEMPLATE.f5tts.src.inference.build_output
-            output_artifacts:
-              wav: {type: wav, sample_rate: 24000}
+            contract:
+              inputs:
+                text: {kind: text}
+                reference_speech:
+                  kind: audio
+                  sample_rate: 24000
+                  channels: 1
+                  normalize: [first_channel]
+                reference_text: {kind: text}
+              outputs:
+                wav: {kind: audio, sample_rate: 24000, channels: 1}
 
     Note:
         All three inputs are required. F5-TTS reads the reference through its
@@ -696,10 +709,11 @@ class Inference:
     """
 
     #: What a call takes, in the order ``inference.yaml`` lists ``input_key``
-    #: and ``demo.yaml`` lists ``ui.inputs``.
+    #: and declares ``contract.inputs``; the YAML contract is what the runner
+    #: checks, this is the class's own description of the same interface.
     inputs = (
         Field("text", "text", "Text to synthesize"),
-        Field("reference_speech", "audio", "Reference speech"),
+        Field("reference_speech", "audio", "Reference speech (voice to clone)"),
         Field("reference_text", "text", "Reference transcript"),
     )
     #: What a call returns: the synthesized waveform.
@@ -758,7 +772,8 @@ class Inference:
         if not isinstance(text, str) or not isinstance(reference_text, str):
             raise TypeError("'text' and 'reference_text' must be str")
         reference = self._reference(reference_speech)
-        return {"wav": self.backend.infer_one(text, reference, reference_text)}
+        wav = self.backend.infer_one(text, reference, reference_text)
+        return {"wav": Audio(wav, self.sample_rate)}
 
     def __call__(
         self,
@@ -777,7 +792,8 @@ class Inference:
             reference_text: Transcript of ``reference_speech``, or a list.
 
         Returns:
-            ``{"wav": samples}`` for one item: a mono ``float32`` waveform at
+            ``{"wav": audio}`` for one item: a mono ``float32``
+            :class:`~espnet3.contract.kinds.audio.Audio` at
             :attr:`sample_rate`. For lists, one such dict per item, in order.
 
         Raises:
@@ -788,8 +804,8 @@ class Inference:
             .. code-block:: python
 
                 >>> output = model("hello world", "prompt.wav", "a transcript")
-                >>> output["wav"].dtype, output["wav"].ndim
-                (dtype('float32'), 1)
+                >>> output["wav"].array.dtype, output["wav"].rate
+                (dtype('float32'), 24000)
         """
         if isinstance(text, list):
             if not (

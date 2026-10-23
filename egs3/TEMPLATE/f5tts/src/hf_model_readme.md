@@ -39,7 +39,7 @@ output = model(
         "reference_text": "The reference transcript.",
     }
 )
-samples, sample_rate = output["wav"], model.model.sample_rate
+audio = output["wav"]  # an Audio: audio.array (float32) at audio.rate
 ```
 
 ## Packaging

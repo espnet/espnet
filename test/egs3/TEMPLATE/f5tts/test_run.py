@@ -6,6 +6,7 @@ import pytest
 from hydra.utils import get_class
 from omegaconf import OmegaConf
 
+from espnet3.contract.inference import load_inference_contract
 from espnet3.contract.stages import StageContractError, stage_names
 from espnet3.systems.f5tts.system import F5TTSSystem
 from espnet3.systems.launch import build_parser, launch
@@ -82,13 +83,12 @@ def test_inference_scaffold_rebuilds_the_model_from_the_trained_config() -> None
     assert model["train_config"] == "${exp_dir}/config.yaml"
     assert model["checkpoint_path"] == "${exp_dir}/last.ckpt"
     assert model["use_ema"] is True
-    # The runner reads the three inputs by name, the output_fn stamps the
-    # utt_id, and the waveform is written as audio at the vocoder's rate.
+    # The runner reads the three inputs by name and checks them, and the
+    # returned waveform, against the contract; nothing else shapes the output.
     assert list(config.input_key) == ["text", "reference_speech", "reference_text"]
-    assert config.output_fn == "egs3.TEMPLATE.f5tts.src.inference.build_output"
-    assert OmegaConf.to_container(config.output_artifacts) == {
-        "wav": {"type": "wav", "sample_rate": 24000}
-    }
+    assert "output_fn" not in config
+    assert "output_artifacts" not in config
+    assert "output_keys" not in config
     assert config.batch_size is None
     assert (
         config.provider._target_
@@ -98,6 +98,43 @@ def test_inference_scaffold_rebuilds_the_model_from_the_trained_config() -> None
         config.runner._target_
         == "espnet3.systems.base.inference_runner.InferenceRunner"
     )
+
+
+def test_inference_scaffold_declares_the_contract_the_inference_class_has() -> None:
+    """The YAML contract and ``Inference``'s own fields describe one interface.
+
+    The runner checks the YAML; the class attributes document the class. The
+    two must not drift apart.
+    """
+    config = load_default_config("inference.yaml", PACKAGE)
+    inference_class = get_class(config.model._target_)
+
+    contract = load_inference_contract(OmegaConf.to_container(config.contract))
+    assert [(f.name, f.kind, f.optional, f.label) for f in contract.inputs] == [
+        (f.name, f.kind, f.optional, f.label) for f in inference_class.inputs
+    ]
+    assert [(f.name, f.kind, f.label) for f in contract.outputs] == [
+        (f.name, f.kind, f.label) for f in inference_class.outputs
+    ]
+    contract.validate_input_keys(list(config.input_key))  # raises on mismatch
+
+    # The reference reaches the model at the vocoder's rate, first channel
+    # only (a stereo recording is reduced, not rejected); the waveform comes
+    # back at the same rate, mono.
+    raw = OmegaConf.to_container(config.contract)
+    assert raw["inputs"]["reference_speech"] == {
+        "kind": "audio",
+        "label": "Reference speech (voice to clone)",
+        "sample_rate": 24000,
+        "channels": 1,
+        "normalize": ["first_channel"],
+    }
+    assert raw["outputs"]["wav"] == {
+        "kind": "audio",
+        "label": "Synthesized speech",
+        "sample_rate": 24000,
+        "channels": 1,
+    }
 
 
 def test_metrics_scaffold_is_the_f5tts_protocol() -> None:

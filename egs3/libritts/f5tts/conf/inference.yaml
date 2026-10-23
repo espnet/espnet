@@ -7,14 +7,15 @@
 # dataset/builder.py. No manual preparation step is needed.
 #
 # Merged over `egs3/TEMPLATE/f5tts/conf/inference.yaml`, which names the model
-# (`espnet3.systems.f5tts.src.inference.Inference`, rebuilt from the config `train`
-# wrote to `${exp_dir}/config.yaml`) and holds the path scaffold; `run.py`
-# copies `exp_tag` / `exp_dir` from `--training_config`, so pass both. This
-# recipe names its test set and the paper's sampling settings.
+# (`espnet3.systems.f5tts.src.inference.Inference`, rebuilt from the config
+# `train` wrote to `${exp_dir}/config.yaml`), declares its input/output
+# contract and holds the path scaffold; `run.py` copies `exp_tag` / `exp_dir`
+# from `--training_config`, so pass both. This recipe names its test set and
+# the paper's sampling settings.
 
 # Every row of the manifest pins its own prompt, reproducing the paper's fixed
 # pairing. The dataset serves `text`, `reference_speech`, `reference_text`
-# (the Inference's inputs), `utt_id` and `ref_wav_path` (read by metrics.yaml).
+# (the contract's inputs), `utt_id` and `ref_wav_path` (read by metrics.yaml).
 dataset:
   test:
     - name: librispeech_pc
