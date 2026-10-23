@@ -54,6 +54,7 @@ def test_wrap_inference_fn_passes_inputs_through_and_converts_audio_outputs():
     seen = {}
 
     def resynthesize(audio):
+        """Record the input and return float audio as the session would."""
         seen["audio"] = audio
         return 24000, np.full(1200, 0.25, dtype=np.float32)
 
@@ -85,6 +86,7 @@ def test_wrap_inference_fn_handles_multiple_outputs_positionally():
     ]
 
     def label_audio(audio):
+        """Return a text and an audio output."""
         return ["hello", (24000, np.zeros(240, dtype=np.float32))]
 
     run_inference = codec_app.wrap_inference_fn(label_audio, output_specs)
@@ -141,8 +143,11 @@ def test_build_demo_applies_the_zerogpu_decorator_to_the_wrapped_handler(
     decorated = []
 
     class FakeSpaces:
+        """Stand in for the ``spaces`` package and record what it decorates."""
+
         @staticmethod
         def GPU(function):
+            """Record the function and return it unchanged."""
             decorated.append(function)
             return function
 

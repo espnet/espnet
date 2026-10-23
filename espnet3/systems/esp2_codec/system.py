@@ -29,6 +29,7 @@ logger = logging.getLogger(__name__)
 
 
 def _instantiate_model(config: DictConfig) -> Any:
+    """Build the model from ``config.task`` (ESPnet2) or ``config.model`` (Hydra)."""
     task = config.get("task")
     if task:
         model_config = OmegaConf.to_container(config.model, resolve=True)
@@ -48,6 +49,7 @@ class ESP2CodecSystem(BaseSystem):
     """
 
     def _ensure_directories(self) -> None:
+        """Create ``exp_dir`` and, when it is set, ``stats_dir``."""
         config = self.training_config
         Path(config.exp_dir).mkdir(parents=True, exist_ok=True)
         # `stats_dir` may be declared but left null (e.g. a recipe that skips
@@ -57,6 +59,7 @@ class ESP2CodecSystem(BaseSystem):
             Path(stats_dir).mkdir(parents=True, exist_ok=True)
 
     def _build_trainer(self) -> ESPnet3LightningTrainer:
+        """Build the GAN trainer for a GAN model, else the plain ESPnet3 trainer."""
         config = self.training_config
         model = _instantiate_model(config)
         if isinstance(model, AbsGANESPnetModel):
@@ -71,6 +74,7 @@ class ESP2CodecSystem(BaseSystem):
         )
 
     def _prepare_training_runtime(self) -> None:
+        """Make the directories, apply ``parallel`` and ``seed``, set the precision."""
         config = self.training_config
         self._ensure_directories()
 

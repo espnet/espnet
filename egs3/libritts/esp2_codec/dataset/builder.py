@@ -34,6 +34,7 @@ _ARCHIVE_SIZES: dict[str, int] = {
 
 
 def _load_builder_config() -> dict:
+    """Load the ``builder`` section of this package's ``config.yaml``."""
     config_resource = resources.files(__package__).joinpath("config.yaml")
     with resources.as_file(config_resource) as config_path:
         return load_config_with_defaults(str(config_path), resolve=False)["builder"]
@@ -107,12 +108,11 @@ def _download_subset(
 
 
 def _scan_subset_entries(subset_dir: Path) -> list[tuple[str, Path, str, str]]:
-    """
-    Scan a subset directory and return a list of
-    (utt_id, wav_path, text, spk_key) tuples.
+    """Scan a subset directory into ``(utt_id, wav_path, text, spk_key)`` tuples.
 
     Args:
-        subset_dir: Path to the subset directory (e.g., "LibriTTS/train-clean-100")
+        subset_dir: Path to the subset directory (e.g., "LibriTTS/train-clean-100").
+
     Returns:
         List of tuples containing:
             - utt_id: Unique utterance ID (e.g., "123-456-789")

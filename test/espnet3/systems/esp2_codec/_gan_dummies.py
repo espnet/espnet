@@ -11,7 +11,10 @@ DUMMY_DATA_SRC = "dummy/codec"
 
 
 class DummyDataset:
+    """Three two-sample items under ``x``, enough for one batch of two."""
+
     def __init__(self, path=None):
+        """Build the fixed items; ``path`` is accepted for the builder interface."""
         self.data = [
             {"x": np.array([0.1, 0.2], dtype=np.float32)},
             {"x": np.array([0.3, 0.4], dtype=np.float32)},
@@ -19,9 +22,11 @@ class DummyDataset:
         ]
 
     def __len__(self):
+        """Return the number of items."""
         return len(self.data)
 
     def __getitem__(self, idx):
+        """Return item ``idx`` as ``{"x": array}``."""
         return {"x": self.data[idx]["x"]}
 
 
@@ -29,6 +34,7 @@ class DummyGANModel(AbsGANESPnetModel):
     """Minimal AbsGANESPnetModel: generator/discriminator turns via Linear."""
 
     def __init__(self, optim_idx_map=None):
+        """Create the two linear turns and the ``optim_idx`` map."""
         super().__init__()
         self.generator = nn.Linear(2, 1)
         self.discriminator = nn.Linear(2, 1)
@@ -36,6 +42,7 @@ class DummyGANModel(AbsGANESPnetModel):
         self.optim_idx_map = optim_idx_map or {True: 0, False: 1}
 
     def forward(self, x, x_lengths=None, forward_generator=True, **kwargs):
+        """Run the generator or discriminator turn and return the GAN output dict."""
         module = self.generator if forward_generator else self.discriminator
         loss = module(x).sum()
         return {
@@ -46,10 +53,12 @@ class DummyGANModel(AbsGANESPnetModel):
         }
 
     def collect_feats(self, **batch):
+        """Return no features; ``collect_stats`` is not exercised here."""
         return {}
 
 
 def make_gan_training_config(exp_dir, gan=None, optimizers=None):
+    """Build a training config with two SGD optimizers and the dummy dataset."""
     if optimizers is None:
         optimizers = {
             "generator": {
@@ -103,6 +112,7 @@ def make_gan_training_config(exp_dir, gan=None, optimizers=None):
 
 
 def make_train_batch(module):
+    """Return the first training batch, stubbing the module's trainer if needed."""
     trainer = getattr(module, "_trainer", None)
     if trainer is None or not hasattr(trainer, "current_epoch"):
         module._trainer = type("DummyTrainer", (), {"current_epoch": 0})()
@@ -110,6 +120,7 @@ def make_train_batch(module):
 
 
 def make_valid_batch(module):
+    """Return the first validation batch, stubbing the module's trainer if needed."""
     trainer = getattr(module, "_trainer", None)
     if trainer is None or not hasattr(trainer, "current_epoch"):
         module._trainer = type("DummyTrainer", (), {"current_epoch": 0})()
@@ -117,6 +128,10 @@ def make_valid_batch(module):
 
 
 def prepare_manual_optimization(module, configured):
+    """Wire the configured optimizers and schedulers into the module by name.
+
+    Also stub ``manual_backward`` and capture what the module logs and clips.
+    """
     optimizer_map = {
         spec.name: optimizer
         for spec, optimizer in zip(module._optimizer_specs, configured[0])

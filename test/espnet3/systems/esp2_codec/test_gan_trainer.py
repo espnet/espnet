@@ -14,11 +14,13 @@ from espnet3.systems.esp2_codec.src.models.gan_lightning_module import (
 
 
 def _capture_parent_init(monkeypatch):
+    """Replace the parent trainer's ``__init__`` with one that records its arguments."""
     recorded = {}
 
     def fake_init(
         self, model=None, exp_dir=None, config=None, best_model_criterion=None
     ):
+        """Record the constructor arguments instead of building a trainer."""
         recorded.update(
             model=model,
             exp_dir=exp_dir,
@@ -31,6 +33,7 @@ def _capture_parent_init(monkeypatch):
 
 
 def test_strips_gan_key_from_dictconfig(monkeypatch):
+    """The ``gan`` block is removed from a DictConfig copy; the original keeps it."""
     recorded = _capture_parent_init(monkeypatch)
     config = OmegaConf.create({"max_epochs": 3, "gan": {"generator_first": True}})
     gt.GANLightningTrainer(
@@ -46,6 +49,7 @@ def test_strips_gan_key_from_dictconfig(monkeypatch):
 
 
 def test_strips_gan_key_from_plain_dict(monkeypatch):
+    """The ``gan`` key is removed from a plain dict copy; the original keeps it."""
     recorded = _capture_parent_init(monkeypatch)
     config = {"max_epochs": 3, "gan": {"skip_discriminator_prob": 0.5}}
     gt.GANLightningTrainer(model="m", exp_dir="exp", config=config)
@@ -55,6 +59,7 @@ def test_strips_gan_key_from_plain_dict(monkeypatch):
 
 
 def test_config_without_gan_key_passes_through(monkeypatch):
+    """A config without ``gan`` reaches the parent unchanged."""
     recorded = _capture_parent_init(monkeypatch)
     config = OmegaConf.create({"max_epochs": 3})
     gt.GANLightningTrainer(model="m", exp_dir="exp", config=config)
@@ -62,16 +67,23 @@ def test_config_without_gan_key_passes_through(monkeypatch):
 
 
 def test_build_gan_trainer_wires_module_and_trainer(monkeypatch):
+    """``build_gan_trainer`` wraps the model in the GAN module for the GAN trainer."""
     created = {}
 
     class FakeModule:
+        """Record the model and config the module is built from."""
+
         def __init__(self, model, config):
+            """Keep the constructor arguments."""
             created["module"] = (model, config)
 
     class FakeTrainer:
+        """Record the trainer's constructor arguments."""
+
         def __init__(
             self, model=None, exp_dir=None, config=None, best_model_criterion=None
         ):
+            """Keep the constructor arguments."""
             created["trainer"] = {
                 "model": model,
                 "exp_dir": exp_dir,
@@ -103,6 +115,7 @@ def test_build_gan_trainer_wires_module_and_trainer(monkeypatch):
 
 
 def test_gan_fit_runs_one_batch_with_real_trainer(tmp_path):
+    """A real Lightning fit steps both optimizers once with ``gan`` stripped."""
     from espnet3.systems.esp2_codec.src.gan_trainer import GANLightningTrainer
 
     model = GANLightningModule(

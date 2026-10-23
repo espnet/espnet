@@ -19,6 +19,10 @@ from espnet3.systems.esp2_codec.src.models.gan_lightning_module import (
 
 
 def make_module(tmp_path, gan=None, model=None, optimizers=None):
+    """Build a ``GANLightningModule`` over the dummy model.
+
+    ``gan`` fills the ``trainer.gan`` block; ``optimizers`` replaces the default two.
+    """
     config = make_gan_training_config(tmp_path / "exp", gan=gan, optimizers=optimizers)
     return GANLightningModule(model or DummyGANModel(), config)
 
@@ -27,21 +31,25 @@ def make_module(tmp_path, gan=None, model=None, optimizers=None):
 
 
 def test_init_disables_automatic_optimization(tmp_path):
+    """The module steps its optimizers manually."""
     module = make_module(tmp_path)
     assert module.automatic_optimization is False
 
 
 def test_gan_option_returns_default_without_gan_config(tmp_path):
+    """A missing ``trainer.gan`` block yields the default."""
     module = make_module(tmp_path)
     assert module._gan_option("generator_first", "fallback") == "fallback"
 
 
 def test_gan_option_reads_value_from_trainer_gan_config(tmp_path):
+    """A value under ``trainer.gan`` is returned as configured."""
     module = make_module(tmp_path, gan={"generator_first": True})
     assert module._gan_option("generator_first", False) is True
 
 
 def test_turns_default_discriminator_first(tmp_path):
+    """Without ``generator_first`` the discriminator turn comes first."""
     module = make_module(tmp_path)
     assert module._turns_in_order() == [
         ("discriminator", False),
@@ -50,6 +58,7 @@ def test_turns_default_discriminator_first(tmp_path):
 
 
 def test_turns_generator_first_option(tmp_path):
+    """With ``generator_first`` the generator turn comes first."""
     module = make_module(tmp_path, gan={"generator_first": True})
     assert module._turns_in_order() == [
         ("generator", True),
@@ -70,6 +79,7 @@ def test_turns_generator_first_option(tmp_path):
     ],
 )
 def test_normalize_optim_idx_accepts_valid_inputs(tmp_path, optim_idx, expected):
+    """Ints and single-valued tensors normalize to 0 or 1."""
     module = make_module(tmp_path)
     assert module._normalize_optim_idx(optim_idx) == expected
 
@@ -85,6 +95,7 @@ def test_normalize_optim_idx_accepts_valid_inputs(tmp_path, optim_idx, expected)
     ],
 )
 def test_normalize_optim_idx_rejects_invalid_inputs(tmp_path, optim_idx, match):
+    """Wrong shapes, mixed values, wrong types and out-of-range indices raise."""
     module = make_module(tmp_path)
     with pytest.raises(AssertionError, match=match):
         module._normalize_optim_idx(optim_idx)
@@ -94,6 +105,7 @@ def test_normalize_optim_idx_rejects_invalid_inputs(tmp_path, optim_idx, match):
 
 
 def test_clear_model_cache_prefers_clear_cache_method(tmp_path):
+    """A model's own ``clear_cache`` is used when it exists."""
     model = DummyGANModel()
     calls = []
     model.clear_cache = lambda: calls.append(True)
@@ -103,6 +115,7 @@ def test_clear_model_cache_prefers_clear_cache_method(tmp_path):
 
 
 def test_clear_model_cache_resets_caching_submodule(tmp_path):
+    """Otherwise the ``_cache`` of the module that caches generator outputs is reset."""
     model = DummyGANModel()
     model.generator.cache_generator_outputs = True
     model.generator._cache = object()
@@ -115,17 +128,20 @@ def test_clear_model_cache_resets_caching_submodule(tmp_path):
 
 
 def test_skip_discriminator_never_outside_train(tmp_path):
+    """Validation never skips the discriminator, whatever the probability."""
     module = make_module(tmp_path, gan={"skip_discriminator_prob": 1.0})
     assert module._should_skip_discriminator("valid") is False
 
 
 def test_skip_discriminator_prob_zero_never_skips(tmp_path):
+    """A zero probability never skips."""
     module = make_module(tmp_path)
     assert module._should_skip_discriminator("train") is False
 
 
 def test_skip_discriminator_prob_one_always_skips(tmp_path):
     # torch.rand returns values in [0, 1), so prob=1.0 is deterministic
+    """A probability of one always skips."""
     module = make_module(tmp_path, gan={"skip_discriminator_prob": 1.0})
     assert module._should_skip_discriminator("train") is True
 
@@ -134,6 +150,7 @@ def test_skip_discriminator_prob_one_always_skips(tmp_path):
 
 
 def test_forward_gan_turn_builds_named_step(tmp_path):
+    """A generator turn yields a ``generator`` step with loss, stats and weight."""
     module = make_module(tmp_path)
     batch = make_train_batch(module)
     step, stats, weight = module._forward_gan_turn(batch, forward_generator=True)
@@ -144,6 +161,7 @@ def test_forward_gan_turn_builds_named_step(tmp_path):
 
 
 def test_forward_gan_turn_rejects_non_dict_output(tmp_path):
+    """A model returning a bare tensor is rejected."""
     model = DummyGANModel()
     model.forward = lambda **kwargs: torch.tensor(0.0)
     module = make_module(tmp_path, model=model)
@@ -153,6 +171,7 @@ def test_forward_gan_turn_rejects_non_dict_output(tmp_path):
 
 
 def test_forward_gan_turn_rejects_non_tensor_loss(tmp_path):
+    """A float loss is rejected."""
     model = DummyGANModel()
     model.forward = lambda **kwargs: {
         "loss": 1.0,
@@ -167,6 +186,7 @@ def test_forward_gan_turn_rejects_non_tensor_loss(tmp_path):
 
 
 def test_forward_gan_turn_rejects_non_dict_stats(tmp_path):
+    """Non-dict stats are rejected."""
     model = DummyGANModel()
     model.forward = lambda **kwargs: {
         "loss": torch.tensor(0.0),
@@ -184,11 +204,13 @@ def test_forward_gan_turn_rejects_non_dict_stats(tmp_path):
 
 
 def test_step_no_forward_run_returns_none_without_forward(tmp_path):
+    """``no_forward_run`` returns before calling the model."""
     model = DummyGANModel()
     module = make_module(tmp_path, gan={"no_forward_run": True}, model=model)
     batch = make_train_batch(module)
 
     def boom(**kwargs):
+        """Fail if the model is called."""
         raise AssertionError("model.forward must not be called")
 
     model.forward = boom
@@ -196,6 +218,7 @@ def test_step_no_forward_run_returns_none_without_forward(tmp_path):
 
 
 def test_step_falls_back_to_base_for_non_gan_model(tmp_path):
+    """A plain model goes through the base class's step."""
     config = OmegaConf.create(
         {
             "exp_dir": str(tmp_path / "exp"),
@@ -228,6 +251,7 @@ def test_step_falls_back_to_base_for_non_gan_model(tmp_path):
 
 
 def run_train_step(module, batch_idx=0):
+    """Configure and wire the optimizers, then run one training step on batch 0."""
     configured = module.configure_optimizers()
     maps = prepare_manual_optimization(module, configured)
     batch = make_train_batch(module)
@@ -236,6 +260,7 @@ def run_train_step(module, batch_idx=0):
 
 
 def test_train_step_updates_both_optimizers(tmp_path):
+    """One training step updates both optimizers and logs both losses."""
     module = make_module(tmp_path)
     optimizer_map, _, logged, _ = run_train_step(module)
     assert "train/generator/loss" in logged
@@ -245,6 +270,7 @@ def test_train_step_updates_both_optimizers(tmp_path):
 
 
 def test_train_step_skips_discriminator_and_clears_cache(tmp_path):
+    """A skipped discriminator turn updates nothing of its own and clears the cache."""
     model = DummyGANModel()
     model.generator.cache_generator_outputs = True
     model.generator._cache = object()
@@ -257,6 +283,7 @@ def test_train_step_skips_discriminator_and_clears_cache(tmp_path):
 
 
 def test_train_step_respects_accum_grad_steps(tmp_path):
+    """With ``accum_grad_steps`` 2 the first step accumulates and the second updates."""
     optimizers = {
         "generator": {
             "optimizer": {"_target_": "torch.optim.SGD", "lr": 0.1},
@@ -284,6 +311,7 @@ def test_train_step_respects_accum_grad_steps(tmp_path):
 
 
 def test_train_step_applies_gradient_clipping(tmp_path):
+    """A configured ``gradient_clip_val`` is applied once for that optimizer."""
     optimizers = {
         "generator": {
             "optimizer": {"_target_": "torch.optim.SGD", "lr": 0.1},
@@ -305,6 +333,7 @@ def test_train_step_applies_gradient_clipping(tmp_path):
 
 
 def test_train_step_unknown_optimizer_name_raises(tmp_path):
+    """A turn whose optimizer is not configured by name raises."""
     optimizers = {
         "generator": {
             "optimizer": {"_target_": "torch.optim.SGD", "lr": 0.1},
@@ -324,10 +353,12 @@ def test_train_step_unknown_optimizer_name_raises(tmp_path):
 
 
 def test_train_step_nan_loss_skips_batch(tmp_path):
+    """A NaN loss skips the batch without any optimizer update."""
     model = DummyGANModel()
     real_forward = model.forward
 
     def nan_forward(**kwargs):
+        """Run the real forward and poison its loss with NaN."""
         out = real_forward(**kwargs)
         out["loss"] = out["loss"] * float("nan")
         return out
@@ -346,6 +377,7 @@ def test_train_step_nan_loss_skips_batch(tmp_path):
 
 
 def test_valid_step_logs_without_updating(tmp_path):
+    """A validation step logs both losses and updates nothing."""
     module = make_module(tmp_path)
     configured = module.configure_optimizers()
     _, _, logged, _ = prepare_manual_optimization(module, configured)

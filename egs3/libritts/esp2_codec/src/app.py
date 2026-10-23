@@ -102,6 +102,7 @@ def wrap_inference_fn(
     output_is_audio = [spec.get("type") == "audio" for spec in output_specs]
 
     def run_inference(*values: Any) -> Any:
+        """Call the session and hand each audio output to Gradio as int16."""
         result = inference_fn(*values)
         outputs = list(result) if len(output_specs) > 1 else [result]
         outputs = [
