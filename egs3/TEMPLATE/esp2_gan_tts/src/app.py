@@ -1,4 +1,12 @@
-"""Recipe-local Gradio launcher for ESPnet3 demos."""
+"""Gradio launcher for the multi-speaker LibriTTS VITS demo.
+
+The generic template launcher (``egs3/TEMPLATE/esp2_gan_tts/src/app.py``) maps each UI
+value straight onto a model input key. That is not enough here: this recipe's
+VITS is multi-speaker, so the model wants a speaker embedding (``spembs``),
+while the only thing a person can supply through a browser is a reference
+waveform. This launcher closes that gap by running the same SpeechBrain ECAPA
+extractor the ``compute_xvectors`` stage uses before calling the model.
+"""
 
 from __future__ import annotations
 
@@ -7,6 +15,7 @@ import logging
 from pathlib import Path
 
 import gradio as gr
+import numpy as np
 
 from espnet3.publication.demo.session import load_demo_session
 from espnet3.utils.logging_utils import configure_logging
@@ -14,15 +23,73 @@ from espnet3.utils.logging_utils import configure_logging
 logger = logging.getLogger(__name__)
 
 
+def build_xvector_extractor(demo_config):
+    """Build the callable that turns reference audio into a speaker embedding.
+
+    Args:
+        demo_config: Loaded demo config. The defaults below match the
+            ``compute_xvectors`` stage, so a recipe that trains against the
+            standard ECAPA embeddings needs no config at all. A recipe using
+            a different embedding model overrides them under
+            ``demo_config.xvector`` (``toolkit``, ``pretrained_model``,
+            ``device``).
+
+    Returns:
+        Callable taking ``(wav, sample_rate)`` and returning a 1-D float32
+        ``numpy.ndarray`` speaker embedding.
+
+    Raises:
+        ValueError: If ``xvector.toolkit`` is not one of ``espnet``,
+            ``speechbrain`` or ``rawnet``.
+
+    Notes:
+        Imports the provider/runner lazily so that merely importing this
+        module (as ``pack_demo`` does when copying it) does not pull in the
+        speaker-embedding toolchain.
+
+    Examples:
+        ```python
+        extract = build_xvector_extractor(session.demo_cfg)
+        spembs = extract(np.zeros(22050, dtype=np.float32), 22050)
+        spembs.shape  # -> (192,) for ECAPA-TDNN
+        ```
+    """
+    from espnet3.systems.esp2_gan_tts.src.xvector_provider import XVectorProvider
+    from espnet3.systems.esp2_gan_tts.src.xvector_runner import XVectorRunner
+
+    xvector_config = getattr(demo_config, "xvector", None)
+    toolkit = "speechbrain"
+    pretrained_model = "speechbrain/spkrec-ecapa-voxceleb"
+    device = "cpu"
+    if xvector_config is not None:
+        toolkit = xvector_config.get("toolkit", toolkit)
+        pretrained_model = xvector_config.get("pretrained_model", pretrained_model)
+        device = xvector_config.get("device", device)
+
+    logger.info(
+        "Loading speaker embedding model | toolkit=%s model=%s device=%s",
+        toolkit,
+        pretrained_model,
+        device,
+    )
+    model = XVectorProvider._build_model(toolkit, pretrained_model, device)
+
+    def extract(wav: np.ndarray, sample_rate: int) -> np.ndarray:
+        embedding = XVectorRunner._extract_embedding(
+            np.asarray(wav, dtype=np.float32), sample_rate, model, toolkit, device
+        )
+        if hasattr(embedding, "detach"):
+            embedding = embedding.detach().cpu().numpy()
+        return np.asarray(embedding, dtype=np.float32).reshape(-1)
+
+    return extract
+
+
 def build_demo(
     demo_dir: Path,
     demo_config_path: Path | None = None,
 ):
-    """Build the default Gradio Blocks app for one packed demo.
-
-    Input and output components are read from the packed ``demo.yaml``, so
-    this launcher is task-agnostic: a single-speaker TTS demo wires text in
-    to audio out purely through that config.
+    """Build the multi-speaker TTS Gradio app for one packed demo.
 
     Args:
         demo_dir: Packed demo directory, containing ``demo.yaml`` and the
@@ -31,13 +98,13 @@ def build_demo(
             ``demo_dir / "demo.yaml"``.
 
     Returns:
-        gradio.Blocks: App with one component per input/output spec, bound
-        positionally to the session's inference function.
+        gradio.Blocks: App with a text box and a reference-audio input wired
+        to a synthesized-audio output.
 
     Notes:
-        A model needing an input no built-in UI asset can produce (e.g. the
-        speaker embedding of a multi-speaker TTS model) should ship its own
-        ``src/app.py`` and point ``ui.app_script`` at it.
+        Labels come from ``ui.inputs`` / ``ui.outputs`` in the packed demo
+        config, but the wiring is fixed here rather than positional, because
+        the reference audio is converted before it reaches the model.
 
     Examples:
         ```python
@@ -48,62 +115,74 @@ def build_demo(
     if demo_config_path is None:
         demo_config_path = demo_dir / "demo.yaml"
     logger.info(
-        "Building recipe demo UI | demo_dir=%s demo_config_path=%s",
+        "Building LibriTTS VITS demo UI | demo_dir=%s demo_config_path=%s",
         demo_dir,
         demo_config_path,
     )
     session = load_demo_session(demo_dir, demo_config_path)
-    logger.info(
-        "Resolved demo specs | inputs=%s outputs=%s",
-        session.input_specs,
-        session.output_specs,
-    )
-    inference_fn = session.create_inference_fn(
-        session.input_specs,
-        session.output_specs,
-    )
+    extract_xvector = build_xvector_extractor(session.demo_cfg)
+    # Matches output_artifacts.wav.sample_rate in conf/inference.yaml; a recipe
+    # synthesizing at another rate sets `output_sample_rate` in its demo config.
+    output_sample_rate = int(session.demo_cfg.get("output_sample_rate", 22050))
+
+    labels = {spec["key"]: spec["label"] for spec in session.input_specs}
+    output_labels = {spec["key"]: spec["label"] for spec in session.output_specs}
+
+    def synthesize(text, reference_audio):
+        if not text or not str(text).strip():
+            raise gr.Error("Please enter some text to synthesize.")
+        if reference_audio is None:
+            raise gr.Error("Please provide a reference audio clip.")
+
+        # gr.Audio(type="numpy") hands back (sample_rate, waveform).
+        sample_rate, wav = reference_audio
+        wav = np.asarray(wav, dtype=np.float32)
+        if wav.ndim > 1:  # mixdown to mono
+            wav = wav.mean(axis=1)
+        peak = np.abs(wav).max()
+        if peak > 1.0:  # gradio returns int16-scaled data for uploaded files
+            wav = wav / peak
+
+        logger.info(
+            "Synthesizing | chars=%d reference_sr=%d reference_len=%d",
+            len(text),
+            sample_rate,
+            wav.shape[0],
+        )
+        spembs = extract_xvector(wav, sample_rate)
+        result = session.model({"text": str(text), "spembs": spembs})
+        synthesized = result["wav"] if isinstance(result, dict) else result
+        if hasattr(synthesized, "detach"):
+            synthesized = synthesized.detach().cpu().numpy()
+        synthesized = np.asarray(synthesized, dtype=np.float32).reshape(-1)
+        logger.info("Synthesized %d samples", synthesized.shape[0])
+        return output_sample_rate, synthesized
 
     with gr.Blocks(title=session.title) as app:
         if session.title:
             gr.Markdown(f"# {session.title}")
 
-        input_components = []
         with gr.Column():
-            # Gradio click handlers bind positional values, not a dict keyed by
-            # spec name. Keep this list in the same order as
-            # session.input_specs so create_inference_fn(*values) can zip each
-            # incoming value back to the matching spec/key.
-            for spec in session.input_specs:
-                logger.info("Building input component | spec=%s", spec)
-                # build_input_component() returns one Gradio input component
-                # instance (for example gr.Audio or gr.Textbox). That component
-                # object is what Gradio expects in click(..., inputs=[...]).
-                input_components.append(session.build_input_component(spec))
+            text_input = gr.Textbox(label=labels.get("text", "Text to synthesize"))
+            reference_input = gr.Audio(
+                label=labels.get("spembs", "Reference audio (voice to clone)")
+            )
 
-        submit_button = gr.Button("Run")
+        submit_button = gr.Button("Synthesize")
 
-        output_components = []
         with gr.Column():
-            # Outputs also stay positional. inference_fn returns one value per
-            # spec in this exact order, and Gradio routes each returned value
-            # to the component at the same list index.
-            for spec in session.output_specs:
-                logger.info("Building output component | spec=%s", spec)
-                # build_output_component() returns one Gradio output component
-                # instance that Gradio can target from click(..., outputs=[...]).
-                output_components.append(session.build_output_component(spec))
+            audio_output = gr.Audio(label=output_labels.get("wav", "Synthesized Audio"))
 
         if session.description:
             gr.Markdown(session.description)
 
-        logger.info("Binding Run button click handler")
         submit_button.click(
-            fn=inference_fn,
-            inputs=input_components,
-            outputs=output_components,
+            fn=synthesize,
+            inputs=[text_input, reference_input],
+            outputs=[audio_output],
         )
 
-    logger.info("Recipe demo UI ready")
+    logger.info("LibriTTS VITS demo UI ready")
     return app
 
 
@@ -118,7 +197,7 @@ def main() -> None:
         python app.py --demo-dir exp/train_vits_libritts/demo
         ```
     """
-    parser = argparse.ArgumentParser(description="Launch an ESPnet3 demo.")
+    parser = argparse.ArgumentParser(description="Launch the LibriTTS VITS demo.")
     parser.add_argument(
         "--demo-dir",
         type=Path,
@@ -133,12 +212,9 @@ def main() -> None:
     )
     args = parser.parse_args()
     configure_logging(log_dir=args.demo_dir, filename="demo.log")
-    logger.info("Starting recipe demo CLI | args=%s", args)
+    logger.info("Starting LibriTTS VITS demo CLI | args=%s", args)
     demo_config_path = args.demo_config or (args.demo_dir / "demo.yaml")
-    app = build_demo(
-        args.demo_dir,
-        demo_config_path=demo_config_path,
-    )
+    app = build_demo(args.demo_dir, demo_config_path=demo_config_path)
     logger.info("Launching Gradio app")
     app.launch()
 

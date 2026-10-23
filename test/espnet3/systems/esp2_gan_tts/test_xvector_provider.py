@@ -13,7 +13,7 @@ import pytest
 import torch
 from omegaconf import OmegaConf
 
-from espnet3.systems.esp2_gan_tts.xvector_provider import (
+from espnet3.systems.esp2_gan_tts.src.xvector_provider import (
     DEFAULT_PRETRAINED_MODEL,
     DEFAULT_TOOLKIT,
     XVectorProvider,

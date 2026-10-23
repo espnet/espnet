@@ -10,8 +10,8 @@ import pytest
 import soundfile as sf
 import torch
 
-from espnet3.systems.esp2_gan_tts.xvector_provider import XVectorProvider
-from espnet3.systems.esp2_gan_tts.xvector_runner import XVectorRunner
+from espnet3.systems.esp2_gan_tts.src.xvector_provider import XVectorProvider
+from espnet3.systems.esp2_gan_tts.src.xvector_runner import XVectorRunner
 
 # ===============================================================
 # Test Case Summary

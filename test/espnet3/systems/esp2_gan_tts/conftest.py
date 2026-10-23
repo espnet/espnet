@@ -10,8 +10,8 @@ import numpy as np
 import pytest
 
 from espnet3.components.data import data_organizer as data_organizer_module
-from espnet3.systems.esp2_gan_tts.xvector_provider import XVectorProvider
-from espnet3.systems.esp2_gan_tts.xvector_runner import XVectorRunner
+from espnet3.systems.esp2_gan_tts.src.xvector_provider import XVectorProvider
+from espnet3.systems.esp2_gan_tts.src.xvector_runner import XVectorRunner
 
 
 @pytest.fixture

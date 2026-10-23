@@ -6,7 +6,7 @@ import torch.nn as nn
 from omegaconf import OmegaConf
 
 from espnet2.train.abs_gan_espnet_model import AbsGANESPnetModel
-from espnet3.systems.esp2_gan_tts.models.gan_model import GANTTSLightningModule
+from espnet3.systems.esp2_gan_tts.src.gan_model import GANTTSLightningModule
 
 DUMMY_DATA_SRC = "dummy/tts"
 

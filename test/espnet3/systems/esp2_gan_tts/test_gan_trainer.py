@@ -3,9 +3,9 @@
 import pytest
 from omegaconf import OmegaConf
 
-import espnet3.systems.esp2_gan_tts.gan_trainer as gan_trainer_module
+import espnet3.systems.esp2_gan_tts.src.gan_trainer as gan_trainer_module
 from espnet3.components.trainers.trainer import ESPnet3LightningTrainer
-from espnet3.systems.esp2_gan_tts.gan_trainer import (
+from espnet3.systems.esp2_gan_tts.src.gan_trainer import (
     GANTTSLightningTrainer,
     build_gan_trainer,
 )

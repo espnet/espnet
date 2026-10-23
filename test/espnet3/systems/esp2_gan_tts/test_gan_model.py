@@ -13,8 +13,8 @@ import pytest
 import torch
 
 from espnet3.components.modeling.optimization_spec import OptimizationStep
-from espnet3.systems.esp2_gan_tts.models import gan_model
-from espnet3.systems.esp2_gan_tts.models.gan_model import (
+from espnet3.systems.esp2_gan_tts.src import gan_model
+from espnet3.systems.esp2_gan_tts.src.gan_model import (
     _wrap_collect_feats_with_inputs,
 )
 

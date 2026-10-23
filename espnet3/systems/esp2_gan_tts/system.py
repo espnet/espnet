@@ -19,9 +19,9 @@ from espnet3.components.modeling.lightning_module import ESPnetLightningModule
 from espnet3.components.trainers.trainer import ESPnet3LightningTrainer
 from espnet3.parallel.parallel import set_parallel
 from espnet3.systems.base.training import _instantiate_model
-from espnet3.systems.esp2_gan_tts.gan_trainer import build_gan_trainer
-from espnet3.systems.esp2_gan_tts.xvector_provider import XVectorProvider
-from espnet3.systems.esp2_gan_tts.xvector_runner import XVectorRunner
+from espnet3.systems.esp2_gan_tts.src.gan_trainer import build_gan_trainer
+from espnet3.systems.esp2_gan_tts.src.xvector_provider import XVectorProvider
+from espnet3.systems.esp2_gan_tts.src.xvector_runner import XVectorRunner
 from espnet3.systems.tts.system import TTSSystem
 from espnet3.utils.task_utils import save_espnet_config
 

@@ -56,7 +56,7 @@ class GANTTSLightningModule(ESPnetLightningModule):
 
     Examples:
         Built for you by
-        :func:`espnet3.systems.esp2_gan_tts.gan_trainer.build_gan_trainer`;
+        :func:`espnet3.systems.esp2_gan_tts.src.gan_trainer.build_gan_trainer`;
         the config side looks like:
         ```yaml
         optimizers:

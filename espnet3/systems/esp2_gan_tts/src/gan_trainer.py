@@ -7,7 +7,7 @@ import copy
 from omegaconf import DictConfig
 
 from espnet3.components.trainers.trainer import ESPnet3LightningTrainer
-from espnet3.systems.esp2_gan_tts.models.gan_model import GANTTSLightningModule
+from espnet3.systems.esp2_gan_tts.src.gan_model import GANTTSLightningModule
 
 
 class GANTTSLightningTrainer(ESPnet3LightningTrainer):
@@ -17,7 +17,7 @@ class GANTTSLightningTrainer(ESPnet3LightningTrainer):
     block to ``lightning.Trainer(...)``. GAN-TTS recipes carry an extra
     ``trainer.gan`` sub-block (``generator_first``,
     ``skip_discriminator_prob``, ``no_forward_run``) that is consumed by
-    :class:`~espnet3.systems.esp2_gan_tts.models.gan_model.GANTTSLightningModule`,
+    :class:`~espnet3.systems.esp2_gan_tts.src.gan_model.GANTTSLightningModule`,
     not by Lightning. This subclass strips that block before delegating, so
     Lightning never sees an unknown ``gan`` keyword. Everything else -
     callbacks, checkpoint averaging, ``fit``/``collect_stats`` - is inherited

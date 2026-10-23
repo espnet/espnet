@@ -23,7 +23,7 @@ class XVectorRunner(BaseRunner):
 
     Examples:
         Driven by the ``compute_xvectors`` stage through
-        :class:`~espnet3.systems.esp2_gan_tts.xvector_provider.XVectorProvider`:
+        :class:`~espnet3.systems.esp2_gan_tts.src.xvector_provider.XVectorProvider`:
         ```python
         # `env` already carries output_dir, the model and the manifest.
         env = XVectorProvider(training_config, params=params).build_env_local()

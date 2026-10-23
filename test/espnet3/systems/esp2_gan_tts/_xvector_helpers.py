@@ -4,7 +4,7 @@ import numpy as np
 import soundfile as sf
 from omegaconf import OmegaConf
 
-from espnet3.systems.esp2_gan_tts.xvector_provider import XVectorProvider
+from espnet3.systems.esp2_gan_tts.src.xvector_provider import XVectorProvider
 
 
 def write_manifest(tmp_path, rows, name="train.tsv"):

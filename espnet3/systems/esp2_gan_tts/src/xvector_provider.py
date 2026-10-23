@@ -31,7 +31,7 @@ class XVectorProvider(EnvironmentProvider):
 
     Examples:
         Paired with
-        :class:`~espnet3.systems.esp2_gan_tts.xvector_runner.XVectorRunner`
+        :class:`~espnet3.systems.esp2_gan_tts.src.xvector_runner.XVectorRunner`
         by the ``compute_xvectors`` stage:
         ```python
         provider = XVectorProvider(
