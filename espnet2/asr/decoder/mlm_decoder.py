@@ -40,6 +40,7 @@ class MLMDecoder(AbsDecoder):
         pos_enc_class=PositionalEncoding,
         normalize_before: bool = True,
         concat_after: bool = False,
+        use_sdpa: bool = False,
     ):
         super().__init__()
         attention_dim = encoder_output_size
@@ -74,10 +75,16 @@ class MLMDecoder(AbsDecoder):
             lambda lnum: DecoderLayer(
                 attention_dim,
                 MultiHeadedAttention(
-                    attention_heads, attention_dim, self_attention_dropout_rate
+                    attention_heads,
+                    attention_dim,
+                    self_attention_dropout_rate,
+                    use_sdpa=use_sdpa,
                 ),
                 MultiHeadedAttention(
-                    attention_heads, attention_dim, src_attention_dropout_rate
+                    attention_heads,
+                    attention_dim,
+                    src_attention_dropout_rate,
+                    use_sdpa=use_sdpa,
                 ),
                 PositionwiseFeedForward(attention_dim, linear_units, dropout_rate),
                 dropout_rate,
