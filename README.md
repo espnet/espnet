@@ -25,34 +25,14 @@ ______________________________________________________________________
 
 ESPnet is an end-to-end speech processing toolkit built on [PyTorch](https://pytorch.org/). It covers speech recognition, text-to-speech, speech translation, speech enhancement, speaker diarization, spoken language understanding, singing voice synthesis, speech language models, and more — with [Kaldi](http://kaldi-asr.org/)-style reproducible recipes from data preparation to evaluation, and hundreds of pretrained models on Hugging Face.
 
-## ESPnet2 and ESPnet3 configuration differences
-
-| Setting | ESPnet2 | ESPnet3 |
-| --- | --- | --- |
-| `batch_bins` (sequence batching) | Global budget for the whole distributed job; each sequence batch is split across ranks | Per-GPU budget by default; `dataloader.train.batch_distribution: global` opts into a global budget and splits each batch across ranks. Validation selects its mode under `dataloader.valid`. |
-| `best_model_criterion` | Each criterion is `(phase, metric, mode)`; the number of models to keep is set separately with `keep_nbest_models` | Each criterion is `(monitor, top_k, mode)`, so the number of checkpoints to keep is specified per criterion (for example, `valid/loss, 3, min`). |
-| `seed` | Set initially and reset to `seed + epoch` at the start of each epoch | Set once before training with Lightning's `seed_everything(..., workers=True)`; random streams are not reset to `seed + epoch` by ESPnet3. |
-| Early stopping (`patience`) | `patience` and `early_stopping_criterion` are trainer options | Configure Lightning's `EarlyStopping` callback in `trainer.callbacks` (for example, its `monitor`, `patience`, and `mode`); no early-stopping callback is added by default. |
-
-Existing ESPnet3 configs keep per-GPU behavior when `batch_distribution` is omitted.
-Changing the GPU count in that mode changes the effective global batch budget.
-Switching modes does not automatically rescale `batch_bins` or accumulation.
-Global mode requires shared batches with at least `world_size` items;
-unsupported iterator/sharding configurations raise an error.
-
-<!-- TODO: After merge, replace the draft links below with the corresponding
-     official documentation URLs under https://espnet.github.io/espnet/. -->
-See the [migration guide](https://masao-someki.github.io/espnet_draft_home_page/espnet3/guides/migrating-from-espnet2/config-diff.html)
-and [dynamic batching guide](https://masao-someki.github.io/espnet_draft_home_page/espnet3/guides/scaling/data-pipeline.html)
-on the draft documentation site for further guidance.
-
 ## What's new
 
-- **[ESPnet 202610.post2](https://github.com/espnet/espnet/releases/tag/v.202610.post2)** — the command line has one name a task and two more of them: `espnet phonemize` reads the phones with POWSM, `espnet align` lines text up with the audio it was said in, and `asr` and `tts` became `transcribe` and `synthesize` (the old names still work); models published before June 2025 load again, after `init: chainer` was removed from the toolkit.
+- **[ESPnet 202611](https://github.com/espnet/espnet/releases/tag/v.202611)** — audio quality assessment (`espnet2.bin.aqa_inference`, the ARECHO metric model and the URGENT24 recipe), so VERSA can install its supporting models from PyPI; Bagpiper on the command line (`espnet describe`, `espnet render`) and in the MCP server; scaled dot-product attention through every ASR encoder, relative-position attention included; F5-TTS; `hydra-core` and `omegaconf` are now core dependencies, and `ctc-segmentation` comes from upstream 1.7.5.
 
 <details>
 <summary>Earlier releases</summary>
 
+- **[ESPnet 202610.post2](https://github.com/espnet/espnet/releases/tag/v.202610.post2)** — the command line has one name a task and two more of them: `espnet phonemize` reads the phones with POWSM, `espnet align` lines text up with the audio it was said in, and `asr` and `tts` became `transcribe` and `synthesize` (the old names still work); models published before June 2025 load again, after `init: chainer` was removed from the toolkit.
 - **[ESPnet 202610.post1](https://github.com/espnet/espnet/releases/tag/v.202610.post1)** — the command line grows `espnet demo` (the OWSM browser demo) and `--live` (the microphone, transcribed as you speak); one `Speech2Text` now loads either kind of OWSM checkpoint, with `best_path()` for CTC decoding without a search; `espnet/espnet:inference-cpu-latest` and `-gpu-latest` run a published model with nothing installed; three more demo Spaces (TTS, enhancement, speaker verification).
 - **[ESPnet 202610](https://github.com/espnet/espnet/releases/tag/v.202610)** — one-line inference from the command line (`pip install espnet && espnet asr audio.wav`), two OWSM v4 demos as Hugging Face Spaces, a core install without the training stack (training is `espnet[train]`), batched beam search, PyTorch 2.11-2.14.
 - **[ESPnet 202609](https://github.com/espnet/espnet/releases/tag/v.202609)** — ESPnet3 complete on [`egs3/librispeech_100`](egs3/librispeech_100) at ESPnet2 parity, CI rebuilt on a prebuilt image (compute per run halved), OpenBEATs pretraining, ten new recipes (ASR, TTS, SER, ST, audio SSL), Python 3.12-3.13.
@@ -127,7 +107,7 @@ espnet synthesize "Hello from ESPnet" -o out.wav
 espnet enhance noisy.wav -o clean.wav
 ```
 
-`phonemize` and `align` are there too, and `espnet models` names the default model of each. Every command but that one takes `--model <tag>` and `--device cuda`. `espnet run <tag> --system s2t speech=audio.wav` runs any model by what it declares, with no task in the command's name.
+`phonemize` and `align` are there too, and `espnet models` names the default model of each. Every command but that one takes `--model <tag>` and `--device cuda`.
 
 **From Python**
 
@@ -248,7 +228,7 @@ the Space `README.md` and `requirements.txt` are all generated from
 ```sh
 cd egs3/librispeech_100/esp2_asr
 train=conf/tuning/training_e_branchformer.yaml   # the config the model was trained with
-python run.py --stages pack_model  --training_config $train --publication_config conf/publication.yaml  # -> exp/.../model_pack
+python run.py --stages pack_model  --training_config $train --inference_config conf/inference.yaml --publication_config conf/publication.yaml  # -> exp/.../model_pack
 python run.py --stages pack_demo   --training_config $train --demo_config conf/demo.yaml                # -> demo/
 python run.py --stages upload_demo --training_config $train --demo_config conf/demo.yaml                # needs `hf auth login`
 ```
@@ -271,6 +251,32 @@ Contributions, questions, and feature requests are all welcome — open an [issu
 <img src="https://contrib.rocks/image?repo=espnet/espnet&max=100&columns=25"
 alt="Contributors"/>
 </a>
+
+## ESPnet2 and ESPnet3 configuration differences
+
+<details>
+<summary><b>Configuration differences when moving from ESPnet2 to ESPnet3</b></summary>
+
+| Setting | ESPnet2 | ESPnet3 |
+| --- | --- | --- |
+| `batch_bins` (sequence batching) | Global budget for the whole distributed job; each sequence batch is split across ranks | Per-GPU budget by default; `dataloader.train.batch_distribution: global` opts into a global budget and splits each batch across ranks. Validation selects its mode under `dataloader.valid`. |
+| `best_model_criterion` | Each criterion is `(phase, metric, mode)`; the number of models to keep is set separately with `keep_nbest_models` | Each criterion is `(monitor, top_k, mode)`, so the number of checkpoints to keep is specified per criterion (for example, `valid/loss, 3, min`). |
+| `seed` | Set initially and reset to `seed + epoch` at the start of each epoch | Set once before training with Lightning's `seed_everything(..., workers=True)`; random streams are not reset to `seed + epoch` by ESPnet3. |
+| Early stopping (`patience`) | `patience` and `early_stopping_criterion` are trainer options | Configure Lightning's `EarlyStopping` callback in `trainer.callbacks` (for example, its `monitor`, `patience`, and `mode`); no early-stopping callback is added by default. |
+
+Existing ESPnet3 configs keep per-GPU behavior when `batch_distribution` is omitted.
+Changing the GPU count in that mode changes the effective global batch budget.
+Switching modes does not automatically rescale `batch_bins` or accumulation.
+Global mode requires shared batches with at least `world_size` items;
+unsupported iterator/sharding configurations raise an error.
+
+<!-- TODO: After merge, replace the draft links below with the corresponding
+     official documentation URLs under https://espnet.github.io/espnet/. -->
+See the [migration guide](https://masao-someki.github.io/espnet_draft_home_page/espnet3/guides/migrating-from-espnet2/config-diff.html)
+and [dynamic batching guide](https://masao-someki.github.io/espnet_draft_home_page/espnet3/guides/scaling/data-pipeline.html)
+on the draft documentation site for further guidance.
+
+</details>
 
 ## Details
 
