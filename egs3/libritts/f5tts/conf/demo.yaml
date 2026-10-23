@@ -8,7 +8,7 @@
 #       --training_config conf/training.yaml --demo_config conf/demo.yaml
 #
 # Merged over `egs3/TEMPLATE/f5tts/conf/demo.yaml`, which wires the demo to
-# the fields of `espnet3.systems.f5tts.inference.Inference`, packs `src/app.py`
+# the fields of `espnet3.systems.f5tts.src.inference.Inference`, packs `src/app.py`
 # with the template's input guide as its description, and names the Space
 # `espnet/${set_corpus_and_system:}_${exp_tag}`. This recipe adds one example
 # the visitor can run at a click: the first LibriSpeech-PC pair, whose prompt

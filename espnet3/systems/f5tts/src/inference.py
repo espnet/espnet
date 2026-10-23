@@ -223,7 +223,7 @@ class F5TTSInference:
             .. code-block:: yaml
 
                 model:
-                  _target_: espnet3.systems.f5tts.inference.F5TTSInference
+                  _target_: espnet3.systems.f5tts.src.inference.F5TTSInference
                   train_config: ${exp_dir}/config.yaml
                   checkpoint_path: ${exp_dir}/last.ckpt
                   device: cuda
@@ -677,7 +677,7 @@ class Inference:
         .. code-block:: yaml
 
             model:
-              _target_: espnet3.systems.f5tts.inference.Inference
+              _target_: espnet3.systems.f5tts.src.inference.Inference
               train_config: ${exp_dir}/config.yaml  # written by F5TTSSystem.train
               checkpoint_path: ${exp_dir}/last.ckpt
               ode_solver_steps: 32

@@ -80,7 +80,7 @@ def test_publication_scaffold_packs_what_an_f5tts_bundle_needs() -> None:
 def test_demo_scaffold_wires_the_inference_contract_fields() -> None:
     """The demo inputs and outputs are the fields ``Inference`` declares."""
     config = load_default_config("demo.yaml", PACKAGE)
-    inference_class = get_class("espnet3.systems.f5tts.inference.Inference")
+    inference_class = get_class("espnet3.systems.f5tts.src.inference.Inference")
 
     assert [(spec.key, spec.type) for spec in config.ui.inputs] == [
         (field.name, field.kind) for field in inference_class.inputs
@@ -163,7 +163,7 @@ def test_packed_model_needs_no_bundled_code(recipe_dir, stub_vocoder):
     bundle = recipe_dir / "exp" / "training" / "model_pack"
 
     packed = yaml.safe_load((bundle / "conf" / "inference.yaml").read_text())
-    assert packed["model"]["_target_"] == "espnet3.systems.f5tts.inference.Inference"
+    assert packed["model"]["_target_"] == "espnet3.systems.f5tts.src.inference.Inference"
     assert packed["input_key"] == ["text", "reference_speech", "reference_text"]
     assert packed["output_fn"] == "egs3.TEMPLATE.f5tts.src.inference.build_output"
     assert packed["output_artifacts"]["wav"] == {"type": "wav", "sample_rate": 24000}

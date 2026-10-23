@@ -76,7 +76,7 @@ def test_inference_scaffold_rebuilds_the_model_from_the_trained_config() -> None
     """Template inference builds ``Inference`` from ``${exp_dir}/config.yaml``."""
     config = load_default_config("inference.yaml", PACKAGE)
 
-    assert config.model._target_ == "espnet3.systems.f5tts.inference.Inference"
+    assert config.model._target_ == "espnet3.systems.f5tts.src.inference.Inference"
     model = OmegaConf.to_container(config.model, resolve=False)
     # `train` writes config.yaml beside the checkpoint; no training file is named.
     assert model["train_config"] == "${exp_dir}/config.yaml"

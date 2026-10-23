@@ -44,10 +44,10 @@ parallel:
 # `train` wrote beside the checkpoint, so whatever `--training_config` trained
 # `exp_dir` is the one inference loads; a recipe never names a training file
 # here. A recipe adds the sampling arguments of
-# `espnet3.systems.f5tts.inference.F5TTSInference` (`ode_solver_steps`,
+# `espnet3.systems.f5tts.src.inference.F5TTSInference` (`ode_solver_steps`,
 # `guidance_strength`, `sway_sampling_coefficient`, `speed`, `seed`, ...).
 model:
-  _target_: espnet3.systems.f5tts.inference.Inference
+  _target_: espnet3.systems.f5tts.src.inference.Inference
   train_config: ${exp_dir}/config.yaml
   checkpoint_path: ${exp_dir}/last.ckpt
   use_ema: true

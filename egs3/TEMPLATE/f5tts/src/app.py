@@ -111,7 +111,7 @@ def build_demo(
 
     Raises:
         TypeError: If the packed model is not
-            ``espnet3.systems.f5tts.inference.Inference``, whose sample rate
+            ``espnet3.systems.f5tts.src.inference.Inference``, whose sample rate
             the played audio is labelled with.
 
     Note:
@@ -145,7 +145,7 @@ def build_demo(
     sample_rate = getattr(getattr(session.model, "model", None), "sample_rate", None)
     if sample_rate is None:
         raise TypeError(
-            "the packed model must be espnet3.systems.f5tts.inference.Inference, "
+            "the packed model must be espnet3.systems.f5tts.src.inference.Inference, "
             f"which has a sample_rate; got {type(session.model).__name__}"
         )
 

@@ -19,8 +19,8 @@ import torch
 from omegaconf import OmegaConf
 
 import espnet3.parallel.parallel as parallel_module
-from espnet3.systems.f5tts.inference import F5TTSInference
 from espnet3.systems.f5tts.src.f5tts import F5TTS
+from espnet3.systems.f5tts.src.inference import F5TTSInference
 from espnet3.utils.config_utils import load_and_merge_config
 
 PACKAGE = "egs3.TEMPLATE.f5tts"

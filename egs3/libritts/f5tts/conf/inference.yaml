@@ -7,7 +7,7 @@
 # dataset/builder.py. No manual preparation step is needed.
 #
 # Merged over `egs3/TEMPLATE/f5tts/conf/inference.yaml`, which names the model
-# (`espnet3.systems.f5tts.inference.Inference`, rebuilt from the config `train`
+# (`espnet3.systems.f5tts.src.inference.Inference`, rebuilt from the config `train`
 # wrote to `${exp_dir}/config.yaml`) and holds the path scaffold; `run.py`
 # copies `exp_tag` / `exp_dir` from `--training_config`, so pass both. This
 # recipe names its test set and the paper's sampling settings.

@@ -15,13 +15,13 @@ import torch
 import yaml
 
 from espnet3.systems.base.inference_runner import InferenceRunner
-from espnet3.systems.f5tts.inference import (
+from espnet3.systems.f5tts.src.f5tts import F5TTS
+from espnet3.systems.f5tts.src.inference import (
     F5TTSInference,
     Inference,
     _chunk_text,
     _cross_fade,
 )
-from espnet3.systems.f5tts.src.f5tts import F5TTS
 
 TOKENS = ["<blank>", "<unk>", "a", "b", "c", " ", "<sos/eos>"]
 MODEL_CONF = dict(

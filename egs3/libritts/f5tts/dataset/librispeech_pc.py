@@ -10,7 +10,7 @@ manifest
 
 which :class:`LibriSpeechPCDataset` serves. Every row pins its prompt,
 reproducing the paper's fixed pairing. The output keys are the inputs
-``espnet3.systems.f5tts.inference.Inference`` declares (``text``,
+``espnet3.systems.f5tts.src.inference.Inference`` declares (``text``,
 ``reference_speech``, ``reference_text``), ``utt_id``, and the two scoring
 references ``conf/metrics.yaml`` reads as ``dataset:<column>``
 (``ref_wav_path`` for speaker similarity, ``text`` for WER).
