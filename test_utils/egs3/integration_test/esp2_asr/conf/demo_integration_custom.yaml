@@ -1,0 +1,8 @@
+model:
+  dir_or_tag: exp/training_asr_transformer/model_pack
+
+ui:
+  app_script: test_utils/egs3/integration_test/esp2_asr/src/app_image.py
+
+pack:
+  out_dir: exp/demo_ui_custom

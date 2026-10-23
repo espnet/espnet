@@ -30,7 +30,20 @@ def top_level_functions(body):
 
 
 def top_level_classes(body):
-    return (f for f in body if isinstance(f, ast.ClassDef))
+    """The classes a page is generated for: the public ones.
+
+    Private classes were included where private functions were not, which
+    was harmless until one of them was named `_Hypothesis` beside a
+    `Hypothesis` in the same package. Two pages then arrived at one path,
+    vuepress-plugin-search-pro indexes a page by its path, and the doc build
+    died 25 minutes in with `SlimSearch: duplicate ID 1132` and no mention
+    of a page. `espnet2/legacy/_Hypothesis` and `espnet2/legacy/Hypothesis`
+    were the only such pair in the repository; ci/check_doc_pages.py now
+    fails on the next one by name.
+    """
+    return (
+        f for f in body if isinstance(f, ast.ClassDef) and not f.name.startswith("_")
+    )
 
 
 def parse_ast(filename):

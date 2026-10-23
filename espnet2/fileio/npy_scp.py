@@ -85,7 +85,7 @@ class NpyScpReader(collections.abc.Mapping):
         return np.load(p)
 
     def __contains__(self, item):
-        return item
+        return item in self.data
 
     def __len__(self):
         return len(self.data)

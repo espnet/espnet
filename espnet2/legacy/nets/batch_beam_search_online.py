@@ -1,10 +1,7 @@
 """Parallel beam search module for online simulation."""
 
 import logging
-from typing import Any  # noqa: H301
-from typing import Dict  # noqa: H301
-from typing import List  # noqa: H301
-from typing import Tuple  # noqa: H301
+from typing import Any, Dict, List, Tuple  # noqa: H301
 
 import torch
 
