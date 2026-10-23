@@ -608,7 +608,7 @@ def apply_changes(repo, milestone, version, notes):
     title = f"ESPnet version {version}"
     # The tag and the commit are always sent, not left to what the release
     # already says: publishing a draft whose tag_name has become
-    # untagged-<hash> creates a tag of that name - one sits on the
+    # untagged-<hash> creates a tag of that name - one was left on the
     # 202610.post1 commit - and no v.YYYYMM tag, so nothing is uploaded.
     target = {}
     sha = release_commit(version)
