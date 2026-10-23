@@ -1,4 +1,15 @@
-"""Recipe-local Gradio launcher for ESPnet3 demos."""
+"""Recipe-local Gradio launcher for ESPnet3 codec demos.
+
+The generic launcher (``egs3/TEMPLATE/esp2_asr/src/app.py``) binds the demo
+session's inference function straight to the Gradio components; the session
+builds the components from the packed inference contract, which also turns
+whatever ``gr.Audio`` delivers into the waveform the codec takes, and hands
+the resynthesized ``Audio`` back as the ``(sample_rate, samples)`` pair
+``gr.Audio`` plays. This launcher adds two things a codec demo needs: the
+output samples are passed to Gradio as int16, because Gradio peak-normalizes
+float arrays and would change the level the codec reproduced, and on ZeroGPU
+Spaces the handler is registered with ``spaces.GPU``.
+"""
 
 from __future__ import annotations
 
@@ -24,150 +35,77 @@ from espnet3.utils.logging_utils import configure_logging  # noqa: E402
 logger = logging.getLogger(__name__)
 
 
-def convert_gradio_audio_to_waveform(value: Any, sample_rate: int) -> np.ndarray | None:
-    """Convert a ``gr.Audio`` value into the waveform the codec expects.
+def convert_demo_audio_to_int16(value: Any) -> tuple[int, np.ndarray]:
+    """Return a ``(sample_rate, samples)`` pair with int16 samples.
 
-    ``gr.Audio`` (``type="numpy"``) delivers ``(rate, samples)`` with integer
-    samples at the rate of the recording or file, and stereo material as a
-    ``(frames, channels)`` array. ``AudioCoding`` wants a float32 mono array at
-    the model's sampling rate, so scale integers to ``[-1, 1]``, average the
-    channels, and resample when the rates differ.
+    The demo session returns a contract ``audio`` output as the
+    ``(sample_rate, samples)`` pair ``gr.Audio`` plays, with float samples in
+    ``[-1, 1]``. Gradio peak-normalizes float arrays when it converts them to
+    16-bit audio, which would change the level of a codec's output; int16
+    samples are passed through unchanged.
 
     Args:
-        value: ``(rate, samples)`` tuple from Gradio, or ``None`` when the
-            component is empty.
-        sample_rate: Sampling rate the model was trained at.
+        value: ``(sample_rate, samples)`` with float samples, samples first
+            for multichannel audio as the session lays them out.
 
     Returns:
-        float32 mono waveform at ``sample_rate``, or ``None`` for ``None``.
+        ``(sample_rate, samples)`` with the same shape and int16 samples.
 
     Raises:
-        TypeError: If ``value`` is not a ``(rate, samples)`` tuple.
+        TypeError: If ``value`` is not a ``(sample_rate, samples)`` pair.
 
     Examples:
         ```python
-        waveform = convert_gradio_audio_to_waveform(
-            (48000, np.zeros((48000, 2), dtype=np.int16)), 24000
-        )
-        waveform.shape  # -> (24000,)
+        rate, samples = convert_demo_audio_to_int16((24000, np.full(240, 0.5)))
+        samples.dtype  # -> dtype('int16')
         ```
     """
-    if value is None:
-        return None
     if not (isinstance(value, (tuple, list)) and len(value) == 2):
         raise TypeError(
-            "Expected a (sample_rate, samples) tuple from gr.Audio, "
+            "Expected a (sample_rate, samples) pair from the demo session, "
             f"got {type(value).__name__}"
         )
-    source_sample_rate, samples = value
-    waveform = np.asarray(samples)
-    if np.issubdtype(waveform.dtype, np.integer):
-        waveform = waveform.astype(np.float32) / np.iinfo(waveform.dtype).max
-    else:
-        waveform = waveform.astype(np.float32)
-    if waveform.ndim == 2:
-        waveform = waveform.mean(axis=1)
-    waveform = waveform.reshape(-1)
-    if int(source_sample_rate) != int(sample_rate):
-        import librosa
-
-        waveform = librosa.resample(
-            waveform,
-            orig_sr=int(source_sample_rate),
-            target_sr=int(sample_rate),
-        )
-    return np.ascontiguousarray(waveform, dtype=np.float32)
-
-
-def convert_waveform_to_gradio_audio(
-    value: Any, sample_rate: int
-) -> tuple[int, np.ndarray]:
-    """Wrap a model waveform as the ``(rate, samples)`` pair ``gr.Audio`` plays.
-
-    Samples are returned as int16. Gradio peak-normalizes float arrays when it
-    converts them to 16-bit audio, which would change the level of a codec's
-    output; int16 samples are passed through unchanged.
-
-    Args:
-        value: Waveform in ``[-1, 1]`` as an array-like (torch tensors and
-            ``(1, T)`` shapes included).
-        sample_rate: Rate the waveform was generated at.
-
-    Returns:
-        ``(sample_rate, samples)`` with a flat int16 array.
-
-    Examples:
-        ```python
-        rate, samples = convert_waveform_to_gradio_audio(
-            np.zeros((1, 240)), 24000
-        )
-        samples.shape  # -> (240,)
-        ```
-    """
-    if hasattr(value, "detach"):
-        value = value.detach().cpu().numpy()
-    waveform = np.asarray(value, dtype=np.float32).reshape(-1)
+    sample_rate, samples = value
+    waveform = np.asarray(samples, dtype=np.float32)
     waveform = np.clip(waveform, -1.0, 1.0) * np.iinfo(np.int16).max
     return int(sample_rate), waveform.astype(np.int16)
 
 
 def wrap_inference_fn(
     inference_fn: Callable[..., Any],
-    input_specs: Sequence[dict[str, Any]],
     output_specs: Sequence[dict[str, Any]],
-    sample_rate: int | None,
 ) -> Callable[..., Any]:
-    """Adapt a session inference function to Gradio's audio value format.
+    """Pass every ``type: audio`` output to Gradio as int16 samples.
 
-    The session function created by ``DemoSession.create_inference_fn`` maps
-    UI values positionally onto model input keys and returns one value per
-    output spec (a bare value when there is exactly one). This wrapper
-    converts every ``type: audio`` input with
-    :func:`convert_gradio_audio_to_waveform` and every ``type: audio`` output
-    with :func:`convert_waveform_to_gradio_audio`; other types pass through
-    untouched.
+    The session function created by ``DemoSession.create_inference_fn``
+    returns one value per output spec (a bare value when there is exactly
+    one). Inputs are left to the packed contract; this wrapper only converts
+    the audio outputs with :func:`convert_demo_audio_to_int16`, other types
+    pass through untouched.
 
     Args:
         inference_fn: Positional inference callable from the demo session.
-        input_specs: Resolved ``ui.inputs`` specs, in UI order.
-        output_specs: Resolved ``ui.outputs`` specs, in UI order.
-        sample_rate: Model sampling rate (``ui.sample_rate``); required as soon
-            as any spec is audio.
+        output_specs: Resolved output specs, in UI order.
 
     Returns:
         Callable suitable for ``gr.Button.click``.
 
-    Raises:
-        ValueError: If an audio spec is present but ``sample_rate`` is unset.
-
     Examples:
         ```python
         run_inference = wrap_inference_fn(
-            lambda audio: audio,
-            [{"key": "audio", "type": "audio", "label": "In"}],
+            lambda audio: (24000, np.full(240, 0.5)),
             [{"key": "wav", "type": "audio", "label": "Out"}],
-            sample_rate=24000,
         )
         rate, samples = run_inference((24000, np.zeros(240, dtype=np.int16)))
         ```
     """
-    input_is_audio = [spec.get("type") == "audio" for spec in input_specs]
     output_is_audio = [spec.get("type") == "audio" for spec in output_specs]
-    if (any(input_is_audio) or any(output_is_audio)) and sample_rate is None:
-        raise ValueError(
-            "ui.sample_rate is required in demo.yaml when an input or output "
-            "spec has type: audio; it is the model's sampling rate."
-        )
 
     def run_inference(*values: Any) -> Any:
-        converted = [
-            convert_gradio_audio_to_waveform(value, sample_rate) if is_audio else value
-            for value, is_audio in zip(values, input_is_audio)
-        ]
-        result = inference_fn(*converted)
+        result = inference_fn(*values)
         outputs = list(result) if len(output_specs) > 1 else [result]
         outputs = [
-            convert_waveform_to_gradio_audio(value, sample_rate) if is_audio else value
+            convert_demo_audio_to_int16(value) if is_audio else value
             for value, is_audio in zip(outputs, output_is_audio)
         ]
         return outputs[0] if len(outputs) == 1 else outputs
@@ -181,11 +119,11 @@ def build_demo(
 ):
     """Build the default Gradio Blocks app for one packed demo.
 
-    Input and output components are read from the packed ``demo.yaml``, so
-    this launcher is task-agnostic: a codec demo wires audio in to audio out
-    purely through that config. Audio values are converted between Gradio's
-    ``(rate, samples)`` format and the model's float32 waveform at
-    ``ui.sample_rate``, and on ZeroGPU Spaces the inference function is
+    Input and output components are built from the packed inference config's
+    contract (or from ``ui.inputs`` / ``ui.outputs`` when the demo config
+    sets them), so this launcher is task-agnostic: a codec demo wires audio
+    in to audio out purely through that config. Audio outputs reach Gradio
+    as int16 samples, and on ZeroGPU Spaces the inference function is
     registered with ``spaces.GPU``.
 
     Args:
@@ -217,16 +155,12 @@ def build_demo(
         session.input_specs,
         session.output_specs,
     )
-    ui_cfg = getattr(session.demo_cfg, "ui", None)
-    sample_rate = ui_cfg.get("sample_rate") if ui_cfg is not None else None
     inference_fn = wrap_inference_fn(
         session.create_inference_fn(
             session.input_specs,
             session.output_specs,
         ),
-        session.input_specs,
         session.output_specs,
-        sample_rate,
     )
     if spaces is not None:
         # Every Run then draws on the ZeroGPU quota even for a CPU-only codec;

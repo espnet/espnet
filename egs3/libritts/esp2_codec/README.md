@@ -53,13 +53,20 @@ python run.py --stages infer measure \
     --metrics_config conf/metrics.yaml
 ```
 
+`infer` writes one resynthesized WAV per test utterance under
+`exp/${exp_tag}/inference/test/` and lists them in `wav.scp`. `measure` reads
+the ground-truth file of each utterance from the test set itself (the
+`wav_path` column, bound as `dataset:wav_path` in `conf/metrics.yaml`), so
+nothing but the model's output is written by `infer`.
+
 The `measure` stage runs [versa](https://github.com/wavlab-speech/versa), which
 has to be installed in the same environment that runs the stage. Install it
 with `tools/installers/install_versa.sh`. The pseudo-MOS metrics also need
 `speechmos` and `onnxruntime`. When those are missing, versa logs a load
-failure, skips that whole metric group and still exits 0. Read the scores in
-`avg_result.json` to see what was actually computed rather than trusting the
-exit status.
+failure, skips that whole metric group and still exits 0; `conf/metrics.yaml`
+therefore lists the scores the configuration promises under `outputs`, and
+`measure` fails when one of them is missing instead of reporting a partial
+table.
 
 ### Choosing the checkpoint
 
@@ -104,7 +111,8 @@ python run.py --stages pack_demo upload_demo \
 The demo stages require `--training_config` because the demo config resolves
 `${exp_tag}` from it. `conf/demo.yaml` points the demo at
 `${upload_demo.hf_repo}`, so `upload_model` has to publish to that repo before
-the Space can load a model.
+the Space can load a model. The demo's input and output widgets come from the
+inference contract in `conf/inference.yaml`.
 
 ## Pretrained model and demo
 
@@ -117,15 +125,13 @@ its `epoch95_step1201215` checkpoint.
 The Space runs on ZeroGPU. It takes an uploaded file or a microphone recording
 and resynthesizes it through the codec.
 
-The published model also loads directly.
+The published model also loads directly. The input is anything that carries
+audio (a path, a `(rate, samples)` pair, an array at 24 kHz); the output `wav`
+is an `Audio` with `.array` and `.rate`.
 
 ```python
 from espnet3.publication.inference_model import InferenceModel
 
-model = InferenceModel.from_pretrained(
-    "NewGame/libritts_codec_train_encodec_libritts", trust_user_code=True
-)
+model = InferenceModel.from_pretrained("NewGame/libritts_codec_train_encodec_libritts")
+resynthesized = model("utt.wav")["wav"]
 ```
-
-`trust_user_code=True` is required because the bundle carries this recipe's
-`src` package, which formats the model output.

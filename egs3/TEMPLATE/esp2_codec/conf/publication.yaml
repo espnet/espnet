@@ -74,7 +74,7 @@ pack_model:
   readme: ${config_path:../src/hf_model_readme.md}
   include:
     # Include recipe code when the packed model depends on local modules
-    # (e.g. an `output_fn` referenced from conf/inference.yaml).
+    # (e.g. a `contract.imports` module referenced from conf/inference.yaml).
     - src
     # Include recipe-local dataset modules for publication smoke checks.
     - dataset

@@ -23,15 +23,11 @@ recipe_dir: .
 # - local packed directory relative to the demo dir, e.g. `../model_pack`
 # - remote model tag understood by `espnet_model_zoo`
 #
-# `model.call_args` is passed at inference call time as:
-#   model(sample, **call_args)
-# Use this only for runtime kwargs consumed by the published model callable.
-# Initialization-time overrides are intentionally not supported here; keep
-# those in the packed `conf/inference.yaml`.
+# The bundle runs through the installed `espnet3.systems.esp2_codec` runner
+# and carries no recipe code, so `trust_user_code` stays false.
 model:
   dir_or_tag: ${upload_demo.hf_repo}
   trust_user_code: false
-  call_args: {}
 
 ##########################################################
 #                     UI DEFINITION                      #
@@ -42,34 +38,16 @@ model:
 # - a markdown/text file path; `pack_demo` copies that file into the bundle
 # - inline text; the app shows it directly
 #
-# `ui.inputs` and `ui.outputs` define the default Gradio wiring used by
-# `src/app.py`.
-# - `key`: model-facing field name
-# - `type`: registered built-in UI asset type such as `audio` or `text`
-# - `label`: UI label shown in Gradio
-#
-# A codec demo is audio in / audio out: the uploaded waveform is encoded to
-# discrete codes and decoded back, so the visible result is the resynthesized
-# audio. `key` values match the AudioCoding contract used by the codec
-# inference config: `audio` in (see `input_key` in conf/inference.yaml) and
-# `resyn_audio` out.
-#
-# The default app binds input/output components positionally. Keep the order of
-# these entries aligned with the values expected by the app and returned by the
-# inference function.
+# The input and output widgets are built from the packed inference contract
+# (`contract` in conf/inference.yaml): one audio input, one audio output, with
+# the labels declared there. A codec demo is audio in / audio out: the
+# uploaded waveform is encoded to discrete codes and decoded back, so the
+# visible result is the resynthesized audio. Set `ui.inputs` / `ui.outputs`
+# (`key`, `type`, `label` entries) only to override that wiring.
 ui:
   app_script: src/app.py
   title: ${set_corpus_and_system:} demo
   description: README.md
-  sample_rate: 24000
-  inputs:
-    - key: audio
-      type: audio
-      label: "Input Audio"
-  outputs:
-    - key: resyn_audio
-      type: audio
-      label: "Resynthesized Audio"
 
 ##########################################################
 #                    PACKING SETTING                     #
