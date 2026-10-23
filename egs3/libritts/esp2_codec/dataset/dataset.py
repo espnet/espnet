@@ -2,7 +2,9 @@
 
 Audio-only: returns ``{"audio": np.float32 waveform}`` samples, matching
 ``CommonPreprocessor(speech_name="audio")`` from
-``espnet2.tasks.gan_codec.GANCodecTask.build_preprocess_fn``.
+``espnet3.systems.esp2_codec.task.GANCodecTask.build_preprocess_fn``. The
+item fields are declared on the class (``BaseDataset.fields``) and checked on
+the first item of every instance.
 """
 
 from __future__ import annotations
@@ -14,9 +16,10 @@ from typing import Any
 
 import numpy as np
 import soundfile as sf
-from torch.utils.data import Dataset as TorchDataset
 
 from egs3.libritts.esp2_codec.dataset.builder import LibriTTSBuilder
+from espnet3.components.data.base_dataset import BaseDataset
+from espnet3.contract import Field
 from espnet3.utils.config_utils import load_config_with_defaults
 
 # ---------------------------------------------------------------------------
@@ -82,15 +85,17 @@ def _read_manifest(path: Path) -> list[ManifestEntry]:
 # ---------------------------------------------------------------------------
 
 
-class LibriTTSCodecDataset(TorchDataset):
+class LibriTTSCodecDataset(BaseDataset):
     """LibriTTS dataset returning audio-only samples for codec training.
 
     Reads one manifest TSV written by
     :class:`~egs3.libritts.esp2_codec.dataset.builder.LibriTTSBuilder` and returns
     ``{"audio": np.float32 waveform}`` per utterance, matching
     ``CommonPreprocessor(speech_name="audio")``. In ``inference`` mode the
-    sample also carries ``utt_id`` and ``wav_path`` so the infer stage can
-    write the ground-truth reference SCP.
+    sample also carries ``utt_id``, which heads every inference output, and
+    ``wav_path``, the ground-truth file the ``measure`` stage scores against
+    (bound as ``dataset:wav_path`` in ``conf/metrics.yaml``). Both are
+    declared optional because the training splits do not carry them.
 
     Args:
         split: Manifest split to load; one of the keys under
@@ -118,6 +123,12 @@ class LibriTTSCodecDataset(TorchDataset):
         sorted(test[0].keys())           # -> ['audio', 'utt_id', 'wav_path']
         ```
     """
+
+    fields = (
+        Field("audio", "audio"),
+        Field("utt_id", "text", optional=True),
+        Field("wav_path", "text", optional=True),
+    )
 
     def __init__(
         self,
@@ -232,9 +243,8 @@ class LibriTTSCodecDataset(TorchDataset):
 
         Returns:
             Dict with the waveform under ``audio`` as a 1-D float32 numpy
-            array. In ``inference`` mode it also carries ``utt_id`` (as a
-            0-d numpy array, so the collate function passes it through) and
-            ``wav_path`` (str).
+            array. In ``inference`` mode it also carries ``utt_id`` and
+            ``wav_path``, both ``str``.
 
         Raises:
             KeyError: If a string *idx* is not a known utterance ID.
@@ -256,7 +266,7 @@ class LibriTTSCodecDataset(TorchDataset):
         if self.inference:
             sample.update(
                 {
-                    "utt_id": np.asarray(entry.utt_id),
+                    "utt_id": str(entry.utt_id),
                     "wav_path": str(entry.wav_path),
                 }
             )

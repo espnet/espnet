@@ -24,8 +24,12 @@ create_dataset:
 ##########################################################
 #                    DATASET DEFINITION                  #
 ##########################################################
+# `_recursive_: false` hands `DataOrganizer` the split entries and the
+# `preprocessor` block as configs: it builds the preprocessor itself, with
+# `train=True` for the train split and `False` for valid.
 dataset:
   _target_: espnet3.components.data.data_organizer.DataOrganizer
+  _recursive_: false
   recipe_dir: ${recipe_dir}
   train:
     - data_src_args:
@@ -35,7 +39,6 @@ dataset:
         split: valid
   preprocessor:
     _target_: espnet2.train.preprocessor.CommonPreprocessor
-    train: true
     token_type: null
     speech_name: audio
     force_single_channel: true
