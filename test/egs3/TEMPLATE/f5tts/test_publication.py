@@ -67,8 +67,9 @@ def test_publication_scaffold_packs_what_an_f5tts_bundle_needs() -> None:
 
     assert config.pack_model.out_dir == "./exp/publication/model_pack"
     # The checkpoint and the config it was trained with both come with
-    # `${exp_dir}`; the recipe's dataset code is not needed to run the model.
-    assert list(config.pack_model.include) == ["src"]
+    # `${exp_dir}`; no recipe code is needed to run the model, and the demo
+    # launcher is read from the recipe by `pack_demo`, not from the bundle.
+    assert list(config.pack_model.include) == []
     assert "last.ckpt" not in config.pack_model.exclude
     assert "inference" in config.pack_model.exclude
     # The model card template ships with the template, not with every recipe.
@@ -109,11 +110,12 @@ def test_pack_model_writes_a_self_contained_bundle(recipe_dir, stub_vocoder):
         "exp/training/config.yaml",
         "conf/training.yaml",
         "data/token_list/tokens.txt",
-        "src/app.py",
         "README.md",
     ):
         assert (bundle / kept).is_file(), kept
+    # No recipe code travels with the model.
     assert not (bundle / "dataset").exists()
+    assert not (bundle / "src").exists()
     for excluded in (
         "exp/training/step40000.ckpt",
         "exp/training/train.log",

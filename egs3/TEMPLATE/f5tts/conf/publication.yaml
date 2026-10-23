@@ -8,7 +8,7 @@
 #       --publication_config conf/publication.yaml
 #
 # Shared default merged under every F5-TTS recipe's publication config. A
-# recipe overrides only what differs: `pack_model.include`, to add the
+# recipe overrides only what differs: `pack_model.include`, to name the
 # directory its `create_token_list` stage writes to.
 #
 # Pass `--inference_config` to `pack_model`: the bundle is loaded back through
@@ -28,9 +28,12 @@ data_dir: ${recipe_dir}/data
 # another machine: the checkpoint and the training config it is rebuilt from
 # (`${exp_dir}/last.ckpt` and `${exp_dir}/config.yaml`, both copied with
 # `${exp_dir}`), and the token list that config points at, which the recipe
-# adds to `include` (OmegaConf replaces a list, so restate the whole list:
-# `[src, ${data_dir}/<token list dir>]`). The recipe's `dataset/` code is not
-# needed to load or run the model and is not shipped.
+# names in `include` (`[${data_dir}/<token list dir>]`). No recipe code is
+# shipped: the packed inference config names only the system's `Inference`
+# and declares its contract inline, so the bundle loads with
+# `trust_user_code=False`; `src/app.py` is read from the recipe by
+# `pack_demo`, not from the bundle, and the `dataset/` package is not needed
+# to run the model.
 pack_model:
   out_dir: ${exp_dir}/model_pack
   allow_overwrite: false
@@ -39,9 +42,7 @@ pack_model:
   # Set this true to also include `repr(model)`.
   include_model_detail: false
   readme: ${config_path:../src/hf_model_readme.md}
-  include:
-    # The demo launcher (`src/app.py`) the packed demo is built from.
-    - src
+  include: []
   exclude:
     # Applied only during the bulk copy of `${exp_dir}`. `last.ckpt` is kept:
     # it is what the packed inference config loads.

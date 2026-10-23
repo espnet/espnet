@@ -227,9 +227,9 @@ class Dataset(BaseDataset):
 '''
 
 # A recipe overrides only what differs from the template: the directory its
-# token list lives in (OmegaConf replaces the list, so the rest is restated).
+# token list lives in.
 PUBLICATION_CONFIG = {
-    "pack_model": {"include": ["src", "${data_dir}/token_list"]},
+    "pack_model": {"include": ["${data_dir}/token_list"]},
 }
 
 # The demo wiring, README and requirements are the template's; a recipe adds
