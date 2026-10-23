@@ -37,6 +37,9 @@ model:
 # `ui.description` may be:
 # - a markdown/text file path; `pack_demo` copies that file into the bundle
 # - inline text; the app shows it directly
+# The default is the short guide shown above the inputs,
+# `egs3/TEMPLATE/esp2_codec/src/demo_description.md`, referenced relative to
+# the repository root so `pack_demo` finds and copies it from any recipe.
 #
 # The input and output widgets are built from the packed inference contract
 # (`contract` in conf/inference.yaml): one audio input, one audio output, with
@@ -47,7 +50,7 @@ model:
 ui:
   app_script: src/app.py
   title: ${set_corpus_and_system:} demo
-  description: README.md
+  description: egs3/TEMPLATE/esp2_codec/src/demo_description.md
 
 ##########################################################
 #                    PACKING SETTING                     #
