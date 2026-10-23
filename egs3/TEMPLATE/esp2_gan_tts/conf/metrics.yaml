@@ -8,10 +8,16 @@
 #       --metrics_config conf/metrics.yaml
 #
 # Shared default merged under every esp2_gan_tts recipe's metrics config.
-# Scores the `infer` stage outputs (`${inference_dir}/<test>/{wav,ref,text}.scp`)
-# with versa (https://github.com/wavlab-speech/versa), which must be
-# installed in the evaluation environment: pseudo-MOS (UTMOS, DNSMOS),
-# Whisper WER/CER against `text`, and speaker similarity against `ref`.
+# Scores the `infer` stage output (`${inference_dir}/<test>/wav.scp`) with
+# versa (https://github.com/wavlab-speech/versa), which must be installed in
+# the evaluation environment: pseudo-MOS (UTMOS, DNSMOS), Whisper WER/CER
+# against the transcript, and speaker similarity against the ground-truth
+# recording. The two references are columns of the test set itself
+# (`dataset:<column>`): `wav_path`, the original utterance, and `raw_text`,
+# its transcript; `infer` writes only what the model produced.
+#
+# `--inference_config` is required: the test set definition is read from it
+# to materialize those columns.
 
 recipe_dir: .
 exp_tag:
@@ -30,7 +36,7 @@ dataset:
 ##########################################################
 metrics:
   - metric:
-      _target_: espnet3.components.metrics.versa.VersaMetric
+      _target_: espnet3.systems.esp2_gan_tts.metrics.versa.VersaMetric
       score_config:
         - name: pseudo_mos
           predictor_types: [utmos, dnsmos]
@@ -44,11 +50,23 @@ metrics:
           beam_size: 1
         - name: speaker
           model_tag: espnet/voxcelebs12_ecapa_wavlm_joint
+      # The scores the configuration above promises; `measure` fails if versa
+      # drops one (a metric whose dependency is missing is disabled without
+      # failing the run). `whisper_wer` / `whisper_cer` are the corpus-level
+      # rates VersaMetric pools from the edit counts; every other versa key is
+      # returned as well.
+      outputs:
+        - whisper_wer
+        - whisper_cer
+        - spk_similarity
+        - utmos
+        - dns_overall
+        - dns_p808
       wav_key: wav
       ref_key: ref
       text_key: text
       use_gpu: true
     inputs:
-      wav: wav
-      ref: ref
-      text: text
+      wav: wav                 # the model's output -> <test_name>/wav.scp
+      ref: dataset:wav_path    # the ground-truth recording, a column of the test set
+      text: dataset:raw_text   # its transcript, another column

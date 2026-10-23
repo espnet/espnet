@@ -84,17 +84,31 @@ def test_load_default_config_infer_declares_the_contract() -> None:
     )
 
 
-def test_load_default_config_metrics_uses_versa() -> None:
+def test_load_default_config_metrics_binds_versa_to_the_dataset_columns() -> None:
     cfg = load_default_config("metrics.yaml", PACKAGE)
     assert [entry.name for entry in cfg.dataset.test] == ["valid", "test"]
-    metric = cfg.metrics[0].metric
-    assert metric._target_ == "espnet3.components.metrics.versa.VersaMetric"
+    entry = cfg.metrics[0]
+    metric = entry.metric
+    assert metric._target_ == "espnet3.systems.esp2_gan_tts.metrics.versa.VersaMetric"
     assert [score.name for score in metric.score_config] == [
         "pseudo_mos",
         "whisper_wer",
         "speaker",
     ]
+    assert list(metric.outputs) == [
+        "whisper_wer",
+        "whisper_cer",
+        "spk_similarity",
+        "utmos",
+        "dns_overall",
+        "dns_p808",
+    ]
     assert (metric.wav_key, metric.ref_key, metric.text_key) == ("wav", "ref", "text")
+    assert dict(entry.inputs) == {
+        "wav": "wav",
+        "ref": "dataset:wav_path",
+        "text": "dataset:raw_text",
+    }
 
 
 def test_load_and_merge_config_user_overrides_template_defaults(tmp_path: Path) -> None:
