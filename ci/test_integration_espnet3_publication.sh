@@ -10,7 +10,7 @@ cwd=$(pwd)
 check_workdir=""
 
 training_config=${1:-conf/training_asr_transformer.yaml}
-inference_config=${2:-conf/inference.yaml}
+inference_config=${2:-${cwd}/test_utils/egs3/integration_test/esp2_asr/conf/inference_publication.yaml}
 publication_config=${3:-conf/publication.yaml}
 dataset_split=${4:-test}
 upload_enabled=${ESPNET3_PUBLICATION_TEST_UPLOAD:-false}
@@ -88,6 +88,7 @@ fi
 
 check_args=(
     --split "${dataset_split}"
+    --reference-file "${check_workdir}/native-reference.json"
 )
 if [ -n "${hf_repo}" ]; then
     check_args+=(--model-tag "${hf_repo}")
@@ -114,7 +115,7 @@ ${python} run.py \
     --demo_config "${cwd}/test_utils/egs3/integration_test/esp2_asr/conf/demo_integration_custom.yaml"
 
 ${python} -m playwright install chromium
-${python} "${cwd}/ci/test_demo_ui.py"
+${python} "${cwd}/ci/test_demo_ui.py" --reference-file "${check_workdir}/native-reference.json"
 
 rm -rf exp data
 cd "${cwd}" || exit 1

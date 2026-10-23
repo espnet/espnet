@@ -28,6 +28,17 @@ def test_loads_offline_kmeans_centroids(centroid_path):
     torch.testing.assert_close(quantizer.centroids, torch.from_numpy(centers))
 
 
+def test_rejects_integer_kmeans_centroids(tmp_path):
+    path = tmp_path / "integer_kmeans.mdl"
+    joblib.dump(
+        SimpleNamespace(cluster_centers_=np.asarray([[0, 1]], dtype=np.int64)),
+        path,
+    )
+
+    with pytest.raises(TypeError, match="centroids must be floating point"):
+        DifferentiableKMeans(path)
+
+
 def test_encode_matches_nearest_centroid_and_masks_padding(centroid_path):
     path, _ = centroid_path
     quantizer = DifferentiableKMeans(path)
@@ -119,7 +130,7 @@ def test_temperature_must_be_positive(centroid_path):
         quantizer.set_temperature(0.0)
 
 
-def test_temperature_anneals_only_during_training(centroid_path):
+def test_temperature_anneals_only_during_training_with_gradients(centroid_path):
     path, _ = centroid_path
     quantizer = DifferentiableKMeans(
         path,
@@ -132,6 +143,10 @@ def test_temperature_anneals_only_during_training(centroid_path):
 
     quantizer.train()
     quantizer(features, lengths)
+    assert quantizer.temperature.item() == pytest.approx(2.0)
+    assert quantizer.num_updates.item() == 1
+    with torch.no_grad():
+        quantizer(features, lengths)
     assert quantizer.temperature.item() == pytest.approx(2.0)
     assert quantizer.num_updates.item() == 1
     quantizer(features, lengths)
