@@ -49,8 +49,8 @@ def test_forward_writes_embedding(manifest, tmp_path, stub_model):
 
     result = XVectorRunner.forward(0, **env)
 
-    assert result == {"utt_id": "u1", "status": "ok"}
-    saved = torch.load(str(env["output_dir"] / "u1.pt"))
+    assert result == {"idx": 0, "utt_id": "u1", "status": "ok"}
+    saved = torch.load(str(env["xvector_dir"] / "u1.pt"))
     assert saved.dtype == torch.float32
     assert saved.shape == (192,)
 
@@ -64,7 +64,11 @@ def test_forward_skips_existing(manifest, tmp_path, stub_model, monkeypatch):
 
     monkeypatch.setattr(XVectorRunner, "_load_audio", staticmethod(_fail))
 
-    assert XVectorRunner.forward(0, **env) == {"utt_id": "u1", "status": "skipped"}
+    assert XVectorRunner.forward(0, **env) == {
+        "idx": 0,
+        "utt_id": "u1",
+        "status": "skipped",
+    }
 
 
 def test_forward_accepts_iterable(manifest, tmp_path, stub_model):
@@ -97,7 +101,7 @@ def test_forward_converts_embedding_types(manifest, tmp_path, monkeypatch, embed
 
     XVectorRunner.forward(0, **env)
 
-    saved = torch.load(str(env["output_dir"] / "u1.pt"))
+    saved = torch.load(str(env["xvector_dir"] / "u1.pt"))
     assert saved.dtype == torch.float32
     assert saved.shape == (4,)
 
@@ -216,3 +220,18 @@ def test_extract_rawnet_resamples():
 
     assert seen["shape"] == (10, 48000)
     assert out.shape == (256,)
+
+
+def test_forward_persists_a_1d_vector_whatever_the_toolkit_returns(
+    manifest, tmp_path, stub_model, monkeypatch
+):
+    """espnet's Speech2Embedding returns (1, D); the file holds (D,)."""
+    monkeypatch.setattr(
+        XVectorRunner,
+        "_extract_embedding",
+        staticmethod(lambda *a, **k: torch.ones(1, 192)),
+    )
+    env = make_provider(manifest, tmp_path).build_env_local()
+    XVectorRunner.forward(0, **env)
+    saved = torch.load(str(env["xvector_dir"] / "u1.pt"))
+    assert tuple(saved.shape) == (192,)

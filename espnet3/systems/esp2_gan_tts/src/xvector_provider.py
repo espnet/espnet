@@ -38,7 +38,7 @@ class XVectorProvider(EnvironmentProvider):
             training_config,
             params={
                 "manifest_path": "data/manifest/train.tsv",
-                "output_dir": "data/x_vectors/train",
+                "xvector_dir": "data/x_vectors/train",
             },
         )
         env = provider.build_env_local()
@@ -53,7 +53,7 @@ class XVectorProvider(EnvironmentProvider):
             config: Configuration with an ``xvector`` section (toolkit,
                 pretrained_model, device).
             params: Per-split parameters forwarded from the driver to
-                workers: ``manifest_path`` and ``output_dir``.
+                workers: ``manifest_path`` and ``xvector_dir``.
 
         Returns:
             None
@@ -64,7 +64,7 @@ class XVectorProvider(EnvironmentProvider):
                 training_config,
                 params={
                     "manifest_path": "data/manifest/train.tsv",
-                    "output_dir": "data/x_vectors/train",
+                    "xvector_dir": "data/x_vectors/train",
                 },
             )
             ```
@@ -88,7 +88,7 @@ class XVectorProvider(EnvironmentProvider):
             ```python
             env = provider.build_env_local()
             sorted(env)
-            # -> ['config', 'device', 'model', 'output_dir',
+            # -> ['config', 'device', 'model', 'xvector_dir',
             #     'speaker_to_utterances', 'toolkit', 'utterances']
             ```
         """
@@ -123,7 +123,7 @@ class XVectorProvider(EnvironmentProvider):
 
     @staticmethod
     def _build_env(config: DictConfig, params: Dict[str, Any]) -> Dict[str, Any]:
-        """Validate config/params, load the model and manifest, make output_dir."""
+        """Validate config/params, load the model and manifest, make xvector_dir."""
         xvector_config = config.get("xvector", None)
         if xvector_config is None:
             raise RuntimeError(
@@ -154,14 +154,14 @@ class XVectorProvider(EnvironmentProvider):
         if not utterances:
             raise RuntimeError(f"No utterances found in manifest: {manifest_path}")
 
-        output_dir = params.get("output_dir", None)
-        if output_dir is None:
+        xvector_dir = params.get("xvector_dir", None)
+        if xvector_dir is None:
             raise RuntimeError(
-                "output_dir must be provided so workers know where "
+                "xvector_dir must be provided so workers know where "
                 "to write per-utterance .pt files."
             )
-        output_dir = Path(output_dir)
-        output_dir.mkdir(parents=True, exist_ok=True)
+        xvector_dir = Path(xvector_dir)
+        xvector_dir.mkdir(parents=True, exist_ok=True)
 
         return {
             "model": model,
@@ -169,7 +169,7 @@ class XVectorProvider(EnvironmentProvider):
             "device": device,
             "utterances": utterances,
             "speaker_to_utterances": speaker_to_utterances,
-            "output_dir": output_dir,
+            "xvector_dir": xvector_dir,
             "config": config,
         }
 

@@ -1,4 +1,4 @@
-"""Tests for espnet3.systems.esp2_gan_tts.system (GANTTSSystem)."""
+"""Tests for espnet3.systems.esp2_gan_tts.system (ESP2GANTTSSystem)."""
 
 import logging
 from pathlib import Path
@@ -8,8 +8,9 @@ from omegaconf import OmegaConf
 
 import espnet3.systems.esp2_gan_tts.system as sysmod
 from espnet2.train.abs_gan_espnet_model import AbsGANESPnetModel
-from espnet3.systems.esp2_gan_tts.system import GANTTSSystem
-from espnet3.systems.tts.system import TTSSystem
+from espnet3.contract.stages import stage_log_dir
+from espnet3.systems.esp2_gan_tts.system import ESP2GANTTSSystem
+from espnet3.systems.f5tts.system import F5TTSSystem
 
 # ===============================================================
 # Test Case Summary
@@ -34,8 +35,18 @@ from espnet3.systems.tts.system import TTSSystem
 # |                                             | TypeError.                   |
 # | test_collect_stats_uses_gan_aware_trainer   | collect_stats() builds the   |
 # |                          | trainer through this module's _build_trainer.    |
-# | test_is_a_tts_system_with_xvector_log_dir   | GANTTSSystem keeps the TTS   |
-# |                          | stages and registers compute_xvectors' log dir.  |
+# | test_collect_stats_keeps_normalize_in_model | The normalize keys reach the |
+# |                                             | trainer config untouched.    |
+# | test_prepare_training_runtime               | Directories, parallel, seed  |
+# |                                             | and matmul precision are set.|
+#
+# Stage declaration
+# | Test Name                                   | Description                  |
+# |---------------------------------------------|------------------------------|
+# | test_declares_the_stage_order               | compute_xvectors runs right  |
+# |                          | after create_dataset; the rest is F5TTSSystem's. |
+# | test_stage_log_dirs_follow_the_training_config | Each data stage logs under|
+# |                          | its save_path, compute_xvectors under xvector's. |
 #
 # compute_xvectors
 # | Test Name                                   | Description                  |
@@ -53,13 +64,11 @@ from espnet3.systems.tts.system import TTSSystem
 # | test_compute_xvectors_missing_manifest      | A nonexistent manifest       |
 # |                                             | raises RuntimeError.         |
 # | test_compute_xvectors_rejects_empty_manifest | An empty manifest raises.   |
-# | test_compute_xvectors_async_returns_early   | An async run returning None  |
-# |                                             | is reported, not unpacked.   |
 # | test_compute_xvectors_sets_parallel         | A parallel config section is |
 # |                                             | forwarded to set_parallel.   |
 # | test_compute_xvectors_rejects_stage_args    | Stage arguments raise.       |
-# | test_compute_xvectors_flattens_batched_results | Nested result lists are   |
-# |                                             | flattened before counting.   |
+# | test_compute_xvectors_counts_merged_results | The merged shard records are |
+# |                                             | counted by status.           |
 
 
 # ---------------------------------------------------------------
@@ -170,7 +179,7 @@ def _train_system(tmp_path, monkeypatch, extra=None):
     if extra:
         config.merge_with(OmegaConf.create(extra))
 
-    system = GANTTSSystem(training_config=config)
+    system = ESP2GANTTSSystem(training_config=config)
     trainer = _RecordingTrainer()
     seen_configs = []
 
@@ -180,7 +189,7 @@ def _train_system(tmp_path, monkeypatch, extra=None):
 
     monkeypatch.setattr(sysmod, "_build_trainer", fake_build_trainer)
     monkeypatch.setattr(
-        TTSSystem, "_prepare_training_runtime", lambda self: None, raising=True
+        ESP2GANTTSSystem, "_prepare_training_runtime", lambda self: None, raising=True
     )
     return system, trainer, seen_configs
 
@@ -244,8 +253,86 @@ def test_collect_stats_uses_gan_aware_trainer(tmp_path, monkeypatch):
         system.collect_stats("unexpected")
 
 
-def test_is_a_tts_system_with_xvector_log_dir(tmp_path):
-    """The TTS stages stay registered and compute_xvectors gets its own log dir."""
+def test_collect_stats_keeps_normalize_in_model(tmp_path, monkeypatch):
+    """`normalize: null` must reach the task builder; popping it restores GlobalMVN."""
+    system, _, seen_configs = _train_system(
+        tmp_path,
+        monkeypatch,
+        extra={"model": {"normalize": None, "normalize_conf": {}}},
+    )
+
+    system.collect_stats()
+
+    model_config = seen_configs[0].model
+    assert "normalize" in model_config and model_config.normalize is None
+    assert "normalize_conf" in model_config
+
+
+def test_prepare_training_runtime(tmp_path, monkeypatch):
+    config = OmegaConf.create(
+        {
+            "exp_dir": str(tmp_path / "exp"),
+            "stats_dir": str(tmp_path / "stats"),
+            "seed": 777,
+            "parallel": {"env": "local"},
+        }
+    )
+    calls = {}
+    monkeypatch.setattr(
+        sysmod, "set_parallel", lambda arg: calls.setdefault("parallel", arg)
+    )
+    monkeypatch.setattr(
+        sysmod.L,
+        "seed_everything",
+        lambda seed, workers=True: calls.setdefault("seed", seed),
+    )
+    monkeypatch.setattr(
+        sysmod.torch,
+        "set_float32_matmul_precision",
+        lambda p: calls.setdefault("precision", p),
+    )
+
+    ESP2GANTTSSystem(training_config=config)._prepare_training_runtime()
+
+    assert (tmp_path / "exp").is_dir() and (tmp_path / "stats").is_dir()
+    assert calls == {"parallel": config.parallel, "seed": 777, "precision": "high"}
+
+    # No parallel / seed configured, stats_dir left null: only the exp dir.
+    calls.clear()
+    bare = OmegaConf.create({"exp_dir": str(tmp_path / "exp2"), "stats_dir": None})
+    ESP2GANTTSSystem(training_config=bare)._prepare_training_runtime()
+    assert (tmp_path / "exp2").is_dir()
+    assert calls == {"precision": "high"}
+
+
+# ---------------------------------------------------------------
+# Stage declaration
+# ---------------------------------------------------------------
+
+
+def test_declares_the_stage_order():
+    """compute_xvectors runs right after create_dataset; the rest is F5TTSSystem's."""
+    assert issubclass(ESP2GANTTSSystem, F5TTSSystem)
+    assert [spec.name for spec in ESP2GANTTSSystem.stages] == [
+        "create_dataset",
+        "compute_xvectors",
+        "remove_long_short",
+        "create_token_list",
+        "collect_stats",
+        "train",
+        "infer",
+        "measure",
+        "pack_model",
+        "upload_model",
+        "pack_demo",
+        "upload_demo",
+    ]
+    xvector = ESP2GANTTSSystem.stages[1]
+    assert (xvector.config, xvector.log_dir) == ("training", "xvector.save_path")
+    assert ESP2GANTTSSystem.stages[2:] == F5TTSSystem.stages[1:]
+
+
+def test_stage_log_dirs_follow_the_training_config(tmp_path):
     config = OmegaConf.create(
         {
             "exp_dir": str(tmp_path / "exp"),
@@ -254,18 +341,18 @@ def test_is_a_tts_system_with_xvector_log_dir(tmp_path):
             "xvector": {"save_path": str(tmp_path / "xvectors")},
         }
     )
-    system = GANTTSSystem(training_config=config)
+    system = ESP2GANTTSSystem(training_config=config)
 
-    assert isinstance(system, TTSSystem)
-    assert system.stage_log_dirs["compute_xvectors"] == Path(tmp_path / "xvectors")
-    assert system.stage_log_dirs["remove_long_short"] == Path(tmp_path / "filtered")
-    assert system.stage_log_dirs["create_token_list"] == Path(tmp_path / "tokens")
+    assert stage_log_dir(system, "compute_xvectors") == tmp_path / "xvectors"
+    assert stage_log_dir(system, "remove_long_short") == tmp_path / "filtered"
+    assert stage_log_dir(system, "create_token_list") == tmp_path / "tokens"
+    assert stage_log_dir(system, "train") == tmp_path / "exp"
 
-    # Without an xvector block the stage simply has no dedicated log dir.
-    plain = GANTTSSystem(
+    # Without an xvector block the stage falls back to the default log dir.
+    plain = ESP2GANTTSSystem(
         training_config=OmegaConf.create({"exp_dir": str(tmp_path / "exp2")})
     )
-    assert "compute_xvectors" not in plain.stage_log_dirs
+    assert stage_log_dir(plain, "compute_xvectors") == Path(tmp_path / "exp2")
 
 
 # ---------------------------------------------------------------
@@ -279,23 +366,34 @@ class _RecordingRunner:
     calls = []
     results = None
 
-    def __init__(self, provider=None, batch_size=None, async_mode=False):
+    def __init__(
+        self,
+        provider=None,
+        batch_size=None,
+        output_dir=None,
+        shard_subdir="",
+        resume=True,
+    ):
         self.provider = provider
         self.batch_size = batch_size
-        self.async_mode = async_mode
+        self.output_dir = output_dir
+        self.shard_subdir = shard_subdir
+        self.resume = resume
 
     def __call__(self, indices):
         type(self).calls.append(
             {
                 "indices": list(indices),
                 "batch_size": self.batch_size,
-                "async_mode": self.async_mode,
+                "output_dir": str(self.output_dir),
+                "shard_subdir": self.shard_subdir,
+                "resume": self.resume,
                 "config": self.provider.config,
                 "params": dict(self.provider.params),
             }
         )
         if type(self).results is None:
-            return [{"utt_id": f"u{i}", "status": "ok"} for i in indices]
+            return [{"idx": i, "utt_id": f"u{i}", "status": "ok"} for i in indices]
         return type(self).results
 
 
@@ -326,7 +424,7 @@ def _xvector_system(tmp_path, monkeypatch, xvector=None, manifests=("train",)):
     config = OmegaConf.create(
         {"exp_dir": str(tmp_path / "exp"), "xvector": xvector_config}
     )
-    return GANTTSSystem(training_config=config)
+    return ESP2GANTTSSystem(training_config=config)
 
 
 def test_compute_xvectors_runs_each_split(tmp_path, monkeypatch):
@@ -349,15 +447,18 @@ def test_compute_xvectors_runs_each_split(tmp_path, monkeypatch):
     first = _RecordingRunner.calls[0]
     assert first["indices"] == [0, 1]
     assert first["batch_size"] == 8
-    assert first["async_mode"] is False
     # The provider reads toolkit/model/device from the training config itself;
     # the stage only tells it which manifest to read and where to write.
-    assert set(first["params"]) == {"manifest_path", "output_dir"}
+    assert set(first["params"]) == {"manifest_path", "xvector_dir"}
     assert first["params"]["manifest_path"].endswith("train.tsv")
     assert first["config"] is system.training_config
-    # Embeddings land in one directory per split, tagged by the model.
-    assert first["params"]["output_dir"].endswith("ecapa_train")
-    assert _RecordingRunner.calls[1]["params"]["output_dir"].endswith("ecapa_valid")
+    # Embeddings land in one directory per split, tagged by the model; the
+    # runner's shard bookkeeping goes beside them, under save_path/shards.
+    assert first["params"]["xvector_dir"].endswith("ecapa_train")
+    assert _RecordingRunner.calls[1]["params"]["xvector_dir"].endswith("ecapa_valid")
+    assert first["output_dir"] == str(tmp_path / "x_vectors" / "shards")
+    assert first["shard_subdir"] == "ecapa_train"
+    assert first["resume"] is False
 
 
 def test_compute_xvectors_accepts_single_split(tmp_path, monkeypatch):
@@ -385,7 +486,7 @@ def test_compute_xvectors_default_manifest(tmp_path, monkeypatch):
             },
         }
     )
-    GANTTSSystem(training_config=config).compute_xvectors()
+    ESP2GANTTSSystem(training_config=config).compute_xvectors()
 
     manifest_used = _RecordingRunner.calls[0]["params"]["manifest_path"]
     assert manifest_used.endswith("data/manifest/train.tsv")
@@ -407,13 +508,13 @@ def test_compute_xvectors_null_manifest_paths(tmp_path, monkeypatch):
 def test_compute_xvectors_requires_config(tmp_path, monkeypatch):
     monkeypatch.setattr(sysmod, "XVectorRunner", _RecordingRunner)
 
-    no_xvector = GANTTSSystem(
+    no_xvector = ESP2GANTTSSystem(
         training_config=OmegaConf.create({"exp_dir": str(tmp_path / "exp")})
     )
     with pytest.raises(RuntimeError, match="training_config.xvector must be set"):
         no_xvector.compute_xvectors()
 
-    no_save_path = GANTTSSystem(
+    no_save_path = ESP2GANTTSSystem(
         training_config=OmegaConf.create(
             {"exp_dir": str(tmp_path / "exp"), "xvector": {"splits": ["train"]}}
         )
@@ -440,25 +541,6 @@ def test_compute_xvectors_rejects_empty_manifest(tmp_path, monkeypatch):
         system.compute_xvectors()
 
 
-def test_compute_xvectors_async_returns_early(tmp_path, monkeypatch, caplog):
-    """An async submission returns None, which must not be unpacked."""
-    system = _xvector_system(tmp_path, monkeypatch)
-    system.training_config.xvector.async_mode = True
-    _RecordingRunner.results = None
-
-    class _AsyncRunner(_RecordingRunner):
-        def __call__(self, indices):
-            super().__call__(indices)
-            return None
-
-    monkeypatch.setattr(sysmod, "XVectorRunner", _AsyncRunner)
-
-    with caplog.at_level(logging.INFO):
-        system.compute_xvectors()
-
-    assert "Async job submitted" in caplog.text
-
-
 def test_compute_xvectors_sets_parallel(tmp_path, monkeypatch):
     system = _xvector_system(tmp_path, monkeypatch)
     calls = []
@@ -477,13 +559,16 @@ def test_compute_xvectors_rejects_stage_args(tmp_path, monkeypatch):
         system.compute_xvectors("unexpected")
 
 
-def test_compute_xvectors_flattens_batched_results(tmp_path, monkeypatch):
-    """A batched runner returns a list per batch; those must be flattened."""
+def test_compute_xvectors_counts_merged_results(tmp_path, monkeypatch, caplog):
+    """The merged shard records are counted by status for the log."""
     system = _xvector_system(tmp_path, monkeypatch)
     _RecordingRunner.results = [
-        [{"utt_id": "u0", "status": "ok"}, {"utt_id": "u1", "status": "skipped"}]
+        {"idx": 0, "utt_id": "u0", "status": "ok"},
+        {"idx": 1, "utt_id": "u1", "status": "skipped"},
     ]
 
-    system.compute_xvectors()  # must not raise on the nested list
+    with caplog.at_level(logging.INFO):
+        system.compute_xvectors()
 
     assert len(_RecordingRunner.calls) == 1
+    assert "(1 new, 1 skipped)" in caplog.text

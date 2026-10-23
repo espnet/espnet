@@ -10,7 +10,7 @@
 #   python run.py --stages train              --training_config conf/training.yaml
 #
 # Shared default merged under every esp2_gan_tts recipe's training config
-# (see `load_and_merge_config` in `run.py`). It carries the generic
+# by `espnet3.systems.launch.launch`. It carries the generic
 # scaffolding for an espnet2 GAN-TTS recipe (VITS, JETS, ...): the copied
 # task, the manifest/x-vector/token-list stages and the dataset wiring that
 # consumes their outputs. Architecture-specific blocks (`model`,
@@ -24,6 +24,10 @@
 # - `create_token_list`: uses `create_token_list`
 # - `collect_stats`: uses `dataset`, `dataloader`, `model`, and `parallel`
 # - `train`: uses most fields in this file
+#
+# The stage list, its order and the config role each stage runs on are
+# declared once, on the system class, as `ESP2GANTTSSystem.stages`;
+# `--stages` picks from those names, or `all` for every one in declared order.
 
 ##########################################################
 #                  SYSTEM AND PATH SETTING               #
@@ -74,7 +78,6 @@ xvector:
   batch_size: null
   # cuda:0 when available, else cpu.
   device: null
-  async_mode: false
 
 ##########################################################
 #              UTTERANCE FILTERING SETTING               #

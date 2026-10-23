@@ -1,25 +1,32 @@
-"""Tests for the egs3/TEMPLATE/esp2_gan_tts defaults and runner wiring."""
+"""Tests for the egs3/TEMPLATE/esp2_gan_tts defaults and launcher wiring."""
 
 from pathlib import Path
 
-from egs3.TEMPLATE.esp2_gan_tts.run import DEFAULT_STAGES
+from espnet3.systems.esp2_gan_tts.system import ESP2GANTTSSystem
+from espnet3.systems.launch import default_conf_package
 from espnet3.utils.config_utils import load_and_merge_config, load_default_config
 
 PACKAGE = "egs3.TEMPLATE.esp2_gan_tts"
+RECIPE_CONF = Path(__file__).resolve().parents[4] / "egs3/libritts/esp2_gan_tts/conf"
 
 
-def test_default_stages_run_manifest_consumers_after_create_dataset() -> None:
+def test_stages_run_manifest_consumers_after_create_dataset() -> None:
     """Manifest-consuming stages run after create_dataset, before collect_stats.
 
-    Execution always follows list order, whatever order ``--stages`` is
-    given in, so ``--stages all`` must not reach compute_xvectors first.
+    Execution always follows the declared order, whatever order ``--stages``
+    is given in, so ``--stages all`` must not reach compute_xvectors first.
     """
-    order = {stage: idx for idx, stage in enumerate(DEFAULT_STAGES)}
+    order = {spec.name: idx for idx, spec in enumerate(ESP2GANTTSSystem.stages)}
     assert order["create_dataset"] < order["compute_xvectors"]
     assert order["compute_xvectors"] < order["remove_long_short"]
     assert order["remove_long_short"] < order["create_token_list"]
     assert order["create_token_list"] < order["collect_stats"]
     assert order["collect_stats"] < order["train"] < order["infer"] < order["measure"]
+
+
+def test_launch_reads_the_defaults_from_this_template() -> None:
+    """`launch(ESP2GANTTSSystem)` merges recipe configs over this package."""
+    assert default_conf_package(ESP2GANTTSSystem) == PACKAGE
 
 
 def test_load_default_config_train_contains_expected_targets() -> None:
@@ -94,3 +101,7 @@ create_token_list:
     assert cfg.remove_long_short.max_wav_duration == 20.0
     assert cfg.dataset.preprocessor.token_list.endswith("tokens/phn_tokens.txt")
     assert cfg.dataset.preprocessor.text_cleaner == ["tacotron"]
+
+
+def test_load_and_merge_config_none_path_returns_none() -> None:
+    assert load_and_merge_config(None, "metrics.yaml", default_package=PACKAGE) is None

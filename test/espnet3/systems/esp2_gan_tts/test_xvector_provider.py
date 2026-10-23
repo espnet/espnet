@@ -36,13 +36,13 @@ from espnet3.systems.esp2_gan_tts.src.xvector_provider import (
 # | Test Name                                   | Description                  |
 # |---------------------------------------------|------------------------------|
 # | test_build_env_local_returns_worker_env     | The driver env carries the   |
-# |                          | model, manifest, and an existing output_dir.     |
+# |                          | model, manifest, and an existing xvector_dir.     |
 # | test_build_env_defaults_to_espnet_toolkit   | No toolkit/model in config   |
 # |                          | means espnet's tts.sh defaults, not speechbrain. |
 # | test_build_env_null_device_picks_automatically | device: null behaves like |
 # |                                             | a missing key.               |
 # | test_build_env_local_requires_config        | Missing xvector/manifest/    |
-# |                                             | output_dir all raise.        |
+# |                                             | xvector_dir all raise.        |
 # | test_build_env_local_rejects_empty_manifest | An empty manifest raises.    |
 # | test_worker_setup_fn_builds_same_env        | The worker setup function    |
 # |                                             | produces the same env.       |
@@ -110,16 +110,16 @@ def test_build_env_local_returns_worker_env(manifest, tmp_path, stub_model):
         "config",
         "device",
         "model",
-        "output_dir",
         "speaker_to_utterances",
         "toolkit",
         "utterances",
+        "xvector_dir",
     ]
     assert env["model"] == "MODEL"
     assert env["toolkit"] == "speechbrain"
     assert len(env["utterances"]) == 3
     # The stage writes straight into this directory, so it must already exist.
-    assert env["output_dir"].is_dir()
+    assert env["xvector_dir"].is_dir()
 
 
 def test_build_env_defaults_to_espnet_toolkit(manifest, tmp_path, monkeypatch):
@@ -132,7 +132,7 @@ def test_build_env_defaults_to_espnet_toolkit(manifest, tmp_path, monkeypatch):
     )
     provider = XVectorProvider(
         OmegaConf.create({"xvector": {"device": "cpu"}}),
-        params={"manifest_path": str(manifest), "output_dir": str(tmp_path / "x")},
+        params={"manifest_path": str(manifest), "xvector_dir": str(tmp_path / "x")},
     )
 
     env = provider.build_env_local()
@@ -151,7 +151,7 @@ def test_build_env_null_device_picks_automatically(manifest, tmp_path, monkeypat
     )
     provider = XVectorProvider(
         OmegaConf.create({"xvector": {"toolkit": "espnet", "device": None}}),
-        params={"manifest_path": str(manifest), "output_dir": str(tmp_path / "x")},
+        params={"manifest_path": str(manifest), "xvector_dir": str(tmp_path / "x")},
     )
 
     assert provider.build_env_local()["device"] == "cpu"
@@ -167,7 +167,7 @@ def test_build_env_local_requires_config(manifest, tmp_path, stub_model):
         no_manifest.build_env_local()
 
     no_output = XVectorProvider(make_config(), params={"manifest_path": str(manifest)})
-    with pytest.raises(RuntimeError, match="output_dir must be provided"):
+    with pytest.raises(RuntimeError, match="xvector_dir must be provided"):
         no_output.build_env_local()
 
 
@@ -198,7 +198,7 @@ def test_worker_setup_fn_requires_config(manifest, tmp_path, stub_model):
     with pytest.raises(RuntimeError, match="provide manifest_path"):
         XVectorProvider(make_config(), params={}).build_worker_setup_fn()()
 
-    with pytest.raises(RuntimeError, match="output_dir must be provided"):
+    with pytest.raises(RuntimeError, match="xvector_dir must be provided"):
         XVectorProvider(
             make_config(), params={"manifest_path": str(manifest)}
         ).build_worker_setup_fn()()
@@ -209,7 +209,7 @@ def test_worker_setup_fn_requires_config(manifest, tmp_path, stub_model):
             make_config(),
             params={
                 "manifest_path": str(empty),
-                "output_dir": str(tmp_path / "xvec"),
+                "xvector_dir": str(tmp_path / "xvec"),
             },
         ).build_worker_setup_fn()()
 

@@ -98,7 +98,7 @@ def build_gan_trainer(training_config, model) -> GANTTSLightningTrainer:
 
     Wraps *model* in a :class:`GANTTSLightningModule` (manual two-optimizer
     optimization) and hands it to :class:`GANTTSLightningTrainer`. This is
-    the function ``GANTTSSystem.collect_stats`` / ``train`` dispatch to when
+    the function ``ESP2GANTTSSystem.collect_stats`` / ``train`` dispatch to when
     the instantiated model is an ``AbsGANESPnetModel``.
 
     Args:
@@ -129,7 +129,7 @@ def build_gan_trainer(training_config, model) -> GANTTSLightningTrainer:
           gan:
             generator_first: false
         ```
-        and the call ``GANTTSSystem.train`` makes:
+        and the call ``ESP2GANTTSSystem.train`` makes:
         ```python
         trainer = build_gan_trainer(training_config, model)
         trainer.fit()

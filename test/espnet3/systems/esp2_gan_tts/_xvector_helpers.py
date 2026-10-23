@@ -32,6 +32,6 @@ def make_provider(manifest, tmp_path, **xvector):
         make_config(**xvector),
         params={
             "manifest_path": str(manifest),
-            "output_dir": str(tmp_path / "xvec"),
+            "xvector_dir": str(tmp_path / "xvec"),
         },
     )

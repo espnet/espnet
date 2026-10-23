@@ -1,28 +1,31 @@
-"""ESPnet2 GAN-TTS system implementation.
+"""ESPnet2 GAN-TTS system: the staged pipeline of a VITS / JETS recipe.
 
-This system wraps the espnet2 GAN-TTS task family (VITS, JETS, ...) for
-ESPnet3. On top of :class:`~espnet3.systems.tts.system.TTSSystem` it adds
-the ``compute_xvectors`` stage, and it routes ``collect_stats`` / ``train``
-through a GAN-specific Lightning trainer whenever the configured model is an
-``AbsGANESPnetModel``.
+On top of :class:`~espnet3.systems.f5tts.system.F5TTSSystem`, whose manifest
+stages (``remove_long_short``, ``create_token_list``) an espnet2 GAN-TTS
+recipe shares, this adds the ``compute_xvectors`` stage and routes
+``collect_stats`` / ``train`` through the two-optimizer GAN Lightning trainer
+whenever the configured model is an ``AbsGANESPnetModel``.
 """
 
 import logging
 import time
 from pathlib import Path
-from typing import Any, Dict
+from typing import Any, ClassVar, Dict
 
+import lightning as L
+import torch
 from omegaconf import DictConfig, OmegaConf
 
 from espnet2.train.abs_gan_espnet_model import AbsGANESPnetModel
 from espnet3.components.modeling.lightning_module import ESPnetLightningModule
 from espnet3.components.trainers.trainer import ESPnet3LightningTrainer
+from espnet3.contract.stages import StageSpec
 from espnet3.parallel.parallel import set_parallel
 from espnet3.systems.base.training import _instantiate_model
 from espnet3.systems.esp2_gan_tts.src.gan_trainer import build_gan_trainer
 from espnet3.systems.esp2_gan_tts.src.xvector_provider import XVectorProvider
 from espnet3.systems.esp2_gan_tts.src.xvector_runner import XVectorRunner
-from espnet3.systems.tts.system import TTSSystem
+from espnet3.systems.f5tts.system import F5TTSSystem
 from espnet3.utils.task_utils import save_espnet_config
 
 logger = logging.getLogger(__name__)
@@ -63,59 +66,74 @@ def _build_trainer(config: DictConfig) -> ESPnet3LightningTrainer:
     )
 
 
-class GANTTSSystem(TTSSystem):
+class ESP2GANTTSSystem(F5TTSSystem):
     """System for espnet2 GAN-based TTS models (VITS, JETS, ...).
 
-    Inherits the ``remove_long_short`` and ``create_token_list`` stages from
-    :class:`~espnet3.systems.tts.system.TTSSystem` and adds:
+    The stage order is ``create_dataset -> compute_xvectors ->
+    remove_long_short -> create_token_list -> collect_stats -> train -> infer
+    -> measure -> pack_model -> upload_model -> pack_demo -> upload_demo``.
+    ``remove_long_short`` and ``create_token_list`` are inherited from
+    :class:`~espnet3.systems.f5tts.system.F5TTSSystem` (both systems prepare
+    the same ``utt_id / wav_path / text`` manifests); this class adds:
 
       - ``compute_xvectors``: per-utterance speaker embeddings for
-        multi-speaker conditioning.
+        multi-speaker conditioning, logged under
+        ``training_config.xvector.save_path``.
       - GAN-aware ``collect_stats`` / ``train``: both build the trainer
         through :func:`_build_trainer`, so an ``AbsGANESPnetModel`` gets the
         two-optimizer ``GANTTSLightningTrainer``.
 
-    Additional stage log paths:
-        | Stage                 | Path reference                  |
-        |---                   |---                              |
-        | compute_xvectors     | training_config.xvector.save_path |
-
     Examples:
-        Wired through ``egs3/TEMPLATE/esp2_gan_tts/run.py``:
+        Wired through a recipe's ``run.py``:
         ```python
-        from egs3.TEMPLATE.esp2_gan_tts.run import DEFAULT_STAGES, build_parser, main
-        from espnet3.systems.esp2_gan_tts.system import GANTTSSystem
+        from espnet3.systems.esp2_gan_tts.system import ESP2GANTTSSystem
+        from espnet3.systems.launch import launch
 
-        parser = build_parser(stages=DEFAULT_STAGES)
-        args, _ = parse_cli_and_stage_args(parser, stages=DEFAULT_STAGES)
-        main(args=args, system_cls=GANTTSSystem, stages=DEFAULT_STAGES)
+        if __name__ == "__main__":
+            launch(ESP2GANTTSSystem)
         ```
+
+        >>> [s.name for s in ESP2GANTTSSystem.stages[:3]]
+        ['create_dataset', 'compute_xvectors', 'remove_long_short']
     """
 
-    def __init__(
-        self,
-        training_config=None,
-        inference_config=None,
-        metrics_config=None,
-        **kwargs,
-    ) -> None:
-        """Initialize the system and register the ``compute_xvectors`` log dir.
-
-        Args:
-            training_config: Training configuration.
-            inference_config: Inference configuration.
-            metrics_config: Measurement configuration.
-            **kwargs: Forwarded to :class:`TTSSystem`.
-        """
-        super().__init__(
-            training_config=training_config,
-            inference_config=inference_config,
-            metrics_config=metrics_config,
-            **kwargs,
+    stages: ClassVar[tuple[StageSpec, ...]] = (
+        # create_dataset; the manifest-consuming stages come right after it.
+        F5TTSSystem.stages[:1]
+        + (
+            StageSpec(
+                name="compute_xvectors",
+                config="training",
+                log_dir="xvector.save_path",
+            ),
         )
-        resolved = self._resolve_stage_log_ref("training_config.xvector.save_path")
-        if resolved:
-            self.stage_log_dirs["compute_xvectors"] = Path(resolved)
+        # remove_long_short, create_token_list, collect_stats, train, infer,
+        # measure, pack_model, upload_model, pack_demo, upload_demo.
+        + F5TTSSystem.stages[1:]
+    )
+
+    def _prepare_training_runtime(self) -> None:
+        """Set up directories, parallelism, seeding and matmul precision.
+
+        The base training module inlines this same sequence inside its
+        ``collect_stats`` / ``train`` functions instead of exposing it as a
+        reusable helper, so the GAN-aware stages below repeat it here.
+        """
+        config = self.training_config
+        Path(config.exp_dir).mkdir(parents=True, exist_ok=True)
+        # `stats_dir` may be declared but left null, so check the value
+        # rather than key presence.
+        stats_dir = config.get("stats_dir")
+        if stats_dir is not None:
+            Path(stats_dir).mkdir(parents=True, exist_ok=True)
+
+        if config.get("parallel"):
+            set_parallel(config.parallel)
+
+        if config.get("seed") is not None:
+            L.seed_everything(int(config.seed), workers=True)
+
+        torch.set_float32_matmul_precision("high")
 
     def compute_xvectors(self, *args, **kwargs):
         r"""Compute x-vectors for multiple data splits using parallel execution.
@@ -167,7 +185,9 @@ class GANTTSSystem(TTSSystem):
             ```
         """
         self._reject_stage_args("compute_xvectors", args, kwargs)
-        logger.info("GANTTSSystem.compute_xvectors(): starting x-vector computation")
+        logger.info(
+            "ESP2GANTTSSystem.compute_xvectors(): starting x-vector computation"
+        )
 
         # Parse the parallel config early so it applies to the x-vector runner.
         if self.training_config.get("parallel"):
@@ -223,7 +243,6 @@ class GANTTSSystem(TTSSystem):
             logger.info(f"Split '{split}': {n_utts} utterances in {manifest_path}")
 
             batch_size = xvector_config.get("batch_size", None)
-            async_mode = xvector_config.get("async_mode", False)
             spk_embed_tag = xvector_config.get("spk_embed_tag", "spk_embed")
             output_subdir = save_path / f"{spk_embed_tag}_{split}"
 
@@ -233,14 +252,21 @@ class GANTTSSystem(TTSSystem):
                 config=self.training_config,
                 params={
                     "manifest_path": str(manifest_path),
-                    "output_dir": str(output_subdir),
+                    "xvector_dir": str(output_subdir),
                 },
             )
 
+            # resume=False: an utterance whose .pt exists is skipped inside
+            # forward, so a finished shard costs nothing to revisit, while a
+            # shard marked done by an earlier run must not hide embeddings
+            # deleted since. The shard bookkeeping lives beside the
+            # per-split directories, not among the .pt files.
             runner = XVectorRunner(
                 provider=provider,
                 batch_size=batch_size,
-                async_mode=async_mode,
+                output_dir=save_path / "shards",
+                shard_subdir=output_subdir.name,
+                resume=False,
             )
 
             logger.info(
@@ -248,24 +274,10 @@ class GANTTSSystem(TTSSystem):
                 f"(split: {split})"
             )
 
-            indices = list(range(n_utts))
-            results = runner(indices)
-
-            if results is None:
-                logger.info(
-                    f"Async job submitted for split '{split}'. Check "
-                    "result directory for outputs."
-                )
-                continue
-
-            flat = []
-            for item in results:
-                if isinstance(item, list):
-                    flat.extend(item)
-                else:
-                    flat.append(item)
-            n_ok = sum(1 for r in flat if r.get("status") == "ok")
-            n_skipped = sum(1 for r in flat if r.get("status") == "skipped")
+            # merge() returns the shard records flattened and in manifest order.
+            results = runner(list(range(n_utts)))
+            n_ok = sum(1 for r in results if r.get("status") == "ok")
+            n_skipped = sum(1 for r in results if r.get("status") == "skipped")
             logger.info(
                 f"X-vectors for split '{split}' saved to {output_subdir} "
                 f"({n_ok} new, {n_skipped} skipped)"
@@ -276,13 +288,11 @@ class GANTTSSystem(TTSSystem):
     def collect_stats(self, *args, **kwargs):
         """Run the collect_stats stage using the GAN-aware trainer.
 
-        Mirrors :meth:`TTSSystem.collect_stats` exactly, except that the
-        trainer comes from this module's :func:`_build_trainer`, so a GAN-TTS
-        model collects its statistics through ``GANTTSLightningModule`` (which
-        also exposes ``speech_shape`` / ``text_shape`` for the ``numel`` batch
-        sampler). Like the parent, it builds the trainer without popping
-        ``model.normalize`` / ``model.normalize_conf``; see the parent's Notes
-        for why that is load-bearing.
+        Prepares the training runtime (directories, parallelism, seed), then
+        builds the trainer through this module's :func:`_build_trainer`, so a
+        GAN-TTS model collects its statistics through
+        ``GANTTSLightningModule`` (which also exposes ``speech_shape`` /
+        ``text_shape`` for the ``numel`` batch sampler).
 
         Args:
             *args: Must be empty. Passing any positional argument raises
@@ -295,6 +305,17 @@ class GANTTSSystem(TTSSystem):
 
         Raises:
             TypeError: If any positional or keyword arguments are passed.
+
+        Notes:
+            Unlike ``espnet3.systems.base.training.collect_stats``, this
+            override does NOT pop ``normalize`` / ``normalize_conf`` out of
+            ``config.model`` before building the trainer. That is
+            load-bearing: ``GANTTSTask`` declares ``normalize_choices`` with
+            ``default="global_mvn"``, so removing the key does not mean "no
+            normalizer", it restores the ``GlobalMVN`` default, which then
+            fails with ``missing 1 required positional argument:
+            'stats_file'`` - the very file this stage exists to produce. A
+            recipe's ``normalize: null`` has to reach the task builder intact.
 
         Examples:
             ```bash
@@ -341,7 +362,8 @@ class GANTTSSystem(TTSSystem):
             ``training_config.fit`` is forwarded verbatim to ``trainer.fit``.
             When ``training_config.task`` is set, the espnet2-style
             ``config.yaml`` is written to ``exp_dir`` first so that
-            ``Text2Speech`` can rebuild the model at inference time.
+            ``Text2Speech`` can rebuild the model, and the text preprocessing
+            it applies to raw text, at inference time.
 
         Examples:
             ```bash
