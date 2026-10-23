@@ -198,6 +198,32 @@ def test_packed_model_needs_no_bundled_code(recipe_dir, stub_vocoder):
         model({**_item(), "unknown": 1})
 
 
+def test_launcher_orders_the_widgets_by_input_key():
+    """A tag-loaded bundle hands over sorted specs; ``input_key`` restores the order.
+
+    ``espnet_model_zoo`` rewrites a cached config with sorted keys, so the
+    contract's inputs come back alphabetical; the example rows and the
+    positional handler follow ``input_key``, so the widgets must too.
+    """
+    pytest.importorskip("gradio")
+    from egs3.TEMPLATE.f5tts.src.app import _order_input_specs
+
+    sorted_specs = [
+        {"key": "reference_speech", "type": "audio", "label": "Reference speech"},
+        {"key": "reference_text", "type": "text", "label": "Reference transcript"},
+        {"key": "text", "type": "text", "label": "Text to synthesize"},
+    ]
+    input_key = ["text", "reference_speech", "reference_text"]
+
+    ordered = _order_input_specs(sorted_specs, input_key)
+
+    assert [spec["key"] for spec in ordered] == input_key
+    # One name, as a string, is accepted too; a mismatch leaves the specs alone.
+    assert _order_input_specs(sorted_specs[:1], "reference_speech") == sorted_specs[:1]
+    assert _order_input_specs(sorted_specs, ["text", "speech"]) is sorted_specs
+    assert _order_input_specs(sorted_specs, None) is sorted_specs
+
+
 def test_pack_demo_builds_a_working_demo(recipe_dir, stub_vocoder):
     """The packed demo builds its Gradio app, example row and handler."""
     gradio = pytest.importorskip("gradio")

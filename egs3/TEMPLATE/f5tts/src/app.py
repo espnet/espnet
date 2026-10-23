@@ -80,6 +80,39 @@ def _read_example_rows(demo_cfg, demo_dir: Path) -> list[list]:
     return rows
 
 
+def _order_input_specs(specs: list[dict], input_key) -> list[dict]:
+    """Return ``specs`` in the order the model's ``input_key`` lists them.
+
+    The widgets are derived from the packed inference contract, whose
+    ``inputs`` is a mapping. A model loaded by Hub tag goes through the
+    ``espnet_model_zoo`` cache, which rewrites the packed config with its
+    keys sorted, so the mapping comes back alphabetical while ``input_key``,
+    a list, keeps its order. The example rows and the positional click
+    handler both follow ``input_key``, so the widgets must too.
+
+    Args:
+        specs: The session's input specs, in whatever order they came.
+        input_key: The model's ``input_key``: one name or a list of them.
+
+    Returns:
+        ``specs`` reordered to ``input_key``; unchanged when ``input_key`` is
+        absent or does not name exactly these specs.
+
+    Example:
+        .. code-block:: python
+
+            _order_input_specs([{"key": "b"}, {"key": "a"}], ["a", "b"])
+            # -> [{"key": "a"}, {"key": "b"}]
+    """
+    if not input_key:
+        return specs
+    keys = [input_key] if isinstance(input_key, str) else list(input_key)
+    by_key = {spec["key"]: spec for spec in specs}
+    if len(by_key) != len(specs) or set(by_key) != set(keys):
+        return specs
+    return [by_key[key] for key in keys]
+
+
 def _missing_inputs(specs: list[dict], values: tuple) -> list[str]:
     """Return the labels of the inputs the visitor left empty.
 
@@ -157,19 +190,24 @@ def build_demo(
         demo_config_path,
     )
     session = load_demo_session(demo_dir, demo_config_path)
+    # The widgets, the click handler's positional values and the example
+    # rows all follow the order of the model's input_key.
+    input_specs = _order_input_specs(
+        session.input_specs, getattr(session.model, "input_key", None)
+    )
     logger.info(
         "Resolved demo specs | inputs=%s outputs=%s",
-        session.input_specs,
+        input_specs,
         session.output_specs,
     )
     inference_fn = session.create_inference_fn(
-        session.input_specs,
+        input_specs,
         session.output_specs,
     )
 
     def synthesize(*values):
         """Run the packed model on the UI values; the session shapes the outputs."""
-        missing = _missing_inputs(session.input_specs, values)
+        missing = _missing_inputs(input_specs, values)
         if missing:
             raise gr.Error("Required: " + ", ".join(missing))
         try:
@@ -196,8 +234,8 @@ def build_demo(
         input_components = []
         with gr.Column():
             # Gradio click handlers bind positional values, so this list keeps
-            # the order of session.input_specs.
-            for spec in session.input_specs:
+            # the order of input_specs.
+            for spec in input_specs:
                 logger.info("Building input component | spec=%s", spec)
                 input_components.append(session.build_input_component(spec))
 
