@@ -16,6 +16,7 @@ from espnet2.tasks.gan_tok import (
     frontend_choices,
     quantizer_choices,
 )
+from espnet2.tok.quantizer_differentiable_kmeans import DifferentiableKMeans
 from espnet2.tok.tokenizer import SpeechTokenizer
 from espnet2.torch_utils.device_funcs import to_device
 from espnet2.utils import config_argparse
@@ -32,18 +33,6 @@ def build_tokenizer(
     with Path(train_config).open(encoding="utf-8") as stream:
         config = yaml.safe_load(stream)
 
-    frontend = frontend_choices.get_class(config["frontend"])(
-        **config.get("frontend_conf", {})
-    )
-    quantizer = quantizer_choices.get_class(config["quantizer"])(
-        **config.get("quantizer_conf", {})
-    )
-    tokenizer = SpeechTokenizer(
-        frontend=frontend,
-        quantizer=quantizer,
-        **config.get("tokenizer_conf", {}),
-    )
-
     checkpoint = torch.load(model_file, map_location="cpu")
     if isinstance(checkpoint, dict) and "model" in checkpoint:
         checkpoint = checkpoint["model"]
@@ -58,6 +47,28 @@ def build_tokenizer(
             tokenizer_state[name[len("tokenizer.") :]] = value
     if not tokenizer_state:
         raise RuntimeError(f"No tokenizer.* parameters found in {model_file}")
+
+    frontend = frontend_choices.get_class(config["frontend"])(
+        **config.get("frontend_conf", {})
+    )
+    quantizer_class = quantizer_choices.get_class(config["quantizer"])
+    quantizer_conf = dict(config.get("quantizer_conf", {}))
+    if issubclass(quantizer_class, DifferentiableKMeans):
+        try:
+            centroids = tokenizer_state["quantizer.centroids"]
+        except KeyError as error:
+            raise RuntimeError(
+                "No tokenizer.quantizer.centroids parameter found in " f"{model_file}"
+            ) from error
+        quantizer_conf.pop("centroid_path", None)
+        quantizer = quantizer_class.from_centroids(centroids, **quantizer_conf)
+    else:
+        quantizer = quantizer_class(**quantizer_conf)
+    tokenizer = SpeechTokenizer(
+        frontend=frontend,
+        quantizer=quantizer,
+        **config.get("tokenizer_conf", {}),
+    )
     tokenizer.load_state_dict(tokenizer_state, strict=True)
     return tokenizer.to(device=device, dtype=getattr(torch, dtype)).eval()
 

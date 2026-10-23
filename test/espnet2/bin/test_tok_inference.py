@@ -9,6 +9,7 @@ from espnet2.bin import tok_inference
 from espnet2.bin.tok_inference import build_tokenizer, get_parser, main
 from espnet2.tok.abs_quantizer import AbsSpeechTokenizerQuantizer
 from espnet2.tok.output import SpeechTokenizerOutput
+from espnet2.tok.quantizer_differentiable_kmeans import DifferentiableKMeans
 from espnet2.tok.tokenizer import SpeechTokenizer
 
 
@@ -136,6 +137,80 @@ def test_build_tokenizer_rejects_checkpoint_without_tokenizer_state(
         build_tokenizer(
             str(config_file), str(model_file), device="cpu", dtype="float32"
         )
+
+
+def test_build_tokenizer_rejects_checkpoint_without_centroids(tmp_path, monkeypatch):
+    monkeypatch.setattr(
+        tok_inference.frontend_choices,
+        "get_class",
+        lambda name: DummyFrontend,
+    )
+    config_file = tmp_path / "config.yaml"
+    with config_file.open("w", encoding="utf-8") as stream:
+        yaml.safe_dump(
+            {
+                "frontend": "dummy",
+                "quantizer": "differentiable_kmeans",
+            },
+            stream,
+        )
+    model_file = tmp_path / "model.pth"
+    torch.save(
+        {"model": {"tokenizer.frontend.scale": torch.tensor(1.0)}},
+        model_file,
+    )
+
+    with pytest.raises(
+        RuntimeError,
+        match="No tokenizer.quantizer.centroids parameter found",
+    ):
+        build_tokenizer(
+            str(config_file), str(model_file), device="cpu", dtype="float32"
+        )
+
+
+def test_build_tokenizer_restores_centroids_without_kmeans_file(tmp_path, monkeypatch):
+    monkeypatch.setattr(
+        tok_inference.frontend_choices,
+        "get_class",
+        lambda name: DummyFrontend,
+    )
+    config_file = tmp_path / "config.yaml"
+    with config_file.open("w", encoding="utf-8") as stream:
+        yaml.safe_dump(
+            {
+                "frontend": "dummy",
+                "quantizer": "differentiable_kmeans",
+                "quantizer_conf": {
+                    "centroid_path": str(tmp_path / "missing.mdl"),
+                },
+            },
+            stream,
+        )
+
+    expected = SpeechTokenizer(
+        DummyFrontend(),
+        DifferentiableKMeans.from_centroids(torch.tensor([[0.0], [1.0]])),
+    )
+    model_file = tmp_path / "model.pth"
+    torch.save(
+        {
+            "model": {
+                f"tokenizer.{name}": value.clone()
+                for name, value in expected.state_dict().items()
+            }
+        },
+        model_file,
+    )
+
+    tokenizer = build_tokenizer(
+        str(config_file), str(model_file), device="cpu", dtype="float32"
+    )
+
+    torch.testing.assert_close(
+        tokenizer.quantizer.centroids,
+        expected.quantizer.centroids,
+    )
 
 
 class DummyInferenceTokenizer:

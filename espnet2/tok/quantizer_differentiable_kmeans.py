@@ -48,6 +48,57 @@ class DifferentiableKMeans(AbsSpeechTokenizerQuantizer):
             temperature_decay: Exponential decay applied per training forward.
         """
         super().__init__()
+        centroid_path = Path(centroid_path)
+        if not centroid_path.is_file():
+            raise FileNotFoundError(f"No k-means model found: {centroid_path}")
+
+        kmeans = joblib.load(centroid_path)
+        if not hasattr(kmeans, "cluster_centers_"):
+            raise ValueError(f"K-means model has no cluster_centers_: {centroid_path}")
+        centroid_array = np.asarray(kmeans.cluster_centers_)
+        self._initialize(
+            torch.from_numpy(centroid_array),
+            distance_type=distance_type,
+            sigma_squared=sigma_squared,
+            temperature_init=temperature_init,
+            temperature_floor=temperature_floor,
+            temperature_decay=temperature_decay,
+        )
+
+    @classmethod
+    @typechecked
+    def from_centroids(
+        cls,
+        centroids: torch.Tensor,
+        distance_type: str = "squared_euclidean",
+        sigma_squared: float = 1.0,
+        temperature_init: float = 2.0,
+        temperature_floor: float = 0.1,
+        temperature_decay: float = 0.999995,
+    ) -> "DifferentiableKMeans":
+        """Initialize directly from centroids stored in a checkpoint."""
+        quantizer = cls.__new__(cls)
+        AbsSpeechTokenizerQuantizer.__init__(quantizer)
+        quantizer._initialize(
+            centroids,
+            distance_type=distance_type,
+            sigma_squared=sigma_squared,
+            temperature_init=temperature_init,
+            temperature_floor=temperature_floor,
+            temperature_decay=temperature_decay,
+        )
+        return quantizer
+
+    def _initialize(
+        self,
+        centroids: torch.Tensor,
+        distance_type: str,
+        sigma_squared: float,
+        temperature_init: float,
+        temperature_floor: float,
+        temperature_decay: float,
+    ) -> None:
+        """Initialize parameters and annealing settings from a centroid tensor."""
         if distance_type not in ("euclidean", "squared_euclidean"):
             raise ValueError(
                 "distance_type must be 'euclidean' or 'squared_euclidean', "
@@ -69,25 +120,17 @@ class DifferentiableKMeans(AbsSpeechTokenizerQuantizer):
                 "temperature_decay must be in (0, 1], but got " f"{temperature_decay}"
             )
 
-        centroid_path = Path(centroid_path)
-        if not centroid_path.is_file():
-            raise FileNotFoundError(f"No k-means model found: {centroid_path}")
-
-        kmeans = joblib.load(centroid_path)
-        if not hasattr(kmeans, "cluster_centers_"):
-            raise ValueError(f"K-means model has no cluster_centers_: {centroid_path}")
-        centroids = np.asarray(kmeans.cluster_centers_)
         if centroids.ndim != 2:
             raise ValueError(
-                "cluster_centers_ must have shape (num_clusters, feature_dim), "
+                "centroids must have shape (num_clusters, feature_dim), "
                 f"but got {centroids.shape}"
             )
-        if not np.issubdtype(centroids.dtype, np.floating):
+        if not torch.is_floating_point(centroids):
             raise TypeError(
-                f"cluster_centers_ must be floating point, but got {centroids.dtype}"
+                f"centroids must be floating point, but got {centroids.dtype}"
             )
 
-        self.centroids = torch.nn.Parameter(torch.from_numpy(centroids).float())
+        self.centroids = torch.nn.Parameter(centroids.detach().float().clone())
         self.distance_type = distance_type
         self.sigma_squared = float(sigma_squared)
         self.temperature_init = float(temperature_init)
