@@ -5,9 +5,12 @@
 #   python run.py --stages measure --metrics_config conf/metrics.yaml
 #
 # Recipe configs fill in the `metrics` list; see
-# `egs3/libritts/esp2_codec/conf/metrics.yaml` for a working example built on the
-# shared `espnet3.systems.esp2_codec.metrics.versa.VersaMetric` (PESQ/STOI/mel-cepstral
-# distortion and more).
+# `egs3/libritts/esp2_codec/conf/metrics.yaml` for a working example built on
+# `espnet3.systems.esp2_codec.metrics.versa.VersaMetric` (signal metrics,
+# pseudo-MOS predictors and more). Every entry binds the metric's declared
+# inputs beside `metric`: `wav` to the `infer` output (`<test_name>/wav.scp`)
+# and `ref` to the test set's ground-truth path column (`dataset:wav_path`),
+# so `infer` writes only what the model produced.
 #
 # `metrics: []` is deliberate rather than a populated example: OmegaConf
 # merges lists by whole replacement, so a non-empty default here would leak

@@ -7,9 +7,10 @@
 #       --inference_config conf/inference.yaml \
 #       --metrics_config conf/metrics.yaml
 #
-# Scores the `infer` stage outputs (`${inference_dir}/test/{wav,ref}.scp`)
-# with versa (https://github.com/wavlab-speech/versa), which must be
-# installed in the evaluation environment.
+# Scores the `infer` stage output (`${inference_dir}/test/wav.scp`) against
+# the test set's own `wav_path` column with versa
+# (https://github.com/wavlab-speech/versa), which must be installed in the
+# evaluation environment.
 
 dataset:
   test:
@@ -19,7 +20,7 @@ metrics:
   - metric:
       _target_: espnet3.systems.esp2_codec.metrics.versa.VersaMetric
       score_config:
-        # signal related metrics: sir, sar, sdr, ci-sdr, si-snri
+        # signal related metrics: sdr, sir, sar, si-snr, ci-sdr
         - name: signal_metric
         # pseudo subjective metrics: utmos, dnsmos, plcmos
         - name: pseudo_mos
@@ -31,9 +32,23 @@ metrics:
               fs: 16000
             plcmos:
               fs: 16000
+      # The scores the configuration above promises; `measure` fails if versa
+      # drops one (a metric whose dependency is missing is disabled without
+      # failing the run). `sir` is +inf for a resynthesis task, which has no
+      # interfering source.
+      outputs:
+        - sdr
+        - sir
+        - sar
+        - si_snr
+        - ci_sdr
+        - utmos
+        - dns_overall
+        - dns_p808
+        - plcmos
       wav_key: wav
       ref_key: ref
       use_gpu: true
     inputs:
-      wav: wav
-      ref: ref
+      wav: wav               # the model's output -> <test_name>/wav.scp
+      ref: dataset:wav_path  # the ground-truth file, a column of the test set
