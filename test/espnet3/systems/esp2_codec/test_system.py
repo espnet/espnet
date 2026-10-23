@@ -7,7 +7,7 @@ import torch.nn as nn
 from omegaconf import OmegaConf
 
 import espnet3.systems.esp2_codec.system as sysmod
-from espnet3.systems.esp2_codec.system import CodecSystem, _instantiate_model
+from espnet3.systems.esp2_codec.system import ESP2CodecSystem, _instantiate_model
 
 
 class DummyTrainer:
@@ -26,7 +26,7 @@ class DummyTrainer:
 
 def patch_runtime(monkeypatch, trainer):
     calls = {}
-    monkeypatch.setattr(CodecSystem, "_build_trainer", lambda self: trainer)
+    monkeypatch.setattr(ESP2CodecSystem, "_build_trainer", lambda self: trainer)
     monkeypatch.setattr(
         sysmod, "set_parallel", lambda arg: calls.setdefault("parallel", arg)
     )
@@ -71,20 +71,20 @@ def test_ensure_directories_creates_exp_and_stats(tmp_path):
     cfg = OmegaConf.create(
         {"exp_dir": str(tmp_path / "exp"), "stats_dir": str(tmp_path / "stats")}
     )
-    CodecSystem(training_config=cfg)._ensure_directories()
+    ESP2CodecSystem(training_config=cfg)._ensure_directories()
     assert (tmp_path / "exp").is_dir()
     assert (tmp_path / "stats").is_dir()
 
 
 def test_ensure_directories_without_stats_dir(tmp_path):
     cfg = OmegaConf.create({"exp_dir": str(tmp_path / "exp")})
-    CodecSystem(training_config=cfg)._ensure_directories()
+    ESP2CodecSystem(training_config=cfg)._ensure_directories()
     assert (tmp_path / "exp").is_dir()
 
 
 def test_ensure_directories_with_null_stats_dir(tmp_path):
     cfg = OmegaConf.create({"exp_dir": str(tmp_path / "exp"), "stats_dir": None})
-    CodecSystem(training_config=cfg)._ensure_directories()
+    ESP2CodecSystem(training_config=cfg)._ensure_directories()
     assert (tmp_path / "exp").is_dir()
 
 
@@ -104,7 +104,7 @@ def test_build_trainer_uses_gan_path_for_gan_model(tmp_path, monkeypatch):
         lambda config, model: built.setdefault("args", (config, model))
         and "gan_trainer",
     )
-    system = CodecSystem(training_config=cfg)
+    system = ESP2CodecSystem(training_config=cfg)
     assert system._build_trainer() == "gan_trainer"
     assert built["args"][1] is gan_model
 
@@ -129,13 +129,27 @@ def test_build_trainer_uses_plain_path_for_non_gan_model(tmp_path, monkeypatch):
         return "plain_trainer"
 
     monkeypatch.setattr(sysmod, "ESPnet3LightningTrainer", fake_trainer)
-    system = CodecSystem(training_config=cfg)
+    system = ESP2CodecSystem(training_config=cfg)
     assert system._build_trainer() == "plain_trainer"
     assert recorded["model"] == "lit_model"
     assert recorded["exp_dir"] == str(tmp_path / "exp")
 
 
 # ---------------- stages ----------------
+
+
+def test_system_inherits_the_default_stage_order():
+    assert [spec.name for spec in ESP2CodecSystem.stages] == [
+        "create_dataset",
+        "collect_stats",
+        "train",
+        "infer",
+        "measure",
+        "pack_model",
+        "upload_model",
+        "pack_demo",
+        "upload_demo",
+    ]
 
 
 def test_collect_stats_runs_pipeline(tmp_path, monkeypatch):
@@ -149,7 +163,7 @@ def test_collect_stats_runs_pipeline(tmp_path, monkeypatch):
     )
     trainer = DummyTrainer()
     calls = patch_runtime(monkeypatch, trainer)
-    system = CodecSystem(training_config=cfg)
+    system = ESP2CodecSystem(training_config=cfg)
 
     system.collect_stats()
 
@@ -176,7 +190,7 @@ def test_train_saves_espnet_config_and_forwards_fit_kwargs(tmp_path, monkeypatch
         "save_espnet_config",
         lambda task, c, exp_dir: calls.setdefault("save", (task, exp_dir)),
     )
-    system = CodecSystem(training_config=cfg)
+    system = ESP2CodecSystem(training_config=cfg)
 
     system.train()
 
@@ -195,7 +209,7 @@ def test_train_without_task_and_fit(tmp_path, monkeypatch):
         "save_espnet_config",
         lambda task, c, exp_dir: calls.setdefault("save", True),
     )
-    system = CodecSystem(training_config=cfg)
+    system = ESP2CodecSystem(training_config=cfg)
 
     system.train()
 
@@ -210,6 +224,6 @@ def test_train_without_task_and_fit(tmp_path, monkeypatch):
 @pytest.mark.parametrize("stage", ["train", "collect_stats"])
 def test_stages_reject_positional_arguments(tmp_path, stage):
     cfg = OmegaConf.create({"exp_dir": str(tmp_path / "exp")})
-    system = CodecSystem(training_config=cfg)
+    system = ESP2CodecSystem(training_config=cfg)
     with pytest.raises(TypeError, match="does not accept arguments"):
         getattr(system, stage)("unexpected")

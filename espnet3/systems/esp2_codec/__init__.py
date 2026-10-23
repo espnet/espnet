@@ -1,4 +1,5 @@
-"""Codec system package for ESPnet3.
+"""Neural codec system package for ESPnet3.
 
-Exposes system, and gan model components for codec tasks.
+Holds the system (``system.py``), the ESPnet2 task bridge (``task.py``), the
+metrics (``metrics/``) and the GAN training and inference helpers (``src/``).
 """

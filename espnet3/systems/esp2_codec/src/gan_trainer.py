@@ -105,7 +105,7 @@ def build_gan_trainer(training_config, model) -> GANLightningTrainer:
         trainer.fit()
         ```
 
-        ``CodecSystem`` picks this path automatically for GAN models:
+        ``ESP2CodecSystem`` picks this path automatically for GAN models:
         ```python
         if isinstance(model, AbsGANESPnetModel):
             return build_gan_trainer(config, model)

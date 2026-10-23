@@ -11,7 +11,7 @@
 # - `train`: uses most fields in this file
 #
 # This is the shared default merged under every codec recipe's training config
-# (see `load_and_merge_config` in `run.py`). Kept as empty as possible so it
+# (merged by `launch()` in `run.py`). Kept as empty as possible so it
 # never conflicts with a concrete recipe config -- a codec recipe directory may
 # host multiple, mutually incompatible architectures (encodec, dac,
 # soundstream, funcodec and hificodec have unrelated `codec_conf` shapes, and

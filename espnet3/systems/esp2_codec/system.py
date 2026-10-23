@@ -1,11 +1,10 @@
 """Codec system implementation.
 
-This system follows the default ESPnet3 stage set unmodified
-(create_dataset, collect_stats, train, infer, measure) — no codec-specific
-stage is added. The only customization is inside train()/collect_stats():
-GAN-based codec models (Encodec, SoundStream, DAC, FunCodec, all
-``AbsGANESPnetModel`` subclasses) need the shared GAN Lightning adapter
-instead of the plain single-optimizer trainer.
+This system runs the default ESPnet3 stages (``BaseSystem.stages``); no
+codec-specific stage is added. The only customization is inside
+``train()``/``collect_stats()``: GAN-based codec models (Encodec, SoundStream,
+DAC, FunCodec, all ``AbsGANESPnetModel`` subclasses) need the shared GAN
+Lightning adapter instead of the plain single-optimizer trainer.
 """
 
 import logging
@@ -37,8 +36,16 @@ def _instantiate_model(config: DictConfig) -> Any:
     return instantiate(config.model)
 
 
-class CodecSystem(BaseSystem):
-    """Neural codec system. Uses only the default ESPnet3 stages."""
+class ESP2CodecSystem(BaseSystem):
+    """Neural codec system on ESPnet2's ``GANCodecTask``.
+
+    Inherits ``BaseSystem.stages``; ``collect_stats`` and ``train`` are
+    overridden to build the GAN trainer for ``AbsGANESPnetModel`` models.
+
+    Examples:
+        >>> [s.name for s in ESP2CodecSystem.stages[:3]]
+        ['create_dataset', 'collect_stats', 'train']
+    """
 
     def _ensure_directories(self) -> None:
         config = self.training_config
@@ -91,7 +98,7 @@ class CodecSystem(BaseSystem):
         Examples:
             Invoked by ``run.py`` for the ``collect_stats`` stage:
             ```python
-            system = CodecSystem(training_config=cfg)
+            system = ESP2CodecSystem(training_config=cfg)
             system.collect_stats()
             ```
         """
@@ -131,7 +138,7 @@ class CodecSystem(BaseSystem):
         Examples:
             Invoked by ``run.py`` for the ``train`` stage:
             ```python
-            system = CodecSystem(training_config=cfg)
+            system = ESP2CodecSystem(training_config=cfg)
             system.train()
             ```
 
