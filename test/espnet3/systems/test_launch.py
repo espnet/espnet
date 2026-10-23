@@ -17,6 +17,7 @@ _RECIPE_RUN_PY_FILES = [
     _REPO_ROOT / "egs3" / "mini_an4" / "esp2_asr" / "run.py",
     _REPO_ROOT / "egs3" / "librispeech_100" / "esp2_asr" / "run.py",
     _REPO_ROOT / "egs3" / "spgispeech" / "esp2_asr" / "run.py",
+    _REPO_ROOT / "egs3" / "libritts" / "esp2_codec" / "run.py",
 ]
 
 
