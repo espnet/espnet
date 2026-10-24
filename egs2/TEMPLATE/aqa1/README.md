@@ -3,6 +3,9 @@
 This task trains predictors of speech/audio evaluation metrics. `aqa`
 is the task name; Uni-VERSA is the initial model (`universa: base`).
 
+See the [checkpoint compatibility guide](../../../doc/espnet2_audio_metric.md)
+for released model artifacts, migration status, and strict-load/fine-tuning checks.
+
 The implementation revives [ESPnet PR #5959](https://github.com/espnet/espnet/pull/5959)
 on current ESPnet. It uses the existing length-aware speaker pooling API.
 
@@ -71,9 +74,9 @@ embed this metadata. Inference supports `--beam_size`, `--skip_meta_label_score`
 `--save_token_seq`, and `--use_fixed_order --fixed_metric_name_order language,srmr`.
 ARECHO inference currently accepts one utterance per batch.
 
-The old `espnet2.bin.universa_train` / `universa_inference` entry points
-remain aliases for AQA. Parameter names and
-published token IDs are preserved so existing weights can initialize training.
+Use `espnet2.bin.aqa_train` / `aqa_inference` for training and inference.
+Parameter names and published token IDs are preserved so existing weights can
+initialize training.
 Historical `embedding_dim` and `use_rope` fields were ignored by the original
 models; they remain ignored to preserve checkpoint shapes and positional encoding.
 Use `embedding_size` to configure new models.
