@@ -59,6 +59,73 @@ The CTC segmentation algorithm assigns a score to each utterance, which indicate
 
 Finally, we convert the filtered data into Kaldi format using `local/convert_to_kaldi.py`. The resulting data is stored in `data`.
 
+## Open ASR Leaderboard evaluation and CPU decoding speed
+
+Open ASR Leaderboard test sets can be prepared and evaluated directly through the recipe stages (`local/data.sh`, `s2t.sh` stage 12 and stage 13):
+
+### 1. Data Preparation (`local/data.sh`)
+
+`local/data.sh` prepares the [Open ASR Leaderboard](https://huggingface.co/datasets/hf-audio/open-asr-leaderboard) test sets using `local/prepare_hf_asr_leaderboard.py`. Two profiles are supported:
+
+- **Full evaluation (`--openasr_subset full`, default)**: Prepares the full test sets (`data/openasr_<set>`) across benchmark configs (`librispeech` test.clean and test.other, `ami_cleaned`, `voxpopuli_cleaned_aa`, `common_voice`, `tedlium`, `gigaspeech_cleaned`, `spgispeech`, `earnings22`), preserving all utterances without sampling. Note that `--openasr_subset full` also creates the seeded 100-sample sets (`data/openasr_<set>_100`) alongside the full sets.
+- **Small smoke test (`--openasr_subset small`)**: Prepares only the 100-utterance subsets (`data/openasr_<set>_100`) from 6 benchmark sets with reproducible seed 0 (`--max_dur 30.0`) for quick local validation on CPU/laptop in a few minutes.
+
+The dataset is gated: accept the terms on its page and log in with `huggingface-cli login` (or set `HF_TOKEN`) before running.
+
+```bash
+# Prepare full leaderboard test sets (also creates the _100 subsets)
+local/data.sh --stage 5 --stop_stage 5 --openasr_subset full
+
+# Or prepare only the 100-utterance sample sets for quick smoke testing
+local/data.sh --stage 5 --stop_stage 5 --openasr_subset small
+```
+
+### 2. Feature Dump (Stage 3), Decoding (Stage 12), and Scoring (Stage 13)
+
+Format test sets, decode, and score using standard `s2t.sh` stages with the Open ASR decoding configuration (`conf/decode_openasr.yaml`: beam 5, ctc 0, maxlenratio 0, lang `<eng>`, task `<asr>`):
+
+```bash
+# Evaluate OWSM v4 base on the 100-utterance smoke test sets
+./s2t.sh --stage 3 --stop_stage 13 --skip_train true \
+    --download_model espnet/owsm_v4_base_102M \
+    --test_sets "openasr_librispeech_test_clean_100 openasr_librispeech_test_other_100 openasr_ami_cleaned_test_100 openasr_voxpopuli_cleaned_aa_test_100 openasr_earnings22_test_100 openasr_common_voice_test_100" \
+    --inference_config conf/decode_openasr.yaml \
+    --gpu_inference false \
+    --batch_size 8 \
+    --inference_nj 4 \
+    --cleaner whisper_en \
+    --hyp_cleaner whisper_en
+
+# Full leaderboard evaluation across all sets
+./s2t.sh --stage 3 --stop_stage 13 --skip_train true \
+    --download_model espnet/owsm_v4_base_102M \
+    --test_sets "openasr_librispeech_test_clean openasr_librispeech_test_other openasr_ami_cleaned_test openasr_voxpopuli_cleaned_aa_test openasr_common_voice_test openasr_tedlium_test openasr_gigaspeech_cleaned_test openasr_spgispeech_test openasr_earnings22_test" \
+    --inference_config conf/decode_openasr.yaml \
+    --gpu_inference false \
+    --batch_size 8 \
+    --inference_nj 8 \
+    --cleaner whisper_en \
+    --hyp_cleaner whisper_en
+```
+
+To calculate RTF and latency over stage 12 decoding logs:
+
+```bash
+python3 pyscripts/utils/calculate_rtf.py \
+    --log-dir "exp/espnet/owsm_v4_base_102M/decode_openasr/openasr_librispeech_test_clean_100/logdir" \
+    --log-name "s2t_inference" \
+    --input-shift 0.0625 \
+    --start-times-marker "speech length" \
+    --end-times-marker "best hypo"
+```
+
+### Results and Observations
+
+See [RESULTS.md](RESULTS.md) for detailed numbers and findings, including:
+- Sample smoke test benchmark results across decoding setups (beam 5, batch 8, greedy).
+- Analysis of end detection behavior and `maxlenratio=0` speedup on padded 30-second single-window inputs.
+- Discussion of 370M model behavior on AMI and greedy search repetition loops.
+
 ## OWSM series
 
 ### Encoder-decoder OWSM
