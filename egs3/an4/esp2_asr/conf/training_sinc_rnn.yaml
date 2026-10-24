@@ -1,0 +1,135 @@
+# Port of egs2/an4/asr1/conf/train_asr_sinc_rnn.yaml.
+# ESPnet2-derived model construction inside the existing ESPnet3 ASRSystem.
+task: espnet3.systems.esp2_asr.task.ASRTask
+seed: 0
+stats_dir: ${recipe_dir}/exp/stats_sinc_rnn
+
+# Build the source data split and transcripts before statistics/training.
+create_dataset:
+  recipe_dir: ${recipe_dir}
+
+# DataOrganizer supplies the public preprocessing and data-loader interfaces.
+# Local Dataset accepts only the data_src_args below; it returns speech/text.
+dataset:
+  train:
+    - data_src_args:
+        split: train
+        recipe_dir: ${recipe_dir}
+  valid:
+    - data_src_args:
+        split: valid
+        recipe_dir: ${recipe_dir}
+  preprocessor:
+    _target_: espnet2.train.preprocessor.CommonPreprocessor
+    token_type: bpe
+    token_list: ${tokenizer.save_path}/tokens.txt
+    bpemodel: ${tokenizer.save_path}/unigram.model
+    text_cleaner: null
+    fs: 16000
+
+# Train SentencePiece on the original, pre-duration-filter training text.
+# The token list is also reused by the shallow-fusion LM.
+tokenizer:
+  vocab_size: 30
+  model_type: unigram
+  save_path: ${data_dir}/unigram_30
+  text_builder:
+    func: egs3.an4.esp2_asr.src.tokenizer.gather_training_text
+    manifest_path: ${data_dir}/manifest/train.tsv
+
+# Preserve the source acoustic model, decoder, and loss/augmentation settings.
+# GlobalMVN reads statistics collected in a separate run.py invocation.
+model:
+  # Initialization belongs to the task's model arguments in this API.
+  init: xavier_uniform
+  token_list: ${tokenizer.save_path}/tokens.txt
+  frontend: sliding_window
+  frontend_conf:
+    hop_length: 240
+  preencoder: sinc
+  encoder: rnn
+  # Encoder depth, hidden size, and source regularization.
+  encoder_conf:
+    rnn_type: lstm
+    bidirectional: true
+    use_projection: true
+    num_layers: 4
+    hidden_size: 320
+    output_size: 320
+    dropout: 0.0
+    subsample: [2, 1, 1, 1]
+  decoder: rnn
+  # Autoregressive attention decoder used with the CTC branch.
+  decoder_conf:
+    rnn_type: lstm
+    num_layers: 1
+    hidden_size: 320
+    dropout: 0.0
+  normalize: global_mvn
+  normalize_conf:
+    stats_file: ${stats_dir}/train/feats_stats.npz
+  # Joint CTC/attention training objective and label smoothing.
+  model_conf:
+    ctc_weight: 0.5
+    lsm_weight: 0.0
+    length_normalized_loss: false
+
+# Source optimizer hyperparameters; remaining defaults come from TEMPLATE.
+optimizer:
+  _target_: torch.optim.Adadelta
+  lr: 1.0
+  rho: 0.95
+  eps: 1.0e-08
+  weight_decay: 0
+
+# A node interpolation replaces the whole TEMPLATE scheduler mapping;
+# merging mappings would retain its incompatible warmup_steps argument.
+# Advance the source learning-rate schedule through the shared trainer.
+scheduler: ${plateau_scheduler}
+plateau_scheduler:
+  _target_: torch.optim.lr_scheduler.ReduceLROnPlateau
+  mode: min
+  factor: 0.5
+  patience: 1
+scheduler_interval: epoch
+scheduler_monitor: valid/loss
+# Average the best validation-accuracy checkpoints with the shared callback.
+best_model_criterion:
+  - [valid/acc, 1, max]
+
+# Shapes describe frontend features rather than raw waveform/text lengths.
+# Batch construction and distribution follow the public ESPnet3 data loader.
+dataloader:
+  train:
+    iter_factory:
+      num_workers: 1
+      seed: ${seed}
+      batches:
+        sort_batch: descending
+        type: folded
+        batch_size: 15
+        shape_files:
+          - ${stats_dir}/train/feats_shape
+        # About 5 seconds at the 240-sample frontend hop.
+        fold_lengths: [334]
+  valid:
+    iter_factory:
+      num_workers: 1
+      seed: ${seed}
+      batches:
+        sort_batch: descending
+        shape_files:
+          - ${stats_dir}/valid/feats_shape
+        fold_lengths: [334]
+
+# Ordinary Lightning training: native GPU CTC and default validation checks.
+trainer:
+  max_epochs: 25
+  gradient_clip_val: 5.0
+  callbacks:
+    - _target_: lightning.pytorch.callbacks.EarlyStopping
+      monitor: valid/loss
+      mode: min
+      # ESPnet2 stops when bad epochs > 4; Lightning stops at >= patience.
+      patience: 5
+      min_delta: 0.0
