@@ -6,6 +6,8 @@ import torch
 import yaml
 
 from espnet2.bin.gan_codec_inference import AudioCoding, get_parser, main
+from espnet2.gan_codec.abs_gan_codec import AbsGANCodec
+from espnet2.gan_codec.espnet_model import ESPnetGANCodecModel
 from espnet2.tasks.gan_codec import GANCodecTask
 
 
@@ -103,3 +105,38 @@ def test_AudioCoding_funcodec_audio_normalize_restores_volume(funcodec_config_fi
     resyn_loud = audio_coding(100 * wav)["resyn_audio"]
     assert resyn.shape == wav.shape
     torch.testing.assert_close(resyn_loud, 100 * resyn, rtol=1e-4, atol=1e-5)
+
+
+class EncodeDecodeOnlyCodec(AbsGANCodec):
+    """Codec that only implements the methods required by AbsGANCodec."""
+
+    def __init__(self):
+        super().__init__()
+        self.generator = torch.nn.Identity()
+        self.discriminator = torch.nn.Identity()
+
+    def meta_info(self):
+        return {"fs": 16000}
+
+    def forward(self, audio, forward_generator=True, **kwargs):
+        raise NotImplementedError
+
+    def encode(self, x, **kwargs):
+        # (B, 1, T) -> (N_stream=1, B, T)
+        return (x * 10).round().long().transpose(0, 1)
+
+    def decode(self, x, **kwargs):
+        return x.transpose(0, 1).float() / 10
+
+
+@pytest.mark.execution_timeout(5)
+def test_AudioCoding_codec_without_inference(config_file):
+    audio_coding = AudioCoding(train_config=config_file)
+    audio_coding.model = ESPnetGANCodecModel(EncodeDecodeOnlyCodec())
+    wav = torch.rand(160)
+    output_dict = audio_coding(wav)
+    codes = audio_coding.model.encode(wav)
+    torch.testing.assert_close(output_dict["codes"], codes)
+    torch.testing.assert_close(
+        output_dict["resyn_audio"], audio_coding.model.decode(codes).view(-1)
+    )
