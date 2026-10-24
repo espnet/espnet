@@ -244,6 +244,7 @@ EMILIA=downloads
 EARS=  # local path to EARS (48 kHz studio speech)
 VCTK_DEMAND=  # local path to VoiceBank+DEMAND (its clean speech)
 WHAM_NOISE=  # local path to the WHAM! noise corpus
+MARATHI_LREC2020=  # local path to the extracted Marathi corpus
 
 
 # For only CMU TIR environment
