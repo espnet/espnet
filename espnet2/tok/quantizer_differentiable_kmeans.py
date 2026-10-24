@@ -1,7 +1,7 @@
 """Differentiable k-means quantization."""
 
 from pathlib import Path
-from typing import Union
+from typing import Optional, Union
 
 import joblib
 import numpy as np
@@ -27,18 +27,21 @@ class DifferentiableKMeans(AbsSpeechTokenizerQuantizer):
     @typechecked
     def __init__(
         self,
-        centroid_path: Union[str, Path],
+        centroid_path: Optional[Union[str, Path]] = None,
+        centroids: Optional[torch.Tensor] = None,
         distance_type: str = "squared_euclidean",
         sigma_squared: float = 1.0,
         temperature_init: float = 2.0,
         temperature_floor: float = 0.1,
         temperature_decay: float = 0.999995,
     ):
-        """Initialize trainable centroids from an offline k-means model.
+        """Initialize trainable centroids from a file or tensor.
 
         Args:
             centroid_path: Joblib model produced by ESPnet's k-means pipeline.
                 The loaded object must expose ``cluster_centers_`` with shape
+                ``(num_clusters, feature_dim)``.
+            centroids: Centroid tensor with shape
                 ``(num_clusters, feature_dim)``.
             distance_type: Distance used to construct assignment logits.
                 Either ``"squared_euclidean"`` or ``"euclidean"``.
@@ -48,38 +51,21 @@ class DifferentiableKMeans(AbsSpeechTokenizerQuantizer):
             temperature_decay: Exponential decay applied per training forward.
         """
         super().__init__()
-        centroid_path = Path(centroid_path)
-        if not centroid_path.is_file():
-            raise FileNotFoundError(f"No k-means model found: {centroid_path}")
+        if (centroid_path is None) == (centroids is None):
+            raise ValueError("Specify exactly one of centroid_path and centroids")
+        if centroid_path is not None:
+            centroid_path = Path(centroid_path)
+            if not centroid_path.is_file():
+                raise FileNotFoundError(f"No k-means model found: {centroid_path}")
 
-        kmeans = joblib.load(centroid_path)
-        if not hasattr(kmeans, "cluster_centers_"):
-            raise ValueError(f"K-means model has no cluster_centers_: {centroid_path}")
-        centroid_array = np.asarray(kmeans.cluster_centers_)
+            kmeans = joblib.load(centroid_path)
+            if not hasattr(kmeans, "cluster_centers_"):
+                raise ValueError(
+                    f"K-means model has no cluster_centers_: {centroid_path}"
+                )
+            centroids = torch.from_numpy(np.asarray(kmeans.cluster_centers_))
+
         self._initialize(
-            torch.from_numpy(centroid_array),
-            distance_type=distance_type,
-            sigma_squared=sigma_squared,
-            temperature_init=temperature_init,
-            temperature_floor=temperature_floor,
-            temperature_decay=temperature_decay,
-        )
-
-    @classmethod
-    @typechecked
-    def from_centroids(
-        cls,
-        centroids: torch.Tensor,
-        distance_type: str = "squared_euclidean",
-        sigma_squared: float = 1.0,
-        temperature_init: float = 2.0,
-        temperature_floor: float = 0.1,
-        temperature_decay: float = 0.999995,
-    ) -> "DifferentiableKMeans":
-        """Initialize directly from centroids stored in a checkpoint."""
-        quantizer = cls.__new__(cls)
-        AbsSpeechTokenizerQuantizer.__init__(quantizer)
-        quantizer._initialize(
             centroids,
             distance_type=distance_type,
             sigma_squared=sigma_squared,
@@ -87,7 +73,6 @@ class DifferentiableKMeans(AbsSpeechTokenizerQuantizer):
             temperature_floor=temperature_floor,
             temperature_decay=temperature_decay,
         )
-        return quantizer
 
     def _initialize(
         self,
