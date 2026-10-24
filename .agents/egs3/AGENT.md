@@ -75,13 +75,16 @@ LibriSpeech builder for a raw-layout passthrough and mini_an4 for a
 manifest-building example. Prefer shared helpers in `espnet3.utils` for
 downloads and extraction over ad-hoc network/archive code.
 
-`dataset/dataset.py` should return only fields accepted by the model and
-preprocessor. Do not add convenience metadata such as `utt_id` without tracing
-the sample through training, inference, and metrics; unsupported fields can
-break downstream consumers. Put corpus paths, split names, and other
-builder-specific settings in `dataset/config.yaml` when that matches the
-existing recipe pattern, and load them using the shared config helper rather
-than hard-coding them in builder logic.
+Training samples should contain only fields consumed by the model and
+preprocessor. In inference datasets, expose scoring metadata such as `utt_id`,
+`reco`, or reference labels only when the metrics config reads those columns via
+`dataset:<column>`; keep them out of `input_key` and training batches unless the
+model or preprocessor consumes them. Trace each field through the actual
+training, inference, and metrics paths before adding it, because unsupported
+training fields can break downstream consumers. Put corpus paths, split names,
+and other builder-specific settings in `dataset/config.yaml` when that matches
+the existing recipe pattern, and load them using the shared config helper
+rather than hard-coding them in builder logic.
 
 External dataset libraries (for example Lhotse or Hugging Face Datasets) can
 be used behind a normal importable `Dataset` class selected through the

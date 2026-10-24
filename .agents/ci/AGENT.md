@@ -8,7 +8,7 @@ and remove generated `exp/` and `data/` directories in their fixture recipes.
 
 | Script | Coverage |
 |---|---|
-| `test_python_espnet3.sh` | flake8 wrapper, repository pycodestyle, timed pytest over test/espnet3 and test/ci, coverage |
+| `test_python_espnet3.sh` | flake8 wrapper, repository pycodestyle, timed pytest over test/espnet3, test/ci, and test/splet, coverage |
 | `test_integration_espnet3.sh` | In-place mini_an4/esp2_asr stages across four model configs, then serial/two-worker equivalence |
 | `check_espnet3_parallel_workers.py` | Compares serial and parallel inference/statistics artifacts |
 | `test_integration_espnet3_publication.sh` | Training through model packing, optional upload, external bundle loading, demo packing/UI checks |
@@ -28,14 +28,15 @@ For a scoped implementation, run the tests covering its changed behavior first.
 The unit CI command is:
 
 ```bash
-pytest -q --execution-timeout 10.0 --timeouts-order moi test/espnet3/ test/ci/
+pytest -q --execution-timeout 10.0 --timeouts-order moi test/espnet3/ test/ci/ test/splet/
 ```
 
 That full suite is the CI reference; use the relevant subset during development.
 Verify formatting with black/isort check mode, run pycodestyle, and use
 `bash ci/test_flake8.sh espnet3` with flake8-docstrings and hacking installed.
-The unit script runs pycodestyle with its repository exclusions; do not describe
-a narrowed local invocation as the full CI check.
+The unit script runs pycodestyle with its repository exclusions and flake8-docstrings
+over `splet/`; it also runs `test/splet/` in the pytest command above. Do not
+describe a narrowed local invocation as the full CI check.
 
 ## Integration behavior
 
