@@ -45,6 +45,13 @@ def test_prepare_model_inputs_refuses_a_batch():
         TTSInferenceRunner.prepare_model_inputs({"text": ["a", "b"]})
 
 
+@pytest.mark.parametrize("text", ["", "   ", "\n"])
+def test_prepare_model_inputs_refuses_empty_text(text):
+    """Empty or whitespace text is refused before Text2Speech sees it."""
+    with pytest.raises(ValueError, match="'text' is empty"):
+        TTSInferenceRunner.prepare_model_inputs({"text": text, "spembs": np.ones(2)})
+
+
 def test_format_output_keeps_only_the_waveform_as_float32():
     """Only `wav` survives, as a 1-D float32 array."""
     out = TTSInferenceRunner.format_output(

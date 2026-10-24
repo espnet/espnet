@@ -45,17 +45,26 @@ class TTSInferenceRunner(InferenceRunner):
             ``inputs`` itself.
 
         Raises:
-            ValueError: If an input is a list, that is, the call is batched.
+            ValueError: If an input is a list, that is, the call is batched,
+                or if ``text`` is empty or whitespace: the ``text`` Kind
+                accepts an empty string, but ``Text2Speech`` has nothing to
+                synthesize from it and fails deep inside the model.
 
         Examples:
             >>> TTSInferenceRunner.prepare_model_inputs({"text": "hi"})
             {'text': 'hi'}
+            >>> TTSInferenceRunner.prepare_model_inputs({"text": "  "})
+            Traceback (most recent call last):
+            ValueError: 'text' is empty; Text2Speech needs text to synthesize
         """
         if any(isinstance(value, list) for value in inputs.values()):
             raise ValueError(
                 "Text2Speech synthesizes one utterance per call; set "
                 "`batch_size: null` in the inference config"
             )
+        text = inputs.get("text")
+        if isinstance(text, str) and not text.strip():
+            raise ValueError("'text' is empty; Text2Speech needs text to synthesize")
         return inputs
 
     @staticmethod
