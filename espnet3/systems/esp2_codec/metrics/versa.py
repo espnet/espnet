@@ -45,9 +45,12 @@ class VersaMetric(BaseMetric):
     one path or transcript per input): :meth:`update` adds a batch of
     them, numbered as they arrive, and :meth:`compute` writes them as SCP
     files, runs the scorer once over everything added, and returns the
-    per-utterance average of every numeric field VERSA emitted, plus a
-    corpus-level WER/CER pooled from the edit-operation counts when a
-    recognition metric is configured. :meth:`__call__`, which `measure`
+    per-utterance average of each declared output (a corpus-level WER/CER
+    pooled from the edit-operation counts when a recognition metric is
+    configured). VERSA emits more keys than a task declares, such as the
+    separation-only ``sir`` of ``signal_metric``; those are kept in the
+    scorer's ``avg_result.json`` but not returned, so the declaration is
+    exactly what reaches the results table. :meth:`__call__`, which `measure`
     uses once per test set, reads the rows from the `infer` stage's SCP
     files with their real utterance ids and scores them the same way
     under ``<output_dir>/<test_name>/scoring/versa_eval``. A metric that
@@ -110,11 +113,13 @@ class VersaMetric(BaseMetric):
         Args:
             score_config: Path to a versa score-config YAML file, or an
                 inline list of versa metric definitions.
-            outputs: The score names this metric promises to return, such
-                as ``["sdr", "si_snr", "utmos"]``; each
-                becomes a declared ``number`` output. VERSA returns more
-                keys than these (the WER edit counts, say); extra keys are
-                returned too, only the declared ones are checked.
+            outputs: The score names this metric returns, such as
+                ``["sdr", "si_snr", "utmos"]``; each becomes a declared
+                ``number`` output. VERSA computes more keys than these (the
+                WER edit counts, say, or ``sir`` and ``sar`` next to
+                ``sdr``); the extra keys stay in the scorer's
+                ``avg_result.json`` and only the declared ones are
+                returned.
             wav_key: Input alias for the output-wav SCP file.
             ref_key: Input alias for the reference-wav SCP file (the original
                 waveform each utterance was resynthesized from).
@@ -242,9 +247,11 @@ class VersaMetric(BaseMetric):
         are also written there as ``avg_result.json``.
 
         Returns:
-            Dict of metric name to per-utterance average, plus the pooled
-            ``<prefix>_wer`` / ``<prefix>_cer`` percentage when the scorer
-            emitted edit-operation counts (see :meth:`_aggregate`).
+            Dict of declared output name to per-utterance average; a
+            declared ``<prefix>_wer`` / ``<prefix>_cer`` is the pooled
+            percentage from the edit-operation counts (see
+            :meth:`_aggregate`). Keys VERSA emitted but the declaration
+            does not name are written to ``avg_result.json`` only.
 
         Raises:
             ValueError: If no row was added.
@@ -310,7 +317,8 @@ class VersaMetric(BaseMetric):
         logger.info(
             "Wrote VERSA averages to %s (%d metrics)", average_path, len(averages)
         )
-        return averages
+        declared = {field.name for field in self.outputs}
+        return {name: averages[name] for name in averages if name in declared}
 
     def __call__(
         self,

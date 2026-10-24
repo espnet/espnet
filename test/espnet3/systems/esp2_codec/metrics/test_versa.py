@@ -259,7 +259,7 @@ class TestDeclaration:
 
         result = metric.compute()
 
-        assert result == {"mcd": 3.0}
+        assert result == {}
         with pytest.raises(MetricContractError, match="missing \\['utmos'\\]"):
             check_metric_output(metric, result)
 
@@ -473,7 +473,33 @@ class TestCall:
 
         averages = metric(self._make_data(tmp_path), "test", tmp_path / "inference")
 
-        assert averages == {"mcd": 2.0, "utmos": 4.0}
+        assert averages == {"mcd": 2.0}
+
+    def test_only_declared_outputs_are_returned(self, tmp_path, monkeypatch):
+        """Undeclared keys (``sir`` for a codec) stay in avg_result.json only."""
+        scorer = FakePopen(
+            records=[
+                {"sdr": 6.0, "sir": float("inf"), "sar": 6.0, "utmos": 4.0},
+                {"sdr": 8.0, "sir": float("inf"), "sar": 8.0, "utmos": 3.0},
+            ]
+        )
+        monkeypatch.setattr(
+            "espnet3.systems.esp2_codec.metrics.versa.subprocess.Popen", scorer
+        )
+        metric = VersaMetric(
+            outputs=["sdr", "utmos"], score_config=[{"name": "signal_metric"}]
+        )
+        output_dir = tmp_path / "inference"
+
+        averages = metric(self._make_data(tmp_path), "test", output_dir)
+
+        assert averages == {"sdr": 7.0, "utmos": 3.5}
+        saved = json.loads(
+            (
+                output_dir / "test" / "scoring" / "versa_eval" / "avg_result.json"
+            ).read_text()
+        )
+        assert saved == {"sdr": 7.0, "sir": float("inf"), "sar": 7.0, "utmos": 3.5}
 
 
 class TestSummarize:

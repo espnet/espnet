@@ -20,7 +20,10 @@ metrics:
   - metric:
       _target_: espnet3.systems.esp2_codec.metrics.versa.VersaMetric
       score_config:
-        # signal related metrics: sdr, sir, sar, si-snr, ci-sdr
+        # signal related metrics: sdr, si-snr, ci-sdr (versa also computes
+        # sir and sar, which only mean something with several sources; for
+        # a one-source resynthesis sir is +inf and sar equals sdr, so they
+        # are not declared below and do not reach the results)
         - name: signal_metric
         # pseudo subjective metrics: utmos, dnsmos, plcmos
         - name: pseudo_mos
@@ -32,14 +35,11 @@ metrics:
               fs: 16000
             plcmos:
               fs: 16000
-      # The scores the configuration above promises; `measure` fails if versa
-      # drops one (a metric whose dependency is missing is disabled without
-      # failing the run). `sir` is +inf for a resynthesis task, which has no
-      # interfering source.
+      # The scores the configuration above promises and the only ones that
+      # reach metrics.json; `measure` fails if versa drops one (a metric
+      # whose dependency is missing is disabled without failing the run).
       outputs:
         - sdr
-        - sir
-        - sar
         - si_snr
         - ci_sdr
         - utmos
