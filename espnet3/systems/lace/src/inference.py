@@ -13,7 +13,7 @@ Example:
 
     .. code-block:: python
 
-        >>> from espnet3.systems.lace.inference import Inference
+        >>> from espnet3.systems.lace.src.inference import Inference
         >>> model = Inference.from_pretrained("exp/train_encodec_lace/model_pack")
         >>> model("utt.wav")["resyn_audio"].rate
         24000
@@ -33,7 +33,7 @@ Example:
     .. code-block:: yaml
 
         model:
-          _target_: espnet3.systems.lace.inference.Inference
+          _target_: espnet3.systems.lace.src.inference.Inference
           train_config: ${exp_dir}/lace_model.yaml
           model_file: ${exp_dir}/last.ckpt
           rate: 0.5
@@ -226,7 +226,7 @@ class Inference(BackendInference):
             [{'resyn_audio': Audio(...)}, {'resyn_audio': Audio(...)}]
     """
 
-    backend_class = "espnet3.systems.lace.inference.LACEAudioCoding"
+    backend_class = "espnet3.systems.lace.src.inference.LACEAudioCoding"
     inputs = (Field("audio", "audio", "Input Audio"),)
     outputs = (Field("resyn_audio", "audio", "Resynthesized Audio"),)
 

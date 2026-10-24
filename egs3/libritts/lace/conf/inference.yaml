@@ -23,7 +23,7 @@ dataset:
         inference: true
 
 model:
-  _target_: espnet3.systems.lace.inference.Inference
+  _target_: espnet3.systems.lace.src.inference.Inference
   train_config: ${exp_dir}/lace_model.yaml
   model_file: ${exp_dir}/last.ckpt   # Lightning checkpoints are unwrapped automatically
   rate: 0.5

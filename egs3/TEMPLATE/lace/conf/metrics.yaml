@@ -15,7 +15,7 @@
 #
 # Recipe configs fill in the `metrics` list; see
 # `egs3/libritts/lace/conf/metrics.yaml` for a working example built on the
-# shared `espnet3.components.metrics.versa.VersaMetric` (PESQ/STOI/mel-cepstral
+# `espnet3.systems.lace.metrics.versa.VersaMetric` (PESQ/STOI/mel-cepstral
 # distortion and more).
 #
 # `metrics: []` is deliberate rather than a populated example: OmegaConf

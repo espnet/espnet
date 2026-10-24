@@ -80,12 +80,12 @@ parallel:
 # The model is the system's `Inference` (espnet3.api.inference): it declares
 # what it takes (`audio`) and returns (`resyn_audio`), so nothing below needs
 # to say. Its arguments are the ones
-# `espnet3.systems.lace.inference.LACEAudioCoding` takes: the `lace_model.yaml`
+# `espnet3.systems.lace.src.inference.LACEAudioCoding` takes: the `lace_model.yaml`
 # spec and the fine-tuned checkpoint of a training run, the compression
 # `rate`, and the optional `anchor_start_layer` / `target_bandwidth`;
 # `device` is added by the provider.
 model:
-  _target_: espnet3.systems.lace.inference.Inference
+  _target_: espnet3.systems.lace.src.inference.Inference
   # train_config: ${exp_dir}/lace_model.yaml
   # model_file: ${exp_dir}/last.ckpt
   # rate: 0.5

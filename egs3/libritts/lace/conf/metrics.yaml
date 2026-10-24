@@ -19,7 +19,7 @@ dataset:
 
 metrics:
   - metric:
-      _target_: espnet3.components.metrics.versa.VersaMetric
+      _target_: espnet3.systems.lace.metrics.versa.VersaMetric
       score_config:
         - name: signal_metric          # sir, sar, sdr, ci-sdr, si-snr
         - name: pseudo_mos             # utmos, dnsmos, plcmos

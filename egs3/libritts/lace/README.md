@@ -39,7 +39,7 @@ python run.py --stages infer measure \
 There is no `collect_stats` stage to run: the chunk-based data loader needs no shape files.
 
 Training writes the wrapped model spec to `exp/${exp_tag}/lace_model.yaml`.
-`conf/inference.yaml` rebuilds the model from that spec and loads `exp/${exp_tag}/last.ckpt` on top, through the system's `Inference` (`espnet3.systems.lace.inference.Inference`), which takes the test set's `audio` and writes the resynthesized waveforms as WAV files listed in `exp/${exp_tag}/inference/test/resyn_audio.scp`.
+`conf/inference.yaml` rebuilds the model from that spec and loads `exp/${exp_tag}/last.ckpt` on top, through the system's `Inference` (`espnet3.systems.lace.src.inference.Inference`), which takes the test set's `audio` and writes the resynthesized waveforms as WAV files listed in `exp/${exp_tag}/inference/test/resyn_audio.scp`.
 `measure` scores them against the test set's own waveforms (`dataset:wav_path` in `conf/metrics.yaml`) with versa.
 Set `model.rate` in `conf/inference.yaml` to choose the compression rate, and `model.anchor_start_layer` to make later layers reuse the boundaries of earlier ones.
 To sweep rates, copy the config once per rate (for example `conf/inference_r025.yaml`): the output directory is named after the config file, so the runs do not overwrite each other.

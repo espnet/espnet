@@ -30,7 +30,7 @@ def test_default_inference_config_targets():
     config = load_default_config("inference.yaml", "egs3.TEMPLATE.lace")
     # Post-#6806 form: the Inference declares its inputs/outputs.
     assert config.get("input_key") is None and config.get("output_fn") is None
-    assert config.model._target_ == "espnet3.systems.lace.inference.Inference"
+    assert config.model._target_ == "espnet3.systems.lace.src.inference.Inference"
     assert (
         config.provider._target_
         == "espnet3.systems.base.inference_provider.InferenceProvider"
@@ -65,7 +65,7 @@ def test_libritts_inference_config_resolves():
         "inference.yaml",
         default_package="egs3.TEMPLATE.lace",
     )
-    assert config.model._target_ == "espnet3.systems.lace.inference.Inference"
+    assert config.model._target_ == "espnet3.systems.lace.src.inference.Inference"
     assert config.model.train_config.endswith("/lace_model.yaml")
     assert config.get("input_key") is None and config.get("output_fn") is None
     (entry,) = config.dataset.test
@@ -80,7 +80,7 @@ def test_libritts_metrics_config_reads_the_reference_from_the_data():
         default_package="egs3.TEMPLATE.lace",
     )
     (metric,) = config.metrics
-    assert metric.metric._target_ == "espnet3.components.metrics.versa.VersaMetric"
+    assert metric.metric._target_ == "espnet3.systems.lace.metrics.versa.VersaMetric"
     assert dict(metric.inputs) == {"hyp": "resyn_audio", "ref": "dataset:wav_path"}
     assert "utmos" in metric.metric.outputs
 

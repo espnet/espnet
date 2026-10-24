@@ -1,4 +1,4 @@
-"""Unit tests for espnet3.components.metrics.versa."""
+"""Unit tests for espnet3.systems.lace.metrics.versa."""
 
 import io
 import json
@@ -12,7 +12,7 @@ import pytest
 import yaml
 from omegaconf import OmegaConf
 
-from espnet3.components.metrics.versa import VersaMetric
+from espnet3.systems.lace.metrics.versa import VersaMetric
 
 
 def _write_jsonl(path, records):
@@ -252,7 +252,7 @@ class TestCall:
     def test_builds_command_and_returns_averages(self, tmp_path, monkeypatch):
         """The scorer command is built and its results averaged and kept."""
         scorer = _FakePopen(lines=["scoring"], records=[{"mcd": 3.0}, {"mcd": 1.0}])
-        monkeypatch.setattr("espnet3.components.metrics.versa.subprocess.Popen", scorer)
+        monkeypatch.setattr("espnet3.systems.lace.metrics.versa.subprocess.Popen", scorer)
         metric = VersaMetric(
             score_config=[{"name": "signal_metric"}], outputs=["mcd"], use_gpu=False
         )
@@ -291,7 +291,7 @@ class TestCall:
                 return super().__call__(cmd, **kwargs)
 
         monkeypatch.setattr(
-            "espnet3.components.metrics.versa.subprocess.Popen",
+            "espnet3.systems.lace.metrics.versa.subprocess.Popen",
             Recording(records=[{"mcd": 1.0}, {"mcd": 1.0}]),
         )
         metric = VersaMetric(score_config=[{"name": "signal_metric"}], outputs=["mcd"])
@@ -302,7 +302,7 @@ class TestCall:
     def test_optional_inputs_may_be_absent(self, tmp_path, monkeypatch):
         """Without ``ref`` no ``--gt`` is passed."""
         scorer = _FakePopen(records=[{"mcd": 1.0}, {"mcd": 1.0}])
-        monkeypatch.setattr("espnet3.components.metrics.versa.subprocess.Popen", scorer)
+        monkeypatch.setattr("espnet3.systems.lace.metrics.versa.subprocess.Popen", scorer)
         data = self._make_data(tmp_path)
         data.pop("ref")
         metric = VersaMetric(score_config=[{"name": "signal_metric"}], outputs=["mcd"])
@@ -313,7 +313,7 @@ class TestCall:
     def test_use_gpu_and_text_are_forwarded(self, tmp_path, monkeypatch):
         """``use_gpu`` and a ``text`` input reach the command line."""
         scorer = _FakePopen(records=[{"mcd": 1.0}, {"mcd": 1.0}])
-        monkeypatch.setattr("espnet3.components.metrics.versa.subprocess.Popen", scorer)
+        monkeypatch.setattr("espnet3.systems.lace.metrics.versa.subprocess.Popen", scorer)
         data = self._make_data(tmp_path)
         text = tmp_path / "text"
         text.write_text("utt1 hello\nutt2 world\n", encoding="utf-8")
@@ -329,7 +329,7 @@ class TestCall:
     def test_non_zero_exit_raises(self, tmp_path, monkeypatch):
         """A non-zero scorer exit raises ``CalledProcessError``."""
         scorer = _FakePopen(returncode=1)
-        monkeypatch.setattr("espnet3.components.metrics.versa.subprocess.Popen", scorer)
+        monkeypatch.setattr("espnet3.systems.lace.metrics.versa.subprocess.Popen", scorer)
         metric = VersaMetric(score_config=[{"name": "signal_metric"}], outputs=["mcd"])
         with pytest.raises(subprocess.CalledProcessError):
             metric(self._make_data(tmp_path), "test")
@@ -342,7 +342,7 @@ class TestCall:
             lines=["Failed to load metric pseudo_mos: No module named 'utmos'"],
             records=[{"mcd": 3.0}, {"mcd": 1.0}],
         )
-        monkeypatch.setattr("espnet3.components.metrics.versa.subprocess.Popen", scorer)
+        monkeypatch.setattr("espnet3.systems.lace.metrics.versa.subprocess.Popen", scorer)
         metric = VersaMetric(score_config=[{"name": "signal_metric"}], outputs=["mcd"])
         with pytest.raises(RuntimeError, match="Failed to load metric pseudo_mos"):
             metric(self._make_data(tmp_path), "test")
@@ -352,7 +352,7 @@ class TestCall:
         scorer = _FakePopen(
             records=[{"mcd": 3.0, "utmos": None}, {"mcd": 1.0, "utmos": None}]
         )
-        monkeypatch.setattr("espnet3.components.metrics.versa.subprocess.Popen", scorer)
+        monkeypatch.setattr("espnet3.systems.lace.metrics.versa.subprocess.Popen", scorer)
         metric = VersaMetric(score_config=[{"name": "signal_metric"}], outputs=["mcd"])
         with pytest.raises(RuntimeError, match="no value for any utterance: utmos"):
             metric(self._make_data(tmp_path), "test")
@@ -360,7 +360,7 @@ class TestCall:
     def test_missing_declared_output_is_an_error(self, tmp_path, monkeypatch):
         """A declared output the scorer did not emit raises."""
         scorer = _FakePopen(records=[{"mcd": 3.0}, {"mcd": 1.0}])
-        monkeypatch.setattr("espnet3.components.metrics.versa.subprocess.Popen", scorer)
+        monkeypatch.setattr("espnet3.systems.lace.metrics.versa.subprocess.Popen", scorer)
         metric = VersaMetric(
             score_config=[{"name": "signal_metric"}], outputs=["mcd", "utmos"]
         )
@@ -375,7 +375,7 @@ class TestCall:
                 {"mcd": 1.0, "utmos": None, "hyp_text": "b"},
             ]
         )
-        monkeypatch.setattr("espnet3.components.metrics.versa.subprocess.Popen", scorer)
+        monkeypatch.setattr("espnet3.systems.lace.metrics.versa.subprocess.Popen", scorer)
         metric = VersaMetric(score_config=[{"name": "signal_metric"}], outputs=["mcd"])
         averages = metric(self._make_data(tmp_path), "test")
         assert averages == {"mcd": 2.0, "utmos": 4.0}
@@ -386,7 +386,7 @@ class TestSummarize:
 
     def test_logs_plain_metrics(self, caplog):
         """Plain metrics are logged under the test-set header."""
-        with caplog.at_level("INFO", logger="espnet3.components.metrics.versa"):
+        with caplog.at_level("INFO", logger="espnet3.systems.lace.metrics.versa"):
             VersaMetric.summarize({"mcd": 1.2345}, "test")
 
         assert "VERSA scores - test" in caplog.text
@@ -406,7 +406,7 @@ class TestSummarize:
             "espnet_cer_equal": 99.0,
         }
 
-        with caplog.at_level("INFO", logger="espnet3.components.metrics.versa"):
+        with caplog.at_level("INFO", logger="espnet3.systems.lace.metrics.versa"):
             VersaMetric.summarize(scores, "test")
 
         assert "WER components" in caplog.text
@@ -425,7 +425,7 @@ class TestSummarize:
             "fwhisper_wer_equal": 1.0,
             "fwhisper_wer": 50.0,
         }
-        with caplog.at_level(logging.INFO, logger="espnet3.components.metrics.versa"):
+        with caplog.at_level(logging.INFO, logger="espnet3.systems.lace.metrics.versa"):
             VersaMetric.summarize(scores, test_name="unit-test")
 
         # "fwhisper_wer" not followed by "_": the per-op keys do not count, the

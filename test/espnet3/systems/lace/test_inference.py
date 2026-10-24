@@ -1,4 +1,4 @@
-"""Unit tests for espnet3.systems.lace.inference."""
+"""Unit tests for espnet3.systems.lace.src.inference."""
 
 from test.espnet3.systems.lace._codec_dummies import (
     HOP_LENGTH,
@@ -13,7 +13,7 @@ import yaml
 
 from espnet3.api.inference import Audio, load
 from espnet3.publication.schema import PACK_SCHEMA_VERSION
-from espnet3.systems.lace.inference import Inference, LACEAudioCoding
+from espnet3.systems.lace.src.inference import Inference, LACEAudioCoding
 from espnet3.systems.lace.src.lace import LACE
 from espnet3.systems.lace.system import (
     build_lace_model_config,
@@ -139,7 +139,7 @@ def test_inference_from_pretrained_bundle(finetuned, tmp_path):
             {
                 "recipe_dir": ".",
                 "model": {
-                    "_target_": "espnet3.systems.lace.inference.Inference",
+                    "_target_": "espnet3.systems.lace.src.inference.Inference",
                     "train_config": spec_path,
                     "model_file": model_file,
                     "rate": 0.5,
