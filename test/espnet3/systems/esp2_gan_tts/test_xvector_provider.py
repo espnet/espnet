@@ -73,6 +73,7 @@ from espnet3.systems.esp2_gan_tts.src.xvector_provider import (
 
 
 def test_load_manifest_groups_by_speaker(manifest):
+    """The manifest loader keeps utterance order and groups ids by speaker."""
     utterances, speaker_to_utterances = XVectorProvider._load_manifest(manifest)
 
     assert [utt_id for utt_id, _ in utterances] == ["u1", "u2", "u3"]
@@ -80,6 +81,7 @@ def test_load_manifest_groups_by_speaker(manifest):
 
 
 def test_load_manifest_skips_blank_lines(tmp_path):
+    """Blank manifest lines are ignored."""
     path = write_manifest(tmp_path, ["u1\t/a.wav\thello\t0\n", "\n", "\n"])
 
     utterances, _ = XVectorProvider._load_manifest(path)
@@ -104,6 +106,7 @@ def test_load_manifest_rejects_short_rows(tmp_path):
 
 
 def test_build_env_local_returns_worker_env(manifest, tmp_path, stub_model):
+    """The local env carries the config, device, model, manifest and output dir."""
     env = make_provider(manifest, tmp_path).build_env_local()
 
     assert sorted(env) == [
@@ -158,6 +161,7 @@ def test_build_env_null_device_picks_automatically(manifest, tmp_path, monkeypat
 
 
 def test_build_env_local_requires_config(manifest, tmp_path, stub_model):
+    """A missing ``xvector`` section or manifest path is a RuntimeError."""
     no_xvector = XVectorProvider(OmegaConf.create({}), params={})
     with pytest.raises(RuntimeError, match="xvector configuration not found"):
         no_xvector.build_env_local()
@@ -172,6 +176,7 @@ def test_build_env_local_requires_config(manifest, tmp_path, stub_model):
 
 
 def test_build_env_local_rejects_empty_manifest(tmp_path, stub_model):
+    """An empty manifest is refused when the env is built."""
     empty = write_manifest(tmp_path, [])
     provider = make_provider(empty, tmp_path)
 
@@ -180,6 +185,7 @@ def test_build_env_local_rejects_empty_manifest(tmp_path, stub_model):
 
 
 def test_worker_setup_fn_builds_same_env(manifest, tmp_path, stub_model):
+    """The worker setup function builds the same env as the local path."""
     provider = make_provider(manifest, tmp_path)
 
     setup = provider.build_worker_setup_fn()
@@ -215,6 +221,7 @@ def test_worker_setup_fn_requires_config(manifest, tmp_path, stub_model):
 
 
 def test_has_cuda_reports_torch_availability(monkeypatch):
+    """``_has_cuda`` mirrors ``torch.cuda.is_available``."""
     monkeypatch.setattr(torch.cuda, "is_available", lambda: True)
     assert XVectorProvider._has_cuda() is True
 
@@ -242,6 +249,7 @@ def test_has_cuda_without_torch(monkeypatch):
 
 
 def test_build_model_speechbrain(monkeypatch, fake_speechbrain):
+    """The speechbrain toolkit loads an EncoderClassifier on the requested device."""
     calls = {}
 
     class _EncoderClassifier:
@@ -282,6 +290,7 @@ def _hide_modules(monkeypatch, *names):
 
 
 def test_build_model_speechbrain_missing_dep(monkeypatch):
+    """Without speechbrain installed the error says how to install it."""
     _hide_modules(monkeypatch, "speechbrain")
 
     with pytest.raises(ImportError, match="pip install speechbrain"):
@@ -364,6 +373,7 @@ def test_build_model_rawnet(monkeypatch, tmp_path):
 
 
 def test_build_model_rawnet_missing_dep(monkeypatch):
+    """Without the RawNet3 modules the error names them."""
     _hide_modules(monkeypatch, "RawNet3", "RawNetBasicBlock")
 
     with pytest.raises(ImportError, match="RawNet3 modules are not importable"):
@@ -371,5 +381,6 @@ def test_build_model_rawnet_missing_dep(monkeypatch):
 
 
 def test_build_model_rejects_unknown_toolkit():
+    """An unknown toolkit name is a ValueError."""
     with pytest.raises(ValueError, match="Unknown toolkit: nope"):
         XVectorProvider._build_model("nope", "model", "cpu")

@@ -49,6 +49,7 @@ def recorded_init(monkeypatch):
 
 
 def test_strips_gan_section_from_dictconfig(recorded_init):
+    """The ``gan`` section of a DictConfig is removed before Lightning sees it."""
     config = OmegaConf.create({"accelerator": "cpu", "gan": {"generator_first": True}})
 
     GANTTSLightningTrainer(config=config)
@@ -59,6 +60,7 @@ def test_strips_gan_section_from_dictconfig(recorded_init):
 
 
 def test_strips_gan_section_from_plain_dict(recorded_init):
+    """The ``gan`` section of a plain dict is removed the same way."""
     config = {"accelerator": "cpu", "gan": {"generator_first": True}}
 
     GANTTSLightningTrainer(config=config)
@@ -79,6 +81,7 @@ def test_does_not_mutate_caller_config(recorded_init):
 
 
 def test_forwards_config_without_gan_section(recorded_init):
+    """A config without a ``gan`` section is forwarded untouched."""
     config = OmegaConf.create({"accelerator": "cpu"})
 
     GANTTSLightningTrainer(config=config)
@@ -87,6 +90,7 @@ def test_forwards_config_without_gan_section(recorded_init):
 
 
 def test_build_gan_trainer_wires_config(recorded_init, monkeypatch):
+    """The builder wraps the model and hands the trainer its config and exp_dir."""
     wrapped = []
 
     class _FakeLightningModule:

@@ -1,3 +1,5 @@
+"""Shared fixtures for the esp2_gan_tts tests: a manifest, stub extractors."""
+
 import sys
 import types
 from test.espnet3.systems.esp2_gan_tts._gan_dummies import DummyDataset
@@ -26,7 +28,7 @@ def patch_dataset_reference(monkeypatch):
 
 @pytest.fixture
 def manifest(tmp_path):
-    """A two-speaker, three-utterance manifest with real wav files."""
+    """Write a two-speaker, three-utterance manifest with real wav files."""
     rows = []
     for utt_id, spk in (("u1", "0"), ("u2", "0"), ("u3", "1")):
         wav_path = write_wav(tmp_path, f"{utt_id}.wav")

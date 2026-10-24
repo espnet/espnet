@@ -46,8 +46,9 @@ xvector:
 ##########################################################
 # `ui.app_script` is the launcher `pack_demo` copies into the packed demo as
 # `app.py`: the template's, which turns the reference recording into the
-# embedding the model takes. `ui.description` is a markdown/text file
-# `pack_demo` copies into the bundle, or inline text.
+# embedding the model takes. `ui.description` is the guide shown above the
+# widgets: the template's `src/demo_description.md` (repository-relative, so
+# `pack_demo` can copy it into the bundle), or inline text.
 #
 # `ui.inputs` is set explicitly because the widgets differ from the model's
 # inputs: the page shows a text box and an audio widget, and the launcher
@@ -56,7 +57,7 @@ xvector:
 ui:
   app_script: ${config_path:../src/app.py}
   title: ${set_corpus_and_system:} demo
-  description: README.md
+  description: egs3/TEMPLATE/esp2_gan_tts/src/demo_description.md
   inputs:
     - key: text
       type: text

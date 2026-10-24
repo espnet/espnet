@@ -63,7 +63,7 @@ def test_check_refuses_what_is_not_a_numeric_vector(value, message):
 
 @pytest.mark.parametrize("bad", [np.nan, np.inf, -np.inf])
 def test_check_refuses_non_finite_values(bad):
-    """NaN and infinities are a ValueError."""
+    """A NaN or an infinity is a ValueError."""
     with pytest.raises(ValueError, match="NaN or Inf"):
         VectorKind().check(np.array([1.0, bad]), FIELD, None, output=True)
 

@@ -30,6 +30,7 @@ def test_launch_reads_the_defaults_from_this_template() -> None:
 
 
 def test_load_default_config_train_contains_expected_targets() -> None:
+    """The training defaults name the GAN-TTS task and the data organizer."""
     cfg = load_default_config("training.yaml", PACKAGE)
     assert cfg.task == "espnet3.systems.esp2_gan_tts.task.GANTTSTask"
     assert (
@@ -53,6 +54,7 @@ def test_load_default_config_train_contains_expected_targets() -> None:
 
 
 def test_load_default_config_infer_declares_the_contract() -> None:
+    """The inference defaults declare text + spembs -> wav, with no preprocessor."""
     cfg = load_default_config("inference.yaml", PACKAGE)
     assert cfg.dataset.recipe_dir == "."
     assert cfg.dataset._recursive_ is False
@@ -85,6 +87,7 @@ def test_load_default_config_infer_declares_the_contract() -> None:
 
 
 def test_load_default_config_metrics_binds_versa_to_the_dataset_columns() -> None:
+    """The metrics defaults bind VersaMetric's references to dataset columns."""
     cfg = load_default_config("metrics.yaml", PACKAGE)
     assert [entry.name for entry in cfg.dataset.test] == ["valid", "test"]
     entry = cfg.metrics[0]
@@ -112,6 +115,7 @@ def test_load_default_config_metrics_binds_versa_to_the_dataset_columns() -> Non
 
 
 def test_load_default_config_publication_ships_the_checkpoint_and_tokens() -> None:
+    """The publication defaults keep last.ckpt and the token list, no code."""
     cfg = load_default_config("publication.yaml", PACKAGE)
     assert [str(p) for p in cfg.pack_model.include] == ["./data/tokens"]
     # The packed inference config loads `${exp_dir}/last.ckpt`, so the bulk
@@ -122,9 +126,11 @@ def test_load_default_config_publication_ships_the_checkpoint_and_tokens() -> No
 
 
 def test_load_default_config_demo_wires_the_reference_recording() -> None:
+    """The demo shows text + a reference recording and reuses the training extractor."""
     cfg = load_default_config("demo.yaml", PACKAGE)
     assert cfg.model.trust_user_code is False
     assert cfg.ui.app_script.endswith("egs3/TEMPLATE/esp2_gan_tts/src/app.py")
+    assert cfg.ui.description == "egs3/TEMPLATE/esp2_gan_tts/src/demo_description.md"
     assert [spec.key for spec in cfg.ui.inputs] == ["text", "reference_speech"]
     assert [spec.type for spec in cfg.ui.inputs] == ["text", "audio"]
     assert "outputs" not in cfg.ui
@@ -135,6 +141,7 @@ def test_load_default_config_demo_wires_the_reference_recording() -> None:
 
 
 def test_load_and_merge_config_user_overrides_template_defaults(tmp_path: Path) -> None:
+    """A user config merged over the template overrides only the keys it sets."""
     user = tmp_path / "train_user.yaml"
     user.write_text(
         """
@@ -190,4 +197,5 @@ def test_libritts_recipe_overlays_hold_only_their_deltas() -> None:
 
 
 def test_load_and_merge_config_none_path_returns_none() -> None:
+    """A missing user config path yields None rather than the defaults."""
     assert load_and_merge_config(None, "metrics.yaml", default_package=PACKAGE) is None

@@ -98,6 +98,7 @@ def _original_collect_feats(**kwargs):
 
 
 def test_wrapper_adds_speech_and_text_inputs():
+    """The collect_feats wrapper adds the speech and text inputs to the feature dict."""
     wrapped = _wrap_collect_feats_with_inputs(_original_collect_feats)
 
     speech = torch.zeros(2, 4)
@@ -117,6 +118,7 @@ def test_wrapper_adds_speech_and_text_inputs():
 
 
 def test_wrapper_passes_through_missing_inputs():
+    """Inputs absent from the batch are not added by the wrapper."""
     wrapped = _wrap_collect_feats_with_inputs(_original_collect_feats)
 
     out = wrapped(speech=torch.zeros(2, 4))
@@ -162,6 +164,7 @@ def test_collect_stats_wraps_instance_only(monkeypatch):
 
 
 def test_collect_stats_restores_on_error(monkeypatch):
+    """collect_stats restores the original collect_feats even when the base raises."""
     model = DummyGANModel()
     module = make_module(model)
 
@@ -179,6 +182,7 @@ def test_collect_stats_restores_on_error(monkeypatch):
 
 
 def test_collect_stats_leaves_non_gan_models(monkeypatch):
+    """A non-GAN model goes straight to the base collect_stats, unwrapped."""
     model = DummyNonGANModel()
     module = make_module(model)
     calls = []
@@ -199,6 +203,7 @@ def test_collect_stats_leaves_non_gan_models(monkeypatch):
 
 
 def test_normalize_optim_idx_accepts_int():
+    """Plain integers 0 and 1 are valid optimizer indices."""
     module = make_module()
 
     assert module._normalize_optim_idx(0) == 0
@@ -206,6 +211,7 @@ def test_normalize_optim_idx_accepts_int():
 
 
 def test_normalize_optim_idx_accepts_tensors():
+    """Scalar and constant tensors are reduced to their integer index."""
     module = make_module()
 
     assert module._normalize_optim_idx(torch.tensor(1)) == 1
@@ -223,6 +229,7 @@ def test_normalize_optim_idx_accepts_tensors():
     ],
 )
 def test_normalize_optim_idx_rejects_bad_values(optim_idx, match):
+    """Out-of-range or mixed optimizer indices are an AssertionError."""
     module = make_module()
 
     with pytest.raises(AssertionError, match=match):
@@ -235,6 +242,7 @@ def test_normalize_optim_idx_rejects_bad_values(optim_idx, match):
 
 
 def test_gan_option_reads_trainer_gan_section():
+    """GAN options come from the trainer's ``gan`` section with the given fallback."""
     module = make_module(gan={"generator_first": True})
     assert module._gan_option("generator_first", False) is True
     assert module._gan_option("missing_key", "fallback") == "fallback"
@@ -255,6 +263,7 @@ def test_gan_option_reads_plain_dict_section():
 
 
 def test_turns_in_order_defaults_to_disc_first():
+    """Without ``generator_first`` the discriminator turn comes first."""
     module = make_module()
     assert module._turns_in_order() == [
         ("discriminator", False),
@@ -270,6 +279,7 @@ def test_turns_in_order_defaults_to_disc_first():
 
 def test_should_skip_discriminator():
     # rand() is drawn from [0, 1), so p=1.0 always skips and p=0.0 never does.
+    """The skip probability applies in training only; p=1 always skips, p=0 never."""
     module = make_module(gan={"skip_discriminator_prob": 1.0})
     assert module._should_skip_discriminator("train") is True
     assert module._should_skip_discriminator("valid") is False
@@ -308,6 +318,7 @@ def test_automatic_optimization_is_disabled():
 
 
 def test_forward_gan_turn_returns_step():
+    """One GAN turn yields an OptimizationStep with its stats and weight."""
     module = make_module()
 
     step, stats, weight = module._forward_gan_turn(make_batch(), forward_generator=True)
@@ -331,6 +342,7 @@ def test_forward_gan_turn_rejects_non_dict_output():
 
 
 def test_step_runs_both_turns_and_updates():
+    """A training step runs both turns, logs them and steps both optimizers."""
     model = DummyGANModel()
     module = make_module(model)
     _, logged, _, stepped = prepare_manual_optimization(module)
@@ -348,6 +360,7 @@ def test_step_runs_both_turns_and_updates():
 
 
 def test_step_valid_mode_logs_without_update():
+    """A validation step logs the losses but steps no optimizer."""
     model = DummyGANModel()
     module = make_module(model)
     _, logged, _, stepped = prepare_manual_optimization(module)
@@ -361,6 +374,7 @@ def test_step_valid_mode_logs_without_update():
 
 
 def test_step_no_forward_run():
+    """``no_forward_run`` skips the model forward entirely."""
     model = DummyGANModel()
     module = make_module(model, gan={"no_forward_run": True})
 
@@ -369,6 +383,7 @@ def test_step_no_forward_run():
 
 
 def test_step_skips_batch_on_nan_loss():
+    """A NaN loss skips the batch without stepping an optimizer."""
     model = DummyGANModel(loss_value=float("nan"))
     module = make_module(model)
     _, _, _, stepped = prepare_manual_optimization(module)
@@ -381,6 +396,7 @@ def test_step_skips_batch_on_nan_loss():
 
 
 def test_step_skips_discriminator_turn():
+    """With skip probability 1 only the generator optimizer steps."""
     model = DummyGANModel()
     module = make_module(model, gan={"skip_discriminator_prob": 1.0})
     _, _, _, stepped = prepare_manual_optimization(module)
@@ -393,6 +409,7 @@ def test_step_skips_discriminator_turn():
 
 
 def test_step_falls_back_for_non_gan_model(monkeypatch):
+    """A non-GAN model is stepped by the base class ``_step``."""
     module = make_module(DummyNonGANModel())
     calls = []
     monkeypatch.setattr(
@@ -412,6 +429,7 @@ def test_step_falls_back_for_non_gan_model(monkeypatch):
 
 
 def test_update_accumulates_before_stepping():
+    """With accum_grad_steps=2 the optimizers step every second batch."""
     model = DummyGANModel()
     module = make_module(model, accum_grad_steps=2)
     _, logged, _, stepped = prepare_manual_optimization(module)
@@ -428,6 +446,7 @@ def test_update_accumulates_before_stepping():
 
 
 def test_update_applies_gradient_clipping():
+    """A configured gradient_clip_val is applied before each optimizer step."""
     module = make_module(gradient_clip_val=1.5)
     optimizer_map, _, clipped, _ = prepare_manual_optimization(module)
 
@@ -437,6 +456,7 @@ def test_update_applies_gradient_clipping():
 
 
 def test_update_rejects_unknown_optimizer():
+    """A step naming an optimizer the module does not have is an AssertionError."""
     module = make_module()
     prepare_manual_optimization(module)
     step = OptimizationStep(loss=torch.tensor(1.0, requires_grad=True), name="unknown")

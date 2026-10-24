@@ -45,6 +45,7 @@ from espnet3.systems.esp2_gan_tts.src.xvector_runner import XVectorRunner
 
 
 def test_forward_writes_embedding(manifest, tmp_path, stub_model):
+    """One index writes its .pt file and reports status ok."""
     env = make_provider(manifest, tmp_path).build_env_local()
 
     result = XVectorRunner.forward(0, **env)
@@ -56,6 +57,7 @@ def test_forward_writes_embedding(manifest, tmp_path, stub_model):
 
 
 def test_forward_skips_existing(manifest, tmp_path, stub_model, monkeypatch):
+    """An existing .pt file is kept without re-reading the audio."""
     env = make_provider(manifest, tmp_path).build_env_local()
     XVectorRunner.forward(0, **env)
 
@@ -72,6 +74,7 @@ def test_forward_skips_existing(manifest, tmp_path, stub_model, monkeypatch):
 
 
 def test_forward_accepts_iterable(manifest, tmp_path, stub_model):
+    """An iterable of indices yields one status per utterance."""
     env = make_provider(manifest, tmp_path).build_env_local()
 
     results = XVectorRunner.forward(range(3), **env)
@@ -89,6 +92,7 @@ def test_forward_accepts_iterable(manifest, tmp_path, stub_model):
     ],
 )
 def test_forward_converts_embedding_types(manifest, tmp_path, monkeypatch, embedding):
+    """Tensors, arrays and lists are all persisted as a 1-D float tensor."""
     monkeypatch.setattr(
         XVectorProvider, "_build_model", staticmethod(lambda *a, **k: "MODEL")
     )
@@ -125,6 +129,7 @@ def test_load_audio_mixes_stereo_to_mono(tmp_path):
 
 
 def test_load_audio_keeps_mono_untouched(tmp_path):
+    """Mono audio is returned as float32 at its own rate."""
     wav, in_sr = XVectorRunner._load_audio(write_wav(tmp_path, seconds=0.5, sr=8000))
 
     assert (wav.ndim, in_sr, wav.shape) == (1, 8000, (4000,))
@@ -132,6 +137,7 @@ def test_load_audio_keeps_mono_untouched(tmp_path):
 
 
 def test_extract_embedding_dispatches_toolkit(monkeypatch):
+    """``_extract_embedding`` dispatches on the toolkit name."""
     seen = []
     for name in ("espnet", "speechbrain", "rawnet"):
         monkeypatch.setattr(
@@ -150,7 +156,7 @@ def test_extract_embedding_dispatches_toolkit(monkeypatch):
 
 
 def test_extract_speechbrain_uses_encode_batch(fake_speechbrain):
-    """speechbrain wants (batch, time) in and gives (batch, 1, emb) out.
+    """The speechbrain path adds the batch axis and flattens (batch, 1, emb).
 
     The runner must add the batch axis and flatten the result so the default
     toolkit persists the same 1-D shape as the espnet and rawnet paths.
@@ -174,6 +180,7 @@ def test_extract_speechbrain_uses_encode_batch(fake_speechbrain):
 
 
 def test_extract_espnet_resamples_and_mixes():
+    """The espnet path resamples to 16 kHz and mixes to mono first."""
     seen = {}
 
     def _model(wav_tensor):
@@ -191,6 +198,7 @@ def test_extract_espnet_resamples_and_mixes():
 
 
 def test_extract_rawnet_pads_short_audio():
+    """The rawnet path pads audio shorter than its window."""
     seen = {}
 
     def _model(audios):
@@ -207,6 +215,7 @@ def test_extract_rawnet_pads_short_audio():
 
 
 def test_extract_rawnet_resamples():
+    """The rawnet path resamples to 16 kHz before extracting."""
     seen = {}
 
     def _model(audios):
@@ -225,7 +234,7 @@ def test_extract_rawnet_resamples():
 def test_forward_persists_a_1d_vector_whatever_the_toolkit_returns(
     manifest, tmp_path, stub_model, monkeypatch
 ):
-    """espnet's Speech2Embedding returns (1, D); the file holds (D,)."""
+    """The espnet path flattens Speech2Embedding's (1, D) to the (D,) it stores."""
     monkeypatch.setattr(
         XVectorRunner,
         "_extract_embedding",

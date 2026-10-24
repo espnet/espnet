@@ -15,15 +15,18 @@ class DummyDataset:
     """Two-sample dataset standing in for a real manifest-backed dataset."""
 
     def __init__(self, path=None):
+        """Hold two fixed feature rows; ``path`` is accepted for signature parity."""
         self.data = [
             {"x": np.array([0.1, 0.2], dtype=np.float32)},
             {"x": np.array([0.3, 0.4], dtype=np.float32)},
         ]
 
     def __len__(self):
+        """Return the number of rows."""
         return len(self.data)
 
     def __getitem__(self, idx):
+        """Return the features of one row."""
         return {"x": self.data[idx]["x"]}
 
 
@@ -35,6 +38,7 @@ class DummyGANModel(AbsGANESPnetModel):
     """
 
     def __init__(self, *, loss_value=None, optim_idx=None, output=None):
+        """Build one-layer generator/discriminator and remember what to return."""
         super().__init__()
         self.generator = nn.Linear(2, 1)
         self.discriminator = nn.Linear(2, 1)
@@ -45,6 +49,7 @@ class DummyGANModel(AbsGANESPnetModel):
         self.cache_cleared = 0
 
     def forward(self, forward_generator: bool = True, **batch):
+        """Return the configured output, else loss/stats/weight/optim_idx as a dict."""
         self.forward_calls.append(forward_generator)
         if self.output is not None:
             return self.output
@@ -68,9 +73,11 @@ class DummyGANModel(AbsGANESPnetModel):
         }
 
     def collect_feats(self, **batch):
+        """Echo the input back as the collected features."""
         return {"feats": batch.get("x")}
 
     def clear_cache(self):
+        """Count how often the trainer asked to clear the cache."""
         self.cache_cleared += 1
 
 
@@ -78,11 +85,13 @@ class DummyNonGANModel(nn.Module):
     """Plain model returning the ``(loss, stats, weight)`` base contract."""
 
     def __init__(self):
+        """Build the same two layers without the GAN return contract."""
         super().__init__()
         self.generator = nn.Linear(2, 1)
         self.discriminator = nn.Linear(2, 1)
 
     def forward(self, x, **kwargs):
+        """Return the ``(loss, stats, weight)`` tuple of a plain model."""
         loss = self.generator(x).sum() + self.discriminator(x).sum()
         return loss, {"loss": loss.detach()}, None
 

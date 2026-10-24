@@ -96,6 +96,7 @@ def _trainer_config(tmp_path):
 
 
 def test_build_trainer_dispatches_gan_models(tmp_path, monkeypatch):
+    """A GAN model is wrapped by the GAN Lightning module and trainer."""
     config = _trainer_config(tmp_path)
     model = _FakeGANModel()
     monkeypatch.setattr(sysmod, "_instantiate_model", lambda cfg: model)
@@ -117,6 +118,7 @@ def test_build_trainer_dispatches_gan_models(tmp_path, monkeypatch):
 
 
 def test_build_trainer_uses_plain_trainer(tmp_path, monkeypatch):
+    """A plain model gets the plain Lightning module and trainer."""
     config = _trainer_config(tmp_path)
     model = object()
     monkeypatch.setattr(sysmod, "_instantiate_model", lambda cfg: model)
@@ -195,6 +197,7 @@ def _train_system(tmp_path, monkeypatch, extra=None):
 
 
 def test_train_builds_trainer_and_fits(tmp_path, monkeypatch):
+    """The train stage builds the trainer once and forwards the ``fit`` section."""
     system, trainer, seen_configs = _train_system(
         tmp_path, monkeypatch, extra={"fit": {"ckpt_path": "last"}}
     )
@@ -206,6 +209,7 @@ def test_train_builds_trainer_and_fits(tmp_path, monkeypatch):
 
 
 def test_train_without_fit_section(tmp_path, monkeypatch):
+    """A missing or empty ``fit`` section means ``fit()`` with no arguments."""
     system, trainer, _ = _train_system(tmp_path, monkeypatch)
     system.train()
     assert trainer.fit_calls == [{}]
@@ -216,6 +220,7 @@ def test_train_without_fit_section(tmp_path, monkeypatch):
 
 
 def test_train_saves_espnet_config_for_task(tmp_path, monkeypatch):
+    """The train stage writes the espnet2-style config when ``task`` is set."""
     saved = []
     monkeypatch.setattr(
         sysmod,
@@ -233,6 +238,7 @@ def test_train_saves_espnet_config_for_task(tmp_path, monkeypatch):
 
 
 def test_train_rejects_stage_args(tmp_path, monkeypatch):
+    """Stages take no positional or keyword arguments."""
     system, _, _ = _train_system(tmp_path, monkeypatch)
 
     with pytest.raises(TypeError):
@@ -269,6 +275,7 @@ def test_collect_stats_keeps_normalize_in_model(tmp_path, monkeypatch):
 
 
 def test_prepare_training_runtime(tmp_path, monkeypatch):
+    """The runtime setup seeds, sets parallelism and creates the directories."""
     config = OmegaConf.create(
         {
             "exp_dir": str(tmp_path / "exp"),
@@ -333,6 +340,7 @@ def test_declares_the_stage_order():
 
 
 def test_stage_log_dirs_follow_the_training_config(tmp_path):
+    """Each custom stage's log_dir points at its save_path in the training config."""
     config = OmegaConf.create(
         {
             "exp_dir": str(tmp_path / "exp"),
@@ -428,6 +436,7 @@ def _xvector_system(tmp_path, monkeypatch, xvector=None, manifests=("train",)):
 
 
 def test_compute_xvectors_runs_each_split(tmp_path, monkeypatch):
+    """The x-vector stage runs the runner once per configured split."""
     system = _xvector_system(
         tmp_path,
         monkeypatch,
@@ -462,6 +471,7 @@ def test_compute_xvectors_runs_each_split(tmp_path, monkeypatch):
 
 
 def test_compute_xvectors_accepts_single_split(tmp_path, monkeypatch):
+    """A single split name is accepted in place of a list."""
     system = _xvector_system(tmp_path, monkeypatch)
     system.training_config.xvector.splits = "train"
 
@@ -471,6 +481,7 @@ def test_compute_xvectors_accepts_single_split(tmp_path, monkeypatch):
 
 
 def test_compute_xvectors_default_manifest(tmp_path, monkeypatch):
+    """Without manifest_paths the stage reads data/manifest/<split>.tsv."""
     monkeypatch.chdir(tmp_path)
     _xvector_manifest(tmp_path, "data/manifest/train.tsv")
     _RecordingRunner.calls = []
@@ -506,6 +517,7 @@ def test_compute_xvectors_null_manifest_paths(tmp_path, monkeypatch):
 
 
 def test_compute_xvectors_requires_config(tmp_path, monkeypatch):
+    """A training config without an ``xvector`` section is a RuntimeError."""
     monkeypatch.setattr(sysmod, "XVectorRunner", _RecordingRunner)
 
     no_xvector = ESP2GANTTSSystem(
@@ -524,6 +536,7 @@ def test_compute_xvectors_requires_config(tmp_path, monkeypatch):
 
 
 def test_compute_xvectors_missing_manifest(tmp_path, monkeypatch):
+    """A manifest path that does not exist is a RuntimeError."""
     system = _xvector_system(tmp_path, monkeypatch)
     system.training_config.xvector.manifest_paths.train = str(tmp_path / "nope.tsv")
 
@@ -532,6 +545,7 @@ def test_compute_xvectors_missing_manifest(tmp_path, monkeypatch):
 
 
 def test_compute_xvectors_rejects_empty_manifest(tmp_path, monkeypatch):
+    """An empty manifest is a RuntimeError, not a silent no-op."""
     system = _xvector_system(tmp_path, monkeypatch)
     empty = tmp_path / "empty.tsv"
     empty.write_text("", encoding="utf-8")
@@ -542,6 +556,7 @@ def test_compute_xvectors_rejects_empty_manifest(tmp_path, monkeypatch):
 
 
 def test_compute_xvectors_sets_parallel(tmp_path, monkeypatch):
+    """The stage applies the training config's ``parallel`` section."""
     system = _xvector_system(tmp_path, monkeypatch)
     calls = []
     monkeypatch.setattr(sysmod, "set_parallel", lambda cfg: calls.append(cfg))
@@ -553,6 +568,7 @@ def test_compute_xvectors_sets_parallel(tmp_path, monkeypatch):
 
 
 def test_compute_xvectors_rejects_stage_args(tmp_path, monkeypatch):
+    """The x-vector stage takes no arguments either."""
     system = _xvector_system(tmp_path, monkeypatch)
 
     with pytest.raises(TypeError):

@@ -42,6 +42,7 @@ _ARCHIVE_SIZES: dict[str, int] = {
 
 
 def _load_builder_config() -> dict:
+    """Read the ``builder`` block of this package's ``config.yaml``."""
     config_resource = resources.files(__package__).joinpath("config.yaml")
     with resources.as_file(config_resource) as config_path:
         return load_config_with_defaults(str(config_path), resolve=False)["builder"]
@@ -357,7 +358,7 @@ class LibriTTSBuilder(DatasetBuilder):
         num_workers: int = 1,
         **_kwargs,
     ) -> None:
-        """Build the task-ready audio (resampled copy) and the manifests.
+        r"""Build the task-ready audio (resampled copy) and the manifests.
 
         Args:
             recipe_dir: Recipe root directory.
