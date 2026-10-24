@@ -11,7 +11,9 @@ import pytest
 import torch
 
 from espnet2.tasks.gan_tok import GANSpeechTokenizerTask
+from espnet2.tok.espnet_model import ESPnetGANSpeechTokenizerModel
 from espnet2.train.gan_trainer import GANTrainer
+from espnet2.utils.get_default_kwargs import get_default_kwargs
 
 
 def test_add_arguments():
@@ -221,8 +223,13 @@ def test_build_model_and_run_generator_discriminator_steps(tmp_path):
         "use_feat_match_loss": False,
         "use_mel_loss": False,
     }
+    args.model_conf = {"extract_feats_in_collect_stats": True}
 
     model = GANSpeechTokenizerTask.build_model(args)
+    assert model.extract_feats_in_collect_stats is True
+    assert model.loss_weights["reconstruction"] == get_default_kwargs(
+        ESPnetGANSpeechTokenizerModel
+    )["reconstruction_weight"]
     optimizers = GANSpeechTokenizerTask.build_optimizers(args, model)
     batch = {
         "speech": torch.randn(1, 32),

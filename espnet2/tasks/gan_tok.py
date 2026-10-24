@@ -254,8 +254,12 @@ class GANSpeechTokenizerTask(AbsTask):
     @typechecked
     def build_model(cls, args: argparse.Namespace) -> ESPnetGANSpeechTokenizerModel:
         """Assemble the shared tokenizer and both downstream objectives."""
+        reconstruction_weight = args.model_conf.get(
+            "reconstruction_weight",
+            get_default_kwargs(ESPnetGANSpeechTokenizerModel)["reconstruction_weight"],
+        )
         if (
-            args.model_conf["reconstruction_weight"] == 0.0
+            reconstruction_weight == 0.0
             and args.skip_discriminator_prob != 1.0
         ):
             raise ValueError(
