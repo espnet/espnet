@@ -31,9 +31,20 @@ ${model_detail_section}
 ```python
 from espnet3.publication import InferenceModel
 
-${usage_load_call}
-result = model(sample)
+model = InferenceModel.from_pretrained("${hf_repo}")
+output = model(
+    {
+        "text": "The text to synthesize.",
+        "spembs": spembs,  # the speaker x-vector, a 1-D array
+    }
+)
+audio = output["wav"]  # an Audio: audio.array (float32) at audio.rate
 ```
+
+`spembs` must come from the extractor the model was trained with
+(`xvector.spk_embed_tag` in `conf/training.yaml`); the demo launcher in
+`egs3/TEMPLATE/esp2_gan_tts/src/app.py` computes it from a reference
+recording.
 
 ## Packaging
 
