@@ -60,6 +60,12 @@ class SpeechLMJobTemplate(AbsJobTemplate):
         for io_name, io_kwargs in io_config.items():
             multimodal_io_class = _multimodal_ios[io_name]
             assert issubclass(multimodal_io_class, AbsIO)
+            if issubclass(multimodal_io_class, ContinuousAudioIO) and not is_train:
+                # Inference loads a checkpoint strictly over the whole model,
+                # the frozen encoder included, so its pretrained weights are
+                # overwritten before they are used - and fetching them means
+                # all of an omni model of which the encoder is 1.8%.
+                io_kwargs = {**io_kwargs, "load_weights": False}
             self.multimodal_io[io_name] = multimodal_io_class(**io_kwargs)
 
         self._build_vocabulary()
