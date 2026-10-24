@@ -99,3 +99,25 @@ names that extractor under `xvector` and adds `speechbrain` to the Space's
 requirements; if you retrain against a different embedding model, change both
 to match, or the embedding the demo builds will not match the space the model
 was trained in.
+
+## Pretrained model and demo
+
+Trained on LibriTTS with this recipe's VITS configuration and published from its `step577710` checkpoint.
+
+- Model: [NewGame/libritts_esp2_gan_tts_train_vits_libritts](https://huggingface.co/NewGame/libritts_esp2_gan_tts_train_vits_libritts)
+
+The published checkpoint was trained on LibriTTS's native 24 kHz audio with the 22.05 kHz model configuration, so its bundle declares a 24 kHz output.
+The recipe as checked in resamples the corpus to 22.05 kHz in `create_dataset`; a retrain at that rate replaces the published model.
+
+The model loads directly once you have a speaker embedding for the target voice.
+`spembs` is a SpeechBrain `spkrec-ecapa-voxceleb` embedding (192 values) of a reference recording, the same extractor `compute_xvectors` runs; `build_xvector_extractor` in `egs3/TEMPLATE/esp2_gan_tts/src/app.py` computes it from a `(rate, samples)` pair.
+
+```python
+from espnet3.publication import InferenceModel
+
+model = InferenceModel.from_pretrained("NewGame/libritts_esp2_gan_tts_train_vits_libritts")
+audio = model({"text": "He hoped there would be stew for dinner.", "spembs": spembs})["wav"]
+# an Audio: audio.array (float32) at audio.rate (24000)
+```
+
+The demo built by `pack_demo` from `conf/demo.yaml` takes text plus a reference recording and computes that embedding itself.

@@ -72,6 +72,20 @@ g2p and token list recorded in the espnet2-style config `train` writes to
 reads its references (the ground-truth recording and transcript) from the
 test set itself.
 
+## Using a packed model
+
+```python
+from espnet3.publication import InferenceModel
+
+model = InferenceModel.from_pretrained("<hf_repo>")
+audio = model({"text": "The text to synthesize.", "spembs": spembs})["wav"]
+# an Audio: audio.array (float32) at audio.rate
+```
+
+`spembs` is the speaker embedding the model was trained on, a 1-D vector from the extractor named under `xvector` in `conf/training.yaml`.
+`build_xvector_extractor` in `src/app.py` shows how the demo computes it from a reference recording.
+The contract in `conf/inference.yaml` checks both inputs and the output, so a mismatched embedding shape or an empty text is refused before the model runs.
+
 ## Demo
 
 `src/app.py` shows a text box and a reference-recording widget (`ui.inputs` in
