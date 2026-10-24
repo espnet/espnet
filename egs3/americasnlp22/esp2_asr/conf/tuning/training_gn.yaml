@@ -1,0 +1,10 @@
+# AmericasNLP 2022 ASR baseline for Guarani (gn); every setting but the
+# language is shared in conf/training.yaml.
+#
+#   python run.py --stages create_dataset train_tokenizer collect_stats train \
+#       --training_config conf/tuning/training_gn.yaml
+defaults:
+  - ../training
+  - _self_
+
+lang: gn

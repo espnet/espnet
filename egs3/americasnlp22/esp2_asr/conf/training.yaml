@@ -1,0 +1,216 @@
+##########################################################
+#                    TRAINING SETTING                    #
+##########################################################
+# AmericasNLP 2022 ASR baseline, ported from egs2/americasnlp22/asr1: frozen
+# XLS-R 300M frontend + 1-block transformer encoder, pure CTC, unigram-100
+# tokenizer, speed perturbation, dev split used for validation.
+#
+# One model is trained per language. This file holds the settings shared by
+# all of them; conf/tuning/training_<lang>.yaml only selects the language:
+#
+#   defaults:
+#     - ../training
+#     - _self_
+#   lang: tav
+#
+# Quick usage (always through a per-language config, `lang` is mandatory):
+#   python run.py --stages create_dataset train_tokenizer collect_stats train \
+#       --training_config conf/tuning/training_tav.yaml
+#
+# Only overrides of the TEMPLATE defaults live here.
+
+##########################################################
+#                  LANGUAGE AND PATH SETTING             #
+##########################################################
+# bzd (Bribri), gn (Guarani), gvc (Kotiria), quy (Quechua), tav (Wa'ikhana)
+lang: ???
+
+# Shape files are keyed by item index, so every language collects its own.
+stats_dir: ${recipe_dir}/exp/stats_${lang}
+
+##########################################################
+#                    DATASET DEFINITION                  #
+##########################################################
+# `data_src` is omitted, so ESPnet3 loads `${recipe_dir}/dataset/__init__.py`.
+# Transcripts keep the corpus `source_raw` text verbatim (no cleaner).
+# Utterances outside 0.1-38 s are dropped, as egs2's `--max_wav_duration 38`
+# and asr.sh's default `--min_wav_duration 0.1` drop them from its train and
+# valid sets.
+dataset:
+  train:
+    - data_src_args:
+        lang: ${lang}
+        split: train
+        min_wav_duration: 0.1
+        max_wav_duration: 38
+  valid:
+    - data_src_args:
+        lang: ${lang}
+        split: dev
+        min_wav_duration: 0.1
+        max_wav_duration: 38
+  preprocessor:
+    _target_: espnet2.train.preprocessor.CommonPreprocessor
+    token_type: bpe
+    token_list: ${tokenizer.save_path}/tokens.txt
+    bpemodel: ${tokenizer.save_path}/unigram.model
+    fs: 16000
+    # On-the-fly version of egs2's `--speed_perturb_factors "0.9 1.0 1.1"`:
+    # one of the three factors is drawn per sample access, where egs2 trains
+    # on three materialized copies (see `trainer.max_epochs`).
+    data_aug_prob: 1.0
+    data_aug_num: [1, 1]
+    data_aug_effects:
+      - [1, "speed_perturb", {"factor": 0.9}]
+      - [1, "speed_perturb", {"factor": 1.0}]
+      - [1, "speed_perturb", {"factor": 1.1}]
+
+create_dataset:
+  recipe_dir: ${recipe_dir}
+  lang: ${lang}
+
+##########################################################
+#                   TOKENIZER SETTING                    #
+##########################################################
+# SentencePiece unigram with the egs2 vocabulary size (--nbpe 100), trained
+# on this language's training transcripts only. `train_file` keeps each
+# language's tokenizer text apart; the default path is shared.
+tokenizer:
+  vocab_size: 100
+  model_type: unigram
+  save_path: ${data_dir}/${lang}_unigram100
+  train_file: ${tokenizer.save_path}/train.txt
+  text_builder:
+    func: src.tokenizer.gather_training_text
+    recipe_dir: ${recipe_dir}
+    lang: ${lang}
+    split: train
+
+##########################################################
+#                      MODEL SETTING                     #
+##########################################################
+task: espnet3.systems.esp2_asr.task.ASRTask
+
+model:
+  vocab_size: ${tokenizer.vocab_size}
+  token_list: ${tokenizer.save_path}/tokens.txt
+
+  encoder: transformer
+  encoder_conf:
+    input_layer: conv2d2
+    num_blocks: 1
+    linear_units: 2048
+    dropout_rate: 0.2
+    output_size: 256
+    attention_heads: 8
+    attention_dropout_rate: 0.2
+
+  model_conf:
+    ctc_weight: 1.0
+    lsm_weight: 0.0
+    length_normalized_loss: false
+    # Kept for config parity with the published espnet/americasnlp22-asr-*
+    # models; no-op for ASR models in current espnet2 (collect_feats always
+    # extracts real features).
+    extract_feats_in_collect_stats: false
+
+  # utterance_mvn needs no stats file; ESPnet3 collect_stats strips
+  # `normalize`/`normalize_conf` before collecting shape statistics.
+  normalize: utterance_mvn
+
+  frontend: s3prl
+  frontend_conf:
+    frontend_conf:
+      upstream: wav2vec2_url
+      path_or_url: https://huggingface.co/s3prl/converted_ckpts/resolve/main/xlsr2_300m.pt
+    download_dir: ./hub
+    multilayer_feature: true
+
+  # Freeze the XLS-R feature extractor and transformer layers 0-21 of 24, as
+  # egs2's conf/train_asr_transformer.yaml does; layers 22-23 are fine-tuned.
+  # Selectors are ESPnet2-style dot-delimited name prefixes, so
+  # `...encoder.layers` alone would freeze all 24 layers. egs2 wrote
+  # `frontend.upstream.model.*`, which predates espnet2's S3PRLUpstream
+  # wrapper and no longer matches any parameter.
+  freeze_param:
+    - frontend.upstream.upstream.model.feature_extractor
+    - frontend.upstream.upstream.model.encoder.layers.0
+    - frontend.upstream.upstream.model.encoder.layers.1
+    - frontend.upstream.upstream.model.encoder.layers.2
+    - frontend.upstream.upstream.model.encoder.layers.3
+    - frontend.upstream.upstream.model.encoder.layers.4
+    - frontend.upstream.upstream.model.encoder.layers.5
+    - frontend.upstream.upstream.model.encoder.layers.6
+    - frontend.upstream.upstream.model.encoder.layers.7
+    - frontend.upstream.upstream.model.encoder.layers.8
+    - frontend.upstream.upstream.model.encoder.layers.9
+    - frontend.upstream.upstream.model.encoder.layers.10
+    - frontend.upstream.upstream.model.encoder.layers.11
+    - frontend.upstream.upstream.model.encoder.layers.12
+    - frontend.upstream.upstream.model.encoder.layers.13
+    - frontend.upstream.upstream.model.encoder.layers.14
+    - frontend.upstream.upstream.model.encoder.layers.15
+    - frontend.upstream.upstream.model.encoder.layers.16
+    - frontend.upstream.upstream.model.encoder.layers.17
+    - frontend.upstream.upstream.model.encoder.layers.18
+    - frontend.upstream.upstream.model.encoder.layers.19
+    - frontend.upstream.upstream.model.encoder.layers.20
+    - frontend.upstream.upstream.model.encoder.layers.21
+
+  preencoder: linear
+  preencoder_conf:
+    input_size: 1024
+    output_size: 80
+
+##########################################################
+#            OPTIMIZER & SCHEDULER SETTING               #
+##########################################################
+# egs2: optim=adamw with lr=1e-4 and torch's default weight_decay (0.01);
+# warmuplr with 300 warmup steps.
+optimizer:
+  _target_: torch.optim.AdamW
+  lr: 0.0001
+  weight_decay: 0.01
+
+scheduler:
+  _target_: espnet2.schedulers.warmup_lr.WarmupLR
+  warmup_steps: 300
+
+##########################################################
+#                OTHER TRAINING SETTING                  #
+##########################################################
+# Keep the single best checkpoint by CER on the validation CTC branch
+# (egs2 `best_model_criterion: [valid, cer_ctc, min]`, keep_nbest_models=1).
+best_model_criterion:
+  - - valid/cer_ctc
+    - 1
+    - min
+
+##########################################################
+#                   DATALOADER SETTING                   #
+##########################################################
+# egs2: batch_type=numel, batch_bins=200000, counted in raw 16 kHz samples
+# (12.5 s of audio per batch). ESPnet3 counts the elements of the collected
+# feature shapes instead, XLS-R frames (50 per second) x 1024 dims:
+# 12.5 s x 50 x 1024 = 640000 keeps egs2's batch size. The valid block and
+# the shape-file paths are inherited from the TEMPLATE.
+dataloader:
+  train:
+    iter_factory:
+      num_workers: 4
+      batches:
+        type: numel
+        batch_bins: 640000
+
+##########################################################
+#                    TRAINER SETTING                     #
+##########################################################
+# egs2 trains 15 epochs over three speed-perturbed copies of the training
+# set. One perturbed copy is drawn per epoch here, so 45 epochs make the same
+# number of updates, and validating every third epoch keeps egs2's 15
+# validations (and checkpoint candidates). grad_clip 5.0, fp32 and
+# accum_grad 1 are egs2's defaults.
+trainer:
+  max_epochs: 45
+  check_val_every_n_epoch: 3
+  gradient_clip_val: 5.0
