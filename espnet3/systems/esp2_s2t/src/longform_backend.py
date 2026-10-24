@@ -45,7 +45,16 @@ class S2TLongFormBackend:
         [(0.0, 4.2, 'hello there')]
     """
 
-    def __init__(self, model: Any, device: Optional[str] = None, **unused: Any) -> None:
+    def __init__(
+        self, model: Any, device: Optional[str] = None, **unused: Any
+    ) -> None:
+        """Hold a checkpoint, building it first when given its config.
+
+        Args:
+            model: A ``Speech2Text``, or the config to build one from.
+            device: Where to put the checkpoint, when one is built here.
+            **unused: Ignored, so a config may carry keys this does not read.
+        """
         if isinstance(model, Mapping) and "_target_" in model:
             from hydra.utils import instantiate
 
