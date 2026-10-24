@@ -1,0 +1,40 @@
+##########################################################
+#                 METRIC SCORING SETTING                 #
+##########################################################
+# Quick usage:
+#   python run.py --stages measure \
+#       --training_config conf/training.yaml \
+#       --inference_config conf/inference.yaml \
+#       --metrics_config conf/metrics.yaml
+#
+# Scores `${inference_dir}/test/resyn_audio.scp` against the test set's own
+# waveforms (`dataset:wav_path`) with versa (https://github.com/wavlab-speech/versa).
+
+dataset:
+  test:
+    - name: test
+      data_src_args:
+        split: test
+        inference: true
+
+metrics:
+  - metric:
+      _target_: espnet3.components.metrics.versa.VersaMetric
+      score_config:
+        - name: signal_metric          # sir, sar, sdr, ci-sdr, si-snr
+        - name: pseudo_mos             # utmos, dnsmos, plcmos
+          predictor_types: [utmos, dnsmos, plcmos]
+          predictor_args:
+            utmos:
+              fs: 16000
+            dnsmos:
+              fs: 16000
+            plcmos:
+              fs: 16000
+      # Result keys the measures above must emit (`sir` is infinite for a
+      # clean reference, so it is left out).
+      outputs: [sdr, sar, si_snr, ci_sdr, utmos, dns_overall, dns_p808, plcmos]
+      use_gpu: true
+    inputs:
+      hyp: resyn_audio        # the model's output
+      ref: dataset:wav_path   # the test set's ground-truth waveform
