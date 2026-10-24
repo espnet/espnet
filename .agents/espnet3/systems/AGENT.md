@@ -25,6 +25,38 @@ inference implementations in their task family and conform them to the public
 logic inside a model's inference class; those belong to the runner/provider and
 writer contracts.
 
+## System organization and naming
+
+A System is the basic unit under `espnet3/systems/` and may represent a model,
+a broader system, or a task when that is the clearest organization. Do not force
+every System into the same taxonomy. Keep the external interfaces strict while
+choosing the internal organization that gives the System a clear purpose.
+
+Choose directory names in this order:
+
+1. Use lowercase consistently.
+2. Make the name clear and unambiguous.
+3. Keep it as short as clarity allows.
+4. Prefer one word when possible; avoid underscores when a clear single word
+   works (for example, `f5tts`, `parakeet`, `granitespeech`, `speechlm`).
+5. Use underscores when they express meaningful structure or distinguish
+   variants (for example, `owsm_v4`, `qwen2_audio`, `qwen2_5_omni`). For
+   ESPnet2-derived task systems, use `esp2_<task>` such as `esp2_asr` or
+   `esp2_tts`. ESPnet2 provenance alone does not require the prefix; systems
+   without a task-based structure, such as `speechlm`, use the ordinary naming
+   rules.
+6. Follow an established convention when it fits. Transformers' `models/`
+   naming can inform the choice, alongside ESPnet3 clarity and maintenance.
+
+Every System package provides `system.py` with its required System/stage
+interface. Preserve the `metrics/` package structure for System metrics:
+`metrics/__init__.py` and metric modules that follow the shared
+[`BaseMetric` contract](../../../espnet3/components/metrics/base_metric.py),
+including declared inputs/outputs and the required update/compute behavior.
+Systems must also follow the shared inference contract; see the
+[inference guide](../inference/AGENT.md). These interfaces are required even
+when a System's internal taxonomy or module layout differs from other Systems.
+
 ## Adding or changing a stage
 
 Before adding a stage, verify that it belongs in a System rather than a recipe
@@ -33,10 +65,9 @@ required-config validation, logging, and focused tests together. If a recipe
 alone needs the behavior, prefer a recipe-local System; if multiple task
 families need it, extend a shared abstraction.
 
-System directory names should be lowercase, clear, and consistent with nearby
-systems. ESPnet2 task bridges use the established `esp2_<task>` pattern; for
-other names, search the current tree and discuss ambiguous cases rather than
-maintaining an exhaustive naming catalog here.
+Before adding a System, search for a clear existing name and apply the naming
+rules above; discuss genuinely ambiguous names rather than maintaining an
+exhaustive name catalog here.
 
 ## Verification
 

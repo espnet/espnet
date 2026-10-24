@@ -9,6 +9,17 @@ independent items. The runner owns planning, dispatch, shard persistence, and
 merging. A provider owns the worker-local environment and processes its assigned
 item. Keep scheduler-specific behavior out of recipes and model inference code.
 
+Before implementing a runner/provider, use the existing code as a design
+reference: [`InferenceRunner`](../../../espnet3/systems/base/inference_runner.py)
+and [`InferenceProvider`](../../../espnet3/systems/base/inference_provider.py)
+show the model-inference path, with their construction in
+[`base/inference.py`](../../../espnet3/systems/base/inference.py). The
+[`F5TTS remove_long_short stage`](../../../espnet3/systems/f5tts/src/remove_long_short.py)
+is a compact example of a task-specific runner/provider pair that processes
+manifest entries without loading a model. Follow the example closest to the
+work, including how it builds worker-local state and returns results, instead
+of duplicating dispatch or shard management in the stage.
+
 Preserve resume and data-integrity behavior when changing shard plans or output
 locations. Review manifests, locks, completion markers, and merge semantics;
 reusing an output directory with a different item plan must fail clearly or be

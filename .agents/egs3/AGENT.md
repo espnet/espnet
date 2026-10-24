@@ -28,6 +28,30 @@ System whenever it provides the needed stages; add a recipe-local System only
 for genuinely recipe-specific behavior. Put behavior shared by multiple
 recipes in `espnet3/`, not in one recipe's `src/`.
 
+Keep the recipe layout recognizable:
+
+```text
+egs3/<corpus_name>/<system_name>/
+  conf/                 # training.yaml, inference.yaml, metrics.yaml, etc.
+                        # variants use names such as training_*.yaml
+  dataset/
+    __init__.py
+    builder.py          # source download/preparation and task-ready cache
+    config.yaml         # corpus paths, URLs, environment variables, splits
+    dataset.py          # recipe Dataset implementation
+  src/
+    __init__.py
+    *.py                # recipe-specific, config-wired helpers
+  run.py
+  path.sh
+  README.md
+```
+
+Use stage nouns for config filenames (`training.yaml`, `inference.yaml`,
+`metrics.yaml`) and keep variants identifiable with a suffix. Keep both
+`dataset/` and `src/` importable with their `__init__.py` files so recipe
+datasets and config-wired helpers can be resolved by Python.
+
 The LibriSpeech reference is a useful guide to how the pieces fit together:
 
 - `dataset/` contains the corpus builder and `torch.utils.data.Dataset`.
@@ -59,6 +83,14 @@ corpus-specific class names), because `BaseSystem.create_dataset()` resolves
 those names. Follow the reference recipe's exports and the current
 `DatasetBuilder` contract in
 [`espnet3/components/data/dataset_builder.py`](../../espnet3/components/data/dataset_builder.py).
+Recipe `Dataset` classes should inherit `BaseDataset` and declare the item
+schema with `fields = (Field(...), ...)`. Every returned sample must include
+the required declared fields with values matching their kinds; optional fields
+must be marked optional in the declaration. See
+[`espnet3/contract/data.py`](../../espnet3/contract/data.py) and the mini_an4
+dataset for the working pattern. When adding or changing sample fields, update
+the contract declaration and focused dataset/contract tests along with the
+model, preprocessor, and metrics configs that consume them.
 
 The builder separates raw-source availability from task-ready artifacts:
 
@@ -98,7 +130,9 @@ Start from the corresponding configs in the working reference or
 `egs3/TEMPLATE/<system_name>/conf/`, then update the dataset source, tokenizer,
 model, and recipe-specific settings. Check how the config is instantiated
 before changing Hydra `_target_`, `_recursive_`, or interpolation behavior.
-Keep each experiment understandable from its own YAML.
+Keep each experiment understandable from its own YAML. Put tunable default
+values in the appropriate TEMPLATE config and let recipes override them; do
+not hide recipe or run defaults in module-level global variables.
 
 Keep `run.py` as a thin dispatcher, following the selected System's working
 recipe and the helpers under `egs3/TEMPLATE/`. Use the existing System class

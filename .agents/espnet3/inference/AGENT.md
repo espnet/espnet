@@ -19,7 +19,14 @@ provider.
 
 For audio inputs, follow the declared channel and sample-rate contract. Do not
 apply generic transposes or resampling in callers; use the kind's conversion.
-Check the existing kinds before adding a new one.
+Check the existing kinds before adding a new domain or modality. If inference
+introduces an input or output value that the existing kinds cannot represent,
+add a `Kind` under `espnet3/contract/kinds/` and register it in
+`espnet3/contract/kinds/__init__.py`; declare the corresponding `Field` with
+that kind. Define and test its validation and any required conversions for the
+backend, demo, and streaming (`join`) paths rather than treating the new value
+as an unvalidated generic object. Add focused contract tests and check the
+runner, packed `InferenceModel`, and demo consumers.
 
 `InferenceModel` reopens a packed bundle and rebuilds the backend from the
 bundled inference config. Preserve validation of bundle paths, targets, and

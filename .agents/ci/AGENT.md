@@ -28,8 +28,13 @@ For a scoped implementation, run the tests covering its changed behavior first.
 The unit CI command is:
 
 ```bash
-pytest -q --execution-timeout 10.0 --timeouts-order moi test/espnet3/ test/ci/ test/splet/
+pytest -q --execution-timeout 30.0 --timeouts-order moi test/espnet3/ test/ci/ test/splet/
 ```
+
+Use a 30-second per-test timeout for CI and test commands. The parallel
+execution checks can take substantially longer; when a change does not touch
+`espnet3/parallel/` or its behavior, skip the focused parallel CI checks. Run
+them when that package or a caller's parallel execution behavior changes.
 
 That full suite is the CI reference; use the relevant subset during development.
 Verify formatting with black/isort check mode, run pycodestyle, and use
@@ -53,6 +58,9 @@ configured Hugging Face repository.
 
 Extend the relevant integration flow when changing stage outputs, worker dispatch,
 bundle format, or demo contracts. Use a small fixture/model for a new System.
+When adding a System, add a mini_an4-based integration test that runs the new
+System through its supported stages; include it in the ESPnet3 integration CI
+flow (or an appropriate dedicated integration job).
 Run cleanup-producing integration scripts only in a disposable checkout/worktree
 or after confirming their recipe output directories contain disposable artifacts.
 

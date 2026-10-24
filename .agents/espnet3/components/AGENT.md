@@ -14,6 +14,21 @@ batching or sharding. A recipe sample should contain only fields the configured
 model and preprocessor consume; trace the sample through its full path before
 adding metadata.
 
+`DataLoaderBuilder.build()` selects the iterator-factory path when
+`dataloader.<mode>.iter_factory` is configured; its `_target_` names the factory
+class. The standard-loader path currently constructs `torch.utils.data.DataLoader`
+directly. If a task needs a distinct DataLoader class, add an explicit config
+class path and a corresponding selection branch in `DataLoaderBuilder` rather
+than silently substituting it in a recipe. Preserve the existing default and
+train/valid behavior, and cover both selection and iteration in focused tests.
+
+Dataset item declarations are runtime contracts. Read
+[`espnet3/contract/`](../../contract/) and `components/data/base_dataset.py`
+before changing them: implement recipe datasets with `BaseDataset`, declare
+their `fields` as `Field` tuples, and make returned items satisfy those field
+names and kinds. Update the declaration, dataset implementation, configs, and
+contract tests together when the sample interface changes.
+
 Recipe-specific source preparation and cache generation belong in the recipe's
 dataset builder. Shared code should remain corpus-agnostic and expose any new
 configuration behavior through a tested contract.

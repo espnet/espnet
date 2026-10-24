@@ -62,11 +62,25 @@ Use `Base*` for ESPnet3 abstractions and preserve ESPnet2's `Abs*` names when
 implementing its interfaces. For names whose convention is unclear, search
 current definitions and call sites before introducing a new pattern.
 
+For new modules, match the filename pattern used by neighboring files in the
+same directory. In particular, general-purpose helper modules under
+`espnet3/utils/` use the `*_utils.py` suffix (for example, `config_utils.py` and
+`logging_utils.py`); do not introduce a differently named utility module there
+without a clear reason.
+
 ## Configuration and pipeline conventions
 
 Keep each recipe config understandable on its own. Use block-style YAML mappings
 and inspect the actual Hydra/OmegaConf instantiation path before changing
 `_target_`, recursion, interpolation, or conversion settings.
+
+Before introducing a module-level global, ask whether it is truly necessary.
+Prefer function arguments, instance state, or explicit config for values that
+vary by recipe, run, or caller. Use global state only when no clean alternative
+fits, and make its process-wide lifetime and test/reset behavior clear. Defaults
+that users may need to tune belong in the appropriate
+`egs3/TEMPLATE/<system_name>/conf/` config, with recipe-specific overrides, not
+in Python globals.
 
 A System supports the stages implemented by that System. Do not assume that a
 stage available in one task family is universal. Inspect the System class and
