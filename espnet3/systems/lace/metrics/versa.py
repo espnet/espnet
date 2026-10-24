@@ -1,27 +1,28 @@
-"""VERSA-based metric wrapper for the `measure` stage.
+"""VERSA-based metric for the LACE `measure` stage.
 
 Wraps `versa.bin.scorer` (https://github.com/wavlab-speech/versa) as an
-ESPnet3 `BaseMetric`, so any generation task (codec resynthesis, TTS,
-speech enhancement) can score its `infer` outputs from a recipe config
-without a task-specific wrapper.
+ESPnet3 `BaseMetric`. A recipe names the VERSA metrics it scores with (signal
+metrics such as SDR and SI-SNR, pseudo-MOS predictors such as UTMOS) in its
+`conf/metrics.yaml`; this class runs them over the resynthesized waveforms the
+`infer` stage wrote for a test set, against the test set's own waveforms, and
+aggregates the per-utterance records.
 """
 
 from __future__ import annotations
 
 import json
 import logging
-import shutil
 import subprocess
 import sys
 import tempfile
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Sequence, Set, Union
+from typing import Any, Dict, Iterator, List, Optional, Sequence, Set
 
 import yaml
 from omegaconf import OmegaConf
 
-from espnet3.api import Field
 from espnet3.components.metrics.base_metric import BaseMetric
+from espnet3.contract import Field
 
 logger = logging.getLogger(__name__)
 
@@ -32,23 +33,29 @@ _VERSA_FAILURE_MARKERS = ("Failed to load metric", "Error computing metric")
 class VersaMetric(BaseMetric):
     """Score `infer` outputs by shelling out to `versa.bin.scorer`.
 
-    Declares, as the metrics contract asks, what it reads and returns:
-    ``hyp`` (the model's audio, required), ``ref`` (the reference audio,
-    optional, since not every VERSA measure needs one) and ``text`` (a
-    transcript, optional); and one ``number`` output per name in
-    ``outputs``. VERSA decides the keys it emits from its own measures, so
-    the config names the ones it relies on; the metric raises when any of
-    them is missing from the scorer's result, and returns every numeric
-    key the scorer emitted (plus a corpus-level WER/CER pooled from the
-    edit-operation counts when a recognition measure is configured), so
-    extra measures are not lost.
+    The declaration follows the metric's own configuration, as
+    :class:`~espnet3.components.metrics.base_metric.BaseMetric` allows:
+    ``inputs`` are the model's output wav (``wav_key``), the reference wav
+    (``ref_key``) and, when ``text_key`` is set, the transcript, all read
+    as files; ``outputs`` are the score names the caller promises, since
+    VERSA's own keys exist only once it has run. The `measure` stage
+    checks the result against them, so a configured metric that VERSA
+    dropped fails the stage instead of vanishing from the table.
 
-    `update` collects the paths of each batch; `compute` writes them as SCP
-    files, runs the scorer once over all of them, and returns the
-    per-utterance averages. A metric that fails or yields no value raises
-    instead of being dropped from the result. The scorer's own files
-    (``versa_config.yaml``, ``result.json``, ``avg_result.json``) are kept
-    under ``<test_dir>/scoring/versa_eval`` when `measure` runs it.
+    VERSA scores files, so the state is the rows to score (``utt_id`` and
+    one path or transcript per input): :meth:`update` adds a batch of
+    them, numbered as they arrive, and :meth:`compute` writes them as SCP
+    files, runs the scorer once over everything added, and returns the
+    per-utterance average of each declared output (a corpus-level WER/CER
+    pooled from the edit-operation counts when a recognition metric is
+    configured). VERSA emits more keys than a task declares, such as the
+    separation-only ``sir`` of ``signal_metric``; those are kept in the
+    scorer's ``avg_result.json`` but not returned, so the declaration is
+    exactly what reaches the results table. :meth:`__call__`, which `measure`
+    uses once per test set, reads the rows from the `infer` stage's SCP
+    files with their real utterance ids and scores them the same way
+    under ``<output_dir>/<test_name>/scoring/versa_eval``. A metric that
+    fails or yields no value raises instead of being dropped.
 
     Example:
         Declared from a recipe `conf/metrics.yaml`:
@@ -63,240 +70,99 @@ class VersaMetric(BaseMetric):
                     - name: pseudo_mos
                       predictor_types: [utmos]
                   outputs: [sdr, si_snr, utmos]
+                  wav_key: wav
+                  ref_key: ref
                   use_gpu: true
                 inputs:
-                  hyp: resyn_audio      # the model's audio output
-                  ref: dataset:wav_path # the test set's reference waveform
+                  wav: resyn_audio
+                  ref: dataset:wav_path
 
         Or directly, pointing at an existing VERSA config file:
 
         .. code-block:: python
 
-            >>> metric = VersaMetric(score_config="conf/versa.yaml", outputs=["mcd"])
-            >>> scores = metric(
-            ...     {"hyp": Path("exp/inference/test/resyn_audio.scp"),
-            ...      "ref": Path("exp/inference/test/dataset/wav_path.scp")},
-            ...     test_name="test",
-            ...     output_dir=Path("exp/inference"),
-            ... )
+            metric = VersaMetric(score_config="conf/versa.yaml", outputs=["mcd"])
+            scores = metric(
+                {"wav": Path("exp/inference/test/resyn_audio.scp"),
+                 "ref": Path("exp/inference/test/dataset/wav_path.scp")},
+                test_name="test",
+                output_dir=Path("exp/inference"),
+            )
+
+        Or in memory, from paths, as a callback would:
+
+        .. code-block:: python
+
+            metric.reset()
+            metric.update(wav=["resyn/a.wav"], ref=["orig/a.wav"])
+            metric.compute()
+            # -> {"mcd": 3.1416, ...}
     """
 
     def __init__(
         self,
-        score_config: Union[str, Path, Sequence[Dict[str, Any]]],
+        score_config,
         outputs: Sequence[str],
+        wav_key: str = "wav",
+        ref_key: str = "ref",
+        text_key: str | None = None,
         use_gpu: bool = True,
         io: str = "soundfile",
     ) -> None:
-        """Declare the contract and store the scorer settings.
+        """Store versa scorer settings and declare the contract they imply.
 
         Args:
             score_config: Path to a versa score-config YAML file, or an
                 inline list of versa metric definitions.
-            outputs: The result keys the scorer must emit for this
-                configuration (e.g. ``[sdr, si_snr, utmos]``); each becomes
-                a declared ``number`` output.
+            outputs: The score names this metric returns, such as
+                ``["sdr", "si_snr", "utmos"]``; each becomes a declared
+                ``number`` output. VERSA computes more keys than these (the
+                WER edit counts, say, or ``sir`` and ``sar`` next to
+                ``sdr``); the extra keys stay in the scorer's
+                ``avg_result.json`` and only the declared ones are
+                returned.
+            wav_key: Input alias for the output-wav SCP file.
+            ref_key: Input alias for the reference-wav SCP file (the original
+                waveform each utterance was resynthesized from).
+            text_key: Optional input alias for the transcript SCP file the
+                recognition metric scores against. ``None`` omits ``--text``
+                from the scorer command, for a score config without one;
+                a name declares a required text input.
             use_gpu: Pass ``--use_gpu`` to the scorer.
             io: Value for the scorer's ``--io`` option.
 
         Raises:
-            ValueError: If ``outputs`` is empty.
+            TypeError: If ``outputs`` is empty, or an alias repeats.
 
         Example:
-            An inline metric list; ``versa_config.yaml`` is written at score
-            time:
-
             .. code-block:: python
 
-                >>> metric = VersaMetric(
-                ...     score_config=[{"name": "signal_metric"}], outputs=["sdr"]
-                ... )
+                # Inline metric list; a versa_config.yaml is written at score time.
+                metric = VersaMetric(
+                    score_config=[{"name": "signal_metric"}], outputs=["mcd"]
+                )
 
-            An existing VERSA config file, scored on the CPU:
-
-            .. code-block:: python
-
-                >>> metric = VersaMetric(
-                ...     score_config="conf/versa.yaml", outputs=["mcd"], use_gpu=False
-                ... )
+                # An existing versa config file, scored on CPU.
+                metric = VersaMetric(
+                    score_config="conf/versa.yaml", outputs=["mcd"], use_gpu=False
+                )
         """
-        if not outputs:
-            raise ValueError(
-                "VersaMetric needs `outputs`: the result keys the configured "
-                "VERSA measures emit (e.g. [sdr, si_snr, utmos])."
-            )
         self.score_config = score_config
+        self.wav_key = wav_key
+        self.ref_key = ref_key
+        self.text_key = text_key
         self.use_gpu = use_gpu
         self.io = io
-        self.inputs = (
-            Field("hyp", "audio", "Hypothesis audio"),
-            Field("ref", "audio", "Reference audio", optional=True),
-            Field("text", "text", "Transcript", optional=True),
-        )
+        inputs = [Field(wav_key, "audio"), Field(ref_key, "audio")]
+        if text_key is not None:
+            inputs.append(Field(text_key, "text"))
+        self.inputs = tuple(inputs)
         self.outputs = tuple(Field(str(name), "number") for name in outputs)
         super().__init__()
-        self.add_state("hyp_paths", [], "cat")
-        self.add_state("ref_paths", [], "cat")
-        self.add_state("texts", [], "cat")
+        self.add_state("rows", [], "cat")
+        # Where compute() scores: set by __call__ for a test set, else a
+        # temporary directory.
         self._eval_dir: Optional[Path] = None
-
-    def reset(self) -> None:
-        """Clear the collected paths and forget the last scorer directory.
-
-        Example:
-            .. code-block:: python
-
-                >>> metric.reset()
-        """
-        super().reset()
-        self._eval_dir = None
-
-    def update(
-        self,
-        *,
-        hyp: Sequence[str],
-        ref: Optional[Sequence[str]] = None,
-        text: Optional[Sequence[str]] = None,
-    ) -> None:
-        """Collect one batch of file paths (and transcripts) to score.
-
-        Args:
-            hyp: Paths of the model's audio, one per utterance.
-            ref: Paths of the reference audio, aligned with ``hyp``.
-            text: Transcripts, aligned with ``hyp``, for recognition measures.
-
-        Example:
-            .. code-block:: python
-
-                >>> metric.update(hyp=["a.wav"], ref=["a_ref.wav"])
-        """
-        self.hyp_paths.extend(str(p) for p in hyp)
-        if ref is not None:
-            self.ref_paths.extend(str(p) for p in ref)
-        if text is not None:
-            self.texts.extend(str(t) for t in text)
-
-    def compute(self) -> Dict[str, float]:
-        """Run the scorer over the collected files and return the averages.
-
-        The scorer runs in a fresh temporary directory (``write_artifacts``
-        moves its files next to the test set afterwards); the utterances are
-        numbered in the order they were collected, since the contract hands
-        ``update`` values only.
-
-        Returns:
-            Dict of result key to per-utterance average, plus the pooled
-            ``<prefix>_wer`` / ``<prefix>_cer`` percentage when the scorer
-            emitted edit-operation counts (see :meth:`_aggregate`). Every
-            declared output is present.
-
-        Raises:
-            ValueError: If nothing was collected.
-            FileNotFoundError: If ``score_config`` is a path that does not
-                exist.
-            subprocess.CalledProcessError: If the VERSA scorer exits non-zero.
-            RuntimeError: If the scorer exited 0 but a measure failed to load,
-                computed no value for any utterance, or a declared output is
-                missing from the result.
-
-        Example:
-            .. code-block:: python
-
-                >>> metric.update(hyp=["a.wav"], ref=["a_ref.wav"])
-                >>> metric.compute()
-                {'sdr': 12.7, 'si_snr': 10.1}
-        """
-        if not self.hyp_paths:
-            raise ValueError("nothing to score: no hypothesis audio was collected")
-        if self.ref_paths and len(self.ref_paths) != len(self.hyp_paths):
-            raise ValueError(
-                f"{len(self.ref_paths)} reference paths for "
-                f"{len(self.hyp_paths)} hypothesis paths"
-            )
-        eval_dir = Path(tempfile.mkdtemp(prefix="versa_eval_"))
-        self._eval_dir = eval_dir
-        utt_ids = [f"utt{i:08d}" for i in range(len(self.hyp_paths))]
-        pred_scp = self._write_scp(eval_dir / "pred.scp", utt_ids, self.hyp_paths)
-        score_config_path = self._resolve_score_config_path(eval_dir)
-        result_file = eval_dir / "result.json"
-
-        # The interpreter running this stage, not whatever `python` resolves to
-        # on PATH: under srun or a venv those differ, and only this one is known
-        # to have versa installed.
-        cmd = [
-            sys.executable,
-            "-m",
-            "versa.bin.scorer",
-            "--pred",
-            str(pred_scp),
-            "--score_config",
-            str(score_config_path),
-            "--cache_folder",
-            str(eval_dir / "cache"),
-            "--output_file",
-            str(result_file),
-            "--io",
-            self.io,
-        ]
-        if self.ref_paths:
-            gt_scp = self._write_scp(eval_dir / "gt.scp", utt_ids, self.ref_paths)
-            cmd.extend(["--gt", str(gt_scp)])
-        if self.texts:
-            text_scp = self._write_scp(eval_dir / "text", utt_ids, self.texts)
-            cmd.extend(["--text", str(text_scp)])
-        if self.use_gpu:
-            cmd.append("--use_gpu")
-
-        logger.info("Running VERSA: %s", " ".join(cmd))
-        failures = self._run_scorer(cmd)
-        averages = self._aggregate(result_file)
-        self._reject_partial_results(averages, result_file, failures)
-        missing = [f.name for f in self.outputs if f.name not in averages]
-        if missing:
-            raise RuntimeError(
-                f"VERSA emitted no value for declared outputs {missing}; "
-                f"it emitted {sorted(averages)}. Check `outputs` against the "
-                "measures in `score_config`."
-            )
-        with (eval_dir / "avg_result.json").open("w") as f:
-            json.dump(averages, f, indent=2)
-        self.summarize(averages)
-        return averages
-
-    def write_artifacts(self, test_dir: Path) -> None:
-        """Keep the scorer's files under ``<test_dir>/scoring/versa_eval``.
-
-        Moves ``versa_config.yaml``, ``result.json`` (one record per
-        utterance) and ``avg_result.json`` out of the temporary directory
-        :meth:`compute` ran in, and discards the rest of it.
-
-        Args:
-            test_dir: The test set's output directory, already created.
-
-        Example:
-            .. code-block:: python
-
-                >>> metric.write_artifacts(Path("exp/inference/test"))
-        """
-        if self._eval_dir is None:
-            return
-        target = Path(test_dir) / "scoring" / "versa_eval"
-        target.mkdir(parents=True, exist_ok=True)
-        for name in ("versa_config.yaml", "result.json", "avg_result.json"):
-            source = self._eval_dir / name
-            if source.is_file():
-                shutil.move(str(source), str(target / name))
-        shutil.rmtree(self._eval_dir, ignore_errors=True)
-        self._eval_dir = None
-        logger.info("Wrote VERSA results to %s", target)
-
-    @staticmethod
-    def _write_scp(path: Path, utt_ids: Sequence[str], values: Sequence[str]) -> Path:
-        """Write ``<utt_id> <value>`` lines and return ``path``."""
-        with path.open("w", encoding="utf-8") as f:
-            for utt_id, value in zip(utt_ids, values):
-                f.write(f"{utt_id} {value}\n")
-        return path
 
     def _resolve_score_config_path(self, eval_dir: Path) -> Path:
         """Return a YAML file path VERSA can `open()`.
@@ -327,6 +193,200 @@ class VersaMetric(BaseMetric):
         return config_path
 
     @staticmethod
+    def _as_file_entry(name: str, value: Any) -> str:
+        """Return ``value`` as the SCP entry VERSA reads for input ``name``.
+
+        VERSA opens files: an audio input must already be a path, since
+        writing arrays out is not this metric's job, and a text input is
+        its transcript.
+
+        Raises:
+            TypeError: If an audio input is not a path.
+        """
+        if isinstance(value, Path):
+            return str(value)
+        if isinstance(value, str):
+            return value
+        raise TypeError(
+            f"VersaMetric input {name!r} must be a path (VERSA scores files), "
+            f"not {type(value).__name__}"
+        )
+
+    def update(self, **values: Sequence[Any]) -> None:
+        """Add one batch of rows to score, numbered in arrival order.
+
+        Args:
+            **values: One sequence per declared input name: paths for the
+                wav inputs, transcripts for the text input.
+
+        Raises:
+            TypeError: If an audio value is not a path.
+
+        Examples:
+            >>> metric.update(wav=["resyn/a.wav"], ref=["orig/a.wav"])
+        """
+        names = [f.name for f in self.inputs if values.get(f.name) is not None]
+        if not names:
+            return
+        for i in range(len(values[names[0]])):
+            self.rows.append(
+                {
+                    "utt_id": f"utt{len(self.rows) + 1:08d}",
+                    **{
+                        name: self._as_file_entry(name, values[name][i])
+                        for name in names
+                    },
+                }
+            )
+
+    def compute(self) -> Dict[str, float]:
+        """Score every row added so far with one VERSA run.
+
+        The rows are written as SCP files, one per input, under the test
+        set's ``scoring/versa_eval`` directory when called from
+        :meth:`__call__`, else under a temporary directory; the averages
+        are also written there as ``avg_result.json``.
+
+        Returns:
+            Dict of declared output name to per-utterance average; a
+            declared ``<prefix>_wer`` / ``<prefix>_cer`` is the pooled
+            percentage from the edit-operation counts (see
+            :meth:`_aggregate`). Keys VERSA emitted but the declaration
+            does not name are written to ``avg_result.json`` only.
+
+        Raises:
+            ValueError: If no row was added.
+            FileNotFoundError: If ``score_config`` is a path that does not
+                exist.
+            subprocess.CalledProcessError: If the VERSA scorer exits non-zero.
+            RuntimeError: If the scorer exited 0 but a configured metric
+                failed to load or computed no value for any utterance.
+
+        Examples:
+            >>> metric.update(wav=["resyn/a.wav"], ref=["orig/a.wav"])
+            >>> metric.compute()
+            {'mcd': 3.1416}
+        """
+        if not self.rows:
+            raise ValueError("nothing to score: no rows were added")
+        eval_dir = self._eval_dir or Path(tempfile.mkdtemp(prefix="versa_eval_"))
+        eval_dir.mkdir(parents=True, exist_ok=True)
+
+        scp_files: Dict[str, Path] = {}
+        for name in (f.name for f in self.inputs if f.name in self.rows[0]):
+            scp_files[name] = eval_dir / f"{name}.scp"
+            with scp_files[name].open("w", encoding="utf-8") as f:
+                for row in self.rows:
+                    f.write(f"{row['utt_id']} {row[name]}\n")
+
+        score_config_path = self._resolve_score_config_path(eval_dir)
+        result_file = eval_dir / "result.json"
+
+        # The interpreter running this stage, not whatever `python` resolves to
+        # on PATH: under srun or a venv those differ, and only this one is known
+        # to have versa installed.
+        cmd = [
+            sys.executable,
+            "-m",
+            "versa.bin.scorer",
+            "--pred",
+            str(scp_files[self.wav_key]),
+            "--gt",
+            str(scp_files[self.ref_key]),
+            "--score_config",
+            str(score_config_path),
+            "--cache_folder",
+            str(eval_dir / "cache"),
+            "--output_file",
+            str(result_file),
+            "--io",
+            self.io,
+        ]
+        if self.text_key is not None:
+            cmd.extend(["--text", str(scp_files[self.text_key])])
+        if self.use_gpu:
+            cmd.append("--use_gpu")
+
+        logger.info("Running VERSA: %s", " ".join(cmd))
+        failures = self._run_scorer(cmd)
+
+        averages = self._aggregate(result_file)
+        self._reject_partial_results(averages, result_file, failures)
+        average_path = eval_dir / "avg_result.json"
+        with average_path.open("w") as f:
+            json.dump(averages, f, indent=2)
+        logger.info(
+            "Wrote VERSA averages to %s (%d metrics)", average_path, len(averages)
+        )
+        declared = {field.name for field in self.outputs}
+        return {name: averages[name] for name in averages if name in declared}
+
+    def __call__(
+        self,
+        data: Dict[str, Path],
+        test_name: str,
+        output_dir: Optional[Path] = None,
+    ) -> Dict[str, float]:
+        """Score one test set with versa and return averaged metrics.
+
+        The rows are read from the `infer` stage's SCP files with their own
+        utterance ids, so ``result.json`` is keyed as the test set is; this
+        is why the files are read here rather than through :meth:`update`,
+        which numbers rows itself.
+
+        Args:
+            data: Mapping from input alias to the SCP file path written by
+                the infer stage.
+            test_name: Name of the test set being scored.
+            output_dir: Root inference output directory; the scorer's files
+                go under ``<output_dir>/<test_name>/scoring/versa_eval``.
+                ``None`` scores under a temporary directory.
+
+        Returns:
+            What :meth:`compute` returns.
+
+        Raises:
+            KeyError: If ``wav_key``, ``ref_key``, or a configured
+                ``text_key`` is absent from *data*.
+            Whatever :meth:`compute` raises.
+
+        Example:
+            .. code-block:: python
+
+                metric = VersaMetric(
+                    score_config=[{"name": "signal_metric"}], outputs=["mcd"]
+                )
+                scores = metric(
+                    {"wav": output_dir / "test" / "resyn_audio.scp",
+                     "ref": output_dir / "test" / "dataset" / "wav_path.scp"},
+                    test_name="test",
+                    output_dir=output_dir,
+                )
+                # -> {"sdr": 12.7, "si_snr": 11.9, ...}
+        """
+        for key in (f.name for f in self.inputs):
+            if key not in data:
+                raise KeyError(
+                    f"VersaMetric requires '{key}' input. Got: {list(data.keys())}"
+                )
+
+        self.reset()
+        names = [f.name for f in self.inputs]
+        for utt_id, row in self.iter_inputs(data, *names):
+            self.rows.append({"utt_id": utt_id, **row})
+        self._eval_dir = (
+            Path(output_dir) / test_name / "scoring" / "versa_eval"
+            if output_dir is not None
+            else None
+        )
+        try:
+            averages = self.compute()
+        finally:
+            self._eval_dir = None
+        self.summarize(averages, test_name)
+        return averages
+
+    @staticmethod
     def _run_scorer(cmd: List[str]) -> List[str]:
         """Run the scorer, echoing its output, and return its failure lines.
 
@@ -344,23 +404,42 @@ class VersaMetric(BaseMetric):
             subprocess.CalledProcessError: If the scorer exits non-zero.
         """
         failures: List[str] = []
-        proc = subprocess.Popen(
+        process = subprocess.Popen(
             cmd,
             stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT,
             text=True,
             bufsize=1,
         )
-        with proc.stdout:
-            for line in proc.stdout:
+        with process.stdout:
+            for line in process.stdout:
                 sys.stdout.write(line)
                 if any(marker in line for marker in _VERSA_FAILURE_MARKERS):
                     failures.append(line.strip())
         sys.stdout.flush()
-        returncode = proc.wait()
+        returncode = process.wait()
         if returncode != 0:
             raise subprocess.CalledProcessError(returncode, cmd)
         return failures
+
+    @staticmethod
+    def _iter_records(result_file: Path) -> Iterator[dict]:
+        """Yield the per-utterance JSON records of the scorer's output file.
+
+        Blank lines and the non-JSON trailer line VERSA may write are
+        skipped, so every reader of ``result.json`` sees the same records.
+        """
+        with result_file.open() as f:
+            for line in f:
+                line = line.strip()
+                if not line:
+                    continue
+                try:
+                    record = json.loads(line)
+                except json.JSONDecodeError:
+                    continue
+                if isinstance(record, dict):
+                    yield record
 
     @staticmethod
     def _find_null_only_keys(result_file: Path) -> Set[str]:
@@ -372,24 +451,12 @@ class VersaMetric(BaseMetric):
         """
         nulled: Set[str] = set()
         numeric: Set[str] = set()
-        with result_file.open() as f:
-            for line in f:
-                line = line.strip()
-                if not line:
-                    continue
-                try:
-                    record = json.loads(line)
-                except json.JSONDecodeError:
-                    continue  # VERSA writes a non-JSON trailer line
-                if not isinstance(record, dict):
-                    continue
-                for key, value in record.items():
-                    if value is None:
-                        nulled.add(key)
-                    elif isinstance(value, (int, float)) and not isinstance(
-                        value, bool
-                    ):
-                        numeric.add(key)
+        for record in VersaMetric._iter_records(result_file):
+            for key, value in record.items():
+                if value is None:
+                    nulled.add(key)
+                elif isinstance(value, (int, float)) and not isinstance(value, bool):
+                    numeric.add(key)
         return nulled - numeric
 
     @staticmethod
@@ -456,11 +523,11 @@ class VersaMetric(BaseMetric):
         Metrics are logged one per line. WER/CER edit-operation counts are
         detected by their ``<prefix>_{wer,cer}_{delete,insert,replace,equal}``
         naming, grouped into their own section, and reduced to a single
-        percentage. :meth:`compute` calls it on the aggregated scores.
+        percentage. Called automatically at the end of ``__call__``.
 
         Args:
             scores: Mapping of metric name to value, as returned by
-                :meth:`compute`.
+                ``__call__``.
             test_name: Test-set name shown in the header. Omit for a
                 generic header.
 
@@ -471,9 +538,9 @@ class VersaMetric(BaseMetric):
         Example:
             .. code-block:: python
 
-                >>> VersaMetric.summarize({"mcd": 3.14, "sdr": 12.7}, "test")
+                VersaMetric.summarize({"mcd": 3.14, "sdr": 12.7}, "test")
 
-            logs the table:
+            logs:
 
             .. code-block:: text
 
@@ -516,14 +583,14 @@ class VersaMetric(BaseMetric):
             # Reference length is delete + replace + equal: insertions are
             # errors but not reference tokens, so they never enter the
             # denominator (VERSA asserts the same identity itself).
-            ref_len = sum(
+            reference_length = sum(
                 scores[f"{prefix}{op}"] for op in ("delete", "replace", "equal")
             )
             errors = sum(
                 scores[f"{prefix}{op}"] for op in ("delete", "replace", "insert")
             )
-            if ref_len > 0:
-                lines.append(f"    {label:<21s} {errors / ref_len * 100:.2f}%")
+            if reference_length > 0:
+                lines.append(f"    {label:<21s} {errors / reference_length * 100:.2f}%")
 
         lines.append("-" * 40)
         logger.info("\n".join(lines))
@@ -562,32 +629,27 @@ class VersaMetric(BaseMetric):
         """
         sums: Dict[str, float] = {}
         counts: Dict[str, int] = {}
-        with result_file.open() as f:
-            for line in f:
-                line = line.strip()
-                if not line:
-                    continue
-                record = json.loads(line)
-                for key, value in record.items():
-                    if isinstance(value, (int, float)) and not isinstance(value, bool):
-                        sums[key] = sums.get(key, 0.0) + float(value)
-                        counts[key] = counts.get(key, 0) + 1
+        for record in VersaMetric._iter_records(result_file):
+            for key, value in record.items():
+                if isinstance(value, (int, float)) and not isinstance(value, bool):
+                    sums[key] = sums.get(key, 0.0) + float(value)
+                    counts[key] = counts.get(key, 0) + 1
         averages = {key: round(sums[key] / counts[key], 4) for key in sums}
 
         for metric in ("wer", "cer"):
             prefix = VersaMetric._find_prefix(sums, metric)
             if prefix is None:
                 continue
-            ref_len = sum(
+            reference_length = sum(
                 sums[f"{prefix}{op}"] for op in ("delete", "replace", "equal")
             )
-            if ref_len <= 0:
+            if reference_length <= 0:
                 # Empty reference across the whole corpus: the rate is
                 # undefined, so emit nothing rather than divide by zero.
                 continue
             errors = sum(
                 sums[f"{prefix}{op}"] for op in ("delete", "replace", "insert")
             )
-            averages[prefix.rstrip("_")] = round(errors / ref_len * 100, 4)
+            averages[prefix.rstrip("_")] = round(errors / reference_length * 100, 4)
 
         return averages

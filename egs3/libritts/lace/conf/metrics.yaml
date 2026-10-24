@@ -21,8 +21,13 @@ metrics:
   - metric:
       _target_: espnet3.systems.lace.metrics.versa.VersaMetric
       score_config:
-        - name: signal_metric          # sir, sar, sdr, ci-sdr, si-snr
-        - name: pseudo_mos             # utmos, dnsmos, plcmos
+        # signal related metrics: sdr, si-snr, ci-sdr (versa also computes
+        # sir and sar, which only mean something with several sources; for
+        # a one-source resynthesis sir is +inf and sar equals sdr, so they
+        # are not declared below and do not reach the results)
+        - name: signal_metric
+        # pseudo subjective metrics: utmos, dnsmos, plcmos
+        - name: pseudo_mos
           predictor_types: [utmos, dnsmos, plcmos]
           predictor_args:
             utmos:
@@ -31,10 +36,12 @@ metrics:
               fs: 16000
             plcmos:
               fs: 16000
-      # Result keys the measures above must emit (`sir` is infinite for a
-      # clean reference, so it is left out).
-      outputs: [sdr, sar, si_snr, ci_sdr, utmos, dns_overall, dns_p808, plcmos]
+      # The scores the configuration above promises and the only ones that
+      # reach metrics.json; `measure` fails if versa drops one.
+      outputs: [sdr, si_snr, ci_sdr, utmos, dns_overall, dns_p808, plcmos]
+      wav_key: wav
+      ref_key: ref
       use_gpu: true
     inputs:
-      hyp: resyn_audio        # the model's output
+      wav: resyn_audio        # the model's output -> <test_name>/resyn_audio.scp
       ref: dataset:wav_path   # the test set's ground-truth waveform

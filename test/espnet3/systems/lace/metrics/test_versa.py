@@ -16,7 +16,7 @@ from espnet3.systems.lace.metrics.versa import VersaMetric
 
 
 def _write_jsonl(path, records):
-    """Write ``records`` as JSON lines, plus the blank trailer VERSA leaves."""
+    """Write ``records`` as JSON lines, ending with a blank line."""
     with path.open("w", encoding="utf-8") as f:
         for record in records:
             f.write(json.dumps(record) + "\n")
@@ -33,18 +33,18 @@ def _ops(prefix, *, delete, insert, replace, equal):
     }
 
 
-class _FakePopen:
+class FakePopen:
     """Stands in for the scorer process: prints `lines`, writes `records`."""
 
     def __init__(self, lines=(), records=({"mcd": 3.0},), returncode=0):
-        """Set the lines to print, the records to write and the exit code."""
+        """Store the output lines, result records and exit code to replay."""
         self._lines = list(lines)
         self._records = list(records)
         self._returncode = returncode
         self.calls = []
 
     def __call__(self, cmd, **kwargs):
-        """Act as ``subprocess.Popen``: write the records to ``--output_file``."""
+        """Record the command, write the result file and expose the output."""
         self.calls.append(cmd)
         output_file = cmd[cmd.index("--output_file") + 1]
         _write_jsonl(pathlib.Path(output_file), self._records)
@@ -57,26 +57,26 @@ class _FakePopen:
 
 
 class TestResolveScoreConfigPath:
-    """``_resolve_score_config_path``: paths pass through, inline configs are dumped."""
+    """``_resolve_score_config_path`` with a file path or an inline list."""
 
     def test_existing_file_is_used_as_is(self, tmp_path):
-        """An existing file path is returned unchanged."""
+        """An existing config file is passed to VERSA unchanged."""
         config_file = tmp_path / "score.yaml"
         config_file.write_text("- name: signal_metric\n", encoding="utf-8")
-        metric = VersaMetric(score_config=str(config_file), outputs=["mcd"])
+        metric = VersaMetric(outputs=["mcd"], score_config=str(config_file))
 
         assert metric._resolve_score_config_path(tmp_path) == config_file
 
     def test_missing_file_raises(self, tmp_path):
-        """A path that does not exist raises."""
-        metric = VersaMetric(score_config=str(tmp_path / "nope.yaml"), outputs=["mcd"])
+        """A config path that does not exist raises."""
+        metric = VersaMetric(outputs=["mcd"], score_config=str(tmp_path / "nope.yaml"))
 
         with pytest.raises(FileNotFoundError):
             metric._resolve_score_config_path(tmp_path)
 
     def test_inline_list_is_dumped(self, tmp_path):
-        """An inline list is written to ``versa_config.yaml``."""
-        metric = VersaMetric(score_config=[{"name": "signal_metric"}], outputs=["mcd"])
+        """An inline metric list is written to ``versa_config.yaml``."""
+        metric = VersaMetric(outputs=["mcd"], score_config=[{"name": "signal_metric"}])
 
         out = metric._resolve_score_config_path(tmp_path)
 
@@ -84,10 +84,10 @@ class TestResolveScoreConfigPath:
         assert yaml.safe_load(out.read_text()) == [{"name": "signal_metric"}]
 
     def test_omegaconf_container_is_converted(self, tmp_path):
-        """An OmegaConf container is converted before dumping."""
+        """An OmegaConf list is converted before it is written."""
         metric = VersaMetric(
-            score_config=OmegaConf.create([{"name": "pseudo_mos", "fs": 16000}]),
             outputs=["mcd"],
+            score_config=OmegaConf.create([{"name": "pseudo_mos", "fs": 16000}]),
         )
 
         out = metric._resolve_score_config_path(tmp_path)
@@ -96,10 +96,10 @@ class TestResolveScoreConfigPath:
 
 
 class TestAggregate:
-    """``_aggregate``: per-utterance records become corpus-level averages."""
+    """``_aggregate`` averages the per-utterance records."""
 
     def test_averages_numeric_fields_only(self, tmp_path):
-        """Only numeric, non-boolean fields are averaged."""
+        """Numbers are averaged; booleans and strings are left out."""
         result_file = tmp_path / "result.json"
         _write_jsonl(
             result_file,
@@ -112,7 +112,7 @@ class TestAggregate:
         assert VersaMetric._aggregate(result_file) == {"mcd": 1.5, "pesq": 3.0}
 
     def test_missing_fields_average_over_present_rows(self, tmp_path):
-        """A field missing from some rows averages over the rows that have it."""
+        """A field averages over the records that have it."""
         result_file = tmp_path / "result.json"
         _write_jsonl(result_file, [{"a": 1.0}, {"a": 2.0, "b": 10.0}])
 
@@ -125,7 +125,7 @@ class TestPooledErrorRates:
     def test_pools_error_counts_instead_of_averaging(self, tmp_path):
         # utt1: D=1 S=0 I=0 C=1 (50%); utt2: D=0 S=1 I=0 C=97 (1.02%).
         # Pooled: errors 2 over reference length 100 -> 2.00%, not 25.51%.
-        """The pooled WER is errors over the pooled reference length."""
+        """WER is pooled edit counts over the reference length, not a mean of rates."""
         result_file = tmp_path / "result.json"
         _write_jsonl(
             result_file,
@@ -144,7 +144,7 @@ class TestPooledErrorRates:
 
     def test_pools_cer_too(self, tmp_path):
         # Pooled D=2 I=3 S=0 C=95: errors 5 over reference length 97.
-        """CER pools the same way."""
+        """CER is pooled the same way as WER."""
         result_file = tmp_path / "result.json"
         _write_jsonl(
             result_file,
@@ -191,7 +191,7 @@ class TestPooledErrorRates:
         assert scores["fwhisper_wer_insert"] == pytest.approx(5.0)
 
     def test_leaves_other_metrics_alone(self, tmp_path):
-        """Metrics without edit-op counts are untouched."""
+        """Metrics without edit counts keep their plain mean."""
         result_file = tmp_path / "result.json"
         _write_jsonl(result_file, [{"utmos": 4.0}, {"utmos": 4.5}])
 
@@ -200,192 +200,313 @@ class TestPooledErrorRates:
         assert scores == {"utmos": 4.25}
 
     def test_find_prefix_requires_all_four_ops(self):
-        """A prefix counts only when all four edit-op keys are present."""
+        """An edit-count group is found only when all four counts are present."""
         partial = {"fwhisper_wer_delete": 1, "fwhisper_wer_equal": 9}
         assert VersaMetric._find_prefix(partial, "wer") is None
         complete = _ops("fwhisper_wer", delete=1, insert=0, replace=0, equal=9)
         assert VersaMetric._find_prefix(complete, "wer") == "fwhisper_wer_"
 
 
-class TestContract:
-    """The metrics contract: declared inputs/outputs and the update/compute checks."""
+class TestDeclaration:
+    """The contract follows the configuration: file inputs, promised outputs."""
 
-    def test_declares_inputs_and_outputs(self):
-        """``hyp`` required, ``ref``/``text`` optional; outputs follow ``outputs``."""
-        metric = VersaMetric(score_config=[{"name": "signal_metric"}], outputs=["sdr"])
+    def test_inputs_follow_the_aliases_and_outputs_the_promised_names(self):
+        """Wav and ref inputs are audio files, text a transcript; outputs numbers."""
+        from espnet3.contract.metrics import check_metric_contract
+
+        metric = VersaMetric(
+            outputs=["fwhisper_wer", "utmos"],
+            score_config=[{"name": "pseudo_mos"}],
+            wav_key="hyp",
+            ref_key="prompt",
+            text_key="text",
+        )
+
         assert [(f.name, f.kind, f.optional) for f in metric.inputs] == [
             ("hyp", "audio", False),
-            ("ref", "audio", True),
-            ("text", "text", True),
+            ("prompt", "audio", False),
+            ("text", "text", False),
         ]
-        assert [(f.name, f.kind) for f in metric.outputs] == [("sdr", "number")]
+        assert [(f.name, f.kind) for f in metric.outputs] == [
+            ("fwhisper_wer", "number"),
+            ("utmos", "number"),
+        ]
+        check_metric_contract(metric)
+
+    def test_without_a_text_key_no_text_input_is_declared(self):
+        """``text_key=None`` leaves the scorer and the contract without a text input."""
+        metric = VersaMetric(outputs=["mcd"], score_config=[{"name": "signal_metric"}])
+
+        assert [f.name for f in metric.inputs] == ["wav", "ref"]
 
     def test_outputs_are_required(self):
-        """An empty ``outputs`` list raises."""
-        with pytest.raises(ValueError, match="needs `outputs`"):
-            VersaMetric(score_config=[{"name": "signal_metric"}], outputs=[])
+        """The promised score names are not optional."""
+        with pytest.raises(TypeError):
+            VersaMetric(score_config=[{"name": "signal_metric"}])
 
-    def test_update_is_checked_against_the_declaration(self):
-        """``update`` rejects a name that was not declared."""
-        metric = VersaMetric(score_config=[{"name": "signal_metric"}], outputs=["mcd"])
-        with pytest.raises(Exception, match="wav"):
-            metric.update(wav=["a.wav"])
+    def test_a_promised_output_versa_did_not_return_fails_the_check(
+        self, tmp_path, monkeypatch
+    ):
+        """As ``measure`` checks the result: a missing declared score is an error."""
+        from espnet3.contract.metrics import MetricContractError, check_metric_output
 
-    def test_compute_with_nothing_collected_raises(self):
-        """``compute`` before any ``update`` raises."""
-        metric = VersaMetric(score_config=[{"name": "signal_metric"}], outputs=["mcd"])
+        scorer = FakePopen(records=[{"mcd": 3.0}])
+        monkeypatch.setattr(
+            "espnet3.systems.lace.metrics.versa.subprocess.Popen", scorer
+        )
+        metric = VersaMetric(outputs=["utmos"], score_config=[{"name": "pseudo_mos"}])
+        metric.update(wav=["a.wav"], ref=["b.wav"])
+
+        result = metric.compute()
+
+        assert result == {}
+        with pytest.raises(MetricContractError, match="missing \\['utmos'\\]"):
+            check_metric_output(metric, result)
+
+
+class TestUpdateCompute:
+    """The in-memory path: rows in, one scorer run out."""
+
+    def test_rows_are_numbered_written_and_scored(self, tmp_path, monkeypatch):
+        """``update`` keeps paths and transcripts; ``compute`` scores them once."""
+        scorer = FakePopen(records=[{"mcd": 3.0}, {"mcd": 1.0}])
+        monkeypatch.setattr(
+            "espnet3.systems.lace.metrics.versa.subprocess.Popen", scorer
+        )
+        metric = VersaMetric(
+            outputs=["mcd"], score_config=[{"name": "signal_metric"}], text_key="text"
+        )
+        metric.reset()
+        metric.update(wav=["a.wav"], ref=["p.wav"], text=["hello"])
+        metric.update(wav=[pathlib.Path("b.wav")], ref=["q.wav"], text=["there"])
+
+        averages = metric.compute()
+
+        assert averages == {"mcd": 2.0}
+        (cmd,) = scorer.calls
+        wav_scp = pathlib.Path(cmd[cmd.index("--pred") + 1])
+        assert wav_scp.read_text() == "utt00000001 a.wav\nutt00000002 b.wav\n"
+        text_scp = pathlib.Path(cmd[cmd.index("--text") + 1])
+        assert text_scp.read_text() == "utt00000001 hello\nutt00000002 there\n"
+        assert metric.state() == {
+            "rows": [
+                {
+                    "utt_id": "utt00000001",
+                    "wav": "a.wav",
+                    "ref": "p.wav",
+                    "text": "hello",
+                },
+                {
+                    "utt_id": "utt00000002",
+                    "wav": "b.wav",
+                    "ref": "q.wav",
+                    "text": "there",
+                },
+            ]
+        }
+
+    def test_compute_with_nothing_added_raises(self):
+        """An empty state is refused rather than scored as nothing."""
+        metric = VersaMetric(outputs=["mcd"], score_config=[{"name": "signal_metric"}])
+
         with pytest.raises(ValueError, match="nothing to score"):
             metric.compute()
 
+    def test_an_audio_array_is_refused(self):
+        """VERSA scores files: an in-memory waveform is a ``TypeError``."""
+        import numpy as np
+
+        metric = VersaMetric(outputs=["mcd"], score_config=[{"name": "signal_metric"}])
+
+        with pytest.raises(TypeError, match="must be a path"):
+            metric.update(wav=[np.zeros(8, dtype=np.float32)], ref=["b.wav"])
+
+    def test_reset_drops_the_rows(self):
+        """``reset`` starts the next test set from nothing."""
+        metric = VersaMetric(outputs=["mcd"], score_config=[{"name": "signal_metric"}])
+        metric.update(wav=["a.wav"], ref=["b.wav"])
+
+        metric.reset()
+
+        assert metric.state() == {"rows": []}
+
 
 class TestCall:
-    """The full ``__call__`` path with the scorer process replaced."""
+    """``VersaMetric.__call__`` builds and runs the scorer command."""
 
     def _make_data(self, tmp_path):
-        """Write two-utterance ``hyp``/``ref`` SCPs and return the data mapping."""
-        hyp = tmp_path / "resyn_audio.scp"
-        ref = tmp_path / "wav_path.scp"
-        hyp.write_text("utt1 a.wav\nutt2 c.wav\n", encoding="utf-8")
-        ref.write_text("utt1 b.wav\nutt2 d.wav\n", encoding="utf-8")
-        return {"hyp": hyp, "ref": ref}
+        """Write one-line ``wav`` and ``ref`` SCP files and return their paths."""
+        wav = tmp_path / "wav.scp"
+        ref = tmp_path / "ref.scp"
+        wav.write_text("utt1 a.wav\n", encoding="utf-8")
+        ref.write_text("utt1 b.wav\n", encoding="utf-8")
+        return {"wav": wav, "ref": ref}
+
+    @pytest.mark.parametrize("missing", ["wav", "ref"])
+    def test_missing_required_input_raises(self, tmp_path, missing):
+        """A missing ``wav`` or ``ref`` input raises a ``KeyError``."""
+        data = self._make_data(tmp_path)
+        data.pop(missing)
+        metric = VersaMetric(outputs=["mcd"], score_config=[{"name": "signal_metric"}])
+
+        with pytest.raises(KeyError, match=missing):
+            metric(data, "test", tmp_path / "inference")
+
+    def test_missing_optional_text_input_raises(self, tmp_path):
+        """A configured ``text_key`` without its input raises."""
+        metric = VersaMetric(
+            outputs=["mcd"], score_config=[{"name": "signal_metric"}], text_key="text"
+        )
+
+        with pytest.raises(KeyError, match="text"):
+            metric(self._make_data(tmp_path), "test", tmp_path / "inference")
 
     def test_builds_command_and_returns_averages(self, tmp_path, monkeypatch):
-        """The scorer command is built and its results averaged and kept."""
-        scorer = _FakePopen(lines=["scoring"], records=[{"mcd": 3.0}, {"mcd": 1.0}])
-        monkeypatch.setattr("espnet3.systems.lace.metrics.versa.subprocess.Popen", scorer)
+        """The scorer runs under this interpreter and its averages are returned."""
+        scorer = FakePopen(lines=["scoring utt1"], records=[{"mcd": 3.0}])
+        monkeypatch.setattr(
+            "espnet3.systems.lace.metrics.versa.subprocess.Popen", scorer
+        )
         metric = VersaMetric(
-            score_config=[{"name": "signal_metric"}], outputs=["mcd"], use_gpu=False
+            outputs=["mcd"], score_config=[{"name": "signal_metric"}], use_gpu=False
         )
         output_dir = tmp_path / "inference"
 
         # Keyword call pins the BaseMetric contract (data, test_name, output_dir).
         averages = metric(self._make_data(tmp_path), "test", output_dir=output_dir)
 
-        assert averages == {"mcd": 2.0}
+        assert averages == {"mcd": 3.0}
         (cmd,) = scorer.calls
         # sys.executable, not "python": under srun or a venv the interpreter
         # running the stage is the only one known to have versa installed.
         assert cmd[:3] == [sys.executable, "-m", "versa.bin.scorer"]
         assert "--use_gpu" not in cmd
         assert "--text" not in cmd
-        # The collected paths were written as SCPs in collection order.
-        pred = pathlib.Path(cmd[cmd.index("--pred") + 1])
-        gt = pathlib.Path(cmd[cmd.index("--gt") + 1])
+
+        # The rows are rewritten under eval_dir with their own utterance ids.
         eval_dir = output_dir / "test" / "scoring" / "versa_eval"
-        assert json.loads((eval_dir / "avg_result.json").read_text()) == {"mcd": 2.0}
-        assert (eval_dir / "result.json").is_file()
-        assert (eval_dir / "versa_config.yaml").is_file()
-        assert not pred.exists() and not gt.exists()  # the temp dir is gone
-
-    def test_scp_contents_follow_collection_order(self, tmp_path, monkeypatch):
-        """The SCPs list the utterances in collection order with new ids."""
-        seen = {}
-
-        class Recording(_FakePopen):
-            """Capture the SCP contents before the fake scorer runs."""
-
-            def __call__(self, cmd, **kwargs):
-                """Read the ``--pred``/``--gt`` SCPs, then behave as the fake scorer."""
-                seen["pred"] = pathlib.Path(cmd[cmd.index("--pred") + 1]).read_text()
-                seen["gt"] = pathlib.Path(cmd[cmd.index("--gt") + 1]).read_text()
-                return super().__call__(cmd, **kwargs)
-
-        monkeypatch.setattr(
-            "espnet3.systems.lace.metrics.versa.subprocess.Popen",
-            Recording(records=[{"mcd": 1.0}, {"mcd": 1.0}]),
-        )
-        metric = VersaMetric(score_config=[{"name": "signal_metric"}], outputs=["mcd"])
-        metric(self._make_data(tmp_path), "test")
-        assert seen["pred"] == "utt00000000 a.wav\nutt00000001 c.wav\n"
-        assert seen["gt"] == "utt00000000 b.wav\nutt00000001 d.wav\n"
-
-    def test_optional_inputs_may_be_absent(self, tmp_path, monkeypatch):
-        """Without ``ref`` no ``--gt`` is passed."""
-        scorer = _FakePopen(records=[{"mcd": 1.0}, {"mcd": 1.0}])
-        monkeypatch.setattr("espnet3.systems.lace.metrics.versa.subprocess.Popen", scorer)
-        data = self._make_data(tmp_path)
-        data.pop("ref")
-        metric = VersaMetric(score_config=[{"name": "signal_metric"}], outputs=["mcd"])
-        metric(data, "test")
-        (cmd,) = scorer.calls
-        assert "--gt" not in cmd
+        assert cmd[cmd.index("--pred") + 1] == str(eval_dir / "wav.scp")
+        assert cmd[cmd.index("--gt") + 1] == str(eval_dir / "ref.scp")
+        assert (eval_dir / "wav.scp").read_text() == "utt1 a.wav\n"
+        assert (eval_dir / "ref.scp").read_text() == "utt1 b.wav\n"
+        assert json.loads((eval_dir / "avg_result.json").read_text()) == {"mcd": 3.0}
 
     def test_use_gpu_and_text_are_forwarded(self, tmp_path, monkeypatch):
-        """``use_gpu`` and a ``text`` input reach the command line."""
-        scorer = _FakePopen(records=[{"mcd": 1.0}, {"mcd": 1.0}])
-        monkeypatch.setattr("espnet3.systems.lace.metrics.versa.subprocess.Popen", scorer)
+        """``use_gpu`` and the transcript file reach the scorer command."""
+        scorer = FakePopen(records=[{"mcd": 1.0}])
+        monkeypatch.setattr(
+            "espnet3.systems.lace.metrics.versa.subprocess.Popen", scorer
+        )
         data = self._make_data(tmp_path)
         text = tmp_path / "text"
-        text.write_text("utt1 hello\nutt2 world\n", encoding="utf-8")
+        text.write_text("utt1 hello\n", encoding="utf-8")
         data["text"] = text
         metric = VersaMetric(
-            score_config=[{"name": "signal_metric"}], outputs=["mcd"], use_gpu=True
+            outputs=["mcd"],
+            score_config=[{"name": "signal_metric"}],
+            text_key="text",
+            use_gpu=True,
         )
-        metric(data, "test")
+
+        metric(data, "test", tmp_path / "inference")
+
         (cmd,) = scorer.calls
         assert "--use_gpu" in cmd
-        assert pathlib.Path(cmd[cmd.index("--text") + 1]).name == "text"
+        text_scp = (
+            tmp_path / "inference" / "test" / "scoring" / "versa_eval" / "text.scp"
+        )
+        assert cmd[cmd.index("--text") + 1] == str(text_scp)
+        assert text_scp.read_text() == "utt1 hello\n"
 
     def test_non_zero_exit_raises(self, tmp_path, monkeypatch):
-        """A non-zero scorer exit raises ``CalledProcessError``."""
-        scorer = _FakePopen(returncode=1)
-        monkeypatch.setattr("espnet3.systems.lace.metrics.versa.subprocess.Popen", scorer)
-        metric = VersaMetric(score_config=[{"name": "signal_metric"}], outputs=["mcd"])
+        """A scorer that exits non-zero raises ``CalledProcessError``."""
+        scorer = FakePopen(returncode=1)
+        monkeypatch.setattr(
+            "espnet3.systems.lace.metrics.versa.subprocess.Popen", scorer
+        )
+        metric = VersaMetric(outputs=["mcd"], score_config=[{"name": "signal_metric"}])
+
         with pytest.raises(subprocess.CalledProcessError):
-            metric(self._make_data(tmp_path), "test")
+            metric(self._make_data(tmp_path), "test", tmp_path / "inference")
 
     def test_failed_metric_is_an_error_even_when_the_scorer_exits_zero(
         self, tmp_path, monkeypatch
     ):
         """VERSA drops a metric it cannot load and still exits 0."""
-        scorer = _FakePopen(
+        scorer = FakePopen(
             lines=["Failed to load metric pseudo_mos: No module named 'utmos'"],
-            records=[{"mcd": 3.0}, {"mcd": 1.0}],
+            records=[{"mcd": 3.0}],
         )
-        monkeypatch.setattr("espnet3.systems.lace.metrics.versa.subprocess.Popen", scorer)
-        metric = VersaMetric(score_config=[{"name": "signal_metric"}], outputs=["mcd"])
+        monkeypatch.setattr(
+            "espnet3.systems.lace.metrics.versa.subprocess.Popen", scorer
+        )
+        metric = VersaMetric(outputs=["mcd"], score_config=[{"name": "signal_metric"}])
+
         with pytest.raises(RuntimeError, match="Failed to load metric pseudo_mos"):
-            metric(self._make_data(tmp_path), "test")
+            metric(self._make_data(tmp_path), "test", tmp_path / "inference")
 
     def test_metric_that_never_scores_is_an_error(self, tmp_path, monkeypatch):
         """A metric that throws per utterance leaves its key null everywhere."""
-        scorer = _FakePopen(
+        scorer = FakePopen(
             records=[{"mcd": 3.0, "utmos": None}, {"mcd": 1.0, "utmos": None}]
         )
-        monkeypatch.setattr("espnet3.systems.lace.metrics.versa.subprocess.Popen", scorer)
-        metric = VersaMetric(score_config=[{"name": "signal_metric"}], outputs=["mcd"])
-        with pytest.raises(RuntimeError, match="no value for any utterance: utmos"):
-            metric(self._make_data(tmp_path), "test")
-
-    def test_missing_declared_output_is_an_error(self, tmp_path, monkeypatch):
-        """A declared output the scorer did not emit raises."""
-        scorer = _FakePopen(records=[{"mcd": 3.0}, {"mcd": 1.0}])
-        monkeypatch.setattr("espnet3.systems.lace.metrics.versa.subprocess.Popen", scorer)
-        metric = VersaMetric(
-            score_config=[{"name": "signal_metric"}], outputs=["mcd", "utmos"]
+        monkeypatch.setattr(
+            "espnet3.systems.lace.metrics.versa.subprocess.Popen", scorer
         )
-        with pytest.raises(RuntimeError, match=r"declared outputs \['utmos'\]"):
-            metric(self._make_data(tmp_path), "test")
+        metric = VersaMetric(outputs=["mcd"], score_config=[{"name": "signal_metric"}])
+
+        with pytest.raises(RuntimeError, match="no value for any utterance: utmos"):
+            metric(self._make_data(tmp_path), "test", tmp_path / "inference")
 
     def test_text_fields_and_sparse_nulls_are_not_failures(self, tmp_path, monkeypatch):
         """Only a key that is null in every record and numeric in none counts."""
-        scorer = _FakePopen(
+        scorer = FakePopen(
             records=[
                 {"mcd": 3.0, "utmos": 4.0, "hyp_text": "a"},
                 {"mcd": 1.0, "utmos": None, "hyp_text": "b"},
             ]
         )
-        monkeypatch.setattr("espnet3.systems.lace.metrics.versa.subprocess.Popen", scorer)
-        metric = VersaMetric(score_config=[{"name": "signal_metric"}], outputs=["mcd"])
-        averages = metric(self._make_data(tmp_path), "test")
-        assert averages == {"mcd": 2.0, "utmos": 4.0}
+        monkeypatch.setattr(
+            "espnet3.systems.lace.metrics.versa.subprocess.Popen", scorer
+        )
+        metric = VersaMetric(outputs=["mcd"], score_config=[{"name": "signal_metric"}])
+
+        averages = metric(self._make_data(tmp_path), "test", tmp_path / "inference")
+
+        assert averages == {"mcd": 2.0}
+
+    def test_only_declared_outputs_are_returned(self, tmp_path, monkeypatch):
+        """Undeclared keys (``sir`` for a resynthesis) stay in avg_result.json only."""
+        scorer = FakePopen(
+            records=[
+                {"sdr": 6.0, "sir": float("inf"), "sar": 6.0, "utmos": 4.0},
+                {"sdr": 8.0, "sir": float("inf"), "sar": 8.0, "utmos": 3.0},
+            ]
+        )
+        monkeypatch.setattr(
+            "espnet3.systems.lace.metrics.versa.subprocess.Popen", scorer
+        )
+        metric = VersaMetric(
+            outputs=["sdr", "utmos"], score_config=[{"name": "signal_metric"}]
+        )
+        output_dir = tmp_path / "inference"
+
+        averages = metric(self._make_data(tmp_path), "test", output_dir)
+
+        assert averages == {"sdr": 7.0, "utmos": 3.5}
+        saved = json.loads(
+            (
+                output_dir / "test" / "scoring" / "versa_eval" / "avg_result.json"
+            ).read_text()
+        )
+        assert saved == {"sdr": 7.0, "sir": float("inf"), "sar": 7.0, "utmos": 3.5}
 
 
 class TestSummarize:
-    """``summarize``: the logged table and its WER/CER blocks."""
+    """``VersaMetric.summarize`` logs a readable score table."""
 
     def test_logs_plain_metrics(self, caplog):
-        """Plain metrics are logged under the test-set header."""
+        """Plain metrics are logged under a header naming the test set."""
         with caplog.at_level("INFO", logger="espnet3.systems.lace.metrics.versa"):
             VersaMetric.summarize({"mcd": 1.2345}, "test")
 
@@ -393,7 +514,7 @@ class TestSummarize:
         assert "mcd" in caplog.text
 
     def test_logs_wer_and_cer_component_groups(self, caplog):
-        """Edit-op groups are logged in their own blocks with the pooled rate."""
+        """WER and CER edit counts are grouped and reduced to one rate each."""
         scores = {
             "mcd": 1.0,
             "espnet_wer_delete": 1.0,

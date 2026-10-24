@@ -8,15 +8,16 @@
 # - `infer` has already produced `<test_name>/*.scp` files: one per output of
 #   the model, named after the output (`resyn_audio.scp` for LACE, listing the
 #   resynthesized WAV files).
-# - A metric input names one of those files (`hyp: resyn_audio`), or a column
+# - A metric input names one of those files (`wav: resyn_audio`), or a column
 #   of the test set itself as `dataset:<column>` (`ref: dataset:wav_path`): the
 #   reference waveform is the data's, so it is read from the data, into
 #   `<test_name>/dataset/wav_path.scp` on first use.
 #
 # Recipe configs fill in the `metrics` list; see
-# `egs3/libritts/lace/conf/metrics.yaml` for a working example built on the
-# `espnet3.systems.lace.metrics.versa.VersaMetric` (PESQ/STOI/mel-cepstral
-# distortion and more).
+# `egs3/libritts/lace/conf/metrics.yaml` for a working example built on
+# `espnet3.systems.lace.metrics.versa.VersaMetric` (signal metrics, pseudo-MOS
+# predictors and more). Every entry binds the metric's declared inputs beside
+# `metric`, so `infer` writes only what the model produced.
 #
 # `metrics: []` is deliberate rather than a populated example: OmegaConf
 # merges lists by whole replacement, so a non-empty default here would leak
