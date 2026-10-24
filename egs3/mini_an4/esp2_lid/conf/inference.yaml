@@ -1,0 +1,31 @@
+##########################################################
+#                   INFERENCE SETTING                    #
+##########################################################
+# Common usage:
+#   python run.py --stages infer \
+#       --training_config conf/training.yaml \
+#       --inference_config conf/inference.yaml
+
+##########################################################
+#                    DATASET DEFINITION                  #
+##########################################################
+# `name` becomes `${inference_dir}/<name>/`; `data_src` is omitted, so ESPnet3
+# loads `${recipe_dir}/dataset/__init__.py`.
+dataset:
+  test:
+    - name: valid
+      data_src_args:
+        split: valid
+    - name: test
+      data_src_args:
+        split: test
+
+##########################################################
+#                    MODEL AND OUTPUT                    #
+##########################################################
+# Writes `<test_name>/language.scp`, the predicted speaker ids.
+model:
+  _target_: espnet3.systems.esp2_lid.inference.Inference
+  lid_train_config: ${exp_dir}/config.yaml
+  lid_model_file: ${exp_dir}/valid.accuracy.best.pth
+  lang2utt: ${stats_dir}/train/lang2utt

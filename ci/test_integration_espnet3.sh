@@ -79,3 +79,16 @@ python3 "${cwd}/ci/check_espnet3_parallel_workers.py" \
 rm -rf exp data
 
 cd "${cwd}" || exit
+
+cd ./egs3/mini_an4/esp2_lid || exit
+gen_dummy_coverage
+echo "==== [ESPnet3] LID ===="
+source path.sh
+${python} run.py \
+    --stages create_dataset collect_stats train infer measure \
+    --training_config conf/training.yaml \
+    --inference_config conf/inference.yaml \
+    --metrics_config conf/metrics.yaml
+rm -rf exp data downloads
+
+cd "${cwd}" || exit
