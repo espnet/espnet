@@ -1,0 +1,16 @@
+builder:
+  dataset_path: download/voxlingua107
+  source_env_var: VOXLINGUA107
+  data_path: data/voxlingua107
+  zip_urls_url: https://cs.taltech.ee/staff/tanel.alumae/data/voxlingua107/zip_urls.txt
+  dev_zip_url: https://cs.taltech.ee/staff/tanel.alumae/data/voxlingua107/dev.zip
+  excluded_train_dirs:
+    - dev
+    - espnet3
+    - musan
+    - RIRS_NOISES
+
+dataset:
+  supported_splits:
+    - train
+    - dev
