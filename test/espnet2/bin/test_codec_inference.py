@@ -3,6 +3,7 @@ from pathlib import Path
 
 import pytest
 import torch
+import yaml
 
 from espnet2.bin.gan_codec_inference import AudioCoding, get_parser, main
 from espnet2.tasks.gan_codec import GANCodecTask
@@ -54,3 +55,51 @@ def test_AudioCoding_decode(config_file):
     decode_dict = audio_coding.decode(encode_dict["codes"])
     assert "resyn_audio" in decode_dict
     assert isinstance(decode_dict["resyn_audio"], torch.Tensor)
+
+
+@pytest.fixture()
+def funcodec_config_file(tmp_path: Path):
+    codec_conf = dict(
+        sampling_rate=120,
+        generator_params=dict(
+            hidden_dim=2,
+            codebook_dim=2,
+            encdec_channels=3,
+            encdec_n_filters=32,
+            encdec_ratios=[[4, 1], [2, 1]],
+            encdec_kernel_size=1,
+            encdec_residual_kernel_size=1,
+            encdec_last_kernel_size=1,
+            quantizer_n_q=2,
+            quantizer_bins=4,
+            quantizer_kmeans_init=False,
+            quantizer_target_bandwidth=[15],
+            codec_domain=["mag_phase", "mag_phase"],
+            domain_conf={"n_fft": 16, "hop_length": 4},
+            audio_normalize=True,
+        ),
+    )
+    config = tmp_path / "funcodec.yaml"
+    config.write_text(yaml.safe_dump(dict(codec="funcodec", codec_conf=codec_conf)))
+    GANCodecTask.main(
+        cmd=[
+            "--dry_run",
+            "true",
+            "--config",
+            str(config),
+            "--output_dir",
+            str(tmp_path / "funcodec"),
+        ]
+    )
+    return tmp_path / "funcodec" / "config.yaml"
+
+
+@pytest.mark.execution_timeout(5)
+def test_AudioCoding_funcodec_audio_normalize_restores_volume(funcodec_config_file):
+    torch.manual_seed(0)
+    audio_coding = AudioCoding(train_config=funcodec_config_file)
+    wav = torch.randn(128)
+    resyn = audio_coding(wav)["resyn_audio"]
+    resyn_loud = audio_coding(100 * wav)["resyn_audio"]
+    assert resyn.shape == wav.shape
+    torch.testing.assert_close(resyn_loud, 100 * resyn, rtol=1e-4, atol=1e-5)
