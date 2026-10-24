@@ -19,6 +19,10 @@ def recipe(tmp_path):
     """Record calls and require materialized dumps before filter/combine."""
     (tmp_path / "run.sh").symlink_to(RECIPE / "run.sh")
     (tmp_path / "local").mkdir()
+    (tmp_path / "utils").symlink_to(RECIPE / "utils", target_is_directory=True)
+    (tmp_path / "local/prepare_combined.sh").symlink_to(
+        RECIPE / "local/prepare_combined.sh"
+    )
     stub = tmp_path / "pipeline_stub.py"
     stub.write_text("""import json
 import os
@@ -27,9 +31,6 @@ from pathlib import Path
 
 step = sys.argv[1]
 args = sys.argv[2:]
-if args == ['--help']:
-    print('Shared LID pipeline options')
-    sys.exit(0)
 options = {key.replace('-', '_'): value
            for key, value in zip(args[::2], args[1::2])}
 with Path('calls.jsonl').open('a') as stream:
@@ -48,16 +49,17 @@ if step == 'lid':
         for split in splits:
             (dump / split).mkdir(parents=True, exist_ok=True)
 elif step == 'filter':
-    dump = Path(options['__dump_dir'])
-    for split in options['__splits'].split():
+    dump = Path(options.get('__dump_dir', 'dump/raw'))
+    for split in options.get('__splits', 'train_babel_lang dev_babel_lang').split():
         assert (dump / split).is_dir(), split
         (dump / split.replace('_lang', '_over_10s_lang')).mkdir(exist_ok=True)
 elif step == 'combine':
-    dump = Path(options['__dump_dir'])
+    dump = Path(options.get('__dump_dir', 'dump/raw'))
     corpora = ('voxlingua107', 'fleurs', 'ml_superb2', 'babel_over_10s', 'voxpopuli')
     for corpus in corpora:
         assert (dump / f'train_{corpus}_lang').is_dir(), corpus
-    Path(options['__train_out']).mkdir(parents=True, exist_ok=True)
+    Path(options.get('__train_out', dump / 'train_all_no_filter_lang')).mkdir(
+        parents=True, exist_ok=True)
 """)
     for filename, step in (
         ("lid.sh", "lid"),
@@ -95,7 +97,7 @@ def test_default_voxlingua107(recipe):
     assert call["step"] == "lid"
     assert call["options"]["__train_set"] == "train_voxlingua107_lang"
     assert call["options"]["__lid_config"] == "conf/train.yaml"
-    assert call["options"]["__expdir"] == "exp_voxlingua107_only"
+    assert call["options"]["__expdir"] == "exp_voxlingua107"
 
 
 def test_combined_prepares_all_splits_before_training(recipe):
@@ -120,7 +122,7 @@ def test_combined_prepares_all_splits_before_training(recipe):
     assert options["__stage"] == "4"
     assert options["__train_set"] == "train_all_no_filter_lang"
     assert options["__valid_set"] == "dev_ml_superb2_lang"
-    assert options["__tsne_set"] == "train_all_no_filter_lang"
+    assert options["__tsne_set"] == "dev_ml_superb2_lang"
     assert options["__lid_config"] == "conf/tuning/combined.yaml"
     assert options["__expdir"] == "exp_combined"
     assert options["__test_sets"].split() == [
@@ -160,15 +162,9 @@ def test_combined_resume_does_not_prepare_data(recipe, stage, stop):
     assert call["options"]["__stop_stage"] == str(stop)
 
 
-def test_combined_preserves_overrides_and_passes_shared_options(recipe):
-    overrides = {
-        "train_set": "custom_train",
-        "valid_set": "custom_valid",
-        "test_sets": "test_one test_two",
-        "tsne_set": "test_one",
-        "lid_config": "conf/custom.yaml",
-        "expdir": "custom_exp",
-        "dumpdir": "custom_dump",
+def test_declared_options_reach_the_steps_that_use_them(recipe):
+    options = {
+        "lid_config": "conf/tuning/independent_frozen.yaml",
         "python": "coverage run --append",
         "nj": "2",
         "ngpu": "0",
@@ -176,116 +172,67 @@ def test_combined_preserves_overrides_and_passes_shared_options(recipe):
             "--babel_path /corpora/babel --voxpopuli_path /corpora/voxpopuli"
         ),
     }
-    args = [item for key, value in overrides.items() for item in (f"--{key}", value)]
+    args = [item for key, value in options.items() for item in (f"--{key}", value)]
     run(recipe, "--setup", "combined", "--stop_stage", "7", *args)
     recorded = calls(recipe)
-    for key, value in overrides.items():
+    for key, value in options.items():
         assert recorded[-1]["options"][f"__{key}"] == value
     for corpus, call in zip(CORPORA, recorded[:5]):
-        assert call["options"]["__train_set"] == f"train_{corpus}_lang"
+        assert call["options"]["__nj"] == "2"
+        assert call["options"]["__python"] == "coverage run --append"
         assert call["options"]["__local_data_opts"] == (
-            overrides["local_data_opts"] + f" --datasets {corpus}"
+            options["local_data_opts"] + f" --datasets {corpus}"
         )
     for call in recorded[5:7]:
-        assert call["options"]["__dump_dir"] == "custom_dump/raw"
         assert call["options"]["__python"] == "coverage run --append"
-    assert recorded[6]["options"]["__train_out"] == "custom_dump/raw/custom_train"
 
 
-def test_skip_data_prep_still_formats_and_combines(recipe):
-    run(recipe, "--setup", "combined", "--skip_data_prep", "true", "--stop_stage", "3")
-    recorded = calls(recipe)
-    assert [call["step"] for call in recorded] == ["lid"] * 5 + ["filter", "combine"]
-    assert all(call["options"]["__skip_data_prep"] == "true" for call in recorded[:5])
-
-
-@pytest.mark.parametrize("eval_valid_set", ["false", "true"])
-def test_skip_train_only_filters_babel_dev(recipe, eval_valid_set):
-    run(
-        recipe,
-        "--setup",
-        "combined",
-        "--skip_train",
-        "true",
-        "--eval_valid_set",
-        eval_valid_set,
-        "--stop_stage",
-        "3",
-    )
-    recorded = calls(recipe)
-    assert [call["step"] for call in recorded] == ["lid"] * 5 + ["filter"]
-    assert recorded[-1]["options"]["__splits"] == "dev_babel_lang"
-    for corpus in CORPORA:
-        assert (recipe / "dump/raw" / f"dev_{corpus}_lang").is_dir()
-        assert not (recipe / "dump/raw" / f"train_{corpus}_lang").exists()
-
-
-def test_failed_preparation_does_not_start_training(recipe, monkeypatch):
-    monkeypatch.setenv("FAIL_STEP", "filter")
+@pytest.mark.parametrize("step", ["lid", "filter", "combine"])
+def test_failed_preparation_does_not_start_training(recipe, monkeypatch, step):
+    monkeypatch.setenv("FAIL_STEP", step)
     result = run(recipe, "--setup", "combined", check=False)
     assert result.returncode != 0
-    assert [call["step"] for call in calls(recipe)] == ["lid"] * 5 + ["filter"]
+    recorded = calls(recipe)
+    assert recorded[-1]["step"] == step
+    assert all(call["options"].get("__stage") != "4" for call in recorded)
 
 
-@pytest.mark.parametrize("args", [("--setup", "invalid"), ("--setup",), ("--stage=3",)])
+@pytest.mark.parametrize(
+    "args",
+    [
+        ("--setup", "invalid"),
+        ("--setup",),
+        ("--stage=3",),
+        ("--stage", "invalid"),
+        ("--stop_stage", "invalid"),
+        ("--undeclared_lid_option", "value"),
+        ("unexpected-positional-argument",),
+    ],
+)
 def test_invalid_arguments_fail_before_preparation(recipe, args):
     assert run(recipe, *args, check=False).returncode != 0
     assert not (recipe / "calls.jsonl").exists()
 
 
-def test_help_includes_setup_and_shared_options(recipe):
+def test_help_describes_recipe_options(recipe):
     result = run(recipe, "--help")
-    assert "--setup voxlingua107|combined" in result.stdout
-    assert "Shared LID pipeline options" in result.stdout
+    assert "--setup voxlingua107|combined" in result.stderr
+    assert "--lid_config" in result.stderr
     assert not (recipe / "calls.jsonl").exists()
 
 
-@pytest.mark.parametrize(
-    "option,value",
-    [
-        ("--feats_type", "raw_copy"),
-        ("--fs", "8k"),
-        ("--speed_perturb_factors", "0.9 1.0"),
-    ],
-)
-def test_combined_rejects_incompatible_waveform_options(recipe, option, value):
-    result = run(recipe, "--setup", "combined", option, value, check=False)
-    assert result.returncode != 0
-    assert "requires --feats_type raw" in result.stderr
-    assert not (recipe / "calls.jsonl").exists()
-
-
-def test_shell_config_respects_resume_and_explicit_stage_override(recipe):
-    (recipe / "run.conf").write_text("stage=4\nstop_stage=4\n")
+def test_shared_parser_handles_config_and_stage_override(recipe):
+    (recipe / "run.conf").write_text("stage=3\nstop_stage=7\nnj=2\n")
     run(recipe, "--setup", "combined", "--config", "run.conf", "--stage", "5")
     (call,) = calls(recipe)
     assert call["step"] == "lid"
     assert call["options"]["__stage"] == "5"
-    assert call["options"]["__stop_stage"] == "4"
+    assert call["options"]["__stop_stage"] == "7"
+    assert call["options"]["__nj"] == "2"
 
 
-def test_combined_validates_waveform_options_from_shell_config(recipe):
-    (recipe / "run.conf").write_text("fs=8k\n")
-    result = run(recipe, "--setup", "combined", "--config", "run.conf", check=False)
-    assert result.returncode != 0
-    assert "requires --feats_type raw" in result.stderr
-    assert not (recipe / "calls.jsonl").exists()
-
-
-def test_shell_config_preserves_dataset_and_experiment_choices(recipe):
-    configured = {
-        "train_set": "custom_train",
-        "valid_set": "custom_valid",
-        "test_sets": "custom_test another_test",
-        "tsne_set": "custom_tsne",
-        "lid_config": "custom.yaml",
-        "expdir": "configured_exp",
-    }
-    (recipe / "run.conf").write_text(
-        "stage=4\nstop_stage=4\n"
-        + "".join(f"{key}={shlex.quote(value)}\n" for key, value in configured.items())
+def test_combined_helper_does_nothing_outside_preparation_stages(recipe):
+    subprocess.run(
+        ["./local/prepare_combined.sh", "--stage", "4"], cwd=recipe, check=True
     )
-    run(recipe, "--setup", "combined", "--config", "run.conf", "--expdir", "cli_exp")
-    (call,) = calls(recipe)
-    for key, value in configured.items():
-        assert call["options"][f"__{key}"] == ("cli_exp" if key == "expdir" else value)
+    assert not (recipe / "calls.jsonl").exists()

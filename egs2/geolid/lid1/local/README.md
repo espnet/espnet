@@ -45,8 +45,8 @@ Pass alternate roots through the data-preparation options:
     --local_data_opts "--babel_path /corpora/babel --voxpopuli_path /corpora/voxpopuli"
 ```
 
-The combined setup selects each corpus automatically. Its preparation calls use
-these splits, irrespective of overrides for the final combined training run:
+The combined setup selects each corpus automatically. Its preparation helper,
+`local/prepare_combined.sh`, uses these splits:
 
 | Corpus | Training | Validation | Additional evaluation |
 | --- | --- | --- | --- |
@@ -70,11 +70,11 @@ these splits, irrespective of overrides for the final combined training run:
 ```
 
 Stages 1–3 run separately for each corpus using the standard pipeline. Stage 3
-must finish for all corpora before the entrypoint invokes
+must finish for all corpora before `local/prepare_combined.sh` invokes
 `local/filter_babel_over_10s.sh` and `local/combine.sh`. Babel filtering keeps
 utterances of **at least 10 seconds** and regenerates matching language lists.
-Combined preparation requires raw 16 kHz waveforms without speed perturbation.
-`--skip_data_prep true` skips shared stages 1 and 2, but still runs stage 3.
+Combined preparation uses raw 16 kHz waveforms without speed perturbation.
+Resume at `--stage 3` to skip stages 1 and 2 when the data directories already exist.
 
 The combination script checks for duplicate utterance IDs and matching waveform,
 language and duration keys while preserving source dumps. It generates
@@ -85,10 +85,11 @@ features; `tok` remains a classification label. Other missing features fail
 preparation. Only combined training needs dataset balancing maps; validation
 uses language balancing (`valid_batch_type: catpow`).
 
-`--dumpdir` changes the dump root. `--train_set` names the combined output, while
-`--valid_set`, `--test_sets`, `--tsne_set`, `--lid_config` and `--expdir` override
-the final combined run. See the [recipe README](../README.md) for defaults and
-training examples.
+The experiment directories are `exp_voxlingua107` and `exp_combined`.
+Use `--lid_config` to select another training configuration. Other shared pipeline
+options are set explicitly in `run.sh` and `local/prepare_combined.sh`; edit
+those arguments when changing dataset names or dump locations. See the
+[recipe README](../README.md) for training examples and supported entrypoint options.
 
 ## Individual preparation and shared code
 
@@ -105,7 +106,8 @@ bash local/prepare_voxlingua107.sh
 To prepare an individual corpus through stage 3 with the shared pipeline:
 
 ```bash
-./run.sh --stop_stage 3 --local_data_opts "--datasets fleurs" \
+./lid.sh --stage 1 --stop_stage 3 --nj 8 --feats_type raw --fs 16k \
+    --expdir exp_combined --local_data_opts "--datasets fleurs" \
     --train_set train_fleurs_lang --valid_set dev_fleurs_lang \
     --test_sets test_fleurs_lang
 ```

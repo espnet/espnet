@@ -164,24 +164,25 @@ licensed Babel audio and downloaded VoxPopuli audio as described in the
 ./run.sh --lid_config conf/tuning/independent_frozen.yaml --stage 4 --stop_stage 7
 ```
 
-Both setups use the shared `lid.sh` stages. Combined preparation runs stages 1–3
-separately for each corpus, then keeps Babel utterances of at least 10 seconds
-and combines the training dumps before stage 4. Stopping at stage 1 or 2 does
-not filter or combine incomplete dumps; resuming at stage 3 uses the prepared
-data directories. `--skip_data_prep true` retains the shared pipeline meaning:
-skip stages 1 and 2 while still running waveform preparation in stage 3.
+Both setups use the shared `lid.sh` stages. For combined preparation,
+`local/prepare_combined.sh` runs stages 1–3 separately for each corpus, then keeps
+Babel utterances of at least 10 seconds and combines the training dumps before
+stage 4. Stopping at stage 1 or 2 does not filter or combine incomplete dumps;
+resuming at stage 3 uses the prepared data directories.
 
 Combined training defaults to `conf/tuning/combined.yaml`,
 `dump/raw/train_all_no_filter_lang`, validation on `dev_ml_superb2_lang`, and
 experiment directory `exp_combined`. It evaluates VoxLingua107 dev, VoxPopuli
 test, FLEURS test, ML-SUPERB2 dev and dialect dev, and filtered Babel dev.
-`--lid_config`, `--expdir`, `--train_set`, `--valid_set`, `--test_sets` and
-`--tsne_set` override the final training/evaluation choices; a custom
-`--train_set` also names the combined output. Dataset selections, `lid_config`
-and `expdir` can also be supplied in a shell `--config` file; explicit flags
-take precedence. The preparation calls retain each corpus's own split names. Shared options such as `--nj`, `--ngpu`, `--python`
-and `--dumpdir` are forwarded. Combined preparation requires raw 16 kHz audio
-and no speed perturbation; incompatible options fail before preparation.
+The VoxLingua107-only setup uses `conf/train.yaml` and experiment directory
+`exp_voxlingua107`. Both setups use raw 16 kHz audio without speed perturbation.
+
+`run.sh` declares its options and uses the standard `utils/parse_options.sh`.
+It accepts `--setup`, `--stage`, `--stop_stage`, `--ngpu`, `--nj`, `--python`,
+`--local_data_opts` and `--lid_config`. Set other pipeline options by editing the
+explicit `lid.sh` arguments in `run.sh`; corpus preparation options are in
+`local/prepare_combined.sh`. The preparation helper retains each corpus's own
+split names and writes its dumps under `dump/raw`.
 
 `local/combine.sh` creates the dataset balancing maps and
 `data/combined_lang2vec.txt` using `local/prepare_lang2vec.py --exclude tok`.
@@ -211,8 +212,9 @@ validation uses the language-based `catpow` sampler and does not require
 `dataset2utt` or `utt2dataset` files. RIR augmentation is disabled and `rir_scp` is
 null by default.
 
-For recipe evaluation, download a converted model and point `--lid_exp` at it
-(after preparing the corresponding waveform dumps):
+For recipe evaluation, download a converted model and call the shared `lid.sh`
+directly with `--lid_exp` pointing at it (after preparing the corresponding
+waveform dumps):
 
 ```bash
 python - <<'PY'
@@ -221,13 +223,16 @@ from shutil import copyfile
 from espnet_model_zoo.downloader import ModelDownloader
 
 files = ModelDownloader().download_and_unpack("espnet/geolid_vl107only_shared_trainable")
-destination = Path("exp/pretrained")
+destination = Path("exp_voxlingua107/pretrained")
 destination.mkdir(parents=True, exist_ok=True)
 copyfile(files["train_config"], destination / "config.yaml")
 copyfile(files["model_file"], destination / "model.pth")
 PY
-./run.sh --stage 6 --stop_stage 7 --skip_train true \
-    --lid_exp exp/pretrained --inference_model model.pth
+./lid.sh --stage 6 --stop_stage 7 --skip_train true \
+    --feats_type raw --fs 16k --expdir exp_voxlingua107 \
+    --train_set train_voxlingua107_lang --valid_set dev_voxlingua107_lang \
+    --test_sets dev_voxlingua107_lang --inference_batch_size 1 --extract_embd true \
+    --lid_exp exp_voxlingua107/pretrained --inference_model model.pth
 ```
 
 `ModelDownloader` resolves the bundled language-label path in the configuration.
@@ -259,18 +264,23 @@ verified duplicate aliases. The learned tensor values are unchanged, and no
 retraining was performed. These models use current ESPnet normalization and
 pooling, so their predictions can differ from those of the original implementation.
 
-The converted column reports measured utterance-level accuracy on all **1,609
-VoxLingua107 dev utterances**, with correct counts in parentheses. All other
-columns, including Macro Avg., are historical paper results and do not describe
-new measurements of the converted checkpoints.
+The legacy-reference and converted columns report measured utterance-level
+accuracy on all **1,609 VoxLingua107 dev utterances**, with correct counts in
+parentheses for the converted models. The legacy reference evaluates the original
+published weights through the earlier HF implementation, preserving legacy
+normalization and pooling, with **batch size 4**. The converted models use the
+current ESPnet implementation with **batch size 1**. Both evaluations use the same
+utterance IDs and reference labels; the comparison includes both runtime and
+batching differences. All remaining columns, including Macro Avg., are historical
+paper results and do not describe new measurements of the published checkpoints.
 
-| Config | 🤗 HF Repo | VoxLingua107 dev (paper) | VoxLingua107 dev (converted) | Babel | FLEURS | ML-SUPERB2.0 Dev | ML-SUPERB2.0 Dialect | VoxPopuli | Macro Avg. |
-| ------ | ---------- | ---------------------- | -------------------------- | ----- | ------ | --------------- | ------------------ | --------- | ---------- |
-| `conf/tuning/independent_frozen.yaml` | [espnet/geolid_vl107only_independent_frozen](https://huggingface.co/espnet/geolid_vl107only_independent_frozen) | 94.2 | **94.28** (1517/1609) | 87.1 | 95.0 | 89.0 | 77.2 | 90.4 | 88.8 |
-| `conf/tuning/independent_trainable.yaml` | [espnet/geolid_vl107only_independent_trainable](https://huggingface.co/espnet/geolid_vl107only_independent_trainable) | 93.7 | **93.78** (1509/1609) | 85.3 | 93.7 | 88.3 | 70.3 | 86.5 | 86.3 |
-| `conf/tuning/shared_frozen.yaml` | [espnet/geolid_vl107only_shared_frozen](https://huggingface.co/espnet/geolid_vl107only_shared_frozen) | 94.3 | **94.28** (1517/1609) | 85.9 | 94.3 | 88.8 | 80.7 | 89.2 | 88.8 |
-| `conf/train.yaml` | [espnet/geolid_vl107only_shared_trainable](https://huggingface.co/espnet/geolid_vl107only_shared_trainable) | 94.9 | **94.84** (1526/1609) | 87.7 | 93.5 | 89.3 | 78.8 | 89.5 | 88.9 |
-| `conf/tuning/combined.yaml` | [espnet/geolid_combined_shared_trainable](https://huggingface.co/espnet/geolid_combined_shared_trainable) | 94.4 | **93.29** (1501/1609) | 95.4 | 97.7 | 88.6 | 86.8 | 99.0 | 93.7 |
+| Config | 🤗 HF Repo | VoxLingua107 dev (paper) | VoxLingua107 dev (legacy reference) | VoxLingua107 dev (converted) | Babel | FLEURS | ML-SUPERB2.0 Dev | ML-SUPERB2.0 Dialect | VoxPopuli | Macro Avg. |
+| ------ | ---------- | ---------------------- | --------------------------------- | -------------------------- | ----- | ------ | --------------- | ------------------ | --------- | ---------- |
+| `conf/tuning/independent_frozen.yaml` | [espnet/geolid_vl107only_independent_frozen](https://huggingface.co/espnet/geolid_vl107only_independent_frozen) | 94.2 | 94.22 | **94.28** (1517/1609) | 87.1 | 95.0 | 89.0 | 77.2 | 90.4 | 88.8 |
+| `conf/tuning/independent_trainable.yaml` | [espnet/geolid_vl107only_independent_trainable](https://huggingface.co/espnet/geolid_vl107only_independent_trainable) | 93.7 | 93.72 | **93.78** (1509/1609) | 85.3 | 93.7 | 88.3 | 70.3 | 86.5 | 86.3 |
+| `conf/tuning/shared_frozen.yaml` | [espnet/geolid_vl107only_shared_frozen](https://huggingface.co/espnet/geolid_vl107only_shared_frozen) | 94.3 | 94.34 | **94.28** (1517/1609) | 85.9 | 94.3 | 88.8 | 80.7 | 89.2 | 88.8 |
+| `conf/train.yaml` | [espnet/geolid_vl107only_shared_trainable](https://huggingface.co/espnet/geolid_vl107only_shared_trainable) | 94.9 | 94.90 | **94.84** (1526/1609) | 87.7 | 93.5 | 89.3 | 78.8 | 89.5 | 88.9 |
+| `conf/tuning/combined.yaml` | [espnet/geolid_combined_shared_trainable](https://huggingface.co/espnet/geolid_combined_shared_trainable) | 94.4 | 93.35 | **93.29** (1501/1609) | 95.4 | 97.7 | 88.6 | 86.8 | 99.0 | 93.7 |
 
 These converted-model measurements use the standard `espnet2.bin.lid_inference`
 CLI, GPU float32, **batch size 1**, 8 data-loading workers and full-length
@@ -296,9 +306,41 @@ mixed-length batches, and by padding fixed frontend features before ECAPA.
 Masking only the final pooling cannot undo those upstream feature changes.
 
 Each HF repository provides counts, runtime settings, implementation revision
-and checkpoint hashes in `evaluation.json`. The combined converted model scores
-**93.29%**, below the historical 94.4%; full reproduction of the paper metrics
-is not established. Other dataset columns remain historical paper results.
+and checkpoint hashes in `evaluation.json`.
+
+### Origin of the combined model's paper result
+
+The paper's **94.4%** rounds the archived
+[94.41% score report][combined-original-results] (90 errors, consistent with
+1,519 correct out of 1,609 utterances). All 90 error IDs and reference labels
+match the current label inventory; combining its per-language utterance counts
+with the archived error list reproduces every archived per-language accuracy. The
+[adjacent inference log][combined-original-inference] records full-length audio,
+GPU float32, batch size 4 and 32 workers, loading `valid.accuracy.best.pth` on
+**June 2, 2025, at 00:34–00:36 CDT**.
+
+The [training log][combined-training-first] shows that the most recent best
+checkpoint then was **epoch 24 / 48,000 training batches**. The
+[resumed training log][combined-training-resumed] records a new best at
+**epoch 31 / 62,000 batches**, at **11:22 CDT** that day, after the archived
+evaluation. The published checkpoint's 41 BatchNorm `num_batches_tracked`
+counters are all 62,000, consistent with that later checkpoint. Although
+Section IV-C of the paper specifies a 62k checkpoint, the archived score predates
+it: the training and evaluation chronology indicates an earlier best checkpoint
+was evaluated, while later weights were released under the same filename.
+
+This is a discrepancy between the historical result and the released checkpoint;
+the gap from 94.4% is already present in the **93.35% legacy reference**, before
+conversion to the current **93.29%** model. The historical inference log did not
+record a checkpoint hash, and the earlier checkpoint has not been recovered, so
+its exact weight identity cannot be verified and 94.41% has not been rerun.
+The historical audio files were not checksummed either. The paper columns remain
+historical results, not measurements reproduced with the released weights.
+
+[combined-original-results]: https://huggingface.co/espnet/geolid_combined_shared_trainable/blob/7dc4bf988efff29f725bf34b1caa821c27359793/exp_combined/lid_mms_ecapa_upcon_32_44_it0.4_shared_trainable_raw/inference/valid.accuracy.best/dev_voxlingua107_lang_cross_train_all_no_filter_lang/results
+[combined-original-inference]: https://huggingface.co/espnet/geolid_combined_shared_trainable/blob/7dc4bf988efff29f725bf34b1caa821c27359793/exp_combined/lid_mms_ecapa_upcon_32_44_it0.4_shared_trainable_raw/inference/valid.accuracy.best/dev_voxlingua107_lang_cross_train_all_no_filter_lang/lid_inference_test.log
+[combined-training-first]: https://huggingface.co/espnet/geolid_combined_shared_trainable/blob/7dc4bf988efff29f725bf34b1caa821c27359793/exp_combined/lid_mms_ecapa_upcon_32_44_it0.4_shared_trainable_raw/train.4.log
+[combined-training-resumed]: https://huggingface.co/espnet/geolid_combined_shared_trainable/blob/7dc4bf988efff29f725bf34b1caa821c27359793/exp_combined/lid_mms_ecapa_upcon_32_44_it0.4_shared_trainable_raw/train.3.log
 
 ## Citation
 
