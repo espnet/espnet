@@ -33,7 +33,7 @@ import torch.nn as nn
 from torch.distributed.algorithms._checkpoint.checkpoint_wrapper import (
     checkpoint_wrapper,
 )
-from torch.distributed.fsdp import MixedPrecisionPolicy, fully_shard
+from torch.distributed.fsdp import FSDPModule, MixedPrecisionPolicy, fully_shard
 from torchtitan.distributed import ParallelDims
 
 logger = logging.getLogger(__name__)
@@ -165,8 +165,13 @@ def apply_fsdp_qwen3(
     if tied:
         model.model.embed_tokens.to(device)
         model.lm_head.to(device)
-        fully_shard([model.model.embed_tokens, model.lm_head], **fsdp_config)
-        logger.info("Tied embed_tokens + lm_head: wrapped in single FSDP unit")
+        # The fused loss reads lm_head.weight without calling lm_head.forward().
+        # A grouped FSDP unit would wait for both module forwards before
+        # closing the embedding forward, leaving its hooks stuck on the next
+        # microbatch. Manage the shared weight through embed_tokens alone.
+        fully_shard(model.model.embed_tokens, **fsdp_config)
+        model.lm_head.weight = model.model.embed_tokens.weight
+        logger.info("Tied embed_tokens + lm_head: sharded through embed_tokens")
     else:
         if has_embed:
             _move_and_shard(model.model.embed_tokens)
@@ -190,7 +195,11 @@ def apply_fsdp_qwen3(
     # We put all remained peripheral modules to the root FSDP2 unit, where the conv
     # ops can always stay locally and will not trigger the DTensor check.
     model.to(device)
-    fully_shard(model, **fsdp_config)
+    fully_shard(
+        model,
+        ignored_params={model.lm_head.weight} if tied else None,
+        **fsdp_config,
+    )
 
     logger.info(
         f"Incremental FSDP init complete — peak GPU memory: "
@@ -350,16 +359,18 @@ def _setup_fsdp_prefetch(model: nn.Module) -> None:
         model.model.embed_tokens.set_modules_to_forward_prefetch([layers[0]])
     for i in range(num_layers - 1):
         layers[i].set_modules_to_forward_prefetch([layers[i + 1]])
+    # The fused loss gathers lm_head.weight directly, so its module forward
+    # never consumes an FSDP forward prefetch. Prefetching it gathers twice.
     last_layer_fwd_prefetch = [
         m
-        for m in [model.model.norm, model.lm_head, getattr(model, "stream_emb", None)]
+        for m in [model.model.norm, getattr(model, "stream_emb", None)]
         if m is not None
     ]
     if last_layer_fwd_prefetch:
         layers[-1].set_modules_to_forward_prefetch(last_layer_fwd_prefetch)
 
     # Backward: layers execute in reverse; each prefetches the previous one
-    if model.lm_head is not None:
+    if model.lm_head is not None and isinstance(model.lm_head, FSDPModule):
         model.lm_head.set_modules_to_backward_prefetch([layers[-1]])
     if getattr(model, "stream_emb", None) is not None:
         model.stream_emb.set_modules_to_backward_prefetch([layers[-1]])
