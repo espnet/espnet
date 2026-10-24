@@ -1,0 +1,8 @@
+##########################################################
+#                  PUBLICATION SETTING                   #
+##########################################################
+# Packs the tiny CI encoder with the TEMPLATE defaults. `upload_model` is not
+# run by CI.
+
+pack_model:
+  allow_overwrite: true
