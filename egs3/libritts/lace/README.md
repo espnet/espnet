@@ -39,19 +39,21 @@ python run.py --stages infer measure \
 There is no `collect_stats` stage to run: the chunk-based data loader needs no shape files.
 
 Training writes the wrapped model spec to `exp/${exp_tag}/lace_model.yaml`.
-`conf/inference.yaml` rebuilds the model from that spec and loads `exp/${exp_tag}/last.ckpt` on top, through the system's `Inference` (`espnet3.systems.lace.src.inference.Inference`), which takes the test set's `audio` and writes the resynthesized waveforms as WAV files listed in `exp/${exp_tag}/inference/test/resyn_audio.scp`.
+`conf/inference.yaml` rebuilds the model from that spec and loads `exp/${exp_tag}/last.ckpt` on top (`espnet3.systems.lace.src.inference.LACEAudioCoding`); the template's inference contract takes the test set's `audio` and writes the resynthesized waveforms as WAV files listed in `exp/${exp_tag}/inference/test/resyn_audio.scp`.
 `measure` scores them against the test set's own waveforms (`dataset:wav_path` in `conf/metrics.yaml`) with versa.
 Set `model.rate` in `conf/inference.yaml` to choose the compression rate, and `model.anchor_start_layer` to make later layers reuse the boundaries of earlier ones.
 To sweep rates, copy the config once per rate (for example `conf/inference_r025.yaml`): the output directory is named after the config file, so the runs do not overwrite each other.
 
-Outside the recipe, a packed or published model loads through the inference API, and any `LACEAudioCoding` argument replaces the packed one:
+Outside the recipe, a packed or published model loads through `espnet3.publication.InferenceModel`, and any `LACEAudioCoding` argument replaces the packed one:
 
 ```python
-from espnet3.api.inference import load
+from espnet3.publication import InferenceModel
 
-model = load("exp/train_encodec_lace_libritts/model_pack", rate=0.25)
+model = InferenceModel.from_packed("exp/train_encodec_lace_libritts/model_pack", rate=0.25)
 resynthesized = model("utt.wav")["resyn_audio"]  # an Audio at 24 kHz
 ```
+
+A published bundle loads the same way by its Hugging Face id, with `InferenceModel.from_pretrained(tag, rate=...)`.
 
 ## Publishing
 
@@ -69,7 +71,7 @@ python run.py --stages pack_demo upload_demo \
 ```
 
 The bundle carries `lace_model.yaml` and the fine-tuned checkpoint; the pretrained codec it names by Hugging Face id is downloaded again when the bundle is loaded.
-`meta.yaml` records the system, so `espnet3.api.inference.load` finds the `Inference` class without being told.
+Nothing in the bundle imports recipe code: the packed `conf/inference.yaml` names only installed classes and declares its contract inline, so the bundle loads with `trust_user_code=False`.
 The demo stages require `--training_config` because the demo config resolves `${exp_tag}` from it.
 `conf/demo.yaml` points the demo at `${upload_demo.hf_repo}`, so `upload_model` has to publish to that repo before the Space can load a model.
 

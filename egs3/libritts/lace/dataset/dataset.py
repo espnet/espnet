@@ -16,8 +16,8 @@ import numpy as np
 import soundfile as sf
 
 from egs3.libritts.lace.dataset.builder import LibriTTSBuilder
-from espnet3.api import Field
 from espnet3.components.data.base_dataset import BaseDataset
+from espnet3.contract import Field
 from espnet3.utils.config_utils import load_config_with_defaults
 
 # ---------------------------------------------------------------------------

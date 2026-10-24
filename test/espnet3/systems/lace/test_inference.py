@@ -10,15 +10,18 @@ import numpy as np
 import pytest
 import torch
 import yaml
+from omegaconf import OmegaConf
 
-from espnet3.api.inference import Audio, load
+from espnet3.contract.kinds.audio import Audio
+from espnet3.publication import InferenceModel
 from espnet3.publication.schema import PACK_SCHEMA_VERSION
-from espnet3.systems.lace.src.inference import Inference, LACEAudioCoding
+from espnet3.systems.lace.src.inference import LACEAudioCoding
 from espnet3.systems.lace.src.lace import LACE
 from espnet3.systems.lace.system import (
     build_lace_model_config,
     write_lace_model_config,
 )
+from espnet3.utils.config_utils import load_default_config
 
 COMPRESSION = {"name": "cosine_similarity", "params": {}, "eval_rate": 0.5}
 
@@ -53,6 +56,7 @@ def test_roundtrip_with_finetuned_checkpoint(finetuned):
     spec_path, model_file = finetuned
     coding = LACEAudioCoding(train_config=spec_path, model_file=model_file, rate=0.5)
     assert not coding.model.training
+    assert coding.sample_rate == coding.fs == 120  # TINY_ENCODEC_CONF sampling_rate
     audio = torch.randn(240)
     output = coding(audio)
     assert sorted(output) == ["codes", "resyn_audio"]
@@ -90,63 +94,34 @@ def test_inference_state_is_reset_after_each_call(finetuned):
     assert coding.quantizer._inference_anchor_start_layer is None
 
 
-# ---------------- Inference (espnet3.api.inference contract) ----------------
+# ---------------- packed bundle through the publication loader ----------------
 
 
-def test_inference_declaration_and_sample_rate(finetuned):
-    """``Inference`` declares one audio in, one audio out, at the codec rate."""
-    spec_path, model_file = finetuned
-    model = Inference(train_config=spec_path, model_file=model_file, rate=0.5)
-    assert [f.name for f in model.inputs] == ["audio"]
-    assert [f.name for f in model.outputs] == ["resyn_audio"]
-    assert model.sample_rate == 120  # TINY_ENCODEC_CONF sampling_rate
-    assert isinstance(model.backend, LACEAudioCoding)
+def _write_pack(pack, spec_path, model_file):
+    """Write a pack_model-shaped bundle whose inference.yaml is the template's.
 
-
-def test_inference_run_matches_the_backend_roundtrip(finetuned):
-    """``Inference`` returns exactly the backend's resynthesis as ``Audio``."""
-    spec_path, model_file = finetuned
-    model = Inference(train_config=spec_path, model_file=model_file, rate=0.5)
-    audio = np.random.RandomState(0).randn(240).astype(np.float32)
-
-    output = model(audio)
-
-    assert isinstance(output["resyn_audio"], Audio)
-    assert output["resyn_audio"].rate == model.sample_rate
-    expected = model.backend(torch.as_tensor(audio))["resyn_audio"].numpy()
-    assert np.array_equal(output["resyn_audio"].array, expected)
-    # The same model behind a (rate, samples) pair and a batch of items.
-    assert model((120, audio))["resyn_audio"].array.shape == expected.shape
-    assert len(model.batch([{"audio": audio}, {"audio": audio}])) == 2
-
-
-def test_inference_wraps_a_built_backend(finetuned):
-    """An already built ``LACEAudioCoding`` is accepted, without extra kwargs."""
-    spec_path, model_file = finetuned
-    coding = LACEAudioCoding(train_config=spec_path, model_file=model_file)
-    assert Inference(coding).backend is coding
-    with pytest.raises(TypeError, match="built one was too"):
-        Inference(coding, rate=0.5)
-
-
-def test_inference_from_pretrained_bundle(finetuned, tmp_path):
-    """A pack_model-shaped bundle whose inference.yaml names this Inference."""
-    spec_path, model_file = finetuned
-    pack = tmp_path / "model_pack"
-    (pack / "conf").mkdir(parents=True)
-    (pack / "conf" / "inference.yaml").write_text(
-        yaml.safe_dump(
-            {
-                "recipe_dir": ".",
-                "model": {
-                    "_target_": "espnet3.systems.lace.src.inference.Inference",
-                    "train_config": spec_path,
-                    "model_file": model_file,
-                    "rate": 0.5,
-                },
-            }
-        )
+    The packed config is what `pack_model` writes: the template defaults (the
+    `LACEAudioCoding` target, `input_key`, the contract and the runner) with
+    the recipe's model arguments, and `meta.yaml` pointing at it.
+    """
+    config = OmegaConf.to_container(
+        load_default_config("inference.yaml", "egs3.TEMPLATE.lace"), resolve=False
     )
+    packed = {
+        "recipe_dir": ".",
+        "model": {
+            "_target_": config["model"]["_target_"],
+            "train_config": spec_path,
+            "model_file": model_file,
+            "rate": 0.5,
+        },
+        "input_key": config["input_key"],
+        "contract": config["contract"],
+        "provider": config["provider"],
+        "runner": config["runner"],
+    }
+    (pack / "conf").mkdir(parents=True)
+    (pack / "conf" / "inference.yaml").write_text(yaml.safe_dump(packed))
     (pack / "meta.yaml").write_text(
         yaml.safe_dump(
             {
@@ -158,10 +133,36 @@ def test_inference_from_pretrained_bundle(finetuned, tmp_path):
         )
     )
 
-    model = Inference.from_pretrained(pack)
-    assert isinstance(model, Inference)
-    assert model.backend.rate == 0.5
-    # Any backend argument replaces the packed one, as a rate sweep needs.
-    assert Inference.from_pretrained(pack, rate=0.25).backend.rate == 0.25
-    # And the generic loader finds the class through meta.yaml's `system`.
-    assert isinstance(load(pack), Inference)
+
+def test_packed_bundle_loads_untrusted_and_matches_the_backend(finetuned, tmp_path):
+    """`InferenceModel.from_packed` runs the template's contract around the codec.
+
+    The bundle names only installed classes, so it loads with the default
+    `trust_user_code=False`; the output is an `Audio` at the codec's own rate
+    (nothing in the contract says 24000) and equals the backend's roundtrip.
+    """
+    spec_path, model_file = finetuned
+    pack = tmp_path / "model_pack"
+    _write_pack(pack, spec_path, model_file)
+    audio = np.random.RandomState(0).randn(240).astype(np.float32)
+
+    model = InferenceModel.from_packed(pack)
+    output = model(audio)
+
+    assert isinstance(model.model, LACEAudioCoding)
+    assert isinstance(output["resyn_audio"], Audio)
+    assert output["resyn_audio"].rate == 120
+    expected = model.model(torch.as_tensor(audio))["resyn_audio"].numpy()
+    assert np.array_equal(output["resyn_audio"].array, expected)
+    # A (rate, samples) pair at another rate is resampled to the codec's.
+    assert model((240, np.zeros(480, dtype=np.float32)))["resyn_audio"].rate == 120
+
+
+def test_packed_bundle_takes_backend_overrides(finetuned, tmp_path):
+    """Any `LACEAudioCoding` argument replaces the packed one, as a rate sweep needs."""
+    spec_path, model_file = finetuned
+    pack = tmp_path / "model_pack"
+    _write_pack(pack, spec_path, model_file)
+
+    assert InferenceModel.from_packed(pack).model.rate == 0.5
+    assert InferenceModel.from_packed(pack, rate=0.25).model.rate == 0.25

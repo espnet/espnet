@@ -29,11 +29,19 @@ ${model_detail_section}
 ## Usage
 
 ```python
-from espnet3.api.inference import load
+from espnet3.publication import InferenceModel
 
-${usage_load_call}
-result = model("utt.wav")
+model = InferenceModel.from_pretrained("${hf_repo}")
+output = model("speech.wav")  # a path, a (rate, samples) pair, or an array
+audio = output["resyn_audio"]  # the resynthesized Audio: audio.array (float32) at audio.rate
+
+# Any LACEAudioCoding argument replaces the packed one, e.g. the compression rate:
+model = InferenceModel.from_pretrained("${hf_repo}", rate=0.25)
 ```
+
+The input is encoded with the LACE codec at its compression rate and decoded
+back; it is resampled to the codec's rate and averaged to one channel before
+encoding.
 
 ## Packaging
 

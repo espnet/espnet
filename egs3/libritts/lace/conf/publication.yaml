@@ -17,6 +17,7 @@ pack_model:
   # excludes every checkpoint from the bulk copy, so this one is registered.
   files:
     model_file: ${exp_dir}/last.ckpt
-  include:
-    - ${recipe_dir}/src
-    - ${recipe_dir}/dataset
+  # Nothing in the bundle imports recipe code: inference runs through the
+  # installed `espnet3.systems.lace` runner, so neither `src` nor `dataset`
+  # is packed.
+  include: []

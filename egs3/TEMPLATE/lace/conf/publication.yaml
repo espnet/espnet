@@ -65,7 +65,7 @@ data_dir: ${recipe_dir}/data
 # `files` entries are copied regardless of `exclude` (symlinks such as
 # `last.ckpt` are dereferenced) and `model_file` in the packed inference config
 # is rewritten to the bundled copy. Without that entry the packed config points
-# at a file that is not in the bundle and `espnet3.api.inference.load` fails.
+# at a file that is not in the bundle and `InferenceModel.from_packed` fails.
 pack_model:
   out_dir: ${exp_dir}/model_pack
   allow_overwrite: false
@@ -75,7 +75,8 @@ pack_model:
   include_model_detail: false
   readme: ${config_path:../src/hf_model_readme.md}
   include:
-    # Include recipe code when the packed model depends on local modules.
+    # Include recipe code when the packed model depends on local modules
+    # (e.g. a `contract.imports` module referenced from conf/inference.yaml).
     - src
     # Include recipe-local dataset modules for publication smoke checks.
     - dataset

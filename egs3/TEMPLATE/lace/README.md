@@ -24,6 +24,7 @@ python run.py --stages create_dataset --training_config conf/training.yaml
 python run.py --stages train --training_config conf/training.yaml
 
 # 3) Resynthesize the test set at `model.rate` of conf/inference.yaml
+#    (one WAV per utterance, listed in resyn_audio.scp)
 python run.py --stages infer --training_config conf/training.yaml \
     --inference_config conf/inference.yaml
 
@@ -38,5 +39,20 @@ python run.py --stages pack_demo --training_config conf/training.yaml \
     --demo_config conf/demo.yaml
 ```
 
-A packed or published model loads outside the recipe through `espnet3.api.inference.load(tag_or_dir, rate=...)`; any `LACEAudioCoding` argument replaces the packed one, which is how a rate sweep reads.
+`measure` needs `versa` (`tools/installers/install_versa.sh`).
+A recipe's `metrics.yaml` lists the scores its configuration promises under `outputs`, and the stage fails when VERSA drops one instead of reporting a partial table.
+
+## Using a packed model
+
+```python
+from espnet3.publication import InferenceModel
+
+model = InferenceModel.from_pretrained("<hf_repo>")
+audio = model("speech.wav")["resyn_audio"]  # an Audio: audio.array (float32) at audio.rate
+
+# Any LACEAudioCoding argument replaces the packed one, which is how a rate sweep reads:
+model = InferenceModel.from_pretrained("<hf_repo>", rate=0.25)
+```
+
+The input may be a path, a `(rate, samples)` pair or an array; it is resampled to the codec's rate and averaged to one channel before encoding, as declared in `conf/inference.yaml`'s `contract`.
 See `egs3/libritts/lace/README.md` for a complete recipe.
