@@ -227,9 +227,10 @@ def test_build_model_and_run_generator_discriminator_steps(tmp_path):
 
     model = GANSpeechTokenizerTask.build_model(args)
     assert model.extract_feats_in_collect_stats is True
-    assert model.loss_weights["reconstruction"] == get_default_kwargs(
-        ESPnetGANSpeechTokenizerModel
-    )["reconstruction_weight"]
+    assert (
+        model.loss_weights["reconstruction"]
+        == get_default_kwargs(ESPnetGANSpeechTokenizerModel)["reconstruction_weight"]
+    )
     optimizers = GANSpeechTokenizerTask.build_optimizers(args, model)
     batch = {
         "speech": torch.randn(1, 32),

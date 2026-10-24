@@ -258,10 +258,7 @@ class GANSpeechTokenizerTask(AbsTask):
             "reconstruction_weight",
             get_default_kwargs(ESPnetGANSpeechTokenizerModel)["reconstruction_weight"],
         )
-        if (
-            reconstruction_weight == 0.0
-            and args.skip_discriminator_prob != 1.0
-        ):
+        if reconstruction_weight == 0.0 and args.skip_discriminator_prob != 1.0:
             raise ValueError(
                 "skip_discriminator_prob must be 1.0 when "
                 "reconstruction_weight is 0.0"
