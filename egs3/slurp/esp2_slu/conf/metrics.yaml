@@ -1,0 +1,11 @@
+##########################################################
+#                     METRICS SETTING                    #
+##########################################################
+# Nothing to override: `egs3/TEMPLATE/esp2_slu/conf/metrics.yaml` already
+# scores intent accuracy plus transcript WER/CER, which is what this recipe
+# reports. The file exists because `--metrics_config` takes a path.
+#
+#   python run.py --stages measure \
+#       --training_config conf/tuning/train_slu_bert_conformer_deliberation.yaml \
+#       --inference_config conf/inference_slu.yaml \
+#       --metrics_config conf/metrics.yaml

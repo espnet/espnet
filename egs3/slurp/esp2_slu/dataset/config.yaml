@@ -1,0 +1,68 @@
+# Layout of the SLURP corpus and of the manifests built from it.
+#
+# `builder` describes where the raw corpus lives and what `create_dataset`
+# writes; `dataset` describes what the recipe `Dataset` class may read back.
+builder:
+  # Fallback location searched under the recipe root, e.g. `download/slurp`.
+  dataset_path: download
+  # Environment variable checked when the corpus is stored elsewhere.
+  # This matches `SLURP` in `egs2/TEMPLATE/asr1/db.sh`.
+  source_env_var: SLURP
+  # Recipe-local directory holding the generated manifests.
+  data_path: data
+
+  # Files expected inside the SLURP root.
+  metadata_path: dataset/slurp/metadata.json
+  audio_paths:
+    real: audio/slurp_real
+    synth: audio/slurp_synth
+
+  # One entry per split. `audio` selects the directory in `audio_paths`, and
+  # `lowercase` mirrors `egs2/slurp/asr1/local/prepare_slurp_data.py`, which
+  # lowercases the synthetic transcripts only.
+  splits:
+    train:
+      jsonl_path: dataset/slurp/train.jsonl
+      audio: real
+      lowercase: false
+      # Only the training splits contribute intent labels, mirroring
+      # `cut -d' ' -f2 data/train/text` in `egs2/slurp/asr1/local/run_spm.sh`.
+      intent_source: true
+    train_synthetic:
+      jsonl_path: dataset/slurp/train_synthetic.jsonl
+      audio: synth
+      lowercase: true
+      intent_source: true
+    devel:
+      jsonl_path: dataset/slurp/devel.jsonl
+      audio: real
+      lowercase: false
+      intent_source: false
+    test:
+      jsonl_path: dataset/slurp/test.jsonl
+      audio: real
+      lowercase: false
+      intent_source: false
+
+  manifest_paths:
+    train: manifest/train.tsv
+    train_synthetic: manifest/train_synthetic.tsv
+    devel: manifest/devel.tsv
+    test: manifest/test.tsv
+
+  # Intent label list written next to the manifests. It is consumed as
+  # `tokenizer.user_defined_symbols` so every `scenario_action` label stays a
+  # single token, the way `egs2/slurp/asr1` keeps intents as word tokens.
+  intent_path: manifest/intents.txt
+
+dataset:
+  supported_splits:
+    - train
+    - train_synthetic
+    - devel
+    - test
+  split_manifest_paths:
+    train: manifest/train.tsv
+    train_synthetic: manifest/train_synthetic.tsv
+    devel: manifest/devel.tsv
+    test: manifest/test.tsv
