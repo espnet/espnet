@@ -12,7 +12,17 @@ exp_dir: ${recipe_dir}/exp/${exp_tag}
 data_dir: ${recipe_dir}/data
 inference_dir: ${exp_dir}/${self_name:}
 
+# `_recursive_: false` hands `DataOrganizer` the split entries and the
+# `preprocessor` block as configs: it instantiates the preprocessor itself,
+# with `train=False` for the test splits. Without
+# it Hydra would build the preprocessor first, and ESPnet2's
+# `CommonPreprocessor` needs that `train` argument.
 dataset:
+  _target_: espnet3.components.data.data_organizer.DataOrganizer
+  _recursive_: false
+  recipe_dir: ${recipe_dir}
+  test:
+  preprocessor:
 
 parallel:
   env: local
@@ -21,11 +31,64 @@ parallel:
   # another run may still be writing to the same output directory.
   allow_overwrite_lock: false
 
+# The model is the system's `Inference`: it builds the F5-TTS engine from the
+# arguments below and synthesizes the target text in the voice of the
+# reference. The runner reads `input_key` out of each test item by name and
+# checks the inputs and the returned `wav` against `contract` below, which
+# `InferenceModel` and the demo apply too; the checked waveform is written as
+# a WAV file whose path goes into `wav.scp`, headed by the item's `utt_id`.
+# `measure` reads the scoring references from the data (`dataset:<column>` in
+# metrics.yaml).
+#
+# The model is rebuilt from `${exp_dir}/config.yaml`, the training config
+# `train` wrote beside the checkpoint, so whatever `--training_config` trained
+# `exp_dir` is the one inference loads; a recipe never names a training file
+# here. A recipe adds the sampling arguments of
+# `espnet3.systems.f5tts.src.inference.F5TTSInference` (`ode_solver_steps`,
+# `guidance_strength`, `sway_sampling_coefficient`, `speed`, `seed`, ...).
 model:
+  _target_: espnet3.systems.f5tts.src.inference.Inference
+  train_config: ${exp_dir}/config.yaml
+  checkpoint_path: ${exp_dir}/last.ckpt
+  use_ema: true
 
-input_key:
+# The three inputs of `Inference`, picked out of each test item by name; they
+# must be exactly the names `contract.inputs` declares.
+input_key: [text, reference_speech, reference_text]
+
+# One utterance per model call (`null`); `Inference` also takes lists.
 batch_size:
-output_artifacts:
+
+# What the model takes and returns, checked around every call: the `infer`
+# stage, `InferenceModel` on a packed bundle, and the demo, which also builds
+# its widgets from these fields and their labels. The reference arrives in
+# any form the caller holds (a path, the `(rate, samples)` pair `gr.Audio`
+# returns, an array, a tensor), is resampled to the model's rate (Vocos:
+# 24 kHz; a recipe with another vocoder overrides `sample_rate` on both
+# fields) and reduced to its first channel; `channels: 1` then rejects
+# anything else. Text is any `str`: the engine itself refuses an empty
+# reference transcript. The output is the mono waveform at the same rate.
+contract:
+  inputs:
+    text:
+      kind: text
+      label: Text to synthesize
+    reference_speech:
+      kind: audio
+      label: Reference speech (voice to clone)
+      sample_rate: 24000
+      channels: 1
+      normalize:
+        - first_channel
+    reference_text:
+      kind: text
+      label: Reference transcript
+  outputs:
+    wav:
+      kind: audio
+      label: Synthesized speech
+      sample_rate: 24000
+      channels: 1
 
 provider:
   _target_: espnet3.systems.base.inference_provider.InferenceProvider

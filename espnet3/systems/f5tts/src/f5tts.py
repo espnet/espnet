@@ -317,7 +317,7 @@ class F5TTS(torch.nn.Module):
         F5 is zero-shot: it needs a reference. ``speech`` is the reference mel or
         waveform; ``text`` should be the (ref + target) token ids, and for the full
         cross-speaker recipe protocol use
-        ``espnet3.systems.f5tts.inference.F5TTSInference``,
+        ``espnet3.systems.f5tts.src.inference.F5TTSInference``,
         which handles reference pairing and vocoding.
 
         Args:
