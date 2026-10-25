@@ -113,6 +113,13 @@ class AqaTask(AbsTask):
         )
         group.add_argument("--tokenize_numerical_metric", type=str2bool, default=False)
         group.add_argument("--randomize_sequential_metric", type=str2bool, default=True)
+        group.add_argument(
+            "--defer_full_meta",
+            type=str2bool,
+            default=False,
+            help="Order ARECHO targets with whole-clip '<metric>_full' pairs after "
+            "all other pairs; decode with aqa_inference --defer_full_meta true",
+        )
 
         group.add_argument(
             "--token_list",
@@ -206,6 +213,7 @@ class AqaTask(AbsTask):
             return ARMetricCollateFn(
                 metric_token_pad_value=getattr(args, "metric_token_pad_value", 0),
                 randomize=train and getattr(args, "randomize_sequential_metric", True),
+                defer_full_meta=getattr(args, "defer_full_meta", False),
             )
         # To differentiate the padding value for metrics' value
         return UniversaCollateFn(

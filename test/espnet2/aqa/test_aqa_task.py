@@ -95,6 +95,20 @@ def test_arecho_sequential_default_and_portable_metadata(tmp_path, sequential):
     assert isinstance(AqaTask.build_collate_fn(args, True), ARMetricCollateFn)
 
 
+@pytest.mark.parametrize("option", [None, "false", "true"])
+def test_defer_full_meta_reaches_collate(tmp_path, option):
+    """The training option orders train and valid targets; old configs keep it off."""
+    options = [] if option is None else ["--defer_full_meta", option]
+    args = task_args(tmp_path, "--universa", "ar_universa", *options)
+    assert args.defer_full_meta is (option == "true")
+    for train in (True, False):
+        collate = AqaTask.build_collate_fn(args, train)
+        assert collate.defer_full_meta is (option == "true")
+        assert collate.randomize is train
+    del args.defer_full_meta  # A config saved before the option existed.
+    assert AqaTask.build_collate_fn(args, True).defer_full_meta is False
+
+
 @pytest.mark.parametrize("skip", [False, True])
 def test_arecho_categorical_options(tmp_path, legacy_token_info, skip):
     """Token info selects the scheme for model and data; the task opts into skips."""

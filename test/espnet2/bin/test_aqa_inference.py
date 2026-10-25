@@ -7,7 +7,7 @@ import soundfile
 import torch
 import yaml
 
-from espnet2.bin.aqa_inference import AqaInference, inference
+from espnet2.bin.aqa_inference import AqaInference, inference, main
 from espnet2.tasks.aqa import AqaTask
 
 
@@ -112,3 +112,53 @@ def test_checkpoint_and_cli_inference(tmp_path, multi_branch):
     assert set(json.loads(scores)) == expected
     if multi_branch == "ar":
         assert (tmp_path / "output/token.scp").read_text().startswith("a 2 ")
+
+
+def test_defer_full_meta_option(tmp_path):
+    """The CLI option decodes whole-clip metrics after prefix metrics."""
+    from test.espnet2.aqa.test_arecho import full_token_info
+
+    args = task_args(tmp_path)
+    args.universa = "ar_universa"
+    args.sequential_metric = True
+    args.metric2id = ["mos_full", "mos", "language"]
+    args.metric2type = dict(
+        mos_full="numerical", mos="numerical", language="categorical"
+    )
+    args.metric_token_info = full_token_info()
+    args.universa_conf["metric_decoder_params"] = dict(
+        num_blocks=1, attention_heads=2, linear_units=16
+    )
+    model = AqaTask.build_model(args)
+    with torch.no_grad():
+        model.universa.decoder.output_layer.bias[14] = 100  # Favor mos_full.
+    config, checkpoint = tmp_path / "config.yaml", tmp_path / "model.pth"
+    config.write_text(yaml.safe_dump(vars(args)))
+    torch.save(model.state_dict(), checkpoint)
+    wav, scp = tmp_path / "audio.wav", tmp_path / "wav.scp"
+    soundfile.write(wav, np.random.randn(256).astype(np.float32), 16000)
+    scp.write_text(f"a {wav}\n")
+
+    def decoded_labels(*options):
+        output = tmp_path / f"output{len(options)}"
+        main(
+            [
+                "--output_dir",
+                str(output),
+                "--train_config",
+                str(config),
+                "--model_file",
+                str(checkpoint),
+                "--data_path_and_name_and_type",
+                f"{scp},audio,sound",
+                "--save_token_seq",
+                "true",
+                "--num_workers",
+                "0",
+                *options,
+            ]
+        )
+        return (output / "token.scp").read_text().split()[2::2]
+
+    assert decoded_labels()[0] == "14"
+    assert decoded_labels("--defer_full_meta", "true")[-1] == "14"
