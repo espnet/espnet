@@ -13,10 +13,14 @@ from espnet2.train.preprocessor import UniversaProcessor
 class ARMetricProcessor(UniversaProcessor):
     """Tokenize selected metrics while retaining shared waveform preprocessing."""
 
-    def __init__(self, metric_token_info, metrics_list, **kwargs):
+    def __init__(
+        self, metric_token_info, metrics_list, skip_unknown_categories=False, **kwargs
+    ):
         """Initialize preprocessing from a metric vocabulary and selection."""
         super().__init__(**kwargs)
-        self.metric_tokenizer = MetricTokenizer(metric_token_info, metrics_list)
+        self.metric_tokenizer = MetricTokenizer(
+            metric_token_info, metrics_list, skip_unknown_categories
+        )
 
     def _metric_process(self, data):
         """Replace present metric values with tokenizer label/value pairs."""

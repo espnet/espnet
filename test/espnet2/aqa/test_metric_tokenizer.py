@@ -97,3 +97,86 @@ def test_unknown_input_metric_is_rejected(selected):
 def test_unknown_selected_metric_is_rejected():
     with pytest.raises(ValueError, match="Unknown selected metrics.*mso"):
         MetricTokenizer(token_info(), ["mso"])
+
+
+@pytest.mark.parametrize(
+    "options, token",
+    [
+        ({}, 13),
+        (dict(categorical_scheme="index"), 13),
+        (dict(categorical_scheme="legacy"), 12),
+    ],
+)
+def test_categorical_scheme_defaults_to_index(options, token):
+    """Omitting the scheme keeps index tokens; legacy bins the last label."""
+    tokenizer = MetricTokenizer(dict(token_info(), **options), ["mos", "language"])
+    assert tokenizer.metric2token({"mos": 1.5, "language": "jpn"}) == {
+        "mos": (4, 7),
+        "language": (10, token),
+    }
+
+
+@pytest.mark.parametrize(
+    "category, token, decoded",
+    [("eng", 12, "eng"), ("jpn", 13, "jpn"), ("zho", 13, "jpn")],
+)
+def test_legacy_category_round_trip(legacy_token_info, category, token, decoded):
+    """Legacy labels keep their threshold bins, so the last two share a token."""
+    tokenizer = MetricTokenizer(legacy_token_info, None)
+    metrics = {"mos": 1.5, "language": category, "bg_event": "music"}
+    pairs = tokenizer.metric2token(metrics)
+    assert pairs == {"mos": (4, 7), "language": (10, token), "bg_event": (15, 18)}
+    sequence = [2] + [t for pair in pairs.values() for t in pair]
+    assert tokenizer.tokenseq2metric(sequence, True) == {
+        "mos": [1.0],
+        "language": [decoded],
+        "bg_event": ["music"],
+    }
+    reduced = tokenizer.metric2token(metrics, reduce_offset=True)
+    for name, (_, value) in pairs.items():
+        assert tokenizer.add_offset([reduced[name][1]], name) == [value]
+    # Bins outside the trained range still decode, as numerical bins do.
+    assert [tokenizer.token2metric(t, "language") for t in (11, 14)] == ["eng", "zho"]
+
+
+@pytest.mark.parametrize(
+    "shifted, tokens", [(["bg_event"], [17, 18, 19]), ([], [18, 16, 18])]
+)
+def test_shifted_categorical_override(legacy_token_info, shifted, tokens):
+    """Listed metrics use index tokens while other legacy metrics keep bins."""
+    legacy_token_info["shifted_categorical_metrics"] = shifted
+    tokenizer = MetricTokenizer(legacy_token_info, None)
+    labels = legacy_token_info["tokenizer"]["bg_event"]
+    pairs = [tokenizer.metric2token({"bg_event": label}) for label in labels]
+    assert pairs == [{"bg_event": (15, token)} for token in tokens]
+    assert tokenizer.metric2token({"language": "zho"}) == {"language": (10, 13)}
+    if shifted:
+        assert [tokenizer.token2metric(t, "bg_event") for t in tokens] == labels
+        with pytest.raises(ValueError, match="Invalid token value"):
+            tokenizer.token2metric(16, "bg_event")
+
+
+@pytest.mark.parametrize("scheme", ["index", "legacy"])
+@pytest.mark.parametrize("metric", ["language", "bg_event"])
+def test_unknown_category_raises_unless_skipped(legacy_token_info, scheme, metric):
+    """Unknown labels raise by default and drop only that metric when opted in."""
+    legacy_token_info["categorical_scheme"] = scheme
+    metrics = {"mos": 1.5, metric: "fra"}
+    with pytest.raises(ValueError, match="Invalid category value: fra"):
+        MetricTokenizer(legacy_token_info, None).metric2token(metrics)
+    tokenizer = MetricTokenizer(legacy_token_info, None, skip_unknown_categories=True)
+    assert tokenizer.metric2token(metrics) == {"mos": (4, 7)}
+
+
+@pytest.mark.parametrize(
+    "options, message",
+    [
+        (dict(categorical_scheme="shifted"), "categorical_scheme: shifted"),
+        (dict(shifted_categorical_metrics=["mos"]), "mos is not"),
+        (dict(shifted_categorical_metrics=["lang"]), "lang is not"),
+    ],
+)
+def test_reject_invalid_categorical_options(options, message):
+    """Reject unknown schemes and overrides that name no categorical metric."""
+    with pytest.raises(ValueError, match=message):
+        MetricTokenizer(dict(token_info(), **options), None)

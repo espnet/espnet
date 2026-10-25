@@ -2,6 +2,7 @@ import importlib
 import json
 from test.espnet2.aqa.test_metric_tokenizer import token_info
 
+import numpy as np
 import pytest
 import torch
 
@@ -92,6 +93,32 @@ def test_arecho_sequential_default_and_portable_metadata(tmp_path, sequential):
     assert rebuilt.universa.metric2id == model.universa.metric2id
     assert isinstance(AqaTask.build_preprocess_fn(args, True), ARMetricProcessor)
     assert isinstance(AqaTask.build_collate_fn(args, True), ARMetricCollateFn)
+
+
+@pytest.mark.parametrize("skip", [False, True])
+def test_arecho_categorical_options(tmp_path, legacy_token_info, skip):
+    """Token info selects the scheme for model and data; the task opts into skips."""
+    args = task_args(
+        tmp_path, "--universa", "ar_universa", "--skip_unknown_categories", str(skip)
+    )
+    args.metric2id = ["mos", "language", "bg_event"]
+    args.metric_token_info = legacy_token_info
+    args.universa_conf.update(
+        embedding_dim=256,
+        metric_decoder_params=dict(num_blocks=1, attention_heads=2, linear_units=16),
+    )
+    tokenizer = AqaTask.build_model(args).universa.metric_tokenizer
+    assert tokenizer.tokenseq2metric([10, 11], True) == {"language": ["eng"]}
+    processor = AqaTask.build_preprocess_fn(args, True)
+    sample = dict(
+        audio=np.zeros(160, dtype=np.float32),
+        metrics={"language": "zho", "bg_event": "fra"},
+    )
+    if not skip:
+        with pytest.raises(ValueError, match="Invalid category value: fra"):
+            processor("a", sample)
+        return
+    assert processor("a", sample)["metrics"] == {"language": (10, 13)}
 
 
 def test_base_data_setup(tmp_path):

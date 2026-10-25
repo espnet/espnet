@@ -29,3 +29,24 @@ def _make_model(**kwargs):
 @pytest.fixture
 def make_model():
     return _make_model
+
+
+@pytest.fixture
+def legacy_token_info():
+    """Tiny ANCHOR-style vocabulary: legacy categories and one shifted metric."""
+    tokenizers = {
+        "mos": [0.0, 1.0, 2.0, 3.0],
+        "language": ["eng", "jpn", "zho"],
+        "bg_event": ["none", "music", "vehicle"],
+    }
+    vocab, offset = [], {}
+    for key, values in tokenizers.items():
+        offset[key] = [len(vocab), len(values) + 2]
+        vocab += [key + "@meta_label"] + [f"{key}@{i}" for i in range(len(values) + 1)]
+    return dict(
+        tokenizer=tokenizers,
+        VOCAB=vocab,
+        offset=offset,
+        categorical_scheme="legacy",
+        shifted_categorical_metrics=["bg_event"],
+    )
