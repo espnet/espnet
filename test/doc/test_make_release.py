@@ -7,7 +7,10 @@ upload, which is how the 202604 series went out wrong.
 """
 
 import importlib.util
+import sys
+import types
 from pathlib import Path
+from unittest import mock
 
 import pytest
 
@@ -15,11 +18,21 @@ SCRIPT = Path(__file__).parents[2] / "doc" / "make_release.py"
 
 
 def _module():
-    # doc/ is not a package, and the script imports github at module level
-    pytest.importorskip("github")
+    # doc/ is not a package, and the script imports github at module level.
+    # PyGithub is not an espnet dependency, so CI does not have it. None of
+    # the functions tested here talk to GitHub, so an empty stand-in lets the
+    # script load; skipping instead would leave every test here silently
+    # unrun. Anything that does reach for GitHub fails with AttributeError.
+    try:
+        import github  # noqa: F401
+    except ImportError:
+        stub = {"github": types.ModuleType("github")}
+    else:
+        stub = {}
     spec = importlib.util.spec_from_file_location("make_release", SCRIPT)
     module = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(module)
+    with mock.patch.dict(sys.modules, stub):
+        spec.loader.exec_module(module)
     return module
 
 
