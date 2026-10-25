@@ -17,6 +17,7 @@ from pathlib import Path
 from typing import Dict, Iterable, Mapping, Optional, Tuple
 
 from omegaconf import DictConfig, OmegaConf
+from omegaconf.errors import InterpolationResolutionError, MissingMandatoryValue
 
 from espnet3.contract.stages import resolve_config_roles, resolve_stage_log_dir
 from espnet3.utils.run_utils import ConfigError, resolve_loaded_configs
@@ -361,6 +362,7 @@ def snapshot_config(
 
     tmp_path = snapshot_path.with_suffix(".yaml.tmp")
     try:
+        snapshot_path.parent.mkdir(parents=True, exist_ok=True)
         tmp_path.write_text(new_yaml, encoding="utf-8")
         os.replace(str(tmp_path), str(snapshot_path))
         logger.debug("Wrote snapshot: %s", snapshot_path)
@@ -466,7 +468,12 @@ def resolve_search_directories(
         else:
             own = _own_config_for(spec, configs_by_role)
             if own is not None:
-                directory = resolve_stage_log_dir(own, spec)
+                try:
+                    directory = resolve_stage_log_dir(own, spec)
+                except (InterpolationResolutionError, MissingMandatoryValue):
+                    # Discovery precedes inheritance: this role may need a key
+                    # from a prior stage. Validate it in the final merged config.
+                    directory = None
         if directory is not None:
             resolved[spec.name] = directory
             visited.add((spec.name, directory))

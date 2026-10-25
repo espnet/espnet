@@ -19,7 +19,7 @@ from espnet3.utils.stages_utils import resolve_stages, run_stages
 
 
 def build_parser(system_cls: type) -> argparse.ArgumentParser:
-    """Build the CLI parser for ``system_cls``: stages, per-role configs, and per-stage directory flags.
+    """Build stage, config-role and directory CLI flags for ``system_cls``.
 
     Args:
         system_cls: The system class whose declared stages set the
@@ -85,8 +85,7 @@ def default_conf_package(system_cls: type) -> str:
     """Return the ``egs3.TEMPLATE`` package that holds ``system_cls``'s default configs.
 
     Derived from ``system_cls``'s own module, ``espnet3.systems.<x>.system``,
-    by the same ``<x>`` naming :data:`~espnet3.api.inference.loading.SYSTEM_ALIASES`
-    uses elsewhere.
+    using the system module name as the recipe template name.
 
     Examples:
         >>> from espnet3.systems.esp2_asr.system import ASRSystem

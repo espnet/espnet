@@ -1,7 +1,8 @@
 """Bagpiper: what a recording is, and a recording of what you describe.
 
-Published as https://huggingface.co/spaces/espnet/bagpiper; the source lives
-in espnet, at egs2/bagpiper/speechlm1/demo.
+Not a hosted Space: loading the model fetches about 106 GB first, which no
+free Space hardware holds (README.md says why, and how to run it yourself).
+It lives in espnet, at egs2/bagpiper/speechlm1/demo.
 
 The other demos go one way. This model goes both, through the same thing in
 the middle: it maps audio to a rich caption - a full description of what is
@@ -12,7 +13,11 @@ edit a word of the description and hear what changes.
 Models: espnet/bagpiper-sft does both directions, espnet/bagpiper-tts-sft is
 the speech-focused one (BAGPIPER_MODEL_TAG switches). Either is an 8B model
 with an audio encoder and a codec attached; BAGPIPER_URL points the page at
-one that is already served instead of loading it here.
+one that is already served instead of loading it here. The ESPnet vLLM fork
+documents audio generation with espnet/bagpiper-tts-sft, so deploy that
+checkpoint for served rendering: BAGPIPER_URL connects to the deployment and
+cannot select or replace its checkpoint, and BAGPIPER_MODEL_TAG affects
+local loading only.
 """
 
 # The ZeroGPU package patches torch as it is imported, so it has to come

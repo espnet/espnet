@@ -331,8 +331,10 @@ def test_run_py_calls_launch_when_executed_as_a_script():
 
 class _MismatchedRoleSystem(BaseSystem):
     """A role name ("training") that does NOT match its stage's log_dir key
+
     ("exp_dir") - the realistic case (see design/config_tree_fix.md's own
-    StageSpec examples). A naive `f"{role}_dir"` guess would miss this."""
+    StageSpec examples). A naive `f"{role}_dir"` guess would miss this.
+    """
 
     stages = (StageSpec(name="train", config="training", log_dir="exp_dir"),)
     instances: list = []
@@ -363,8 +365,10 @@ def test_launch_forwards_exp_dir_cli_value_despite_role_log_dir_mismatch(
     tmp_path, stub_config_loading
 ):
     """Regression: cli_dir_overrides must be built from the stage's actual
+
     canonical log_dir key (here "exp_dir"), not a guess like
-    f"{role}_dir" (which would produce "training_dir" - nonexistent)."""
+    f"{role}_dir" (which would produce "training_dir" - nonexistent).
+    """
     _MismatchedRoleSystem.instances.clear()
     captured = {}
 
@@ -386,7 +390,9 @@ def test_launch_forwards_exp_dir_cli_value_despite_role_log_dir_mismatch(
 
 def test_launch_resolved_stage_configs_reach_the_system(tmp_path, stub_config_loading):
     """The merged config launch() computes per stage must actually reach
-    the running system, not be computed and discarded."""
+
+    the running system, not be computed and discarded.
+    """
     _RecordingSystem.instances.clear()
     sentinel = OmegaConf.create({"from_snapshot_merge": True})
 
@@ -406,3 +412,54 @@ def test_launch_resolved_stage_configs_reach_the_system(tmp_path, stub_config_lo
 
     system = _RecordingSystem.instances[-1]
     assert system.stage_configs["train"] == sentinel
+
+
+def test_publication_ci_configs_resolve_after_stage_inheritance(tmp_path, monkeypatch):
+    """Resolve the publication CI configs without training or downloading data."""
+    from espnet3.systems.esp2_asr.system import ASRSystem
+
+    repo_root = Path(__file__).resolve().parents[3]
+    recipe = repo_root / "egs3" / "mini_an4" / "esp2_asr"
+    inference = (
+        repo_root
+        / "test_utils"
+        / "egs3"
+        / "integration_test"
+        / "esp2_asr"
+        / "conf"
+        / "inference_publication.yaml"
+    )
+    monkeypatch.chdir(recipe)
+    captured = {}
+
+    def record_stages(*, system, **kwargs):
+        captured.update(system.stage_configs)
+
+    monkeypatch.setattr("espnet3.systems.launch.run_stages", record_stages)
+    launch(
+        ASRSystem,
+        argv=[
+            "--stages",
+            "create_dataset",
+            "train_tokenizer",
+            "collect_stats",
+            "train",
+            "infer",
+            "measure",
+            "pack_model",
+            "--training_config",
+            "conf/training_asr_transformer.yaml",
+            "--inference_config",
+            str(inference),
+            "--metrics_config",
+            "conf/metrics.yaml",
+            "--publication_config",
+            "conf/publication.yaml",
+            "--exp_dir",
+            str(tmp_path / "exp"),
+        ],
+    )
+    assert captured["infer"].inference_dir.endswith("/inference_publication")
+    assert Path(captured["infer"].exp_dir) == tmp_path / "exp"
+    assert captured["measure"].inference_dir == captured["infer"].inference_dir
+    assert Path(captured["pack_model"].exp_dir) == tmp_path / "exp"

@@ -433,7 +433,9 @@ def test_generate_stage_flag_mapping_tokenizer_save_path():
 
 def test_generate_stage_flag_mapping_with_alias():
     """Alias + canonical: both flag names map to the SAME canonical key
-    string, so either CLI flag writes to the same config location."""
+
+    string, so either CLI flag writes to the same config location.
+    """
     spec = StageSpec(
         name="train",
         config="training",
@@ -455,8 +457,10 @@ def test_generate_stage_flag_mapping_shared_canonical_key():
 
 def test_generate_stage_flag_mapping_with_aliases_from_shared_key():
     """Shared key where both stages have aliases: every flag (canonical and
+
     both aliases) must resolve to the SAME canonical key, "output" - not an
-    arbitrary alphabetically-first alias."""
+    arbitrary alphabetically-first alias.
+    """
     spec1 = StageSpec(
         name="train", config="training", log_dir="output", dir_aliases=("out_dir",)
     )

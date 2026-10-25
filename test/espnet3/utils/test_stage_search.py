@@ -240,7 +240,7 @@ def test_merge_conflicting_parent_experiments_raises(tmp_path):
 
 
 def test_collect_stats_own_role_separate_from_train(tmp_path):
-    # System where collect_stats has its own "stats" config role, separate from train's "training"
+    # collect_stats uses its own stats role rather than training.
     stats_dir = tmp_path / "stats_an4"
     stats_dir.mkdir()
     exp_dir = tmp_path / "exp"
@@ -319,8 +319,8 @@ def test_train_only_system_no_infer_or_measure(tmp_path):
 
 
 def test_beam10_beam20_infer_measure_separate_configs_and_outputs(tmp_path):
-    """
-    Item 5: beam10's infer+measure and beam20's infer+measure each use their
+    """Item 5: beam10's infer+measure and beam20's infer+measure each use their
+
     own explicit infer.yaml-equivalent config and produce separate, correctly-
     scoped results.
     """
@@ -406,8 +406,8 @@ def test_beam10_beam20_infer_measure_separate_configs_and_outputs(tmp_path):
 
 
 def test_beam20_does_not_modify_beam10_snapshot_or_metrics(tmp_path):
-    """
-    Item 6: After beam10's full flow is written, beam20 execution must NOT
+    """Item 6: After beam10's full flow is written, beam20 execution must NOT
+
     change beam10's already-written snapshot file content or its metrics.json
     stand-in.
     """
@@ -476,8 +476,8 @@ def test_beam20_does_not_modify_beam10_snapshot_or_metrics(tmp_path):
 
 
 def test_measure_reuses_saved_snapshot_on_subsequent_run(tmp_path):
-    """
-    Item 7: beam10's first measure run is given a metrics config; re-running
+    """Item 7: beam10's first measure run is given a metrics config; re-running
+
     measure for beam10 later with no explicit metrics config (only --inference_dir)
     must reuse the saved measure.yaml snapshot rather than requiring the config.
     """
@@ -544,8 +544,8 @@ def test_measure_reuses_saved_snapshot_on_subsequent_run(tmp_path):
 
 
 def test_stage_config_independence_second_stage_omits_setting(tmp_path):
-    """
-    Item 1: Build two stages' configs where the SECOND stage's own explicit
+    """Item 1: Build two stages' configs where the SECOND stage's own explicit
+
     config omits a setting that the FIRST stage's own snapshot still has.
     Confirm the first stage's own resolved config AND its already-written
     snapshot file are unaffected by the second stage's config.
@@ -589,7 +589,7 @@ def test_stage_config_independence_second_stage_omits_setting(tmp_path):
     result_train = merge_stage_config_from_snapshots(
         _System, "train", configs, {"exp_dir": str(exp_dir)}
     )
-    result_infer = merge_stage_config_from_snapshots(
+    merge_stage_config_from_snapshots(
         _System,
         "infer",
         configs,
@@ -618,8 +618,8 @@ def test_stage_config_independence_second_stage_omits_setting(tmp_path):
 
 
 def test_cli_override_resolves_interpolation_before_final_resolution(tmp_path):
-    """
-    Item 2: Build a config with an OmegaConf interpolation that references
+    """Item 2: Build a config with an OmegaConf interpolation that references
+
     a key which the CLI override of that same key would change (e.g., a key
     like "out": "${exp_dir}/out" where exp_dir is what the CLI overrides).
     Confirm the CLI-overridden value interpolation resolves using the
@@ -654,8 +654,8 @@ def test_cli_override_resolves_interpolation_before_final_resolution(tmp_path):
 
 
 def test_unresolvable_interpolation_raises_error_with_stage_and_key(tmp_path):
-    """
-    Item 11: Confirm that when a required value cannot be resolved at all
+    """Item 11: Confirm that when a required value cannot be resolved at all
+
     (e.g., an unresolvable interpolation like "${missing_key}"), the raised
     error includes the specific stage and key involved, not a generic message.
     """
@@ -681,9 +681,7 @@ def test_unresolvable_interpolation_raises_error_with_stage_and_key(tmp_path):
 
 
 def test_unresolvable_interpolation_in_nested_key_raises_error_with_key_path(tmp_path):
-    """
-    Item 11 (continued): Test that nested key paths are also reported in errors.
-    """
+    """Item 11 (continued): Test that nested key paths are also reported in errors."""
     exp_dir = tmp_path / "exp"
     exp_dir.mkdir()
 
@@ -705,3 +703,27 @@ def test_unresolvable_interpolation_in_nested_key_raises_error_with_key_path(tmp
         merge_stage_config_from_snapshots(
             _System, "train", configs, {"exp_dir": str(exp_dir)}
         )
+
+
+@pytest.mark.parametrize("inference_dir", ["${exp_dir}/infer", "???"])
+def test_search_defers_unresolved_role_directory(inference_dir):
+    """Defer directory discovery until prior-stage values are available."""
+    configs = {"inference": OmegaConf.create({"inference_dir": inference_dir})}
+    assert resolve_search_directories(_System, "infer", configs, {}) == {}
+
+
+def test_merge_resolves_directory_after_inheriting_training(tmp_path):
+    """Resolve an inference directory from the training experiment path."""
+    configs = {
+        "training": OmegaConf.create({"exp_dir": str(tmp_path / "exp")}),
+        "inference": OmegaConf.create({"inference_dir": "${exp_dir}/infer"}),
+    }
+    result = merge_stage_config_from_snapshots(_System, "infer", configs, {})
+    assert result.inference_dir == str(tmp_path / "exp" / "infer")
+
+
+def test_merge_still_rejects_unresolved_directory_after_inheritance():
+    """Report missing interpolation targets after final config assembly."""
+    configs = {"inference": OmegaConf.create({"inference_dir": "${exp_dir}/infer"})}
+    with pytest.raises(ConfigError, match="exp_dir"):
+        merge_stage_config_from_snapshots(_System, "infer", configs, {})

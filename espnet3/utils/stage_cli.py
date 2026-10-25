@@ -7,10 +7,9 @@ Builds argparse parsers whose arguments map to config keys via
 from __future__ import annotations
 
 import argparse
-import re
 from typing import TYPE_CHECKING
 
-from espnet3.contract.stages import StageContractError, generate_stage_flag_mapping
+from espnet3.contract.stages import generate_stage_flag_mapping
 
 if TYPE_CHECKING:
     from espnet3.contract.stages import StageSpec
@@ -75,7 +74,7 @@ def add_stage_flags(
 
         flag_name_dashed = effective_flag.replace("_", "-")
 
-        # Use the canonical config key as the argparse destination (sanitized to identifier)
+        # Use the canonical config key as a safe argparse destination.
         dest_key = _sanitize_dest_key(canonical_config_key)
 
         help_text = f"Output directory for stage. Config key: `{canonical_config_key}`."
@@ -97,7 +96,7 @@ def build_stage_flag_parser(
     *,
     prefix: str = "",
 ) -> argparse.ArgumentParser:
-    """Convenience: build a new parser with all stage log_dir flags.
+    """Build a new parser with all stage log_dir flags.
 
     Args:
         system_stages: The system's declared stages.

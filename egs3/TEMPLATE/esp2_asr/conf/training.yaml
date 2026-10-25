@@ -79,9 +79,10 @@ create_dataset:
 #
 # The recipe `Dataset` class must inherit
 # `espnet3.components.data.base_dataset.BaseDataset` and declare `fields`:
-# a tuple of `Field(name, kind)` naming each key `__getitem__` returns and
-# its kind (`audio`, `text`, ...). The first item of each instance is
-# checked against this declaration.
+# a tuple of `espnet3.contract.Field` declarations, e.g.
+# `fields = (Field("speech", "audio"), Field("text", "text"))` after
+# importing `Field` from `espnet3.contract`. The first item of each instance
+# is checked against this declaration.
 #
 # Example:
 # dataset:
@@ -245,6 +246,9 @@ dataloader:
     int_pad_value: -1
   # Training dataloader / iterator settings.
   train:
+    # per_gpu: complete batches per rank (default); global: split each batch.
+    # global requires a shared batch plan and at least world_size items per batch.
+    batch_distribution: per_gpu
     # `total_shards` is the total number of dataset shards.
     # `dist_world_size` is the distributed world size used to rotate shards.
     # Keep `dist_world_size` equal to the runtime world size.
@@ -265,6 +269,8 @@ dataloader:
 
   # Validation dataloader / iterator settings.
   valid:
+    # Select validation distribution independently from training.
+    batch_distribution: per_gpu
     # Use the same sharding settings as `train`.
     total_shards: 1
     dist_world_size: 1

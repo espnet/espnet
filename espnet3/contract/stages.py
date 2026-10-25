@@ -369,8 +369,10 @@ def generate_stage_flag_mapping(
                 existing_canonical = flag_name_to_canonical[flag_name]
                 if existing_canonical != canonical_key:
                     raise StageContractError(
-                        f"CLI flag name collision: flag {flag_name!r} would be derived from "
-                        f"both canonical key {canonical_key!r} (via StageSpec name={spec.name!r}) "
+                        f"CLI flag name collision: flag {flag_name!r} "
+                        "would be derived from "
+                        f"both canonical key {canonical_key!r} "
+                        f"(via StageSpec name={spec.name!r}) "
                         f"and already-defined canonical key {existing_canonical!r}"
                     )
             else:

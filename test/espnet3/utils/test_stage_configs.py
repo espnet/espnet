@@ -10,7 +10,6 @@ from espnet3.utils.stage_configs import (
     build_stage_configs,
     inherit,
     load_baked,
-    merge_stage_config_from_snapshots,
 )
 
 
@@ -253,9 +252,6 @@ def test_build_stage_configs_respects_upto_and_skips_later_stages(tmp_path):
 # ---------------------------------------------------------------------------
 
 
-import tempfile
-
-
 def test_snapshot_config_writes_full_config_no_dry_run(tmp_path):
     """Full resolved config is written when log_dir is provided and not dry_run."""
     from omegaconf import OmegaConf
@@ -336,7 +332,6 @@ def test_snapshot_config_atomic_write_and_history_on_change(tmp_path):
     )
 
     snapshot_config(tmp_path, "train", first, dry_run=False, is_rank0=True)
-    first_mtime = (tmp_path / "train.yaml").stat().st_mtime_ns
 
     # Second run with different config
     second = OmegaConf.create(
@@ -428,10 +423,9 @@ def test_snapshot_config_full_config_includes_inherited_keys(tmp_path):
 
 
 def test_merge_fallback_to_old_layout_when_no_snapshot_exists(tmp_path):
-    """Legacy layout fallback: reads <exp_dir>/config/<stage>.yaml when no snapshot exists."""
+    """Read the legacy layout when the stage has no snapshot."""
     from espnet3.utils.stage_configs import (
         merge_stage_config_from_snapshots,
-        snapshot_config,
     )
 
     # Create old layout file (not snapshot)
@@ -487,7 +481,6 @@ def test_merge_fallback_does_not_override_explicit_stage_selection(tmp_path):
     from espnet3.contract.stages import StageSpec
     from espnet3.utils.stage_configs import (
         merge_stage_config_from_snapshots,
-        snapshot_config,
     )
 
     class ThreeStageSystem:
@@ -545,8 +538,18 @@ def test_merge_fallback_only_for_requested_stage(tmp_path):
     }
 
     # Should handle gracefully - if no CLI exp_dir provided, no fallback
-    result = merge_stage_config_from_snapshots(MultiStageSystem, "infer", configs, {})
+    merge_stage_config_from_snapshots(MultiStageSystem, "infer", configs, {})
 
     # Result should be based on inherited stage configs only
     # The key point: fallback only applies when requested_stage has no directory
     # and exp_dir is in cli_dir_overrides, so with empty overrides this is fine
+
+
+def test_snapshot_config_creates_missing_stage_directory(tmp_path):
+    """Snapshot a first run before its stage creates any output artifacts."""
+    from espnet3.utils.stage_configs import snapshot_config
+
+    log_dir = tmp_path / "new" / "data"
+    config = OmegaConf.create({"data_dir": str(log_dir)})
+    snapshot_config(log_dir, "create_dataset", config)
+    assert OmegaConf.load(log_dir / "create_dataset.yaml") == config

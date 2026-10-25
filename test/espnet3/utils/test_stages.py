@@ -219,7 +219,9 @@ def test_run_stages_train_uses_per_rank_log_filename(monkeypatch, tmp_path, no_b
 
 def test_run_stages_writes_full_config_snapshot(tmp_path, monkeypatch):
     """Integration: run_stages() actually persists <log_dir>/<stage>.yaml
-    via snapshot_config - not just the unit-tested function in isolation."""
+
+    via snapshot_config - not just the unit-tested function in isolation.
+    """
 
     class TrainingSystem:
         stages: ClassVar[tuple[StageSpec, ...]] = (

@@ -23,7 +23,6 @@ model:
 
 input_key:
 batch_size:
-output_fn:
 output_artifacts:
 
 provider:

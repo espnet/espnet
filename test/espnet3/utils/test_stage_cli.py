@@ -43,7 +43,7 @@ def test_add_stage_flags_creates_exp_dir_flag():
 
 
 def test_add_stage_flags_creates_dir_with_dots():
-    """Dotted key -> underscore flag/argparse dest that handles dotted OmegaConf keys."""
+    """Map dotted OmegaConf keys to underscore CLI destinations."""
     spec = StageSpec(name="tokenize", config="tokenizer", log_dir="tokenizer.save_path")
     parser = argparse.ArgumentParser()
     parser = add_stage_flags(parser, (spec,))
@@ -90,8 +90,10 @@ def test_add_stage_flags_from_two_stages_with_same_canonical():
 
 def test_add_stage_flags_with_aliases_from_shared_key_all_work():
     """Shared key where both stages have aliases: all 3 flags must write to
+
     the SAME destination - the declared canonical key "output" - not an
-    arbitrary alphabetically-first alias like "out_dir"."""
+    arbitrary alphabetically-first alias like "out_dir".
+    """
     spec1 = StageSpec(
         name="train", config="training", log_dir="output", dir_aliases=("out_dir",)
     )
