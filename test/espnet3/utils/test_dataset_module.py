@@ -5,8 +5,10 @@ import pytest
 from espnet3.components.data import dataset_module as dm
 from espnet3.components.data.base_dataset import BaseDataset
 from espnet3.components.data.data_organizer import DatasetConfig
+from espnet3.contract import Field
 
 _BASE_IMPORT = "from espnet3.components.data.base_dataset import BaseDataset"
+_FIELD_IMPORT = "from espnet3.contract import Field"
 
 
 def _write(path: Path, text: str) -> None:
@@ -20,6 +22,7 @@ def _create_local_recipe_dataset(tmp_path: Path) -> None:
         "\n".join(
             [
                 _BASE_IMPORT,
+                _FIELD_IMPORT,
                 "class DatasetBuilder:",
                 "    def is_source_prepared(self, **kwargs):",
                 "        return True",
@@ -34,7 +37,7 @@ def _create_local_recipe_dataset(tmp_path: Path) -> None:
                 "        return None",
                 "",
                 "class Dataset(BaseDataset):",
-                "    fields = {'text': str}",
+                '    fields = (Field("text", "text"),)',
                 "    def __init__(self, **kwargs):",
                 "        self.kwargs = kwargs",
                 "    def __getitem__(self, index):",
@@ -55,6 +58,7 @@ def _create_module_path_dataset(tmp_path: Path) -> str:
         "\n".join(
             [
                 _BASE_IMPORT,
+                _FIELD_IMPORT,
                 "class DatasetBuilder:",
                 "    def is_source_prepared(self, **kwargs):",
                 "        return True",
@@ -69,7 +73,7 @@ def _create_module_path_dataset(tmp_path: Path) -> str:
                 "        return None",
                 "",
                 "class Dataset(BaseDataset):",
-                "    fields = {'text': str}",
+                '    fields = (Field("text", "text"),)',
                 "    def __init__(self, **kwargs):",
                 "        self.kwargs = kwargs",
                 "    def __getitem__(self, index):",
@@ -108,7 +112,7 @@ def test_instantiate_dataset_reference_keeps_explicit_split(monkeypatch):
     called = {}
 
     class DummyDataset(BaseDataset):
-        fields = {"text": str}
+        fields = (Field("text", "text"),)
 
         def __init__(self, **kwargs):
             called.update(kwargs)
@@ -159,7 +163,7 @@ def test_tag_ref_resolves_and_passes_kwargs(monkeypatch):
     captured = {}
 
     class DummyDataset(BaseDataset):
-        fields = {"text": str}
+        fields = (Field("text", "text"),)
 
         def __init__(self, **kwargs):
             self.kwargs = kwargs
@@ -208,7 +212,7 @@ def test_instantiate_dataset_reference_passes_only_kwargs_to_dataset(monkeypatch
     captured = {}
 
     class DummyDataset(BaseDataset):
-        fields = {"text": str}
+        fields = (Field("text", "text"),)
 
         def __init__(self, **kwargs):
             captured.update(kwargs)
