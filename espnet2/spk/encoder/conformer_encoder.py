@@ -73,6 +73,7 @@ class MfaConformerEncoder(AbsEncoder):
         zero_triu (bool): Whether to zero the upper triangular part of attention matrix.
         cnn_module_kernel (int): Kernerl size of convolution module.
         padding_idx (int): Padding idx for input_layer=embed.
+        use_sdpa (bool): Whether to use PyTorch's scaled_dot_product_attention.
 
     """
 
@@ -103,6 +104,7 @@ class MfaConformerEncoder(AbsEncoder):
         layer_drop_rate: float = 0.0,
         max_pos_emb_len: int = 5000,
         padding_idx: Optional[int] = None,
+        use_sdpa: bool = False,
     ):
         super().__init__()
         self._output_size = output_size * num_blocks
@@ -226,6 +228,11 @@ class MfaConformerEncoder(AbsEncoder):
                 attention_heads,
                 output_size,
                 attention_dropout_rate,
+                False,  # qk_norm
+                False,  # use_flash_attn
+                False,  # causal
+                False,  # cross_attn
+                use_sdpa,
             )
         elif selfattention_layer_type == "legacy_rel_selfattn":
             assert pos_enc_layer_type == "legacy_rel_pos"
@@ -234,6 +241,8 @@ class MfaConformerEncoder(AbsEncoder):
                 attention_heads,
                 output_size,
                 attention_dropout_rate,
+                False,  # zero_triu
+                use_sdpa,
             )
             logging.warning(
                 "Using legacy_rel_selfattn and it will be deprecated in the future."
@@ -246,6 +255,7 @@ class MfaConformerEncoder(AbsEncoder):
                 output_size,
                 attention_dropout_rate,
                 zero_triu,
+                use_sdpa,
             )
         else:
             raise ValueError("unknown encoder_attn_layer: " + selfattention_layer_type)
@@ -313,7 +323,8 @@ class MfaConformerEncoder(AbsEncoder):
         intermediate_outs = []
         for layer_idx, encoder_layer in enumerate(self.encoders):
             x, _ = encoder_layer(x, masks)
-            intermediate_outs.append(x[0])
+            # rel_pos layers return (x, pos_emb); abs_pos returns x alone.
+            intermediate_outs.append(x[0] if isinstance(x, tuple) else x)
 
         x = torch.cat(intermediate_outs, dim=-1)
         x = self.ln(x).transpose(1, 2)  # (#batch, L, output_size)
