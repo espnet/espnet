@@ -29,7 +29,16 @@ _ASCII_PUNCT = frozenset(string.punctuation)
 
 
 def is_punctuation(char: str) -> bool:
-    """Return whether ``char`` is what Perl's ``[[:punct:]]`` would match."""
+    """Return whether ``char`` is what Perl's ``[[:punct:]]`` would match.
+
+    Examples:
+        >>> is_punctuation("!")
+        True
+        >>> is_punctuation("$")  # Symbol to Unicode, punctuation to Perl
+        True
+        >>> is_punctuation("a")
+        False
+    """
     return unicodedata.category(char).startswith("P") or char in _ASCII_PUNCT
 
 
@@ -38,6 +47,12 @@ def remove_punctuation(text: str) -> str:
 
     Apostrophes survive, and the ``<space>`` scoring marker is protected, both
     via the same placeholder trick the Perl script uses.
+
+    Examples:
+        >>> remove_punctuation("Don't stop, now!")
+        "Don't stop now"
+        >>> remove_punctuation("a <space> b.")
+        'a <space> b'
     """
     text = text.replace("<space>", "spacemark").replace("'", "apostrophe")
     text = "".join(char for char in text if not is_punctuation(char))
@@ -57,6 +72,14 @@ def apply_case(text: str, case: str) -> str:
 
     Raises:
         ValueError: If ``case`` is not one of :data:`CASES`.
+
+    Examples:
+        >>> apply_case("Mr. Smith's dog.", "tc")
+        "Mr. Smith's dog."
+        >>> apply_case("Mr. Smith's dog.", "lc")
+        "mr. smith's dog."
+        >>> apply_case("Mr. Smith's dog.", "lc.rm")
+        "mr smith's dog"
     """
     if case == "tc":
         return text
@@ -129,6 +152,43 @@ def normalize_punctuation(text: str, language: str = "en") -> str:
         | not `en`, `cs` or `cz`   | `,"` to `",`, `."` to `".`           |
         | `de` `es` `cs` `cz` `fr` | `1 000` to `1,000`                   |
         | any other                | `1 000` to `1.000`                   |
+
+    Examples:
+        Spacing and dashes:
+
+        >>> normalize_punctuation("a ( b ) .")
+        'a (b).'
+        >>> normalize_punctuation("a — b")
+        'a - b'
+
+        A curly quote becomes an apostrophe only between two letters, and a
+        double quote everywhere else:
+
+        >>> normalize_punctuation("it’s")
+        "it's"
+        >>> normalize_punctuation("’hi’")
+        '"hi"'
+
+        The no-break space rules, written with ``\u00a0`` escapes because
+        the character is indistinguishable from a space in source:
+
+        >>> normalize_punctuation("Quoi\u00a0?")
+        'Quoi?'
+        >>> normalize_punctuation("50\u00a0%")
+        '50%'
+        >>> normalize_punctuation("\u00a0«\u00a0oui\u00a0»\u00a0")
+        ' "oui" '
+
+        The two language-conditional rules:
+
+        >>> normalize_punctuation('He said "hi", then left.', "en")
+        'He said "hi," then left.'
+        >>> normalize_punctuation('Er sagte "ja," dann ging er.', "de")
+        'Er sagte "ja", dann ging er.'
+        >>> normalize_punctuation("1 000", "fr")
+        '1,000'
+        >>> normalize_punctuation("1 000", "en")
+        '1.000'
     """
     text = text.replace("\r", "")
 
