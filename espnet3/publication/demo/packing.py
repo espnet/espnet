@@ -27,7 +27,8 @@ logger = logging.getLogger(__name__)
 def pack_demo(system) -> Path:
     """Package a demo into a self-contained directory ready for upload.
 
-    Reads ``system.demo_config`` and produces a directory that contains:
+    Reads ``system.stage_configs["pack_demo"]`` and produces a directory
+    that contains:
 
     - ``demo.yaml``: the resolved demo config with all paths rewritten to be
       relative to the output directory so the pack is portable.
@@ -45,13 +46,14 @@ def pack_demo(system) -> Path:
     3. ``Path.cwd() / "demo"``
 
     Args:
-        system: An ESPnet3 system instance with ``demo_config`` set.
+        system: An ESPnet3 system instance with ``stage_configs["pack_demo"]``
+            set.
 
     Returns:
         Path to the packed demo directory.
 
     Raises:
-        RuntimeError: If ``system.demo_config`` is ``None``.
+        RuntimeError: If ``system.stage_configs["pack_demo"]`` is ``None``.
         ValueError: If ``demo_config.model.dir_or_tag`` cannot be inferred.
 
     Examples:
@@ -60,7 +62,7 @@ def pack_demo(system) -> Path:
         /path/to/exp/demo
     """
     # --- validate ---
-    demo_cfg = system.demo_config
+    demo_cfg = system.stage_configs["pack_demo"]
     if demo_cfg is None:
         raise RuntimeError("pack_demo requires demo_config.")
 
@@ -98,7 +100,8 @@ def upload_demo(system) -> None:
     """Upload a packed demo directory to a Hugging Face Space.
 
     Expects the demo to have been packed already via :func:`pack_demo`.
-    Reads upload settings from ``system.demo_config.upload_demo``.
+    Reads upload settings from
+    ``system.stage_configs["upload_demo"].upload_demo``.
 
     Required config keys under ``demo_config.upload_demo``:
 
@@ -110,7 +113,8 @@ def upload_demo(system) -> None:
     - ``create``: extra options forwarded to the HF ``create_repo`` call.
 
     Args:
-        system: An ESPnet3 system instance with ``demo_config`` set.
+        system: An ESPnet3 system instance with ``stage_configs["upload_demo"]``
+            set.
 
     Raises:
         RuntimeError: If ``demo_config``, ``upload_demo``, or ``hf_repo`` is
@@ -120,7 +124,7 @@ def upload_demo(system) -> None:
         >>> upload_demo(system)
     """
     # --- validate config ---
-    demo_cfg = system.demo_config
+    demo_cfg = system.stage_configs["upload_demo"]
     if demo_cfg is None:
         raise RuntimeError("upload_demo requires demo_config.")
     upload_cfg = getattr(demo_cfg, "upload_demo", None)
@@ -327,15 +331,12 @@ def _prepare_demo_config(demo_cfg, demo_dir: Path, system) -> DictConfig:
     cfg.demo_dir = str(demo_dir)
 
     # --- validate model.dir_or_tag ---
-    # Set model.dir_or_tag in demo.yaml, or run pack_demo together with
-    # publication_config so apply_training_experiment_context can propagate
+    # Set model.dir_or_tag in demo.yaml. Nothing fills it in from
     # pack_model.out_dir automatically.
     model_cfg = getattr(cfg, "model", None)
     if model_cfg is None or not model_cfg.get("dir_or_tag"):
         raise ValueError(
-            "demo_config.model.dir_or_tag is required. "
-            "Set it in demo.yaml or run pack_demo with publication_config "
-            "so pack_model.out_dir is propagated automatically."
+            "demo_config.model.dir_or_tag is required. Set it in demo.yaml."
         )
 
     # --- normalize dir_or_tag to a relative path for portability ---

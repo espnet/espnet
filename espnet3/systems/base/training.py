@@ -53,7 +53,14 @@ def _ensure_directories(config: DictConfig) -> None:
 
 
 def collect_stats(config: DictConfig) -> None:
-    """Collect statistics required by the training pipeline."""
+    """Collect statistics required by the training pipeline.
+
+    Examples:
+        ```python
+        collect_stats(training_config)
+        # Writes stats under training_config.stats_dir.
+        ```
+    """
     _ensure_directories(config)
     start = time.perf_counter()
 

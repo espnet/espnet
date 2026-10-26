@@ -5,11 +5,9 @@
 #   python run.py --stages infer --inference_config conf/inference.yaml
 #
 # Shared default merged under every F5-TTS recipe's inference config.
+# `recipe_dir`, `exp_tag` and `exp_dir` are inherited from the training
+# config.
 
-recipe_dir: .
-exp_tag:
-exp_dir: ${recipe_dir}/exp/${exp_tag}
-data_dir: ${recipe_dir}/data
 inference_dir: ${exp_dir}/${self_name:}
 
 dataset:
