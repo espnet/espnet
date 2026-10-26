@@ -130,7 +130,7 @@ class EncodeDecodeOnlyCodec(AbsGANCodec):
 
 
 @pytest.mark.execution_timeout(5)
-def test_AudioCoding_codec_without_inference(config_file):
+def test_AudioCoding_codec_with_only_encode_decode(config_file):
     audio_coding = AudioCoding(train_config=config_file)
     audio_coding.model = ESPnetGANCodecModel(EncodeDecodeOnlyCodec())
     wav = torch.rand(160)
@@ -140,3 +140,14 @@ def test_AudioCoding_codec_without_inference(config_file):
     torch.testing.assert_close(
         output_dict["resyn_audio"], audio_coding.model.decode(codes).view(-1)
     )
+
+
+def test_codec_inference_is_deprecated_alias_of_reconstruct():
+    codec = EncodeDecodeOnlyCodec()
+    x = torch.rand(2, 1, 160)
+    expected = codec.reconstruct(x)
+    with pytest.warns(FutureWarning, match="reconstruct"):
+        output = codec.inference(x)
+    assert output.keys() == expected.keys() == {"wav", "codec"}
+    torch.testing.assert_close(output["wav"], expected["wav"])
+    torch.testing.assert_close(output["codec"], expected["codec"])

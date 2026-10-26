@@ -430,12 +430,12 @@ class FunCodec(AbsGANCodec):
             "optim_idx": 1,  # needed for trainer
         }
 
-    def inference(
+    def reconstruct(
         self,
         x: torch.Tensor,
         **kwargs,
     ) -> Dict[str, torch.Tensor]:
-        """Run inference.
+        """Reconstruct waveform with the scale of the input.
 
         Args:
             x (Tensor): Input audio (T_wav,).
@@ -463,7 +463,7 @@ class FunCodec(AbsGANCodec):
 
         The codes do not include the input volume that is divided out with
         ``audio_normalize``, or the input phase used by ``mag_oracle_phase``.
-        Use ``inference()`` to resynthesize the input at its original volume.
+        Use ``reconstruct()`` to resynthesize the input at its original volume.
 
         Args:
             x (Tensor): Input audio (T_wav,).
@@ -832,7 +832,7 @@ class FunCodecGenerator(nn.Module):
             if scale is None:
                 raise ValueError(
                     "mag_oracle_phase needs the input phase and cannot be "
-                    "decoded from codes alone; use FunCodec.inference()."
+                    "decoded from codes alone; use FunCodec.reconstruct()."
                 )
             resyn_audio = resyn_audio[..., : scale[1].shape[-1]]
         resyn_audio = self.freq_to_time_transfer(resyn_audio, scale)

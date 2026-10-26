@@ -406,27 +406,6 @@ class DAC(AbsGANCodec):
             "optim_idx": 1,  # needed for trainer
         }
 
-    def inference(
-        self,
-        x: torch.Tensor,
-        **kwargs,
-    ) -> Dict[str, torch.Tensor]:
-        """Run inference.
-
-        Args:
-            x (Tensor): Input audio (T_wav,).
-
-        Returns:
-            Dict[str, Tensor]:
-                * wav (Tensor): Generated waveform tensor (T_wav,).
-                * codec (Tensor): Generated neural codec (T_code, N_stream).
-
-        """
-        codec = self.generator.encode(x, **kwargs)
-        wav = self.generator.decode(codec)
-
-        return {"wav": wav, "codec": codec}
-
     def encode(
         self,
         x: torch.Tensor,

@@ -250,24 +250,24 @@ def make_funcodec(**generator_kwargs):
         },
     ],
 )
-def test_funcodec_inference_matches_forward(generator_kwargs):
+def test_funcodec_reconstruct_matches_forward(generator_kwargs):
     torch.manual_seed(0)
     y = torch.randn(1, 1, 128)
     model = make_funcodec(**generator_kwargs)
     with torch.no_grad():
-        wav = model.inference(y)["wav"]
+        wav = model.reconstruct(y)["wav"]
         y_hat = model.generator(y)[0]
     assert wav.shape == y.shape
     torch.testing.assert_close(wav, y_hat)
 
 
-def test_funcodec_inference_restores_volume():
+def test_funcodec_reconstruct_restores_volume():
     torch.manual_seed(0)
     y = torch.randn(1, 1, 128)
     model = make_funcodec(audio_normalize=True)
     with torch.no_grad():
-        wav = model.inference(y)["wav"]
-        wav_loud = model.inference(100 * y)["wav"]
+        wav = model.reconstruct(y)["wav"]
+        wav_loud = model.reconstruct(100 * y)["wav"]
     torch.testing.assert_close(wav_loud, 100 * wav, rtol=1e-4, atol=1e-5)
 
 

@@ -97,10 +97,10 @@ class AudioCoding:
             codes = self.model.encode(**batch, **cfg)
             return dict(codes=codes)
 
-        # Resynthesize through inference() rather than decode(encode()), so
+        # Resynthesize through reconstruct() rather than decode(encode()), so
         # the codec can use information that is not part of the codes, such as
         # the input volume that FunCodec divides out with audio_normalize.
-        output = self.model.inference(**batch, **cfg)
+        output = self.model.reconstruct(**batch, **cfg)
         codes, resyn_audio = output["codec"], output["wav"]
         # TODO(jiatong): to consider multichannel cases
         if len(audio.shape) == 1:
