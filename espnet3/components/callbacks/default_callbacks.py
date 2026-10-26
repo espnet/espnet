@@ -1,6 +1,7 @@
 """Callbacks for ESPnet3 trainer."""
 
 import logging
+import os
 import time
 from collections import defaultdict
 from pathlib import Path
@@ -215,6 +216,65 @@ class AverageCheckpointsCallback(Callback):
                     + f"ave_{len(checkpoints)}best.pth"
                 )
                 torch.save(new_avg_state_dict, avg_ckpt_path)
+
+
+@typechecked
+class BestCheckpointLink(Callback):
+    """Link the best checkpoint of each monitor for inference.
+
+    For each given ModelCheckpoint, `output_dir/{monitor_name}.best.pth` is a
+    relative symlink to its `best_model_path`, e.g. `valid.acc.best.pth`. The
+    link is refreshed after every epoch's validation checkpoints are saved and
+    at training end, so it is usable even if training stops early. Checkpoint
+    selection itself remains ModelCheckpoint's responsibility.
+
+    Args:
+        output_dir (str or Path):
+            The directory where the links are created.
+        best_ckpt_callbacks (List[ModelCheckpoint]):
+            ModelCheckpoint callbacks whose best checkpoints are linked.
+
+    Notes:
+        - This callback only runs on the global rank 0 process
+            (for distributed training).
+
+    Example:
+        >>> link_cb = BestCheckpointLink(
+        ...     output_dir="checkpoints/", best_ckpt_callbacks=[acc_ckpt_cb]
+        ... )
+        >>> trainer = Trainer(callbacks=[acc_ckpt_cb, link_cb])
+    """
+
+    def __init__(self, output_dir, best_ckpt_callbacks):
+        """Initialize BestCheckpointLink object."""
+        self.output_dir = output_dir
+        self.best_ckpt_callbacks = best_ckpt_callbacks
+
+    def on_train_epoch_end(self, trainer, pl_module):
+        """Link the best checkpoints after the epoch's validation saved them.
+
+        `on_validation_end` would run before ModelCheckpoint, which Lightning
+        moves to the end of the callback list (see AverageCheckpointsCallback).
+        """
+        self._link_best(trainer)
+
+    def on_train_end(self, trainer, pl_module):
+        """Refresh the links once training is over."""
+        self._link_best(trainer)
+
+    def _link_best(self, trainer):
+        """Point each monitor's link at its current best checkpoint."""
+        if not trainer.is_global_zero:
+            return
+        output_dir = Path(self.output_dir)
+        for ckpt_callback in self.best_ckpt_callbacks:
+            if not ckpt_callback.best_model_path:
+                continue
+            target = Path(ckpt_callback.best_model_path).resolve()
+            link = output_dir / f"{ckpt_callback.monitor.replace('/', '.')}.best.pth"
+            output_dir.mkdir(parents=True, exist_ok=True)
+            link.unlink(missing_ok=True)
+            link.symlink_to(os.path.relpath(target, link.parent.resolve()))
 
 
 @typechecked
@@ -454,6 +514,7 @@ def get_default_callbacks(
             specific metrics
         - `AverageCheckpointsCallback` to compute and save the average model from top-K
             checkpoints
+        - `BestCheckpointLink` to link the best checkpoint of each metric
         - `LearningRateMonitor` to track and log learning rates during training
         - `MetricsLogger` to emit train and validation summaries
         - `TQDMProgressBar` to show a rich progress bar during training
@@ -512,6 +573,9 @@ def get_default_callbacks(
     ave_ckpt_callback = AverageCheckpointsCallback(
         output_dir=exp_dir, best_ckpt_callbacks=best_ckpt_callbacks
     )
+    best_link_callback = BestCheckpointLink(
+        output_dir=exp_dir, best_ckpt_callbacks=best_ckpt_callbacks
+    )
 
     # Monitor learning rate
     lr_callback = LearningRateMonitor()
@@ -523,6 +587,7 @@ def get_default_callbacks(
         last_ckpt_callback,
         *best_ckpt_callbacks,  # unpack list to add them to the list of callbacks.
         ave_ckpt_callback,
+        best_link_callback,
         lr_callback,
         MetricsLogger(log_every_n_steps=log_interval),
         progress_bar_callback,

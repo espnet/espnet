@@ -15,6 +15,7 @@ from omegaconf import OmegaConf
 
 from espnet3.components.callbacks.default_callbacks import (
     AverageCheckpointsCallback,
+    BestCheckpointLink,
     MetricsLogger,
     _metric_to_float,
     get_default_callbacks,
@@ -126,7 +127,7 @@ def test_get_default_callbacks_structure():
         best_model_criterion=[("valid/loss", 2, "min"), ("valid/wer", 2, "min")],
     )
 
-    assert len(callbacks) == 7
+    assert len(callbacks) == 8
 
     monitor_names = [None, "valid/loss", "valid/wer"]  # None for last checkpoint
     ckpt_callbacks = [cb for cb in callbacks if isinstance(cb, ModelCheckpoint)]
@@ -135,6 +136,7 @@ def test_get_default_callbacks_structure():
 
     has_ave = any(isinstance(cb, AverageCheckpointsCallback) for cb in callbacks)
     assert has_ave
+    assert any(isinstance(cb, BestCheckpointLink) for cb in callbacks)
 
 
 def test_average_checkpoints_with_multiple_metrics(tmp_path, dummy_state_dict):
@@ -486,6 +488,72 @@ def test_average_includes_final_checkpoint_after_fit(tmp_path, max_epochs):
     assert torch.allclose(saved["weight"], torch.stack(values).mean(0))
 
 
+@pytest.mark.parametrize("interrupt", [False, True])
+def test_best_checkpoint_link_is_readable_before_training_ends(tmp_path, interrupt):
+    """The best link is refreshed after each epoch, not only at training end."""
+    import lightning as L
+    from torch.utils.data import DataLoader, TensorDataset
+
+    checkpoint = ModelCheckpoint(
+        dirpath=tmp_path,
+        monitor="valid/acc",
+        mode="max",
+        save_top_k=2,
+        save_on_train_epoch_end=False,
+    )
+    seen = []
+
+    class TinyModel(L.LightningModule):
+        def __init__(self):
+            super().__init__()
+            self.weight = torch.nn.Parameter(torch.tensor(1.0))
+
+        def training_step(self, batch, batch_idx):
+            return self.weight.square()
+
+        def validation_step(self, batch, batch_idx):
+            self.log("valid/acc", [0.1, 0.8, 0.2][self.current_epoch])
+
+        def configure_optimizers(self):
+            return torch.optim.SGD(self.parameters(), lr=0.1)
+
+        def on_train_epoch_end(self):
+            link = tmp_path / "valid.acc.best.pth"
+            assert link.resolve() == Path(checkpoint.best_model_path).resolve()
+            saved = torch.load(link, weights_only=True)
+            assert saved["epoch"] == min(self.current_epoch, 1)
+            seen.append(self.current_epoch)
+            if interrupt:
+                raise RuntimeError("Interrupted after the saved epoch")
+
+    trainer = L.Trainer(
+        accelerator="cpu",
+        devices=1,
+        max_epochs=3,
+        logger=False,
+        enable_progress_bar=False,
+        enable_model_summary=False,
+        num_sanity_val_steps=0,
+        callbacks=[checkpoint, BestCheckpointLink(str(tmp_path), [checkpoint])],
+    )
+    data = DataLoader(TensorDataset(torch.ones(1)), batch_size=1)
+    if interrupt:
+        with pytest.raises(RuntimeError, match="Interrupted after"):
+            trainer.fit(TinyModel(), data, data)
+    else:
+        trainer.fit(TinyModel(), data, data)
+    assert seen == ([0] if interrupt else [0, 1, 2])
+    assert (tmp_path / "valid.acc.best.pth").is_file()
+
+
+def test_best_checkpoint_link_on_non_global_zero(tmp_path):
+    """Only the global rank 0 process writes the links."""
+    checkpoint = mock.Mock(monitor="valid/acc", best_model_path=str(tmp_path / "a"))
+    trainer = mock.Mock(is_global_zero=False)
+    BestCheckpointLink(str(tmp_path), [checkpoint]).on_train_end(trainer, None)
+    assert not (tmp_path / "valid.acc.best.pth").exists()
+
+
 # ---------------------------------------------------------------
 # trainer-callbacks#07: end-to-end coverage with a real Lightning run
 # ---------------------------------------------------------------
@@ -622,6 +690,8 @@ def test_default_callbacks_e2e_produces_real_best_and_averaged_checkpoints(
         assert Path(ckpt_path).is_file()
     ave_path = exp_dir / "valid.loss.ave_2best.pth"
     assert ave_path.is_file()
+    best_link = exp_dir / "valid.loss.best.pth"
+    assert best_link.resolve() == Path(best_ckpt_callback.best_model_path).resolve()
 
     # (2) the averaged weights are the real mean of the final top-2
     # checkpoints, including the last epoch's (see docstring).
@@ -640,7 +710,7 @@ def test_default_callbacks_e2e_produces_real_best_and_averaged_checkpoints(
     assert torch.allclose(averaged["linear.bias"], expected_bias)
 
     # (3) get_default_callbacks()'s own returned list follows its documented
-    # order contract (last-ckpt, best-ckpt(s), average, LR monitor,
+    # order contract (last-ckpt, best-ckpt(s), average, best link, LR monitor,
     # MetricsLogger, progress bar). This is the ESPnet3-owned contract;
     # Lightning's runtime reordering of ModelCheckpoint (see docstring above)
     # is Lightning's behavior, not ESPnet3's, so it is not asserted here.
@@ -649,6 +719,7 @@ def test_default_callbacks_e2e_produces_real_best_and_averaged_checkpoints(
     )
     kinds = [type(cb) for cb in constructed]
     assert kinds.index(ModelCheckpoint) < kinds.index(AverageCheckpointsCallback)
-    assert kinds.index(AverageCheckpointsCallback) < kinds.index(LearningRateMonitor)
+    assert kinds.index(AverageCheckpointsCallback) < kinds.index(BestCheckpointLink)
+    assert kinds.index(BestCheckpointLink) < kinds.index(LearningRateMonitor)
     assert kinds.index(LearningRateMonitor) < kinds.index(MetricsLogger)
     assert kinds.index(MetricsLogger) < kinds.index(TQDMProgressBar)
