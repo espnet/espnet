@@ -275,9 +275,7 @@ class RelPositionMultiHeadedAttention(torch.nn.Module):
             mask = mask.unsqueeze(1).unsqueeze(2)
             if chunk_mask is not None:
                 mask = chunk_mask.unsqueeze(0).unsqueeze(1) | mask
-            # Fully masked rows (padded queries) average values with finfo.min;
-            # the default path zeroes their weights after softmax instead.
-            attn_mask = attn_mask.masked_fill(mask, torch.finfo(attn_mask.dtype).min)
+            attn_mask = attn_mask.masked_fill(mask, float("-inf"))
             attn_output = torch.nn.functional.scaled_dot_product_attention(
                 sdpa_query,
                 k,

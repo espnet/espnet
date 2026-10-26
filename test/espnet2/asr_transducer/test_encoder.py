@@ -544,8 +544,7 @@ def test_use_sdpa_reaches_the_attention_and_matches_the_default(
 
     assert actual.shape == expected.shape
     assert torch.equal(actual_lengths, expected_lengths)
-    valid = ~make_source_mask(actual_lengths)
-    assert torch.allclose(actual[valid], expected[valid], atol=1e-5)
+    assert torch.allclose(actual, expected, atol=1e-5)
     assert all(block.self_att.attn is None for block in sdpa.encoders.blocks)
 
 
@@ -606,7 +605,7 @@ def test_use_sdpa_with_chunk_and_padding_masks(simplified_att_score):
         actual = sdpa(x, x, x, pos_enc, mask, chunk_mask=chunk_mask)
 
     assert torch.isfinite(actual).all()
-    assert torch.allclose(actual[~mask], expected[~mask], atol=1e-5)
+    assert torch.allclose(actual, expected, atol=1e-5)
     assert sdpa.attn is None
 
 
@@ -631,3 +630,48 @@ def test_use_sdpa_training_backward(simplified_att_score):
     for tensor in [x, pos_enc, *attention.parameters()]:
         assert tensor.grad is not None
         assert torch.isfinite(tensor.grad).all()
+
+
+@pytest.mark.parametrize("simplified_att_score", [False, True])
+def test_use_sdpa_training_gradients_match_the_default(simplified_att_score):
+    """SDPA gradients match the default path with dropout disabled."""
+    torch.manual_seed(0)
+    default = RelPositionMultiHeadedAttention(
+        2,
+        16,
+        dropout_rate=0.0,
+        simplified_attention_score=simplified_att_score,
+        use_sdpa=False,
+    ).train()
+    torch.manual_seed(0)
+    sdpa = RelPositionMultiHeadedAttention(
+        2,
+        16,
+        dropout_rate=0.0,
+        simplified_attention_score=simplified_att_score,
+        use_sdpa=True,
+    ).train()
+    x = torch.randn(2, 12, 16)
+    pos_enc = torch.randn(1, 23, 16)
+    x_default = x.clone().requires_grad_()
+    x_sdpa = x.clone().requires_grad_()
+    pos_enc_default = pos_enc.clone().requires_grad_()
+    pos_enc_sdpa = pos_enc.clone().requires_grad_()
+    mask = make_source_mask(torch.tensor([12, 3]))
+    chunk_mask = make_chunk_mask(12, 3, num_left_chunks=1)
+
+    expected = default(
+        x_default, x_default, x_default, pos_enc_default, mask, chunk_mask=chunk_mask
+    )
+    actual = sdpa(x_sdpa, x_sdpa, x_sdpa, pos_enc_sdpa, mask, chunk_mask=chunk_mask)
+    expected.square().mean().backward()
+    actual.square().mean().backward()
+
+    assert torch.allclose(actual, expected, atol=1e-5)
+    assert torch.allclose(x_sdpa.grad, x_default.grad, atol=1e-5)
+    assert torch.allclose(pos_enc_sdpa.grad, pos_enc_default.grad, atol=1e-5)
+    for (name_default, p_default), (name_sdpa, p_sdpa) in zip(
+        default.named_parameters(), sdpa.named_parameters()
+    ):
+        assert name_default == name_sdpa
+        assert torch.allclose(p_sdpa.grad, p_default.grad, atol=1e-5)
