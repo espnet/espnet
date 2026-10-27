@@ -53,21 +53,22 @@ data_dir: ${recipe_dir}/data
 # Neural codecs carry no tokenizer or token list, so the bundle is the training
 # config in `${exp_dir}` plus ONE checkpoint. The `exclude` list below drops every
 # checkpoint from the bulk copy (`last.ckpt`, step and epoch checkpoints, the
-# `*.pth` averaging stubs), so the recipe MUST register the checkpoint that its
-# `conf/inference.yaml` `model.model_file` points at under `files`, e.g.
+# `*.pth` averaging stubs); the one the packed model loads is registered under
+# `files` instead. `files` entries are copied regardless of `exclude` (the
+# `last.ckpt` link is dereferenced) and `model_file` in the packed inference
+# config is rewritten to the bundled copy.
 #
-#   pack_model:
-#     files:
-#       model_file: ${exp_dir}/last.ckpt
-#
-# `files` entries are copied regardless of `exclude` (symlinks such as
-# `last.ckpt` are dereferenced) and `model_file` in the packed inference config
-# is rewritten to the bundled copy. Without that entry the packed config points
-# at a file that is not in the bundle and `InferenceModel.from_packed` fails.
+# The default is `${exp_dir}/last.ckpt`, the link the trainer keeps to the
+# final checkpoint of every run, and `conf/inference.yaml` reads the same file.
+# A recipe that publishes another checkpoint overrides `model_file` in both
+# configs; if they name different files the bundle references a file it does
+# not contain and `InferenceModel.from_packed` fails.
 pack_model:
   out_dir: ${exp_dir}/model_pack
   allow_overwrite: false
   inference_dir: ${inference_dir}
+  files:
+    model_file: ${exp_dir}/last.ckpt
   # Always include static model summary metrics in the README.
   # Set this true to also include `repr(model)`.
   include_model_detail: false

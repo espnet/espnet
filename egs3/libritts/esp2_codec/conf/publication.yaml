@@ -12,17 +12,11 @@
 #       --publication_config conf/publication.yaml
 #
 # Merged over egs3/TEMPLATE/esp2_codec/conf/publication.yaml, which supplies the
-# path scaffold, the README template, the exclude list and the upload
-# settings. `exp_tag`/`exp_dir` are copied in from the training config by
-# `launch()`, so only recipe-specific keys live here.
+# path scaffold, the README template, the packed checkpoint (`last.ckpt`), the
+# exclude list and the upload settings. `exp_tag`/`exp_dir` are copied in from
+# the training config by `launch()`, so only recipe-specific keys live here.
 
 pack_model:
-  # The template excludes every checkpoint from the bulk copy, so the one that
-  # `conf/inference.yaml` references must be registered here; `files` entries
-  # bypass `exclude` and the packed inference config is rewritten to the bundled
-  # copy. Keep this in sync with `model.model_file` in conf/inference.yaml.
-  files:
-    model_file: ${exp_dir}/epoch95_step1201215_step.ckpt
   # Nothing in the bundle imports recipe code: inference runs through the
   # installed `espnet3.systems.esp2_codec` runner, so neither `src` nor
   # `dataset` is packed.

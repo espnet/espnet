@@ -70,28 +70,11 @@ table.
 
 ### Choosing the checkpoint
 
-`conf/inference.yaml` and `conf/publication.yaml` both name the checkpoint to
-use, and they ship pointing at the checkpoint of the published run. After
-training your own model, set both of them to a file your run wrote under
-`exp/${exp_tag}/`.
-
-```yaml
-# conf/inference.yaml
-model:
-  model_file: ${exp_dir}/valid.mel_loss.ave_5best.pth
-
-# conf/publication.yaml
-pack_model:
-  files:
-    model_file: ${exp_dir}/valid.mel_loss.ave_5best.pth
-```
-
-The two files must name the same checkpoint. Entries under `pack_model.files`
-are copied into the bundle even when the `exclude` list would otherwise drop
-them, and the packed inference config is rewritten to point at that bundled
-copy. If `inference.yaml` names a checkpoint that `publication.yaml` does not
-register, the bundle references a file it does not contain and
-`InferenceModel.from_packed` fails.
+Inference and publication read `exp/${exp_tag}/last.ckpt`, the link the
+trainer keeps to the final checkpoint of the run, so a freshly trained model
+infers and packs without any path change. To use another checkpoint, set
+`model.model_file` in `conf/inference.yaml` and `pack_model.files.model_file`
+in `conf/publication.yaml` to the same file.
 
 ## Publishing
 
@@ -117,7 +100,7 @@ inference contract in `conf/inference.yaml`.
 ## Pretrained model and demo
 
 Trained on LibriTTS with this recipe's EnCodec configuration and published from
-its `epoch95_step1201215` checkpoint.
+the last checkpoint of its run.
 
 - Model: [NewGame/libritts_codec_train_encodec_libritts](https://huggingface.co/NewGame/libritts_codec_train_encodec_libritts)
 - Demo Space: [NewGame/libritts_codec_train_encodec_libritts](https://huggingface.co/spaces/NewGame/libritts_codec_train_encodec_libritts)

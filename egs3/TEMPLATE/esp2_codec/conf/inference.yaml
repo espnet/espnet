@@ -70,13 +70,14 @@ parallel:
 ##########################################################
 # `model` takes the arguments of `espnet2.bin.gan_codec_inference.AudioCoding`
 # (`train_config`, `model_file`, `target_bandwidth`, ...); `device` is added
-# by the provider. A recipe names the checkpoint:
-#
-# model:
-#   train_config: ${exp_dir}/config.yaml
-#   model_file: ${exp_dir}/valid.mel_loss.ave_5best.pth
+# by the provider. `last.ckpt` is the link the trainer keeps to the final
+# checkpoint of a run, so every run has it; `pack_model` registers the same
+# file (see conf/publication.yaml). A recipe that publishes another
+# checkpoint overrides `model_file` in both configs.
 model:
   _target_: espnet2.bin.gan_codec_inference.AudioCoding
+  train_config: ${exp_dir}/config.yaml
+  model_file: ${exp_dir}/last.ckpt
 
 # The dataset field passed to the model. Codec datasets return
 # `{"speech": ...}`; it must be exactly the name `contract.inputs` declares.

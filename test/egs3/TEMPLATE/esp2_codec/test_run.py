@@ -64,6 +64,8 @@ def test_inference_defaults_wire_audiocoding_to_the_codec_runner() -> None:
     """The template owns the backend, the runner, input_key and the contract."""
     config = load_default_config("inference.yaml", PACKAGE)
     assert config.model._target_ == "espnet2.bin.gan_codec_inference.AudioCoding"
+    assert config.model.train_config == f"{config.exp_dir}/config.yaml"
+    assert config.model.model_file == f"{config.exp_dir}/last.ckpt"
     assert config.input_key == "speech"
     assert config.batch_size is None
     assert config.dataset._recursive_ is False
@@ -86,21 +88,18 @@ def test_inference_defaults_wire_audiocoding_to_the_codec_runner() -> None:
 
 
 def test_recipe_overlay_keeps_the_template_runner_and_contract(tmp_path: Path) -> None:
-    """A recipe names only its test set and checkpoint; the rest is inherited."""
+    """A recipe names only its test set; the checkpoint and the rest are inherited."""
     overlay = tmp_path / "inference.yaml"
     overlay.write_text(
         "dataset:\n"
         "  test:\n"
         "    - name: test\n"
-        "      data_src_args: {split: test, inference: true}\n"
-        "model:\n"
-        "  train_config: exp/run/config.yaml\n"
-        "  model_file: exp/run/last.ckpt\n",
+        "      data_src_args: {split: test, inference: true}\n",
         encoding="utf-8",
     )
     config = load_and_merge_config(overlay, "inference.yaml", default_package=PACKAGE)
     assert config.model._target_ == "espnet2.bin.gan_codec_inference.AudioCoding"
-    assert config.model.model_file == "exp/run/last.ckpt"
+    assert config.model.model_file == f"{config.exp_dir}/last.ckpt"
     assert config.dataset.test[0].name == "test"
     assert "contract" in config and "output_fn" not in config
     assert config.runner._target_.endswith("CodecInferenceRunner")
@@ -139,8 +138,13 @@ def test_demo_defaults_build_the_widgets_from_the_contract() -> None:
 
 
 def test_publication_defaults_pack_a_lean_bundle() -> None:
-    """Checkpoints other than the registered file and all logs are excluded."""
+    """The bundle registers `last.ckpt`, the file inference reads, and nothing else."""
     config = load_default_config("publication.yaml", PACKAGE)
     assert config.pack_model.out_dir == f"{config.exp_dir}/model_pack"
+    assert config.pack_model.files.model_file == f"{config.exp_dir}/last.ckpt"
+    # The two configs resolve `${exp_dir}` on their own, so compare the file
+    # each one names relative to its own experiment directory.
+    inference = load_default_config("inference.yaml", PACKAGE)
+    assert inference.model.model_file == f"{inference.exp_dir}/last.ckpt"
     for pattern in ("last.ckpt", "**/step*.ckpt", "**/epoch*.ckpt", "**/*.log"):
         assert pattern in list(config.pack_model.exclude)

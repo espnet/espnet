@@ -12,6 +12,8 @@ defaults (the codec, optimizers and dataloader in a training config, the
 The template's training config loads the recipe's `train` and `valid` splits
 and runs `CodecPreprocessor`, which hands the `speech` field to the ESPnet2
 codec model as `audio`.
+Inference and publication both read `exp/<tag>/last.ckpt`, the link the
+trainer keeps to the final checkpoint of a run.
 
 ## Quick start
 
