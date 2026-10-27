@@ -46,9 +46,23 @@ class GANLightningModule(ESPnetLightningModule):
                 False) and ``skip_discriminator_prob`` (default 0.0).
 
         Examples:
+            ``build_gan_trainer`` in
+            ``espnet3/systems/esp2_codec/src/gan_trainer.py`` is the one
+            place that instantiates this module: ``ESP2CodecSystem`` calls it
+            for every ``AbsGANESPnetModel`` from the resolved training config.
+            ```python
+            from espnet3.systems.esp2_codec.src.gan_trainer import build_gan_trainer
+            from espnet3.utils.task_utils import get_espnet_model
+
+            model = get_espnet_model(config.task, config.model)
+            trainer = build_gan_trainer(config, model)   # wraps the model here
+            assert trainer.model.automatic_optimization is False
+            trainer.fit()
+            ```
+            The module can also be built directly, for a test or a custom
+            trainer:
             ```python
             module = GANLightningModule(model, config)
-            assert module.automatic_optimization is False
             ```
         """
         super().__init__(model, config)
