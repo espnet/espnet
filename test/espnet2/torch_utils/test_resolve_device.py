@@ -50,6 +50,15 @@ def test_auto_never_picks_mps_on_its_own(monkeypatch):
     assert resolve_device("mps") == "mps"
 
 
+def test_a_torch_without_torch_accelerator_still_answers_auto(monkeypatch):
+    """torch.accelerator is 2.5+; older builds keep the CUDA-or-CPU answer."""
+    monkeypatch.delattr(torch, "accelerator", raising=False)
+    monkeypatch.setattr(torch.cuda, "is_available", lambda: True)
+    assert resolve_device("auto") == "cuda"
+    monkeypatch.setattr(torch.cuda, "is_available", lambda: False)
+    assert resolve_device() == "cpu"
+
+
 def test_a_named_device_the_machine_lacks_is_refused(monkeypatch):
     monkeypatch.setattr(torch.cuda, "is_available", lambda: False)
     monkeypatch.setattr(torch.cuda, "device_count", lambda: 0)
