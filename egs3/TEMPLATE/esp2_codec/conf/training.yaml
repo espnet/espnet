@@ -11,13 +11,13 @@
 # - `train`: uses most fields in this file
 #
 # This is the shared default merged under every codec recipe's training config
-# (merged by `launch()` in `run.py`). Kept as empty as possible so it
-# never conflicts with a concrete recipe config -- a codec recipe directory may
-# host multiple, mutually incompatible architectures (encodec, dac,
-# soundstream, funcodec and hificodec have unrelated `codec_conf` shapes, and
-# differ in optimizer, chunk length and checkpoint criteria), so only generic,
-# non-conflicting path/system scaffolding lives here. Everything
-# architecture-specific is left null for the recipe config to fill in; see
+# (merged by `launch()` in `run.py`). It holds what every codec recipe shares:
+# the path scaffold, the data organizer with its preprocessor, and the trainer
+# defaults. A codec recipe directory may host multiple, mutually incompatible
+# architectures (encodec, dac, soundstream, funcodec and hificodec have
+# unrelated `codec_conf` shapes, and differ in optimizer, chunk length and
+# checkpoint criteria), so the task, model, optimizers and dataloader are left
+# null for the recipe config to fill in; see
 # `egs3/libritts/esp2_codec/conf/training_encodec.yaml` for a worked example.
 
 ##########################################################
@@ -71,31 +71,31 @@ create_dataset: {}
 # Only `data_src_args` is passed to the recipe `Dataset` constructor.
 # Top-level fields such as `name` and `transform` stay in organizer space.
 #
-# The recipe `Dataset` should return a dict keyed `"audio"` for GAN-codec
-# tasks, matching `CommonPreprocessor(speech_name="audio")`.
+# The recipe `Dataset` returns `{"audio": waveform}` items, matching
+# `CommonPreprocessor(speech_name="audio")`.
 #
-# Example:
-# dataset:
-#   _target_: espnet3.components.data.data_organizer.DataOrganizer
-#   recipe_dir: ${recipe_dir}
-#   train:
-#     - data_src_args:
-#         split: train
-#   valid:
-#     - data_src_args:
-#         split: valid
-#   test:
-#     - name: eval_local
-#       data_src_args:
-#         split: test
-#   preprocessor:
-#     _target_: espnet2.train.preprocessor.CommonPreprocessor
-#     train: true
-#     token_type: null
-#     speech_name: audio
-#     force_single_channel: true
-#     audio_pad_value: 0.0
+# `_recursive_: false` hands `DataOrganizer` the split entries and the
+# `preprocessor` block as configs: it builds the preprocessor itself, with
+# `train=True` for the train split and `False` for valid.
+#
+# These defaults load the recipe's `train` and `valid` splits; a recipe adds
+# `test` entries or other `data_src_args` as needed.
 dataset:
+  _target_: espnet3.components.data.data_organizer.DataOrganizer
+  _recursive_: false
+  recipe_dir: ${recipe_dir}
+  train:
+    - data_src_args:
+        split: train
+  valid:
+    - data_src_args:
+        split: valid
+  preprocessor:
+    _target_: espnet2.train.preprocessor.CommonPreprocessor
+    token_type: null
+    speech_name: audio
+    force_single_channel: true
+    audio_pad_value: 0.0
 
 ##########################################################
 #                      MODEL SETTING                     #

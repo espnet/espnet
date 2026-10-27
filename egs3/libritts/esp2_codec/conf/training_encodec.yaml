@@ -8,6 +8,9 @@
 ##########################################################
 #                  SYSTEM AND PATH SETTING               #
 ##########################################################
+# Merged over egs3/TEMPLATE/esp2_codec/conf/training.yaml, which supplies the
+# path scaffold, the `dataset` organizer (train/valid splits and the codec
+# preprocessor) and the trainer defaults. Only recipe-specific keys live here.
 task: espnet3.systems.esp2_codec.task.GANCodecTask
 
 exp_tag: train_encodec_libritts
@@ -20,29 +23,6 @@ exp_tag: train_encodec_libritts
 # downloaded `.tar.gz` after extraction.
 create_dataset:
   recipe_dir: ${recipe_dir}
-
-##########################################################
-#                    DATASET DEFINITION                  #
-##########################################################
-# `_recursive_: false` hands `DataOrganizer` the split entries and the
-# `preprocessor` block as configs: it builds the preprocessor itself, with
-# `train=True` for the train split and `False` for valid.
-dataset:
-  _target_: espnet3.components.data.data_organizer.DataOrganizer
-  _recursive_: false
-  recipe_dir: ${recipe_dir}
-  train:
-    - data_src_args:
-        split: train
-  valid:
-    - data_src_args:
-        split: valid
-  preprocessor:
-    _target_: espnet2.train.preprocessor.CommonPreprocessor
-    token_type: null
-    speech_name: audio
-    force_single_channel: true
-    audio_pad_value: 0.0
 
 ##########################################################
 #                    CODEC MODEL SETTING                 #

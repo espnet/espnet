@@ -43,13 +43,21 @@ def test_parser_has_one_config_option_per_role() -> None:
 
 
 def test_training_scaffold_leaves_the_codec_to_the_recipe() -> None:
-    """The template names the keys; the task, data and model come from a recipe."""
+    """The template owns the data organizer; the task and model come from a recipe."""
     config = load_default_config("training.yaml", PACKAGE)
     assert config.task is None
-    assert config.dataset is None
     assert config.model is None
     assert config.trainer.accelerator == "auto"
     assert config.create_dataset == {}
+    dataset = config.dataset
+    assert dataset._target_.endswith("DataOrganizer")
+    assert dataset._recursive_ is False
+    assert [entry.data_src_args.split for entry in dataset.train] == ["train"]
+    assert [entry.data_src_args.split for entry in dataset.valid] == ["valid"]
+    preprocessor = get_class(dataset.preprocessor._target_)
+    assert preprocessor.__name__ == "CommonPreprocessor"
+    assert dataset.preprocessor.speech_name == "audio"
+    assert dataset.preprocessor.force_single_channel is True
 
 
 def test_inference_defaults_wire_audiocoding_to_the_codec_runner() -> None:
