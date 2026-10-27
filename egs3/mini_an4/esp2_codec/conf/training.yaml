@@ -178,3 +178,11 @@ trainer:
   gan:
     generator_first: true
     skip_discriminator_prob: 0.0
+
+  # Keep the TensorBoard logs under `exp/`, where `rm -rf exp data` in the
+  # integration test removes them; without a logger Lightning writes
+  # `lightning_logs/` into the recipe directory.
+  logger:
+    - _target_: lightning.pytorch.loggers.TensorBoardLogger
+      save_dir: ${exp_dir}/tensorboard
+      name: tb_logger
