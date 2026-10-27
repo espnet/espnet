@@ -98,7 +98,7 @@ def gather_transcript_text(
 
     Wired in from a training config as
     ``tokenizer.transcript_token_list.text_builder.func``, and called by
-    ``Esp2SluSystem``, which turns these lines into the word vocabulary.
+    ``ESP2SLUSystem``, which turns these lines into the word vocabulary.
     ``ESPnetSLUModel`` detokenizes the transcript field through that list before
     handing it to the Hugging Face tokenizer, so a word missing from it is a
     word the post-decoder can never read.

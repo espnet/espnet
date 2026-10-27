@@ -7,8 +7,8 @@ from importlib import import_module
 from pathlib import Path
 from typing import Callable, Iterable, List
 
+from espnet3.systems.esp2_asr.src.tokenizers.sentencepiece import train_sentencepiece
 from espnet3.systems.esp2_asr.system import ASRSystem
-from espnet3.systems.esp2_asr.tokenizers.sentencepiece import train_sentencepiece
 
 logger = logging.getLogger(__name__)
 
@@ -72,7 +72,7 @@ def write_word_token_list(token_list_path: str | Path, texts: Iterable[str]) -> 
     return output_path
 
 
-class Esp2SluSystem(ASRSystem):
+class ESP2SLUSystem(ASRSystem):
     """ASRSystem for ``espnet2.tasks.slu.SLUTask``'s two extra requirements.
 
     ``SLUTask`` predicts the intent as a label prefixed to the transcript, and

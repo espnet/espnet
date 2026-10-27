@@ -8,13 +8,14 @@ from typing import Any
 
 import numpy as np
 import soundfile as sf
-from torch.utils.data import Dataset as TorchDataset
 
 from egs3.slurp.esp2_slu.dataset.builder import (
     ensure_built,
     get_manifest_path,
     read_manifest,
 )
+from espnet3.components.data.base_dataset import BaseDataset
+from espnet3.contract import Field
 from espnet3.utils.config_utils import load_config_with_defaults
 
 _CONFIG_RESOURCE = resources.files(__package__).joinpath("config.yaml")
@@ -25,7 +26,7 @@ _DATASET_CONFIG = _CONFIG["dataset"]
 _KNOWN_SPLITS = {str(split) for split in _DATASET_CONFIG["supported_splits"]}
 
 
-class SlurpDataset(TorchDataset):
+class SlurpDataset(BaseDataset):
     """SLURP served as an intent-prefixed ASR task.
 
     Each sample's ``text`` is ``"<scenario>_<action> <transcript>"``, so a plain
@@ -42,10 +43,14 @@ class SlurpDataset(TorchDataset):
       the words on their own, which ``espnet2.tasks.slu.SLUTask`` tokenizes
       separately and its BERT post-decoder reads.
 
-    No ``utt_id`` is added in either case: the sample dictionary is passed
-    onward by the dataset pipeline, where an unsupported field breaks
-    collation, so inference identifies items by their index and
-    ``src/inference.py`` writes that index into the SCP files.
+    ``intent`` and ``reference_transcript`` are always present. They are the
+    scoring references -- `metrics.yaml` binds them with `dataset:` -- and are
+    deliberately separate from the optional ``transcript`` input, which may
+    hold a first-pass hypothesis rather than the truth.
+
+    No ``utt_id`` is added: the sample dictionary is passed onward by the
+    dataset pipeline, where an unsupported field breaks collation, so items
+    are identified by their index.
 
     Args:
         split: One of ``train``, ``train_synthetic``, ``devel`` or ``test``.
@@ -75,12 +80,20 @@ class SlurpDataset(TorchDataset):
     Examples:
         >>> dataset = SlurpDataset(split="devel")
         >>> sorted(dataset[0])
-        ['speech', 'text']
+        ['intent', 'reference_transcript', 'speech', 'text']
         >>> sorted(SlurpDataset(split="devel", with_transcript=True)[0])
-        ['speech', 'text', 'transcript']
+        ['intent', 'reference_transcript', 'speech', 'text', 'transcript']
         >>> dataset[0]["text"].split(maxsplit=1)[0]
         'calendar_query'
     """
+
+    fields = (
+        Field("speech", "audio"),
+        Field("text", "text"),
+        Field("transcript", "text", optional=True),
+        Field("intent", "text"),
+        Field("reference_transcript", "text"),
+    )
 
     def __init__(
         self,
@@ -122,6 +135,8 @@ class SlurpDataset(TorchDataset):
         sample = {
             "speech": np.asarray(array, dtype=np.float32),
             "text": f"{row['intent']} {row['transcript']}",
+            "intent": row["intent"],
+            "reference_transcript": row["transcript"],
         }
         if self.with_transcript:
             sample["transcript"] = (

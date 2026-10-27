@@ -116,7 +116,10 @@ input_key: speech
 # not fit in memory is split in halves and retried with a warning; a single
 # utterance that does not fit raises an error that names its length.
 # Set to `null` for a model or `output_fn` that only supports one item per call.
-batch_size: 4
+# The SLU backend decodes one utterance at a time, so batching is off by
+# default. `SLUInferenceRunner` refuses a batched call rather than score
+# the wrong shape.
+batch_size: null
 
 # Optional recipe-provided formatter that converts raw model outputs into dicts such as:
 #   {"utt_id": "...", "hyp": "..."}
@@ -129,7 +132,6 @@ batch_size: 4
 # - `dict` values are serialized as JSON artifacts and the artifact path is
 #   written to SCP.
 # - Bare top-level `list` / `tuple` outputs are not supported.
-output_fn:
 
 # Optional artifact writers for non-scalar outputs.
 # Primitive values (str/int/float/bool) are written directly into SCP files.
@@ -165,7 +167,32 @@ output_fn:
 ##########################################################
 #               PROVIDER AND RUNNER SETTING              #
 ##########################################################
+##########################################################
+#                   INFERENCE CONTRACT                   #
+##########################################################
+# What the backend is handed and what it returns. `SlurpDataset` yields bare
+# arrays and `SLUInference` exposes no sample rate, so the rate has to be
+# stated here rather than inferred.
+contract:
+  inputs:
+    speech:
+      kind: audio
+      label: Input Audio
+      sample_rate: 16000
+      rate_policy: resample
+      channels: 1
+  outputs:
+    hyp:
+      kind: text
+      label: Decoded sequence
+    hyp_intent:
+      kind: text
+      label: Intent
+    hyp_transcript:
+      kind: text
+      label: Transcript
+
 provider:
   _target_: espnet3.systems.base.inference_provider.InferenceProvider
 runner:
-  _target_: espnet3.systems.base.inference_runner.InferenceRunner
+  _target_: espnet3.systems.esp2_slu.src.inference_runner.SLUInferenceRunner

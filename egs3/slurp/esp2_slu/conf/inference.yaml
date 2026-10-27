@@ -50,13 +50,13 @@ model:
   beam_size: 20
   ctc_weight: 0.5
 
-# `build_output` also splits the intent label off the hypothesis, so intent and
-# transcript can be scored separately in `measure`.
-output_fn: src.inference.build_output
-output_keys:
-  - hyp
-  - ref
-  - hyp_intent
-  - ref_intent
-  - hyp_transcript
-  - ref_transcript
+##########################################################
+#                   INFERENCE CONTRACT                   #
+##########################################################
+# The first pass is an ordinary ASR model: its hypothesis is words from the
+# first token on. `FirstPassTranscriptRunner` keeps it whole, where the SLU
+# runner would strip the first word as an intent label. It writes an empty
+# `hyp_intent` to satisfy the inherited contract, which an overlay cannot
+# drop a field from.
+runner:
+  _target_: espnet3.systems.esp2_slu.src.inference_runner.FirstPassTranscriptRunner

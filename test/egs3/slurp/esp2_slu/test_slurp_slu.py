@@ -14,7 +14,6 @@ from egs3.slurp.esp2_slu.dataset.builder import (
     read_manifest,
 )
 from egs3.slurp.esp2_slu.dataset.dataset import SlurpDataset
-from egs3.slurp.esp2_slu.src.inference import build_output, split_intent
 from egs3.slurp.esp2_slu.src.tokenizer import (
     gather_training_text,
     gather_transcript_text,
@@ -130,13 +129,50 @@ def test_builder_rejects_missing_corpus(tmp_path: Path):
         builder.prepare_source(recipe_dir=recipe)
 
 
-def test_dataset_returns_only_supported_fields(recipe_dir: Path, slurp_root: Path):
+def test_dataset_returns_the_declared_fields(recipe_dir: Path, slurp_root: Path):
     """A recipe sample must never carry utt_id: it breaks downstream collation."""
     dataset = SlurpDataset(split="devel", recipe_dir=recipe_dir, source_dir=slurp_root)
     sample = dataset[0]
-    assert sorted(sample) == ["speech", "text"]
+    assert sorted(sample) == ["intent", "reference_transcript", "speech", "text"]
     assert sample["text"] == "calendar_query what's on my agenda at noon"
     assert sample["speech"].dtype == np.float32
+
+
+def test_scoring_references_are_separate_from_the_transcript_input(
+    recipe_dir: Path, slurp_root: Path, tmp_path: Path
+):
+    """`metrics.yaml` scores against the corpus, never against the model's input.
+
+    With `transcript_source` the `transcript` field holds a first-pass
+    hypothesis. Scoring WER against that would compare the model with itself,
+    so `reference_transcript` stays the corpus text either way.
+    """
+    source_dir = tmp_path / "inference_transcripts"
+    _write_hypotheses(source_dir, "devel", ["a wrong guess"])
+    dataset = SlurpDataset(
+        split="devel",
+        recipe_dir=recipe_dir,
+        source_dir=slurp_root,
+        with_transcript=True,
+        transcript_source=source_dir,
+    )
+    sample = dataset[0]
+
+    assert sample["transcript"] == "a wrong guess"
+    assert sample["reference_transcript"] == "what's on my agenda at noon"
+    assert sample["intent"] == "calendar_query"
+
+
+def test_dataset_declares_its_contract():
+    names = [field.name for field in SlurpDataset.fields]
+    assert names == [
+        "speech",
+        "text",
+        "transcript",
+        "intent",
+        "reference_transcript",
+    ]
+    assert dict((f.name, f.optional) for f in SlurpDataset.fields)["transcript"]
 
 
 def test_dataset_rejects_unknown_split(recipe_dir: Path, slurp_root: Path):
@@ -154,39 +190,6 @@ def test_gather_training_text_returns_transcripts_only(
 def test_read_intent_labels_requires_create_dataset(tmp_path: Path):
     with pytest.raises(FileNotFoundError, match="Intent label list not found"):
         read_intent_labels(tmp_path)
-
-
-def test_split_intent_handles_partial_text():
-    assert split_intent("audio_volume_mute mute it") == (
-        "audio_volume_mute",
-        "mute it",
-    )
-    assert split_intent("audio_volume_mute") == ("audio_volume_mute", "")
-    assert split_intent("  ") == ("", "")
-
-
-def test_build_output_splits_intent_and_transcript():
-    data = {"text": "news_query read the news"}
-    output = build_output(data, [["news_query read news"]], 0)
-    assert output == {
-        "utt_id": "0",
-        "hyp": "news_query read news",
-        "ref": "news_query read the news",
-        "hyp_intent": "news_query",
-        "ref_intent": "news_query",
-        "hyp_transcript": "read news",
-        "ref_transcript": "read the news",
-    }
-
-
-def test_build_output_handles_batches():
-    """`inference.yaml` inherits batch_size 4, so batched calls must work."""
-    data = [{"text": "news_query a"}, {"text": "qa_maths b"}]
-    model_output = [[["news_query a"]], [["qa_maths c"]]]
-    outputs = build_output(data, model_output, [0, 1])
-    assert [o["utt_id"] for o in outputs] == ["0", "1"]
-    assert [o["hyp_intent"] for o in outputs] == ["news_query", "qa_maths"]
-    assert outputs[1]["hyp_transcript"] == "c"
 
 
 def _write_hypotheses(source_dir: Path, split: str, transcripts) -> None:

@@ -42,7 +42,7 @@ dataset:
 ##########################################################
 #                     MODEL SETTING                      #
 ##########################################################
-# `espnet3.systems.esp2_slu.inference.SLUInference` wraps `Speech2Understand` and tokenizes the
+# `espnet3.systems.esp2_slu.src.slu_backend.SLUInference` wraps `Speech2Understand` and tokenizes the
 # transcript, which the `infer` stage would otherwise pass through as a string.
 # `transcript_token_list` must be the file the training config names, or every
 # id shifts.
@@ -51,7 +51,7 @@ dataset:
 # `espnet2.bin.slu_inference`, which is what egs2 decodes with: its `run.sh`
 # passes no `--inference_config`, so `conf/decode_asr.yaml` is never read.
 model:
-  _target_: espnet3.systems.esp2_slu.inference.SLUInference
+  _target_: espnet3.systems.esp2_slu.src.slu_backend.SLUInference
   slu_train_config: ${exp_dir}/config.yaml
   slu_model_file: ${exp_dir}/valid.acc.ave_10best.pth
   transcript_token_list: ${data_dir}/manifest/transcript_tokens.txt
@@ -64,11 +64,13 @@ input_key:
   - speech
   - transcript
 
-output_fn: src.inference.build_output
-output_keys:
-  - hyp
-  - ref
-  - hyp_intent
-  - ref_intent
-  - hyp_transcript
-  - ref_transcript
+##########################################################
+#                   INFERENCE CONTRACT                   #
+##########################################################
+# `speech` and the three outputs come from
+# `egs3/TEMPLATE/esp2_slu/conf/inference.yaml`. Only the second input is
+# recipe-specific: the transcript the BERT post-decoder reads.
+contract:
+  inputs:
+    transcript:
+      kind: text

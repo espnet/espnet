@@ -107,7 +107,7 @@ dataset:
 #                   TOKENIZER SETTING                    #
 ##########################################################
 # Used by the `train_tokenizer` stage in
-# `espnet3.systems.esp2_slu.system.Esp2SluSystem`, which adds two blocks to the
+# `espnet3.systems.esp2_slu.system.ESP2SLUSystem`, which adds two blocks to the
 # ones `ASRSystem` reads.
 #
 # `text_builder.func` must return either:

@@ -1,8 +1,9 @@
 # SLURP spoken language understanding
 
 Two-pass SLU on [SLURP](https://github.com/pswietojanski/slurp), ported from
-`egs2/slurp/slu1`. The system is `esp2_slu`
-(`espnet3/systems/esp2_slu/`), which drives espnet2's `SLUTask`.
+`egs2/slurp/slu1`. The system is `esp2_slu` (`espnet3/systems/esp2_slu/`),
+which drives espnet2's `SLUTask`; this directory holds only what is specific
+to the corpus -- its manifests, its configs and its tokenizer hooks.
 
 The target text is the intent label followed by the transcript:
 
@@ -146,5 +147,13 @@ intent accuracy only.
 - Decoding is beam-search bound rather than GPU bound -- about 8.6 s per
   utterance either way. Shard it with `parallel.n_workers`, which the shipped
   configs leave at 1.
-- Samples hold `speech`, `text` and optionally `transcript`. SCP files are
-  keyed by item index, because recipe samples must not carry a `utt_id` field.
+- A sample holds `speech`, `text`, `intent` and `reference_transcript`, plus
+  `transcript` when a config asks for it. The last one is the model's *input*
+  -- the reference or a first-pass hypothesis -- while `reference_transcript`
+  is always the corpus text, which is what `metrics.yaml` scores against with
+  its `dataset:` bindings. SCP files are keyed by item index, because recipe
+  samples must not carry a `utt_id` field.
+- `conf/inference.yaml` and `conf/inference_transcripts.yaml` decode the first
+  pass, so they swap in `FirstPassTranscriptRunner`: an ASR hypothesis is words
+  from its first token, and the SLU runner would strip that word as an intent
+  label.

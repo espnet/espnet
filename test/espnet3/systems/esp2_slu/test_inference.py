@@ -1,12 +1,12 @@
-"""Tests for the esp2_slu two-pass inference wrapper."""
+"""Tests for the esp2_slu two-pass inference backend."""
 
 from pathlib import Path
 
 import pytest
 import torch
 
-import espnet3.systems.esp2_slu.inference as slu_inference_module
-from espnet3.systems.esp2_slu.inference import SLUInference
+import espnet3.systems.esp2_slu.src.slu_backend as slu_inference_module
+from espnet3.systems.esp2_slu.src.slu_backend import SLUInference
 
 _TOKENS = ["<blank>", "<unk>", "news", "read", "the", "<sos/eos>"]
 

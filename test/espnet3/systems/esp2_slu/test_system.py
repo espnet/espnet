@@ -6,7 +6,7 @@ import pytest
 from omegaconf import OmegaConf
 
 import espnet3.systems.esp2_slu.system as system_module
-from espnet3.systems.esp2_slu.system import Esp2SluSystem, write_word_token_list
+from espnet3.systems.esp2_slu.system import ESP2SLUSystem, write_word_token_list
 
 _INTENTS = ["audio_volume_mute", "calendar_query", "news_query"]
 _TEXTS = ["turn off the speakers", "read me the news"]
@@ -89,7 +89,7 @@ def test_intent_labels_are_reserved_as_symbols(tmp_path, recipe_dir, hooks):
         user_defined_symbols_builder={"func": "dummy.read_intent_labels"},
     )
 
-    Esp2SluSystem(training_config=config).train_tokenizer()
+    ESP2SLUSystem(training_config=config).train_tokenizer()
 
     assert hooks["user_defined_symbols"] == _INTENTS
     assert hooks["character_coverage"] == pytest.approx(1.0)
@@ -101,7 +101,7 @@ def test_gathered_text_is_written_where_the_base_stage_puts_it(
     tmp_path, recipe_dir, hooks
 ):
     config = _training_config(tmp_path, recipe_dir)
-    Esp2SluSystem(training_config=config).train_tokenizer()
+    ESP2SLUSystem(training_config=config).train_tokenizer()
 
     text_path = hooks["text_path"]
     assert text_path == recipe_dir / "data" / "train_tokenizer" / "train.txt"
@@ -111,7 +111,7 @@ def test_gathered_text_is_written_where_the_base_stage_puts_it(
 def test_without_a_symbols_hook_it_behaves_like_asr(tmp_path, recipe_dir, hooks):
     """The blocks are optional; a one-pass config reserves nothing."""
     config = _training_config(tmp_path, recipe_dir)
-    Esp2SluSystem(training_config=config).train_tokenizer()
+    ESP2SLUSystem(training_config=config).train_tokenizer()
 
     assert hooks["user_defined_symbols"] == []
 
@@ -122,7 +122,7 @@ def test_tokenizer_training_is_skipped_when_already_trained(
     config = _training_config(tmp_path, recipe_dir)
     _mark_tokenizer_trained(config)
 
-    Esp2SluSystem(training_config=config).train_tokenizer()
+    ESP2SLUSystem(training_config=config).train_tokenizer()
 
     assert "text_path" not in hooks
 
@@ -142,7 +142,7 @@ def test_transcript_token_list_is_written(tmp_path, recipe_dir, hooks):
         },
     )
 
-    Esp2SluSystem(training_config=config).train_tokenizer()
+    ESP2SLUSystem(training_config=config).train_tokenizer()
 
     tokens = token_list_path.read_text(encoding="utf-8").splitlines()
     assert tokens[0] == "<blank>"
@@ -171,7 +171,7 @@ def test_transcript_token_list_survives_an_existing_tokenizer(
     )
     _mark_tokenizer_trained(config)
 
-    Esp2SluSystem(training_config=config).train_tokenizer()
+    ESP2SLUSystem(training_config=config).train_tokenizer()
 
     assert "text_path" not in hooks
     assert token_list_path.is_file()
@@ -199,7 +199,7 @@ def test_train_builds_the_transcript_token_list(
     )
     _mark_tokenizer_trained(config)
 
-    assert Esp2SluSystem(training_config=config).train() == "trained"
+    assert ESP2SLUSystem(training_config=config).train() == "trained"
 
     assert token_list_path.is_file()
 
@@ -217,7 +217,7 @@ def test_an_existing_transcript_token_list_is_left_alone(tmp_path, recipe_dir, h
         },
     )
 
-    Esp2SluSystem(training_config=config).train_tokenizer()
+    ESP2SLUSystem(training_config=config).train_tokenizer()
 
     assert "kept" in token_list_path.read_text(encoding="utf-8").splitlines()
 
@@ -232,7 +232,7 @@ def test_transcript_token_list_requires_a_path(tmp_path, recipe_dir, hooks):
     )
 
     with pytest.raises(RuntimeError, match="transcript_token_list.path must be set"):
-        Esp2SluSystem(training_config=config).train_tokenizer()
+        ESP2SLUSystem(training_config=config).train_tokenizer()
 
 
 def test_a_hook_without_a_func_is_rejected(tmp_path, recipe_dir, hooks):
@@ -240,7 +240,7 @@ def test_a_hook_without_a_func_is_rejected(tmp_path, recipe_dir, hooks):
     config.tokenizer.text_builder.func = None
 
     with pytest.raises(RuntimeError, match="text_builder.func must be set"):
-        Esp2SluSystem(training_config=config).train_tokenizer()
+        ESP2SLUSystem(training_config=config).train_tokenizer()
 
 
 def test_write_word_token_list_frames_the_vocabulary(tmp_path):
