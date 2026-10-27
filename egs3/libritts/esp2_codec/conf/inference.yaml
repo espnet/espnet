@@ -8,7 +8,7 @@
 #
 # Merged over egs3/TEMPLATE/esp2_codec/conf/inference.yaml, which supplies
 # `recipe_dir`, `exp_dir`, `inference_dir`, `parallel`, the AudioCoding
-# `model._target_`, `input_key: audio`, the audio-in / audio-out `contract`
+# `model._target_`, `input_key: speech`, the speech-in / speech-out `contract`
 # and the provider/runner classes. `exp_tag`/`exp_dir` are copied in from the
 # training config by `launch()`, so only recipe-specific keys live here.
 #

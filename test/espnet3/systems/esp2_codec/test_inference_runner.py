@@ -8,7 +8,7 @@ from espnet3.contract.kinds.audio import Audio
 from espnet3.systems.esp2_codec.src.inference_runner import CodecInferenceRunner
 
 CONTRACT = {
-    "inputs": {"audio": {"kind": "audio", "sample_rate": 24000, "channels": 1}},
+    "inputs": {"speech": {"kind": "audio", "sample_rate": 24000, "channels": 1}},
     "outputs": {"wav": {"kind": "audio", "sample_rate": 24000, "channels": 1}},
 }
 
@@ -29,19 +29,20 @@ class FakeAudioCoding:
         }
 
 
-def test_prepare_model_inputs_unwraps_the_audio():
-    """The checked Audio reaches the backend as its bare waveform."""
-    audio = Audio(np.ones(240, dtype=np.float32), 24000)
-    out = CodecInferenceRunner.prepare_model_inputs({"audio": audio})
+def test_prepare_model_inputs_hands_speech_to_the_backend_as_audio():
+    """The checked `speech` Audio reaches AudioCoding as its bare `audio` waveform."""
+    speech = Audio(np.ones(240, dtype=np.float32), 24000)
+    out = CodecInferenceRunner.prepare_model_inputs({"speech": speech})
+    assert sorted(out) == ["audio"]
     assert isinstance(out["audio"], np.ndarray)
     assert out["audio"].shape == (240,)
 
 
 def test_prepare_model_inputs_refuses_a_batch():
     """A list of waveforms is refused with the batch_size hint."""
-    audio = Audio(np.ones(240, dtype=np.float32), 24000)
+    speech = Audio(np.ones(240, dtype=np.float32), 24000)
     with pytest.raises(ValueError, match="batch_size: null"):
-        CodecInferenceRunner.prepare_model_inputs({"audio": [audio, audio]})
+        CodecInferenceRunner.prepare_model_inputs({"speech": [speech, speech]})
 
 
 def test_format_output_keeps_only_the_waveform_as_float32():
@@ -78,17 +79,17 @@ def test_forward_runs_the_contract_around_the_backend():
     """The shared forward checks the input, calls the backend and checks the output."""
     model = FakeAudioCoding()
     stereo = np.stack([np.ones(480), np.ones(480)], axis=1).astype(np.float32)
-    dataset = [{"utt_id": "u1", "audio": (48000, stereo)}]
+    dataset = [{"utt_id": "u1", "speech": (48000, stereo)}]
 
     result = CodecInferenceRunner.forward(
         0,
         dataset=dataset,
         model=model,
-        input_key="audio",
+        input_key="speech",
         inference_contract=dict(
             CONTRACT,
             inputs={
-                "audio": {
+                "speech": {
                     "kind": "audio",
                     "sample_rate": 24000,
                     "channels": 1,

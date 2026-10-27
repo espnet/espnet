@@ -4,12 +4,14 @@ Shared default configs, model card and demo app for recipes that train an
 ESPnet2 GAN codec (Encodec, SoundStream, DAC, FunCodec) through
 `espnet3.systems.esp2_codec.system.ESP2CodecSystem`.
 A recipe adds its `dataset/` package (a `DatasetBuilder` writing the manifests
-and a `Dataset` returning `{"audio": waveform}` items, plus `utt_id` and
+and a `Dataset` returning `{"speech": waveform}` items, plus `utt_id` and
 `wav_path` in inference mode), its `conf/*.yaml` deltas over this template's
 defaults (the codec, optimizers and dataloader in a training config, the
-`dataset.test` entries and checkpoint in `inference.yaml`, the VERSA metric
-list in `metrics.yaml`), a copy of `src/app.py`, and a thin `run.py`; see
-`egs3/libritts/esp2_codec`.
+`dataset.test` entries in `inference.yaml` and `metrics.yaml`), a copy of
+`src/app.py`, and a thin `run.py`; see `egs3/libritts/esp2_codec`.
+The template's training config loads the recipe's `train` and `valid` splits
+and runs `CodecPreprocessor`, which hands the `speech` field to the ESPnet2
+codec model as `audio`.
 
 ## Quick start
 

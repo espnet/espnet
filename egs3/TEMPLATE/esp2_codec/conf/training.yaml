@@ -71,8 +71,10 @@ create_dataset: {}
 # Only `data_src_args` is passed to the recipe `Dataset` constructor.
 # Top-level fields such as `name` and `transform` stay in organizer space.
 #
-# The recipe `Dataset` returns `{"audio": waveform}` items, matching
-# `CommonPreprocessor(speech_name="audio")`.
+# The recipe `Dataset` returns `{"speech": waveform}` items (declared as
+# `Field("speech", "audio")`). `CodecPreprocessor` processes that field as
+# `CommonPreprocessor` does (one channel, padding) and hands it to the ESPnet2
+# codec model under the name it takes, `audio`.
 #
 # `_recursive_: false` hands `DataOrganizer` the split entries and the
 # `preprocessor` block as configs: it builds the preprocessor itself, with
@@ -91,9 +93,9 @@ dataset:
     - data_src_args:
         split: valid
   preprocessor:
-    _target_: espnet2.train.preprocessor.CommonPreprocessor
+    _target_: espnet3.systems.esp2_codec.src.preprocessor.CodecPreprocessor
     token_type: null
-    speech_name: audio
+    speech_name: speech
     force_single_channel: true
     audio_pad_value: 0.0
 

@@ -38,7 +38,7 @@ inference_dir: ${exp_dir}/${self_name:}
 #
 # The recipe `Dataset` class must inherit
 # `espnet3.components.data.base_dataset.BaseDataset` and declare `fields`:
-# for a codec that is the waveform `audio`, plus `utt_id` (heads every output
+# for a codec that is the waveform `speech`, plus `utt_id` (heads every output
 # line) and the ground-truth path the `measure` stage scores against.
 #
 # Example:
@@ -78,10 +78,10 @@ parallel:
 model:
   _target_: espnet2.bin.gan_codec_inference.AudioCoding
 
-# The dataset field passed to the model. GAN-codec datasets return
-# `{"audio": ...}`, matching `CommonPreprocessor(speech_name="audio")`; it must
-# be exactly the name `contract.inputs` declares.
-input_key: audio
+# The dataset field passed to the model. Codec datasets return
+# `{"speech": ...}`; it must be exactly the name `contract.inputs` declares.
+# `CodecInferenceRunner` hands the waveform to AudioCoding as `audio`.
+input_key: speech
 
 # AudioCoding encodes one waveform per call, so there is no batching.
 batch_size:
@@ -97,9 +97,9 @@ batch_size:
 # at another rate overrides `sample_rate` on both fields.
 contract:
   inputs:
-    audio:
+    speech:
       kind: audio
-      label: Input audio
+      label: Input speech
       sample_rate: 24000
       channels: 1
       normalize:
@@ -107,7 +107,7 @@ contract:
   outputs:
     wav:
       kind: audio
-      label: Resynthesized audio
+      label: Resynthesized speech
       sample_rate: 24000
       channels: 1
 

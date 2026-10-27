@@ -1,10 +1,10 @@
 """LibriTTS codec dataset backed by recipe TSV manifests.
 
-Audio-only: returns ``{"audio": np.float32 waveform}`` samples, matching
-``CommonPreprocessor(speech_name="audio")`` from
-``espnet3.systems.esp2_codec.task.GANCodecTask.build_preprocess_fn``. The
-item fields are declared on the class (``BaseDataset.fields``) and checked on
-the first item of every instance.
+Waveform-only: returns ``{"speech": np.float32 waveform}`` samples, which the
+training preprocessor (``CodecPreprocessor``, declared in the template
+training config) hands to the ESPnet2 codec model as ``audio``. The item
+fields are declared on the class (``BaseDataset.fields``) and checked on the
+first item of every instance.
 """
 
 from __future__ import annotations
@@ -86,12 +86,11 @@ def _read_manifest(path: Path) -> list[ManifestEntry]:
 
 
 class LibriTTSCodecDataset(BaseDataset):
-    """LibriTTS dataset returning audio-only samples for codec training.
+    """LibriTTS dataset returning waveform-only samples for codec training.
 
     Reads one manifest TSV written by
     :class:`~egs3.libritts.esp2_codec.dataset.builder.LibriTTSBuilder` and returns
-    ``{"audio": np.float32 waveform}`` per utterance, matching
-    ``CommonPreprocessor(speech_name="audio")``. In ``inference`` mode the
+    ``{"speech": np.float32 waveform}`` per utterance. In ``inference`` mode the
     sample also carries ``utt_id``, which heads every inference output, and
     ``wav_path``, the ground-truth file the ``measure`` stage scores against
     (bound as ``dataset:wav_path`` in ``conf/metrics.yaml``). Both are
@@ -117,15 +116,15 @@ class LibriTTSCodecDataset(BaseDataset):
     Examples:
         ```python
         dataset = LibriTTSCodecDataset(split="train")
-        sorted(dataset[0].keys())        # -> ['audio']
+        sorted(dataset[0].keys())        # -> ['speech']
 
         test = LibriTTSCodecDataset(split="test", inference=True)
-        sorted(test[0].keys())           # -> ['audio', 'utt_id', 'wav_path']
+        sorted(test[0].keys())           # -> ['speech', 'utt_id', 'wav_path']
         ```
     """
 
     fields = (
-        Field("audio", "audio"),
+        Field("speech", "audio"),
         Field("utt_id", "text", optional=True),
         Field("wav_path", "text", optional=True),
     )
@@ -242,7 +241,7 @@ class LibriTTSCodecDataset(BaseDataset):
                 by :meth:`keys`.
 
         Returns:
-            Dict with the waveform under ``audio`` as a 1-D float32 numpy
+            Dict with the waveform under ``speech`` as a 1-D float32 numpy
             array. In ``inference`` mode it also carries ``utt_id`` and
             ``wav_path``, both ``str``.
 
@@ -253,16 +252,16 @@ class LibriTTSCodecDataset(BaseDataset):
         Examples:
             ```python
             dataset = LibriTTSCodecDataset(split="test")
-            dataset[0]["audio"].dtype            # -> dtype('float32')
-            dataset[dataset.keys()[0]]["audio"]  # same sample, by utt_id
+            dataset[0]["speech"].dtype            # -> dtype('float32')
+            dataset[dataset.keys()[0]]["speech"]  # same sample, by utt_id
             ```
         """
         if isinstance(idx, str):
             entry = self._by_utt_id[idx]
         else:
             entry = self._entries[int(idx)]
-        audio, _ = sf.read(str(entry.wav_path))
-        sample: dict[str, Any] = {"audio": np.asarray(audio, dtype=np.float32)}
+        speech, _ = sf.read(str(entry.wav_path))
+        sample: dict[str, Any] = {"speech": np.asarray(speech, dtype=np.float32)}
         if self.inference:
             sample.update(
                 {

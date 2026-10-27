@@ -11,8 +11,8 @@ from espnet3.systems.base.inference_runner import InferenceRunner
 class CodecInferenceRunner(InferenceRunner):
     """Run ``espnet2.bin.gan_codec_inference.AudioCoding`` under the contract.
 
-    The contract hands the runner an :class:`Audio` for ``audio``; the
-    backend wants the bare waveform. The backend returns ``codes`` and
+    The contract hands the runner an :class:`Audio` for ``speech``; the
+    backend takes the bare waveform as ``audio``. The backend returns ``codes`` and
     ``resyn_audio``; the contract declares one output, ``wav``, so only the
     resynthesized waveform is kept, as a 1-D float32 array that the declared
     ``sample_rate`` of ``contract.outputs.wav`` turns into an :class:`Audio`.
@@ -31,35 +31,36 @@ class CodecInferenceRunner(InferenceRunner):
 
     @staticmethod
     def prepare_model_inputs(inputs):
-        """Hand the backend the waveform of the checked ``audio``.
+        """Hand the backend the waveform of the checked ``speech`` as ``audio``.
 
         Args:
-            inputs: The backend's keyword arguments; ``audio`` holds the
+            inputs: The backend's keyword arguments; ``speech`` holds the
                 :class:`Audio` the contract produced.
 
         Returns:
-            A copy of ``inputs`` whose ``audio`` is the bare 1-D float32
-            waveform.
+            A copy of ``inputs`` without ``speech`` and with ``audio``, the
+            bare 1-D float32 waveform, which is the keyword
+            ``AudioCoding.__call__`` takes.
 
         Raises:
-            ValueError: If ``audio`` is a list, that is, the call is batched.
+            ValueError: If ``speech`` is a list, that is, the call is batched.
 
         Examples:
-            >>> audio = Audio(np.zeros(240, dtype=np.float32), 24000)
-            >>> out = CodecInferenceRunner.prepare_model_inputs({"audio": audio})
-            >>> out["audio"].shape
-            (240,)
+            >>> speech = Audio(np.zeros(240, dtype=np.float32), 24000)
+            >>> out = CodecInferenceRunner.prepare_model_inputs({"speech": speech})
+            >>> sorted(out), out["audio"].shape
+            (['audio'], (240,))
         """
         inputs = dict(inputs)
-        audio = inputs["audio"]
-        if isinstance(audio, list):
+        speech = inputs.pop("speech")
+        if isinstance(speech, list):
             raise ValueError(
                 "AudioCoding encodes one waveform per call; set `batch_size: null` "
                 "in the inference config"
             )
-        if isinstance(audio, Audio):
-            audio = audio.array
-        inputs["audio"] = audio
+        if isinstance(speech, Audio):
+            speech = speech.array
+        inputs["audio"] = speech
         return inputs
 
     @staticmethod

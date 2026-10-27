@@ -55,8 +55,8 @@ def test_training_scaffold_leaves_the_codec_to_the_recipe() -> None:
     assert [entry.data_src_args.split for entry in dataset.train] == ["train"]
     assert [entry.data_src_args.split for entry in dataset.valid] == ["valid"]
     preprocessor = get_class(dataset.preprocessor._target_)
-    assert preprocessor.__name__ == "CommonPreprocessor"
-    assert dataset.preprocessor.speech_name == "audio"
+    assert preprocessor.__name__ == "CodecPreprocessor"
+    assert dataset.preprocessor.speech_name == "speech"
     assert dataset.preprocessor.force_single_channel is True
 
 
@@ -64,7 +64,7 @@ def test_inference_defaults_wire_audiocoding_to_the_codec_runner() -> None:
     """The template owns the backend, the runner, input_key and the contract."""
     config = load_default_config("inference.yaml", PACKAGE)
     assert config.model._target_ == "espnet2.bin.gan_codec_inference.AudioCoding"
-    assert config.input_key == "audio"
+    assert config.input_key == "speech"
     assert config.batch_size is None
     assert config.dataset._recursive_ is False
     runner = get_class(config.runner._target_)
@@ -72,14 +72,15 @@ def test_inference_defaults_wire_audiocoding_to_the_codec_runner() -> None:
 
     contract = load_inference_contract(config.contract)
     contract.validate_input_keys(config.input_key)
-    (audio,) = contract.inputs
+    (speech,) = contract.inputs
     (wav,) = contract.outputs
-    assert (audio.kind, audio.channels, audio.options["sample_rate"]) == (
+    assert speech.name == "speech"
+    assert (speech.kind, speech.channels, speech.options["sample_rate"]) == (
         "audio",
         1,
         24000,
     )
-    assert audio.options["normalize"] == ["mean_channels"]
+    assert speech.options["normalize"] == ["mean_channels"]
     assert (wav.kind, wav.channels, wav.options["sample_rate"]) == ("audio", 1, 24000)
     assert config.output_artifacts.wav.sample_rate == wav.options["sample_rate"]
 
