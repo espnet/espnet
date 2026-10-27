@@ -54,15 +54,17 @@ def main():
 
     target_folder = "data"
 
-    original_folder = f"{dataset_path}/_transcribed_data"
+    original_folder = os.path.join(dataset_path, "transcribed_data")
+    if not os.path.isdir(original_folder):
+        original_folder = os.path.join(dataset_path, "_transcribed_data")
 
     dataset_name = "voxpopuli"
 
-    # dev is used for both development and test set, training is used for train set
+    # Preserve the official train, development, and test partitions.
     for split1, split2 in [
         ("train", f"train_{dataset_name}_lang"),
         ("dev", f"dev_{dataset_name}_lang"),
-        ("dev", f"test_{dataset_name}_lang"),
+        ("test", f"test_{dataset_name}_lang"),
     ]:
         wav_scp = []
         utt2lang = []

@@ -35,8 +35,9 @@ requires these manually downloaded corpora:
   with `lexicon.txt` under `reference_materials`.
 - **VoxPopuli:** follow the [upstream download instructions](https://github.com/facebookresearch/voxpopuli).
   The default corpus root is `downloads/voxpopuli`; the adapter reads
-  `_transcribed_data/<language>/asr_{train,dev}.tsv` and year-organized audio
-  below that root. Its `test_voxpopuli_lang` split reuses the upstream dev set.
+  `transcribed_data/<language>/asr_{train,dev,test}.tsv` and year-organized audio
+  below that root. The older `_transcribed_data` directory name is also accepted.
+  `test_voxpopuli_lang` uses the official test partition.
 
 Pass alternate roots through the data-preparation options:
 

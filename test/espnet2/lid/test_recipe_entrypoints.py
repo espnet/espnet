@@ -115,6 +115,51 @@ def test_stage1_forwards_corpus_path(recipe_environment, dataset):
     assert (recipe / "corpus_path.txt").read_text() == "/corpora/custom\n"
 
 
+@pytest.mark.parametrize("corpus_directory", ["transcribed_data", "_transcribed_data"])
+def test_voxpopuli_keeps_official_test_separate_from_dev(
+    recipe_environment, corpus_directory
+):
+    recipe = recipe_environment
+    corpus = recipe / "voxpopuli"
+    languages = "cs de en es et fi fr hr hu it lt nl pl ro sk sl".split()
+    for language in languages:
+        source = corpus / corpus_directory / language
+        source.mkdir(parents=True)
+        for split in ("train", "dev", "test"):
+            (source / f"asr_{split}.tsv").write_text(
+                f"id\n20190101-{split}-{language}_0001\n"
+            )
+
+    subprocess.run(
+        [
+            sys.executable,
+            str(RECIPE / "local/prepare_voxpopuli.py"),
+            "--dataset_path",
+            str(corpus),
+        ],
+        cwd=recipe,
+        check=True,
+    )
+
+    ids = {}
+    for split in ("train", "dev", "test"):
+        output = recipe / "data" / f"{split}_voxpopuli_lang"
+        waveforms = dict(
+            line.split(maxsplit=1)
+            for line in (output / "wav.scp").read_text().splitlines()
+        )
+        labels = dict(
+            line.split() for line in (output / "utt2lang").read_text().splitlines()
+        )
+        assert len(waveforms) == len(languages)
+        assert waveforms.keys() == labels.keys()
+        assert all(f"-{split}-" in uid for uid in waveforms)
+        assert all(Path(path).parent.name == "2019" for path in waveforms.values())
+        ids[split] = set(waveforms)
+    assert ids["test"].isdisjoint(ids["dev"])
+    assert ids["test"].isdisjoint(ids["train"])
+
+
 def test_combine_entrypoint_custom_dump_and_output(recipe_environment, monkeypatch):
     recipe = recipe_environment
     for name in ("combine.sh", "combine_lid_data.py", "prepare_lang2vec.py"):
