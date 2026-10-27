@@ -189,6 +189,13 @@ class GANLightningModule(ESPnetLightningModule):
             raise AssertionError(
                 f"GAN '{name}' loss must be a tensor, but got {type(loss)!r}."
             )
+        # espnet2 GAN models return the loss as a one-element tensor (shape
+        # ``(1,)``), so "scalar" means one value, whatever the number of dims.
+        if loss.numel() != 1:
+            raise AssertionError(
+                f"GAN '{name}' loss must be a scalar tensor, but got shape "
+                f"{tuple(loss.shape)}."
+            )
 
         stats = output.get("stats")
         if not isinstance(stats, dict):
