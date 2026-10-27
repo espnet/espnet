@@ -85,11 +85,11 @@ gen_dummy_coverage
 echo "==== [ESPnet3] Codec ===="
 source path.sh
 # The 3.13 image has no versa (tools/installers/install_versa.sh installs it
-# with bare `pip`, which is not the venv's pip there). Install it here without
-# its dependencies; the signal metrics need only these three on top of espnet.
-python3 -m pip install --no-deps \
-    "versa-speech-audio-toolkit @ git+https://github.com/wavlab-speech/versa.git@v1.1.0"
-python3 -m pip install ci-sdr fast-bss-eval mir-eval
+# with bare `pip`, which is not the venv's pip there). Install it here with
+# its dependencies; the signal metrics also need these three.
+python3 -m pip install \
+    "versa-speech-audio-toolkit @ git+https://github.com/wavlab-speech/versa.git@v1.1.0" \
+    ci-sdr fast-bss-eval mir-eval
 ${python} run.py \
     --stages create_dataset collect_stats train infer measure \
     --training_config conf/training.yaml \
