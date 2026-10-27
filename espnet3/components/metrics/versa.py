@@ -1,10 +1,12 @@
-"""VERSA-based metric for the codec `measure` stage.
+"""VERSA-based metric for the `measure` stage of waveform-producing systems.
 
 Wraps `versa.bin.scorer` (https://github.com/wavlab-speech/versa) as an
-ESPnet3 `BaseMetric`. A recipe names the VERSA metrics it scores with (signal
-metrics such as SDR and SI-SNR, pseudo-MOS predictors such as UTMOS) in its
-`conf/metrics.yaml`; this class runs them over the `infer` outputs of a test
-set against the reference waveforms and aggregates the per-utterance records.
+ESPnet3 `BaseMetric` for any system whose `infer` stage writes waveforms (a
+neural codec, a TTS model). A recipe names the VERSA metrics it scores with
+(signal metrics such as SDR and SI-SNR, pseudo-MOS predictors such as UTMOS)
+in its `conf/metrics.yaml`; this class runs them over the `infer` outputs of
+a test set against the reference waveforms and aggregates the per-utterance
+records.
 """
 
 from __future__ import annotations
@@ -63,7 +65,7 @@ class VersaMetric(BaseMetric):
 
             metrics:
               - metric:
-                  _target_: espnet3.systems.esp2_codec.metrics.versa.VersaMetric
+                  _target_: espnet3.components.metrics.versa.VersaMetric
                   score_config:
                     - name: signal_metric
                     - name: pseudo_mos

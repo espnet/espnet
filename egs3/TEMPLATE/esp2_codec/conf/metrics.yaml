@@ -2,19 +2,18 @@
 #                 METRIC SCORING SETTING                 #
 ##########################################################
 # Quick usage:
-#   python run.py --stages measure --metrics_config conf/metrics.yaml
+#   python run.py --stages measure \
+#       --training_config conf/training.yaml \
+#       --inference_config conf/inference.yaml \
+#       --metrics_config conf/metrics.yaml
 #
-# Recipe configs fill in the `metrics` list; see
-# `egs3/libritts/esp2_codec/conf/metrics.yaml` for a working example built on
-# `espnet3.systems.esp2_codec.metrics.versa.VersaMetric` (signal metrics,
-# pseudo-MOS predictors and more). Every entry binds the metric's declared
-# inputs beside `metric`: `wav` to the `infer` output (`<test_name>/wav.scp`)
-# and `ref` to the test set's ground-truth path column (`dataset:wav_path`),
-# so `infer` writes only what the model produced.
+# Scores the `infer` stage output (`${inference_dir}/<test_name>/wav.scp`)
+# against each test set's own `wav_path` column with VERSA
+# (https://github.com/wavlab-speech/versa), which must be installed in the
+# evaluation environment (`tools/installers/install_versa.sh`). The pseudo-MOS
+# predictors also need `speechmos` and `onnxruntime`.
 #
-# `metrics: []` is deliberate rather than a populated example: OmegaConf
-# merges lists by whole replacement, so a non-empty default here would leak
-# into every downstream codec recipe that omits `metrics:`.
+# A recipe adds its test sets under `dataset.test`.
 
 ##########################################################
 #                    PATHS AND INPUTS                    #
@@ -26,4 +25,39 @@ exp_dir: ${recipe_dir}/exp/${exp_tag}
 ##########################################################
 #                    METRIC DEFINITION                   #
 ##########################################################
-metrics: []
+metrics:
+  - metric:
+      _target_: espnet3.components.metrics.versa.VersaMetric
+      score_config:
+        # signal related metrics: sdr, si-snr, ci-sdr (versa also computes
+        # sir and sar, which only mean something with several sources; for
+        # a one-source resynthesis sir is +inf and sar equals sdr, so they
+        # are not declared below and do not reach the results)
+        - name: signal_metric
+        # pseudo subjective metrics: utmos, dnsmos, plcmos
+        - name: pseudo_mos
+          predictor_types: [utmos, dnsmos, plcmos]
+          predictor_args:
+            utmos:
+              fs: 16000
+            dnsmos:
+              fs: 16000
+            plcmos:
+              fs: 16000
+      # The scores the configuration above promises and the only ones that
+      # reach metrics.json; `measure` fails if versa drops one (a metric
+      # whose dependency is missing is disabled without failing the run).
+      outputs:
+        - sdr
+        - si_snr
+        - ci_sdr
+        - utmos
+        - dns_overall
+        - dns_p808
+        - plcmos
+      wav_key: wav
+      ref_key: ref
+      use_gpu: true
+    inputs:
+      wav: wav               # the model's output -> <test_name>/wav.scp
+      ref: dataset:wav_path  # the ground-truth file, a column of the test set

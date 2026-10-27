@@ -7,48 +7,11 @@
 #       --inference_config conf/inference.yaml \
 #       --metrics_config conf/metrics.yaml
 #
-# Scores the `infer` stage output (`${inference_dir}/test/wav.scp`) against
-# the test set's own `wav_path` column with versa
-# (https://github.com/wavlab-speech/versa), which must be installed in the
-# evaluation environment.
+# Merged over egs3/TEMPLATE/esp2_codec/conf/metrics.yaml, which supplies the
+# VERSA metric (signal metrics and pseudo-MOS predictors) and its bindings to
+# the `infer` output and the test set's `wav_path` column. Only the test sets
+# to score live here.
 
 dataset:
   test:
     - name: test
-
-metrics:
-  - metric:
-      _target_: espnet3.systems.esp2_codec.metrics.versa.VersaMetric
-      score_config:
-        # signal related metrics: sdr, si-snr, ci-sdr (versa also computes
-        # sir and sar, which only mean something with several sources; for
-        # a one-source resynthesis sir is +inf and sar equals sdr, so they
-        # are not declared below and do not reach the results)
-        - name: signal_metric
-        # pseudo subjective metrics: utmos, dnsmos, plcmos
-        - name: pseudo_mos
-          predictor_types: [utmos, dnsmos, plcmos]
-          predictor_args:
-            utmos:
-              fs: 16000
-            dnsmos:
-              fs: 16000
-            plcmos:
-              fs: 16000
-      # The scores the configuration above promises and the only ones that
-      # reach metrics.json; `measure` fails if versa drops one (a metric
-      # whose dependency is missing is disabled without failing the run).
-      outputs:
-        - sdr
-        - si_snr
-        - ci_sdr
-        - utmos
-        - dns_overall
-        - dns_p808
-        - plcmos
-      wav_key: wav
-      ref_key: ref
-      use_gpu: true
-    inputs:
-      wav: wav               # the model's output -> <test_name>/wav.scp
-      ref: dataset:wav_path  # the ground-truth file, a column of the test set

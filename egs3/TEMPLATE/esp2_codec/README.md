@@ -44,8 +44,9 @@ python run.py --stages pack_demo upload_demo \
 
 `measure` needs `versa` (`tools/installers/install_versa.sh`). The signal
 metrics also need `mir_eval`, and the pseudo-MOS predictors `speechmos` and
-`onnxruntime`. A recipe's `metrics.yaml` lists the scores its configuration
-promises under `outputs`, and the stage fails when VERSA drops one instead of
+`onnxruntime`. The template's `metrics.yaml` declares the VERSA metric
+(`espnet3.components.metrics.versa.VersaMetric`) with the scores it promises
+under `outputs`, and the stage fails when VERSA drops one instead of
 reporting a partial table.
 
 ## Using a packed model

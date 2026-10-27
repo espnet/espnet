@@ -97,10 +97,25 @@ def test_recipe_overlay_keeps_the_template_runner_and_contract(tmp_path: Path) -
     assert config.runner._target_.endswith("CodecInferenceRunner")
 
 
-def test_metrics_scaffold_has_no_default_scorers() -> None:
-    """A recipe supplies the whole VERSA list; the template keeps none."""
+def test_metrics_defaults_score_with_versa_against_the_test_set() -> None:
+    """The template declares the VERSA metric; a recipe adds only its test sets."""
     config = load_default_config("metrics.yaml", PACKAGE)
-    assert list(config.metrics) == []
+    (entry,) = config.metrics
+    assert get_class(entry.metric._target_).__name__ == "VersaMetric"
+    assert [m.name for m in entry.metric.score_config] == [
+        "signal_metric",
+        "pseudo_mos",
+    ]
+    assert list(entry.metric.outputs) == [
+        "sdr",
+        "si_snr",
+        "ci_sdr",
+        "utmos",
+        "dns_overall",
+        "dns_p808",
+        "plcmos",
+    ]
+    assert entry.inputs == {"wav": "wav", "ref": "dataset:wav_path"}
 
 
 def test_demo_defaults_build_the_widgets_from_the_contract() -> None:
