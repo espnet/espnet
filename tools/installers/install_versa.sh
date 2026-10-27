@@ -54,5 +54,5 @@ if [ -n "${VERSA_REF_SHA}" ] && [ "${versa_head}" != "${VERSA_REF_SHA}" ]; then
     echo "        install it anyway." >&2
     exit 1
 fi
-pip install -e ".[audio]"
+python3 -m pip install -e ".[audio]"
 cd ..
