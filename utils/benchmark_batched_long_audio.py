@@ -101,12 +101,8 @@ class AcousticSegmenter:
             search_start = last_split + int(self.max_samples * 0.70)
             search_end = last_split + self.max_samples
 
-            f_start = max(
-                0, (search_start - self.frame_len) // self.frame_shift
-            )
-            f_end = min(
-                num_frames, (search_end - self.frame_len) // self.frame_shift
-            )
+            f_start = max(0, (search_start - self.frame_len) // self.frame_shift)
+            f_end = min(num_frames, (search_end - self.frame_len) // self.frame_shift)
 
             best_sample = None
             min_energy = float("inf")
@@ -114,9 +110,7 @@ class AcousticSegmenter:
             for f in range(f_start, f_end):
                 st = f * self.frame_shift
                 en = st + self.frame_len
-                frame_rms = float(
-                    np.sqrt(np.mean(audio_np[st:en] ** 2) + 1e-8)
-                )
+                frame_rms = float(np.sqrt(np.mean(audio_np[st:en] ** 2) + 1e-8))
 
                 if frame_rms < min_energy:
                     min_energy = frame_rms
@@ -160,9 +154,7 @@ class AcousticSegmenter:
 class DynamicWindowPacker:
     """Radix-duration binning for global micro-batch packing (GMBP)."""
 
-    def __init__(
-        self, target_batch_size: int = 8, bin_width_sec: float = 2.0
-    ):
+    def __init__(self, target_batch_size: int = 8, bin_width_sec: float = 2.0):
         self.target_batch_size = target_batch_size
         self.bin_width_sec = bin_width_sec
 
@@ -175,7 +167,7 @@ class DynamicWindowPacker:
         micro_batches: List[List[AudioChunk]] = []
 
         for i in range(0, len(sorted_chunks), self.target_batch_size):
-            batch = sorted_chunks[i: i + self.target_batch_size]
+            batch = sorted_chunks[i : i + self.target_batch_size]
             micro_batches.append(batch)
 
         return micro_batches
@@ -241,17 +233,13 @@ class BatchedLongAudioPipeline:
         audio_np = audio.detach().cpu().numpy().astype(np.float32)
 
         if self.processor is not None and hasattr(self.model, "generate"):
-            inputs = self.processor(
-                audio_np, sampling_rate=sr, return_tensors="pt"
-            )
+            inputs = self.processor(audio_np, sampling_rate=sr, return_tensors="pt")
             input_features = inputs.input_features.to(self.device)
             with torch.no_grad():
-                generated_ids = self.model.generate(
-                    input_features, max_new_tokens=64
-                )
-            text = self.processor.batch_decode(
-                generated_ids, skip_special_tokens=True
-            )[0]
+                generated_ids = self.model.generate(input_features, max_new_tokens=64)
+            text = self.processor.batch_decode(generated_ids, skip_special_tokens=True)[
+                0
+            ]
             tokens = generated_ids[0].tolist()
             return text.strip(), tokens
 
@@ -263,29 +251,20 @@ class BatchedLongAudioPipeline:
             text = f"token_seq_{tokens[0]}_{tokens[1]}"
             return text, tokens
 
-    def decode_batch(
-        self, chunks: List[AudioChunk]
-    ) -> List[DecodedChunk]:
+    def decode_batch(self, chunks: List[AudioChunk]) -> List[DecodedChunk]:
         """Decodes length-homogeneous micro-batches on Tensor Cores."""
         sr = self.segmenter.sample_rate
 
         if self.processor is not None and hasattr(self.model, "generate"):
             audio_list = [
-                c.audio.detach().cpu().numpy().astype(np.float32)
-                for c in chunks
+                c.audio.detach().cpu().numpy().astype(np.float32) for c in chunks
             ]
-            inputs = self.processor(
-                audio_list, sampling_rate=sr, return_tensors="pt"
-            )
+            inputs = self.processor(audio_list, sampling_rate=sr, return_tensors="pt")
             input_features = inputs.input_features.to(self.device)
 
             with torch.no_grad():
-                generated_ids = self.model.generate(
-                    input_features, max_new_tokens=64
-                )
-            texts = self.processor.batch_decode(
-                generated_ids, skip_special_tokens=True
-            )
+                generated_ids = self.model.generate(input_features, max_new_tokens=64)
+            texts = self.processor.batch_decode(generated_ids, skip_special_tokens=True)
 
             decoded = []
             for i, c in enumerate(chunks):
@@ -313,9 +292,7 @@ class BatchedLongAudioPipeline:
             feats = self.linear_out(hidden)
 
         for i, c in enumerate(chunks):
-            tokens = [
-                int(abs(x * 1000) % 5000) for x in feats[i, :8].tolist()
-            ]
+            tokens = [int(abs(x * 1000) % 5000) for x in feats[i, :8].tolist()]
             text = f"token_seq_{tokens[0]}_{tokens[1]}"
             decoded.append(
                 DecodedChunk(
@@ -368,13 +345,9 @@ def run_benchmark(
             )[0, 0]
     else:
         t = torch.linspace(0, 6.5, int(6.5 * sr))
-        base_audio = (
-            torch.sin(2 * math.pi * 220 * t)
-            * torch.exp(-((t - 1.5) ** 2) / 1.0)
-            + 0.7
-            * torch.sin(2 * math.pi * 440 * t)
-            * torch.exp(-((t - 4.5) ** 2) / 1.5)
-        )
+        base_audio = torch.sin(2 * math.pi * 220 * t) * torch.exp(
+            -((t - 1.5) ** 2) / 1.0
+        ) + 0.7 * torch.sin(2 * math.pi * 440 * t) * torch.exp(-((t - 4.5) ** 2) / 1.5)
 
     silence_gap = torch.zeros(int(0.4 * sr))
     corpus: Dict[str, torch.Tensor] = {
@@ -388,9 +361,7 @@ def run_benchmark(
     }
 
     total_sec = sum(len(a) / sr for a in corpus.values())
-    logging.info(
-        f"Corpus: {len(corpus)} utterances | Total Audio: {total_sec:.2f}s"
-    )
+    logging.info(f"Corpus: {len(corpus)} utterances | Total Audio: {total_sec:.2f}s")
 
     # 1. Serial Baseline Execution
     logging.info("\n--- [1] Serial Baseline (PR #6676 fallback) ---")
@@ -465,9 +436,7 @@ def run_benchmark(
     )
 
     # 4. Reinforcement Learning Rollout Acceleration
-    logging.info(
-        f"\n--- [4] RL Rollout Acceleration (GRPO G={num_rollouts}) ---"
-    )
+    logging.info(f"\n--- [4] RL Rollout Acceleration (GRPO G={num_rollouts}) ---")
     rl_chunks: List[AudioChunk] = []
     for r_id in range(num_rollouts):
         for utt_id, audio in corpus.items():
@@ -482,15 +451,9 @@ def run_benchmark(
 
     est_serial_rl_time = serial_time * num_rollouts
     rl_speedup = est_serial_rl_time / rl_batched_time
-    logging.info(
-        f"Serial RL Rollout Time (est):   {est_serial_rl_time:.2f}s"
-    )
-    logging.info(
-        f"Batched AD-SBD RL Rollout Time: {rl_batched_time:.2f}s"
-    )
-    logging.info(
-        f"RL Rollout Acceleration: {rl_speedup:.2f}x SPEEDUP!"
-    )
+    logging.info(f"Serial RL Rollout Time (est):   {est_serial_rl_time:.2f}s")
+    logging.info(f"Batched AD-SBD RL Rollout Time: {rl_batched_time:.2f}s")
+    logging.info(f"RL Rollout Acceleration: {rl_speedup:.2f}x SPEEDUP!")
     logging.info("=========================================================")
 
 
