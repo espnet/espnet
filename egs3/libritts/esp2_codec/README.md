@@ -97,10 +97,21 @@ The demo stages require `--training_config` because the demo config resolves
 the Space can load a model. The demo's input and output widgets come from the
 inference contract in `conf/inference.yaml`.
 
+## Results
+
+EnCodec trained with `conf/training_encodec.yaml` on train-clean-100,
+train-clean-360 and train-other-500 (4x V100), scored on test-clean (4,837
+utterances) by the `measure` stage with VERSA `signal_metric` and
+`pseudo_mos`.
+
+| sdr | si_snr | ci_sdr | utmos | dns_overall | dns_p808 | plcmos |
+| --- | --- | --- | --- | --- | --- | --- |
+| 6.05 | 3.47 | 5.99 | 3.99 | 3.12 | 3.77 | 4.32 |
+
 ## Pretrained model and demo
 
-Trained on LibriTTS with this recipe's EnCodec configuration and published from
-the last checkpoint of its run.
+The model above, published from the last checkpoint of its run with the
+`pack_model` and `pack_demo` stages.
 
 - Model: [NewGame/libritts_codec_train_encodec_libritts](https://huggingface.co/NewGame/libritts_codec_train_encodec_libritts)
 - Demo Space: [NewGame/libritts_codec_train_encodec_libritts](https://huggingface.co/spaces/NewGame/libritts_codec_train_encodec_libritts)
