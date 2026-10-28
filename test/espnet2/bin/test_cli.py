@@ -896,6 +896,13 @@ def _fake_demo(monkeypatch, s2t=None, device="cpu", task="s2t"):
 
     monkeypatch.setattr(torch.cuda, "is_available", lambda: device == "cuda")
     monkeypatch.setattr(torch.cuda, "device_count", lambda: 1)
+    # ``auto`` is answered by torch.accelerator, so the machine's accelerator is
+    # what it reports rather than what torch.cuda says.
+    accelerator = types.SimpleNamespace(
+        is_available=lambda: device != "cpu",
+        current_accelerator=lambda: types.SimpleNamespace(type=device),
+    )
+    monkeypatch.setattr(torch, "accelerator", accelerator, raising=False)
     # the task check is one Hub request; the tests answer it themselves
     monkeypatch.setattr(espnet, "_infer_task", lambda tag: task)
     s2t = s2t or _FakeOWSM()
