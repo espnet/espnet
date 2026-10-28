@@ -19,20 +19,25 @@ min() {
 
 
 stage=1
-stop_stage=100
+stop_stage=4
 nj=4000
 
 file_list= # Paths to the json files to be processed
 yodas2_data_path= # Path to the YODAS2 dataset directory
 save_dir= # Directory to save the intermediate data
 
-# Open ASR Leaderboard options
+# Open ASR Leaderboard options (opt-in via --stage 5 or --prepare_openasr true)
+prepare_openasr=false
 openasr_subset=full
 openasr_sets=
 openasr_revision=b6bdcd0beb34f8975dc659796176d88f43aff502
 openasr_seed=0
 
 . utils/parse_options.sh
+
+if "${prepare_openasr}"; then
+    [ "${stop_stage}" -lt 5 ] && stop_stage=5
+fi
 
 . ./path.sh
 . ./cmd.sh
@@ -130,7 +135,7 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
 fi
 
 
-if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
+if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ] && { [ ${stage} -ge 5 ] || "${prepare_openasr}"; }; then
     echo "Stage 5: Prepare Open ASR Leaderboard test sets"
 
     if [ -n "${openasr_sets}" ]; then
@@ -149,50 +154,15 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
         # 1. Full split: data/openasr_<set>
         if [ "${openasr_subset}" != "small" ]; then
             data_full="data/openasr_${prefix}"
-            if [ ! -f "${data_full}/wav.scp" ] || [ ! -f "${data_full}/text" ] || ! python3 - "${data_full}/info.json" "${openasr_revision}" <<'EOF'
-import json, sys
-try:
-    info = json.load(open(sys.argv[1]))
-    ok = (info.get("n_requested", 0) == 0 and
-          info.get("revision") == sys.argv[2] and
-          info.get("max_dur", 0.0) <= 0)
-    sys.exit(0 if ok else 1)
-except Exception:
-    sys.exit(1)
-EOF
-            then
-                echo "=== Preparing full split: ${data_full}"
-                rm -rf "${data_full}"
-                python3 local/prepare_hf_asr_leaderboard.py \
-                    --dataset "${dataset}" --split "${split}" --all \
-                    --revision "${openasr_revision}" --out "${data_full}"
-            else
-                echo "=== ${data_full} already prepared with matching revision, skipping."
-            fi
+            python3 local/prepare_hf_asr_leaderboard.py \
+                --dataset "${dataset}" --split "${split}" --all \
+                --revision "${openasr_revision}" --out "${data_full}"
         fi
 
         # 2. Seeded 100-sample: data/openasr_<set>_100
         data_100="data/openasr_${prefix}_100"
-        if [ ! -f "${data_100}/wav.scp" ] || [ ! -f "${data_100}/text" ] || ! python3 - "${data_100}/info.json" "100" "${openasr_seed}" "${openasr_revision}" <<'EOF'
-import json, sys
-try:
-    info = json.load(open(sys.argv[1]))
-    ok = (info.get("n") == int(sys.argv[2]) and
-          info.get("seed") == int(sys.argv[3]) and
-          info.get("revision") == sys.argv[4] and
-          abs(info.get("max_dur", 30.0) - 30.0) < 1e-3)
-    sys.exit(0 if ok else 1)
-except Exception:
-    sys.exit(1)
-EOF
-        then
-            echo "=== Preparing 100-utterance sample: ${data_100}"
-            rm -rf "${data_100}"
-            python3 local/prepare_hf_asr_leaderboard.py \
-                --dataset "${dataset}" --split "${split}" --n 100 --seed "${openasr_seed}" \
-                --max_dur 30.0 --revision "${openasr_revision}" --out "${data_100}"
-        else
-            echo "=== ${data_100} already prepared with matching parameters, skipping."
-        fi
+        python3 local/prepare_hf_asr_leaderboard.py \
+            --dataset "${dataset}" --split "${split}" --n 100 --seed "${openasr_seed}" \
+            --max_dur 30.0 --revision "${openasr_revision}" --out "${data_100}"
     done
 fi

@@ -121,10 +121,14 @@ python3 pyscripts/utils/calculate_rtf.py \
 
 ### Results and Observations
 
-See [RESULTS.md](RESULTS.md) for detailed numbers and findings, including:
-- Sample smoke test benchmark results across decoding setups (beam 5, batch 8, greedy).
-- Analysis of end detection behavior and `maxlenratio=0` speedup on padded 30-second single-window inputs.
-- Discussion of 370M model behavior on AMI and greedy search repetition loops.
+See [RESULTS.md](RESULTS.md) for the standard `show_asr_result.sh` scoring tables.
+
+#### Decoding Performance and Behavior:
+
+- **End detection vs maxlenratio:** OWSM v4 pads every single-window input to 30 s, so the maximum output length is 374 steps whatever the utterance. With `maxlenratio=1.0` the beam search always runs to that maximum: once the real transcript has ended, the remaining beams keep producing punctuation and fragments over the padded silence, and about 97% of the decoding time goes there. With `maxlenratio=0` (the default) the maximum length is the same, but the beam search also runs its end detection (Eq. 50 of Watanabe et al., 2017) and stops once the recently finished hypotheses are all far below the best one.
+- **Batch decoding:** Setting `--batch_size 8` decodes multiple utterances concurrently in one beam search call (`Speech2Text.batch_decode`), preserving exact transcript parity with sequential decoding while significantly improving RTFx.
+- **Greedy search stability:** Greedy decoding (`--beam_size 1`) provides faster inference but can be susceptible to repetition loops on noisy utterances (such as AMI). A small beam (e.g. beam 5) is recommended for production robustness.
+- **Long-form audio routing:** Utterances longer than 30 s (`speech_length * fs`) are automatically routed to `Speech2Text.decode_long`, while shorter utterances within the same minibatch remain batched in `batch_decode` cut to 30 s.
 
 ## OWSM series
 

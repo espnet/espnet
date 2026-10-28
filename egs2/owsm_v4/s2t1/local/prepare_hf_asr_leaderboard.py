@@ -112,7 +112,45 @@ def get_parser() -> argparse.ArgumentParser:
         "the recipe README numbers were sampled from)",
     )
     parser.add_argument("--out", required=True, help="output data directory")
+    parser.add_argument(
+        "--force",
+        action="store_true",
+        help="force recreation even if existing output matches requested parameters",
+    )
     return parser
+
+
+def check_cache(
+    out: Path,
+    dataset: str,
+    split: str,
+    revision: str,
+    n_requested: int,
+    max_dur: float,
+    seed: int,
+) -> bool:
+    """Return True if out already exists and matches requested parameters."""
+    required_files = ("wav.scp", "text", "info.json")
+    if not all((out / name).is_file() for name in required_files):
+        return False
+    try:
+        with (out / "info.json").open() as f:
+            info = json.load(f)
+        matches = (
+            info.get("dataset") == dataset
+            and info.get("split") == split
+            and info.get("revision") == revision
+            and info.get("n_requested", 0) == n_requested
+            and abs(info.get("max_dur", 0.0) - max_dur) < 1e-3
+        )
+        if n_requested > 0:
+            matches = matches and (
+                info.get("seed") == seed
+                and info.get("n") == n_requested
+            )
+        return matches
+    except Exception:
+        return False
 
 
 def get_text(sample: dict) -> str:
@@ -149,9 +187,21 @@ def main() -> None:
     elif args.max_dur is None:
         args.max_dur = 30.0
 
+    out = Path(args.out)
+    if not args.force and check_cache(
+        out=out,
+        dataset=args.dataset,
+        split=args.split,
+        revision=args.revision,
+        n_requested=args.n,
+        max_dur=args.max_dur,
+        seed=args.seed,
+    ):
+        logging.info(f"{out} already prepared with matching parameters, skipping.")
+        return
+
     from datasets import Audio, load_dataset
 
-    out = Path(args.out)
     wav_dir = out / "wav"
     wav_dir.mkdir(parents=True, exist_ok=True)
 

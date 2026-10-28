@@ -5,31 +5,17 @@
 - python version: `3.12.8`
 - espnet2 version: `espnet2 202501`
 - pytorch version: `pytorch 2.14.1`
+- Git hash: `f30a8303ce6a56b7609980c112862e6efbf9d002`
+  - Commit date: `Wed Oct 14 18:07:54 2026 +0500`
 
-## Evaluation on Open ASR Leaderboard (n=100 sample smoke test)
+## exp/espnet/owsm_v4_base_102M/decode_openasr
+### WER
 
-Hardware: Apple M4 laptop (4 threads, CPU), PyTorch 2.14.1, `ctc_weight=0`, beam 5 unless noted, decoding time only. 100 utterances per set, drawn with seed 0 (`info.json` records sampling parameters and details); these rows evaluate decoding configurations on the same 100-sample test sets rather than leaderboard-level full test sets.
-
-| set (n=100 sample) | utterances | audio (min) | mean length (s) |
-| --- | ---: | ---: | ---: |
-| test-clean | 100 | 13.8 | 8.3 |
-| test-other | 100 | 11.8 | 7.1 |
-| AMI | 100 | 8.2 | 4.9 |
-| VoxPopuli | 100 | 18.6 | 11.2 |
-| Earnings-22 | 100 | 13.1 | 7.8 |
-| Common Voice | 100 | 12.4 | 7.5 |
-
-| decoding (WER % / RTFx, n=100 sample) | test-clean | test-other | AMI | VoxPopuli | Earnings-22 | Common Voice |
-| --- | ---: | ---: | ---: | ---: | ---: | ---: |
-| beam 5, batch 1, maxlenratio 1.0 (old README advice) | 3.35 / 0.9 | - | - | - | - | - |
-| beam 5, batch 1, maxlenratio 0 (default) | 3.35 / 8.8 | 9.31 / 8.2 | 16.77 / 6.2 | 5.37 / 9.4 | 16.61 / 9.9 | 19.39 / 10.9 |
-| beam 5, batch 8 sorted, maxlenratio 0 | 3.35 / 9.8 | 9.31 / 9.3 | 16.77 / 7.1 | 5.37 / 7.8 | 16.61 / 9.9 | 19.39 / 12.2 |
-| greedy, batch 8 sorted, maxlenratio 0 | 3.57 / 23.1 | 9.78 / 17.5 | 29.63 / 11.6 | 5.69 / 32.7 | 16.50 / 24.4 | 20.81 / 26.0 |
-| 370M: beam 5, batch 8 sorted, maxlenratio 0 | 2.32 / 2.7 | 6.31 / 2.2 | 12.65 / 0.6 | 3.96 / 3.5 | 14.03 / 2.9 | 15.15 / 2.3 |
-
-### Notes and Observations:
-
-- **End detection vs maxlenratio:** OWSM v4 pads every single-window input to 30 s, so the maximum output length is 374 steps whatever the utterance. With `maxlenratio=1.0` the beam search always runs to that maximum: once the real transcript has ended, the remaining beams keep producing punctuation and fragments over the padded silence, and about 97% of the decoding time goes there. With `maxlenratio=0` (the default) the maximum length is the same, but the beam search also runs its end detection (Eq. 50 of Watanabe et al., 2017) and stops once the recently finished hypotheses are all far below the best one. The transcripts are identical to the `1.0` run on all 100 utterances of every set above.
-- **Batch decoding:** `--batch_size 8` decodes utterances in one beam search (`Speech2Text.batch_decode`). Transcripts remain identical. A batch runs until end detection has fired for its slowest utterance.
-- **370M model on AMI:** The 370M model on AMI shows the limit of end detection: on some of these short, noisy utterances no hypothesis ends at three consecutive lengths, so 4 of the 13 batches ran to the 374-step maximum (about 200 s each) and the set decodes at 9 s per utterance while the other sets take about 3 s.
-- **Greedy search stability:** Greedy decoding (`--beam_size 1`) is faster but not safe: on AMI it falls into repetition loops on some utterances and the WER almost doubles.
+|dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
+|---|---|---|---|---|---|---|---|---|
+|openasr_librispeech_test_clean_100|100|2178|96.8|2.8|0.4|0.1|3.4|31.0|
+|openasr_librispeech_test_other_100|100|1838|91.2|7.8|1.0|0.5|9.3|57.0|
+|openasr_ami_cleaned_test_100|100|1300|84.2|13.5|2.3|1.0|16.8|68.0|
+|openasr_voxpopuli_cleaned_aa_test_100|100|2963|95.0|4.3|0.7|0.4|5.4|49.0|
+|openasr_earnings22_test_100|100|2089|84.4|12.5|3.1|1.0|16.6|74.0|
+|openasr_common_voice_test_100|100|1980|81.6|15.8|2.6|1.0|19.4|77.0|

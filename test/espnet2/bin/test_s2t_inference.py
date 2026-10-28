@@ -756,7 +756,7 @@ def test_inference_long_audio_routed_to_decode_long(
 def test_inference_mixed_batch_preserves_order_and_keys(
     s2t_config_file_transformer, tmp_path, monkeypatch, caplog
 ):
-    """Mixed batch with short and long inputs preserves order and all keys."""
+    """Mixed batch sends short ones to batch_decode together and long to decode_long."""
     fs = 2000
     # max_speech_samples = 4 * 2000 = 8000
     # Create 3 utterances: short (2s = 4000), long (5s = 10000), short (3s = 6000)
@@ -770,10 +770,20 @@ def test_inference_mixed_batch_preserves_order_and_keys(
 
     out_dir = tmp_path / "out_mixed"
 
+    decode_long_calls = []
+    batch_decode_calls = []
+
     def mock_decode_long(self, speech, **kwargs):
+        decode_long_calls.append(len(speech))
         return [(0.0, 5.0, "long output text")]
 
     def mock_batch_decode(self, speech, speech_lengths=None, **kwargs):
+        lens = speech_lengths.clone() if speech_lengths is not None else None
+        batch_decode_calls.append({
+            "batch_size": speech.size(0),
+            "max_len": speech.size(1),
+            "speech_lengths": lens,
+        })
         results = []
         for _ in range(speech.size(0)):
             hyp = Hypothesis(score=-1.5, scores={}, states={}, yseq=[])
@@ -816,6 +826,15 @@ def test_inference_mixed_batch_preserves_order_and_keys(
         inference(**kwargs)
 
     assert "Total utterances decoded via decode_long: 1" in caplog.text
+
+    # Verify routing behavior:
+    # 1. Exactly 1 long utterance sent to decode_long
+    assert decode_long_calls == [10000]
+    # 2. The 2 short utterances were kept batched together in ONE batch_decode call
+    assert len(batch_decode_calls) == 1
+    assert batch_decode_calls[0]["batch_size"] == 2
+    # 3. Short utterances were cut to max_speech_samples (8000), not padded to 10000
+    assert batch_decode_calls[0]["max_len"] <= 8000
 
     recog_dir = out_dir / "1best_recog"
     text_lines = (recog_dir / "text").read_text().strip().splitlines()
