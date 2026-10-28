@@ -145,8 +145,7 @@ def check_cache(
         )
         if n_requested > 0:
             matches = matches and (
-                info.get("seed") == seed
-                and info.get("n") == n_requested
+                info.get("seed") == seed and info.get("n") == n_requested
             )
         return matches
     except Exception:

@@ -779,11 +779,13 @@ def test_inference_mixed_batch_preserves_order_and_keys(
 
     def mock_batch_decode(self, speech, speech_lengths=None, **kwargs):
         lens = speech_lengths.clone() if speech_lengths is not None else None
-        batch_decode_calls.append({
-            "batch_size": speech.size(0),
-            "max_len": speech.size(1),
-            "speech_lengths": lens,
-        })
+        batch_decode_calls.append(
+            {
+                "batch_size": speech.size(0),
+                "max_len": speech.size(1),
+                "speech_lengths": lens,
+            }
+        )
         results = []
         for _ in range(speech.size(0)):
             hyp = Hypothesis(score=-1.5, scores={}, states={}, yseq=[])
