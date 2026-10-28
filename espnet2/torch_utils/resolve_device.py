@@ -30,7 +30,10 @@ def _accelerator_device_type() -> str | None:
         return "cuda" if torch.cuda.is_available() else None
     if not accelerator.is_available():
         return None
-    return getattr(accelerator.current_accelerator(), "type", None)
+    device_type = getattr(accelerator.current_accelerator(), "type", None)
+    # MPS is used only when asked for by name; see resolve_device(). Reporting
+    # it here would make ``auto`` pick it on an Apple-silicon Mac.
+    return None if device_type == "mps" else device_type
 
 
 def _device_count(device_type: str) -> int:

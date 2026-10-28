@@ -43,8 +43,9 @@ def test_auto_follows_a_non_cuda_accelerator(monkeypatch):
 
 
 def test_auto_never_picks_mps_on_its_own(monkeypatch):
+    """An M-series Mac does report MPS as its accelerator; auto must not take it."""
     monkeypatch.setattr(torch.cuda, "is_available", lambda: False)
-    monkeypatch.setattr(torch, "accelerator", _FakeAccelerator(None), raising=False)
+    monkeypatch.setattr(torch, "accelerator", _FakeAccelerator("mps"), raising=False)
     monkeypatch.setattr(torch.backends.mps, "is_available", lambda: True)
     assert resolve_device("auto") == "cpu"
     assert resolve_device("mps") == "mps"
