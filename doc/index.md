@@ -19,10 +19,10 @@ highlights:
         details: "<code>pip install espnet espnet-model-zoo</code> and start using it immediately."
         icon: fa-solid:bolt
         link: notebook/#demos
-      - title: "Learning ESPnet from a course"
-        details: "The notebooks CMU teaches with: recognition, translation, synthesis, enhancement, codecs."
-        icon: fa-solid:fire
-        link: notebook/#courses
+      - title: "ESPnet3"
+        details: "The Python-first system/stage interface, recipes, and migration guides."
+        icon: mdi:graduation-cap
+        link: ./espnet3/index.md
       - title: "Complete installation to fully reproduce ESPnet models"
         details: "Complete the full installation and use the existing recipes."
         icon: fa-solid:server
@@ -93,11 +93,6 @@ highlights:
         details: Leveraging ESPnet2 recipes for full replication
         icon: mdi:graduation-cap
         link: ./espnet2_tutorial.md
-
-      - title: ESPnet3
-        details: The Python-first system/stage interface, recipes, and migration guides
-        icon: mdi:graduation-cap
-        link: ./espnet3/index.md
 
       - title: ESPnet1
         details: Documents on ESPnet1 recipes (Legacy)
