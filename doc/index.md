@@ -94,6 +94,11 @@ highlights:
         icon: mdi:graduation-cap
         link: ./espnet2_tutorial.md
 
+      - title: ESPnet3
+        details: The Python-first system/stage interface, recipes, and migration guides
+        icon: mdi:graduation-cap
+        link: ./espnet3/index.md
+
       - title: ESPnet1
         details: Documents on ESPnet1 recipes (Legacy)
         icon: mdi:graduation-cap
