@@ -545,7 +545,8 @@ class ARUniversa(AbsUniversa):
         for metric_name in metric_list:
             metric_token = self.metric_tokenizer.get_metric_meta_label(metric_name)
             values = self.metric_tokenizer.tokenizer_config[metric_name]
-            first_value_index = 1 if isinstance(values[0], str) else 0
+            indexed = self.metric_tokenizer.is_indexed_category(metric_name)
+            first_value_index = 1 if indexed else 0
             _, start_idx = self.metric_tokenizer.get_token_index(
                 metric_name, first_value_index
             )

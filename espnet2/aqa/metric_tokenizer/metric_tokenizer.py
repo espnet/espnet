@@ -140,7 +140,7 @@ class MetricTokenizer(AbsMetricTokenizer):
 
         return meta_label_index, value_index
 
-    def _is_indexed_category(self, metric_name: str) -> bool:
+    def is_indexed_category(self, metric_name: str) -> bool:
         """Return whether label i of a metric is encoded as value token i + 1."""
         return isinstance(self.tokenizer_config[metric_name][0], str) and (
             self.categorical_scheme == "index"
@@ -167,7 +167,7 @@ class MetricTokenizer(AbsMetricTokenizer):
             raise ValueError(
                 f"Invalid category value: {value} for metric {metric_name}"
             )
-        if self._is_indexed_category(metric_name):
+        if self.is_indexed_category(metric_name):
             return thresholds.index(value) + 1
         # Numerical thresholds; legacy categories compare label strings the same way.
         for i, threshold in enumerate(thresholds):
@@ -294,7 +294,7 @@ class MetricTokenizer(AbsMetricTokenizer):
             raise ValueError(f"Invalid value token {token_result} for metric {metric}")
         token_value = int(suffix)
         values = self.tokenizer_config[metric]
-        minimum = 1 if self._is_indexed_category(metric) else 0
+        minimum = 1 if self.is_indexed_category(metric) else 0
         if not minimum <= token_value <= len(values):
             raise ValueError(f"Invalid token value: {token_value} for metric {metric}")
         # Preserve historical numeric and legacy category bins, including bin zero.

@@ -303,6 +303,36 @@ def test_inference_uses_trainable_value_range(
 
 
 @pytest.mark.parametrize(
+    "shifted,preferred,unused,expected",
+    [([], 16, 19, "none"), (["bg_event"], 17, 16, "none")],
+)
+def test_inference_searches_legacy_category_bins(
+    make_arecho, legacy_token_info, shifted, preferred, unused, expected
+):
+    """Legacy categories search bin zero ("music"); shifted ones start at @1."""
+    legacy_token_info["shifted_categorical_metrics"] = shifted
+    model = make_arecho(
+        metric2id={"mos": 0, "language": 1, "bg_event": 2},
+        metric2type={
+            "mos": "numerical",
+            "language": "categorical",
+            "bg_event": "categorical",
+        },
+        metric_vocab_size=len(legacy_token_info["VOCAB"]) + 4,
+        metric_token_info=legacy_token_info,
+    ).eval()
+    with torch.no_grad():
+        model.decoder.output_layer.weight.zero_()
+        model.decoder.output_layer.bias.zero_()
+        model.decoder.output_layer.bias[preferred] = 10
+        model.decoder.output_layer.bias[unused] = 20
+    model.set_inference(1, ["bg_event"], True, True)
+    result = model.inference(torch.randn(1, 5, 8), torch.tensor([5]))
+    assert result["token_seq"][0][-1] == preferred
+    assert result["bg_event"] == [expected]
+
+
+@pytest.mark.parametrize(
     "options",
     [
         dict(sequential_metrics=False),
