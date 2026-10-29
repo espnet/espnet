@@ -41,9 +41,13 @@ class AqaInference:
         use_fixed_order: bool = False,
         fixed_metric_name_order: str = "",
         metric_list: Optional[List[str]] = None,
-        defer_full_meta: bool = False,
+        defer_full_meta: Optional[bool] = None,
     ):
-        """Initialize AqaInference class."""
+        """Initialize AqaInference class.
+
+        ``defer_full_meta`` decodes whole-clip ``<m>_full`` metrics after all
+        other metrics; None (default) follows the training config.
+        """
 
         # setup model
         model, train_args = AqaTask.build_model_from_file(
@@ -60,6 +64,8 @@ class AqaInference:
         self.seed = seed
         self.always_fix_seed = always_fix_seed
         self.metric_tokenizer = getattr(self.preprocess_fn, "metric_tokenizer", None)
+        if defer_full_meta is None:
+            defer_full_meta = getattr(train_args, "defer_full_meta", False)
         if getattr(self.universa, "sequential_metrics", False):
             metrics = metric_list or list(self.universa.metric2id)
             if fixed_metric_name_order:
@@ -183,7 +189,7 @@ def inference(
     save_token_seq: bool = False,
     use_fixed_order: bool = False,
     fixed_metric_name_order: str = "",
-    defer_full_meta: bool = False,
+    defer_full_meta: Optional[bool] = None,
 ):
     """Run inference."""
     # setup logger
@@ -299,8 +305,9 @@ def get_parser():
     parser.add_argument(
         "--defer_full_meta",
         type=str2bool,
-        default=False,
-        help="Decode whole-clip '<metric>_full' metrics after all other metrics",
+        default=None,
+        help="Decode whole-clip '<metric>_full' metrics after all other metrics. "
+        "Default: the training config's defer_full_meta",
     )
     parser.add_argument(
         "--ngpu",

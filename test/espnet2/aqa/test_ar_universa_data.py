@@ -37,7 +37,7 @@ def _collate_labels(collate, labels):
 
 
 @pytest.mark.parametrize("randomize", [False, True])
-def test_defer_full_meta_orders_whole_clip_pairs_last(randomize):
+def test_defer_full_meta_orders_whole_clip_pairs_last(randomize, monkeypatch):
     """Shuffle within prefix and whole-clip groups, never across them."""
     labels = {
         "mos_full": (14, 15),
@@ -47,7 +47,7 @@ def test_defer_full_meta_orders_whole_clip_pairs_last(randomize):
         "noise": (24, 25),
     }
     collate = ARMetricCollateFn(randomize=randomize, defer_full_meta=True)
-    random.seed(0)
+    monkeypatch.setattr("random.shuffle", random.Random(0).shuffle)
     orders = set()
     for _ in range(20):
         pairs = _collate_labels(collate, labels)
