@@ -33,6 +33,7 @@ skip_stages=
 ngpu=1
 num_nodes=1
 nj=32
+stats_nj=4
 inference_nj=32
 gpu_inference=false
 dumpdir=dump
@@ -116,6 +117,7 @@ Main options:
   --stage INT
   --stop_stage INT
   --skip_stages "INT ..."
+  --stats_nj INT
   --train_set NAME
   --valid_set NAME
   --test_sets "NAME ..."
@@ -562,10 +564,13 @@ if [ "${stage}" -le 8 ] && [ "${stop_stage}" -ge 8 ] \
     done
     stats_logdir=${tok_stats_dir}/logdir
     mkdir -p "${stats_logdir}"
-    stats_nj=$(min "${nj}" "$(wc -l < "${train_dir}/wav.scp")" "$(wc -l < "${valid_dir}/wav.scp")")
+    num_stats_jobs=$(min \
+        "${stats_nj}" \
+        "$(wc -l < "${train_dir}/wav.scp")" \
+        "$(wc -l < "${valid_dir}/wav.scp")")
     train_splits=()
     valid_splits=()
-    for job in $(seq "${stats_nj}"); do
+    for job in $(seq "${num_stats_jobs}"); do
         train_splits+=("${stats_logdir}/train.${job}.scp")
         valid_splits+=("${stats_logdir}/valid.${job}.scp")
     done
@@ -581,7 +586,7 @@ if [ "${stage}" -le 8 ] && [ "${stop_stage}" -ge 8 ] \
         # by the default config must be supplied here as it is for stage 9.
         stats_config_opts+=(--quantizer_conf "centroid_path=${resolved_centroid_path}")
     fi
-    ${train_cmd} JOB=1:"${stats_nj}" "${stats_logdir}/stats.JOB.log" \
+    ${train_cmd} JOB=1:"${num_stats_jobs}" "${stats_logdir}/stats.JOB.log" \
         "${python}" -m "espnet2.bin.${tok_task}_train" \
             --collect_stats true \
             --use_preprocessor true \
@@ -600,7 +605,7 @@ if [ "${stage}" -le 8 ] && [ "${stop_stage}" -ge 8 ] \
             "${stats_config_opts[@]}" ${tok_args}
 
     aggregate_opts=()
-    for job in $(seq "${stats_nj}"); do
+    for job in $(seq "${num_stats_jobs}"); do
         aggregate_opts+=(--input_dir "${stats_logdir}/stats.${job}")
     done
     "${python}" -m espnet2.bin.aggregate_stats_dirs \
