@@ -36,8 +36,32 @@ def get_task_class(task_path: str):
 
 
 @typechecked
-def get_espnet_model(task: str, config: Union[Dict, DictConfig]) -> AbsESPnetModel:
-    """Build and return an ESPnet model from the given task and config."""
+def get_espnet_model(
+    task: str, config: Union[Dict, DictConfig, None]
+) -> AbsESPnetModel:
+    """Build and return an ESPnet model from the given task and config.
+
+    Args:
+        task: ESPnet-2 task path (e.g. `"espnet2.tasks.asr.ASRTask"`).
+        config: Model config overrides. Must be a non-empty mapping; a task
+            cannot build a model from no configuration at all.
+
+    Returns:
+        The constructed ESPnet-2 model.
+
+    Raises:
+        ValueError: `config` is `None` or empty.
+
+    Examples:
+        >>> get_espnet_model("espnet2.tasks.asr.ASRTask", None)
+        Traceback (most recent call last):
+        ValueError: task='espnet2.tasks.asr.ASRTask' requires a non-empty ...
+    """
+    if config is None or len(config) == 0:
+        raise ValueError(
+            f"task={task!r} requires a non-empty model config; got {config!r}"
+        )
+
     ez_task = get_task_class(task)
 
     # workaround for calling get_default_config

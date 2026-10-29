@@ -1,9 +1,8 @@
 """Base system class and stage entrypoints for ESPnet3."""
 
 import logging
-import time
 from pathlib import Path
-from typing import ClassVar
+from typing import ClassVar, Mapping, Optional, Sequence, Tuple
 
 from omegaconf import DictConfig, OmegaConf
 
@@ -11,7 +10,11 @@ from espnet3.components.data.dataset_module import (
     load_dataset_module,
     parse_dataset_reference_config,
 )
-from espnet3.contract.stages import StageSpec, check_stage_contract
+from espnet3.contract.stages import (
+    StageSpec,
+    check_stage_contract,
+    resolve_config_roles,
+)
 from espnet3.publication.demo.packing import pack_demo as _pack_demo
 from espnet3.publication.demo.packing import upload_demo as _upload_demo
 from espnet3.systems.base.inference import infer
@@ -19,8 +22,52 @@ from espnet3.systems.base.metric import measure
 from espnet3.systems.base.training import collect_stats, train
 from espnet3.utils.publication_utils import pack_model as _pack_model
 from espnet3.utils.publication_utils import upload_model as _upload_model
+from espnet3.utils.run_utils import ConfigError
+from espnet3.utils.stage_configs import build_stage_configs
 
 logger = logging.getLogger(__name__)
+
+
+def _exp_dir_from(
+    system_cls: type, configs: Mapping[str, Optional[DictConfig]]
+) -> Optional[Path]:
+    """Return the first given config's own, self-resolving `exp_dir`.
+
+    Walks `system_cls.stages` in order, by role (each role considered
+    once); for the first role whose own config is given and whose
+    `exp_dir` resolves without depending on anything outside that one
+    config, returns it. A config that cannot resolve on its own (e.g. it
+    depends on `exp_tag` from a different role) is skipped, not an error.
+
+    Args:
+        system_cls: The system class whose declared `stages` sets the
+            role order.
+        configs: Each config role's own config, as given to `__init__`.
+
+    Returns:
+        The first resolvable `exp_dir`, or `None` if no given config has
+        one.
+    """
+    seen_roles = set()
+    for spec in system_cls.stages:
+        for role in resolve_config_roles(spec.config):
+            if role in seen_roles:
+                continue
+            seen_roles.add(role)
+            config = configs.get(role)
+            if config is None:
+                continue
+            try:
+                standalone = OmegaConf.create(
+                    OmegaConf.to_container(config, resolve=False)
+                )
+                OmegaConf.resolve(standalone)
+            except Exception:
+                continue
+            value = standalone.get("exp_dir")
+            if value:
+                return Path(value)
+    return None
 
 
 class BaseSystem:
@@ -46,15 +93,10 @@ class BaseSystem:
 
     All behavior is config-driven.
 
-    Args:
-        training_config (DictConfig | None): Training configuration.
-        inference_config (DictConfig | None): Inference configuration.
-        metrics_config (DictConfig | None): Measurement configuration.
-        publication_config (DictConfig | None): Publication configuration.
-        demo_config (DictConfig | None): Demo configuration.
-
     Examples:
-        >>> system = BaseSystem()
+        >>> system = BaseSystem(
+        ...     configs={"training": OmegaConf.create({"exp_dir": "./exp/x"})}
+        ... )
         >>> [s.name for s in system.stages[:3]]
         ['create_dataset', 'collect_stats', 'train']
     """
@@ -62,7 +104,7 @@ class BaseSystem:
     DATASET_BUILDER_CLASS_NAME = "DatasetBuilder"
     DATASET_CLASS_NAME = "Dataset"
 
-    stages: ClassVar[tuple[StageSpec, ...]] = (
+    stages: ClassVar[Tuple[StageSpec, ...]] = (
         StageSpec(name="create_dataset", config="training", log_dir="data_dir"),
         StageSpec(name="collect_stats", config="training", log_dir="stats_dir"),
         StageSpec(name="train", config="training", log_dir="exp_dir"),
@@ -81,49 +123,64 @@ class BaseSystem:
 
     def __init__(
         self,
-        training_config: DictConfig | None = None,
-        inference_config: DictConfig | None = None,
-        metrics_config: DictConfig | None = None,
-        publication_config: DictConfig | None = None,
-        demo_config: DictConfig | None = None,
+        *,
+        configs: Mapping[str, Optional[DictConfig]],
+        exp_dir: Optional[Path] = None,
+        stages_to_run: Optional[Sequence[str]] = None,
     ) -> None:
-        """Initialize the system with optional stage configs.
+        """Build each requested stage's config and hold it, by stage name.
 
         Args:
-            training_config: Training configuration for data preparation,
-                statistics collection, and model training.
-            inference_config: Inference configuration used by the ``infer``
-                stage.
-            metrics_config: Measurement configuration used by the ``measure``
-                stage.
-            publication_config: Publication configuration for ``pack_model``
-                and ``upload_model`` stages.
-            demo_config: Demo configuration for the ``demo`` stage.
+            configs: Each config role's own config (its default plus
+                whatever the caller loaded), not yet resolved, keyed by
+                role name (``"training"``, ``"inference"``, ...). A role
+                this system has no stage for is ignored; a role it does
+                have a stage for but that is missing here is treated as
+                empty. A stage that needs its own ``recipe_dir`` reads it
+                from its own config (``self.stage_configs[stage].recipe_dir``),
+                not from a separate constructor argument.
+            exp_dir: The experiment directory to bake stage configs under
+                and read earlier baked configs from. When `None`, derived
+                from the first given config whose own `exp_dir` resolves
+                by itself (see `_exp_dir_from`); if none does, raises.
+            stages_to_run: The stages this run actually requests. Only
+                these (and the earlier stages they inherit from) have
+                their config built and resolved; a later stage's missing
+                identity never stops construction. `None` builds every
+                declared stage.
+
+        Raises:
+            ConfigError: `exp_dir` is not given and no config in
+                `configs` has a self-resolving `exp_dir`.
+
+        Notes:
+            Each stage's config is its own `DictConfig` object - the
+            earlier stages' own keys (this run's, in memory, or an
+            earlier run's baked file), then this stage's own config on
+            top, then resolved. No two stages share one config object, so
+            one stage popping or overwriting a key never affects another.
         """
-        self.training_config = training_config
-        self.inference_config = inference_config
-        self.metrics_config = metrics_config
-        self.publication_config = publication_config
-        self.demo_config = demo_config
+        resolved_exp_dir = (
+            Path(exp_dir) if exp_dir is not None else _exp_dir_from(type(self), configs)
+        )
+        if resolved_exp_dir is None:
+            raise ConfigError(
+                f"{type(self).__name__} needs an experiment directory; pass "
+                "--exp_dir, or set exp_dir in one of the given configs."
+            )
+        self.exp_dir = resolved_exp_dir
+        self.exp_dir.mkdir(parents=True, exist_ok=True)
+        self._default_log_dir = self.exp_dir
 
-        if training_config is not None:
-            self.exp_dir = Path(training_config.exp_dir)
-            self.exp_dir.mkdir(parents=True, exist_ok=True)
-        else:
-            self.exp_dir = None
-
-        self._default_log_dir = self.exp_dir or (Path.cwd() / "logs")
+        self.stage_configs, self.own_keys = build_stage_configs(
+            type(self), configs, exp_dir=self.exp_dir, upto=stages_to_run
+        )
 
         logger.info(
-            "Initialized %s with training_config=%s inference_config=%s "
-            "metrics_config=%s publication_config=%s demo_config=%s exp_dir=%s",
+            "Initialized %s exp_dir=%s stages=%s",
             self.__class__.__name__,
-            training_config is not None,
-            inference_config is not None,
-            metrics_config is not None,
-            publication_config is not None,
-            demo_config is not None,
             self.exp_dir,
+            sorted(self.stage_configs),
         )
 
     @staticmethod
@@ -136,15 +193,17 @@ class BaseSystem:
             )
 
     @staticmethod
-    def _get_required_config(config, key: str, error_message: str):
+    def _require(config, key: str, message: str):
         """Return ``config[key]``, raising ``RuntimeError`` when missing.
 
         Args:
             config: Dict-like config (e.g. ``DictConfig``) to read from.
                 ``None`` is treated the same as a missing key.
             key: Field name to extract.
-            error_message: Message for the ``RuntimeError`` raised when the
-                field is absent or ``None``.
+            message: Message for the ``RuntimeError`` raised when the
+                field is absent or ``None``. By convention, names the
+                stage and the key (e.g. ``"infer: the stage config has
+                no inference_dir; ..."``), not the config role.
 
         Returns:
             The value stored under ``key``.
@@ -152,38 +211,47 @@ class BaseSystem:
         Raises:
             RuntimeError: If ``config`` is ``None`` or ``config[key]`` is
                 missing or ``None``.
+
+        Examples:
+            >>> from omegaconf import OmegaConf
+            >>> BaseSystem._require(OmegaConf.create({"a": 1}), "a", "need a")
+            1
         """
         value = config.get(key, None) if config is not None else None
         if value is None:
-            raise RuntimeError(error_message)
+            raise RuntimeError(message)
         return value
 
     # ---------------------------------------------------------
     # Stage stubs (override in subclasses if needed)
     # ---------------------------------------------------------
     def create_dataset(self, *args, **kwargs):
-        """Create datasets from dataset references."""
+        """Create datasets from dataset references.
+
+        Examples:
+            >>> system = BaseSystem(configs={"training": training_config})
+            >>> system.create_dataset()
+        """
         self._reject_stage_args("create_dataset", args, kwargs)
+        config = self.stage_configs["create_dataset"]
         logger.info(
             "%s.create_dataset(): starting dataset creation process",
             self.__class__.__name__,
         )
-        start = time.perf_counter()
-        dataset_config = getattr(self.training_config, "dataset", None)
-        recipe_dir = getattr(self.training_config, "recipe_dir", None)
-        create_dataset_config = getattr(
-            self.training_config, "create_dataset", OmegaConf.create({})
-        )
+        dataset_config = getattr(config, "dataset", None)
+        recipe_dir = getattr(config, "recipe_dir", None)
+        create_dataset_config = getattr(config, "create_dataset", OmegaConf.create({}))
         default_builder_kwargs = dict(create_dataset_config)
 
         prepared_any = False
 
         if dataset_config is None:
             raise RuntimeError(
-                "training_config.dataset must be set for create_dataset stage."
+                "create_dataset: the stage config has no dataset; set "
+                "dataset: in training.yaml."
             )
 
-        prepared_refs: set[str] = set()
+        prepared_refs: set = set()
         for split_name in ("train", "valid", "test"):
             entries = getattr(dataset_config, split_name, None)
             if entries is None:
@@ -211,14 +279,11 @@ class BaseSystem:
 
         if not prepared_any:
             raise RuntimeError(
-                "training_config.dataset must include at least one entry in "
+                "create_dataset: the stage config's dataset has no entry in "
                 "dataset.train / dataset.valid / dataset.test."
             )
 
-        logger.info(
-            "Dataset creation completed in %.2fs",
-            time.perf_counter() - start,
-        )
+        logger.info("Dataset creation completed.")
         return None
 
     def collect_stats(self, *args, **kwargs):
@@ -235,47 +300,94 @@ class BaseSystem:
         .. code-block:: yaml
 
             collect_stats_train_mode: true
+
+        Examples:
+            ```python
+            system = ASRSystem(
+                configs={"training": training_config}, exp_dir=exp_dir
+            )
+            system.collect_stats()
+            # Writes stats under the stage config's stats_dir.
+            ```
         """
         self._reject_stage_args("collect_stats", args, kwargs)
+        config = self.stage_configs["collect_stats"]
         logger.info(
             "Collecting stats | exp_dir=%s stats_dir=%s",
-            getattr(self.training_config, "exp_dir", None),
-            getattr(self.training_config, "stats_dir", None),
+            getattr(config, "exp_dir", None),
+            getattr(config, "stats_dir", None),
         )
-        return collect_stats(self.training_config)
+        return collect_stats(config)
 
     def train(self, *args, **kwargs):
-        """Train the system model."""
+        """Train the system model.
+
+        Examples:
+            ```python
+            system = ASRSystem(
+                configs={"training": training_config}, exp_dir=exp_dir
+            )
+            system.train()
+            # Runs model.fit() and saves the resolved config under exp_dir.
+            ```
+        """
         self._reject_stage_args("train", args, kwargs)
+        config = self.stage_configs["train"]
         model_target = None
-        if self.training_config is not None and hasattr(self.training_config, "model"):
-            model_config = self.training_config.model
-            if isinstance(model_config, DictConfig):
-                model_target = model_config.get("_target_")
+        if hasattr(config, "model") and isinstance(config.model, DictConfig):
+            model_target = config.model.get("_target_")
         logger.info(
             "Training start | exp_dir=%s model=%s",
-            getattr(self.training_config, "exp_dir", None),
+            getattr(config, "exp_dir", None),
             model_target or "<unknown>",
         )
-        return train(self.training_config)
+        return train(config)
 
     def infer(self, *args, **kwargs):
-        """Run inference on the configured datasets."""
+        """Run inference on the configured datasets.
+
+        Examples:
+            ```python
+            system = ASRSystem(
+                configs={"inference": inference_config}, exp_dir=exp_dir
+            )
+            system.infer()
+            # Writes decoded hypotheses under the stage config's inference_dir.
+            ```
+        """
         self._reject_stage_args("infer", args, kwargs)
-        logger.info(
-            "Inference start | inference_dir=%s",
-            getattr(self.inference_config, "inference_dir", None),
+        config = self.stage_configs["infer"]
+        self._require(
+            config,
+            "inference_dir",
+            "infer: the stage config has no inference_dir; set it in "
+            "inference.yaml or pass --exp_dir of a run that trained.",
         )
-        return infer(self.inference_config)
+        logger.info("Inference start | inference_dir=%s", config.inference_dir)
+        return infer(config)
 
     def measure(self, *args, **kwargs):
-        """Compute evaluation metrics from hypothesis/reference outputs."""
+        """Compute evaluation metrics from hypothesis/reference outputs.
+
+        Examples:
+            ```python
+            system = ASRSystem(
+                configs={"metrics": metrics_config}, exp_dir=exp_dir
+            )
+            result = system.measure()
+            # result holds the computed metric values.
+            ```
+        """
         self._reject_stage_args("measure", args, kwargs)
-        logger.info(
-            "Metrics start | metrics_config=%s",
-            self.metrics_config is not None,
+        config = self.stage_configs["measure"]
+        self._require(
+            config,
+            "inference_dir",
+            "measure: the stage config has no inference_dir; pass "
+            "--inference_config, or --exp_dir of the run that ran infer.",
         )
-        result = measure(self.metrics_config, inference_config=self.inference_config)
+        logger.info("Metrics start | inference_dir=%s", config.inference_dir)
+        result = measure(config, inference_config=self.stage_configs["infer"])
         logger.info("results: %s", result)
         return result
 
@@ -283,13 +395,27 @@ class BaseSystem:
     # Publication stages (optional overrides)
     # ---------------------------------------------------------
     def pack_model(self, *args, **kwargs):
-        """Pack model artifacts into an espnet3 bundle."""
+        """Pack model artifacts into an espnet3 bundle.
+
+        Examples:
+            ```python
+            system = ASRSystem(
+                configs={
+                    "training": training_config,
+                    "publication": publication_config,
+                },
+                exp_dir=exp_dir,
+            )
+            system.pack_model()
+            # Packs model artifacts under the stage config's pack_model.out_dir.
+            ```
+        """
         self._reject_stage_args("pack_model", args, kwargs)
         return _pack_model(
-            training_config=self.training_config,
-            publication_config=self.publication_config,
-            inference_config=self.inference_config,
-            metrics_config=self.metrics_config,
+            training_config=self.stage_configs.get("train"),
+            publication_config=self.stage_configs.get("pack_model"),
+            inference_config=self.stage_configs.get("infer"),
+            metrics_config=self.stage_configs.get("measure"),
         )
 
     def upload_model(self, *args, **kwargs):

@@ -8,7 +8,7 @@ from unittest.mock import patch
 import pytest
 from omegaconf import OmegaConf
 
-from espnet3.contract.stages import StageContractError, StageSpec, roles
+from espnet3.contract.stages import StageContractError, StageSpec, list_roles
 from espnet3.systems.base.system import BaseSystem
 from espnet3.systems.launch import build_parser, default_conf_package, launch
 
@@ -46,9 +46,11 @@ class _RecordingSystem(BaseSystem):
     )
     instances: list = []
 
-    def __init__(self, **kwargs):
+    def __init__(self, *, configs, exp_dir=None, stages_to_run=None):
+        self.configs = configs
+        self.exp_dir = exp_dir
+        self.stages_to_run = stages_to_run
         self.calls = []
-        self._default_log_dir = None
         type(self).instances.append(self)
 
     def train(self):
@@ -60,12 +62,12 @@ class _RecordingSystem(BaseSystem):
 
 @pytest.fixture
 def stub_config_loading(monkeypatch):
-    """Replace config loading and experiment-context wiring with no-ops.
+    """Replace config loading with a no-op; record what role it was for.
 
     ``launch()``'s own orchestration (stage resolution, contract checks,
     system instantiation, delegating to ``run_stages``) is what these tests
-    exercise; loading real packaged config files and validating experiment
-    context are independently tested elsewhere.
+    exercise; loading real packaged config files is independently tested
+    elsewhere.
     """
     import espnet3.systems.launch as launch_module
 
@@ -75,6 +77,7 @@ def stub_config_loading(monkeypatch):
         config_path, config_name, default_package=None, **kwargs
     ):
         captured.setdefault("default_package", default_package)
+        captured.setdefault("loaded_for", []).append(config_name)
         return OmegaConf.create({})
 
     monkeypatch.setattr(
@@ -83,13 +86,7 @@ def stub_config_loading(monkeypatch):
     monkeypatch.setattr(
         launch_module, "configure_logging", lambda *a, **k: logging.getLogger("test")
     )
-    monkeypatch.setattr(
-        launch_module, "apply_training_experiment_context", lambda *a, **k: None
-    )
-    monkeypatch.setattr(
-        launch_module, "validate_experiment_context", lambda *a, **k: None
-    )
-    monkeypatch.setattr(launch_module, "resolve_loaded_configs", lambda *a, **k: None)
+    monkeypatch.setattr(launch_module, "run_stages", lambda *a, **k: None)
     return captured
 
 
@@ -102,14 +99,14 @@ def test_build_parser_stages_choices_follow_declared_order():
 def test_build_parser_has_one_config_arg_per_declared_role():
     parser = build_parser(_RecordingSystem)
     args = parser.parse_args(["--training_config", "a.yaml"])
-    for role in roles(_RecordingSystem):
+    for role in list_roles(_RecordingSystem):
         assert hasattr(args, f"{role}_config")
     assert str(args.training_config) == "a.yaml"
 
 
 def test_build_parser_has_no_config_arg_for_an_undeclared_role():
     parser = build_parser(_RecordingSystem)
-    assert "metrics" not in roles(_RecordingSystem)
+    assert "metrics" not in list_roles(_RecordingSystem)
     with pytest.raises(SystemExit):
         parser.parse_args(["--metrics_config", "b.yaml"])
 
@@ -120,9 +117,92 @@ def test_build_parser_rejects_unknown_stage_name():
         parser.parse_args(["--stages", "decode"])
 
 
-def test_launch_requires_config_for_requested_stage(stub_config_loading):
+def test_build_parser_has_exp_dir_and_dry_run_args():
+    parser = build_parser(_RecordingSystem)
+    args = parser.parse_args(["--stages", "train", "--training_config", "a.yaml"])
+
+    assert args.exp_dir is None
+    assert args.dry_run is False
+
+
+def test_build_parser_accepts_exp_dir_and_dry_run():
+    parser = build_parser(_RecordingSystem)
+    args = parser.parse_args(
+        [
+            "--stages",
+            "train",
+            "--training_config",
+            "a.yaml",
+            "--exp_dir",
+            "./exp/my_run",
+            "--dry_run",
+        ]
+    )
+
+    assert args.exp_dir == "./exp/my_run"
+    assert args.dry_run is True
+
+
+def test_launch_passes_configs_and_exp_dir(stub_config_loading, tmp_path):
+    _RecordingSystem.instances.clear()
+
+    launch(
+        _RecordingSystem,
+        argv=[
+            "--stages",
+            "train",
+            "--training_config",
+            str(tmp_path / "training.yaml"),
+            "--exp_dir",
+            str(tmp_path / "exp" / "my_run"),
+        ],
+    )
+
+    system = _RecordingSystem.instances[-1]
+    assert system.exp_dir == str(tmp_path / "exp" / "my_run")
+    assert "training" in system.configs
+    assert system.configs["training"] is not None
+
+
+def test_launch_passes_none_for_a_role_with_no_cli_config(
+    stub_config_loading, tmp_path
+):
+    _RecordingSystem.instances.clear()
+
+    launch(
+        _RecordingSystem,
+        argv=[
+            "--stages",
+            "train",
+            "--training_config",
+            str(tmp_path / "training.yaml"),
+            "--exp_dir",
+            str(tmp_path / "exp" / "my_run"),
+        ],
+    )
+
+    system = _RecordingSystem.instances[-1]
+    assert system.configs.get("inference") is None
+
+
+def test_launch_requires_config_or_exp_dir_for_requested_stage(stub_config_loading):
     with pytest.raises(StageContractError, match="train runs on the training config"):
         launch(_RecordingSystem, argv=["--stages", "train"])
+
+
+def test_launch_allows_a_missing_config_when_exp_dir_is_given(
+    stub_config_loading, tmp_path
+):
+    # The stage's config may come from its baked file under --exp_dir;
+    # check_requested_stages must not demand a CLI config in that case.
+    _RecordingSystem.instances.clear()
+
+    launch(
+        _RecordingSystem,
+        argv=["--stages", "train", "--exp_dir", str(tmp_path / "exp" / "my_run")],
+    )
+
+    assert _RecordingSystem.instances[-1].stages_to_run == ["train"]
 
 
 def test_launch_dry_run_does_not_run_stages(stub_config_loading, tmp_path):
@@ -168,9 +248,10 @@ class _CustomRoleSystem(BaseSystem):
     stages = (StageSpec(name="finetune", config="finetuning"),)
     instances: list = []
 
-    def __init__(self, **kwargs):
-        self.received_kwargs = kwargs
-        self._default_log_dir = None
+    def __init__(self, *, configs, exp_dir=None, stages_to_run=None):
+        self.configs = configs
+        self.exp_dir = exp_dir
+        self.stages_to_run = stages_to_run
         type(self).instances.append(self)
 
     def finetune(self):
@@ -178,7 +259,7 @@ class _CustomRoleSystem(BaseSystem):
 
 
 def test_launch_passes_custom_role_config_to_constructor(stub_config_loading, tmp_path):
-    """A custom role must reach system_cls(**kwargs) as ``<role>_config``."""
+    """A custom role must reach system_cls(configs=...) keyed by its own name."""
     _CustomRoleSystem.instances.clear()
     launch(
         _CustomRoleSystem,
@@ -190,8 +271,8 @@ def test_launch_passes_custom_role_config_to_constructor(stub_config_loading, tm
         ],
     )
     system = _CustomRoleSystem.instances[-1]
-    assert "finetuning_config" in system.received_kwargs
-    assert system.received_kwargs["finetuning_config"] is not None
+    assert "finetuning" in system.configs
+    assert system.configs["finetuning"] is not None
 
 
 def test_launch_inference_only_stage_runs_without_training_config(
@@ -209,7 +290,12 @@ def test_launch_inference_only_stage_runs_without_training_config(
         ],
     )
     system = _RecordingSystem.instances[-1]
-    assert system.calls == ["infer"]
+    # stub_config_loading stubs out run_stages itself (see its own docstring),
+    # so this checks what launch() resolved and passed to the constructor,
+    # not that infer() actually ran.
+    assert system.stages_to_run == ["infer"]
+    assert system.configs.get("training") is None
+    assert system.configs["inference"] is not None
 
 
 # ---------------------------------------------------------------------------
@@ -235,3 +321,145 @@ def test_run_py_calls_launch_when_executed_as_a_script():
     with patch("espnet3.systems.launch.launch") as mock_launch:
         _exec_run_py(run_py, "__main__")
     mock_launch.assert_called_once()
+
+
+# ---------------------------------------------------------------------------
+# Saved-config search wiring: per-stage directory flags -> cli_dir_overrides
+# -> merge_stage_config_from_snapshots -> system.stage_configs
+# ---------------------------------------------------------------------------
+
+
+class _MismatchedRoleSystem(BaseSystem):
+    """A role name ("training") that does NOT match its stage's log_dir key
+
+    ("exp_dir") - the realistic case (see design/config_tree_fix.md's own
+    StageSpec examples). A naive `f"{role}_dir"` guess would miss this.
+    """
+
+    stages = (StageSpec(name="train", config="training", log_dir="exp_dir"),)
+    instances: list = []
+
+    def __init__(self, *, configs, exp_dir=None, stages_to_run=None):
+        self.configs = configs
+        self.exp_dir = exp_dir
+        self.stages_to_run = stages_to_run
+        type(self).instances.append(self)
+
+    def train(self):
+        pass
+
+
+def test_build_parser_adds_exp_dir_flag_from_log_dir_key():
+    parser = build_parser(_RecordingSystem)
+    action = next(a for a in parser._actions if a.dest == "exp_dir")
+    assert "--exp_dir" in action.option_strings or "--exp-dir" in action.option_strings
+
+
+def test_build_parser_adds_flag_for_a_non_exp_dir_log_dir_key():
+    parser = build_parser(_RecordingSystem)
+    args = parser.parse_args(["--inference-dir", "/tmp/beam10"])
+    assert args.inference_dir == "/tmp/beam10"
+
+
+def test_launch_forwards_exp_dir_cli_value_despite_role_log_dir_mismatch(
+    tmp_path, stub_config_loading
+):
+    """Regression: cli_dir_overrides must be built from the stage's actual
+
+    canonical log_dir key (here "exp_dir"), not a guess like
+    f"{role}_dir" (which would produce "training_dir" - nonexistent).
+    """
+    _MismatchedRoleSystem.instances.clear()
+    captured = {}
+
+    def fake_merge(system_cls, stage, configs_by_role, cli_dir_overrides, **kwargs):
+        captured["cli_dir_overrides"] = dict(cli_dir_overrides)
+        return OmegaConf.create({})
+
+    with patch(
+        "espnet3.systems.launch.merge_stage_config_from_snapshots",
+        side_effect=fake_merge,
+    ):
+        launch(
+            _MismatchedRoleSystem,
+            argv=["--stages", "train", "--exp_dir", str(tmp_path / "exp")],
+        )
+
+    assert captured["cli_dir_overrides"].get("exp_dir") == tmp_path / "exp"
+
+
+def test_launch_resolved_stage_configs_reach_the_system(tmp_path, stub_config_loading):
+    """The merged config launch() computes per stage must actually reach
+
+    the running system, not be computed and discarded.
+    """
+    _RecordingSystem.instances.clear()
+    sentinel = OmegaConf.create({"from_snapshot_merge": True})
+
+    with patch(
+        "espnet3.systems.launch.merge_stage_config_from_snapshots",
+        return_value=sentinel,
+    ):
+        launch(
+            _RecordingSystem,
+            argv=[
+                "--stages",
+                "train",
+                "--training_config",
+                str(tmp_path / "training.yaml"),
+            ],
+        )
+
+    system = _RecordingSystem.instances[-1]
+    assert system.stage_configs["train"] == sentinel
+
+
+def test_publication_ci_configs_resolve_after_stage_inheritance(tmp_path, monkeypatch):
+    """Resolve the publication CI configs without training or downloading data."""
+    from espnet3.systems.esp2_asr.system import ASRSystem
+
+    repo_root = Path(__file__).resolve().parents[3]
+    recipe = repo_root / "egs3" / "mini_an4" / "esp2_asr"
+    inference = (
+        repo_root
+        / "test_utils"
+        / "egs3"
+        / "integration_test"
+        / "esp2_asr"
+        / "conf"
+        / "inference_publication.yaml"
+    )
+    monkeypatch.chdir(recipe)
+    captured = {}
+
+    def record_stages(*, system, **kwargs):
+        captured.update(system.stage_configs)
+
+    monkeypatch.setattr("espnet3.systems.launch.run_stages", record_stages)
+    launch(
+        ASRSystem,
+        argv=[
+            "--stages",
+            "create_dataset",
+            "train_tokenizer",
+            "collect_stats",
+            "train",
+            "infer",
+            "measure",
+            "pack_model",
+            "--training_config",
+            "conf/training_asr_transformer.yaml",
+            "--inference_config",
+            str(inference),
+            "--metrics_config",
+            "conf/metrics.yaml",
+            "--publication_config",
+            "conf/publication.yaml",
+            "--exp_dir",
+            str(tmp_path / "exp"),
+        ],
+    )
+    assert captured["infer"].inference_dir.endswith("/inference_publication")
+    assert Path(captured["infer"].exp_dir) == tmp_path / "exp"
+    assert captured["measure"].inference_dir == captured["infer"].inference_dir
+    assert Path(captured["pack_model"].exp_dir) == tmp_path / "exp"
