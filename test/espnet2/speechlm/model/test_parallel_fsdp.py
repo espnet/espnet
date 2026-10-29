@@ -16,9 +16,17 @@ from unittest import mock
 import pytest
 import torch
 import torch.distributed as dist
+import torch.distributed.checkpoint as dcp
 import torch.multiprocessing as mp
 from packaging.version import Version
 from torch import nn
+from torch.distributed.checkpoint.state_dict import (
+    StateDictOptions,
+    get_model_state_dict,
+    get_optimizer_state_dict,
+    set_model_state_dict,
+    set_optimizer_state_dict,
+)
 from torch.distributed.device_mesh import init_device_mesh
 from torch.distributed.fsdp import MixedPrecisionPolicy, fully_shard
 
@@ -220,6 +228,134 @@ def _check_gradients_and_updates(
                     )
     finally:
         dist.destroy_process_group()
+
+
+def _check_tied_checkpoint_round_trip(rank, mesh_shape, rendezvous, checkpoint_dir):
+    """Save and resume the tied FSDP setup with TitanTrainer's DCP calls."""
+    torch.set_num_threads(1)
+    dist.init_process_group(
+        "gloo",
+        init_method=rendezvous,
+        rank=rank,
+        world_size=math.prod(mesh_shape),
+        timeout=timedelta(seconds=60),
+    )
+    try:
+        from espnet2.speechlm.model.speechlm.lm import loss as loss_module
+        from espnet2.speechlm.model.speechlm.lm import parallel
+
+        config = SimpleNamespace(architectures=["_FSDPLossTestModel"])
+        with (
+            mock.patch.object(
+                parallel.AutoConfig, "from_pretrained", return_value=config
+            ),
+            mock.patch.object(
+                parallel.transformers, "_FSDPLossTestModel", nn.Module, create=True
+            ),
+        ):
+            loss_impl = parallel.build_parallel_hf_class("unused")._loss
+        mesh = init_device_mesh(
+            "cpu",
+            mesh_shape,
+            mesh_dim_names=(
+                ("replicate", "shard") if len(mesh_shape) == 2 else ("shard",)
+            ),
+        )
+        mp_policy = MixedPrecisionPolicy(
+            param_dtype=torch.bfloat16, reduce_dtype=torch.float32
+        )
+
+        def build(seed):
+            torch.manual_seed(seed)
+            model = _LossHarness(loss_impl, tied=True)
+            fully_shard(model.embed_tokens, mesh=mesh, mp_policy=mp_policy)
+            model.lm_head.weight = model.embed_tokens.weight
+            for module in (model.trunk, model.stream_emb):
+                fully_shard(module, mesh=mesh, mp_policy=mp_policy)
+            fully_shard(
+                model,
+                mesh=mesh,
+                mp_policy=mp_policy,
+                ignored_params={model.lm_head.weight},
+            )
+            return model, torch.optim.AdamW(model.parameters(), lr=0.1)
+
+        def train_step(model, optimizer, step):
+            optimizer.zero_grad(set_to_none=True)
+            model._loss_stats = {}
+            model(*_batch(rank, step, 0, "cpu"), scale=1.0).backward()
+            optimizer.step()
+
+        def trainer_state(model, optimizer):
+            # Same calls and options as TitanTrainer._save/_load_checkpoint.
+            return {
+                "model": get_model_state_dict(model),
+                "optimizer": get_optimizer_state_dict(
+                    model, optimizer, options=StateDictOptions(full_state_dict=False)
+                ),
+            }
+
+        def full_params(model):
+            return {
+                name: value.full_tensor().clone()
+                for name, value in model.state_dict().items()
+                if hasattr(value, "full_tensor")
+            }
+
+        with mock.patch.object(
+            loss_module, "LigerFusedLinearCrossEntropyFunction", _TorchLinearCE
+        ):
+            model, optimizer = build(seed=0)
+            train_step(model, optimizer, step=0)
+            state = trainer_state(model, optimizer)
+            assert {"embed_tokens.weight", "lm_head.weight"} <= state["model"].keys()
+            dcp.save(state, checkpoint_id=checkpoint_dir)
+            saved = full_params(model)
+            train_step(model, optimizer, step=1)
+            uninterrupted = full_params(model)
+
+            resumed, resumed_optimizer = build(seed=1)
+            state = trainer_state(resumed, resumed_optimizer)
+            dcp.load(state, checkpoint_id=checkpoint_dir)
+            set_model_state_dict(
+                resumed, state["model"], options=StateDictOptions(strict=True)
+            )
+            set_optimizer_state_dict(
+                resumed,
+                resumed_optimizer,
+                state["optimizer"],
+                options=StateDictOptions(full_state_dict=False, strict=True),
+            )
+            assert resumed.lm_head.weight is resumed.embed_tokens.weight
+            for name, value in full_params(resumed).items():
+                torch.testing.assert_close(value, saved[name], rtol=0, atol=0)
+
+            # The resumed run must continue exactly like the uninterrupted one.
+            train_step(resumed, resumed_optimizer, step=1)
+            assert resumed.lm_head.weight is resumed.embed_tokens.weight
+            for name, value in full_params(resumed).items():
+                torch.testing.assert_close(value, uninterrupted[name], rtol=0, atol=0)
+    finally:
+        dist.destroy_process_group()
+
+
+@pytest.mark.execution_timeout(180)
+@pytest.mark.parametrize("mesh_shape", [(2,), (2, 2)], ids=["fsdp", "hsdp"])
+def test_tied_fsdp_checkpoint_round_trip(mesh_shape, tmp_path):
+    if not dist.is_available() or not dist.is_gloo_available():
+        pytest.skip("requires Gloo")
+    if Version(torch.__version__.split("+")[0]) < Version("2.11"):
+        pytest.skip("CPU FSDP regression uses the SpeechLM PyTorch 2.11 runtime")
+    mp.spawn(
+        _check_tied_checkpoint_round_trip,
+        args=(
+            mesh_shape,
+            (tmp_path / "store").as_uri(),
+            str(tmp_path / "checkpoint"),
+        ),
+        nprocs=math.prod(mesh_shape),
+        join=True,
+    )
 
 
 @pytest.mark.execution_timeout(180)
