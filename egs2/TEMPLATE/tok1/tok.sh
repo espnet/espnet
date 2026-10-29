@@ -85,13 +85,13 @@ kmeans_num_threads=20
 kmeans_opts=
 
 # Experiment configuration (used by later stages)
-tok_task=gan_tok  # gan_tok or tok
+tok_task=gan_tok
 tok_tag=
 tok_exp=
 tok_stats_dir=
 tok_config=
 tok_args=
-inference_model=valid.loss.ave.pth
+inference_model=valid.generator_loss.ave.pth
 inference_tag=  # Output tag. If empty, derived from inference_model.
 inference_batch_size=1
 
@@ -120,7 +120,7 @@ Main options:
   --valid_set NAME
   --test_sets "NAME ..."
   --tok_config PATH
-  --tok_task gan_tok|tok
+  --tok_task gan_tok
   --spk_embed_model TAG_OR_PATH
   --spk_embed_gpu_inference true|false
   --use_default_centroid true|false
@@ -171,8 +171,8 @@ if [ "${feats_type}" != raw ]; then
     log "Error: tok1 currently supports --feats_type raw only"
     exit 2
 fi
-if [ "${tok_task}" != gan_tok ] && [ "${tok_task}" != tok ]; then
-    log "Error: --tok_task must be gan_tok or tok"
+if [ "${tok_task}" != gan_tok ]; then
+    log "Error: --tok_task currently supports gan_tok only"
     exit 2
 fi
 if [ "${use_default_centroid}" != true ] && [ "${use_default_centroid}" != false ]; then
