@@ -1,0 +1,46 @@
+builder:
+  dataset_path: downloads
+  data_path: data
+  archive_path: ./downloads.tar.gz
+  splits:
+    train:
+      transcript_name: an4_train.transcription
+      sph_subdir: an4_clstk
+    test:
+      transcript_name: an4_test.transcription
+      sph_subdir: an4test_clstk
+  dev_size: 1
+  manifest_paths:
+    train: manifest/train.tsv
+    valid: manifest/valid.tsv
+    test: manifest/test.tsv
+
+dataset:
+  split_manifest_paths:
+    train: manifest/train.tsv
+    valid: manifest/valid.tsv
+    test: manifest/test.tsv
+
+  # AN4 is an ASR corpus: it has no target-language side. ST needs two text
+  # streams, so the target is synthesised by translating word by word through
+  # this table, which covers AN4's entire 16-word vocabulary. It exists to
+  # exercise the pipeline -- two tokenizers, two text streams, BLEU -- not to
+  # train a usable model. A word with no entry is passed through unchanged.
+  # Keys are quoted because an unquoted YES is a YAML 1.1 boolean.
+  translation:
+    "EIGHT": ACHT
+    "ELEVEN": ELF
+    "FIFTY": FUENFZIG
+    "FOUR": VIER
+    "GO": LOS
+    "MARCH": MAERZ
+    "NINETEEN": NEUNZEHN
+    "OCTOBER": OKTOBER
+    "ONE": EINS
+    "SEVEN": SIEBEN
+    "SEVENTEEN": SIEBZEHN
+    "SEVENTY": SIEBZIG
+    "START": START
+    "THIRD": DRITTE
+    "TWENTY": ZWANZIG
+    "YES": JA
