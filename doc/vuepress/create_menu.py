@@ -34,6 +34,7 @@ if __name__ == "__main__":
             "prefix": "/",
             "children": [
                 {"text": "Full ESPnet installation", "link": "installation.md"},
+                {"text": "ESPnet3", "link": "espnet3/get-started/index.md"},
                 {"text": "ESPnet2", "link": "espnet2_tutorial.md"},
                 {"text": "ESPnet1", "link": "espnet1_tutorial.md"},
                 {
@@ -97,7 +98,11 @@ if __name__ == "__main__":
                         for submodule in sorted(list(module.glob("*")))
                     ],
                 }
-                for module in sorted(list(args.root.glob("guide/*")))
+                for module in sorted(
+                    list(args.root.glob("guide/*")),
+                    # ESPnet3 first, then alphabetical.
+                    key=lambda p: (p.name != "espnet3", p.name),
+                )
             ],
         },
         {
