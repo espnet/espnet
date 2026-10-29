@@ -191,11 +191,17 @@ if [ -n "${speed_perturb_factors}" ]; then
     effective_train_set=${train_set}_sp
 fi
 data_feats=${dumpdir}/raw
+audio_sample_rate=$("${python}" -c \
+    'import humanfriendly, sys; print(humanfriendly.parse_size(sys.argv[1]))' "${fs}")
 kmeans_feature_type=${kmeans_feature%%/*}
 if [ "${kmeans_feature}" = mfcc ]; then
     kmeans_layer=
     kmeans_feature_conf="{type=mfcc}"
 else
+    if [ "${audio_sample_rate}" -ne 16000 ]; then
+        log "Error: S3PRL features require --fs 16k"
+        exit 2
+    fi
     if [ "${kmeans_feature}" = "${kmeans_feature_type}" ]; then
         log "Error: --kmeans_feature must have MODEL/LAYER format: ${kmeans_feature}"
         exit 2
@@ -509,7 +515,7 @@ if [ "${stage}" -le 7 ] && [ "${stop_stage}" -ge 7 ] \
             --datadir "${data_feats}" \
             --featdir "${dumpdir}/kmeans_features" \
             --audio_format "${audio_format}" \
-            --audio_sample_rate 16000 \
+            --audio_sample_rate "${audio_sample_rate}" \
             --feature_type "${kmeans_feature_type}" \
             --layer "${kmeans_layer}" \
             --feature_conf "${kmeans_feature_conf}" \
