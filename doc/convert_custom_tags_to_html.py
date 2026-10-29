@@ -138,6 +138,27 @@ LANGUAGE_TAG_SET = [
     ("cd", "text"),
 ]
 
+# Vue components registered globally in doc/vuepress/src/.vuepress/client.ts
+# (plus VPIcon, auto-registered by @vuepress/plugin-icon). These are used
+# directly in markdown content, e.g. "<HomeHero />", and must not be
+# HTML-escaped like an unrecognized tag.
+CUSTOM_COMPONENTS = [
+    "DocCard",
+    "DocCards",
+    "HomeCapabilities",
+    "HomeContribute",
+    "HomeDocLinks",
+    "HomeHero",
+    "HomePipeline",
+    "HomeQuickStart",
+    "HomeRecipe",
+    "MetricsExplorer",
+    "ShardingDemo",
+    "VPIcon",
+    "XVectorAnimation",
+    "XVectorConfig",
+]
+
 
 def get_parser():
     parser = configargparse.ArgumentParser(
@@ -170,9 +191,15 @@ def replace_custom_tags(content):
         # Handle closing tags like </a>, </div>, etc.
         if first_part.startswith("/"):
             base_tag = first_part[1:]
-            if base_tag in ALL_HTML_TAGS:
+            if base_tag in ALL_HTML_TAGS or base_tag in CUSTOM_COMPONENTS:
                 return match.group(0)
             return f"&lt;{tag_name}&gt;"
+
+        # Custom Vue components (e.g. "<HomeHero />") are trusted as-is:
+        # they are not HTML tags, so the ALL_HTML_TAGS/end-tag checks below
+        # don't apply to them.
+        if first_part in CUSTOM_COMPONENTS:
+            return match.group(0)
 
         if first_part not in ALL_HTML_TAGS or (
             len(tag_name.split()) > 1 and "=" not in tag_name
