@@ -1,0 +1,23 @@
+##########################################################
+#                      DEMO SETTING                      #
+##########################################################
+# Quick usage:
+#   python run.py --stages pack_demo   --demo_config conf/demo.yaml
+#   python run.py --stages upload_demo --demo_config conf/demo.yaml
+#
+# Defaults come from egs3/TEMPLATE/esp2_s2t/conf/demo.yaml.
+#
+# Assumes `pack_model` has already written the pack `model.dir_or_tag` names,
+# and that `pack_model` was given --inference_config: the demo reads the
+# packed conf/inference.yaml, and its contract is what decides the widgets.
+# For s2t that is audio plus an optional language and task, against `text`
+# and `segments`.
+
+# The template's default, exp/${exp_tag}/model_pack, already matches this
+# recipe's layout.
+model: {}
+
+# This recipe's launcher. It is the shared one: the layout comes from the
+# contract, so nothing here is s2t-specific.
+ui:
+  app_script: ${config_path:../src/app.py}
