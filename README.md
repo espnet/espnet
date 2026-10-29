@@ -23,7 +23,7 @@
 
 ______________________________________________________________________
 
-ESPnet is an end-to-end speech processing toolkit built on [PyTorch](https://pytorch.org/). It covers speech recognition, text-to-speech, speech translation, speech enhancement, speaker diarization, spoken language understanding, singing voice synthesis, speech language models, and more — with [Kaldi](http://kaldi-asr.org/)-style reproducible recipes from data preparation to evaluation, and hundreds of pretrained models on Hugging Face.
+ESPnet is an end-to-end speech processing toolkit built on [PyTorch](https://pytorch.org/). It covers speech recognition, text-to-speech, speech translation, speech enhancement, speaker diarization, spoken language understanding, spoken language identification, singing voice synthesis, speech language models, and more — with [Kaldi](http://kaldi-asr.org/)-style reproducible recipes from data preparation to evaluation, and hundreds of pretrained models on Hugging Face.
 
 ## What's new
 
@@ -294,6 +294,7 @@ on the draft documentation site for further guidance.
 - Support voice conversion recipe (VCC2020 baseline)
 - Support speaker diarization recipe (mini_librispeech, librimix)
 - Support singing voice synthesis recipe (ofuton_p_utagoe_db, opencpop, m4singer, etc.)
+- Support spoken language identification recipes (voxlingua107, geolid.)
 
 #### ASR: Automatic Speech Recognition
 - **State-of-the-art performance** in several ASR benchmarks (comparable/superior to hybrid DNN/HMM and CTC)
@@ -435,6 +436,15 @@ Demonstration
 - Performing noisy spoken language understanding using a speech enhancement model followed by a spoken language understanding model.  [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/14nCrJ05vJcQX0cJuXjbMVFWUHJ3Wfb6N?usp=sharing)
 - Performing two-pass spoken language understanding where the second pass model attends to both acoustic and semantic information.  [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1p2cbGIPpIIcynuDl4ZVHDpmNPl8Nh_ci?usp=sharing)
 
+### LID: Spoken Language Identification
+- Architecture
+    - Frontend: Self-supervised models integrated via S3PRL, such as MMS, XLS-R, etc.
+    - Encoder: ECAPA-TDNN, xvector, etc.
+    - Pooling methods: Statistical pooling, attentive statistics pooling, etc.
+- Supports AAMSoftmax loss with subcenter regularization and topk penalty
+- Optional lang2vec auxiliary targets and conditioning on predicted language features; inference uses speech only.
+- Supports category-balanced sampling for imbalanced language datasets
+- Supports language embeddings extraction, t-SNE visualization, distributed inference, and cross-dataset evaluation
 
 #### SUM: Speech Summarization
 - End to End Speech Summarization Recipe for Instructional Videos using Restricted Self-Attention [[Sharma et al., 2022]](https://arxiv.org/abs/2110.06263)
@@ -740,7 +750,7 @@ If you use ESPnet in your research, please cite the main paper:
 ```
 
 <details>
-<summary>Task-specific papers (TTS, ST, SE, SLU, SVS, UASR, S2T, SUM, SPK)</summary>
+<summary>Task-specific papers (TTS, ST, SE, SLU, SVS, UASR, S2T, SUM, SPK, LID)</summary>
 
 ```bibtex
 @inproceedings{hayashi2020espnet,
@@ -902,6 +912,14 @@ If you use ESPnet in your research, please cite the main paper:
   booktitle={2025 IEEE Workshop on Applications of Signal Processing to Audio and Acoustics (WASPAA)},
   year={2025},
   organization={IEEE}
+}
+@inproceedings{wang2025geolid,
+  title={Geolocation-Aware Robust Spoken Language Identification},
+  author={Qingzheng Wang and Hye-jin Shim and Jiancheng Sun and Shinji Watanabe},
+  booktitle={2025 IEEE Automatic Speech Recognition and Understanding Workshop (ASRU)},
+  year={2025},
+  organization={IEEE},
+  url={https://arxiv.org/abs/2508.17148}
 }
 @inproceedings{someki2026espnet3,
   title={{ESPnet3}: Infrastructure for Scalable Speech and Audio Research in the Foundation Model Era},
