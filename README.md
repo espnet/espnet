@@ -223,17 +223,48 @@ the Space `README.md` and `requirements.txt` are all generated from
 [`conf/demo.yaml`](egs3/TEMPLATE/esp2_asr/conf/demo.yaml).
 
 <details>
-<summary>The three stages</summary>
+<summary>Pack and publish an existing run</summary>
+
+The current CLI keeps only requested stage configs; standalone `--stages
+pack_model` therefore omits the training/inference entries that packing reads.
+For an already trained run, construct the system directly so its prerequisite
+configs are retained, without executing training again:
 
 ```sh
 cd egs3/librispeech_100/esp2_asr
-train=conf/tuning/training_e_branchformer.yaml   # the config the model was trained with
-python run.py --stages pack_model  --training_config $train --inference_config conf/inference.yaml --publication_config conf/publication.yaml  # -> exp/.../model_pack
-python run.py --stages pack_demo   --training_config $train --demo_config conf/demo.yaml                # -> demo/
-python run.py --stages upload_demo --training_config $train --demo_config conf/demo.yaml                # needs `hf auth login`
+python - <<'PYTHON'
+from pathlib import Path
+
+from espnet3.systems.esp2_asr.system import ASRSystem
+from espnet3.utils.config_utils import load_and_merge_config
+
+paths = {
+    "training": "conf/tuning/training_e_branchformer.yaml",
+    "inference": "conf/inference.yaml",
+    "metrics": "conf/metrics.yaml",
+    "publication": "conf/publication.yaml",
+    "demo": "conf/demo.yaml",
+}
+configs = {
+    role: load_and_merge_config(
+        Path(path), config_name=f"{role}.yaml",
+        default_package="egs3.TEMPLATE.esp2_asr", resolve=False,
+    )
+    for role, path in paths.items()
+}
+system = ASRSystem(
+    configs=configs,
+    stages_to_run=("pack_model", "pack_demo", "upload_demo"),
+)
+system.pack_model()
+system.pack_demo()
+# Run this only when ready to publish, after hf auth login:
+# system.upload_demo()
+PYTHON
 ```
 
-Run the packed app locally with `python demo/app.py`.
+Run the packed app locally with `python demo/app.py`. The contract in the packed
+`conf/inference.yaml` supplies the default demo's input/output layout.
 
 </details>
 

@@ -59,21 +59,44 @@ ESPnet3 recipes are Python entry points rather than shell stages. A recipe runs 
 
 ``` console
 $ python run.py --stages create_dataset --training_config conf/training.yaml
-$ python run.py --stages train          --training_config conf/training.yaml
-$ python run.py --stages infer          --inference_config conf/inference.yaml
-$ python run.py --stages measure        --metrics_config conf/metrics.yaml
+$ python run.py --stages train_tokenizer train --training_config conf/training.yaml
+$ python run.py --stages infer --training_config conf/training.yaml --inference_config conf/inference.yaml
+$ python run.py --stages infer measure --training_config conf/training.yaml --inference_config conf/inference.yaml --metrics_config conf/metrics.yaml
 ```
 
 See [egs3/TEMPLATE](https://github.com/espnet/espnet/tree/master/egs3/TEMPLATE) for the
 recipe layout, and [`egs3/mini_an4/esp2_asr`](egs3/mini_an4/esp2_asr) for the smallest working
 example. Packing and uploading a trained model is part of the same interface:
 
-``` console
-$ python run.py --stages pack_model   --training_config conf/training.yaml --publication_config conf/publication.yaml
-$ python run.py --stages upload_model --training_config conf/training.yaml --publication_config conf/publication.yaml
+For an existing trained run, retain prerequisite stage configs by constructing the
+system directly; standalone CLI `pack_model` currently drops those entries:
+
+```python
+from pathlib import Path
+
+from espnet3.systems.esp2_asr.system import ASRSystem
+from espnet3.utils.config_utils import load_and_merge_config
+
+configs = {
+    role: load_and_merge_config(
+        Path(f"conf/{role}.yaml"), config_name=f"{role}.yaml",
+        default_package="egs3.TEMPLATE.esp2_asr", resolve=False,
+    )
+    for role in ("training", "inference", "metrics", "publication")
+}
+system = ASRSystem(configs=configs, stages_to_run=("pack_model",))
+system.pack_model()  # Reads existing artifacts; does not execute earlier stages.
 ```
 
+Use your actual training config path when it differs from `conf/training.yaml`.
+The direct constructor builds configs through the requested stage, while `launch`
+replaces that mapping with only selected stages.
+
 `upload_model` uses your local Hugging Face login, so run `hf auth login` first.
+The current launcher retains stage configs only for the selected stages. Include
+`train_tokenizer` when running ASR `train`, and include `infer` when running
+`measure`; the latter executes inference again. Passing `--exp_dir` recovers saved
+configuration but does not add omitted stages to the system's selected configs.
 
 #### 1.3.3 Publishing models
 
@@ -100,8 +123,11 @@ exactly like a model under `espnet/`, and no organization membership is involved
 4. Link the model from your recipe's `RESULTS.md`. That link, in your recipe pull request,
    is all the registration a model needs.
 
-For ESPnet3 the equivalent is `python run.py --stages pack_model upload_model`, with
-`upload_model.hf_repo` in `conf/publication.yaml` set to your own namespace.
+For ESPnet3, pack an existing run as above. Set `upload_model.hf_repo` in
+`conf/publication.yaml` to your own namespace and select `stages_to_run=("upload_model",)`
+when constructing the system before calling `system.pack_model()` and, only when
+ready to publish, `system.upload_model()`. Config construction includes earlier
+stages, but these method calls do not execute training or inference.
 
 If a model should end up under `espnet/` rather than your account, say so in your pull
 request and a maintainer will arrange it — you do not need to join the organization for

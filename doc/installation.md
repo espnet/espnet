@@ -124,7 +124,13 @@ We also have [prebuilt Kaldi binaries](https://github.com/espnet/espnet/blob/mas
 
 1. Setup Python environment
 
-    You must create `<espnet-root>/tools/activate_python.sh` to specify the Python interpreter used in espnet recipes.
+    This checkout requires Python 3.12 or 3.13 (`>=3.12,<3.14` in
+    `pyproject.toml`). Older Python versions in historical ESPnet environments
+    do not satisfy the current package requirements.
+
+    Shell recipes and CI scripts that source `<espnet-root>/tools/activate_python.sh`
+    need that file to select their Python interpreter. An ESPnet3 Python entry
+    point can instead run in an already activated environment.
     (To understand how ESPnet specifies Python, see [path.sh](https://github.com/espnet/espnet/blob/master/egs2/TEMPLATE/asr1/path.sh) for example.)
 
     We also have some scripts to generate `tools/activate_python.sh`.
@@ -135,7 +141,7 @@ We also have [prebuilt Kaldi binaries](https://github.com/espnet/espnet/blob/mas
         $ cd <espnet-root>/tools
         $ ./setup_miniforge.sh [output-dir-name|default=venv] [conda-env-name|default=root] [python-version|default=none]
         # e.g.
-        $ ./setup_miniforge.sh miniconda espnet 3.8
+        $ ./setup_miniforge.sh miniconda espnet 3.12
         ```
 
         This script tries to create a new miniconda if the output directory doesn't exist.
@@ -146,7 +152,7 @@ We also have [prebuilt Kaldi binaries](https://github.com/espnet/espnet/blob/mas
         $ CONDA_ROOT=${CONDA_PREFIX}/../..  # CONDA_PREFIX is an environment variable set by ${CONDA_ROOT}/etc/profile.d/conda.sh
         $ ./setup_miniforge.sh ${CONDA_ROOT} [conda-env-name] [python-version]
         # e.g.
-        $ ./setup_miniforge.sh ${CONDA_ROOT} espnet 3.8
+        $ ./setup_miniforge.sh ${CONDA_ROOT} espnet 3.12
         ```
 
     - Option B) Setup venv from the system Python
