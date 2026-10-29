@@ -1,21 +1,19 @@
 <template>
   <a :href="href" class="doc-card" :class="{ 'doc-card--external': external }">
     <div v-if="icon" class="doc-card__icon" aria-hidden="true">
-      <HopeIcon :icon="icon" />
+      <VPIcon :icon="icon" />
     </div>
     <div class="doc-card__body">
       <p class="doc-card__title">{{ title }}</p>
       <p v-if="desc" class="doc-card__desc">{{ desc }}</p>
     </div>
     <span class="doc-card__arrow" aria-hidden="true">
-      <HopeIcon :icon="external ? 'tabler:external-link' : 'tabler:arrow-right'" />
+      <VPIcon :icon="external ? 'tabler:external-link' : 'tabler:arrow-right'" />
     </span>
   </a>
 </template>
 
 <script setup>
-import HopeIcon from "vuepress-theme-hope/components/HopeIcon.js";
-
 defineProps({
   title:    { type: String, required: true },
   desc:     { type: String, default: '' },
