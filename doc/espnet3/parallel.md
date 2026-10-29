@@ -1,222 +1,151 @@
-## ESPnet3 Configuration Guide
+# Parallel execution in ESPnet3
 
-This document explains how to work with configuration files in ESPnet3, particularly focusing on modern usage patterns powered by OmegaConf and Hydra. The content is divided into two main parts:
+ESPnet3 has two separate execution layers: Dask runners for independent
+shards (for example statistics and inference), and Lightning for model
+training across devices/nodes. A Dask GPU worker count does not configure
+Lightning DDP training.
 
-1. Adoption of OmegaConf
-2. Structure of the Default Recipe Configs
+## Dask configuration
 
-### 1. Adoption of OmegaConf
-ESPnet3 supports OmegaConf and Hydra, enabling dynamic class instantiation, use of environment variables, and injection of runtime metadata (e.g., execution date).
+A stage passes its top-level `parallel` block to `set_parallel()`:
 
-### 2. Structure of the Default Recipe
-
-The default configuration files are organized into modular sections, each responsible for a specific area of the experiment setup.
-
-E.g., configurations that you may follow:
 ```yaml
-# Parameters used over the experiments
-expdir=
-seed=
-...
-
-# Config for each elements
 parallel:
-   # parallel config
-
-model:
-   # model definition
-
-trainer:
-   # pytorch-lightning trainer arguments.
+  env: local
+  n_workers: 2
+  options:
+    threads_per_worker: 1
 ```
 
-#### General Experiment Settings
-Defines common items such as:
-- Experiment directory
-- Random seed
-These are shared across multiple sub-configs to avoid redundancy.
+`env: local` creates `distributed.LocalCluster`. `options` are forwarded to
+the cluster constructor; `n_workers` controls worker/shard planning. A
+configured local cluster still uses Dask even with one worker. `BaseRunner`
+uses its in-process path only when no global parallel config is set.
+Calling `set_parallel(None)` retains a previous global config if one exists,
+so pass an explicit local config when switching execution policy.
 
-#### Parallel Execution ("parallel")
-These configs define settings for distributed execution, whether on local machines or clusters.
-ESPnet3 supports both CPU and GPU parallelization via Dask.
-So please check the Dask project if you want to know more on what config you can set.
-- on local PC: [LocalCluster](https://docs.dask.org/en/latest/deploying-python.html?highlight=localcluster#reference)
-- on Slurm cluster: [SLURMCluster](https://jobqueue.dask.org/en/latest/generated/dask_jobqueue.SLURMCluster.html)
-
-You can define multiple parallel configs (e.g., `parallel_cpu`, `parallel_gpu`) and select one when launching your experiment.
+Local GPU inference uses `LocalCUDACluster` and requires `dask_cuda` and its
+CUDA dependencies:
 
 ```yaml
-parallel_cpu:
+parallel:
+  env: local_gpu
+  n_workers: 1
+  options:
+    threads_per_worker: 1
+```
+
+The worker count cannot exceed visible GPUs. Whether the backend actually
+uses CUDA is determined by the provider/model configuration as well as the
+cluster's device visibility.
+
+For a site using SLURM and `dask_jobqueue`:
+
+```yaml
+parallel:
   env: slurm
-  n_workers: 64
+  n_workers: 4
   options:
     queue: cpu
-    cores: 16
-    processes: 4
-    memory: 16GB
-    walltime: 30:00
-
-parallel_gpu:
-  env: slurm
-  n_workers: 3
-  options:
-    queue: gpu
-    cores: 8
+    cores: 4
     processes: 1
-    memory: 16GB
-    walltime: 30:00
-    job_extra_directives:
-      - "--gres=gpu:1"
+    memory: 8GB
+    walltime: "00:30:00"
 ```
+
+Use your site's account/partition/resource settings in `options`. For GPU
+workers, request a GPU in the site's `job_extra_directives` and select the
+appropriate queue; the example above requests CPU jobs. The implementation
+also maps supported jobqueue environments and offers `kube` through
+`dask_kubernetes`; these optional packages must be installed.
+
+## Providers, runners, and batches
+
+An `EnvironmentProvider` implements worker setup, commonly building the
+model and dataset once per worker. A `BaseRunner` subclass supplies
+`forward()` plus writer/reduction/merge hooks. `InferenceRunner` already
+implements persistence; keep it when a backend returns compatible named
+outputs, and override formatting/input-adaptation hooks only when needed.
 
 ```python
 from espnet3.parallel.parallel import get_client
+from omegaconf import OmegaConf
 
-# Submit 4 jobs, each has 16 cpus and 4 parallel jobs.
-# i.e. each worker will use 4 cpus.
-with get_client(config.parallel_cpu) as cpu_client:
-    processed_data = parallel_map(
-        <some function>,
-        <data>,
-        cpu_client, # you can specify client
+
+def square(value):
+    return value * value
+
+
+if __name__ == "__main__":
+    config = OmegaConf.create(
+        {"env": "local", "n_workers": 2, "options": {"threads_per_worker": 1}}
     )
-
-# Submit 3 jobs, each worker has 8 cpus and 1 gpu.
-with get_client(config.parallel_gpu) as gpu_client:
-    result = parallel_map(
-        <some function>,
-        <data>,
-    ) # gpu_client will be used
-
+    with get_client(config) as client:
+        futures = client.map(square, [1, 2, 3])
+        assert client.gather(futures) == [1, 4, 9]
 ```
 
+`get_client()` is a context manager that closes its client and cluster. The
+`__main__` guard is needed for spawned workers. This low-level Dask example
+is separate from calling a stage's configured runner.
 
-#### Model Definition
-ESPnet3 supports two main options for model definition:
+A runner's `batch_size` groups dataset indices **before** shard planning:
+`null` sends single indices and a positive integer sends index lists. The
+backend must support the corresponding argument shape. In inference,
+consecutive samples become list-valued backend inputs; there is no automatic
+single-item retry for a backend that rejects batches.
 
-1. **Using ESPnet-provided models**
-   - You can reuse existing ESPnet2 model configs
-   - Simply copy the model config and specify the ESPnet3 task to retain compatibility
+## Outputs and resume
 
-   ```python
-   from espnet3.components.modeling.lightning_module import ESPnetLightningModule
-   from espnet3.task import get_espnet_model
+A file-writing runner requires `output_dir`. Inference produces
+`<inference_dir>/<test_name>/split.<shard>/` with shard files/artifacts, then
+merges `<field>.scp` files under the test-set directory. See
+[the inference configuration](./config/infer_config.html).
 
-   model = get_espnet_model(task="asr", config=config.model)
-   model = ESPnetLightningModule(model)
-   trainer = Trainer(model, ...)
-   ```
+`resume=True` is a runner constructor default. Its manifest records the
+indices/batches and shard plan; a different plan is rejected. Completed
+shards are reused. The reviewed baseline does not validate model/data
+content identity, so changing weights or manifests requires a fresh output
+directory or an explicit clean recomputation. It does not promise safe
+concurrent writers to one output directory.
 
-2. **Using custom models defined by researchers**
-   - Specify the path to the model class and its arguments in the config
-   - Hydra will instantiate it at runtime
+`parallel.allow_overwrite_lock: true` can replace a stale lock after its
+owning process has stopped. Do not enable it while a writer is active.
+Worker startup and output paths must be accessible on the selected cluster;
+shared storage is usually needed for merged shard artifacts.
 
-   ```python
-   from espnet3.components.modeling.lightning_module import ESPnetLightningModule
+## Lightning training
 
-   model = hydra.utils.instantiate(config.model)
-   model = ESPnetLightningModule(model)
-   trainer = Trainer(model, ...)
-   ```
+Training resource settings belong to `num_device`, `num_nodes`, and
+`trainer`, independently of Dask's `parallel.n_workers`:
 
-In both cases, the model is passed into the trainer in the same way.
-
-
-#### Optimizer and Scheduler
-ESPnet3 supports multiple optimizers and schedulers. This is useful, for example, when training GAN-based model or other complex models.
-For detailed documentation please check [Multiple Optimizers and Schedulers](./optimizer_configuration.md)
-
-#### Dataloader Configuration
-Covers settings such as:
-- Dataset paths and classes
-- Collate functions
-- Samplers
-
-If you want to configure dataloader, please create the following section into your configuration.
-
-E.g., simple configuration
 ```yaml
-dataloader:
-  collate_fn:
-    _target_: espnet2.train.collate_fn.CommonCollateFn
-    int_pad_value: -1
+num_device: 2
+num_nodes: 1
 
-  train:
-    shuffle: true
-    batch_size: 4
-    num_workers: 4
-
-  valid:
-    shuffle: false
-    batch_size: 4
-    num_workers: 4
-```
-
-E.g., using lhotse as dataset
-```yaml
-dataloader:
-  collate_fn:
-    _target_: espnet2.train.collate_fn.CommonCollateFn
-    int_pad_value: -1
-
-  train:
-    dataset:
-      _target_: lhotse.dataset.speech_recognition.K2SpeechRecognitionDataset
-      input_strategy:
-        _target_: lhotse.dataset.OnTheFlyFeatures
-        extractor:
-          _target_: lhotse.Fbank
-    sampler:
-      _target_: lhotse.dataset.sampling.SimpleCutSampler
-      max_cuts: 20
-      shuffle: true
-  valid:
-    dataset:
-      _target_: lhotse.dataset.speech_recognition.K2SpeechRecognitionDataset
-      input_strategy:
-        _target_: lhotse.dataset.OnTheFlyFeatures
-        extractor:
-          _target_: lhotse.Fbank
-    sampler:
-      _target_: lhotse.dataset.sampling.SimpleCutSampler
-      max_cuts: 20
-      shuffle: false
-```
-
-#### Trainer Parameters
-The default trainer is based on PyTorch Lightning. Most config values are passed directly into the Lightning trainer.
-
-Some parameters require pre-instantiation (e.g., loggers and callbacks). These are instantiated during initialization and passed in properly.
-
-The following configs will be passed to Lightning Trainer after instantiation:
-- accelerator
-- strategy
-- logger
-- profiler
-- plugins
-- callbacks
-
-E.g.,
-```yaml
 trainer:
-  # Configs directly passed to lightning trainer
   accelerator: gpu
-  devices: 4
-  num_nodes: 1
-  accumulate_grad_batches: 1
-  gradient_clip_val: 1.0
-  log_every_n_steps: 500
-  max_epochs: 70
-
-  # Configs passed to lightning trainer after instantiation
-  logger:
-    - _target_: lightning.pytorch.loggers.TensorBoardLogger
-      save_dir: ${expdir}/tensorboard
-      name: tb_logger
-
+  devices: ${num_device}
+  num_nodes: ${num_nodes}
   strategy: ddp
+  max_epochs: 10
 ```
 
----
+Launch one coordinated training job with the site's supported Lightning
+launch environment. Do not submit multiple independent `run.py` processes
+against the same output directory expecting the launcher to deduplicate
+non-training stages: on the reviewed baseline only bake/snapshot writes are
+rank-gated, not all stage bodies. Prepare shared dataset/tokenizer/statistics
+artifacts once before a distributed training run.
 
-ESPnet3 aims to provide a flexible and modular configuration system, enabling researchers to scale from quick experiments to large-scale distributed training with minimal config changes.
+Dataloader sharding settings describe the underlying `ShardedDataset`, not
+Dask worker count. Set `total_shards` and `dist_world_size` as dataset
+attributes (typically through `data_src_args`); placing them under
+`dataloader.train` does not configure dataset sharding. Match the actual
+runtime topology. See the
+[training configuration](./config/train_config.html#sharding-keys).
+
+The implementation references are `espnet3/parallel/base_runner.py`,
+`espnet3/parallel/env_provider.py`, `espnet3/parallel/parallel.py`,
+`espnet3/components/trainers/trainer.py`, and
+`espnet3/components/data/dataloader.py`.
