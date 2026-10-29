@@ -11,7 +11,10 @@ from typeguard import typechecked
 
 from espnet2.aqa.abs_universa import AbsUniversa
 from espnet2.aqa.ar_universa.universa_beam_search import ARUniVERSABeamSearch
-from espnet2.aqa.metric_tokenizer.metric_tokenizer import MetricTokenizer
+from espnet2.aqa.metric_tokenizer.metric_tokenizer import (
+    MetricTokenizer,
+    is_full_metric,
+)
 from espnet2.asr.decoder.transformer_decoder import TransformerDecoder
 from espnet2.asr.encoder.transformer_encoder import TransformerEncoder
 from espnet2.layers.utterance_mvn import UtteranceMVN
@@ -27,23 +30,6 @@ from espnet2.legacy.nets.pytorch_backend.transformer.label_smoothing_loss import
     LabelSmoothingLoss,
 )
 from espnet2.torch_utils.device_funcs import force_gatherable
-
-FULL_METRIC_SUFFIX = "_full"
-
-
-def is_full_metric(metric_name: str) -> bool:
-    """Return whether a metric describes the whole clip rather than a prefix.
-
-    Models trained on audio prefixes pair a prefix metric ``<m>`` with
-    ``<m>_full``, a forecast of the same metric on the whole clip.
-
-    Args:
-        metric_name: Metric name, e.g. ``"utmos"`` or ``"utmos_full"``.
-
-    Returns:
-        True if the name ends with ``FULL_METRIC_SUFFIX``.
-    """
-    return metric_name.endswith(FULL_METRIC_SUFFIX)
 
 
 class ARUniversa(AbsUniversa):
@@ -533,7 +519,10 @@ class ARUniversa(AbsUniversa):
             use_fixed_order (bool): Decode metrics in the requested order.
             defer_full_meta (bool): Offer whole-clip ``<m>_full`` metrics only
                 after every other requested metric, matching training with
-                ``--defer_full_meta true``.
+                ``--defer_full_meta true``. Unlike ``use_fixed_order``, this sets
+                only a partial order: the model still chooses the order within
+                the prefix group and within the whole-clip group, as it learned
+                from the shuffled training pairs.
         """
         scorers = {
             "metric_decoder": self.decoder,
@@ -545,8 +534,7 @@ class ARUniversa(AbsUniversa):
         for metric_name in metric_list:
             metric_token = self.metric_tokenizer.get_metric_meta_label(metric_name)
             values = self.metric_tokenizer.tokenizer_config[metric_name]
-            indexed = self.metric_tokenizer.is_indexed_category(metric_name)
-            first_value_index = 1 if indexed else 0
+            first_value_index = 1 if isinstance(values[0], str) else 0
             _, start_idx = self.metric_tokenizer.get_token_index(
                 metric_name, first_value_index
             )

@@ -4,8 +4,10 @@ import random
 
 import torch
 
-from espnet2.aqa.ar_universa.ar_universa import is_full_metric
-from espnet2.aqa.metric_tokenizer.metric_tokenizer import MetricTokenizer
+from espnet2.aqa.metric_tokenizer.metric_tokenizer import (
+    MetricTokenizer,
+    is_full_metric,
+)
 from espnet2.legacy.nets.pytorch_backend.nets_utils import pad_list
 from espnet2.train.collate_fn import CommonCollateFn
 from espnet2.train.preprocessor import UniversaProcessor
@@ -14,14 +16,10 @@ from espnet2.train.preprocessor import UniversaProcessor
 class ARMetricProcessor(UniversaProcessor):
     """Tokenize selected metrics while retaining shared waveform preprocessing."""
 
-    def __init__(
-        self, metric_token_info, metrics_list, skip_unknown_categories=False, **kwargs
-    ):
+    def __init__(self, metric_token_info, metrics_list, **kwargs):
         """Initialize preprocessing from a metric vocabulary and selection."""
         super().__init__(**kwargs)
-        self.metric_tokenizer = MetricTokenizer(
-            metric_token_info, metrics_list, skip_unknown_categories
-        )
+        self.metric_tokenizer = MetricTokenizer(metric_token_info, metrics_list)
 
     def _metric_process(self, data):
         """Replace present metric values with tokenizer label/value pairs."""
