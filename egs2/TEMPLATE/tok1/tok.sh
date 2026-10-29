@@ -269,8 +269,11 @@ elif [ "${token_type}" = char ]; then
 elif [ "${token_type}" = word ]; then
     token_list=data/${lang}_token_list/word/tokens.txt
     bpemodel=none
+elif [ "${token_type}" = phn ]; then
+    token_list=data/${lang}_token_list/phn/tokens.txt
+    bpemodel=none
 else
-    log "Error: unsupported --token_type ${token_type}; use bpe, char, or word"
+    log "Error: unsupported --token_type ${token_type}; use bpe, char, word, or phn"
     exit 2
 fi
 
