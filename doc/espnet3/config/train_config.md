@@ -14,7 +14,7 @@ This page describes the current `training.yaml` used to configure the following 
 - [`train`](../stages/train.html)
 
 
-## Overview 
+## Overview
 
 | Section                                            | Required       | Description                                                     |
 | -------------------------------------------------- | -------------- | --------------------------------------------------------------- |

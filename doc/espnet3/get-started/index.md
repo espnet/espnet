@@ -7,7 +7,7 @@ date: 2025-11-26
 
 # 🚀 Getting Started with ESPnet3
 
-This guide provides the fastest way to start using ESPnet3.  
+This guide provides the fastest way to start using ESPnet3.
 Choose the workflow that fits your environment and follow the examples below.
 
 

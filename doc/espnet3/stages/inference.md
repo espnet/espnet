@@ -311,7 +311,7 @@ There a two common paths when using a custom models:
 1. keep `InferenceRunner` and replace only `model` and `output_fn`
 2. replace `InferenceRunner` when the normal flow is not enough
 
-It is generally recommended to keep `InferenceRunner` and only replace it for special use cases. 
+It is generally recommended to keep `InferenceRunner` and only replace it for special use cases.
 
 ### Declaring a contract for a custom model
 

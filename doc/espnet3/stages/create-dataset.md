@@ -39,7 +39,7 @@ egs3/<recipe>/<task>/
     └── dataset.py      # defines the Dataset class used for training and inference.
 ```
 
-## 2. Configuration 
+## 2. Configuration
 
 The `create_dataset` stage is configured from the `create_dataset` block in
 `training.yaml`.
