@@ -86,6 +86,14 @@ dataset:
 
 **Example: 2 nodes × 8 GPUs = 16 ranks**
 
+This uses the standard `DataLoader` path (`iter_factory: null`), not
+`SequenceIterFactory` — see the warning right below for why sharding a
+dataset through `total_shards`/`dist_world_size` together with an
+`iter_factory` has no startup-time guard yet. `use_distributed_sampler:
+false` is required here: each rank's `ShardedDataset` already returns only
+its own shard, and without this, Lightning's default `DistributedSampler`
+would additionally split that shard again across ranks.
+
 ```yaml
 num_device: 8
 num_nodes: 2
@@ -95,6 +103,7 @@ trainer:
   devices: ${num_device}
   num_nodes: ${num_nodes}
   strategy: ddp
+  use_distributed_sampler: false
 
 dataset:
   train:
@@ -111,26 +120,19 @@ dataset:
         dist_world_size: 16
 
 dataloader:
+  collate_fn:
+    _target_: espnet2.train.collate_fn.CommonCollateFn
+    int_pad_value: -1
   train:
-    iter_factory:
-      _target_: espnet2.iterators.sequence_iter_factory.SequenceIterFactory
-      shuffle: true
-      collate_fn: ${dataloader.collate_fn}
-      batches:
-        type: unsorted
-        shape_files:
-          - ${stats_dir}/train/feats_shape
-        batch_bins: 4000000
+    iter_factory: null
+    batch_size: 32
+    num_workers: 4
+    shuffle: true
   valid:
-    iter_factory:
-      _target_: espnet2.iterators.sequence_iter_factory.SequenceIterFactory
-      shuffle: false
-      collate_fn: ${dataloader.collate_fn}
-      batches:
-        type: unsorted
-        shape_files:
-          - ${stats_dir}/valid/feats_shape
-        batch_bins: ${dataloader.train.iter_factory.batches.batch_bins}
+    iter_factory: null
+    batch_size: ${dataloader.train.batch_size}
+    num_workers: ${dataloader.train.num_workers}
+    shuffle: false
 ```
 
 ::: warning
