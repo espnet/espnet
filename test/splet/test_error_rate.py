@@ -4,6 +4,7 @@ import random
 
 import pytest
 
+from splet.metadata import metadata
 from splet.metric_registry import load_metrics, measure_utterances
 from splet.summary import summarize
 from splet.utterance_metrics import error_rate_metric, error_rate_setup
@@ -107,7 +108,9 @@ def test_matches_jiwer(unit):
     """Regression against the implementation espnet3 uses today.
 
     espnet3's WER and CER call jiwer, so SPLET's must agree with it on the
-    corpus figure before it can replace them anywhere.
+    corpus figure before it can replace them anywhere -- under unit costs,
+    which is the question jiwer answers. Under the default sclite costs it
+    must not, and test_sclite_costs_are_the_default pins that.
     """
     jiwer = pytest.importorskip("jiwer")
 
@@ -123,7 +126,9 @@ def test_matches_jiwer(unit):
         references.append(" ".join(reference))
         hypotheses.append(" ".join(hypothesis) or "x")
 
-    modules = load_metrics([{"name": "wer" if unit == "word" else "cer"}])
+    modules = load_metrics(
+        [{"name": "wer" if unit == "word" else "cer", "costs": "unit"}]
+    )
     results = measure_utterances(
         {str(i): hypothesis for i, hypothesis in enumerate(hypotheses)},
         modules,
@@ -137,3 +142,185 @@ def test_matches_jiwer(unit):
         else jiwer.cer(references, hypotheses)
     )
     assert summary["wer" if unit == "word" else "cer"] == pytest.approx(expected)
+
+
+def test_sclite_costs_are_the_default():
+    """The default is sclite's cost model, and it is not jiwer's answer.
+
+    Four deletions and three insertions cost 21 under sclite's weights; the
+    five substitutions and one deletion jiwer finds cost 23. sclite 2.10
+    scores this pair 4 correct, 0 S, 4 D, 3 I.
+    """
+    reference = "b b b b a a a a"
+    hypothesis = "a a a b a b b"
+
+    (sclite,) = measure_utterances(
+        {"u": hypothesis}, load_metrics([{"name": "wer"}]), {"u": reference}
+    )
+    assert (sclite["wer_sub"], sclite["wer_del"], sclite["wer_ins"]) == (0, 4, 3)
+    assert sclite["wer_errors"] == 7
+
+    (unit,) = measure_utterances(
+        {"u": hypothesis},
+        load_metrics([{"name": "wer", "costs": "unit"}]),
+        {"u": reference},
+    )
+    assert unit["wer_errors"] == 6
+
+
+def test_the_cost_model_is_recorded_in_the_metadata():
+    """A rate is not reproducible without the weights that produced it.
+
+    ``costs`` has a default the config never spells out, so it is read back
+    out of the state the way ``backend`` is.
+    """
+    described = metadata(load_metrics([{"name": "wer"}]))
+    assert described["metrics"]["wer"]["costs"] == "sclite"
+    loaded = load_metrics([{"name": "cer", "costs": "unit"}])
+    assert metadata(loaded)["metrics"]["cer"]["costs"] == "unit"
+
+
+def test_an_unknown_cost_model_is_rejected():
+    with pytest.raises(ValueError, match="unknown cost model"):
+        error_rate_setup(costs="sctk")
+
+
+def test_case_is_folded_by_default():
+    """sclite is case-insensitive unless given -s, so SPLET is too.
+
+    This moves published numbers: OWSM emits cased hypotheses against
+    lowercase references, where folding took one recipe's WER from 28.95
+    to 23.05.
+    """
+    state = error_rate_setup()
+    assert error_rate_metric(state, "The Cat Sat", "the cat sat")["wer"] == 0.0
+
+
+def test_case_sensitive_is_sclites_dash_s():
+    state = error_rate_setup(case="sensitive")
+    result = error_rate_metric(state, "The Cat Sat", "the cat sat")
+    assert result["wer"] == 1.0
+    assert result["wer_sub"] == 3
+
+
+def test_folding_applies_to_characters_too():
+    state = error_rate_setup(metric_id="cer", tokenizer="char")
+    assert error_rate_metric(state, "ABC", "abc")["cer"] == 0.0
+
+
+def test_an_unknown_case_policy_is_rejected():
+    with pytest.raises(ValueError, match="unknown case policy"):
+        error_rate_setup(case="lower")
+
+
+def test_optional_deletion_can_be_scored_correct():
+    """sclite's -D, reached from the metric rather than only the aligner."""
+    scored = error_rate_setup(optional_deletion_is_correct=True)
+    assert error_rate_metric(scored, "b e", "b (c) d")["wer_del"] == 0
+    default = error_rate_setup()
+    assert error_rate_metric(default, "b e", "b (c) d")["wer_del"] == 1
+
+
+def test_case_and_optional_deletion_are_recorded_in_the_metadata():
+    """Both move the number and neither has to appear in the config.
+
+    A summary whose metadata does not say which was in force cannot be
+    reproduced from the config alone.
+    """
+    modules = load_metrics([{"name": "wer"}])
+    block = metadata(modules)["metrics"]["wer"]
+    assert block["case"] == "fold"
+    assert block["optional_deletion_is_correct"] is False
+
+    modules = load_metrics(
+        [{"name": "wer", "case": "sensitive", "optional_deletion_is_correct": True}]
+    )
+    block = metadata(modules)["metrics"]["wer"]
+    assert block["case"] == "sensitive"
+    assert block["optional_deletion_is_correct"] is True
+
+
+@pytest.mark.parametrize(
+    "text, tokens",
+    [
+        ("hello world", ["hello", "world"]),
+        ("世界", ["世", "界"]),
+        ("hello 世界", ["hello", "世", "界"]),
+        # The split is per ASCII run, not per word: sclite scores "AI的" as
+        # two tokens, which is the case that decides the rule.
+        ("AI的", ["AI", "的"]),
+        ("的AI的", ["的", "AI", "的"]),
+        ("世hello界", ["世", "hello", "界"]),
+        # Punctuation is ASCII, so it stays inside the run.
+        ("ab,的", ["ab,", "的"]),
+    ],
+)
+def test_noascii_tokenization_matches_sclite(text, tokens):
+    """Each case was scored by sclite 2.10 with -c NOASCII; N is len(tokens)."""
+    from splet.utterance_metrics.error_rate import TOKENIZER_CHOICES
+
+    assert TOKENIZER_CHOICES["noascii"]()(text) == tokens
+
+
+def test_char_tokenizer_can_name_the_space():
+    state = error_rate_setup(
+        metric_id="cer", tokenizer="char", tokenizer_conf={"space_symbol": "<space>"}
+    )
+    result = error_rate_metric(state, "a b", "a b")
+    assert result["cer_ref_len"] == 3
+    assert result["cer"] == 0.0
+
+
+def test_char_tokenizer_refuses_to_both_drop_and_name_the_space():
+    with pytest.raises(ValueError, match="cannot both be set"):
+        error_rate_setup(
+            metric_id="cer",
+            tokenizer="char",
+            tokenizer_conf={"remove_space": True, "space_symbol": "<space>"},
+        )
+
+
+def test_token_error_rate_is_registered_and_spelled_out():
+    """Not "ter": sacrebleu's TER is translation edit rate, a different thing."""
+    from splet.metric_registry import METRIC_CHOICES
+
+    spec = METRIC_CHOICES["token_error_rate"]
+    assert spec.defaults == {"tokenizer": "sentencepiece"}
+    assert spec.requires == ("reference",)
+    assert "ter" not in METRIC_CHOICES
+
+
+def test_sentencepiece_token_error_rate(tmp_path):
+    spm = pytest.importorskip("sentencepiece")
+    corpus = tmp_path / "corpus.txt"
+    corpus.write_text(
+        "\n".join(["the cat sat on the mat", "a dog ran fast", "hello world"] * 40),
+        encoding="utf-8",
+    )
+    spm.SentencePieceTrainer.Train(
+        input=str(corpus),
+        model_prefix=str(tmp_path / "m"),
+        vocab_size=50,
+        character_coverage=1.0,
+        # The exact vocabulary a tiny corpus supports varies with the
+        # sentencepiece version; without this the trainer refuses rather
+        # than shrinking.
+        hard_vocab_limit=False,
+    )
+    state = error_rate_setup(
+        metric_id="token_error_rate",
+        tokenizer="sentencepiece",
+        tokenizer_conf={"model": str(tmp_path / "m.model")},
+    )
+    same = error_rate_metric(state, "the cat sat", "the cat sat")
+    assert same["token_error_rate"] == 0.0
+    assert same["token_error_rate_ref_len"] > 0
+
+    differ = error_rate_metric(state, "the dog sat", "the cat sat")
+    assert differ["token_error_rate_errors"] > 0
+
+
+def test_sentencepiece_needs_a_model():
+    pytest.importorskip("sentencepiece")
+    with pytest.raises(TypeError):
+        error_rate_setup(tokenizer="sentencepiece")
