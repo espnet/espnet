@@ -8,6 +8,18 @@ from espnet2.aqa.ar_universa import ARUniversa
 from espnet2.aqa.ar_universa.data import ARMetricCollateFn, ARMetricProcessor
 
 
+def full_token_info():
+    """Append whole-clip twins of both metrics after the published vocabulary."""
+    info = token_info()
+    for name, values in list(info["tokenizer"].items()):
+        full = name + "_full"
+        info["tokenizer"][full] = values
+        info["offset"][full] = [len(info["VOCAB"]), len(values) + 2]
+        info["VOCAB"] += [f"{full}@meta_label"]
+        info["VOCAB"] += [f"{full}@{i}" for i in range(len(values) + 1)]
+    return info
+
+
 @pytest.fixture
 def make_arecho():
     """Provide a tiny checkpoint-compatible model factory."""
@@ -85,6 +97,49 @@ def test_arecho_backward_and_constrained_search(make_arecho, pool_size):
     assert result["mos"][0] in info["tokenizer"]["mos"]
 
     assert result["token_seq"][0][1::2] == [10, 4]
+
+
+@pytest.mark.parametrize("beam_size", [1, 3])
+@pytest.mark.parametrize("skip_label_score", [False, True])
+def test_defer_full_meta_trains_and_decodes_whole_clip_last(
+    make_arecho, beam_size, skip_label_score
+):
+    """Whole-clip metrics follow prefix metrics in targets and in decoding."""
+    info = full_token_info()
+    metrics = ["mos_full", "mos", "language_full", "language"]
+    model = make_arecho(
+        metric2id={name: i for i, name in enumerate(metrics)},
+        metric_token_info=info,
+        metric_vocab_size=len(info["VOCAB"]) + 4,
+    )
+    full_labels = {14, 20}  # mos_full and language_full label IDs
+    processor = ARMetricProcessor(
+        metric_token_info=info, metrics_list=metrics, train=True
+    )
+    values = {"mos_full": 2.5, "mos": 1.5, "language_full": "jpn", "language": "eng"}
+    sample = processor("a", dict(audio=np.ones(10, dtype=np.float32), metrics=values))
+    sample["audio"] = np.random.randn(10, 8).astype(np.float32)
+    collate = ARMetricCollateFn(randomize=True, defer_full_meta=True)
+    _, batch = collate([("a", sample)])
+    assert set(batch["metrics"]["metric_token"][0, 4::2].tolist()) == full_labels
+    loss, _, _ = model(**batch)
+    loss.backward()
+
+    model.eval()
+    with torch.no_grad():
+        model.decoder.output_layer.bias[list(full_labels)] = 100
+    audio, lengths = torch.randn(1, 5, 8), torch.tensor([5])
+    model.set_inference(1, metrics, False, True)
+    # Unconstrained, the biased decoder starts with a whole-clip metric.
+    assert model.inference(audio, lengths)["token_seq"][0][1] in full_labels
+    model.set_inference(
+        beam_size, metrics, skip_label_score, True, defer_full_meta=True
+    )
+    result = model.inference(audio, lengths)
+    labels = result["token_seq"][0][1::2]
+    assert sorted(labels) == [4, 10, 14, 20]
+    assert set(labels[2:]) == full_labels
+    assert set(metrics) <= set(result)
 
 
 @pytest.mark.parametrize("reference", ["ref_audio", "ref_text"])
@@ -245,6 +300,36 @@ def test_inference_uses_trainable_value_range(
     result = model.inference(torch.randn(1, 5, 8), torch.tensor([5]))
     assert result["token_seq"][0][-1] == preferred
     assert result[metric] == [expected]
+
+
+@pytest.mark.parametrize(
+    "shifted,preferred,unused,expected",
+    [([], 16, 19, "none"), (["bg_event"], 17, 16, "none")],
+)
+def test_inference_searches_legacy_category_bins(
+    make_arecho, legacy_token_info, shifted, preferred, unused, expected
+):
+    """Legacy categories search bin zero ("music"); shifted ones start at @1."""
+    legacy_token_info["shifted_categorical_metrics"] = shifted
+    model = make_arecho(
+        metric2id={"mos": 0, "language": 1, "bg_event": 2},
+        metric2type={
+            "mos": "numerical",
+            "language": "categorical",
+            "bg_event": "categorical",
+        },
+        metric_vocab_size=len(legacy_token_info["VOCAB"]) + 4,
+        metric_token_info=legacy_token_info,
+    ).eval()
+    with torch.no_grad():
+        model.decoder.output_layer.weight.zero_()
+        model.decoder.output_layer.bias.zero_()
+        model.decoder.output_layer.bias[preferred] = 10
+        model.decoder.output_layer.bias[unused] = 20
+    model.set_inference(1, ["bg_event"], True, True)
+    result = model.inference(torch.randn(1, 5, 8), torch.tensor([5]))
+    assert result["token_seq"][0][-1] == preferred
+    assert result["bg_event"] == [expected]
 
 
 @pytest.mark.parametrize(

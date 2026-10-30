@@ -28,6 +28,23 @@ from espnet2.legacy.nets.pytorch_backend.transformer.label_smoothing_loss import
 )
 from espnet2.torch_utils.device_funcs import force_gatherable
 
+FULL_METRIC_SUFFIX = "_full"
+
+
+def is_full_metric(metric_name: str) -> bool:
+    """Return whether a metric describes the whole clip rather than a prefix.
+
+    Models trained on audio prefixes pair a prefix metric ``<m>`` with
+    ``<m>_full``, a forecast of the same metric on the whole clip.
+
+    Args:
+        metric_name: Metric name, e.g. ``"utmos"`` or ``"utmos_full"``.
+
+    Returns:
+        True if the name ends with ``FULL_METRIC_SUFFIX``.
+    """
+    return metric_name.endswith(FULL_METRIC_SUFFIX)
+
 
 class ARUniversa(AbsUniversa):
     """Encode audio and optional references, then decode metric/value pairs."""
@@ -504,6 +521,7 @@ class ARUniversa(AbsUniversa):
         skip_meta_label_score: bool,
         save_token_seq: bool = False,
         use_fixed_order: bool = False,
+        defer_full_meta: bool = False,
     ) -> None:
         """Set inference mode.
 
@@ -513,6 +531,9 @@ class ARUniversa(AbsUniversa):
             skip_meta_label_score (bool): Whether to skip meta label score.
             save_token_seq (bool): Whether to save token sequence.
             use_fixed_order (bool): Decode metrics in the requested order.
+            defer_full_meta (bool): Offer whole-clip ``<m>_full`` metrics only
+                after every other requested metric, matching training with
+                ``--defer_full_meta true``.
         """
         scorers = {
             "metric_decoder": self.decoder,
@@ -524,7 +545,8 @@ class ARUniversa(AbsUniversa):
         for metric_name in metric_list:
             metric_token = self.metric_tokenizer.get_metric_meta_label(metric_name)
             values = self.metric_tokenizer.tokenizer_config[metric_name]
-            first_value_index = 1 if isinstance(values[0], str) else 0
+            indexed = self.metric_tokenizer.is_indexed_category(metric_name)
+            first_value_index = 1 if indexed else 0
             _, start_idx = self.metric_tokenizer.get_token_index(
                 metric_name, first_value_index
             )
@@ -534,6 +556,12 @@ class ARUniversa(AbsUniversa):
             beam_masking[metric_token] = (start_idx, last_idx + 1)
 
         self.save_token_seq = save_token_seq
+        # As in training, whole-clip metrics follow every prefix metric.
+        deferred_meta_labels = [
+            self.metric_tokenizer.get_metric_meta_label(metric)
+            for metric in metric_list
+            if defer_full_meta and is_full_metric(metric)
+        ]
 
         self.search_module = ARUniVERSABeamSearch(
             scorers=scorers,
@@ -550,6 +578,7 @@ class ARUniversa(AbsUniversa):
             skip_meta_label_score=skip_meta_label_score,
             beam_masking=beam_masking,
             use_fixed_order=use_fixed_order,
+            deferred_meta_labels=deferred_meta_labels,
         )
 
     @torch.no_grad()

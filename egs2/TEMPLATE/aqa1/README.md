@@ -73,6 +73,8 @@ JSON tokenizer) and `metric2type` for autoregressive training. Saved configs
 embed this metadata. Inference supports `--beam_size`, `--skip_meta_label_score`,
 `--save_token_seq`, and `--use_fixed_order --fixed_metric_name_order language,srmr`.
 ARECHO inference currently accepts one utterance per batch.
+With `defer_full_meta: true`, whole-clip `<metric>_full` targets of prefix
+rows follow all other pairs in training; decode with `--defer_full_meta true`.
 
 Use `espnet2.bin.aqa_train` / `aqa_inference` for training and inference.
 Parameter names and published token IDs are preserved so existing weights can

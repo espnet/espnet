@@ -33,12 +33,23 @@ class MetricTokenizer(AbsMetricTokenizer):
         self,
         tokenizer_config: Union[str, Dict[str, Any]],
         tokenize_metric: Optional[List[str]],
+        skip_unknown_categories: bool = False,
     ):
         """Initialize the MetricTokenizer with a configuration file path.
+
+        Two optional configuration keys select how categorical (string-list)
+        metrics map to value tokens. ``categorical_scheme`` is ``"index"``
+        (default; label ``i`` is token ``@{i + 1}``) or ``"legacy"`` (labels are
+        binned like numerical thresholds by string comparison, as in checkpoints
+        trained with the original UniVERSA tokenizer, such as ANCHOR).
+        Metrics in ``shifted_categorical_metrics`` use the index mapping under
+        either scheme.
 
         Args:
             tokenizer_config: The tokenizer configuration JSON file/Dictionary
             tokenize_metric: Selected known metric names, or None for all metrics
+            skip_unknown_categories: Drop a categorical metric whose value is not
+                one of its labels instead of raising ValueError.
         """
         if isinstance(tokenizer_config, str):
             with open(tokenizer_config, "r") as f:
@@ -54,6 +65,16 @@ class MetricTokenizer(AbsMetricTokenizer):
             unknown = set(tokenize_metric) - self.tokenizer_config.keys()
             if unknown:
                 raise ValueError(f"Unknown selected metrics: {sorted(unknown)}")
+        self.categorical_scheme = config.get("categorical_scheme", "index")
+        if self.categorical_scheme not in ("index", "legacy"):
+            raise ValueError(f"Unknown categorical_scheme: {self.categorical_scheme}")
+        self.shifted_categorical_metrics = set(
+            config.get("shifted_categorical_metrics", [])
+        )
+        for name in self.shifted_categorical_metrics:
+            if not isinstance(self.tokenizer_config.get(name, [None])[0], str):
+                raise ValueError(f"Shifted metric {name} is not a known category")
+        self.skip_unknown_categories = skip_unknown_categories
 
         # Build inverse mapping for faster lookups
         self.overall_offset = 4  # Offset for the vocab indices
@@ -119,7 +140,16 @@ class MetricTokenizer(AbsMetricTokenizer):
 
         return meta_label_index, value_index
 
-    def _get_value_index(self, metric_name: str, value: Union[float, str, int]) -> int:
+    def is_indexed_category(self, metric_name: str) -> bool:
+        """Return whether label i of a metric is encoded as value token i + 1."""
+        return isinstance(self.tokenizer_config[metric_name][0], str) and (
+            self.categorical_scheme == "index"
+            or metric_name in self.shifted_categorical_metrics
+        )
+
+    def _get_value_index(
+        self, metric_name: str, value: Union[float, str, int]
+    ) -> Optional[int]:
         """Determine the appropriate token index for a given metric value.
 
         Args:
@@ -127,25 +157,24 @@ class MetricTokenizer(AbsMetricTokenizer):
             value: The actual value of the metric
 
         Returns:
-            Index of the appropriate value token
+            Index of the appropriate value token, or None for an unknown category
+            when skip_unknown_categories is set
         """
-        if isinstance(self.tokenizer_config[metric_name][0], str):
-            # For categorical values, find its index in the list
-            try:
-                return self.tokenizer_config[metric_name].index(value) + 1
-            except ValueError:
-                raise ValueError(
-                    f"Invalid category value: {value} for metric {metric_name}"
-                )
-        else:
-            # For numerical metrics with thresholds
-            thresholds = self.tokenizer_config[metric_name]
-            # Find the first threshold that the value is less than
-            for i, threshold in enumerate(thresholds):
-                if value < threshold:
-                    return i
-            # If value is greater than all thresholds, return the last index
-            return len(thresholds) - 1
+        thresholds = self.tokenizer_config[metric_name]
+        if isinstance(thresholds[0], str) and value not in thresholds:
+            if self.skip_unknown_categories:
+                return None
+            raise ValueError(
+                f"Invalid category value: {value} for metric {metric_name}"
+            )
+        if self.is_indexed_category(metric_name):
+            return thresholds.index(value) + 1
+        # Numerical thresholds; legacy categories compare label strings the same way.
+        for i, threshold in enumerate(thresholds):
+            if value < threshold:
+                return i
+        # If value is greater than all thresholds, return the last index
+        return len(thresholds) - 1
 
     @typechecked
     def metric2token(
@@ -158,6 +187,7 @@ class MetricTokenizer(AbsMetricTokenizer):
         Args:
             metrics: Dictionary of metric names and their values. Unknown names
                 raise ValueError; known metrics outside tokenize_metric are skipped.
+                Unknown category values raise unless skip_unknown_categories.
             reduce_offset: Whether to reduce metric-related offset
 
         Returns:
@@ -181,6 +211,8 @@ class MetricTokenizer(AbsMetricTokenizer):
 
             # Get the index of the value in the corresponding metric's range
             value_index = self._get_value_index(metric_name, value)
+            if value_index is None:
+                continue
 
             # Get the token indices for this metric and value
             token_pair = self.get_token_index(
@@ -262,10 +294,10 @@ class MetricTokenizer(AbsMetricTokenizer):
             raise ValueError(f"Invalid value token {token_result} for metric {metric}")
         token_value = int(suffix)
         values = self.tokenizer_config[metric]
-        minimum = 1 if isinstance(values[0], str) else 0
+        minimum = 1 if self.is_indexed_category(metric) else 0
         if not minimum <= token_value <= len(values):
             raise ValueError(f"Invalid token value: {token_value} for metric {metric}")
-        # Preserve historical numeric bins, including the below-first-threshold bin.
+        # Preserve historical numeric and legacy category bins, including bin zero.
         return values[max(token_value - 1, 0)]
 
     @typechecked

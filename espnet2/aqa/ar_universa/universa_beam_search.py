@@ -21,12 +21,24 @@ class MetricConstraintScorer(BatchScorerInterface):
     The scorer also supports the shared BatchBeamSearch scorer interface.
     """
 
-    def __init__(self, vocab_size, labels, beam_masking, use_fixed_order):
-        """Store the metric vocabulary, value ranges, and ordering policy."""
+    def __init__(
+        self, vocab_size, labels, beam_masking, use_fixed_order, deferred_labels=()
+    ):
+        """Store the metric vocabulary, value ranges, and ordering policy.
+
+        Args:
+            vocab_size: Number of output tokens.
+            labels: Requested metric label IDs.
+            beam_masking: Maps label IDs to half-open value-token ranges.
+            use_fixed_order: Emit labels in the order of ``labels``.
+            deferred_labels: Label IDs offered only once every other requested
+                label has been emitted.
+        """
         self.vocab_size = vocab_size
         self.labels = labels
         self.beam_masking = beam_masking or {}
         self.use_fixed_order = use_fixed_order
+        self.deferred_labels = set(deferred_labels)
 
     def score(self, y, state, x):
         """Mask tokens using the alternating label/value prefix after SOS."""
@@ -34,6 +46,8 @@ class MetricConstraintScorer(BatchScorerInterface):
         if len(y) % 2:
             used = set(y[1::2].tolist())
             allowed = [label for label in self.labels if label not in used]
+            early = [label for label in allowed if label not in self.deferred_labels]
+            allowed = early or allowed
             if self.use_fixed_order:
                 allowed = allowed[:1]
             mask[allowed] = 0
@@ -81,14 +95,17 @@ class ARUniVERSABeamSearch(BeamSearch):
         skip_meta_label_score: bool = False,
         beam_masking: Optional[Dict[int, Tuple[int, int]]] = None,
         use_fixed_order: bool = False,
+        deferred_meta_labels: Optional[List[int]] = None,
     ):
         """Configure full scorers and the requested metric/value constraints.
 
         ``beam_masking`` maps metric label IDs to half-open value-token ranges.
         ``skip_meta_label_score`` ignores label scores while still advancing
         scorer states. ``use_fixed_order`` follows ``meta_label_for_search``.
-        Other arguments follow :class:`BeamSearch`; partial scorers are not
-        supported by this fixed-pair decoder.
+        ``deferred_meta_labels`` (a subset of ``meta_label_for_search``) are
+        offered only after all other requested labels, e.g. whole-clip metrics
+        after prefix metrics. Other arguments follow :class:`BeamSearch`;
+        partial scorers are not supported by this fixed-pair decoder.
         """
         if beam_size < 1:
             raise ValueError("beam_size must be positive")
@@ -99,6 +116,8 @@ class ARUniVERSABeamSearch(BeamSearch):
         for start, end in (beam_masking or {}).values():
             if not 0 <= start < end <= vocab_size:
                 raise ValueError("Beam masking ranges must be within the vocabulary")
+        if not set(deferred_meta_labels or ()) <= set(meta_label_for_search):
+            raise ValueError("Deferred metric labels must also be requested")
         if "metric_constraint" in scorers:
             raise ValueError("metric_constraint is reserved for the constraint scorer")
         if any(
@@ -107,7 +126,11 @@ class ARUniVERSABeamSearch(BeamSearch):
         ):
             raise ValueError("Metric pair search requires full ScorerInterface scorers")
         constraint = MetricConstraintScorer(
-            vocab_size, meta_label_for_search, beam_masking, use_fixed_order
+            vocab_size,
+            meta_label_for_search,
+            beam_masking,
+            use_fixed_order,
+            deferred_meta_labels or (),
         )
         super().__init__(
             scorers={**scorers, "metric_constraint": constraint},

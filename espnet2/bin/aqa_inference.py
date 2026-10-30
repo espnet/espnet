@@ -41,6 +41,7 @@ class AqaInference:
         use_fixed_order: bool = False,
         fixed_metric_name_order: str = "",
         metric_list: Optional[List[str]] = None,
+        defer_full_meta: bool = False,
     ):
         """Initialize AqaInference class."""
 
@@ -69,6 +70,7 @@ class AqaInference:
                 skip_meta_label_score,
                 save_token_seq,
                 use_fixed_order=use_fixed_order,
+                defer_full_meta=defer_full_meta,
             )
         logging.info(f"Frontend: {model.frontend}")
         logging.info(f"Universa: {model.universa}")
@@ -181,6 +183,7 @@ def inference(
     save_token_seq: bool = False,
     use_fixed_order: bool = False,
     fixed_metric_name_order: str = "",
+    defer_full_meta: bool = False,
 ):
     """Run inference."""
     # setup logger
@@ -219,6 +222,7 @@ def inference(
         save_token_seq=save_token_seq,
         use_fixed_order=use_fixed_order,
         fixed_metric_name_order=fixed_metric_name_order,
+        defer_full_meta=defer_full_meta,
     )
 
     if (
@@ -292,6 +296,12 @@ def get_parser():
     parser.add_argument("--save_token_seq", type=str2bool, default=False)
     parser.add_argument("--use_fixed_order", type=str2bool, default=False)
     parser.add_argument("--fixed_metric_name_order", type=str, default="")
+    parser.add_argument(
+        "--defer_full_meta",
+        type=str2bool,
+        default=False,
+        help="Decode whole-clip '<metric>_full' metrics after all other metrics",
+    )
     parser.add_argument(
         "--ngpu",
         type=int,
