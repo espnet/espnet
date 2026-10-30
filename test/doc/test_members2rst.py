@@ -1,9 +1,17 @@
 """Regressions for public API documentation discovery."""
 
 import ast
+import importlib.util
 from pathlib import Path
 
-from doc.members2rst import top_level_classes, top_level_functions
+# doc/ is not a package; importing it as one works only when the repository
+# root happens to be on sys.path, which plain `pytest` does not arrange.
+_SCRIPT = Path(__file__).resolve().parents[2] / "doc" / "members2rst.py"
+_spec = importlib.util.spec_from_file_location("members2rst", _SCRIPT)
+_members2rst = importlib.util.module_from_spec(_spec)
+_spec.loader.exec_module(_members2rst)
+top_level_classes = _members2rst.top_level_classes
+top_level_functions = _members2rst.top_level_functions
 
 
 def test_private_members_do_not_create_colliding_pages():
