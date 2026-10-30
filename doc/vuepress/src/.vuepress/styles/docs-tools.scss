@@ -1,0 +1,256 @@
+.docs-page-shell {
+  position: relative;
+  isolation: isolate;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 240px;
+  column-gap: 2.5rem;
+  align-items: start;
+  width: min(90vw, 1100px);
+  margin-inline: auto;
+  padding-inline: 1.5rem;
+  padding-bottom: 2rem;
+  box-sizing: border-box;
+  justify-content: center;
+}
+
+.docs-page-shell__sidebar {
+  position: sticky;
+  z-index: 20;
+  top: calc(var(--navbar-height, 0px) + 1.5rem);
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  align-self: start;
+  max-height: calc(100vh - var(--navbar-height, 0px) - 3rem);
+  overflow-y: auto;
+}
+
+.docs-page-shell__main {
+  position: relative;
+  z-index: 0;
+  min-width: 0;
+
+  :where(
+    .vp-breadcrumb,
+    .vp-page-title,
+    .theme-hope-content,
+    .vp-page-meta,
+    .vp-page-nav
+  ) {
+    max-width: none;
+    margin-inline: 0;
+  }
+}
+
+.docs-page-shell__toc {
+  width: 100%;
+  padding: 0.9rem 0;
+  border-top: 1px solid rgba(15, 23, 42, 0.08);
+}
+
+.docs-page-shell__toc {
+  .vp-toc-placeholder {
+    position: static;
+    top: auto;
+    z-index: auto;
+    display: block;
+    max-width: none;
+    padding-inline: 0 !important;
+  }
+
+  #toc {
+    position: static;
+    inset-inline-start: auto;
+    min-width: 0;
+    max-width: none;
+    margin-bottom: 0;
+    background: transparent;
+  }
+
+  .vp-toc-header {
+    display: none;
+  }
+
+  &-title {
+    font-size: 0.78rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: #64748b;
+    margin-bottom: 0.55rem;
+  }
+
+  .vp-toc-wrapper {
+    height: auto !important;
+    max-height: none !important;
+    margin: 0;
+    padding-inline-start: 0;
+    padding-bottom: 0;
+    overflow: visible !important;
+  }
+
+  .vp-toc-list,
+  .vp-toc-item {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+
+  .vp-toc-marker {
+    display: none !important;
+  }
+
+  .vp-toc-item.active > .vp-toc-link {
+    color: inherit;
+    font-weight: inherit;
+  }
+
+  .vp-toc-item:hover > .vp-toc-link {
+    color: inherit;
+  }
+}
+
+.docs-ai-sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+
+  width: 100%;
+  padding: 0.9rem 0 0;
+  border-top: 1px solid rgba(15, 23, 42, 0.08);
+}
+
+.docs-ai-sidebar__title {
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #64748b;
+}
+
+.docs-ai-sidebar__actions {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.4rem;
+}
+
+.docs-ai-sidebar__action {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  min-height: auto;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: #334155;
+  font-size: 0.9rem;
+  font-weight: 500;
+  text-align: left;
+  text-decoration: none;
+  cursor: pointer;
+  transition: color 0.2s ease;
+
+  &:hover {
+    color: #166534;
+  }
+}
+
+.docs-ai-sidebar__icon {
+  flex: 0 0 auto;
+  width: 0.95rem;
+  height: 0.95rem;
+  color: #94a3b8;
+}
+
+.docs-feedback {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  width: 100%;
+  padding: 0 0 0.9rem;
+}
+
+.docs-feedback__title {
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #64748b;
+}
+
+.docs-feedback__actions {
+  display: flex;
+  gap: 0.75rem;
+}
+
+.docs-feedback__prompt {
+  font-size: 0.85rem;
+  color: #475569;
+}
+
+.docs-feedback__message {
+  margin: 0;
+  font-size: 0.9rem;
+  color: #334155;
+}
+
+.docs-feedback__textarea {
+  width: 100%;
+  resize: vertical;
+  padding: 0.5rem 0;
+  border: 0;
+  border-bottom: 1px solid rgba(15, 23, 42, 0.14);
+  background: transparent;
+  color: #0f172a;
+  font: inherit;
+  line-height: 1.5;
+
+  &:focus {
+    outline: 0;
+    border-bottom-color: rgba(22, 163, 74, 0.55);
+  }
+
+  &::placeholder {
+    color: #94a3b8;
+  }
+}
+
+.docs-feedback__button {
+  min-width: auto;
+  min-height: auto;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: #334155;
+  font-size: 0.9rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: color 0.2s ease;
+
+  &:hover {
+    color: #166534;
+  }
+}
+
+@media (max-width: 1100px) {
+  .docs-page-shell {
+    grid-template-columns: 1fr;
+    width: min(90vw, 1100px);
+    justify-content: stretch;
+  }
+
+  .docs-page-shell__sidebar {
+    position: static;
+    top: auto;
+    max-height: none;
+    overflow: visible;
+    margin-top: 1.5rem;
+  }
+}
+
+@media (max-width: 719px) {
+  .docs-feedback {
+    padding-bottom: 0.75rem;
+  }
+}

@@ -11,6 +11,7 @@ fi
 . ../tools/activate_python.sh
 
 cd notebook
+rm -rf ./ESPnet1
 
 # ipynb -> md
 for basedir in */; do

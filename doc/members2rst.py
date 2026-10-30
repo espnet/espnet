@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 import ast
-import functools
 import importlib  # noqa
 import os
 import subprocess
@@ -10,15 +9,11 @@ from glob import glob
 import configargparse
 
 
-@functools.lru_cache(maxsize=None)
 def get_git_revision_hash() -> str:
-    """The commit the generated source links point at.
-
-    Resolved on first use rather than at import, so that importing this
-    module needs no git checkout: test/doc imports it, and CI's debian12 job
-    gets the source as a tarball without .git.
-    """
     return subprocess.check_output(["git", "rev-parse", "HEAD"]).decode("ascii").strip()
+
+
+GIT_HASH = get_git_revision_hash()
 
 
 def to_module(path_name):
@@ -35,17 +30,6 @@ def top_level_functions(body):
 
 
 def top_level_classes(body):
-    """The classes a page is generated for: the public ones.
-
-    Private classes were included where private functions were not, which
-    was harmless until one of them was named `_Hypothesis` beside a
-    `Hypothesis` in the same package. Two pages then arrived at one path,
-    vuepress-plugin-search-pro indexes a page by its path, and the doc build
-    died 25 minutes in with `SlimSearch: duplicate ID 1132` and no mention
-    of a page. `espnet2/legacy/_Hypothesis` and `espnet2/legacy/Hypothesis`
-    were the only such pair in the repository; ci/check_doc_pages.py now
-    fails on the next one by name.
-    """
     return (
         f for f in body if isinstance(f, ast.ClassDef) and not f.name.startswith("_")
     )
@@ -59,7 +43,7 @@ def parse_ast(filename):
 def gen_func_rst(func_name, writer, filepath, lineno):
     sourceurl = (
         "https://github.com/espnet/espnet/blob/"
-        + get_git_revision_hash()
+        + GIT_HASH
         + "/"
         + filepath
         + f"#L{lineno}"
@@ -79,7 +63,7 @@ def gen_func_rst(func_name, writer, filepath, lineno):
 def gen_class_rst(class_name, writer, filepath, lineno):
     sourceurl = (
         "https://github.com/espnet/espnet/blob/"
-        + get_git_revision_hash()
+        + GIT_HASH
         + "/"
         + filepath
         + f"#L{lineno}"

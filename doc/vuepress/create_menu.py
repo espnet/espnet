@@ -26,14 +26,37 @@ if __name__ == "__main__":
     parser.add_argument("--root", required=True, type=Path, help="List of directory")
     args = parser.parse_args()
 
+    espnet3_dir = args.root / "espnet3"
+    espnet3_sections = [
+        ("get-started", "Get started"),
+        ("config", "Configuration"),
+        ("stages", "Stages"),
+        ("guides", "Guides"),
+        ("core", "Core components"),
+        ("contributing", "Contributing"),
+    ]
+    espnet3_pages = [{"text": "Overview", "link": "index.md"}]
+    for dirname, text in espnet3_sections:
+        if (espnet3_dir / dirname / "index.md").exists():
+            espnet3_pages.append(
+                {"text": text, "link": f"{dirname}/index.md"}
+            )
+
     # Create navbar (on the upper side of the page)
     navbars = [
+        {
+            "text": "ESPnet3",
+            "icon": "mdi:graduation-cap",
+            "prefix": "espnet3/",
+            "children": espnet3_pages,
+        },
         {
             "text": "Tutorials",
             "icon": "ic:round-school",
             "prefix": "/",
             "children": [
                 {"text": "Full ESPnet installation", "link": "installation.md"},
+                {"text": "ESPnet3", "link": "espnet3/get-started/index.md"},
                 {"text": "ESPnet2", "link": "espnet2_tutorial.md"},
                 {"text": "ESPnet1", "link": "espnet1_tutorial.md"},
                 {
