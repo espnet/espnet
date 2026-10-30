@@ -11,7 +11,6 @@ from espnet2.layers.houlsby_adapter_layer import (  # Houlsby_Adapter,
 
 pytest.importorskip("transformers")
 pytest.importorskip("s3prl")
-pytest.importorskip("loralib")
 
 
 def init_S3prl_model(frontend_conf={"upstream": "hubert_base"}):
