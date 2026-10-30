@@ -430,12 +430,12 @@ class FunCodec(AbsGANCodec):
             "optim_idx": 1,  # needed for trainer
         }
 
-    def inference(
+    def reconstruct(
         self,
         x: torch.Tensor,
         **kwargs,
     ) -> Dict[str, torch.Tensor]:
-        """Run inference.
+        """Reconstruct waveform with the scale of the input.
 
         Args:
             x (Tensor): Input audio (T_wav,).
@@ -446,8 +446,11 @@ class FunCodec(AbsGANCodec):
                 * codec (Tensor): Generated neural codec (T_code, N_stream).
 
         """
-        codec = self.generator.encode(x)
-        wav = self.generator.decode(codec)
+        # Keep the scale (input volume with audio_normalize, input phase with
+        # mag_oracle_phase) next to the codes, so the waveform is rebuilt the
+        # same way as in forward().
+        codec, scale = self.generator._encode(x)
+        wav = self.generator.decode(codec, scale)[..., : x.shape[-1]]
 
         return {"wav": wav, "codec": codec}
 
@@ -457,6 +460,10 @@ class FunCodec(AbsGANCodec):
         **kwargs,
     ) -> torch.Tensor:
         """Run encoding.
+
+        The codes do not include the input volume that is divided out with
+        ``audio_normalize``, or the input phase used by ``mag_oracle_phase``.
+        Use ``reconstruct()`` to resynthesize the input at its original volume.
 
         Args:
             x (Tensor): Input audio (T_wav,).
@@ -472,7 +479,11 @@ class FunCodec(AbsGANCodec):
         x: torch.Tensor,
         **kwargs,
     ) -> torch.Tensor:
-        """Run encoding.
+        """Run decoding.
+
+        With ``audio_normalize``, the output is at the normalized volume, since
+        the input volume is not part of the codes. ``mag_oracle_phase`` needs
+        the input phase and cannot be decoded from codes alone.
 
         Args:
             x (Tensor): Input codes (T_code, N_stream).
@@ -759,10 +770,13 @@ class FunCodecGenerator(nn.Module):
         #     encoder_out, quantized.detach()
         # ) + self.l2_quantization_loss(encoder_out, quantized.detach())
 
+        # scale carries the input volume (audio_normalize) and, for
+        # mag_oracle_phase, the input phase, both needed to rebuild the waveform.
         resyn_audio = self.decoder(quantized)[:, :, :, : x.shape[3]]
-        resyn_audio = self.freq_to_time_transfer(resyn_audio)
+        resyn_audio = self.freq_to_time_transfer(resyn_audio, scale)
         if use_dual_decoder:
-            resyn_audio_real = self.decoder(encoder_out)
+            resyn_audio_real = self.decoder(encoder_out)[:, :, :, : x.shape[3]]
+            resyn_audio_real = self.freq_to_time_transfer(resyn_audio_real, scale)
         else:
             resyn_audio_real = None
         return resyn_audio, commit_loss, quantization_loss, resyn_audio_real
@@ -774,12 +788,23 @@ class FunCodecGenerator(nn.Module):
     ):
         """FunCodec codec encoding.
 
+        The codes do not include the scale returned by
+        ``time_to_freq_transfer`` (see ``decode``).
+
         Args:
             x (torch.Tensor): Input tensor of shape (B, 1, T).
         Returns:
             torch.Tensor: neural codecs in shape ().
         """
+        codes, _ = self._encode(x, target_bw)
+        return codes
 
+    def _encode(
+        self,
+        x: torch.Tensor,
+        target_bw: Optional[float] = None,
+    ):
+        """Encode and also return the scale from ``time_to_freq_transfer``."""
         x, scale = self.time_to_freq_transfer(x)
         encoder_out = self.encoder(x)
         if target_bw is None:
@@ -787,19 +812,30 @@ class FunCodecGenerator(nn.Module):
         else:
             bw = target_bw
         codes = self.quantizer.encode(encoder_out, self.frame_rate, bw)
-        return codes
+        return codes, scale
 
-    def decode(self, codes: torch.Tensor):
+    def decode(self, codes: torch.Tensor, scale=None):
         """FunCodec codec decoding.
 
         Args:
             codecs (torch.Tensor): neural codecs in shape ().
+            scale: The scale returned by ``time_to_freq_transfer`` for the
+                encoded input. Without it, the output stays at the normalized
+                volume when ``audio_normalize`` is set, and ``mag_oracle_phase``
+                cannot be decoded since it needs the input phase.
         Returns:
             torch.Tensor: resynthesized audio.
         """
         quantized = self.quantizer.decode(codes)
         resyn_audio = self.decoder(quantized)
-        resyn_audio = self.freq_to_time_transfer(resyn_audio)
+        if self.codec_domain[1] == "mag_oracle_phase":
+            if scale is None:
+                raise ValueError(
+                    "mag_oracle_phase needs the input phase and cannot be "
+                    "decoded from codes alone; use FunCodec.reconstruct()."
+                )
+            resyn_audio = resyn_audio[..., : scale[1].shape[-1]]
+        resyn_audio = self.freq_to_time_transfer(resyn_audio, scale)
         return resyn_audio
 
 
