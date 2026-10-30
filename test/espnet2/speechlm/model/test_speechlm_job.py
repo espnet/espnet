@@ -308,9 +308,7 @@ class TestSpeechLMJobTemplate:
 
     def test_preprocessor_no_discrete_raises(self):
         """SpeechLMPreprocessor requires at least one discrete IO."""
-        from espnet2.speechlm.model.speechlm.speechlm_job import (
-            SpeechLMPreprocessor,
-        )
+        from espnet2.speechlm.model.speechlm.speechlm_job import SpeechLMPreprocessor
 
         with pytest.raises(ValueError, match="at least one discrete multimodal IO"):
             SpeechLMPreprocessor(
@@ -440,9 +438,7 @@ class TestApplyChatTemplate:
             "espnet2.speechlm.model.speechlm.speechlm_job._multimodal_ios",
             MOCK_IOS,
         ):
-            from espnet2.speechlm.model.speechlm.speechlm_job import (
-                SpeechLMJobTemplate,
-            )
+            from espnet2.speechlm.model.speechlm.speechlm_job import SpeechLMJobTemplate
 
             config = _make_config()
             jt = SpeechLMJobTemplate(config, is_train=False)
@@ -584,9 +580,7 @@ class TestCollateFn:
             "espnet2.speechlm.model.speechlm.speechlm_job._multimodal_ios",
             MOCK_IOS,
         ):
-            from espnet2.speechlm.model.speechlm.speechlm_job import (
-                SpeechLMJobTemplate,
-            )
+            from espnet2.speechlm.model.speechlm.speechlm_job import SpeechLMJobTemplate
 
             config = _make_config(batchfy_method="pack")
             jt = SpeechLMJobTemplate(config, is_train=True)
@@ -604,9 +598,7 @@ class TestCollateFn:
             "espnet2.speechlm.model.speechlm.speechlm_job._multimodal_ios",
             MOCK_IOS,
         ):
-            from espnet2.speechlm.model.speechlm.speechlm_job import (
-                SpeechLMJobTemplate,
-            )
+            from espnet2.speechlm.model.speechlm.speechlm_job import SpeechLMJobTemplate
 
             config = _make_config(batchfy_method="pack")
             jt = SpeechLMJobTemplate(config, is_train=True)
@@ -625,9 +617,7 @@ class TestCollateFn:
             "espnet2.speechlm.model.speechlm.speechlm_job._multimodal_ios",
             MOCK_IOS,
         ):
-            from espnet2.speechlm.model.speechlm.speechlm_job import (
-                SpeechLMJobTemplate,
-            )
+            from espnet2.speechlm.model.speechlm.speechlm_job import SpeechLMJobTemplate
 
             config = _make_config(batchfy_method="pack", batch_size=100)
             jt = SpeechLMJobTemplate(config, is_train=True)
@@ -737,9 +727,7 @@ class TestRecordedTokenLayout:
         with patch(
             "espnet2.speechlm.model.speechlm.speechlm_job._multimodal_ios", MOCK_IOS
         ):
-            from espnet2.speechlm.model.speechlm.speechlm_job import (
-                SpeechLMJobTemplate,
-            )
+            from espnet2.speechlm.model.speechlm.speechlm_job import SpeechLMJobTemplate
 
             return SpeechLMJobTemplate(config, is_train=True)
 
@@ -798,3 +786,36 @@ class TestRecordedTokenLayout:
             self._build(re_dumped)
 
         assert "sort_keys=False" in str(raised.value)
+
+
+# ---------------------------------------------------------------------------
+# The encoder's pretrained weights: fetched to train, never to infer
+# ---------------------------------------------------------------------------
+@pytest.mark.parametrize("is_train", [True, False])
+def test_continuous_audio_loads_weights_only_to_train(is_train):
+    """Fetch the omni model's encoder weights to train, never to infer.
+
+    Inference loads a checkpoint strictly over the whole model, encoder
+    included, so the pretrained weights would be overwritten unused.
+    """
+    from espnet2.speechlm.model.speechlm.multimodal_io.audio import ContinuousAudioIO
+
+    seen = {}
+
+    class RecordingIO(ContinuousAudioIO):
+        def _init_encoder(self):
+            seen["load_weights"] = self.load_weights
+
+    config = _make_config()
+    config["multimodal_io"]["continuous_audio"] = {
+        "encoder_hf_model_tag": "Qwen/Qwen3-Omni-30B-A3B-Instruct"
+    }
+    with patch(
+        "espnet2.speechlm.model.speechlm.speechlm_job._multimodal_ios",
+        {**MOCK_IOS, "continuous_audio": RecordingIO},
+    ):
+        from espnet2.speechlm.model.speechlm.speechlm_job import SpeechLMJobTemplate
+
+        SpeechLMJobTemplate(config, is_train=is_train)
+
+    assert seen == {"load_weights": is_train}
