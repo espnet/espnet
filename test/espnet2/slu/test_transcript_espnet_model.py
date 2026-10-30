@@ -68,7 +68,7 @@ def test_slu_testing(encoder_arch):
 )
 @pytest.mark.parametrize("decoder_post", [None, HuggingFaceTransformersPostDecoder])
 @pytest.mark.execution_timeout(50)
-def test_slu_training(encoder_arch, encoder_del, decoder_post):
+def test_slu_training(encoder_arch, encoder_del, decoder_post, request):
     vocab_size = 5
     enc_out = 20
     encoder = encoder_arch(
@@ -94,7 +94,7 @@ def test_slu_training(encoder_arch, encoder_del, decoder_post):
 
     if decoder_post is not None:
         post_decoder = decoder_post(
-            "bert-base-uncased",
+            request.getfixturevalue("tiny_bert_checkpoint"),
             output_size=enc_out,
         )
     else:
