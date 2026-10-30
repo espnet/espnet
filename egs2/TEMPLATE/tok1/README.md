@@ -35,11 +35,14 @@ names. Common scripts and utilities are shared with the ASR template.
 
 By default, stage 7 extracts `wavlm_large/21` features from ten percent of the
 training data and learns 2000 centroids. To use an existing ESPnet ASR2 K-means
-model instead, specify:
+model instead, set `quantizer_conf.centroid_path` in the training config:
 
-```bash
-./tok.sh --centroid_path /path/to/km_2000.mdl ...
+```yaml
+quantizer_conf:
+    centroid_path: /path/to/km_2000.mdl
 ```
+
+Then set `--use_default_centroid false` to skip the default k-means training.
 
 ## Training
 
