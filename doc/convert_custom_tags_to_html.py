@@ -298,8 +298,19 @@ def _replace_tags_skip_code(content, *replacers):
     return "".join(output)
 
 
-def is_build_path(root):
-    return "build" in Path(root).parts
+def is_handwritten_path(root):
+    # ci/doc.sh invokes this script with the already-copied destination
+    # (doc/vuepress/src/guide, .../tools, .../recipe), which never has
+    # "build" in its path -- so a "build" in path parts check here never
+    # actually distinguishes anything at the real call site, and every
+    # auto-generated API page fell back to the permissive, author-escape-
+    # aware path meant for hand-written docs. A bare tag-like span in a
+    # docstring (e.g. "<SOS>") then passed through unescaped and broke the
+    # Vue build. Hand-written espnet3 docs are the only content that should
+    # get that permissive path (they use real <DocCard>/<Foo /> components);
+    # everything else is sphinx-generated prose with no real components, so
+    # blanket-escape it unconditionally.
+    return "espnet3" in Path(root).parts
 
 
 def iter_markdown_files(root):
@@ -315,10 +326,10 @@ def iter_markdown_files(root):
 if __name__ == "__main__":
     # parser
     args = get_parser().parse_args()
-    if is_build_path(args.root):
-        replace_tags = replace_all_tags_skip_code
-    else:
+    if is_handwritten_path(args.root):
         replace_tags = replace_tags_skip_code
+    else:
+        replace_tags = replace_all_tags_skip_code
 
     for md in iter_markdown_files(args.root):
         with open(md, "r", encoding="utf-8") as f:
