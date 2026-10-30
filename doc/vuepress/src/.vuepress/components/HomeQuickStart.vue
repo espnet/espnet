@@ -95,7 +95,10 @@ const copied    = ref(false)
 const active = computed(() => systems.find(s => s.key === activeKey.value))
 
 const installCmd = computed(() => {
-  const g = active.value.group   // e.g. "espnet[asr]"
+  // active.value.group is e.g. "espnet[asr]" -- add the "train" extra so the
+  // generated command also installs ESPnet3's training stack (Lightning,
+  // Dask, etc.), not just the task's own extras.
+  const g = active.value.group.replace(/\[(.+)\]/, '[$1,train]')
   return activePkg.value === 'pip'
     ? `pip install "${g}"`
     : `uv pip install "${g}"`
