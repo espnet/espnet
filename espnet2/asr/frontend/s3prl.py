@@ -112,6 +112,30 @@ class S3prlFrontend(AbsFrontend):
 
         return feats, feats_lens
 
+    def wrap_upstream_layer(self, layer_name: str, wrapper: torch.nn.Module):
+        """Wrap an upstream layer while preserving its pretrained initialization.
+
+        ``layer_name`` is relative to ``self.upstream``. The wrapper must expose
+        the original module as ``layer``. Its other parameters retain their
+        initial values when ESPnet's explicit ``--init`` reloads the frontend.
+        """
+        original = self.upstream.get_submodule(layer_name)
+        if getattr(wrapper, "layer", None) is not original:
+            raise ValueError("wrapper.layer must be the original upstream layer")
+        parent_name, child_name = layer_name.rsplit(".", 1)
+        setattr(self.upstream.get_submodule(parent_name), child_name, wrapper)
+        prefix = layer_name + "."
+        pretrained = {}
+        for name, value in self.pretrained_params.items():
+            if name.startswith(prefix):
+                name = prefix + "layer." + name[len(prefix) :]
+            pretrained[name] = value
+        for name, value in wrapper.state_dict().items():
+            key = prefix + name
+            if key not in pretrained:
+                pretrained[key] = value.detach().clone()
+        self.pretrained_params = pretrained
+
     def reload_pretrained_parameters(self):
         self.upstream.load_state_dict(self.pretrained_params)
         logging.info("Pretrained S3PRL frontend model parameters reloaded!")

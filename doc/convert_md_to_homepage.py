@@ -24,10 +24,16 @@ def small_bracket(text):
     # forward_core(nnet_output, ys, hlens, ylens)
     # -> forward_core<span class='small-bracket'>(nnet_output, ys, hlens, ylens)</span>"
     text = text.replace("<", "&lt;").replace(">", "&gt;")
-    brackets = re.findall(r"\((.*)\)", text)
-    if len(brackets) > 0:
+    # Match the first top-level parenthesis group (allowing one level of
+    # nesting), skipping one immediately preceded by "]" since that is a
+    # markdown link's url, e.g. "[Field](../contract/Field.md#...)", not an
+    # argument list to wrap.
+    match = re.search(r"(?<!\])\(((?:[^()]|\([^()]*\))*)\)", text)
+    if match:
         text = text.replace(
-            f"({brackets[0]})", f"<span class='small-bracket'>({brackets[0]})</span>"
+            match.group(0),
+            f"<span class='small-bracket'>{match.group(0)}</span>",
+            1,
         )
     return text
 
@@ -47,7 +53,7 @@ def convert(markdown_text):
         tag_removed = small_bracket(tag_removed)
         tag_removed = markdown.markdown(tag_removed)
         _result = _result.replace(
-            match.group(0), f"<div class='custom-h3'>{tag_removed}</div>\n"
+            match.group(0), f"\n<div class='custom-h3'>{tag_removed}</div>\n\n"
         )
 
     # convert "#### Note" to :::note ::: block
@@ -63,7 +69,7 @@ def convert(markdown_text):
         tag_removed = small_bracket(tag_removed)
         tag_removed = markdown.markdown(tag_removed)
         _result = _result.replace(
-            match.group(0), f"<div class='custom-h4'>{tag_removed}</div>\n"
+            match.group(0), f"\n<div class='custom-h4'>{tag_removed}</div>\n\n"
         )
     return _result
 

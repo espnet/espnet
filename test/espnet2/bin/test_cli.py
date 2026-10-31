@@ -783,7 +783,9 @@ def test_an_unknown_device_is_refused_by_the_parser():
     assert "unknown device" in r.stderr
 
 
-@pytest.mark.parametrize("device", ["auto", "cpu", "mps", "cuda", "cuda:1"])
+@pytest.mark.parametrize(
+    "device", ["auto", "cpu", "mps", "cuda", "cuda:1", "npu", "npu:3", "xpu:0"]
+)
 def test_the_devices_torch_understands_are_accepted(device):
     assert cli._device(device) == device
 
@@ -894,6 +896,13 @@ def _fake_demo(monkeypatch, s2t=None, device="cpu", task="s2t"):
 
     monkeypatch.setattr(torch.cuda, "is_available", lambda: device == "cuda")
     monkeypatch.setattr(torch.cuda, "device_count", lambda: 1)
+    # ``auto`` is answered by torch.accelerator, so the machine's accelerator is
+    # what it reports rather than what torch.cuda says.
+    accelerator = types.SimpleNamespace(
+        is_available=lambda: device != "cpu",
+        current_accelerator=lambda: types.SimpleNamespace(type=device),
+    )
+    monkeypatch.setattr(torch, "accelerator", accelerator, raising=False)
     # the task check is one Hub request; the tests answer it themselves
     monkeypatch.setattr(espnet, "_infer_task", lambda tag: task)
     s2t = s2t or _FakeOWSM()
