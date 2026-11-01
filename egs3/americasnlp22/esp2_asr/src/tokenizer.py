@@ -25,6 +25,12 @@ def gather_training_text(
     calls it through ``tokenizer.text_builder`` in ``conf/training.yaml``,
     passing every key of that block except ``func`` as a keyword argument.
 
+    Unlike the training dataset, the text is not filtered by duration:
+    ``local/data.sh`` writes ``data/train_<lang>/text`` from every
+    ``meta.tsv`` row, and ``asr.sh`` drops utterances outside 0.1-38 s only
+    later, from its dumped copy. For Kotiria, the tokenizer thus sees all
+    1984 transcripts, including the 9 that training skips.
+
     Args:
         lang: ISO language code, e.g. ``bzd``.
         recipe_dir: Recipe root used to resolve the local download directory.

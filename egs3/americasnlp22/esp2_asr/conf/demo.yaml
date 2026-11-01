@@ -7,8 +7,10 @@
 #       --demo_config conf/demo.yaml
 #
 # Everything else is the TEMPLATE default: `model.dir_or_tag` points to
-# `exp/${exp_tag}/model_pack`, and the TEMPLATE `src/app.py` builds the
-# native Speech2Text backend from that packed model.
+# `exp/${exp_tag}/model_pack`, and the TEMPLATE `src/app.py` loads that
+# packed model and builds its audio-in, text-out UI from the inference
+# contract in the packed `conf/inference.yaml` (pack_model must be run with
+# `--inference_config`, see conf/publication.yaml).
 pack:
   # The XLS-R frontend needs s3prl at inference time.
   requirements:

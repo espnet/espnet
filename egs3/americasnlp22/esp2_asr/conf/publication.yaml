@@ -7,8 +7,10 @@
 #       --metrics_config conf/metrics.yaml \
 #       --publication_config conf/publication.yaml
 #
-# `--inference_config` lets pack_model find that run's metrics.json and
-# render the results table into the bundled README.
+# `--inference_config` bundles the merged inference config, with the
+# TEMPLATE contract that the demo and `InferenceModel` load, and lets
+# pack_model find that run's metrics.json to render the results table into
+# the bundled README.
 
 pack_model:
   include:

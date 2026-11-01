@@ -6,6 +6,13 @@ from egs3.americasnlp22.esp2_asr.dataset.dataset import AmericasNLP22Dataset
 from espnet3.components.data.base_dataset import BaseDataset
 
 
+def test_dataset_declares_contract_fields() -> None:
+    assert [(f.name, f.kind) for f in AmericasNLP22Dataset.fields] == [
+        ("speech", "audio"),
+        ("text", "text"),
+    ]
+
+
 def test_dataset_returns_only_preprocessor_fields(tmp_path, corpus_factory) -> None:
     corpus_factory(tmp_path)
     dataset = AmericasNLP22Dataset(

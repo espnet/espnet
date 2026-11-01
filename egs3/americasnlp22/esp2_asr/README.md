@@ -46,6 +46,12 @@ gets its own outputs: `data/<lang>_unigram100/` (tokenizer),
 `exp/stats_<lang>/` (shape statistics) and `exp/training_<lang>/` (model and
 inference results).
 
+All recipe configs are merged onto the ESPnet3 ASR TEMPLATE
+(`egs3/TEMPLATE/esp2_asr/conf/`) and only hold overrides. Inference keeps
+the TEMPLATE's Speech2Text model target, `batch_size: 4` and inference
+contract (16 kHz mono `speech` in, `text` out), and `conf/metrics.yaml` its
+WER/CER entries, which score `text` against the dataset's `text` column.
+
 ## Quick start (per language, e.g. Wa'ikhana `tav`)
 
 ```bash
@@ -80,28 +86,29 @@ languages.
 
 Dev sets, scored by `measure` with the configs above; the sentence, word and
 character counts match the ESPnet2 baseline below. Each model was trained on
-one RTX 3090, shared by two or three of the language runs at a time (from
-20 min for `gn` to 2 h 8 min for `gvc`), with PyTorch 2.14.1 (CUDA 13.0).
+one RTX 3090, one language at a time, with the corpus and the experiment
+directory on a local disk, with PyTorch 2.14.1 (CUDA 13.0). Training took
+from 13 min (`gn`) to 1 h 9 min (`gvc`).
 
 WER:
 
 | dataset | Snt | Wrd | Corr | Sub | Del | Ins | Err | S.Err |
 |---|---|---|---|---|---|---|---|---|
-| dev_bzd | 250 | 2056 | 13.2 | 64.7 | 22.1 | 4.7 | 91.5 | 100.0 |
-| dev_gn | 93 | 391 | 8.2 | 70.3 | 21.5 | 5.9 | 97.7 | 100.0 |
-| dev_gvc | 253 | 2206 | 14.4 | 70.5 | 15.0 | 6.6 | 92.2 | 99.6 |
-| dev_quy | 250 | 11465 | 19.1 | 72.7 | 8.2 | 6.0 | 86.9 | 100.0 |
-| dev_tav | 250 | 1201 | 4.3 | 89.3 | 6.4 | 26.1 | 121.7 | 99.2 |
+| dev_bzd | 250 | 2056 | 13.4 | 65.3 | 21.3 | 4.7 | 91.3 | 100.0 |
+| dev_gn | 93 | 391 | 8.7 | 70.8 | 20.5 | 9.5 | 100.8 | 100.0 |
+| dev_gvc | 253 | 2206 | 13.8 | 73.2 | 13.1 | 8.1 | 94.3 | 99.6 |
+| dev_quy | 250 | 11465 | 18.7 | 70.5 | 10.8 | 4.3 | 85.5 | 100.0 |
+| dev_tav | 250 | 1201 | 3.7 | 90.5 | 5.8 | 24.6 | 120.9 | 99.2 |
 
 CER:
 
 | dataset | Snt | Wrd | Corr | Sub | Del | Ins | Err | S.Err |
 |---|---|---|---|---|---|---|---|---|
-| dev_bzd | 250 | 10083 | 59.5 | 18.5 | 21.9 | 7.7 | 48.2 | 100.0 |
-| dev_gn | 93 | 2946 | 78.5 | 10.5 | 11.0 | 6.6 | 28.1 | 100.0 |
-| dev_gvc | 253 | 13453 | 65.6 | 15.8 | 18.6 | 8.4 | 42.8 | 99.6 |
-| dev_quy | 250 | 95334 | 78.7 | 9.8 | 11.5 | 10.3 | 31.6 | 100.0 |
-| dev_tav | 250 | 8606 | 56.4 | 27.1 | 16.5 | 13.2 | 56.8 | 99.2 |
+| dev_bzd | 250 | 10083 | 59.7 | 18.9 | 21.4 | 7.9 | 48.2 | 100.0 |
+| dev_gn | 93 | 2946 | 78.9 | 10.8 | 10.3 | 7.7 | 28.8 | 100.0 |
+| dev_gvc | 253 | 13453 | 65.2 | 16.0 | 18.8 | 8.1 | 42.9 | 99.6 |
+| dev_quy | 250 | 95334 | 77.5 | 9.8 | 12.7 | 9.0 | 31.5 | 100.0 |
+| dev_tav | 250 | 8606 | 56.4 | 27.1 | 16.5 | 13.3 | 56.9 | 99.2 |
 
 ## Pretrained models (ESPnet2 baselines)
 
@@ -135,8 +142,8 @@ CER:
 
 ## Notes and differences vs the ESPnet2 recipe
 
-- **SCP row ids**: samples deliberately carry no identifier field (the ESPnet3
-  dataset contract returns only preprocessor-facing fields), so
+- **SCP row ids**: samples deliberately carry no identifier field (the dataset
+  declares only the preprocessor-facing `speech` and `text` fields), so
   hypothesis/reference SCP files are keyed by corpus-order indices; the
   dataset sorts samples by their corpus utterance id, keeping rows
   deterministic and aligned across `text.scp`/`dataset/text.scp`.
@@ -168,6 +175,6 @@ CER:
   verbatim, matching `cleaner=none` in ESPnet2.
 - **Precision**: ESPnet3 trains with TF32 matrix multiplications
   (`torch.set_float32_matmul_precision("high")`), ESPnet2 in full FP32.
-- WER above 100% (Wa'ikhana here; Guarani and Wa'ikhana in ESPnet2) is
-  expected: the models are weak baselines on very small corpora and tend to
+- WER above 100% (Guarani and Wa'ikhana, here and in ESPnet2) is expected:
+  the models are weak baselines on very small corpora and tend to
   over-generate.

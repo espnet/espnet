@@ -45,11 +45,15 @@ def iter_source_candidates(
     recipe_dir: str | Path,
     source_dir: str | Path | None,
 ) -> Iterable[Path]:
-    """Yield candidate directories that may contain the corpus."""
-    yield Path(recipe_dir) / str(_CFG["dataset_path"])
+    """Yield candidate directories that may contain the corpus.
 
+    An explicit ``source_dir`` comes first, then the recipe-local download
+    directory, then the directory named by the environment variable.
+    """
     if source_dir is not None:
         yield Path(source_dir)
+
+    yield Path(recipe_dir) / str(_CFG["dataset_path"])
 
     env_var = str(_CFG["source_env_var"])
     env_path = os.environ.get(env_var)
@@ -150,8 +154,12 @@ class AmericasNLP22Builder(DatasetBuilder):
                 logger.info("Downloading %s", url)
                 download_url(url, archive)
             logger.info("Extracting %s into %s", archive, target_root)
-            extract_targz(archive, target_root)
-            archive.unlink(missing_ok=True)
+            try:
+                extract_targz(archive, target_root)
+            finally:
+                # Also on failure: an interrupted download leaves a truncated
+                # archive, which the next run must download again.
+                archive.unlink(missing_ok=True)
 
         still_missing = self._collect_missing_splits(recipe_dir, lang, source_dir)
         if still_missing:
