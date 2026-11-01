@@ -1,6 +1,5 @@
 import { defineUserConfig } from "vuepress";
 import { viteBundler } from "@vuepress/bundler-vite";
-import { path } from "vuepress/utils";
 
 import theme from "./theme.js";
 
@@ -8,38 +7,7 @@ export default defineUserConfig({
   base: "/espnet/",
 
   lang: "en-US",
-
-  plugins: [
-    {
-      name: "local-normal-page",
-      alias: {
-        "@theme-hope/components/NormalPage": path.resolve(
-          __dirname,
-          "./theme/components/NormalPage.vue",
-        ),
-      },
-    },
-  ],
-
-  head: [
-    [
-      "script",
-      {
-        async: true,
-        src: "https://www.googletagmanager.com/gtag/js?id=G-XTTNWSWN9Z",
-      },
-    ],
-    [
-      "script",
-      {},
-      `
-        window.dataLayer = window.dataLayer || [];
-        function gtag(){dataLayer.push(arguments);}
-        gtag('js', new Date());
-        gtag('config', 'G-XTTNWSWN9Z');
-      `,
-    ],
-  ],
+  description: "A documentation for ESPnet",
 
   bundler: viteBundler({
     viteOptions: {

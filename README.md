@@ -270,9 +270,11 @@ Switching modes does not automatically rescale `batch_bins` or accumulation.
 Global mode requires shared batches with at least `world_size` items;
 unsupported iterator/sharding configurations raise an error.
 
-See the [migration guide](https://espnet.github.io/espnet/espnet3/guides/migrating-from-espnet2/config-diff.html)
-and [dynamic batching guide](https://espnet.github.io/espnet/espnet3/guides/scaling/data-pipeline.html)
-for further guidance.
+<!-- TODO: After merge, replace the draft links below with the corresponding
+     official documentation URLs under https://espnet.github.io/espnet/. -->
+See the [migration guide](https://masao-someki.github.io/espnet_draft_home_page/espnet3/guides/migrating-from-espnet2/config-diff.html)
+and [dynamic batching guide](https://masao-someki.github.io/espnet_draft_home_page/espnet3/guides/scaling/data-pipeline.html)
+on the draft documentation site for further guidance.
 
 </details>
 
