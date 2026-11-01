@@ -38,6 +38,7 @@ from espnet2.bin.ctc_segment import (  # noqa: F401
 )
 from espnet2.legacy.utils.cli_utils import get_commandline_args
 from espnet2.s2t.ctc_utils import buffered_frame_counts
+from espnet2.s2t.preprocessor_conf import train_preprocessor_conf
 from espnet2.tasks.s2t_ctc import S2TTask
 from espnet2.torch_utils.device_funcs import to_device
 
@@ -199,7 +200,8 @@ class CTCSegmentation(AbsCTCSegmentation):
         frames_per_sec = self.frames_per_sec
         batch_size = self.batch_size
 
-        buffer_len_in_secs = self.s2t_train_args.preprocessor_conf["speech_length"]
+        preprocessor_conf = train_preprocessor_conf(S2TTask, self.s2t_train_args)
+        buffer_len_in_secs = preprocessor_conf["speech_length"]
         if context_len_in_secs is None:
             # Preserve the nominal four-second default on each encoder's grid.
             context_len_in_secs = round(4 * frames_per_sec) / frames_per_sec

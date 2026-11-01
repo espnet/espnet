@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 import argparse
-import inspect
 import logging
 import sys
 from itertools import groupby
@@ -30,9 +29,9 @@ from espnet2.legacy.nets.scorers.ctc import CTCPrefixScorer
 from espnet2.legacy.nets.scorers.length_bonus import LengthBonus
 from espnet2.legacy.utils.cli_utils import get_commandline_args
 from espnet2.s2t.ctc_utils import buffered_frame_counts
+from espnet2.s2t.preprocessor_conf import train_preprocessor_conf
 from espnet2.tasks.lm import LMTask
 from espnet2.tasks.s2t import S2TTask
-from espnet2.tasks.s2t import preprocessor_choices as s2t_preprocessor_choices
 from espnet2.text.build_tokenizer import build_tokenizer
 from espnet2.text.token_id_converter import TokenIDConverter
 from espnet2.text.whisper_token_id_converter import OpenAIWhisperTokenIDConverter
@@ -209,29 +208,6 @@ class ScoreFilter(BatchScorerInterface, torch.nn.Module):
         return scores, [None] * n_batch
 
 
-def _preprocessor_conf(s2t_train_args, preprocessor_choices) -> Dict[str, Any]:
-    """The preprocessor's arguments as training used them, defaults included.
-
-    A training config stores only the arguments that were set, so one that
-    left `fs` at the preprocessor's default - the OWSM-CTC configs do - has
-    no `fs` to read. Filling the gaps from the signature of the class that
-    was trained with gives the values it actually ran with, rather than a
-    second copy of its defaults here.
-    """
-    conf = dict(getattr(s2t_train_args, "preprocessor_conf", None) or {})
-    name = getattr(s2t_train_args, "preprocessor", None)
-    if name is None:
-        return conf
-    defaults = {
-        key: param.default
-        for key, param in inspect.signature(
-            preprocessor_choices.get_class(name)
-        ).parameters.items()
-        if param.default is not inspect.Parameter.empty
-    }
-    return {**defaults, **conf}
-
-
 # espnet2.tasks.s2t and espnet2.tasks.s2t_ctc both write `model:` into the
 # training config, and only the CTC-only task writes this value. Reading one
 # key tells the two apart without building a model to see which one fails.
@@ -388,13 +364,13 @@ class Speech2Text:
         self.ctc_only = _is_ctc_only(s2t_train_config)
         if self.ctc_only:
             from espnet2.tasks.s2t_ctc import S2TTask as S2TCTCTask
-            from espnet2.tasks.s2t_ctc import preprocessor_choices
 
+            task = S2TCTCTask
             s2t_model, s2t_train_args = S2TCTCTask.build_model_from_file(
                 s2t_train_config, s2t_model_file, device
             )
         else:
-            preprocessor_choices = s2t_preprocessor_choices
+            task = S2TTask
             s2t_model, s2t_train_args = S2TTask.build_model_from_file(
                 s2t_train_config, s2t_model_file, device
             )
@@ -635,9 +611,7 @@ class Speech2Text:
 
         self.s2t_model = s2t_model
         self.s2t_train_args = s2t_train_args
-        self.preprocessor_conf = _preprocessor_conf(
-            s2t_train_args, preprocessor_choices
-        )
+        self.preprocessor_conf = train_preprocessor_conf(task, s2t_train_args)
         self.converter = converter
         self.tokenizer = tokenizer
         self.beam_search = beam_search
