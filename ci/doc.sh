@@ -90,6 +90,10 @@ echo "::endgroup::"
 echo "::group::generate package doc"
 python ./doc/members2rst.py --root espnet2 --dst ./doc/_gen/guide --exclude espnet2.bin
 python ./doc/members2rst.py --root espnetez --dst ./doc/_gen/guide
+# The hand-written doc/espnet3 guides link to guide/espnet3/<module>/<Name>
+# API pages (BaseSystem, BaseRunner, InferenceProvider, ...) in ~40 places;
+# without this line nothing generates them and every one of those links 404s.
+python ./doc/members2rst.py --root espnet3 --dst ./doc/_gen/guide
 echo "::endgroup::"
 
 # Two pages at one address make vuepress-plugin-search-pro throw
