@@ -2,12 +2,16 @@
 
 On top of :class:`~espnet3.systems.base.system.BaseSystem` this adds the
 two data-preparation stages an F5-TTS recipe runs between
-``create_dataset`` and ``collect_stats``: ``remove_long_short`` and
-``create_token_list``.
+``create_dataset`` and ``collect_stats``, ``remove_long_short`` and
+``create_token_list``, and makes ``train`` leave the training config beside
+the checkpoints, where inference rebuilds the model from.
 """
 
 import logging
+from pathlib import Path
 from typing import ClassVar
+
+from omegaconf import OmegaConf
 
 from espnet3.contract.stages import StageSpec
 from espnet3.systems.base.system import BaseSystem
@@ -23,9 +27,14 @@ class F5TTSSystem(BaseSystem):
     The stage order of an F5-TTS recipe is ``create_dataset ->
     remove_long_short -> create_token_list -> collect_stats -> train ->
     infer -> measure -> pack_model -> upload_model -> pack_demo ->
-    upload_demo``. Every stage other than the two added here is inherited
-    from ``BaseSystem`` unchanged: the model is instantiated directly from
-    ``training_config.model._target_``, with ``task`` left unset.
+    upload_demo``. The model is instantiated directly from
+    ``training_config.model._target_``, with ``task`` left unset, so
+    ``train`` here first writes the training config to
+    ``${exp_dir}/config.yaml`` (what ``BaseSystem`` does through the ESPnet2
+    task bridge for a task) and then trains; ``inference.yaml`` points
+    ``model.train_config`` at that file, so a checkpoint is always rebuilt
+    from the config it was trained with. Every other stage is inherited
+    from ``BaseSystem`` unchanged.
 
     Examples:
         >>> [s.name for s in F5TTSSystem.stages[:3]]
@@ -53,6 +62,39 @@ class F5TTSSystem(BaseSystem):
         StageSpec(name="pack_demo", config="demo", log_dir="pack.out_dir"),
         StageSpec(name="upload_demo", config="demo", log_dir="pack.out_dir"),
     )
+
+    def train(self, *args, **kwargs):
+        """Write the training config beside the checkpoints, then train.
+
+        The config is saved as ``${exp_dir}/config.yaml``, the file the
+        template's ``inference.yaml`` names as ``model.train_config``, so the
+        checkpoint and the config it was trained with travel together: a
+        second training config needs no edit to the inference config, and a
+        packed bundle carries the file with ``exp_dir``.
+
+        Raises:
+            TypeError: If any positional or keyword argument is passed.
+
+        Example:
+            .. code-block:: python
+
+                >>> system = F5TTSSystem(training_config=training_config)
+                >>> system.train()
+                >>> (Path(training_config.exp_dir) / "config.yaml").is_file()
+                True
+
+        Note:
+            The config is written as resolved by ``run.py``, so its paths
+            are relative to the recipe directory, which is also the working
+            directory ``pack_model`` copies a bundle from.
+        """
+        self._reject_stage_args("train", args, kwargs)
+        exp_dir = Path(self.training_config.exp_dir)
+        exp_dir.mkdir(parents=True, exist_ok=True)
+        config_path = exp_dir / "config.yaml"
+        OmegaConf.save(self.training_config, config_path)
+        logger.info("F5TTSSystem.train(): wrote the training config to %s", config_path)
+        return super().train()
 
     def remove_long_short(self, *args, **kwargs):
         """Filter the recipe's manifests by audio duration.
