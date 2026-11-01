@@ -1,3 +1,5 @@
+from test.espnet2.aqa.test_metric_tokenizer import token_info
+
 import pytest
 
 from espnet2.aqa.base import UniversaBase
@@ -29,3 +31,16 @@ def _make_model(**kwargs):
 @pytest.fixture
 def make_model():
     return _make_model
+
+
+@pytest.fixture
+def full_token_info():
+    """Append whole-clip twins of both metrics after the published vocabulary."""
+    info = token_info()
+    for name, values in list(info["tokenizer"].items()):
+        full = name + "_full"
+        info["tokenizer"][full] = values
+        info["offset"][full] = [len(info["VOCAB"]), len(values) + 2]
+        info["VOCAB"] += [f"{full}@meta_label"]
+        info["VOCAB"] += [f"{full}@{i}" for i in range(len(values) + 1)]
+    return info
