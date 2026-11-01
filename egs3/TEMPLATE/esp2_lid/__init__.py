@@ -1,0 +1,1 @@
+"""LID recipe template."""
