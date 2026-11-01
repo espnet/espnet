@@ -119,7 +119,8 @@ separate `exp/eval_oracle/` tree.
 For a quick end-to-end validation without full-scale decoding, trim tiny
 manifests out of the real `segment`/`diarize` outputs and decode them with
 the optional `*_smoke` configs (a few seconds of audio; 1.5–2 min per flow
-on CPU on a Ryzen 7 2700X, including the ~25 s model load):
+on CPU on a Ryzen 7 2700X, ~1 min on a Ryzen 5 7500F, including the model
+load):
 
 ```bash
 # after: --stages segment diarize (diarized flow) and
@@ -197,7 +198,10 @@ The numbers reproduce across hosts and software stacks: a run with torch
 2.13.0 and Python 3.12 (Ryzen 5 7500F, RTX 5090) and one with torch 2.14.0
 and Python 3.13 (Ryzen 7 2700X, RTX 3090) gave identical oracle WERs and
 dev SA-WERs, and eval SA-WERs 0.01 apart (29.24 vs. 29.25), from slightly
-different speaker turns on 3 of the 54 eval recordings.
+different speaker turns on 3 of the 54 eval recordings. A third run (torch
+2.14.0, Python 3.13, Ryzen 5 7500F with an RTX 3090) reproduced the second
+one exactly: the same segments, speaker turns and transcripts, hence the
+same scores.
 
 Three documented deviations from egs1:
 
@@ -221,15 +225,18 @@ Three documented deviations from egs1:
 
 ## Runtime notes
 
-Full corpus (~10 h of audio, 60 recordings), measured on two hosts: a
-Ryzen 5 7500F with an RTX 5090, and a Ryzen 7 2700X (12 CPUs) with an RTX
-3090. Where they differ, both are given, in that order:
+Full corpus (~10 h of audio, 60 recordings), measured in three setups: a
+Ryzen 5 7500F with an RTX 5090, a Ryzen 7 2700X (12 CPUs) with an RTX
+3090, and the same Ryzen 5 7500F with an RTX 3090. Where they differ, the
+values are given in that order:
 
-- `create_dataset`: ~2 min (second host) to extract one microphone channel
-  of the 60 recordings, once the corpus is downloaded and unpacked.
-- `segment`: ~15 / ~20 s for the diarized flow (5,892 webrtcvad segments
-  across both splits), ~3 s / under 1 s for the oracle flow.
-- `diarize`: ~1.2 / ~2.4 min for all 60 recordings (~41 k x-vector
+- `create_dataset`: ~2 min (second setup) / ~70 s (third setup) to
+  extract one microphone channel of the 60 recordings, once the corpus is
+  downloaded and unpacked.
+- `segment`: ~15 / ~20 / ~4 s for the diarized flow (5,892 webrtcvad
+  segments across both splits), ~3 s / under 1 s / under 0.1 s for the
+  oracle flow.
+- `diarize`: ~1.2 / ~2.4 / ~1.5 min for all 60 recordings (~41 k x-vector
   embeddings of 1.5 s subsegments, one call each — `Speech2Embedding` has
   no batched interface; `device: auto` uses CUDA when available). The NME
   sweep runs ~19 small LAPACK eigendecompositions per recording, which
@@ -238,18 +245,19 @@ Ryzen 5 7500F with an RTX 5090, and a Ryzen 7 2700X (12 CPUs) with an RTX
   so `src/spectral_clustering.py` caps BLAS/OpenMP threads at 2 via
   `threadpoolctl` (ships with scikit-learn; no-op if absent) and uses
   vectorized neighbor/threshold helpers. Outputs are byte-identical to the
-  uncapped code (verified on the full corpus); on the first host, the cap
+  uncapped code (verified on the full corpus); in the first setup, the cap
   cuts this stage from ~34 min to ~1.2 min.
-- `infer`: ~27 / ~48 min for the diarized flow (8,715 turns, 9.3 h) and
-  ~45 / ~68 min for the oracle flow (5,023 utterances, 10.4 h) on GPU —
-  14–21× / 9–12× real time at `batch_size: 4`, whose peak GPU memory is
-  ~5.4 GiB (a batch of the four longest oracle segments, ~34 s each);
-  `batch_size: 1` needs ~3.3 GiB. The beam search is bound by single-thread
-  CPU speed (the GPU stays at ~30% utilization while decoding takes one
-  core), which is where most of the difference between the hosts comes
-  from. On CPU, decoding runs at ~0.5× real time per stream (beam 20), so
+- `infer`: ~27 / ~48 / ~29 min for the diarized flow (8,715 turns, 9.3 h)
+  and ~45 / ~68 / ~48 min for the oracle flow (5,023 utterances, 10.4 h)
+  on GPU — 14–21× / 9–12× / 13–19× real time at `batch_size: 4`, whose
+  peak GPU memory is ~5.4 GiB (a batch of the four longest oracle
+  segments, ~34 s each); `batch_size: 1` needs ~3.3 GiB. The beam search
+  is bound by single-thread CPU speed (the GPU stays at ~30% utilization
+  while decoding takes one core): with the same CPU, the RTX 3090 decodes
+  within ~7% of the RTX 5090, while on the same RTX 3090 the slower CPU
+  takes ~1.4–1.7× as long. On CPU, decoding runs at ~0.5× real time per stream (beam 20), so
   use a GPU for the full corpus.
-- `measure`: ~10–20 s the first time, which reads the `dataset:` columns
+- `measure`: ~3–20 s the first time, which reads the `dataset:` columns
   from the test set; ~1 s afterwards, from the cached columns.
 
 As a diarization sanity signal, NME-SC estimated exactly 8 speakers — the
