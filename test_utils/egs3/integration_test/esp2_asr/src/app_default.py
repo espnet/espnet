@@ -27,10 +27,7 @@ def build_demo(
         demo_config_path,
     )
 
-    def decode(**values):
-        return {"text": f"speech={int(values.get('speech') is not None)}"}
-
-    session = load_demo_session(demo_dir, demo_config_path, model=decode)
+    session = load_demo_session(demo_dir, demo_config_path)
     logger.info(
         "Resolved demo specs | inputs=%s outputs=%s",
         session.input_specs,

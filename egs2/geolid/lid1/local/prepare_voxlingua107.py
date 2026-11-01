@@ -1,0 +1,1 @@
+../../../voxlingua107/lid1/local/prepare_voxlingua107.py
