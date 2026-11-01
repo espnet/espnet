@@ -25,7 +25,10 @@ export default hopeTheme({
 
   displayFooter: true,
 
-  toc: false,
+  // Our PageContent override (theme/components/NormalPage) places the TOC in
+  // its own right-hand column, so the theme's TOC has to be enabled for it
+  // to render at all (rc.109's TOC reads this setting itself).
+  toc: true,
 
   editLink: false,
 
@@ -105,6 +108,10 @@ export default hopeTheme({
 
   plugins: {
 
+    // This documentation site does not display Git metadata. Disable the
+    // theme's default Git history scan, which otherwise spawns Git for every page.
+    git: false,
+
     // Hope rc.109 moves iconAssets to plugins.icon.assets.
     icon: {
       assets: "iconify",
@@ -117,4 +124,8 @@ export default hopeTheme({
     },
 
   },
+}, {
+  // Our own NormalPage (see config.ts) is aliased over the theme's; tell
+  // hopeTheme the layout is customised so it does not warn.
+  custom: true,
 });

@@ -1,21 +1,23 @@
-import { hasGlobalComponent } from "@vuepress/helper/client";
-import { computed, defineComponent } from "vue";
-import { usePageData, usePageFrontmatter, withBase } from "vuepress/client";
-import { RenderDefault } from "vuepress-shared/client";
+import { RenderDefault, hasGlobalComponent } from "@vuepress/helper/client";
+import { defineComponent } from "vue";
+import { withBase } from "vuepress/client";
 
-import BreadCrumb from "@theme-hope/components/BreadCrumb";
-import MarkdownContent from "@theme-hope/components/MarkdownContent";
-import PageNav from "@theme-hope/components/PageNav";
-import PageTitle from "@theme-hope/components/PageTitle";
-import { useThemeLocaleData } from "@theme-hope/composables/index";
-import PageMeta from "@theme-hope/modules/info/components/PageMeta";
-import TOC from "@theme-hope/modules/info/components/TOC";
-import { useDarkmode } from "@theme-hope/modules/outlook/composables/index";
+// Mirrors vuepress-theme-hope rc.109's components/base/PageContent, which
+// config.ts aliases to this file, with a two-column shell added around it.
+import BreadCrumb from "@theme-hope/components/base/BreadCrumb";
+import MarkdownContent from "@theme-hope/components/base/MarkdownContent";
+import PageNav from "@theme-hope/components/base/PageNav";
+import PageTitle from "@theme-hope/components/base/PageTitle";
+import TOC from "@theme-hope/components/base/TOC";
+import PageMeta from "@theme-hope/components/info/PageMeta";
+import { useDarkMode } from "@theme-hope/composables/useDarkMode";
+import { useData } from "@theme-hope/composables/useData";
 
 import DocsAiSidebar from "../../components/DocsAiSidebar.vue";
 import DocsFeedback from "../../components/DocsFeedback.vue";
 
 export default defineComponent({
+  name: "PageContent",
   components: {
     BreadCrumb,
     MarkdownContent,
@@ -27,25 +29,14 @@ export default defineComponent({
     DocsFeedback,
   },
   setup() {
-    const page = usePageData();
-    const frontmatter = usePageFrontmatter();
-    const { isDarkmode } = useDarkmode();
-    const themeLocale = useThemeLocaleData();
-
-    const tocEnable = computed(() => frontmatter.value.toc ?? true);
-    const headerDepth = computed(
-      () => frontmatter.value.headerDepth ?? themeLocale.value.headerDepth ?? 2,
-    );
-    const hasTocItems = computed(() => (page.value.headers ?? []).length > 0);
+    const { frontmatter } = useData();
+    const isDarkMode = useDarkMode();
 
     return {
       RenderDefault,
       frontmatter,
       hasGlobalComponent,
-      hasTocItems,
-      headerDepth,
-      isDarkmode,
-      tocEnable,
+      isDarkMode,
       withBase,
     };
   },

@@ -18,16 +18,18 @@
           <component
             :is="'CommentService'"
             v-if="hasGlobalComponent('CommentService')"
-            :darkmode="isDarkmode"
+            :darkmode="isDarkMode"
           />
         </div>
 
         <div class="docs-page-shell__sidebar">
           <DocsFeedback />
           <DocsAiSidebar />
-          <div v-if="tocEnable && hasTocItems" class="docs-page-shell__toc">
-            <div class="docs-page-shell__toc-title">On this page</div>
-            <TOC :header-depth="headerDepth" />
+          <!-- rc.109's TOC collects headers from the rendered DOM on the client
+               (useHeaders -> onContentUpdated), so nothing is known at SSR time;
+               always mount the wrapper and let :empty hide it in CSS. -->
+          <div class="docs-page-shell__toc">
+            <TOC />
           </div>
         </div>
       </div>
