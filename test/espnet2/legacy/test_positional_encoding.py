@@ -2,8 +2,11 @@ import pytest
 import torch
 
 from espnet2.legacy.nets.pytorch_backend.transformer.embedding import (
+    LegacyRelPositionalEncoding,
     PositionalEncoding,
+    RelPositionalEncoding,
     ScaledPositionalEncoding,
+    StreamPositionalEncoding,
 )
 
 
@@ -65,6 +68,36 @@ def test_scaled_pe_extendable(dtype, device):
     pe2.load_state_dict(sd)
     y2 = pe2(x)
     assert torch.allclose(y, y2)
+
+
+@pytest.mark.parametrize(
+    "encoding",
+    [
+        PositionalEncoding,
+        ScaledPositionalEncoding,
+        LegacyRelPositionalEncoding,
+        RelPositionalEncoding,
+        StreamPositionalEncoding,
+    ],
+)
+@pytest.mark.parametrize("low_dtype", [torch.float16, torch.bfloat16])
+@pytest.mark.parametrize("grow", [False, True])
+def test_cache_precision_after_dtype_changes(encoding, low_dtype, grow):
+    layer = encoding(8, 0.0, max_len=16)
+    low_length = 24 if grow else 8
+    start_idx = 5 if encoding is StreamPositionalEncoding else 0
+    kwargs = {"start_idx": start_idx} if start_idx else {}
+    layer(torch.zeros(1, low_length, 8, dtype=low_dtype), **kwargs)
+    cache_length = max(16, low_length + start_idx)
+
+    for dtype in [torch.float32, torch.float64]:
+        x = torch.zeros(1, 8, 8, dtype=dtype)
+        expected = encoding(8, 0.0, max_len=cache_length)(x, **kwargs)
+        actual = layer(x, **kwargs)
+        torch.testing.assert_close(actual, expected, rtol=0, atol=0)
+        assert layer.pe.shape[1] == (
+            2 * cache_length - 1 if encoding is RelPositionalEncoding else cache_length
+        )
 
 
 class LegacyPositionalEncoding(torch.nn.Module):
