@@ -1,0 +1,12 @@
+##########################################################
+#                      DEMO SETTING                      #
+##########################################################
+# Quick usage:
+#   python run.py --stages pack_demo upload_demo \
+#       --training_config conf/training.yaml --demo_config conf/demo.yaml
+#
+# `--training_config` is required: `upload_demo.hf_repo` (and through it
+# `model.dir_or_tag`) resolves `${exp_tag}` from it. Merged over
+# egs3/TEMPLATE/lace/conf/demo.yaml, which builds the audio-in / audio-out UI
+# from the packed inference contract and points the demo at the published
+# model repo, so nothing is declared here.

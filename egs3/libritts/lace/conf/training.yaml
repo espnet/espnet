@@ -1,0 +1,192 @@
+##########################################################
+#                 LACE FINE-TUNING SETTING               #
+##########################################################
+# Fine-tunes the published LibriTTS EnCodec of the ESPnet3 codec recipe
+# (NewGame/libritts_codec_train_encodec_libritts) with the LACE quantizer
+# wrapper. Merged over egs3/TEMPLATE/lace/conf/training.yaml, which
+# supplies the path scaffold, `num_device`, `parallel` and the base
+# `trainer` keys.
+#
+# Quick usage:
+#   python run.py --stages create_dataset --training_config conf/training.yaml
+#   python run.py --stages train          --training_config conf/training.yaml
+#
+# No `collect_stats` stage: chunk batching needs no shape files. No `task:`
+# key: the model is a Hydra target (espnet3.systems.lace.src.lace.LACE) that
+# strict-loads the pretrained codec itself, and `train` writes its spec to
+# ${exp_dir}/lace_model.yaml for conf/inference.yaml to rebuild from.
+##########################################################
+#                  SYSTEM AND PATH SETTING               #
+##########################################################
+exp_tag: train_encodec_lace_libritts
+
+##########################################################
+#                 DATASET CREATION SETTING               #
+##########################################################
+# Keyword arguments of `LibriTTSBuilder` (dataset/builder.py); add
+# `remove_archive: true` to delete each `.tar.gz` after extraction.
+create_dataset:
+  recipe_dir: ${recipe_dir}
+
+##########################################################
+#                    DATASET DEFINITION                  #
+##########################################################
+dataset:
+  _target_: espnet3.components.data.data_organizer.DataOrganizer
+  recipe_dir: ${recipe_dir}
+  train:
+    - data_src_args:
+        split: train
+  valid:
+    - data_src_args:
+        split: valid
+  preprocessor:
+    _target_: espnet2.train.preprocessor.CommonPreprocessor
+    train: true
+    token_type: null
+    speech_name: audio
+    force_single_channel: true
+    audio_pad_value: 0.0
+
+##########################################################
+#                     LACE MODEL SETTING                 #
+##########################################################
+model:
+  _target_: espnet3.systems.lace.src.lace.LACE
+  # The pretrained codec: an ESPnet3 `pack_model` bundle on the Hugging Face
+  # Hub, strict-loaded before the quantizer is wrapped. For a codec you
+  # trained yourself, use `pretrained_model_dir: <that run>/model_pack`.
+  pretrained_model_tag: NewGame/libritts_codec_train_encodec_libritts
+  freeze_codec_module_name: none   # none | encoder | decoder
+  compression_model:
+    name: cosine_similarity        # cosine_similarity | density_peak | dp_segmentation | identity
+    params: {}
+    # Training samples a rate per forward pass in [min_rate, max_rate];
+    # validation always uses eval_rate. Higher rate = more segments = less
+    # compression (see README "Compression models" for each model's rule).
+    min_rate: 0.1
+    max_rate: 1.0
+    random_rate: per_quantizer     # per_quantizer | per_sample | none
+    eval_rate: 0.5
+
+##########################################################
+#            OPTIMIZER & SCHEDULER SETTING               #
+##########################################################
+# The pretrained codec's optimizer (AdamW, betas 0.5/0.9) at a third of its
+# learning rate, as this is fine-tuning; the paper fine-tuned with 1.0e-4.
+optimizers:
+  generator:
+    optimizer:
+      _target_: torch.optim.AdamW
+      lr: 1.0e-4
+      betas: [0.5, 0.9]
+      eps: 1.0e-9
+      weight_decay: 0.0
+    params: generator            # substring used to select parameters
+    accum_grad_steps: 1
+    step_every_n_iters: 1
+    gradient_clip_val: null
+  discriminator:
+    optimizer:
+      _target_: torch.optim.AdamW
+      lr: 1.0e-4
+      betas: [0.5, 0.9]
+      eps: 1.0e-9
+      weight_decay: 0.0
+    params: discriminator
+    accum_grad_steps: 1
+    step_every_n_iters: 1
+    gradient_clip_val: null
+
+schedulers:
+  generator:
+    scheduler:
+      _target_: torch.optim.lr_scheduler.ExponentialLR
+      gamma: 0.999875
+    interval: epoch
+  discriminator:
+    scheduler:
+      _target_: torch.optim.lr_scheduler.ExponentialLR
+      gamma: 0.999875
+    interval: epoch
+
+##########################################################
+#                OTHER TRAINING SETTING                  #
+##########################################################
+best_model_criterion:
+  - - valid/mel_loss
+    - 5
+    - min
+  - - train/mel_loss
+    - 5
+    - min
+  - - step
+    - 5
+    - max
+
+##########################################################
+#                   DATALOADER SETTING                   #
+##########################################################
+# Chunk-based iteration with the chunk length and batch size the pretrained
+# codec was trained with.
+dataloader:
+  collate_fn:
+    _target_: espnet2.train.collate_fn.CommonCollateFn
+    float_pad_value: 0.0
+    int_pad_value: 0
+  train:
+    iter_factory:
+      _target_: espnet2.iterators.chunk_iter_factory.ChunkIterFactory
+      batch_size: 4                # chunks per batch per GPU
+      chunk_length: 61440
+      num_cache_chunks: 64
+      num_samples_per_epoch: 10000
+      shuffle: true
+      num_workers: 4
+      collate_fn: ${dataloader.collate_fn}
+      batches:
+        type: unsorted
+        batch_size: 1        # required by ChunkIterFactory's per-sample sampler
+        batch_bins: 0        # required by signature, unused for "unsorted"
+        shape_files:
+          - ${data_dir}/manifest/train.tsv
+  valid:
+    iter_factory:
+      _target_: espnet2.iterators.chunk_iter_factory.ChunkIterFactory
+      batch_size: ${dataloader.train.iter_factory.batch_size}
+      chunk_length: ${dataloader.train.iter_factory.chunk_length}
+      num_cache_chunks: ${dataloader.train.iter_factory.num_cache_chunks}
+      shuffle: false
+      num_workers: ${dataloader.train.iter_factory.num_workers}
+      collate_fn: ${dataloader.collate_fn}
+      batches:
+        type: unsorted
+        batch_size: 1
+        batch_bins: 0
+        shape_files:
+          - ${data_dir}/manifest/valid.tsv
+
+##########################################################
+#                    TRAINER SETTING                     #
+##########################################################
+# For num_device > 1 set `strategy: ddp_find_unused_parameters_true`: each
+# GAN turn leaves one module without gradients, which default DDP rejects.
+trainer:
+  accumulate_grad_batches: 1
+  check_val_every_n_epoch: 1
+  log_every_n_steps: 500
+  max_epochs: 60
+
+  gan:
+    generator_first: true         # update the generator before the discriminator
+    skip_discriminator_prob: 0.3  # skip the discriminator turn with this probability
+
+  logger:
+    - _target_: lightning.pytorch.loggers.TensorBoardLogger
+      save_dir: ${exp_dir}/tensorboard
+      name: tb_logger
+
+##########################################################
+#                      FIT SETTING                       #
+##########################################################
+fit: {}

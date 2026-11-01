@@ -1,0 +1,32 @@
+##########################################################
+#                 LACE INFERENCE SETTING                 #
+##########################################################
+# Quick usage:
+#   python run.py --stages infer \
+#       --training_config conf/training.yaml \
+#       --inference_config conf/inference.yaml
+#
+# Merged over egs3/TEMPLATE/lace/conf/inference.yaml, which supplies the
+# paths, `parallel`, the `LACEAudioCoding` `model._target_`, `input_key:
+# audio`, the audio-in / audio-out `contract` and the provider/runner classes.
+# The model rebuilds the wrapped codec from ${exp_dir}/lace_model.yaml, loads
+# the fine-tuned checkpoint strictly, and the test set is written back as
+# 24 kHz WAV files listed in `${inference_dir}/test/resyn_audio.scp`.
+#
+# For a rate sweep, copy this file once per rate (e.g. conf/inference_r025.yaml)
+# and change `rate`; the inference dir is named after the config file.
+
+dataset:
+  test:
+    - name: test
+      data_src_args:
+        split: test
+        inference: true
+
+model:
+  train_config: ${exp_dir}/lace_model.yaml
+  model_file: ${exp_dir}/last.ckpt   # Lightning checkpoints are unwrapped automatically
+  rate: 0.5
+  # Layers at/after this index may only cut where earlier layers did;
+  # null disables anchoring.
+  anchor_start_layer: null
