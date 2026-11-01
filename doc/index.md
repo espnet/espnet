@@ -19,10 +19,10 @@ highlights:
         details: "<code>pip install espnet espnet-model-zoo</code> and start using it immediately."
         icon: fa-solid:bolt
         link: notebook/#demos
-      - title: "Learning ESPnet from a course"
-        details: "The notebooks CMU teaches with: recognition, translation, synthesis, enhancement, codecs."
+      - title: "Train and fine-tune with ESPnet3"
+        details: "Learn the new ESPnet3 workflow: provider/runner jobs, Hydra configs, and Lightning-based training."
         icon: fa-solid:fire
-        link: notebook/#courses
+        link: ./espnet3/
       - title: "Complete installation to fully reproduce ESPnet models"
         details: "Complete the full installation and use the existing recipes."
         icon: fa-solid:server
