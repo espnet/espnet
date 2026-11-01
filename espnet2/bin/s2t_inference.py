@@ -1731,6 +1731,15 @@ def inference(
     max_seq_len: int,
     max_mask_parallel: int,
 ):
+    """Run S2T inference on input data.
+
+    Utterances whose duration exceeds speech_length * fs are routed to
+    Speech2Text.decode_long(...) instead of being trimmed. Joined segment texts
+    are written to text and text_nospecial. For these long-form utterances:
+      - token / token_int: Empty lists.
+      - score: Set to 0.0 in the output Hypothesis, as decode_long returns
+        segmented text without a combined hypothesis sequence score.
+    """
     if word_lm_train_config is not None:
         raise NotImplementedError("Word LM is not implemented")
     if ngpu > 1:
@@ -1791,6 +1800,31 @@ def inference(
         **speech2text_kwargs,
     )
 
+    max_speech_samples = int(
+        speech2text.preprocessor_conf["fs"]
+        * speech2text.preprocessor_conf["speech_length"]
+    )
+    preprocess_fn = S2TTask.build_preprocess_fn(speech2text.s2t_train_args, False)
+    if preprocess_fn is not None:
+        _orig_preprocess = preprocess_fn
+
+        def preprocess_fn(uid, data):
+            speech_name = getattr(_orig_preprocess, "speech_name", "speech")
+            raw_speech = data.get(speech_name)
+            data = _orig_preprocess(uid, data)
+            if raw_speech is not None and speech_name in data:
+                raw_len = (
+                    raw_speech.shape[0]
+                    if raw_speech.ndim == 1
+                    else raw_speech.shape[-1]
+                )
+                if raw_len > max_speech_samples:
+                    if raw_speech.ndim == 1:
+                        data[speech_name] = raw_speech[:, None]
+                    else:
+                        data[speech_name] = raw_speech
+            return data
+
     # 3. Build data-iterator
     loader = S2TTask.build_streaming_iterator(
         data_path_and_name_and_type,
@@ -1798,7 +1832,7 @@ def inference(
         batch_size=batch_size,
         key_file=key_file,
         num_workers=num_workers,
-        preprocess_fn=S2TTask.build_preprocess_fn(speech2text.s2t_train_args, False),
+        preprocess_fn=preprocess_fn,
         collate_fn=S2TTask.build_collate_fn(speech2text.s2t_train_args, False),
         allow_variable_data_keys=allow_variable_data_keys,
         inference=True,
@@ -1806,6 +1840,8 @@ def inference(
 
     # 7 .Start for-loop
     # FIXME(kamo): The output format should be discussed about
+    n_long_utt = 0
+
     with DatadirWriter(output_dir) as writer:
         for keys, batch in loader:
             assert isinstance(batch, dict), type(batch)
@@ -1813,41 +1849,64 @@ def inference(
             _bs = len(next(iter(batch.values())))
             assert len(keys) == _bs, f"{len(keys)} != {_bs}"
 
-            # One n-best list of
-            # (text, token, token_int, text_nospecial, hyp_object) per key
-            try:
-                if batch_size > 1:
-                    batch_results = speech2text.batch_decode(**batch)
-                else:
-                    batch_results = [
-                        speech2text(
-                            **{
-                                k: v[0]
-                                for k, v in batch.items()
-                                if not k.endswith("_lengths")
-                            }
-                        )
-                    ]
-            except TooShortUttError as e:
+            lengths = batch["speech_lengths"]
+            is_long = lengths > max_speech_samples
+            batch_results = [None] * _bs
+
+            for b in is_long.nonzero().flatten().tolist():
+                n_long_utt += 1
+                segs = speech2text.decode_long(
+                    batch["speech"][b, : lengths[b]],
+                    lang_sym=lang_sym,
+                    task_sym=task_sym,
+                )
+                text = " ".join(t for _, _, t in segs)
                 hyp = Hypothesis(score=0.0, scores={}, states={}, yseq=[])
-                placeholder = [[" ", ["<space>"], [2], " ", hyp]] * nbest
-                if _bs == 1:
-                    logging.warning(f"Utterance {keys} {e}")
-                    batch_results = [placeholder]
-                else:
-                    # one too-short utterance would otherwise discard the
-                    # results of the whole minibatch
-                    logging.warning(
-                        f"Utterances {keys} {e}; retrying them one at a time"
-                    )
-                    batch_results = []
-                    for b, key in enumerate(keys):
-                        one = {k: v[b : b + 1] for k, v in batch.items()}
-                        try:
-                            batch_results.append(speech2text.batch_decode(**one)[0])
-                        except TooShortUttError as one_e:
-                            logging.warning(f"Utterance {key} {one_e}")
-                            batch_results.append(placeholder)
+                batch_results[b] = [(text, [], [], text, hyp)]
+
+            short = (~is_long).nonzero().flatten()
+            if len(short) > 0:
+                short_batch = {
+                    "speech": batch["speech"][short, :max_speech_samples],
+                    "speech_lengths": lengths[short],
+                }
+                short_keys = [keys[i] for i in short.tolist()]
+                try:
+                    if batch_size > 1:
+                        short_results = speech2text.batch_decode(**short_batch)
+                    else:
+                        short_results = [
+                            speech2text(
+                                **{
+                                    k: v[0]
+                                    for k, v in short_batch.items()
+                                    if not k.endswith("_lengths")
+                                }
+                            )
+                        ]
+                except TooShortUttError as e:
+                    hyp = Hypothesis(score=0.0, scores={}, states={}, yseq=[])
+                    placeholder = [[" ", ["<space>"], [2], " ", hyp]] * nbest
+                    if len(short) == 1:
+                        logging.warning(f"Utterance {short_keys} {e}")
+                        short_results = [placeholder]
+                    else:
+                        # one too-short utterance would otherwise discard the
+                        # results of the whole minibatch
+                        logging.warning(
+                            f"Utterances {short_keys} {e}; retrying them one at a time"
+                        )
+                        short_results = []
+                        for b, key in enumerate(short_keys):
+                            one = {k: v[b : b + 1] for k, v in short_batch.items()}
+                            try:
+                                short_results.append(speech2text.batch_decode(**one)[0])
+                            except TooShortUttError as one_e:
+                                logging.warning(f"Utterance {key} {one_e}")
+                                short_results.append(placeholder)
+
+                for idx, b in enumerate(short.tolist()):
+                    batch_results[b] = short_results[idx]
 
             for key, results in zip(keys, batch_results):
                 encoder_interctc_res = None
@@ -1878,6 +1937,8 @@ def inference(
                         ibest_writer[f"encoder_interctc_layer{idx}.txt"][key] = (
                             " ".join(text)
                         )
+
+    logging.info(f"Total utterances decoded via decode_long: {n_long_utt}")
 
 
 def get_parser():
