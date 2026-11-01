@@ -79,3 +79,22 @@ python3 "${cwd}/ci/check_espnet3_parallel_workers.py" \
 rm -rf exp data
 
 cd "${cwd}" || exit
+
+cd ./egs3/mini_an4/esp2_codec || exit
+gen_dummy_coverage
+echo "==== [ESPnet3] Codec ===="
+source path.sh
+# The 3.13 image has no versa (tools/installers/install_versa.sh installs it
+# with bare `pip`, which is not the venv's pip there). Install it here with
+# its dependencies; the signal metrics also need these three.
+python3 -m pip install \
+    "versa-speech-audio-toolkit @ git+https://github.com/wavlab-speech/versa.git@v1.1.0" \
+    ci-sdr fast-bss-eval mir-eval
+${python} run.py \
+    --stages create_dataset collect_stats train infer measure \
+    --training_config conf/training.yaml \
+    --inference_config conf/inference.yaml \
+    --metrics_config conf/metrics.yaml
+rm -rf exp data
+
+cd "${cwd}" || exit

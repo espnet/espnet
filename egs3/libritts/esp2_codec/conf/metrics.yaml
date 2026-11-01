@@ -1,0 +1,17 @@
+##########################################################
+#                 METRIC SCORING SETTING                 #
+##########################################################
+# Quick usage:
+#   python run.py --stages measure \
+#       --training_config conf/training_encodec.yaml \
+#       --inference_config conf/inference.yaml \
+#       --metrics_config conf/metrics.yaml
+#
+# Merged over egs3/TEMPLATE/esp2_codec/conf/metrics.yaml, which supplies the
+# VERSA metric (signal metrics and pseudo-MOS predictors) and its bindings to
+# the `infer` output and the test set's `wav_path` column. Only the test sets
+# to score live here.
+
+dataset:
+  test:
+    - name: test
