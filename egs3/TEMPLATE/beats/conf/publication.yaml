@@ -1,0 +1,59 @@
+##########################################################
+#                  PUBLICATION SETTING                   #
+##########################################################
+# Quick usage:
+#   python run.py --stages pack_model upload_model \
+#       --training_config conf/training.yaml \
+#       --inference_config conf/inference.yaml \
+#       --metrics_config conf/metrics.yaml \
+#       --publication_config conf/publication.yaml
+#
+# Packs the encoder of one BEATs iteration. The bundle carries the portable
+# checkpoint written by BeatsCheckpointExport (`training_config.export_path`,
+# `beats_encoder_iter<N>.pt`), the configs, and `metrics.json` from `measure`.
+# Lightning checkpoints and the targets are left out: they are large and only
+# needed to resume pre-training.
+
+##########################################################
+#                    PATHS AND INPUTS                    #
+##########################################################
+recipe_dir: .
+# run.py copies `exp_tag`/`exp_dir` from `--training_config` and
+# `inference_dir` (the target directory) from `--inference_config`.
+exp_tag: ${self_name:}
+exp_dir: exp/${exp_tag}
+inference_dir: ${exp_dir}/targets
+data_dir: ${recipe_dir}/data
+
+##########################################################
+#                   PACK MODEL SETTING                   #
+##########################################################
+# See egs3/TEMPLATE/asr/conf/publication.yaml for how `include`, `exclude`,
+# and `files` are applied.
+pack_model:
+  out_dir: ${exp_dir}/model_pack
+  allow_overwrite: false
+  inference_dir: ${inference_dir}
+  include_model_detail: false
+  readme: ${config_path:../src/hf_model_readme.md}
+  exclude:
+    # Targets of this iteration (`target_dir`); they can be larger than the model.
+    - targets
+    - "*.ckpt"
+    - "*.pth"
+    - "**/*.log"
+    - "**/tensorboard/**"
+    - "**/wandb/**"
+
+##########################################################
+#                  UPLOAD MODEL SETTING                  #
+##########################################################
+# Run `hf auth login` first. `upload_model` uploads `${pack_model.out_dir}`.
+upload_model:
+  hf_repo: espnet/${set_corpus_and_system:}_${exp_tag}
+  private: false
+  # false raises if the repo already exists, preventing accidental overwrites.
+  update: false
+  # Only used when update: true.
+  delete_patterns:
+    - "*"
