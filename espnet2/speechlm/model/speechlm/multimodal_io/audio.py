@@ -852,6 +852,7 @@ class ContinuousAudioIO(AbsIO):
         attn_implementation: str = None,
         dtype: str = "bfloat16",
         device: str = "cpu",
+        load_weights: bool = True,
     ):
         """Initialize continuous audio encoder.
 
@@ -862,6 +863,11 @@ class ContinuousAudioIO(AbsIO):
             attn_implementation: Attention implementation type
             dtype: Model dtype ("bfloat16", "float16", etc.)
             device: Device for model ("cpu", "cuda", etc.)
+            load_weights: Load the encoder's pretrained weights. False builds
+                it from the config alone, for a caller that is about to load
+                a checkpoint carrying them: the omni model these come from is
+                then never downloaded (65.68 GiB for Qwen3-Omni-30B-A3B,
+                of which the encoder keeps 1.21).
         """
         super().__init__(modality="audio", is_discrete=False)
 
@@ -869,6 +875,7 @@ class ContinuousAudioIO(AbsIO):
         self.encoder_choice = encoder_choice
         self.encoder_hf_model_tag = encoder_hf_model_tag
         self.attn_implementation = attn_implementation
+        self.load_weights = load_weights
         self.dtype_str = dtype
 
         # Convert string dtype to torch dtype
@@ -881,32 +888,43 @@ class ContinuousAudioIO(AbsIO):
         """Initialize the audio encoder model."""
         if self.encoder_choice == "huggingface":
             if self.encoder_hf_model_tag == "Qwen/Qwen2.5-Omni-7B":
-                from transformers import Qwen2_5OmniForConditionalGeneration
+                from transformers import (
+                    Qwen2_5OmniForConditionalGeneration,
+                    Qwen2_5OmniThinkerForConditionalGeneration,
+                )
 
                 model_class = Qwen2_5OmniForConditionalGeneration
+                thinker_class = Qwen2_5OmniThinkerForConditionalGeneration
 
             elif self.encoder_hf_model_tag == "Qwen/Qwen3-Omni-30B-A3B-Instruct":
-                from transformers import Qwen3OmniMoeForConditionalGeneration
+                from transformers import (
+                    Qwen3OmniMoeForConditionalGeneration,
+                    Qwen3OmniMoeThinkerForConditionalGeneration,
+                )
 
                 model_class = Qwen3OmniMoeForConditionalGeneration
+                thinker_class = Qwen3OmniMoeThinkerForConditionalGeneration
 
             else:
                 raise NotImplementedError(
                     f"Model {self.encoder_hf_model_tag} not implemented"
                 )
 
-            # Load full Qwen multimodal model
-            full_model = model_class.from_pretrained(
-                self.encoder_hf_model_tag,
-                attn_implementation=self.attn_implementation,
-                torch_dtype=self.dtype,
-            )
+            if self.load_weights:
+                # Load full Qwen multimodal model
+                thinker = model_class.from_pretrained(
+                    self.encoder_hf_model_tag,
+                    attn_implementation=self.attn_implementation,
+                    torch_dtype=self.dtype,
+                ).thinker
+            else:
+                thinker = self._thinker_without_weights(thinker_class)
 
             # Remove unnecessary components, keep only audio tower
-            del full_model.thinker.model  # Remove language model
-            del full_model.thinker.visual  # Remove vision components
-            del full_model.thinker.lm_head  # Remove output head
-            self.model = full_model.thinker.to(self.device)
+            del thinker.model  # Remove language model
+            del thinker.visual  # Remove vision components
+            del thinker.lm_head  # Remove output head
+            self.model = thinker.to(self.device)
 
             # Load processor for audio preprocessing. AutoFeatureExtractor
             # rather than AutoProcessor: an omni checkpoint's processor also
@@ -931,6 +949,27 @@ class ContinuousAudioIO(AbsIO):
             raise NotImplementedError(
                 f"Encoder choice {self.encoder_choice} not implemented"
             )
+
+    def _thinker_without_weights(self, thinker_class):
+        """Build the omni model's thinker from its config alone.
+
+        Only the audio tower is kept, and it is 1.8% of the checkpoint
+        (1.21 of 65.68 GiB for Qwen3-Omni-30B-A3B), so everything else is
+        built on the meta device - no memory, no download beyond the config.
+        The tower is built for real, because its sinusoidal position table
+        is a non-persistent buffer: no checkpoint carries it, and a meta
+        tensor would stay empty.
+        """
+        from transformers import AutoConfig
+
+        config = AutoConfig.from_pretrained(self.encoder_hf_model_tag)
+        kwargs = dict(attn_implementation=self.attn_implementation, dtype=self.dtype)
+        with torch.device("meta"):
+            thinker = thinker_class._from_config(config.thinker_config, **kwargs)
+        thinker.audio_tower = type(thinker.audio_tower)._from_config(
+            config.thinker_config.audio_config, **kwargs
+        )
+        return thinker
 
     def preprocess(
         self, data: Tuple[np.ndarray, int]

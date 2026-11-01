@@ -513,6 +513,82 @@ class TestDelayInterleave:
 # ---------------------------------------------------------------------------
 # ContinuousAudioIO tests — lightweight logic only (no model loading)
 # ---------------------------------------------------------------------------
+_THINKERS = {
+    "Qwen/Qwen2.5-Omni-7B": "Qwen2_5OmniThinkerForConditionalGeneration",
+    "Qwen/Qwen3-Omni-30B-A3B-Instruct": "Qwen3OmniMoeThinkerForConditionalGeneration",
+}
+_OMNI_MODELS = {
+    "Qwen/Qwen2.5-Omni-7B": "Qwen2_5OmniForConditionalGeneration",
+    "Qwen/Qwen3-Omni-30B-A3B-Instruct": "Qwen3OmniMoeForConditionalGeneration",
+}
+
+
+def _tiny_thinker_config(model_tag):
+    """The real thinker config classes, a few thousand parameters in size."""
+    audio = dict(
+        d_model=16,
+        encoder_layers=1,
+        encoder_attention_heads=2,
+        encoder_ffn_dim=32,
+        output_dim=8,
+        num_mel_bins=16,
+        max_source_positions=50,
+        n_window=5,
+    )
+    text = dict(
+        hidden_size=16,
+        intermediate_size=32,
+        num_hidden_layers=1,
+        num_attention_heads=2,
+        num_key_value_heads=1,
+        vocab_size=64,
+    )
+    vision = dict(
+        depth=1, hidden_size=16, intermediate_size=32, num_heads=2, out_hidden_size=16
+    )
+    if model_tag == "Qwen/Qwen2.5-Omni-7B":
+        from transformers.models.qwen2_5_omni import configuration_qwen2_5_omni as c
+
+        return c.Qwen2_5OmniThinkerConfig(
+            audio_config=audio,
+            text_config=text,
+            vision_config={**vision, "fullatt_block_indexes": [0]},
+        )
+    from transformers.models.qwen3_omni_moe import configuration_qwen3_omni_moe as c
+
+    return c.Qwen3OmniMoeThinkerConfig(
+        audio_config={**audio, "downsample_hidden_size": 8},
+        text_config={
+            **text,
+            "num_experts": 2,
+            "num_experts_per_tok": 1,
+            "moe_intermediate_size": 8,
+            "head_dim": 8,
+        },
+        vision_config={**vision, "deepstack_visual_indexes": [0]},
+    )
+
+
+def _hub_stubs(thinker_config):
+    """Answer the two small Hub reads - the config and the feature extractor."""
+    import contextlib
+
+    stack = contextlib.ExitStack()
+    stack.enter_context(
+        patch(
+            "transformers.AutoConfig.from_pretrained",
+            return_value=types.SimpleNamespace(thinker_config=thinker_config),
+        )
+    )
+    stack.enter_context(
+        patch(
+            "transformers.AutoFeatureExtractor.from_pretrained",
+            return_value=types.SimpleNamespace(sampling_rate=16000, hop_length=160),
+        )
+    )
+    return stack
+
+
 class TestContinuousAudioIO:
     def _make_continuous_io(self, model_tag="Qwen/Qwen2.5-Omni-7B"):
         with patch.object(ContinuousAudioIO, "_init_encoder"):
@@ -577,6 +653,67 @@ class TestContinuousAudioIO:
         result = io.encode_batch(batch, lengths)
         assert [value.shape[0] for value in result] == output_lengths.tolist()
         torch.testing.assert_close(torch.cat(result), features)
+
+    @pytest.mark.parametrize(
+        "model_tag", ["Qwen/Qwen2.5-Omni-7B", "Qwen/Qwen3-Omni-30B-A3B-Instruct"]
+    )
+    def test_without_weights_builds_what_the_checkpoint_fills(self, model_tag):
+        """load_weights=False builds what a checkpoint fills, fetching nothing.
+
+        Same keys and shapes as the module the checkpoint was saved from,
+        nothing left on the meta device, and the position table that no
+        checkpoint carries.
+        """
+        transformers = pytest.importorskip("transformers")
+        config = _tiny_thinker_config(model_tag)
+        thinker_class = getattr(transformers, _THINKERS[model_tag])
+        model_class = getattr(transformers, _OMNI_MODELS[model_tag])
+
+        reference = thinker_class._from_config(config)
+        del reference.model, reference.visual, reference.lm_head
+
+        with (
+            _hub_stubs(config),
+            patch.object(
+                model_class, "from_pretrained", side_effect=AssertionError("fetched")
+            ),
+        ):
+            io = ContinuousAudioIO(
+                encoder_hf_model_tag=model_tag, dtype="float32", load_weights=False
+            )
+
+        built = io.model.state_dict()
+        assert {k: v.shape for k, v in built.items()} == {
+            k: v.shape for k, v in reference.state_dict().items()
+        }
+        assert not any(t.is_meta for t in io.model.parameters())
+        assert not any(t.is_meta for t in io.model.buffers())
+        torch.testing.assert_close(
+            io.model.audio_tower.positional_embedding.positional_embedding,
+            reference.audio_tower.positional_embedding.positional_embedding,
+        )
+        assert io.d_model == config.audio_config.output_dim
+
+    def test_with_weights_still_loads_the_omni_model(self):
+        """Training starts from the pretrained encoder, so the default fetches."""
+        transformers = pytest.importorskip("transformers")
+        model_tag = "Qwen/Qwen3-Omni-30B-A3B-Instruct"
+        config = _tiny_thinker_config(model_tag)
+        thinker = getattr(transformers, _THINKERS[model_tag])._from_config(config)
+        model_class = getattr(transformers, _OMNI_MODELS[model_tag])
+
+        with (
+            _hub_stubs(config),
+            patch.object(
+                model_class,
+                "from_pretrained",
+                return_value=types.SimpleNamespace(thinker=thinker),
+            ) as fetched,
+        ):
+            io = ContinuousAudioIO(encoder_hf_model_tag=model_tag, dtype="float32")
+
+        fetched.assert_called_once()
+        assert io.model is thinker
 
     def test_find_length_qwen25(self):
         io = self._make_continuous_io("Qwen/Qwen2.5-Omni-7B")
