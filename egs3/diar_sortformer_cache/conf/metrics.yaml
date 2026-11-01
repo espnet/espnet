@@ -1,0 +1,24 @@
+##########################################################
+#               SORTFORMER DIARIZATION METRICS           #
+##########################################################
+# Computes frame-level Diarization Error Rate (DER) from the per-utterance
+# hyp/ref activity matrices written by the inference stage.
+
+metrics:
+  - metric:
+      _target_: espnet3.systems.diar.metrics.der.DER
+      threshold: 0.5
+      frame_dur: 0.08
+    inputs:
+      ref: ref
+      hyp: hyp
+
+##########################################################
+#            LONG-FORM DER (collar-based)                #
+##########################################################
+# Used by the `measure_longform` stage. Uses pyannote.metrics (collar) if
+# installed, else a frame-level Hungarian DER (no collar).
+longform:
+  cond: sdm
+  splits: [dev]
+  collar: 0.25
