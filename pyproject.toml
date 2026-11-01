@@ -166,10 +166,13 @@ train = [
 # separable on purpose: everything it needs is here, nothing it needs comes
 # from ESPnet, and ci/check_splet_independence.py fails if that stops being
 # true. PyYAML is the only hard requirement; rapidfuzz is the linear-memory
-# alignment backend, needed for transcripts too long for a full DP table.
+# alignment backend, needed for transcripts too long for a full DP table;
+# sacrebleu computes BLEU, chrF and TER (2.2 is the first that accepts an
+# empty reference; 2.0 and 2.1 raise on one, and SPLET's readers allow it).
 splet = [
   "PyYAML>=5.1.2",
   "rapidfuzz",
+  "sacrebleu>=2.2.0",
 ]
 
 asr = [
