@@ -18,7 +18,7 @@ highlights:
       - title: "Running inference on existing ESPnet models"
         details: "<code>pip install espnet espnet-model-zoo</code> and start using it immediately."
         icon: fa-solid:bolt
-        link: notebook/#demos
+        link: notebook/#demo
       - title: "Train and fine-tune with ESPnet3"
         details: "Learn the new ESPnet3 workflow: provider/runner jobs, Hydra configs, and Lightning-based training."
         icon: fa-solid:fire

@@ -89,10 +89,7 @@ echo "::endgroup::"
 # generate package doc
 echo "::group::generate package doc"
 python ./doc/members2rst.py --root espnet2 --dst ./doc/_gen/guide --exclude espnet2.bin
-# The hand-written doc/espnet3 guides link to guide/espnet3/<module>/<Name>
-# API pages (BaseSystem, BaseRunner, InferenceProvider, ...) in ~40 places;
-# without this line nothing generates them and every one of those links 404s.
-python ./doc/members2rst.py --root espnet3 --dst ./doc/_gen/guide
+python ./doc/members2rst.py --root espnetez --dst ./doc/_gen/guide
 echo "::endgroup::"
 
 # Two pages at one address make vuepress-plugin-search-pro throw
@@ -117,7 +114,6 @@ cp -r ./doc/recipe ./doc/vuepress/src
 cp ./doc/*.md ./doc/vuepress/src/
 mv ./doc/vuepress/src/README.md ./doc/vuepress/src/document.md
 cp -r ./doc/image ./doc/vuepress/src/
-cp -r ./doc/espnet3 ./doc/vuepress/src/espnet3
 
 # Document generation has finished.
 # From the following point we modify files for VuePress.
@@ -126,16 +122,6 @@ cp -r ./doc/espnet3 ./doc/vuepress/src/espnet3
 python ./doc/convert_custom_tags_to_html.py ./doc/vuepress/src/guide
 python ./doc/convert_custom_tags_to_html.py ./doc/vuepress/src/tools
 python ./doc/convert_custom_tags_to_html.py ./doc/vuepress/src/recipe
-# doc/espnet3 is hand-written (it uses real <DocCard>/<Foo /> Vue
-# components), so it needs the permissive, author-escape-aware path --
-# convert_custom_tags_to_html.py picks that automatically because the
-# path contains "espnet3" (see is_handwritten_path()). It must NOT go
-# through convert_md_to_homepage.py below: that rewrites every ### / ####
-# heading into a non-semantic <div class='custom-h3'/'custom-h4'>, which
-# is correct for sphinx-generated API signature pages but would strip
-# real section headings (TOC/sidebar anchors) from these hand-written
-# guides.
-python ./doc/convert_custom_tags_to_html.py ./doc/vuepress/src/espnet3
 
 # Convert API document to specific html tags to display sphinx style
 python ./doc/convert_md_to_homepage.py ./doc/vuepress/src/guide/

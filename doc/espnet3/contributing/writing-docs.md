@@ -308,6 +308,7 @@ and further down:
 
 ```bash
 # cp -r ./doc/notebook ./doc/vuepress/src/
+# rm -rf ./doc/vuepress/src/notebook/ESPnetEZ
 ```
 :::
 

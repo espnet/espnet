@@ -76,13 +76,19 @@ if __name__ == "__main__":
             "text": "Demos",
             "icon": "fa-solid:laptop-code",
             "prefix": "notebook/",
-            # Mirrors espnet/notebook's current layout (Demos/, Courses/). The
-            # older ESPnet2/, ESPnetEZ/, ESPnet1/ directories no longer exist
-            # there, and ESPnet-EZ is being removed from ESPnet altogether.
             "children": [
                 {"text": "Roadmap", "link": "README.md"},
-                "Demos/",
-                "Courses/",
+                {
+                    "text": "ESPnet2",
+                    "prefix": "ESPnet2/",
+                    "children": ["Demo/", "Course/"],
+                },
+                {"text": "ESPnet-EZ", "prefix": "ESPnetEZ/", "children": ["README.md"]},
+                {
+                    "text": "ESPnet1 (Legacy)",
+                    "prefix": "ESPnet1/",
+                    "children": ["README.md"],
+                },
             ],
         },
         {
