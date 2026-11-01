@@ -1,0 +1,33 @@
+##########################################################
+#                  PUBLICATION SETTING                   #
+##########################################################
+#   python run.py --stages pack_model \
+#       --training_config conf/tuning/training_<lang>.yaml \
+#       --inference_config conf/tuning/inference_<lang>.yaml \
+#       --metrics_config conf/metrics.yaml \
+#       --publication_config conf/publication.yaml
+#
+# `--inference_config` bundles the merged inference config, with the
+# TEMPLATE contract that the demo and `InferenceModel` load, and lets
+# pack_model find that run's metrics.json to render the results table into
+# the bundled README.
+
+pack_model:
+  include:
+    - ${recipe_dir}/src
+    - ${recipe_dir}/dataset
+    # The token list and SentencePiece model live outside exp_dir, in
+    # data/<lang>_unigram100/.
+    - ${data_dir}/**/unigram.model
+    - ${data_dir}/**/unigram.vocab
+    - ${data_dir}/**/tokens.txt
+  exclude:
+    # TEMPLATE defaults, plus every raw Lightning checkpoint: inference loads
+    # the averaged .pth, never the epoch/step checkpoints (each holds the
+    # full XLS-R model).
+    - inference
+    - inference_*
+    - "*.ckpt"
+    - "**/*.log"
+    - "**/tensorboard/**"
+    - "**/wandb/**"
