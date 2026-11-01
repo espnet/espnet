@@ -1,0 +1,11 @@
+# Recipe-local ignores.
+# Root .gitignore already covers dump/, exp/, logs/, downloads/ and
+# egs*/*/*/data*. The last one also matches this recipe's `dataset/`
+# package, so re-include it.
+!dataset/
+
+# LibriCSS corpus cache: for_release.zip (~6.4 GB), the unpacked tree
+# (~17 GB) and gdown logs (create_dataset.download_dir in the conf/*.yaml).
+# The root .gitignore only covers `downloads/`, not this recipe's
+# `download` (a directory, or a symlink to an existing corpus cache).
+download

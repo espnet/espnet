@@ -1,0 +1,49 @@
+##########################################################
+#        LIBRICSS DATA / STAGE SETTINGS (ORACLE)         #
+##########################################################
+# Oracle-segment variant of conf/eval.yaml: the `segment` stage copies
+# the corpus-provided segments (with speaker labels and transcripts) into
+# ${exp_dir}/segments instead of running webrtcvad, and the `diarize` stage
+# is skipped. Pair with conf/inference_oracle.yaml and
+# conf/metrics_oracle.yaml:
+#
+#   python run.py --eval_config conf/eval_oracle.yaml \
+#       --inference_config conf/inference_oracle.yaml \
+#       --metrics_config conf/metrics_oracle.yaml \
+#       --stages create_dataset segment infer measure
+
+dataset_dir: ${recipe_dir}/download/libricss
+
+create_dataset:
+  recipe_dir: ${recipe_dir}
+  download_dir: ${dataset_dir}
+  source_dir:               # optional: existing corpus dir containing for_release/
+  mic: 0
+  gdrive_id: "1Piioxd5G_85K9Bhcr8ebdhXx0CnaHy7l"
+  dev_sessions:
+    - session0
+
+dataset:
+  test:
+    - name: dev
+      data_src_args:
+        split: dev
+    - name: eval
+      data_src_args:
+        split: eval
+
+# Training-only template blocks are nulled (evaluation-only recipe); see the
+# comment in conf/eval.yaml.
+optimizer: null
+scheduler: null
+scheduler_interval: null
+scheduler_monitor: null
+best_model_criterion: null
+dataloader: null
+trainer: null
+fit: null
+
+libricss:
+  splits: [dev, eval]
+  segment:
+    mode: oracle

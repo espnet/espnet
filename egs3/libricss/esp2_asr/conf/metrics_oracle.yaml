@@ -1,0 +1,19 @@
+##########################################################
+#        LIBRICSS METRIC SETTINGS (ORACLE WER)           #
+##########################################################
+# Per-utterance WER on oracle segments with a per-condition breakdown,
+# reproducing egs/libri_css/asr1/local/score_reco_oracle.sh. Requires the
+# oracle flow (conf/eval_oracle.yaml + conf/inference_oracle.yaml), whose
+# segment manifests carry the corpus transcripts as the `text` column.
+#
+#   python run.py --stages measure --eval_config conf/eval_oracle.yaml \
+#       --inference_config conf/inference_oracle.yaml \
+#       --metrics_config conf/metrics_oracle.yaml
+
+metrics:
+  - metric:
+      _target_: egs3.libricss.esp2_asr.src.metrics.condition_wer.ConditionWER
+    inputs:
+      hyp: text
+      ref: dataset:text
+      reco: dataset:reco
