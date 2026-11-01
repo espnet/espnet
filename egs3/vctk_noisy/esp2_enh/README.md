@@ -1,0 +1,62 @@
+# VCTK-Noisy Speech Enhancement Recipe (ESPnet3)
+
+Speech enhancement recipe using Conv-TasNet on the VCTK-Noisy (VCTK-DEMAND) dataset.
+
+## Dataset
+
+Download VCTK-Noisy (VCTK-DEMAND) from:
+https://datashare.ed.ac.uk/handle/10283/2791
+
+Extract so that the following directories exist under your dataset root, then
+point `VCTK_DEMAND` at that root:
+
+- `clean_trainset_28spk_wav/`
+- `noisy_trainset_28spk_wav/`
+- `clean_testset_wav/`
+- `noisy_testset_wav/`
+
+The recipe-local loader lives in `dataset/` (`VCTKNoisyDataset` +
+`VCTKNoisyBuilder`). `create_dataset` only checks that layout; it does not
+download the corpus for you.
+
+## Usage
+
+```bash
+cd egs3/vctk_noisy/esp2_enh
+source path.sh
+
+export VCTK_DEMAND=/path/to/vctk_noisy
+python run.py --stages create_dataset --training_config conf/training.yaml
+python run.py --stages collect_stats  --training_config conf/training.yaml
+python run.py --stages train          --training_config conf/training.yaml
+python run.py --stages infer \
+    --training_config conf/training.yaml \
+    --inference_config conf/inference.yaml
+python run.py --stages measure \
+    --training_config conf/training.yaml \
+    --inference_config conf/inference.yaml \
+    --metrics_config conf/metrics.yaml
+```
+
+## Model
+
+- Architecture: Conv-TasNet
+- Dataset: VCTK-Noisy (VCTK-DEMAND)
+- Sampling rate: 16 kHz
+- Training split: 26 speakers (all except p226, p287)
+- Validation split: p226, p287
+- Test split: noisy_testset_wav
+- Training config: `conf/training.yaml` (si_snr loss, max_epochs=100)
+
+## Results
+
+No model has been trained with this ESPnet3 recipe yet, so there are no
+enhanced scores here. After you train and run `measure`, add the scores from
+`metrics.json`.
+
+For reference, the unprocessed noisy input on the test set (824 utterances,
+16 kHz), scored with this recipe's metrics:
+
+| Input         | SI-SNR (dB) | PESQ  | STOI  |
+|---------------|-------------|-------|-------|
+| noisy (test)  | 8.45        | 1.968 | 0.921 |

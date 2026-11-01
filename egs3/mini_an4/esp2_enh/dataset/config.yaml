@@ -1,0 +1,28 @@
+builder:
+  dataset_path: downloads
+  data_path: data
+  archive_path: ./downloads.tar.gz
+  splits:
+    train:
+      transcript_name: an4_train.transcription
+      sph_subdir: an4_clstk
+    test:
+      transcript_name: an4_test.transcription
+      sph_subdir: an4test_clstk
+  dev_size: 1
+  manifest_paths:
+    train: manifest/train.tsv
+    valid: manifest/valid.tsv
+    test: manifest/test.tsv
+
+dataset:
+  train:
+    split: train
+  valid:
+    split: valid
+  test:
+    split: test
+  split_manifest_paths:
+    train: manifest/train.tsv
+    valid: manifest/valid.tsv
+    test: manifest/test.tsv
