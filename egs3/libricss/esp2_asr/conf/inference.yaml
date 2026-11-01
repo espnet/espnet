@@ -10,9 +10,13 @@
 # (--eval_config supplies exp_dir, which locates the diarized manifests.)
 #
 # Output per split: ${inference_dir}/<split>/text.scp, the model's
-# transcripts (written by the template's default output_fn). The segment
-# metadata (speaker label, recording, start time) stays in the dataset;
+# transcripts (written by the template's ASR runner). The segment metadata
+# (speaker label, recording, start time) stays in the dataset;
 # conf/metrics.yaml reads it as `dataset:<column>` inputs.
+#
+# Only the recipe overrides are set here. The input key (`speech`), the
+# audio-to-text contract (16 kHz mono input), the ASR runner, the provider
+# and `batch_size: 4` come from egs3/TEMPLATE/esp2_asr/conf/inference.yaml.
 
 dataset:
   test:
@@ -37,6 +41,3 @@ model:
   model_tag: Shinji Watanabe/librispeech_asr_train_asr_transformer_e18_raw_bpe_sp_valid.acc.best
   beam_size: 20
   ctc_weight: 0.3
-
-input_key: speech
-batch_size: 4

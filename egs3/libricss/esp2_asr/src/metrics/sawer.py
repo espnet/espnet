@@ -11,7 +11,7 @@ local/best_wer_matching.py, local/score_reco_diarized.sh):
 - References (oracle transcripts grouped per oracle speaker) come from
   ``data_dir/<test_name>/oracle/{segments,utt2spk,text}`` (egs1 used the
   ``text.bak``/``utt2spk.bak`` backups in the diarized data dir).
-- Both sides pass the same text normalization (``src.textnorm``).
+- Both sides pass the same text normalization (``src/textnorm.py``).
 - For each recording, every ref-speaker x hyp-speaker pair is scored and a
   minimum-cost one-to-one assignment (``scipy.optimize.linear_sum_assignment``)
   selects the best permutation. Pair cost is the WER; pairs whose reference
@@ -38,14 +38,14 @@ from typing import Any, Dict, List, Optional, Sequence, Tuple
 
 import numpy as np
 
+from egs3.libricss.esp2_asr.src.metrics.common import (
+    pair_word_counts,
+    read_scp,
+    wer_percent,
+)
+from egs3.libricss.esp2_asr.src.textnorm import normalize_text
 from espnet3.components.metrics.base_metric import BaseMetric
-
-try:  # recipe-dir import
-    from src.metrics.common import pair_word_counts, read_scp, wer_percent
-    from src.textnorm import normalize_text
-except ImportError:  # package-style import fallback
-    from ..textnorm import normalize_text
-    from .common import pair_word_counts, read_scp, wer_percent
+from espnet3.contract import Field
 
 logger = logging.getLogger(__name__)
 
@@ -61,13 +61,21 @@ class SAWER(BaseMetric):
     reference speaker streams are read from ``data_dir`` instead, because
     they are not aligned with the diarized segments.
 
-    The result holds ``SA-WER`` (overall) plus one ``SA-WER_<condition>``
-    entry per overlap condition present in the scored data; only the
-    overall value is a declared output.
+    The result holds ``SA_WER`` (overall) plus one ``SA_WER_<condition>``
+    entry per overlap condition present in the scored data (e.g.
+    ``SA_WER_OV40``); only the overall value is a declared output, since a
+    subset (such as the smoke manifests) may not cover every condition.
     """
 
-    inputs = {"hyp": str, "spk": str, "reco": str, "start": str}
-    outputs = ("SA-WER",)
+    inputs = (
+        Field("hyp", "text"),
+        Field("spk", "text"),
+        Field("reco", "text"),
+        # Read back from the dataset column's SCP file, so the start time
+        # arrives as text; _group_hyp() parses it.
+        Field("start", "text"),
+    )
+    outputs = (Field("SA_WER", "number", "SA-WER"),)
 
     def __init__(self, data_dir: str | Path, pad_missing_speakers: bool = True):
         """Initialize the metric.
@@ -347,9 +355,9 @@ class SAWER(BaseMetric):
             "recordings": reco_details,
         }
 
-        results: Dict[str, float] = {"SA-WER": wer_percent(overall)}
+        results: Dict[str, float] = {"SA_WER": wer_percent(overall)}
         for cond in sorted(cond_totals):
-            results[f"SA-WER_{cond}"] = wer_percent(cond_totals[cond])
+            results[f"SA_WER_{cond}"] = wer_percent(cond_totals[cond])
         logger.info("[%s] SA-WER: %s", test_name, results)
         return results
 

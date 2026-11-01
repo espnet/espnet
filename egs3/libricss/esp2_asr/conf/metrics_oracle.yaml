@@ -12,7 +12,7 @@
 
 metrics:
   - metric:
-      _target_: src.metrics.condition_wer.ConditionWER
+      _target_: egs3.libricss.esp2_asr.src.metrics.condition_wer.ConditionWER
     inputs:
       hyp: text
       ref: dataset:text

@@ -29,6 +29,3 @@ model:
   model_tag: Shinji Watanabe/librispeech_asr_train_asr_transformer_e18_raw_bpe_sp_valid.acc.best
   beam_size: 20
   ctc_weight: 0.3
-
-input_key: speech
-batch_size: 4

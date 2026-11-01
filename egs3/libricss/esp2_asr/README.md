@@ -73,10 +73,15 @@ JSON manifests to `${exp_dir}/segments/<split>/`; `diarize` consumes them
 and writes speaker-labeled manifests to `${exp_dir}/diarized/<split>/`
 (plus an `rttm` file usable with external DER tools). Both clear the
 manifests of an earlier run first. `dataset/` reads these manifests:
-`infer` decodes each manifest segment into `text.scp`, and `measure`
-scores it, reading the segment metadata (speaker label, recording, start
-time and, in the oracle flow, the transcript) from the same dataset as
-`dataset:<column>` inputs. `measure` caches those columns under
+each item is the segment's audio slice (`speech`) plus its metadata
+(`utt_id`, `spk`, `reco`, `start`, `end` and, in the oracle flow only,
+`text`), declared as the dataset's `fields`. `infer` decodes each segment
+into `text.scp` through the shared ESPnet3 inference contract and ASR
+runner, both inherited from `egs3/TEMPLATE/esp2_asr/conf/inference.yaml`
+(16 kHz mono audio in, text out); the recipe's inference configs only set
+the test sets and the pretrained model. `measure` scores the transcripts,
+reading the segment metadata from the same dataset as `dataset:<column>`
+inputs. `measure` caches those columns under
 `<inference_dir>/<split>/dataset/`; the next `infer` run clears them.
 
 ### Diarized flow (SA-WER)
@@ -179,8 +184,10 @@ rescoring; for the diarized flow, a different speaker-embedding extractor
 and a stricter `pad_missing_speakers` default). Both metrics rise steadily
 with the overlap ratio — oracle eval WER goes from ~6.9 on the
 non-overlapping conditions to 39.03 on `OV40`; SA-WER eval from ~15.0 to
-43.17. Scores land in `exp/eval/inference/metrics.json` and
-`exp/eval_oracle/inference_oracle/metrics.json`, with per-recording details
+43.17. Scores land in `exp/eval/inference/metrics.json` (`SA_WER` overall,
+`SA_WER_<condition>` per overlap condition, e.g. `SA_WER_OV40`) and
+`exp/eval_oracle/inference_oracle/metrics.json` (`WER`,
+`WER_<condition>`), with per-recording details
 in `exp/eval/inference/<split>/sawer_details.json` (diarized) and
 `exp/eval_oracle/inference_oracle/<split>/condition_wer_details.json`
 (oracle).
@@ -197,11 +204,12 @@ Three documented deviations from egs1:
   Transformer LM shipped in its model bundle (`--rnnlm rnnlm.model.best`).
   No espnet2-format release of that LM exists, so this recipe decodes with
   the acoustic model alone.
-- `pad_missing_speakers: true` (default in `conf/metrics.yaml`) charges
-  unmatched reference speakers as deletions and unmatched hypothesis
-  speakers as insertions, following CHiME-6 practice. The egs1
-  `best_wer_matching.py` silently dropped unmatched speakers, biasing SA-WER
-  down; set it to `false` to mimic the old behavior.
+- `pad_missing_speakers: true` (the `SAWER` default) charges unmatched
+  reference speakers as deletions and unmatched hypothesis speakers as
+  insertions, following CHiME-6 practice. The egs1 `best_wer_matching.py`
+  silently dropped unmatched speakers, biasing SA-WER down; add
+  `pad_missing_speakers: false` to the metric in `conf/metrics.yaml` to
+  mimic the old behavior.
 - The egs1 `make_rttm.py` flat-turn construction (whose index handling can
   drop a segment for two-segment recordings) is reimplemented cleanly in
   `src/diarization.py`; behavior is identical on well-formed inputs.

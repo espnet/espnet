@@ -29,25 +29,26 @@ import json
 from pathlib import Path
 from typing import Any
 
-import numpy as np
 import soundfile as sf
 
 from espnet3.components.data.base_dataset import BaseDataset
+from espnet3.contract import Field
+from espnet3.contract.kinds.audio import Audio
 
 
 class LibriCSSDataset(BaseDataset):
     """Dataset over one LibriCSS split's segment manifest directory."""
 
-    fields = {
-        "speech": np.ndarray,
-        "utt_id": str,
-        "spk": str,
-        "reco": str,
-        "start": float,
-        "end": float,
+    fields = (
+        Field("speech", "audio"),
+        Field("utt_id", "text"),
+        Field("spk", "text"),
+        Field("reco", "text"),
+        Field("start", "number"),
+        Field("end", "number"),
         # Oracle transcript: only present in the oracle-segment flow.
-        "text": (str, type(None)),
-    }
+        Field("text", "text", optional=True),
+    )
 
     def __init__(
         self,
@@ -144,11 +145,14 @@ class LibriCSSDataset(BaseDataset):
         frames = max(end_sample - start_sample, 1)
         frames = min(frames, info_frames - start_sample)
 
-        audio, _ = sf.read(wav, start=start_sample, frames=frames, dtype="float32")
-        speech = np.asarray(audio, dtype=np.float32).reshape(-1)
+        audio, actual_rate = sf.read(
+            wav, start=start_sample, frames=frames, dtype="float32"
+        )
 
         out: dict[str, Any] = {
-            "speech": speech,
+            # The inference contract (conf/inference.yaml, inherited from the
+            # TEMPLATE) adapts the rate and checks the channel count.
+            "speech": Audio(audio, actual_rate),
             "utt_id": item.get("utt_id", f"{item['reco']}_{idx:08d}"),
             "spk": str(item.get("spk", "") or ""),
             "reco": item["reco"],

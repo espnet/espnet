@@ -1,6 +1,6 @@
 """LibriCSS dataset module."""
 
-from .builder import LibriCSSBuilder as DatasetBuilder
-from .dataset import LibriCSSDataset as Dataset
+from egs3.libricss.esp2_asr.dataset.builder import LibriCSSBuilder as DatasetBuilder
+from egs3.libricss.esp2_asr.dataset.dataset import LibriCSSDataset as Dataset
 
 __all__ = ["Dataset", "DatasetBuilder"]

@@ -36,12 +36,9 @@ import numpy as np
 import soundfile as sf
 from omegaconf import OmegaConf
 
-logger = logging.getLogger(__name__)
+from egs3.libricss.esp2_asr.src.spectral_clustering import nme_spectral_clustering
 
-try:  # recipe-dir import (run.py adds the recipe dir to sys.path)
-    from src.spectral_clustering import nme_spectral_clustering
-except ImportError:  # package-style import fallback
-    from .spectral_clustering import nme_spectral_clustering
+logger = logging.getLogger(__name__)
 
 _EPS = 1e-8
 

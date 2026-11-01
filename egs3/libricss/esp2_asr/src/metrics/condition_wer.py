@@ -9,7 +9,7 @@ so scoring is a plain per-utterance word alignment (egs1 used Kaldi
 
 References are the dataset's ``text`` column (the oracle segment manifests
 carry the transcripts), bound as ``ref: dataset:text``; both sides pass the
-same text normalization (``src.textnorm``) as egs1's ``wer_output_filter``.
+same text normalization (``src/textnorm.py``) as egs1's ``wer_output_filter``.
 """
 
 from __future__ import annotations
@@ -20,14 +20,10 @@ from collections import defaultdict
 from pathlib import Path
 from typing import Any, Dict, Optional, Sequence
 
+from egs3.libricss.esp2_asr.src.metrics.common import pair_word_counts, wer_percent
+from egs3.libricss.esp2_asr.src.textnorm import normalize_text
 from espnet3.components.metrics.base_metric import BaseMetric
-
-try:  # recipe-dir import
-    from src.metrics.common import pair_word_counts, wer_percent
-    from src.textnorm import normalize_text
-except ImportError:  # package-style import fallback
-    from ..textnorm import normalize_text
-    from .common import pair_word_counts, wer_percent
+from espnet3.contract import Field
 
 logger = logging.getLogger(__name__)
 
@@ -40,11 +36,16 @@ class ConditionWER(BaseMetric):
     transcript) and ``reco`` (recording id, whose suffix is the overlap
     condition). The result holds ``WER`` (overall) plus one
     ``WER_<condition>`` entry per overlap condition present in the scored
-    data; only the overall value is a declared output.
+    data; only the overall value is a declared output, since a subset (such
+    as the smoke manifests) may not cover every condition.
     """
 
-    inputs = {"hyp": str, "ref": str, "reco": str}
-    outputs = ("WER",)
+    inputs = (
+        Field("hyp", "text"),
+        Field("ref", "text"),
+        Field("reco", "text"),
+    )
+    outputs = (Field("WER", "number"),)
 
     def __init__(self) -> None:
         """Initialize the metric state."""

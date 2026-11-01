@@ -36,9 +36,8 @@ import shutil
 from pathlib import Path
 from typing import ClassVar
 
-from src.diarization import run_diarization
-from src.segmentation import run_segmentation
-
+from egs3.libricss.esp2_asr.src.diarization import run_diarization
+from egs3.libricss.esp2_asr.src.segmentation import run_segmentation
 from espnet3.contract.stages import StageSpec
 from espnet3.systems.esp2_asr.system import ASRSystem
 from espnet3.systems.launch import build_parser, launch

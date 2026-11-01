@@ -25,12 +25,12 @@ data_dir: ${recipe_dir}/data
 
 metrics:
   - metric:
-      _target_: src.metrics.sawer.SAWER
+      _target_: egs3.libricss.esp2_asr.src.metrics.sawer.SAWER
       data_dir: ${data_dir}
-      # True (default): unmatched reference speakers count as deletions and
+      # By default, unmatched reference speakers count as deletions and
       # unmatched hypothesis speakers as insertions (CHiME-style). The ESPnet1
-      # scoring dropped unmatched speakers instead; set to false to mimic it.
-      pad_missing_speakers: true
+      # scoring dropped unmatched speakers instead; to mimic it, add:
+      # pad_missing_speakers: false
     inputs:
       hyp: text
       spk: dataset:spk
