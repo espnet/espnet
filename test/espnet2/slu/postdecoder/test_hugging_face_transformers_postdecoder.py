@@ -7,8 +7,8 @@ from espnet2.slu.postdecoder.hugging_face_transformers_postdecoder import (
 
 
 @pytest.mark.execution_timeout(50)
-def test_transformers_forward():
-    postdecoder = HuggingFaceTransformersPostDecoder("bert-base-cased", 400)
+def test_transformers_forward(tiny_bert_checkpoint):
+    postdecoder = HuggingFaceTransformersPostDecoder(tiny_bert_checkpoint, 400)
     max_length = 128
     transcript_data = ["increase the heating in the bathroom"]
     (
@@ -29,8 +29,8 @@ def test_transformers_forward():
 
 
 @pytest.mark.execution_timeout(30)
-def test_convert_examples_to_features():
-    postdecoder = HuggingFaceTransformersPostDecoder("bert-base-cased", 400)
+def test_convert_examples_to_features(tiny_bert_checkpoint):
+    postdecoder = HuggingFaceTransformersPostDecoder(tiny_bert_checkpoint, 400)
     max_length = 128
     transcript_data = ["increase the heating in the bathroom"]
     (
@@ -53,3 +53,10 @@ def test_convert_examples_to_features():
         [1, max_length]
     )
     assert torch.LongTensor(input_id_length).shape == torch.Size([1])
+    expected_ids = postdecoder.tokenizer.convert_tokens_to_ids(
+        ["[CLS]", "increase", "the", "heating", "in", "the", "bathroom", "[SEP]"]
+    )
+    assert postdecoder.tokenizer.unk_token_id not in expected_ids
+    assert input_id_length == [8]
+    assert transcript_input_id_features == [expected_ids + [0] * (max_length - 8)]
+    assert transcript_input_mask_features == [[1] * 8 + [0] * (max_length - 8)]

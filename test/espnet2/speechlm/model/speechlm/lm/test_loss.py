@@ -12,6 +12,8 @@ The whole file is skipped (via the ``test/espnet2/speechlm/model/``
 ``liger_kernel.ops.fused_linear_cross_entropy`` is not importable.
 """
 
+from types import SimpleNamespace
+
 import pytest
 import torch
 
@@ -298,8 +300,9 @@ class TestDTensorLmHead:
             def __init__(self, tensor):
                 self._tensor = tensor
                 self.full_tensor_calls = 0
+                self.device_mesh = SimpleNamespace(ndim=1)
 
-            def full_tensor(self):
+            def full_tensor(self, *, grad_placements=None):
                 self.full_tensor_calls += 1
                 return self._tensor
 

@@ -262,11 +262,10 @@ def build_parallel_hf_class(model_hf_tag):
             # Shape: [batch, seq, hidden] -> [batch, seq, streams, hidden]
             hidden_states = last_hidden_state.unsqueeze(2)
 
-            # Convert DTensor to regular tensor for in-place operations
-            stream_weight = self.stream_emb.weight
-            if hasattr(stream_weight, "full_tensor"):
-                stream_weight = stream_weight.full_tensor()
-
+            # Use the embedding forward so FSDP gathers its weight and reduces
+            # gradients across ranks. Reading .weight directly bypasses this.
+            stream_ids = torch.arange(self.num_stream, device=hidden_states.device)
+            stream_weight = self.stream_emb(stream_ids)
             stream_weight = stream_weight[None, None, :, :].clone()
             stream_weight[:, :, 0] = 0.0  # First stream uses base representation
             hidden_states = hidden_states + stream_weight.to(hidden_states.dtype)
