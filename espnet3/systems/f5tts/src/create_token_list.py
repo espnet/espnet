@@ -128,20 +128,20 @@ def create_token_list(config: DictConfig) -> None:
         with no transcript column is reported as an error with its line
         number instead of being skipped, so a malformed manifest is noticed.
     """
-    create_token_list_config = BaseSystem._get_required_config(
+    create_token_list_config = BaseSystem._require(
         config,
         "create_token_list",
         "training_config.create_token_list must be set for create_token_list stage.",
     )
     save_dir = Path(
-        BaseSystem._get_required_config(
+        BaseSystem._require(
             create_token_list_config,
             "save_path",
             "training_config.create_token_list.save_path must be set "
             "for create_token_list stage.",
         )
     )
-    filename = BaseSystem._get_required_config(
+    filename = BaseSystem._require(
         create_token_list_config,
         "filename",
         "training_config.create_token_list.filename must be set "

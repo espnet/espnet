@@ -23,7 +23,7 @@ def test_asr_system_train_runs_tokenizer_then_train(tmp_path, monkeypatch):
             },
         }
     )
-    system = ASRSystem(training_config=train_cfg)
+    system = ASRSystem(configs={"training": train_cfg})
     calls = {}
 
     def fake_train_tokenizer(self):
@@ -38,7 +38,7 @@ def test_asr_system_train_runs_tokenizer_then_train(tmp_path, monkeypatch):
 
     assert system.train() == "trained"
     assert calls["tokenizer"] is True
-    assert calls["train"] is train_cfg
+    assert calls["train"] is system.stage_configs["train"]
 
 
 def test_asr_system_preserves_publication_and_demo_configs(tmp_path) -> None:
@@ -47,13 +47,15 @@ def test_asr_system_preserves_publication_and_demo_configs(tmp_path) -> None:
     demo_cfg = OmegaConf.create({"pack": {"out_dir": "demo"}})
 
     system = ASRSystem(
-        training_config=train_cfg,
-        publication_config=publication_cfg,
-        demo_config=demo_cfg,
+        configs={
+            "training": train_cfg,
+            "publication": publication_cfg,
+            "demo": demo_cfg,
+        }
     )
 
-    assert system.publication_config is publication_cfg
-    assert system.demo_config is demo_cfg
+    assert system.stage_configs["pack_model"].pack_model.out_dir == "pack"
+    assert system.stage_configs["pack_demo"].pack.out_dir == "demo"
 
 
 def test_asr_system_train_tokenizer_trains_sentencepiece(tmp_path, monkeypatch):
@@ -70,7 +72,7 @@ def test_asr_system_train_tokenizer_trains_sentencepiece(tmp_path, monkeypatch):
             },
         }
     )
-    system = ASRSystem(training_config=train_cfg)
+    system = ASRSystem(configs={"training": train_cfg})
     calls = {}
 
     def fake_builder(foo):
@@ -108,12 +110,9 @@ def test_asr_system_train_tokenizer_trains_sentencepiece(tmp_path, monkeypatch):
 
 def test_asr_system_train_requires_dataset_reference(tmp_path):
     train_cfg = OmegaConf.create({"exp_dir": str(tmp_path / "exp")})
-    system = ASRSystem(training_config=train_cfg)
+    system = ASRSystem(configs={"training": train_cfg})
 
-    with pytest.raises(
-        RuntimeError,
-        match="training_config.dataset or training_config.dataset_dir must be set",
-    ):
+    with pytest.raises(RuntimeError, match="dataset"):
         system.train()
 
 
@@ -129,12 +128,9 @@ def test_asr_system_train_tokenizer_requires_builder_func(tmp_path):
             },
         }
     )
-    system = ASRSystem(training_config=train_cfg)
+    system = ASRSystem(configs={"training": train_cfg})
 
-    with pytest.raises(
-        RuntimeError,
-        match="training_config.tokenizer.text_builder.func must be set",
-    ):
+    with pytest.raises(RuntimeError, match="text_builder"):
         system.train_tokenizer()
 
 
@@ -152,7 +148,7 @@ def test_asr_system_train_tokenizer_rejects_missing_builder_output_path(
             },
         }
     )
-    system = ASRSystem(training_config=train_cfg)
+    system = ASRSystem(configs={"training": train_cfg})
 
     def fake_import_module(_):
         class DummyModule:
@@ -180,7 +176,7 @@ def test_asr_system_train_tokenizer_rejects_invalid_builder_output(
             },
         }
     )
-    system = ASRSystem(training_config=train_cfg)
+    system = ASRSystem(configs={"training": train_cfg})
 
     def fake_import_module(_):
         class DummyModule:
@@ -209,7 +205,7 @@ def test_asr_system_train_tokenizer_rejects_empty_builder_output(tmp_path, monke
             },
         }
     )
-    system = ASRSystem(training_config=train_cfg)
+    system = ASRSystem(configs={"training": train_cfg})
 
     def fake_import_module(_):
         class DummyModule:
@@ -241,7 +237,7 @@ def test_asr_system_train_tokenizer_rejects_existing_train_text_path(
             },
         }
     )
-    system = ASRSystem(training_config=train_cfg)
+    system = ASRSystem(configs={"training": train_cfg})
 
     def fake_import_module(_):
         class DummyModule:
@@ -273,7 +269,7 @@ def test_asr_system_train_tokenizer_skips_when_tokenizer_exists(
             },
         }
     )
-    system = ASRSystem(training_config=train_cfg)
+    system = ASRSystem(configs={"training": train_cfg})
 
     monkeypatch.setattr(
         sysmod,

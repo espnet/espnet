@@ -5,7 +5,7 @@ from omegaconf import OmegaConf
 
 import espnet3.parallel.parallel as parallel_module
 import espnet3.systems.f5tts.system as system_module
-from espnet3.contract.stages import stage_log_dir
+from espnet3.contract.stages import find_stage_spec, resolve_stage_log_dir
 from espnet3.systems.base.system import BaseSystem
 from espnet3.systems.f5tts.system import F5TTSSystem
 
@@ -35,23 +35,23 @@ def _build_training_config(tmp_path):
 
 
 @pytest.mark.parametrize("stage", STAGES)
-def test_stage_runs_its_function_on_the_training_config(tmp_path, monkeypatch, stage):
+def test_stage_runs_its_function_on_its_stage_config(tmp_path, monkeypatch, stage):
     """Each added stage is a thin dispatcher over its free function."""
     calls = []
     monkeypatch.setattr(
         system_module, stage, lambda config: calls.append(config) or "done"
     )
-    system = F5TTSSystem(training_config=_build_training_config(tmp_path))
+    system = F5TTSSystem(configs={"training": _build_training_config(tmp_path)})
 
     assert getattr(system, stage)() == "done"
-    assert calls == [system.training_config]
+    assert calls == [system.stage_configs[stage]]
 
 
 @pytest.mark.parametrize("stage", STAGES)
 def test_stage_rejects_stage_args(tmp_path, monkeypatch, stage):
     """Positional or keyword stage arguments raise ``TypeError``."""
     monkeypatch.setattr(system_module, stage, lambda config: None)
-    system = F5TTSSystem(training_config=_build_training_config(tmp_path))
+    system = F5TTSSystem(configs={"training": _build_training_config(tmp_path)})
 
     with pytest.raises(TypeError):
         getattr(system, stage)("unexpected")
@@ -61,25 +61,29 @@ def test_stage_rejects_stage_args(tmp_path, monkeypatch, stage):
 
 def test_stage_logs_go_under_the_stage_save_path(tmp_path):
     """Each added stage logs next to the files it writes."""
-    system = F5TTSSystem(training_config=_build_training_config(tmp_path))
+    system = F5TTSSystem(configs={"training": _build_training_config(tmp_path)})
 
-    assert stage_log_dir(system, "remove_long_short") == tmp_path / "filtered"
-    assert stage_log_dir(system, "create_token_list") == tmp_path / "tokens"
+    for stage, expected in (
+        ("remove_long_short", tmp_path / "filtered"),
+        ("create_token_list", tmp_path / "tokens"),
+    ):
+        spec = find_stage_spec(F5TTSSystem, stage)
+        assert resolve_stage_log_dir(system.stage_configs[stage], spec) == expected
 
 
-def test_all_stage_configs_are_stored(tmp_path):
-    """The five stage configs reach ``BaseSystem`` unchanged."""
+def test_all_stage_configs_are_built(tmp_path):
+    """Every declared stage's config is reachable through ``stage_configs``."""
     configs = {
-        "training_config": _build_training_config(tmp_path),
-        "inference_config": OmegaConf.create({"inference_dir": str(tmp_path)}),
-        "metrics_config": OmegaConf.create({"metrics": []}),
-        "publication_config": OmegaConf.create({"pack_model": {}}),
-        "demo_config": OmegaConf.create({"ui": {}}),
+        "training": _build_training_config(tmp_path),
+        "inference": OmegaConf.create({"inference_dir": str(tmp_path)}),
+        "metrics": OmegaConf.create({"metrics": []}),
+        "publication": OmegaConf.create({"pack_model": {}}),
+        "demo": OmegaConf.create({"ui": {}}),
     }
-    system = F5TTSSystem(**configs)
+    system = F5TTSSystem(configs=configs)
 
-    for name, config in configs.items():
-        assert getattr(system, name) is config
+    for stage in (s.name for s in F5TTSSystem.stages):
+        assert stage in system.stage_configs
 
 
 def test_collect_stats_and_train_are_inherited():
@@ -114,7 +118,7 @@ def test_stages_run_end_to_end(tmp_path):
             },
         }
     )
-    system = F5TTSSystem(training_config=config)
+    system = F5TTSSystem(configs={"training": config})
 
     system.remove_long_short()
     system.create_token_list()

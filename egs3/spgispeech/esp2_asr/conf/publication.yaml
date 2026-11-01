@@ -26,9 +26,6 @@
 # exactly one weights file, so everything else is dropped and the bundle comes
 # out around 470 MB instead of ~22 GB.
 
-recipe_dir: .
-data_dir: ${recipe_dir}/data
-
 pack_model:
   out_dir: ${exp_dir}/model_pack
   allow_overwrite: false

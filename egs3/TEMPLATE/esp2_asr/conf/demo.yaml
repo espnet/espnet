@@ -8,7 +8,8 @@
 # Main stages and what this config is used for:
 # - `pack_demo`: packs `demo.yaml`, `ui.app_script`, and `pack.include`
 # - `upload_demo`: uploads the packed demo directory
-recipe_dir: .
+#
+# `exp_tag` (used below) is inherited from the training config.
 
 ##########################################################
 #                    MODEL SOURCE                        #
