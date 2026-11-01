@@ -1,0 +1,57 @@
+##########################################################
+#                   INFERENCE SETTING                    #
+##########################################################
+# Quick usage:
+#   python run.py --stages infer --inference_config conf/inference.yaml
+#
+# Kept deliberately sparse so a recipe's own inference.yaml never has to undo a
+# default. Fill `dataset.test`, `model` and `output_fn` in the recipe.
+
+##########################################################
+#                    PATHS AND OUTPUTS                   #
+##########################################################
+recipe_dir: .
+# `run.py` copies `exp_tag`/`exp_dir` from the training config when one is
+# passed. A recipe that only scores a pretrained model must set `exp_tag` here
+# instead, otherwise there is no experiment identity to write under.
+exp_tag:
+exp_dir: ${recipe_dir}/exp/${exp_tag}
+data_dir: ${recipe_dir}/data
+inference_dir: ${exp_dir}/${self_name:}
+
+##########################################################
+#                    DATASET DEFINITION                  #
+##########################################################
+# Each entry's `name` becomes a subdirectory of `${inference_dir}` and is the
+# test-set name `measure` scores.
+dataset:
+  _target_: espnet3.components.data.data_organizer.DataOrganizer
+  _recursive_: false
+  recipe_dir: ${recipe_dir}
+  test:
+  preprocessor:
+
+##########################################################
+#                    MODEL AND OUTPUT                    #
+##########################################################
+# `model` is instantiated with an injected `device` and called with the field
+# named by `input_key`. `output_fn` shapes its return value into the fields
+# written to `<test_name>/<field>.scp`; it must emit the reference too, since
+# the framework writes no reference file of its own.
+model:
+input_key: speech
+output_fn:
+
+# Phone recognition frontends commonly normalize over the whole input tensor,
+# which makes a batched result depend on what it was batched with. Raise this
+# per recipe only when the model is known to be safe.
+batch_size: 1
+
+parallel:
+  env: local
+  n_workers: 1
+
+provider:
+  _target_: espnet3.systems.base.inference_provider.InferenceProvider
+runner:
+  _target_: espnet3.systems.base.inference_runner.InferenceRunner
