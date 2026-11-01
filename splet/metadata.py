@@ -18,7 +18,7 @@ carries a ``metadata`` block, in a small versioned format:
        "wer": {"name": "wer", "version": "1", "tier": "utterance",
                "requires": ["reference"],
                "config": {"tokenizer": "word", "normalize": [{"name": "lowercase"}]},
-               "backend": "python"}}}
+               "costs": "sclite", "backend": "python"}}}
 
 ``format`` is the version of this block; it changes when a field changes
 meaning. ``splet`` is the package version. Per metric: ``name`` is the
@@ -29,6 +29,12 @@ the resolved configuration the metric was built from, normalization
 included; and a metric that wraps a reference tool (sacrebleu, meeteval)
 adds the tool's own ``signature``, which is what makes its number
 comparable with a published one.
+
+The alignment fields -- ``costs``, ``case``,
+``optional_deletion_is_correct`` and ``backend`` -- are read back out of
+the metric's state rather than its config, because each has a default the
+config never spells out, each moves the number, and ``backend="auto"``
+resolves differently in different environments.
 """
 
 from __future__ import annotations
@@ -39,6 +45,9 @@ from splet import __version__
 
 #: Version of the metadata block itself.
 FORMAT_VERSION = 1
+
+#: Copied out of a metric's state rather than its config; see above.
+STATE_FIELDS = ("costs", "case", "optional_deletion_is_correct", "backend", "signature")
 
 
 def metadata(metrics: Mapping[str, Mapping[str, Any]]) -> Dict[str, Any]:
@@ -62,7 +71,7 @@ def metadata(metrics: Mapping[str, Mapping[str, Any]]) -> Dict[str, Any]:
         }
         state = module["state"]
         if isinstance(state, Mapping):
-            for field in ("backend", "signature"):
+            for field in STATE_FIELDS:
                 if field in state:
                     entry[field] = state[field]
         described[metric_id] = entry

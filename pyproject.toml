@@ -170,6 +170,9 @@ train = [
 splet = [
   "PyYAML>=5.1.2",
   "rapidfuzz",
+  # Redistribution of openai-whisper's normalizers without its model
+  # stack; splet must stay liftable out of ESPnet, so no torch.
+  "whisper-normalizer",
 ]
 
 asr = [

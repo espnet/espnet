@@ -4,6 +4,11 @@
 # here -- a mapping whose `normalize:` pipeline applies to every metric that
 # does not override it. The pipeline is part of the result: a figure reported
 # without the normalization that produced it cannot be reproduced.
+#
+# A metric's own `normalize:` REPLACES the shared one, it does not extend it.
+# That is why wer and cer below each spell their pipeline out in full: they
+# differ in one step, and there is no way to say "the shared one, but with
+# this changed".
 
 normalize:
   - name: unicode
@@ -16,19 +21,63 @@ normalize:
   - name: whitespace
 
 metrics:
-  # word error rate, under the shared normalization above
+  # Word error rate. ESPnet removes non-speech markers inside
+  # espnet2.text.word_tokenizer, which drops one only when it is a whole
+  # whitespace-separated token -- `match: token`, the default.
   - name: wer
+    normalize:
+      - name: unicode
+        form: NFKC
+      - name: remove_tokens
+        tokens: ["<unk>", "<noise>"]
+        match: token
+      - name: lowercase
+      - name: remove_punctuation
+        keep: "'"
+      - name: whitespace
 
-  # the same implementation on the raw text, under its own id. `name` is
+  # The same implementation on the raw text, under its own id. `name` is
   # the implementation, `id` the instance; every key this entry reports is
   # prefixed `wer_raw`, so the two never overwrite each other.
   - name: wer
     id: wer_raw
     normalize: []
 
-  # character error rate
-  #  -- spaces are counted as characters, matching jiwer.cer and the current
-  #     espnet3 CER. Recipes that strip spaces need remove_space: true.
+  # Character error rate. espnet2.text.char_tokenizer scans the line and
+  # removes a marker wherever it starts, including one glued to a word, then
+  # collapses the spaces that leaves behind -- `match: substring`. Using
+  # `token` here reports a different denominator than the recipe did.
+  #
+  # Spaces count as characters, matching jiwer.cer and the current espnet3
+  # CER. Recipes that strip spaces need remove_space: true; recipes scored
+  # through tokenize_text need space_symbol: "<space>" instead.
   - name: cer
     tokenizer_conf:
       remove_space: false
+    normalize:
+      - name: unicode
+        form: NFKC
+      - name: remove_tokens
+        tokens: ["<unk>", "<noise>"]
+        match: substring
+      - name: lowercase
+      - name: remove_punctuation
+        keep: "'"
+      - name: whitespace
+
+# Two more that this config does not turn on, because each needs something
+# from the recipe:
+#
+#   # Token error rate over BPE pieces -- what egs2 calls "ter" when
+#   # token_type=bpe. Not sacrebleu's TER, which is translation edit rate.
+#   - name: token_error_rate
+#     tokenizer_conf:
+#       model: /path/to/bpe.model
+#
+#   # Whisper-style normalization, as the whisper_en cleaner applies it.
+#   # Needs the splet extra: pip install espnet[splet]
+#   - name: wer
+#     id: wer_whisper
+#     normalize:
+#       - name: whisper
+#         variant: en
