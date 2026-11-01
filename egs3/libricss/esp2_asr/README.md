@@ -167,8 +167,9 @@ minimum, matching Kaldi's `extract_xvectors.sh`), and NME-SC parameters
 
 ## Results
 
-Measured with this recipe on the full corpus (beam 20, ASR-only decoding,
-`pad_missing_speakers: true`), against the ESPnet1 reference numbers (same
+Measured with this recipe on the full corpus (beam 20, CTC weight 0.3,
+the model bundle's LSTM LM fused at weight 1.0, `pad_missing_speakers:
+true`), against the ESPnet1 reference numbers (same
 LibriSpeech Transformer ASR + Transformer LM rescoring, Kaldi
 `0012_diarization_v1` x-vectors + NME-SC, egs1 scoring):
 
@@ -179,8 +180,8 @@ LibriSpeech Transformer ASR + Transformer LM rescoring, Kaldi
 | diarized (spectral) | SA-WER | dev | 28.88 | 28.07 |
 | diarized (spectral) | SA-WER | eval | 29.25 | 27.01 |
 
-The +1–2 point gaps are the expected cost of the deviations below (no LM
-rescoring; for the diarized flow, a different speaker-embedding extractor
+The +1–2 point gaps are the expected cost of the deviations below (a
+different LM; for the diarized flow, a different speaker-embedding extractor
 and a stricter `pad_missing_speakers` default). Both metrics rise steadily
 with the overlap ratio — oracle eval WER goes from ~6.9 on the
 non-overlapping conditions to 39.03 on `OV40`; SA-WER eval from ~15.0 to
@@ -200,10 +201,14 @@ different speaker turns on 3 of the 54 eval recordings.
 
 Three documented deviations from egs1:
 
-- **ASR-only decoding**: egs1 rescored the beam with the LibriSpeech
-  Transformer LM shipped in its model bundle (`--rnnlm rnnlm.model.best`).
-  No espnet2-format release of that LM exists, so this recipe decodes with
-  the acoustic model alone.
+- **Language model**: egs1 decoded with the LibriSpeech Transformer LM
+  shipped in its model bundle (`--rnnlm rnnlm.model.best`), which has no
+  espnet2-format release. This recipe uses the LM shipped in the espnet2
+  model bundle instead, a 4-layer, 2048-unit LSTM LM
+  (`exp/lm_train_lm_adam_bpe`): `Speech2Text.from_pretrained` loads it and
+  the beam search fuses it at `Speech2Text`'s default `lm_weight: 1.0`. Set
+  `model.lm_weight` in `conf/inference*.yaml` to change the weight
+  (`lm_weight: 0` decodes with the acoustic model alone).
 - `pad_missing_speakers: true` (the `SAWER` default) charges unmatched
   reference speakers as deletions and unmatched hypothesis speakers as
   insertions, following CHiME-6 practice. The egs1 `best_wer_matching.py`
