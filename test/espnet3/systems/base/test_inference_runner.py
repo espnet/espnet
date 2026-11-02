@@ -117,13 +117,54 @@ def test_forward_batched_passes_model_kwargs_to_model():
     assert result == {"result": "[1.0, 2.0]:4"}
 
 
-def test_forward_batched_wraps_model_exception_in_runtime_error():
+def test_forward_batched_propagates_model_exception():
     dataset = [{"speech": 1.0}]
 
     def failing_model(speech):
         raise ValueError("model broken")
 
-    with pytest.raises(RuntimeError, match="Batched inference failed"):
+    with pytest.raises(ValueError, match="model broken") as info:
         InferenceRunner.forward(
             [0], dataset=dataset, model=failing_model, input_key="speech"
+        )
+    assert info.value.__cause__ is None
+
+
+def test_forward_batched_reports_out_of_memory_with_lengths_and_batch_size():
+    """An OOM is not "your model does not support batches": name the items."""
+    import numpy as np
+    import torch
+
+    dataset = [{"speech": np.zeros(16000)}, {"speech": np.zeros(8000)}]
+
+    def model(speech):
+        raise torch.OutOfMemoryError("CUDA out of memory (simulated)")
+
+    with pytest.raises(RuntimeError, match="ran out of memory") as info:
+        InferenceRunner.forward(
+            [0, 1], dataset=dataset, model=model, input_key="speech"
+        )
+    message = str(info.value)
+    assert "[16000, 8000]" in message
+    assert "batch_size" in message and "2 items" in message
+    assert "set batch_size to None" not in message
+    assert isinstance(info.value.__cause__, torch.OutOfMemoryError)
+
+
+def test_forward_batched_rejects_mixed_optional_input():
+    contract = {
+        "inputs": {
+            "speech": {"kind": "text"},
+            "prompt": {"kind": "text", "optional": True},
+        },
+        "outputs": {"text": {"kind": "text"}},
+    }
+    dataset = [{"speech": "a", "prompt": "p"}, {"speech": "b"}]
+    with pytest.raises(KeyError, match="cannot be mixed within one batch"):
+        InferenceRunner.forward(
+            [0, 1],
+            dataset=dataset,
+            model=lambda **kw: None,
+            input_key=["speech", "prompt"],
+            inference_contract=contract,
         )

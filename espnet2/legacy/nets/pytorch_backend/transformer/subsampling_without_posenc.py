@@ -7,6 +7,10 @@ import math
 
 import torch
 
+from espnet2.legacy.nets.pytorch_backend.transformer.subsampling import (
+    _subsample_mask,
+)
+
 
 class Conv2dSubsamplingWOPosEnc(torch.nn.Module):
     """Convolutional 2D subsampling.
@@ -57,6 +61,5 @@ class Conv2dSubsamplingWOPosEnc(torch.nn.Module):
         x = self.out(x.transpose(1, 2).contiguous().view(b, t, c * f))
         if x_mask is None:
             return x, None
-        for k, s in zip(self.kernels, self.strides):
-            x_mask = x_mask[:, :, : -k + 1 : s]
+        x_mask = _subsample_mask(x_mask, x.size(1), zip(self.kernels, self.strides))
         return x, x_mask

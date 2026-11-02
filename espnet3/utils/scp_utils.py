@@ -1,7 +1,44 @@
 """SCP file helpers for ESPnet3 hypothesis/reference files."""
 
+import os
 from pathlib import Path
 from typing import Dict, List, Union
+
+
+def check_utt_id(value) -> str:
+    """Return an utterance id as the string an SCP line and a file name take.
+
+    An SCP line is ``<id> <value>``, so the id must not be empty or hold
+    whitespace, or the line reads back as a different id and value. The
+    same id also names the artifact files of that utterance, so it must not
+    be a path: ``../x`` or ``a/b`` would write outside the directory, and
+    ``.`` or ``..`` on top of it.
+
+    Args:
+        value: The id as the dataset gave it; a string, or anything whose
+            ``str()`` is the id.
+
+    Returns:
+        The id as a string.
+
+    Raises:
+        ValueError: If the id is empty, holds whitespace or a path separator,
+            or is ``.`` or ``..``.
+    """
+    name = str(value)
+    if (
+        not name
+        or name in (".", "..")
+        or any(c.isspace() for c in name)
+        or "/" in name
+        or "\\" in name
+        or os.sep in name
+    ):
+        raise ValueError(
+            f"utterance id {name!r} cannot head an SCP line or name a file; it "
+            "must be a plain token with no whitespace or path separators"
+        )
+    return name
 
 
 def get_class_path(obj) -> str:

@@ -178,12 +178,10 @@ def pytest_configure():
                 self.dp_shard = 1
                 self.tp = 1
                 self.pp = 1
-                self.ep = 1
                 self.world_size = 1
                 self.fsdp_enabled = False
                 self.dp_replicate_enabled = False
                 self.pp_enabled = False
-                self.ep_enabled = False
 
             def get_mesh(self, name):
                 return _StubMesh(1)

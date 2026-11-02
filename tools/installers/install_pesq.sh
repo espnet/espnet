@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
-
+# shellcheck source=tools/installers/download_with_retry.sh
+. "$(dirname "$0")"/download_with_retry.sh
 
 if [ $# != 0 ]; then
     echo "Usage: $0"
@@ -14,8 +15,9 @@ fi
 
 
 if [ ! -e PESQ.zip ]; then
-    wget --tries=3 --no-check-certificate \
-        'https://github.com/LiChenda/itu_pesq/raw/main/T-REC-P.862-200511.zip' -O PESQ.zip
+    download_with_retry \
+        'https://github.com/LiChenda/itu_pesq/raw/main/T-REC-P.862-200511.zip' \
+        PESQ.zip --no-check-certificate
 fi
 if [ ! -e PESQ ]; then
     mkdir -p PESQ_P.862.2

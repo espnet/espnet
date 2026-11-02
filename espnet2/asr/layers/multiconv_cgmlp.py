@@ -8,6 +8,9 @@ References:
 
 import torch
 
+from espnet2.legacy.nets.pytorch_backend.conformer.convolution import (
+    mask_padded_frames,
+)
 from espnet2.legacy.nets.pytorch_backend.nets_utils import get_activation
 from espnet2.legacy.nets.pytorch_backend.transformer.layer_norm import LayerNorm
 
@@ -118,12 +121,13 @@ class MultiConvolutionalSpatialGatingUnit(torch.nn.Module):
             torch.nn.init.normal_(self.linear.weight, std=1e-6)
             torch.nn.init.ones_(self.linear.bias)
 
-    def forward(self, x, gate_add=None):
+    def forward(self, x, gate_add=None, mask_pad=None):
         """Forward method
 
         Args:
             x (torch.Tensor): (N, T, D)
             gate_add (torch.Tensor): (N, T, D/2)
+            mask_pad (torch.Tensor): (N, 1, T) non-padding mask, or None
 
         Returns:
             out (torch.Tensor): (N, T, D/2)
@@ -131,6 +135,7 @@ class MultiConvolutionalSpatialGatingUnit(torch.nn.Module):
         x_r, x_i = x.chunk(2, dim=-1)
 
         x_i = self.norm(x_i).transpose(1, 2)  # (N, D/2, T)
+        x_i = mask_padded_frames(x_i, mask_pad)
 
         # TODO(gituser): Parallelize this convolution computation
         xs = []
@@ -151,7 +156,7 @@ class MultiConvolutionalSpatialGatingUnit(torch.nn.Module):
             x_concat = torch.cat(xs, dim=-1)  # (N, T, D)
 
             if self.arch_type == "concat_fusion":
-                x_tmp = x_concat.transpose(1, 2)
+                x_tmp = mask_padded_frames(x_concat.transpose(1, 2), mask_pad)
                 x_tmp = self.depthwise_conv_fusion(x_tmp)
                 x_concat = x_concat + x_tmp.transpose(1, 2)
 
@@ -206,14 +211,18 @@ class MultiConvolutionalGatingMLP(torch.nn.Module):
         )
         self.channel_proj2 = torch.nn.Linear(linear_units // 2, size)
 
-    def forward(self, x, mask=None):
+    def forward(self, x, mask=None, mask_pad=None):
+        # `mask_pad` is the name the conformer encoder layer uses for the
+        # non-padding mask it hands its convolution module
+        if mask is None:
+            mask = mask_pad
         if isinstance(x, tuple):
             xs_pad, pos_emb = x
         else:
             xs_pad, pos_emb = x, None
 
         xs_pad = self.channel_proj1(xs_pad)  # size -> linear_units
-        xs_pad = self.csgu(xs_pad)  # linear_units -> linear_units/2
+        xs_pad = self.csgu(xs_pad, mask_pad=mask)  # linear_units -> linear_units/2
         xs_pad = self.channel_proj2(xs_pad)  # linear_units/2 -> size
 
         if pos_emb is not None:

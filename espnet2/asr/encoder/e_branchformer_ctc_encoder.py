@@ -14,6 +14,9 @@ from espnet2.asr.ctc import CTC
 from espnet2.asr.encoder.abs_encoder import AbsEncoder
 from espnet2.asr.layers.cgmlp import ConvolutionalGatingMLP
 from espnet2.asr.layers.fastformer import FastSelfAttention
+from espnet2.legacy.nets.pytorch_backend.conformer.convolution import (
+    mask_padded_frames,
+)
 from espnet2.legacy.nets.pytorch_backend.nets_utils import get_activation, make_pad_mask
 from espnet2.legacy.nets.pytorch_backend.transformer.attention import (
     LegacyRelPositionMultiHeadedAttention,
@@ -174,7 +177,9 @@ class EBranchformerEncoderLayer(torch.nn.Module):
 
         # Merge two branches
         x_concat = torch.cat([x1, x2], dim=-1)
-        x_tmp = x_concat.transpose(1, 2)
+        # the merge convolution runs along time too: keep it from reading
+        # the padded frames
+        x_tmp = mask_padded_frames(x_concat.transpose(1, 2), mask)
         x_tmp = self.depthwise_conv_fusion(x_tmp)
         x_tmp = x_tmp.transpose(1, 2)
         x = x + self.dropout(self.merge_proj(x_concat + x_tmp))
@@ -240,6 +245,7 @@ class EBranchformerCTCEncoder(AbsEncoder):
         interctc_use_conditioning: bool = False,
         use_cross_attention=True,  # bool or list of bool
         use_flash_attn: bool = False,
+        use_sdpa: bool = False,
     ):
         super().__init__()
         self._output_size = output_size
@@ -376,6 +382,9 @@ class EBranchformerCTCEncoder(AbsEncoder):
                 attention_dropout_rate,
                 False,  # no qk_norm
                 use_flash_attn,
+                False,  # not causal
+                False,  # not cross-attention
+                use_sdpa,
             )
         elif attention_layer_type == "legacy_rel_selfattn":
             assert pos_enc_layer_type == "legacy_rel_pos"
@@ -384,6 +393,8 @@ class EBranchformerCTCEncoder(AbsEncoder):
                 attention_heads,
                 output_size,
                 attention_dropout_rate,
+                False,  # zero_triu
+                use_sdpa,
             )
             logging.warning(
                 "Using legacy_rel_selfattn and it will be deprecated in the future."
@@ -396,6 +407,7 @@ class EBranchformerCTCEncoder(AbsEncoder):
                 output_size,
                 attention_dropout_rate,
                 zero_triu,
+                use_sdpa,
             )
         elif attention_layer_type == "fast_selfattn":
             assert pos_enc_layer_type in ["abs_pos", "scaled_abs_pos"]
@@ -445,6 +457,7 @@ class EBranchformerCTCEncoder(AbsEncoder):
                         False,  # no qk_norm
                         use_flash_attn,
                         cross_attn=True,
+                        use_sdpa=use_sdpa,
                     )
                     if use_cross_attention[lnum]
                     else None

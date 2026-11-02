@@ -41,8 +41,8 @@ import torch
 from torch.nn.utils.rnn import pad_sequence
 
 from espnet2.legacy.nets.beam_search import BeamSearch, Hypothesis
-from espnet2.legacy.nets.e2e_asr_common import end_detect
 from espnet2.legacy.nets.pytorch_backend.nets_utils import make_pad_mask
+from espnet2.legacy.nets.scorers.ctc import CTCPrefixScorer
 
 logger = logging.getLogger(__name__)
 
@@ -446,6 +446,13 @@ class BatchBeamSearch(BeamSearch):
         single = torch.as_tensor(primer, dtype=torch.int64, device=device)
         return [single] * n_utt
 
+    def _primer_length(self) -> int:
+        """Return how many tokens every hypothesis starts from."""
+        if self._is_per_utt_primer(self.hyp_primer):
+            # one primer per utterance, which `_primers` holds to one length
+            return len(self.hyp_primer[0])
+        return super()._primer_length()
+
     # ------------------------------------------------------------------
     # scoring
     # ------------------------------------------------------------------
@@ -533,14 +540,17 @@ class BatchBeamSearch(BeamSearch):
         """
         scores = dict()
         states = dict()
+        # The primer is not CTC output, see `BeamSearch.score_partial`.
+        ctc_yseq = hyp.yseq[:, self._primer_length() - 1 :]
         for k, d in self.part_scorers.items():
-            if "ctc" in k and pre_x is not None:
+            yseq = ctc_yseq if isinstance(d, CTCPrefixScorer) else hyp.yseq
+            if isinstance(d, CTCPrefixScorer) and pre_x is not None:
                 scores[k], states[k] = d.batch_score_partial(
-                    hyp.yseq, ids, hyp.states[k], pre_x
+                    yseq, ids, hyp.states[k], pre_x
                 )
             else:
                 scores[k], states[k] = d.batch_score_partial(
-                    hyp.yseq, ids, hyp.states[k], x
+                    yseq, ids, hyp.states[k], x
                 )
         return scores, states
 
@@ -894,9 +904,7 @@ class BatchBeamSearch(BeamSearch):
             if at_maxlen or not any(active[lo:hi]):
                 done[b] = True
                 active[lo:hi] = [False] * n_hyp_per_utt
-            elif maxlenratio == 0.0 and end_detect(
-                [h.asdict() for h in ended_per_utt[b]], i
-            ):
+            elif maxlenratio == 0.0 and self.end_detected(ended_per_utt[b], i):
                 logger.info(f"end detected at {i}")
                 done[b] = True
                 active[lo:hi] = [False] * n_hyp_per_utt
@@ -1102,11 +1110,18 @@ class BatchBeamSearch(BeamSearch):
                 for k in self.full_scorers
                 if "decoder" in k and not self._xs_mask_capable(k)
             ]
-            if unmasked:
+            # Once per search object, not once per batch: the scorers do not
+            # change between decodes, so repeating it on every padded batch
+            # only buries the log. Looked up rather than set in `__init__` so
+            # that the in-place `__class__` assignment of the inference
+            # scripts, which skips `__init__`, is covered too.
+            if unmasked and not getattr(self, "_warned_unmasked", False):
+                self._warned_unmasked = True
                 logger.warning(
                     f"{unmasked} do not accept an xs_mask in batch_score, so "
                     "the padded encoder frames are attended to. Results may "
-                    "differ from decoding one utterance at a time."
+                    "differ from decoding one utterance at a time. "
+                    "(reported once per beam search)"
                 )
         return xs, xs_mask, pre_xs, pre_xs_mask
 

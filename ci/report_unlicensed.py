@@ -6,8 +6,9 @@ metadata is inconsistent enough that failing on it would block for bad reasons.
 It exists so that a new dependency arriving without a licence is *visible*, and
 someone can decide whether it belongs in ci/no_redistribute.txt.
 
-kaldiio is the reason this exists. Its licence forbids redistribution, and
-nothing about installing it made that apparent.
+kaldiio is the reason this exists. Its licence forbade redistribution, and
+nothing about installing it made that apparent. It has since been replaced, but
+the next one will arrive just as quietly.
 """
 
 import sys

@@ -72,6 +72,11 @@ def _patch_transformers(monkeypatch):
     """
     import transformers
 
+    from espnet2.speechlm.model.speechlm.lm import parallel as parallel_module
+
+    # Real model imports can replace Transformers' lazy root module.
+    monkeypatch.setattr(parallel_module, "transformers", transformers)
+
     monkeypatch.setattr(transformers, "MockModel", _MockHFModel, raising=False)
     monkeypatch.setattr(
         transformers.AutoConfig,

@@ -5,7 +5,7 @@ The [Open Whisper-style Speech Model (OWSM)](https://www.wavlab.org/activities/2
 OWSM v4 significantly outperforms previous versions in multilingual tasks. It is trained on a [clean version of YODAS](https://huggingface.co/datasets/espnet/yodas_owsmv4) along with previous OWSM data. Please refer to our paper for more details about the training process: https://arxiv.org/abs/2506.00338
 
 Note: OWSM v4 applies 8 times subsampling (instead of 4 times in OWSM v3.1) to the log Mel features, leading to a final resolution of 80 ms in the encoder.
-When running inference, we recommend setting `maxlenratio=1.0` (default) instead of smaller values.
+When running inference, keep `maxlenratio` at its default of `0.0` and avoid smaller positive values such as `0.5`, which can truncate the output. `0.0` gives the same maximum output length as `1.0` (the number of encoder frames), and it also enables the end detection of the beam search, so decoding stops early once the search has converged instead of running to the maximum length.
 
 ## Results
 
@@ -82,6 +82,14 @@ Finally, we convert the filtered data into Kaldi format using `local/convert_to_
 | OWSM-CTC v3.2 medium | 1.01B | https://huggingface.co/espnet/owsm_ctc_v3.2_ft_1B |
 | OWSM-CTC v4 medium | 1.01B | https://huggingface.co/espnet/owsm_ctc_v4_1B |
 
+
+### vLLM inference
+
+The [ESPnet vLLM fork](https://github.com/espnet/vllm) runs encoder-decoder OWSM with ESPnet's own frontend and encoder and a vLLM decoder with paged KV caches. Export a native checkpoint and run it by following the fork's [OWSM guide](https://github.com/espnet/vllm/blob/main/examples/espnet/OWSM.md). Before you use it, note these limits from that guide:
+
+- **Checkpoints.** The fork checks nine public checkpoints on H100 in float32 with `TRITON_ATTN`: v1, v2, v2 E-Branchformer, v3, v3.1 E-Branchformer small, v3.2, and v4 base/small/medium. BF16 with FlashAttention has not matched native tokens and log-probabilities. CTC-based OWSM is a different architecture, and the fork rejects it.
+- **Decoding.** The fork supports greedy autoregressive decoding and sampling, but it does not implement hybrid CTC/attention beam search, external language-model fusion, timestamp pairing filters, or long-form segmentation. It is therefore not a drop-in replacement for every native decoding configuration. Its reported greedy-token agreement under the validated settings does not establish equivalence to the decoding settings used for the results above.
+- **Input length.** By default, clips are padded to the 30-second training window, and longer clips are rejected. Split long recordings first.
 
 
 ### Citations

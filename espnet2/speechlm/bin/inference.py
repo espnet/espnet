@@ -9,7 +9,6 @@ import json
 import logging
 import random
 import sys
-import time
 from pathlib import Path
 
 import numpy as np
@@ -18,7 +17,10 @@ import torch
 import torch.multiprocessing as mp
 import yaml
 
-from espnet2.speechlm.dataloader.iterator import DataIteratorFactory
+from espnet2.speechlm.dataloader.iterator import (
+    DataIteratorFactory,
+    _parse_data_specifier,
+)
 from espnet2.speechlm.model import _all_job_types
 from espnet2.speechlm.utils.data import to_device
 from espnet2.torch_utils.safe_torch_load import safe_torch_load
@@ -70,18 +72,20 @@ def get_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--num-workers",
         type=int,
-        default=4,
-        help="Number of worker processes for inference",
+        default=1,
+        help="Number of workers sharing the selected GPU",
     )
     parser.add_argument(
         "--rank",
         type=int,
-        help="GPU rank in the whole inference job",
+        default=1,
+        help="One-based GPU rank across independently launched inference jobs",
     )
     parser.add_argument(
         "--world-size",
         type=int,
-        help="number of GPUs in the whole inference job",
+        default=1,
+        help="Number of independently launched GPU jobs",
     )
     parser.add_argument(
         "--seed",
@@ -184,8 +188,10 @@ def inference_worker(
 
     # Build data iterator with sharding
     iterator_factory = DataIteratorFactory(
-        unregistered_specifier=unregistered_specifier,
-        registered_specifier=registered_specifier,
+        unregistered_specifier=(
+            [unregistered_specifier] if unregistered_specifier else []
+        ),
+        registered_specifier=[registered_specifier] if registered_specifier else [],
         collate_fn=preprocessor.collate_fn,
         num_workers=0,
         rank=rank,
@@ -226,6 +232,9 @@ def inference_worker(
                 sf.write(content, audio.T, sample_rate)
 
                 messages[idx][2] = str(content)
+            elif modality == "text":
+                content = content[0]
+                messages[idx][2] = content
 
             logger.info(
                 f"Segment {idx}, role={role}, modality={modality}, content={content}"
@@ -244,6 +253,11 @@ def main():
     parser = get_parser()
     args = parser.parse_args()
 
+    if args.num_workers < 1 or args.world_size < 1:
+        parser.error("--num-workers and --world-size must be positive")
+    if not 1 <= args.rank <= args.world_size:
+        parser.error("--rank must be between 1 and --world-size")
+
     if not torch.cuda.is_available():
         print("Error: CUDA is not available. This script requires GPU.")
         sys.exit(1)
@@ -259,8 +273,14 @@ def main():
             "--test-unregistered-specifier"
         )
 
-    specifier = args.test_registered_specifier or args.test_unregistered_specifier
-    output_dir = args.output_dir / specifier.replace(":", "_")
+    unregistered, registered = _parse_data_specifier(
+        [args.test_unregistered_specifier] if args.test_unregistered_specifier else [],
+        [args.test_registered_specifier] if args.test_registered_specifier else [],
+    )
+    specifiers = unregistered or registered
+    if not specifiers:
+        parser.error("Provide a nonempty test data specifier")
+    output_dir = args.output_dir / "_".join(specifiers[0][:2])
     output_dir.mkdir(parents=True, exist_ok=True)
 
     mp.set_start_method("spawn", force=True)
@@ -287,11 +307,13 @@ def main():
         p.start()
         processes.append(p)
 
-        time.sleep(60)  # Stagger process startups
-
     # Wait for all workers
     for p in processes:
         p.join()
+
+    failures = [p.exitcode for p in processes if p.exitcode != 0]
+    if failures:
+        raise RuntimeError(f"Inference workers failed with exit codes: {failures}")
 
     print("All workers completed!")
 

@@ -391,7 +391,7 @@ class ESPnetS2STModel(AbsESPnetModel):
 
             # NOTE(jiatong): tgt_text_lengths + 1 for <eos>
             encoder_out_mask = (
-                make_pad_mask(encoder_out_lens).to(encoder_out.device).unsqueeze(1)
+                ~make_pad_mask(encoder_out_lens).to(encoder_out.device).unsqueeze(1)
             )
             attention_out = self.aux_attention(
                 decoder_out, encoder_out, encoder_out, mask=encoder_out_mask

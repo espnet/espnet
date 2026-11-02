@@ -1,5 +1,6 @@
 """Tests for KmeansModel, DiscreteAudioIO, and ContinuousAudioIO."""
 
+import types
 from unittest.mock import patch
 
 import numpy as np
@@ -173,6 +174,24 @@ class TestDiscreteAudioIOInit:
                     ssl_choice="UnsupportedSSL",
                     codec_choice=None,
                 )
+
+    def test_worker_copy_keeps_original_models_and_preprocessing(self, codec_only_io):
+        io = codec_only_io
+        io.codec_model = torch.nn.Linear(2, 2)
+        original_model = io.codec_model
+        with patch.object(DiscreteAudioIO, "_init_codec", side_effect=AssertionError):
+            worker = io.copy_for_worker()
+        assert io.codec_model is original_model
+        assert list(io.parameters())
+        assert not list(worker.parameters())
+        assert worker.get_vocabulary() == io.get_vocabulary()
+        sample = (np.zeros((1, 1600), dtype=np.float32), 16000)
+        expected = io.preprocess(sample)
+        actual = worker.preprocess(sample)
+        np.testing.assert_array_equal(actual[0], expected[0])
+        np.testing.assert_array_equal(actual[2], expected[2])
+        assert actual[1][0] == expected[1][0]
+        torch.testing.assert_close(actual[1][1], expected[1][1])
 
 
 # ---------------------------------------------------------------------------
@@ -512,9 +531,52 @@ class TestContinuousAudioIO:
         assert io.modality == "audio"
         assert io.is_discrete is False
 
+    def test_worker_copy_keeps_original_encoder(self):
+        io = self._make_continuous_io()
+        io.model = torch.nn.Linear(2, 2)
+        original_model = io.model
+        with patch.object(
+            ContinuousAudioIO, "_init_encoder", side_effect=AssertionError
+        ):
+            worker = io.copy_for_worker()
+        assert io.model is original_model
+        assert list(io.parameters())
+        assert not list(worker.parameters())
+        sample = (np.zeros((1, 1600), dtype=np.float32), 16000)
+        assert worker.find_length(sample) == io.find_length(sample)
+        assert worker.feature_dim() == io.feature_dim()
+
     def test_feature_dim(self):
         io = self._make_continuous_io()
         assert io.feature_dim() == 3584
+
+    @pytest.mark.parametrize(
+        "model_tag", ["Qwen/Qwen2.5-Omni-7B", "Qwen/Qwen3-Omni-30B-A3B-Instruct"]
+    )
+    @pytest.mark.parametrize("structured_output", [False, True])
+    def test_encode_batch_extracts_features(self, model_tag, structured_output):
+        """Preserve features from tensor and structured encoder outputs."""
+        io = self._make_continuous_io(model_tag)
+        lengths = torch.tensor([100, 50])
+        output_lengths = io.find_length(None, before_length=lengths)
+        features = torch.arange(int(output_lengths.sum()) * 4).reshape(-1, 4)
+        batch = torch.randn(2, 100, 80)
+
+        class Encoder(torch.nn.Module):
+            def get_audio_features(self, data, feature_attention_mask):
+                torch.testing.assert_close(data, batch.transpose(1, 2))
+                expected = torch.arange(100).unsqueeze(0) < lengths.unsqueeze(1)
+                torch.testing.assert_close(feature_attention_mask, expected.int())
+                return (
+                    types.SimpleNamespace(last_hidden_state=features)
+                    if structured_output
+                    else features
+                )
+
+        io.model = Encoder()
+        result = io.encode_batch(batch, lengths)
+        assert [value.shape[0] for value in result] == output_lengths.tolist()
+        torch.testing.assert_close(torch.cat(result), features)
 
     def test_find_length_qwen25(self):
         io = self._make_continuous_io("Qwen/Qwen2.5-Omni-7B")
@@ -571,3 +633,76 @@ class TestContinuousAudioIO:
         assert conti_feat[0] == after_length
         assert conti_feat[1].shape == (before_length, feat_dim)
         assert loss_mask.shape == (after_length, 1)
+
+
+# ---------------------------------------------------------------------------
+# What _init_encoder asks transformers for. The encoder itself is 30B, so the
+# two `from_pretrained` calls are replaced and only the asking is checked.
+# ---------------------------------------------------------------------------
+class TestContinuousAudioIOEncoderLoading:
+    TAG = "Qwen/Qwen3-Omni-30B-A3B-Instruct"
+
+    def _fake_omni(self):
+        """A stand-in for the checkpoint, with the parts _init_encoder drops."""
+        thinker = types.SimpleNamespace(
+            model=object(),
+            visual=object(),
+            lm_head=object(),
+            audio_tower=types.SimpleNamespace(
+                config=types.SimpleNamespace(output_dim=2048)
+            ),
+        )
+        thinker.to = lambda device: thinker
+        return types.SimpleNamespace(thinker=thinker)
+
+    def test_the_feature_extractor_comes_without_the_video_one(self):
+        """Ask for the audio feature extractor, not the omni processor.
+
+        An omni processor also builds the video processor, which imports
+        torchvision - a package no espnet extra declares and this
+        speech-only path never uses. AutoFeatureExtractor reads the same
+        `feature_extractor_type` from the same config.
+        """
+        import transformers
+
+        fake = self._fake_omni()
+        extractor = types.SimpleNamespace(sampling_rate=16000, hop_length=160)
+        asked = {}
+
+        def feature_extractor(tag, *args, **kwargs):
+            asked["tag"] = tag
+            return extractor
+
+        def model_class(tag, **kwargs):
+            asked["model_tag"] = tag
+            return fake
+
+        with (
+            patch.object(
+                transformers.AutoFeatureExtractor, "from_pretrained", feature_extractor
+            ),
+            patch.object(
+                transformers.Qwen3OmniMoeForConditionalGeneration,
+                "from_pretrained",
+                model_class,
+            ),
+            patch.object(transformers.AutoProcessor, "from_pretrained", _never_called),
+        ):
+            io = ContinuousAudioIO(
+                encoder_choice="huggingface",
+                encoder_hf_model_tag=self.TAG,
+            )
+
+        assert asked["tag"] == self.TAG
+        assert io.processor is extractor
+        # and the attributes the rest of the class reads off it
+        assert io.sample_rate == 16000
+        assert io.hop_length == 160
+        assert io.d_model == 2048
+
+
+def _never_called(*args, **kwargs):  # pragma: no cover - the point is that it is not
+    raise AssertionError(
+        "AutoProcessor builds the image and video processors too; the audio "
+        "path needs AutoFeatureExtractor"
+    )

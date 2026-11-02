@@ -1,3 +1,9 @@
+# Path-based labelling lives in .github/labeler.yml, not here: `files~=`
+# takes a regular expression, and the rules that used to be in this file
+# were written as globs, so `^(espnet*/asr|egs*/*/asr1)` - which reads as
+# `espne` then any number of `t` - matched none of the repository's paths
+# and the ASR, TTS, MT and LM labels were never applied.
+# ci/check_ci_image_config.py fails if such a rule comes back.
 pull_request_rules:
   - name: automatic merge if label=auto-merge
     conditions:
@@ -31,69 +37,3 @@ pull_request_rules:
     actions:
       label:
         remove: ["conflicts"]
-  - name: "auto add label=ESPnet2"
-    conditions:
-      - files~=^(espnet2/|egs2/)
-    actions:
-      label:
-        add: ["ESPnet2"]
-  - name: "auto add label=ASR"
-    conditions:
-      - files~=^(espnet*/asr|egs*/*/asr1)
-    actions:
-      label:
-        add: ["ASR"]
-  - name: "auto add label=TTS"
-    conditions:
-      - files~=^(espnet*/tts|egs*/*/tts1)
-    actions:
-      label:
-        add: ["TTS"]
-  - name: "auto add label=MT"
-    conditions:
-      - files~=^(espnet*/mt|egs*/*/mt1)
-    actions:
-      label:
-        add: ["MT"]
-  - name: "auto add label=LM"
-    conditions:
-      - files~=^(espnet*/lm)
-    actions:
-      label:
-        add: ["LM"]
-  - name: "auto add label=README"
-    conditions:
-      - files~=README.md
-    actions:
-      label:
-        add: ["README"]
-  - name: "auto add label=Documentation"
-    conditions:
-      - files~=^doc/
-    actions:
-      label:
-        add: ["Documentation"]
-  - name: "auto add label=CI"
-    conditions:
-      - files~=^(ci/|.github/)
-    actions:
-      label:
-        add: ["CI"]
-  - name: "auto add label=Installation"
-    conditions:
-      - files~=^(tools/|setup.py)
-    actions:
-      label:
-        add: ["Installation"]
-  - name: "auto add label=mergify"
-    conditions:
-      - files~=^.mergify.yml
-    actions:
-      label:
-        add: ["mergify"]
-  - name: "auto add label=Docker"
-    conditions:
-      - files~=^docker/
-    actions:
-      label:
-        add: ["Docker"]

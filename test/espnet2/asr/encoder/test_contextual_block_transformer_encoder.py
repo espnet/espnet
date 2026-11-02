@@ -50,3 +50,26 @@ def test_Encoder_output_size():
 def test_Encoder_invalid_type():
     with pytest.raises(ValueError):
         ContextualBlockTransformerEncoder(20, input_layer="fff")
+
+
+def test_Encoder_olens_is_independent_of_batch_mates():
+    enc = ContextualBlockTransformerEncoder(
+        input_size=8,
+        output_size=4,
+        attention_heads=2,
+        linear_units=4,
+        num_blocks=1,
+        input_layer="conv2d",
+        block_size=0,
+    ).eval()
+
+    short, long_ = 288, 363
+    feats = torch.randn(2, long_, 8)
+    with torch.no_grad():
+        _, olens_alone, _ = enc(feats[1:2, :short], torch.tensor([short]))
+        _, olens_batch, _ = enc(feats, torch.tensor([long_, short]))
+        _, olens_pair, _ = enc(feats[:, :short], torch.tensor([short, short]))
+
+    assert olens_alone.tolist() == [71]
+    assert olens_batch[1].item() == 71
+    assert olens_pair.tolist() == [71, 71]

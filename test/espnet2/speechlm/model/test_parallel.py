@@ -97,6 +97,12 @@ def _patch_transformers_and_liger(monkeypatch):
     """
     import transformers
 
+    from espnet2.speechlm.model.speechlm.lm import parallel as parallel_module
+
+    # Transformers can replace its lazy root module while loading real models.
+    # Patch the same module object that this test uses for MockModel overrides.
+    monkeypatch.setattr(parallel_module, "transformers", transformers)
+
     # Register a fresh mock architecture class under `transformers.MockModel`
     # so `build_parallel_hf_class("mock-model")` can find it via getattr.
     monkeypatch.setattr(transformers, "MockModel", _MockHFModel, raising=False)

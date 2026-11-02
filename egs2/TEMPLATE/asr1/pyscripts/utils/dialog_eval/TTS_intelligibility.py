@@ -66,11 +66,9 @@ def handle_espnet_TTS_intelligibility(
         Whisper CER: 6.50
     """
     try:
-        from versa import (
-            espnet_levenshtein_metric,
-            owsm_levenshtein_metric,
-            whisper_levenshtein_metric,
-        )
+        from versa.corpus_metrics.espnet_wer import espnet_levenshtein_metric
+        from versa.corpus_metrics.owsm_wer import owsm_levenshtein_metric
+        from versa.corpus_metrics.whisper_wer import whisper_levenshtein_metric
     except Exception as e:
         print("Error: Versa is not properly installed.")
         raise e

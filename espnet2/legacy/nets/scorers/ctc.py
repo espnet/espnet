@@ -16,6 +16,7 @@ class CTCPrefixScorer(BatchPartialScorerInterface):
         self,
         ctc: torch.nn.Module,
         eos: int,
+        window_margin: int = 0,
         scoring_device: Optional[Union[str, torch.device]] = None,
     ):
         """Initialize class.
@@ -24,6 +25,11 @@ class CTCPrefixScorer(BatchPartialScorerInterface):
             ctc (torch.nn.Module): The CTC implementation.
                 For example, :class:`espnet2.legacy.nets.pytorch_backend.ctc.CTC`
             eos (int): The end-of-sequence id.
+            window_margin (int): Half-width, in encoder frames, of the window
+                the CTC forward recursion is restricted to. 0 (default) walks
+                the whole utterance at every decoding step, which is exact but
+                costs O(T) per step. A positive value centres a window on the
+                frame the prefix has reached and is an approximation.
             scoring_device (str or torch.device): Device on which the batched
                 prefix scores are computed and their states are kept. None
                 (default) uses the device of the encoder output. The forward
@@ -38,6 +44,7 @@ class CTCPrefixScorer(BatchPartialScorerInterface):
         """
         self.ctc = ctc
         self.eos = eos
+        self.window_margin = window_margin
         self.scoring_device = (
             None if scoring_device is None else torch.device(scoring_device)
         )
@@ -136,7 +143,7 @@ class CTCPrefixScorer(BatchPartialScorerInterface):
             )
         else:
             xlen = xs_lengths.to(dtype=torch.long, device=logp.device)
-        self.impl = CTCPrefixScoreTH(logp, xlen, 0, self.eos)
+        self.impl = CTCPrefixScoreTH(logp, xlen, 0, self.eos, margin=self.window_margin)
         return None
 
     def batch_score_partial(self, y, ids, state, x):

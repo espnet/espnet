@@ -21,11 +21,17 @@ logger = logging.getLogger(__name__)
 
 
 def _instantiate_model(config: DictConfig) -> Any:
+    model_config = OmegaConf.create(config.model)
+    # ``freeze_param`` belongs to ESPnet3's Lightning wrapper.  It is applied
+    # after model construction and must not be forwarded to a model constructor
+    # or an ESPnet2 task's build_model arguments.
+    model_config.pop("freeze_param", None)
     task = config.get("task")
     if task:
-        model_config = OmegaConf.to_container(config.model, resolve=True)
-        return get_espnet_model(task, model_config)
-    return instantiate(config.model)
+        return get_espnet_model(
+            task, OmegaConf.to_container(model_config, resolve=True)
+        )
+    return instantiate(model_config)
 
 
 def _build_trainer(config: DictConfig) -> ESPnet3LightningTrainer:

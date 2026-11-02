@@ -4,11 +4,11 @@ from typing import Tuple
 
 import numpy as np
 import torch
+from omniio import kaldi as kaldi_io
 from typeguard import typechecked
 
 from espnet2.bin.tts_inference import Text2Speech
 from espnet2.sds.tts.abs_tts import AbsTTS
-from espnet2.utils.kaldiio_utils import import_kaldiio
 from espnet2.utils.types import str_or_none
 
 
@@ -80,7 +80,6 @@ class ESPnetTTSModel(AbsTTS):
             # randomly select speaker
             self.sids = np.array(np.random.randint(1, len(sid2spk)))
         if self.text2speech.use_spembs:
-            kaldiio = import_kaldiio()
 
             xvector_ark = [
                 p
@@ -89,7 +88,7 @@ class ESPnetTTSModel(AbsTTS):
                 )
                 if "tr" in p
             ][0]
-            xvectors = {k: v for k, v in kaldiio.load_ark(xvector_ark)}
+            xvectors = {k: v for k, v in kaldi_io.load_ark(xvector_ark)}
             spks = list(xvectors.keys())
 
             # randomly select speaker

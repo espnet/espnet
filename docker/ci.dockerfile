@@ -18,7 +18,7 @@ ARG PYTHON_VERSION=3.12
 FROM python:${PYTHON_VERSION}-bookworm AS builder
 
 ARG PYTHON_VERSION
-ARG TH_VERSION=2.9.1
+ARG TH_VERSION=2.11.0
 
 RUN apt-get update -qq \
     && apt-get install -qq -y --no-install-recommends \
@@ -74,7 +74,7 @@ RUN /espnet/tools/venv/bin/python ci/report_unlicensed.py
 # ------------------------------------------------------------------ final ----
 FROM python:${PYTHON_VERSION}-bookworm
 
-ARG TH_VERSION=2.9.1
+ARG TH_VERSION=2.11.0
 LABEL org.opencontainers.image.source="https://github.com/espnet/espnet"
 LABEL org.opencontainers.image.description="Prebuilt ESPnet CI environment (torch ${TH_VERSION})"
 

@@ -1,4 +1,5 @@
 import math
+import numbers
 import random
 from typing import Collection, Dict, List, Tuple, Union
 
@@ -44,7 +45,7 @@ class CommonCollateFn:
 
 
 class HuBERTCollateFn(CommonCollateFn):
-    """Functor class of common_collate_fn()"""
+    """HuBERT functor class of common_collate_fn()"""
 
     @typechecked
     def __init__(
@@ -422,3 +423,84 @@ def common_collate_fn(
 
     output = (uttids, output)
     return output
+
+
+class MappingCollateFn(CommonCollateFn):
+    """Collate named numeric annotation mappings alongside sequence inputs.
+
+    ``fields`` maps each structured input name to its ordered scalar label keys.
+    Missing keys use ``mapping_pad_value``. Strings require task-specific
+    tokenization before collation; arbitrary nested objects are not tensorized.
+    """
+
+    @typechecked
+    def __init__(
+        self,
+        fields: Dict[str, List[str]],
+        float_pad_value: Union[float, int] = 0.0,
+        mapping_pad_value: Union[float, int] = -1e10,
+        int_pad_value: int = -32768,
+        not_sequence: Collection[str] = (),
+    ):
+        super().__init__(float_pad_value, int_pad_value, not_sequence)
+        self.fields = fields
+        self.mapping_pad_value = mapping_pad_value
+
+    def __call__(self, data):
+        """Pad sequences and collate only explicitly declared scalar mappings."""
+        data = list(data)
+        sequences = [
+            (
+                uid,
+                {key: value for key, value in sample.items() if key not in self.fields},
+            )
+            for uid, sample in data
+        ]
+        uttids, output = super().__call__(sequences)
+        for name, labels in self.fields.items():
+            if not any(name in sample for _, sample in data):
+                continue
+            output[name] = {}
+            for label in labels:
+                values = [
+                    sample.get(name, {}).get(label, self.mapping_pad_value)
+                    for _, sample in data
+                ]
+                if not all(isinstance(value, numbers.Real) for value in values):
+                    raise ValueError(
+                        f"{name}.{label} must contain numeric scalar annotations; "
+                        "tokenize categorical values before collation"
+                    )
+                output[name][label] = torch.tensor(values, dtype=torch.float32)
+        return uttids, output
+
+
+class UniversaCollateFn(MappingCollateFn):
+    """Legacy metric-specific interface to numeric mapping collation."""
+
+    @typechecked
+    def __init__(
+        self,
+        metrics_list: List[str],
+        float_pad_value: Union[float, int] = 0.0,
+        metric_pad_value: Union[float, int] = -1e10,
+        int_pad_value: int = -32768,
+        not_sequence: Collection[str] = (),
+    ):
+        super().__init__(
+            fields={"metrics": metrics_list},
+            float_pad_value=float_pad_value,
+            mapping_pad_value=metric_pad_value,
+            int_pad_value=int_pad_value,
+            not_sequence=not_sequence,
+        )
+        self.metrics_list = metrics_list
+        self.metric_pad_value = metric_pad_value
+
+    def __repr__(self):
+        return (
+            f"{self.__class__}(float_pad_value={self.float_pad_value}, "
+            f"int_pad_value={self.int_pad_value}, "
+            f"metrics_list={self.metrics_list}, "
+            f"metric_pad_value={self.metric_pad_value})"
+        )

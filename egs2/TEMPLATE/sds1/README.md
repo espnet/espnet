@@ -36,7 +36,6 @@ This README describes features of ESPnet-SDS toolkit and provides comprehensive 
 
 1. **Start the Demo**
    - Run `run.sh` in `spoken_chatbot_arena/sds1` to run locally.
-   - You can optionally also visit our [Voice Assistant Demo](https://huggingface.co/spaces/Siddhant/Voice_Assistant_Demo) on HuggingFace Spaces.
    - Wait for the interface to load.
 
 2. **Choose a System Type**

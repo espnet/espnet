@@ -7,7 +7,6 @@ import numpy as np
 import pytest
 import torch
 import yaml
-from packaging.version import parse as V
 
 from espnet2.bin.asr_inference import Speech2Text, get_parser, main
 from espnet2.bin.asr_inference_streaming import Speech2TextStreaming
@@ -16,8 +15,6 @@ from espnet2.legacy.nets.beam_search import Hypothesis
 from espnet2.tasks.asr import ASRTask
 from espnet2.tasks.enh_s2t import EnhS2TTask
 from espnet2.tasks.lm import LMTask
-
-is_torch_2_6_plus = V(torch.__version__) >= V("2.6.0")
 
 
 def test_get_parser():
@@ -287,6 +284,94 @@ def asr_config_file_streaming(tmp_path: Path, token_list):
 
 
 @pytest.mark.execution_timeout(20)
+def test_Speech2Text_streaming_from_pretrained(asr_config_file_streaming):
+    with open(asr_config_file_streaming, "r", encoding="utf-8") as f:
+        asr_train_config = yaml.full_load(f.read())
+    asr_train_config["frontend"] = "default"
+    asr_train_config["encoder_conf"] = {
+        "look_ahead": 16,
+        "hop_size": 16,
+        "block_size": 40,
+    }
+    with open(asr_config_file_streaming, "w", encoding="utf-8") as f:
+        yaml.dump(asr_train_config, f)
+    # model_tag=None skips the model-zoo download and builds from the kwargs,
+    # the same path every other from_pretrained in espnet2/bin takes.
+    speech2text = Speech2TextStreaming.from_pretrained(
+        model_tag=None,
+        asr_train_config=asr_config_file_streaming,
+        beam_size=1,
+    )
+    results = speech2text(np.random.randn(2048), is_final=True)
+    for text, token, token_int, hyp in results:
+        assert text is None or isinstance(text, str)
+        assert isinstance(hyp, Hypothesis)
+
+
+@pytest.mark.execution_timeout(20)
+def test_Speech2Text_streaming_from_pretrained_tag(
+    monkeypatch, asr_config_file_streaming
+):
+    with open(asr_config_file_streaming, "r", encoding="utf-8") as f:
+        asr_train_config = yaml.full_load(f.read())
+    asr_train_config["frontend"] = "default"
+    asr_train_config["encoder_conf"] = {
+        "look_ahead": 16,
+        "hop_size": 16,
+        "block_size": 40,
+    }
+    with open(asr_config_file_streaming, "w", encoding="utf-8") as f:
+        yaml.dump(asr_train_config, f)
+
+    # A tag goes through espnet_model_zoo, whose unpacked files become the
+    # constructor's keyword arguments; the downloader itself is faked so the
+    # test stays offline.
+    class FakeDownloader:
+        def download_and_unpack(self, model_tag):
+            assert model_tag == "espnet/some_streaming_asr"
+            return {"asr_train_config": str(asr_config_file_streaming)}
+
+    monkeypatch.setattr("espnet_model_zoo.downloader.ModelDownloader", FakeDownloader)
+    speech2text = Speech2TextStreaming.from_pretrained(
+        "espnet/some_streaming_asr", beam_size=1
+    )
+    assert isinstance(speech2text, Speech2TextStreaming)
+    assert speech2text.beam_search.beam_size == 1
+
+
+@pytest.mark.execution_timeout(20)
+def test_Speech2Text_streaming_over_a_built_model(asr_config_file_streaming):
+    """asr_model + asr_train_args in place of the files: the same decoder."""
+    with open(asr_config_file_streaming, "r", encoding="utf-8") as f:
+        asr_train_config = yaml.full_load(f.read())
+    asr_train_config["frontend"] = "default"
+    asr_train_config["encoder_conf"] = {
+        "look_ahead": 16,
+        "hop_size": 16,
+        "block_size": 40,
+    }
+    with open(asr_config_file_streaming, "w", encoding="utf-8") as f:
+        yaml.dump(asr_train_config, f)
+    from_files = Speech2TextStreaming(
+        asr_train_config=asr_config_file_streaming, beam_size=1
+    )
+    over_model = Speech2TextStreaming(
+        asr_model=from_files.asr_model,
+        asr_train_args=from_files.asr_train_args,
+        beam_size=1,
+    )
+    assert over_model.asr_model is from_files.asr_model
+    speech = np.random.randn(6000)
+    expected = from_files(speech, is_final=True)
+    actual = over_model(speech, is_final=True)
+    assert [r[2] for r in actual] == [r[2] for r in expected]
+    with pytest.raises(ValueError, match="asr_train_config, or asr_model"):
+        Speech2TextStreaming(beam_size=1)
+    with pytest.raises(ValueError, match="needs its asr_train_args"):
+        Speech2TextStreaming(asr_model=from_files.asr_model)
+
+
+@pytest.mark.execution_timeout(20)
 def test_Speech2Text_streaming(asr_config_file_streaming, lm_config_file):
     file = open(asr_config_file_streaming, "r", encoding="utf-8")
     asr_train_config = file.read()
@@ -453,7 +538,6 @@ def token_list_whisper_lang(tmp_path: Path, token_list_whisper_lang_add):
     return tmp_path / "token_whisper_lang.txt"
 
 
-@pytest.mark.skipif(not is_torch_2_6_plus, reason="Require torch 2.6.0+")
 @pytest.mark.parametrize(
     "model_name_or_path",
     [
@@ -497,7 +581,6 @@ def test_Speech2Text_hugging_face(
         assert isinstance(hyp, Hypothesis)
 
 
-@pytest.mark.skipif(not is_torch_2_6_plus, reason="Require torch 2.6.0+")
 @pytest.mark.parametrize(
     "model_name_or_path",
     [
@@ -798,3 +881,147 @@ def test_Speech2Text_ctc_scoring_device(asr_config_file):
     assert len(results) == 1
     for text, token, token_int, hyp in results:
         assert isinstance(text, str)
+
+
+def test_Speech2Text_decodes_a_list_of_utterances_as_a_batch(
+    asr_config_file_transformer,
+):
+    """A list input is one batched beam search, one n-best list per utterance.
+
+    Equal lengths keep the encoder free of padding, so the batched results
+    must equal the single-utterance ones exactly.
+    """
+    from espnet2.bin.asr_inference import Speech2Text
+
+    speech2text = Speech2Text(
+        asr_train_config=asr_config_file_transformer, beam_size=2, nbest=2
+    )
+    rng = np.random.RandomState(0)
+    speech = [rng.randn(32000).astype(np.float32) for _ in range(3)]
+
+    single = [speech2text(s) for s in speech]
+    batched = speech2text(speech)
+
+    assert len(batched) == 3
+    for one, many in zip(single, batched):
+        assert [(r[0], r[2]) for r in one] == [(r[0], r[2]) for r in many]
+    # a padded tensor plus lengths is still accepted
+    padded = torch.zeros(3, 40000)
+    for i, s in enumerate(speech):
+        padded[i, : len(s)] = torch.from_numpy(s)
+    again = speech2text.batch_decode(padded, torch.tensor([32000] * 3))
+    assert [r[0][0] for r in again] == [r[0][0] for r in batched]
+
+
+def test_Speech2Text_batch_decode_splits_a_batch_that_does_not_fit(
+    asr_config_file_transformer, monkeypatch, caplog
+):
+    """An out-of-memory batch is retried in halves, not failed."""
+    import logging
+
+    from espnet2.bin.asr_inference import Speech2Text
+
+    speech2text = Speech2Text(asr_train_config=asr_config_file_transformer, beam_size=1)
+    encode = speech2text.asr_model.encode
+    seen = []
+
+    def encode_up_to_two(speech, speech_lengths, **kwargs):
+        seen.append(speech.size(0))
+        if speech.size(0) > 2:
+            raise torch.OutOfMemoryError("CUDA out of memory (simulated)")
+        return encode(speech, speech_lengths, **kwargs)
+
+    monkeypatch.setattr(speech2text.asr_model, "encode", encode_up_to_two)
+    rng = np.random.RandomState(0)
+    speech = [
+        rng.randn(n).astype(np.float32) for n in (16000, 24000, 8000, 20000, 12000)
+    ]
+    with caplog.at_level(logging.WARNING):
+        results = speech2text(speech)
+
+    assert len(results) == 5
+    # 5 fails -> 3 + 2; 3 fails -> 2 + 1; every batch of at most two succeeds
+    assert seen == [5, 3, 2, 1, 2], seen
+    warned = [
+        r.getMessage() for r in caplog.records if "Out of memory" in r.getMessage()
+    ]
+    assert warned and "24000" in warned[0] and "batch size" in warned[0].lower()
+
+
+@pytest.mark.parametrize("config", ["asr_config_file_transformer", "asr_config_file"])
+def test_Speech2Text_reports_an_utterance_that_does_not_fit(
+    config, request, monkeypatch
+):
+    """The message names the utterance, on the batched and the fallback path."""
+    from espnet2.bin.asr_inference import Speech2Text
+
+    speech2text = Speech2Text(
+        asr_train_config=request.getfixturevalue(config), beam_size=1
+    )
+
+    def never(speech, speech_lengths, **kwargs):
+        raise torch.OutOfMemoryError("CUDA out of memory (simulated)")
+
+    monkeypatch.setattr(speech2text.asr_model, "encode", never)
+    with pytest.raises(RuntimeError, match="single utterance of 48000 samples"):
+        speech2text([np.zeros(48000, dtype=np.float32)])
+    # anything that is not an OOM is left alone
+    monkeypatch.setattr(
+        speech2text.asr_model,
+        "encode",
+        lambda *a, **k: (_ for _ in ()).throw(ValueError("not memory")),
+    )
+    with pytest.raises(ValueError, match="not memory"):
+        speech2text([np.zeros(16000, dtype=np.float32)] * 2)
+
+
+def test_Speech2Text_list_input_falls_back_without_batch_beam_search(
+    asr_config_file, caplog
+):
+    """A search that cannot batch still serves a list, one utterance at a time.
+
+    The default test config has an RNN decoder, which is not a batch scorer,
+    so `Speech2Text` falls back to the plain `BeamSearch` on its own.
+    """
+    import logging
+
+    from espnet2.bin.asr_inference import Speech2Text
+    from espnet2.legacy.nets.batch_beam_search import BatchBeamSearch
+
+    speech2text = Speech2Text(asr_train_config=asr_config_file, beam_size=1)
+    assert type(speech2text.beam_search) is not BatchBeamSearch
+    rng = np.random.RandomState(0)
+    speech = [rng.randn(16000).astype(np.float32) for _ in range(2)]
+    with caplog.at_level(logging.WARNING):
+        results = speech2text(speech)
+        speech2text(speech)
+    assert len(results) == 2
+    assert [r[0][0] for r in results] == [speech2text(s)[0][0] for s in speech]
+    notes = [r for r in caplog.records if "one at a time" in r.getMessage()]
+    assert len(notes) == 1, "warned once, not per call"
+
+
+def test_Speech2Text_batch_decode_accepts_numpy_and_lists(asr_config_file_transformer):
+    """A padded numpy array or a list of utterances decodes like the tensor."""
+    batched = Speech2Text(
+        asr_train_config=asr_config_file_transformer, beam_size=2, batch_size=3
+    )
+    lengths = [16000, 12000, 20000]
+    padded = torch.zeros(len(lengths), max(lengths))
+    for i, n in enumerate(lengths):
+        padded[i, :n] = torch.randn(n)
+    expected = batched.batch_decode(padded, torch.tensor(lengths))
+
+    from_numpy = batched.batch_decode(padded.numpy(), np.array(lengths))
+    from_list = batched.batch_decode(
+        [padded[i, :n].numpy() for i, n in enumerate(lengths)]
+    )
+    with_int_lengths = batched.batch_decode(padded, lengths)
+    with_numpy_ints = batched.batch_decode(padded, [np.int64(x) for x in lengths])
+    for actual in (from_numpy, from_list, with_int_lengths, with_numpy_ints):
+        assert len(actual) == len(expected)
+        for exp, act in zip(expected, actual):
+            assert [e[1] for e in exp] == [a[1] for a in act]
+            np.testing.assert_allclose(
+                [float(e[3].score) for e in exp], [float(a[3].score) for a in act]
+            )

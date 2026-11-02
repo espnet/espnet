@@ -7,6 +7,17 @@ import logging
 import torch
 from typeguard import typechecked
 
+# What `--init` accepts. A checkpoint older than this list can name something
+# that is not in it - "chainer" was one of six choices until June 2025 - and
+# `build_model_from_file` reads this to tell that apart from a typo.
+INITIALIZATIONS = (
+    "xavier_uniform",
+    "xavier_normal",
+    "kaiming_uniform",
+    "kaiming_normal",
+    "normal",
+)
+
 
 @typechecked
 def initialize(model: torch.nn.Module, init: str):
@@ -35,7 +46,10 @@ def initialize(model: torch.nn.Module, init: str):
             elif init == "normal":
                 torch.nn.init.normal_(p.data, mean=0.0, std=0.02)
             else:
-                raise ValueError("Unknown initialization: " + init)
+                raise ValueError(
+                    f"Unknown initialization: {init}. "
+                    f"Choose from {', '.join(INITIALIZATIONS)}."
+                )
     # bias init
     for name, p in model.named_parameters():
         if ".bias" in name and p.dim() == 1:

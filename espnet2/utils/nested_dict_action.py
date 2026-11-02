@@ -1,4 +1,5 @@
 import argparse
+import ast
 import copy
 
 import yaml
@@ -63,7 +64,7 @@ e.g.
             indict = copy.deepcopy(getattr(namespace, self.dest, {}))
             key, value = values.split("=", maxsplit=1)
             if not value.strip() == "":
-                value = yaml.load(value, Loader=yaml.Loader)
+                value = yaml.safe_load(value)
             if not isinstance(indict, dict):
                 indict = {}
 
@@ -82,17 +83,19 @@ e.g.
             setattr(namespace, self.dest, indict)
         else:
             try:
-                # At the first, try eval(), i.e. Python syntax dict.
+                # At the first, try a Python literal dict.
                 # e.g. --{option} "{'a': 3}" -> {'a': 3}
                 # This is workaround for internal behaviour of configargparse.
-                value = eval(values, {}, {})
+                # literal_eval, not eval: this parses a value that can come
+                # from a config file, and eval would execute it.
+                value = ast.literal_eval(values)
                 if not isinstance(value, dict):
                     syntax = self._syntax.format(op=option_strings)
                     mes = f"must be interpreted as dict: but got {values}\n{syntax}"
                     raise argparse.ArgumentTypeError(self, mes)
             except Exception:
-                # and the second, try yaml.load
-                value = yaml.load(values, Loader=yaml.Loader)
+                # and the second, try yaml
+                value = yaml.safe_load(values)
                 if not isinstance(value, dict):
                     syntax = self._syntax.format(op=option_strings)
                     mes = f"must be interpreted as dict: but got {values}\n{syntax}"

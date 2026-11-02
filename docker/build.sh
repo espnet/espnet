@@ -15,7 +15,7 @@ ubuntu_ver=24.04
 cuda_ver=12.6
 build_ver=cpu
 build_cores=24
-th_ver=2.8.0
+th_ver=2.11.0
 
 
 cmd_usage() {

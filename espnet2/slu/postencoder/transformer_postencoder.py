@@ -49,6 +49,7 @@ class TransformerPostEncoder(AbsPostEncoder):
         positionwise_layer_type: linear of conv1d
         positionwise_conv_kernel_size: kernel size of positionwise conv1d layer
         padding_idx: padding_idx for input_layer=embed
+        use_sdpa: whether to use PyTorch's scaled_dot_product_attention
     """
 
     @typechecked
@@ -69,6 +70,7 @@ class TransformerPostEncoder(AbsPostEncoder):
         positionwise_layer_type: str = "linear",
         positionwise_conv_kernel_size: int = 1,
         padding_idx: int = -1,
+        use_sdpa: bool = False,
     ):
         super().__init__()
         self._output_size = output_size
@@ -119,7 +121,10 @@ class TransformerPostEncoder(AbsPostEncoder):
             lambda lnum: EncoderLayer(
                 output_size,
                 MultiHeadedAttention(
-                    attention_heads, output_size, attention_dropout_rate
+                    attention_heads,
+                    output_size,
+                    attention_dropout_rate,
+                    use_sdpa=use_sdpa,
                 ),
                 positionwise_layer(*positionwise_layer_args),
                 dropout_rate,

@@ -157,7 +157,7 @@ def handle_finetuned_checkpoint(checkpoint, config):
         raise FileNotFoundError(
             f"Beats pretrained checkpoint {beats_pt_ckpt_path} does not exist."
         )
-    pt_ckpt = torch.load(beats_pt_ckpt_path, map_location="cpu", weights_only=False)
+    pt_ckpt = safe_torch_load(beats_pt_ckpt_path, map_location="cpu")
     if "cfg" not in pt_ckpt:
         raise ValueError(
             f"Pretrained checkpoint {beats_pt_ckpt_path} does not contain 'cfg' key."

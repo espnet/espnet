@@ -1,6 +1,15 @@
-# PyTorch version: The latest six versions have been tested.
+# PyTorch version: The latest three versions have been tested.
 # Please check https://github.com/espnet/espnet?tab=readme-ov-file#espnet-end-to-end-speech-processing-toolkit
-TH_VERSION := 2.7.1
+# Only used when TH_VERSION is not passed in. ci/install.sh always passes it,
+# so this default is what a manual `make` and the docker build get - and it is
+# checked against ci/image_variants.json by ci/check_ci_image_config.py,
+# because install_torch.sh exits 1 on anything outside that set and nothing
+# noticed for five months when this said 2.7.1.
+#
+# Deliberately one behind the newest supported version: k2 publishes no wheel
+# for torch 2.14.0 yet (see k2_missing_for in installers/install_k2.sh), and a
+# plain `make` should not quietly come out without k2.
+TH_VERSION := 2.13.0
 
 # Use pip for pytorch installation even if you have anaconda
 ifneq ($(shell test -f ./activate_python.sh && grep 'conda activate' ./activate_python.sh),)
@@ -159,13 +168,18 @@ espnet.done: pytorch.done conda_packages.done lightning.done
 	$(call start_timer,espnet.done)
 	@echo NUMPY_VERSION=$(shell . ./activate_python.sh && python3 -c "import numpy; print(numpy.__version__)")
 	# Install additional packages that cannot be included in setup.py due to package build issues.
-	# The same two forks this used to install from git, now published under their
-	# own names because PyPI rejects a distribution whose metadata contains a git
-	# URL. They are also declared in the asr and tts extras; the distributions are
-	# identical, so nothing installs two copies of ctc_segmentation or g2p_en.
+	# The fork this used to install from git, now published under its own name
+	# because PyPI rejects a distribution whose metadata contains a git URL. It is
+	# also declared in the tts extra; the distributions are identical, so nothing
+	# installs two copies of g2p_en.
 	. ./activate_python.sh && python3 -m pip install espnet-g2p-en
-	. ./activate_python.sh && python3 -m pip install espnet-ctc-segmentation
-	. ./activate_python.sh && python3 -m pip install -e ".."  # Install editable mode by default
+	. ./activate_python.sh && python3 -m pip install "ctc-segmentation==1.7.5"
+	# torch==$(TH_VERSION) on the same line, not because it is missing - it was
+	# installed above - but to hold it still. Unpinned, this resolve is free to
+	# move torch anywhere the dependency range allows, and it did: it dropped
+	# 2.13.0 for 2.12.1, so install_k2.sh then built against 2.12.1 and the
+	# version check at the end of ci/install.sh failed the job.
+	. ./activate_python.sh && python3 -m pip install -e "..[train]" "torch==$(TH_VERSION)"  # Install editable mode by default; recipes train, so the [train] extra comes along
 	@echo NUMPY_VERSION=$(shell . ./activate_python.sh && python3 -c "import numpy; print(numpy.__version__)")
 	# Into the venv, not $$HOME. docker/ci.dockerfile builds in a builder stage
 	# and copies only /espnet/tools into the final image, so a download to
@@ -173,9 +187,9 @@ espnet.done: pytorch.done conda_packages.done lightning.done
 	# and the prebuilt image ships without the tagger. <prefix>/share/nltk_data
 	# is on nltk's default search path and lives inside the venv, so it is
 	# copied, and it is found without depending on who $$HOME belongs to.
-	. ./activate_python.sh && python -m nltk.downloader \
-		-d "$$(python -c 'import sys; print(sys.prefix)')/share/nltk_data" \
-		averaged_perceptron_tagger_eng
+	. ./activate_python.sh && installers/install_nltk_data.sh \
+		averaged_perceptron_tagger_eng \
+		"$$(python -c 'import sys; print(sys.prefix)')/share/nltk_data"
 	# nltk.downloader exits 0 on some failures, so check the download landed.
 	# Two things this deliberately does not do. Not nltk.data.find: that
 	# searches $$HOME too, so it passes on a machine that happens to have the
@@ -285,6 +299,11 @@ s3prl.done: espnet.done
 	. ./activate_python.sh && ./installers/install_s3prl.sh
 	$(call end_timer_and_touch,s3prl.done)
 
+lang2vec.done: espnet.done
+	$(call start_timer,lang2vec.done)
+	. ./activate_python.sh && ./installers/install_lang2vec.sh
+	$(call end_timer_and_touch,lang2vec.done)
+
 whisper.done: espnet.done
 	$(call start_timer,whisper.done)
 	. ./activate_python.sh && ./installers/install_whisper.sh
@@ -374,6 +393,7 @@ clean_extra:
 	rm -rf muskits.done
 	rm -rf rvad_fast.done
 	rm -rf lightning_constraints.txt
+	rm -rf torcheval_constraints.txt
 	rm -rf espeak-ng festival MBROLA ParallelWaveGAN versa
 	rm -rf py3mmseg sctk* speech_tools sph2pipe* ._mwerSegmenter
 	rm -rf nkf mecab swig moses mwerSegmenter

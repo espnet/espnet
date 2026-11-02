@@ -96,8 +96,15 @@ python3 -m pip install "hacking>=2.0.0" "flake8>=3.7.8"
 end_timer "install hacking flake8"
 
 # install espnet
+# -c constraints.txt because this resolve is free to move torch otherwise: the
+# dependency range spans every supported version, pip re-resolves it from PyPI
+# here rather than keeping the one install_torch.sh put in place, and it landed
+# on 2.12.1 while TH_VERSION was 2.13.0 - which the version check below catches,
+# after a twelve-minute job. The extra index keeps the CPU build; the PyPI
+# default for the same version is the CUDA one, which would pull ~3 GB of
+# nvidia-* wheels over the top of it.
 start_timer "install espnet"
-python3 -m pip install -e ".[test,all]"
+python3 -m pip install -c constraints.txt -e ".[test,all]" --extra-index-url https://download.pytorch.org/whl/cpu
 end_timer "install espnet"
 
 # log

@@ -23,14 +23,16 @@ class _RecordingLiger:
 
     def __init__(self):
         self.calls = []
+        self.outputs = 3
 
     def apply(self, *args):
         self.calls.append(args)
-        return (
-            torch.zeros((), requires_grad=True),  # loss
-            torch.zeros(()),  # z_loss
+        result = (
+            torch.tensor(float(len(self.calls)), requires_grad=True),  # loss
+            torch.tensor(float(len(self.calls))) * args[6],  # weighted z_loss
             torch.zeros(()),  # token_accuracy
         )
+        return result + (None,) if self.outputs == 4 else result
 
 
 @pytest.fixture
@@ -258,6 +260,34 @@ class TestStreamZeroPlusMultimodal:
         assert "z_loss_mm" in stats
 
 
+@pytest.mark.parametrize("outputs", [3, 4])
+@pytest.mark.parametrize("z_weight", [0.0, 1e-5])
+@pytest.mark.parametrize("streams", [1, 4])
+def test_liger_returns_and_z_loss_statistics(
+    recording_liger, outputs, z_weight, streams
+):
+    recording_liger.outputs = outputs
+    hidden, input_ids, loss_mask, lm_head = _make_inputs(N=streams, V=50)
+    loss, _, stats = loss_mod.fused_cross_entropy_loss(
+        hidden,
+        input_ids,
+        loss_mask,
+        lm_head,
+        multimodal_vocab_range=(10, 40) if streams > 1 else None,
+        num_stream=streams,
+        training=True,
+        z_loss_weight=z_weight,
+    )
+    expected = 3.0 if streams > 1 else 1.0
+    assert loss.item() == pytest.approx(expected)
+    assert stats["z_loss"].item() == pytest.approx(expected * z_weight)
+    assert stats["z_loss_s0"].item() == pytest.approx(1.0 if z_weight else 0.0)
+    if streams > 1:
+        assert stats["z_loss_mm"].item() == pytest.approx(2.0 if z_weight else 0.0)
+    for value in stats.values():
+        assert torch.isfinite(value).all()
+
+
 class TestDTensorLmHead:
     """lm_head_weight with ``.full_tensor()`` should be materialized."""
 
@@ -288,3 +318,73 @@ class TestDTensorLmHead:
         passed_weight = recording_liger.calls[0][ARG_WEIGHT]
         # passed through a dtype cast, so we compare values not storage
         assert passed_weight.shape == materialized.shape
+
+
+class TestLoadBalancingLoss:
+    def test_none_returns_zero(self):
+        out = loss_mod.memory_efficient_load_balancing_loss(None, num_experts=8)
+        assert torch.is_tensor(out)
+        assert out.item() == 0.0
+
+    def test_empty_tuple_returns_zero(self):
+        out = loss_mod.memory_efficient_load_balancing_loss((), num_experts=8)
+        assert out.item() == 0.0
+
+    def test_non_tuple_returns_zero(self):
+        # List passed (not tuple) — function checks isinstance(..., tuple)
+        out = loss_mod.memory_efficient_load_balancing_loss(
+            [torch.randn(4, 8)], num_experts=8
+        )
+        assert out.item() == 0.0
+
+    def test_single_layer_matches_manual(self):
+        torch.manual_seed(0)
+        num_experts, top_k = 8, 2
+        logits = torch.randn(16, num_experts)
+
+        # Expected (HF reference-style): scalar >= 0
+        loss = loss_mod.memory_efficient_load_balancing_loss(
+            (logits,), num_experts=num_experts, top_k=top_k
+        )
+        assert loss.ndim == 0
+        assert loss.item() >= 0.0
+
+    def test_balanced_routing_gives_lower_loss_than_skewed(self):
+        """Skewed routing has higher LB loss than balanced routing.
+
+        The HF load-balancing formulation is loss = E * sum_i f_i * P_i,
+        minimized when both f_i (fraction of tokens) and P_i (avg router
+        prob) are uniform across experts.
+        """
+        torch.manual_seed(0)
+        num_experts, top_k = 4, 2
+
+        # Skewed: large positive logit for expert 0 → all tokens go to it.
+        skewed = torch.zeros(64, num_experts)
+        skewed[:, 0] = 10.0
+        skewed[:, 1] = 5.0  # second-preferred
+        loss_skewed = loss_mod.memory_efficient_load_balancing_loss(
+            (skewed,), num_experts=num_experts, top_k=top_k
+        )
+
+        # Balanced: different experts preferred per token (random noise).
+        balanced = torch.randn(512, num_experts)
+        loss_balanced = loss_mod.memory_efficient_load_balancing_loss(
+            (balanced,), num_experts=num_experts, top_k=top_k
+        )
+
+        assert loss_skewed.item() > loss_balanced.item()
+
+    def test_multi_layer_accumulates(self):
+        num_experts = 4
+        logits_a = torch.randn(8, num_experts)
+        logits_b = torch.randn(8, num_experts)
+        single = loss_mod.memory_efficient_load_balancing_loss(
+            (logits_a,), num_experts=num_experts, top_k=2
+        )
+        multi = loss_mod.memory_efficient_load_balancing_loss(
+            (logits_a, logits_b), num_experts=num_experts, top_k=2
+        )
+        assert multi.ndim == 0
+        # Not strictly equal to single — second layer contributes.
+        assert multi.item() != single.item()

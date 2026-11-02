@@ -13,6 +13,7 @@ try:
 except ImportError:
     resampy = None
 import soundfile
+from omniio import kaldi as kaldi_io
 from tqdm import tqdm
 from typeguard import typechecked
 
@@ -20,7 +21,6 @@ from espnet2.fileio.read_text import read_2columns_text
 from espnet2.fileio.sound_scp import SoundScpWriter, soundfile_read
 from espnet2.fileio.vad_scp import VADScpReader
 from espnet2.legacy.utils.cli_utils import get_commandline_args
-from espnet2.utils.kaldiio_utils import import_kaldiio
 from espnet2.utils.types import str2bool
 
 
@@ -118,7 +118,7 @@ class SegmentsExtractor:
                             "Not supporting multi_columns wav.scp for inputs by pipe"
                         )
                     # Streaming input e.g. cat a.wav |
-                    with import_kaldiio().open_like_kaldi(wavpath, "rb") as f:
+                    with kaldi_io.open_like_kaldi(wavpath, "rb") as f:
                         with BytesIO(f.read()) as g:
                             array, rate = soundfile.read(g)
 
@@ -260,6 +260,9 @@ def main():
             with Path(args.scp).open("r") as fscp:
                 for line in tqdm(fscp):
                     uttid, wavpath = line.strip().split(None, 1)
+                    if wavpath == "None":
+                        yield uttid, (None, None), None, None
+                        continue
 
                     # B.a. Without segments and using pipe inputs
                     if wavpath.endswith("|"):
@@ -269,7 +272,7 @@ def main():
                                 " pipe"
                             )
                         # Streaming input e.g. cat a.wav |
-                        with import_kaldiio().open_like_kaldi(wavpath, "rb") as f:
+                        with kaldi_io.open_like_kaldi(wavpath, "rb") as f:
                             with BytesIO(f.read()) as g:
                                 wave, rate = soundfile.read(g)
                         subtypes = None
@@ -293,6 +296,11 @@ def main():
 
     with out_num_samples.open("w") as fnum_samples:
         for uttid, (wave, rate), wavpath, subtypes in tqdm(generator()):
+            if wave is None:
+                scp_writer = fscp_out if fscp_out is not None else writer.fscp
+                scp_writer.write(f"{uttid} None\n")
+                fnum_samples.write(f"{uttid} 0\n")
+                continue
             save_asis = True
             if args.fs is not None and args.fs != rate:
                 # FIXME(kamo): To use sox?
@@ -371,7 +379,7 @@ def main():
 
                 # NOTE(kamo): Using extended ark format style here.
                 # This format is incompatible with Kaldi
-                import_kaldiio().save_ark(
+                kaldi_io.save_ark(
                     fark,
                     {uttid: (wave, rate)},
                     scp=fscp_out,
