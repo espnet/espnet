@@ -517,6 +517,7 @@ main_conf:
   pos_enc_dropout_rate: Dropout rate for the positional encoding layer, if used. (float, default = 0.0)
   pos_enc_max_len: Positional encoding maximum length. (int, default = 5000)
   simplified_att_score: Whether to use simplified attention score computation. (bool, default = False)
+  use_sdpa: Whether to use PyTorch's scaled dot product attention in the relative-position attention. Attention weights are not stored when enabled. (bool, default = False)
   norm_type: X-former normalization module type. (str, default = "layer_norm")
   conv_mod_norm_type: Branchformer convolution module normalization type. (str, default = "layer_norm")
   after_norm_eps: Epsilon value for the final normalization module. (float, default = 1e-05 or 0.25 for BasicNorm)

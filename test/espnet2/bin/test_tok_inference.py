@@ -190,7 +190,7 @@ def test_build_tokenizer_restores_centroids_without_kmeans_file(tmp_path, monkey
 
     expected = SpeechTokenizer(
         DummyFrontend(),
-        DifferentiableKMeans.from_centroids(torch.tensor([[0.0], [1.0]])),
+        DifferentiableKMeans(centroids=torch.tensor([[0.0], [1.0]])),
     )
     model_file = tmp_path / "model.pth"
     torch.save(

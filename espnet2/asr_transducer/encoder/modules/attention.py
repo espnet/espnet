@@ -1,7 +1,7 @@
 """Multi-Head attention layers with relative positional encoding."""
 
 import math
-from typing import Optional, Tuple
+from typing import Optional, Tuple, Union
 
 import torch
 
@@ -13,6 +13,8 @@ class RelPositionMultiHeadedAttention(torch.nn.Module):
         num_heads: Number of attention heads.
         embed_size: Embedding size.
         dropout_rate: Dropout rate.
+        simplified_attention_score: Whether to use simplified attention scores.
+        use_sdpa: Use PyTorch's scaled dot product attention.
 
     """
 
@@ -22,12 +24,15 @@ class RelPositionMultiHeadedAttention(torch.nn.Module):
         embed_size: int,
         dropout_rate: float = 0.0,
         simplified_attention_score: bool = False,
+        use_sdpa: bool = False,
     ) -> None:
         """Construct an MultiHeadedAttention object."""
         super().__init__()
 
         self.d_k = embed_size // num_heads
         self.num_heads = num_heads
+        self.use_sdpa = use_sdpa
+        self.dropout_rate = dropout_rate
 
         assert self.d_k * num_heads == embed_size, (
             "embed_size (%d) must be divisible by num_heads (%d)",
@@ -86,7 +91,7 @@ class RelPositionMultiHeadedAttention(torch.nn.Module):
         key: torch.Tensor,
         pos_enc: torch.Tensor,
         left_context: int = 0,
-    ) -> torch.Tensor:
+    ) -> Union[torch.Tensor, Tuple[torch.Tensor, torch.Tensor]]:
         """Simplified attention score computation.
 
         Reference: https://github.com/k2-fsa/icefall/pull/458
@@ -99,17 +104,22 @@ class RelPositionMultiHeadedAttention(torch.nn.Module):
                           attention computation.
 
         Returns:
-            : Attention score. (B, H, T_1, T_2)
+            : Attention score (B, H, T_1, T_2), or the SDPA query and
+              unscaled position term when use_sdpa is enabled.
 
         """
         pos_enc = self.linear_pos(pos_enc)
 
-        matrix_ac = torch.matmul(query, key.transpose(2, 3))
+        if not self.use_sdpa:
+            matrix_ac = torch.matmul(query, key.transpose(2, 3))
 
         matrix_bd = self.rel_shift(
             pos_enc.transpose(1, 2).unsqueeze(2).repeat(1, 1, query.size(2), 1),
             left_context=left_context,
         )
+
+        if self.use_sdpa:
+            return query, matrix_bd
 
         return (matrix_ac + matrix_bd) / math.sqrt(self.d_k)
 
@@ -119,7 +129,7 @@ class RelPositionMultiHeadedAttention(torch.nn.Module):
         key: torch.Tensor,
         pos_enc: torch.Tensor,
         left_context: int = 0,
-    ) -> torch.Tensor:
+    ) -> Union[torch.Tensor, Tuple[torch.Tensor, torch.Tensor]]:
         """Attention score computation.
 
         Args:
@@ -130,7 +140,8 @@ class RelPositionMultiHeadedAttention(torch.nn.Module):
                           attention computation.
 
         Returns:
-            : Attention score. (B, H, T_1, T_2)
+            : Attention score (B, H, T_1, T_2), or the SDPA query and
+              unscaled position term when use_sdpa is enabled.
 
         """
         p = self.linear_pos(pos_enc).view(pos_enc.size(0), -1, self.num_heads, self.d_k)
@@ -139,10 +150,14 @@ class RelPositionMultiHeadedAttention(torch.nn.Module):
         q_with_bias_u = (query + self.pos_bias_u).transpose(1, 2)
         q_with_bias_v = (query + self.pos_bias_v).transpose(1, 2)
 
-        matrix_ac = torch.matmul(q_with_bias_u, key.transpose(-2, -1))
+        if not self.use_sdpa:
+            matrix_ac = torch.matmul(q_with_bias_u, key.transpose(-2, -1))
 
         matrix_bd = torch.matmul(q_with_bias_v, p.permute(0, 2, 3, 1))
         matrix_bd = self.rel_shift(matrix_bd, left_context=left_context)
+
+        if self.use_sdpa:
+            return q_with_bias_u, matrix_bd
 
         return (matrix_ac + matrix_bd) / math.sqrt(self.d_k)
 
@@ -250,5 +265,30 @@ class RelPositionMultiHeadedAttention(torch.nn.Module):
         q, k, v = self.forward_qkv(query, key, value)
 
         scores = self.compute_att_score(q, k, pos_enc, left_context=left_context)
+
+        if self.use_sdpa:
+            sdpa_query, matrix_bd = scores
+            # SDPA divides q k^T by sqrt(d_k) and adds a floating-point
+            # attn_mask to the logits, so the relative-position term goes
+            # there, scaled to match, with padding and chunk masks folded in.
+            attn_mask = matrix_bd / math.sqrt(self.d_k)
+            mask = mask.unsqueeze(1).unsqueeze(2)
+            if chunk_mask is not None:
+                mask = chunk_mask.unsqueeze(0).unsqueeze(1) | mask
+            attn_mask = attn_mask.masked_fill(mask, float("-inf"))
+            attn_output = torch.nn.functional.scaled_dot_product_attention(
+                sdpa_query,
+                k,
+                v,
+                attn_mask,
+                dropout_p=self.dropout_rate if self.training else 0.0,
+            )
+            # self.attn is left unset: SDPA does not materialize the weights,
+            # so attention plots are unavailable with this flag enabled.
+            return self.linear_out(
+                attn_output.transpose(1, 2)
+                .contiguous()
+                .view(query.size(0), -1, self.num_heads * self.d_k)
+            )
 
         return self.forward_attention(v, scores, mask, chunk_mask=chunk_mask)

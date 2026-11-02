@@ -28,6 +28,31 @@ def test_loads_offline_kmeans_centroids(centroid_path):
     torch.testing.assert_close(quantizer.centroids, torch.from_numpy(centers))
 
 
+def test_initializes_from_centroid_tensor():
+    centers = torch.tensor([[0.0, 1.0], [2.0, 3.0]])
+
+    quantizer = DifferentiableKMeans(centroids=centers)
+
+    torch.testing.assert_close(quantizer.centroids, centers)
+
+
+@pytest.mark.parametrize(
+    "kwargs",
+    [
+        {},
+        {
+            "centroid_path": "unused.mdl",
+            "centroids": torch.tensor([[0.0, 1.0]]),
+        },
+    ],
+)
+def test_requires_exactly_one_centroid_source(kwargs):
+    with pytest.raises(
+        ValueError, match="Specify exactly one of centroid_path and centroids"
+    ):
+        DifferentiableKMeans(**kwargs)
+
+
 def test_rejects_integer_kmeans_centroids(tmp_path):
     path = tmp_path / "integer_kmeans.mdl"
     joblib.dump(
