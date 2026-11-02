@@ -248,6 +248,9 @@ def make_funcodec(**generator_kwargs):
             "codec_domain": ["mag_oracle_phase", "mag_oracle_phase"],
             "encdec_channels": 1,
         },
+        # time downsampling, as in the libritts recipes: the decoder returns
+        # one frame more than the input has
+        {"audio_normalize": True, "encdec_ratios": [(4, 2), (2, 1)]},
     ],
 )
 def test_funcodec_reconstruct_matches_forward(generator_kwargs):

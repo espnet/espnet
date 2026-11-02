@@ -449,8 +449,8 @@ class FunCodec(AbsGANCodec):
         # Keep the scale (input volume with audio_normalize, input phase with
         # mag_oracle_phase) next to the codes, so the waveform is rebuilt the
         # same way as in forward().
-        codec, scale = self.generator._encode(x)
-        wav = self.generator.decode(codec, scale)[..., : x.shape[-1]]
+        codec, scale, num_frames = self.generator._encode(x)
+        wav = self.generator.decode(codec, scale, num_frames)[..., : x.shape[-1]]
 
         return {"wav": wav, "codec": codec}
 
@@ -796,7 +796,7 @@ class FunCodecGenerator(nn.Module):
         Returns:
             torch.Tensor: neural codecs in shape ().
         """
-        codes, _ = self._encode(x, target_bw)
+        codes, _, _ = self._encode(x, target_bw)
         return codes
 
     def _encode(
@@ -812,9 +812,9 @@ class FunCodecGenerator(nn.Module):
         else:
             bw = target_bw
         codes = self.quantizer.encode(encoder_out, self.frame_rate, bw)
-        return codes, scale
+        return codes, scale, x.shape[3]
 
-    def decode(self, codes: torch.Tensor, scale=None):
+    def decode(self, codes: torch.Tensor, scale=None, num_frames=None):
         """FunCodec codec decoding.
 
         Args:
@@ -823,6 +823,10 @@ class FunCodecGenerator(nn.Module):
                 encoded input. Without it, the output stays at the normalized
                 volume when ``audio_normalize`` is set, and ``mag_oracle_phase``
                 cannot be decoded since it needs the input phase.
+            num_frames (int): STFT frames of the encoded input. The decoder
+                can return more when the encoder downsamples time; they are
+                dropped before the inverse transform, as in ``forward``.
+                Without it, all decoded frames are synthesized.
         Returns:
             torch.Tensor: resynthesized audio.
         """
@@ -834,7 +838,10 @@ class FunCodecGenerator(nn.Module):
                     "mag_oracle_phase needs the input phase and cannot be "
                     "decoded from codes alone; use FunCodec.reconstruct()."
                 )
-            resyn_audio = resyn_audio[..., : scale[1].shape[-1]]
+            num_frames = scale[1].shape[-1]
+        if num_frames is not None:
+            # drop the frames the decoder adds past the input, as forward() does
+            resyn_audio = resyn_audio[..., :num_frames]
         resyn_audio = self.freq_to_time_transfer(resyn_audio, scale)
         return resyn_audio
 
