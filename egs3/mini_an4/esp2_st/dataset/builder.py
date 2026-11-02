@@ -1,9 +1,4 @@
-"""Mini AN4 builder for the ST integration test.
-
-A copy of the ASR builder rather than an import of it: recipes under
-``egs3`` are self-contained, and ``egs3/mini_an4/esp2_st`` is being renamed to
-``esp2_asr``, which would break a cross-recipe import.
-"""
+"""Mini AN4 builder for the ST integration test."""
 
 from __future__ import annotations
 

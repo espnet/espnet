@@ -1,4 +1,4 @@
-"""Tests for the st.sh case conventions and the Moses/espnet Perl ports."""
+"""Tests for the st.sh case conventions and the remove_punctuation port."""
 
 import pytest
 
@@ -6,7 +6,6 @@ from espnet3.systems.esp2_st.src.normalization import (
     CASES,
     apply_case,
     is_punctuation,
-    normalize_punctuation,
     remove_punctuation,
 )
 
@@ -90,47 +89,3 @@ def test_apply_case_covers_every_declared_case():
 def test_apply_case_rejects_unknown_case():
     with pytest.raises(ValueError, match="Unknown case"):
         apply_case("text", "uc")
-
-
-def test_normalize_punctuation_unifies_quotes_and_dashes():
-    out = normalize_punctuation("„quoted“ and –dashed–")
-    assert "„" not in out and "“" not in out
-    assert out.count('"') == 2
-    assert "–" not in out
-
-
-def test_normalize_punctuation_ellipsis_and_backtick():
-    assert normalize_punctuation("wait… now") == "wait... now"
-    assert normalize_punctuation("`quoted'") == "'quoted'"
-
-
-def test_normalize_punctuation_handles_nbsp_pseudo_spaces():
-    # Moses writes U+00A0 on the left of these rules, not an ASCII space.
-    assert normalize_punctuation("50 %") == "50%"
-    assert normalize_punctuation("really ?") == "really?"
-    assert normalize_punctuation("20 cm") == "20 cm"
-
-
-def test_normalize_punctuation_french_guillemets():
-    assert '"' in normalize_punctuation("« bonjour »")
-
-
-def test_normalize_punctuation_digit_separator_is_language_specific():
-    # German groups digits with a comma, English with a period.
-    assert normalize_punctuation("1 000", language="de") == "1,000"
-    assert normalize_punctuation("1 000", language="en") == "1.000"
-
-
-def test_normalize_punctuation_english_moves_quote_after_punctuation():
-    # The en rule rewrites '"' followed by commas/periods as the punctuation
-    # first, then the quote.
-    assert normalize_punctuation('he said ","', language="en") == 'he said ,""'
-
-
-def test_normalize_punctuation_strips_carriage_returns():
-    assert "\r" not in normalize_punctuation("line\r")
-
-
-def test_normalize_punctuation_is_idempotent_on_plain_text():
-    text = "A plain sentence with nothing unusual."
-    assert normalize_punctuation(text) == text
