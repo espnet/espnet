@@ -852,7 +852,7 @@ class ContinuousAudioIO(AbsIO):
         attn_implementation: str = None,
         dtype: str = "bfloat16",
         device: str = "cpu",
-        load_weights: bool = True,
+        load_pretrained: bool = True,
     ):
         """Initialize continuous audio encoder.
 
@@ -863,7 +863,7 @@ class ContinuousAudioIO(AbsIO):
             attn_implementation: Attention implementation type
             dtype: Model dtype ("bfloat16", "float16", etc.)
             device: Device for model ("cpu", "cuda", etc.)
-            load_weights: Load the encoder's pretrained weights. False builds
+            load_pretrained: Load the encoder's pretrained weights. False builds
                 it from the config alone, for a caller that is about to load
                 a checkpoint carrying them: the omni model these come from is
                 then never downloaded (65.68 GiB for Qwen3-Omni-30B-A3B,
@@ -875,7 +875,7 @@ class ContinuousAudioIO(AbsIO):
         self.encoder_choice = encoder_choice
         self.encoder_hf_model_tag = encoder_hf_model_tag
         self.attn_implementation = attn_implementation
-        self.load_weights = load_weights
+        self.load_pretrained = load_pretrained
         self.dtype_str = dtype
 
         # Convert string dtype to torch dtype
@@ -910,7 +910,7 @@ class ContinuousAudioIO(AbsIO):
                     f"Model {self.encoder_hf_model_tag} not implemented"
                 )
 
-            if self.load_weights:
+            if self.load_pretrained:
                 # Load full Qwen multimodal model
                 thinker = model_class.from_pretrained(
                     self.encoder_hf_model_tag,

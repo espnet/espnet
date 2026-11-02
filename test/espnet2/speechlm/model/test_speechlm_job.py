@@ -305,6 +305,8 @@ class TestSpeechLMJobTemplate:
         ):
             job_template.build_model()
             mock_class.assert_called_once()
+            # the template's own setting, which defaults to loading
+            assert mock_class.call_args.kwargs["load_pretrained"] is True
 
     def test_preprocessor_no_discrete_raises(self):
         """SpeechLMPreprocessor requires at least one discrete IO."""
@@ -789,14 +791,25 @@ class TestRecordedTokenLayout:
 
 
 # ---------------------------------------------------------------------------
-# The encoder's pretrained weights: fetched to train, never to infer
+# The encoder's pretrained weights: skipped only when the caller says so
 # ---------------------------------------------------------------------------
-@pytest.mark.parametrize("is_train", [True, False])
-def test_continuous_audio_loads_weights_only_to_train(is_train):
-    """Fetch the omni model's encoder weights to train, never to infer.
+@pytest.mark.parametrize(
+    "options, expected",
+    [
+        ({"is_train": True}, True),
+        # an inference template alone still fetches: nothing says a
+        # checkpoint will be loaded over it
+        ({"is_train": False}, True),
+        ({}, True),
+        ({"is_train": False, "load_pretrained": False}, False),
+    ],
+    ids=["train", "inference", "default", "inference-with-checkpoint"],
+)
+def test_continuous_audio_skips_weights_only_when_asked(options, expected):
+    """Skip the omni model's encoder weights only on load_pretrained=False.
 
-    Inference loads a checkpoint strictly over the whole model, encoder
-    included, so the pretrained weights would be overwritten unused.
+    The inference entry points pass it, because they load a checkpoint
+    strictly over the whole model, encoder included, right after.
     """
     from espnet2.speechlm.model.speechlm.multimodal_io.audio import ContinuousAudioIO
 
@@ -804,7 +817,7 @@ def test_continuous_audio_loads_weights_only_to_train(is_train):
 
     class RecordingIO(ContinuousAudioIO):
         def _init_encoder(self):
-            seen["load_weights"] = self.load_weights
+            seen["load_pretrained"] = self.load_pretrained
 
     config = _make_config()
     config["multimodal_io"]["continuous_audio"] = {
@@ -816,6 +829,6 @@ def test_continuous_audio_loads_weights_only_to_train(is_train):
     ):
         from espnet2.speechlm.model.speechlm.speechlm_job import SpeechLMJobTemplate
 
-        SpeechLMJobTemplate(config, is_train=is_train)
+        SpeechLMJobTemplate(config, **options)
 
-    assert seen == {"load_weights": is_train}
+    assert seen == {"load_pretrained": expected}

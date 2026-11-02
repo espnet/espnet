@@ -82,11 +82,11 @@ def tiny_qwen3(tmp_path):
     return str(tmp_path)
 
 
-def _build(path, is_train, monkeypatch, **options):
+def _build(path, load_pretrained, monkeypatch, **options):
     from espnet2.speechlm.model.speechlm.lm.parallel import build_parallel_hf_class
 
     cls = build_parallel_hf_class(path)
-    if not is_train:
+    if not load_pretrained:
         # the point of the inference build: the base weights are never read
         def refuse(*args, **kwargs):
             raise AssertionError("loaded the base model's weights")
@@ -97,7 +97,8 @@ def _build(path, is_train, monkeypatch, **options):
         path,
         multimodal_io=nn.ModuleDict({"text": _TextIO()}),
         vocab_meta=_vocab_meta(),
-        is_train=is_train,
+        is_train=False,
+        load_pretrained=load_pretrained,
         **options,
     )
 
@@ -106,6 +107,14 @@ def test_inference_build_never_loads_the_base_weights(tiny_qwen3, monkeypatch):
     model = _build(tiny_qwen3, False, monkeypatch)
     assert not any(t.is_meta for t in model.parameters())
     assert not any(t.is_meta for t in model.buffers())
+
+
+def test_inference_alone_still_loads_the_base_weights(tiny_qwen3, monkeypatch):
+    """is_train=False does not skip the weights; only load_pretrained does."""
+    base = transformers.Qwen3ForCausalLM.from_pretrained(tiny_qwen3, dtype="float32")
+    built = _build(tiny_qwen3, True, monkeypatch)
+    name = "model.layers.0.self_attn.q_proj.weight"
+    torch.testing.assert_close(built.state_dict()[name], base.state_dict()[name])
 
 
 def test_inference_build_has_what_a_checkpoint_fills(tiny_qwen3, monkeypatch):
@@ -219,6 +228,7 @@ def test_auto_dtype_is_the_one_from_pretrained_picks(
         multimodal_io=nn.ModuleDict({"text": _TextIO()}),
         vocab_meta=_vocab_meta(),
         is_train=False,
+        load_pretrained=False,
         attn_implementation="sdpa",
         **options,
     )

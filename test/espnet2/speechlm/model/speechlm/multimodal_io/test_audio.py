@@ -658,7 +658,7 @@ class TestContinuousAudioIO:
         "model_tag", ["Qwen/Qwen2.5-Omni-7B", "Qwen/Qwen3-Omni-30B-A3B-Instruct"]
     )
     def test_without_weights_builds_what_the_checkpoint_fills(self, model_tag):
-        """load_weights=False builds what a checkpoint fills, fetching nothing.
+        """load_pretrained=False builds what a checkpoint fills, fetching nothing.
 
         Same keys and shapes as the module the checkpoint was saved from,
         nothing left on the meta device, and the position table that no
@@ -679,7 +679,7 @@ class TestContinuousAudioIO:
             ),
         ):
             io = ContinuousAudioIO(
-                encoder_hf_model_tag=model_tag, dtype="float32", load_weights=False
+                encoder_hf_model_tag=model_tag, dtype="float32", load_pretrained=False
             )
 
         built = io.model.state_dict()
