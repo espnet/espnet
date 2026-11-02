@@ -299,6 +299,11 @@ s3prl.done: espnet.done
 	. ./activate_python.sh && ./installers/install_s3prl.sh
 	$(call end_timer_and_touch,s3prl.done)
 
+lang2vec.done: espnet.done
+	$(call start_timer,lang2vec.done)
+	. ./activate_python.sh && ./installers/install_lang2vec.sh
+	$(call end_timer_and_touch,lang2vec.done)
+
 whisper.done: espnet.done
 	$(call start_timer,whisper.done)
 	. ./activate_python.sh && ./installers/install_whisper.sh

@@ -2281,6 +2281,10 @@ class LIDPreprocessor(CommonPreprocessor):
                 - `db_range` (Tuple[float, float]) is the range of noise levels in dB.
         noise_apply_prob (float): Probability of applying noise.
         short_noise_thres (float): Threshold of short noise.
+        lang2vec_table (str): Optional per-language target table, one row per
+            language: ``<language> <v1> ... <vN>``. Languages absent from this
+            table retain their classification labels but receive a zero mask
+            for auxiliary supervision.
     """
 
     def __init__(
@@ -2297,6 +2301,7 @@ class LIDPreprocessor(CommonPreprocessor):
         ] = None,
         noise_apply_prob: float = 1.0,
         short_noise_thres: float = 0.5,
+        lang2vec_table: Optional[str] = None,
     ):
         super().__init__(train, rir_scp=rir_scp, rir_apply_prob=rir_apply_prob)
 
@@ -2313,7 +2318,10 @@ class LIDPreprocessor(CommonPreprocessor):
         with open(lang2utt, "r") as f_s2u:
             self.lang2utt = f_s2u.readlines()
         self._make_label_mapping()
-        # self.nlang = len(self.lang2utt)
+
+        if lang2vec_table is not None:
+            self.lang2vec = self._read_lang2vec_table(lang2vec_table)
+            self.lang2vec_dim = len(next(iter(self.lang2vec.values())))
 
         self.rir_scp = rir_scp
 
@@ -2374,6 +2382,34 @@ class LIDPreprocessor(CommonPreprocessor):
             lang = lang.strip().split(" ")[0]
             self.lang2label[lang] = label_idx
             label_idx += 1
+
+    @staticmethod
+    def _read_lang2vec_table(path):
+        """Read finite, equally sized language targets without external packages."""
+        targets = {}
+        dimension = None
+        with open(path, encoding="utf-8") as stream:
+            for number, line in enumerate(stream, 1):
+                fields = line.split()
+                if not fields:
+                    continue
+                language = fields[0]
+                if language in targets:
+                    raise ValueError(
+                        f"Duplicate language {language} in {path}:{number}"
+                    )
+                vector = np.asarray(fields[1:], dtype=np.float32)
+                if not vector.size or not np.isfinite(vector).all():
+                    raise ValueError(f"Invalid language target in {path}:{number}")
+                if dimension is not None and vector.size != dimension:
+                    raise ValueError(
+                        f"Inconsistent target dimension in {path}:{number}"
+                    )
+                dimension = vector.size
+                targets[language] = vector
+        if not targets:
+            raise ValueError(f"Empty language target table: {path}")
+        return targets
 
     def _speech_process(self, data: Dict[np.ndarray, str]):
         audio = data["speech"]
@@ -2493,6 +2529,15 @@ class LIDPreprocessor(CommonPreprocessor):
         iso3_labels = data["lid_labels"]
         int_label = self.lang2label[iso3_labels]
         data["lid_labels"] = np.asarray([int_label], dtype=np.int64)
+
+        if self.lang2vec is not None:
+            observed = iso3_labels in self.lang2vec
+            data["lang2vecs"] = (
+                self.lang2vec[iso3_labels].copy()
+                if observed
+                else np.zeros(self.lang2vec_dim, dtype=np.float32)
+            )
+            data["lang2vec_mask"] = np.asarray([observed], dtype=np.int64)
 
         return data
 

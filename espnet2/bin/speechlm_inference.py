@@ -546,7 +546,10 @@ class LocalBagpiper(Bagpiper):
             device = "cuda" if torch.cuda.is_available() else "cpu"
         torch_dtype = getattr(torch, dtype or text_config.get("dtype", "bfloat16"))
 
-        template = _all_job_types[config["job_type"]](config, is_train=False)
+        # the checkpoint loaded strictly below carries every weight
+        template = _all_job_types[config["job_type"]](
+            config, is_train=False, load_pretrained=False
+        )
         logger.info("Building %s from %s", config["job_type"], train_path)
         model = template.build_model()
         logger.info("Loading weights from %s", ckpt_path)
