@@ -4,8 +4,8 @@ Built by a recipe's ``infer`` stage
 (``model._target_: espnet3.systems.f5tts.src.f5tts.F5TTS``).
 For each test sample the runner calls ``model(**{key: data[key] for key in input_key})``
 with ``input_key: [text, reference_speech, reference_text]`` (the cross- and
-same-speaker protocol) and feeds the result to ``src.inference.build_output``
-(which needs a ``"wav"`` entry).
+same-speaker protocol) and returns a named ``wav`` result. The shared runner
+can validate and persist it through a configured output contract.
 
 The model is rebuilt from the *training* config by instantiating that config's
 own ``model`` block (``espnet3.systems.f5tts.src.f5tts.F5TTS``), so it stays in

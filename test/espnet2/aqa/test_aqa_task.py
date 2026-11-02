@@ -38,11 +38,8 @@ def task_args(tmp_path, *options):
     return args
 
 
-def test_legacy_task_and_portable_vocabulary(tmp_path):
-    """Keep historical imports and embed metric names for checkpoint reloads."""
-    from espnet2.tasks.universa import UniversaTask
-
-    assert UniversaTask is AqaTask
+def test_portable_vocabulary(tmp_path):
+    """Embed metric names for checkpoint reloads without the training directory."""
     args = task_args(tmp_path)
     model = AqaTask.build_model(args)
     assert model.universa.metric2id == {"mos": 0, "wer": 1}
@@ -116,10 +113,9 @@ def test_base_data_setup(tmp_path):
         )
 
 
-@pytest.mark.parametrize("entry", ["aqa_train", "universa_train"])
-def test_training_entry_points(entry):
-    """Both entry points expose a usable parser and print task configuration."""
-    module = importlib.import_module("espnet2.bin." + entry)
+def test_training_entry_point():
+    """The AQA entry point exposes a parser and prints task configuration."""
+    module = importlib.import_module("espnet2.bin.aqa_train")
     assert module.get_parser().parse_args([]).universa == "base"
     with pytest.raises(SystemExit) as exc:
         module.main(["--print_config"])

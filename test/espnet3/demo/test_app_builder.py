@@ -1,208 +1,457 @@
-"""The shipped ASR app runs without inference declarations or generated sessions."""
+from __future__ import annotations
 
-import importlib.util
+from argparse import Namespace
 from pathlib import Path
-from types import SimpleNamespace
 
 import numpy as np
 import pytest
-import soundfile as sf
 from omegaconf import OmegaConf
 
-from egs3.TEMPLATE.esp2_asr.src import app as recipe_app
-from espnet3.publication.demo.packing import pack_demo
-from espnet3.utils.config_utils import load_and_merge_config
+import egs3.TEMPLATE.esp2_asr.src.app as demo_module
+import espnet3.publication.demo.assets as demo_assets_module
+import espnet3.publication.demo.session as demo_session_module
+from egs3.TEMPLATE.esp2_asr.src.app import build_demo
+from espnet3.contract.kinds.audio import Audio
+from espnet3.publication.demo.session import DemoSession, load_demo_session
 
 
-def _archive(tmp_path, target="espnet2.bin.asr_inference.Speech2Text"):
-    pack = tmp_path / "model_pack"
-    (pack / "conf").mkdir(parents=True)
-    OmegaConf.save(
-        OmegaConf.create(
-            {
-                "recipe_dir": ".",
-                "model": {
-                    "_target_": target,
-                    "_convert_": "all",
-                    "_recursive_": False,
-                    "asr_train_config": "${recipe_dir}/config.yaml",
-                    "asr_model_file": "${recipe_dir}/weights.pth",
-                },
-            }
-        ),
-        pack / "conf" / "inference.yaml",
+class DummyProvider:
+    @staticmethod
+    def build_model(config):
+        _ = config
+
+        def model(speech, **kwargs):
+            _ = (speech, kwargs)
+            return {"hyp": "ok"}
+
+        return model
+
+
+class CallArgsEchoProvider:
+    @staticmethod
+    def build_model(config):
+        _ = config
+
+        def model(speech, **kwargs):
+            return {"hyp": f"beam={kwargs.get('beam_size')}:{speech}"}
+
+        return model
+
+
+# These packs name providers defined in this test module. Declare trust here
+# because these tests exercise demo construction, not the publication trust gate.
+def _write_model_pack(
+    demo_dir: Path,
+    provider_target: str = "test.espnet3.demo.test_app_builder.DummyProvider",
+) -> None:
+    model_pack_dir = demo_dir / "model_pack"
+    (model_pack_dir / "conf").mkdir(parents=True)
+    (model_pack_dir / "conf" / "inference.yaml").write_text(
+        "model: {}\n" "provider:\n" f"  _target_: {provider_target}\n",
+        encoding="utf-8",
     )
-    return pack
-
-
-@pytest.mark.parametrize("transducer", [False, True])
-def test_demo_builds_native_backend_from_archive(tmp_path, monkeypatch, transducer):
-    target = (
-        "espnet2.bin.asr_transducer_inference.Speech2Text"
-        if transducer
-        else "espnet2.bin.asr_inference.Speech2Text"
+    (model_pack_dir / "meta.yaml").write_text(
+        "yaml_files:\n" "  inference_config: conf/inference.yaml\n",
+        encoding="utf-8",
     )
-    pack = _archive(tmp_path, target)
-    import importlib
 
-    backend = importlib.import_module(target.rsplit(".", 1)[0])
-    monkeypatch.setattr(backend, "Speech2Text", lambda **kwargs: kwargs)
-    result = recipe_app.build_model(
-        tmp_path, OmegaConf.create({"dir_or_tag": "model_pack", "device": "cpu"})
+
+def _find_block_components(app, component_name: str) -> list[object]:
+    return [
+        block for block in app.blocks.values() if type(block).__name__ == component_name
+    ]
+
+
+def test_build_demo_with_custom_provider(tmp_path: Path) -> None:
+    gr = pytest.importorskip("gradio")
+    _ = gr
+    demo_dir = tmp_path / "demo"
+    demo_dir.mkdir()
+    _write_model_pack(demo_dir)
+    (demo_dir / "demo.yaml").write_text(
+        "model:\n"
+        "  dir_or_tag: model_pack\n"
+        "  trust_user_code: true\n"
+        "  call_args: {}\n"
+        "ui:\n"
+        "  title: null\n"
+        "  description: README.md\n"
+        "  inputs:\n"
+        "    - key: speech\n"
+        "      type: audio\n"
+        "      label: Input Audio\n"
+        "  outputs:\n"
+        "    - key: hyp\n"
+        "      type: text\n"
+        "      label: Transcription\n",
+        encoding="utf-8",
     )
-    expected = {
-        "asr_train_config": str(pack / "config.yaml"),
-        "asr_model_file": str(pack / "weights.pth"),
-        "device": "cpu",
-    }
-    if transducer:
-        expected["return_decoded_hyp"] = True
-    assert result == expected
+    (demo_dir / "README.md").write_text("# Demo\n\nDescription\n", encoding="utf-8")
+    app = build_demo(demo_dir)
+    assert app is not None
+    markdowns = _find_block_components(app, "Markdown")
+    assert len(markdowns) == 1
+    assert markdowns[0].value == "# Demo\n\nDescription"
 
 
-def test_demo_resolves_remote_archive(tmp_path, monkeypatch):
-    pack = _archive(tmp_path)
-    calls = []
-    monkeypatch.setattr(
-        recipe_app,
-        "snapshot_download",
-        lambda **kwargs: calls.append(kwargs) or str(pack),
-    )
-    from espnet2.bin import asr_inference
-
-    monkeypatch.setattr(asr_inference, "Speech2Text", lambda **kwargs: kwargs)
-    result = recipe_app.build_model(
-        tmp_path, OmegaConf.create({"dir_or_tag": "owner/model", "device": "cpu"})
-    )
-    assert calls == [{"repo_id": "owner/model"}]
-    assert result["asr_model_file"] == str(pack / "weights.pth")
-
-
-@pytest.mark.parametrize("nested", [False, True])
-def test_demo_resamples_audio_and_formats_native_result(tmp_path, nested):
-    path = tmp_path / "audio.wav"
-    sf.write(path, np.ones((800, 2), dtype=np.float32) * 0.25, 8000)
-    seen = []
-
-    def model(speech):
-        seen.append(speech)
-        best = ("decoded text", [], [], None)
-        return [[best]] if nested else [best]
-
-    predict = recipe_app.create_predict(model, 16000)
-    assert predict(str(path)) == "decoded text"
-    assert seen[0].shape == (1600,)
-    assert seen[0].dtype == np.float32
-    with pytest.raises(recipe_app.gr.Error, match="Record or upload"):
-        predict(None)
-
-
-@pytest.mark.parametrize("recipe", [None, "librispeech_100", "mini_an4"])
-def test_packed_default_app_builds_and_decodes(tmp_path, monkeypatch, recipe):
-    pack = _archive(tmp_path)
-    user_config = tmp_path / "demo.yaml"
-    OmegaConf.save(
-        OmegaConf.create(
-            {
-                "exp_tag": "test",
-                "upload_demo": {"hf_repo": "owner/demo"},
-                "model": {"dir_or_tag": str(pack), "device": "cpu"},
-                "ui": {"description": None, "title": "Test ASR"},
-                "pack": {"out_dir": str(tmp_path / "demo")},
-            }
-        ),
-        user_config,
-    )
-    config = load_and_merge_config(
-        user_config,
-        "demo.yaml",
-        default_package="egs3.TEMPLATE.esp2_asr",
-        resolve=False,
-    )
-    if recipe is not None:
-        recipe_config = (
-            Path(__file__).resolve().parents[3]
-            / "egs3"
-            / recipe
-            / "esp2_asr"
-            / "conf"
-            / "demo.yaml"
+def test_demo_uses_inference_contract_for_ui_and_inference(tmp_path: Path) -> None:
+    demo_dir = tmp_path / "demo"
+    demo_dir.mkdir()
+    _write_model_pack(demo_dir)
+    inference_yaml = demo_dir / "model_pack" / "conf" / "inference.yaml"
+    with inference_yaml.open("a", encoding="utf-8") as stream:
+        stream.write(
+            "contract:\n"
+            "  inputs:\n"
+            "    speech:\n"
+            "      kind: text\n"
+            "  outputs:\n"
+            "    hyp:\n"
+            "      kind: text\n"
+            "      normalize: [to_lower]\n"
         )
-        config = OmegaConf.merge(
-            load_and_merge_config(
-                recipe_config,
-                "demo.yaml",
-                default_package="egs3.TEMPLATE.esp2_asr",
-                resolve=False,
-            ),
-            OmegaConf.load(user_config),
-        )
-    config.ui.inputs = [{"key": "speech", "type": "audio", "label": "Recording"}]
-    config.ui.outputs = [{"key": "text", "type": "text", "label": "Decoded text"}]
-    out = pack_demo(SimpleNamespace(demo_config=config, exp_dir=None))
-    spec = importlib.util.spec_from_file_location("packed_asr_app", out / "app.py")
-    module = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(module)
-    from espnet2.bin import asr_inference
+    (demo_dir / "demo.yaml").write_text(
+        "model:\n"
+        "  dir_or_tag: model_pack\n"
+        "  trust_user_code: true\n"
+        "ui:\n"
+        "  title: null\n"
+        "  description: null\n",
+        encoding="utf-8",
+    )
+
+    session = load_demo_session(demo_dir, "demo.yaml")
+
+    assert session.input_specs == [{"key": "speech", "type": "text", "label": "Speech"}]
+    assert session.output_specs == [{"key": "hyp", "type": "text", "label": "Hyp"}]
+    assert (
+        session.create_inference_fn(session.input_specs, session.output_specs)("HELLO")
+        == "ok"
+    )
+
+
+def test_demo_converts_contracted_stereo_audio_for_gradio(tmp_path: Path) -> None:
+    """Audio Kind outputs are passed to Gradio as rate and samples by channel."""
+    config = OmegaConf.create(
+        {
+            "model": {"call_args": {}},
+            "ui": {
+                "title": None,
+                "description": None,
+                "inputs": [{"key": "text", "type": "text", "label": "Text"}],
+                "outputs": [{"key": "audio", "type": "audio", "label": "Audio"}],
+            },
+        }
+    )
+    session = DemoSession(
+        tmp_path,
+        config,
+        lambda item: {"audio": Audio(np.zeros((2, 160)), 16000)},
+        demo_assets_module.DEFAULT_UI_ASSETS.clone(),
+    )
+
+    rate, samples = session.create_inference_fn(
+        session.input_specs, session.output_specs
+    )("hello")
+
+    assert rate == 16000
+    assert samples.shape == (160, 2)
+
+
+def test_demo_uses_custom_kind_output_conversion(tmp_path, monkeypatch):
+    """A contract Kind controls conversion even with an explicit text widget."""
+    from espnet3.contract import KINDS
+    from espnet3.contract.inference import load_inference_contract
+    from espnet3.contract.kinds.text import TextKind
+
+    class DisplayText(TextKind):
+        def to_demo_output(self, value):
+            return value.upper()
+
+    monkeypatch.setitem(KINDS, "display_text", DisplayText())
+
+    def model(item):
+        return {"text": "hello"}
+
+    model.contract = load_inference_contract(
+        {
+            "inputs": {"text": {"kind": "text"}},
+            "outputs": {"text": {"kind": "display_text"}},
+        }
+    )
+    config = OmegaConf.create(
+        {
+            "model": {"call_args": {}},
+            "ui": {
+                "title": None,
+                "description": None,
+                "outputs": [{"key": "text", "type": "text", "label": "Text"}],
+            },
+        }
+    )
+    session = DemoSession(
+        tmp_path, config, model, demo_assets_module.DEFAULT_UI_ASSETS.clone()
+    )
+    infer = session.create_inference_fn(session.input_specs, session.output_specs)
+    assert infer("input") == "HELLO"
+
+
+def test_build_demo_uses_inline_description(tmp_path: Path) -> None:
+    gr = pytest.importorskip("gradio")
+    _ = gr
+    demo_dir = tmp_path / "demo"
+    demo_dir.mkdir()
+    _write_model_pack(demo_dir)
+    (demo_dir / "demo.yaml").write_text(
+        "model:\n"
+        "  dir_or_tag: model_pack\n"
+        "  trust_user_code: true\n"
+        "  call_args: {}\n"
+        "ui:\n"
+        "  title: null\n"
+        '  description: "**inline**"\n'
+        "  inputs:\n"
+        "    - key: speech\n"
+        "      type: audio\n"
+        "      label: Input Audio\n"
+        "  outputs:\n"
+        "    - key: hyp\n"
+        "      type: text\n"
+        "      label: Transcription\n",
+        encoding="utf-8",
+    )
+    app = build_demo(demo_dir)
+    markdowns = _find_block_components(app, "Markdown")
+    assert len(markdowns) == 1
+    assert markdowns[0].value == "**inline**"
+
+
+def test_default_assets_pass_through_inputs_and_outputs(tmp_path: Path) -> None:
+    gr = pytest.importorskip("gradio")
+    _ = gr
+    demo_dir = tmp_path / "demo"
+    demo_dir.mkdir()
+    _write_model_pack(
+        demo_dir,
+        provider_target="test.espnet3.demo.test_app_builder.CallArgsEchoProvider",
+    )
+    (demo_dir / "demo.yaml").write_text(
+        "model:\n"
+        "  dir_or_tag: model_pack\n"
+        "  trust_user_code: true\n"
+        "  call_args:\n"
+        "    beam_size: 2\n"
+        "ui:\n"
+        "  title: null\n"
+        "  description: null\n"
+        "  inputs:\n"
+        "    - key: speech\n"
+        "      type: text\n"
+        "      label: Prompt\n"
+        "  outputs:\n"
+        "    - key: hyp\n"
+        "      type: text\n"
+        "      label: Result\n",
+        encoding="utf-8",
+    )
+
+    session = load_demo_session(demo_dir, demo_dir / "demo.yaml")
+    input_specs = session.input_specs
+    output_specs = session.output_specs
+    input_component = session.build_input_component(input_specs[0])
+    output_component = session.build_output_component(output_specs[0])
+    inference_fn = session.create_inference_fn(input_specs, output_specs)
+
+    assert input_component.__class__.__name__ == "Textbox"
+    assert output_component.__class__.__name__ == "Textbox"
+    assert session.call_args == {"beam_size": 2}
+    assert inference_fn("hello") == "beam=2:hello"
+
+
+def test_create_inference_fn_accepts_explicit_key_lists(tmp_path: Path) -> None:
+    demo_dir = tmp_path / "demo"
+    demo_dir.mkdir()
+    _write_model_pack(
+        demo_dir,
+        provider_target="test.espnet3.demo.test_app_builder.CallArgsEchoProvider",
+    )
+    (demo_dir / "demo.yaml").write_text(
+        "model:\n"
+        "  dir_or_tag: model_pack\n"
+        "  trust_user_code: true\n"
+        "  call_args:\n"
+        "    beam_size: 3\n"
+        "ui:\n"
+        "  title: null\n"
+        "  description: null\n"
+        "  inputs: []\n"
+        "  outputs: []\n",
+        encoding="utf-8",
+    )
+
+    session = load_demo_session(demo_dir, demo_dir / "demo.yaml")
+    inference_fn = session.create_inference_fn(
+        input_keys=["speech"],
+        output_keys=["hyp"],
+    )
+
+    assert inference_fn("hello") == "beam=3:hello"
+
+
+def test_demo_main_writes_demo_log(monkeypatch, tmp_path: Path) -> None:
+    calls: dict[str, object] = {}
+
+    class DummyApp:
+        def launch(self) -> None:
+            calls["launched"] = True
+
+    def fake_configure_logging(log_dir: Path, filename: str):
+        calls["log_dir"] = log_dir
+        calls["filename"] = filename
+        return None
+
+    def fake_build_demo(
+        demo_dir: Path,
+        demo_config_path: Path | None = None,
+    ) -> DummyApp:
+        calls["demo_dir"] = demo_dir
+        calls["demo_config_path"] = demo_config_path
+        return DummyApp()
+
+    monkeypatch.setattr(demo_module, "configure_logging", fake_configure_logging)
+    monkeypatch.setattr(demo_module, "build_demo", fake_build_demo)
+    monkeypatch.setattr(
+        "argparse.ArgumentParser.parse_args",
+        lambda self: Namespace(
+            demo_dir=tmp_path,
+            demo_config=None,
+        ),
+    )
+
+    demo_module.main()
+
+    assert calls["log_dir"] == tmp_path
+    assert calls["filename"] == "demo.log"
+    assert calls["demo_dir"] == tmp_path
+    assert calls["demo_config_path"] == tmp_path / "demo.yaml"
+    assert calls["launched"] is True
+
+
+def test_default_text_ui_requires_gradio(monkeypatch) -> None:
+    monkeypatch.setattr(demo_assets_module, "gr", None)
+
+    with pytest.raises(ImportError, match="gradio is required"):
+        demo_assets_module.DefaultTextUI()
+
+
+def test_default_assets_use_only_label(monkeypatch) -> None:
+    calls: list[tuple[str, dict[str, object]]] = []
+
+    class FakeAudio:
+        def __init__(self, **kwargs):
+            calls.append(("Audio", kwargs))
+
+    class FakeTextbox:
+        def __init__(self, **kwargs):
+            calls.append(("Textbox", kwargs))
+
+    class FakeGradio:
+        Audio = FakeAudio
+        Textbox = FakeTextbox
+
+    monkeypatch.setattr(demo_assets_module, "gr", FakeGradio)
+
+    demo_assets_module.DefaultAudioUI().build_input(
+        {"label": "Input Audio", "args": {"type": "filepath", "sources": ["upload"]}}
+    )
+    demo_assets_module.DefaultAudioUI().build_output(
+        {"label": "Output Audio", "args": {"format": "wav"}}
+    )
+    demo_assets_module.DefaultTextUI().build_input(
+        {"label": "Input Text", "args": {"lines": 7}}
+    )
+    demo_assets_module.DefaultTextUI().build_output(
+        {"label": "Output Text", "args": {"lines": 9}}
+    )
+
+    assert calls == [
+        ("Audio", {"label": "Input Audio"}),
+        ("Audio", {"label": "Output Audio"}),
+        ("Textbox", {"label": "Input Text"}),
+        ("Textbox", {"label": "Output Text"}),
+    ]
+
+
+def test_build_input_component_requires_type(tmp_path: Path) -> None:
+    demo_dir = tmp_path / "demo"
+    demo_dir.mkdir()
+    _write_model_pack(demo_dir)
+    (demo_dir / "demo.yaml").write_text(
+        "model:\n"
+        "  dir_or_tag: model_pack\n"
+        "  trust_user_code: true\n"
+        "  call_args: {}\n"
+        "ui:\n"
+        "  title: null\n"
+        "  description: null\n"
+        "  inputs:\n"
+        "    - key: speech\n"
+        "      type: audio\n"
+        "      label: Input Audio\n"
+        "  outputs:\n"
+        "    - key: hyp\n"
+        "      type: text\n"
+        "      label: Transcription\n",
+        encoding="utf-8",
+    )
+
+    session = load_demo_session(demo_dir, demo_dir / "demo.yaml")
+
+    with pytest.raises(KeyError, match="type"):
+        session.build_input_component({"key": "speech", "label": "Input"})
+
+
+def test_build_demo_model_loads_pretrained_tag(monkeypatch, tmp_path: Path) -> None:
+    demo_cfg = OmegaConf.create(
+        {
+            "model": {
+                "dir_or_tag": "espnet/test-model",
+                "trust_user_code": True,
+                "device": "cpu",
+                "call_args": {},
+            },
+            "ui": {
+                "app_script": "src/app.py",
+                "title": None,
+                "description": None,
+                "inputs": [{"key": "speech", "type": "audio", "label": "Input Audio"}],
+                "outputs": [{"key": "hyp", "type": "text", "label": "Transcription"}],
+            },
+        }
+    )
+    captured = {}
+
+    class DummyModel:
+        model = None
+
+    def fake_from_pretrained(model_tag, trust_user_code=False, device=None):
+        captured["model_tag"] = model_tag
+        captured["trust_user_code"] = trust_user_code
+        captured["device"] = device
+        return DummyModel()
 
     monkeypatch.setattr(
-        asr_inference,
-        "Speech2Text",
-        lambda **kwargs: lambda speech: [("hello", [], [], None)],
+        demo_session_module.InferenceModel,
+        "from_pretrained",
+        staticmethod(fake_from_pretrained),
     )
-    ui = module.build_demo(out)
-    assert ui.title == "Test ASR"
-    assert any(
-        getattr(block, "label", None) == "Recording" for block in ui.blocks.values()
-    )
-    assert any(
-        getattr(block, "label", None) == "Decoded text" for block in ui.blocks.values()
-    )
-    audio = tmp_path / "audio.wav"
-    sf.write(audio, np.zeros(1600), 16000)
-    predict = next(iter(ui.fns.values())).fn
-    assert predict(str(audio)) == "hello"
 
-
-@pytest.mark.parametrize("explicit_config", [True, False])
-def test_demo_binds_nested_native_config_paths_outside_recipe(
-    tmp_path, monkeypatch, explicit_config
-):
-    pack = _archive(tmp_path)
-    if not explicit_config:
-        config_path = pack / "conf/inference.yaml"
-        config = OmegaConf.load(config_path)
-        del config.model.asr_train_config
-        OmegaConf.save(config, config_path)
-    (pack / "data").mkdir()
-    for name in ["tokens.txt", "bpe.model", "stats.npz"]:
-        (pack / "data" / name).touch()
-    OmegaConf.save(
-        OmegaConf.create(
-            {
-                "token_list": "data/tokens.txt",
-                "decoder_conf": {"token_list": ["data", "config.yaml"]},
-                "bpemodel": "data/bpe.model",
-                "normalize_conf": {"stats_file": "data/stats.npz"},
-            }
-        ),
-        pack / "config.yaml",
+    model = demo_session_module._build_demo_model(
+        demo_cfg,
+        tmp_path,
     )
-    from espnet2.bin import asr_inference
 
-    def construct(**parameters):
-        return OmegaConf.to_container(OmegaConf.load(parameters["asr_train_config"]))
-
-    monkeypatch.setattr(asr_inference, "Speech2Text", construct)
-    outside = tmp_path / "elsewhere"
-    outside.mkdir()
-    monkeypatch.chdir(outside)
-    result = recipe_app.build_model(
-        outside, OmegaConf.create({"dir_or_tag": str(pack), "device": "cpu"})
-    )
-    assert result == {
-        "token_list": str(pack / "data/tokens.txt"),
-        "decoder_conf": {"token_list": ["data", "config.yaml"]},
-        "bpemodel": str(pack / "data/bpe.model"),
-        "normalize_conf": {"stats_file": str(pack / "data/stats.npz")},
-    }
+    assert isinstance(model, DummyModel)
+    assert captured["model_tag"] == "espnet/test-model"
+    assert captured["trust_user_code"] is True
+    assert captured["device"] == "cpu"

@@ -21,19 +21,15 @@ def build_demo(
     """Build a demo app with a custom image input block."""
     assert demo_config_path is not None
 
-    def decode(**values):
-        return {
-            "text": (
-                f"speech={int(values.get('speech') is not None)} "
-                f"image={int(values.get('image') is not None)}"
-            )
-        }
-
-    session = load_demo_session(demo_dir, demo_config_path, model=decode)
-    inference_fn = session.create_inference_fn(
-        input_keys=[spec["key"] for spec in session.input_specs] + ["image"],
-        output_keys=[spec["key"] for spec in session.output_specs],
+    session = load_demo_session(demo_dir, demo_config_path)
+    model_inference_fn = session.create_inference_fn(
+        session.input_specs, session.output_specs
     )
+
+    def inference_fn(*values):
+        # The image demonstrates a custom UI input. ASR still receives exactly
+        # the audio fields declared by the packed inference contract.
+        return model_inference_fn(*values[:-1])
 
     with gr.Blocks(title=session.title) as app:
         if session.title:

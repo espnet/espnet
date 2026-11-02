@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import logging
 from collections.abc import Mapping
 from functools import lru_cache
 from importlib import import_module
@@ -14,16 +13,16 @@ import torch
 from omegaconf import ListConfig
 
 from espnet2.torch_utils.device_funcs import is_out_of_memory_error
+from espnet3.contract.inference import (
+    prepare_inference_inputs,
+    resolve_inference_contract,
+    validate_inference_outputs,
+)
+from espnet3.contract.kinds.audio import Audio
 from espnet3.parallel.base_runner import BaseRunner, concatenate_shard_files
 from espnet3.parallel.env_provider import EnvironmentProvider
 from espnet3.utils.scp_utils import check_utt_id
 from espnet3.utils.writer_utils import write_artifact
-
-logger = logging.getLogger(__name__)
-
-# models already reported as not taking a batch, so that a long test set
-# does not repeat the warning once per batch
-_WARNED_UNBATCHED: set = set()
 
 
 def _normalize_key_list(keys) -> List[str]:
@@ -36,13 +35,13 @@ def _normalize_key_list(keys) -> List[str]:
 
 def _input_lengths(inputs_dict: Dict[str, List[Any]]) -> Dict[str, List[Any]]:
     """Length of every array-like input, per key, for an error message."""
-    lengths = {}
-    for key, values in inputs_dict.items():
-        lengths[key] = [
-            (v.shape[0] if hasattr(v, "shape") and len(v.shape) > 0 else None)
-            for v in values
+    return {
+        key: [
+            (value.shape[0] if hasattr(value, "shape") and len(value.shape) else None)
+            for value in values
         ]
-    return lengths
+        for key, values in inputs_dict.items()
+    }
 
 
 def _iter_outputs(result: Any) -> List[Dict[str, Any]]:
@@ -61,9 +60,21 @@ def _materialize_output_value(
     output_dir: Path,
     artifact_config: dict | None,
 ):
+    """Return a value an SCP file can hold, writing an artifact when needed."""
     if isinstance(value, (str, int, float, bool)):
         return value
     idx_value = check_utt_id(idx_value)
+
+    if isinstance(value, Audio):
+        audio_config = dict(artifact_config or {})
+        audio_config.setdefault("type", "wav")
+        audio_config.setdefault("sample_rate", value.rate)
+        value = (
+            value.array.T
+            if audio_config["type"] == "wav" and value.array.ndim == 2
+            else value.array
+        )
+        artifact_config = audio_config
 
     if isinstance(value, np.generic):
         return value.item()
@@ -108,8 +119,9 @@ def _materialize_output_value(
 class InferenceRunner(BaseRunner):
     """Execute a configured backend and persist its formatted results.
 
-    input_key, output_fn and output_artifacts belong to the recipe. This
-    runner makes no assumptions about the model's class or declarations.
+    input_key, inference contract and output_artifacts belong to the recipe.
+    The runner checks inputs and outputs when a contract is configured.
+    Legacy configs may still provide output_fn.
     """
 
     def __init__(
@@ -194,91 +206,229 @@ class InferenceRunner(BaseRunner):
             return keys
         return [key for key in output.keys() if key != idx_key]
 
-    @staticmethod
-    def forward(idx, dataset=None, model=None, **kwargs):
-        """Call the configured backend on one dataset item or a batch."""
+    @classmethod
+    def forward(cls, idx, dataset=None, model=None, **kwargs):
+        """Call ``model`` with one item or a batch from ``dataset``.
+
+        Example ``conf/inference.yaml``::
+
+            input_key: speech
+            model:
+              _target_: src.inference.MyBackend
+            contract:
+              inputs:
+                speech: {kind: audio, sample_rate: 16000,
+                         rate_policy: resample, label: Input Audio}
+              outputs:
+                text: {kind: text, normalize: [strip, to_lower],
+                       label: Transcription}
+
+        ``forward`` checks inputs, calls the model, formats its output, and
+        validates the result. Both infer and ``InferenceModel`` use this path::
+
+            dataset[0] = {"utt_id": "u1", "speech": (44100, waveform)}
+            # forward receives Audio at 16 kHz with every channel preserved.
+            model(speech=audio_16k)  # -> {"text": "  HELLO  "}
+            # boundary returns {"text": "hello", "utt_id": "u1"}
+
+        ``input_key`` must match ``contract.inputs``. Outputs must have the
+        declared names; ``{"hyp": ...}`` above raises an error. A bare audio
+        array has no rate to check; pass ``Audio``, ``(rate, array)``, or a path
+        when the rate matters. ``output_fn`` and ``contract`` cannot coexist.
+
+        Override ``format_output`` to adapt raw model results::
+
+            class ASRRunner(InferenceRunner):
+                @staticmethod
+                def format_output(result, *, batched):
+                    def best(hypotheses):
+                        return {"text": hypotheses[0][0] or ""}
+                    return [best(r) for r in result] if batched else best(result)
+
+        If overriding ``forward`` itself, apply the shared checks explicitly::
+
+            @staticmethod
+            def forward(idx, dataset=None, model=None, **kwargs):
+                contract = resolve_inference_contract(
+                    kwargs.get("inference_contract"),
+                    kwargs.get("inference_contract_root"),
+                )
+                if contract is None:
+                    return model(speech=dataset[idx]["speech"])
+                contract.validate_input_keys(kwargs["input_key"])
+                prepared, original = prepare_inference_inputs(
+                    dataset, idx, contract, model
+                )
+                result = model(speech=prepared[idx]["speech"])
+                return validate_inference_outputs(
+                    result, idx, contract, model, original,
+                    kwargs.get("idx_key", "utt_id"),
+                )
+
+        Optional inputs must also appear in ``input_key``::
+
+            input_key: [speech, prompt]
+            contract:
+              inputs:
+                speech: {kind: audio, sample_rate: 16000}
+                prompt: {kind: text, optional: true}
+              outputs:
+                text: {kind: text}
+            # Missing prompt -> model(speech=...); present ->
+            # model(speech=..., prompt=...). Do not mix in one batch.
+
+        Custom normalizer example::
+
+            # inference.yaml: contract.imports: [src.contracts]
+            # contract.outputs.text.normalize: [strip, my_normalizer]
+            # src/contracts.py:
+            from espnet3.contract import register_normalizer
+            register_normalizer("my_normalizer", normalize_text)
+
+        Custom ``forward`` implementations own their contract checks; calling
+        ``super().forward`` uses the default checked path. ``format_output``
+        receives raw model results and returns named outputs before validation.
+        Changes after ``super().forward`` require output validation again.
+        Bundled recipe code needs ``trust_user_code=True`` when loaded.
+        Without a contract, the legacy ``output_fn`` path still applies.
+
+        Args:
+            idx: One dataset index, or a list of them for a batch.
+            dataset: The dataset to read items from.
+            model: The backend called with the checked inputs.
+            **kwargs: ``input_key``, ``inference_contract``, ``idx_key``,
+                ``model_kwargs`` and the legacy ``output_fn`` /
+                ``output_fn_path``.
+
+        Returns:
+            One named output mapping, or a list of them for a batch.
+
+        Examples:
+            >>> from espnet3.contract.inference import load_inference_contract
+            >>> contract = load_inference_contract(
+            ...     {
+            ...         "inputs": {"text": {"kind": "text"}},
+            ...         "outputs": {"text": {"kind": "text"}},
+            ...     }
+            ... )
+            >>> InferenceRunner.forward(
+            ...     0,
+            ...     dataset=[{"text": "hi"}],
+            ...     model=lambda text: {"text": text},
+            ...     input_key="text",
+            ...     inference_contract=contract,
+            ... )
+            {'text': 'hi', 'utt_id': '0'}
+        """
         model_kwargs = kwargs.get("model_kwargs") or {}
         if not isinstance(model_kwargs, Mapping):
             raise TypeError("model_kwargs must be a mapping when provided.")
-        model_kwargs = dict(model_kwargs)
         if "input_key" not in kwargs:
             raise RuntimeError("input_key must be provided for inference.")
         input_key = kwargs["input_key"]
+        contract = resolve_inference_contract(
+            kwargs.get("inference_contract"), kwargs.get("inference_contract_root")
+        )
+        if contract is not None:
+            if kwargs.get("output_fn") or kwargs.get("output_fn_path"):
+                raise ValueError(
+                    "output_fn cannot be combined with an inference contract"
+                )
+            contract.validate_input_keys(input_key)
+            dataset, original = prepare_inference_inputs(dataset, idx, contract, model)
+        optional_keys = (
+            {spec.name for spec in contract.inputs if spec.optional}
+            if contract is not None
+            else set()
+        )
         output_fn = kwargs.get("output_fn")
         if output_fn is None:
             output_fn_path = kwargs.get("output_fn_path")
             output_fn = _load_output_fn(output_fn_path) if output_fn_path else None
-
         keys = (
             list(input_key)
             if isinstance(input_key, (list, tuple, ListConfig))
             else [input_key]
         )
-
-        is_batched = isinstance(idx, (list, tuple))
-        if not is_batched:
-            data = dataset[idx]
-            inputs_dict = {}
-            for key in keys:
-                if key not in data:
-                    raise KeyError(f"Input key '{key}' not found in dataset item.")
-                inputs_dict[key] = data[key]
-            model_output = model(**inputs_dict, **model_kwargs)
-            if output_fn is None:
-                return model_output
-            return output_fn(data=data, model_output=model_output, idx=idx)
-
-        indices = list(idx)
-        data_batch = [dataset[i] for i in indices]
+        batched = isinstance(idx, (list, tuple))
+        indices = list(idx) if batched else [idx]
+        samples = [dataset[i] for i in indices]
         inputs_dict = {}
         for key in keys:
-            for data in data_batch:
-                if key not in data:
-                    raise KeyError(f"Input key '{key}' not found in dataset item.")
-            inputs_dict[key] = [data[key] for data in data_batch]
-
+            present = [key in sample for sample in samples]
+            if not all(present):
+                if key in optional_keys:
+                    if not any(present):
+                        continue
+                    raise KeyError(
+                        f"Input key '{key}' not found in dataset item. Optional "
+                        "inputs cannot be mixed within one batch: some samples "
+                        "provide it and others do not."
+                    )
+                raise KeyError(f"Input key '{key}' not found in dataset item.")
+            values = [sample[key] for sample in samples]
+            inputs_dict[key] = values if batched else values[0]
+        inputs_dict = cls.prepare_model_inputs(inputs_dict)
         try:
-            model_output = model(**inputs_dict, **model_kwargs)
-            if output_fn is None:
-                return model_output
-            return output_fn(data=data_batch, model_output=model_output, idx=indices)
+            result = model(**inputs_dict, **dict(model_kwargs))
         except Exception as exc:  # noqa: BLE001
-            if is_out_of_memory_error(exc):
-                # the generic advice below would be wrong here: the model does
-                # support batches, the batch was too large
-                raise RuntimeError(
-                    f"Batched inference ran out of memory on {len(indices)} "
-                    f"items (dataset indices {indices}, input lengths "
-                    f"{_input_lengths(inputs_dict)}). Lower `batch_size` in the "
-                    f"inference config (this batch had {len(indices)} items), "
-                    "or sort the test set by length so that long utterances "
-                    "are not padded to each other."
-                ) from exc
-            # Not every model or output_fn takes a list. Before giving up, run
-            # the same items one at a time: that keeps `batch_size` safe to set
-            # for every model, and only the speed differs.
-            try:
-                outputs = [
-                    InferenceRunner.forward(i, dataset=dataset, model=model, **kwargs)
-                    for i in indices
-                ]
-            except Exception:  # noqa: BLE001
-                raise RuntimeError(
-                    "Batched inference failed, and so did running the same items "
-                    "one at a time; the second traceback is the one to read."
-                ) from exc
-            name = type(model).__name__
-            if name not in _WARNED_UNBATCHED:
-                _WARNED_UNBATCHED.add(name)
-                logger.warning(
-                    f"{name} or the output_fn did not accept a batch of "
-                    f"{len(indices)} items ({type(exc).__name__}: {str(exc)[:200]}); "
-                    "the items were run one at a time instead. Set `batch_size` "
-                    "to null in the inference config to skip the failed attempt, "
-                    "or make the model and output_fn accept lists to decode in "
-                    "batches."
-                )
-            return outputs
+            if not batched or not is_out_of_memory_error(exc):
+                raise
+            raise RuntimeError(
+                f"Batched inference ran out of memory on {len(indices)} "
+                f"items (dataset indices {indices}, input lengths "
+                f"{_input_lengths(inputs_dict)}). Lower `batch_size` in the "
+                f"inference config (this batch had {len(indices)} items), "
+                "or sort the test set by length so that long utterances "
+                "are not padded to each other."
+            ) from exc
+        if output_fn is not None:
+            result = output_fn(
+                data=samples if batched else samples[0],
+                model_output=result,
+                idx=idx,
+            )
+        result = cls.format_output(result, batched=batched)
+        if contract is not None:
+            result = validate_inference_outputs(
+                result, idx, contract, model, original, kwargs.get("idx_key", "utt_id")
+            )
+        return result
+
+    @staticmethod
+    def prepare_model_inputs(inputs):
+        """Adapt checked Kind values to a backend's argument representation.
+
+        Args:
+            inputs: The backend's keyword arguments, already checked by their
+                kinds (a list per key for a batch).
+
+        Returns:
+            The arguments the backend is called with; ``inputs`` unless a
+            system overrides it.
+
+        Examples:
+            >>> InferenceRunner.prepare_model_inputs({"text": "hi"})
+            {'text': 'hi'}
+        """
+        return inputs
+
+    @staticmethod
+    def format_output(result, *, batched):
+        """Convert raw model results to named outputs before contract validation.
+
+        Args:
+            result: What the backend returned.
+            batched: Whether the call was a batch.
+
+        Returns:
+            The named outputs; ``result`` unless a system overrides it.
+
+        Examples:
+            >>> InferenceRunner.format_output({"text": "hi"}, batched=False)
+            {'text': 'hi'}
+        """
+        return result
 
     @staticmethod
     def open_writers(

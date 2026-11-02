@@ -87,3 +87,44 @@ def test_encoder_output_size():
 def test_encoder_invalid_type():
     with pytest.raises(ValueError):
         ConformerPostEncoder(20, input_layer="fff")
+
+
+@pytest.mark.parametrize(
+    "rel_pos_type, pos_enc_layer_type, selfattention_layer_type",
+    [
+        ("legacy", "abs_pos", "selfattn"),
+        ("latest", "rel_pos", "rel_selfattn"),
+        ("legacy", "rel_pos", "rel_selfattn"),
+    ],
+)
+def test_use_sdpa_reaches_the_attention_and_matches_the_default(
+    rel_pos_type, pos_enc_layer_type, selfattention_layer_type
+):
+    x = torch.randn(2, 10, 8)
+    x_lens = torch.LongTensor([10, 8])
+
+    def build(**kwargs):
+        torch.manual_seed(0)
+        return ConformerPostEncoder(
+            8,
+            output_size=8,
+            attention_heads=2,
+            linear_units=16,
+            num_blocks=2,
+            rel_pos_type=rel_pos_type,
+            pos_enc_layer_type=pos_enc_layer_type,
+            selfattention_layer_type=selfattention_layer_type,
+            cnn_module_kernel=3,
+            **kwargs,
+        )
+
+    # eval() so dropout does not make the two passes draw different masks.
+    sdpa_encoder = build(use_sdpa=True).eval()
+    attentions = [m for m in sdpa_encoder.modules() if hasattr(m, "use_sdpa")]
+    assert attentions and all(m.use_sdpa for m in attentions)
+
+    with torch.no_grad():
+        default_out, _ = build().eval()(x, x_lens)
+        sdpa_out, _ = sdpa_encoder(x, x_lens)
+    assert default_out.shape == sdpa_out.shape
+    assert torch.allclose(default_out, sdpa_out, atol=1e-5)

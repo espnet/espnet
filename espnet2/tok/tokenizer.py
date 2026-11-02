@@ -35,19 +35,21 @@ class SpeechTokenizer(torch.nn.Module):
         self,
         frontend: AbsFrontend,
         quantizer: AbsSpeechTokenizerQuantizer,
-        freeze_epochs: int = 0,
+        freeze_steps: int = 0,
     ):
         """Initialize the tokenizer from a continuous frontend and quantizer.
 
         Args:
             frontend: Continuous speech frontend such as S3PRL.
             quantizer: Quantizer applied to frontend representations.
-            freeze_epochs: Number of initial epochs that use a frozen frontend
-                and frozen deterministic quantization.
+            freeze_steps: Number of initial generator training forwards that use
+                a frozen frontend and frozen deterministic quantization. With
+                gradient accumulation, these count forwards rather than optimizer
+                steps.
         """
         super().__init__()
-        if freeze_epochs < 0:
-            raise ValueError(f"freeze_epochs must be non-negative: {freeze_epochs}")
+        if freeze_steps < 0:
+            raise ValueError(f"freeze_steps must be non-negative: {freeze_steps}")
         if frontend.output_size() != quantizer.feature_dim:
             raise ValueError(
                 f"Frontend output size {frontend.output_size()} does not match "
@@ -55,8 +57,8 @@ class SpeechTokenizer(torch.nn.Module):
             )
         self.frontend = frontend
         self.quantizer = quantizer
-        self.freeze_epochs = freeze_epochs
-        self.register_buffer("current_epoch", torch.ones((), dtype=torch.long))
+        self.freeze_steps = freeze_steps
+        self.register_buffer("current_step", torch.zeros((), dtype=torch.long))
 
     @property
     def num_clusters(self) -> int:
@@ -65,36 +67,28 @@ class SpeechTokenizer(torch.nn.Module):
 
     @property
     def is_frozen(self) -> bool:
-        """Return whether tokenizer parameters are frozen in the current epoch."""
-        return self.current_epoch.item() <= self.freeze_epochs
-
-    def set_epoch(self, epoch: int) -> bool:
-        """Set the current epoch and report a frozen-to-trainable transition.
-
-        Args:
-            epoch: One-based training epoch.
-
-        Returns:
-            ``True`` only when this call crosses the unfreeze boundary.
-        """
-        if epoch < 1:
-            raise ValueError(f"epoch must be one-based and positive: {epoch}")
-        was_frozen = self.is_frozen
-        self.current_epoch.fill_(epoch)
-        return was_frozen and not self.is_frozen
+        """Return whether tokenizer parameters are frozen at the current step."""
+        return self.current_step.item() < self.freeze_steps
 
     def forward(
-        self, speech: torch.Tensor, speech_lengths: torch.Tensor
+        self,
+        speech: torch.Tensor,
+        speech_lengths: torch.Tensor,
+        count_update: bool = True,
     ) -> SpeechTokenizerOutput:
-        """Extract frontend features and differentiably quantize them."""
+        """Extract features and optionally count a generator training forward."""
         if not self.training:
             return self.encode(speech, speech_lengths)
         if self.is_frozen:
             with torch.no_grad():
                 features, feature_lengths = self.frontend(speech, speech_lengths)
-                return self.quantizer.encode(features, feature_lengths)
-        features, feature_lengths = self.frontend(speech, speech_lengths)
-        return self.quantizer(features, feature_lengths)
+                output = self.quantizer.encode(features, feature_lengths)
+        else:
+            features, feature_lengths = self.frontend(speech, speech_lengths)
+            output = self.quantizer(features, feature_lengths)
+        if count_update:
+            self.current_step.add_(1)
+        return output
 
     def encode(
         self, speech: torch.Tensor, speech_lengths: torch.Tensor

@@ -542,3 +542,15 @@ def test_run_parallel_dask_cancels_pending_futures_on_worker_exception(
     # which runs on the worker before the exception reaches the driver).
     lock_paths = list(tmp_path.glob("split.*/lock"))
     assert lock_paths == []
+
+
+def test_generic_runner_does_not_interpret_inference_environment(tmp_path):
+    """The parallel base passes domain-specific environment entries untouched."""
+    provider = DummyProvider()
+    provider.build_env_local = lambda: {
+        "dataset": None,
+        "model": None,
+        "inference_contract": object(),
+    }
+    runner = DummyRunner(provider, output_dir=tmp_path, resume=False)
+    assert runner([0, 1])["records"] == [0, 1]

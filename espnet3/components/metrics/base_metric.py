@@ -18,6 +18,7 @@ from typing import (
     Union,
 )
 
+from espnet3.contract import Field
 from espnet3.contract.metrics import (
     check_metric_batch,
     check_metric_contract,
@@ -33,11 +34,13 @@ StateValue = Union[int, float, List[Any]]
 class BaseMetric(ABC):
     """Base class for metrics that consume inference output paths.
 
-    Subclasses declare ``inputs`` as mappings of names to Python types and
-    ``outputs`` as tuples of numeric result names. The metric configuration
-    binds each input to an SCP file or dataset column. Contracts check the
-    metric's own inputs, batches and results without inspecting the model.
-    Include ``type(None)`` in a tuple of accepted types for optional inputs.
+    A subclass declares ``inputs``/``outputs`` as tuples of
+    :class:`~espnet3.contract.Field`. ``inputs`` names what the metric
+    reads; the metrics config binds each input to an inference artifact or
+    dataset column, and ``check_metric_inputs`` validates that binding.
+    ``outputs`` names the result keys, each of kind ``"number"``. There is
+    no undeclared fallback: a metric that declares
+    neither raises ``TypeError`` as soon as it is instantiated.
 
     A metric whose inputs/outputs never change (most of them - ``WER``,
     ``CER``, ``TER``) declares them as class attributes. A metric whose
@@ -54,14 +57,14 @@ class BaseMetric(ABC):
         A fixed contract (``WER``-style):
 
         >>> class ExampleMetric(BaseMetric):
-        ...     inputs = {"ref": str, "hyp": str}
-        ...     outputs = ("score",)
+        ...     inputs = (Field("ref", "text"), Field("hyp", "text"))
+        ...     outputs = (Field("score", "number"),)
         ...     def update(self, **values):
         ...         pass
         ...     def compute(self):
         ...         return {"score": 0.0}
-        >>> ExampleMetric().inputs["ref"]
-        <class 'str'>
+        >>> ExampleMetric().inputs[0]
+        Field(name='ref', kind='text', label='Ref', optional=False, channels=1)
 
         A contract built from the instance's own configuration
         (VERSA-style): ``ref`` is optional (not every VERSA measure needs
@@ -70,14 +73,17 @@ class BaseMetric(ABC):
         >>> class ExampleVersaMetric(BaseMetric):
         ...     def __init__(self, score_config):
         ...         self.score_config = score_config
-        ...         self.inputs = {"hyp": str, "ref": (str, type(None))}
-        ...         self.outputs = tuple(score_config)
+        ...         self.inputs = (
+        ...             Field("hyp", "text"),
+        ...             Field("ref", "text", optional=True),
+        ...         )
+        ...         self.outputs = tuple(Field(name, "number") for name in score_config)
         ...         super().__init__()
         ...     def update(self, **values):
         ...         pass
         ...     def compute(self):
         ...         return {name: 0.0 for name in self.score_config}
-        >>> list(ExampleVersaMetric(["mcd", "f0"]).outputs)
+        >>> [f.name for f in ExampleVersaMetric(["mcd", "f0"]).outputs]
         ['mcd', 'f0']
 
         A metric scored against more than one reference (BLEU-style):
@@ -94,15 +100,17 @@ class BaseMetric(ABC):
         Omitting ``ref2`` entirely is fine, since it is optional.
 
         >>> class ExampleBleuMetric(BaseMetric):
-        ...     inputs = {
-        ...         "hyp": str, "ref1": str, "ref2": (str, type(None))
-        ...     }
-        ...     outputs = ("score",)
+        ...     inputs = (
+        ...         Field("hyp", "text"),
+        ...         Field("ref1", "text"),
+        ...         Field("ref2", "text", optional=True),
+        ...     )
+        ...     outputs = (Field("score", "number"),)
         ...     def update(self, **values):
         ...         pass
         ...     def compute(self):
         ...         return {"score": 0.0}
-        >>> list(ExampleBleuMetric().inputs)
+        >>> [f.name for f in ExampleBleuMetric().inputs]
         ['hyp', 'ref1', 'ref2']
 
         A metric that reads more than one audio role (a speaker
@@ -115,7 +123,7 @@ class BaseMetric(ABC):
               hyp: wav
               ref: dataset:speech
 
-        A ``dataset:`` column containing audio is written as a ``.wav``
+        A ``dataset:`` column of kind ``audio`` is written as a ``.wav``
         artifact beside the test set's SCPs, as ``measure``'s own
         ``dataset_artifacts`` config says::
 
@@ -125,15 +133,17 @@ class BaseMetric(ABC):
                 sample_rate: 16000
 
         >>> class ExampleSpeakerMetric(BaseMetric):
-        ...     inputs = {
-        ...         "target": str, "hyp": str, "ref": (str, type(None))
-        ...     }
-        ...     outputs = ("score",)
+        ...     inputs = (
+        ...         Field("target", "audio"),
+        ...         Field("hyp", "audio"),
+        ...         Field("ref", "audio", optional=True),
+        ...     )
+        ...     outputs = (Field("score", "number"),)
         ...     def update(self, **values):
         ...         pass
         ...     def compute(self):
         ...         return {"score": 0.0}
-        >>> list(ExampleSpeakerMetric().inputs)
+        >>> [f.name for f in ExampleSpeakerMetric().inputs]
         ['target', 'hyp', 'ref']
 
         In a training callback (no files): reset, update per batch, gather
@@ -149,17 +159,17 @@ class BaseMetric(ABC):
         {'WER': 4.3}
     """
 
-    #: What this metric reads: accepted Python types per input. The name is the
-    #: key of ``data`` (and the default SCP file name). Text is read directly;
-    #: non-scalar artifacts are represented by their file paths.
+    #: What this metric reads: one Field per SCP input. The name is the
+    #: key of ``data`` (and the default SCP file name); the kind says what
+    #: the SCP values hold (``text``: the value itself, ``audio``: a path).
     #: A class attribute for a fixed contract; set on ``self`` instead,
     #: before calling ``super().__init__()``, for one built from the
     #: instance's own configuration.
-    inputs: ClassVar[Mapping[str, Union[type, Tuple[type, ...]]]]
-    #: What this metric returns: numeric result names. Same
-    #: class-attribute-or-``self`` choice as
+    inputs: ClassVar[Tuple[Field, ...]]
+    #: What this metric returns: one Field per key of the result dict, all
+    #: of kind ``number``. Same class-attribute-or-``self`` choice as
     #: :attr:`inputs`.
-    outputs: ClassVar[Tuple[str, ...]]
+    outputs: ClassVar[Tuple[Field, ...]]
     #: Rows per :meth:`update` call inside :meth:`__call__`.
     chunk_size: ClassVar[int] = 1000
     #: True only while :meth:`__call__` runs with an ``output_dir``. ``update``
@@ -184,7 +194,7 @@ class BaseMetric(ABC):
             instantiates, trusting no declaration this never ran on.
 
         Raises:
-            ValueError: Neither ``inputs`` nor ``outputs`` is declared, or
+            TypeError: Neither ``inputs`` nor ``outputs`` is declared, or
                 the declaration is malformed.
         """
         check_metric_contract(self)
@@ -199,8 +209,8 @@ class BaseMetric(ABC):
 
         Examples:
             >>> class Count(BaseMetric):
-            ...     inputs = {"ref": str}
-            ...     outputs = ("n",)
+            ...     inputs = (Field("ref", "text"),)
+            ...     outputs = (Field("n", "number"),)
             ...     def update(self, *, ref):
             ...         pass
             ...     def compute(self):
@@ -400,7 +410,7 @@ class BaseMetric(ABC):
         self.reset()
         self.collect_artifacts = output_dir is not None
         try:
-            names = [name for name in self.inputs if name in data]
+            names = [f.name for f in self.inputs if f.name in data]
             if names:
                 chunk: Dict[str, List[str]] = {name: [] for name in names}
                 for _, row in self.iter_inputs(data, *names):

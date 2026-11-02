@@ -1,7 +1,7 @@
 """Differentiable k-means quantization."""
 
 from pathlib import Path
-from typing import Union
+from typing import Optional, Union
 
 import joblib
 import numpy as np
@@ -27,18 +27,21 @@ class DifferentiableKMeans(AbsSpeechTokenizerQuantizer):
     @typechecked
     def __init__(
         self,
-        centroid_path: Union[str, Path],
+        centroid_path: Optional[Union[str, Path]] = None,
+        centroids: Optional[torch.Tensor] = None,
         distance_type: str = "squared_euclidean",
         sigma_squared: float = 1.0,
         temperature_init: float = 2.0,
         temperature_floor: float = 0.1,
         temperature_decay: float = 0.999995,
     ):
-        """Initialize trainable centroids from an offline k-means model.
+        """Initialize trainable centroids from a file or tensor.
 
         Args:
             centroid_path: Joblib model produced by ESPnet's k-means pipeline.
                 The loaded object must expose ``cluster_centers_`` with shape
+                ``(num_clusters, feature_dim)``.
+            centroids: Centroid tensor with shape
                 ``(num_clusters, feature_dim)``.
             distance_type: Distance used to construct assignment logits.
                 Either ``"squared_euclidean"`` or ``"euclidean"``.
@@ -48,6 +51,39 @@ class DifferentiableKMeans(AbsSpeechTokenizerQuantizer):
             temperature_decay: Exponential decay applied per training forward.
         """
         super().__init__()
+        if (centroid_path is None) == (centroids is None):
+            raise ValueError("Specify exactly one of centroid_path and centroids")
+        if centroid_path is not None:
+            centroid_path = Path(centroid_path)
+            if not centroid_path.is_file():
+                raise FileNotFoundError(f"No k-means model found: {centroid_path}")
+
+            kmeans = joblib.load(centroid_path)
+            if not hasattr(kmeans, "cluster_centers_"):
+                raise ValueError(
+                    f"K-means model has no cluster_centers_: {centroid_path}"
+                )
+            centroids = torch.from_numpy(np.asarray(kmeans.cluster_centers_))
+
+        self._initialize(
+            centroids,
+            distance_type=distance_type,
+            sigma_squared=sigma_squared,
+            temperature_init=temperature_init,
+            temperature_floor=temperature_floor,
+            temperature_decay=temperature_decay,
+        )
+
+    def _initialize(
+        self,
+        centroids: torch.Tensor,
+        distance_type: str,
+        sigma_squared: float,
+        temperature_init: float,
+        temperature_floor: float,
+        temperature_decay: float,
+    ) -> None:
+        """Initialize parameters and annealing settings from a centroid tensor."""
         if distance_type not in ("euclidean", "squared_euclidean"):
             raise ValueError(
                 "distance_type must be 'euclidean' or 'squared_euclidean', "
@@ -69,25 +105,17 @@ class DifferentiableKMeans(AbsSpeechTokenizerQuantizer):
                 "temperature_decay must be in (0, 1], but got " f"{temperature_decay}"
             )
 
-        centroid_path = Path(centroid_path)
-        if not centroid_path.is_file():
-            raise FileNotFoundError(f"No k-means model found: {centroid_path}")
-
-        kmeans = joblib.load(centroid_path)
-        if not hasattr(kmeans, "cluster_centers_"):
-            raise ValueError(f"K-means model has no cluster_centers_: {centroid_path}")
-        centroids = np.asarray(kmeans.cluster_centers_)
         if centroids.ndim != 2:
             raise ValueError(
-                "cluster_centers_ must have shape (num_clusters, feature_dim), "
+                "centroids must have shape (num_clusters, feature_dim), "
                 f"but got {centroids.shape}"
             )
-        if not np.issubdtype(centroids.dtype, np.floating):
+        if not torch.is_floating_point(centroids):
             raise TypeError(
-                f"cluster_centers_ must be floating point, but got {centroids.dtype}"
+                f"centroids must be floating point, but got {centroids.dtype}"
             )
 
-        self.centroids = torch.nn.Parameter(torch.from_numpy(centroids).float())
+        self.centroids = torch.nn.Parameter(centroids.detach().float().clone())
         self.distance_type = distance_type
         self.sigma_squared = float(sigma_squared)
         self.temperature_init = float(temperature_init)
@@ -199,7 +227,8 @@ class DifferentiableKMeans(AbsSpeechTokenizerQuantizer):
         self, features: torch.Tensor, feature_lengths: torch.Tensor
     ) -> SpeechTokenizerOutput:
         """Sample hard straight-through assignments for differentiable training."""
-        if self.training:
+        update_state = self.training and torch.is_grad_enabled()
+        if update_state:
             self._anneal_temperature()
         logits = self._distance_logits(features)
         soft_assignment = F.gumbel_softmax(
@@ -218,7 +247,7 @@ class DifferentiableKMeans(AbsSpeechTokenizerQuantizer):
             soft_assignment,
             assignment,
         )
-        if self.training:
+        if update_state:
             self.num_updates.add_(1)
         return output
 

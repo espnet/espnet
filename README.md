@@ -23,15 +23,16 @@
 
 ______________________________________________________________________
 
-ESPnet is an end-to-end speech processing toolkit built on [PyTorch](https://pytorch.org/). It covers speech recognition, text-to-speech, speech translation, speech enhancement, speaker diarization, spoken language understanding, singing voice synthesis, speech language models, and more — with [Kaldi](http://kaldi-asr.org/)-style reproducible recipes from data preparation to evaluation, and hundreds of pretrained models on Hugging Face.
+ESPnet is an end-to-end speech processing toolkit built on [PyTorch](https://pytorch.org/). It covers speech recognition, text-to-speech, speech translation, speech enhancement, speaker diarization, spoken language understanding, spoken language identification, singing voice synthesis, speech language models, and more — with [Kaldi](http://kaldi-asr.org/)-style reproducible recipes from data preparation to evaluation, and hundreds of pretrained models on Hugging Face.
 
 ## What's new
 
-- **[ESPnet 202610.post2](https://github.com/espnet/espnet/releases/tag/v.202610.post2)** — the command line has one name a task and two more of them: `espnet phonemize` reads the phones with POWSM, `espnet align` lines text up with the audio it was said in, and `asr` and `tts` became `transcribe` and `synthesize` (the old names still work); models published before June 2025 load again, after `init: chainer` was removed from the toolkit.
+- **[ESPnet 202611](https://github.com/espnet/espnet/releases/tag/v.202611)** — audio quality assessment (`espnet2.bin.aqa_inference`, the ARECHO metric model and the URGENT24 recipe), so VERSA can install its supporting models from PyPI; Bagpiper on the command line (`espnet describe`, `espnet render`) and in the MCP server; scaled dot-product attention through every ASR encoder, relative-position attention included; F5-TTS; `hydra-core` and `omegaconf` are now core dependencies, and `ctc-segmentation` comes from upstream 1.7.5.
 
 <details>
 <summary>Earlier releases</summary>
 
+- **[ESPnet 202610.post2](https://github.com/espnet/espnet/releases/tag/v.202610.post2)** — the command line has one name a task and two more of them: `espnet phonemize` reads the phones with POWSM, `espnet align` lines text up with the audio it was said in, and `asr` and `tts` became `transcribe` and `synthesize` (the old names still work); models published before June 2025 load again, after `init: chainer` was removed from the toolkit.
 - **[ESPnet 202610.post1](https://github.com/espnet/espnet/releases/tag/v.202610.post1)** — the command line grows `espnet demo` (the OWSM browser demo) and `--live` (the microphone, transcribed as you speak); one `Speech2Text` now loads either kind of OWSM checkpoint, with `best_path()` for CTC decoding without a search; `espnet/espnet:inference-cpu-latest` and `-gpu-latest` run a published model with nothing installed; three more demo Spaces (TTS, enhancement, speaker verification).
 - **[ESPnet 202610](https://github.com/espnet/espnet/releases/tag/v.202610)** — one-line inference from the command line (`pip install espnet && espnet asr audio.wav`), two OWSM v4 demos as Hugging Face Spaces, a core install without the training stack (training is `espnet[train]`), batched beam search, PyTorch 2.11-2.14.
 - **[ESPnet 202609](https://github.com/espnet/espnet/releases/tag/v.202609)** — ESPnet3 complete on [`egs3/librispeech_100`](egs3/librispeech_100) at ESPnet2 parity, CI rebuilt on a prebuilt image (compute per run halved), OpenBEATs pretraining, ten new recipes (ASR, TTS, SER, ST, audio SSL), Python 3.12-3.13.
@@ -293,6 +294,7 @@ on the draft documentation site for further guidance.
 - Support voice conversion recipe (VCC2020 baseline)
 - Support speaker diarization recipe (mini_librispeech, librimix)
 - Support singing voice synthesis recipe (ofuton_p_utagoe_db, opencpop, m4singer, etc.)
+- Support spoken language identification recipes (voxlingua107, geolid.)
 
 #### ASR: Automatic Speech Recognition
 - **State-of-the-art performance** in several ASR benchmarks (comparable/superior to hybrid DNN/HMM and CTC)
@@ -434,6 +436,15 @@ Demonstration
 - Performing noisy spoken language understanding using a speech enhancement model followed by a spoken language understanding model.  [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/14nCrJ05vJcQX0cJuXjbMVFWUHJ3Wfb6N?usp=sharing)
 - Performing two-pass spoken language understanding where the second pass model attends to both acoustic and semantic information.  [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1p2cbGIPpIIcynuDl4ZVHDpmNPl8Nh_ci?usp=sharing)
 
+### LID: Spoken Language Identification
+- Architecture
+    - Frontend: Self-supervised models integrated via S3PRL, such as MMS, XLS-R, etc.
+    - Encoder: ECAPA-TDNN, xvector, etc.
+    - Pooling methods: Statistical pooling, attentive statistics pooling, etc.
+- Supports AAMSoftmax loss with subcenter regularization and topk penalty
+- Optional lang2vec auxiliary targets and conditioning on predicted language features; inference uses speech only.
+- Supports category-balanced sampling for imbalanced language datasets
+- Supports language embeddings extraction, t-SNE visualization, distributed inference, and cross-dataset evaluation
 
 #### SUM: Speech Summarization
 - End to End Speech Summarization Recipe for Instructional Videos using Restricted Self-Attention [[Sharma et al., 2022]](https://arxiv.org/abs/2110.06263)
@@ -739,7 +750,7 @@ If you use ESPnet in your research, please cite the main paper:
 ```
 
 <details>
-<summary>Task-specific papers (TTS, ST, SE, SLU, SVS, UASR, S2T, SUM, SPK)</summary>
+<summary>Task-specific papers (TTS, ST, SE, SLU, SVS, UASR, S2T, SUM, SPK, LID)</summary>
 
 ```bibtex
 @inproceedings{hayashi2020espnet,
@@ -901,6 +912,14 @@ If you use ESPnet in your research, please cite the main paper:
   booktitle={2025 IEEE Workshop on Applications of Signal Processing to Audio and Acoustics (WASPAA)},
   year={2025},
   organization={IEEE}
+}
+@inproceedings{wang2025geolid,
+  title={Geolocation-Aware Robust Spoken Language Identification},
+  author={Qingzheng Wang and Hye-jin Shim and Jiancheng Sun and Shinji Watanabe},
+  booktitle={2025 IEEE Automatic Speech Recognition and Understanding Workshop (ASRU)},
+  year={2025},
+  organization={IEEE},
+  url={https://arxiv.org/abs/2508.17148}
 }
 @inproceedings{someki2026espnet3,
   title={{ESPnet3}: Infrastructure for Scalable Speech and Audio Research in the Foundation Model Era},

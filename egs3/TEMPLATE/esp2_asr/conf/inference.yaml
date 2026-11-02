@@ -46,9 +46,10 @@ inference_dir: ${exp_dir}/${self_name:}
 #
 # The recipe `Dataset` class must inherit
 # `espnet3.components.data.base_dataset.BaseDataset` and declare `fields`:
-# a mapping from each key `__getitem__` returns to accepted Python types,
-# e.g. `fields = {"speech": np.ndarray, "text": str}`. The first item of each
-# instance is checked against this declaration.
+# a tuple of `espnet3.contract.Field` declarations, e.g.
+# `fields = (Field("speech", "audio"), Field("text", "text"))` after
+# importing `Field` from `espnet3.contract`. The first item of each instance
+# is checked against this declaration.
 #
 # An inference-only dataset only needs to declare the fields it actually
 # returns (e.g. `speech` and `utt_id`); it does not need to declare `text`
@@ -89,11 +90,11 @@ parallel:
 ##########################################################
 #                    MODEL AND OUTPUT                    #
 ##########################################################
-# The model is the native backend. Its arguments are the ones
-# `espnet2.bin.asr_inference.Speech2Text` takes; `device` is added by the
-# provider. For a transducer, set `_target_` to
-# `espnet2.bin.asr_transducer_inference.Speech2Text` and set
-# `return_decoded_hyp: true` to return decoded text.
+# The ASRInferenceRunner formats native ESPnet2 n-best results as `text`.
+# `model` takes the arguments of `espnet2.bin.asr_inference.Speech2Text`;
+# `device` is added by the provider. For transducer, set `_target_` to
+# `espnet2.bin.asr_transducer_inference.Speech2Text`, set
+# `return_decoded_hyp: true`, and use `batch_size: null`.
 model:
   _target_: espnet2.bin.asr_inference.Speech2Text
   # asr_train_config: ${exp_dir}/config.yaml
@@ -105,14 +106,14 @@ model:
 # `measure` reads it from the data (bind `ref` to `dataset:text` in the
 # metrics config's `inputs:`), so it is not copied by this stage.
 
-# The dataset field(s) passed to the backend. If `dataset[i]` returns `{"speech": ..., "text": ..., "utt_id": ...}` and
+# The dataset field(s) passed to the model. If `dataset[i]` returns `{"speech": ..., "text": ..., "utt_id": ...}` and
 # `input_key: speech`, inference uses `dataset[i]["speech"]` as model input;
 # `input_key: [speech, text]` calls `model(speech=..., text=...)`.
 #
 input_key: speech
 
 # Optional output key list.
-# These keys must exist in the dict returned by `output_fn`.
+# These keys must exist in the runner's named result.
 # Only the fields listed here are written as SCP files under
 # `${inference_dir}/<test_name>/`.
 # If omitted, keys are inferred from the first returned sample except for
@@ -121,9 +122,8 @@ input_key: speech
 # output_keys:
 #   - hyp
 
-# Sample identifier field name expected in the final inference output dict.
-# Inference uses `utt_id` by default, and the final output dict must contain it
-# unless you explicitly override `idx_key`.
+# Sample identifier field name added by the runner to each result.
+# Inference uses `utt_id` by default unless you override `idx_key`.
 # This value becomes the first column in generated SCP files and is used to map
 # each inference result back to the corresponding dataset sample.
 #
@@ -136,22 +136,40 @@ input_key: speech
 # A long utterance next to short ones pads them all, so 4 is a safe default;
 # 8-16 pays off when the test set is roughly sorted by length. A batch that does
 # not fit in memory raises an error with input lengths and advice to lower
-# `batch_size`. Set to `null` for a model or `output_fn` that only supports one
-# item per call. If batching is unsupported, the runner retries items one at
-# a time and emits a warning.
+# `batch_size`. Set to `null` for a model that only supports one
+# item per call. Unsupported batching raises an error without retrying.
 batch_size: 4
 
-# A recipe function converting raw model outputs into dicts such as
-# {"utt_id": "...", "text": "..."}. The default converts native ASR n-best
-# results to one record per utterance; the runner writes `text.scp`.
-#
-# Each output field must be a single value.
-# - Primitive values (`str`, `int`, `float`, `bool`) are written directly to SCP.
-# - `dict` values are serialized as JSON artifacts and the artifact path is
-#   written to SCP.
-# - Bare top-level `list` / `tuple` outputs are not supported.
-#
-output_fn: egs3.TEMPLATE.esp2_asr.src.inference.build_output
+# The same contract is applied around the runner for infer, publication and
+# demo. An audio input with a known rate is resampled to 16 kHz before the
+# runner receives Audio with every channel preserved. Bare arrays carry no rate
+# and are assumed to be at the declared rate. Set rate_policy: reject to refuse
+# mismatches.
+# Custom kinds or normalizers can be registered from a recipe module with
+# `imports: [src.contracts]`. A normalizer receives the Kind's checked value
+# (for audio, an Audio object) and returns the same Kind. This lets a recipe
+# reuse its deterministic training preprocessor. Loading that module from a
+# published bundle requires trust_user_code=True.
+contract:
+  inputs:
+    speech:
+      kind: audio
+      label: Input Audio
+      sample_rate: 16000
+      rate_policy: resample
+      # Exactly this many channels reach the model. Multichannel input is
+      # rejected unless a normalizer below reduces it first (normalizers run
+      # before this check). Remove `channels` for a multichannel model to pass
+      # the input through unchanged, or set `channels: N` to require N.
+      channels: 1
+      # Explicit mono conversion, if required by the model:
+      # normalize: [mean_channels]  # or [first_channel]
+  outputs:
+    text:
+      kind: text
+      label: Transcription
+      # Add normalize: [strip, to_lower] when the same deterministic text
+      # normalization is used for recipe evaluation and public inference.
 
 # Optional artifact writers for non-scalar outputs. To write audio as WAV,
 # configure its sample rate explicitly.
@@ -182,16 +200,15 @@ output_fn: egs3.TEMPLATE.esp2_asr.src.inference.build_output
 #     type: pickle
 #   custom_field:
 #     writer:
-#       _target_: src.inference.write_custom_artifact
+#       _target_: src.artifacts.write_custom_artifact
 #       some_option: 123
 
 ##########################################################
 #               PROVIDER AND RUNNER SETTING              #
 ##########################################################
-# The provider builds `model` on the device it picks; the runner runs it
-# over the dataset shards, using `input_key` to select dataset columns and
-# `output_fn` to shape the result.
+# The provider builds `model`; ASRInferenceRunner decodes its n-best output
+# to `text`. The shared inference contract validates inputs and runner results.
 provider:
   _target_: espnet3.systems.base.inference_provider.InferenceProvider
 runner:
-  _target_: espnet3.systems.base.inference_runner.InferenceRunner
+  _target_: espnet3.systems.esp2_asr.inference.ASRInferenceRunner
