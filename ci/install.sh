@@ -41,7 +41,7 @@ ${CXX:-g++} -v
         pyopenjtalk.done py3mmseg.done transformers.done \
         phonemizer.done fairseq.done k2.done longformer.done \
         parallel-wavegan.done muskits.done lora.done sph2pipe \
-        torcheval.done whisper.done s3prl.done
+        torcheval.done whisper.done s3prl.done ci_sdr.done
     rm -rf kaldi
 )
 . tools/activate_python.sh

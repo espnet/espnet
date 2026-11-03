@@ -51,7 +51,7 @@ endef
 all: showenv conda_packages.done python ffmpeg.done sctk check_install
 
 python: activate_python.sh setuptools.done packaging.done espnet.done pytorch.done fairscale.done torch_optimizer.done flash_attn.done lightning.done
-extra: warp-transducer.done nkf.done moses.done mwerSegmenter.done pesq kenlm.done pyopenjtalk.done py3mmseg.done beamformit.done fairseq.done s3prl.done k2.done transformers.done phonemizer.done longformer.done muskits.done whisper.done rvad_fast.done sounfile_test parallel-wavegan.done lora.done sph2pipe torcheval.done
+extra: warp-transducer.done nkf.done moses.done mwerSegmenter.done pesq kenlm.done pyopenjtalk.done py3mmseg.done beamformit.done fairseq.done s3prl.done k2.done transformers.done phonemizer.done longformer.done muskits.done whisper.done rvad_fast.done sounfile_test parallel-wavegan.done lora.done sph2pipe torcheval.done ci_sdr.done
 
 activate_python.sh:
 	test -f activate_python.sh || { echo "Error: Run ./setup_python.sh or ./setup_miniforge.sh"; exit 1; }
@@ -125,7 +125,14 @@ sph2pipe/sph2pipe:
 setuptools.done: activate_python.sh
 	$(call start_timer,setuptools.done)
 	# NOTE(jiatong): For python 3.12 case, as distutils are not default from 3.12
-	. ./activate_python.sh && { python -m ensurepip --upgrade; pip install setuptools; }
+	# --default-pip: without it, ensurepip installs only pip3 and pip3.X. On
+	# python 3.13 the bundled pip is newer than the pip==25.2 setup_venv.sh pins,
+	# so the upgrade really runs, removes venv/bin/pip and does not put it back.
+	# Every bare `pip` after this (install_fairscale.sh and ten other
+	# installers) then runs the system interpreter's pip: fairscale resolved
+	# torch there, pulled the CUDA build's ~3 GB of nvidia-* wheels, and filled
+	# the CI runner's disk.
+	. ./activate_python.sh && { python -m ensurepip --upgrade --default-pip; python -m pip install setuptools; }
 	$(call end_timer_and_touch,setuptools.done)
 
 packaging.done: setuptools.done
@@ -309,6 +316,11 @@ whisper.done: espnet.done
 	. ./activate_python.sh && ./installers/install_whisper.sh
 	$(call end_timer_and_touch,whisper.done)
 
+ci_sdr.done: espnet.done
+	$(call start_timer,ci_sdr.done)
+	. ./activate_python.sh && ./installers/install_ci_sdr.sh
+	$(call end_timer_and_touch,ci_sdr.done)
+
 lora.done: espnet.done
 	$(call start_timer,lora.done)
 	. ./activate_python.sh && ./installers/install_lora.sh
@@ -394,6 +406,7 @@ clean_extra:
 	rm -rf rvad_fast.done
 	rm -rf lightning_constraints.txt
 	rm -rf torcheval_constraints.txt
+	rm -rf ci_sdr_constraints.txt
 	rm -rf espeak-ng festival MBROLA ParallelWaveGAN versa
 	rm -rf py3mmseg sctk* speech_tools sph2pipe* ._mwerSegmenter
 	rm -rf nkf mecab swig moses mwerSegmenter
