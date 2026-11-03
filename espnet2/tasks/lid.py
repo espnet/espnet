@@ -29,6 +29,8 @@ from espnet2.spk.encoder.xvector_encoder import XvectorEncoder
 from espnet2.spk.loss.aamsoftmax import AAMSoftmax
 from espnet2.spk.loss.aamsoftmax_subcenter_intertopk import (
     ArcMarginProduct_intertopk_subcenter,
+    ArcMarginProduct_intertopk_subcenter_multilabel,
+    ArcMarginProduct_intertopk_subcenter_softtarget,
 )
 from espnet2.spk.loss.abs_loss import AbsLoss
 from espnet2.spk.loss.softmax import Softmax
@@ -49,7 +51,9 @@ from espnet2.train.lid_trainer import LIDTrainer
 from espnet2.train.preprocessor import (
     AbsPreprocessor,
     CommonPreprocessor,
+    LIDMultiLabelPreprocessor,
     LIDPreprocessor,
+    LIDSoftLabelPreprocessor,
 )
 from espnet2.utils.types import int_or_none, str2bool, str_or_none
 
@@ -174,6 +178,8 @@ preprocessor_choices = ClassChoices(
     classes=dict(
         common=CommonPreprocessor,
         lid=LIDPreprocessor,
+        lid_multilabel=LIDMultiLabelPreprocessor,
+        lid_softlabel=LIDSoftLabelPreprocessor,
     ),
     type_check=AbsPreprocessor,
     default="lid",
@@ -184,6 +190,8 @@ loss_choices = ClassChoices(
     classes=dict(
         aamsoftmax=AAMSoftmax,
         aamsoftmax_sc_topk=ArcMarginProduct_intertopk_subcenter,
+        aamsoftmax_sc_topk_multilabel=ArcMarginProduct_intertopk_subcenter_multilabel,
+        aamsoftmax_sc_topk_softtarget=ArcMarginProduct_intertopk_subcenter_softtarget,
         softmax=Softmax,
     ),
     type_check=AbsLoss,

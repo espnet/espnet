@@ -31,7 +31,16 @@ if torch.cuda.is_available() and torch.cuda.is_bf16_supported():
 
 
 class ESPnetASRModel(AbsESPnetModel):
-    """CTC-attention hybrid Encoder-Decoder model"""
+    """CTC-attention hybrid Encoder-Decoder model
+
+    Args:
+        pit_loss: If True, use an order-insensitive (permutation-invariant)
+            attention loss. This is attention-only (ctc_weight must be 0; no
+            transducer, LinearDecoder or lang_token_id) and requires targets
+            of 1 or 2 tokens (e.g. language-ID sequences): the loss of each
+            utterance is the minimum over the two token orders, and the
+            accuracy is computed with the chosen order.
+    """
 
     @typechecked
     def __init__(
@@ -66,9 +75,31 @@ class ESPnetASRModel(AbsESPnetModel):
         autocast_frontend: bool = False,
         extract_feats_in_collect_stats: bool = True,
         lang_token_id: int = -1,
+        pit_loss: bool = False,
     ):
         assert 0.0 <= ctc_weight <= 1.0, ctc_weight
         assert 0.0 <= interctc_weight < 1.0, interctc_weight
+        if pit_loss:
+            if ctc_weight != 0.0:
+                raise ValueError(
+                    "pit_loss currently supports attention-only "
+                    f"LID sequence training, but ctc_weight={ctc_weight}"
+                )
+            if joint_network is not None:
+                raise ValueError(
+                    "pit_loss is only supported with an attention decoder, "
+                    "not a transducer"
+                )
+            if lang_token_id != -1:
+                raise ValueError(
+                    "pit_loss does not support lang_token_id prefixing because "
+                    "it would make the permutation target ambiguous"
+                )
+            if isinstance(decoder, LinearDecoder):
+                raise ValueError(
+                    "pit_loss is only supported with an attention decoder, "
+                    "not LinearDecoder"
+                )
 
         super().__init__()
         # NOTE (Shih-Lun): else case is for OpenAI Whisper ASR model,
@@ -91,6 +122,7 @@ class ESPnetASRModel(AbsESPnetModel):
         self.interctc_weight = interctc_weight
         self.aux_ctc = aux_ctc
         self.token_list = token_list.copy()
+        self.pit_loss = pit_loss
 
         self.frontend = frontend
         self.specaug = specaug
@@ -184,6 +216,11 @@ class ESPnetASRModel(AbsESPnetModel):
             if report_cer or report_wer:
                 self.error_calculator = ErrorCalculator(
                     token_list, sym_space, sym_blank, report_cer, report_wer
+                )
+
+            if self.pit_loss:
+                logging.info(
+                    "Enabled PIT attention loss for 1- or 2-token target sequences"
                 )
 
         if ctc_weight == 0.0:
@@ -577,7 +614,19 @@ class ESPnetASRModel(AbsESPnetModel):
         )
 
         # 2. Compute attention loss
-        loss_att = self.criterion_att(decoder_out, ys_out_pad)
+        # NOTE: ESPnetSLUModel inherits this method without calling __init__
+        if getattr(self, "pit_loss", False):
+            # Accuracy and error rates use the label order chosen by the loss
+            loss_att, decoder_out, ys_pad, ys_out_pad = self._calc_pit_att_loss(
+                encoder_out,
+                encoder_out_lens,
+                ys_pad,
+                ys_pad_lens,
+                decoder_out,
+                ys_out_pad,
+            )
+        else:
+            loss_att = self.criterion_att(decoder_out, ys_out_pad)
         acc_att = th_accuracy(
             decoder_out.view(-1, self.vocab_size),
             ys_out_pad,
@@ -592,6 +641,110 @@ class ESPnetASRModel(AbsESPnetModel):
             cer_att, wer_att = self.error_calculator(ys_hat.cpu(), ys_pad.cpu())
 
         return loss_att, acc_att, cer_att, wer_att
+
+    def _calc_label_smoothing_loss_per_sample(
+        self,
+        decoder_out: torch.Tensor,
+        target: torch.Tensor,
+    ) -> torch.Tensor:
+        """Return unreduced per-utterance attention losses.
+
+        This mirrors LabelSmoothingLoss but keeps the batch dimension so the
+        LID sequence PIT branch can choose the best label permutation per
+        utterance.
+        """
+        criterion = self.criterion_att
+        assert decoder_out.size(2) == criterion.size
+        batch_size, maxlen, vocab_size = decoder_out.size()
+        x = decoder_out.reshape(-1, vocab_size)
+        target = target.reshape(-1)
+        with torch.no_grad():
+            true_dist = x.clone()
+            true_dist.fill_(criterion.smoothing / (criterion.size - 1))
+            ignore = target == criterion.padding_idx
+            target = target.masked_fill(ignore, 0)
+            true_dist.scatter_(1, target.unsqueeze(1), criterion.confidence)
+        kl = criterion.criterion(torch.log_softmax(x, dim=1), true_dist)
+        token_loss = kl.masked_fill(ignore.unsqueeze(1), 0).sum(dim=1)
+        return token_loss.reshape(batch_size, maxlen).sum(dim=1)
+
+    def _reduce_per_sample_att_loss(
+        self,
+        per_sample_loss: torch.Tensor,
+        target: torch.Tensor,
+    ) -> torch.Tensor:
+        """Reduce per-utterance losses as LabelSmoothingLoss does."""
+        if self.criterion_att.normalize_length:
+            denom = (target != self.ignore_id).sum().clamp(min=1)
+            return per_sample_loss.sum() / denom
+        return per_sample_loss.mean()
+
+    def _calc_pit_att_loss(
+        self,
+        encoder_out: torch.Tensor,
+        encoder_out_lens: torch.Tensor,
+        ys_pad: torch.Tensor,
+        ys_pad_lens: torch.Tensor,
+        decoder_out: torch.Tensor,
+        ys_out_pad: torch.Tensor,
+    ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
+        """Compute the attention loss with the better of the two token orders.
+
+        Args:
+            encoder_out: Encoder output (Batch, Length, Dim)
+            encoder_out_lens: Encoder output lengths (Batch,)
+            ys_pad: Targets without sos/eos (Batch, Length), 1 or 2 tokens
+            ys_pad_lens: Target lengths (Batch,)
+            decoder_out: Decoder output for the given order (Batch, Length+1, V)
+            ys_out_pad: Decoder targets for the given order (Batch, Length+1)
+
+        Returns:
+            Reduced loss, and decoder_out, ys_pad and ys_out_pad with each
+            2-token utterance in the order that gave the lower loss.
+        """
+        if int(ys_pad_lens.max()) > 2:
+            raise RuntimeError(
+                "pit_loss only supports 1- or 2-token "
+                f"LID sequence targets, but got max length {int(ys_pad_lens.max())}"
+            )
+
+        original_loss = self._calc_label_smoothing_loss_per_sample(
+            decoder_out,
+            ys_out_pad,
+        )
+        two_token = ys_pad_lens == 2
+        if not bool(two_token.any()):
+            loss = self._reduce_per_sample_att_loss(original_loss, ys_out_pad)
+            return loss, decoder_out, ys_pad, ys_out_pad
+
+        swapped_ys_pad = ys_pad.clone()
+        swapped_ys_pad[two_token, 0] = ys_pad[two_token, 1]
+        swapped_ys_pad[two_token, 1] = ys_pad[two_token, 0]
+        swapped_ys_in_pad, swapped_ys_out_pad = add_sos_eos(
+            swapped_ys_pad,
+            self.sos,
+            self.eos,
+            self.ignore_id,
+        )
+        swapped_decoder_out, _ = self.decoder(
+            encoder_out,
+            encoder_out_lens,
+            swapped_ys_in_pad,
+            ys_pad_lens + 1,
+        )
+        swapped_loss = self._calc_label_smoothing_loss_per_sample(
+            swapped_decoder_out,
+            swapped_ys_out_pad,
+        )
+        use_swapped = two_token & (swapped_loss < original_loss)
+        selected_loss = torch.where(use_swapped, swapped_loss, original_loss)
+        loss = self._reduce_per_sample_att_loss(selected_loss, ys_out_pad)
+        return (
+            loss,
+            torch.where(use_swapped[:, None, None], swapped_decoder_out, decoder_out),
+            torch.where(use_swapped[:, None], swapped_ys_pad, ys_pad),
+            torch.where(use_swapped[:, None], swapped_ys_out_pad, ys_out_pad),
+        )
 
     def _calc_ctc_loss(
         self,

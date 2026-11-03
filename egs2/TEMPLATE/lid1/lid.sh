@@ -60,10 +60,12 @@ min_wav_duration=1.0  # Minimum duration in second.
 max_wav_duration=60.  # Maximum duration in second.
 
 # Language identification model related
+lid_stats_dir=        # Specify the directory path for LID statistics.
 lid_exp=              # Specify the directory path for lid experiment.
 lid_tag=              # Suffix to the result dir for lid model training.
 lid_config=           # Config for the lid model training.
 lid_args=             # Arguments for lid model training.
+lid_label_file=utt2lang  # File used as the lid_labels input.
 pretrained_model=     # Pretrained model to load
 ignore_init_mismatch=false      # Ignore initial mismatch
 
@@ -123,10 +125,12 @@ Options:
     max_wav_duration=60.  # Maximum duration in second.
 
     # Language identification model related
+    lid_stats_dir=        # Statistics directory (default: ${expdir}/lid_stats_${fs}).
     lid_exp=              # Specify the directory path for lid experiment.
     lid_tag=              # Suffix to the result dir for lid model training.
     lid_config=           # Config for the lid model training.
     lid_args=             # Arguments for lid model training.
+    lid_label_file=utt2lang  # File used as the lid_labels input.
     pretrained_model=     # Pretrained model to load (default="${pretrained_model}").
     ignore_init_mismatch= # Ignore mismatch parameter init with pretrained model (default="${ignore_init_mismatch}").
 
@@ -192,7 +196,9 @@ if [ -z "${lid_tag}" ]; then
 fi
 
 # Set directory used for training commands
-lid_stats_dir="${expdir}/lid_stats_${fs}"
+if [ -z "${lid_stats_dir}" ]; then
+    lid_stats_dir="${expdir}/lid_stats_${fs}"
+fi
 if [ -z "${lid_exp}" ]; then
     lid_exp="${expdir}/lid_${lid_tag}"
 fi
@@ -491,10 +497,10 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
             --ignore_init_mismatch ${ignore_init_mismatch} \
             --output_dir ${lid_exp} \
             --train_data_path_and_name_and_type ${_lid_train_dir}/wav.scp,speech,sound \
-            --train_data_path_and_name_and_type ${_lid_train_dir}/utt2lang,lid_labels,text \
+            --train_data_path_and_name_and_type ${_lid_train_dir}/${lid_label_file},lid_labels,text \
             --train_shape_file ${lid_stats_dir}/train/speech_shape \
             --valid_data_path_and_name_and_type ${_lid_valid_dir}/wav.scp,speech,sound \
-            --valid_data_path_and_name_and_type ${_lid_valid_dir}/utt2lang,lid_labels,text \
+            --valid_data_path_and_name_and_type ${_lid_valid_dir}/${lid_label_file},lid_labels,text \
             --lang2utt ${_lid_train_dir}/lang2utt \
             --lang_num $(wc -l ${_lid_train_dir}/lang2utt | cut -f1 -d" ") \
             --fold_length ${fold_length} \
@@ -618,7 +624,7 @@ if [ ${stage} -le 8 ] && [ ${stop_stage} -ge 8 ]; then
             --output_dir ${infer_exp} \
             --dtype float32 \
             --data_path_and_name_and_type "${_inference_dir}/wav.scp,speech,sound" \
-            --data_path_and_name_and_type "${_inference_dir}/utt2lang,lid_labels,text" \
+            --data_path_and_name_and_type "${_inference_dir}/${lid_label_file},lid_labels,text" \
             --valid_batch_size ${inference_batch_size} \
             --lid_train_config "${lid_exp}/config.yaml" \
             --lid_model_file "${lid_exp}"/${inference_model} \

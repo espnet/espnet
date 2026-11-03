@@ -1,0 +1,75 @@
+# Phase 1 on FLEURS + CS-FLEURS: MMS-1B frozen (its layer weights are trained), lr 1e-3.
+# MMS-1B (S3PRL, learned layer weights) + 24-layer Transformer encoder (d=256) +
+# 4-layer Transformer decoder, attention loss only; batch_size * accum_grad = 32.
+frontend: s3prl
+frontend_conf:
+  fs: 16k
+  frontend_conf:
+    upstream: hf_wav2vec2_custom
+    path_or_url: facebook/mms-1b
+  download_dir: ./hub
+  multilayer_feature: true
+normalize: utterance_mvn
+normalize_conf:
+  norm_vars: false
+encoder: transformer
+encoder_conf:
+  output_size: 256
+  attention_heads: 4
+  linear_units: 1024
+  num_blocks: 24
+  dropout_rate: 0.1
+  positional_dropout_rate: 0.1
+  attention_dropout_rate: 0.0
+  input_layer: linear
+  normalize_before: true
+decoder: transformer
+decoder_conf:
+  attention_heads: 4
+  linear_units: 1024
+  num_blocks: 4
+  dropout_rate: 0.1
+  positional_dropout_rate: 0.1
+  self_attention_dropout_rate: 0.0
+  src_attention_dropout_rate: 0.0
+model_conf:
+  extract_feats_in_collect_stats: false
+  ctc_weight: 0.0
+  lsm_weight: 0.1
+  length_normalized_loss: false
+  pit_loss: true
+freeze_param:
+- frontend.upstream
+
+num_att_plot: 0
+num_workers: 4
+cudnn_deterministic: false
+cudnn_benchmark: true
+log_interval: 100
+unused_parameters: true
+use_amp: true
+keep_nbest_models: 5
+grad_clip: 5
+best_model_criterion:
+- - valid
+  - loss
+  - min
+batch_type: sorted
+batch_size: 8
+valid_batch_size: 8
+accum_grad: 4
+max_epoch: 10
+num_iters_per_epoch: 3880
+drop_last_iter: true
+sort_in_batch: descending
+sort_batch: descending
+
+optim: adam
+optim_conf:
+  lr: 0.001
+  betas:
+  - 0.9
+  - 0.98
+scheduler: warmuplr
+scheduler_conf:
+  warmup_steps: 2910
