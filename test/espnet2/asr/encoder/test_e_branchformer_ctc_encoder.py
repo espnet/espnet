@@ -135,3 +135,39 @@ def test_encoder_invalid_rel_pos_combination():
 def test_encoder_output_size():
     encoder = EBranchformerCTCEncoder(20, output_size=256)
     assert encoder.output_size() == 256
+
+
+def test_use_sdpa_reaches_the_attention_and_matches_the_default():
+    """`use_sdpa` has to be forwarded, and must not change the output.
+
+    The flag reaches PyTorch's scaled_dot_product_attention; checking every
+    module that carries it, rather than one attribute name, keeps this honest
+    if a layer gains a second attention.
+    """
+    x = torch.randn(2, 120, 80)
+    lengths = torch.tensor([120, 95])
+
+    def build(**kwargs):
+        torch.manual_seed(0)
+        return EBranchformerCTCEncoder(
+            80,
+            output_size=32,
+            attention_heads=2,
+            linear_units=32,
+            cgmlp_linear_units=32,
+            num_blocks=2,
+            use_flash_attn=False,
+            **kwargs,
+        )
+
+    # eval() so dropout does not make the two forward passes draw different
+    # masks: the point of the comparison is the attention implementation.
+    sdpa_encoder = build(use_sdpa=True).eval()
+    attentions = [m for m in sdpa_encoder.modules() if hasattr(m, "use_sdpa")]
+    assert attentions and all(m.use_sdpa for m in attentions)
+
+    with torch.no_grad():
+        default_out, _, _ = build().eval()(x, lengths)
+        sdpa_out, _, _ = sdpa_encoder(x, lengths)
+    assert default_out.shape == sdpa_out.shape
+    assert torch.allclose(default_out, sdpa_out, atol=1e-5)

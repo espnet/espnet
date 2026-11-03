@@ -340,6 +340,38 @@ def test_Speech2Text_streaming_from_pretrained_tag(
 
 
 @pytest.mark.execution_timeout(20)
+def test_Speech2Text_streaming_over_a_built_model(asr_config_file_streaming):
+    """asr_model + asr_train_args in place of the files: the same decoder."""
+    with open(asr_config_file_streaming, "r", encoding="utf-8") as f:
+        asr_train_config = yaml.full_load(f.read())
+    asr_train_config["frontend"] = "default"
+    asr_train_config["encoder_conf"] = {
+        "look_ahead": 16,
+        "hop_size": 16,
+        "block_size": 40,
+    }
+    with open(asr_config_file_streaming, "w", encoding="utf-8") as f:
+        yaml.dump(asr_train_config, f)
+    from_files = Speech2TextStreaming(
+        asr_train_config=asr_config_file_streaming, beam_size=1
+    )
+    over_model = Speech2TextStreaming(
+        asr_model=from_files.asr_model,
+        asr_train_args=from_files.asr_train_args,
+        beam_size=1,
+    )
+    assert over_model.asr_model is from_files.asr_model
+    speech = np.random.randn(6000)
+    expected = from_files(speech, is_final=True)
+    actual = over_model(speech, is_final=True)
+    assert [r[2] for r in actual] == [r[2] for r in expected]
+    with pytest.raises(ValueError, match="asr_train_config, or asr_model"):
+        Speech2TextStreaming(beam_size=1)
+    with pytest.raises(ValueError, match="needs its asr_train_args"):
+        Speech2TextStreaming(asr_model=from_files.asr_model)
+
+
+@pytest.mark.execution_timeout(20)
 def test_Speech2Text_streaming(asr_config_file_streaming, lm_config_file):
     file = open(asr_config_file_streaming, "r", encoding="utf-8")
     asr_train_config = file.read()
@@ -934,3 +966,29 @@ def test_Speech2Text_list_input_falls_back_without_batch_beam_search(
     assert [r[0][0] for r in results] == [speech2text(s)[0][0] for s in speech]
     notes = [r for r in caplog.records if "one at a time" in r.getMessage()]
     assert len(notes) == 1, "warned once, not per call"
+
+
+def test_Speech2Text_batch_decode_accepts_numpy_and_lists(asr_config_file_transformer):
+    """A padded numpy array or a list of utterances decodes like the tensor."""
+    batched = Speech2Text(
+        asr_train_config=asr_config_file_transformer, beam_size=2, batch_size=3
+    )
+    lengths = [16000, 12000, 20000]
+    padded = torch.zeros(len(lengths), max(lengths))
+    for i, n in enumerate(lengths):
+        padded[i, :n] = torch.randn(n)
+    expected = batched.batch_decode(padded, torch.tensor(lengths))
+
+    from_numpy = batched.batch_decode(padded.numpy(), np.array(lengths))
+    from_list = batched.batch_decode(
+        [padded[i, :n].numpy() for i, n in enumerate(lengths)]
+    )
+    with_int_lengths = batched.batch_decode(padded, lengths)
+    with_numpy_ints = batched.batch_decode(padded, [np.int64(x) for x in lengths])
+    for actual in (from_numpy, from_list, with_int_lengths, with_numpy_ints):
+        assert len(actual) == len(expected)
+        for exp, act in zip(expected, actual):
+            assert [e[1] for e in exp] == [a[1] for a in act]
+            np.testing.assert_allclose(
+                [float(e[3].score) for e in exp], [float(a[3].score) for a in act]
+            )

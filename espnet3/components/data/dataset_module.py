@@ -7,19 +7,20 @@ such as:
 
     dataset:
       train:
-        - data_src: mini_an4/asr
+        - data_src: mini_an4/esp2_asr
           data_src_args:
             split: train
 
 It supports:
 
-1. Tag notation (``mini_an4/asr``) -> ``egs3.mini_an4.asr.dataset``.
+1. Tag notation (``mini_an4/esp2_asr``) -> ``egs3.mini_an4.esp2_asr.dataset``.
 2. Direct dotted module paths.
 3. Local recipe datasets when ``data_src`` is omitted.
 """
 
 from __future__ import annotations
 
+import dataclasses
 import sys
 from importlib import import_module, util
 from pathlib import Path
@@ -27,17 +28,21 @@ from typing import Any, Mapping
 
 from omegaconf import DictConfig, OmegaConf
 
+from espnet3.components.data.base_dataset import BaseDataset
+
 
 def _to_plain_dict(config: Any) -> dict[str, Any]:
 
     # Keep unresolved OmegaConf values as-is at this layer.
     if isinstance(config, DictConfig):
         return dict(OmegaConf.to_container(config, resolve=False))
+    if dataclasses.is_dataclass(config) and not isinstance(config, type):
+        return dataclasses.asdict(config)
     return dict(config)
 
 
 # Dataset modules follow the convention: egs3.<tag>.dataset
-# e.g. "mini_an4/asr" -> "egs3.mini_an4.asr.dataset"
+# e.g. "mini_an4/esp2_asr" -> "egs3.mini_an4.esp2_asr.dataset"
 _RECIPE_NAMESPACE = "egs3"
 _DATASET_SUBMODULE = "dataset"
 _DATA_SRC_KEY = "data_src"
@@ -62,8 +67,8 @@ def resolve_dataset_module_name(ref: str) -> str:
         Hyphens are normalized to underscores to match Python module naming.
 
     Examples:
-        >>> resolve_dataset_module_name("mini_an4/asr")
-        'egs3.mini_an4.asr.dataset'
+        >>> resolve_dataset_module_name("mini_an4/esp2_asr")
+        'egs3.mini_an4.esp2_asr.dataset'
         >>> resolve_dataset_module_name("my-recipe/asr")
         'egs3.my_recipe.asr.dataset'
     """
@@ -87,7 +92,7 @@ def _load_local_dataset_module(recipe_dir: str | Path | None):
         ImportError: If Python cannot construct an import spec for the file.
 
     Examples:
-        >>> module = _load_local_dataset_module("egs3/mini_an4/asr")
+        >>> module = _load_local_dataset_module("egs3/mini_an4/esp2_asr")
         >>> hasattr(module, "Dataset")
         True
     """
@@ -124,8 +129,8 @@ def load_dataset_module(
     Args:
         data_src: Dataset source reference. Supported forms:
             - ``None``: load local ``recipe_dir/dataset`` module.
-            - tag form: ``mini_an4/asr``.
-            - module path form: ``egs3.mini_an4.asr.dataset``.
+            - tag form: ``mini_an4/esp2_asr``.
+            - module path form: ``egs3.mini_an4.esp2_asr.dataset``.
         recipe_dir: Recipe root directory used for local module loading.
 
     Returns:
@@ -141,11 +146,11 @@ def load_dataset_module(
         It only resolves and imports the module.
 
     Examples:
-        >>> module = load_dataset_module(data_src="mini_an4/asr")
+        >>> module = load_dataset_module(data_src="mini_an4/esp2_asr")
         >>> hasattr(module, "DatasetBuilder")
         True
         >>> local = load_dataset_module(
-        ...     data_src=None, recipe_dir="egs3/mini_an4/asr"
+        ...     data_src=None, recipe_dir="egs3/mini_an4/esp2_asr"
         ... )
         >>> hasattr(local, "Dataset")
         True
@@ -161,7 +166,7 @@ def load_dataset_module(
         return _load_local_dataset_module(recipe_dir)
     if _is_tag(data_src):
 
-        # Tag mode: "mini_an4/asr" -> "egs3.mini_an4.asr.dataset"
+        # Tag mode: "mini_an4/esp2_asr" -> "egs3.mini_an4.esp2_asr.dataset"
         return import_module(resolve_dataset_module_name(data_src))
 
     # Module path mode: import as-is.
@@ -192,9 +197,9 @@ def parse_dataset_reference_config(
 
     Examples:
         >>> parse_dataset_reference_config(
-        ...     {"data_src": "mini_an4/asr", "data_src_args": {"split": "train"}}
+        ...     {"data_src": "mini_an4/esp2_asr", "data_src_args": {"split": "train"}}
         ... )
-        ('mini_an4/asr', {'split': 'train'})
+        ('mini_an4/esp2_asr', {'split': 'train'})
         >>> parse_dataset_reference_config({"data_src_args": {"split": "test"}})
         (None, {'split': 'test'})
     """
@@ -204,7 +209,10 @@ def parse_dataset_reference_config(
         if not isinstance(data_src, str):
             raise TypeError("`data_src` must be a string or None.")
         data_src = data_src.strip() or None
-    data_src_args = dict(plain.get(_DATA_SRC_ARGS_KEY, {}))
+    data_src_args = plain.get(_DATA_SRC_ARGS_KEY, {})
+    if data_src_args is None:
+        data_src_args = {}
+    data_src_args = dict(data_src_args)
     return data_src, data_src_args
 
 
@@ -227,7 +235,7 @@ def instantiate_dataset_reference(
         AttributeError: If the target module does not expose ``Dataset``.
         ModuleNotFoundError: If dataset module resolution fails.
         TypeError: If ``data_src_args`` is incompatible with dataset
-            constructor.
+            constructor, or ``Dataset`` does not inherit ``BaseDataset``.
 
     Notes:
         Only ``data_src_args`` is forwarded to the dataset constructor.
@@ -235,16 +243,21 @@ def instantiate_dataset_reference(
         through.
 
     Examples:
-        >>> cfg = {"data_src": "mini_an4/asr", "data_src_args": {"split": "train"}}
-        >>> ds = instantiate_dataset_reference(cfg, recipe_dir="egs3/mini_an4/asr")
+        >>> cfg = {"data_src": "mini_an4/esp2_asr", "data_src_args": {"split": "train"}}
+        >>> ds = instantiate_dataset_reference(cfg, recipe_dir="egs3/mini_an4/esp2_asr")
         >>> hasattr(ds, "__len__")
         True
 
         Local dataset module loading (no data_src):
         >>> cfg = {"data_src_args": {"split": "test"}}
-        >>> _ = instantiate_dataset_reference(cfg, recipe_dir="egs3/mini_an4/asr")
+        >>> _ = instantiate_dataset_reference(cfg, recipe_dir="egs3/mini_an4/esp2_asr")
     """
     data_src, data_src_args = parse_dataset_reference_config(config)
     module = load_dataset_module(data_src=data_src, recipe_dir=recipe_dir)
     dataset_cls = getattr(module, "Dataset")
+    if not issubclass(dataset_cls, BaseDataset):
+        raise TypeError(
+            f"{dataset_cls.__qualname__} does not inherit BaseDataset; a "
+            "recipe's Dataset class must declare `fields` through it"
+        )
     return dataset_cls(**data_src_args)

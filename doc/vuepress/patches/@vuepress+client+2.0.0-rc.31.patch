@@ -1,0 +1,13 @@
+diff --git a/node_modules/@vuepress/client/dist/utils-jFeCv-dX.js b/node_modules/@vuepress/client/dist/utils-jFeCv-dX.js
+index 7db2f8a..eec0ee0 100644
+--- a/node_modules/@vuepress/client/dist/utils-jFeCv-dX.js
++++ b/node_modules/@vuepress/client/dist/utils-jFeCv-dX.js
+@@ -66,6 +66,8 @@ const contentUpdatedCallbacks = /* @__PURE__ */ new Set();
+ * in the DOM.
+ */
+ const onContentUpdated = (fn) => {
++	// SSR never runs DOM updates or unmount hooks.
++	if (__VUEPRESS_SSR__) return;
+ 	contentUpdatedCallbacks.add(fn);
+ 	onUnmounted(() => {
+ 		contentUpdatedCallbacks.delete(fn);

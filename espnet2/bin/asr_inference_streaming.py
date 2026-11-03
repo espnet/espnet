@@ -53,7 +53,7 @@ class Speech2TextStreaming:
     @typechecked
     def __init__(
         self,
-        asr_train_config: Union[Path, str],
+        asr_train_config: Union[Path, str, None] = None,
         asr_model_file: Union[Path, str, None] = None,
         lm_train_config: Union[Path, str, None] = None,
         lm_file: Union[Path, str, None] = None,
@@ -73,13 +73,30 @@ class Speech2TextStreaming:
         disable_repetition_detection=False,
         decoder_text_length_limit=0,
         encoded_feat_length_limit=0,
+        asr_model=None,
+        asr_train_args=None,
     ):
+        """Build the online decoder from the model's files, or over a built model.
 
-        # 1. Build ASR model
+        ``asr_model`` and ``asr_train_args`` together take the place of
+        ``asr_train_config`` and ``asr_model_file``: what ``Speech2Text``
+        already holds, so a model loaded once can decode online too without
+        being read from disk again. A supplied model is moved to ``device``
+        and ``dtype`` in place, as a model read from its files is, so pass
+        the ones it already lives on. The language model, if any, is read
+        from its files either way.
+        """
+        if asr_model is None:
+            if asr_train_config is None:
+                raise ValueError(
+                    "pass asr_train_config, or asr_model with asr_train_args"
+                )
+            asr_model, asr_train_args = ASRTask.build_model_from_file(
+                asr_train_config, asr_model_file, device
+            )
+        elif asr_train_args is None:
+            raise ValueError("asr_model needs its asr_train_args")
         scorers = {}
-        asr_model, asr_train_args = ASRTask.build_model_from_file(
-            asr_train_config, asr_model_file, device
-        )
         asr_model.to(dtype=getattr(torch, dtype)).eval()
 
         assert isinstance(

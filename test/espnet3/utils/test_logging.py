@@ -9,6 +9,7 @@ import torch
 import torch.nn as nn
 from omegaconf import OmegaConf
 
+from espnet3.contract.stages import StageSpec
 from espnet3.utils import logging_utils as elog
 
 # | Test Name                                              | Description                                                    | # noqa: E501
@@ -16,10 +17,14 @@ from espnet3.utils import logging_utils as elog
 # | test_configure_logging_adds_console_and_file          | Adds both console and file handlers and writes log file        | # noqa: E501
 # | test_configure_logging_is_idempotent                  | Repeated configure keeps a single file handler                 | # noqa: E501
 # | test_configure_logging_rotates_existing_file          | Rotates pre-existing log file before new logging               | # noqa: E501
+# | test_set_stage_log_handler_returns_none_for_no_log_dir | No-op (returns None) when log_dir is None                     | # noqa: E501
+# | test_set_stage_log_handler_rotates_existing_file      | Rotates a pre-existing stage log file before attaching         | # noqa: E501
+# | test_set_stage_log_handler_replaces_prior_stage_handler | Replaces the prior _espnet3_stage_log handler, keeps others  | # noqa: E501
 # | test_set_log_format_updates_globals_and_handlers      | Updates global log/date formats and handler formatter          | # noqa: E501
 # | test_log_run_metadata_logs_command_and_git            | Logs argv, config paths, and git metadata                      | # noqa: E501
 # | test_log_run_metadata_writes_requirements             | Writes pip freeze output to requirements.txt                   | # noqa: E501
 # | test_log_stage_metadata_logs_configs                  | Logs config paths and resolved config contents                 | # noqa: E501
+# | test_log_stage_metadata_omits_roles_not_in_stages     | Skips a role the system's stages don't declare                 | # noqa: E501
 # | test_log_training_summary_includes_model_and_optimizer| Logs model, optimizer, and scheduler summaries                 | # noqa: E501
 # | test_log_data_organizer_includes_datasets             | Logs train/valid dataset summaries from DataOrganizer          | # noqa: E501
 # | test_log_data_organizer_combined_variants             | Logs CombinedDataset variants with custom transforms           | # noqa: E501
@@ -100,6 +105,73 @@ def test_configure_logging_rotates_existing_file(tmp_path: Path):
         assert rotated.read_text(encoding="utf-8") == "old log\n"
         assert log_path.exists()
     finally:
+        _reset_logger(root, old_handlers, old_level, old_propagate)
+
+
+def test_set_stage_log_handler_returns_none_for_no_log_dir():
+    # [misc-utils#07]
+    assert elog.set_stage_log_handler(log_dir=None, filename="train.log") is None
+
+
+def test_set_stage_log_handler_rotates_existing_file(tmp_path: Path):
+    # [misc-utils#07]
+    root = py_logging.getLogger()
+    old_handlers = list(root.handlers)
+    old_level = root.level
+    old_propagate = root.propagate
+    try:
+        root.handlers = []
+        root.propagate = False
+
+        log_path = tmp_path / "train.log"
+        log_path.write_text("old stage log\n", encoding="utf-8")
+
+        target = elog.set_stage_log_handler(log_dir=tmp_path, filename="train.log")
+
+        assert target == log_path.resolve()
+        rotated = tmp_path / "train1.log"
+        assert rotated.exists()
+        assert rotated.read_text(encoding="utf-8") == "old stage log\n"
+    finally:
+        for handler in root.handlers:
+            if getattr(handler, "_espnet3_stage_log", False):
+                handler.close()
+        _reset_logger(root, old_handlers, old_level, old_propagate)
+
+
+def test_set_stage_log_handler_replaces_prior_stage_handler(tmp_path: Path):
+    # [misc-utils#07] a second call must remove/close the first stage
+    # handler (identified via the _espnet3_stage_log marker) instead of
+    # accumulating handlers, while leaving unrelated handlers untouched.
+    root = py_logging.getLogger()
+    old_handlers = list(root.handlers)
+    old_level = root.level
+    old_propagate = root.propagate
+    try:
+        root.handlers = []
+        root.propagate = False
+        unrelated = py_logging.StreamHandler()
+        root.addHandler(unrelated)
+
+        elog.set_stage_log_handler(log_dir=tmp_path, filename="collect_stats.log")
+        first_stage_handlers = [
+            h for h in root.handlers if getattr(h, "_espnet3_stage_log", False)
+        ]
+        assert len(first_stage_handlers) == 1
+        first_handler = first_stage_handlers[0]
+
+        elog.set_stage_log_handler(log_dir=tmp_path, filename="train.log")
+        stage_handlers = [
+            h for h in root.handlers if getattr(h, "_espnet3_stage_log", False)
+        ]
+
+        assert len(stage_handlers) == 1
+        assert stage_handlers[0] is not first_handler
+        assert unrelated in root.handlers
+    finally:
+        for handler in root.handlers:
+            if getattr(handler, "_espnet3_stage_log", False):
+                handler.close()
         _reset_logger(root, old_handlers, old_level, old_propagate)
 
 
@@ -188,9 +260,12 @@ def test_log_stage_metadata_logs_configs(monkeypatch):
     old_handlers, old_level, old_propagate, handler = cleanup
 
     class DummySystem:
+        stages = (
+            StageSpec(name="train", config="training"),
+            StageSpec(name="infer", config="inference"),
+        )
         training_config = OmegaConf.create({"exp_dir": "./exp/train"})
         inference_config = OmegaConf.create({"infer_dir": "./exp/infer"})
-        metrics_config = None
 
     monkeypatch.setattr(
         elog,
@@ -206,7 +281,6 @@ def test_log_stage_metadata_logs_configs(monkeypatch):
     args = Namespace(
         training_config="conf/training.yaml",
         inference_config="conf/inference.yaml",
-        metrics_config=None,
         write_requirements=False,
     )
 
@@ -219,6 +293,51 @@ def test_log_stage_metadata_logs_configs(monkeypatch):
         assert "ENV META" in out
         assert "Training config content:" in out
         assert "exp_dir: ./exp/train" in out
+        assert "Inference config content:" in out
+        assert "infer_dir: ./exp/infer" in out
+    finally:
+        handler.close()
+
+
+def test_log_stage_metadata_omits_roles_not_in_stages(monkeypatch):
+    """Only the roles the system's own ``stages`` declare are logged.
+
+    A system whose ``stages`` has no ``training`` role must not log a
+    training section even if a ``training_config`` happens to be set.
+    """
+    logger, stream, cleanup = _capture_logger(
+        "espnet3.test.stage_metadata_missing_role"
+    )
+    old_handlers, old_level, old_propagate, handler = cleanup
+
+    class DummySystemWithoutTraining:
+        stages = (StageSpec(name="infer", config="inference"),)
+        training_config = OmegaConf.create({"exp_dir": "./exp/train"})
+        inference_config = OmegaConf.create({"infer_dir": "./exp/infer"})
+
+    monkeypatch.setattr(
+        elog,
+        "log_run_metadata",
+        lambda logger, **kwargs: logger.info("RUN META %s", kwargs["configs"]),
+    )
+    monkeypatch.setattr(
+        elog,
+        "log_env_metadata",
+        lambda logger: logger.info("ENV META"),
+    )
+
+    args = Namespace(
+        training_config="conf/training.yaml",
+        inference_config="conf/inference.yaml",
+        write_requirements=False,
+    )
+
+    try:
+        elog.log_stage_metadata(logger, DummySystemWithoutTraining(), args)
+        out = stream.getvalue()
+        assert "conf/training.yaml" not in out
+        assert "Training config content:" not in out
+        assert "conf/inference.yaml" in out
         assert "Inference config content:" in out
         assert "infer_dir: ./exp/infer" in out
     finally:

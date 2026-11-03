@@ -778,8 +778,14 @@ class ESPnetLightningModule(lightning.LightningModule):
                 schedulers.append(scheduler)
 
             self._multi_optimizer_names = [spec.name for spec in self._optimizer_specs]
+            # Preserve runtime state restored by on_load_checkpoint (which Lightning
+            # invokes before configure_optimizers): re-creating it unconditionally
+            # here would silently discard the resumed accum_counter/update_step.
             self._optimizer_states = {
-                spec.name: OptimizerRuntimeState() for spec in self._optimizer_specs
+                spec.name: self._optimizer_states.get(
+                    spec.name, OptimizerRuntimeState()
+                )
+                for spec in self._optimizer_specs
             }
             self._named_optimizers_cache = None
             self._named_schedulers_cache = None
@@ -1261,6 +1267,17 @@ class ESPnetLightningModule(lightning.LightningModule):
             OmegaConf.to_container(self.config.dataloader, resolve=True)
         )
 
+        # items per batch, and so how many shards the workers can share: a set
+        # of N items splits into at most N / batch_size. The value comes from
+        # the config (egs3/TEMPLATE sets it); collect_stats keeps its own
+        # default when a config says nothing.
+        batch_size = self.config.get("collect_stats_batch_size", None)
+        extra = {} if batch_size is None else {"batch_size": int(batch_size)}
+        # the train preprocessor's augmentation is off unless the config asks
+        train_mode = self.config.get("collect_stats_train_mode", None)
+        if train_mode is not None:
+            extra["train_mode"] = bool(train_mode)
+
         for mode in ["train", "valid"]:
             collect_stats(
                 model_config=OmegaConf.to_container(self.config.model, resolve=True),
@@ -1275,4 +1292,5 @@ class ESPnetLightningModule(lightning.LightningModule):
                     else self.config.parallel
                 ),
                 write_collected_feats=False,
+                **extra,
             )

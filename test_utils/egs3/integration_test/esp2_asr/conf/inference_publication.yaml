@@ -1,0 +1,11 @@
+# The one-step CI model can choose EOS immediately. This fixture keeps EOS
+# masked for a few frames so a nonempty native result exercises every wrapper.
+# This checks inference plumbing, not recognition accuracy.
+defaults:
+  - ../../../../../egs3/mini_an4/esp2_asr/conf/inference.yaml
+  - _self_
+
+model:
+  # Keep a non-EOS candidate while the minimum-length constraint is active.
+  beam_size: 2
+  minlenratio: 0.05

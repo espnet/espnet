@@ -1,0 +1,1 @@
+../../TEMPLATE/rst1/path.sh

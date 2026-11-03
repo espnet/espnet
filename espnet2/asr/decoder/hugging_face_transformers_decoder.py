@@ -43,7 +43,7 @@ class HuggingFaceTransformersDecoder(AbsDecoder, BatchScorerInterface):
         causal_lm: bool = False,
         prefix: str = "",
         postfix: str = "",
-        overriding_architecture_config: Optional[Union[str, dict]] = {},
+        overriding_architecture_config: Optional[Union[str, dict]] = None,
         load_pretrained_weights: bool = True,
         separate_lm_head: bool = False,
     ):
@@ -64,7 +64,8 @@ class HuggingFaceTransformersDecoder(AbsDecoder, BatchScorerInterface):
             overriding_architecture_config (str or dict, optional): Path to the
                 configuration json file or the json dictionary itself. Defaults
                 to None. If this is set, it can be used to override the
-                default decoder configuration.
+                default decoder configuration. Custom model code is disabled;
+                any `trust_remote_code` override is ignored.
             load_pretrained_weights (bool): Whether to load the pre-trained
                 weights. Defaults to True.
             separate_lm_head (bool): True ensures that the language model
@@ -92,12 +93,20 @@ class HuggingFaceTransformersDecoder(AbsDecoder, BatchScorerInterface):
         self.load_pretrained_weights = load_pretrained_weights
         self.separate_lm_head = separate_lm_head
 
-        self.overriding_architecture_config = overriding_architecture_config
         if isinstance(overriding_architecture_config, str):
             # It is path to a json config file
-            self.overriding_architecture_config = read_json_config(
+            overriding_architecture_config = read_json_config(
                 overriding_architecture_config
             )
+        self.overriding_architecture_config = dict(overriding_architecture_config or {})
+        # Model-provided architecture settings cannot authorize executing code.
+        # Keep this disabled in the stored config reused by Speech2Text as well.
+        if self.overriding_architecture_config.get("trust_remote_code"):
+            logging.warning(
+                "Ignoring trust_remote_code in overriding_architecture_config: "
+                "custom model code is disabled."
+            )
+        self.overriding_architecture_config["trust_remote_code"] = False
 
         # Prevent meta tensor initialization when ignore_mismatched_sizes is used
         # to avoid aten::equal NotImplementedError during weight tying
@@ -145,7 +154,9 @@ class HuggingFaceTransformersDecoder(AbsDecoder, BatchScorerInterface):
                 else:
                     self.decoder_pad_token_id = 1
 
-                tokenizer = AutoTokenizer.from_pretrained(model_name_or_path)
+                tokenizer = AutoTokenizer.from_pretrained(
+                    model_name_or_path, trust_remote_code=False
+                )
                 self.tokenizer_padding_side = tokenizer.padding_side
 
                 self.prefix = self.decoder_word_embeddings(

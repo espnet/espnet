@@ -814,8 +814,8 @@ def check_no_direct_references() -> list:
             "  PyPI rejects any distribution whose metadata contains one "
             "(400 Can't have direct dependency), so this makes every release "
             "upload fail, and nothing before the tag says so.\n"
-            "  Depend on a published version instead, the way espnet-g2p-en, "
-            "espnet-ctc-segmentation and espnet-s3prl are."
+            "  Depend on a published version instead, the way espnet-g2p-en "
+            "and espnet-s3prl are."
         )
     return problems
 
