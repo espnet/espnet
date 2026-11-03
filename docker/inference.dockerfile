@@ -64,7 +64,7 @@ RUN pip install --index-url "${TORCH_INDEX_URL}" \
 # From PyPI, at a release, not from this checkout: the image is meant to be the
 # published package, so that what it runs is what `pip install espnet` gives.
 # The default tracks version.txt; the publish workflow passes it explicitly.
-ARG ESPNET_VERSION=202610
+ARG ESPNET_VERSION=202611
 RUN pip install "espnet==${ESPNET_VERSION}"
 
 

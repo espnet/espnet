@@ -611,6 +611,14 @@ def test_ema_update_model_with_ema_every():
 
 
 def test_ema_moves_ema_model_to_online_device(monkeypatch):
+    """move_ema_to_online_device actually calls ema_model.to(...).
+
+    Regression: the previous version of this test only asserted
+    ``torch.isfinite(ema.ema_model.weight)``, which is true whether or not
+    the device-move branch in ``update_moving_average`` ever executes (all
+    tensors already live on CPU). Spy on ``ema_model.to`` so the assertion
+    fails if the move is skipped.
+    """
     import espnet3.components.callbacks.vendored_ema as vmod
 
     net = _make_net(0.0)
@@ -623,9 +631,20 @@ def test_ema_moves_ema_model_to_online_device(monkeypatch):
     devices = iter([torch.device("cpu", 0), torch.device("cpu"), torch.device("cpu")])
     monkeypatch.setattr(vmod, "get_module_device", lambda module: next(devices))
 
+    to_calls = []
+    original_to = ema.ema_model.to
+
+    def spy_to(*args, **kwargs):
+        to_calls.append((args, kwargs))
+        return original_to(*args, **kwargs)
+
+    monkeypatch.setattr(ema.ema_model, "to", spy_to)
+
     with torch.no_grad():
         net.weight.fill_(1.0)
     ema.update()
+
+    assert to_calls == [((torch.device("cpu"),), {})]
     assert torch.isfinite(ema.ema_model.weight).all()
 
 

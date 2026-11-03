@@ -1,0 +1,12 @@
+# Reference-free quality/intelligibility and input-based speaker preservation.
+- name: espnet_wer
+  model_tag: default
+  beam_size: 5
+  text_cleaner: whisper_basic
+
+- name: pseudo_mos
+  predictor_types: ["dnsmos", "utmos"]
+
+# VERSA's --gt is the restoration input for this metric.
+- name: speaker
+  model_tag: default

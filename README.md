@@ -23,15 +23,16 @@
 
 ______________________________________________________________________
 
-ESPnet is an end-to-end speech processing toolkit built on [PyTorch](https://pytorch.org/). It covers speech recognition, text-to-speech, speech translation, speech enhancement, speaker diarization, spoken language understanding, singing voice synthesis, speech language models, and more — with [Kaldi](http://kaldi-asr.org/)-style reproducible recipes from data preparation to evaluation, and hundreds of pretrained models on Hugging Face.
+ESPnet is an end-to-end speech processing toolkit built on [PyTorch](https://pytorch.org/). It covers speech recognition, text-to-speech, speech translation, speech enhancement, speaker diarization, spoken language understanding, spoken language identification, singing voice synthesis, speech language models, and more — with [Kaldi](http://kaldi-asr.org/)-style reproducible recipes from data preparation to evaluation, and hundreds of pretrained models on Hugging Face.
 
 ## What's new
 
-- **[ESPnet 202610.post2](https://github.com/espnet/espnet/releases/tag/v.202610.post2)** — the command line has one name a task and two more of them: `espnet phonemize` reads the phones with POWSM, `espnet align` lines text up with the audio it was said in, and `asr` and `tts` became `transcribe` and `synthesize` (the old names still work); models published before June 2025 load again, after `init: chainer` was removed from the toolkit.
+- **[ESPnet 202611](https://github.com/espnet/espnet/releases/tag/v.202611)** — audio quality assessment (`espnet2.bin.aqa_inference`, the ARECHO metric model and the URGENT24 recipe), so VERSA can install its supporting models from PyPI; Bagpiper on the command line (`espnet describe`, `espnet render`) and in the MCP server; scaled dot-product attention through every ASR encoder, relative-position attention included; F5-TTS; `hydra-core` and `omegaconf` are now core dependencies, and `ctc-segmentation` comes from upstream 1.7.5.
 
 <details>
 <summary>Earlier releases</summary>
 
+- **[ESPnet 202610.post2](https://github.com/espnet/espnet/releases/tag/v.202610.post2)** — the command line has one name a task and two more of them: `espnet phonemize` reads the phones with POWSM, `espnet align` lines text up with the audio it was said in, and `asr` and `tts` became `transcribe` and `synthesize` (the old names still work); models published before June 2025 load again, after `init: chainer` was removed from the toolkit.
 - **[ESPnet 202610.post1](https://github.com/espnet/espnet/releases/tag/v.202610.post1)** — the command line grows `espnet demo` (the OWSM browser demo) and `--live` (the microphone, transcribed as you speak); one `Speech2Text` now loads either kind of OWSM checkpoint, with `best_path()` for CTC decoding without a search; `espnet/espnet:inference-cpu-latest` and `-gpu-latest` run a published model with nothing installed; three more demo Spaces (TTS, enhancement, speaker verification).
 - **[ESPnet 202610](https://github.com/espnet/espnet/releases/tag/v.202610)** — one-line inference from the command line (`pip install espnet && espnet asr audio.wav`), two OWSM v4 demos as Hugging Face Spaces, a core install without the training stack (training is `espnet[train]`), batched beam search, PyTorch 2.11-2.14.
 - **[ESPnet 202609](https://github.com/espnet/espnet/releases/tag/v.202609)** — ESPnet3 complete on [`egs3/librispeech_100`](egs3/librispeech_100) at ESPnet2 parity, CI rebuilt on a prebuilt image (compute per run halved), OpenBEATs pretraining, ten new recipes (ASR, TTS, SER, ST, audio SSL), Python 3.12-3.13.
@@ -50,7 +51,7 @@ Full history: [Releases](https://github.com/espnet/espnet/releases).
 ```sh
 # Install PyTorch first: https://pytorch.org/get-started/locally/
 pip install espnet              # run pretrained models
-pip install "espnet[train]"     # also train them (Lightning, TensorBoard, W&B, Hydra, Dask)
+pip install "espnet[train]"     # also train them (Lightning, TensorBoard, W&B, Dask)
 ```
 
 <details>
@@ -190,6 +191,7 @@ Four ways to run a published model — a hosted [Space](https://huggingface.co/e
 | **SE** — enhancement | 🟢 [universal-se](https://huggingface.co/spaces/espnet/universal-se) | 🟢 [`enh_demo`](https://github.com/espnet/notebook/blob/master/Demos/enh_demo.ipynb) | 🟢 `enhance` | 🟢 `espnet enhance` |
 | **PR** — phone recognition | 🟢 [powsm-ctc](https://huggingface.co/spaces/espnet/powsm-ctc) | 🟢 [`s2t_pr_demo`](https://github.com/espnet/notebook/blob/master/Demos/s2t_pr_demo.ipynb) | 🟢 `phonemize` | 🟢 `espnet phonemize` |
 | **ALIGN** — forced alignment | 🟢 [forced-alignment](https://huggingface.co/spaces/espnet/forced-alignment) | 🟢 [`s2t_align_demo`](https://github.com/espnet/notebook/blob/master/Demos/s2t_align_demo.ipynb) | 🟢 `align` | 🟢 `espnet align` |
+| **SPEECHLM** — audio understanding and generation | ❌ [authors' demo](https://bagpiper-cmu.github.io/) | ❌ | 🚧 `describe`, `render` | 🚧 `espnet describe`, `espnet render` |
 
 Every Space is built from a directory in this repository, and [`doc/front_ends.md`](doc/front_ends.md) is how a seventh task gets all four columns.
 
@@ -216,15 +218,17 @@ Each runs top to bottom on a CPU and pins the release it was checked against. Th
 </details>
 
 **Publish your own.** Every ESPnet3 recipe can wrap its trained model in a
-[Gradio](https://www.gradio.app/) app and push it to Hugging Face Spaces — the UI, the Space `README.md` and `requirements.txt` are all generated from [`conf/demo.yaml`](egs3/TEMPLATE/asr/conf/demo.yaml).
+[Gradio](https://www.gradio.app/) app and push it to Hugging Face Spaces — the UI,
+the Space `README.md` and `requirements.txt` are all generated from
+[`conf/demo.yaml`](egs3/TEMPLATE/esp2_asr/conf/demo.yaml).
 
 <details>
 <summary>The three stages</summary>
 
 ```sh
-cd egs3/librispeech_100/asr
+cd egs3/librispeech_100/esp2_asr
 train=conf/tuning/training_e_branchformer.yaml   # the config the model was trained with
-python run.py --stages pack_model  --training_config $train --publication_config conf/publication.yaml  # -> exp/.../model_pack
+python run.py --stages pack_model  --training_config $train --inference_config conf/inference.yaml --publication_config conf/publication.yaml  # -> exp/.../model_pack
 python run.py --stages pack_demo   --training_config $train --demo_config conf/demo.yaml                # -> demo/
 python run.py --stages upload_demo --training_config $train --demo_config conf/demo.yaml                # needs `hf auth login`
 ```
@@ -248,6 +252,32 @@ Contributions, questions, and feature requests are all welcome — open an [issu
 alt="Contributors"/>
 </a>
 
+## ESPnet2 and ESPnet3 configuration differences
+
+<details>
+<summary><b>Configuration differences when moving from ESPnet2 to ESPnet3</b></summary>
+
+| Setting | ESPnet2 | ESPnet3 |
+| --- | --- | --- |
+| `batch_bins` (sequence batching) | Global budget for the whole distributed job; each sequence batch is split across ranks | Per-GPU budget by default; `dataloader.train.batch_distribution: global` opts into a global budget and splits each batch across ranks. Validation selects its mode under `dataloader.valid`. |
+| `best_model_criterion` | Each criterion is `(phase, metric, mode)`; the number of models to keep is set separately with `keep_nbest_models` | Each criterion is `(monitor, top_k, mode)`, so the number of checkpoints to keep is specified per criterion (for example, `valid/loss, 3, min`). |
+| `seed` | Set initially and reset to `seed + epoch` at the start of each epoch | Set once before training with Lightning's `seed_everything(..., workers=True)`; random streams are not reset to `seed + epoch` by ESPnet3. |
+| Early stopping (`patience`) | `patience` and `early_stopping_criterion` are trainer options | Configure Lightning's `EarlyStopping` callback in `trainer.callbacks` (for example, its `monitor`, `patience`, and `mode`); no early-stopping callback is added by default. |
+
+Existing ESPnet3 configs keep per-GPU behavior when `batch_distribution` is omitted.
+Changing the GPU count in that mode changes the effective global batch budget.
+Switching modes does not automatically rescale `batch_bins` or accumulation.
+Global mode requires shared batches with at least `world_size` items;
+unsupported iterator/sharding configurations raise an error.
+
+<!-- TODO: After merge, replace the draft links below with the corresponding
+     official documentation URLs under https://espnet.github.io/espnet/. -->
+See the [migration guide](https://masao-someki.github.io/espnet_draft_home_page/espnet3/guides/migrating-from-espnet2/config-diff.html)
+and [dynamic batching guide](https://masao-someki.github.io/espnet_draft_home_page/espnet3/guides/scaling/data-pipeline.html)
+on the draft documentation site for further guidance.
+
+</details>
+
 ## Details
 
 <details>
@@ -264,6 +294,7 @@ alt="Contributors"/>
 - Support voice conversion recipe (VCC2020 baseline)
 - Support speaker diarization recipe (mini_librispeech, librimix)
 - Support singing voice synthesis recipe (ofuton_p_utagoe_db, opencpop, m4singer, etc.)
+- Support spoken language identification recipes (voxlingua107, geolid.)
 
 #### ASR: Automatic Speech Recognition
 - **State-of-the-art performance** in several ASR benchmarks (comparable/superior to hybrid DNN/HMM and CTC)
@@ -346,7 +377,7 @@ Demonstration
 
 Demonstration
 - TTS demo with ESPnet2  [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/espnet/notebook/blob/master/Demos/tts_demo.ipynb)
-- Integrated to [Hugging Face Spaces](https://huggingface.co/spaces) with [Gradio](https://github.com/gradio-app/gradio). See demo: [![Hugging Face Spaces](https://img.shields.io/badge/%F0%9F%A4%97%20Hugging%20Face-Spaces-blue)](https://huggingface.co/spaces/espnet/TTS)
+- Integrated to [Hugging Face Spaces](https://huggingface.co/spaces) with [Gradio](https://github.com/gradio-app/gradio). See demo: [![Hugging Face Spaces](https://img.shields.io/badge/%F0%9F%A4%97%20Hugging%20Face-Spaces-blue)](https://huggingface.co/spaces/espnet/ljspeech-vits)
 
 To train the neural vocoder, please check the following repositories:
 - [kan-bayashi/ParallelWaveGAN](https://github.com/kan-bayashi/ParallelWaveGAN)
@@ -405,6 +436,15 @@ Demonstration
 - Performing noisy spoken language understanding using a speech enhancement model followed by a spoken language understanding model.  [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/14nCrJ05vJcQX0cJuXjbMVFWUHJ3Wfb6N?usp=sharing)
 - Performing two-pass spoken language understanding where the second pass model attends to both acoustic and semantic information.  [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1p2cbGIPpIIcynuDl4ZVHDpmNPl8Nh_ci?usp=sharing)
 
+### LID: Spoken Language Identification
+- Architecture
+    - Frontend: Self-supervised models integrated via S3PRL, such as MMS, XLS-R, etc.
+    - Encoder: ECAPA-TDNN, xvector, etc.
+    - Pooling methods: Statistical pooling, attentive statistics pooling, etc.
+- Supports AAMSoftmax loss with subcenter regularization and topk penalty
+- Optional lang2vec auxiliary targets and conditioning on predicted language features; inference uses speech only.
+- Supports category-balanced sampling for imbalanced language datasets
+- Supports language embeddings extraction, t-SNE visualization, distributed inference, and cross-dataset evaluation
 
 #### SUM: Speech Summarization
 - End to End Speech Summarization Recipe for Instructional Videos using Restricted Self-Attention [[Sharma et al., 2022]](https://arxiv.org/abs/2110.06263)
@@ -710,7 +750,7 @@ If you use ESPnet in your research, please cite the main paper:
 ```
 
 <details>
-<summary>Task-specific papers (TTS, ST, SE, SLU, SVS, UASR, S2T, SUM, SPK)</summary>
+<summary>Task-specific papers (TTS, ST, SE, SLU, SVS, UASR, S2T, SUM, SPK, LID)</summary>
 
 ```bibtex
 @inproceedings{hayashi2020espnet,
@@ -872,6 +912,14 @@ If you use ESPnet in your research, please cite the main paper:
   booktitle={2025 IEEE Workshop on Applications of Signal Processing to Audio and Acoustics (WASPAA)},
   year={2025},
   organization={IEEE}
+}
+@inproceedings{wang2025geolid,
+  title={Geolocation-Aware Robust Spoken Language Identification},
+  author={Qingzheng Wang and Hye-jin Shim and Jiancheng Sun and Shinji Watanabe},
+  booktitle={2025 IEEE Automatic Speech Recognition and Understanding Workshop (ASRU)},
+  year={2025},
+  organization={IEEE},
+  url={https://arxiv.org/abs/2508.17148}
 }
 @inproceedings{someki2026espnet3,
   title={{ESPnet3}: Infrastructure for Scalable Speech and Audio Research in the Foundation Model Era},

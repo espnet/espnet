@@ -185,7 +185,7 @@ class SpkTrainer(Trainer):
                 raise ValueError(f"{_l}, {type(_l)}")
         trg_mean = float(np.mean(scores_trg))
         trg_std = float(np.std(scores_trg))
-        nontrg_mean = float(np.std(scores_nontrg))
+        nontrg_mean = float(np.mean(scores_nontrg))
         nontrg_std = float(np.std(scores_nontrg))
 
         # exception for collect_stats.

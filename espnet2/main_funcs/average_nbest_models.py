@@ -92,7 +92,10 @@ def average_nbest_models(
                     states = _loaded[e]
 
                     if avg is None:
-                        avg = states
+                        # A copy of the dict, not the dict: `states` stays in
+                        # `_loaded` for the other criteria and nbest values,
+                        # and the sums below are assigned to the keys of `avg`.
+                        avg = states.copy()
                     else:
                         # Accumulated
                         for k in avg:

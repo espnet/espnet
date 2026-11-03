@@ -61,7 +61,7 @@ class ConvDecoder(AbsDecoder):
         batch_size = chunks[0].shape[0]
         audio_len = (
             int(hop_size * num_chunks + frame_size - hop_size)
-            if not ilens
+            if ilens is None
             else ilens.max()
         )
 

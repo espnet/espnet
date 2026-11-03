@@ -27,6 +27,78 @@ def configure_moe_model(model):
     return model
 
 
+# `from_pretrained` options that say where the config comes from. The
+# config-only build reads the config, so these go to `AutoConfig`.
+_HUB_KWARGS = (
+    "cache_dir",
+    "code_revision",
+    "force_download",
+    "local_files_only",
+    "proxies",
+    "revision",
+    "subfolder",
+    "token",
+    "trust_remote_code",
+)
+# `from_pretrained` options about reading or placing the weights. The
+# config-only build reads none, and its caller moves the model afterwards.
+_WEIGHT_LOADING_KWARGS = (
+    "device_map",
+    "disable_mmap",
+    "ignore_mismatched_sizes",
+    "key_mapping",
+    "low_cpu_mem_usage",
+    "offload_folder",
+    "offload_state_dict",
+    "use_safetensors",
+    "variant",
+    "weights_only",
+)
+
+
+def _from_config_without_weights(cls, name_or_path, kwargs):
+    """Build `cls` as `from_pretrained` would, without reading its weights.
+
+    For inference, which loads a checkpoint strictly over the whole model
+    right after. Takes the same options `from_pretrained` does: the Hub ones
+    go to the config, the weight-reading ones have nothing to act on, the
+    dtype is resolved the same way ("auto" and no dtype both mean the one
+    the config records), and whatever is left overrides config attributes
+    exactly as `from_pretrained` lets it.
+    """
+    from transformers.initialization import no_init_weights
+
+    kwargs = dict(kwargs)
+    hub = {key: kwargs.pop(key) for key in _HUB_KWARGS if key in kwargs}
+    for key in _WEIGHT_LOADING_KWARGS:
+        kwargs.pop(key, None)
+    dtype = kwargs.pop("dtype", None)
+    torch_dtype = kwargs.pop("torch_dtype", None)
+    dtype = dtype if dtype is not None else torch_dtype
+    attn = {
+        key: kwargs.pop(key)
+        for key in ("attn_implementation", "experts_implementation")
+        if key in kwargs
+    }
+
+    config, unused = AutoConfig.from_pretrained(
+        name_or_path, return_unused_kwargs=True, **hub, **kwargs
+    )
+    if dtype is None or dtype == "auto":
+        # from_pretrained would fall back to the weights' own dtype when the
+        # config records none; reading weights is what this path avoids, so
+        # it takes torch's default instead. The strict load copies into
+        # whatever was allocated, and both inference entry points then cast
+        # the model to the dtype their decoding config asks for.
+        dtype = getattr(config, "dtype", None) or torch.get_default_dtype()
+
+    # Allocated but not initialised: every weight is about to be overwritten.
+    # Buffers - the rotary frequencies, which no checkpoint carries - are
+    # still computed as usual.
+    with no_init_weights():
+        return cls._from_config(config, dtype=dtype, **attn, **unused)
+
+
 def ParallelHFModel(model_hf_tag, **kwargs):
     """Factory function to create a parallel multimodal LLM from HuggingFace model.
 
@@ -67,6 +139,8 @@ def build_parallel_hf_class(model_hf_tag):
             pretrained_model_name_or_path,
             multimodal_io,
             vocab_meta,
+            is_train=True,
+            load_pretrained=True,
             **kwargs,
         ):
             """Load pretrained model and adapt it for multimodal parallel processing.
@@ -75,6 +149,12 @@ def build_parallel_hf_class(model_hf_tag):
                 pretrained_model_name_or_path: HF model path or identifier
                 multimodal_io: Dict of IO handlers for different modalities
                 vocab_meta: Dict with vocab, intervals, weights, and size info
+                is_train: Whether the model is built for training
+                load_pretrained: False builds the base model from its config
+                    without loading its weights, for a caller that is about
+                    to load a checkpoint strictly over the whole model, so the
+                    base weights would be overwritten before use (16 GB for
+                    Qwen3-8B-Base). The weights are left uninitialised.
                 **kwargs: Additional HF model loading arguments
 
             Returns:
@@ -84,17 +164,26 @@ def build_parallel_hf_class(model_hf_tag):
             tie_word_embeddings = kwargs.pop("tie_word_embeddings", False)
             z_loss_weight = kwargs.pop("z_loss_weight", 0.0)
 
-            model = super(ParallelLLM, cls).from_pretrained(
-                pretrained_model_name_or_path, **kwargs
-            )
+            if load_pretrained:
+                model = super(ParallelLLM, cls).from_pretrained(
+                    pretrained_model_name_or_path, **kwargs
+                )
+            else:
+                model = _from_config_without_weights(
+                    cls, pretrained_model_name_or_path, kwargs
+                )
 
             model.z_loss_weight = z_loss_weight
 
             # (1.5) Assert flash attention is used — our attn_args pre-compute
             # cu_seqlens (pack) or attention_mask (bucket) for flash attention.
+            # It is a training requirement: sdpa cannot separate the examples
+            # of a packed sequence, so training without it leaks across them.
+            # Inference packs nothing, and sdpa is fine there - which is what
+            # lets a checkpoint be run on a GPU that has no FlashAttention.
             attn_impl = getattr(model.config, "_attn_implementation", "")
-            assert "flash_attention" in attn_impl, (
-                f"OpusLM requires Flash Attention "
+            assert not is_train or "flash_attention" in attn_impl, (
+                f"Training OpusLM requires Flash Attention "
                 f"(got attn_implementation={attn_impl!r}). "
                 f"Set attn_implementation: flash_attention_2 or "
                 f"flash_attention_3 in model_conf."
@@ -257,11 +346,10 @@ def build_parallel_hf_class(model_hf_tag):
             # Shape: [batch, seq, hidden] -> [batch, seq, streams, hidden]
             hidden_states = last_hidden_state.unsqueeze(2)
 
-            # Convert DTensor to regular tensor for in-place operations
-            stream_weight = self.stream_emb.weight
-            if hasattr(stream_weight, "full_tensor"):
-                stream_weight = stream_weight.full_tensor()
-
+            # Use the embedding forward so FSDP gathers its weight and reduces
+            # gradients across ranks. Reading .weight directly bypasses this.
+            stream_ids = torch.arange(self.num_stream, device=hidden_states.device)
+            stream_weight = self.stream_emb(stream_ids)
             stream_weight = stream_weight[None, None, :, :].clone()
             stream_weight[:, :, 0] = 0.0  # First stream uses base representation
             hidden_states = hidden_states + stream_weight.to(hidden_states.dtype)
@@ -380,29 +468,34 @@ def build_parallel_hf_class(model_hf_tag):
             # (4) Add dummy forward to ensure all multimodal_io are always included
             # in the computation graph, even if not used in this batch.
             # This prevents gradient mismatch errors in DeepSpeed ZeRO.
-            for io_name in self.multimodal_io_dict:
-                if io_name == "text":
-                    continue
+            # There is no graph to keep whole in eval, and running it there
+            # costs an audio encoder call for a text-only request - which is
+            # also a call that can fail on a checkpoint whose encoder cannot
+            # run on the device at hand.
+            if self.training:
+                for io_name in self.multimodal_io_dict:
+                    if io_name == "text":
+                        continue
 
-                # Skip if this modality was already used in this batch
-                if (
-                    f"{io_name}_feats" in kwargs
-                    and kwargs[f"{io_name}_feats"] is not None
-                    and len(kwargs[f"{io_name}_feats"]) > 0
-                ):
-                    continue
+                    # Skip if this modality was already used in this batch
+                    if (
+                        f"{io_name}_feats" in kwargs
+                        and kwargs[f"{io_name}_feats"] is not None
+                        and len(kwargs[f"{io_name}_feats"]) > 0
+                    ):
+                        continue
 
-                # Use dummy_forward from the IO class
-                io_module = self.multimodal_io_dict[io_name]
-                dummy_out = io_module.dummy_forward(ref_tensor=input_embeds)
+                    # Use dummy_forward from the IO class
+                    io_module = self.multimodal_io_dict[io_name]
+                    dummy_out = io_module.dummy_forward(ref_tensor=input_embeds)
 
-                # For continuous modalities, also run through adaptor
-                if not io_module.is_discrete and io_name in self.adaptor:
-                    dummy_out = self.adaptor[io_name](dummy_out)
-                dummy_out = dummy_out.to(input_embeds.dtype)
+                    # For continuous modalities, also run through adaptor
+                    if not io_module.is_discrete and io_name in self.adaptor:
+                        dummy_out = self.adaptor[io_name](dummy_out)
+                    dummy_out = dummy_out.to(input_embeds.dtype)
 
-                # Sum and add with zero weight to include in computation graph
-                input_embeds = input_embeds + 0.0 * dummy_out.sum()
+                    # Sum and add with zero weight to include in computation graph
+                    input_embeds = input_embeds + 0.0 * dummy_out.sum()
 
             return input_embeds
 

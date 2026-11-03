@@ -119,9 +119,9 @@ class Conv1dSubsampling1(torch.nn.Module):
         super(Conv1dSubsampling1, self).__init__()
         self.conv = torch.nn.Sequential(
             torch.nn.Conv1d(idim, odim, 3, 1),
-            torch.nn.ReLU(),
+            torch.nn.ReLU(inplace=True),
             torch.nn.Conv1d(odim, odim, 3, 1),
-            torch.nn.ReLU(),
+            torch.nn.ReLU(inplace=True),
         )
         self.out = torch.nn.Linear(odim, odim)
         self.pos_enc = (
@@ -221,9 +221,9 @@ class Conv1dSubsampling2(torch.nn.Module):
         super(Conv1dSubsampling2, self).__init__()
         self.conv = torch.nn.Sequential(
             torch.nn.Conv1d(idim, odim, 3, 1),
-            torch.nn.ReLU(),
+            torch.nn.ReLU(inplace=True),
             torch.nn.Conv1d(odim, odim, 3, 2),
-            torch.nn.ReLU(),
+            torch.nn.ReLU(inplace=True),
         )
         self.out = torch.nn.Linear(odim, odim)
         self.pos_enc = (
@@ -323,9 +323,9 @@ class Conv1dSubsampling3(torch.nn.Module):
         super(Conv1dSubsampling3, self).__init__()
         self.conv = torch.nn.Sequential(
             torch.nn.Conv1d(idim, odim, 3, 1),
-            torch.nn.ReLU(),
+            torch.nn.ReLU(inplace=True),
             torch.nn.Conv1d(odim, odim, 5, 3),
-            torch.nn.ReLU(),
+            torch.nn.ReLU(inplace=True),
         )
         self.out = torch.nn.Linear(odim, odim)
         self.pos_enc = (
@@ -425,9 +425,9 @@ class Conv2dSubsampling(torch.nn.Module):
         super(Conv2dSubsampling, self).__init__()
         self.conv = torch.nn.Sequential(
             torch.nn.Conv2d(1, odim, 3, 2),
-            torch.nn.ReLU(),
+            torch.nn.ReLU(inplace=True),
             torch.nn.Conv2d(odim, odim, 3, 2),
-            torch.nn.ReLU(),
+            torch.nn.ReLU(inplace=True),
         )
         self.out = torch.nn.Linear(odim * (((idim - 1) // 2 - 1) // 2), odim)
         self.pos_enc = (
@@ -527,9 +527,9 @@ class Conv2dSubsampling1(torch.nn.Module):
         super(Conv2dSubsampling1, self).__init__()
         self.conv = torch.nn.Sequential(
             torch.nn.Conv2d(1, odim, 3, 1),
-            torch.nn.ReLU(),
+            torch.nn.ReLU(inplace=True),
             torch.nn.Conv2d(odim, odim, 3, 1),
-            torch.nn.ReLU(),
+            torch.nn.ReLU(inplace=True),
         )
         self.out = torch.nn.Linear(odim * (idim - 4), odim)
         self.pos_enc = (
@@ -629,9 +629,9 @@ class Conv2dSubsampling2(torch.nn.Module):
         super(Conv2dSubsampling2, self).__init__()
         self.conv = torch.nn.Sequential(
             torch.nn.Conv2d(1, odim, 3, 2),
-            torch.nn.ReLU(),
+            torch.nn.ReLU(inplace=True),
             torch.nn.Conv2d(odim, odim, 3, 1),
-            torch.nn.ReLU(),
+            torch.nn.ReLU(inplace=True),
         )
         self.out = torch.nn.Linear(odim * (((idim - 1) // 2 - 2)), odim)
         self.pos_enc = (
@@ -731,9 +731,9 @@ class Conv2dSubsampling6(torch.nn.Module):
         super(Conv2dSubsampling6, self).__init__()
         self.conv = torch.nn.Sequential(
             torch.nn.Conv2d(1, odim, 3, 2),
-            torch.nn.ReLU(),
+            torch.nn.ReLU(inplace=True),
             torch.nn.Conv2d(odim, odim, 5, 3),
-            torch.nn.ReLU(),
+            torch.nn.ReLU(inplace=True),
         )
         self.out = torch.nn.Linear(odim * (((idim - 1) // 2 - 2) // 3), odim)
         self.pos_enc = (
@@ -822,11 +822,11 @@ class Conv2dSubsampling8(torch.nn.Module):
         super(Conv2dSubsampling8, self).__init__()
         self.conv = torch.nn.Sequential(
             torch.nn.Conv2d(1, odim, 3, 2),
-            torch.nn.ReLU(),
+            torch.nn.ReLU(inplace=True),
             torch.nn.Conv2d(odim, odim, 3, 2),
-            torch.nn.ReLU(),
+            torch.nn.ReLU(inplace=True),
             torch.nn.Conv2d(odim, odim, 3, 2),
-            torch.nn.ReLU(),
+            torch.nn.ReLU(inplace=True),
         )
         self.out = torch.nn.Linear(odim * ((((idim - 1) // 2 - 1) // 2 - 1) // 2), odim)
         self.pos_enc = (
