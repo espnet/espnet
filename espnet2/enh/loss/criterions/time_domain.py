@@ -100,10 +100,10 @@ class CISDRLoss(TimeDomainLoss):
             is_dereverb_loss=is_dereverb_loss,
         )
         if ci_sdr is None:
-            # Not in espnet[enh]: see the note on ci_sdr in pyproject.toml.
+            # Not in espnet[enh]: see tools/installers/install_ci_sdr.sh.
             raise RuntimeError(
-                "ci_sdr is not installed: "
-                "pip install git+https://github.com/fgnt/ci_sdr"
+                "ci_sdr is not installed. Please install it with: "
+                "cd ${MAIN_ROOT}/tools && ./installers/install_ci_sdr.sh"
             )
 
         self.filter_length = filter_length
