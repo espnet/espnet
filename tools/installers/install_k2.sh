@@ -195,11 +195,12 @@ else
         spec="k2==${pip_k2_version}+cuda${cuda_version}.torch${torch_version}"
         index=https://k2-fsa.github.io/k2/cuda.html
     fi
-    # python3 -m pip, not pip: on python 3.13 `ensurepip --upgrade` leaves no
-    # venv/bin/pip, so a bare `pip` falls through to the system interpreter on
-    # PATH. That is not theoretical - the first version of this change installed
-    # k2 into /usr/local/lib/python3.13/site-packages, which the image's final
-    # stage then discarded, while the log said "Successfully installed k2".
+    # python3 -m pip, not pip: on python 3.13 `ensurepip --upgrade` used to
+    # leave no venv/bin/pip (tools/Makefile now passes --default-pip), so a bare
+    # `pip` fell through to the system interpreter on PATH. That is not
+    # theoretical - the first version of this change installed k2 into
+    # /usr/local/lib/python3.13/site-packages, which the image's final stage
+    # then discarded, while the log said "Successfully installed k2".
     #
     # --no-deps because the wheel declares an exact torch== pin, and resolving
     # that pulls the default PyPI torch, which is the CUDA build: ~3 GB of

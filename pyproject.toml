@@ -191,7 +191,8 @@ tts = [
 ]
 
 enh = [
-  "ci_sdr",
+  # ci_sdr (CISDRLoss) is not listed: pip>=26.3 refuses its PyPI release, so
+  # it is installed from git by tools/installers/install_ci_sdr.sh instead.
   "fast-bss-eval==0.1.3",
 ]
 rst = [
