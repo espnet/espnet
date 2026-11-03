@@ -65,6 +65,7 @@ class ContextualBlockTransformerEncoder(AbsEncoder):
         look_ahead: look-ahead size for block_processing
         init_average: whether to use average as initial context (otherwise max values)
         ctx_pos_enc: whether to use positional encoding to the context vectors
+        use_sdpa: whether to use PyTorch's scaled_dot_product_attention
     """
 
     @typechecked
@@ -90,6 +91,7 @@ class ContextualBlockTransformerEncoder(AbsEncoder):
         look_ahead: int = 16,
         init_average: bool = True,
         ctx_pos_enc: bool = True,
+        use_sdpa: bool = False,
     ):
         super().__init__()
         self._output_size = output_size
@@ -164,7 +166,10 @@ class ContextualBlockTransformerEncoder(AbsEncoder):
             lambda lnum: ContextualBlockEncoderLayer(
                 output_size,
                 MultiHeadedAttention(
-                    attention_heads, output_size, attention_dropout_rate
+                    attention_heads,
+                    output_size,
+                    attention_dropout_rate,
+                    use_sdpa=use_sdpa,
                 ),
                 positionwise_layer(*positionwise_layer_args),
                 dropout_rate,
@@ -294,9 +299,14 @@ class ContextualBlockTransformerEncoder(AbsEncoder):
 
         xs_pad = self.pos_enc(xs_pad)
 
-        # set up masks
+        # set up masks; bool, since scaled_dot_product_attention adds a float
+        # mask to the attention scores instead of masking with it
         mask_online = xs_pad.new_zeros(
-            xs_pad.size(0), block_num, self.block_size + 2, self.block_size + 2
+            xs_pad.size(0),
+            block_num,
+            self.block_size + 2,
+            self.block_size + 2,
+            dtype=torch.bool,
         )
         mask_online.narrow(2, 1, self.block_size + 1).narrow(
             3, 0, self.block_size + 1
@@ -521,7 +531,11 @@ class ContextualBlockTransformerEncoder(AbsEncoder):
 
         # mask setup, it should be the same to that of forward_train
         mask_online = xs_pad.new_zeros(
-            xs_pad.size(0), block_num, self.block_size + 2, self.block_size + 2
+            xs_pad.size(0),
+            block_num,
+            self.block_size + 2,
+            self.block_size + 2,
+            dtype=torch.bool,
         )
         mask_online.narrow(2, 1, self.block_size + 1).narrow(
             3, 0, self.block_size + 1

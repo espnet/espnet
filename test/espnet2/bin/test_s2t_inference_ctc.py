@@ -186,6 +186,40 @@ def test_the_base_class_batch_decodes_a_ctc_only_checkpoint(s2t_config_file):
         assert len(results) == 1 and isinstance(results[0][4], Hypothesis)
 
 
+@pytest.mark.execution_timeout(10)
+def test_batch_decode_a_config_that_leaves_fs_at_its_default(tmp_path, token_list):
+    # the OWSM-CTC configs set speech_length but not fs, so the preprocessor
+    # trained with its default and the config has no fs to read
+    S2TTask.main(
+        cmd=[
+            "--dry_run",
+            "true",
+            "--output_dir",
+            str(tmp_path / "s2t"),
+            "--token_list",
+            str(token_list),
+            "--token_type",
+            "char",
+            "--promptencoder_conf",
+            "output_size=4",
+            "--preprocessor_conf",
+            "speech_length=1",
+            "--frontend_conf",
+            "fs=16k",
+            "--frontend_conf",
+            "hop_length=160",
+        ]
+    )
+    speech2text = Speech2TextBase(
+        s2t_train_config=tmp_path / "s2t" / "config.yaml", beam_size=1
+    )
+    assert speech2text.preprocessor_conf["fs"] == 16000
+    assert speech2text.preprocessor_conf["speech_length"] == 1
+
+    batched = speech2text.batch_decode(torch.randn(2, 8000))
+    assert len(batched) == 2
+
+
 @pytest.mark.execution_timeout(30)
 def test_decode_long_returns_one_segment_for_a_ctc_only_checkpoint(s2t_config_file):
     speech2text = Speech2TextBase(s2t_train_config=s2t_config_file)

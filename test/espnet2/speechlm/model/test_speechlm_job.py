@@ -305,12 +305,12 @@ class TestSpeechLMJobTemplate:
         ):
             job_template.build_model()
             mock_class.assert_called_once()
+            # the template's own setting, which defaults to loading
+            assert mock_class.call_args.kwargs["load_pretrained"] is True
 
     def test_preprocessor_no_discrete_raises(self):
         """SpeechLMPreprocessor requires at least one discrete IO."""
-        from espnet2.speechlm.model.speechlm.speechlm_job import (
-            SpeechLMPreprocessor,
-        )
+        from espnet2.speechlm.model.speechlm.speechlm_job import SpeechLMPreprocessor
 
         with pytest.raises(ValueError, match="at least one discrete multimodal IO"):
             SpeechLMPreprocessor(
@@ -440,9 +440,7 @@ class TestApplyChatTemplate:
             "espnet2.speechlm.model.speechlm.speechlm_job._multimodal_ios",
             MOCK_IOS,
         ):
-            from espnet2.speechlm.model.speechlm.speechlm_job import (
-                SpeechLMJobTemplate,
-            )
+            from espnet2.speechlm.model.speechlm.speechlm_job import SpeechLMJobTemplate
 
             config = _make_config()
             jt = SpeechLMJobTemplate(config, is_train=False)
@@ -584,9 +582,7 @@ class TestCollateFn:
             "espnet2.speechlm.model.speechlm.speechlm_job._multimodal_ios",
             MOCK_IOS,
         ):
-            from espnet2.speechlm.model.speechlm.speechlm_job import (
-                SpeechLMJobTemplate,
-            )
+            from espnet2.speechlm.model.speechlm.speechlm_job import SpeechLMJobTemplate
 
             config = _make_config(batchfy_method="pack")
             jt = SpeechLMJobTemplate(config, is_train=True)
@@ -604,9 +600,7 @@ class TestCollateFn:
             "espnet2.speechlm.model.speechlm.speechlm_job._multimodal_ios",
             MOCK_IOS,
         ):
-            from espnet2.speechlm.model.speechlm.speechlm_job import (
-                SpeechLMJobTemplate,
-            )
+            from espnet2.speechlm.model.speechlm.speechlm_job import SpeechLMJobTemplate
 
             config = _make_config(batchfy_method="pack")
             jt = SpeechLMJobTemplate(config, is_train=True)
@@ -625,9 +619,7 @@ class TestCollateFn:
             "espnet2.speechlm.model.speechlm.speechlm_job._multimodal_ios",
             MOCK_IOS,
         ):
-            from espnet2.speechlm.model.speechlm.speechlm_job import (
-                SpeechLMJobTemplate,
-            )
+            from espnet2.speechlm.model.speechlm.speechlm_job import SpeechLMJobTemplate
 
             config = _make_config(batchfy_method="pack", batch_size=100)
             jt = SpeechLMJobTemplate(config, is_train=True)
@@ -737,9 +729,7 @@ class TestRecordedTokenLayout:
         with patch(
             "espnet2.speechlm.model.speechlm.speechlm_job._multimodal_ios", MOCK_IOS
         ):
-            from espnet2.speechlm.model.speechlm.speechlm_job import (
-                SpeechLMJobTemplate,
-            )
+            from espnet2.speechlm.model.speechlm.speechlm_job import SpeechLMJobTemplate
 
             return SpeechLMJobTemplate(config, is_train=True)
 
@@ -798,3 +788,47 @@ class TestRecordedTokenLayout:
             self._build(re_dumped)
 
         assert "sort_keys=False" in str(raised.value)
+
+
+# ---------------------------------------------------------------------------
+# The encoder's pretrained weights: skipped only when the caller says so
+# ---------------------------------------------------------------------------
+@pytest.mark.parametrize(
+    "options, expected",
+    [
+        ({"is_train": True}, True),
+        # an inference template alone still fetches: nothing says a
+        # checkpoint will be loaded over it
+        ({"is_train": False}, True),
+        ({}, True),
+        ({"is_train": False, "load_pretrained": False}, False),
+    ],
+    ids=["train", "inference", "default", "inference-with-checkpoint"],
+)
+def test_continuous_audio_skips_weights_only_when_asked(options, expected):
+    """Skip the omni model's encoder weights only on load_pretrained=False.
+
+    The inference entry points pass it, because they load a checkpoint
+    strictly over the whole model, encoder included, right after.
+    """
+    from espnet2.speechlm.model.speechlm.multimodal_io.audio import ContinuousAudioIO
+
+    seen = {}
+
+    class RecordingIO(ContinuousAudioIO):
+        def _init_encoder(self):
+            seen["load_pretrained"] = self.load_pretrained
+
+    config = _make_config()
+    config["multimodal_io"]["continuous_audio"] = {
+        "encoder_hf_model_tag": "Qwen/Qwen3-Omni-30B-A3B-Instruct"
+    }
+    with patch(
+        "espnet2.speechlm.model.speechlm.speechlm_job._multimodal_ios",
+        {**MOCK_IOS, "continuous_audio": RecordingIO},
+    ):
+        from espnet2.speechlm.model.speechlm.speechlm_job import SpeechLMJobTemplate
+
+        SpeechLMJobTemplate(config, **options)
+
+    assert seen == {"load_pretrained": expected}
