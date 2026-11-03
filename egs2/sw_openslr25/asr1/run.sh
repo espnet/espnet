@@ -9,8 +9,8 @@ train_set=sw_train
 train_dev=sw_dev
 test_sets="sw_dev sw_test"
 
-asr_config=conf/train_asr.yaml
-inference_config=conf/decode_asr.yaml
+asr_config=conf/train.yaml
+inference_config=conf/decode.yaml
 
 ./asr.sh \
     --stage 1 \

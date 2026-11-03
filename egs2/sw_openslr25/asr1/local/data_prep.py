@@ -2,18 +2,12 @@
 """Prepare Kaldi-style data directories for the ALFFA Swahili broadcast-news corpus
 (OpenSLR SLR25: https://www.openslr.org/25/).
 
-The corpus ships pre-segmented train/test transcripts in Kaldi format
-(wav.scp/text/utt2spk). We source the canonical, versioned copies of those small
-metadata files from https://github.com/besacier/ALFFA_PUBLIC and bundle them under
-local/metadata/ rather than re-deriving them from the OpenSLR tarball, since the
-tarball's *audio* directory layout is not guaranteed to be stable across mirrors and
-the shipped wav.scp paths are placeholders anyway (e.g. "/my_dir/wav/...").
-
-Because of that, this script does not assume any particular internal directory
-structure for the downloaded+extracted tarball: it indexes every .wav file under
---download_dir by filename and matches each utterance to its audio by basename. Any
-utterance whose audio can't be found is dropped with a warning rather than failing
-the whole run.
+The downloaded tarball already ships Kaldi-format train/test metadata
+(data/{train,test}/{text,utt2spk,wav.scp}), but its wav.scp paths are placeholders
+(e.g. "/my_dir/wav/..."). This script reads that shipped metadata and, instead of
+trusting those paths, indexes every .wav file under --download_dir by filename and
+matches each utterance to its audio by basename. Any utterance whose audio can't be
+found is dropped with a warning rather than failing the whole run.
 
 "Speaker" IDs in this corpus are broadcast recording sessions (e.g. SWH-05-20101106),
 not individual talkers -- each session/show is one Kaldi "speaker". Since no official
@@ -25,9 +19,6 @@ import argparse
 import os
 import sys
 from pathlib import Path
-
-HERE = Path(__file__).resolve().parent
-METADATA = HERE / "metadata"
 
 # Whole recording sessions held out from train as sw_dev (~6% of train utterances).
 # Picked to cover both show families in the corpus (SWH-05-* and SWH-15-*).
@@ -57,6 +48,15 @@ def index_wav_files(root):
     return index
 
 
+def find_metadata_dir(root):
+    """Return the directory holding the shipped train/ and test/ Kaldi files."""
+    for text in sorted(Path(root).rglob("text")):
+        d = text.parent.parent
+        if text.parent.name == "train" and (d / "test" / "text").is_file():
+            return d
+    return None
+
+
 def write_kaldi_dir(out_dir, wav_scp, text, utt2spk):
     out_dir.mkdir(parents=True, exist_ok=True)
     with open(out_dir / "wav.scp", "w", encoding="utf-8") as f:
@@ -70,13 +70,13 @@ def write_kaldi_dir(out_dir, wav_scp, text, utt2spk):
             f.write(f"{uttid} {utt2spk[uttid]}\n")
 
 
-def build_split(split_name, wav_index, keep_uttids=None):
+def build_split(split_name, meta_dir, wav_index, keep_uttids=None):
     """Load the shipped metadata for `split_name` ("train" or "test"), remap audio
     paths against `wav_index`, and return (wav_scp, text, utt2spk) dicts restricted
     to `keep_uttids` if given."""
-    orig_wav = read_kaldi_file(METADATA / f"{split_name}_wav.scp")
-    text = read_kaldi_file(METADATA / f"{split_name}_text")
-    utt2spk = read_kaldi_file(METADATA / f"{split_name}_utt2spk")
+    orig_wav = read_kaldi_file(meta_dir / split_name / "wav.scp")
+    text = read_kaldi_file(meta_dir / split_name / "text")
+    utt2spk = read_kaldi_file(meta_dir / split_name / "utt2spk")
 
     wav_scp, missing = {}, []
     for uttid, orig_path in orig_wav.items():
@@ -136,18 +136,26 @@ def main():
             "[data_prep] No .wav files found -- check that the corpus extracted correctly."
         )
 
+    meta_dir = find_metadata_dir(download_dir)
+    if meta_dir is None:
+        sys.exit(
+            "[data_prep] Could not find the corpus's data/train and data/test "
+            f"metadata under {download_dir}."
+        )
+    print(f"[data_prep] Using metadata from {meta_dir}")
+
     # --- test split: used as-is ---
-    test_wav, test_text, test_utt2spk = build_split("test", wav_index)
+    test_wav, test_text, test_utt2spk = build_split("test", meta_dir, wav_index)
     write_kaldi_dir(data_dir / "sw_test", test_wav, test_text, test_utt2spk)
     print(f"[data_prep] sw_test: {len(test_wav)} utterances")
 
     # --- train split: carve dev sessions out first so nothing leaks ---
-    train_utt2spk_full = read_kaldi_file(METADATA / "train_utt2spk")
+    train_utt2spk_full = read_kaldi_file(meta_dir / "train" / "utt2spk")
     dev_uttids = {u for u, spk in train_utt2spk_full.items() if spk in DEV_SESSIONS}
     train_uttids = {u for u in train_utt2spk_full if u not in dev_uttids}
 
     dev_wav, dev_text, dev_utt2spk = build_split(
-        "train", wav_index, keep_uttids=dev_uttids
+        "train", meta_dir, wav_index, keep_uttids=dev_uttids
     )
     write_kaldi_dir(data_dir / "sw_dev", dev_wav, dev_text, dev_utt2spk)
     print(
@@ -156,7 +164,7 @@ def main():
     )
 
     train_wav, train_text, train_utt2spk = build_split(
-        "train", wav_index, keep_uttids=train_uttids
+        "train", meta_dir, wav_index, keep_uttids=train_uttids
     )
     write_kaldi_dir(data_dir / "sw_train", train_wav, train_text, train_utt2spk)
     print(f"[data_prep] sw_train: {len(train_wav)} utterances")

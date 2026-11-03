@@ -39,8 +39,8 @@ speed perturbation (0.9/1.0/1.1), BPE 300, no language model.
 - The tarball's `wav.scp` contains placeholder paths (`/my_dir/wav/...`).
   `local/data_prep.py` indexes every `.wav` under the download directory and
   matches utterances by file name instead of trusting those paths.
-- `local/metadata/` bundles the canonical train/test `text`, `utt2spk` and
-  `wav.scp` files from https://github.com/besacier/ALFFA_PUBLIC.
+- Transcripts and session IDs come from the Kaldi-format `data/train` and
+  `data/test` files shipped inside the corpus tarball.
 - `egs2/iwslt21_low_resource` also uses ALFFA Swahili, but as one part of a
   combined training set evaluated on the IWSLT 2021 test sets. This recipe
   trains on ALFFA alone and reports results on ALFFA's official test set.
@@ -54,7 +54,7 @@ speed perturbation (0.9/1.0/1.1), BPE 300, no language model.
 - pytorch version: `pytorch 2.13.0+cu126`
 - Git hash: `9dea2da7499f65344b40f140a1bb1bf7e263ca0b`
 
-### asr_train_asr_raw_bpe300_sp
+### asr_train_raw_bpe300_sp
 
 Transformer encoder-decoder (6 encoder / 3 decoder blocks, 256-dim attention),
 hybrid CTC/attention (CTC weight 0.3 in training, 0.5 in decoding),
@@ -65,22 +65,22 @@ no language model. About 2 hours on one V100 (32 GB).
 
 |dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
 |---|---|---|---|---|---|---|---|---|
-|decode_asr_asr_model_valid.acc.ave/sw_dev|634|5877|76.2|19.4|4.5|3.8|27.7|82.2|
-|decode_asr_asr_model_valid.acc.ave/sw_test|1991|17700|71.2|23.2|5.6|2.7|31.5|86.4|
+|decode_asr_model_valid.acc.ave/sw_dev|634|5877|76.2|19.4|4.5|3.8|27.7|82.2|
+|decode_asr_model_valid.acc.ave/sw_test|1991|17700|71.2|23.2|5.6|2.7|31.5|86.4|
 
 #### CER
 
 |dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
 |---|---|---|---|---|---|---|---|---|
-|decode_asr_asr_model_valid.acc.ave/sw_dev|634|37237|93.2|2.5|4.3|3.0|9.8|82.2|
-|decode_asr_asr_model_valid.acc.ave/sw_test|1991|111615|91.4|3.3|5.3|2.2|10.8|86.4|
+|decode_asr_model_valid.acc.ave/sw_dev|634|37237|93.2|2.5|4.3|3.0|9.8|82.2|
+|decode_asr_model_valid.acc.ave/sw_test|1991|111615|91.4|3.3|5.3|2.2|10.8|86.4|
 
 #### TER
 
 |dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
 |---|---|---|---|---|---|---|---|---|
-|decode_asr_asr_model_valid.acc.ave/sw_dev|634|15452|84.2|8.7|7.1|3.0|18.8|82.2|
-|decode_asr_asr_model_valid.acc.ave/sw_test|1991|45854|80.9|10.9|8.2|2.4|21.5|86.4|
+|decode_asr_model_valid.acc.ave/sw_dev|634|15452|84.2|8.7|7.1|3.0|18.8|82.2|
+|decode_asr_model_valid.acc.ave/sw_test|1991|45854|80.9|10.9|8.2|2.4|21.5|86.4|
 
 ### Comparison with published baselines
 
