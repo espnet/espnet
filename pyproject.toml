@@ -191,7 +191,11 @@ tts = [
 ]
 
 enh = [
-  "ci_sdr",
+  # ci_sdr is not listed: its only release is an sdist whose setup.py declares
+  # `padertorch @ git+...` (under its own [all] extra), and pip>=26.3 refuses
+  # any PyPI distribution with a direct URL dependency, so listing it breaks
+  # `pip install espnet[enh]` and `espnet[all]`. CISDRLoss tells the user how
+  # to install it from git. Restore it once ci_sdr publishes a fixed release.
   "fast-bss-eval==0.1.3",
 ]
 rst = [

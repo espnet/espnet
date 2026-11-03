@@ -107,6 +107,13 @@ start_timer "install espnet"
 python3 -m pip install -c constraints.txt -e ".[test,all]" --extra-index-url https://download.pytorch.org/whl/cpu
 end_timer "install espnet"
 
+# ci_sdr is left out of espnet[enh] (see pyproject.toml) because pip>=26.3
+# rejects its PyPI sdist, but CISDRLoss is still tested, so install it from
+# git. Pinned to a commit so the image stays reproducible.
+start_timer "install ci_sdr"
+python3 -m pip install "ci_sdr @ git+https://github.com/fgnt/ci_sdr@380c8c23bfbd0d77fac83841a64fb8759da9971f"
+end_timer "install ci_sdr"
+
 # log
 python3 -m pip freeze
 
