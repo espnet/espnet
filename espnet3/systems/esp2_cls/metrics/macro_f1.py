@@ -2,11 +2,11 @@
 
 from __future__ import annotations
 
-from pathlib import Path
-from typing import Dict, Optional
+from typing import Dict, Optional, Sequence
 
 from espnet3.components.metrics.base_metric import BaseMetric
-from espnet3.systems.esp2_cls.metrics.scoring_utils import (
+from espnet3.contract import Field
+from espnet3.systems.esp2_cls.src.scoring_utils import (
     require_sklearn,
     resolve_classes,
     single_labels,
@@ -25,67 +25,63 @@ class MacroF1(BaseMetric):
 
         - metric:
             _target_: espnet3.systems.esp2_cls.metrics.macro_f1.MacroF1
-            ref_key: ref
-            hyp_key: hyp
             token_list: data/token_list  # optional; fixes the class set
+          inputs:
+            ref: dataset:label
+            hyp: hyp
     """
 
-    def __init__(
-        self,
-        ref_key: str = "ref",
-        hyp_key: str = "hyp",
-        token_list: Optional[str] = None,
-    ) -> None:
+    inputs = (Field("ref", "text"), Field("hyp", "text"))
+    outputs = (Field("MacroF1", "number"),)
+
+    def __init__(self, token_list: Optional[str] = None) -> None:
         """Initialize the macro F1 metric.
 
         Args:
-            ref_key: Key name for reference label entries.
-            hyp_key: Key name for hypothesis label entries.
             token_list: Optional path to the recipe's token list. It fixes the
                 class set so unseen labels are caught; without it the classes
-                are taken from the reference file.
+                are taken from the references.
         """
-        self.ref_key = ref_key
-        self.hyp_key = hyp_key
         self.token_list = token_list
+        super().__init__()
+        self.add_state("refs", [], "cat")
+        self.add_state("hyps", [], "cat")
 
-    def __call__(
-        self,
-        data: Dict[str, Path],
-        test_name: str,
-        inference_dir: Path,
-    ) -> Dict[str, float]:
-        """Compute the macro-averaged F1 score.
+    def update(self, *, ref: Sequence[str], hyp: Sequence[str]) -> None:
+        """Keep the labels of one batch; the score needs every utterance.
 
         Args:
-            data (Dict[str, Path]): Mapping of metric input aliases to SCP
-                paths. Expects ``data[self.ref_key]`` and ``data[self.hyp_key]``
-                to be aligned by utterance ID.
-            test_name (str): Test set name. Unused by this metric.
-            inference_dir (Path): Inference output root. Unused by this metric.
+            ref: Reference labels, one per utterance.
+            hyp: Predicted labels, aligned with ``ref``.
+
+        Examples:
+            >>> metric = MacroF1()
+            >>> metric.update(ref=["joy", "anger"], hyp=["joy", "joy"])
+        """
+        self.refs.extend(ref)
+        self.hyps.extend(hyp)
+
+    def compute(self) -> Dict[str, float]:
+        """Return the macro-averaged F1 score of every utterance added so far.
 
         Returns:
-            Dict[str, float]: ``{"MacroF1": <percentage>}``
+            Dict[str, float]: ``{"MacroF1": <percentage>}``, rounded to 2 places.
 
         Raises:
             RuntimeError: If ``scikit-learn`` is not installed.
-            ValueError: If an utterance carries multiple labels, or if a
-                reference label is missing from ``token_list``.
+            ValueError: If no utterance was added, an utterance carries
+                multiple labels, or a reference label is missing from
+                ``token_list``.
 
-        Example:
-            >>> metric({"ref": Path("test/ref.scp"), "hyp": Path("test/hyp.scp")},
-            ...        "test", Path("infer"))
-            {'MacroF1': 39.84}
+        Examples:
+            >>> metric = MacroF1()
+            >>> metric.update(ref=["joy", "anger"], hyp=["joy", "joy"])
+            >>> metric.compute()
+            {'MacroF1': 33.33}
         """
         sklearn_metrics = require_sklearn()
-        refs = []
-        hyps = []
-        for _, row in self.iter_inputs(data, self.ref_key, self.hyp_key):
-            refs.append(row[self.ref_key])
-            hyps.append(row[self.hyp_key])
-
-        references = single_labels(refs)
-        hypotheses = single_labels(hyps)
+        references = single_labels(self.refs)
+        hypotheses = single_labels(self.hyps)
         classes = resolve_classes(references, self.token_list)
         score = sklearn_metrics.f1_score(
             references,

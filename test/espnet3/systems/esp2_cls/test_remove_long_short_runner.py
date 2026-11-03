@@ -7,8 +7,10 @@ import pytest
 import soundfile as sf
 from omegaconf import OmegaConf
 
-from espnet3.systems.esp2_cls.remove_long_short_provider import RemoveLongShortProvider
-from espnet3.systems.esp2_cls.remove_long_short_runner import RemoveLongShortRunner
+from espnet3.systems.esp2_cls.src.remove_long_short_provider import (
+    RemoveLongShortProvider,
+)
+from espnet3.systems.esp2_cls.src.remove_long_short_runner import RemoveLongShortRunner
 
 # ===============================================================
 # Test Case Summary

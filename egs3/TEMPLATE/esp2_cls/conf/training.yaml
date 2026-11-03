@@ -77,7 +77,7 @@ dataset:
 #              LONG/SHORT FILTERING SETTING              #
 ##########################################################
 # Used by the `remove_long_short` stage in
-# `espnet3.systems.esp2_cls.system.Esp2ClsSystem`. Filtering matters for frontends that
+# `espnet3.systems.esp2_cls.system.ESP2CLSSystem`. Filtering matters for frontends that
 # reject very short waveforms.
 remove_long_short:
 
@@ -85,7 +85,7 @@ remove_long_short:
 #                  LABEL INVENTORY SETTING               #
 ##########################################################
 # Used by the `prepare_labels` stage in
-# `espnet3.systems.esp2_cls.system.Esp2ClsSystem`. The stage collects labels from the
+# `espnet3.systems.esp2_cls.system.ESP2CLSSystem`. The stage collects labels from the
 # third column of the training manifest and writes them in descending
 # frequency order, which the model and the preprocessor consume as
 # `token_list`.

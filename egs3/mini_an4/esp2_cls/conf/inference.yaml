@@ -24,7 +24,7 @@ dataset:
 ##########################################################
 #                    MODEL AND OUTPUT                    #
 ##########################################################
-# The checkpoint is named directly, as in `egs3/mini_an4/asr`: the averaging
+# The checkpoint is named directly, as in `egs3/mini_an4/esp2_asr`: the averaging
 # callback needs a second validation pass before it writes
 # `valid.acc.ave_1best.pth`, and this recipe trains for one epoch.
 model:
@@ -33,4 +33,3 @@ model:
   classification_model_file: ${exp_dir}/epoch0_step1_valid.acc.ckpt
 
 input_key: speech
-output_fn: src.inference.build_output

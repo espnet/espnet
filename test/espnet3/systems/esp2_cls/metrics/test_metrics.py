@@ -11,19 +11,19 @@ from pathlib import Path
 import numpy as np
 import pytest
 
-from espnet3.systems.esp2_cls.metrics import scoring_utils
 from espnet3.systems.esp2_cls.metrics.auc import AUC
 from espnet3.systems.esp2_cls.metrics.macro_f1 import MacroF1
 from espnet3.systems.esp2_cls.metrics.mean_ap import MAP
-from espnet3.systems.esp2_cls.metrics.scoring_utils import (
+from espnet3.systems.esp2_cls.metrics.ua import UA
+from espnet3.systems.esp2_cls.metrics.wa import WA
+from espnet3.systems.esp2_cls.src import scoring_utils
+from espnet3.systems.esp2_cls.src.scoring_utils import (
     build_target_matrix,
     load_class_labels,
     resolve_classes,
     single_labels,
     supported_classes,
 )
-from espnet3.systems.esp2_cls.metrics.ua import UA
-from espnet3.systems.esp2_cls.metrics.wa import WA
 
 sklearn = pytest.importorskip("sklearn")
 
@@ -75,6 +75,8 @@ sklearn = pytest.importorskip("sklearn")
 # |                          | utterance is left out of the average.           |
 # | test_map_rejects_wrong_score_width          | The score row must match the |
 # |                                             | class count.                 |
+# | test_chunked_updates_match_one_update       | Splitting the rows into      |
+# |                          | chunks gives the same scores as one batch.      |
 #
 # Agreement with ESPnet2
 # | Test Name                                   | Description                  |
@@ -283,6 +285,16 @@ def test_map_rejects_wrong_score_width(tmp_path: Path, token_list: Path):
     score.write_text("utt1 0.5 0.5", encoding="utf-8")
     with pytest.raises(ValueError, match="Expected 7 scores"):
         MAP(token_list=str(token_list))({"ref": ref, "score": score}, "test", tmp_path)
+
+
+@pytest.mark.parametrize("metric_cls", [WA, UA, MacroF1, MAP, AUC])
+def test_chunked_updates_match_one_update(inputs, token_list: Path, metric_cls):
+    """Ensure the score comes from the whole state, not a mean over chunks."""
+    kwargs = {} if metric_cls is WA else {"token_list": str(token_list)}
+    whole = metric_cls(**kwargs)(inputs, "test")
+    chunked = metric_cls(**kwargs)
+    chunked.chunk_size = 1
+    assert chunked(inputs, "test") == whole
 
 
 # ---------------------------------------------------------------

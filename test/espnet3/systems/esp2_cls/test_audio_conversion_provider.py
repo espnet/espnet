@@ -3,7 +3,9 @@
 import pytest
 from omegaconf import OmegaConf
 
-from espnet3.systems.esp2_cls.audio_conversion_provider import AudioConversionProvider
+from espnet3.systems.esp2_cls.src.audio_conversion_provider import (
+    AudioConversionProvider,
+)
 
 # ===============================================================
 # Test Case Summary
@@ -81,7 +83,7 @@ def test_build_env_requires_sampling_rate():
 
 def test_build_env_requires_ffmpeg(monkeypatch):
     monkeypatch.setattr(
-        "espnet3.systems.esp2_cls.audio_conversion_provider.shutil.which",
+        "espnet3.systems.esp2_cls.src.audio_conversion_provider.shutil.which",
         lambda name: None,
     )
     provider = AudioConversionProvider(

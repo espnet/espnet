@@ -6,8 +6,10 @@ import subprocess
 import pytest
 from omegaconf import OmegaConf
 
-from espnet3.systems.esp2_cls.audio_conversion_provider import AudioConversionProvider
-from espnet3.systems.esp2_cls.audio_conversion_runner import AudioConversionRunner
+from espnet3.systems.esp2_cls.src.audio_conversion_provider import (
+    AudioConversionProvider,
+)
+from espnet3.systems.esp2_cls.src.audio_conversion_runner import AudioConversionRunner
 
 # ===============================================================
 # Test Case Summary
@@ -53,7 +55,7 @@ def calls(monkeypatch):
         return subprocess.CompletedProcess(cmd, 0)
 
     monkeypatch.setattr(
-        "espnet3.systems.esp2_cls.audio_conversion_runner.subprocess.run", fake_run
+        "espnet3.systems.esp2_cls.src.audio_conversion_runner.subprocess.run", fake_run
     )
     return recorded
 
@@ -140,7 +142,7 @@ def test_forward_writes_through_a_part_file(tmp_path, monkeypatch):
         return subprocess.CompletedProcess(cmd, 0)
 
     monkeypatch.setattr(
-        "espnet3.systems.esp2_cls.audio_conversion_runner.subprocess.run", fake_run
+        "espnet3.systems.esp2_cls.src.audio_conversion_runner.subprocess.run", fake_run
     )
     AudioConversionRunner.forward(0, jobs, FFMPEG, 16000, 1)
 
@@ -156,7 +158,8 @@ def test_forward_leaves_no_destination_on_failure(tmp_path, monkeypatch):
         raise subprocess.CalledProcessError(1, cmd)
 
     monkeypatch.setattr(
-        "espnet3.systems.esp2_cls.audio_conversion_runner.subprocess.run", failing_run
+        "espnet3.systems.esp2_cls.src.audio_conversion_runner.subprocess.run",
+        failing_run,
     )
     with pytest.raises(subprocess.CalledProcessError):
         AudioConversionRunner.forward(0, jobs, FFMPEG, 16000, 1)

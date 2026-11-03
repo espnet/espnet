@@ -34,4 +34,3 @@ model:
   classification_model_file: ${exp_dir}/valid.acc.ave_1best.pth
 
 input_key: speech
-output_fn: src.inference.build_output

@@ -1,7 +1,7 @@
 builder:
   # Source layout ---------------------------------------------------------
   # The ASR recipe's archive is read in place: one corpus, one copy.
-  archive_path: ../asr/downloads.tar.gz
+  archive_path: ../esp2_asr/downloads.tar.gz
   dataset_path: downloads
   data_path: data
 

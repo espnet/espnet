@@ -15,8 +15,10 @@ from typing import Iterator
 from omegaconf import OmegaConf
 
 from espnet3.components.data.dataset_builder import DatasetBuilder
-from espnet3.systems.esp2_cls.audio_conversion_provider import AudioConversionProvider
-from espnet3.systems.esp2_cls.audio_conversion_runner import AudioConversionRunner
+from espnet3.systems.esp2_cls.src.audio_conversion_provider import (
+    AudioConversionProvider,
+)
+from espnet3.systems.esp2_cls.src.audio_conversion_runner import AudioConversionRunner
 from espnet3.utils.config_utils import load_config_with_defaults
 from espnet3.utils.download_utils import download_url, extract_targz
 

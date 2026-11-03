@@ -40,12 +40,24 @@ parallel:
 #                    MODEL AND OUTPUT                    #
 ##########################################################
 # `model` is instantiated with `device` injected by the provider.
-# `output_fn` maps one model output to the fields written as SCP files.
+# `contract` declares what the runner passes in and writes out: `hyp` is the
+# predicted label and `score` the space-separated per-class scores.
 model:
+  _target_: espnet2.bin.cls_inference.Classification
 input_key: speech
-output_fn:
+contract:
+  inputs:
+    speech:
+      kind: audio
+      sample_rate: 16000
+      channels: 1
+  outputs:
+    hyp:
+      kind: text
+    score:
+      kind: text
 
 provider:
   _target_: espnet3.systems.base.inference_provider.InferenceProvider
 runner:
-  _target_: espnet3.systems.base.inference_runner.InferenceRunner
+  _target_: espnet3.systems.esp2_cls.src.inference_runner.ESP2CLSInferenceRunner

@@ -8,7 +8,8 @@ import soundfile as sf
 from omegaconf import OmegaConf
 
 import espnet3.systems.esp2_cls.system as sysmod
-from espnet3.systems.esp2_cls.system import Esp2ClsSystem
+from espnet3.contract.stages import stage_log_dir
+from espnet3.systems.esp2_cls.system import ESP2CLSSystem
 
 # ===============================================================
 # Test Case Summary
@@ -67,8 +68,6 @@ from espnet3.systems.esp2_cls.system import Esp2ClsSystem
 # |---------------------------------------------|------------------------------|
 # | test_stage_log_dirs_cover_both_stages       | Both added stages log into   |
 # |                                             | their own save_path.         |
-# | test_stage_log_dirs_honour_caller_overrides | A caller-supplied mapping    |
-# |                                             | wins over the defaults.      |
 
 
 def _write_wav(path, seconds, sr=16000):
@@ -113,7 +112,7 @@ def _rls_system(tmp_path, manifests, **overrides):
     config = OmegaConf.create(
         {"exp_dir": str(tmp_path / "exp"), "remove_long_short": rls}
     )
-    return Esp2ClsSystem(training_config=config)
+    return ESP2CLSSystem(training_config=config)
 
 
 def _labels_system(tmp_path, manifest_path=None, **overrides):
@@ -125,7 +124,7 @@ def _labels_system(tmp_path, manifest_path=None, **overrides):
         cfg["manifest_path"] = str(manifest_path)
     cfg.update(overrides)
     config = OmegaConf.create({"exp_dir": str(tmp_path / "exp"), "prepare_labels": cfg})
-    return Esp2ClsSystem(training_config=config)
+    return ESP2CLSSystem(training_config=config)
 
 
 def _token_list(tmp_path):
@@ -179,7 +178,7 @@ def test_remove_long_short_default_manifest_location(tmp_path, monkeypatch):
             },
         }
     )
-    Esp2ClsSystem(training_config=config).remove_long_short()
+    ESP2CLSSystem(training_config=config).remove_long_short()
 
     filtered = (tmp_path / "filtered" / "train.tsv").read_text()
     assert [line.split("\t")[0] for line in filtered.splitlines()] == ["utt_mid"]
@@ -214,13 +213,13 @@ def test_remove_long_short_sets_parallel(tmp_path, duration_manifests, monkeypat
 
 
 def test_remove_long_short_requires_config(tmp_path):
-    system = Esp2ClsSystem(
+    system = ESP2CLSSystem(
         training_config=OmegaConf.create({"exp_dir": str(tmp_path / "exp")})
     )
     with pytest.raises(RuntimeError, match="remove_long_short must be set"):
         system.remove_long_short()
 
-    system = Esp2ClsSystem(
+    system = ESP2CLSSystem(
         training_config=OmegaConf.create(
             {"exp_dir": str(tmp_path / "exp"), "remove_long_short": {}}
         )
@@ -228,7 +227,7 @@ def test_remove_long_short_requires_config(tmp_path):
     with pytest.raises(RuntimeError, match="save_path must be set"):
         system.remove_long_short()
 
-    system = Esp2ClsSystem(
+    system = ESP2CLSSystem(
         training_config=OmegaConf.create(
             {
                 "exp_dir": str(tmp_path / "exp"),
@@ -348,13 +347,13 @@ def test_prepare_labels_default_manifest_location(tmp_path, monkeypatch):
 
 
 def test_prepare_labels_requires_config(tmp_path):
-    system = Esp2ClsSystem(
+    system = ESP2CLSSystem(
         training_config=OmegaConf.create({"exp_dir": str(tmp_path / "exp")})
     )
     with pytest.raises(RuntimeError, match="prepare_labels must be set"):
         system.prepare_labels()
 
-    system = Esp2ClsSystem(
+    system = ESP2CLSSystem(
         training_config=OmegaConf.create(
             {"exp_dir": str(tmp_path / "exp"), "prepare_labels": {}}
         )
@@ -362,7 +361,7 @@ def test_prepare_labels_requires_config(tmp_path):
     with pytest.raises(RuntimeError, match="save_path must be set"):
         system.prepare_labels()
 
-    system = Esp2ClsSystem(
+    system = ESP2CLSSystem(
         training_config=OmegaConf.create(
             {
                 "exp_dir": str(tmp_path / "exp"),
@@ -414,22 +413,7 @@ def test_stage_log_dirs_cover_both_stages(tmp_path):
             "prepare_labels": {"save_path": str(tmp_path / "data")},
         }
     )
-    log_dirs = Esp2ClsSystem(training_config=config).stage_log_dirs
+    system = ESP2CLSSystem(training_config=config)
 
-    assert log_dirs["remove_long_short"] == tmp_path / "filtered"
-    assert log_dirs["prepare_labels"] == tmp_path / "data"
-
-
-def test_stage_log_dirs_honour_caller_overrides(tmp_path):
-    config = OmegaConf.create(
-        {
-            "exp_dir": str(tmp_path / "exp"),
-            "prepare_labels": {"save_path": str(tmp_path / "data")},
-        }
-    )
-    log_dirs = Esp2ClsSystem(
-        training_config=config,
-        stage_log_mapping={"prepare_labels": "training_config.exp_dir"},
-    ).stage_log_dirs
-
-    assert log_dirs["prepare_labels"] == tmp_path / "exp"
+    assert stage_log_dir(system, "remove_long_short") == tmp_path / "filtered"
+    assert stage_log_dir(system, "prepare_labels") == tmp_path / "data"

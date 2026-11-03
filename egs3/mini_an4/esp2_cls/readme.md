@@ -1,7 +1,7 @@
 # Mini AN4 classification
 
 A CI fixture, not a result-producing recipe. It runs every stage of
-`espnet3.systems.esp2_cls.system.Esp2ClsSystem` — `create_dataset`,
+`espnet3.systems.esp2_cls.system.ESP2CLSSystem` — `create_dataset`,
 `remove_long_short`, `prepare_labels`, `collect_stats`, `train`, `infer` and
 `measure` — over seven utterances in a few seconds, so that a change to the
 classification stages fails in `ci/test_integration_espnet3.sh` rather than in
@@ -41,4 +41,4 @@ python run.py \
     --metrics_config conf/metrics.yaml
 ```
 
-The AN4 archive is read from `../asr/downloads.tar.gz`; nothing is downloaded.
+The AN4 archive is read from `../esp2_asr/downloads.tar.gz`; nothing is downloaded.

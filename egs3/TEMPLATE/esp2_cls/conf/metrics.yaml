@@ -5,7 +5,8 @@
 #   python run.py --stages measure --metrics_config conf/metrics.yaml
 #
 # Assumptions:
-# - `infer` has already produced `<test_name>/{ref,hyp,score}.scp`.
+# - `infer` has already produced `<test_name>/{hyp,score}.scp`; each reference
+#   is read from the dataset's `label` field (`dataset:label`).
 # - `prepare_labels` has written `${data_dir}/token_list`.
 # - If `dataset.test` is omitted, test sets are discovered from `${inference_dir}`
 #   subdirectories.
@@ -41,33 +42,34 @@ dataset:
 metrics:
   - metric:
       _target_: espnet3.systems.esp2_cls.metrics.wa.WA
-      ref_key: ref        # reference label key -> `<test_name>/ref.scp`
-      hyp_key: hyp        # hypothesis label key -> `<test_name>/hyp.scp`
+    inputs:
+      ref: dataset:label
+      hyp: hyp
 
   - metric:
       _target_: espnet3.systems.esp2_cls.metrics.ua.UA
-      ref_key: ref
-      hyp_key: hyp
       token_list: ${data_dir}/token_list  # optional; fixes the class set
+    inputs:
+      ref: dataset:label
+      hyp: hyp
 
   - metric:
       _target_: espnet3.systems.esp2_cls.metrics.macro_f1.MacroF1
-      ref_key: ref
-      hyp_key: hyp
       token_list: ${data_dir}/token_list  # optional; fixes the class set
+    inputs:
+      ref: dataset:label
+      hyp: hyp
 
-  # mAP and AUC rank per-class probabilities, so `score` must be declared in
-  # `inputs`; the `ref_key`/`hyp_key` fallback cannot express a third input.
   - metric:
       _target_: espnet3.systems.esp2_cls.metrics.mean_ap.MAP
       token_list: ${data_dir}/token_list  # required; sets the column order
     inputs:
-      ref: ref
+      ref: dataset:label
       score: score
 
   - metric:
       _target_: espnet3.systems.esp2_cls.metrics.auc.AUC
       token_list: ${data_dir}/token_list  # required; sets the column order
     inputs:
-      ref: ref
+      ref: dataset:label
       score: score
