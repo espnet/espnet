@@ -57,8 +57,8 @@ def test_call_warns_once_when_a_reference_group_has_no_segments(tmp_path, caplog
 
     Count and warn instead, so the drop is visible rather than silent.
     """
-    ref = tmp_path / "ref_sot.scp"
-    hyp = tmp_path / "hyp_sot.scp"
+    ref = tmp_path / "ref.scp"
+    hyp = tmp_path / "hyp.scp"
     ref.write_text(
         "u1 no timestamps here\nu2 <|0.00|> hello<|1.20|>\n", encoding="utf-8"
     )
@@ -76,8 +76,8 @@ def test_call_warns_once_when_a_reference_group_has_no_segments(tmp_path, caplog
 
 
 def test_call_does_not_warn_when_every_reference_group_has_segments(tmp_path, caplog):
-    ref = tmp_path / "ref_sot.scp"
-    hyp = tmp_path / "hyp_sot.scp"
+    ref = tmp_path / "ref.scp"
+    hyp = tmp_path / "hyp.scp"
     ref.write_text("u1 <|0.00|> hello<|1.20|>\n", encoding="utf-8")
     hyp.write_text("u1 <|0.00|> hello<|1.20|>\n", encoding="utf-8")
     with caplog.at_level(logging.WARNING):
@@ -93,8 +93,8 @@ def test_call_does_not_warn_when_every_reference_group_has_segments(tmp_path, ca
 @ami_sot_paths.needs_reference_decode
 @pytest.mark.execution_timeout(60.0)
 def test_der_reproduces_the_recorded_full_test_set_score(tmp_path):
-    ref = tmp_path / "ref_sot.scp"
-    hyp = tmp_path / "hyp_sot.scp"
+    ref = tmp_path / "ref.scp"
+    hyp = tmp_path / "hyp.scp"
 
     # The recorded decode spells the separator "<sc>"; the metric splits on
     # the checkpoint's own symbol.

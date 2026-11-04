@@ -39,7 +39,8 @@ Every knob the recipe reads from the environment, all optional:
 | `AMI_SOT_DATA_ROOT` | Corpus root the builder writes and the stages read | the recipe directory |
 | `AMI_SOT_CUTSET_DIR` | Where the CutSet manifests are fetched to | `downloads/cutsets` |
 | `AMI_AUDIO_ROOT` | AMI SDM audio, in lhotse's `wav_db/<meeting>/audio` layout | `downloads/ami` |
-| `AMI_SOT_CHECKPOINT_DIR` | Directory holding `config.yaml` and `model.pth` for `infer` | `exp/whisper_sot_s2t` |
+| `AMI_SOT_TRAIN_CONFIG` | The `config.yaml` of the checkpoint `infer` decodes | `exp/<tag>/config.yaml` |
+| `AMI_SOT_MODEL_FILE` | The weights of that checkpoint | `exp/<tag>/valid.loss.ave_1best.pth` |
 | `AMI_SOT_SPEAKER_CHANGE_SYMBOL` | Separator `infer` tells the model about | `????` |
 
 ## Quick start
@@ -72,9 +73,8 @@ speaker activity from them.
 
 [`espnet/multi-talker-whisper-small-ami`](https://huggingface.co/espnet/multi-talker-whisper-small-ami)
 holds the checkpoint that produced the results below, and the cutsets
-`create_dataset` uses. Fetch `config.yaml` and `model.pth` into
-`exp/whisper_sot_s2t`, or point `AMI_SOT_CHECKPOINT_DIR` at wherever you put
-them, then run stage 4.
+`create_dataset` uses. Fetch `config.yaml` and `model.pth`, point
+`AMI_SOT_TRAIN_CONFIG` and `AMI_SOT_MODEL_FILE` at them, then run stage 4.
 
 ## Results
 
@@ -104,3 +104,5 @@ python run.py --stages pack_model \
 ```
 
 Run `infer` and `measure` first, so the bundle carries their `metrics.json`.
+The bundle holds the checkpoint the train stage wrote, with its token list
+written into `config.yaml`, so it decodes on a machine without the corpus.

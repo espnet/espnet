@@ -63,3 +63,19 @@ def test_collect_stats_preserves_a_null_normalize(tmp_path, monkeypatch):
     assert model_cfg.normalize is None
     assert "normalize_conf" in model_cfg
     assert model_cfg.normalize_conf is None
+
+
+def test_pack_model_writes_the_token_list_into_the_bundle(tmp_path, monkeypatch):
+    """The override runs the base packing, then makes the bundle portable."""
+    import espnet3.systems.base.system as base
+
+    bundle = tmp_path / "bundle"
+    monkeypatch.setattr(base, "_pack_model", lambda **configs: bundle)
+    seen = []
+    monkeypatch.setattr(sysmod, "inline_token_list", seen.append)
+    system = ESP2S2TSystem(
+        training_config=OmegaConf.create({"exp_dir": str(tmp_path / "exp")})
+    )
+
+    assert system.pack_model() == bundle
+    assert seen == [bundle]

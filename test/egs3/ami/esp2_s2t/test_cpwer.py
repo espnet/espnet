@@ -63,11 +63,10 @@ def test_metric_writes_a_by_speaker_count_side_file(tmp_path):
 def test_metric_raises_when_every_reference_is_empty(tmp_path):
     """A run whose references all came out empty must fail loudly.
 
-    total["ref_len"] would be 0, and get_percentage() returns 0.0 for a zero
+    The summed ref_len would be 0, and get_percentage() returns 0.0 for a zero
     denominator, so an unguarded aggregate would misreport a perfect 0.00%
-    instead. The realistic way in is
-    src/inference.py's ``data.get("text", "")``, which silently empties every reference
-    if the dataset's text key is ever renamed.
+    instead. The realistic way in is a ``ref`` input bound to a column that
+    holds no reference text.
     """
     ref = tmp_path / "ref.scp"
     hyp = tmp_path / "hyp.scp"

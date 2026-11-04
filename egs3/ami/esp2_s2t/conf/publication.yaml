@@ -19,21 +19,11 @@ recipe_dir: .
 pack_model:
   include:
     - ${recipe_dir}/dataset
-    # The vocabulary the checkpoint was trained against. It lives beside the
-    # corpus rather than under the recipe, hence the same expression
-    # conf/training.yaml uses. Copying it here is what lets the rewrite below
-    # find it.
-    - ${oc.env:AMI_SOT_DATA_ROOT,${recipe_dir}}/data/tokens.txt
-
-  # The checkpoint's config.yaml names the token list by absolute path, which
-  # a bulk copy would carry over unchanged. Registered here instead, because
-  # pack_model rewrites a yaml_files entry's paths to bundle-relative
-  # ${recipe_dir}/... form for every source it has copied.
-  yaml_files:
-    s2t_train_config: ${exp_dir}/config.yaml
+  # No token list here: the checkpoint's config.yaml names it by a path into
+  # the corpus, and ESP2S2TSystem.pack_model writes the list itself into the
+  # bundled copy instead.
 
   exclude:
-    # Applied to the bulk copy only, never to files or yaml_files.
     - inference
     - inference_*
     - "*.ckpt"

@@ -30,12 +30,12 @@ dataset:
 # speaker_change_symbol and adaptive_timestamp select the SOT timestamp
 # constraints in espnet3/systems/esp2_s2t/src/whisper_timestamp_scorer.py.
 model:
-  # Put the checkpoint's config.yaml and model.pth in exp/whisper_sot_s2t
-  # under the recipe directory, or set AMI_SOT_CHECKPOINT_DIR to where they
-  # are. The default is recipe-relative; the inference stage chdirs into
-  # recipe_dir before building the model.
-  s2t_train_config: ${oc.env:AMI_SOT_CHECKPOINT_DIR,exp/whisper_sot_s2t}/config.yaml
-  s2t_model_file: ${oc.env:AMI_SOT_CHECKPOINT_DIR,exp/whisper_sot_s2t}/model.pth
+  # The checkpoint the train stage wrote, which pack_model also bundles. To
+  # decode another one, such as the released checkpoint, point
+  # AMI_SOT_TRAIN_CONFIG and AMI_SOT_MODEL_FILE at its config.yaml and
+  # model.pth.
+  s2t_train_config: ${oc.env:AMI_SOT_TRAIN_CONFIG,${exp_dir}/config.yaml}
+  s2t_model_file: ${oc.env:AMI_SOT_MODEL_FILE,${exp_dir}/valid.loss.ave_1best.pth}
   beam_size: 5
   ctc_weight: 0.0
   # Negative means a constant cap, so 250 tokens rather than a ratio of the
