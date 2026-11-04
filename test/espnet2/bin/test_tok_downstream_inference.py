@@ -1,7 +1,14 @@
 import numpy as np
+import pytest
+import soundfile
+import torch
+import yaml
 from omniio import kaldi as kaldi_io
 
-from espnet2.bin.tok_downstream_inference import build_iterator
+from espnet2.bin.tok_downstream_inference import (
+    build_iterator,
+    inference_reconstruction,
+)
 from espnet2.tasks.gan_tok import GANSpeechTokenizerTask
 
 
@@ -50,3 +57,46 @@ def test_build_iterator_reads_speaker_embeddings(tmp_path):
     assert keys == ["utt1"]
     assert batch["speech"].tolist() == [[1, 2, 3]]
     np.testing.assert_allclose(batch["spembs"].numpy(), [[0.1, 0.2]])
+
+
+@pytest.mark.parametrize(
+    ("sample_rate", "frontend_conf", "expected_sample_rate"),
+    (("16k", {}, 16000), (None, {"fs": 24000}, 24000)),
+)
+def test_inference_reconstruction_sample_rate(
+    tmp_path, sample_rate, frontend_conf, expected_sample_rate
+):
+    class Model:
+        @staticmethod
+        def synthesize_from_tokens(token_ids, token_lengths, spembs):
+            return torch.zeros(1, 1, 4), torch.tensor([4])
+
+    train_config = tmp_path / "config.yaml"
+    train_config.write_text(
+        yaml.safe_dump({"frontend_conf": frontend_conf}), encoding="utf-8"
+    )
+    iterator = [
+        (
+            ["utt1"],
+            {
+                "speech": torch.tensor([[1, 2]]),
+                "speech_lengths": torch.tensor([2]),
+                "spembs": torch.zeros(1, 2),
+            },
+        )
+    ]
+
+    inference_reconstruction(
+        Model(), iterator, tmp_path, "cpu", str(train_config), sample_rate
+    )
+
+    _, actual_sample_rate = soundfile.read(tmp_path / "wav" / "utt1.wav")
+    assert actual_sample_rate == expected_sample_rate
+
+
+def test_inference_reconstruction_requires_sample_rate(tmp_path):
+    train_config = tmp_path / "config.yaml"
+    train_config.write_text(yaml.safe_dump({"frontend_conf": {}}), encoding="utf-8")
+
+    with pytest.raises(ValueError, match="sample_rate must be provided"):
+        inference_reconstruction(None, [], tmp_path, "cpu", str(train_config), None)

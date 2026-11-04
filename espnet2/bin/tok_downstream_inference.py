@@ -127,11 +127,18 @@ def inference_reconstruction(
     output: Path,
     device: str,
     train_config: str,
+    sample_rate: int | str | None,
 ) -> None:
     """Run the reconstruction downstream branch from discrete tokens."""
-    with Path(train_config).open(encoding="utf-8") as stream:
-        config = yaml.safe_load(stream)
-    sample_rate = config["frontend_conf"]["fs"]
+    if sample_rate is None:
+        with Path(train_config).open(encoding="utf-8") as stream:
+            config = yaml.safe_load(stream)
+        sample_rate = config.get("frontend_conf", {}).get("fs")
+        if sample_rate is None:
+            raise ValueError(
+                "sample_rate must be provided when frontend_conf.fs is absent "
+                "from the training config"
+            )
     if isinstance(sample_rate, str):
         sample_rate = humanfriendly.parse_size(sample_rate)
     wav_dir = output / "wav"
@@ -169,6 +176,7 @@ def inference(
     maxlenratio: float,
     minlenratio: float,
     num_workers: int,
+    sample_rate: str | None,
 ) -> None:
     """Run one downstream inference mode from discrete tokens."""
     if ngpu not in (0, 1):
@@ -222,6 +230,7 @@ def inference(
             output,
             device,
             train_config,
+            sample_rate,
         )
     else:
         raise ValueError(f"Unsupported downstream inference mode: {mode}")
@@ -251,6 +260,7 @@ def get_parser() -> argparse.ArgumentParser:
     parser.add_argument("--maxlenratio", type=float, default=0.0)
     parser.add_argument("--minlenratio", type=float, default=0.0)
     parser.add_argument("--num_workers", type=int, default=1)
+    parser.add_argument("--sample_rate")
     return parser
 
 

@@ -754,6 +754,7 @@ if [ "${stage}" -le 11 ] && [ "${stop_stage}" -ge 11 ] \
                     --train_config "${tok_exp}/config.yaml" \
                     --model_file "${tok_exp}/${inference_model}" \
                     --ngpu "${inference_ngpu}" \
+                    --sample_rate "${fs}" \
                     --output_dir "${decode_logdir}/${mode}.JOB"
         done
         mkdir -p "${decode_dir}/asr" "${decode_dir}/reconstruction/wav"
