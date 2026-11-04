@@ -5,7 +5,8 @@ the decoder keeps every espnet2 fix. It adds two options. ``speaker_change_symbo
 scopes Whisper's timestamp rules to the current speaker block, and
 ``adaptive_timestamp`` adds Whisper's last rule, which needs the decoder's
 probabilities and so wraps the decoder scorer. Both are installed on the beam
-search after the parent has built it.
+search after the parent has built it. With either one on, a hypothesis' text
+keeps its timestamps and separator, which is what it is scored on.
 """
 
 from __future__ import annotations
@@ -20,9 +21,15 @@ from espnet2.bin.s2t_inference import Speech2Text as _Speech2Text
 from espnet2.bin.s2t_inference import _is_ctc_only
 from espnet2.legacy.nets.batch_beam_search import BatchBeamSearch
 from espnet2.legacy.nets.scorer_interface import BatchScorerInterface
-from espnet3.systems.esp2_s2t.whisper_timestamp_scorer import (
+from espnet2.text.whisper_token_id_converter import (
+    OpenAIWhisperTokenIDConverter as _DroppingConverter,
+)
+from espnet3.systems.esp2_s2t.src.whisper_timestamp_scorer import (
     WhisperTimestampFilter,
     wrap_timestamp_decoder,
+)
+from espnet3.systems.esp2_s2t.src.whisper_token_id_converter import (
+    OpenAIWhisperTokenIDConverter,
 )
 
 _PARENT_SIGNATURE = inspect.signature(_Speech2Text.__init__)
@@ -133,6 +140,7 @@ class Speech2Text(_Speech2Text):
             ),
         )
         self._install_timestamp_rules(adaptive_timestamp)
+        self._keep_special_tokens(speaker_change_symbol)
 
     def _install_timestamp_rules(self, adaptive_timestamp: bool) -> None:
         """Put the filter on the beam search the parent built.
@@ -184,6 +192,44 @@ class Speech2Text(_Speech2Text):
         beam_search.set_hyp_primer = functools.partial(
             _set_hyp_primer_and_sample_begin, beam_search, self.timestamp_filter
         )
+
+    def _keep_special_tokens(self, speaker_change_symbol: Optional[str]) -> None:
+        """Make a hypothesis' text keep its timestamps and separator.
+
+        For a Whisper vocabulary the parent builds a converter that drops
+        special tokens, so the text would lose the timestamps these rules
+        exist for. It is rebuilt here as the training preprocessor built it,
+        keeping them. A token-list converter already keeps every token.
+
+        Raises:
+            ValueError: If a symbol the text is read by has another id in the
+                checkpoint's token list than in the rebuilt converter.
+        """
+        if not isinstance(self.converter, _DroppingConverter):
+            return
+        separator = (
+            {}
+            if speaker_change_symbol is None
+            else {"sot": True, "speaker_change_symbol": speaker_change_symbol}
+        )
+        converter = OpenAIWhisperTokenIDConverter(
+            self.converter.model_type, keep_special_tokens=True, **separator
+        )
+        token_list = self.s2t_model.token_list
+        conf = self.s2t_train_args.preprocessor_conf
+        symbols = [
+            conf[key]
+            for key in ("first_time_symbol", "last_time_symbol", "notime_symbol")
+        ] + ([] if speaker_change_symbol is None else [speaker_change_symbol])
+        for symbol in symbols:
+            if converter.token2id.get(symbol) != token_list.index(symbol):
+                raise ValueError(
+                    f"{symbol!r} is id {token_list.index(symbol)} in the "
+                    f"checkpoint's token list but {converter.token2id.get(symbol)}"
+                    f" in a {self.converter.model_type} converter, so the "
+                    "hypothesis text would not say what the model emitted"
+                )
+        self.converter = converter
 
     def _build_hyp_primer(
         self, lang_sym=None, task_sym=None, predict_time=None, text_prev=None

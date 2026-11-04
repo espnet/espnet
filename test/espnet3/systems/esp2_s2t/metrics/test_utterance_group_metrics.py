@@ -5,6 +5,8 @@ speaker-change symbol comes from the constructor rather than from a constant,
 and that the reported keys say which scope the score has.
 """
 
+import json
+
 import pytest
 
 pytest.importorskip("meeteval")
@@ -131,3 +133,63 @@ def test_der_counts_the_seconds_it_should(
 
     metric = UtteranceGroupDER("????", collar=0.0)
     assert metric({"ref": ref, "hyp": hyp}, "test", tmp_path)["ug_DER"] == expected
+
+
+_GROUPS = [
+    (
+        "<|0.00|> the cat sat<|1.00|> ???? <|1.00|> a dog<|2.00|>",
+        "<|0.00|> a dog<|1.50|> ???? <|0.50|> the bat sat<|1.00|>",
+    ),
+    ("<|0.00|> yes<|0.80|>", "<|0.00|> yes no<|1.20|>"),
+    ("<|0.00|> one two three<|2.50|>", ""),
+]
+
+
+@pytest.mark.parametrize(
+    "make",
+    [
+        lambda: UtteranceGroupCpWER("????"),
+        lambda: UtteranceGroupDER("????", collar=0.0),
+    ],
+    ids=["cpWER", "DER"],
+)
+def test_one_batch_chunks_and_merged_ranks_agree(make):
+    """The score sums counts, so how the groups are split cannot change it.
+
+    A metric that averaged per-group rates instead would pass a one-group test
+    and drift here, where the groups differ in length.
+    """
+    refs = [ref for ref, _ in _GROUPS]
+    hyps = [hyp for _, hyp in _GROUPS]
+    whole = make()
+    whole.update(ref=refs, hyp=hyps)
+    chunked = make()
+    ranks = [make() for _ in _GROUPS]
+    for rank, (ref, hyp) in zip(ranks, _GROUPS):
+        chunked.update(ref=[ref], hyp=[hyp])
+        rank.update(ref=[ref], hyp=[hyp])
+    merged = make()
+    merged.load_state(merged.merge_states([rank.state() for rank in ranks]))
+
+    assert whole.compute() == chunked.compute() == merged.compute()
+    whole.reset()
+    with pytest.raises(ValueError):
+        whole.compute()
+
+
+def test_the_cpwer_report_is_keyed_by_utterance_id(tmp_path):
+    """update() never sees ids, so the report has to recover them in order."""
+    ref, hyp = tmp_path / "ref.scp", tmp_path / "hyp.scp"
+    ref.write_text(
+        "".join(f"g{i} {r}\n" for i, (r, _) in enumerate(_GROUPS)), encoding="utf-8"
+    )
+    hyp.write_text(
+        "".join(f"g{i} {h}\n" for i, (_, h) in enumerate(_GROUPS)), encoding="utf-8"
+    )
+    metric = UtteranceGroupCpWER("????")
+    metric.chunk_size = 2
+    metric({"ref": ref, "hyp": hyp}, "test", tmp_path)
+
+    per_utt = json.loads((tmp_path / "test" / "cpwer_per_utt.json").read_text())
+    assert list(per_utt) == ["g0", "g1", "g2"]
+    assert per_utt["g2"]["errors"] == 3

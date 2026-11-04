@@ -28,9 +28,8 @@ dataset:
 #                    MODEL AND OUTPUT                    #
 ##########################################################
 # speaker_change_symbol and adaptive_timestamp select the SOT timestamp
-# constraints in espnet3/systems/esp2_s2t/whisper_timestamp_scorer.py.
+# constraints in espnet3/systems/esp2_s2t/src/whisper_timestamp_scorer.py.
 model:
-  _target_: espnet3.systems.esp2_s2t.s2t_inference.Speech2Text
   # Put the checkpoint's config.yaml and model.pth in exp/whisper_sot_s2t
   # under the recipe directory, or set AMI_SOT_CHECKPOINT_DIR to where they
   # are. The default is recipe-relative; the inference stage chdirs into
@@ -50,13 +49,9 @@ model:
   predict_time: true
   # Must match the builder.separator the checkpoint was trained with, and
   # must name a row of that checkpoint's token list: Speech2Text resolves it
-  # with token_list.index. src/inference.py reads the same variable.
+  # with token_list.index. conf/metrics.yaml reads the same variable.
   speaker_change_symbol: ${oc.env:AMI_SOT_SPEAKER_CHANGE_SYMBOL,????}
   adaptive_timestamp: true
 
-input_key: speech
-# One utterance per beam search: the timestamp scorer keeps per-hypothesis
-# bookkeeping scoped to a single seek window.
-batch_size: null
-output_fn: src.inference.build_output
-output_keys: [hyp, ref, hyp_sot, ref_sot]
+# input_key, batch_size, the contract and the runner come from
+# egs3/TEMPLATE/esp2_s2t/conf/inference.yaml.

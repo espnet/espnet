@@ -1,4 +1,4 @@
-"""Tests for the normalizer resolver in espnet3/systems/esp2_s2t/text_norm.py.
+"""Tests for the normalizer resolver in espnet3/systems/esp2_s2t/src/text_norm.py.
 
 The CHiME-8 normalizer it can return is an optional dependency, so the tests
 that need it skip when it is absent. Everything else runs anywhere.
@@ -8,7 +8,7 @@ from pathlib import Path
 
 import pytest
 
-import espnet3.systems.esp2_s2t.text_norm as tn  # noqa: E402
+import espnet3.systems.esp2_s2t.src.text_norm as tn  # noqa: E402
 
 
 def test_none_means_no_normalizer_at_all():

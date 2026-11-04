@@ -30,10 +30,10 @@ pack_model:
   # The packed readme renders ${system} and ${corpus} from the bundle's own
   # metadata, so it is the same file for every system. Referenced where it
   # already lives rather than copied, so one file stays the source of truth.
-  readme: ${config_path:../../asr/src/hf_model_readme.md}
+  readme: ${config_path:../../esp2_asr/src/hf_model_readme.md}
   include:
-    # A packed model imports the recipe's own modules by name.
-    - src
+    # The system's own code is installed with espnet; the recipe ships only
+    # its dataset module.
     - dataset
   exclude:
     # Applied to the bulk copy only, never to `files` or `yaml_files`.

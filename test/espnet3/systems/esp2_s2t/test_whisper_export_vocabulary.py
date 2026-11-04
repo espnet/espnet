@@ -1,4 +1,4 @@
-"""Tests for espnet3/systems/esp2_s2t/whisper_export_vocabulary.py.
+"""Tests for espnet3/systems/esp2_s2t/src/whisper_export_vocabulary.py.
 
 The module is a copy of the espnet2 exporter; these cover what the copy
 changes: a speaker-change symbol the vocabulary already holds is not appended
@@ -8,7 +8,7 @@ into the next caller.
 
 import pytest
 
-from espnet3.systems.esp2_s2t.whisper_export_vocabulary import export_vocabulary
+from espnet3.systems.esp2_s2t.src.whisper_export_vocabulary import export_vocabulary
 
 pytest.importorskip("whisper")
 

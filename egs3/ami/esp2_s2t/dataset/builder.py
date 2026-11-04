@@ -23,8 +23,8 @@ from pathlib import Path
 
 from egs3.ami.esp2_s2t.dataset.dataset import _CONFIG, _split_dir
 from espnet3.components.data.dataset_builder import DatasetBuilder
-from espnet3.systems.esp2_s2t import sot_text
-from espnet3.systems.esp2_s2t.text_norm import get_text_norm
+from espnet3.systems.esp2_s2t.src import sot_text
+from espnet3.systems.esp2_s2t.src.text_norm import get_text_norm
 
 logger = logging.getLogger(__name__)
 
@@ -204,7 +204,9 @@ class AmiSotBuilder(DatasetBuilder):
         token and one that is not. Skipped when the file is already there: a
         full export takes seconds and every builder test calls ``build``.
         """
-        from espnet3.systems.esp2_s2t.whisper_export_vocabulary import export_vocabulary
+        from espnet3.systems.esp2_s2t.src.whisper_export_vocabulary import (
+            export_vocabulary,
+        )
 
         target = Path(_CONFIG["data_root"]) / _CONFIG["token_list"]
         separator = _CONFIG["separator"]

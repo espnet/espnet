@@ -22,7 +22,7 @@ builder:
 
   # Whisper BPE already holds "????" as one token (id 25629), so a checkpoint
   # can emit it without the vocabulary growing a row. See
-  # espnet3/systems/esp2_s2t/whisper_export_vocabulary.py.
+  # espnet3/systems/esp2_s2t/src/whisper_export_vocabulary.py.
   separator: "????"
 
   # Prepended to every line. The S2T data format is
@@ -39,7 +39,7 @@ builder:
   utterances_per_group: 2
   gap: 0.2
 
-  # Per-split serialization; see espnet3/systems/esp2_s2t/sot_text.py for what
+  # Per-split serialization; see espnet3/systems/esp2_s2t/src/sot_text.py for what
   # each option does. text_norm is "none" here: the CHiME-8 normalizer is an
   # optional dependency and this recipe exists to run anywhere.
   sot:

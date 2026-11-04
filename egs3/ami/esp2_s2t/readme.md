@@ -61,13 +61,12 @@ python run.py --stages infer measure \
     --metrics_config conf/metrics.yaml
 ```
 
-`infer` writes `exp/<tag>/inference/test/{hyp,ref,hyp_sot,ref_sot}.scp`, one row
-per utterance group. `hyp`/`ref` are the timestamp-free view scored by
-`ug_cpWER`;
-`hyp_sot`/`ref_sot` keep the inline Whisper timestamps and are scored by
-`ug_DER`.
-`measure` writes `metrics.json` beside them, with the scores under
-`ug_cpWER` and `ug_DER`.
+`infer` writes `exp/<tag>/inference/test/hyp.scp`, one row per utterance
+group, keeping the inline Whisper timestamps and the speaker-change symbol.
+`measure` reads the reference from the test set itself (`dataset:text`) and
+writes `metrics.json` beside `hyp.scp`, with the scores under `ug_cpWER` and
+`ug_DER`. cpWER strips the timestamps before comparing words; DER reads
+speaker activity from them.
 
 ## Pretrained model
 

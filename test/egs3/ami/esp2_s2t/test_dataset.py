@@ -1,7 +1,6 @@
 """Tests for the AMI SOT dataset in egs3/ami/esp2_s2t/dataset/."""
 
 import importlib.util
-import os
 import sys
 
 import ami_sot_paths
@@ -25,37 +24,28 @@ ds_mod = _load_dataset_module()
 
 
 @ami_sot_paths.needs_corpus
-def test_load_utt_ids_covers_the_whole_split_in_cut_order():
-    ids = ds_mod.load_utt_ids("test")
+def test_a_sample_carries_its_own_cut_id():
+    """Inference writes every output under this id, so it is the cut's own."""
+    cuts = ds_mod.load_cuts("test")
+    ids = [c.id for c in cuts]
     assert len(ids) == 6127
-    assert ids[0] == "EN2002a-0.37-11.83"
     assert len(set(ids)) == len(ids)
-
-
-@ami_sot_paths.needs_corpus
-def test_reference_texts_cover_every_utterance_id():
-    ids = ds_mod.load_utt_ids("test")
-    refs = ds_mod.load_reference_texts("test")
-    assert set(refs) == set(ids)
-
-
-@ami_sot_paths.needs_corpus
-def test_dataset_length_matches_the_id_list():
     dataset = ds_mod.AmiSotDataset(split="test")
-    assert len(dataset) == len(ds_mod.load_utt_ids("test"))
+    assert len(dataset) == len(ids)
+    assert dataset[0]["utt_id"] == ids[0] == "EN2002a-0.37-11.83"
 
 
 @ami_sot_paths.needs_corpus
-def test_sample_carries_the_four_fields_the_s2t_model_consumes():
-    """Exactly these four, no more.
+def test_sample_carries_the_four_model_fields_and_its_id():
+    """Exactly these five, no more.
 
-    The dataset pipeline passes the whole dictionary onward, where an unsupported field
-    can break a stage, and ESPnetS2TModel.forward takes text_prev and text_ctc as
-    required positional arguments.
+    ESPnetS2TModel.forward takes text_prev and text_ctc as required positional
+    arguments. utt_id is the one field the model does not take; the
+    preprocessor drops it before training.
     """
     dataset = ds_mod.AmiSotDataset(split="test")
     sample = dataset[0]
-    assert set(sample) == {"speech", "text", "text_prev", "text_ctc"}
+    assert set(sample) == {"utt_id", "speech", "text", "text_prev", "text_ctc"}
     assert isinstance(sample["speech"], np.ndarray)
     assert sample["speech"].dtype == np.float32
     assert sample["speech"].ndim == 1
@@ -92,9 +82,11 @@ def test_every_sample_reports_no_previous_text_and_no_ctc_target(monkeypatch):
 
     na = ds_mod._CONFIG["na_symbol"]
     assert len(dataset) == 3
+    # The first item is also checked against AmiSotDataset.fields here.
     for idx in range(len(dataset)):
         sample = dataset[idx]
-        assert set(sample) == {"speech", "text", "text_prev", "text_ctc"}
+        assert set(sample) == {"utt_id", "speech", "text", "text_prev", "text_ctc"}
+        assert sample["utt_id"] == "xyz"[idx]
         assert sample["text_prev"] == na
         assert sample["text_ctc"] == na
 
@@ -116,115 +108,61 @@ def test_reading_an_unbuilt_split_names_the_file_to_produce(tmp_path, monkeypatc
 
 
 @ami_sot_paths.needs_corpus
-def test_sample_order_matches_load_utt_ids():
-    """build_output maps an index back to an id through the built dataset.
-
-    That mapping is only valid while the dataset yields samples in the same order, so
-    pin it here.
-    """
-    ids = ds_mod.load_utt_ids("test")
-    refs = ds_mod.load_reference_texts("test")
+def test_a_sample_is_its_cut_id_and_its_cut_text():
+    """The id and the reference come from the same cut, so they cannot drift."""
+    cuts = ds_mod.load_cuts("test")
     dataset = ds_mod.AmiSotDataset(split="test")
     for idx in (0, 1, len(dataset) - 1):
-        assert dataset[idx]["text"] == refs[ids[idx]]
+        sample = dataset[idx]
+        assert sample["utt_id"] == cuts[idx].id
+        assert sample["text"] == cuts[idx].custom[ds_mod._SOT_TEXT_FIELD]
 
 
 class _FakeCut:
     """The part of a cut this module reads, over one second of silence."""
 
-    def __init__(self, cut_id):
+    def __init__(self, cut_id, sampling_rate=16000, channels=1):
         self.id = cut_id
         self.custom = {ds_mod._SOT_TEXT_FIELD: cut_id}
+        self.sampling_rate = sampling_rate
+        self._channels = channels
 
     def load_audio(self):
-        return np.zeros((1, 16000), dtype="float32")
+        return np.zeros((self._channels, self.sampling_rate), dtype="float32")
 
 
-def _seed_synthetic_split(monkeypatch, ids):
-    """Serve every split from fake cuts, so no test here needs the corpus.
-
-    Replacing the one reader leaves load_utt_ids, load_reference_texts and
-    AmiSotDataset running their own code, which is what these tests are about.
-    """
-    cuts = [_FakeCut(utt) for utt in ids]
+def _seed_synthetic_split(monkeypatch, ids, **cut_args):
+    """Serve every split from fake cuts, so no test here needs the corpus."""
+    cuts = [_FakeCut(utt, **cut_args) for utt in ids]
     monkeypatch.setattr(ds_mod, "load_cuts", lambda split: cuts)
 
 
-@pytest.fixture(autouse=True)
-def _reset_current_split_record(monkeypatch):
-    """Reset current split record.
+def test_building_another_split_leaves_the_first_ones_ids_alone(monkeypatch):
+    """Each dataset keeps its own cuts, so its ids are its own.
 
-    Keep get_current_utt_id's split record and cache from leaking between tests:
-    constructing an AmiSotDataset writes to real os.environ, which (unlike a plain
-    module attribute) survives past the test that set it unless something resets it.
+    infer builds every test set in one process, and measure builds them again
+    to read the references; a later split must not rename an earlier one.
     """
-    monkeypatch.delenv(ds_mod._CURRENT_SPLIT_ENV, raising=False)
-    monkeypatch.setattr(ds_mod, "_CACHED_SPLIT", None)
-    monkeypatch.setattr(ds_mod, "_CACHED_UTT_IDS", None)
+    splits = {"valid": [_FakeCut("v-0"), _FakeCut("v-1")], "test": [_FakeCut("t-0")]}
+    monkeypatch.setattr(ds_mod, "load_cuts", lambda split: splits[split])
+    valid = ds_mod.AmiSotDataset(split="valid")
+    test = ds_mod.AmiSotDataset(split="test")
+
+    assert [valid[i]["utt_id"] for i in range(len(valid))] == ["v-0", "v-1"]
+    assert test[0]["utt_id"] == "t-0"
 
 
-def test_constructing_a_dataset_records_its_split(monkeypatch):
-    """Constructing a dataset records its split.
+@pytest.mark.parametrize("cut_args", [{"sampling_rate": 8000}, {"channels": 2}])
+def test_audio_that_is_not_16k_mono_is_refused(monkeypatch, cut_args):
+    """A bare array cannot say its rate, so the dataset says it for it.
 
-    get_current_utt_id must resolve through whichever split an AmiSotDataset
-    was actually constructed with, not a hardcoded split name.
+    The training preprocessor and the inference contract both read the array as
+    16 kHz mono; anything else would be decoded at the wrong speed or with a
+    channel silently dropped.
     """
-    _seed_synthetic_split(monkeypatch, ["x", "y"])
-    ds_mod.AmiSotDataset(split="valid")
-    assert ds_mod.get_current_utt_id(0) == "x"
-    assert os.environ[ds_mod._CURRENT_SPLIT_ENV] == "valid"
-
-
-def test_a_dataset_that_fails_to_construct_does_not_record_a_split(monkeypatch):
-    """A dataset that fails to construct does not record a split.
-
-    A dataset whose split will not read must not record itself: build_output has to
-    keep refusing, not silently resolve ids against a split that never loaded.
-    """
-
-    def _missing(split):
-        raise FileNotFoundError("cuts.jsonl.gz is missing")
-
-    monkeypatch.setattr(ds_mod, "load_cuts", _missing)
-    with pytest.raises(FileNotFoundError):
-        ds_mod.AmiSotDataset(split="test")
-    assert ds_mod._CURRENT_SPLIT_ENV not in os.environ
-
-
-def test_current_utt_id_raises_before_any_dataset_is_built():
-    with pytest.raises(RuntimeError, match="AmiSotDataset"):
-        ds_mod.get_current_utt_id(0)
-
-
-def test_current_utt_id_survives_the_frameworks_own_module_loading(
-    monkeypatch, tmp_path
-):
-    """Current utt id survives the frameworks own module loading.
-
-    The real bug shape: ESPnet3 loads a recipe's own dataset/__init__.py through
-    espnet3.components.data.dataset_module's _load_local_dataset_module, under a fresh,
-    uniquely named module spec -- not the stable, dotted
-    `egs3.ami.esp2_s2t.dataset.dataset` path this test file (and
-    src/inference.py) import by.
-
-    A module-level Python global set by one copy would be invisible to the other; only a
-    process-wide channel bridges them. This goes through the real framework loader, for
-    a split ("valid") that disagrees with the old hardcoded "test", to prove
-    get_current_utt_id survives that wall for real, not just when the test happens to
-    construct AmiSotDataset the same way inference.py imports it.
-    """
-    # dataset/config.yaml's split_dirs: train->data/train, valid->data/dev,
-    # test->data/test.
-    for rel_dir, ids in (("data/test", ["t-0"]), ("data/dev", ["v-0", "v-1"])):
-        ami_sot_paths.write_cuts(tmp_path / rel_dir, ids)
-    monkeypatch.setenv("AMI_SOT_DATA_ROOT", str(tmp_path))
-
-    from espnet3.components.data.dataset_module import load_dataset_module
-
-    module = load_dataset_module(data_src=None, recipe_dir=str(ami_sot_paths.RECIPE))
-    module.Dataset(split="valid")
-
-    assert ds_mod.get_current_utt_id(1) == "v-1"
+    _seed_synthetic_split(monkeypatch, ["x"], **cut_args)
+    with pytest.raises(ValueError, match="16 kHz mono"):
+        ds_mod.AmiSotDataset(split="test")[0]
 
 
 def _load_builder_module():

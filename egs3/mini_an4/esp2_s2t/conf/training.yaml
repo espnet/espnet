@@ -6,12 +6,11 @@
 # run end to end, not to learn anything.
 #
 # A partial overlay on egs3/TEMPLATE/esp2_s2t/conf/training.yaml, which
-# supplies the dataloader's iter_factory target and collate_fn.
+# supplies the task and the dataloader's iter_factory target and collate_fn.
 recipe_dir: .
 exp_tag: mini_an4_sot
 exp_dir: ${recipe_dir}/exp/${exp_tag}
 stats_dir: ${recipe_dir}/exp/stats/${exp_tag}
-task: espnet2.tasks.s2t.S2TTask
 
 num_device: 1
 num_nodes: 1
@@ -36,7 +35,7 @@ dataset:
       data_src_args:
         split: test
   preprocessor:
-    _target_: src.preprocessor.MiniAn4SotS2TPreprocessor
+    _target_: espnet3.systems.esp2_s2t.src.preprocessor.SotS2TPreprocessor
     token_type: whisper_multilingual
     bpemodel: whisper_multilingual
     whisper_model_type: whisper_multilingual

@@ -1,4 +1,4 @@
-"""Tests for espnet3/systems/esp2_s2t/whisper_token_id_converter.py.
+"""Tests for espnet3/systems/esp2_s2t/src/whisper_token_id_converter.py.
 
 The module is a copy of the espnet2 converter; these cover what the copy adds:
 a ``token2id`` mapping that resolves the prompt and timestamp symbols, and
@@ -8,7 +8,7 @@ output is scored on.
 
 import pytest
 
-from espnet3.systems.esp2_s2t.whisper_token_id_converter import (
+from espnet3.systems.esp2_s2t.src.whisper_token_id_converter import (
     OpenAIWhisperTokenIDConverter,
 )
 

@@ -1,27 +1,15 @@
-"""Tests for the AMI SOT preprocessor in egs3/ami/esp2_s2t/src/preprocessor.py."""
+"""Tests for the SOT preprocessor in espnet3/systems/esp2_s2t/src/preprocessor.py."""
 
 import argparse
-import importlib.util
 
-import ami_sot_paths
 import numpy as np
 import pytest
 
 pytest.importorskip("whisper")
 
+from espnet3.systems.esp2_s2t.src import preprocessor as pp  # noqa: E402
+
 _TOKENS = None
-
-
-def _load():
-    spec = importlib.util.spec_from_file_location(
-        "ami_s2t_preprocessor", ami_sot_paths.RECIPE / "src" / "preprocessor.py"
-    )
-    module = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(module)
-    return module
-
-
-pp = _load()
 
 
 def _token_list(extra=()):
@@ -67,7 +55,7 @@ def _build(token_list=None, **kwargs):
         time_apply_prob=1.0,
     )
     options.update(kwargs)
-    return pp.AmiSotS2TPreprocessor(**options)
+    return pp.SotS2TPreprocessor(**options)
 
 
 _LINE = "<|en|><|transcribe|><|0.00|> one<|1.00|> ???? <|1.20|> two<|2.00|>"
@@ -113,6 +101,26 @@ def test_speech_leaves_one_dimensional():
     trailing channel axis.
     """
     assert _run(_build())["speech"].ndim == 1
+
+
+@pytest.mark.execution_timeout(120)
+def test_the_utterance_id_never_reaches_the_model():
+    """A dataset item carries utt_id for inference; training has no use for it.
+
+    Left in, it would reach the collate function and the model's forward as a
+    keyword the model does not take.
+    """
+    preprocessor = _build()
+    sample = {
+        "utt_id": "EN2002a-0.37-11.83",
+        "speech": np.zeros(16000, dtype=np.float32),
+        "text": _LINE,
+        "text_prev": "<|nospeech|>",
+        "text_ctc": "<|nospeech|>",
+    }
+    out = preprocessor("utt-0", sample)
+    assert "utt_id" not in out
+    assert "utt_id" in sample
 
 
 @pytest.mark.execution_timeout(120)

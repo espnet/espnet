@@ -3,7 +3,7 @@
 AN4 is single-speaker, so there are no multi-talker groups to read: this
 builder makes them. It concatenates utterances from different speakers into
 one recording and writes a Lhotse cut over it carrying one supervision per
-utterance, which is the shape ``espnet3.systems.esp2_s2t.sot_text`` serializes
+utterance, which is the shape ``espnet3.systems.esp2_s2t.src.sot_text`` serializes
 and the shape an AMI utterance group already has.
 
 Everything comes from the archive committed beside this file, so the recipe
@@ -19,8 +19,8 @@ from pathlib import Path
 from typing import Dict, List, Tuple
 
 from espnet3.components.data.dataset_builder import DatasetBuilder
-from espnet3.systems.esp2_s2t import sot_text
-from espnet3.systems.esp2_s2t.text_norm import get_text_norm
+from espnet3.systems.esp2_s2t.src import sot_text
+from espnet3.systems.esp2_s2t.src.text_norm import get_text_norm
 from espnet3.utils.config_utils import load_config_with_defaults
 
 logger = logging.getLogger(__name__)
@@ -151,7 +151,7 @@ class MiniAn4SotBuilder(DatasetBuilder):
         Offline: the exporter reads the tokenizer files that ship inside the
         openai-whisper package.
         """
-        from espnet3.systems.esp2_s2t.whisper_export_vocabulary import (
+        from espnet3.systems.esp2_s2t.src.whisper_export_vocabulary import (
             export_vocabulary,
         )
 

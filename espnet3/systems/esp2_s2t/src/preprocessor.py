@@ -1,9 +1,9 @@
-"""The preprocessor the AMI SOT recipe trains through.
+"""The preprocessor serialized-output-training recipes train through.
 
 ``S2TPreprocessor`` is written for OWSM's SentencePiece vocabulary, and no
 upstream S2T recipe uses a Whisper one, so three things need correcting here.
 All three are properties of the Whisper combination rather than of
-``S2TPreprocessor``, which is why they live in the recipe.
+``S2TPreprocessor``, which is why they live in this system.
 
 ``OpenAIWhisperTokenIDConverter.tokens2ids`` prepends the decoder prompt
 unconditionally, and the base class then drops the first id. S2T text carries
@@ -26,10 +26,10 @@ from pathlib import Path
 from typing import Any, Dict
 
 from espnet2.train.preprocessor import S2TPreprocessor
-from espnet3.systems.esp2_s2t.whisper_token_id_converter import (
+from espnet3.systems.esp2_s2t.src.whisper_token_id_converter import (
     OpenAIWhisperTokenIDConverter,
 )
-from espnet3.systems.esp2_s2t.whisper_tokenizer import OpenAIWhisperTokenizer
+from espnet3.systems.esp2_s2t.src.whisper_tokenizer import OpenAIWhisperTokenizer
 
 
 def build_tokens2ids(convert, placeholder: int):
@@ -68,7 +68,7 @@ def _read_token_list(token_list):
     return list(token_list)
 
 
-class AmiSotS2TPreprocessor(S2TPreprocessor):
+class SotS2TPreprocessor(S2TPreprocessor):
     """S2TPreprocessor for a Whisper vocabulary carrying a speaker-change token.
 
     Args:
@@ -98,6 +98,7 @@ class AmiSotS2TPreprocessor(S2TPreprocessor):
         whisper_model_type: str = "whisper_multilingual",
         **kwargs,
     ) -> None:
+        """Build the preprocessor. See the class docstring for the arguments."""
         super().__init__(train, token_type, token_list, bpemodel, *args, **kwargs)
 
         shared = dict(
@@ -150,7 +151,9 @@ class AmiSotS2TPreprocessor(S2TPreprocessor):
 
         Args:
             uid: Utterance id.
-            data: Sample with ``speech`` and the S2T text fields.
+            data: Sample with ``speech`` and the S2T text fields. A
+                ``utt_id`` field is dropped: it is metadata for inference and
+                scoring, and the model takes no such argument.
 
         Returns:
             The processed sample: ``speech`` as a 1-D float32 waveform, and
@@ -167,6 +170,7 @@ class AmiSotS2TPreprocessor(S2TPreprocessor):
             >>> {key: out[key].shape for key in sorted(out)}  # doctest: +SKIP
             {'speech': (480000,), 'text': (9,), 'text_ctc': (2,), 'text_prev': (2,)}
         """
+        data = {key: value for key, value in data.items() if key != "utt_id"}
         data = super().__call__(uid, data)
         speech = data.get("speech")
         if speech is not None and speech.ndim == 2 and speech.shape[1] == 1:

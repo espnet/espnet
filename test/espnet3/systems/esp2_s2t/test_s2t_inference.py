@@ -1,6 +1,6 @@
-"""Tests for espnet3/systems/esp2_s2t/s2t_inference.py.
+"""Tests for espnet3/systems/esp2_s2t/src/s2t_inference.py.
 
-The module is a copy of espnet2's S2T inference; these cover what the copy
+The module subclasses espnet2's S2T inference; these cover what the subclass
 adds: a speaker-change symbol the beam search is told about, and the Whisper
 timestamp rules, together with the two ways of asking for them that have no
 decoder to ride on.
@@ -14,7 +14,7 @@ import pytest
 from espnet2.bin.s2t_inference import ScoreFilter
 from espnet2.legacy.nets.beam_search import Hypothesis
 from espnet2.tasks.s2t import S2TTask
-from espnet3.systems.esp2_s2t.s2t_inference import Speech2Text
+from espnet3.systems.esp2_s2t.src.s2t_inference import Speech2Text
 
 pytest.importorskip("whisper")
 
@@ -208,7 +208,7 @@ def test_Speech2Text_speaker_change_symbol_installs_filter(s2t_config_file_sot):
 def test_Speech2Text_adaptive_timestamp_installs_the_decoder_wrapper(
     s2t_config_file_sot,
 ):
-    from espnet3.systems.esp2_s2t.whisper_timestamp_scorer import (
+    from espnet3.systems.esp2_s2t.src.whisper_timestamp_scorer import (
         WhisperTimestampDecoder,
     )
 
@@ -288,3 +288,65 @@ def test_Speech2Text_timestamp_options_allow_a_per_call_override(s2t_config_file
         assert isinstance(token[0], str)
         assert isinstance(token_int[0], int)
         assert isinstance(hyp, Hypothesis)
+
+
+def _whisper_decoder_stub(separator, position):
+    """A Speech2Text holding only what _keep_special_tokens reads.
+
+    The parent's Whisper converter, and a token list in the multilingual
+    layout: <|notimestamps|> at 50363, <|0.00|> to <|30.00|> after it, and the
+    separator at ``position``.
+    """
+    from types import SimpleNamespace
+
+    from espnet2.text.whisper_token_id_converter import (
+        OpenAIWhisperTokenIDConverter as DroppingConverter,
+    )
+
+    tokens = ["x"] * 51866
+    tokens[50363], tokens[50364], tokens[51864] = (
+        "<|notimestamps|>",
+        "<|0.00|>",
+        "<|30.00|>",
+    )
+    tokens[position] = separator
+    decoder = object.__new__(Speech2Text)
+    decoder.converter = DroppingConverter(model_type="whisper_multilingual")
+    decoder.s2t_model = SimpleNamespace(token_list=tokens)
+    decoder.s2t_train_args = SimpleNamespace(
+        preprocessor_conf={
+            "first_time_symbol": "<|0.00|>",
+            "last_time_symbol": "<|30.00|>",
+            "notime_symbol": "<|notimestamps|>",
+        }
+    )
+    return decoder
+
+
+@pytest.mark.execution_timeout(60)
+@pytest.mark.parametrize(
+    "separator, position",
+    [("????", 25629), ("<sc>", 51865)],
+    ids=["in the BPE vocabulary", "appended to it"],
+)
+def test_a_whisper_hypothesis_keeps_its_timestamps_and_separator(separator, position):
+    """The parent's Whisper converter drops special tokens; this one must not.
+
+    Otherwise the text DER is scored on has no timestamps, and a separator the
+    checkpoint appended to its vocabulary is lost.
+    """
+    decoder = _whisper_decoder_stub(separator, position)
+    Speech2Text._keep_special_tokens(decoder, separator)
+    assert decoder.converter.ids2tokens([50364, position, 51864]) == [
+        "<|0.00|>",
+        separator,
+        "<|30.00|>",
+    ]
+
+
+@pytest.mark.execution_timeout(60)
+def test_a_token_list_that_disagrees_with_the_converter_is_refused():
+    """The text must say what the model emitted, so the two ids must match."""
+    decoder = _whisper_decoder_stub("????", 100)
+    with pytest.raises(ValueError, match="token list"):
+        Speech2Text._keep_special_tokens(decoder, "????")

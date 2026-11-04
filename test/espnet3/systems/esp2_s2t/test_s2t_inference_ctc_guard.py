@@ -11,7 +11,7 @@ from pathlib import Path
 import pytest
 
 from espnet2.tasks.s2t_ctc import S2TTask
-from espnet3.systems.esp2_s2t.s2t_inference import Speech2Text
+from espnet3.systems.esp2_s2t.src.s2t_inference import Speech2Text
 
 pytest.importorskip("whisper")
 

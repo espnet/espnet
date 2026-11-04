@@ -6,7 +6,7 @@ from omegaconf import OmegaConf
 pytest.importorskip("lightning")
 
 import espnet3.systems.esp2_s2t.system as sysmod  # noqa: E402
-from espnet3.systems.esp2_s2t.system import S2TSystem  # noqa: E402
+from espnet3.systems.esp2_s2t.system import ESP2S2TSystem  # noqa: E402
 
 
 class _RecordingTrainer:
@@ -25,7 +25,7 @@ def _collect_stats_system(tmp_path, monkeypatch):
             "model": {"normalize": None, "normalize_conf": None},
         }
     )
-    system = S2TSystem(training_config=config)
+    system = ESP2S2TSystem(training_config=config)
     trainer = _RecordingTrainer()
     seen = []
 

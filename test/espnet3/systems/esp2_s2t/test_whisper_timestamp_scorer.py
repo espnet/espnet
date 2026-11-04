@@ -19,7 +19,7 @@ import torch
 
 from espnet2.legacy.nets.beam_search import BeamSearch
 from espnet2.legacy.nets.scorer_interface import BatchScorerInterface
-from espnet3.systems.esp2_s2t.whisper_timestamp_scorer import (
+from espnet3.systems.esp2_s2t.src.whisper_timestamp_scorer import (
     BatchWhisperTimestampDecoder,
     WhisperTimestampDecoder,
     WhisperTimestampFilter,

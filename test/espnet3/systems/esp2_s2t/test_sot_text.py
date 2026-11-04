@@ -1,4 +1,4 @@
-"""Tests for the SOT text builder in espnet3/systems/esp2_s2t/sot_text.py.
+"""Tests for the SOT text builder in espnet3/systems/esp2_s2t/src/sot_text.py.
 
 These tests use lightweight supervision stubs rather than lhotse objects, so they stay
 inside the suite's 2 s per-test budget and need no corpus.
@@ -8,7 +8,7 @@ from dataclasses import dataclass
 
 import pytest
 
-import espnet3.systems.esp2_s2t.sot_text as st  # noqa: E402
+import espnet3.systems.esp2_s2t.src.sot_text as st  # noqa: E402
 
 
 @dataclass

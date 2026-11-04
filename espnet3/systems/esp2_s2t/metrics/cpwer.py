@@ -26,6 +26,7 @@ except ImportError:
 
 from espnet2.text.cleaner import TextCleaner
 from espnet3.components.metrics.base_metric import BaseMetric
+from espnet3.contract import Field
 
 # The speaker-change symbol belongs to the checkpoint, so it is a constructor
 # argument rather than a constant: a metric cannot know which symbol a model
@@ -120,6 +121,10 @@ def get_utt_cpwer(errors: int, ref_len: int):
     return get_percentage(errors, ref_len) if ref_len else None
 
 
+# The order of a per-group row in the report state.
+_ROW = ("num_ref_speakers", "num_hyp_speakers", "cor", "sub", "del", "ins", "ref_len")
+
+
 class UtteranceGroupCpWER(BaseMetric):
     """cpWER over one utterance group at a time, reported as ``ug_cpWER``.
 
@@ -130,22 +135,27 @@ class UtteranceGroupCpWER(BaseMetric):
     found within the group. A session-level cpWER would find one assignment
     for a whole meeting and is a harder problem; the two are not comparable.
 
+    Both inputs are SOT text. Timestamps and other Whisper special tokens are
+    stripped before scoring, so the hypothesis can keep them for DER.
+
     Args:
-        ref_key: Alias of the reference SCP input.
-        hyp_key: Alias of the hypothesis SCP input.
-        clean_types: TextCleaner pipeline.
         speaker_change_symbol: The symbol the model separates speakers
             with. Required: it belongs to the checkpoint, and the wrong one
             would leave every group as a single block instead of failing.
+        clean_types: TextCleaner pipeline.
+
+    Examples:
+        >>> metric = UtteranceGroupCpWER("????")
+        >>> metric.update(ref=["<|0.00|> a b ???? <|0.00|> c<|1.00|>"],
+        ...               hyp=["<|0.00|> c ???? <|0.00|> a x<|1.00|>"])
+        >>> metric.compute()
+        {'ug_cpWER': 33.33}
     """
 
-    def __init__(
-        self,
-        speaker_change_symbol: str,
-        ref_key: str = "ref",
-        hyp_key: str = "hyp",
-        clean_types=None,
-    ) -> None:
+    inputs = (Field("ref", "text"), Field("hyp", "text"))
+    outputs = (Field("ug_cpWER", "number"),)
+
+    def __init__(self, speaker_change_symbol: str, clean_types=None) -> None:
         """Build the metric. See the class docstring for the arguments."""
         if not speaker_change_symbol:
             raise ValueError(
@@ -154,10 +164,13 @@ class UtteranceGroupCpWER(BaseMetric):
                 "whole utterance group as one speaker, which reads as a poor "
                 "result rather than as a misconfiguration."
             )
-        self.ref_key = ref_key
-        self.hyp_key = hyp_key
         self.cleaner = TextCleaner(list(clean_types) if clean_types else None)
         self.speaker_change_symbol = speaker_change_symbol
+        super().__init__()
+        self.add_state("errors", 0, "sum")
+        self.add_state("ref_len", 0, "sum")
+        # One _ROW per group, kept only while a report will be written.
+        self.add_state("groups", [], "cat")
 
     def _ensure_meeteval(self) -> None:
         """Raise an error if the optional meeteval dependency is missing.
@@ -171,65 +184,78 @@ class UtteranceGroupCpWER(BaseMetric):
                 "Please install it with `pip install espnet[s2t]`."
             )
 
-    def __call__(self, data, test_name, output_dir):
-        """Score one test set.
+    def __call__(self, data, test_name, output_dir=None):
+        """Score one test set from its SCP files, as ``measure`` calls it.
 
-        Args:
-            data: Alias to path mapping. Needs ``self.ref_key`` and
-                ``self.hyp_key``, both SCP files with matching utterance ids
-                in the same order.
-            test_name: Test set name, used for the side-file directory.
-            output_dir: Root the side files are written under.
+        As ``BaseMetric.__call__``, keeping ``data`` so that
+        :meth:`write_artifacts` can key its per-group report by utterance id,
+        which :meth:`update` never sees.
+        """
+        self._data = data
+        return super().__call__(data, test_name, output_dir)
 
-        Returns:
-            ``{"ug_cpWER": <percentage rounded to two decimals>}``.
+    def update(self, *, ref, hyp) -> None:
+        """Add the error counts of each utterance group in the batch."""
+        self._ensure_meeteval()
+        for reference, hypothesis in zip(ref, hyp):
+            ref_blocks = split_speakers(
+                reference, self.cleaner, self.speaker_change_symbol
+            )
+            hyp_blocks = split_speakers(
+                hypothesis, self.cleaner, self.speaker_change_symbol
+            )
+            counts = count_group_errors(ref_blocks, hyp_blocks)
+            self.errors += counts["sub"] + counts["del"] + counts["ins"]
+            self.ref_len += counts["ref_len"]
+            if self.collect_artifacts:
+                counts["num_ref_speakers"] = len(ref_blocks)
+                counts["num_hyp_speakers"] = len(hyp_blocks)
+                self.groups.append([counts[key] for key in _ROW])
+
+    def compute(self):
+        """Return the summed errors over the summed reference words.
 
         Raises:
-            ValueError: When every reference in the test set is empty, so
-                the aggregate has nothing to score against. Loud on purpose:
-                a zero denominator would otherwise report a perfect 0.00%.
+            ValueError: When every reference is empty, so the aggregate has
+                nothing to score against. Loud on purpose: a zero denominator
+                would otherwise report a perfect 0.00%.
         """
-        self._ensure_meeteval()
-        total = {"cor": 0, "sub": 0, "del": 0, "ins": 0, "ref_len": 0}
+        if self.ref_len == 0:
+            raise ValueError(
+                "cpWER cannot be computed: every reference was empty (total "
+                "ref_len is 0). Check that the ref input is bound to the "
+                "reference text, for example dataset:text."
+            )
+        return {"ug_cpWER": round(get_percentage(self.errors, self.ref_len), 2)}
+
+    def write_artifacts(self, test_dir: Path) -> None:
+        """Write the per-group and by-speaker-count reports.
+
+        Args:
+            test_dir: Directory the two JSON files are written into.
+        """
+        utt_ids = [utt_id for utt_id, _ in self.iter_inputs(self._data, "hyp")]
+        if len(utt_ids) != len(self.groups):
+            raise RuntimeError(
+                f"{len(self.groups)} scored groups for {len(utt_ids)} hypotheses"
+            )
+        per_utt = {}
         by_nspk = defaultdict(
             lambda: {"cor": 0, "sub": 0, "del": 0, "ins": 0, "ref_len": 0}
         )
-        per_utt = {}
-        for utt_id, row in self.iter_inputs(data, self.ref_key, self.hyp_key):
-            ref_blocks = split_speakers(
-                row[self.ref_key], self.cleaner, self.speaker_change_symbol
-            )
-            hyp_blocks = split_speakers(
-                row[self.hyp_key], self.cleaner, self.speaker_change_symbol
-            )
-            acc = count_group_errors(ref_blocks, hyp_blocks)
-            for key in total:
-                total[key] += acc[key]
-                by_nspk[len(ref_blocks)][key] += acc[key]
-            errors = acc["sub"] + acc["del"] + acc["ins"]
+        for utt_id, row in zip(utt_ids, self.groups):
+            group = dict(zip(_ROW, row))
+            errors = group["sub"] + group["del"] + group["ins"]
             per_utt[utt_id] = {
-                "cpwer": get_utt_cpwer(errors, acc["ref_len"]),
+                "cpwer": get_utt_cpwer(errors, group["ref_len"]),
                 "errors": errors,
-                "ref_len": acc["ref_len"],
-                "num_ref_speakers": len(ref_blocks),
-                "num_hyp_speakers": len(hyp_blocks),
+                "ref_len": group["ref_len"],
+                "num_ref_speakers": group["num_ref_speakers"],
+                "num_hyp_speakers": group["num_hyp_speakers"],
             }
+            for key in by_nspk[group["num_ref_speakers"]]:
+                by_nspk[group["num_ref_speakers"]][key] += group[key]
 
-        errors = total["sub"] + total["del"] + total["ins"]
-        if total["ref_len"] == 0:
-            raise ValueError(
-                f"cpWER cannot be computed for test set {test_name!r}: every "
-                "reference was empty (total ref_len is 0). get_percentage() returns "
-                "0.0 for a zero denominator, which would otherwise misreport "
-                "a perfect score instead of failing. The likely cause is an "
-                "output function that wrote an empty string for every "
-                f"reference. Check that the {self.ref_key!r} input actually "
-                "carries reference text."
-            )
-        score = get_percentage(errors, total["ref_len"])
-
-        test_dir = Path(output_dir) / test_name
-        test_dir.mkdir(parents=True, exist_ok=True)
         with (test_dir / "cpwer_per_utt.json").open("w", encoding="utf-8") as f:
             json.dump(per_utt, f, indent=2)
         with (test_dir / "cpwer_by_num_speakers.json").open("w", encoding="utf-8") as f:
@@ -247,5 +273,3 @@ class UtteranceGroupCpWER(BaseMetric):
                 f,
                 indent=2,
             )
-
-        return {"ug_cpWER": round(score, 2)}

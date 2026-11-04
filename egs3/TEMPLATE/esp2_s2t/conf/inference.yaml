@@ -48,18 +48,30 @@ parallel:
 ##########################################################
 #                    MODEL AND OUTPUT                    #
 ##########################################################
-# Usually `espnet3.systems.esp2_s2t.s2t_inference.Speech2Text`, configured by the recipe.
+# A recipe sets the checkpoint and its decoding options under `model`.
 model:
+  _target_: espnet3.systems.esp2_s2t.src.s2t_inference.Speech2Text
 
 # Sample field passed to the model.
 input_key: speech
 
-# Utterances per model call. A recipe whose scorer keeps per-hypothesis state
-# scoped to one seek window sets this to null.
-batch_size: 4
+# One utterance group per model call: the timestamp rules track one prompt
+# length for the whole beam, and the runner refuses a batch.
+batch_size: null
 
-# Recipe formatter turning raw model output into a dict of output fields.
-output_fn:
+# The runner renders the best hypothesis into `hyp`, timestamps and
+# speaker-change symbols intact, and the contract checks it.
+contract:
+  inputs:
+    speech:
+      kind: audio
+      label: Input Audio
+      sample_rate: 16000
+      channels: 1
+  outputs:
+    hyp:
+      kind: text
+      label: Serialized Transcription
 
 ##########################################################
 #               PROVIDER AND RUNNER SETTING              #
@@ -67,4 +79,4 @@ output_fn:
 provider:
   _target_: espnet3.systems.base.inference_provider.InferenceProvider
 runner:
-  _target_: espnet3.systems.base.inference_runner.InferenceRunner
+  _target_: espnet3.systems.esp2_s2t.src.inference_runner.ESP2S2TInferenceRunner

@@ -18,8 +18,6 @@ recipe_dir: .
 ##########################################################
 pack_model:
   include:
-    # A packed model imports src.preprocessor and src.inference by name.
-    - ${recipe_dir}/src
     - ${recipe_dir}/dataset
     # The vocabulary the checkpoint was trained against. It lives beside the
     # corpus rather than under the recipe, hence the same expression

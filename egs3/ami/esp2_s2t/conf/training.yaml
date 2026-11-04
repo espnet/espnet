@@ -4,12 +4,12 @@
 # Drives create_dataset, collect_stats and train.
 #
 # A partial overlay on egs3/TEMPLATE/esp2_s2t/conf/training.yaml, which supplies
-# the dataloader's iter_factory target and collate_fn. Not valid on its own.
+# the task and the dataloader's iter_factory target and collate_fn. Not valid
+# on its own.
 recipe_dir: .
 exp_tag: whisper_sot_train
 exp_dir: ${recipe_dir}/exp/${exp_tag}
 stats_dir: ${recipe_dir}/exp/stats/${exp_tag}
-task: espnet2.tasks.s2t.S2TTask
 
 num_device: 1
 num_nodes: 1
@@ -47,11 +47,11 @@ dataset:
     - name: test
       data_src_args:
         split: test
-  # Recipe-local: see src/preprocessor.py for why the shared S2TPreprocessor
-  # cannot be used unchanged with a Whisper vocabulary. DataOrganizer sets
-  # `train` itself, so it is not given here.
+  # See espnet3/systems/esp2_s2t/src/preprocessor.py for why the shared
+  # S2TPreprocessor cannot be used unchanged with a Whisper vocabulary.
+  # DataOrganizer sets `train` itself, so it is not given here.
   preprocessor:
-    _target_: src.preprocessor.AmiSotS2TPreprocessor
+    _target_: espnet3.systems.esp2_s2t.src.preprocessor.SotS2TPreprocessor
     token_type: whisper_multilingual
     bpemodel: whisper_multilingual
     # The Whisper vocabulary the tokenizer and the id converter are built from.

@@ -17,10 +17,9 @@ dataset:
 #                    MODEL AND OUTPUT                    #
 ##########################################################
 # speaker_change_symbol and adaptive_timestamp select the SOT timestamp
-# constraints in espnet3/systems/esp2_s2t/whisper_timestamp_scorer.py, which is
+# constraints in espnet3/systems/esp2_s2t/src/whisper_timestamp_scorer.py, which is
 # the part of the system this arm exists to exercise.
 model:
-  _target_: espnet3.systems.esp2_s2t.s2t_inference.Speech2Text
   s2t_train_config: ${exp_dir}/config.yaml
   s2t_model_file: ${exp_dir}/epoch0_step1_valid.loss.ckpt
   beam_size: 1
@@ -33,9 +32,5 @@ model:
   speaker_change_symbol: "????"
   adaptive_timestamp: true
 
-input_key: speech
-# One utterance per beam search: the timestamp scorer keeps per-hypothesis
-# bookkeeping scoped to a single seek window.
-batch_size: null
-output_fn: src.inference.build_output
-output_keys: [hyp, ref, hyp_sot, ref_sot]
+# input_key, batch_size, the contract and the runner come from
+# egs3/TEMPLATE/esp2_s2t/conf/inference.yaml.

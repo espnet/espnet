@@ -6,9 +6,9 @@
 recipe_dir: .
 exp_tag:
 
-# cpWER compares words, so it reads the timestamp-free view. DER compares
-# speaker activity in time, so it reads the view that keeps timestamps. The
-# inputs block binds each metric to the SCP files build_output wrote.
+# Both metrics read the same two texts: the test set's SOT reference and the
+# decoded hyp, each with its timestamps and separators. cpWER strips the
+# timestamps before comparing words; DER reads speaker activity from them.
 #
 # Both are utterance-group metrics: every group is scored on its own, so the
 # reported ug_cpWER and ug_DER are not comparable with session-level numbers.
@@ -25,7 +25,7 @@ metrics:
       clean_types: [whisper_en]
       speaker_change_symbol: ${oc.env:AMI_SOT_SPEAKER_CHANGE_SYMBOL,????}
     inputs:
-      ref: ref
+      ref: dataset:text
       hyp: hyp
   - metric:
       _target_: espnet3.systems.esp2_s2t.metrics.der.UtteranceGroupDER
@@ -38,5 +38,5 @@ metrics:
       clean_types: [whisper_en]
       speaker_change_symbol: ${oc.env:AMI_SOT_SPEAKER_CHANGE_SYMBOL,????}
     inputs:
-      ref: ref_sot
-      hyp: hyp_sot
+      ref: dataset:text
+      hyp: hyp

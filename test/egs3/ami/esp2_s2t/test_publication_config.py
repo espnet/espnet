@@ -27,17 +27,18 @@ def _builder():
     return module
 
 
-def test_the_packed_bundle_carries_the_recipe_local_modules():
-    """The packed bundle carries the recipe local modules.
+def test_the_packed_bundle_carries_the_dataset_and_no_recipe_code():
+    """The bundle needs the dataset module, and no recipe-local code.
 
-    A packed model imports src.preprocessor and src.inference by name, and dataset/
-    supplies the builder the publication smoke check runs.
+    dataset/ supplies the builder the publication smoke check runs. The model,
+    runner and preprocessor are installed with espnet under
+    espnet3.systems.esp2_s2t, so a recipe src/ would be dead weight.
     """
     include = [str(p) for p in _config()["pack_model"]["include"]]
-    assert any(p.rstrip("/").endswith("/src") or p == "src" for p in include), include
     assert any(
         p.rstrip("/").endswith("/dataset") or p == "dataset" for p in include
     ), include
+    assert not any(p.rstrip("/").endswith("src") for p in include), include
 
 
 def test_the_packed_bundle_carries_the_token_list(monkeypatch):

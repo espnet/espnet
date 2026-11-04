@@ -92,9 +92,10 @@ def write_test_reference(path) -> None:
     Args:
         path: File to write.
     """
-    texts = dataset_module().load_reference_texts("test")
+    cuts = dataset_module().load_cuts("test")
     Path(path).write_text(
-        "".join(f"{utt} {text}\n" for utt, text in texts.items()), encoding="utf-8"
+        "".join(f"{cut.id} {cut.custom['sot_text']}\n" for cut in cuts),
+        encoding="utf-8",
     )
 
 

@@ -15,14 +15,13 @@ from espnet3.systems.base.training import _build_trainer, _ensure_directories
 logger = logging.getLogger(__name__)
 
 
-class S2TSystem(BaseSystem):
-    """Speech-to-text system with a fixed vocabulary.
+class ESP2S2TSystem(BaseSystem):
+    """ESPnet2 S2T training and evaluation with a fixed vocabulary.
 
-    One stage differs from :class:`BaseSystem`: ``collect_stats`` keeps a
-    configured ``model.normalize`` instead of dropping it. There is no
-    ``train_tokenizer``, because an S2T vocabulary ships with the pretrained
-    checkpoint; the template's stage list leaves that stage out rather than
-    offering one that only refuses.
+    The stages are :class:`BaseSystem`'s. One of them differs:
+    ``collect_stats`` keeps a configured ``model.normalize`` instead of
+    dropping it. There is no tokenizer stage, because an S2T vocabulary ships
+    with the pretrained checkpoint.
     """
 
     def collect_stats(self, *args, **kwargs):
@@ -51,8 +50,7 @@ class S2TSystem(BaseSystem):
             process.
 
             The base ``train`` does not pop these keys, which is why it is
-            inherited while this stage is not. ``espnet3/systems/tts`` carries
-            the same override for the same reason.
+            inherited while this stage is not.
         """
         self._reject_stage_args("collect_stats", args, kwargs)
         start = time.perf_counter()

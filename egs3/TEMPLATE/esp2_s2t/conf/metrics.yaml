@@ -7,7 +7,7 @@
 #       --inference_config conf/inference.yaml \
 #       --metrics_config conf/metrics.yaml
 #
-# Assumes `infer` has written `<test_name>/*.scp`. All three configs, because
+# Assumes `infer` has written `<test_name>/hyp.scp`. All three configs, because
 # exp_tag below is empty on purpose: run.py copies it and inference_dir across,
 # and without them `measure` has no directory to read the decode from. When
 # `dataset.test` is omitted, the test sets are discovered from
@@ -39,13 +39,13 @@ metrics:
       _target_: espnet3.systems.esp2_s2t.metrics.cpwer.UtteranceGroupCpWER
       clean_types:        # optional TextCleaner pipeline, e.g. [whisper_en]
     inputs:
-      ref: ref            # -> `<test_name>/ref.scp`
-      hyp: hyp            # -> `<test_name>/hyp.scp`
+      ref: dataset:text   # the test set's SOT reference
+      hyp: hyp            # <test_name>/hyp.scp; timestamps are stripped
 
   - metric:
       _target_: espnet3.systems.esp2_s2t.metrics.der.UtteranceGroupDER
       collar: 0.25        # forgiveness collar, seconds
       clean_types:
     inputs:
-      ref: ref_sot        # the view that keeps timestamps
-      hyp: hyp_sot
+      ref: dataset:text   # DER reads the timestamps both keep
+      hyp: hyp

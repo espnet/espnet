@@ -23,7 +23,7 @@ num_nodes: 1
 # ESPnet task class path used by `get_espnet_model(...)`. Every recipe under
 # this template trains an ESPnetS2TModel, so unlike the generic templates this
 # one names the task rather than leaving it to each recipe.
-task: espnet2.tasks.s2t.S2TTask
+task: espnet3.systems.esp2_s2t.task.S2TTask
 
 # Path scaffold relative to the recipe root.
 recipe_dir: .
