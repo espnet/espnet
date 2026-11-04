@@ -15,9 +15,15 @@ speech tokenizer with ASR and speaker-conditioned reconstruction losses.
 8. Collect shapes for speech, text, and speaker embeddings.
 9. Train the speech tokenizer and its downstream losses.
 10. Extract discrete token sequences without loading downstream losses.
+11. Decode ASR hypotheses and reconstruct waveforms from saved tokens.
+12. Report ASR WER/CER and VERSA reconstruction metrics.
+13. Export and pack a tokenizer-only checkpoint with `RESULTS.md`.
+14. Upload the packed tokenizer artifact to Hugging Face.
 
 The GAN task uses two optimizers and `GANTrainer`.
 Speaker embeddings are required for reconstruction during training.
+These branch-level metrics provide an initial assessment of the learned tokens,
+but do not fully characterize phonological-token quality.
 
 ## Creating a corpus recipe
 
