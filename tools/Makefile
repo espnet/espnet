@@ -51,7 +51,7 @@ endef
 all: showenv conda_packages.done python ffmpeg.done sctk check_install
 
 python: activate_python.sh setuptools.done packaging.done espnet.done pytorch.done fairscale.done torch_optimizer.done flash_attn.done lightning.done
-extra: warp-transducer.done nkf.done moses.done mwerSegmenter.done pesq kenlm.done pyopenjtalk.done py3mmseg.done beamformit.done fairseq.done s3prl.done k2.done transformers.done phonemizer.done longformer.done muskits.done whisper.done rvad_fast.done sounfile_test parallel-wavegan.done lora.done sph2pipe torcheval.done ci_sdr.done
+extra: warp-transducer.done nkf.done moses.done mwerSegmenter.done pesq kenlm.done pyopenjtalk.done py3mmseg.done beamformit.done fairseq.done s3prl.done k2.done transformers.done phonemizer.done longformer.done muskits.done whisper.done rvad_fast.done sounfile_test parallel-wavegan.done lora.done sph2pipe torcheval.done
 
 activate_python.sh:
 	test -f activate_python.sh || { echo "Error: Run ./setup_python.sh or ./setup_miniforge.sh"; exit 1; }
@@ -316,11 +316,6 @@ whisper.done: espnet.done
 	. ./activate_python.sh && ./installers/install_whisper.sh
 	$(call end_timer_and_touch,whisper.done)
 
-ci_sdr.done: espnet.done
-	$(call start_timer,ci_sdr.done)
-	. ./activate_python.sh && ./installers/install_ci_sdr.sh
-	$(call end_timer_and_touch,ci_sdr.done)
-
 lora.done: espnet.done
 	$(call start_timer,lora.done)
 	. ./activate_python.sh && ./installers/install_lora.sh
@@ -406,7 +401,6 @@ clean_extra:
 	rm -rf rvad_fast.done
 	rm -rf lightning_constraints.txt
 	rm -rf torcheval_constraints.txt
-	rm -rf ci_sdr_constraints.txt
 	rm -rf espeak-ng festival MBROLA ParallelWaveGAN versa
 	rm -rf py3mmseg sctk* speech_tools sph2pipe* ._mwerSegmenter
 	rm -rf nkf mecab swig moses mwerSegmenter
