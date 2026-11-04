@@ -18,9 +18,27 @@ from espnet2.legacy.utils.cli_utils import get_commandline_args
 from espnet2.tasks.gan_tok import GANSpeechTokenizerTask
 from espnet2.text.build_tokenizer import build_tokenizer
 from espnet2.torch_utils.device_funcs import to_device
+from espnet2.torch_utils.safe_torch_load import safe_torch_load
 from espnet2.utils import config_argparse
 
 TASK_CLASSES = {"gan_tok": GANSpeechTokenizerTask}
+
+
+def validate_downstream_branch_checkpoint(model_file: str, mode: str) -> None:
+    """Require trained parameters for the requested downstream branch."""
+    checkpoint = safe_torch_load(model_file, map_location="cpu")
+    if isinstance(checkpoint, dict) and "model" in checkpoint:
+        checkpoint = checkpoint["model"]
+    if isinstance(checkpoint, dict) and "module" in checkpoint:
+        checkpoint = checkpoint["module"]
+    if not isinstance(checkpoint, dict):
+        raise TypeError(f"Unsupported checkpoint object: {type(checkpoint)}")
+
+    prefix = f"losses.{mode}."
+    if not any(name.removeprefix("module.").startswith(prefix) for name in checkpoint):
+        raise RuntimeError(
+            f"Checkpoint does not contain parameters for the {mode} downstream branch"
+        )
 
 
 def build_iterator(
@@ -187,6 +205,7 @@ def inference(
         raise ValueError("lm_weight must be 0 because no external LM is loaded")
     device = "cuda" if ngpu else "cpu"
     task_class = TASK_CLASSES[task]
+    validate_downstream_branch_checkpoint(model_file, mode)
     model, args = task_class.build_model_from_file(train_config, model_file, device)
     model.to(dtype=getattr(torch, dtype)).eval()
     output = Path(output_dir)
