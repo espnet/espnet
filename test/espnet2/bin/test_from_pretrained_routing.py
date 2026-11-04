@@ -49,11 +49,26 @@ def test_every_inference_class_that_takes_a_model_tag_was_found():
     assert len(CLASSES) > 20
 
 
-def test_only_s2st_offers_from_pretrained_without_a_model_tag():
+# The classes that fetch a published model some other way, each with the
+# reason it cannot take a model_tag and go through the shared helper. A new
+# entry here is a claim that the helper does not fit, so it needs a sentence.
+OTHER_WAYS = {
     # Speech2Speech.from_pretrained takes only vocoder_tag, so an S2ST model
-    # cannot be loaded from a published tag at all. If that is ever fixed,
-    # the class joins CLASSES above and this expectation goes away.
-    assert NO_MODEL_TAG == [("s2st_inference", "Speech2Speech")]
+    # cannot be loaded from a published tag at all.
+    ("s2st_inference", "Speech2Speech"),
+    # The Bagpiper releases are not espnet_model_zoo packs: they are loose
+    # files (a train config, a .pt of {"module": state_dict}, decoding
+    # configs) with no meta.yaml, and loading one builds a speechlm job
+    # template rather than calling a constructor with the downloader's
+    # artifact keys. download_pretrained has neither half to offer it.
+    ("speechlm_inference", "LocalBagpiper"),
+}
+
+
+def test_every_other_way_of_fetching_a_model_is_one_of_the_known_ones():
+    # If one of these is ever fixed, the class joins CLASSES above and its
+    # line here goes away.
+    assert set(NO_MODEL_TAG) == OTHER_WAYS
 
 
 @pytest.mark.parametrize("module_name, class_name", CLASSES)

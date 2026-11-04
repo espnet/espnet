@@ -27,7 +27,7 @@ ${CXX:-g++} -v
         warp-transducer.done nkf.done moses.done \
             pyopenjtalk.done py3mmseg.done s3prl.done transformers.done \
             phonemizer.done fairseq.done k2.done longformer.done \
-            whisper.done parallel-wavegan.done muskits.done lora.done
+            whisper.done parallel-wavegan.done muskits.done lora.done ci_sdr.done
     rm -rf kaldi
 )
 . tools/activate_python.sh

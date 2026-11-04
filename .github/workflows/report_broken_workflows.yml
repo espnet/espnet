@@ -16,9 +16,18 @@ name: report broken workflows
 
 on:
   schedule:
-    # 06:00 UTC daily. Away from the docker publish (Monday 00:00) and the CI
-    # image rebuild (03:00), so a failure of those is already visible here.
-    - cron: "0 6 * * *"
+    # 09:00 UTC daily, and deliberately the last daily schedule in the
+    # repository. This job reports the *latest* run of every workflow, so a
+    # workflow scheduled after it is reported a day late: at 06:00 it was
+    # filing check_demo_links (07:00) and assign_milestone (06:30) results
+    # from the previous morning, which is how issue #6800 named a demo-link
+    # failure that had already passed by the time anyone read it.
+    #
+    # Two hours after the last of them, because GitHub delays scheduled runs -
+    # this one's 06:00 cron has fired as late as 06:29.
+    # ci/check_ci_image_config.py fails if another daily schedule moves past
+    # it.
+    - cron: "0 9 * * *"
   workflow_dispatch:
 
 permissions:

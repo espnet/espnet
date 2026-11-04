@@ -126,7 +126,7 @@ class XMLReader(collections.abc.Mapping):
         return self.data[key]
 
     def __contains__(self, item):
-        return item
+        return item in self.data
 
     def __len__(self):
         return len(self.data)
@@ -270,7 +270,7 @@ class MIDReader(collections.abc.Mapping):
         return self.data[key]
 
     def __contains__(self, item):
-        return item
+        return item in self.data
 
     def __len__(self):
         return len(self.data)
@@ -316,7 +316,7 @@ class SingingScoreReader(collections.abc.Mapping):
         return self.data[key]
 
     def __contains__(self, item):
-        return item
+        return item in self.data
 
     def __len__(self):
         return len(self.data)

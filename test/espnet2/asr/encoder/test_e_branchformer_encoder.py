@@ -162,3 +162,81 @@ def test_e_branchformer_output_does_not_depend_on_batch_neighbours():
             **COMMON,
         )
     )
+
+
+def test_use_sdpa_reaches_the_attention_and_matches_the_default():
+    """`use_sdpa` has to be forwarded, and must not change the output.
+
+    `MultiHeadedAttention` has implemented `use_sdpa` for a while, but no
+    encoder passed it, so PyTorch's scaled_dot_product_attention (and the
+    kernels it dispatches to) was unreachable from a config.
+    """
+    torch.manual_seed(0)
+    x = torch.randn(2, 120, 80)
+    lengths = torch.tensor([120, 95])
+
+    def build(**kwargs):
+        torch.manual_seed(0)
+        return EBranchformerEncoder(
+            80,
+            output_size=32,
+            attention_heads=2,
+            attention_layer_type="selfattn",
+            pos_enc_layer_type="abs_pos",
+            cgmlp_linear_units=32,
+            linear_units=32,
+            num_blocks=2,
+            use_flash_attn=False,
+            **kwargs,
+        )
+
+    # eval() so dropout does not make the two forward passes draw different
+    # masks: the point of the comparison is the attention implementation.
+    sdpa_encoder = build(use_sdpa=True).eval()
+    assert sdpa_encoder.encoders[0].attn.use_sdpa
+
+    with torch.no_grad():
+        default_out, _, _ = build().eval()(x, lengths)
+        sdpa_out, _, _ = sdpa_encoder(x, lengths)
+    assert default_out.shape == sdpa_out.shape
+    assert torch.allclose(default_out, sdpa_out, atol=1e-5)
+
+
+def test_use_sdpa_reaches_the_relative_attention_and_matches_the_default():
+    """The same for `rel_selfattn`, which overrides `forward` entirely.
+
+    `RelPositionMultiHeadedAttention` builds its own score matrix, so it never
+    reached the parent's `use_sdpa` branch and relative-position models -- most
+    of the Conformer and E-Branchformer recipes -- could not use
+    scaled_dot_product_attention at all. Folding the relative-position term
+    into SDPA's additive `attn_mask` must leave the output alone.
+    """
+    torch.manual_seed(0)
+    x = torch.randn(2, 120, 80)
+    lengths = torch.tensor([120, 95])
+
+    def build(**kwargs):
+        torch.manual_seed(0)
+        return EBranchformerEncoder(
+            80,
+            output_size=32,
+            attention_heads=2,
+            attention_layer_type="rel_selfattn",
+            pos_enc_layer_type="rel_pos",
+            cgmlp_linear_units=32,
+            linear_units=32,
+            num_blocks=2,
+            use_flash_attn=False,
+            **kwargs,
+        )
+
+    # eval() so dropout does not make the two forward passes draw different
+    # masks: the point of the comparison is the attention implementation.
+    sdpa_encoder = build(use_sdpa=True).eval()
+    assert sdpa_encoder.encoders[0].attn.use_sdpa
+
+    with torch.no_grad():
+        default_out, _, _ = build().eval()(x, lengths)
+        sdpa_out, _, _ = sdpa_encoder(x, lengths)
+    assert default_out.shape == sdpa_out.shape
+    assert torch.allclose(default_out, sdpa_out, atol=1e-5)

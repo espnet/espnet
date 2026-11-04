@@ -60,6 +60,16 @@ The last two are the model's own `<g2p>` and `<p2g>`, trained with the
 written half as the prompt (`text.prev` in the recipe). They read one window,
 since the prompt belongs to one utterance.
 
+**They are the weaker half of this checkpoint, and the page says so.** POWSM's
+author put it plainly on [#6792](https://github.com/espnet/espnet/pull/6792):
+`<g2p>` and `<p2g>` are encoder-decoder work, and an encoder-CTC model is less
+stable at them - [POWSM](https://huggingface.co/espnet/powsm) is what to reach
+for if you need them, at four to twelve times the runtime. For a user the two
+are also close to the tasks above: `<g2p>` is `<pr>` with the words typed in
+first, and `<p2g>` is `<asr>` with the phones typed in first. They are here
+because the model was trained with them and the page reads its token list, not
+because this checkpoint is good at them.
+
 So `python app.py` and `espnet demo --model espnet/powsm_ctc` are the same
 page, and a fix to either is a fix to both. The two OWSM demos beside this
 one still carry their own copies of that code, written before the module
@@ -85,10 +95,14 @@ Measured on `test_utils/ctc_align_test.wav`, on a laptop CPU, through
 
 | | `powsm_ctc` | `powsm` |
 |---|---|---|
-| `<pr>` | 5.3 s | 21.8 s, and finer - `pʰ`, `tʰ`, `oʊ` where the CTC writes `p`, `t`, `o` |
+| `<pr>` | 5.3 s | 21.8 s, and a different reading of the same phones - `ð ə s e ɪ l ʌ v` where the CTC wrote `d ə s e ɪ l ɔ v` |
 | `<asr>` | 7.0 s | 53.4 s, and the text comes back as `T ⁇ E  ⁇ A ⁇ E OF …` |
 | `<g2p>` | 5.9 s | 65.7 s |
 | `<p2g>` | 7.6 s | 89.4 s, same `⁇` |
+
+Both write the same phone set - a diphthong is two symbols in either, by
+design - so the difference above is which phones each chose on this file,
+not what either can say.
 
 The hosted Space is the CTC one: 89 s against a 120 s ZeroGPU slice leaves no
 room, and the encoder-decoder's two text tasks are the ones its text

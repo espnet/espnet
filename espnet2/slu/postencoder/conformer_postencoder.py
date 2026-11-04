@@ -70,6 +70,7 @@ class ConformerPostEncoder(AbsPostEncoder):
         zero_triu (bool): Whether to zero the upper triangular part of attention matrix.
         cnn_module_kernel (int): Kernerl size of convolution module.
         padding_idx (int): Padding idx for input_layer=embed.
+        use_sdpa (bool): Whether to use PyTorch's scaled_dot_product_attention.
 
     """
 
@@ -98,6 +99,7 @@ class ConformerPostEncoder(AbsPostEncoder):
         zero_triu: bool = False,
         cnn_module_kernel: int = 31,
         padding_idx: int = -1,
+        use_sdpa: bool = False,
     ):
         super().__init__()
         self._output_size = output_size
@@ -180,6 +182,11 @@ class ConformerPostEncoder(AbsPostEncoder):
                 attention_heads,
                 output_size,
                 attention_dropout_rate,
+                False,  # qk_norm
+                False,  # use_flash_attn
+                False,  # causal
+                False,  # cross_attn
+                use_sdpa,
             )
         elif selfattention_layer_type == "legacy_rel_selfattn":
             assert pos_enc_layer_type == "legacy_rel_pos"
@@ -188,6 +195,8 @@ class ConformerPostEncoder(AbsPostEncoder):
                 attention_heads,
                 output_size,
                 attention_dropout_rate,
+                False,  # zero_triu
+                use_sdpa,
             )
             logging.warning(
                 "Using legacy_rel_selfattn and it will be deprecated in the future."
@@ -200,6 +209,7 @@ class ConformerPostEncoder(AbsPostEncoder):
                 output_size,
                 attention_dropout_rate,
                 zero_triu,
+                use_sdpa,
             )
         else:
             raise ValueError("unknown encoder_attn_layer: " + selfattention_layer_type)

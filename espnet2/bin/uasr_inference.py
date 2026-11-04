@@ -24,6 +24,7 @@ from espnet2.tasks.uasr import UASRTask
 from espnet2.text.build_tokenizer import build_tokenizer
 from espnet2.text.token_id_converter import TokenIDConverter
 from espnet2.torch_utils.device_funcs import to_device
+from espnet2.torch_utils.quantization import quantize_dynamic
 from espnet2.torch_utils.set_all_random_seed import set_all_random_seed
 from espnet2.utils import config_argparse
 from espnet2.utils.pretrained import download_pretrained
@@ -81,7 +82,7 @@ class Speech2Text:
         if quantize_uasr_model:
             logging.info("Use quantized uasr model for decoding.")
 
-            uasr_model = torch.quantization.quantize_dynamic(
+            uasr_model = quantize_dynamic(
                 uasr_model, qconfig_spec=qconfig_spec, dtype=quantize_dtype
             )
 
@@ -99,7 +100,7 @@ class Speech2Text:
             if quantize_lm:
                 logging.info("Use quantized lm for decoding.")
 
-                lm = torch.quantization.quantize_dynamic(
+                lm = quantize_dynamic(
                     lm, qconfig_spec=qconfig_spec, dtype=quantize_dtype
                 )
 

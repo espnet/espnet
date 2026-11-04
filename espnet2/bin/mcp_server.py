@@ -1,28 +1,9 @@
 #!/usr/bin/env python3
 
-"""Model Context Protocol server that lets agents call ESPnet as tools.
+"""Model Context Protocol tools using native ESPnet2 inference backends.
 
-Start it with ``espnet-mcp`` (installed by ``pip install "espnet[mcp]"``) and
-register it with the agent, for example in Claude Code, Claude Desktop or
-Cursor::
-
-    {"mcpServers": {"espnet": {"command": "espnet-mcp"}}}
-
-The agent then sees six tools - ``transcribe``, ``translate``, ``phonemize``,
-``align``, ``synthesize`` and ``enhance`` - and calls them itself when a task
-needs one. They are named after the subcommands of ``espnet``, so a person
-reading an agent's transcript and a person at a terminal are talking about
-the same thing. Audio moves as file paths on this machine; nothing is
-uploaded anywhere. Each model is downloaded from the Hugging Face Hub on
-first use and kept loaded for the rest of the session.
-
-The defaults are the checkpoints the tools were written against and can be
-swapped through the environment: ``ESPNET_MCP_ASR_MODEL`` (any OWSM-CTC
-checkpoint), ``ESPNET_MCP_TTS_MODEL`` (any ESPnet text-to-speech model),
-``ESPNET_MCP_ENH_MODEL`` (any single-channel enhancement model, with
-``ESPNET_MCP_ENH_FS`` its sampling rate), ``ESPNET_MCP_PR_MODEL`` (a POWSM
-checkpoint, for the phones) and ``ESPNET_MCP_DEVICE``. Alignment uses the
-recognition model, since it is a Viterbi path through that model's CTC head.
+Audio is passed as local file paths; checkpoints are loaded lazily and
+cached for the session. Install espnet[mcp] to run espnet-mcp.
 """
 
 import contextlib
@@ -65,7 +46,9 @@ PR_MODEL = os.environ.get("ESPNET_MCP_PR_MODEL", "espnet/powsm_ctc")
 ENH_FS = int(os.environ.get("ESPNET_MCP_ENH_FS", "16000"))
 if ENH_FS <= 0:
     raise ValueError(f"ESPNET_MCP_ENH_FS must be a positive integer, not {ENH_FS}")
-DEVICE = os.environ.get("ESPNET_MCP_DEVICE", "cpu")
+DEVICE = os.environ.get("ESPNET_MCP_DEVICE", "auto")
+# Bagpiper is served rather than loaded; see _bagpiper below.
+BAGPIPER_URL = os.environ.get("ESPNET_MCP_BAGPIPER_URL", "http://127.0.0.1:9811/v1")
 
 # Over stdio the protocol owns stdout, so anything a model prints while
 # loading (attention.py reports a missing flash_attn that way) would be read
@@ -73,24 +56,36 @@ DEVICE = os.environ.get("ESPNET_MCP_DEVICE", "cpu")
 _quiet_stdout = functools.partial(contextlib.redirect_stdout, sys.stderr)
 
 
-@functools.lru_cache(maxsize=None)
-def _asr():  # pragma: no cover - downloads the checkpoint
-    with _quiet_stdout():
-        from espnet2.bin.s2t_inference import Speech2Text
+def _device() -> str:
+    """The device, with ``auto`` settled against this machine."""
+    from espnet2.torch_utils.resolve_device import resolve_device
 
-        return Speech2Text.from_pretrained(
-            ASR_MODEL, device=DEVICE, lang_sym="<nolang>", task_sym="<asr>"
+    return resolve_device(DEVICE)
+
+
+def _s2t(tag: str):
+    """Build the native speech-to-text backend."""
+    from espnet2.bin.s2t_inference import Speech2Text
+    from espnet2.utils.pretrained import build_pretrained
+
+    with _quiet_stdout():
+        return build_pretrained(
+            Speech2Text,
+            tag,
+            _device(),
+            "ESPnet speech-to-text tools",
+            "Select an OWSM or POWSM checkpoint.",
         )
 
 
 @functools.lru_cache(maxsize=None)
-def _pr():  # pragma: no cover - downloads the checkpoint
-    with _quiet_stdout():
-        from espnet2.bin.s2t_inference import Speech2Text
+def _asr():  # pragma: no cover - downloads the checkpoint
+    return _s2t(ASR_MODEL)
 
-        model = Speech2Text.from_pretrained(PR_MODEL, device=DEVICE, task_sym="<pr>")
-        model.lang_sym = model.no_language()
-        return model
+
+@functools.lru_cache(maxsize=None)
+def _pr():  # pragma: no cover - downloads the checkpoint
+    return _s2t(PR_MODEL)
 
 
 @functools.lru_cache(maxsize=None)
@@ -100,7 +95,7 @@ def _aligner():  # pragma: no cover - downloads the checkpoint
 
         # the recognition model again: alignment is a Viterbi path through
         # the CTC head this tool's transcribe already reads
-        return ForcedAligner.from_pretrained(ASR_MODEL, device=DEVICE)
+        return ForcedAligner.from_pretrained(ASR_MODEL, device=_device())
 
 
 @functools.lru_cache(maxsize=None)
@@ -108,7 +103,7 @@ def _tts():  # pragma: no cover - downloads the checkpoint
     with _quiet_stdout():
         from espnet2.bin.tts_inference import Text2Speech
 
-        return Text2Speech.from_pretrained(TTS_MODEL, device=DEVICE)
+        return Text2Speech.from_pretrained(TTS_MODEL, device=_device())
 
 
 @functools.lru_cache(maxsize=None)
@@ -116,7 +111,22 @@ def _enh():  # pragma: no cover - downloads the checkpoint
     with _quiet_stdout():
         from espnet2.bin.enh_inference import SeparateSpeech
 
-        return SeparateSpeech.from_pretrained(ENH_MODEL, device=DEVICE)
+        return SeparateSpeech.from_pretrained(ENH_MODEL, device=_device())
+
+
+@functools.lru_cache(maxsize=None)
+def _bagpiper():
+    """Bagpiper, which is served rather than downloaded.
+
+    The other loaders fetch a checkpoint the first time a tool is called.
+    This one cannot: Bagpiper is 8B with an audio encoder and a codec
+    attached, so a tool call that quietly pulled 18 GB and filled a GPU
+    would be a worse surprise than an error saying where to point it. It
+    addresses a server instead, and `ESPNET_MCP_BAGPIPER_URL` says which.
+    """
+    from espnet2.bin.speechlm_inference import from_server
+
+    return from_server(BAGPIPER_URL)
 
 
 # mcp relays a ToolError's message to the agent word for word and reduces
@@ -129,13 +139,26 @@ def _existing_file(path: str) -> Path:
     return p
 
 
-def _symbol(model, symbol: str, what: str) -> str:
-    if symbol not in model.s2t_model.token_list:
-        raise ToolError(
-            f"{what} {symbol!r} is not in the model's vocabulary. Use an ISO 639-3 "
-            "code such as eng, jpn, deu, zho, fra or spa."
-        )
-    return symbol
+def _say(model, audio_path: str, task: str, language: str) -> str:
+    """Decode a recording directly with the native speech-to-text backend."""
+    path = _existing_file(audio_path)
+    try:
+        lang_sym = model.no_language() if language == "auto" else f"<{language}>"
+        task_sym = f"<{task}>"
+        tokens = getattr(getattr(model, "s2t_model", None), "token_list", None)
+        if tokens:
+            for symbol in (lang_sym, task_sym):
+                if symbol not in tokens:
+                    raise ValueError(f"this model has no {symbol}")
+        with _quiet_stdout():
+            return " ".join(
+                text
+                for _, _, text in model.decode_long(
+                    str(path), lang_sym=lang_sym, task_sym=task_sym
+                )
+            )
+    except ValueError as e:
+        raise ToolError(str(e)) from e
 
 
 def transcribe(audio_path: str, language: str = "auto") -> str:
@@ -152,7 +175,7 @@ def transcribe(audio_path: str, language: str = "auto") -> str:
         the default is about 4 GB - and takes minutes; later calls take
         10-30 s per 30 s of audio on a laptop CPU, about a second on a GPU.
     """
-    return _decode(audio_path, language, "<asr>")
+    return _say(_asr(), audio_path, "asr", language)
 
 
 def _warn_if_untrained_direction(language: str, to: str) -> None:
@@ -194,8 +217,7 @@ def translate(audio_path: str, to: str, language: str = "auto") -> str:
         The translation as plain text.
     """
     _warn_if_untrained_direction(language, to)
-    model = _asr()
-    return _decode(audio_path, language, _symbol(model, f"<st_{to}>", "target"))
+    return _say(_asr(), audio_path, f"st_{to}", language)
 
 
 def phonemize(audio_path: str, language: str = "auto") -> str:
@@ -212,20 +234,7 @@ def phonemize(audio_path: str, language: str = "auto") -> str:
     Returns:
         The phones, space-separated, one token per phone: "ð ə s eɪ l".
     """
-    path = _existing_file(audio_path)
-    model = _pr()
-    lang_sym = (
-        model.no_language()
-        if language == "auto"
-        else _symbol(model, f"<{language}>", "language")
-    )
-    with _quiet_stdout():
-        decoded = " ".join(
-            text
-            for _, _, text in model.decode_long(
-                str(path), lang_sym=lang_sym, task_sym="<pr>"
-            )
-        )
+    decoded = _say(_pr(), audio_path, "pr", language)
     # POWSM writes each phone between slashes, so that a phone spelled like a
     # BPE token is still one token
     phones = PHONE.findall(decoded)
@@ -259,26 +268,6 @@ def align(audio_path: str, utterances: List[str]) -> str:
     return "\n".join(
         f"{s.start:.2f}\t{s.end:.2f}\t{s.score:.4f}\t{s.text}" for s in segments
     )
-
-
-def _decode(audio_path: str, language: str, task_sym: str) -> str:
-    """One recording of any length, decoded on the recognition model."""
-    path = _existing_file(audio_path)
-    model = _asr()
-    lang_sym = (
-        "<nolang>"
-        if language == "auto"
-        else _symbol(model, f"<{language}>", "language")
-    )
-    with _quiet_stdout():
-        # one recording of any length, decoded on the CTC head: the same
-        # route batch_decode took before it was deprecated
-        return " ".join(
-            text
-            for _, _, text in model.decode_long(
-                str(path), lang_sym=lang_sym, task_sym=task_sym
-            )
-        )
 
 
 def synthesize(text: str, output_path: str) -> str:
@@ -338,7 +327,76 @@ def enhance(audio_path: str, output_path: str) -> str:
     return str(out.resolve())
 
 
-TOOLS = (transcribe, translate, phonemize, align, synthesize, enhance)
+def describe(audio_path: str, prompt: str = "What sound is in this audio?") -> str:
+    """Answer a question about what a recording contains, in words.
+
+    This understands audio as a whole - speech, music, environmental sound
+    and mixtures - and answers open-ended questions about it. Use
+    `transcribe` when what is wanted is the words that were said: it is
+    smaller, it is always available, and it does not reason.
+
+    Args:
+        audio_path: An audio file on this machine. Anything soundfile reads.
+            The model was trained on clips of up to 30 seconds.
+        prompt: What to ask about it. Free text, as specific as you like:
+            "how many speakers?", "what instrument is this?", "is the
+            speaker angry?".
+
+    Returns:
+        The answer, which begins with the model's own reasoning about the
+        audio before it concludes. Needs a Bagpiper server: no model is
+        downloaded, and an unreachable server is reported as such.
+    """
+    path = _existing_file(audio_path)
+    with _quiet_stdout():
+        return _bagpiper().describe(str(path), prompt=prompt)
+
+
+def render(scene: str, output_path: str) -> str:
+    """Render a described scene as audio, and save it as a WAV file.
+
+    This is not text-to-speech. It generates the sound of a scene you
+    describe - speech, music, effects or a mixture - so the prompt is a
+    description, with any words to be spoken quoted inside it: "A clear
+    female voice in a quiet room says: 'your package arrives Tuesday'. No
+    background noise." Asking it to "read this aloud: ..." returns audio
+    that is not a faithful reading. Use `synthesize` to have a sentence
+    read out as written.
+
+    Args:
+        scene: The description of the audio to render.
+        output_path: Where to write the WAV file; parent directories are
+            created.
+
+    Returns:
+        The absolute path of the WAV file written. Needs a Bagpiper server.
+        The model chooses its own output mode and may answer with text
+        alone, which is reported rather than written.
+    """
+    audio, text = _bagpiper().render(scene)
+    if audio is None:
+        raise ToolError(
+            "The model answered with text and no audio: "
+            f"{text[:500]!r}. It renders a described scene rather than "
+            "reading a line out - describe the sound, and quote any speech "
+            "inside the description."
+        )
+    out = Path(output_path).expanduser()
+    out.parent.mkdir(parents=True, exist_ok=True)
+    out.write_bytes(audio)
+    return str(out.resolve())
+
+
+TOOLS = (
+    transcribe,
+    translate,
+    phonemize,
+    align,
+    synthesize,
+    enhance,
+    describe,
+    render,
+)
 
 
 def build_server():

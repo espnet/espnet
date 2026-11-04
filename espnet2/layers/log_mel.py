@@ -1,3 +1,4 @@
+import math
 from typing import Tuple
 
 import librosa
@@ -70,7 +71,7 @@ class LogMel(torch.nn.Module):
         elif self.log_base == 10.0:
             logmel_feat = mel_feat.log10()
         else:
-            logmel_feat = mel_feat.log() / torch.log(self.log_base)
+            logmel_feat = mel_feat.log() / math.log(self.log_base)
 
         # Zero padding
         if ilens is not None:
