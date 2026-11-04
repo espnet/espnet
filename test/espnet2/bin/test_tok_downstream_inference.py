@@ -8,6 +8,7 @@ from omniio import kaldi as kaldi_io
 from espnet2.bin.tok_downstream_inference import (
     build_iterator,
     inference_reconstruction,
+    validate_downstream_branch_checkpoint,
 )
 from espnet2.tasks.gan_tok import GANSpeechTokenizerTask
 
@@ -108,3 +109,34 @@ def test_inference_reconstruction_rejects_non_filename_key(tmp_path, key):
         inference_reconstruction(
             None, [([key], {})], tmp_path, "cpu", "unused.yaml", 16000
         )
+
+
+@pytest.mark.parametrize(
+    ("mode", "checkpoint"),
+    (
+        ("asr", {"losses.asr.weight": torch.tensor(1.0)}),
+        (
+            "reconstruction",
+            {"model": {"module.losses.reconstruction.weight": torch.tensor(1.0)}},
+        ),
+    ),
+)
+def test_validate_downstream_branch_checkpoint_accepts_branch(
+    tmp_path, mode, checkpoint
+):
+    model_file = tmp_path / "model.pth"
+    torch.save(checkpoint, model_file)
+
+    validate_downstream_branch_checkpoint(str(model_file), mode)
+
+
+@pytest.mark.parametrize("mode", ("asr", "reconstruction"))
+def test_validate_downstream_branch_checkpoint_rejects_tokenizer_only(tmp_path, mode):
+    model_file = tmp_path / "tokenizer.pth"
+    torch.save({"model": {"tokenizer.weight": torch.tensor(1.0)}}, model_file)
+
+    with pytest.raises(
+        RuntimeError,
+        match=f"does not contain parameters for the {mode} downstream branch",
+    ):
+        validate_downstream_branch_checkpoint(str(model_file), mode)
