@@ -1,9 +1,10 @@
+from test.espnet2.tok.test_hifigan_loss import make_loss
+
 import pytest
 import torch
 
 from espnet2.tok.espnet_model import ESPnetGANSpeechTokenizerModel
 from espnet2.tok.output import SpeechTokenizerOutput
-from test.espnet2.tok.test_hifigan_loss import make_loss
 
 
 class DummyTokenizer(torch.nn.Module):
@@ -48,9 +49,10 @@ class DummyASRLoss(torch.nn.Module):
         return tokenizer_output.assignment, tokenizer_output.lengths
 
     def encode_from_tokens(self, token_ids, token_lengths):
-        return torch.nn.functional.one_hot(
-            token_ids, num_classes=2
-        ).float(), token_lengths
+        return (
+            torch.nn.functional.one_hot(token_ids, num_classes=2).float(),
+            token_lengths,
+        )
 
 
 class DummyReconstructionLoss(torch.nn.Module):
