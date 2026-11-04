@@ -145,6 +145,8 @@ def inference_reconstruction(
     wav_dir.mkdir(exist_ok=True)
     with (wav_dir / "wav.scp").open("w", encoding="utf-8") as wav_scp:
         for keys, batch in iterator:
+            if Path(keys[0]).name != keys[0] or keys[0] in ("", ".", ".."):
+                raise ValueError(f"Invalid utterance key for WAV output: {keys[0]}")
             batch = to_device(batch, device)
             ids = batch["speech"]
             lengths = batch["speech_lengths"]

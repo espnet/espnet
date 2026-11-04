@@ -100,3 +100,11 @@ def test_inference_reconstruction_requires_sample_rate(tmp_path):
 
     with pytest.raises(ValueError, match="sample_rate must be provided"):
         inference_reconstruction(None, [], tmp_path, "cpu", str(train_config), None)
+
+
+@pytest.mark.parametrize("key", ("/tmp/utt1", "../utt1", "dir/utt1", "", ".", ".."))
+def test_inference_reconstruction_rejects_non_filename_key(tmp_path, key):
+    with pytest.raises(ValueError, match="Invalid utterance key for WAV output"):
+        inference_reconstruction(
+            None, [([key], {})], tmp_path, "cpu", "unused.yaml", 16000
+        )
