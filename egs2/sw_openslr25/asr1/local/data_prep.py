@@ -58,6 +58,24 @@ def find_metadata_dir(root):
     return None
 
 
+def check_metadata(meta_dir, split_name):
+    """Warn about utterances missing from any of wav.scp, text or utt2spk."""
+    files = {
+        name: set(read_kaldi_file(meta_dir / split_name / name))
+        for name in ("wav.scp", "text", "utt2spk")
+    }
+    all_ids = set.union(*files.values())
+    for name, ids in files.items():
+        missing = sorted(all_ids - ids)
+        if missing:
+            print(
+                f"[data_prep] WARNING: {len(missing)} '{split_name}' utterances have "
+                f"no {name} entry and will be dropped (showing up to 5): "
+                f"{missing[:5]}",
+                file=sys.stderr,
+            )
+
+
 def write_kaldi_dir(out_dir, wav_scp, text, utt2spk):
     out_dir.mkdir(parents=True, exist_ok=True)
     with open(out_dir / "wav.scp", "w", encoding="utf-8") as f:
@@ -79,8 +97,11 @@ def build_split(split_name, meta_dir, wav_index, keep_uttids=None):
     text = read_kaldi_file(meta_dir / split_name / "text")
     utt2spk = read_kaldi_file(meta_dir / split_name / "utt2spk")
 
+    complete = orig_wav.keys() & text.keys() & utt2spk.keys()
     wav_scp, missing = {}, []
     for uttid, orig_path in orig_wav.items():
+        if uttid not in complete:
+            continue  # already reported by check_metadata()
         if keep_uttids is not None and uttid not in keep_uttids:
             continue
         basename = os.path.basename(orig_path)
@@ -134,7 +155,8 @@ def main():
     print(f"[data_prep] Found {len(wav_index)} .wav files.")
     if not wav_index:
         sys.exit(
-            "[data_prep] No .wav files found -- check that the corpus extracted correctly."
+            "[data_prep] No .wav files found -- check that the corpus extracted "
+            "correctly."
         )
 
     meta_dir = find_metadata_dir(download_dir)
@@ -144,6 +166,8 @@ def main():
             f"metadata under {download_dir}."
         )
     print(f"[data_prep] Using metadata from {meta_dir}")
+    for split_name in ("train", "test"):
+        check_metadata(meta_dir, split_name)
 
     # --- test split: used as-is ---
     test_wav, test_text, test_utt2spk = build_split("test", meta_dir, wav_index)
