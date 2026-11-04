@@ -84,3 +84,10 @@ class ASRLoss(torch.nn.Module):
             tokenizer_output.assignment, tokenizer_output.lengths
         )
         return self.asr_model.encode(embedded, embedded_lengths)
+
+    def encode_from_tokens(
+        self, token_ids: torch.Tensor, token_lengths: torch.Tensor
+    ) -> Tuple[torch.Tensor, torch.Tensor]:
+        """Encode saved hard token IDs with the ASR branch."""
+        embedded, embedded_lengths = self.embedding(token_ids, token_lengths)
+        return self.asr_model.encode(embedded, embedded_lengths)

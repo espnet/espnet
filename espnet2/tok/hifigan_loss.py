@@ -304,3 +304,33 @@ class HiFiGANReconstructionLoss(torch.nn.Module):
         waveform = self.generator(condition)
         waveform_lengths = tokenizer_output.lengths * self.upsample_factor
         return waveform, waveform_lengths
+
+    def synthesize_from_tokens(
+        self,
+        token_ids: torch.Tensor,
+        token_lengths: torch.Tensor,
+        spembs: torch.Tensor,
+    ) -> Tuple[torch.Tensor, torch.Tensor]:
+        """Synthesize full waveforms from saved hard token IDs."""
+        token_features, _ = self.embedding(token_ids, token_lengths)
+        if spembs.dim() != 2:
+            raise ValueError(
+                f"spembs must have shape (B, D_spk), but got {tuple(spembs.shape)}"
+            )
+        if spembs.size(0) != token_features.size(0):
+            raise ValueError(
+                "Batch sizes of token features and spembs differ: "
+                f"{token_features.size(0)} != {spembs.size(0)}"
+            )
+        if spembs.size(1) != self.speaker_embed_dim:
+            raise ValueError(
+                "Speaker embedding dimension differs from speaker_embed_dim: "
+                f"{spembs.size(1)} != {self.speaker_embed_dim}"
+            )
+        speaker_features = spembs.to(dtype=token_features.dtype).unsqueeze(1)
+        speaker_features = speaker_features.expand(-1, token_features.size(1), -1)
+        condition = torch.cat([token_features, speaker_features], dim=-1).transpose(
+            1, 2
+        )
+        waveform = self.generator(condition)
+        return waveform, token_lengths * self.upsample_factor
