@@ -1,3 +1,4 @@
+import itertools
 import logging
 from typing import Dict, List, Optional, Tuple, Union
 
@@ -36,9 +37,9 @@ class ESPnetASRModel(AbsESPnetModel):
     Args:
         pit_loss: If True, use an order-insensitive (permutation-invariant)
             attention loss. This is attention-only (ctc_weight must be 0; no
-            transducer, LinearDecoder or lang_token_id) and requires targets
-            of 1 or 2 tokens (e.g. language-ID sequences): the loss of each
-            utterance is the minimum over the two token orders, and the
+            transducer, LinearDecoder or lang_token_id) and meant for short
+            unordered targets (e.g. language-ID sequences): the loss of each
+            utterance is the minimum over all orders of its tokens, and the
             accuracy is computed with the chosen order.
     """
 
@@ -219,9 +220,7 @@ class ESPnetASRModel(AbsESPnetModel):
                 )
 
             if self.pit_loss:
-                logging.info(
-                    "Enabled PIT attention loss for 1- or 2-token target sequences"
-                )
+                logging.info("Enabled PIT attention loss over target token orders")
 
         if ctc_weight == 0.0:
             self.ctc = None
@@ -688,63 +687,62 @@ class ESPnetASRModel(AbsESPnetModel):
         decoder_out: torch.Tensor,
         ys_out_pad: torch.Tensor,
     ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
-        """Compute the attention loss with the better of the two token orders.
+        """Compute the attention loss with the best order of the target tokens.
 
         Args:
             encoder_out: Encoder output (Batch, Length, Dim)
             encoder_out_lens: Encoder output lengths (Batch,)
-            ys_pad: Targets without sos/eos (Batch, Length), 1 or 2 tokens
+            ys_pad: Targets without sos/eos (Batch, Length)
             ys_pad_lens: Target lengths (Batch,)
             decoder_out: Decoder output for the given order (Batch, Length+1, V)
             ys_out_pad: Decoder targets for the given order (Batch, Length+1)
 
         Returns:
             Reduced loss, and decoder_out, ys_pad and ys_out_pad with each
-            2-token utterance in the order that gave the lower loss.
+            utterance in the token order that gave the lowest loss.
         """
-        if int(ys_pad_lens.max()) > 2:
-            raise RuntimeError(
-                "pit_loss only supports 1- or 2-token "
-                f"LID sequence targets, but got max length {int(ys_pad_lens.max())}"
-            )
-
-        original_loss = self._calc_label_smoothing_loss_per_sample(
+        best_loss = self._calc_label_smoothing_loss_per_sample(
             decoder_out,
             ys_out_pad,
         )
-        two_token = ys_pad_lens == 2
-        if not bool(two_token.any()):
-            loss = self._reduce_per_sample_att_loss(original_loss, ys_out_pad)
-            return loss, decoder_out, ys_pad, ys_out_pad
-
-        swapped_ys_pad = ys_pad.clone()
-        swapped_ys_pad[two_token, 0] = ys_pad[two_token, 1]
-        swapped_ys_pad[two_token, 1] = ys_pad[two_token, 0]
-        swapped_ys_in_pad, swapped_ys_out_pad = add_sos_eos(
-            swapped_ys_pad,
-            self.sos,
-            self.eos,
-            self.ignore_id,
-        )
-        swapped_decoder_out, _ = self.decoder(
-            encoder_out,
-            encoder_out_lens,
-            swapped_ys_in_pad,
-            ys_pad_lens + 1,
-        )
-        swapped_loss = self._calc_label_smoothing_loss_per_sample(
-            swapped_decoder_out,
-            swapped_ys_out_pad,
-        )
-        use_swapped = two_token & (swapped_loss < original_loss)
-        selected_loss = torch.where(use_swapped, swapped_loss, original_loss)
-        loss = self._reduce_per_sample_att_loss(selected_loss, ys_out_pad)
-        return (
-            loss,
-            torch.where(use_swapped[:, None, None], swapped_decoder_out, decoder_out),
-            torch.where(use_swapped[:, None], swapped_ys_pad, ys_pad),
-            torch.where(use_swapped[:, None], swapped_ys_out_pad, ys_out_pad),
-        )
+        best_ys_pad = ys_pad
+        max_len = int(ys_pad_lens.max())
+        for perm in itertools.permutations(range(max_len)):
+            moved = [i for i, j in enumerate(perm) if i != j]
+            if not moved:
+                continue
+            perm_ys_pad = ys_pad.clone()
+            perm_ys_pad[:, :max_len] = ys_pad[:, list(perm)]
+            # Reorder only within each utterance and skip orders that give
+            # the same sequence (e.g. two identical tokens)
+            valid = (ys_pad_lens > moved[-1]) & (perm_ys_pad != ys_pad).any(dim=1)
+            if not bool(valid.any()):
+                continue
+            perm_ys_in_pad, perm_ys_out_pad = add_sos_eos(
+                perm_ys_pad,
+                self.sos,
+                self.eos,
+                self.ignore_id,
+            )
+            perm_decoder_out, _ = self.decoder(
+                encoder_out,
+                encoder_out_lens,
+                perm_ys_in_pad,
+                ys_pad_lens + 1,
+            )
+            perm_loss = self._calc_label_smoothing_loss_per_sample(
+                perm_decoder_out,
+                perm_ys_out_pad,
+            )
+            better = valid & (perm_loss < best_loss)
+            best_loss = torch.where(better, perm_loss, best_loss)
+            decoder_out = torch.where(
+                better[:, None, None], perm_decoder_out, decoder_out
+            )
+            best_ys_pad = torch.where(better[:, None], perm_ys_pad, best_ys_pad)
+            ys_out_pad = torch.where(better[:, None], perm_ys_out_pad, ys_out_pad)
+        loss = self._reduce_per_sample_att_loss(best_loss, ys_out_pad)
+        return loss, decoder_out, best_ys_pad, ys_out_pad
 
     def _calc_ctc_loss(
         self,

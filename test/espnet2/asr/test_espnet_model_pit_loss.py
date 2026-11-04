@@ -1,3 +1,5 @@
+import itertools
+
 import pytest
 import torch
 
@@ -66,32 +68,37 @@ def build_model(**options):
 
 @pytest.mark.parametrize("normalize_length", [False, True])
 def test_pit_loss_takes_per_utterance_minimum(normalize_length):
-    """The PIT loss is the per-utterance min over the two token orders."""
+    """The PIT loss is the per-utterance min over all orders of its tokens."""
     model = build_model(pit_loss=True, length_normalized_loss=normalize_length)
-    encoder_out = torch.randn(2, 4, 4)
-    ys_pad = torch.tensor([[1, 2], [3, -1]])
+    encoder_out = torch.randn(3, 4, 4)
+    targets = [[1, 2, 3], [2, 1], [3]]
     # Without length normalization, a batch of one gives the utterance sum
     utterance_loss = LabelSmoothingLoss(size=5, padding_idx=-1, smoothing=0.1)
 
-    def per_utterance_losses(targets):
-        """Return the summed loss of each utterance and the decoder targets."""
-        ys_in_pad, ys_out_pad = add_sos_eos(targets, model.sos, model.eos, -1)
-        logits, _ = model.decoder(encoder_out, None, ys_in_pad, None)
-        losses = [
-            utterance_loss(logits[i : i + 1], ys_out_pad[i : i + 1]) for i in range(2)
-        ]
-        return torch.stack(losses), ys_out_pad
+    def order_loss(i, tokens):
+        """Return the summed loss of utterance i with the given token order."""
+        ys_in_pad, ys_out_pad = add_sos_eos(
+            torch.tensor([tokens]), model.sos, model.eos, -1
+        )
+        logits, _ = model.decoder(encoder_out[i : i + 1], None, ys_in_pad, None)
+        return utterance_loss(logits, ys_out_pad)
 
-    original, ys_out_pad = per_utterance_losses(ys_pad)
-    swapped, _ = per_utterance_losses(torch.tensor([[2, 1], [3, -1]]))
-    selected = torch.stack((torch.minimum(original[0], swapped[0]), original[1]))
+    selected = torch.stack(
+        [
+            min(order_loss(i, list(p)) for p in itertools.permutations(tokens))
+            for i, tokens in enumerate(targets)
+        ]
+    )
     if normalize_length:
-        expected = selected.sum() / (ys_out_pad != -1).sum()
+        expected = selected.sum() / sum(len(t) + 1 for t in targets)
     else:
         expected = selected.mean()
 
     loss, _, _, _ = model._calc_att_loss(
-        encoder_out, torch.tensor([4, 4]), ys_pad, torch.tensor([2, 1])
+        encoder_out,
+        torch.tensor([4, 4, 4]),
+        torch.tensor([[1, 2, 3], [2, 1, -1], [3, -1, -1]]),
+        torch.tensor([3, 2, 1]),
     )
     torch.testing.assert_close(loss, expected)
 
@@ -149,18 +156,6 @@ def test_pit_loss_accuracy_uses_the_chosen_order():
     )
     assert loss.item() == 0.0
     assert accuracy == 1.0
-
-
-def test_pit_loss_rejects_more_than_two_tokens_at_runtime():
-    """Targets longer than two tokens raise a RuntimeError."""
-    model = build_model(pit_loss=True)
-    with pytest.raises(RuntimeError, match="only supports 1- or 2-token"):
-        model._calc_att_loss(
-            torch.randn(1, 3, 4),
-            torch.tensor([3]),
-            torch.tensor([[1, 2, 3]]),
-            torch.tensor([3]),
-        )
 
 
 @pytest.mark.parametrize(

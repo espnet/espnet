@@ -70,8 +70,8 @@ class LIDTrainer(Trainer):
                                     utterances if `save_embd_per_utt=True`.
         - lang_to_embds_dic (optional): {lang: [embd_utt1, embd_utt2, ...]},
                                         mapping from language ID to a list of
-                                        embeddings from all utterances predicted
-                                        or labeled with that language (an
+                                        embeddings from all utterances labeled
+                                        with that language (an
                                         utterance labeled with several languages
                                         is added to each of them). This is
                                         not written to disk by this function, but

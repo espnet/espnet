@@ -5,9 +5,9 @@ an utterance as a token sequence (`<eng>`, or `<ara> <eng>` for code-switched
 speech). It uses [MMS-1B](https://huggingface.co/facebook/mms-1b)
 (`facebook/mms-1b`, S3PRL frontend with learned layer weights), a 24-layer
 Transformer encoder (d = 256) and a 4-layer Transformer decoder trained with the
-attention loss only (`ctc_weight: 0`). For two-language targets the
-permutation-invariant loss (`model_conf.pit_loss: true`) takes the lower of the
-two token orders, so the model is trained on the language set rather than on an
+attention loss only (`ctc_weight: 0`). The permutation-invariant loss
+(`model_conf.pit_loss: true`) takes the lowest loss over the orders of the
+target tokens, so the model is trained on the language set rather than on an
 order. Data preparation is shared with `../lid1` (`local/data.sh`); see its
 README for the corpora and the duration policy. Only the scripts are shared:
 to reuse the lid1 downloads, set `FLEURS`, `CS_FLEURS` and `CS_YODAS` in

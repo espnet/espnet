@@ -32,7 +32,7 @@ import re
 from collections import defaultdict
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Dict, List, Optional, Sequence, Tuple
+from typing import Dict, List, Sequence, Tuple
 
 FLEURS_TO_ISO3: Dict[str, str] = {
     "af_za": "afr",
@@ -335,14 +335,10 @@ def split_cs_yodas(
 
 
 def filter_duration(
-    examples: Sequence[Example], min_sec: Optional[float], max_sec: float
+    examples: Sequence[Example], min_sec: float, max_sec: float
 ) -> List[Example]:
-    """Keep min_sec <= duration < max_sec (no lower bound if min_sec is None)."""
-    return [
-        ex
-        for ex in examples
-        if (min_sec is None or ex.duration >= min_sec) and ex.duration < max_sec
-    ]
+    """Keep min_sec <= duration < max_sec."""
+    return [ex for ex in examples if min_sec <= ex.duration < max_sec]
 
 
 def pair_class(labels: Sequence[str]) -> str:
@@ -420,7 +416,7 @@ def build_views(args: argparse.Namespace) -> Dict[str, List[Example]]:
     if args.cs_yodas_root is not None:
         yodas = split_cs_yodas(load_cs_yodas(args.cs_yodas_root), 0.8, 0.1)
         for split in ("train", "valid"):
-            kept = filter_duration(yodas[split], None, args.max_yodas_duration)
+            kept = filter_duration(yodas[split], min_sec, args.max_yodas_duration)
             views[f"{split}_fleurscs_csyodas"] = views[f"{split}_fleurscs_cs"] + kept
     # One atomic class per language set (FLEURS-only sets are single-language)
     for name in [n for n in views if not n.endswith("_fleurs")]:

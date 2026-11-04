@@ -38,6 +38,7 @@ case "${head}" in
     *) echo "Error: unknown --head ${head}" >&2; exit 1 ;;
 esac
 [ -n "${lid_config}" ] || lid_config=conf/tuning/train_mms_ecapa_${head}_${data}.yaml
+[ -f "${lid_config}" ] || { echo "Error: ${lid_config} not found" >&2; exit 1; }
 [ -n "${lid_tag}" ] || lid_tag=$(basename "${lid_config}" .yaml)_${feats_type}
 
 # Data directories are <split>_fleurscs_<view>[_pair] (local/prepare_fleurs_cs_lid_data.py);
