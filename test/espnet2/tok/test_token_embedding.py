@@ -50,6 +50,22 @@ def test_zero_distribution_represents_padding():
     torch.testing.assert_close(output[0, 2], torch.zeros(3))
 
 
+def test_integer_padding_is_excluded_from_embedding_lookup():
+    module = TokenEmbedding(4, 3, use_positional_encoding=False)
+    token_ids = torch.tensor([[0, 2, 3], [1, -1, -1]])
+    lengths = torch.tensor([3, 1])
+
+    output, output_lengths = module(token_ids, lengths)
+
+    torch.testing.assert_close(output[0], module.embed.weight[[0, 2, 3]])
+    torch.testing.assert_close(output[1, 0], module.embed.weight[1])
+    torch.testing.assert_close(output[1, 1:], torch.zeros(2, 3))
+    assert output_lengths is lengths
+
+    output.sum().backward()
+    assert module.embed.weight.grad is not None
+
+
 @pytest.mark.parametrize(
     "input, lengths, message",
     [
