@@ -155,6 +155,7 @@ class CommonPreprocessor(AbsPreprocessor):
         force_single_channel: bool = False,
         rir_scp: Optional[str] = None,
         rir_apply_prob: float = 1.0,
+        rir_remove_delay: bool = False,
         noise_scp: Optional[str] = None,
         noise_apply_prob: float = 1.0,
         noise_db_range: str = "3_10",
@@ -185,6 +186,7 @@ class CommonPreprocessor(AbsPreprocessor):
         self.speech_volume_normalize = speech_volume_normalize
         self.force_single_channel = force_single_channel
         self.rir_apply_prob = rir_apply_prob
+        self.rir_remove_delay = rir_remove_delay
         self.noise_apply_prob = noise_apply_prob
         self.short_noise_thres = short_noise_thres
         self.aux_task_names = aux_task_names
@@ -304,9 +306,16 @@ class CommonPreprocessor(AbsPreprocessor):
 
             # speech: (Nmic, Time)
             speech = speech[:1]
+            # Drop the samples before the direct path so the reverberant signal
+            # stays aligned with time-stamped labels (e.g. diarization/VAD).
+            delay = (
+                int(np.argmax(np.max(np.abs(rir), axis=0)))
+                if getattr(self, "rir_remove_delay", False)
+                else 0
+            )
             # Note that this operation doesn't change the signal length
             speech = scipy.signal.convolve(speech, rir, mode="full")[
-                :, : speech.shape[1]
+                :, delay : delay + speech.shape[1]
             ]
             # Reverse mean power to the original power
             power2 = (speech[detect_non_silence(speech)] ** 2).mean()

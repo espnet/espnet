@@ -167,6 +167,50 @@ class DiarizationTask(AbsTask):
             default=True,
             help="Apply preprocessing to data or not",
         )
+        group.add_argument(
+            "--rir_scp",
+            type=str_or_none,
+            default=None,
+            help="The file path of rir scp file.",
+        )
+        group.add_argument(
+            "--rir_apply_prob",
+            type=float,
+            default=1.0,
+            help="The probability for applying RIR convolution.",
+        )
+        group.add_argument(
+            "--rir_remove_delay",
+            type=str2bool,
+            default=True,
+            help="Remove the direct-path delay of the RIR so that the reverberant "
+            "speech stays aligned with the speaker labels.",
+        )
+        group.add_argument(
+            "--noise_scp",
+            type=str_or_none,
+            default=None,
+            help="The file path of noise scp file.",
+        )
+        group.add_argument(
+            "--noise_apply_prob",
+            type=float,
+            default=1.0,
+            help="The probability applying Noise adding.",
+        )
+        group.add_argument(
+            "--noise_db_range",
+            type=str,
+            default="13_15",
+            help="The range of noise decibel level.",
+        )
+        group.add_argument(
+            "--short_noise_thres",
+            type=float,
+            default=0.5,
+            help="If len(noise) / len(speech) is smaller than this threshold during "
+            "dynamic mixing, a warning will be displayed.",
+        )
 
         for class_choices in cls.class_choices_list:
             # Append --<name> and --<name>_conf.
@@ -188,8 +232,17 @@ class DiarizationTask(AbsTask):
         cls, args: argparse.Namespace, train: bool
     ) -> Optional[Callable[[str, Dict[str, np.array]], Dict[str, np.ndarray]]]:
         if args.use_preprocessor:
-            # FIXME (jiatong): add more argument here
-            retval = CommonPreprocessor(train=train)
+            # NOTE: getattr keeps configs saved before these options existed loadable
+            retval = CommonPreprocessor(
+                train=train,
+                rir_scp=getattr(args, "rir_scp", None),
+                rir_apply_prob=getattr(args, "rir_apply_prob", 1.0),
+                rir_remove_delay=getattr(args, "rir_remove_delay", True),
+                noise_scp=getattr(args, "noise_scp", None),
+                noise_apply_prob=getattr(args, "noise_apply_prob", 1.0),
+                noise_db_range=getattr(args, "noise_db_range", "13_15"),
+                short_noise_thres=getattr(args, "short_noise_thres", 0.5),
+            )
         else:
             retval = None
         return retval

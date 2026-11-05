@@ -127,3 +127,42 @@ def test_the_s2t_preprocessors_pass_the_augmentation_through(preprocessor_class)
     )
     assert preprocessor.data_aug is not None
     assert preprocessor.data_aug_prob == 1.0
+
+
+def _write_delayed_impulse_rir(tmp_path, delay):
+    import soundfile
+
+    rir = np.zeros(64)
+    rir[delay] = 1.0
+    wav = tmp_path / "rir.wav"
+    soundfile.write(wav, rir, 16000, subtype="FLOAT")
+    scp = tmp_path / "rir.scp"
+    scp.write_text(f"rir1 {wav}\n")
+    return str(scp)
+
+
+@pytest.mark.parametrize("remove_delay", [False, True])
+def test_rir_remove_delay_keeps_speech_aligned(tmp_path, remove_delay):
+    # an RIR that is a pure impulse after `delay` samples only shifts the signal,
+    # so removing the direct-path delay must give back the input unchanged
+    delay = 20
+    preprocessor = CommonPreprocessor(
+        train=True,
+        rir_scp=_write_delayed_impulse_rir(tmp_path, delay),
+        rir_apply_prob=1.0,
+        rir_remove_delay=remove_delay,
+    )
+    rng = np.random.default_rng(0)
+    speech = (0.1 * rng.standard_normal(1600)).astype(np.float64)
+    out = preprocessor("utt1", {"speech": speech.copy()})["speech"].reshape(-1)
+    assert out.shape == speech.shape
+    if remove_delay:
+        np.testing.assert_allclose(out, speech, rtol=1e-5, atol=1e-6)
+    else:
+        # the tail falls off the end and the power is renormalized, so compare
+        # the shifted signal up to a scale factor
+        np.testing.assert_allclose(out[:delay], 0.0, atol=1e-12)
+        scale = np.dot(out[delay:], speech[:-delay]) / np.dot(
+            speech[:-delay], speech[:-delay]
+        )
+        np.testing.assert_allclose(out[delay:], scale * speech[:-delay], atol=1e-6)
