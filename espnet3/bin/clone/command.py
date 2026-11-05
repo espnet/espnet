@@ -197,10 +197,13 @@ def _copy_recipe(src: Path, dest: Path) -> None:
     """Copy recipe source, dereferencing file links and skipping directory links."""
     source = Path(src).resolve()
 
-    def ignore(directory: str, names: list[str]) -> set[str]:
-        return _ignore_recipe_entries(directory, names, source)
-
-    shutil.copytree(source, dest, symlinks=False, ignore=ignore)
+    dest.mkdir(parents=True)
+    for entry in source.iterdir():
+        if entry.name in _INCLUDED_DIRS or (
+            entry.is_file()
+            and any(fnmatchcase(entry.name, pattern) for pattern in _INCLUDED_FILES)
+        ):
+            _copy_recipe_entry(entry, dest / entry.name)
     _strip_recipe_module_prefix(dest, f"egs3.{source.parent.name}.{source.name}.")
 
 
@@ -237,27 +240,18 @@ def _strip_recipe_module_prefix(root: Path, prefix: str) -> None:
         path.write_bytes(data.replace(needle, b""))
 
 
-def _ignore_recipe_entries(
-    directory: str, names: list[str], recipe_root: Path
-) -> set[str]:
-    """Select recipe source at the root and skip hidden entries and directory links."""
-    directory_path = Path(directory)
-    at_recipe_root = directory_path.resolve() == recipe_root
-    ignored = set()
-    for name in names:
-        path = directory_path / name
-        if name.startswith(".") or name == "__pycache__" or name.endswith(".pyc"):
-            ignored.add(name)
-        elif path.is_symlink() and path.is_dir():
-            print(f"Skipping directory symlink: {path}")
-            ignored.add(name)
-        elif at_recipe_root:
-            if path.is_dir():
-                included = name in _INCLUDED_DIRS
-            else:
-                included = any(
-                    fnmatchcase(name, pattern) for pattern in _INCLUDED_FILES
-                )
-            if not included:
-                ignored.add(name)
-    return ignored
+def _copy_recipe_entry(source: Path, destination: Path) -> None:
+    """Copy a selected entry, skipping hidden entries, caches and directory links."""
+    if source.name.startswith(".") or source.name == "__pycache__":
+        return
+    if source.suffix == ".pyc":
+        return
+    if source.is_dir():
+        if source.is_symlink():
+            print(f"Skipping directory symlink: {source}")
+            return
+        destination.mkdir()
+        for child in source.iterdir():
+            _copy_recipe_entry(child, destination / child.name)
+    else:
+        shutil.copy2(source, destination)

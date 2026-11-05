@@ -27,6 +27,8 @@ python3 -m pip install -e '.[asr]'
 
 clone_workdir=$(mktemp -d)
 espnet3 clone mini_an4/esp2_asr --project "${clone_workdir}/recipe"
+# The tiny integration-test corpus is a fixture, not recipe source.
+cp egs3/mini_an4/esp2_asr/downloads.tar.gz "${clone_workdir}/recipe/"
 cd "${clone_workdir}/recipe" || exit
 gen_dummy_coverage
 echo "==== [ESPnet3] ASR ===="
