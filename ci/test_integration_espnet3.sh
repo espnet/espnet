@@ -30,7 +30,6 @@ espnet3 clone mini_an4/esp2_asr --project "${clone_workdir}/recipe"
 cd "${clone_workdir}/recipe" || exit
 gen_dummy_coverage
 echo "==== [ESPnet3] ASR ===="
-source path.sh
 run_with_training_config() {
     local training_config=$1
     local runner=$2

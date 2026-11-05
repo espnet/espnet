@@ -7,33 +7,15 @@ import shutil
 from fnmatch import fnmatchcase
 from pathlib import Path
 
-_IGNORED_ANYWHERE = ("*.pyc", "__pycache__", ".pytest_cache")
-# These mirror the egs*/<dataset>/<task>/ rules in .gitignore. `data` is exact:
-# `dataset/` is recipe source and must be copied.
-_IGNORED_RECIPE_ROOT = (
-    "data",
-    "manifest*",
-    "db",
-    "downloads",
-    "dump",
-    "enhan",
-    "exp",
-    "fbank",
-    "mfcc",
-    "stft",
-    "tensorboard",
-    "wav*",
-    "score*",
-    "nltk*",
-    ".cache*",
-    "pretrained_models*",
-)
+_INCLUDED_DIRS = {"src", "conf", "dataset"}
+_INCLUDED_FILES = ("*.py", "README.md", "readme.md", "requirements*.txt")
 
 _DESCRIPTION = """\
 Copy an egs3 recipe to a new directory so you can customise it without
 touching the original.
 
-Copies the complete recipe package, excluding generated artefacts and caches.
+Copies src/, conf/, dataset/, root Python files, README files and requirements.
+Hidden entries, caches and directory symlinks are excluded.
 The destination directory must not already exist.
 
 If --project is omitted, the recipe name is used as the destination
@@ -70,8 +52,10 @@ examples:
         --metrics_config conf/metrics.yaml
 
 what gets cloned:
-  The complete recipe package, including recipe-specific files and directories.
-  Generated artefacts and caches ignored by the recipe policy are excluded.
+  src/, conf/, dataset/, root *.py, README.md, readme.md and requirements*.txt.
+  Hidden entries, caches and directory symlinks are excluded.
+  File symlinks are copied as regular files. path.sh is not copied.
+  Run with Python from an environment where ESPnet is installed.
 """
 
 _MISSING_RECIPE = """\
@@ -141,11 +125,12 @@ def add_arguments(subparsers) -> argparse.ArgumentParser:
 
 
 def run(args) -> int:
-    """Copy a complete egs3 recipe package into a new project directory.
+    """Copy an egs3 recipe's source and configuration into a new project directory.
 
-    The recipe directory is the source of truth for its layout. Generated
-    artefacts and caches ignored by the recipe policy are excluded; all other
-    files, including package markers and recipe-specific source, are copied.
+    Copy src/, conf/, dataset/, root Python files, README files and
+    requirements files. Skip hidden entries, caches and directory symlinks.
+    File symlinks are copied as regular files; path.sh is not copied.
+    Use Python from an environment with ESPnet installed.
 
     Args:
         args: Parsed CLI arguments containing a ``<dataset>/<task>`` recipe
@@ -209,11 +194,11 @@ def run(args) -> int:
 
 
 def _copy_recipe(src: Path, dest: Path) -> None:
-    """Copy a recipe package while excluding generated artefacts and caches."""
+    """Copy recipe source, dereferencing file links and skipping directory links."""
     source = Path(src).resolve()
 
     def ignore(directory: str, names: list[str]) -> set[str]:
-        return _ignore_recipe_artifacts(directory, names, source)
+        return _ignore_recipe_entries(directory, names, source)
 
     shutil.copytree(source, dest, symlinks=False, ignore=ignore)
     _strip_recipe_module_prefix(dest, f"egs3.{source.parent.name}.{source.name}.")
@@ -225,8 +210,8 @@ def _strip_recipe_module_prefix(root: Path, prefix: str) -> None:
     Recipes import their own modules by absolute path, for example
     ``egs3.mini_an4.esp2_asr.dataset.builder``. A cloned copy lives outside
     ``egs3``, where that path would import the installed recipe instead of the
-    copy, so the recipe prefix is removed (``dataset.builder``). The clone's
-    ``path.sh`` puts ``root`` on ``PYTHONPATH``, which resolves the result.
+    copy, so the recipe prefix is removed (``dataset.builder``). The cloned
+    ``run.py`` is executed with ``root`` on Python's module search path.
 
     Args:
         root: Directory of the cloned recipe.
@@ -252,17 +237,27 @@ def _strip_recipe_module_prefix(root: Path, prefix: str) -> None:
         path.write_bytes(data.replace(needle, b""))
 
 
-def _ignore_recipe_artifacts(
+def _ignore_recipe_entries(
     directory: str, names: list[str], recipe_root: Path
 ) -> set[str]:
-    """Return generated and cached entries ignored by the recipe policy."""
-    at_recipe_root = Path(directory).resolve() == recipe_root
-    return {
-        name
-        for name in names
-        if any(fnmatchcase(name, pattern) for pattern in _IGNORED_ANYWHERE)
-        or (
-            at_recipe_root
-            and any(fnmatchcase(name, pattern) for pattern in _IGNORED_RECIPE_ROOT)
-        )
-    }
+    """Select recipe source at the root and skip hidden entries and directory links."""
+    directory_path = Path(directory)
+    at_recipe_root = directory_path.resolve() == recipe_root
+    ignored = set()
+    for name in names:
+        path = directory_path / name
+        if name.startswith(".") or name == "__pycache__" or name.endswith(".pyc"):
+            ignored.add(name)
+        elif path.is_symlink() and path.is_dir():
+            print(f"Skipping directory symlink: {path}")
+            ignored.add(name)
+        elif at_recipe_root:
+            if path.is_dir():
+                included = name in _INCLUDED_DIRS
+            else:
+                included = any(
+                    fnmatchcase(name, pattern) for pattern in _INCLUDED_FILES
+                )
+            if not included:
+                ignored.add(name)
+    return ignored

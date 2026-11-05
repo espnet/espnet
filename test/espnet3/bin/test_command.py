@@ -15,7 +15,7 @@ from espnet3.bin.clone.command import (
 )
 
 
-def test_copy_recipe_copies_complete_recipe_package(fake_recipe, tmp_path):
+def test_copy_recipe_copies_allowed_recipe_source(fake_recipe, tmp_path):
     dest = tmp_path / "clone"
     _copy_recipe(fake_recipe, dest)
     assert dest.is_dir()
@@ -27,22 +27,22 @@ def test_copy_recipe_copies_complete_recipe_package(fake_recipe, tmp_path):
             "dataset",
             "run.py",
             "readme.md",
-            "path.sh",
             "__init__.py",
         )
     )
-    assert (dest / "assets" / "metadata.json").read_text() == '{"version": 1}'
+    assert not (dest / "assets").exists()
+    assert not (dest / "path.sh").exists()
 
 
-def test_copy_recipe_excludes_only_gitignored_artifacts(fake_recipe, tmp_path):
+def test_copy_recipe_excludes_non_source_and_hidden_entries(fake_recipe, tmp_path):
     dest = tmp_path / "clone"
     _copy_recipe(fake_recipe, dest)
     for name in ("data", "exp", "dump", "downloads", ".cache", ".pytest_cache"):
         assert not (dest / name).exists()
     assert not (dest / "sample.pyc").exists()
-    assert (dest / "demo" / "app.py").is_file()
-    assert (dest / "downloads.tar.gz").read_bytes() == b""
-    assert (dest / ".agents" / "instructions.md").read_text() == "ignore"
+    assert not (dest / "demo").exists()
+    assert not (dest / "downloads.tar.gz").exists()
+    assert not (dest / ".agents").exists()
     assert (dest / "dataset" / "file.py").is_file()
     assert (dest / "dataset" / "data" / "README.md").read_text() == "recipe source"
     assert not any(dest.rglob("__pycache__"))
@@ -115,7 +115,7 @@ def test_integration_clone_layout(cloned_mini_an4):
     assert (cloned_mini_an4 / "__init__.py").exists()
     assert (cloned_mini_an4 / "conf" / "training.yaml").exists()
     assert (cloned_mini_an4 / "conf" / "inference.yaml").exists()
-    assert (cloned_mini_an4 / "downloads.tar.gz").is_file()
+    assert not (cloned_mini_an4 / "downloads.tar.gz").exists()
     assert not any(cloned_mini_an4.rglob("__pycache__"))
 
 
@@ -131,11 +131,8 @@ def test_integration_clone_preserves_recipe_configs(cloned_mini_an4):
             )
 
 
-def test_integration_clone_preserves_path_sh(cloned_mini_an4):
-    from espnet3.bin.clone.resolver import resolve_recipe
-
-    source = resolve_recipe("mini_an4/esp2_asr") / "path.sh"
-    assert (cloned_mini_an4 / "path.sh").read_bytes() == source.read_bytes()
+def test_integration_clone_omits_path_sh(cloned_mini_an4):
+    assert not (cloned_mini_an4 / "path.sh").exists()
 
 
 @pytest.mark.execution_timeout(30)
@@ -304,12 +301,101 @@ def test_copy_recipe_leaves_source_recipe_untouched(fake_recipe, tmp_path):
 
 def test_copy_recipe_does_not_rewrite_binary_files(fake_recipe, tmp_path):
     blob = _prefix_of(fake_recipe).encode() + b"\x00\x01binary"
-    (fake_recipe / "assets" / "blob.bin").write_bytes(blob)
+    (fake_recipe / "src" / "blob.bin").write_bytes(blob)
     _copy_recipe(fake_recipe, tmp_path / "dest")
-    assert (tmp_path / "dest" / "assets" / "blob.bin").read_bytes() == blob
+    assert (tmp_path / "dest" / "src" / "blob.bin").read_bytes() == blob
 
 
 def test_copy_recipe_without_prefix_keeps_files_byte_identical(fake_recipe, tmp_path):
     dest = tmp_path / "dest"
     _copy_recipe(fake_recipe, dest)
     assert (dest / "run.py").read_bytes() == (fake_recipe / "run.py").read_bytes()
+
+
+@pytest.mark.parametrize("name", ["download", "download_v2", "dump", "src"])
+def test_copy_recipe_skips_directory_symlinks(tmp_path, name, capsys):
+    source = tmp_path / "recipe"
+    source.mkdir()
+    external = tmp_path / "corpus"
+    external.mkdir()
+    (external / "audio.wav").write_bytes(b"audio")
+    (source / name).symlink_to(external, target_is_directory=True)
+    dest = tmp_path / "clone"
+    _copy_recipe(source, dest)
+    assert not (dest / name).exists()
+    assert "Skipping directory symlink:" in capsys.readouterr().out
+
+
+def test_copy_recipe_keeps_requirements_and_skips_nested_hidden_files(
+    fake_recipe, tmp_path
+):
+    (fake_recipe / "requirements.txt").write_text("torch\n")
+    (fake_recipe / "conf" / ".secret.yaml").write_text("secret: true")
+    (fake_recipe / "src" / ".venv").mkdir()
+    external = tmp_path / "corpus"
+    external.mkdir()
+    (fake_recipe / "dataset" / "audio").symlink_to(external, target_is_directory=True)
+    dest = tmp_path / "clone"
+    _copy_recipe(fake_recipe, dest)
+    assert (dest / "requirements.txt").read_text() == "torch\n"
+    assert not (dest / "conf" / ".secret.yaml").exists()
+    assert not (dest / "src" / ".venv").exists()
+    assert not (dest / "dataset" / "audio").exists()
+
+
+@pytest.mark.parametrize(
+    "recipe,training_config",
+    [
+        ("mini_an4", "conf/training.yaml"),
+        ("librispeech_100", "conf/tuning/training_e_branchformer.yaml"),
+        ("spgispeech", "conf/tuning/train_asr_conformer6_n_fft512_hop_length256.yaml"),
+    ],
+)
+@pytest.mark.execution_timeout(300)
+def test_cloned_recipe_dry_run_without_path_sh(tmp_path, recipe, training_config):
+    dest = tmp_path / "clone"
+    run(argparse.Namespace(list=False, recipe=f"{recipe}/esp2_asr", project=str(dest)))
+    assert not (dest / "path.sh").exists()
+    result = subprocess.run(
+        [
+            sys.executable,
+            "run.py",
+            "--stages",
+            "train",
+            "--training_config",
+            training_config,
+            "--dry_run",
+        ],
+        cwd=dest,
+        capture_output=True,
+        text=True,
+        timeout=240,
+    )
+    assert result.returncode == 0, result.stdout + result.stderr
+
+
+@pytest.mark.execution_timeout(300)
+def test_cloned_recipe_spawn_imports_local_dataset_without_path_sh(cloned_mini_an4):
+    probe = cloned_mini_an4 / "spawn_probe.py"
+    probe.write_text(
+        "from pathlib import Path\n"
+        "from multiprocessing import get_context\n"
+        "def check():\n"
+        "    import dataset\n"
+        "    return str(Path(dataset.__file__).resolve())\n"
+        "if __name__ == '__main__':\n"
+        "    with get_context('spawn').Pool(1) as pool:\n"
+        "        loaded = pool.apply(check)\n"
+        "    assert Path(loaded) == Path(__file__).parent / 'dataset' / '__init__.py'\n"
+    )
+    try:
+        result = subprocess.run(
+            [sys.executable, str(probe)],
+            cwd=cloned_mini_an4,
+            capture_output=True,
+            text=True,
+            timeout=240,
+        )
+        assert result.returncode == 0, result.stdout + result.stderr
+    finally:
+        probe.unlink()

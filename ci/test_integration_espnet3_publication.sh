@@ -60,7 +60,6 @@ espnet3 clone mini_an4/esp2_asr --project "${clone_workdir}/recipe"
 cd "${clone_workdir}/recipe" || exit
 gen_dummy_coverage
 echo "==== [ESPnet3] Publication ===="
-source path.sh
 rm -rf exp data
 
 if [ "${upload_enabled}" = "true" ]; then

@@ -1,4 +1,6 @@
-#!/usr/bin/env bash
+#!/bin/bash
 
-recipe_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
-export PYTHONPATH="${recipe_dir}${PYTHONPATH:+:${PYTHONPATH}}"
+export PYTHONPATH=../../../:../../TEMPLATE/esp2_asr:$(pwd):${PYTHONPATH:-}
+
+source ../../../tools/activate_python.sh
+source ../../../tools/extra_path.sh
