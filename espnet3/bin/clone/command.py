@@ -199,6 +199,12 @@ def run(args) -> int:
     print("Done.")
     print(f"  cd {dest}")
     print("  python run.py --help")
+    if (dest / "conf" / "publication.yaml").is_file():
+        print(
+            "Warning: the default Hugging Face upload target uses the "
+            "espnet organization. To publish under your own account, "
+            "change upload_model.hf_repo in conf/publication.yaml."
+        )
     return 0
 
 
