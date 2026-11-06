@@ -219,7 +219,11 @@ s2t = [
 ]
 
 spk = [
-  "asteroid_filterbanks==0.4.0"
+  "asteroid_filterbanks==0.4.0",
+  # The checkpoints with an SSL front end (WavLM, HuBERT, ...) load it through
+  # S3PRL. Upstream s3prl calls torchaudio.set_audio_backend, removed in
+  # torchaudio 2.1, so it has to be the fork.
+  "espnet-s3prl>=2026.5.14",  # fork of s3prl/s3prl
 ]
 
 egs2 = [
