@@ -127,10 +127,7 @@ const steps = [
       {
         label: 'model',
         yaml: yaml([
-          'model:',
-          '  _target_: espnet3.systems.asr.task.ASRTask',
-          '  token_type: bpe',
-          '  ctc_weight: 0.3',
+          'task: espnet2.tasks.asr.ASRTask',
         ]),
       },
       {
