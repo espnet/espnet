@@ -96,7 +96,7 @@ dict keys. Handle both `isinstance(idx, int)` and iterable `idx` if you set
 `batch_size`.
 
 **Step 4 — instantiate and call.**
-Pass the provider to the runner and call `runner(range(n))`.
+Pass the provider and output directory to the runner, then call `runner(range(n))`.
 
 Minimal skeleton:
 
@@ -139,13 +139,13 @@ class MyRunner(BaseRunner):
     def _process_one(idx, model, dataset):
         item = dataset[idx]
         result = model(item)
-        # write to disk here, or return the result for BaseRunner to collect
+        # Write to disk here, or override writer hooks and merge to persist results.
         return {"idx": idx, "status": "ok"}
 
 
 # Usage
 provider = MyProvider(config, params={"data_path": "data/manifest.tsv"})
-runner   = MyRunner(provider)
+runner   = MyRunner(provider, output_dir="exp/xvectors")
 runner(range(len(dataset)))
 ```
 

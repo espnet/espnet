@@ -266,7 +266,7 @@ from pathlib import Path
 class XVectorRunner(BaseRunner):
     @staticmethod
     def forward(idx, model, toolkit, device,
-                utterances, output_dir):
+                utterances, output_dir, **env):
         if isinstance(idx, int):
             return XVectorRunner._process_one(
                 idx, model, toolkit, device, utterances, output_dir)
@@ -301,7 +301,7 @@ from pathlib import Path
 class XVectorRunner(BaseRunner):
     @staticmethod
     def forward(idx, model, toolkit, device,
-                utterances, output_dir):
+                utterances, output_dir, **env):
         if isinstance(idx, int):
             return XVectorRunner._process_one(
                 idx, model, toolkit, device, utterances, output_dir)
@@ -340,7 +340,7 @@ from pathlib import Path
 class XVectorRunner(BaseRunner):
     @staticmethod
     def forward(idx, model, toolkit, device,
-                utterances, output_dir):
+                utterances, output_dir, **env):
         if isinstance(idx, int):
             return XVectorRunner._process_one(
                 idx, model, toolkit, device, utterances, output_dir)
@@ -388,7 +388,7 @@ params = {
 }
 
 provider = XVectorProvider(config, params=params)
-runner   = XVectorRunner(provider)
+runner   = XVectorRunner(provider, output_dir=params["output_dir"])
 
 # Local: uses build_env_local()
 runner(range(n_utterances))

@@ -192,7 +192,7 @@ class MyInferenceProvider(InferenceProvider):
 class MyInferenceProvider(InferenceProvider):
     @staticmethod
     def build_model(config):
-        model = instantiate(config.model, device="cpu")
+        model = InferenceProvider.build_model(config)
         model.load_language_model(config.lm_path)
         model.eval()
         return model
@@ -207,17 +207,18 @@ provider:
 
 ## Custom runner
 
-Override `BaseRunner` when you need custom output formats or non-SCP artifacts.
+Extend `InferenceRunner` when an inference stage needs custom output handling.
+This example writes a text SCP file and handles one sample per call.
 
 **Text output example:**
 
 ```python
 from pathlib import Path
 
-from espnet3.parallel.base_runner import BaseRunner
+from espnet3.systems.base.inference_runner import InferenceRunner
 
 
-class MyTextRunner(BaseRunner):
+class MyTextRunner(InferenceRunner):
     @staticmethod
     def forward(idx, dataset, model, **env):
         sample = dataset[idx]
@@ -226,14 +227,14 @@ class MyTextRunner(BaseRunner):
 
     @staticmethod
     def open_writers(shard_dir: Path, **env):
-        return {"text": (shard_dir / "text").open("w", encoding="utf-8")}
+        return {"text": (shard_dir / "text.scp").open("w", encoding="utf-8")}
 
     @staticmethod
     def write_record(writers, result, state, **env):
         writers["text"].write(f'{result["utt_id"]} {result["text"]}\n')
 
     @staticmethod
-    def close_writers(writers):
+    def close_writers(writers, state, **env):
         for handle in writers.values():
             handle.close()
         return None
@@ -241,13 +242,16 @@ class MyTextRunner(BaseRunner):
     def merge(self, shard_dirs):
         out_dir = self.output_dir
         out_dir.mkdir(parents=True, exist_ok=True)
-        with (out_dir / "text").open("w", encoding="utf-8") as out:
-            for shard_dir in sorted(shard_dirs):
-                path = shard_dir / "text"
+        with (out_dir / "text.scp").open("w", encoding="utf-8") as out:
+            for shard_dir in sorted(shard_dirs, key=lambda p: int(p.name.split(".", 1)[1])):
+                path = shard_dir / "text.scp"
                 if path.exists():
                     out.write(path.read_text(encoding="utf-8"))
         return {}
 ```
+
+Set `batch_size: null` for this single-sample example. Since it overrides
+`forward`, it must apply any required inference contract checks itself.
 
 ## Switching backends without changing code
 

@@ -230,9 +230,9 @@ The runner is responsible for:
 
 Conceptually:
 ```python
-provider = InferenceProvider(config)
-runner = InferenceRunner(provider=provider, async_mode=False)
-results = runner(range(len(provider.build_dataset(config))))
+provider = InferenceProvider(config, params={"input_key": config.input_key})
+runner = InferenceRunner(provider=provider, output_dir="exp/inference")
+runner(range(len(provider.build_dataset(config))))
 ```
 
 ### Batch Inference
