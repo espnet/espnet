@@ -263,17 +263,51 @@ def _read_all(reader, keys):
     return {k: reader[k][1] for k in keys}
 
 
-def test_forked_workers_share_descriptors_safely(tmp_path):
-    """Descriptors opened before fork are shared; pread keeps reads correct."""
+_INHERITED = {}
+
+
+def _read_inherited(keys):
+    return _read_all(_INHERITED["reader"], keys)
+
+
+def test_pickled_copies_do_not_close_the_original(tmp_path):
+    """A pickled copy (e.g. a dataset sent to a worker) owns no descriptor."""
+    import gc
+    import pickle
+
+    signals = _write_archive(tmp_path)
+    reader = OmniIOAudioScpReader(tmp_path / "wav.scp")
+    key = next(iter(reader))
+    reader[key]  # opens the bin file
+    copy = pickle.loads(pickle.dumps(reader))
+    assert not copy._fds
+    np.testing.assert_allclose(copy[key][1], signals[key], atol=1e-6)
+    del copy
+    gc.collect()  # the copy closes only what it opened
+    np.testing.assert_allclose(reader[key][1], signals[key], atol=1e-6)
+    reader.close()
+
+
+@pytest.mark.parametrize("how", ["pickled", "inherited"])
+def test_forked_workers_read_correctly(tmp_path, how):
+    """Workers forked after the parent opened the bin file read correctly."""
     import multiprocessing
 
     signals = _write_archive(tmp_path)
     reader = OmniIOAudioScpReader(tmp_path / "wav.scp")
     keys = list(reader)
     reader[keys[0]]  # open the bin file in the parent before forking
+    _INHERITED["reader"] = reader
     ctx = multiprocessing.get_context("fork")
+    parts = [keys[i::4] * 20 for i in range(4)]
     with ctx.Pool(4) as pool:
-        results = pool.starmap(_read_all, [(reader, keys[i::4] * 20) for i in range(4)])
+        if how == "pickled":
+            results = pool.starmap(_read_all, [(reader, p) for p in parts])
+        else:
+            results = pool.map(_read_inherited, parts)
+    _INHERITED.clear()
     for part in results:
         for key, array in part.items():
             np.testing.assert_allclose(array, signals[key], atol=1e-6)
+    # the parent's descriptor is still good after the workers are gone
+    np.testing.assert_allclose(reader[keys[0]][1], signals[keys[0]], atol=1e-6)

@@ -50,8 +50,12 @@ class OmniIOAudioScpReader(collections.abc.Mapping):
     reading an utterance is a single positional read rather than an
     open/seek/read/close: every open is a metadata request, which is what is
     slow on shared file systems. Reads use ``os.pread``, which does not move a
-    shared file offset, so DataLoader workers forked with these descriptors do
-    not interfere with each other.
+    shared file offset.
+
+    The descriptors belong to the process that opened them: a pickled copy
+    (e.g. a dataset sent to spawned DataLoader workers) starts with an empty
+    cache, and a forked process opens its own instead of using, or closing,
+    the inherited ones.
 
     FLAC, WAV and OGG entries are decoded here exactly as
     ``omniio.interface.audio_read`` decodes them (soundfile, float32,
@@ -75,6 +79,23 @@ class OmniIOAudioScpReader(collections.abc.Mapping):
         self.max_cache_fd = max_cache_fd
         self.data = read_2columns_text(fname)
         self._fds: "collections.OrderedDict[str, int]" = collections.OrderedDict()
+        self._pid = os.getpid()
+
+    def __getstate__(self):
+        """Pickle without the descriptors: their numbers mean nothing elsewhere."""
+        state = self.__dict__.copy()
+        state["_fds"] = collections.OrderedDict()
+        return state
+
+    def _own_fds(self) -> "collections.OrderedDict[str, int]":
+        """The cache of this process; forget descriptors inherited through fork."""
+        if self._pid != os.getpid():
+            # inherited copies of the parent's descriptors: leave them alone
+            # (closing them here is harmless but they may be shared with other
+            # objects of this process created before the fork)
+            self._fds = collections.OrderedDict()
+            self._pid = os.getpid()
+        return self._fds
 
     def _read_bytes(self, path: str, start: int, size: int) -> bytes:
         """Read `size` bytes at `start` of `path`, through the descriptor cache."""
@@ -82,14 +103,15 @@ class OmniIOAudioScpReader(collections.abc.Mapping):
             with open(path, "rb") as f:
                 f.seek(start)
                 return f.read(size)
-        fd = self._fds.get(path)
+        fds = self._own_fds()
+        fd = fds.get(path)
         if fd is None:
             fd = os.open(path, os.O_RDONLY)
-            self._fds[path] = fd
-            while len(self._fds) > self.max_cache_fd:
-                os.close(self._fds.popitem(last=False)[1])
+            fds[path] = fd
+            while len(fds) > self.max_cache_fd:
+                os.close(fds.popitem(last=False)[1])
         else:
-            self._fds.move_to_end(path)
+            fds.move_to_end(path)
         data = os.pread(fd, size, start)
         if len(data) != size:
             raise RuntimeError(f"short read from {path}: {len(data)} of {size} bytes")
@@ -119,9 +141,10 @@ class OmniIOAudioScpReader(collections.abc.Mapping):
         return int(rate), array
 
     def close(self):
-        """Close the cached bin file descriptors."""
-        while self._fds:
-            os.close(self._fds.popitem()[1])
+        """Close the bin file descriptors this process opened."""
+        fds = self._own_fds()
+        while fds:
+            os.close(fds.popitem()[1])
 
     def __del__(self):
         """Close the cached descriptors when the reader is collected."""
