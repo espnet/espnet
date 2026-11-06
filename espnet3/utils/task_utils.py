@@ -1,5 +1,6 @@
 """ESPnet-3 Task class."""
 
+import logging
 import sys
 from argparse import Namespace
 from pathlib import Path
@@ -12,6 +13,8 @@ from typeguard import typechecked
 from espnet2.train.abs_espnet_model import AbsESPnetModel
 from espnet2.train.preprocessor import AbsPreprocessor
 from espnet2.utils.yaml_no_alias_safe_dump import yaml_no_alias_safe_dump
+
+logger = logging.getLogger(__name__)
 
 
 def _is_abs_preprocessor_config(preprocess_config) -> bool:
@@ -106,6 +109,23 @@ def save_espnet_config(
     for k, v in default_config.items():
         if isinstance(v, tuple):
             default_config[k] = list(v)
+
+    # Inline the token list: a packed model is loaded from this config on
+    # another machine, where a path written here would not resolve.
+    token_list = default_config.get("token_list")
+    if isinstance(token_list, str):
+        token_list_path = Path(token_list)
+        if token_list_path.is_file():
+            default_config["token_list"] = [
+                line.rstrip()
+                for line in token_list_path.read_text(encoding="utf-8").splitlines()
+            ]
+        else:
+            logger.warning(
+                "token_list path does not exist, leaving it unresolved in the "
+                "saved config: %s",
+                token_list,
+            )
 
     # Save the config to the output directory
     output_path = Path(output_dir)
