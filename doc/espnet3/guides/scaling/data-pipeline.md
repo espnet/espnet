@@ -198,12 +198,10 @@ concurrently — it is independent from `trainer.devices`.
 reordering or adding entries; otherwise the global integer position
 (`str(idx)`) is used and ESPnet3 logs a warning at startup, because a
 reordered `dataset:` block would then re-map shape entries to different
-utterances. `collect_stats` resumes per shard (`split.N/done`) and records a
-fingerprint of the model/dataset/dataloader config and dataset contents in
-`manifest.json`; a rerun whose fingerprint differs (or an old `stats_dir`
-without one) fails with a `RuntimeError` instead of merging stale stats.
-Delete `${stats_dir}` (or point to a fresh one) to recompute, or set
-`collect_stats.resume: false` in `training.yaml` to force recomputation.
+utterances. `collect_stats` reuses completed shards (`split.N/done`) when the
+shard plan is unchanged. Dataset contents and configuration are not checked,
+so completed shards can be reused even after they change. Delete `${stats_dir}`
+or use a fresh directory to recompute statistics after such changes.
 
 ## Common mistakes
 
