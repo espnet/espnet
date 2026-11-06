@@ -183,23 +183,28 @@ def launch(
         if value is not None:
             cli_dir_overrides[canonical_key] = Path(value)
 
-    # Resolve each requested stage's config via saved-config search
+    # Keep preceding stages available to stage bodies that read their settings.
+    # Execution and persistence remain limited to stages_to_run.
+    logger = configure_logging()
     stage_configs = {}
-    for stage in stages_to_run:
-        stage_configs[stage] = merge_stage_config_from_snapshots(
+    last_index = max(names.index(stage) for stage in stages_to_run)
+    for stage in names[: last_index + 1]:
+        config = merge_stage_config_from_snapshots(
             system_cls,
             stage,
             configs,
             cli_dir_overrides,
+            required=stage in stages_to_run,
         )
+        if config is not None:
+            stage_configs[stage] = config
 
-    logger = configure_logging()
     system = system_cls(
         configs=configs, exp_dir=args.exp_dir, stages_to_run=stages_to_run
     )
 
-    # Override system's stage_configs with the resolved configs from saved-config search
-    system.stage_configs = stage_configs
+    # Preserve the constructor's inherited defaults for optional missing stages.
+    system.stage_configs = {**getattr(system, "stage_configs", {}), **stage_configs}
 
     logger.info("System: %s", system_cls.__name__)
     logger.info("Requested stages: %s", args.stages)

@@ -487,7 +487,8 @@ def merge_stage_config_from_snapshots(
     cli_dir_overrides: Mapping[str, "str | Path"],
     *,
     visited: Optional[set] = None,
-) -> DictConfig:
+    required: bool = True,
+) -> Optional[DictConfig]:
     """Build `requested_stage`'s config from saved snapshots and this run.
 
     Implements design/config_tree_fix.md's "Saved configuration discovery" (steps
@@ -528,9 +529,11 @@ def merge_stage_config_from_snapshots(
         cli_dir_overrides: Canonical `log_dir` key -> directory/value this
             run's CLI explicitly gave. Dotted keys apply to the nested key.
         visited: Optional set the caller may reuse across calls.
+        required: If False, warn and return None when this stage has neither
+            a saved snapshot nor an explicitly supplied role config.
 
     Returns:
-        DictConfig: `requested_stage`'s resolved config.
+        The resolved config, or None for an optional stage without settings.
 
     Raises:
         ConfigError: `requested_stage` is not declared; a snapshot file
@@ -625,6 +628,19 @@ def merge_stage_config_from_snapshots(
                 directories[requested_stage] = exp_dir_path
             except ConfigError:
                 pass
+
+    requested_spec = next(spec for spec in in_scope if spec.name == requested_stage)
+    if (
+        not required
+        and requested_stage not in loaded
+        and _own_config_for(requested_spec, configs_by_role) is None
+    ):
+        logger.warning(
+            "Preceding stage %r has no saved or supplied config; continuing "
+            "without inheriting its own settings.",
+            requested_stage,
+        )
+        return None
 
     # Detect snapshots that disagree on a key they both define - mixing two
     # different parent experiments rather than one shared lineage.

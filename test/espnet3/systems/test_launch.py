@@ -463,3 +463,61 @@ def test_publication_ci_configs_resolve_after_stage_inheritance(tmp_path, monkey
     assert Path(captured["infer"].exp_dir) == tmp_path / "exp"
     assert captured["measure"].inference_dir == captured["infer"].inference_dir
     assert Path(captured["pack_model"].exp_dir) == tmp_path / "exp"
+
+
+class _PrerequisiteConfigSystem(BaseSystem):
+    stages = (
+        StageSpec(name="train_tokenizer", config="tokenizer", log_dir="exp_dir"),
+        StageSpec(name="collect_stats", config="stats", log_dir="stats_dir"),
+        StageSpec(name="train", config="training", log_dir="exp_dir"),
+    )
+    instances: list = []
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.calls = []
+        type(self).instances.append(self)
+
+    def train_tokenizer(self):
+        raise AssertionError("A preceding stage must not run")
+
+    def collect_stats(self):
+        raise AssertionError("A missing optional stage must not run")
+
+    def train(self):
+        self.calls.append(self.stage_configs["train_tokenizer"].tokenizer.model)
+
+
+def test_train_reads_preceding_snapshot_without_running_or_saving_it(tmp_path, caplog):
+    exp = tmp_path / "exp"
+    exp.mkdir()
+    saved = exp / "train_tokenizer.yaml"
+    original = f"exp_dir: {exp}\ntokenizer:\n  model: existing.model\n"
+    saved.write_text(original)
+    config = tmp_path / "training.yaml"
+    config.write_text(f"exp_dir: {exp}\n")
+    with patch(
+        "espnet3.systems.launch.load_and_merge_config",
+        return_value=OmegaConf.load(config),
+    ):
+        launch(
+            _PrerequisiteConfigSystem,
+            argv=[
+                "--stages",
+                "train",
+                "--training_config",
+                str(config),
+                "--exp_dir",
+                str(exp),
+            ],
+        )
+    system = _PrerequisiteConfigSystem.instances[-1]
+    assert system.calls == ["existing.model"]
+    assert saved.read_text() == original
+    assert not (exp / "collect_stats.yaml").exists()
+    assert not (exp / "config" / "train_tokenizer.yaml").exists()
+    assert not (exp / "config" / "collect_stats.yaml").exists()
+    assert (exp / "train.yaml").is_file()
+    assert (exp / "config" / "train.yaml").is_file()
+    assert "collect_stats" in caplog.text
+    assert "no saved or supplied config" in caplog.text

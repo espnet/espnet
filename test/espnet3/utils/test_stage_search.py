@@ -727,3 +727,28 @@ def test_merge_still_rejects_unresolved_directory_after_inheritance():
     configs = {"inference": OmegaConf.create({"inference_dir": "${exp_dir}/infer"})}
     with pytest.raises(ConfigError, match="exp_dir"):
         merge_stage_config_from_snapshots(_System, "infer", configs, {})
+
+
+def test_optional_stage_without_config_warns_and_continues(caplog):
+    result = merge_stage_config_from_snapshots(
+        _System,
+        "train",
+        {},
+        {},
+        required=False,
+    )
+    assert result is None
+    assert "no saved or supplied config" in caplog.text
+
+
+def test_optional_stage_with_explicit_config_is_available(tmp_path, caplog):
+    configs = {"training": OmegaConf.create({"exp_dir": str(tmp_path)})}
+    result = merge_stage_config_from_snapshots(
+        _System,
+        "train",
+        configs,
+        {},
+        required=False,
+    )
+    assert result.exp_dir == str(tmp_path)
+    assert "no saved or supplied config" not in caplog.text
