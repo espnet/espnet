@@ -1,0 +1,10 @@
+exp_dir: __ROOT__/train
+data_dir: __ROOT__/data
+stats_dir: __ROOT__/stats
+tokenizer:
+  save_path: __ROOT__/tokenizer
+model:
+  encoder: conformer
+dataset:
+  train:
+    split: train

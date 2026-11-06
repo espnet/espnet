@@ -425,7 +425,7 @@ def test_snapshot_config_full_config_includes_inherited_keys(tmp_path):
 def test_merge_fallback_to_old_layout_when_no_snapshot_exists(tmp_path):
     """Read the legacy layout when the stage has no snapshot."""
     from espnet3.utils.stage_configs import (
-        merge_stage_config_from_snapshots,
+        resolve_stage_configs,
     )
 
     # Create old layout file (not snapshot)
@@ -435,11 +435,11 @@ def test_merge_fallback_to_old_layout_when_no_snapshot_exists(tmp_path):
         "exp_dir: ./myexp\nseed: 42\nexp_tag: legacy\n", encoding="utf-8"
     )
 
-    # Call merge_stage_config_from_snapshots with exp_dir override
+    # Call resolve_stage_configs with exp_dir override
     # No new-style snapshot exists, so it should fall back to old layout
-    result = merge_stage_config_from_snapshots(
-        _System, "train", {"training": None}, {"exp_dir": str(tmp_path)}
-    )
+    result = resolve_stage_configs(
+        _System, ["train"], {"training": None}, {"exp_dir": str(tmp_path)}
+    )[0]["train"]
 
     assert result.exp_dir == str(tmp_path).replace("/config", "")  # Relative path
     assert result.seed == 42
@@ -449,7 +449,7 @@ def test_merge_fallback_to_old_layout_when_no_snapshot_exists(tmp_path):
 def test_merge_prefers_new_snapshot_over_old_layout(tmp_path):
     """When both old layout and new snapshot exist, new snapshot wins."""
     from espnet3.utils.stage_configs import (
-        merge_stage_config_from_snapshots,
+        resolve_stage_configs,
         snapshot_config,
     )
 
@@ -467,9 +467,9 @@ def test_merge_prefers_new_snapshot_over_old_layout(tmp_path):
         OmegaConf.create({"exp_dir": str(tmp_path), "seed": 2, "model": "new_model"}),
     )
 
-    result = merge_stage_config_from_snapshots(
-        _System, "train", {"training": None}, {"exp_dir": str(tmp_path)}
-    )
+    result = resolve_stage_configs(
+        _System, ["train"], {"training": None}, {"exp_dir": str(tmp_path)}
+    )[0]["train"]
 
     # New snapshot should win
     assert result.seed == 2, "New snapshot should override old layout"
@@ -480,7 +480,7 @@ def test_merge_fallback_does_not_override_explicit_stage_selection(tmp_path):
     """Fallback for one stage does not affect another stage's explicit selection."""
     from espnet3.contract.stages import StageSpec
     from espnet3.utils.stage_configs import (
-        merge_stage_config_from_snapshots,
+        resolve_stage_configs,
     )
 
     class ThreeStageSystem:
@@ -510,9 +510,9 @@ def test_merge_fallback_does_not_override_explicit_stage_selection(tmp_path):
     configs = {
         "training": OmegaConf.create({"exp_dir": str(tmp_path)}),
     }
-    result = merge_stage_config_from_snapshots(
-        ThreeStageSystem, "train", configs, {"exp_dir": str(tmp_path)}
-    )
+    result = resolve_stage_configs(
+        ThreeStageSystem, ["train"], configs, {"exp_dir": str(tmp_path)}
+    )[0]["train"]
 
     # Should successfully resolve without errors
     assert "exp_dir" in result
@@ -522,7 +522,7 @@ def test_merge_fallback_does_not_override_explicit_stage_selection(tmp_path):
 def test_merge_fallback_only_for_requested_stage(tmp_path):
     """Fallback only applies to the requested stage, not preceding stages."""
     from espnet3.contract.stages import StageSpec
-    from espnet3.utils.stage_configs import merge_stage_config_from_snapshots
+    from espnet3.utils.stage_configs import resolve_stage_configs
 
     class MultiStageSystem:
         stages = (
@@ -538,7 +538,7 @@ def test_merge_fallback_only_for_requested_stage(tmp_path):
     }
 
     # Should handle gracefully - if no CLI exp_dir provided, no fallback
-    merge_stage_config_from_snapshots(MultiStageSystem, "infer", configs, {})
+    resolve_stage_configs(MultiStageSystem, ["infer"], configs, {})[0]["infer"]
 
     # Result should be based on inherited stage configs only
     # The key point: fallback only applies when requested_stage has no directory
@@ -553,3 +553,21 @@ def test_snapshot_config_creates_missing_stage_directory(tmp_path):
     config = OmegaConf.create({"data_dir": str(log_dir)})
     snapshot_config(log_dir, "create_dataset", config)
     assert OmegaConf.load(log_dir / "create_dataset.yaml") == config
+
+
+def test_later_overrides_do_not_rebind_preceding_resolved_values(tmp_path):
+    configs = {
+        "training": OmegaConf.create(
+            {"exp_tag": "trained", "exp_dir": str(tmp_path) + "/${exp_tag}"}
+        ),
+        "inference": OmegaConf.create(
+            {"exp_tag": "decode", "inference_dir": "${exp_dir}/infer"}
+        ),
+    }
+    stage_configs, _ = build_stage_configs(
+        _System, configs, exp_dir=tmp_path, upto=["infer"]
+    )
+    assert stage_configs["train"].exp_dir == str(tmp_path / "trained")
+    assert stage_configs["infer"].exp_tag == "decode"
+    assert stage_configs["infer"].exp_dir == str(tmp_path / "trained")
+    assert stage_configs["infer"].inference_dir == str(tmp_path / "trained" / "infer")

@@ -577,7 +577,7 @@ def _build_config_path(base_path: Path, entry: str) -> Path:
     return base_path / entry
 
 
-def convert_to_dict(value: Any) -> Any:
+def convert_to_dict(value: Any, *, resolve: bool = True) -> Any:
     """Return ``value`` with any OmegaConf container turned into plain Python.
 
     Hydra hands nested blocks over as ``DictConfig``/``ListConfig`` unless the
@@ -587,9 +587,11 @@ def convert_to_dict(value: Any) -> Any:
 
     Args:
         value (Any): Any config value. ``DictConfig`` and ``ListConfig`` are
-            converted recursively with interpolations resolved; anything else is
-            returned unchanged, so plain Python and direct Python calls pass
-            straight through.
+            converted recursively; anything else is returned unchanged, so
+            plain Python and direct Python calls pass straight through.
+        resolve (bool): Resolve interpolations during conversion. Defaults to
+            True for component construction. Set False when composing configs
+            that still need values from another stage.
 
     Returns:
         Any: ``dict`` for a ``DictConfig``, ``list`` for a ``ListConfig``,
@@ -601,6 +603,8 @@ def convert_to_dict(value: Any) -> Any:
         {'depth': 18}
         >>> convert_to_dict({"depth": 18})
         {'depth': 18}
+        >>> convert_to_dict(OmegaConf.create({"path": "${parent}/data"}), resolve=False)
+        {'path': '${parent}/data'}
 
     Note:
         Conversion happens before the value reaches a component, so a config
@@ -609,5 +613,5 @@ def convert_to_dict(value: Any) -> Any:
         being stored as a ``ListConfig``.
     """
     if isinstance(value, (DictConfig, ListConfig)):
-        return OmegaConf.to_container(value, resolve=True)
+        return OmegaConf.to_container(value, resolve=resolve)
     return value

@@ -1,0 +1,31 @@
+# Ordered to match ASRSystem.stages. CLI flags use the public parser spelling.
+create_dataset:
+  directory_key: data_dir
+  flag: --data-dir
+train_tokenizer:
+  directory_key: tokenizer.save_path
+  flag: --tokenizer-save-path
+collect_stats:
+  directory_key: stats_dir
+  flag: --stats-dir
+train:
+  directory_key: exp_dir
+  flag: --exp_dir
+infer:
+  directory_key: inference_dir
+  flag: --inference-dir
+measure:
+  directory_key: inference_dir
+  flag: --inference-dir
+pack_model:
+  directory_key: exp_dir
+  flag: --exp_dir
+upload_model:
+  directory_key: exp_dir
+  flag: --exp_dir
+pack_demo:
+  directory_key: pack.out_dir
+  flag: --pack-out-dir
+upload_demo:
+  directory_key: pack.out_dir
+  flag: --pack-out-dir

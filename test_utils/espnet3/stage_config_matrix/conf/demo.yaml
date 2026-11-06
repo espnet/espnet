@@ -1,0 +1,7 @@
+model:
+  model_dir: ${exp_dir}/model_pack
+pack:
+  out_dir: __ROOT__/demo
+upload_demo:
+  demo_dir: ${pack.out_dir}
+  hf_repo: example/demo

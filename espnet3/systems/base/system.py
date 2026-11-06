@@ -5,6 +5,7 @@ from pathlib import Path
 from typing import ClassVar, Mapping, Optional, Sequence, Tuple
 
 from omegaconf import DictConfig, OmegaConf
+from omegaconf.errors import InterpolationResolutionError, MissingMandatoryValue
 
 from espnet3.components.data.dataset_module import (
     load_dataset_module,
@@ -127,6 +128,7 @@ class BaseSystem:
         configs: Mapping[str, Optional[DictConfig]],
         exp_dir: Optional[Path] = None,
         stages_to_run: Optional[Sequence[str]] = None,
+        resolved_configs: Optional[tuple] = None,
     ) -> None:
         """Build each requested stage's config and hold it, by stage name.
 
@@ -143,6 +145,9 @@ class BaseSystem:
                 and read earlier baked configs from. When `None`, derived
                 from the first given config whose own `exp_dir` resolves
                 by itself (see `_exp_dir_from`); if none does, raises.
+            resolved_configs: Optional (stage_configs, own_keys) pair from
+                launch, matching build_stage_configs()'s return structure.
+                Avoids resolving a second time without CLI context.
             stages_to_run: The stages this run actually requests. Only
                 these (and the earlier stages they inherit from) have
                 their config built and resolved; a later stage's missing
@@ -163,6 +168,17 @@ class BaseSystem:
         resolved_exp_dir = (
             Path(exp_dir) if exp_dir is not None else _exp_dir_from(type(self), configs)
         )
+        if resolved_configs is not None:
+            stage_configs, own_keys = resolved_configs
+        if resolved_exp_dir is None and resolved_configs is not None:
+            for config in stage_configs.values():
+                try:
+                    value = config.get("exp_dir")
+                except (InterpolationResolutionError, MissingMandatoryValue):
+                    continue
+                if value:
+                    resolved_exp_dir = Path(value)
+                    break
         if resolved_exp_dir is None:
             raise ConfigError(
                 f"{type(self).__name__} needs an experiment directory; pass "
@@ -172,9 +188,13 @@ class BaseSystem:
         self.exp_dir.mkdir(parents=True, exist_ok=True)
         self._default_log_dir = self.exp_dir
 
-        self.stage_configs, self.own_keys = build_stage_configs(
-            type(self), configs, exp_dir=self.exp_dir, upto=stages_to_run
-        )
+        if resolved_configs is None:
+            self.stage_configs, self.own_keys = build_stage_configs(
+                type(self), configs, exp_dir=self.exp_dir, upto=stages_to_run
+            )
+        else:
+            self.stage_configs = stage_configs
+            self.own_keys = own_keys
 
         logger.info(
             "Initialized %s exp_dir=%s stages=%s",

@@ -8,9 +8,10 @@ from unittest.mock import patch
 import pytest
 from omegaconf import OmegaConf
 
-from espnet3.contract.stages import StageContractError, StageSpec, list_roles
+from espnet3.contract.stages import StageSpec, list_roles
 from espnet3.systems.base.system import BaseSystem
 from espnet3.systems.launch import build_parser, default_conf_package, launch
+from espnet3.utils.run_utils import ConfigError
 
 _REPO_ROOT = Path(__file__).resolve().parents[3]
 _RECIPE_RUN_PY_FILES = [
@@ -186,15 +187,19 @@ def test_launch_passes_none_for_a_role_with_no_cli_config(
 
 
 def test_launch_requires_config_or_exp_dir_for_requested_stage(stub_config_loading):
-    with pytest.raises(StageContractError, match="train runs on the training config"):
+    with pytest.raises(ConfigError, match="No saved or supplied config.*train"):
         launch(_RecordingSystem, argv=["--stages", "train"])
 
 
 def test_launch_allows_a_missing_config_when_exp_dir_is_given(
     stub_config_loading, tmp_path
 ):
-    # The stage's config may come from its baked file under --exp_dir;
-    # check_requested_stages must not demand a CLI config in that case.
+    # A directory pointing to an existing snapshot can replace a role config.
+    directory = tmp_path / "exp" / "my_run"
+    directory.mkdir(parents=True)
+    OmegaConf.save(
+        OmegaConf.create({"exp_dir": str(directory)}), directory / "train.yaml"
+    )
     _RecordingSystem.instances.clear()
 
     launch(
@@ -325,7 +330,7 @@ def test_run_py_calls_launch_when_executed_as_a_script():
 
 # ---------------------------------------------------------------------------
 # Saved-config search wiring: per-stage directory flags -> cli_dir_overrides
-# -> merge_stage_config_from_snapshots -> system.stage_configs
+# -> resolve_stage_configs -> system.stage_configs
 # ---------------------------------------------------------------------------
 
 
@@ -372,12 +377,12 @@ def test_launch_forwards_exp_dir_cli_value_despite_role_log_dir_mismatch(
     _MismatchedRoleSystem.instances.clear()
     captured = {}
 
-    def fake_merge(system_cls, stage, configs_by_role, cli_dir_overrides, **kwargs):
+    def fake_merge(system_cls, stages, configs_by_role, cli_dir_overrides, **kwargs):
         captured["cli_dir_overrides"] = dict(cli_dir_overrides)
-        return OmegaConf.create({})
+        return ({"train": OmegaConf.create({})}, {"train": ()}, {"train"})
 
     with patch(
-        "espnet3.systems.launch.merge_stage_config_from_snapshots",
+        "espnet3.systems.launch.resolve_stage_configs",
         side_effect=fake_merge,
     ):
         launch(
@@ -385,7 +390,7 @@ def test_launch_forwards_exp_dir_cli_value_despite_role_log_dir_mismatch(
             argv=["--stages", "train", "--exp_dir", str(tmp_path / "exp")],
         )
 
-    assert captured["cli_dir_overrides"].get("exp_dir") == tmp_path / "exp"
+    assert captured["cli_dir_overrides"].get("exp_dir") == str(tmp_path / "exp")
 
 
 def test_launch_resolved_stage_configs_reach_the_system(tmp_path, stub_config_loading):
@@ -397,8 +402,8 @@ def test_launch_resolved_stage_configs_reach_the_system(tmp_path, stub_config_lo
     sentinel = OmegaConf.create({"from_snapshot_merge": True})
 
     with patch(
-        "espnet3.systems.launch.merge_stage_config_from_snapshots",
-        return_value=sentinel,
+        "espnet3.systems.launch.resolve_stage_configs",
+        return_value=({"train": sentinel}, {"train": tuple(sentinel)}, {"train"}),
     ):
         launch(
             _RecordingSystem,

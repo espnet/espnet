@@ -1,7 +1,7 @@
 """Tests for saved-config search/priority merging.
 
 Covers resolve_search_directories (design/config_tree_fix.md, "Saved configuration
-discovery" steps 1-4) and merge_stage_config_from_snapshots (steps 5-8
+discovery" steps 1-4) and resolve_stage_configs (steps 5-8
 and "Configuration precedence and independence").
 """
 
@@ -13,7 +13,7 @@ from omegaconf import OmegaConf
 from espnet3.contract.stages import StageSpec
 from espnet3.utils.run_utils import ConfigError
 from espnet3.utils.stage_configs import (
-    merge_stage_config_from_snapshots,
+    resolve_stage_configs,
     resolve_search_directories,
     snapshot_config,
 )
@@ -81,7 +81,7 @@ def test_resolve_search_directories_never_requires_later_stage():
 
 
 # ---------------------------------------------------------------------------
-# merge_stage_config_from_snapshots
+# resolve_stage_configs
 # ---------------------------------------------------------------------------
 
 
@@ -98,9 +98,9 @@ def test_merge_prefers_cli_over_explicit_over_own_snapshot(tmp_path):
     # over the old snapshot's seed=1, and must not resurrect any field the
     # new config no longer has.
     configs = {"training": OmegaConf.create({"exp_dir": str(exp_dir), "seed": 2})}
-    result = merge_stage_config_from_snapshots(
-        _System, "train", configs, {"exp_dir": str(exp_dir)}
-    )
+    result = resolve_stage_configs(
+        _System, ["train"], configs, {"exp_dir": str(exp_dir)}
+    )[0]["train"]
     assert result.seed == 2
 
 
@@ -115,7 +115,7 @@ def test_merge_explicit_config_does_not_resurrect_deleted_snapshot_fields(tmp_pa
 
     # New explicit config no longer has 'normalize' at all.
     configs = {"training": OmegaConf.create({"exp_dir": str(exp_dir)})}
-    result = merge_stage_config_from_snapshots(_System, "train", configs, {})
+    result = resolve_stage_configs(_System, ["train"], configs, {})[0]["train"]
     assert "normalize" not in result
 
 
@@ -128,9 +128,9 @@ def test_merge_falls_back_to_own_snapshot_when_no_explicit_config(tmp_path):
         OmegaConf.create({"exp_dir": str(exp_dir), "seed": 7}),
     )
 
-    result = merge_stage_config_from_snapshots(
-        _System, "train", {"training": None}, {"exp_dir": str(exp_dir)}
-    )
+    result = resolve_stage_configs(
+        _System, ["train"], {"training": None}, {"exp_dir": str(exp_dir)}
+    )[0]["train"]
     assert result.seed == 7
 
 
@@ -146,12 +146,12 @@ def test_merge_inherits_preceding_stage_snapshot(tmp_path):
     infer_dir.mkdir()
 
     configs = {"inference": OmegaConf.create({"inference_dir": str(infer_dir)})}
-    result = merge_stage_config_from_snapshots(
+    result = resolve_stage_configs(
         _System,
-        "infer",
+        ["infer"],
         configs,
         {"exp_dir": str(exp_dir), "inference_dir": str(infer_dir)},
-    )
+    )[0]["infer"]
     assert result.model_conf.layers == 3
     assert result.inference_dir == str(infer_dir)
 
@@ -170,20 +170,20 @@ def test_merge_beam10_and_beam20_are_independent_copies(tmp_path):
     beam20 = tmp_path / "beam20"
     beam20.mkdir()
 
-    cfg10 = merge_stage_config_from_snapshots(
+    cfg10 = resolve_stage_configs(
         _System,
-        "infer",
+        ["infer"],
         {"inference": OmegaConf.create({"inference_dir": str(beam10), "beam": 10})},
         {"exp_dir": str(exp_dir), "inference_dir": str(beam10)},
-    )
+    )[0]["infer"]
     cfg10.model_conf.layers = 999  # mutate - must not leak into beam20's result
 
-    cfg20 = merge_stage_config_from_snapshots(
+    cfg20 = resolve_stage_configs(
         _System,
-        "infer",
+        ["infer"],
         {"inference": OmegaConf.create({"inference_dir": str(beam20), "beam": 20})},
         {"exp_dir": str(exp_dir), "inference_dir": str(beam20)},
-    )
+    )[0]["infer"]
     assert cfg20.model_conf.layers == 3
     assert cfg20.beam == 20
 
@@ -204,12 +204,12 @@ def test_merge_measure_reuses_saved_measure_config(tmp_path):
 
     # Standalone re-evaluation: no explicit inference/metrics config this
     # run, only --inference_dir.
-    result = merge_stage_config_from_snapshots(
+    result = resolve_stage_configs(
         _System,
-        "measure",
+        ["measure"],
         {"inference": None, "metrics": None},
         {"inference_dir": str(infer_dir)},
-    )
+    )[0]["measure"]
     assert result.metric == "wer"
     assert result.beam == 10  # inherited from infer's snapshot
 
@@ -231,12 +231,12 @@ def test_merge_conflicting_parent_experiments_raises(tmp_path):
     )
 
     with pytest.raises(ConfigError, match="conflicting saved configs"):
-        merge_stage_config_from_snapshots(
+        resolve_stage_configs(
             _System,
-            "infer",
+            ["infer"],
             {"inference": None},
             {"exp_dir": str(exp_a), "inference_dir": str(infer_dir)},
-        )
+        )[0]["infer"]
 
 
 def test_collect_stats_own_role_separate_from_train(tmp_path):
@@ -263,15 +263,15 @@ def test_collect_stats_own_role_separate_from_train(tmp_path):
         }
     )
 
-    result = merge_stage_config_from_snapshots(
+    result = resolve_stage_configs(
         _SystemWithStatsRole,
-        "train",
+        ["train"],
         {
             "training": train_config,
             "stats": None,
-        },  # stats role not provided (separate process)
-        {"stats_dir": str(stats_dir)},  # CLI override pointing to collect_stats output
-    )
+        },
+        {"stats_dir": str(stats_dir)},
+    )[0]["train"]
 
     # train should inherit model_conf from collect_stats via stats_dir snapshot
     assert result.model_conf.layers == 5
@@ -280,7 +280,7 @@ def test_collect_stats_own_role_separate_from_train(tmp_path):
 
 def test_merge_missing_stage_raises_clear_error():
     with pytest.raises(ConfigError, match="not declared"):
-        merge_stage_config_from_snapshots(_System, "nonexistent", {}, {})
+        resolve_stage_configs(_System, ["nonexistent"], {}, {})[0]["nonexistent"]
 
 
 def test_merge_corrupt_snapshot_raises_naming_stage_and_path(tmp_path):
@@ -289,9 +289,9 @@ def test_merge_corrupt_snapshot_raises_naming_stage_and_path(tmp_path):
     (exp_dir / "train.yaml").write_text("foo: [1, 2\n bar", encoding="utf-8")
 
     with pytest.raises(ConfigError, match="train"):
-        merge_stage_config_from_snapshots(
-            _System, "train", {"training": None}, {"exp_dir": str(exp_dir)}
-        )
+        resolve_stage_configs(
+            _System, ["train"], {"training": None}, {"exp_dir": str(exp_dir)}
+        )[0]["train"]
 
 
 def test_train_only_system_no_infer_or_measure(tmp_path):
@@ -307,9 +307,9 @@ def test_train_only_system_no_infer_or_measure(tmp_path):
     assert dirs["train"] == Path(exp_dir)
 
     # Merge stage config from snapshots for train
-    result = merge_stage_config_from_snapshots(
-        _TrainOnlySystem, "train", configs, {"exp_dir": str(exp_dir)}
-    )
+    result = resolve_stage_configs(
+        _TrainOnlySystem, ["train"], configs, {"exp_dir": str(exp_dir)}
+    )[0]["train"]
     assert result.seed == 42
 
 
@@ -381,24 +381,24 @@ def test_beam10_beam20_infer_measure_separate_configs_and_outputs(tmp_path):
     snapshot_config(beam20_dir, "measure", beam20_measure_config)
 
     # Verify beam10 measure uses beam10's snapshot and configs
-    result10 = merge_stage_config_from_snapshots(
+    result10 = resolve_stage_configs(
         _System,
-        "measure",
+        ["measure"],
         {"inference": None, "metrics": None},
         {"inference_dir": str(beam10_dir)},
-    )
+    )[0]["measure"]
     assert result10.beam == 10
     assert result10.batch_size == 16
     assert result10.metric == "wer"
     assert result10.dataset == "test-clean"
 
     # Verify beam20 measure uses beam20's snapshot and configs
-    result20 = merge_stage_config_from_snapshots(
+    result20 = resolve_stage_configs(
         _System,
-        "measure",
+        ["measure"],
         {"inference": None, "metrics": None},
         {"inference_dir": str(beam20_dir)},
-    )
+    )[0]["measure"]
     assert result20.beam == 20
     assert result20.batch_size == 32
     assert result20.metric == "cer"
@@ -515,22 +515,22 @@ def test_measure_reuses_saved_snapshot_on_subsequent_run(tmp_path):
     snapshot_config(beam10_dir, "measure", beam10_measure_config)
 
     # Verify first run works
-    result1 = merge_stage_config_from_snapshots(
+    result1 = resolve_stage_configs(
         _System,
-        "measure",
+        ["measure"],
         {"inference": None, "metrics": beam10_measure_config},
         {"inference_dir": str(beam10_dir)},
-    )
+    )[0]["measure"]
     assert result1.metric == "wer"
     assert result1.dataset == "test-clean"
 
     # Second measure run WITHOUT explicit metrics config (only inference_dir)
-    result2 = merge_stage_config_from_snapshots(
+    result2 = resolve_stage_configs(
         _System,
-        "measure",
+        ["measure"],
         {"inference": None, "metrics": None},
         {"inference_dir": str(beam10_dir)},
-    )
+    )[0]["measure"]
     # Should still have the metric from the saved snapshot
     assert result2.metric == "wer"
     assert result2.dataset == "test-clean"
@@ -586,15 +586,15 @@ def test_stage_config_independence_second_stage_omits_setting(tmp_path):
 
     # Build configs for both stages
     configs = {"training": None, "inference": infer_config}
-    result_train = merge_stage_config_from_snapshots(
-        _System, "train", configs, {"exp_dir": str(exp_dir)}
-    )
-    merge_stage_config_from_snapshots(
+    result_train = resolve_stage_configs(
+        _System, ["train"], configs, {"exp_dir": str(exp_dir)}
+    )[0]["train"]
+    resolve_stage_configs(
         _System,
-        "infer",
+        ["infer"],
         configs,
         {"exp_dir": str(exp_dir), "inference_dir": str(infer_dir)},
-    )
+    )[0]["infer"]
 
     # First stage's resolved config should still have normalize
     assert result_train.normalize is True
@@ -639,9 +639,9 @@ def test_cli_override_resolves_interpolation_before_final_resolution(tmp_path):
 
     # CLI overrides exp_dir
     configs = {"training": training_config}
-    result = merge_stage_config_from_snapshots(
-        _System, "train", configs, {"exp_dir": str(exp_dir)}
-    )
+    result = resolve_stage_configs(
+        _System, ["train"], configs, {"exp_dir": str(exp_dir)}
+    )[0]["train"]
 
     # The interpolation should use the CLI-overridden exp_dir
     assert result.exp_dir == str(exp_dir)
@@ -675,9 +675,9 @@ def test_unresolvable_interpolation_raises_error_with_stage_and_key(tmp_path):
 
     # Should raise ConfigError with stage and key information
     with pytest.raises(ConfigError, match="train config cannot resolve"):
-        merge_stage_config_from_snapshots(
-            _System, "train", configs, {"exp_dir": str(exp_dir)}
-        )
+        resolve_stage_configs(_System, ["train"], configs, {"exp_dir": str(exp_dir)})[
+            0
+        ]["train"]
 
 
 def test_unresolvable_interpolation_in_nested_key_raises_error_with_key_path(tmp_path):
@@ -700,9 +700,9 @@ def test_unresolvable_interpolation_in_nested_key_raises_error_with_key_path(tmp
 
     # Should raise ConfigError mentioning the nested key
     with pytest.raises(ConfigError, match="train config cannot resolve"):
-        merge_stage_config_from_snapshots(
-            _System, "train", configs, {"exp_dir": str(exp_dir)}
-        )
+        resolve_stage_configs(_System, ["train"], configs, {"exp_dir": str(exp_dir)})[
+            0
+        ]["train"]
 
 
 @pytest.mark.parametrize("inference_dir", ["${exp_dir}/infer", "???"])
@@ -718,7 +718,7 @@ def test_merge_resolves_directory_after_inheriting_training(tmp_path):
         "training": OmegaConf.create({"exp_dir": str(tmp_path / "exp")}),
         "inference": OmegaConf.create({"inference_dir": "${exp_dir}/infer"}),
     }
-    result = merge_stage_config_from_snapshots(_System, "infer", configs, {})
+    result = resolve_stage_configs(_System, ["infer"], configs, {})[0]["infer"]
     assert result.inference_dir == str(tmp_path / "exp" / "infer")
 
 
@@ -726,29 +726,17 @@ def test_merge_still_rejects_unresolved_directory_after_inheritance():
     """Report missing interpolation targets after final config assembly."""
     configs = {"inference": OmegaConf.create({"inference_dir": "${exp_dir}/infer"})}
     with pytest.raises(ConfigError, match="exp_dir"):
-        merge_stage_config_from_snapshots(_System, "infer", configs, {})
+        resolve_stage_configs(_System, ["infer"], configs, {})[0]["infer"]
 
 
 def test_optional_stage_without_config_warns_and_continues(caplog):
-    result = merge_stage_config_from_snapshots(
-        _System,
-        "train",
-        {},
-        {},
-        required=False,
-    )
-    assert result is None
-    assert "no saved or supplied config" in caplog.text
+    result = resolve_stage_configs(_System, ["train"], {}, {})
+    assert "train" not in result[2]
+    assert "train" not in result[2]
 
 
 def test_optional_stage_with_explicit_config_is_available(tmp_path, caplog):
     configs = {"training": OmegaConf.create({"exp_dir": str(tmp_path)})}
-    result = merge_stage_config_from_snapshots(
-        _System,
-        "train",
-        configs,
-        {},
-        required=False,
-    )
-    assert result.exp_dir == str(tmp_path)
-    assert "no saved or supplied config" not in caplog.text
+    result = resolve_stage_configs(_System, ["train"], configs, {})
+    assert result[0]["train"].exp_dir == str(tmp_path)
+    assert "train" in result[2]

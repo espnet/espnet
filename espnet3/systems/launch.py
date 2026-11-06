@@ -3,18 +3,19 @@
 from __future__ import annotations
 
 import argparse
+import inspect
 from pathlib import Path
 from typing import Sequence
 
 from espnet3.contract.stages import (
-    check_requested_stages,
     generate_stage_flag_mapping,
     list_roles,
     list_stage_names,
 )
 from espnet3.utils.config_utils import load_and_merge_config
 from espnet3.utils.logging_utils import configure_logging
-from espnet3.utils.stage_configs import merge_stage_config_from_snapshots
+from espnet3.utils.run_utils import ConfigError
+from espnet3.utils.stage_configs import resolve_stage_configs
 from espnet3.utils.stages_utils import resolve_stages, run_stages
 
 
@@ -105,11 +106,17 @@ def launch(
 ) -> None:
     """Parse CLI args, build ``system_cls``, and run its requested stages.
 
-    Loads each config role's own config (the default plus whatever the
-    caller gave, not yet resolved), passes them to ``system_cls`` to build
-    each requested stage's merged, resolved config (see
-    :class:`~espnet3.systems.base.system.BaseSystem`), then runs the
-    requested stages, baking each stage's own config before it runs.
+    Loads each config role's defaults and supplied settings without resolving
+    them in isolation. The shared snapshot resolver then builds the requested
+    stages and their preceding configs, retaining the persistence metadata from
+    that same pass. Systems supporting pre-resolved configs receive that result
+    directly; custom constructors using the existing arguments remain supported.
+
+    Only requested stages are run or persisted. Earlier stages are available
+    for cross-stage references but are never executed or saved just because
+    their settings were loaded. A directory CLI flag can locate a saved config
+    without requiring a role config file; all flag names and dotted keys come
+    from the system's StageSpec declarations.
 
     Args:
         system_cls: The system class to instantiate and run.
@@ -120,11 +127,12 @@ def launch(
             for a recipe that needs its own extra arguments.
 
     Raises:
-        espnet3.contract.stages.StageContractError: A requested
-            stage is not declared, or its config role was not given and
-            no ``--exp_dir`` is given to inherit it from an earlier run.
-        RuntimeError: No ``--exp_dir`` is given and no role's own config
-            has a self-resolving ``exp_dir``.
+        espnet3.contract.stages.StageContractError: The stage directory
+            declarations generate conflicting CLI flags.
+        espnet3.utils.run_utils.ConfigError: No supplied or saved settings can
+            be found; a requested config cannot resolve; a required directory
+            dependency is missing; or the system cannot determine its
+            experiment directory from supplied or restored settings.
 
     Examples:
         ```python
@@ -146,9 +154,6 @@ def launch(
     stages_to_run = resolve_stages(args.stages, names)
     system_roles = list_roles(system_cls)
     cli_paths = {role: getattr(args, f"{role}_config") for role in system_roles}
-    check_requested_stages(
-        system_cls, stages_to_run, provided=cli_paths, exp_dir=args.exp_dir
-    )
 
     package = conf_package or default_conf_package(system_cls)
 
@@ -174,37 +179,39 @@ def launch(
     cli_dir_overrides = {}
     # --exp_dir is always present on the parser (added directly in
     # build_parser, independent of any stage's log_dir) and is the
-    # fallback directory merge_stage_config_from_snapshots uses for a
+    # fallback directory resolve_stage_configs uses for a
     # stage with no log_dir of its own - always forward it when given.
     if args.exp_dir is not None:
-        cli_dir_overrides["exp_dir"] = Path(args.exp_dir)
+        cli_dir_overrides["exp_dir"] = str(args.exp_dir)
     for canonical_key in set(generate_stage_flag_mapping(system_cls.stages).values()):
-        value = getattr(args, canonical_key, None)
+        value = getattr(args, canonical_key.replace(".", "_"), None)
         if value is not None:
-            cli_dir_overrides[canonical_key] = Path(value)
+            cli_dir_overrides[canonical_key] = str(value)
 
-    # Keep preceding stages available to stage bodies that read their settings.
-    # Execution and persistence remain limited to stages_to_run.
     logger = configure_logging()
-    stage_configs = {}
-    last_index = max(names.index(stage) for stage in stages_to_run)
-    for stage in names[: last_index + 1]:
-        config = merge_stage_config_from_snapshots(
-            system_cls,
-            stage,
-            configs,
-            cli_dir_overrides,
-            required=stage in stages_to_run,
+    stage_configs, own_keys, available = resolve_stage_configs(
+        system_cls, stages_to_run, configs, cli_dir_overrides
+    )
+    if not available:
+        flags = ", ".join(f"--{role}_config" for role in system_roles)
+        raise ConfigError(
+            f"No saved or supplied config for stages {stages_to_run}; "
+            f"provide a role config ({flags}) or a directory containing "
+            "a saved stage config."
         )
-        if config is not None:
-            stage_configs[stage] = config
-
-    system = system_cls(
+    constructor_args = dict(
         configs=configs, exp_dir=args.exp_dir, stages_to_run=stages_to_run
     )
-
-    # Preserve the constructor's inherited defaults for optional missing stages.
-    system.stage_configs = {**getattr(system, "stage_configs", {}), **stage_configs}
+    parameters = inspect.signature(system_cls).parameters
+    if "resolved_configs" in parameters or any(
+        parameter.kind == inspect.Parameter.VAR_KEYWORD
+        for parameter in parameters.values()
+    ):
+        constructor_args["resolved_configs"] = (stage_configs, own_keys)
+    system = system_cls(**constructor_args)
+    # Also expose the same result to custom system constructors.
+    system.stage_configs = stage_configs
+    system.own_keys = own_keys
 
     logger.info("System: %s", system_cls.__name__)
     logger.info("Requested stages: %s", args.stages)
