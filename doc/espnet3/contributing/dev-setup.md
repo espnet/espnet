@@ -68,10 +68,10 @@ eval "$(pixi shell-hook)"
 
 ## Install ESPnet3 for development
 
-Inside the Pixi shell, install ESPnet from source:
+Inside the Pixi shell, install ESPnet with the training and test dependencies:
 
 ```bash
-uv pip install -e .
+uv pip install -e ".[test]"
 ```
 
 Add more extras if needed:
@@ -89,7 +89,7 @@ If the installation does not behave as expected, explicitly passing the Python
 interpreter often fixes it:
 
 ```bash
-uv pip install -e . --python $(which python)
+uv pip install -e ".[test]" --python $(which python)
 ```
 :::
 
