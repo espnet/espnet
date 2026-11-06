@@ -301,18 +301,20 @@ class ESPnetDiarizationModel(AbsESPnetModel):
         loss = torch.cat(loss_list, dim=1)
         min_loss, min_idx = torch.min(loss, dim=1)
         loss = torch.sum(min_loss) / torch.sum(lengths.float())
-        batch_size = len(min_idx)
-        label_list = []
-        for i in range(batch_size):
-            label_list.append(label[i, :, permute_list[min_idx[i]]].data.cpu().numpy())
-        label_permute = torch.from_numpy(np.array(label_list)).float()
+        # Reorder each sample's label by its best permutation on the device,
+        # without a per-sample copy to the CPU.
+        permutation = torch.as_tensor(
+            np.stack(permute_list), dtype=torch.long, device=label.device
+        )[min_idx]
+        label_permute = torch.gather(
+            label, 2, permutation.unsqueeze(1).expand(-1, label.size(1), -1)
+        ).float()
         return loss, min_idx, permute_list, label_permute
 
     def create_length_mask(self, length, max_len, num_output):
-        batch_size = len(length)
-        mask = torch.zeros(batch_size, max_len, num_output)
-        for i in range(batch_size):
-            mask[i, : length[i], :] = 1
+        """Float mask (Batch, max_len, num_output): 1 inside each length, else 0."""
+        valid = torch.arange(max_len, device=length.device) < length.unsqueeze(1)
+        mask = valid.unsqueeze(2).expand(-1, -1, num_output).float()
         mask = to_device(self, mask)
         return mask
 
@@ -331,37 +333,39 @@ class ESPnetDiarizationModel(AbsESPnetModel):
     def calc_diarization_error(pred, label, length):
         # Note (jiatong): Credit to https://github.com/hitachi-speech/EEND
 
+        # Computed on the device of `pred`; only the nine counts are copied to
+        # the CPU, in one transfer, instead of the whole label and prediction.
         batch_size, max_len, num_output = label.size()
+        label = label.to(pred.device)
+        length = length.to(pred.device)
         # mask the padding part
-        mask = np.zeros((batch_size, max_len, num_output))
-        for i in range(batch_size):
-            mask[i, : length[i], :] = 1
+        mask = (
+            (torch.arange(max_len, device=pred.device) < length.unsqueeze(1))
+            .unsqueeze(2)
+            .long()
+        )
 
         # pred and label have the shape (batch_size, max_len, num_output)
-        label_np = label.data.cpu().numpy().astype(int)
-        pred_np = (pred.data.cpu().numpy() > 0).astype(int)
-        label_np = label_np * mask
-        pred_np = pred_np * mask
-        length = length.data.cpu().numpy()
+        label_np = label.long() * mask
+        pred_np = (pred > 0).long() * mask
 
         # compute speech activity detection error
-        n_ref = np.sum(label_np, axis=2)
-        n_sys = np.sum(pred_np, axis=2)
-        speech_scored = float(np.sum(n_ref > 0))
-        speech_miss = float(np.sum(np.logical_and(n_ref > 0, n_sys == 0)))
-        speech_falarm = float(np.sum(np.logical_and(n_ref == 0, n_sys > 0)))
+        n_ref = label_np.sum(dim=2)
+        n_sys = pred_np.sum(dim=2)
+        speech_scored = (n_ref > 0).sum()
+        speech_miss = torch.logical_and(n_ref > 0, n_sys == 0).sum()
+        speech_falarm = torch.logical_and(n_ref == 0, n_sys > 0).sum()
 
         # compute speaker diarization error
-        speaker_scored = float(np.sum(n_ref))
-        speaker_miss = float(np.sum(np.maximum(n_ref - n_sys, 0)))
-        speaker_falarm = float(np.sum(np.maximum(n_sys - n_ref, 0)))
-        n_map = np.sum(np.logical_and(label_np == 1, pred_np == 1), axis=2)
-        speaker_error = float(np.sum(np.minimum(n_ref, n_sys) - n_map))
-        correct = float(1.0 * np.sum((label_np == pred_np) * mask) / num_output)
-        num_frames = np.sum(length)
-        return (
-            correct,
-            num_frames,
+        speaker_scored = n_ref.sum()
+        speaker_miss = torch.clamp(n_ref - n_sys, min=0).sum()
+        speaker_falarm = torch.clamp(n_sys - n_ref, min=0).sum()
+        n_map = torch.logical_and(label_np == 1, pred_np == 1).sum(dim=2)
+        speaker_error = (torch.minimum(n_ref, n_sys) - n_map).sum()
+        correct = ((label_np == pred_np) * mask).sum()
+        num_frames = length.sum()
+
+        (
             speech_scored,
             speech_miss,
             speech_falarm,
@@ -369,4 +373,29 @@ class ESPnetDiarizationModel(AbsESPnetModel):
             speaker_miss,
             speaker_falarm,
             speaker_error,
+            correct,
+            num_frames,
+        ) = torch.stack(
+            [
+                speech_scored,
+                speech_miss,
+                speech_falarm,
+                speaker_scored,
+                speaker_miss,
+                speaker_falarm,
+                speaker_error,
+                correct,
+                num_frames.long(),
+            ]
+        ).tolist()
+        return (
+            float(1.0 * correct / num_output),
+            num_frames,
+            float(speech_scored),
+            float(speech_miss),
+            float(speech_falarm),
+            float(speaker_scored),
+            float(speaker_miss),
+            float(speaker_falarm),
+            float(speaker_error),
         )
