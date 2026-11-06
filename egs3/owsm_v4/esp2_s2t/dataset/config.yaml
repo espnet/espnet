@@ -1,0 +1,15 @@
+# Settings every OWSM sub-dataset shares. A sub-dataset inherits them with
+#
+#   defaults:
+#     - ../../config
+#     - _self_
+#
+# and overrides any it needs to.
+
+builder:
+  # Every corpus in the mixture is resampled to this before it reaches the
+  # frontend -- or rather, is expected to already be at it, since nothing here
+  # resamples. A corpus at another rate would be read at the wrong speed and
+  # handed to a frontend configured for 16 kHz, which is silent, so each
+  # builder checks it.
+  expected_fs: 16000

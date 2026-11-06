@@ -54,6 +54,10 @@ dist
 
 # recipe related
 egs*/*/*/data*
+# An egs3 recipe's dataset/ is source code, not a built corpus, but data*
+# above matches it. Without this every sub-dataset needs git add -f and is
+# one git clean away from gone.
+!egs*/*/*/dataset/
 egs*/*/*/manifest*
 egs*/*/*/db
 egs*/*/*/downloads
