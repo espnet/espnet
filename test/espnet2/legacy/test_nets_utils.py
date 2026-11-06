@@ -136,3 +136,39 @@ def test_make_pad_mask_long_input_is_linear_in_memory():
     assert mask.shape == (2, maxlen, 1)
     assert not mask[0].any()
     assert not mask[1, :3].any() and mask[1, 3:].all()
+
+
+def test_trace_make_pad_mask_with_another_maxlen():
+    """A graph traced with a tensor maxlen follows a different maxlen later."""
+    traced = torch.jit.trace(
+        MakePadMaskTest(("lengths", "maxlen")),
+        (torch.LongTensor([3, 1, 2]), torch.LongTensor([5])),
+    )
+    for maxlen in [3, 7]:
+        out = traced(torch.LongTensor([3, 1, 2]), torch.LongTensor([maxlen]))
+        assert torch.equal(out, make_pad_mask([3, 1, 2], maxlen=maxlen))
+
+
+_accelerators = [
+    d
+    for d, ok in [
+        ("cuda", torch.cuda.is_available()),
+        ("mps", torch.backends.mps.is_available()),
+    ]
+    if ok
+]
+
+
+@pytest.mark.skipif(not _accelerators, reason="needs a CUDA or MPS device")
+@pytest.mark.parametrize("device", _accelerators)
+def test_make_pad_mask_cpu_lengths_with_xs_on_device(device):
+    """lengths on the CPU and xs on an accelerator give the mask on xs's device."""
+    lengths = torch.LongTensor([3, 1, 2])
+    for xs, length_dim in [
+        (torch.zeros(3, 4), -1),
+        (torch.zeros(3, 2, 4), -1),
+        (torch.zeros(3, 4, 2), 1),
+    ]:
+        mask = make_pad_mask(lengths, xs.to(device), length_dim=length_dim)
+        assert mask.device.type == device
+        assert torch.equal(mask.cpu(), make_pad_mask(lengths, xs, length_dim))

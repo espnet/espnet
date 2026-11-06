@@ -250,7 +250,10 @@ def _make_pad_mask_traceable(lengths, xs, length_dim, maxlen=None):
     # maxlen may be a one-element tensor; taking the size of a (maxlen,) tensor
     # accepts it, and keeps it dynamic when traced.
     frames = torch.ones(maxlen, dtype=torch.bool, device=device)
-    mask = torch.arange(frames.size(0), device=device) >= lengths.unsqueeze(-1)
+    # lengths may stay on the CPU while xs is on an accelerator.
+    mask = torch.arange(frames.size(0), device=device) >= lengths.to(device).unsqueeze(
+        -1
+    )
 
     if xs is not None and len(xs.shape) == 3 and length_dim == 1:
         return mask.transpose(1, 2)
