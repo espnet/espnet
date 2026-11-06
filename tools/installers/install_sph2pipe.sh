@@ -33,4 +33,4 @@ fi
 # under C23 rules, where "()" means "no arguments" (word_get(fpin) is an error),
 # and recent clang rejects the implicit strdup declaration. Compile it as the C
 # it was written in.
-make -C sph2pipe CCFLAGS="-std=gnu89"
+make -C sph2pipe CCFLAGS="${CCFLAGS:-} -std=gnu89"
