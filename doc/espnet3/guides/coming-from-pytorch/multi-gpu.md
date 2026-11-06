@@ -171,7 +171,7 @@ Then your code can stay conceptually simple:
 
 ```python
 provider = MyProvider(cfg)
-runner = MyRunner(provider)
+runner = MyRunner(provider, output_dir="exp/inference")
 runner(range(len(dataset)))
 ```
 
