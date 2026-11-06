@@ -191,6 +191,7 @@ def test_replay_preserves_preceding_snapshots_and_nonempty_own_config(case, stag
     "stages",
     [
         _STAGES[:4],
+        ["train", "infer"],
         ["infer", "measure"],
         ["pack_model", "upload_model"],
         ["pack_demo", "upload_demo"],
