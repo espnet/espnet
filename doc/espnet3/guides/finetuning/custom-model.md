@@ -131,6 +131,7 @@ Then `inference.yaml` can use either the legacy `output_fn` or a contract:
 output_fn: src.inference.build_output
 
 # Recommended approach with contract:
+input_key: speech
 contract:
   inputs:
     speech:
