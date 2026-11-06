@@ -1,0 +1,248 @@
+"""Unit tests for espnet3.systems.esp2_codec.system."""
+
+from test.espnet3.systems.esp2_codec._gan_dummies import DummyGANModel
+
+import pytest
+import torch.nn as nn
+from omegaconf import OmegaConf
+
+import espnet3.systems.esp2_codec.system as sysmod
+from espnet3.systems.esp2_codec.system import ESP2CodecSystem, _instantiate_model
+
+
+class DummyTrainer:
+    """Record whether ``collect_stats`` and ``fit`` were called, and with what."""
+
+    def __init__(self):
+        """Start with nothing called."""
+        self.collect_stats_called = False
+        self.fit_called = False
+        self.fit_kwargs = None
+
+    def collect_stats(self):
+        """Mark ``collect_stats`` as called."""
+        self.collect_stats_called = True
+
+    def fit(self, **kwargs):
+        """Mark ``fit`` as called and keep its keyword arguments."""
+        self.fit_called = True
+        self.fit_kwargs = kwargs
+
+
+def patch_runtime(monkeypatch, trainer):
+    """Stub the trainer build, parallel setup, seeding and precision setting."""
+    calls = {}
+    monkeypatch.setattr(ESP2CodecSystem, "_build_trainer", lambda self: trainer)
+    monkeypatch.setattr(
+        sysmod, "set_parallel", lambda arg: calls.setdefault("parallel", arg)
+    )
+    monkeypatch.setattr(
+        sysmod.L,
+        "seed_everything",
+        lambda seed, workers=True: calls.setdefault("seed", seed),
+    )
+    monkeypatch.setattr(
+        sysmod.torch,
+        "set_float32_matmul_precision",
+        lambda p: calls.setdefault("precision", p),
+    )
+    return calls
+
+
+# ---------------- _instantiate_model ----------------
+
+
+def test_instantiate_model_with_task_uses_espnet_task(monkeypatch):
+    """A ``task`` key builds the model through the ESPnet2 task."""
+    calls = {}
+    monkeypatch.setattr(
+        sysmod,
+        "get_espnet_model",
+        lambda task, conf: calls.setdefault("args", (task, conf)) and "espnet_model",
+    )
+    cfg = OmegaConf.create({"task": "codec", "model": {"foo": 1}})
+    assert _instantiate_model(cfg) == "espnet_model"
+    assert calls["args"] == ("codec", {"foo": 1})
+
+
+def test_instantiate_model_without_task_uses_hydra(monkeypatch):
+    """Without ``task`` the model comes from Hydra."""
+    monkeypatch.setattr(sysmod, "instantiate", lambda conf: "hydra_model")
+    cfg = OmegaConf.create({"model": {"_target_": "dummy.Model"}})
+    assert _instantiate_model(cfg) == "hydra_model"
+
+
+# ---------------- directories ----------------
+
+
+def test_ensure_directories_creates_exp_and_stats(tmp_path):
+    """Both ``exp_dir`` and ``stats_dir`` are created."""
+    cfg = OmegaConf.create(
+        {"exp_dir": str(tmp_path / "exp"), "stats_dir": str(tmp_path / "stats")}
+    )
+    ESP2CodecSystem(training_config=cfg)._ensure_directories()
+    assert (tmp_path / "exp").is_dir()
+    assert (tmp_path / "stats").is_dir()
+
+
+def test_ensure_directories_without_stats_dir(tmp_path):
+    """A config without ``stats_dir`` creates ``exp_dir`` only."""
+    cfg = OmegaConf.create({"exp_dir": str(tmp_path / "exp")})
+    ESP2CodecSystem(training_config=cfg)._ensure_directories()
+    assert (tmp_path / "exp").is_dir()
+
+
+def test_ensure_directories_with_null_stats_dir(tmp_path):
+    """A null ``stats_dir`` is skipped rather than treated as a path."""
+    cfg = OmegaConf.create({"exp_dir": str(tmp_path / "exp"), "stats_dir": None})
+    ESP2CodecSystem(training_config=cfg)._ensure_directories()
+    assert (tmp_path / "exp").is_dir()
+
+
+# ---------------- _build_trainer dispatch ----------------
+
+
+def test_build_trainer_uses_gan_path_for_gan_model(tmp_path, monkeypatch):
+    """An ``AbsGANESPnetModel`` gets the GAN trainer."""
+    cfg = OmegaConf.create(
+        {"exp_dir": str(tmp_path / "exp"), "model": {"_target_": "d.M"}}
+    )
+    gan_model = DummyGANModel()
+    monkeypatch.setattr(sysmod, "_instantiate_model", lambda c: gan_model)
+    built = {}
+    monkeypatch.setattr(
+        sysmod,
+        "build_gan_trainer",
+        lambda config, model: built.setdefault("args", (config, model))
+        and "gan_trainer",
+    )
+    system = ESP2CodecSystem(training_config=cfg)
+    assert system._build_trainer() == "gan_trainer"
+    assert built["args"][1] is gan_model
+
+
+def test_build_trainer_uses_plain_path_for_non_gan_model(tmp_path, monkeypatch):
+    """Any other model gets the plain ESPnet3 trainer."""
+    cfg = OmegaConf.create(
+        {
+            "exp_dir": str(tmp_path / "exp"),
+            "model": {"_target_": "d.M"},
+            "trainer": {"max_epochs": 1},
+            "best_model_criterion": None,
+        }
+    )
+    monkeypatch.setattr(sysmod, "_instantiate_model", lambda c: nn.Linear(1, 1))
+    monkeypatch.setattr(
+        sysmod, "ESPnetLightningModule", lambda model, config: "lit_model"
+    )
+    recorded = {}
+
+    def fake_trainer(model=None, exp_dir=None, config=None, best_model_criterion=None):
+        """Record the model and exp_dir the trainer is built with."""
+        recorded.update(model=model, exp_dir=exp_dir)
+        return "plain_trainer"
+
+    monkeypatch.setattr(sysmod, "ESPnet3LightningTrainer", fake_trainer)
+    system = ESP2CodecSystem(training_config=cfg)
+    assert system._build_trainer() == "plain_trainer"
+    assert recorded["model"] == "lit_model"
+    assert recorded["exp_dir"] == str(tmp_path / "exp")
+
+
+# ---------------- stages ----------------
+
+
+def test_system_inherits_the_default_stage_order():
+    """The system runs the nine default stages in the base order."""
+    assert [spec.name for spec in ESP2CodecSystem.stages] == [
+        "create_dataset",
+        "collect_stats",
+        "train",
+        "infer",
+        "measure",
+        "pack_model",
+        "upload_model",
+        "pack_demo",
+        "upload_demo",
+    ]
+
+
+def test_collect_stats_runs_pipeline(tmp_path, monkeypatch):
+    """``collect_stats`` prepares the runtime, builds the trainer and collects."""
+    cfg = OmegaConf.create(
+        {
+            "exp_dir": str(tmp_path / "exp"),
+            "stats_dir": str(tmp_path / "stats"),
+            "seed": 777,
+            "parallel": {"backend": "dummy"},
+        }
+    )
+    trainer = DummyTrainer()
+    calls = patch_runtime(monkeypatch, trainer)
+    system = ESP2CodecSystem(training_config=cfg)
+
+    system.collect_stats()
+
+    assert trainer.collect_stats_called
+    assert calls["parallel"] == cfg.parallel
+    assert calls["seed"] == 777
+    assert calls["precision"] == "high"
+    assert (tmp_path / "exp").is_dir()
+
+
+def test_train_saves_espnet_config_and_forwards_fit_kwargs(tmp_path, monkeypatch):
+    """``train`` saves the ESPnet config when ``task`` is set and forwards ``fit``."""
+    cfg = OmegaConf.create(
+        {
+            "exp_dir": str(tmp_path / "exp"),
+            "seed": 123,
+            "task": "codec",
+            "fit": {"ckpt_path": "last"},
+        }
+    )
+    trainer = DummyTrainer()
+    calls = patch_runtime(monkeypatch, trainer)
+    monkeypatch.setattr(
+        sysmod,
+        "save_espnet_config",
+        lambda task, c, exp_dir: calls.setdefault("save", (task, exp_dir)),
+    )
+    system = ESP2CodecSystem(training_config=cfg)
+
+    system.train()
+
+    assert trainer.fit_called
+    assert trainer.fit_kwargs == {"ckpt_path": "last"}
+    assert calls["save"] == ("codec", str(tmp_path / "exp"))
+    assert calls["seed"] == 123
+
+
+def test_train_without_task_and_fit(tmp_path, monkeypatch):
+    """``train`` without ``task``, ``fit``, ``parallel`` or ``seed`` touches none."""
+    cfg = OmegaConf.create({"exp_dir": str(tmp_path / "exp")})
+    trainer = DummyTrainer()
+    calls = patch_runtime(monkeypatch, trainer)
+    monkeypatch.setattr(
+        sysmod,
+        "save_espnet_config",
+        lambda task, c, exp_dir: calls.setdefault("save", True),
+    )
+    system = ESP2CodecSystem(training_config=cfg)
+
+    system.train()
+
+    assert trainer.fit_called
+    assert trainer.fit_kwargs == {}
+    assert "save" not in calls
+    # no parallel / seed configured -> hooks not invoked
+    assert "parallel" not in calls
+    assert "seed" not in calls
+
+
+@pytest.mark.parametrize("stage", ["train", "collect_stats"])
+def test_stages_reject_positional_arguments(tmp_path, stage):
+    """Stage methods refuse positional arguments."""
+    cfg = OmegaConf.create({"exp_dir": str(tmp_path / "exp")})
+    system = ESP2CodecSystem(training_config=cfg)
+    with pytest.raises(TypeError, match="does not accept arguments"):
+        getattr(system, stage)("unexpected")
