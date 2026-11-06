@@ -102,6 +102,7 @@ Homepage = "http://github.com/espnet/espnet"
 [project.scripts]
 espnet = "espnet2.bin.cli:main"
 espnet-mcp = "espnet2.bin.mcp_server:main"
+espnet3 = "espnet3.bin.main:main"
 # The text-side counterpart of VERSA's `versa-score`, with the same shape of
 # command. Named after espnet3's `measure` stage rather than after VERSA's,
 # because in ESPnet a "scorer" is a beam-search component.
@@ -191,8 +192,7 @@ tts = [
 ]
 
 enh = [
-  # ci_sdr (CISDRLoss) is not listed: pip>=26.3 refuses its PyPI release, so
-  # it is installed from git by tools/installers/install_ci_sdr.sh instead.
+  "ci_sdr>=0.0.3",  # 0.0.2 declares a git URL dependency, which pip>=26.3 refuses
   "fast-bss-eval==0.1.3",
 ]
 rst = [
@@ -212,6 +212,10 @@ s2st = [
 
 st = [
   "editdistance",
+  # 2.x for the scorer API espnet3/systems/st/metrics/bleu.py uses: in 1.x
+  # `sacrebleu.BLEU` is the score namedtuple, not a class, and takes neither
+  # `tokenize` nor `lowercase`.
+  "sacrebleu>=2.0.0",
 ]
 
 # espnet2/s2t and espnet3/systems/esp2_s2t (OWSM and Whisper-style S2T),
