@@ -183,7 +183,9 @@ dataset/
 That module exports:
 
 - `Dataset`
-- optionally `DatasetBuilder`
+- `DatasetBuilder` when using `BaseSystem.create_dataset()`; that stage
+  instantiates the builder for each configured dataset. It may be omitted
+  when the flow does not call that stage.
 
 So the mapping is:
 
