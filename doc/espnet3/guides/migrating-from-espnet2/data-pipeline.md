@@ -197,7 +197,13 @@ That gives you three useful layers:
 Conceptually:
 
 ```python
-class MyDataset(torch.utils.data.Dataset):
+from espnet3.components.data.base_dataset import BaseDataset
+from espnet3.contract import Field
+
+
+class MyDataset(BaseDataset):
+    fields = (Field("speech", "audio"),)
+
     def __getitem__(self, idx):
         sample = load_sample(idx)
         sample["speech"] = random_gain(sample["speech"])
@@ -207,15 +213,15 @@ class MyDataset(torch.utils.data.Dataset):
 This is often the cleanest replacement for shell stages that existed only to
 prepare one slightly modified variant of the same data.
 
-## Dataset does not need to be an ESPnet-specific dataset anymore
+## Recipe datasets extend BaseDataset
 
 This is another major change.
 
 In ESPnet2, users often think in terms of `ESPnetDataset` and task-driven input
 constraints.
 
-In ESPnet3, recipe-local datasets can be ordinary `torch.utils.data.Dataset`
-classes.
+In ESPnet3, recipe-local datasets extend `BaseDataset`, which is a PyTorch
+dataset and declares the fields returned by each sample.
 
 That means:
 
@@ -224,8 +230,8 @@ That means:
 - custom augmentation is easy
 - custom sample dictionaries are easy
 
-You are no longer forced into a special dataset abstraction just to plug into
-the recipe.
+`BaseDataset` checks the declared fields while allowing ordinary PyTorch
+dataset implementations.
 
 ## What dataset.py usually returns
 
