@@ -102,6 +102,27 @@ def _check_bundled_module_conflicts(
         )
 
 
+def _model_loading_config(config: DictConfig) -> DictConfig:
+    """Select code-bearing runtime settings for the built-in provider.
+
+    Stage inheritance also carries training hooks and dataset constructors.
+    The built-in provider only instantiates model; publication additionally
+    loads the runner, contract imports and legacy output adapter. Inherited
+    training settings are not executed by this path. Custom providers receive
+    the full config and may use other fields, so retain the full trust check
+    for them.
+    """
+    provider = config.get("provider")
+    provider_target = provider.get("_target_") if provider else None
+    if provider_target not in (
+        None,
+        "espnet3.systems.base.inference_provider.InferenceProvider",
+    ):
+        return config
+    keys = ("model", "provider", "runner", "contract", "output_fn", "model_kwargs")
+    return OmegaConf.create({key: config[key] for key in keys if key in config})
+
+
 def _uses_bundled_code(
     config: DictConfig,
     bundled_modules: set[str],
@@ -430,7 +451,10 @@ class InferenceModel:
         if contract_imports and not trust_user_code:
             raise ValueError("contract.imports requires trust_user_code=True")
 
-        if _uses_bundled_code(inference_config, bundled_modules) or contract_imports:
+        if (
+            _uses_bundled_code(_model_loading_config(inference_config), bundled_modules)
+            or contract_imports
+        ):
             if not trust_user_code:
                 raise ValueError(
                     "This inference config references bundled user code. "
@@ -451,7 +475,7 @@ class InferenceModel:
         # callable. Hydra would still import and execute that target, including
         # recursively nested targets in its arguments.
         if not trust_user_code:
-            disallowed = _disallowed_targets(inference_config)
+            disallowed = _disallowed_targets(_model_loading_config(inference_config))
             if disallowed:
                 raise ValueError(
                     "This inference config instantiates targets outside the "

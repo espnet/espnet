@@ -1,0 +1,107 @@
+create_dataset:
+  exp_dir: __ROOT__/train
+  data_dir: __ROOT__/data
+  stats_dir: __ROOT__/stats
+  tokenizer: &id001
+    save_path: __ROOT__/tokenizer
+  model: &id002
+    encoder: conformer
+  dataset: &id003
+    train:
+      split: train
+train_tokenizer:
+  exp_dir: __ROOT__/train
+  data_dir: __ROOT__/data
+  stats_dir: __ROOT__/stats
+  tokenizer: *id001
+  model: *id002
+  dataset: *id003
+collect_stats:
+  exp_dir: __ROOT__/train
+  data_dir: __ROOT__/data
+  stats_dir: __ROOT__/stats
+  tokenizer: *id001
+  model: *id002
+  dataset: *id003
+train:
+  exp_dir: __ROOT__/train
+  data_dir: __ROOT__/data
+  stats_dir: __ROOT__/stats
+  tokenizer: *id001
+  model: *id002
+  dataset: *id003
+infer:
+  exp_dir: __ROOT__/train
+  data_dir: __ROOT__/data
+  stats_dir: __ROOT__/stats
+  tokenizer: *id001
+  model: &id004
+    _target_: espnet2.bin.asr_inference.Speech2Text
+    asr_train_config: ${exp_dir}/config.yaml
+    asr_model_file: ${exp_dir}/valid.loss.best.pth
+  dataset: &id005
+    test:
+      split: test
+  inference_dir: ${exp_dir}/inference
+measure:
+  exp_dir: __ROOT__/train
+  data_dir: __ROOT__/data
+  stats_dir: __ROOT__/stats
+  tokenizer: *id001
+  model: *id004
+  dataset: *id005
+  inference_dir: ${exp_dir}/inference
+  score_file: ${inference_dir}/test/text.scp
+pack_model:
+  exp_dir: __ROOT__/train
+  data_dir: __ROOT__/data
+  stats_dir: __ROOT__/stats
+  tokenizer: *id001
+  model: *id002
+  dataset: *id003
+  inference_dir: ${exp_dir}/inference
+  score_file: ${inference_dir}/test/text.scp
+  pack: &id006
+    out_dir: ${exp_dir}/model_pack
+  upload_model: &id007
+    model_dir: ${exp_dir}/model_pack
+    hf_repo: example/model
+upload_model:
+  exp_dir: __ROOT__/train
+  data_dir: __ROOT__/data
+  stats_dir: __ROOT__/stats
+  tokenizer: *id001
+  model: *id002
+  dataset: *id003
+  inference_dir: ${exp_dir}/inference
+  score_file: ${inference_dir}/test/text.scp
+  pack: *id006
+  upload_model: *id007
+pack_demo:
+  exp_dir: __ROOT__/train
+  data_dir: __ROOT__/data
+  stats_dir: __ROOT__/stats
+  tokenizer: *id001
+  model: &id008
+    model_dir: ${exp_dir}/model_pack
+  dataset: *id003
+  inference_dir: ${exp_dir}/inference
+  score_file: ${inference_dir}/test/text.scp
+  pack: &id009
+    out_dir: __ROOT__/demo
+  upload_model: *id007
+  upload_demo: &id010
+    demo_dir: ${pack.out_dir}
+    hf_repo: example/demo
+upload_demo:
+  exp_dir: __ROOT__/train
+  data_dir: __ROOT__/data
+  stats_dir: __ROOT__/stats
+  tokenizer: *id001
+  model: *id008
+  dataset: *id003
+  inference_dir: ${exp_dir}/inference
+  score_file: ${inference_dir}/test/text.scp
+  pack: *id009
+  upload_model: *id007
+  upload_demo: *id010

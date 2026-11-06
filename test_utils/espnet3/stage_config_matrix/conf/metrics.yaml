@@ -1,0 +1,1 @@
+score_file: ${inference_dir}/test/text.scp

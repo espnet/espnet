@@ -4,6 +4,7 @@ from unittest.mock import mock_open, patch
 
 import pytest
 from omegaconf import OmegaConf
+from omegaconf.errors import InterpolationKeyError
 from yaml.parser import ParserError
 
 from espnet3.utils.config_utils import (
@@ -522,13 +523,12 @@ def test_load_and_merge_publication_config_inherits_template_readme_path() -> No
 
     readme = cfg.pack_model.readme
     assert Path(readme).is_absolute()
-    assert readme.endswith("egs3/TEMPLATE/esp2_asr/src/hf_model_readme.md")
-    assert list(cfg.pack_model.include) == [
-        "./src",
-        "./dataset",
-        "./data/**/bpe.model",
-        "./data/**/bpe.vocab",
-        "./data/**/tokens.txt",
+    assert OmegaConf.to_container(cfg.pack_model.include, resolve=False) == [
+        "${recipe_dir}/src",
+        "${recipe_dir}/dataset",
+        "${data_dir}/**/bpe.model",
+        "${data_dir}/**/bpe.vocab",
+        "${data_dir}/**/tokens.txt",
     ]
     assert list(cfg.pack_model.exclude)[:2] == ["inference", "inference_*"]
 
@@ -862,3 +862,18 @@ def test_convert_to_dict_returns_a_plain_dict_unchanged():
 def test_convert_to_dict_passes_non_omegaconf_values_through(value):
     """`token_list` reaches the helper as a path string or a plain list."""
     assert convert_to_dict(value) is value
+
+
+def test_convert_to_dict_can_defer_interpolation_resolution():
+    config = OmegaConf.create({"path": "${parent}/data", "nested": ["${parent}"]})
+    assert convert_to_dict(config, resolve=False) == {
+        "path": "${parent}/data",
+        "nested": ["${parent}"],
+    }
+    with pytest.raises(InterpolationKeyError):
+        convert_to_dict(config)
+
+
+def test_convert_to_dict_deferred_conversion_keeps_plain_values_unchanged():
+    value = {"path": "${parent}/data"}
+    assert convert_to_dict(value, resolve=False) is value

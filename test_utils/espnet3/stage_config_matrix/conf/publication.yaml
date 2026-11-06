@@ -1,0 +1,5 @@
+pack:
+  out_dir: ${exp_dir}/model_pack
+upload_model:
+  model_dir: ${exp_dir}/model_pack
+  hf_repo: example/model

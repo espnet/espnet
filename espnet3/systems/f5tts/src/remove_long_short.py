@@ -423,13 +423,13 @@ def remove_long_short(config: DictConfig) -> None:
         results from an earlier run are never reused, because the keep/drop
         decisions depend on the duration bounds.
     """
-    remove_long_short_config = BaseSystem._get_required_config(
+    remove_long_short_config = BaseSystem._require(
         config,
         "remove_long_short",
         "training_config.remove_long_short must be set for remove_long_short stage.",
     )
     save_dir = Path(
-        BaseSystem._get_required_config(
+        BaseSystem._require(
             remove_long_short_config,
             "save_path",
             "training_config.remove_long_short.save_path must be set "
@@ -441,10 +441,10 @@ def remove_long_short(config: DictConfig) -> None:
         "training_config.remove_long_short.min_wav_duration and "
         "max_wav_duration must be set for remove_long_short stage."
     )
-    min_duration = BaseSystem._get_required_config(
+    min_duration = BaseSystem._require(
         remove_long_short_config, "min_wav_duration", duration_error
     )
-    max_duration = BaseSystem._get_required_config(
+    max_duration = BaseSystem._require(
         remove_long_short_config, "max_wav_duration", duration_error
     )
 

@@ -77,6 +77,20 @@ def test_get_espnet_model():
     assert str(model) == str(model_espnet3)  # Check all attributes are the same
 
 
+def test_get_espnet_model_rejects_none_config():
+    # Without this guard, a None/empty config reaches ez_task.build_model and
+    # fails deep inside ESPnet2 task construction with a low-level
+    # AttributeError/TypeError that does not say what is actually missing.
+    with pytest.raises(ValueError, match="model"):
+        get_espnet_model("espnet2.tasks.asr.ASRTask", None)
+
+
+def test_get_espnet_model_rejects_empty_dict_config():
+    """Same guard, for the empty-mapping shape an unset `model:` produces."""
+    with pytest.raises(ValueError, match="model"):
+        get_espnet_model("espnet2.tasks.asr.ASRTask", {})
+
+
 def test_save_espnet_config(tmp_path):
     config_path = Path("test_utils") / "espnet3" / "config" / "model_ctc.yaml"
     output_file = tmp_path / "config.yaml"

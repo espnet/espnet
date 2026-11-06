@@ -3,6 +3,9 @@
 ##########################################################
 # Quick usage:
 #   python run.py --stages measure --metrics_config conf/metrics.yaml
+# Or, to reuse the identity (and inference_dir) baked by a previous
+# training/infer run, without passing any config explicitly:
+#   python run.py --stages measure --exp_dir exp/train_asr_transformer
 #
 # Assumptions:
 # - `infer` has already produced `<test_name>/*.scp` files: one per output of
@@ -18,19 +21,16 @@
 ##########################################################
 #                    PATHS AND INPUTS                    #
 ##########################################################
-recipe_dir: .
 # Common case:
 # - pass `--training_config`, `--inference_config`, and `--metrics_config`
-# - `launch()` copies `training_config.exp_tag` / `training_config.exp_dir` here
-# - `launch()` also copies `inference_config.inference_dir` here, so `measure`
-#   reads the same directory used by `infer`
+# - `recipe_dir`, `exp_tag` and `exp_dir` are inherited from the training
+#   config; `inference_dir` is inherited from the `infer` stage's own
+#   config, so `measure` reads the same directory used by `infer`
 #
-# Standalone `measure` is also supported. In that case, set either `exp_tag` or
-# a concrete `exp_dir` below, and add `inference_dir` here unless
-# `--inference_config` provides it. Add `inference_dir` only when you want to
-# score a different inference output directory.
-exp_tag:
-exp_dir: ${recipe_dir}/exp/${exp_tag}
+# Standalone `measure` is also supported with `--exp_dir`: it inherits
+# `train`'s and `infer`'s baked configs from `<exp_dir>/config/`, so no
+# `--training_config`/`--inference_config` is needed. Add `inference_dir`
+# below only when you want to score a different inference output directory.
 
 # A `dataset:<column>` input that is not a scalar (a reference waveform for
 # an audio metric, say) is written as an artifact under

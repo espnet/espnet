@@ -14,19 +14,15 @@
 ##########################################################
 #                    PATHS AND INPUTS                    #
 ##########################################################
-recipe_dir: .
 # Common case:
 # - pass both `--training_config` and `--publication_config`
-# - `launch()` copies `training_config.exp_tag` / `training_config.exp_dir` here
-# - `pack_model` also receives `inference_config` and `metrics_config` when
-#   they were provided to `launch()`
+# - `recipe_dir`, `exp_tag` and `exp_dir` are inherited from the training
+#   config; `inference_dir` is inherited from the `infer` stage's own
+#   config when `infer` ran earlier in this run (or was baked by an
+#   earlier run, with `--exp_dir`)
 #
 # Override `inference_dir` only when publication should read results from a
 # different inference output directory.
-exp_tag: ${self_name:}
-exp_dir: exp/${exp_tag}
-inference_dir: ${exp_dir}/inference
-data_dir: ${recipe_dir}/data
 
 ##########################################################
 #                   PACK MODEL SETTING                   #

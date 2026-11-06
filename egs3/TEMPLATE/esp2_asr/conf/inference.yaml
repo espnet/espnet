@@ -11,17 +11,14 @@
 ##########################################################
 #                    PATHS AND INPUTS                    #
 ##########################################################
-recipe_dir: .
 # Common case:
 # - pass both `--training_config` and `--inference_config`
-# - `launch()` copies `training_config.exp_tag` / `training_config.exp_dir` here
+# - `recipe_dir`, `exp_tag` and `exp_dir` are inherited from the training
+#   config (the `train` stage's own `exp_tag`/`exp_dir`), not redeclared here
 # - `${self_name:}` resolves to the stem of the config file passed to
 #   `--inference_config`
 # - if `inference_dir` is omitted, `conf/<name>.yaml` becomes `${exp_dir}/<name>`
 # Override `inference_dir` only when you want a different output location.
-exp_tag:
-exp_dir: ${recipe_dir}/exp/${exp_tag}
-data_dir: ${recipe_dir}/data
 inference_dir: ${exp_dir}/${self_name:}
 
 # If inference needs access to manifests under the same dataset root as

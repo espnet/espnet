@@ -1058,3 +1058,39 @@ def test_constructor_overrides_cannot_bypass_trust_validation(
         InferenceModel.from_packed(bundle, argument={"_target_": "pathlib.Path"})
     with pytest.raises(ValueError, match="control keys"):
         InferenceModel.from_packed(bundle, _target_="os.system")
+
+
+@pytest.mark.parametrize(
+    "provider_target",
+    [None, "espnet3.systems.base.inference_provider.InferenceProvider"],
+)
+def test_inherited_training_hooks_do_not_require_runtime_trust(
+    tmp_path, mock_build_model, provider_target
+):
+    """Ignore inherited training code that the built-in provider never executes."""
+    bundle = _make_pack_dir(
+        tmp_path, with_src_module=True, provider_target=provider_target
+    )
+    config_path = bundle / "conf" / "inference.yaml"
+    config = yaml.safe_load(config_path.read_text(encoding="utf-8"))
+    config["tokenizer"] = {"text_builder": {"func": "src.custom_code.build_text"}}
+    config["dataset"] = {"_target_": "src.custom_code.TrainingDataset"}
+    config_path.write_text(yaml.safe_dump(config), encoding="utf-8")
+
+    assert InferenceModel.from_packed(bundle, trust_user_code=False) is not None
+
+
+def test_custom_provider_still_requires_trust_for_other_config_code(tmp_path):
+    """A custom provider can execute arbitrary extra settings, so check them."""
+    bundle = _make_pack_dir(
+        tmp_path,
+        with_src_module=True,
+        provider_target="espnet3.systems.example.CustomProvider",
+    )
+    config_path = bundle / "conf" / "inference.yaml"
+    config = yaml.safe_load(config_path.read_text(encoding="utf-8"))
+    config["custom_hook"] = "src.custom_code.build_model"
+    config_path.write_text(yaml.safe_dump(config), encoding="utf-8")
+
+    with pytest.raises(ValueError, match="references bundled user code"):
+        InferenceModel.from_packed(bundle, trust_user_code=False)

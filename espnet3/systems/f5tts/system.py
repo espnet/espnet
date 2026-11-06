@@ -25,7 +25,8 @@ class F5TTSSystem(BaseSystem):
     infer -> measure -> pack_model -> upload_model -> pack_demo ->
     upload_demo``. Every stage other than the two added here is inherited
     from ``BaseSystem`` unchanged: the model is instantiated directly from
-    ``training_config.model._target_``, with ``task`` left unset.
+    the ``train`` stage config's ``model._target_``, with ``task`` left
+    unset.
 
     Examples:
         >>> [s.name for s in F5TTSSystem.stages[:3]]
@@ -57,10 +58,9 @@ class F5TTSSystem(BaseSystem):
     def remove_long_short(self, *args, **kwargs):
         """Filter the recipe's manifests by audio duration.
 
-        Runs the ``remove_long_short`` stage on ``training_config``. See
+        Runs the ``remove_long_short`` stage on its own stage config. See
         :func:`espnet3.systems.f5tts.src.remove_long_short.remove_long_short`
-        for the ``training_config.remove_long_short`` fields and the files
-        written.
+        for the ``remove_long_short`` fields and the files written.
 
         Raises:
             TypeError: If any positional or keyword argument is passed.
@@ -68,7 +68,7 @@ class F5TTSSystem(BaseSystem):
                 file is not found.
 
         Examples:
-            >>> system = F5TTSSystem(training_config=training_config)
+            >>> system = F5TTSSystem(configs={"training": training_config})
             >>> system.remove_long_short()
 
         Note:
@@ -78,15 +78,14 @@ class F5TTSSystem(BaseSystem):
         """
         self._reject_stage_args("remove_long_short", args, kwargs)
         logger.info("F5TTSSystem.remove_long_short(): starting duration filtering")
-        return remove_long_short(self.training_config)
+        return remove_long_short(self.stage_configs["remove_long_short"])
 
     def create_token_list(self, *args, **kwargs):
         """Build the token list from the training manifest.
 
-        Runs the ``create_token_list`` stage on ``training_config``. See
+        Runs the ``create_token_list`` stage on its own stage config. See
         :func:`espnet3.systems.f5tts.src.create_token_list.create_token_list`
-        for the ``training_config.create_token_list`` fields and the file
-        written.
+        for the ``create_token_list`` fields and the file written.
 
         Raises:
             TypeError: If any positional or keyword argument is passed.
@@ -94,7 +93,7 @@ class F5TTSSystem(BaseSystem):
                 manifest file is not found.
 
         Examples:
-            >>> system = F5TTSSystem(training_config=training_config)
+            >>> system = F5TTSSystem(configs={"training": training_config})
             >>> system.create_token_list()
 
         Note:
@@ -103,4 +102,4 @@ class F5TTSSystem(BaseSystem):
         """
         self._reject_stage_args("create_token_list", args, kwargs)
         logger.info("F5TTSSystem.create_token_list(): starting token list creation")
-        return create_token_list(self.training_config)
+        return create_token_list(self.stage_configs["create_token_list"])

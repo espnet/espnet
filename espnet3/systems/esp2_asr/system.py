@@ -22,8 +22,8 @@ class ASRSystem(BaseSystem):
     """ASR-specific system.
 
     This system adds ``train_tokenizer`` (its log goes under
-    ``training_config.tokenizer.save_path``), run before ``train`` trains
-    the tokenizer if it is not already cached.
+    ``tokenizer.save_path`` of its own stage config), run before ``train``
+    trains the tokenizer if it is not already cached.
 
     Examples:
         >>> [s.name for s in ASRSystem.stages[:2]]
@@ -53,16 +53,21 @@ class ASRSystem(BaseSystem):
 
         Raises:
             RuntimeError: If neither dataset references nor ``dataset_dir`` exist.
+
+        Examples:
+            >>> system = ASRSystem(configs={"training": training_config})
+            >>> system.train()
         """
         self._reject_stage_args("train", args, kwargs)
         logger.info("ASRSystem.train(): starting training process")
 
-        dataset_dir = getattr(self.training_config, "dataset_dir", None)
-        dataset_config = getattr(self.training_config, "dataset", None)
+        config = self.stage_configs["train"]
+        dataset_dir = getattr(config, "dataset_dir", None)
+        dataset_config = getattr(config, "dataset", None)
         if dataset_dir is None and dataset_config is None:
             raise RuntimeError(
-                "training_config.dataset or training_config.dataset_dir must be set "
-                "for training."
+                "train: the stage config has no dataset or dataset_dir; set "
+                "one in training.yaml."
             )
 
         # Train tokenizer if not trained previously
@@ -73,7 +78,7 @@ class ASRSystem(BaseSystem):
         return super().train()
 
     def _has_tokenizer(self) -> bool:
-        tokenizer_config = self.training_config.tokenizer
+        tokenizer_config = self.stage_configs["train_tokenizer"].tokenizer
         output_path = Path(tokenizer_config.save_path)
         model = output_path / f"{tokenizer_config.model_type}.model"
         vocab = output_path / f"{tokenizer_config.model_type}.vocab"
@@ -82,12 +87,16 @@ class ASRSystem(BaseSystem):
     def train_tokenizer(self, *args, **kwargs):
         """Train a SentencePiece tokenizer based on configured text.
 
-        The text builder configured in ``training_config.tokenizer.text_builder``
-        is used to generate training text, which is then saved and consumed
-        by the SentencePiece trainer.
+        The text builder configured in this stage's own
+        ``tokenizer.text_builder`` is used to generate training text, which
+        is then saved and consumed by the SentencePiece trainer.
 
         Raises:
             RuntimeError: If required tokenizer config is missing or invalid.
+
+        Examples:
+            >>> system = ASRSystem(configs={"training": training_config})
+            >>> system.train_tokenizer()
         """
         self._reject_stage_args("train_tokenizer", args, kwargs)
 
@@ -95,7 +104,8 @@ class ASRSystem(BaseSystem):
             logger.info("Tokenizer already exists. Skipping train_tokenizer().")
             return
         start = time.perf_counter()
-        tokenizer_config = getattr(self.training_config, "tokenizer", None)
+        config = self.stage_configs["train_tokenizer"]
+        tokenizer_config = getattr(config, "tokenizer", None)
         builder_config = (
             getattr(tokenizer_config, "text_builder", None)
             if tokenizer_config
@@ -103,8 +113,8 @@ class ASRSystem(BaseSystem):
         )
         if builder_config is None or not getattr(builder_config, "func", None):
             raise RuntimeError(
-                "training_config.tokenizer.text_builder.func must be set to build "
-                "tokenizer text."
+                "train_tokenizer: the stage config has no "
+                "tokenizer.text_builder.func; set it in training.yaml."
             )
         module_path, func_name = builder_config.func.rsplit(".", 1)
         builder = getattr(import_module(module_path), func_name)
@@ -129,13 +139,13 @@ class ASRSystem(BaseSystem):
             raise RuntimeError(
                 "Tokenizer text_builder returned no text. Check dataset preparation."
             )
-        output_path = Path(self.training_config.tokenizer.save_path)
+        output_path = Path(tokenizer_config.save_path)
         output_path.mkdir(parents=True, exist_ok=True)
         train_text_path = getattr(tokenizer_config, "train_file", None)
         if train_text_path:
             train_text_path = Path(train_text_path)
         else:
-            data_dir = getattr(self.training_config, "data_dir", None)
+            data_dir = getattr(config, "data_dir", None)
             if data_dir:
                 train_text_path = Path(data_dir) / "train_tokenizer" / "train.txt"
             else:
@@ -149,15 +159,15 @@ class ASRSystem(BaseSystem):
         with open(train_text_path, "w", encoding="utf-8") as f:
             f.write("\n".join(texts))
 
-        logger.info(f"Training tokenizer: {self.training_config.tokenizer.model_type}")
-        logger.info(f"Tokenizer output: {self.training_config.tokenizer.save_path}")
+        logger.info("Training tokenizer: %s", tokenizer_config.model_type)
+        logger.info("Tokenizer output: %s", tokenizer_config.save_path)
 
         # Example placeholder:
         train_sentencepiece(
             train_text_path,
             output_path,
-            self.training_config.tokenizer.vocab_size,
-            model_type=self.training_config.tokenizer.model_type,
+            tokenizer_config.vocab_size,
+            model_type=tokenizer_config.model_type,
         )
         logger.info(
             "Tokenizer training completed in %.2fs", time.perf_counter() - start
