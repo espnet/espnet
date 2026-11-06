@@ -1,0 +1,181 @@
+"""Audio stored in Omni-IO archives, addressed through a Kaldi-style scp.
+
+An Omni-IO archive keeps compressed audio (FLAC by default) back to back in
+large ``blob_<i>.bin`` files and indexes it in ``metadata.parquet``, the layout
+of ``omniio.blob.blob.Blob``. Packing utterances into a few large files avoids
+the per-file metadata load that millions of small audio files put on a shared
+file system.
+
+ESPnet keeps its usual ``wav.scp`` next to the archive, one line per
+utterance pointing at the utterance's byte range::
+
+    utt_id /abs/path/blob_0.bin:<start_byte>:<end_byte>
+
+so that every data-directory tool that works on ``wav.scp`` (subsetting,
+fix_data_dir.sh, filter_scp.pl, ...) keeps working, and loading an utterance
+is one seek and one read.
+"""
+
+import collections.abc
+from pathlib import Path
+from typing import Dict, List, Optional, Tuple, Union
+
+import numpy as np
+from typeguard import typechecked
+
+from espnet2.fileio.read_text import read_2columns_text
+
+
+def parse_omniio_entry(entry: str) -> Tuple[str, int, int]:
+    """Split ``<bin path>:<start_byte>:<end_byte>`` (the path may contain ':')."""
+    path, start, end = entry.rsplit(":", 2)
+    return path, int(start), int(end)
+
+
+class OmniIOAudioScpReader(collections.abc.Mapping):
+    """Reader for an scp whose entries point into Omni-IO archives.
+
+    Examples:
+        utt1 /data/format.1/wav/blob_0.bin:0:31052
+        utt2 /data/format.1/wav/blob_0.bin:31052:92707
+
+        >>> reader = OmniIOAudioScpReader('wav.scp')
+        >>> rate, array = reader['utt1']
+
+    Args:
+        fname: The scp file.
+        always_2d: Keep the channel axis even for single-channel audio.
+    """
+
+    @typechecked
+    def __init__(self, fname: Union[Path, str], always_2d: bool = False):
+        self.fname = fname
+        self.always_2d = always_2d
+        self.data = read_2columns_text(fname)
+
+    def __getitem__(self, key: str) -> Tuple[Optional[int], Optional[np.ndarray]]:
+        from omniio.interface import audio_read
+
+        entry = self.data[key]
+        if entry == "None":
+            # an utterance without audio, as format_wav_scp.py writes it
+            return None, None
+        path, start, end = parse_omniio_entry(entry)
+        result = audio_read(path, start_offset=start, file_size=end - start)
+        array = result.array  # (frames, channels)
+        if not self.always_2d and array.ndim == 2 and array.shape[1] == 1:
+            array = array[:, 0]
+        return int(result.sample_rate), array
+
+    def get_path(self, key: str) -> str:
+        return self.data[key]
+
+    def __contains__(self, item):
+        return item in self.data
+
+    def __len__(self):
+        return len(self.data)
+
+    def __iter__(self):
+        return iter(self.data)
+
+    def keys(self):
+        return self.data.keys()
+
+
+class OmniIOAudioWriter:
+    """Write audio into one Omni-IO archive and an scp pointing into it.
+
+    The archive is ``outdir/blob_<i>.bin`` + ``outdir/metadata.parquet`` with
+    the columns that ``omniio.blob.blob.Blob`` writes (``id``, ``start_byte``,
+    ``end_byte``, ``bin_index``, ``path`` and the audio metadata of
+    ``omniio.audio.write.audio_write``), so other Omni-IO tools can read it.
+    A new bin file is started once ``max_bin_size`` bytes would be exceeded.
+
+    Examples:
+        >>> with OmniIOAudioWriter('dump/format.1/wav', 'dump/format.1/wav.scp') as w:
+        ...     w['utt1'] = 16000, numpy_array
+
+    Args:
+        outdir: Archive directory.
+        scpfile: The scp file to write.
+        format: Audio codec inside the archive ("flac", "wav" or "webm").
+        bit_depth: PCM bit depth (ignored for "webm").
+        max_bin_size: Maximum size of one bin file in bytes.
+    """
+
+    @typechecked
+    def __init__(
+        self,
+        outdir: Union[Path, str],
+        scpfile: Union[Path, str],
+        format: str = "flac",
+        bit_depth: int = 16,
+        max_bin_size: int = 320 * 1024 * 1024,
+    ):
+        self.dir = Path(outdir).absolute()
+        self.dir.mkdir(parents=True, exist_ok=True)
+        scpfile = Path(scpfile)
+        scpfile.parent.mkdir(parents=True, exist_ok=True)
+        self.fscp = scpfile.open("w", encoding="utf-8")
+        self.format = format
+        self.bit_depth = bit_depth
+        self.max_bin_size = max_bin_size
+
+        self.bin_index = 0
+        self.offset = 0
+        self.fbin = self._bin_path(self.bin_index).open("wb")
+        self.rows: List[Dict] = []
+        self.ids = set()
+
+    def _bin_path(self, index: int) -> Path:
+        return self.dir / f"blob_{index}.bin"
+
+    def __setitem__(self, key: str, value: Tuple[int, np.ndarray]):
+        from omniio.audio.write import audio_write
+
+        rate, signal = value
+        if key in self.ids:
+            raise RuntimeError(f"{key} is duplicated")
+        raw_bytes, meta = audio_write(
+            (np.asarray(signal), int(rate)),
+            key,
+            target_format=self.format,
+            target_bit_depth=self.bit_depth,
+        )
+        n_bytes = len(raw_bytes)
+        if self.offset > 0 and self.offset + n_bytes > self.max_bin_size:
+            self.fbin.close()
+            self.bin_index += 1
+            self.offset = 0
+            self.fbin = self._bin_path(self.bin_index).open("wb")
+
+        self.fbin.write(raw_bytes)
+        path = str(self._bin_path(self.bin_index))
+        start, end = self.offset, self.offset + n_bytes
+        meta.update(
+            id=key, start_byte=start, end_byte=end, bin_index=self.bin_index, path=path
+        )
+        self.rows.append(meta)
+        self.ids.add(key)
+        self.offset = end
+        self.fscp.write(f"{key} {path}:{start}:{end}\n")
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self.close()
+
+    def close(self):
+        import pyarrow as pa
+        import pyarrow.parquet as pq
+
+        self.fbin.close()
+        if self.offset == 0 and self.bin_index == 0 and not self.rows:
+            self._bin_path(0).unlink()
+        if self.rows:
+            pq.write_table(
+                pa.Table.from_pylist(self.rows), self.dir / "metadata.parquet"
+            )
+        self.fscp.close()

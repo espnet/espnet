@@ -53,7 +53,7 @@ speed_perturb_factors=  # perturbation factors, e.g. "0.9 1.0 1.1" (separated by
 
 # Feature extraction related
 feats_type=raw       # Feature type (raw or fbank_pitch).
-audio_format=flac    # Audio format: wav, flac, wav.ark, flac.ark  (only in feats_type=raw).
+audio_format=flac    # Audio format: wav, flac, wav.ark, flac.ark, omniio  (only in feats_type=raw).
 fs=16k               # Sampling rate.
 min_wav_duration=0.1 # Minimum duration in second.
 max_wav_duration=20  # Maximum duration in second.
@@ -119,7 +119,7 @@ Options:
 
     # Feature extraction related
     --feats_type       # Feature type (raw, fbank_pitch or extracted, default="${feats_type}").
-    --audio_format     # Audio format: wav, flac, wav.ark, flac.ark  (only in feats_type=raw, default="${audio_format}").
+    --audio_format     # Audio format: wav, flac, wav.ark, flac.ark, omniio  (only in feats_type=raw, default="${audio_format}").
     --fs               # Sampling rate (default="${fs}").
     --min_wav_duration # Minimum duration in second (default="${min_wav_duration}").
     --max_wav_duration # Maximum duration in second (default="${max_wav_duration}").
@@ -429,6 +429,8 @@ if ! "${skip_train}"; then
                 _scp=wav.scp
                 if [[ "${audio_format}" == *ark* ]]; then
                     _type=kaldi_ark
+                elif [[ "${audio_format}" == omniio ]]; then
+                    _type=omniio
                 else
                     # "sound" supports "wav", "flac", etc.
                     _type=sound
@@ -533,6 +535,8 @@ if ! "${skip_train}"; then
                 # "sound" supports "wav", "flac", etc.
                 if [[ "${audio_format}" == *ark* ]]; then
                     _type=kaldi_ark
+                elif [[ "${audio_format}" == omniio ]]; then
+                    _type=omniio
                 else
                     _type=sound
                 fi
