@@ -146,14 +146,15 @@ dataloader:
     shuffle: true
 ```
 
-Custom samplers are also supported at the top level of the `dataloader` block:
+Custom samplers are configured at the top level of the training config:
 
 ```yaml
+sampler:
+  _target_: torch.utils.data.RandomSampler
+  replacement: true
+  num_samples: 10000
+
 dataloader:
-  sampler:
-    _target_: torch.utils.data.WeightedRandomSampler
-    num_samples: 10000
-    replacement: true
   train:
     iter_factory: null
     batch_size: 32
