@@ -44,5 +44,14 @@ if grep -q "SC[0-9]\{4\}" check_shellcheck; then
     exit 1
 fi
 
+# The shellcheck run above covers only a few TEMPLATE pipelines (asr.sh, tts.sh,
+# enh.sh); at least make sure every one of them parses, since a syntax error
+# breaks a whole stage block before it runs.
+echo "=== check TEMPLATE pipeline syntax ==="
+for f in egs2/TEMPLATE/*/*.sh; do
+    [ -L "${f}" ] && continue
+    bash -n "${f}"
+done
+
 echo "=== run bats ==="
 bats test_utils/espnet2_scripts/test_*.bats
