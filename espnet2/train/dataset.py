@@ -31,6 +31,7 @@ from typeguard import typechecked
 from espnet2.fileio.json_scp import JsonScpReader
 from espnet2.fileio.multi_sound_scp import MultiSoundScpReader
 from espnet2.fileio.npy_scp import NpyScpReader
+from espnet2.fileio.omniio_audio import OmniIOAudioScpReader
 from espnet2.fileio.rand_gen_dataset import (
     FloatRandomGenerateDataset,
     IntRandomGenerateDataset,
@@ -249,6 +250,16 @@ def kaldi_loader(
     )
 
 
+def omniio_loader(
+    path, float_dtype=None, max_cache_fd: int = 32, allow_multi_rates=False
+):
+    """Load audio from Omni-IO archives through an scp of byte ranges."""
+    loader = OmniIOAudioScpReader(path, always_2d=False, max_cache_fd=max_cache_fd)
+    return AdapterForSoundScpReader(
+        loader, float_dtype, allow_multi_rates=allow_multi_rates
+    )
+
+
 def rand_int_loader(filepath, loader_type):
     # e.g. rand_int_3_10
     try:
@@ -319,6 +330,16 @@ DATA_TYPES = {
         "\n\n"
         "   utterance_id_A /some/where/a.ark:123\n"
         "   utterance_id_B /some/where/a.ark:456\n"
+        "   ...",
+    ),
+    "omniio": dict(
+        func=omniio_loader,
+        kwargs=["float_dtype", "max_cache_fd", "allow_multi_rates"],
+        help="Audio packed into Omni-IO archives (blob_<i>.bin + metadata.parquet), "
+        "addressed by byte range."
+        "\n\n"
+        "   utterance_id_A /some/where/blob_0.bin:0:31052\n"
+        "   utterance_id_B /some/where/blob_0.bin:31052:92707\n"
         "   ...",
     ),
     "npy": dict(

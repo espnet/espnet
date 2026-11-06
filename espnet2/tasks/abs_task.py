@@ -1052,8 +1052,8 @@ class AbsTask(ABC):
             type=int,
             default=32,
             help="The maximum number of file descriptors to be kept "
-            "as opened for ark files. "
-            "This feature is only valid when data type is 'kaldi_ark'.",
+            "as opened for ark files or Omni-IO bin files. "
+            "This feature is only valid when data type is 'kaldi_ark' or 'omniio'.",
         )
         group.add_argument(
             "--allow_multi_rates",

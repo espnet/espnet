@@ -47,7 +47,7 @@ local_data_opts="" # Options to be passed to local/data.sh.
 
 # Feature extraction related
 feats_type=raw       # Feature type (fbank or stft or raw).
-audio_format=wav     # Audio format: wav, flac, wav.ark, flac.ark  (only in feats_type=raw).
+audio_format=wav     # Audio format: wav, flac, wav.ark, flac.ark, omniio  (only in feats_type=raw).
 min_wav_duration=0.1 # Minimum duration in second.
 max_wav_duration=20  # Maximum duration in second.
 use_sid=false        # Whether to use speaker id as the inputs (Need utt2spk in data directory).
@@ -149,7 +149,7 @@ Options:
 
     # Feature extraction related
     --feats_type       # Feature type (fbank or stft or raw, default="${feats_type}").
-    --audio_format     # Audio format: wav, flac, wav.ark, flac.ark  (only in feats_type=raw, default="${audio_format}").
+    --audio_format     # Audio format: wav, flac, wav.ark, flac.ark, omniio  (only in feats_type=raw, default="${audio_format}").
     --min_wav_duration # Minimum duration in second (default="${min_wav_duration}").
     --max_wav_duration # Maximum duration in second (default="${max_wav_duration}").
     --use_sid          # Whether to use speaker id as the inputs (default="${use_sid}").
@@ -502,6 +502,8 @@ if ! "${skip_train}"; then
         _scp=wav.scp
         if [[ "${audio_format}" == *ark* ]]; then
             _type=kaldi_ark
+        elif [[ "${audio_format}" == omniio ]]; then
+            _type=omniio
         else
             # "sound" supports "wav", "flac", etc.
             _type=sound
@@ -946,6 +948,8 @@ if ! "${skip_eval}"; then
 
         if [[ "${audio_format}" == *ark* ]]; then
             _type=kaldi_ark
+        elif [[ "${audio_format}" == omniio ]]; then
+            _type=omniio
         else
             # "sound" supports "wav", "flac", etc.
             _type=sound

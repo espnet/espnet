@@ -44,7 +44,7 @@ local_data_opts= # The options given to local/data.sh.
 
 # Feature extraction related
 feats_type=raw          # Feature type (raw or fbank_pitch).
-audio_format=flac       # Audio format: wav, flac, wav.ark, flac.ark  (only in feats_type=raw).
+audio_format=flac       # Audio format: wav, flac, wav.ark, flac.ark, omniio  (only in feats_type=raw).
 fs=16k                  # Sampling rate.
 min_wav_duration=0.1    # Minimum duration in second.
 max_wav_duration=20     # Maximum duration in second.
@@ -184,7 +184,7 @@ Options:
 
     # Feature extraction related
     --feats_type       # Feature type (raw, fbank_pitch or extracted, default="${feats_type}").
-    --audio_format     # Audio format: wav, flac, wav.ark, flac.ark  (only in feats_type=raw, default="${audio_format}").
+    --audio_format     # Audio format: wav, flac, wav.ark, flac.ark, omniio  (only in feats_type=raw, default="${audio_format}").
     --fs               # Sampling rate (default="${fs}").
     --min_wav_duration # Minimum duration in second (default="${min_wav_duration}").
     --max_wav_duration # Maximum duration in second (default="${max_wav_duration}").
@@ -960,6 +960,8 @@ if ! "${skip_train}"; then
             _src_scp=wav.scp.${src_lang}
             if [[ "${audio_format}" == *ark* ]]; then
                 _src_type=kaldi_ark
+            elif [[ "${audio_format}" == omniio ]]; then
+                _src_type=omniio
             else
                 # "sound" supports "wav", "flac", etc.
                 _src_type=sound
@@ -974,6 +976,8 @@ if ! "${skip_train}"; then
                 _tgt_scp=wav.scp.${tgt_lang}
                 if [[ "${audio_format}" == *ark* ]]; then
                     _tgt_type=kaldi_ark
+                elif [[ "${audio_format}" == omniio ]]; then
+                    _tgt_type=omniio
                 else
                     # "sound" supports "wav", "flac", etc.
                     _tgt_type=sound
@@ -1105,6 +1109,8 @@ if ! "${skip_train}"; then
             _src_scp=wav.scp.${src_lang}
             if [[ "${audio_format}" == *ark* ]]; then
                 _src_type=kaldi_ark
+            elif [[ "${audio_format}" == omniio ]]; then
+                _src_type=omniio
             else
                 # "sound" supports "wav", "flac", etc.
                 _src_type=sound
@@ -1119,6 +1125,8 @@ if ! "${skip_train}"; then
                 _tgt_scp=wav.scp.${tgt_lang}
                 if [[ "${audio_format}" == *ark* ]]; then
                     _tgt_type=kaldi_ark
+                elif [[ "${audio_format}" == omniio ]]; then
+                    _tgt_type=omniio
                 else
                     # "sound" supports "wav", "flac", etc.
                     _tgt_type=sound
@@ -1333,6 +1341,8 @@ if ! "${skip_eval}"; then
                 _src_scp=wav.scp.${src_lang}
                 if [[ "${audio_format}" == *ark* ]]; then
                     _src_type=kaldi_ark
+                elif [[ "${audio_format}" == omniio ]]; then
+                    _src_type=omniio
                 else
                     _src_type=sound
                 fi
@@ -1345,6 +1355,8 @@ if ! "${skip_eval}"; then
                     _tgt_scp=wav.scp.${tgt_lang}
                     if [[ "${audio_format}" == *ark* ]]; then
                         _tgt_type=kaldi_ark
+                    elif [[ "${audio_format}" == omniio ]]; then
+                        _tgt_type=omniio
                     else
                         # "sound" supports "wav", "flac", etc.
                         _tgt_type=sound
