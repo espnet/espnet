@@ -28,4 +28,9 @@ if [ ! -e sph2pipe-${SPH2PIPE_VERSION} ]; then
     rm -rf sph2pipe && ln -s  sph2pipe-${SPH2PIPE_VERSION} sph2pipe
 fi
 
-make -C sph2pipe
+# sph2pipe 2.5 is K&R C: "ulong word_get()" declares no prototype and strdup
+# is used without <string.h>. The GCC of the ubuntu-26.04 CI image compiles it
+# under C23 rules, where "()" means "no arguments" (word_get(fpin) is an error),
+# and recent clang rejects the implicit strdup declaration. Compile it as the C
+# it was written in.
+make -C sph2pipe CCFLAGS="${CCFLAGS:-} -std=gnu89"
