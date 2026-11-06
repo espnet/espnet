@@ -122,3 +122,17 @@ def get_args(tc):
         kwargs_non["maxlen"] = ml
 
     return tuple(args), tuple(input_names), kwargs_trace, kwargs_non
+
+
+def test_make_pad_mask_long_input_is_linear_in_memory():
+    """An hour-long input (~10^6 frames) must not build a (maxlen, maxlen) table.
+
+    With the quadratic implementation this needed ~10^12 bytes.
+    """
+    maxlen = 1_000_000
+    lengths = torch.LongTensor([maxlen, 3])
+    xs = torch.zeros(2, maxlen, 1)
+    mask = make_pad_mask(lengths, xs, length_dim=1)
+    assert mask.shape == (2, maxlen, 1)
+    assert not mask[0].any()
+    assert not mask[1, :3].any() and mask[1, 3:].all()

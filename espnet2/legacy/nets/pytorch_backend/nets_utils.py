@@ -213,8 +213,9 @@ def _make_pad_mask_traceable(lengths, xs, length_dim, maxlen=None):
     This is a simplified implementation of make_pad_mask without the xs input
     that supports JIT tracing for applications like exporting models to ONNX.
     Dimension length of xs should be 2 or 3
-    This function will create torch.ones(maxlen, maxlen).triu(diagonal=1) and
-    select rows to create mask tensor.
+    This function compares the frame indices torch.arange(maxlen) with each
+    length, so the memory is linear in maxlen (a (maxlen, maxlen) lookup
+    table would need hundreds of GB for an hour-long input).
     """
     if xs is None:
         device = lengths.device
@@ -245,10 +246,11 @@ def _make_pad_mask_traceable(lengths, xs, length_dim, maxlen=None):
     # clip max(length) to maxlen
     lengths = torch.clamp(lengths, max=maxlen).type(torch.long)
 
-    mask = torch.ones(maxlen + 1, maxlen + 1, dtype=torch.bool, device=device)
-    # Row i is the mask for length i, so a zero length selects an all-True row.
-    mask = triu_onnx(mask)[:, :-1]  # onnx cannot handle diagonal argument.
-    mask = mask[lengths][..., :maxlen]
+    # Frame t is padding when t >= length, so a zero length masks every frame.
+    # maxlen may be a one-element tensor; taking the size of a (maxlen,) tensor
+    # accepts it, and keeps it dynamic when traced.
+    frames = torch.ones(maxlen, dtype=torch.bool, device=device)
+    mask = torch.arange(frames.size(0), device=device) >= lengths.unsqueeze(-1)
 
     if xs is not None and len(xs.shape) == 3 and length_dim == 1:
         return mask.transpose(1, 2)
