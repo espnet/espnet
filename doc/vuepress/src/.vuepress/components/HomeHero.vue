@@ -91,10 +91,10 @@ const options = [
 ]
 
 const commands = {
-  pip:  'pip install espnet',
-  uv:   'uv pip install espnet',
-  pixi: 'pixi add --pypi espnet',
-  git:  'pip install git+https://github.com/espnet/espnet.git',
+  pip:  'pip install "espnet[train]"',
+  uv:   'uv pip install "espnet[train]"',
+  pixi: 'pixi add --pypi "espnet[train]"',
+  git:  'pip install "espnet[train] @ git+https://github.com/espnet/espnet.git"',
 }
 
 const command = computed(() => commands[selected.value])
