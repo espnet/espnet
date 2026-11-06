@@ -250,9 +250,11 @@ def kaldi_loader(
     )
 
 
-def omniio_loader(path, float_dtype=None, allow_multi_rates=False):
+def omniio_loader(
+    path, float_dtype=None, max_cache_fd: int = 32, allow_multi_rates=False
+):
     """Load audio from Omni-IO archives through an scp of byte ranges."""
-    loader = OmniIOAudioScpReader(path, always_2d=False)
+    loader = OmniIOAudioScpReader(path, always_2d=False, max_cache_fd=max_cache_fd)
     return AdapterForSoundScpReader(
         loader, float_dtype, allow_multi_rates=allow_multi_rates
     )
@@ -332,7 +334,7 @@ DATA_TYPES = {
     ),
     "omniio": dict(
         func=omniio_loader,
-        kwargs=["float_dtype", "allow_multi_rates"],
+        kwargs=["float_dtype", "max_cache_fd", "allow_multi_rates"],
         help="Audio packed into Omni-IO archives (blob_<i>.bin + metadata.parquet), "
         "addressed by byte range."
         "\n\n"

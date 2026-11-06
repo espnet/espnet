@@ -197,3 +197,83 @@ def test_rerun_leaves_no_stale_files(tmp_path):
     # a rerun that writes nothing must not keep the old metadata either
     OmniIOAudioWriter(tmp_path / "wav", tmp_path / "wav.scp").close()
     assert list((tmp_path / "wav").iterdir()) == []
+
+
+def _write_archive(tmp_path, max_bin_size=320 * 1024 * 1024):
+    signals = _signals(n=6)
+    with OmniIOAudioWriter(
+        tmp_path / "wav", tmp_path / "wav.scp", max_bin_size=max_bin_size
+    ) as writer:
+        for key, sig in signals.items():
+            writer[key] = 16000, sig
+    return signals
+
+
+def test_reader_matches_omniio_audio_read(tmp_path):
+    from omniio.interface import audio_read
+
+    _write_archive(tmp_path, max_bin_size=1)
+    reader = OmniIOAudioScpReader(tmp_path / "wav.scp", always_2d=True)
+    for key in reader:
+        path, start, end = parse_omniio_entry(reader.get_path(key))
+        expected = audio_read(path, start_offset=start, file_size=end - start)
+        rate, array = reader[key]
+        assert rate == expected.sample_rate
+        assert array.dtype == expected.array.dtype
+        assert np.array_equal(array, expected.array)
+
+
+def test_bin_files_are_opened_once(tmp_path, monkeypatch):
+    import os
+
+    _write_archive(tmp_path)  # one bin file
+    opened = []
+    real_open = os.open
+    monkeypatch.setattr(os, "open", lambda p, *a: opened.append(p) or real_open(p, *a))
+    reader = OmniIOAudioScpReader(tmp_path / "wav.scp")
+    for _ in range(3):
+        for key in reader:
+            reader[key]
+    assert len(opened) == 1
+    reader.close()
+
+
+def test_descriptor_cache_is_bounded(tmp_path):
+    signals = _write_archive(tmp_path, max_bin_size=1)  # one bin per utterance
+    reader = OmniIOAudioScpReader(tmp_path / "wav.scp", max_cache_fd=2)
+    for key in reader:
+        reader[key]
+        assert len(reader._fds) <= 2
+    for key, sig in signals.items():
+        np.testing.assert_allclose(reader[key][1], sig, atol=1e-6)
+    reader.close()
+    assert not reader._fds
+
+
+def test_no_cache_reads_the_same(tmp_path):
+    _write_archive(tmp_path, max_bin_size=1)
+    cached = OmniIOAudioScpReader(tmp_path / "wav.scp")
+    uncached = OmniIOAudioScpReader(tmp_path / "wav.scp", max_cache_fd=0)
+    for key in cached:
+        assert np.array_equal(cached[key][1], uncached[key][1])
+    assert not uncached._fds
+
+
+def _read_all(reader, keys):
+    return {k: reader[k][1] for k in keys}
+
+
+def test_forked_workers_share_descriptors_safely(tmp_path):
+    """Descriptors opened before fork are shared; pread keeps reads correct."""
+    import multiprocessing
+
+    signals = _write_archive(tmp_path)
+    reader = OmniIOAudioScpReader(tmp_path / "wav.scp")
+    keys = list(reader)
+    reader[keys[0]]  # open the bin file in the parent before forking
+    ctx = multiprocessing.get_context("fork")
+    with ctx.Pool(4) as pool:
+        results = pool.starmap(_read_all, [(reader, keys[i::4] * 20) for i in range(4)])
+    for part in results:
+        for key, array in part.items():
+            np.testing.assert_allclose(array, signals[key], atol=1e-6)

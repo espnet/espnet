@@ -13,10 +13,13 @@ utterance pointing at the utterance's byte range::
 
 so that every data-directory tool that works on ``wav.scp`` (subsetting,
 fix_data_dir.sh, filter_scp.pl, ...) keeps working, and loading an utterance
-is one seek and one read.
+is one positional read from a bin file the reader keeps open.
 """
 
+import collections
 import collections.abc
+import io
+import os
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple, Union
 
@@ -42,31 +45,90 @@ class OmniIOAudioScpReader(collections.abc.Mapping):
         >>> reader = OmniIOAudioScpReader('wav.scp')
         >>> rate, array = reader['utt1']
 
+    Like ``kaldi_ark`` with ``max_cache_fd``, the bin files are kept open
+    (up to ``max_cache_fd`` of them, least recently used closed first), so
+    reading an utterance is a single positional read rather than an
+    open/seek/read/close: every open is a metadata request, which is what is
+    slow on shared file systems. Reads use ``os.pread``, which does not move a
+    shared file offset, so DataLoader workers forked with these descriptors do
+    not interfere with each other.
+
+    FLAC, WAV and OGG entries are decoded here exactly as
+    ``omniio.interface.audio_read`` decodes them (soundfile, float32,
+    (frames, channels)); WebM/Opus entries are handed to ``audio_read``.
+
     Args:
         fname: The scp file.
         always_2d: Keep the channel axis even for single-channel audio.
+        max_cache_fd: Bin files kept open; 0 opens and closes per read.
     """
 
     @typechecked
-    def __init__(self, fname: Union[Path, str], always_2d: bool = False):
+    def __init__(
+        self,
+        fname: Union[Path, str],
+        always_2d: bool = False,
+        max_cache_fd: int = 32,
+    ):
         self.fname = fname
         self.always_2d = always_2d
+        self.max_cache_fd = max_cache_fd
         self.data = read_2columns_text(fname)
+        self._fds: "collections.OrderedDict[str, int]" = collections.OrderedDict()
+
+    def _read_bytes(self, path: str, start: int, size: int) -> bytes:
+        """Read `size` bytes at `start` of `path`, through the descriptor cache."""
+        if self.max_cache_fd <= 0 or not hasattr(os, "pread"):
+            with open(path, "rb") as f:
+                f.seek(start)
+                return f.read(size)
+        fd = self._fds.get(path)
+        if fd is None:
+            fd = os.open(path, os.O_RDONLY)
+            self._fds[path] = fd
+            while len(self._fds) > self.max_cache_fd:
+                os.close(self._fds.popitem(last=False)[1])
+        else:
+            self._fds.move_to_end(path)
+        data = os.pread(fd, size, start)
+        if len(data) != size:
+            raise RuntimeError(f"short read from {path}: {len(data)} of {size} bytes")
+        return data
 
     def __getitem__(self, key: str) -> Tuple[Optional[int], Optional[np.ndarray]]:
         """Return (sampling rate, signal) of `key`, or (None, None) if absent."""
-        from omniio.interface import audio_read
+        import soundfile
 
         entry = self.data[key]
         if entry == "None":
             # an utterance without audio, as format_wav_scp.py writes it
             return None, None
         path, start, end = parse_omniio_entry(entry)
-        result = audio_read(path, start_offset=start, file_size=end - start)
-        array = result.array  # (frames, channels)
+        blob = self._read_bytes(path, start, end - start)
+        if blob[:4] == b"\x1aE\xdf\xa3":  # WebM/Opus (EBML header)
+            from omniio.interface import audio_read
+
+            result = audio_read(path, start_offset=start, file_size=end - start)
+            array, rate = result.array, result.sample_rate
+        else:
+            array, rate = soundfile.read(
+                io.BytesIO(blob), dtype="float32", always_2d=True
+            )  # (frames, channels)
         if not self.always_2d and array.ndim == 2 and array.shape[1] == 1:
             array = array[:, 0]
-        return int(result.sample_rate), array
+        return int(rate), array
+
+    def close(self):
+        """Close the cached bin file descriptors."""
+        while self._fds:
+            os.close(self._fds.popitem()[1])
+
+    def __del__(self):
+        """Close the cached descriptors when the reader is collected."""
+        try:
+            self.close()
+        except Exception:  # noqa: BLE001 - interpreter shutdown
+            pass
 
     def get_path(self, key: str) -> str:
         """Return the scp entry of `key` (``<bin>:<start>:<end>`` or "None")."""
