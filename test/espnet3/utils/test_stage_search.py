@@ -13,8 +13,8 @@ from omegaconf import OmegaConf
 from espnet3.contract.stages import StageSpec
 from espnet3.utils.run_utils import ConfigError
 from espnet3.utils.stage_configs import (
-    resolve_stage_configs,
     resolve_search_directories,
+    resolve_stage_configs,
     snapshot_config,
 )
 
