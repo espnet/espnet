@@ -58,7 +58,7 @@ that project.
 When you run:
 
 ```bash
-espnet3 clone librispeech/asr --project my_project
+espnet3 clone librispeech_100/esp2_asr --project my_project
 cd my_project
 ```
 

@@ -27,7 +27,7 @@ Pick a built-in recipe and clone it into a local project directory.
 The clone command copies the full recipe, so you can run it immediately without touching the ESPnet3 source tree.
 
 ```bash
-espnet3 clone librispeech/asr --project my_project
+espnet3 clone librispeech_100/esp2_asr --project my_project
 cd my_project
 python run.py
 ```
