@@ -35,7 +35,7 @@ const yamlOutput = computed(
     `  _target_: espnet3.components.data.data_organizer.DataOrganizer\n` +
     `  recipe_dir: \${recipe_dir}\n` +
     `  train:\n` +
-    `    - data_src: egs3.my_recipe.asr.dataset.builder\n` +
+    `    - data_src: egs3.my_recipe.asr.dataset\n` +
     `      data_src_args:\n` +
     `        split: train\n` +
     `        total_shards: ${totalShards.value}\n` +
@@ -315,7 +315,7 @@ const activeTab = ref('basic')
 #  2. agree on total_shards and dist_world_size</span>
 
 train:
-  - data_src: egs3.my_recipe.asr.dataset.builder   <span style="color: var(--text3)"># total_shards=8</span>
+  - data_src: egs3.my_recipe.asr.dataset   <span style="color: var(--text3)"># total_shards=8</span>
     data_src_args:
       split: train
       total_shards: <span class="num">8</span>

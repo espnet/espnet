@@ -64,7 +64,7 @@ dataset:
   _target_: espnet3.components.data.data_organizer.DataOrganizer
   recipe_dir: ${recipe_dir}
   train:
-    - data_src: egs3.my_recipe.asr.dataset.builder
+    - data_src: egs3.my_recipe.asr.dataset
       data_src_args:
         split: train
         total_shards: 16
@@ -188,7 +188,7 @@ dataset:
   _target_: espnet3.components.data.data_organizer.DataOrganizer
   recipe_dir: ${recipe_dir}
   train:
-    - data_src: egs3.my_recipe.asr.dataset.builder
+    - data_src: egs3.my_recipe.asr.dataset
       data_src_args:
         split: train
         total_shards: 16
@@ -215,7 +215,7 @@ When sharding is involved, `CombinedDataset` imposes two additional constraints:
 
 ```yaml
 train:
-  - data_src: egs3.my_recipe.asr.dataset.builder   # total_shards=8
+  - data_src: egs3.my_recipe.asr.dataset   # total_shards=8
     data_src_args:
       split: train
       total_shards: 8
