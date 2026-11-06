@@ -46,7 +46,7 @@ local_data_opts= # The options given to local/data.sh.
 
 # Feature extraction related
 feats_type=raw       # Feature type (raw, or extracted).
-audio_format=flac    # Audio format: wav, flac, wav.ark, flac.ark, omniio  (only in feats_type=raw).
+audio_format=flac    # Audio format: wav, flac, wav.ark, flac.ark  (only in feats_type=raw).
 fs=16k               # Sampling rate.
 min_wav_duration=0.1 # Minimum duration in second.
 max_wav_duration=20  # Maximum duration in second.
@@ -142,7 +142,7 @@ Options:
 
     # Feature extraction related
     --feats_type       # Feature type (raw, or extracted, default="${feats_type}").
-    --audio_format     # Audio format: wav, flac, wav.ark, flac.ark, omniio  (only in feats_type=raw or raw_copy, default="${audio_format}").
+    --audio_format     # Audio format: wav, flac, wav.ark, flac.ark  (only in feats_type=raw or raw_copy, default="${audio_format}").
     --fs               # Sampling rate (default="${fs}").
     --min_wav_duration # Minimum duration in second (default="${min_wav_duration}").
     --max_wav_duration # Maximum duration in second (default="${max_wav_duration}").

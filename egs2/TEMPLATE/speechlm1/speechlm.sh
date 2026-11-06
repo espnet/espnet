@@ -48,7 +48,7 @@ data_tag=""         # You may combine the data in multiple ways. This is the tag
 
 # Audio Feature extraction related
 feats_type=raw             # Input feature type.
-audio_format=flac          # Audio format: wav, flac, wav.ark, flac.ark, omniio  (only in feats_type=raw).
+audio_format=flac          # Audio format: wav, flac, wav.ark, flac.ark  (only in feats_type=raw).
 min_wav_duration=0.1       # Minimum duration in second.
 max_wav_duration=30        # Maximum duration in second.
 fs=16000                   # Sampling rate.
