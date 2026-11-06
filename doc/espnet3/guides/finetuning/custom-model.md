@@ -86,9 +86,14 @@ class MyModel(torch.nn.Module):
         self.encoder = torch.nn.Linear(80, hidden_size)
         self.head = torch.nn.Linear(hidden_size, vocab_size)
 
-    def forward(self, speech):
-        hidden = self.encoder(speech)
-        return self.head(hidden)
+    def forward(self, speech, label, **batch):
+        # speech: (batch, frames, 80); label: (batch,) class indices
+        hidden = self.encoder(speech).mean(dim=1)
+        logits = self.head(hidden)
+        loss = torch.nn.functional.cross_entropy(logits, label)
+        stats = {"loss": loss.detach()}
+        weight = speech.size(0)
+        return loss, stats, weight
 ```
 
 
