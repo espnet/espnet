@@ -1,0 +1,32 @@
+builder:
+  # The ASR recipe's archive is read in place: one corpus, one copy.
+  archive_path: ../esp2_asr/downloads.tar.gz
+  dataset_path: downloads
+  data_path: data
+
+  splits:
+    train:
+      transcript_name: an4_train.transcription
+      sph_subdir: an4_clstk
+    test:
+      transcript_name: an4_test.transcription
+      sph_subdir: an4test_clstk
+
+  # AN4 has no language labels, so the speaker id is the language, as in
+  # egs2/mini_an4/lid1. Its test speakers never appear in training and are
+  # mapped to training speakers; egs2 picks them at random, a fixed map keeps
+  # runs reproducible.
+  test_lang_map:
+    fcaw: fash
+    mmxg: mwhw
+
+  # As in egs2/mini_an4/lid1: the first two training utterances are the
+  # validation set, and training drops only the first, so the validation
+  # language is also a training language.
+  valid_size: 2
+  train_skip: 1
+
+  manifest_paths:
+    train: manifest/train.tsv
+    valid: manifest/valid.tsv
+    test: manifest/test.tsv
