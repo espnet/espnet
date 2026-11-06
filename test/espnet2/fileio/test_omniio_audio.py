@@ -10,9 +10,9 @@ import soundfile
 
 from espnet2.fileio.omniio_audio import (
     OmniIOAudioScpReader,
-    OmniIOSegmentsReader,
     OmniIOAudioWriter,
     OmniIOEntryReader,
+    OmniIOSegmentsReader,
     parse_omniio_entry,
 )
 from espnet2.train.dataset import ESPnetDataset
