@@ -153,12 +153,11 @@ That wrapper currently adds the docs rail on normal pages.
 
 The docs rail is built from:
 
-- `doc/vuepress/src/.vuepress/components/DocsFeedback.vue`
 - `doc/vuepress/src/.vuepress/components/DocsAiSidebar.vue`
 
 Today it contains:
 
-- the feedback block
+- a link to report documentation issues
 - the AI tools links such as `Ask ChatGPT`
 
 This is also the likely place to extend later for:

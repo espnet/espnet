@@ -23,7 +23,9 @@
         </div>
 
         <div class="docs-page-shell__sidebar">
-          <DocsFeedback />
+          <a class="docs-issue-link" href="https://github.com/espnet/espnet/issues/new">
+            Found a problem with this page? Open an issue
+          </a>
           <DocsAiSidebar />
           <!-- rc.109's TOC collects headers from the rendered DOM on the client
                (useHeaders -> onContentUpdated), so nothing is known at SSR time;

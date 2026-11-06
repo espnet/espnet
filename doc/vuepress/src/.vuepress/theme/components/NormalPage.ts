@@ -14,7 +14,6 @@ import { useDarkMode } from "@theme-hope/composables/useDarkMode";
 import { useData } from "@theme-hope/composables/useData";
 
 import DocsAiSidebar from "../../components/DocsAiSidebar.vue";
-import DocsFeedback from "../../components/DocsFeedback.vue";
 
 export default defineComponent({
   name: "PageContent",
@@ -26,7 +25,6 @@ export default defineComponent({
     PageMeta,
     TOC,
     DocsAiSidebar,
-    DocsFeedback,
   },
   setup() {
     const { frontmatter } = useData();

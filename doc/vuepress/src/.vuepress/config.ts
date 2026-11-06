@@ -24,26 +24,6 @@ export default defineUserConfig({
     },
   ],
 
-  head: [
-    [
-      "script",
-      {
-        async: true,
-        src: "https://www.googletagmanager.com/gtag/js?id=G-XTTNWSWN9Z",
-      },
-    ],
-    [
-      "script",
-      {},
-      `
-        window.dataLayer = window.dataLayer || [];
-        function gtag(){dataLayer.push(arguments);}
-        gtag('js', new Date());
-        gtag('config', 'G-XTTNWSWN9Z');
-      `,
-    ],
-  ],
-
   bundler: viteBundler({
     viteOptions: {
       build: {

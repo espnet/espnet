@@ -168,74 +168,10 @@
   color: #94a3b8;
 }
 
-.docs-feedback {
-  display: flex;
-  flex-direction: column;
-  gap: 0.45rem;
-  width: 100%;
-  padding: 0 0 0.9rem;
-}
-
-.docs-feedback__title {
-  font-size: 0.78rem;
-  font-weight: 700;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  color: #64748b;
-}
-
-.docs-feedback__actions {
-  display: flex;
-  gap: 0.75rem;
-}
-
-.docs-feedback__prompt {
+.docs-issue-link {
+  display: block;
+  padding-bottom: 0.9rem;
   font-size: 0.85rem;
-  color: #475569;
-}
-
-.docs-feedback__message {
-  margin: 0;
-  font-size: 0.9rem;
-  color: #334155;
-}
-
-.docs-feedback__textarea {
-  width: 100%;
-  resize: vertical;
-  padding: 0.5rem 0;
-  border: 0;
-  border-bottom: 1px solid rgba(15, 23, 42, 0.14);
-  background: transparent;
-  color: #0f172a;
-  font: inherit;
-  line-height: 1.5;
-
-  &:focus {
-    outline: 0;
-    border-bottom-color: rgba(22, 163, 74, 0.55);
-  }
-
-  &::placeholder {
-    color: #94a3b8;
-  }
-}
-
-.docs-feedback__button {
-  min-width: auto;
-  min-height: auto;
-  padding: 0;
-  border: 0;
-  background: transparent;
-  color: #334155;
-  font-size: 0.9rem;
-  font-weight: 500;
-  cursor: pointer;
-  transition: color 0.2s ease;
-
-  &:hover {
-    color: #166534;
-  }
 }
 
 @media (max-width: 1100px) {
@@ -251,11 +187,5 @@
     max-height: none;
     overflow: visible;
     margin-top: 1.5rem;
-  }
-}
-
-@media (max-width: 719px) {
-  .docs-feedback {
-    padding-bottom: 0.75rem;
   }
 }
