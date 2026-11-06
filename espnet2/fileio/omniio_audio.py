@@ -35,19 +35,16 @@ def parse_omniio_entry(entry: str) -> Tuple[str, int, int]:
     return path, int(start), int(end)
 
 
-class OmniIOAudioScpReader(collections.abc.Mapping):
-    """Reader for an scp whose entries point into Omni-IO archives.
+class OmniIOEntryReader:
+    """Read single ``<bin path>:<start_byte>:<end_byte>`` entries.
 
     Examples:
-        utt1 /data/format.1/wav/blob_0.bin:0:31052
-        utt2 /data/format.1/wav/blob_0.bin:31052:92707
-
-        >>> reader = OmniIOAudioScpReader('wav.scp')
-        >>> rate, array = reader['utt1']
+        >>> read = OmniIOEntryReader()
+        >>> rate, array = read('/data/format.1/wav/blob_0.bin:0:31052')
 
     Like ``kaldi_ark`` with ``max_cache_fd``, the bin files are kept open
     (up to ``max_cache_fd`` of them, least recently used closed first), so
-    reading an utterance is a single positional read rather than an
+    reading an entry is a single positional read rather than an
     open/seek/read/close: every open is a metadata request, which is what is
     slow on shared file systems. Reads use ``os.pread``, which does not move a
     shared file offset.
@@ -62,22 +59,15 @@ class OmniIOAudioScpReader(collections.abc.Mapping):
     (frames, channels)); WebM/Opus entries are handed to ``audio_read``.
 
     Args:
-        fname: The scp file.
         always_2d: Keep the channel axis even for single-channel audio.
         max_cache_fd: Bin files kept open; 0 opens and closes per read.
     """
 
     @typechecked
-    def __init__(
-        self,
-        fname: Union[Path, str],
-        always_2d: bool = False,
-        max_cache_fd: int = 32,
-    ):
-        self.fname = fname
+    def __init__(self, always_2d: bool = False, max_cache_fd: int = 32):
+        """Set the output shape and how many bin files are kept open."""
         self.always_2d = always_2d
         self.max_cache_fd = max_cache_fd
-        self.data = read_2columns_text(fname)
         self._fds: "collections.OrderedDict[str, int]" = collections.OrderedDict()
         self._pid = os.getpid()
 
@@ -117,11 +107,10 @@ class OmniIOAudioScpReader(collections.abc.Mapping):
             raise RuntimeError(f"short read from {path}: {len(data)} of {size} bytes")
         return data
 
-    def __getitem__(self, key: str) -> Tuple[Optional[int], Optional[np.ndarray]]:
-        """Return (sampling rate, signal) of `key`, or (None, None) if absent."""
+    def __call__(self, entry: str) -> Tuple[Optional[int], Optional[np.ndarray]]:
+        """Return (sampling rate, signal) of `entry`, or (None, None) for "None"."""
         import soundfile
 
-        entry = self.data[key]
         if entry == "None":
             # an utterance without audio, as format_wav_scp.py writes it
             return None, None
@@ -152,6 +141,41 @@ class OmniIOAudioScpReader(collections.abc.Mapping):
             self.close()
         except Exception:  # noqa: BLE001 - interpreter shutdown
             pass
+
+
+class OmniIOAudioScpReader(OmniIOEntryReader, collections.abc.Mapping):
+    """Reader for an scp whose entries point into Omni-IO archives.
+
+    Examples:
+        utt1 /data/format.1/wav/blob_0.bin:0:31052
+        utt2 /data/format.1/wav/blob_0.bin:31052:92707
+
+        >>> reader = OmniIOAudioScpReader('wav.scp')
+        >>> rate, array = reader['utt1']
+
+    Entries are read by ``OmniIOEntryReader``, which keeps the bin files open.
+
+    Args:
+        fname: The scp file.
+        always_2d: Keep the channel axis even for single-channel audio.
+        max_cache_fd: Bin files kept open; 0 opens and closes per read.
+    """
+
+    @typechecked
+    def __init__(
+        self,
+        fname: Union[Path, str],
+        always_2d: bool = False,
+        max_cache_fd: int = 32,
+    ):
+        """Read the scp; the bin files are opened on first use."""
+        super().__init__(always_2d=always_2d, max_cache_fd=max_cache_fd)
+        self.fname = fname
+        self.data = read_2columns_text(fname)
+
+    def __getitem__(self, key: str) -> Tuple[Optional[int], Optional[np.ndarray]]:
+        """Return (sampling rate, signal) of `key`, or (None, None) if absent."""
+        return self(self.data[key])
 
     def get_path(self, key: str) -> str:
         """Return the scp entry of `key` (``<bin>:<start>:<end>`` or "None")."""
@@ -207,6 +231,7 @@ class OmniIOAudioWriter:
         bit_depth: int = 16,
         max_bin_size: int = 320 * 1024 * 1024,
     ):
+        """Start a new archive in `outdir`, removing one left by an earlier run."""
         self.dir = Path(outdir).absolute()
         self.dir.mkdir(parents=True, exist_ok=True)
         for stale in [*self.dir.glob("blob_*.bin"), self.dir / "metadata.parquet"]:

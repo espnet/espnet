@@ -10,9 +10,11 @@ import soundfile
 from espnet2.fileio.omniio_audio import (
     OmniIOAudioScpReader,
     OmniIOAudioWriter,
+    OmniIOEntryReader,
     parse_omniio_entry,
 )
 from espnet2.train.dataset import ESPnetDataset
+from espnet2.train.iterable_dataset import IterableESPnetDataset
 
 FORMAT_WAV_SCP = (
     Path(__file__).resolve().parents[3]
@@ -197,6 +199,63 @@ def test_rerun_leaves_no_stale_files(tmp_path):
     # a rerun that writes nothing must not keep the old metadata either
     OmniIOAudioWriter(tmp_path / "wav", tmp_path / "wav.scp").close()
     assert list((tmp_path / "wav").iterdir()) == []
+
+
+def test_iterable_dataset_preprocesses_merged_data_once(tmp_path):
+    """omniio is read streamingly, so the preprocessor sees each utterance once.
+
+    Before, it went through the non-iterable fallback, which applied the
+    preprocessor to the speech alone and then again to the merged data.
+    """
+    signals = _signals()
+    with OmniIOAudioWriter(tmp_path / "wav", tmp_path / "wav.scp") as writer:
+        for key, sig in signals.items():
+            writer[key] = 16000, sig
+    (tmp_path / "text").write_text("".join(f"{k} 1 2 3\n" for k in signals))
+    (tmp_path / "wav.scp").write_text(
+        (tmp_path / "wav.scp").read_text() + "missing None\n"
+    )
+    (tmp_path / "text").write_text((tmp_path / "text").read_text() + "missing 4\n")
+
+    calls = []
+
+    def preprocess(uid, data):
+        calls.append((uid, sorted(data)))
+        if data.get("speech") is None:
+            data.pop("speech")  # absent audio, as with the "sound" type
+        else:
+            data["speech"] = data["speech"] * 2
+        return data
+
+    dataset = IterableESPnetDataset(
+        [
+            (str(tmp_path / "wav.scp"), "speech", "omniio"),
+            (str(tmp_path / "text"), "text", "text_int"),
+        ],
+        preprocess=preprocess,
+    )
+    assert dataset.non_iterable_dataset is None
+    out = dict(dataset)
+    assert calls == [(k, ["speech", "text"]) for k in [*signals, "missing"]]
+    for key, sig in signals.items():
+        assert out[key]["speech"].dtype == np.float32
+        np.testing.assert_allclose(out[key]["speech"], 2 * sig, atol=1e-6)
+    assert "speech" not in out["missing"]
+
+
+def test_entry_reader_reads_an_entry(tmp_path):
+    signals = _signals()
+    with OmniIOAudioWriter(tmp_path / "wav", tmp_path / "wav.scp") as writer:
+        for key, sig in signals.items():
+            writer[key] = 16000, sig
+    read = OmniIOEntryReader()
+    for line in (tmp_path / "wav.scp").read_text().splitlines():
+        key, entry = line.split(" ", 1)
+        rate, array = read(entry)
+        assert rate == 16000
+        np.testing.assert_allclose(array, signals[key], atol=1e-6)
+    assert read("None") == (None, None)
+    read.close()
 
 
 def _write_archive(tmp_path, max_bin_size=320 * 1024 * 1024):
