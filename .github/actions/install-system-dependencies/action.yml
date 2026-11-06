@@ -28,6 +28,19 @@ runs:
         # Refreshing the index is a means, not the goal. Let it report errors
         # and judge on whether the packages actually asked for arrived - if the
         # failure did matter, the install below fails and says which package.
-        sudo apt-get update -qq \
+        #
+        # A stalled mirror connection otherwise hangs the job: on the
+        # ubuntu-26.04 runners 5 of 32 jobs of one run sat 11-47 min between
+        # starting `apt-get update` and dpkg unpacking the first package (the
+        # median job takes 0.3 min). Give every fetch a timeout and retries so
+        # a dead connection is dropped and retried, and log how long each
+        # phase takes so a stall shows where it happened.
+        apt_opts=(-o Acquire::Retries=5
+                  -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30)
+        start=$SECONDS
+        sudo apt-get "${apt_opts[@]}" update -qq \
           || echo "::warning::apt-get update reported errors; continuing to install"
-        sudo apt-get install -qq -y ${{ inputs.packages }}
+        echo "apt-get update: $((SECONDS - start)) s"
+        start=$SECONDS
+        sudo apt-get "${apt_opts[@]}" install -qq -y ${{ inputs.packages }}
+        echo "apt-get install: $((SECONDS - start)) s"
