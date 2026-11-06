@@ -116,11 +116,11 @@ Lightning settings to match that path.
 Current behavior:
 
 - `reload_dataloaders_every_n_epochs = 1`
-- `use_distributed_sampler = False` when ESPnet's sampler is active, or when
-  the training dataset shards (`total_shards > 1`) on the standard `DataLoader` path
+- `use_distributed_sampler = False` when ESPnet's sampler is active
 
-This keeps Lightning from conflicting with ESPnet's own iterator and sharding
-logic.
+For a sharded training dataset (`total_shards > 1`) using the standard
+`DataLoader`, set `trainer.use_distributed_sampler: false` in the training
+config to prevent Lightning from splitting the already sharded data again.
 
 ## Multi-optimizer restrictions
 
