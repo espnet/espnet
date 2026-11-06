@@ -45,6 +45,7 @@ from espnet2.fileio.read_text import (
 from espnet2.fileio.rttm import RttmReader
 from espnet2.fileio.score_scp import SingingScoreReader
 from espnet2.fileio.sound_scp import SoundScpReader
+from espnet2.fileio.vad_intervals import VadIntervalsReader
 from espnet2.utils.sized_dict import SizedDict
 
 
@@ -439,6 +440,16 @@ DATA_TYPES = {
         "\n\n"
         "   utterance_id_A 3,4\n"
         "   utterance_id_B 10,4\n"
+        "   ...",
+    ),
+    "vad_intervals": dict(
+        func=VadIntervalsReader,
+        kwargs=[],
+        help="Speech intervals of a window (samples, end exclusive), read as a "
+        "(length, 1) speech label"
+        "\n\n"
+        "   window_a 160000 0 4000 9000 160000\n"
+        "   window_b 160000\n"
         "   ...",
     ),
     "rttm": dict(

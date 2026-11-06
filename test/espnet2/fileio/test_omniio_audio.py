@@ -370,3 +370,26 @@ def test_forked_workers_read_correctly(tmp_path, how):
             np.testing.assert_allclose(array, signals[key], atol=1e-6)
     # the parent's descriptor is still good after the workers are gone
     np.testing.assert_allclose(reader[keys[0]][1], signals[keys[0]], atol=1e-6)
+
+
+@pytest.mark.parametrize("fmt", ["flac", "wav"])
+def test_window_entry_reads_only_the_window(tmp_path, fmt):
+    """`<entry>@<offset>+<length>` returns exactly that slice of the entry."""
+    rng = np.random.default_rng(1)
+    sig = rng.integers(-2000, 2000, 16000 * 30) / 32768.0
+    with OmniIOAudioWriter(tmp_path / "wav", tmp_path / "wav.scp", format=fmt) as w:
+        w["rec"] = 16000, sig
+    entry = (tmp_path / "wav.scp").read_text().split()[1]
+    read = OmniIOEntryReader()
+    _, whole = read(entry)
+    uncached = OmniIOEntryReader(max_cache_fd=0)  # ESPnetDataset's default
+    for off, n in [(0, 16000), (12345, 160000), (16000 * 30 - 160000, 160000)]:
+        np.testing.assert_array_equal(
+            uncached(f"{entry}@{off}+{n}")[1], whole[off : off + n]
+        )
+        assert not uncached._fds
+        rate, win = read(f"{entry}@{off}+{n}")
+        assert rate == 16000
+        np.testing.assert_array_equal(win, whole[off : off + n])
+    with pytest.raises(RuntimeError):
+        read(f"{entry}@{16000 * 30 - 10}+20")

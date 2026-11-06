@@ -29,6 +29,50 @@ from typeguard import typechecked
 from espnet2.fileio.read_text import read_2columns_text
 
 
+def parse_omniio_window(entry: str) -> Tuple[str, Optional[Tuple[int, int]]]:
+    """Split ``<entry>@<offset>+<length>`` into the entry and the sample window.
+
+    An entry without ``@`` is the whole recording (window None).
+    """
+    if "@" not in entry:
+        return entry, None
+    entry, window = entry.rsplit("@", 1)
+    offset, length = window.split("+")
+    return entry, (int(offset), int(length))
+
+
+class _ByteRange(io.RawIOBase):
+    """Seekable read-only view of bytes [start, end) of an open descriptor.
+
+    soundfile reads through it, so seeking inside a FLAC entry fetches only
+    the frames it needs (a 10 s window of a 3 h entry reads ~300 KB).
+    """
+
+    def __init__(self, fd: int, start: int, end: int):
+        self.fd, self.start, self.size, self.pos = fd, start, end - start, 0
+
+    def readable(self):
+        return True
+
+    def seekable(self):
+        return True
+
+    def tell(self):
+        return self.pos
+
+    def seek(self, offset, whence=io.SEEK_SET):
+        base = {io.SEEK_SET: 0, io.SEEK_CUR: self.pos, io.SEEK_END: self.size}[whence]
+        self.pos = base + offset
+        return self.pos
+
+    def readinto(self, buf):
+        n = max(0, min(len(buf), self.size - self.pos))
+        data = os.pread(self.fd, n, self.start + self.pos)
+        buf[: len(data)] = data
+        self.pos += len(data)
+        return len(data)
+
+
 def parse_omniio_entry(entry: str) -> Tuple[str, int, int]:
     """Split ``<bin path>:<start_byte>:<end_byte>`` (the path may contain ':')."""
     path, start, end = entry.rsplit(":", 2)
@@ -53,6 +97,10 @@ class OmniIOEntryReader:
     (e.g. a dataset sent to spawned DataLoader workers) starts with an empty
     cache, and a forked process opens its own instead of using, or closing,
     the inherited ones.
+
+    An entry may end in ``@<offset>+<length>`` (in samples): then only that
+    window is returned, and for FLAC/WAV/OGG only that part is read and
+    decoded, so a 10 s window of an hour-long entry costs milliseconds.
 
     FLAC, WAV and OGG entries are decoded here exactly as
     ``omniio.interface.audio_read`` decodes them (soundfile, float32,
@@ -87,22 +135,28 @@ class OmniIOEntryReader:
             self._pid = os.getpid()
         return self._fds
 
+    def _fd(self, path: str) -> int:
+        """Descriptor of `path` from the cache, opening it if needed."""
+        fds = self._own_fds()
+        fd = fds.get(path)
+        if fd is None:
+            fd = os.open(path, os.O_RDONLY)
+            fds[path] = fd
+            # keep at least this one open while it is used; with max_cache_fd=0
+            # the caller closes it after the read
+            while len(fds) > max(self.max_cache_fd, 1):
+                os.close(fds.popitem(last=False)[1])
+        else:
+            fds.move_to_end(path)
+        return fd
+
     def _read_bytes(self, path: str, start: int, size: int) -> bytes:
         """Read `size` bytes at `start` of `path`, through the descriptor cache."""
         if self.max_cache_fd <= 0 or not hasattr(os, "pread"):
             with open(path, "rb") as f:
                 f.seek(start)
                 return f.read(size)
-        fds = self._own_fds()
-        fd = fds.get(path)
-        if fd is None:
-            fd = os.open(path, os.O_RDONLY)
-            fds[path] = fd
-            while len(fds) > self.max_cache_fd:
-                os.close(fds.popitem(last=False)[1])
-        else:
-            fds.move_to_end(path)
-        data = os.pread(fd, size, start)
+        data = os.pread(self._fd(path), size, start)
         if len(data) != size:
             raise RuntimeError(f"short read from {path}: {len(data)} of {size} bytes")
         return data
@@ -114,7 +168,23 @@ class OmniIOEntryReader:
         if entry == "None":
             # an utterance without audio, as format_wav_scp.py writes it
             return None, None
+        entry, window = parse_omniio_window(entry)
         path, start, end = parse_omniio_entry(entry)
+        if window is not None and hasattr(os, "pread"):
+            head = os.pread(self._fd(path), 4, start)
+            if head != b"\x1aE\xdf\xa3":  # seekable codecs: decode the window only
+                offset, length = window
+                with soundfile.SoundFile(_ByteRange(self._fd(path), start, end)) as f:
+                    f.seek(offset)
+                    array = f.read(length, dtype="float32", always_2d=True)
+                    rate = f.samplerate
+                if len(array) != length:
+                    raise RuntimeError(f"window {window} runs past the end of {entry}")
+                if self.max_cache_fd <= 0:
+                    self.close()
+                if not self.always_2d and array.shape[1] == 1:
+                    array = array[:, 0]
+                return int(rate), array
         blob = self._read_bytes(path, start, end - start)
         if blob[:4] == b"\x1aE\xdf\xa3":  # WebM/Opus (EBML header)
             from omniio.interface import audio_read
@@ -125,6 +195,11 @@ class OmniIOEntryReader:
             array, rate = soundfile.read(
                 io.BytesIO(blob), dtype="float32", always_2d=True
             )  # (frames, channels)
+        if window is not None:  # WebM, or no pread: decode the entry, then slice
+            offset, length = window
+            array = array[offset : offset + length]
+            if len(array) != length:
+                raise RuntimeError(f"window {window} runs past the end of {entry}")
         if not self.always_2d and array.ndim == 2 and array.shape[1] == 1:
             array = array[:, 0]
         return int(rate), array
