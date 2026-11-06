@@ -43,16 +43,29 @@ class SpeechLMJobTemplate(AbsJobTemplate):
     configurations for speech language modeling tasks.
     """
 
-    def __init__(self, config: Dict[str, Any], is_train: bool = False):
+    def __init__(
+        self,
+        config: Dict[str, Any],
+        is_train: bool = False,
+        load_pretrained: bool = True,
+    ):
         """Initialize the SpeechLM job template.
 
         Args:
             config: Dictionary containing job configuration parameters.
+            is_train: Whether the job is for training (True) or inference.
+            load_pretrained: Load the pretrained weights of the frozen audio
+                encoder and of the base LM. False builds both from their
+                configs alone, leaving the LM weights uninitialised, for a
+                caller that loads a checkpoint strictly over the whole model
+                right after - as both inference entry points do. Nothing
+                else may pass False.
         """
         super().__init__(config, is_train)
 
         # (1) keep other configs
         self.config = config
+        self.load_pretrained = load_pretrained
 
         # (2) build tokenizers and vocabulary
         io_config = config["multimodal_io"]
@@ -60,6 +73,11 @@ class SpeechLMJobTemplate(AbsJobTemplate):
         for io_name, io_kwargs in io_config.items():
             multimodal_io_class = _multimodal_ios[io_name]
             assert issubclass(multimodal_io_class, AbsIO)
+            if issubclass(multimodal_io_class, ContinuousAudioIO):
+                # Fetching the encoder's weights means all of an omni model
+                # of which the encoder is 1.8%; a strict checkpoint load
+                # would overwrite them before they are used.
+                io_kwargs = {**io_kwargs, "load_pretrained": load_pretrained}
             self.multimodal_io[io_name] = multimodal_io_class(**io_kwargs)
 
         self._build_vocabulary()
@@ -253,6 +271,7 @@ class SpeechLMJobTemplate(AbsJobTemplate):
             vocab_meta=self.vocab_meta,
             # the Flash Attention requirement is training's; see parallel.py
             is_train=self.is_train,
+            load_pretrained=self.load_pretrained,
             **model_config["model_conf"],
         )
         if not pp_enabled:
