@@ -533,9 +533,10 @@ if ! "${skip_train}"; then
         _scp=wav.scp
         if [[ "${audio_format}" == *ark* ]]; then
             _type=kaldi_ark
+            _type_ref=kaldi_ark
         elif [[ "${audio_format}" == omniio ]]; then
             _type=omniio
-            _type_ref=kaldi_ark
+            _type_ref=omniio
         else
             # "sound" supports "wav", "flac", etc.
             _type=sound
@@ -681,9 +682,10 @@ if ! "${skip_train}"; then
         # "sound" supports "wav", "flac", etc.
         if [[ "${audio_format}" == *ark* ]]; then
             _type=kaldi_ark
+            _type_ref=kaldi_ark
         elif [[ "${audio_format}" == omniio ]]; then
             _type=omniio
-            _type_ref=kaldi_ark
+            _type_ref=omniio
         else
             # "sound" supports "wav", "flac", etc.
             _type=sound

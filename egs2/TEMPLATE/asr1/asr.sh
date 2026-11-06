@@ -1578,9 +1578,9 @@ if [ ${stage} -le 12 ] && [ ${stop_stage} -ge 12 ] && ! [[ " ${skip_stages} " =~
         _audio_format="$(cat ${_data}/audio_format 2>/dev/null || echo ${audio_format})"
         if [ "${_feats_type}" = raw ]; then
             _scp=wav.scp
-            if [[ "${audio_format}" == *ark* ]]; then
+            if [[ "${_audio_format}" == *ark* ]]; then
                 _type=kaldi_ark
-            elif [[ "${audio_format}" == omniio ]]; then
+            elif [[ "${_audio_format}" == omniio ]]; then
                 _type=omniio
             elif [[ "${_audio_format}" == *multi* ]]; then
                 _type=multi_columns_sound

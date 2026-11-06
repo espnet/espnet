@@ -54,6 +54,7 @@ class OmniIOAudioScpReader(collections.abc.Mapping):
         self.data = read_2columns_text(fname)
 
     def __getitem__(self, key: str) -> Tuple[Optional[int], Optional[np.ndarray]]:
+        """Return (sampling rate, signal) of `key`, or (None, None) if absent."""
         from omniio.interface import audio_read
 
         entry = self.data[key]
@@ -68,18 +69,23 @@ class OmniIOAudioScpReader(collections.abc.Mapping):
         return int(result.sample_rate), array
 
     def get_path(self, key: str) -> str:
+        """Return the scp entry of `key` (``<bin>:<start>:<end>`` or "None")."""
         return self.data[key]
 
     def __contains__(self, item):
+        """Whether the scp lists `item`."""
         return item in self.data
 
     def __len__(self):
+        """Number of utterances in the scp."""
         return len(self.data)
 
     def __iter__(self):
+        """Iterate over the utterance ids."""
         return iter(self.data)
 
     def keys(self):
+        """The utterance ids."""
         return self.data.keys()
 
 
@@ -91,6 +97,9 @@ class OmniIOAudioWriter:
     ``end_byte``, ``bin_index``, ``path`` and the audio metadata of
     ``omniio.audio.write.audio_write``), so other Omni-IO tools can read it.
     A new bin file is started once ``max_bin_size`` bytes would be exceeded.
+    The writer owns ``outdir``: archive files left there by an earlier run
+    (``blob_*.bin``, ``metadata.parquet``) are removed when it starts, so a
+    rerun never leaves stale entries behind.
 
     Examples:
         >>> with OmniIOAudioWriter('dump/format.1/wav', 'dump/format.1/wav.scp') as w:
@@ -115,6 +124,8 @@ class OmniIOAudioWriter:
     ):
         self.dir = Path(outdir).absolute()
         self.dir.mkdir(parents=True, exist_ok=True)
+        for stale in [*self.dir.glob("blob_*.bin"), self.dir / "metadata.parquet"]:
+            stale.unlink(missing_ok=True)
         scpfile = Path(scpfile)
         scpfile.parent.mkdir(parents=True, exist_ok=True)
         self.fscp = scpfile.open("w", encoding="utf-8")
@@ -127,13 +138,23 @@ class OmniIOAudioWriter:
         self.fbin = self._bin_path(self.bin_index).open("wb")
         self.rows: List[Dict] = []
         self.ids = set()
+        self.closed = False
 
     def _bin_path(self, index: int) -> Path:
+        """Path of the index-th bin file (the naming of omniio's Blob)."""
         return self.dir / f"blob_{index}.bin"
 
     def __setitem__(self, key: str, value: Tuple[int, np.ndarray]):
+        """Encode (rate, signal) and append it to the archive under `key`.
+
+        Args:
+            key: Utterance id; must be new to this writer.
+            value: (sampling rate, signal of shape (frames,) or (frames, ch)).
+        """
         from omniio.audio.write import audio_write
 
+        if self.closed:
+            raise RuntimeError("writer is closed")
         rate, signal = value
         if key in self.ids:
             raise RuntimeError(f"{key} is duplicated")
@@ -162,19 +183,29 @@ class OmniIOAudioWriter:
         self.fscp.write(f"{key} {path}:{start}:{end}\n")
 
     def __enter__(self):
+        """Use the writer as a context manager; it is closed on exit."""
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
+        """Close the writer, writing metadata.parquet."""
         self.close()
 
     def close(self):
+        """Finish the archive: write metadata.parquet and close the files.
+
+        An archive with no entry leaves no bin and no metadata file. Calling
+        close() again does nothing.
+        """
         import pyarrow as pa
         import pyarrow.parquet as pq
 
+        if self.closed:
+            return
+        self.closed = True
         self.fbin.close()
-        if self.offset == 0 and self.bin_index == 0 and not self.rows:
-            self._bin_path(0).unlink()
-        if self.rows:
+        if not self.rows:
+            self._bin_path(0).unlink(missing_ok=True)
+        else:
             pq.write_table(
                 pa.Table.from_pylist(self.rows), self.dir / "metadata.parquet"
             )

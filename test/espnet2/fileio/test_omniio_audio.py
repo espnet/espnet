@@ -135,3 +135,65 @@ def test_format_wav_scp_writes_an_omniio_archive(tmp_path):
     assert (out / "utt2num_samples").read_text().split() == [
         x for k, s in signals.items() for x in (k, str(len(s)))
     ]
+
+
+def test_omniio_itself_reads_the_archive(tmp_path):
+    """The archive opens with omniio's own Blob and audio_read, no ESPnet code.
+
+    This is what lets an archive dumped by a recipe be reused by other Omni-IO
+    tools (and by later recipes) without dumping again.
+    """
+    from omniio.blob.blob import Blob
+    from omniio.interface import audio_read
+
+    signals = _signals()
+    with OmniIOAudioWriter(
+        tmp_path / "wav", tmp_path / "wav.scp", max_bin_size=1
+    ) as writer:
+        for key, sig in signals.items():
+            writer[key] = 16000, sig
+
+    blob = Blob(archive_dir=str(tmp_path / "wav"), modality="audio")
+    assert len(blob) == len(signals)
+    for row in blob.get_metadata().to_pylist():
+        bin_path = blob._get_bin_file_path(row["bin_index"])
+        assert str(bin_path) == row["path"]
+        result = audio_read(
+            str(bin_path),
+            start_offset=row["start_byte"],
+            file_size=row["end_byte"] - row["start_byte"],
+        )
+        assert result.sample_rate == 16000
+        np.testing.assert_allclose(result.array[:, 0], signals[row["id"]], atol=1e-6)
+
+
+def test_close_twice_and_empty_archive(tmp_path):
+    writer = OmniIOAudioWriter(tmp_path / "wav", tmp_path / "wav.scp")
+    writer.close()
+    writer.close()
+    assert list((tmp_path / "wav").iterdir()) == []
+    assert (tmp_path / "wav.scp").read_text() == ""
+    with pytest.raises(RuntimeError):
+        writer["a"] = 16000, np.zeros(160)
+
+
+def test_rerun_leaves_no_stale_files(tmp_path):
+    with OmniIOAudioWriter(
+        tmp_path / "wav", tmp_path / "wav.scp", max_bin_size=1
+    ) as writer:
+        for key, sig in _signals().items():
+            writer[key] = 16000, sig
+    assert len(list((tmp_path / "wav").glob("blob_*.bin"))) == 3
+
+    with OmniIOAudioWriter(tmp_path / "wav", tmp_path / "wav.scp") as writer:
+        writer["only"] = 16000, np.zeros(160)
+    assert sorted(p.name for p in (tmp_path / "wav").iterdir()) == [
+        "blob_0.bin",
+        "metadata.parquet",
+    ]
+    rows = pq.read_table(tmp_path / "wav" / "metadata.parquet").to_pylist()
+    assert [r["id"] for r in rows] == ["only"]
+
+    # a rerun that writes nothing must not keep the old metadata either
+    OmniIOAudioWriter(tmp_path / "wav", tmp_path / "wav.scp").close()
+    assert list((tmp_path / "wav").iterdir()) == []
