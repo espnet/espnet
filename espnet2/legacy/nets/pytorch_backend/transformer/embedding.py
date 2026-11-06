@@ -60,18 +60,20 @@ class PositionalEncoding(torch.nn.Module):
 
     def extend_pe(self, x):
         """Reset the positional encodings."""
+        length = x.size(1)
         if self.pe is not None:
-            if self.pe.size(1) >= x.size(1):
-                if self.pe.dtype != x.dtype or self.pe.device != x.device:
-                    self.pe = self.pe.to(dtype=x.dtype, device=x.device)
+            length = max(length, self.pe.size(1))
+            if self.pe.size(1) >= x.size(1) and self.pe.dtype == x.dtype:
+                self.pe = self.pe.to(device=x.device)
                 return
-        pe = torch.zeros(x.size(1), self.d_model)
+        # Rebuild on dtype changes: upcasting a rounded cache loses precision.
+        pe = torch.zeros(length, self.d_model)
         if self.reverse:
             position = torch.arange(
-                x.size(1) - 1, -1, -1.0, dtype=torch.float32
+                length - 1, -1, -1.0, dtype=torch.float32
             ).unsqueeze(1)
         else:
-            position = torch.arange(0, x.size(1), dtype=torch.float32).unsqueeze(1)
+            position = torch.arange(0, length, dtype=torch.float32).unsqueeze(1)
         div_term = torch.exp(
             torch.arange(0, self.d_model, 2, dtype=torch.float32)
             * -(math.log(10000.0) / self.d_model)
@@ -285,19 +287,20 @@ class RelPositionalEncoding(torch.nn.Module):
 
     def extend_pe(self, x):
         """Reset the positional encodings."""
+        length = x.size(1)
         if self.pe is not None:
             # self.pe contains both positive and negative parts
             # the length of self.pe is 2 * input_len - 1
-            if self.pe.size(1) >= x.size(1) * 2 - 1:
-                if self.pe.dtype != x.dtype or self.pe.device != x.device:
-                    self.pe = self.pe.to(dtype=x.dtype, device=x.device)
+            length = max(length, (self.pe.size(1) + 1) // 2)
+            if self.pe.size(1) >= x.size(1) * 2 - 1 and self.pe.dtype == x.dtype:
+                self.pe = self.pe.to(device=x.device)
                 return
         # Suppose `i` means to the position of query vecotr and `j` means the
         # position of key vector. We use position relative positions when keys
         # are to the left (i>j) and negative relative positions otherwise (i<j).
-        pe_positive = torch.zeros(x.size(1), self.d_model)
-        pe_negative = torch.zeros(x.size(1), self.d_model)
-        position = torch.arange(0, x.size(1), dtype=torch.float32).unsqueeze(1)
+        pe_positive = torch.zeros(length, self.d_model)
+        pe_negative = torch.zeros(length, self.d_model)
+        position = torch.arange(0, length, dtype=torch.float32).unsqueeze(1)
         div_term = torch.exp(
             torch.arange(0, self.d_model, 2, dtype=torch.float32)
             * -(math.log(10000.0) / self.d_model)
@@ -358,10 +361,11 @@ class StreamPositionalEncoding(torch.nn.Module):
     def extend_pe(self, length, device, dtype):
         """Reset the positional encodings."""
         if self.pe is not None:
-            if self.pe.size(1) >= length:
-                if self.pe.dtype != dtype or self.pe.device != device:
-                    self.pe = self.pe.to(dtype=dtype, device=device)
+            cached_length = self.pe.size(1)
+            if cached_length >= length and self.pe.dtype == dtype:
+                self.pe = self.pe.to(device=device)
                 return
+            length = max(length, cached_length)
         pe = torch.zeros(length, self.d_model)
         position = torch.arange(0, length, dtype=torch.float32).unsqueeze(1)
         div_term = torch.exp(
