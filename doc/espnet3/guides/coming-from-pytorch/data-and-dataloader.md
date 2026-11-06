@@ -5,8 +5,8 @@ If you already know PyTorch, the dataset part of ESPnet3 is not very exotic.
 The short version is:
 
 ::: important
-Your recipe-local dataset can usually just be a normal
-`torch.utils.data.Dataset`.
+Your recipe-local dataset must extend `BaseDataset` and declare its sample
+`fields`. `BaseDataset` is a PyTorch Dataset.
 :::
 
 ESPnet3 mainly adds:
@@ -21,10 +21,13 @@ ESPnet3 mainly adds:
 If you know PyTorch, this still looks normal:
 
 ```python
-from torch.utils.data import Dataset
+from espnet3.components.data.base_dataset import BaseDataset
+from espnet3.contract import Field
 
 
-class MyDataset(Dataset):
+class MyDataset(BaseDataset):
+    fields = (Field("speech", "audio"), Field("text", "text"))
+
     def __init__(self, split: str):
         self.split = split
         self.samples = load_manifest(split)

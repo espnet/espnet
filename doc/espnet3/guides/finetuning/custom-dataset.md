@@ -1,8 +1,8 @@
 # Custom dataset for finetuning
 
 ::: important
-For ESPnet3, your custom dataset can be a normal `torch.utils.data.Dataset`.
-It does not need to be a special ESPnet-only dataset class.
+For ESPnet3, your custom dataset must extend `BaseDataset` and declare its
+sample `fields`. `BaseDataset` is a PyTorch Dataset.
 :::
 
 ## The minimum idea
@@ -56,7 +56,7 @@ So:
 
 `mini_an4` is a good small example.
 
-Its dataset is just a normal `torch.utils.data.Dataset` that:
+Its `BaseDataset` implementation:
 
 - reads one manifest row
 - loads the waveform
@@ -65,7 +65,13 @@ Its dataset is just a normal `torch.utils.data.Dataset` that:
 Conceptually:
 
 ```python
-class MyDataset(torch.utils.data.Dataset):
+from espnet3.components.data.base_dataset import BaseDataset
+from espnet3.contract import Field
+
+
+class MyDataset(BaseDataset):
+    fields = (Field("speech", "audio"), Field("text", "text"))
+
     def __getitem__(self, idx):
         return {
             "speech": speech_array,
@@ -267,7 +273,7 @@ default config.
 
 ## Collate functions still help a lot
 
-A plain `torch.utils.data.Dataset` does not mean you lose ESPnet conveniences.
+A `BaseDataset` can use ESPnet conveniences.
 
 You can still use ESPnet collate functions such as:
 
@@ -311,7 +317,7 @@ Use this when you want a cached derived dataset on disk.
 
 If you want to add a new dataset quickly, do this:
 
-1. write a minimal `Dataset(torch.utils.data.Dataset)`
+1. write a minimal `Dataset(BaseDataset)` and declare its `fields`
 2. make it return a small sample dict
 3. export `Dataset` and `DatasetBuilder` from `dataset/__init__.py`
 4. connect `training.yaml` and `inference.yaml`

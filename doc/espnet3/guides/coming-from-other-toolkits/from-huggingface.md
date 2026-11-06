@@ -25,7 +25,7 @@ Map the workflow first.
 These parts are usually easy to understand:
 
 - normal PyTorch model code still works
-- normal `torch.utils.data.Dataset` still works
+- familiar PyTorch dataset code works through `BaseDataset` with declared `fields`
 - optimizer and scheduler config is explicit
 - distributed training uses familiar backend settings under `trainer:`
 
