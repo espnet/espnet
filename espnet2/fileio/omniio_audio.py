@@ -20,6 +20,7 @@ import collections
 import collections.abc
 import io
 import os
+import re
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple, Union
 
@@ -28,17 +29,20 @@ from typeguard import typechecked
 
 from espnet2.fileio.read_text import read_2columns_text
 
+_WINDOW = re.compile(r"^(?P<entry>.*:\d+:\d+)@(?P<offset>\d+)\+(?P<length>\d+)$")
+
 
 def parse_omniio_window(entry: str) -> Tuple[str, Optional[Tuple[int, int]]]:
     """Split ``<entry>@<offset>+<length>`` into the entry and the sample window.
 
-    An entry without ``@`` is the whole recording (window None).
+    Only a suffix right after the byte range counts as a window, so a path
+    that itself contains ``@`` is left alone. Without one the whole recording
+    is meant (window None).
     """
-    if "@" not in entry:
+    m = _WINDOW.match(entry)
+    if m is None:
         return entry, None
-    entry, window = entry.rsplit("@", 1)
-    offset, length = window.split("+")
-    return entry, (int(offset), int(length))
+    return m.group("entry"), (int(m.group("offset")), int(m.group("length")))
 
 
 class _ByteRange(io.RawIOBase):
@@ -163,12 +167,22 @@ class OmniIOEntryReader:
 
     def __call__(self, entry: str) -> Tuple[Optional[int], Optional[np.ndarray]]:
         """Return (sampling rate, signal) of `entry`, or (None, None) for "None"."""
-        import soundfile
-
         if entry == "None":
             # an utterance without audio, as format_wav_scp.py writes it
             return None, None
         entry, window = parse_omniio_window(entry)
+        try:
+            return self._read(entry, window)
+        finally:
+            if self.max_cache_fd <= 0:
+                self.close()  # no cache: never keep a descriptor past the read
+
+    def _read(
+        self, entry: str, window: Optional[Tuple[int, int]]
+    ) -> Tuple[int, np.ndarray]:
+        """Decode `entry`, or only `window` of it when the codec can seek."""
+        import soundfile
+
         path, start, end = parse_omniio_entry(entry)
         if window is not None and hasattr(os, "pread"):
             head = os.pread(self._fd(path), 4, start)
@@ -180,8 +194,6 @@ class OmniIOEntryReader:
                     rate = f.samplerate
                 if len(array) != length:
                     raise RuntimeError(f"window {window} runs past the end of {entry}")
-                if self.max_cache_fd <= 0:
-                    self.close()
                 if not self.always_2d and array.shape[1] == 1:
                     array = array[:, 0]
                 return int(rate), array

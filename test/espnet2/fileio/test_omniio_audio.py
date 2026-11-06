@@ -1,3 +1,4 @@
+import io
 import subprocess
 import sys
 from pathlib import Path
@@ -393,3 +394,150 @@ def test_window_entry_reads_only_the_window(tmp_path, fmt):
         np.testing.assert_array_equal(win, whole[off : off + n])
     with pytest.raises(RuntimeError):
         read(f"{entry}@{16000 * 30 - 10}+20")
+
+
+def _window_cases(n, rate):
+    """Windows at the edges, across FLAC block boundaries, and the whole entry."""
+    return [
+        (0, 1),
+        (4095, 2),  # across the first 4096-sample FLAC block boundary
+        (4096, 8192),
+        (2 * rate + 17, 3 * rate),
+        (n - rate, rate),
+        (n - 1, 1),
+        (0, n),
+    ]
+
+
+@pytest.mark.parametrize("rate", [8000, 16000, 22050, 44100, 48000])
+@pytest.mark.parametrize("channels", [1, 2])
+@pytest.mark.parametrize("fmt", ["flac", "wav"])
+def test_window_reads_across_rates_channels_and_lengths(tmp_path, rate, channels, fmt):
+    """Every window equals the slice of the whole decode, at any rate and width."""
+    n = int(rate * 7.3)
+    rng = np.random.default_rng(rate + channels)
+    sig = rng.integers(-2000, 2000, (n, channels)) / 32768.0
+    if channels == 1:
+        sig = sig[:, 0]
+    with OmniIOAudioWriter(tmp_path / "wav", tmp_path / "wav.scp", format=fmt) as w:
+        w["rec"] = rate, sig
+    entry = (tmp_path / "wav.scp").read_text().split()[1]
+    read = OmniIOEntryReader()
+    got_rate, whole = read(entry)
+    assert got_rate == rate and whole.shape == sig.shape
+    for off, length in _window_cases(n, rate):
+        r, win = read(f"{entry}@{off}+{length}")
+        assert r == rate
+        assert win.shape == ((length,) if channels == 1 else (length, channels))
+        np.testing.assert_array_equal(win, whole[off : off + length])
+    with pytest.raises(RuntimeError):
+        read(f"{entry}@{n - 5}+10")  # runs past the end
+    with pytest.raises(RuntimeError):
+        read(f"{entry}@0+{n + 1}")  # longer than the entry
+
+
+def test_window_reads_an_ogg_entry(tmp_path):
+    """OGG/Vorbis (not written by the writer, but read) seeks to the same samples."""
+    rate = 16000
+    sig = (np.sin(np.arange(rate * 6) * 0.02) * 0.3).astype(np.float32)
+    buf = io.BytesIO()
+    soundfile.write(buf, sig, rate, format="OGG", subtype="VORBIS")
+    payload = buf.getvalue()
+    (tmp_path / "blob_0.bin").write_bytes(b"x" * 100 + payload + b"y" * 50)
+    entry = f"{tmp_path / 'blob_0.bin'}:100:{100 + len(payload)}"
+    read = OmniIOEntryReader()
+    _, whole = read(entry)
+    for off, length in [(0, 1000), (rate * 2 + 5, rate), (len(whole) - rate, rate)]:
+        _, win = read(f"{entry}@{off}+{length}")
+        np.testing.assert_array_equal(win, whole[off : off + length])
+
+
+def test_window_of_a_webm_entry_slices_the_whole_decode(tmp_path):
+    """WebM cannot be seeked here: the entry is decoded whole and sliced."""
+    rate = 48000
+    rng = np.random.default_rng(3)
+    with OmniIOAudioWriter(tmp_path / "wav", tmp_path / "wav.scp", format="webm") as w:
+        w["rec"] = rate, rng.standard_normal(rate * 3) * 0.1
+    entry = (tmp_path / "wav.scp").read_text().split()[1]
+    read = OmniIOEntryReader()
+    got_rate, whole = read(entry)
+    _, win = read(f"{entry}@{rate}+{rate // 2}")
+    assert got_rate == rate
+    np.testing.assert_array_equal(win, whole[rate : rate + rate // 2])
+
+
+def test_mixed_window_lengths_in_one_batch(tmp_path):
+    """10 s and 20 s windows load and pad together with the right lengths."""
+    from espnet2.train.collate_fn import common_collate_fn
+
+    rate = 16000
+    sig = np.random.default_rng(4).integers(-2000, 2000, rate * 40) / 32768.0
+    with OmniIOAudioWriter(tmp_path / "wav", tmp_path / "rec.scp") as w:
+        w["rec"] = rate, sig
+    entry = (tmp_path / "rec.scp").read_text().split()[1]
+    (tmp_path / "wav.scp").write_text(
+        f"w10 {entry}@0+{rate * 10}\nw20 {entry}@{rate * 10}+{rate * 20}\n"
+    )
+    (tmp_path / "vad").write_text(
+        f"w10 {rate * 10} 0 100\nw20 {rate * 20} 5 {rate * 20}\n"
+    )
+    ds = ESPnetDataset(
+        [
+            (str(tmp_path / "wav.scp"), "speech", "omniio"),
+            (str(tmp_path / "vad"), "spk_labels", "vad_intervals"),
+        ]
+    )
+    keys, batch = common_collate_fn([ds["w10"], ds["w20"]])
+    assert keys == ["w10", "w20"]
+    assert batch["speech"].shape == (2, rate * 20)
+    assert batch["speech_lengths"].tolist() == [rate * 10, rate * 20]
+    assert batch["spk_labels"].shape == (2, rate * 20, 1)
+    assert batch["spk_labels_lengths"].tolist() == [rate * 10, rate * 20]
+    np.testing.assert_allclose(
+        batch["speech"][0, : rate * 10].numpy(), sig[: rate * 10], atol=1e-6
+    )
+    assert not batch["speech"][0, rate * 10 :].any()  # padding
+    assert (
+        batch["spk_labels"][1, :5, 0].sum() == 0 and batch["spk_labels"][1, 5:, 0].all()
+    )
+
+
+def test_at_sign_in_the_archive_path_is_not_a_window(tmp_path):
+    """Only "@<offset>+<length>" right after the byte range is a window."""
+    from espnet2.fileio.omniio_audio import parse_omniio_window
+
+    assert parse_omniio_window("/a@b/blob_0.bin:0:100") == (
+        "/a@b/blob_0.bin:0:100",
+        None,
+    )
+    assert parse_omniio_window("/a@b/blob_0.bin:0:100@5+7") == (
+        "/a@b/blob_0.bin:0:100",
+        (5, 7),
+    )
+    sig = np.random.default_rng(5).integers(-2000, 2000, 16000) / 32768.0
+    with OmniIOAudioWriter(tmp_path / "a@b", tmp_path / "wav.scp") as w:
+        w["rec"] = 16000, sig
+    entry = (tmp_path / "wav.scp").read_text().split()[1]
+    assert "@" in entry
+    read = OmniIOEntryReader()
+    _, whole = read(entry)
+    np.testing.assert_allclose(whole, sig, atol=1e-6)
+    np.testing.assert_array_equal(read(f"{entry}@100+200")[1], whole[100:300])
+
+
+@pytest.mark.parametrize("fmt", ["flac", "webm"])
+def test_uncached_reader_closes_its_descriptor_on_every_path(tmp_path, fmt):
+    """With max_cache_fd=0 nothing stays open: window, whole, or error."""
+    rate = 48000 if fmt == "webm" else 16000
+    sig = np.random.default_rng(6).standard_normal(rate * 2) * 0.1
+    with OmniIOAudioWriter(tmp_path / "wav", tmp_path / "wav.scp", format=fmt) as w:
+        w["rec"] = rate, sig
+    entry = (tmp_path / "wav.scp").read_text().split()[1]
+    read = OmniIOEntryReader(max_cache_fd=0)
+    read(entry)
+    assert not read._fds
+    read(f"{entry}@{rate // 2}+{rate // 2}")
+    assert not read._fds
+    with pytest.raises(RuntimeError):
+        read(f"{entry}@{rate}+{rate * 5}")
+    assert not read._fds
