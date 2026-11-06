@@ -155,10 +155,8 @@ The docs rail is built from:
 
 - `doc/vuepress/src/.vuepress/components/DocsAiSidebar.vue`
 
-Today it contains:
-
-- a link to report documentation issues
-- the AI tools links such as `Ask ChatGPT`
+Today it contains the AI tools links such as `Ask ChatGPT`. The page footer
+links to GitHub Issues for documentation reports.
 
 This is also the likely place to extend later for:
 

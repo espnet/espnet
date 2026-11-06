@@ -21,7 +21,7 @@ export default hopeTheme({
   // sidebar
   sidebar,
 
-  footer: "Copyright © 2024 ESPnet Community. All rights reserved.",
+  footer: `Copyright © 2024 ESPnet Community. All rights reserved. · <a href="https://github.com/espnet/espnet/issues">Open an issue?</a>`,
 
   displayFooter: true,
 
