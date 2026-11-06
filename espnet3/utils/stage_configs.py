@@ -490,9 +490,10 @@ def merge_stage_config_from_snapshots(
 ) -> DictConfig:
     """Build `requested_stage`'s config from saved snapshots and this run.
 
-    Implements design/config_tree_fix.md's "保存済み config の探索" (steps
-    5-8) and "設定の優先順位と独立性". For each in-scope stage (the
-    requested stage and the ones declared before it), a directory to search
+    Implements design/config_tree_fix.md's "Saved configuration discovery" (steps
+    5-8) and "Configuration precedence and independence". For each in-scope
+    stage (the requested stage and the ones declared before it), a directory
+    to search
     is found via :func:`resolve_search_directories`, extended with any
     directory a loaded snapshot itself reveals for another in-scope stage's
     `log_dir` key (bounded by the number of in-scope stages; `visited`
@@ -602,7 +603,7 @@ def merge_stage_config_from_snapshots(
     # search found nothing for it (e.g. it declares no log_dir, so
     # resolve_search_directories has nothing to resolve) and this run gave
     # an explicit exp_dir. New-style <exp_dir>/<stage>.yaml is tried first -
-    # a log_dir=None stage still snapshots to exp_dir (see "保存・ログ・
+    # a log_dir=None stage still snapshots to exp_dir (see "Persistence, logging and
     # fallback") - and only the OLD <exp_dir>/config/<stage>.yaml layout
     # after that, so a new snapshot always wins over an old one.
     if requested_stage not in loaded and "exp_dir" in cli_dir_overrides:

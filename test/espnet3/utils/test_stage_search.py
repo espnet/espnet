@@ -1,8 +1,8 @@
 """Tests for saved-config search/priority merging.
 
-Covers resolve_search_directories (design/config_tree_fix.md, "保存済み
-config の探索" steps 1-4) and merge_stage_config_from_snapshots (steps 5-8
-and "設定の優先順位と独立性").
+Covers resolve_search_directories (design/config_tree_fix.md, "Saved configuration
+discovery" steps 1-4) and merge_stage_config_from_snapshots (steps 5-8
+and "Configuration precedence and independence").
 """
 
 from pathlib import Path
