@@ -53,7 +53,7 @@ from espnet3.components.modeling.lightning_module import ESPnetLightningModule
 
 class MyLightningModule(ESPnetLightningModule):
     def training_step(self, batch, batch_idx):
-        loss, stats, weight = self.model(**batch)
+        loss, stats, weight = self.model(**batch[1])
         self.log("train/loss", loss)
         return loss
 ```
