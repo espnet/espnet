@@ -344,6 +344,46 @@ def test_collect_stats_batch_rejects_conflicting_kwargs():
         )
 
 
+def test_collect_stats_batch_unwraps_collator_pairs():
+    """Enhancement-style datasets set use_espnet_collator without a preprocessor.
+
+    CombinedDataset then returns (uid, sample). collect_stats_batch must unwrap
+    that pair; otherwise CommonCollateFn sees nested dicts and raises
+    TypeError: unhashable type: 'dict'.
+    """
+
+    class CollatorPairedDataset:
+        use_espnet_collator = True
+        use_espnet_preprocessor = False
+
+        def __init__(self, n=2, dim=4):
+            self.n = n
+            self.dim = dim
+
+        def __len__(self):
+            return self.n
+
+        def __getitem__(self, idx):
+            x = torch.full((3, self.dim), float(idx), dtype=torch.float32)
+            return f"utt{idx}", {"x": x, "length": 3}
+
+    dataset = CollatorPairedDataset()
+    model = DummyModel()
+    collate = DummyCollate()
+
+    stats, shapes = collect_stats_batch(
+        [0, 1],
+        model=model,
+        dataset=dataset,
+        collate_fn=collate,
+        device=torch.device("cpu"),
+    )
+
+    assert "mel" in stats
+    assert shapes["mel"]["utt0"] == "3,4"
+    assert shapes["mel"]["utt1"] == "3,4"
+
+
 def test_chunk_indices_rejects_non_positive_batch_size():
     with pytest.raises(ValueError, match="batch_size must be a positive integer"):
         _chunk_indices(10, 0)

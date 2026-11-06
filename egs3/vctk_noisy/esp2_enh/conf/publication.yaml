@@ -1,0 +1,18 @@
+##########################################################
+#              VCTK-NOISY PUBLICATION OVERRIDES          #
+##########################################################
+# Pack and upload the trained Conv-TasNet checkpoint.
+#
+#   python run.py --stages pack_model \
+#       --training_config conf/training.yaml \
+#       --publication_config conf/publication.yaml
+#   python run.py --stages upload_model \
+#       --training_config conf/training.yaml \
+#       --publication_config conf/publication.yaml
+#
+# Everything except the model card comes from
+# TEMPLATE/esp2_enh/conf/publication.yaml. The card lives in this recipe's
+# src/, since the TEMPLATE has no src/ of its own. Run infer + measure first
+# so metrics.json is bundled.
+pack_model:
+  readme: ${config_path:../src/hf_model_readme.md}

@@ -1,0 +1,11 @@
+##########################################################
+#               VCTK-NOISY METRIC OVERRIDES              #
+##########################################################
+# Common usage:
+#   python run.py --stages measure \
+#       --training_config conf/training.yaml \
+#       --inference_config conf/inference.yaml \
+#       --metrics_config conf/metrics.yaml
+#
+# SI-SNR, PESQ and STOI all come from TEMPLATE/esp2_enh/conf/metrics.yaml,
+# so this recipe does not override any metric settings.
