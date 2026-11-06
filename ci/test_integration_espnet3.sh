@@ -7,18 +7,31 @@ set -euo pipefail
 
 python="coverage run --append"
 cwd=$(pwd)
+export COVERAGE_FILE="${cwd}/.coverage"
+clone_workdir=""
 
 gen_dummy_coverage(){
     touch empty.py
     ${python} empty.py
 }
 
+cleanup() {
+    if [ -n "${clone_workdir}" ] && [ -d "${clone_workdir}" ]; then
+        rm -rf "${clone_workdir}"
+    fi
+}
+
+trap cleanup EXIT
+
 python3 -m pip install -e '.[asr]'
 
-cd ./egs3/mini_an4/esp2_asr || exit
+clone_workdir=$(mktemp -d)
+espnet3 clone mini_an4/esp2_asr --project "${clone_workdir}/recipe"
+# The tiny integration-test corpus is a fixture, not recipe source.
+cp egs3/mini_an4/esp2_asr/downloads.tar.gz "${clone_workdir}/recipe/"
+cd "${clone_workdir}/recipe" || exit
 gen_dummy_coverage
 echo "==== [ESPnet3] ASR ===="
-source path.sh
 run_with_training_config() {
     local training_config=$1
     local runner=$2
@@ -43,7 +56,7 @@ for training_config in "${training_configs[@]}"; do
     run_with_training_config "${training_config}" run.py conf/inference.yaml
 done
 
-# We need seprate inference config for transducer task
+# We need separate inference config for transducer task
 run_with_training_config \
     training_transducer_asr_conformer_rnnt.yaml \
     run.py \
