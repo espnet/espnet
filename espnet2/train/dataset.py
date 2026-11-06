@@ -31,7 +31,7 @@ from typeguard import typechecked
 from espnet2.fileio.json_scp import JsonScpReader
 from espnet2.fileio.multi_sound_scp import MultiSoundScpReader
 from espnet2.fileio.npy_scp import NpyScpReader
-from espnet2.fileio.omniio_audio import OmniIOAudioScpReader
+from espnet2.fileio.omniio_audio import OmniIOAudioScpReader, OmniIOSegmentsReader
 from espnet2.fileio.rand_gen_dataset import (
     FloatRandomGenerateDataset,
     IntRandomGenerateDataset,
@@ -261,6 +261,20 @@ def omniio_loader(
     )
 
 
+def omniio_segments_loader(
+    path, float_dtype=None, max_cache_fd: int = 32, allow_multi_rates=False
+):
+    """Load Kaldi segments of recordings in Omni-IO archives.
+
+    `path` is the segments file; the recordings' scp is the ``wav.scp`` next
+    to it. Only each segment's part of its archive entry is read.
+    """
+    loader = OmniIOSegmentsReader(path, always_2d=False, max_cache_fd=max_cache_fd)
+    return AdapterForSoundScpReader(
+        loader, float_dtype, allow_multi_rates=allow_multi_rates
+    )
+
+
 def rand_int_loader(filepath, loader_type):
     # e.g. rand_int_3_10
     try:
@@ -331,6 +345,18 @@ DATA_TYPES = {
         "\n\n"
         "   utterance_id_A /some/where/a.ark:123\n"
         "   utterance_id_B /some/where/a.ark:456\n"
+        "   ...",
+    ),
+    # before "omniio": types are matched by prefix, first match wins
+    "omniio_segments": dict(
+        func=omniio_segments_loader,
+        kwargs=["float_dtype", "max_cache_fd", "allow_multi_rates"],
+        help="Kaldi segments of recordings stored in Omni-IO archives; the "
+        "recordings' wav.scp must be next to the segments file. Only each "
+        "segment's part of the archive is read and decoded."
+        "\n\n"
+        "   segment_id_a recording_id_x 0.0 10.0\n"
+        "   segment_id_b recording_id_x 10.0 20.0\n"
         "   ...",
     ),
     "omniio": dict(
