@@ -150,6 +150,8 @@ train = [
   "datasets",
   "dask[distributed]",
   "dask_jobqueue",
+  # SQL index over omniio dumps (espnet3/components/data/omniio_dataset.py)
+  "duckdb",
 ]
 # Two of the packages below are ESPnet-maintained forks of projects whose
 # upstream releases do not work here, published to PyPI under their own names:
