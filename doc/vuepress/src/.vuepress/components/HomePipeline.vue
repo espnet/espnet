@@ -256,7 +256,7 @@ const steps = [
         label: 'upload-model',
         yaml: yaml([
           'upload_model:',
-          '  repo_id: espnet/my_asr',
+          '  hf_repo: espnet/my_asr',
         ]),
       },
     ],
