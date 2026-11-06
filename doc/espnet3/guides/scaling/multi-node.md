@@ -179,8 +179,8 @@ GPU across all nodes.
 #SBATCH --ntasks-per-node=8
 #SBATCH --gres=gpu:8
 
-srun python run.py --stage 5 --stop_stage 5 \
-    --config conf/training.yaml
+srun python run.py --stages train \
+    --training_config conf/training.yaml
 ```
 
 When using `srun`, Lightning detects the SLURM environment and sets
@@ -197,8 +197,8 @@ torchrun \
     --node_rank=<0 or 1> \
     --master_addr=<IP of node 0> \
     --master_port=29500 \
-    run.py --stage 5 --stop_stage 5 \
-           --config conf/training.yaml
+    run.py --stages train \
+           --training_config conf/training.yaml
 ```
 
 Replace `<0 or 1>` with the rank of the current node and `<IP of node 0>`

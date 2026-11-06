@@ -255,27 +255,27 @@ Set `batch_size: null` for this single-sample example. Since it overrides
 
 ## Switching backends without changing code
 
-Keep per-environment configs as separate override files:
+Keep a complete inference config for each environment, with the appropriate
+`parallel` settings included in each file:
 
 ```
 conf/
-  inference.yaml          # base config
-  parallel_local.yaml     # env: local, n_workers: 1
-  parallel_gpu.yaml       # env: local_gpu, n_workers: 4
-  parallel_slurm.yaml     # env: slurm, n_workers: 8, ...
+  inference_local.yaml     # env: local, n_workers: 1
+  inference_gpu.yaml       # env: local_gpu, n_workers: 4
+  inference_slurm.yaml     # env: slurm, n_workers: 8, ...
 ```
 
-Then merge at run time:
+Select one config at run time:
 
 ```bash
 # local
-python run.py --stage 6 --config conf/inference.yaml
+python run.py --stages infer --inference_config conf/inference_local.yaml
 
 # multi-GPU
-python run.py --stage 6 --config conf/inference.yaml conf/parallel_gpu.yaml
+python run.py --stages infer --inference_config conf/inference_gpu.yaml
 
 # SLURM
-python run.py --stage 6 --config conf/inference.yaml conf/parallel_slurm.yaml
+python run.py --stages infer --inference_config conf/inference_slurm.yaml
 ```
 
 This keeps the backend selection outside of the recipe code.
