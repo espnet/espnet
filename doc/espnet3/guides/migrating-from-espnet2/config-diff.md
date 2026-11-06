@@ -622,8 +622,9 @@ Typical shape:
 metrics:
   - metric:
       _target_: espnet3.systems.esp2_asr.metrics.wer.WER
-      ref_key: ref
-      hyp_key: hyp
+    inputs:
+      ref: dataset:text
+      hyp: text
 ```
 
 This means:
