@@ -231,6 +231,7 @@ if ! "${skip_data_prep}"; then
             pyscripts/utils/convert_rttm.py \
                 --rttm "${data_feats}${_suf}/${dset}"/rttm \
                 --wavscp "${data_feats}${_suf}/${dset}"/wav.scp \
+                --utt2num_samples "${data_feats}${_suf}/${dset}"/utt2num_samples \
                 --output_path "${data_feats}${_suf}/${dset}" \
                 --sampling_rate "${fs}"
         done
@@ -274,6 +275,7 @@ if ! "${skip_data_prep}"; then
             pyscripts/utils/convert_rttm.py \
                 --rttm "${data_feats}/${dset}"/rttm \
                 --wavscp "${data_feats}/${dset}"/wav.scp \
+                --utt2num_samples "${data_feats}/${dset}"/utt2num_samples \
                 --output_path "${data_feats}/${dset}" \
                 --sampling_rate "${fs}"
         done
