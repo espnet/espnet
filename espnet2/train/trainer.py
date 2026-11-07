@@ -695,7 +695,9 @@ class Trainer:
                     # automatically normalizes the gradient by world_size.
                     loss *= torch.distributed.get_world_size()
 
-                loss /= accum_grad
+                # Not in place: the statistics usually hold loss.detach(), which
+                # shares its storage and would be reported divided by accum_grad.
+                loss = loss / accum_grad
 
             with reporter.measure_time("backward_time"):
                 if scaler is not None:
