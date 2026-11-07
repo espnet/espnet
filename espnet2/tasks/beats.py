@@ -15,6 +15,7 @@ from espnet2.beats.tokenizer import (
     BeatsTokenizer,
     BeatsTokenizerPretrainingPredictor,
 )
+from espnet2.beats.utils import DEFAULT_FBANK_MEAN, DEFAULT_FBANK_STD
 from espnet2.tasks.abs_task import AbsTask
 from espnet2.torch_utils.initialize import initialize
 from espnet2.train.abs_espnet_model import AbsESPnetModel
@@ -247,8 +248,12 @@ class BeatsTokenizerTask(BeatsTask):
         predictor = BeatsTokenizerPretrainingPredictor(
             tokenizer_config=args.encoder_conf.get("tokenizer_config", None)
         )
+        # The teacher must normalize fbank inputs exactly like the tokenizer.
         teacher = BeatsEncoder(
-            input_size=1, beats_ckpt_path=args.beats_teacher_ckpt_path
+            input_size=1,
+            beats_ckpt_path=args.beats_teacher_ckpt_path,
+            fbank_mean=args.encoder_conf.get("fbank_mean", DEFAULT_FBANK_MEAN),
+            fbank_std=args.encoder_conf.get("fbank_std", DEFAULT_FBANK_STD),
         )
 
         # Build model

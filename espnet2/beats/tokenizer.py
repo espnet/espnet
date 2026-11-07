@@ -177,14 +177,18 @@ class NormEMAVectorQuantizer(nn.Module):
         self.statistic_code_usage = statistic_code_usage
         if statistic_code_usage:
             self.register_buffer("cluster_size", torch.zeros(n_embed))
+
+    @staticmethod
+    def all_reduce_fn(tensor):
+        """Sum ``tensor`` over all ranks when torch.distributed is initialized.
+
+        Checked on every call instead of at construction: trainers such as
+        Lightning build the model before initializing the process group, and
+        the EMA codebook update needs the global ``bins``/``embed_sum``.
+        """
         if torch.distributed.is_available() and torch.distributed.is_initialized():
-            logging.info(
-                "ddp is enabled, use ddp_reduce to sync "
-                "the cluster_size for each gpu!"
-            )
-            self.all_reduce_fn = torch.distributed.all_reduce
-        else:
-            self.all_reduce_fn = nn.Identity()
+            torch.distributed.all_reduce(tensor)
+        return tensor
 
     def reset_cluster_size(self, device):
         if self.statistic_code_usage:
