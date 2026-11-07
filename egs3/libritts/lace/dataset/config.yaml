@@ -1,0 +1,22 @@
+builder:
+  dataset_path: downloads
+  data_path: data
+  split_subsets:
+    train:
+      - train-clean-100
+      - train-clean-360
+      - train-other-500
+    valid:
+      - dev-clean
+    test:
+      - test-clean
+  manifest_paths:
+    train: manifest/train.tsv
+    valid: manifest/valid.tsv
+    test: manifest/test.tsv
+
+dataset:
+  split_manifest_paths:
+    train: manifest/train.tsv
+    valid: manifest/valid.tsv
+    test: manifest/test.tsv
