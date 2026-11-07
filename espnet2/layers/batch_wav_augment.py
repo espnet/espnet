@@ -55,6 +55,14 @@ class BatchWavAugment(torch.nn.Module):
             multi-channel file is used as a separate impulse response.
         rir_apply_prob: Probability of convolving each utterance with an
             impulse response.
+        rir_shift: Shift the reverberated speech back by the position of the
+            impulse response's peak (the direct path, ``argmax |rir|``), so that
+            it stays aligned with the dry speech and its labels, as Kaldi's
+            ``wav-reverberate --shift-output`` (default), Lhotse and SpeechBrain
+            do. False keeps the first samples of the convolution, as
+            CommonPreprocessor does, which delays the speech by the peak
+            position (e.g. the propagation delay of a measured or simulated
+            impulse response).
         fs: Sampling rate of the speech; noise and impulse responses at another
             rate are resampled when they are loaded.
         silence_threshold: A frame is non-silent when its power exceeds this
@@ -74,6 +82,7 @@ class BatchWavAugment(torch.nn.Module):
         noise_db_range: str = "13_15",
         rir_scp: Optional[str] = None,
         rir_apply_prob: float = 1.0,
+        rir_shift: bool = True,
         fs: int = 16000,
         silence_threshold: float = 0.01,
         frame_length: int = 1024,
@@ -99,6 +108,7 @@ class BatchWavAugment(torch.nn.Module):
         self.noise_db_low, self.noise_db_high = bounds
         self.rir_scp = rir_scp
         self.rir_apply_prob = rir_apply_prob if rir_scp else 0.0
+        self.rir_shift = rir_shift
         self.fs = int(fs)
         self.silence_threshold = silence_threshold
         self.frame_length = frame_length
@@ -116,6 +126,7 @@ class BatchWavAugment(torch.nn.Module):
             f"noise_scp={self.noise_scp}, noise_apply_prob={self.noise_apply_prob}, "
             f"noise_db_range=({self.noise_db_low}, {self.noise_db_high}), "
             f"rir_scp={self.rir_scp}, rir_apply_prob={self.rir_apply_prob}, "
+            f"rir_shift={self.rir_shift}, "
             f"fs={self.fs}, keep_on_device={self.keep_on_device}"
         )
 
@@ -176,6 +187,26 @@ class BatchWavAugment(torch.nn.Module):
                     self._cache[key] = tuple(t.to(device) for t in self._cache[host])
                 bank = self._cache[key]
         return bank
+
+    def _rir_peaks(self) -> torch.Tensor:
+        """Return the index of the peak (``argmax |rir|``) of each impulse response.
+
+        The first call computes them from the host bank; later calls reuse them.
+        """
+        key = ("rir_peak", "host")
+        peaks = self._cache.get(key)
+        if peaks is None:
+            bank, starts, lengths = self.bank("rir", torch.device("cpu"))
+            with _LOAD_LOCK:
+                if key not in self._cache:
+                    self._cache[key] = torch.stack(
+                        [
+                            bank[s : s + n].abs().argmax()
+                            for s, n in zip(starts.tolist(), lengths.tolist())
+                        ]
+                    )
+                peaks = self._cache[key]
+        return peaks
 
     def _non_silent_power(self, x: torch.Tensor, valid: torch.Tensor) -> torch.Tensor:
         """Return the mean power of the non-silent samples of each row.
@@ -310,12 +341,20 @@ class BatchWavAugment(torch.nn.Module):
         # The apply flags are on the CPU: testing them does not wait for the GPU.
         if "rir_which" in draws and bool(draws["rir_apply"].any()):
             rirs = self._impulse_responses(draws["rir_which"].cpu(), device)
-            # Convolve through the FFT and keep the first t samples, as
-            # scipy.signal.convolve(mode="full")[:t] does.
+            # Convolve through the FFT: the full convolution, as
+            # scipy.signal.convolve(mode="full") gives it.
             n_fft = 1 << (t + rirs.size(1) - 2).bit_length()
             y = torch.fft.irfft(
                 torch.fft.rfft(x, n_fft) * torch.fft.rfft(rirs, n_fft), n_fft
-            )[:, :t]
+            )
+            if self.rir_shift:
+                # Keep samples peak .. peak + t - 1 of each row: the speech
+                # shifted back by its impulse response's peak position.
+                # peak + t - 1 <= L + t - 2 < n_fft, so every index exists.
+                peak = self._rir_peaks()[draws["rir_which"].cpu()].to(device)
+                y = y.gather(1, peak[:, None] + torch.arange(t, device=device))
+            else:
+                y = y[:, :t]
             y = y * valid
             # Scale back to the power before the reverberation.
             power2 = self._non_silent_power(y, valid)

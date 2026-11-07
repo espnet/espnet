@@ -397,6 +397,7 @@ def test_same_result_as_common_preprocessor(
         noise_scp=_scp(tmp_path, "noise", noise_path),
         rir_scp=_scp(tmp_path, "rir", rir_path),
         noise_db_range=str(snr),
+        rir_shift=False,  # CommonPreprocessor keeps the first samples
     ).train()
     speech = torch.zeros(1, t)
     speech[0, :length] = torch.from_numpy(wav)
@@ -579,12 +580,12 @@ def test_delta_rir_leaves_speech_unchanged(tmp_path):
 
 
 def test_delayed_delta_rir_shifts_by_one_sample(tmp_path):
-    """speech [1, 2, 3, 4] with [0, 1]: the first 4 samples are [0, 1, 2, 3].
+    """rir_shift=False: speech [1, 2, 3, 4] with [0, 1] gives [0, 1, 2, 3].
 
     The power is then scaled back to the input's, so the result is checked up
     to that factor.
     """
-    aug = _rir_aug(tmp_path, [0.0, 1.0])
+    aug = _rir_aug(tmp_path, [0.0, 1.0], rir_shift=False)
     speech = torch.tensor([[1.0, 2.0, 3.0, 4.0]]) * 0.1
     out = _reverberate(aug, speech)[0]
     assert abs(float(out[0])) < 1e-6
@@ -595,7 +596,7 @@ def test_rir_longer_than_speech(tmp_path):
     """A 5000-sample impulse response on 1000 samples: np.convolve(...)[:1000]."""
     rng = np.random.default_rng(9)
     rir = (rng.normal(size=5000) * np.exp(-np.arange(5000) / 800.0)).astype(np.float32)
-    aug = _rir_aug(tmp_path, rir)
+    aug = _rir_aug(tmp_path, rir, rir_shift=False)
     x = (rng.normal(size=1000) * 0.05).astype(np.float32)
     out = _reverberate(aug, torch.from_numpy(x)[None])[0].double().numpy()
     expected = np.convolve(x.astype(np.float64), rir.astype(np.float64))[:1000]
@@ -609,7 +610,8 @@ def test_multichannel_rir_gives_one_rir_per_channel(tmp_path):
     rir[0, 0] = 1.0
     rir[1, 1] = 1.0
     path = _write(tmp_path / "rir2.wav", rir)
-    aug = BatchWavAugment(rir_scp=_scp(tmp_path, "rir", path)).train()
+    aug = BatchWavAugment(rir_scp=_scp(tmp_path, "rir", path), rir_shift=False)
+    aug.train()
     _, _, lengths = aug.bank("rir", torch.device("cpu"))
     assert lengths.tolist() == [4, 4]
     speech = torch.tensor([[1.0, 2.0, 3.0, 4.0]]) * 0.1
@@ -646,7 +648,7 @@ def test_rir_apply_prob_zero_does_not_load_the_rirs(tmp_path, monkeypatch):
 
 
 def test_rir_apply_prob_one_reverberates_every_row(tmp_path):
-    aug = _rir_aug(tmp_path, [0.0, 1.0], rir_apply_prob=1.0)
+    aug = _rir_aug(tmp_path, [0.0, 1.0], rir_apply_prob=1.0, rir_shift=False)
     torch.manual_seed(0)
     assert bool(aug.draw(torch.full((64,), 100))["rir_apply"].all())
     speech = torch.rand(8, 100) * 0.1 + 0.05
@@ -661,3 +663,74 @@ def test_draws_stay_on_the_host_except_the_offsets(tmp_path):
     draws = aug.draw(torch.tensor([4000, 3000]))
     for key in ("noise_apply", "noise_which", "snr", "noise_offset"):
         assert draws[key].device.type == "cpu", key
+
+
+# --- rir_shift: aligned with the dry speech, as Kaldi's --shift-output ------
+
+
+def test_rir_shift_is_the_default_and_undoes_a_pure_delay(tmp_path):
+    """A delta delayed by 37 samples leaves the speech unchanged by default."""
+    rir = np.zeros(200, dtype=np.float32)
+    rir[37] = 1.0
+    aug = _rir_aug(tmp_path, rir)
+    assert aug.rir_shift
+    speech = torch.from_numpy(np.random.default_rng(10).normal(size=(2, 3000)))
+    speech = speech.float() * 0.05
+    torch.testing.assert_close(_reverberate(aug, speech), speech, atol=1e-6, rtol=1e-5)
+
+
+@pytest.mark.parametrize("t", [1000, 6000])
+def test_rir_shift_equals_kaldi_shift_output(tmp_path, t):
+    """full convolution[peak : peak + t], peak = argmax |rir| (here negative).
+
+    Kaldi's wav-reverberate --shift-output keeps these samples; the power is
+    then scaled back to the input's.
+    """
+    rng = np.random.default_rng(11)
+    rir = (rng.normal(size=4000) * np.exp(-np.arange(4000) / 700.0)).astype(np.float32)
+    rir[:120] *= 0.01  # a quiet stretch before the direct path
+    rir[120] = -3.0  # the direct path, negative
+    aug = _rir_aug(tmp_path, rir)
+    x = (rng.normal(size=t) * 0.05).astype(np.float32)
+    out = _reverberate(aug, torch.from_numpy(x)[None])[0].double().numpy()
+    full = np.convolve(x.astype(np.float64), rir.astype(np.float64))
+    expected = full[120 : 120 + t]
+    expected *= np.linalg.norm(out) / np.linalg.norm(expected)
+    np.testing.assert_allclose(out, expected, atol=1e-5 * np.abs(expected).max())
+
+
+def test_rir_shift_per_row_and_channel(tmp_path):
+    """Each row is shifted by its own impulse response's peak."""
+    rir = np.zeros((300, 2), dtype=np.float32)
+    rir[5, 0] = 1.0  # channel 0: delay 5
+    rir[250, 1] = 1.0  # channel 1: delay 250
+    path = _write(tmp_path / "rir2.wav", rir)
+    aug = BatchWavAugment(rir_scp=_scp(tmp_path, "rir", path)).train()
+    assert aug._rir_peaks().tolist() == [5, 250]
+    speech = torch.rand(2, 1000) * 0.1 + 0.05
+    valid = torch.ones(2, 1000, dtype=torch.bool)
+    draws = dict(
+        rir_apply=torch.ones(2, dtype=torch.bool), rir_which=torch.tensor([0, 1])
+    )
+    torch.testing.assert_close(aug.apply(speech, valid, draws), speech)
+
+
+def test_rir_shift_keeps_padding_zero_and_batch_equals_alone(tmp_path):
+    rng = np.random.default_rng(12)
+    rir = (rng.normal(size=2000) * np.exp(-np.arange(2000) / 300.0)).astype(np.float32)
+    rir[:60] *= 0.01
+    rir[60] = 2.0
+    aug = _rir_aug(tmp_path, rir)
+    lengths = [4000, 2500]
+    speech = torch.zeros(2, 4000)
+    for b, n in enumerate(lengths):
+        speech[b, :n] = torch.from_numpy(rng.normal(size=n).astype(np.float32)) * 0.05
+    valid = torch.arange(4000)[None] < torch.tensor(lengths)[:, None]
+    draws = dict(
+        rir_apply=torch.ones(2, dtype=torch.bool), rir_which=torch.tensor([0, 0])
+    )
+    batched = aug.apply(speech, valid, draws)
+    one = dict(rir_apply=torch.ones(1, dtype=torch.bool), rir_which=torch.tensor([0]))
+    alone = aug.apply(speech[1:, :2500], valid[1:, :2500], one)
+    torch.testing.assert_close(batched[1, :2500], alone[0], rtol=1e-4, atol=1e-6)
+    assert torch.all(batched[1, 2500:] == 0)
