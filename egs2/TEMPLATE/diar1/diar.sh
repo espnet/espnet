@@ -572,12 +572,22 @@ if ! "${skip_packing}" && [ -z "${download_model}" ]; then
     if [ ${stage} -le 8 ] && [ ${stop_stage} -ge 8 ]; then
         log "Stage 8: Pack model: ${packed_model}"
 
+        # Pack feats_stats.npz when the model normalises with global_mvn, and
+        # RESULTS.md and images when they exist.
+        _opts=
+        if [ "${feats_normalize}" = global_mvn ]; then
+            _opts+="--option ${diar_stats_dir}/train/feats_stats.npz "
+        fi
+        for _f in "${diar_exp}"/RESULTS.md "${diar_exp}"/images; do
+            if [ -e "${_f}" ]; then
+                _opts+="--option ${_f} "
+            fi
+        done
+        # shellcheck disable=SC2086
         ${python} -m espnet2.bin.pack diar \
             --train_config "${diar_exp}"/config.yaml \
             --model_file "${diar_exp}"/"${inference_model}" \
-            --option "${diar_exp}"/RESULTS.md \
-            --option "${diar_stats_dir}"/train/feats_stats.npz  \
-            --option "${diar_exp}"/images \
+            ${_opts} \
             --outpath "${packed_model}"
     fi
 else

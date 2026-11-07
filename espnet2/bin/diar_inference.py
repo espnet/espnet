@@ -124,16 +124,17 @@ class DiarizeSpeech:
     @typechecked
     def __call__(
         self, speech: Union[torch.Tensor, np.ndarray], fs: int = 8000
-    ) -> Union[np.ndarray, Tuple[Optional[List[np.ndarray]], np.ndarray]]:
+    ) -> Tuple[Optional[List[np.ndarray]], np.ndarray]:
         """Inference
 
         Args:
             speech: Input speech data (Batch, Nsamples [, Channels])
             fs: sample rate
         Returns:
-            spk_prediction: speaker activity probabilities (Batch, Frames, num_spk);
-            with enh_s2t_task, (waves, spk_prediction), where waves is the list of
-            separated waveforms, one (Batch, Nsamples) array per speaker
+            (waves, spk_prediction): spk_prediction holds the speaker activity
+            probabilities (Batch, Frames, num_spk). waves is the list of separated
+            waveforms, one (Batch, Nsamples) array per speaker, with
+            enh_s2t_task, and None without it.
 
         """
 
@@ -321,7 +322,7 @@ class DiarizeSpeech:
         spk_prediction = spk_prediction.cpu().numpy()
         spk_prediction = 1 / (1 + np.exp(-spk_prediction))
 
-        return (waves, spk_prediction) if self.enh_s2t_task else spk_prediction
+        return waves, spk_prediction
 
     @torch.no_grad()
     def cal_permumation(self, ref_wavs, enh_wavs, criterion="si_snr"):
@@ -569,7 +570,8 @@ def inference(
                 for spk, w in enumerate(waves):
                     wav_writers[spk][keys[b]] = fs, w[b]
         else:
-            spk_predictions = diarize_speech(**batch)
+            # without enh_s2t_task, waves is None
+            _, spk_predictions = diarize_speech(**batch)
             for b in range(batch_size):
                 writer[keys[b]] = spk_predictions[b]
 

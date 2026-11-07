@@ -56,8 +56,9 @@ def test_DiarizeSpeech(
         num_spk=num_spk,
     )
     wav = torch.rand(batch_size, input_size)
-    spk_prediction = diarize_speech(wav, fs=8000)
-    # a diarization model returns the speaker activities alone
+    waves, spk_prediction = diarize_speech(wav, fs=8000)
+    # a diarization model returns no waveforms and the speaker activities
+    assert waves is None
     assert isinstance(spk_prediction, np.ndarray), type(spk_prediction)
     assert spk_prediction.shape[0] == batch_size
     if num_spk is not None:
@@ -110,8 +111,9 @@ def test_DiarizeSpeech2(
         num_spk=num_spk,
     )
     wav = torch.rand(batch_size, input_size)
-    spk_prediction = diarize_speech(wav, fs=8000)
-    # a diarization model returns the speaker activities alone
+    waves, spk_prediction = diarize_speech(wav, fs=8000)
+    # a diarization model returns no waveforms and the speaker activities
+    assert waves is None
     assert isinstance(spk_prediction, np.ndarray), type(spk_prediction)
     assert spk_prediction.shape[0] == batch_size
     if num_spk is not None:
