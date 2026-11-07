@@ -309,8 +309,9 @@ def extract_embed_lid(args):
             if os.path.exists(lang_to_embds_path):
                 use_dic = np.load(lang_to_embds_path)
                 # Filter out languages with no embeddings
+                # Each entry is an (n_utt, dim) array: plot one point per utterance
                 use_dic = {
-                    lang_id: embds
+                    lang_id: list(embds)
                     for lang_id, embds in use_dic.items()
                     if len(embds) > 0
                 }

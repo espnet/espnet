@@ -1,0 +1,79 @@
+# Soft targets (one-hot or 0.5/0.5), KL divergence loss, trained on FLEURS + CS-FLEURS + CS-YODAS.
+# MMS-1B (S3PRL, learned layer weights) + ECAPA-TDNN; batch_size * accum_grad = 32.
+frontend: s3prl
+frontend_conf:
+  fs: 16000
+  frontend_conf:
+    upstream: hf_wav2vec2_custom
+    path_or_url: facebook/mms-1b
+  download_dir: ./hub
+  multilayer_feature: true
+normalize: utterance_mvn
+normalize_conf:
+  norm_vars: false
+encoder: ecapa_tdnn
+encoder_conf:
+  model_scale: 8
+  ndim: 512
+  output_size: 1536
+pooling: chn_attn_stat
+projector: rawnet3
+projector_conf:
+  output_size: 192
+preprocessor: lid_softlabel
+preprocessor_conf:
+  fix_duration: false
+  sample_rate: 16000
+  noise_apply_prob: 0.0
+  rir_apply_prob: 0.0
+model_conf:
+  extract_feats_in_collect_stats: false
+loss: aamsoftmax_sc_topk_softtarget
+loss_conf:
+  margin: 0.5
+  scale: 30
+  K: 3
+  mp: 0.06
+  k_top: 5
+
+num_att_plot: 0
+num_workers: 8
+cudnn_deterministic: false
+cudnn_benchmark: true
+log_interval: 100
+unused_parameters: true
+use_amp: true
+keep_nbest_models: 2
+grad_clip: 9999
+best_model_criterion:
+- - valid
+  - accuracy
+  - max
+seed: 3702
+
+iterator_type: sequence
+valid_iterator_type: sequence
+batch_type: sorted
+batch_size: 8
+valid_batch_size: 8
+accum_grad: 4
+max_epoch: 15
+num_iters_per_epoch: 8240
+drop_last_iter: true
+sort_in_batch: descending
+sort_batch: descending
+
+optim: adam
+optim_conf:
+  lr: 5.0e-06
+  betas:
+  - 0.9
+  - 0.98
+scheduler: tristagelr
+scheduler_conf:
+  max_steps: 30900
+  warmup_ratio: 0.1
+  hold_ratio: 0.2
+  decay_ratio: 0.7
+  init_lr_scale: 0.6
+  final_lr_scale: 0.1
