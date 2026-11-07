@@ -52,7 +52,7 @@ speed_perturb_factors=  # perturbation factors, e.g. "0.9 1.0 1.1" (separated by
 
 # Feature extraction related
 feats_type=raw       # Feature type (raw, raw_copy, fbank_pitch, or extracted).
-audio_format=flac    # Audio format: wav, flac, wav.ark, flac.ark  (only in feats_type=raw).
+audio_format=flac    # Audio format: wav, flac, wav.ark, flac.ark, omniio  (only in feats_type=raw).
 multi_columns_input_wav_scp=false  # Enable multi columns mode for input wav.scp for format_wav_scp.py
 multi_columns_output_wav_scp=false # Enable multi columns mode for output wav.scp for format_wav_scp.py
 fs=16k               # Sampling rate.
@@ -181,7 +181,7 @@ Options:
 
     # Feature extraction related
     --feats_type       # Feature type (raw, raw_copy, fbank_pitch or extracted, default="${feats_type}").
-    --audio_format     # Audio format: wav, flac, wav.ark, flac.ark  (only in feats_type=raw or raw_copy, default="${audio_format}").
+    --audio_format     # Audio format: wav, flac, wav.ark, flac.ark, omniio  (only in feats_type=raw or raw_copy, default="${audio_format}").
     --fs               # Sampling rate (default="${fs}").
     --min_wav_duration # Minimum duration in second (default="${min_wav_duration}").
     --max_wav_duration # Maximum duration in second (default="${max_wav_duration}").
@@ -1177,6 +1177,8 @@ if [ ${stage} -le 10 ] && [ ${stop_stage} -ge 10 ] && ! [[ " ${skip_stages} " =~
         _scp=wav.scp
         if [[ "${_audio_format}" == *ark* ]]; then
             _type=kaldi_ark
+        elif [[ "${_audio_format}" == omniio ]]; then
+            _type=omniio
         else
             # "sound" supports "wav", "flac", etc.
             _type=sound
@@ -1310,6 +1312,8 @@ if [ ${stage} -le 11 ] && [ ${stop_stage} -ge 11 ] && ! [[ " ${skip_stages} " =~
         # "sound" supports "wav", "flac", etc.
         if [[ "${_audio_format}" == *ark* ]]; then
             _type=kaldi_ark
+        elif [[ "${_audio_format}" == omniio ]]; then
+            _type=omniio
         elif [[ "${_audio_format}" == *multi* ]]; then
             _type=multi_columns_sound
         else
@@ -1522,8 +1526,10 @@ if [ ${stage} -le 12 ] && [ ${stop_stage} -ge 12 ] && ! [[ " ${skip_stages} " =~
         _audio_format="$(cat ${_data}/audio_format 2>/dev/null || echo ${audio_format})"
         if [ "${_feats_type}" = raw ]; then
             _scp=wav.scp
-            if [[ "${audio_format}" == *ark* ]]; then
+            if [[ "${_audio_format}" == *ark* ]]; then
                 _type=kaldi_ark
+            elif [[ "${_audio_format}" == omniio ]]; then
+                _type=omniio
             elif [[ "${_audio_format}" == *multi* ]]; then
                 _type=multi_columns_sound
             else
