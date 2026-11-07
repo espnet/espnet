@@ -44,14 +44,15 @@ class BatchWavAugment(torch.nn.Module):
     """Add reverberation and noise to a batch of single-channel waveforms.
 
     Args:
-        noise_scp: Kaldi-style list ``<id> <path>`` of noise recordings, or None
-            for no noise. Each channel of a multi-channel recording is used as a
-            separate noise.
+        noise_scp: Kaldi-style list ``<id> <path>`` (or ``<path>``) of noise
+            recordings, or None for no noise. Each channel of a multi-channel
+            recording is used as a separate noise.
         noise_apply_prob: Probability of adding noise to each utterance.
         noise_db_range: SNR range in dB, ``"low_high"`` or a single value.
-        rir_scp: Kaldi-style list ``<id> <path>`` of room impulse responses, or
-            None for no reverberation. Each channel of a multi-channel file is
-            used as a separate impulse response.
+            Quote a range in YAML (``'13_15'``): unquoted, it is the integer 1315.
+        rir_scp: Kaldi-style list ``<id> <path>`` (or ``<path>``) of room impulse
+            responses, or None for no reverberation. Each channel of a
+            multi-channel file is used as a separate impulse response.
         rir_apply_prob: Probability of convolving each utterance with an
             impulse response.
         fs: Sampling rate of the speech; noise and impulse responses at another
@@ -84,6 +85,12 @@ class BatchWavAugment(torch.nn.Module):
             raise ValueError("give noise_scp, rir_scp or both")
         self.noise_scp = noise_scp
         self.noise_apply_prob = noise_apply_prob if noise_scp else 0.0
+        if not isinstance(noise_db_range, str):
+            # YAML reads an unquoted 13_15 as the integer 1315
+            logging.warning(
+                f"noise_db_range={noise_db_range!r} is not a string: "
+                "quote a range in YAML, e.g. '13_15'"
+            )
         bounds = [float(v) for v in str(noise_db_range).split("_")]
         if len(bounds) == 1:
             bounds = bounds * 2
@@ -116,7 +123,9 @@ class BatchWavAugment(torch.nn.Module):
         """Load the noise (int16) or impulse-response (float32) list into a bank."""
         scp = self.noise_scp if kind == "noise" else self.rir_scp
         chunks, lengths = [], []
-        for path in read_2columns_text(scp).values():
+        for key, path in read_2columns_text(scp).items():
+            # A one-column line holds the path only, as in CommonPreprocessor
+            path = path or key
             # Read every file as float. Reading a floating-point file as int16
             # does not scale it.
             wav, fs = soundfile.read(path, dtype="float32", always_2d=True)

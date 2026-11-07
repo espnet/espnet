@@ -1,3 +1,5 @@
+import logging
+
 import numpy as np
 import pytest
 import soundfile
@@ -474,3 +476,32 @@ def test_rir_only_keeps_the_power(tmp_path):
             rtol=1e-4,
             atol=1e-9,
         )
+
+
+def test_one_column_list_holds_the_path(tmp_path):
+    # A line with the path only, as CommonPreprocessor accepts it
+    path = _write(tmp_path / "n.wav", np.linspace(-0.5, 0.5, 800, dtype=np.float32))
+    one = tmp_path / "one.scp"
+    one.write_text(f"{path}\n")
+    two = tmp_path / "two.scp"
+    two.write_text(f"n {path}\n")
+    a = BatchWavAugment(str(one)).bank("noise", torch.device("cpu"))
+    b = BatchWavAugment(str(two)).bank("noise", torch.device("cpu"))
+    for x, y in zip(a, b):
+        torch.testing.assert_close(x, y)
+
+
+@pytest.mark.parametrize("value", [1315, 8, 5.0])
+def test_non_string_noise_db_range_warns(tmp_path, caplog, value):
+    (tmp_path / "noise.scp").write_text(f"n {tmp_path / 'n.wav'}\n")
+    with caplog.at_level(logging.WARNING):
+        aug = BatchWavAugment(str(tmp_path / "noise.scp"), noise_db_range=value)
+    assert "quote a range" in caplog.text
+    assert aug.noise_db_low == aug.noise_db_high == float(value)
+
+
+def test_string_noise_db_range_does_not_warn(tmp_path, caplog):
+    (tmp_path / "noise.scp").write_text(f"n {tmp_path / 'n.wav'}\n")
+    with caplog.at_level(logging.WARNING):
+        BatchWavAugment(str(tmp_path / "noise.scp"), noise_db_range="13_15")
+    assert "quote a range" not in caplog.text
