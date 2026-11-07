@@ -506,6 +506,12 @@ if [ "${task}" == "diar" ] || [ "${task}" == "all" ]; then
     ./run.sh --ngpu 0 --stage 5 --stop-stage 7 --python "${python}" \
         --diar_config conf/train_diar_eda_debug.yaml --inference_config conf/decode_diar_eda.yaml \
         --diar-args "--num_workers 0"
+    # Batched inference gives every recording what it gets alone (11 recordings
+    # of different lengths, batches of 4)
+    local/check_batch_inference.sh --python "${python}" \
+        exp/diar_train_diar_debug_raw_num_workers0 conf/decode_diar.yaml dump/raw/train
+    local/check_batch_inference.sh --python "${python}" \
+        exp/diar_train_diar_eda_debug_raw_num_workers0 conf/decode_diar_eda.yaml dump/raw/train
     # Remove generated files in order to reduce the disk usage
     rm -rf exp dump data
     cd "${cwd}"

@@ -122,6 +122,109 @@ class DiarizeSpeech:
 
     @torch.no_grad()
     @typechecked
+    def diarize_batch(
+        self,
+        speech: Union[torch.Tensor, np.ndarray],
+        speech_lengths: Optional[Union[torch.Tensor, np.ndarray]] = None,
+        fs: int = 8000,
+    ) -> List[np.ndarray]:
+        """Diarize a zero-padded batch and return the result of each utterance.
+
+        Utterance b gets an array (frames_b, num_spk_b) of speaker activity
+        probabilities: its own frames only, and with EEND-EDA without num_spk,
+        its own number of speakers. Each array equals what __call__ returns for
+        the utterance alone, cut to its frames.
+
+        This function runs the whole batch through the model at once. It runs
+        the utterances one at a time instead with enh_s2t_task, and when
+        segment-wise diarization applies to an utterance of the batch.
+
+        Args:
+            speech: zero-padded input speech (Batch, Nsamples)
+            speech_lengths: number of samples of each utterance (Batch,);
+                None means that no utterance is padded
+            fs: sample rate
+        Returns:
+            list of (frames_b, num_spk_b) arrays, one per utterance
+        """
+        if isinstance(speech, np.ndarray):
+            speech = torch.as_tensor(speech)
+        assert speech.dim() == 2, speech.size()
+        batch_size = speech.size(0)
+        if speech_lengths is None:
+            lengths = torch.full([batch_size], speech.size(1), dtype=torch.long)
+        else:
+            lengths = torch.as_tensor(speech_lengths).long().cpu()
+
+        segmenting = self.segmenting_diar and bool(
+            (lengths > self.segment_size * fs).any()
+        )
+        if self.enh_s2t_task or segmenting:
+            return [
+                self(speech[b : b + 1, : lengths[b]], fs=fs)[1][0]
+                for b in range(batch_size)
+            ]
+
+        # Sort the utterances by decreasing length: some encoders (RNNEncoder)
+        # pack the batch and require it. The results go back in input order.
+        order = torch.argsort(lengths, descending=True, stable=True)
+        speech, lengths = speech[order], lengths[order]
+        speech = speech.to(getattr(torch, self.dtype)).clone()
+        self._reflect_stft_padding(speech, lengths)
+        speech = to_device(speech, device=self.device)
+        encoder_out, encoder_out_lens = self.encode(
+            speech, to_device(lengths, device=self.device)
+        )
+        frames = encoder_out_lens.tolist()
+
+        if self.diar_model.attractor is None or self.num_spk is not None:
+            spk_prediction, _ = self.decode(encoder_out, encoder_out_lens)
+            predictions = [spk_prediction[b, : frames[b]] for b in range(batch_size)]
+        else:
+            # EEND-EDA without num_spk: each utterance gets its own number of
+            # speakers, the index of its first attractor with a negative
+            # probability, as decode() finds it for one utterance.
+            max_num_spk = 15
+            attractor, att_prob = self.diar_model.attractor(
+                encoder_out,
+                encoder_out_lens,
+                encoder_out.new_zeros(batch_size, max_num_spk + 1, encoder_out.size(2)),
+            )
+            predictions = []
+            for b in range(batch_size):
+                negative = (att_prob[b, :, 0] < 0).nonzero()
+                num_spk = int(negative[0]) if len(negative) else max_num_spk
+                predictions.append(
+                    encoder_out[b, : frames[b]] @ attractor[b, :num_spk].T
+                )
+        # Apply the same sigmoid as __call__, in numpy, and restore the order.
+        results = [None] * batch_size
+        for i, b in enumerate(order.tolist()):
+            results[b] = 1 / (1 + np.exp(-predictions[i].cpu().numpy()))
+        return results
+
+    def _reflect_stft_padding(self, speech: torch.Tensor, lengths: torch.Tensor):
+        """Write the reflection of each utterance's end into its padding.
+
+        With center=True, the STFT pads the end of the whole batch by reflection.
+        A shorter utterance would see zeros after its end instead of its own
+        reflected samples. This function writes those samples, so the frames of
+        every utterance equal its frames alone; the frontend masks the frames
+        after the end.
+        """
+        stft = getattr(getattr(self.diar_model, "frontend", None), "stft", None)
+        if stft is None or not getattr(stft, "center", False):
+            return
+        pad = stft.n_fft // 2
+        for b, n in enumerate(lengths.tolist()):
+            k = min(pad, speech.size(1) - n)
+            if k > 0:
+                # torch.stft(pad_mode="reflect") pads x[n-2], x[n-3], ...
+                idx = torch.arange(n - 2, n - 2 - k, -1)
+                speech[b, n : n + k] = speech[b, idx]
+
+    @torch.no_grad()
+    @typechecked
     def __call__(
         self, speech: Union[torch.Tensor, np.ndarray], fs: int = 8000
     ) -> Tuple[Optional[List[np.ndarray]], np.ndarray]:
@@ -481,8 +584,8 @@ def inference(
     multiply_diar_result: bool,
     enh_s2t_task: bool,
 ):
-    if batch_size > 1:
-        raise NotImplementedError("batch decoding is not implemented")
+    if batch_size > 1 and enh_s2t_task:
+        raise NotImplementedError("batch decoding is not implemented for enh_s2t")
     if ngpu > 1:
         raise NotImplementedError("only single GPU decoding is supported")
 
@@ -561,6 +664,7 @@ def inference(
         assert all(isinstance(s, str) for s in keys), keys
         _bs = len(next(iter(batch.values())))
         assert len(keys) == _bs, f"{len(keys)} != {_bs}"
+        speech_lengths = batch.get("speech_lengths")
         batch = {k: v for k, v in batch.items() if not k.endswith("_lengths")}
 
         if enh_s2t_task:
@@ -570,10 +674,11 @@ def inference(
                 for spk, w in enumerate(waves):
                     wav_writers[spk][keys[b]] = fs, w[b]
         else:
-            # without enh_s2t_task, waves is None
-            _, spk_predictions = diarize_speech(**batch)
-            for b in range(batch_size):
-                writer[keys[b]] = spk_predictions[b]
+            spk_predictions = diarize_speech.diarize_batch(
+                batch["speech"], speech_lengths, fs=fs
+            )
+            for key, prediction in zip(keys, spk_predictions):
+                writer[key] = prediction
 
     if enh_s2t_task:
         for w in wav_writers:
