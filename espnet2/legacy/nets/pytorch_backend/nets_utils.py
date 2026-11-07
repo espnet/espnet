@@ -172,6 +172,9 @@ def make_pad_mask(lengths, xs=None, length_dim=-1, maxlen=None):
 
 
 def _make_pad_mask(lengths, xs=None, length_dim=-1, maxlen=None):
+    if not isinstance(lengths, list) and xs is not None and maxlen is None:
+        return _make_pad_mask_on_device(lengths, xs, length_dim)
+
     if not isinstance(lengths, list):
         lengths = lengths.long().tolist()
 
@@ -205,6 +208,28 @@ def _make_pad_mask(lengths, xs=None, length_dim=-1, maxlen=None):
         )
         mask = mask[ind].expand_as(xs).to(xs.device)
     return mask
+
+
+def _make_pad_mask_on_device(lengths, xs, length_dim):
+    """make_pad_mask for a tensor of lengths and any ``xs``, computed on xs.device.
+
+    The (B, maxlen) mask is compared on the device of ``xs`` and expanded to the
+    shape of ``xs`` as a view: no copy of the lengths to the CPU (which waits for
+    the GPU) and no copy of an expanded CPU mask to the device (41 MB for the
+    (64, 1247, 257, 2) STFT output of a batch of 10 s inputs).
+    """
+    if length_dim < 0:
+        length_dim = xs.dim() + length_dim
+    assert xs.size(0) == lengths.size(0), (
+        f"The size of x.size(0) {xs.size(0)} must match the batch size "
+        f"{lengths.size(0)}"
+    )
+    maxlen = xs.size(length_dim)
+    seq_range = torch.arange(maxlen, dtype=torch.int64, device=xs.device)
+    mask = seq_range.unsqueeze(0) >= lengths.to(xs.device).long().unsqueeze(-1)
+    # ind = (:, None, ..., None, :, , None, ..., None)
+    ind = tuple(slice(None) if i in (0, length_dim) else None for i in range(xs.dim()))
+    return mask[ind].expand_as(xs)
 
 
 def _make_pad_mask_traceable(lengths, xs, length_dim, maxlen=None):

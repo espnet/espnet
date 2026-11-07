@@ -172,3 +172,53 @@ def test_make_pad_mask_cpu_lengths_with_xs_on_device(device):
         mask = make_pad_mask(lengths, xs.to(device), length_dim=length_dim)
         assert mask.device.type == device
         assert torch.equal(mask.cpu(), make_pad_mask(lengths, xs, length_dim))
+
+
+@pytest.mark.parametrize(
+    "shape, length_dim",
+    [
+        ((3, 7, 5, 2), 1),  # STFT output (B, T, F, 2)
+        ((3, 7, 5, 2), -3),
+        ((3, 5, 7, 2), 2),
+        ((3, 4, 5, 2, 7), -1),
+    ],
+)
+def test_make_pad_mask_tensor_lengths_with_4d_xs(shape, length_dim):
+    """Tensor lengths with a 4-D or 5-D xs: same mask as list lengths."""
+    torch.manual_seed(0)
+    xs = torch.zeros(shape)
+    maxlen = xs.size(length_dim)
+    lengths = torch.randint(0, maxlen + 1, (shape[0],))
+    expected = make_pad_mask(lengths.tolist(), xs, length_dim)
+    mask = make_pad_mask(lengths, xs, length_dim)
+    assert mask.shape == xs.shape
+    assert torch.equal(mask, expected)
+
+
+def test_make_pad_mask_tensor_lengths_with_4d_xs_does_not_read_lengths(monkeypatch):
+    """Tensor lengths with a 4-D xs are not copied to the CPU (no .tolist())."""
+
+    def no_tolist(self):
+        raise AssertionError("lengths were read on the CPU")
+
+    lengths = torch.LongTensor([7, 3, 0])
+    xs = torch.zeros(3, 7, 5, 2)
+    monkeypatch.setattr(torch.Tensor, "tolist", no_tolist)
+    mask = make_pad_mask(lengths, xs, 1)
+    monkeypatch.undo()
+    assert torch.equal(mask, make_pad_mask([7, 3, 0], xs, 1))
+
+
+@pytest.mark.skipif(not _accelerators, reason="needs a CUDA or MPS device")
+@pytest.mark.parametrize("device", _accelerators)
+def test_make_pad_mask_4d_xs_on_device(device):
+    """A 4-D xs on an accelerator: the mask is made there, lengths on either device."""
+    xs = torch.zeros(3, 7, 5, 2)
+    expected = make_pad_mask([7, 3, 0], xs, 1)
+    for lengths in (
+        torch.LongTensor([7, 3, 0]),
+        torch.LongTensor([7, 3, 0]).to(device),
+    ):
+        mask = make_pad_mask(lengths, xs.to(device), 1)
+        assert mask.device.type == device
+        assert torch.equal(mask.cpu(), expected)
