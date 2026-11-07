@@ -1,0 +1,13 @@
+# This recipe scores a pretrained model, so this config exists only to drive
+# `create_dataset`: it names the dataset module that writes the manifest. There
+# is no model, optimizer or trainer section because nothing is trained here.
+exp_tag: phoneticxeus
+data_dir: ${oc.env:TIMIT_OUTPUT,${recipe_dir}/data}
+
+create_dataset:
+  recipe_dir: ${recipe_dir}
+
+dataset:
+  test:
+    - name: test
+      data_src_args: {}
