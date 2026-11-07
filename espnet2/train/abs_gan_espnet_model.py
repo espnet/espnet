@@ -38,6 +38,12 @@ class AbsGANESPnetModel(AbsESPnetModel, torch.nn.Module, ABC):
         ...     def build_model(cls, args: argparse.Namespace) -> YourESPnetModel:
     """
 
+    def clear_generator_cache(self) -> None:
+        """Discard cached generator outputs after a skipped discriminator step."""
+        raise NotImplementedError(
+            f"{type(self).__name__} does not support skipping the discriminator"
+        )
+
     @abstractmethod
     def forward(
         self,
