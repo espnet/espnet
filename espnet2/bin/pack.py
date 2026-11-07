@@ -86,6 +86,11 @@ class CodecPackedContents(PackedContents):
     yaml_files = ["train_config"]
 
 
+class TokPackedContents(PackedContents):
+    files = ["model_file"]
+    yaml_files = ["train_config"]
+
+
 class AqaPackedContents(PackedContents):
     files = ["model_file"]
     yaml_files = ["train_config"]
@@ -119,6 +124,7 @@ def get_parser() -> argparse.ArgumentParser:
         ("spk", SpkPackedContents),
         ("lid", LIDPackedContents),
         ("codec", CodecPackedContents),
+        ("tok", TokPackedContents),
         ("cls", ClassificationPackedContents),
         ("aqa", AqaPackedContents),
     ]:

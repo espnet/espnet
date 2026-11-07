@@ -1,0 +1,9 @@
+- name: mcd_f0
+
+- name: speaker
+
+- name: pseudo_mos
+  predictor_types: ["utmos"]
+
+- name: whisper_wer
+  model_tag: large-v3-turbo

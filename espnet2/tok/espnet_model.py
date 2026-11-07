@@ -207,6 +207,23 @@ class ESPnetGANSpeechTokenizerModel(AbsGANESPnetModel):
         tokenizer_output = self.tokenize(speech, speech_lengths)
         return self.reconstruction_loss.synthesize(tokenizer_output, spembs=spembs)
 
+    def encode_asr_from_tokens(
+        self, token_ids: torch.Tensor, token_lengths: torch.Tensor
+    ):
+        """Run the ASR encoder on saved hard token IDs."""
+        return self.asr_loss.encode_from_tokens(token_ids, token_lengths)
+
+    def synthesize_from_tokens(
+        self,
+        token_ids: torch.Tensor,
+        token_lengths: torch.Tensor,
+        spembs: torch.Tensor,
+    ):
+        """Reconstruct waveforms from saved hard token IDs."""
+        return self.reconstruction_loss.synthesize_from_tokens(
+            token_ids, token_lengths, spembs
+        )
+
     def collect_feats(self, **batch: torch.Tensor) -> Dict[str, torch.Tensor]:
         """Return no offline statistics; the SSL frontend runs inside the model."""
         return {}
