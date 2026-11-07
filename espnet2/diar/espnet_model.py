@@ -2,7 +2,7 @@
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
 from itertools import permutations
-from typing import Dict, Optional, Tuple
+from typing import Dict, List, Optional, Tuple
 
 import numpy as np
 import torch
@@ -11,6 +11,7 @@ from torch.amp import autocast
 from typeguard import typechecked
 
 from espnet2.asr.encoder.abs_encoder import AbsEncoder
+from espnet2.asr.encoder.abs_look_ahead_encoder import AbsLookAheadEncoder
 from espnet2.asr.frontend.abs_frontend import AbsFrontend
 from espnet2.asr.specaug.abs_specaug import AbsSpecAug
 from espnet2.diar.attractor.abs_attractor import AbsAttractor
@@ -43,6 +44,7 @@ class ESPnetDiarizationModel(AbsESPnetModel):
         attractor: Optional[AbsAttractor],
         diar_weight: float = 1.0,
         attractor_weight: float = 1.0,
+        look_aheads: Optional[List[int]] = None,
     ):
 
         super().__init__()
@@ -63,6 +65,20 @@ class ESPnetDiarizationModel(AbsESPnetModel):
             self.num_spk = decoder.num_spk
         else:
             raise NotImplementedError
+
+        # Look-aheads (input frames) of the encoder that each forward pass
+        # trains and validates; the loss is their mean (dual-mode training).
+        self.look_aheads = list(look_aheads) if look_aheads else []
+        if self.look_aheads:
+            if not isinstance(encoder, AbsLookAheadEncoder):
+                raise ValueError(
+                    f"look_aheads needs an encoder with a look-ahead, "
+                    f"not {type(encoder).__name__}"
+                )
+            start = encoder.look_ahead
+            for frames in self.look_aheads:
+                encoder.set_look_ahead(frames)  # raises for an invalid one
+            encoder.set_look_ahead(start)
 
     def forward(
         self,
@@ -87,6 +103,53 @@ class ESPnetDiarizationModel(AbsESPnetModel):
         assert speech.shape[0] == spk_labels.shape[0], (speech.shape, spk_labels.shape)
         batch_size = speech.shape[0]
 
+        if not self.look_aheads:
+            loss, stats = self._forward_one(
+                speech, speech_lengths, spk_labels, spk_labels_lengths, **kwargs
+            )
+        else:
+            loss, stats = self._forward_look_aheads(
+                speech, speech_lengths, spk_labels, spk_labels_lengths, **kwargs
+            )
+        loss, stats, weight = force_gatherable((loss, stats, batch_size), loss.device)
+        return loss, stats, weight
+
+    def _forward_look_aheads(
+        self, speech, speech_lengths, spk_labels, spk_labels_lengths, **kwargs
+    ) -> Tuple[torch.Tensor, Dict[str, Optional[torch.Tensor]]]:
+        """Run _forward_one at each look-ahead and average the losses.
+
+        The statistics of each look-ahead get the suffix "_la<frames>"; the
+        plain names hold their mean. The encoder gets its look-ahead back.
+        """
+        start = self.encoder.look_ahead
+        losses, per_look_ahead = [], []
+        try:
+            for frames in self.look_aheads:
+                self.encoder.set_look_ahead(frames)
+                loss, stats = self._forward_one(
+                    speech, speech_lengths, spk_labels, spk_labels_lengths, **kwargs
+                )
+                losses.append(loss)
+                per_look_ahead.append((frames, stats))
+        finally:
+            self.encoder.set_look_ahead(start)
+        loss = torch.stack(losses).mean()
+        stats = {}
+        for frames, one in per_look_ahead:
+            for key, value in one.items():
+                if value is not None:
+                    stats[f"{key}_la{frames}"] = value
+        for key in per_look_ahead[0][1]:
+            values = [one[key] for _, one in per_look_ahead if one[key] is not None]
+            stats[key] = torch.stack(values).mean() if values else None
+        stats["loss"] = loss.detach()
+        return loss, stats
+
+    def _forward_one(
+        self, speech, speech_lengths, spk_labels, spk_labels_lengths, **kwargs
+    ) -> Tuple[torch.Tensor, Dict[str, Optional[torch.Tensor]]]:
+        """Return the loss and the statistics at the encoder's look-ahead."""
         # 1. Encoder
         # Use bottleneck_feats if exist. Only for "enh + diar" task.
         bottleneck_feats = kwargs.get("bottleneck_feats", None)
@@ -182,9 +245,7 @@ class ESPnetDiarizationModel(AbsESPnetModel):
             acc=acc,
             der=der,
         )
-
-        loss, stats, weight = force_gatherable((loss, stats, batch_size), loss.device)
-        return loss, stats, weight
+        return loss, stats
 
     def collect_feats(
         self,

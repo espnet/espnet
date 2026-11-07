@@ -431,3 +431,118 @@ def test_forward_stats_equal_the_previous_implementation(num_spk):
         torch.testing.assert_close(loss.reshape(()), old_loss)
         for key, value in expected.items():
             assert float(stats[key]) == pytest.approx(value, abs=1e-6), key
+
+
+# --- Look-ahead (dual-mode) TCN VAD ------------------------------------------
+
+
+def _vad_model(tmp_path, look_ahead=0, look_aheads=None):
+    """A VAD: STFT without centring, global MVN, TCN encoder, one output."""
+    import numpy as np
+
+    from espnet2.asr.encoder.tcn_encoder import TCNEncoder
+    from espnet2.layers.global_mvn import GlobalMVN
+
+    stats = tmp_path / "feats_stats.npz"
+    np.savez(
+        stats, count=np.array(100), sum=np.zeros(10), sum_square=np.full(10, 100.0)
+    )
+    torch.manual_seed(0)
+    return ESPnetDiarizationModel(
+        label_aggregator=LabelAggregate(win_length=64, hop_length=16, center=False),
+        attractor=None,
+        encoder=TCNEncoder(
+            10,
+            output_size=8,
+            bottleneck_size=4,
+            hidden_size=8,
+            num_blocks=3,
+            num_repeats=2,
+            future_taps=2,
+            look_ahead=look_ahead,
+        ),
+        decoder=LinearDecoder(encoder_output_size=8, num_spk=1),
+        frontend=DefaultFrontend(
+            n_fft=64, win_length=64, hop_length=16, n_mels=10, center=False
+        ),
+        specaug=None,
+        normalize=GlobalMVN(str(stats)),
+        look_aheads=look_aheads,
+    ).eval()
+
+
+def _vad_probs(model, speech):
+    with torch.no_grad():
+        lens = torch.tensor([speech.size(1)])
+        enc, enc_lens = model.encode(speech, lens, None, None)
+        return model.decoder(enc, enc_lens)[0, :, 0]
+
+
+@pytest.mark.parametrize("look_ahead", [0, 6, 28])
+def test_vad_reads_no_sample_beyond_its_look_ahead(tmp_path, look_ahead):
+    """The whole VAD (frontend to output) never reads ahead of its look-ahead.
+
+    Frame i covers samples [16 i, 16 i + 64). With look-ahead L it may read
+    samples up to 16 (i + L) + 63. Changing the samples from s0 on must leave
+    every frame whose window, shifted by L frames, ends before s0 bit-identical.
+    With L = 0 this is the online VAD: no frame reads a sample after its window.
+    """
+    model = _vad_model(tmp_path, look_ahead=look_ahead)
+    torch.manual_seed(1)
+    speech = torch.randn(1, 3000) * 0.1
+    probs = _vad_probs(model, speech)
+    for s0 in range(200, 3000, 97):
+        other = speech.clone()
+        other[:, s0:] = torch.randn(1, 3000 - s0)
+        probs2 = _vad_probs(model, other)
+        unread = [i for i in range(len(probs)) if 16 * (i + look_ahead) + 64 <= s0]
+        assert torch.equal(probs[unread], probs2[unread]), s0
+        # the frames that may read sample s0 change (the first of them can read
+        # it only at the edge of its STFT window, where the window weight is
+        # tiny, so look at the first four)
+        first = unread[-1] + 1 if unread else 0
+        if first + 4 <= len(probs):
+            assert not torch.equal(probs[first : first + 4], probs2[first : first + 4])
+
+
+def test_vad_trains_on_each_look_ahead(tmp_path):
+    """look_aheads=[0, 28]: the loss is the mean of the two modes' losses."""
+    model = _vad_model(tmp_path, look_aheads=[0, 28])
+    speech = torch.randn(2, 3000) * 0.1
+    lens = torch.tensor([3000, 2500])
+    labels = (torch.rand(2, 3000, 1) > 0.5).float()
+    loss, stats, _ = model(
+        speech=speech,
+        speech_lengths=lens,
+        spk_labels=labels,
+        spk_labels_lengths=lens,
+    )
+    assert model.encoder.look_ahead == 0  # restored
+    one = {}
+    for frames in (0, 28):
+        model.encoder.set_look_ahead(frames)
+        one[frames] = model._forward_one(speech, lens, labels, lens)[0]
+    model.encoder.set_look_ahead(0)
+    torch.testing.assert_close(loss.reshape(()), (one[0] + one[28]) / 2)
+    torch.testing.assert_close(stats["loss_la0"].reshape(()), one[0])
+    torch.testing.assert_close(stats["loss_la28"].reshape(()), one[28])
+    assert {"acc", "acc_la0", "acc_la28", "sad_mr_la0"} <= set(stats)
+
+
+def test_look_aheads_need_a_look_ahead_encoder():
+    with pytest.raises(ValueError):
+        ESPnetDiarizationModel(
+            label_aggregator=label_aggregator,
+            attractor=None,
+            encoder=encoder,
+            decoder=decoder,
+            frontend=frontend,
+            specaug=None,
+            normalize=None,
+            look_aheads=[0, 4],
+        )
+
+
+def test_look_aheads_must_be_reachable(tmp_path):
+    with pytest.raises(ValueError):
+        _vad_model(tmp_path, look_aheads=[0, 29])

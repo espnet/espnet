@@ -1,46 +1,134 @@
-"""Temporal convolutional network (TCN) encoder.
+"""Temporal convolutional network (TCN) encoder with a switchable look-ahead.
 
-A thin wrapper that exposes the Conv-TasNet TCN in
-``espnet2/enh/layers/tcn.py`` through the ``AbsEncoder`` interface, so that
-frame-level tasks such as diarization or voice activity detection can use a
-light, optionally causal, convolutional encoder.
+The network is the Conv-TasNet TCN (Luo and Mesgarani, 2019): a stack of
+blocks, each a 1x1 convolution, a dilated depthwise convolution and a 1x1
+convolution, with a residual connection, at dilations 1, 2, ..., 2**(X - 1)
+repeated R times. The frame rate is kept.
+
+Each depthwise convolution has ``kernel_size`` taps up to the current frame
+(the current frame and kernel_size - 1 past taps) and up to ``future_taps``
+taps after it. All taps are trained weights of one kernel; the look-ahead only
+decides how many of the future taps each layer uses. With look-ahead 0 no
+future tap is used and every output frame depends on the current and past input
+frames only (online). With look-ahead ``max_look_ahead`` every layer uses all
+its future taps (offline). This is the dual-mode convolution of Yu et al.,
+"Dual-mode ASR: Unify and Improve Streaming ASR with Full-context Modeling",
+ICLR 2021.
 """
 
-from typing import Optional, Tuple
+from typing import List, Optional, Tuple
 
 import torch
+import torch.nn.functional as F
 from typeguard import typechecked
 
-from espnet2.asr.encoder.abs_encoder import AbsEncoder
-from espnet2.enh.layers.tcn import TemporalConvNet
-
-# Normalizations that pool statistics over time and therefore see the future.
-_NON_CAUSAL_NORMS = ("gLN", "GN")
+from espnet2.asr.encoder.abs_look_ahead_encoder import AbsLookAheadEncoder
+from espnet2.enh.layers.tcn import ChannelwiseLayerNorm
 
 
-class TCNEncoder(AbsEncoder):
-    """Stack of dilated depthwise-separable 1-D convolutions (Conv-TasNet TCN).
+def _norm(norm_type: str, channels: int) -> torch.nn.Module:
+    # Both normalizations are per frame (BN with its running statistics at
+    # inference), so neither reads other frames.
+    if norm_type == "cLN":
+        return ChannelwiseLayerNorm(channels)
+    if norm_type == "BN":
+        return torch.nn.BatchNorm1d(channels)
+    raise ValueError(
+        f"norm_type must be 'cLN' or 'BN', got {norm_type!r}: a normalization "
+        "that pools over time would read future frames"
+    )
 
-    The frame rate is kept: the output has as many frames as the input.
 
-    With ``causal=True`` every output frame depends only on the current and the
-    past input frames. The normalization must then be per frame (``cLN``) or
-    use fixed statistics at inference (``BN``); ``gLN`` and ``GN`` pool over
-    the whole sequence and are rejected.
+class _TCNBlock(torch.nn.Module):
+    """1x1 conv, PReLU, norm, dilated depthwise conv, PReLU, norm, 1x1 conv."""
+
+    def __init__(
+        self,
+        bottleneck_size: int,
+        hidden_size: int,
+        kernel_size: int,
+        future_taps: int,
+        dilation: int,
+        norm_type: str,
+    ):
+        super().__init__()
+        self.kernel_size = kernel_size
+        self.dilation = dilation
+        self.max_future_taps = future_taps
+        self.future_taps = 0
+        self.conv_in = torch.nn.Conv1d(bottleneck_size, hidden_size, 1, bias=False)
+        self.act_in = torch.nn.PReLU()
+        self.norm_in = _norm(norm_type, hidden_size)
+        # Tap k of the kernel reads frame t + (k - kernel_size + 1) * dilation.
+        self.depthwise = torch.nn.Conv1d(
+            hidden_size,
+            hidden_size,
+            kernel_size + future_taps,
+            groups=hidden_size,
+            bias=False,
+        )
+        self.act_out = torch.nn.PReLU()
+        self.norm_out = _norm(norm_type, hidden_size)
+        self.conv_out = torch.nn.Conv1d(hidden_size, bottleneck_size, 1, bias=False)
+
+    def forward(self, x: torch.Tensor, mask: torch.Tensor) -> torch.Tensor:
+        """Return the residual for x (N, B, T); mask (N, 1, T) is 1 on valid frames."""
+        y = self.norm_in(self.act_in(self.conv_in(x)))
+        # Zero the padded frames, so that a padded utterance sees zeros after
+        # its end exactly as it does alone.
+        y = y * mask
+        d = self.dilation
+        weight = self.depthwise.weight[..., : self.kernel_size + self.future_taps]
+        y = F.pad(y, ((self.kernel_size - 1) * d, self.future_taps * d))
+        y = F.conv1d(y, weight, dilation=d, groups=y.size(1))
+        y = self.norm_out(self.act_out(y))
+        return self.conv_out(y)
+
+    def forward_streaming(
+        self, x: torch.Tensor, cache: torch.Tensor
+    ) -> Tuple[torch.Tensor, torch.Tensor]:
+        """Return the online (no future tap) residual of the new frames x (N, B, k).
+
+        cache (N, H, (kernel_size - 1) * dilation) holds the depthwise
+        convolution's inputs of the frames before x (zeros before the first
+        frame, as the left padding of forward()). Returns the residual and the
+        cache for the next call.
+        """
+        y = self.norm_in(self.act_in(self.conv_in(x)))
+        y = torch.cat([cache, y], dim=2)
+        weight = self.depthwise.weight[..., : self.kernel_size]
+        out = F.conv1d(y, weight, dilation=self.dilation, groups=y.size(1))
+        cache = y[..., y.size(2) - cache.size(2) :]
+        return self.conv_out(self.norm_out(self.act_out(out))), cache
+
+
+class TCNEncoder(AbsLookAheadEncoder):
+    """Conv-TasNet TCN encoder whose look-ahead is chosen at run time.
 
     Args:
         input_size: Input feature dimension.
         output_size: Output dimension.
-        bottleneck_size: Channels of the bottleneck 1x1 convolution (B).
-        hidden_size: Channels inside each convolutional block (H).
-        kernel_size: Kernel size of the depthwise convolutions (P).
-        num_blocks: Convolutional blocks per repeat, with dilation 1, 2, ...,
-            2**(num_blocks - 1) (X).
+        bottleneck_size: Channels between the blocks (B).
+        hidden_size: Channels inside each block (H).
+        kernel_size: Depthwise taps up to the current frame (P): the current
+            frame and P - 1 past taps.
+        num_blocks: Blocks per repeat, at dilations 1, 2, ..., 2**(X - 1) (X).
         num_repeats: Number of repeats (R).
-        norm_type: "cLN", "BN", "gLN" or "GN".
-        causal: Use left-only padding so no future frame is read.
+        future_taps: Depthwise taps after the current frame that a layer can
+            use. 0 makes a causal encoder.
+        look_ahead: Look-ahead in frames to start with; set_look_ahead()
+            changes it.
+        norm_type: "cLN" (layer norm over channels, per frame) or "BN".
         pre_output_nonlinear: Nonlinearity before the output projection:
             "linear", "prelu", "relu", "tanh" or "sigmoid".
+        causal: The configuration of the previous TCNEncoder (a wrapper around
+            espnet2.enh.layers.tcn.TemporalConvNet), where kernel_size counted
+            all the taps. None: not used. True: future_taps 0 (the same
+            network). False: the centred kernel of kernel_size taps (odd), i.e.
+            (kernel_size + 1) // 2 taps up to the current frame and
+            (kernel_size - 1) // 2 after it, at the full look-ahead. Give it
+            without future_taps and look_ahead. Checkpoints of the previous
+            encoder load: their state-dict keys are renamed.
     """
 
     @typechecked
@@ -53,46 +141,206 @@ class TCNEncoder(AbsEncoder):
         kernel_size: int = 3,
         num_blocks: int = 5,
         num_repeats: int = 2,
+        future_taps: int = 0,
+        look_ahead: int = 0,
         norm_type: str = "cLN",
-        causal: bool = True,
         pre_output_nonlinear: str = "prelu",
+        causal: Optional[bool] = None,
     ):
         super().__init__()
-        if causal and norm_type in _NON_CAUSAL_NORMS:
-            raise ValueError(
-                f"norm_type={norm_type} pools over time and is not causal; "
-                "use 'cLN' or 'BN' with causal=True"
-            )
+        if causal is not None:
+            if future_taps != 0 or look_ahead != 0:
+                raise ValueError(
+                    "give causal (the previous TCNEncoder's option) or "
+                    "future_taps/look_ahead, not both"
+                )
+            if not causal:
+                if kernel_size % 2 == 0:
+                    raise ValueError(
+                        f"causal=False needs an odd kernel_size, got {kernel_size}"
+                    )
+                future_taps = (kernel_size - 1) // 2
+                kernel_size = (kernel_size + 1) // 2
+        if kernel_size < 1:
+            raise ValueError(f"kernel_size must be at least 1, got {kernel_size}")
+        if future_taps < 0:
+            raise ValueError(f"future_taps must be at least 0, got {future_taps}")
         self._output_size = output_size
-        self.causal = causal
-        self.tcn = TemporalConvNet(
-            N=input_size,
-            B=bottleneck_size,
-            H=hidden_size,
-            P=kernel_size,
-            X=num_blocks,
-            R=num_repeats,
-            C=1,
-            out_channel=output_size,
-            norm_type=norm_type,
-            causal=causal,
-            pre_mask_nonlinear=pre_output_nonlinear,
-            mask_nonlinear="linear",
+        self.input_norm = ChannelwiseLayerNorm(input_size)
+        self.bottleneck = torch.nn.Conv1d(input_size, bottleneck_size, 1, bias=False)
+        self.blocks = torch.nn.ModuleList(
+            _TCNBlock(
+                bottleneck_size,
+                hidden_size,
+                kernel_size,
+                future_taps,
+                2**x,
+                norm_type,
+            )
+            for _ in range(num_repeats)
+            for x in range(num_blocks)
         )
+        self.output_act = {
+            "linear": torch.nn.Identity(),
+            "prelu": torch.nn.PReLU(),
+            "relu": torch.nn.ReLU(),
+            "tanh": torch.nn.Tanh(),
+            "sigmoid": torch.nn.Sigmoid(),
+        }[pre_output_nonlinear]
+        self.output = torch.nn.Conv1d(bottleneck_size, output_size, 1, bias=False)
+        self._look_ahead = 0
+        self.set_look_ahead(self.max_look_ahead if causal is False else look_ahead)
+        self._register_load_state_dict_pre_hook(self._rename_conv_tasnet_keys)
+
+    def _rename_conv_tasnet_keys(self, state_dict, prefix, *args):
+        """Rename the keys of the previous TCNEncoder's state dict in place.
+
+        That encoder held espnet2.enh.layers.tcn.TemporalConvNet as ``tcn``:
+        network.0 input norm, network.1 bottleneck, network.2.<r>.<x> blocks
+        (net.0 1x1 conv, net.1 PReLU, net.2 norm, net.3.net depthwise conv,
+        [Chomp1d when causal,] PReLU, norm, 1x1 conv), then the output, after a
+        nonlinearity module unless it was linear. Other state dicts are left as
+        they are.
+        """
+        old = prefix + "tcn.network."
+        keys = [k for k in state_dict if k.startswith(old)]
+        if not keys:
+            return
+        rests = [k[len(old) :] for k in keys]
+        has_output_act = any(r.startswith("4.") for r in rests)
+        # the causal blocks have a Chomp1d (no parameters) at net.3.net.1
+        chomp = any(r.split(".")[5:7] == ["net", "4"] for r in rests)
+        dsconv = (
+            {"0": "depthwise", "2": "act_out", "3": "norm_out", "4": "conv_out"}
+            if chomp
+            else {"0": "depthwise", "1": "act_out", "2": "norm_out", "3": "conv_out"}
+        )
+        block_part = {"0": "conv_in", "1": "act_in", "2": "norm_in"}
+        num_blocks = len({b.dilation for b in self.blocks})
+        for key, rest in zip(keys, rests):
+            parts = rest.split(".")
+            if parts[0] == "0":
+                new = ["input_norm"] + parts[1:]
+            elif parts[0] == "1":
+                new = ["bottleneck"] + parts[1:]
+            elif parts[0] == "2":
+                # 2.<r>.<x>.net.<i>.<param> or 2.<r>.<x>.net.3.net.<j>.<param>
+                i = int(parts[1]) * num_blocks + int(parts[2])
+                if parts[4] == "3":
+                    new = ["blocks", str(i), dsconv[parts[6]]] + parts[7:]
+                else:
+                    new = ["blocks", str(i), block_part[parts[4]]] + parts[5:]
+            elif parts[0] == "3" and has_output_act:
+                new = ["output_act"] + parts[1:]
+            else:  # the output convolution: network.3, or network.4 after a module
+                new = ["output"] + parts[1:]
+            state_dict[prefix + ".".join(new)] = state_dict.pop(key)
 
     def output_size(self) -> int:
         return self._output_size
 
     @property
+    def past_context(self) -> int:
+        """Number of past input frames each output frame reads."""
+        return sum((b.kernel_size - 1) * b.dilation for b in self.blocks)
+
+    @property
     def receptive_field(self) -> int:
-        """Number of input frames each output frame can see."""
-        return self.tcn.receptive_field
+        """Number of input frames an output frame reads at look-ahead 0.
+
+        The current frame and past_context frames before it. A streaming caller
+        can rerun the encoder on each chunk's new frames together with the
+        receptive_field - 1 frames before them and get the whole-recording
+        output for the new frames.
+        """
+        return self.past_context + 1
+
+    @property
+    def max_look_ahead(self) -> int:
+        return sum(b.max_future_taps * b.dilation for b in self.blocks)
+
+    @property
+    def look_ahead(self) -> int:
+        return self._look_ahead
+
+    def future_taps_per_block(self) -> List[int]:
+        """Number of future taps each block uses at the current look-ahead."""
+        return [b.future_taps for b in self.blocks]
+
+    def set_look_ahead(self, frames: int):
+        """Make each output frame t read input frames up to t + frames.
+
+        The look-ahead goes to the blocks with the largest dilation first: a
+        block takes as many future taps as fit, up to future_taps, and the rest
+        goes to the next one.
+
+        Raises:
+            ValueError: frames is negative, larger than max_look_ahead, or
+                cannot be made from the blocks' future taps.
+        """
+        if not 0 <= frames <= self.max_look_ahead:
+            raise ValueError(
+                f"look_ahead must be in [0, {self.max_look_ahead}], got {frames}"
+            )
+        taps = {}
+        left = frames
+        order = sorted(range(len(self.blocks)), key=lambda i: -self.blocks[i].dilation)
+        for i in order:
+            block = self.blocks[i]
+            taps[i] = min(block.max_future_taps, left // block.dilation)
+            left -= taps[i] * block.dilation
+        if left != 0:
+            raise ValueError(
+                f"look_ahead {frames} cannot be made from the future taps of the "
+                f"blocks (dilations {[b.dilation for b in self.blocks]})"
+            )
+        for i, block in enumerate(self.blocks):
+            block.future_taps = taps[i]
+        self._look_ahead = frames
+
+    def forward_streaming(
+        self, xs: torch.Tensor, state: Optional[List[torch.Tensor]] = None
+    ) -> Tuple[torch.Tensor, List[torch.Tensor]]:
+        """Encode the next frames of a stream online (look-ahead 0).
+
+        Feeding a sequence in chunks of any sizes gives forward()'s output on
+        the whole sequence at look-ahead 0, whatever look-ahead is set. Every
+        layer but the depthwise convolutions works per frame, so the state is
+        the last (kernel_size - 1) * dilation depthwise inputs of each block:
+        receptive_field - 1 frames in all, whatever the stream length.
+
+        Args:
+            xs: New input frames (B, k, input_size), no padding.
+            state: The state returned by the previous call; None at the start
+                of a stream.
+
+        Returns:
+            Encoded new frames (B, k, output_size) and the state for the next
+            call.
+        """
+        x = self.bottleneck(self.input_norm(xs.transpose(1, 2)))
+        if state is None:
+            state = [
+                x.new_zeros(
+                    x.size(0),
+                    b.depthwise.in_channels,
+                    (b.kernel_size - 1) * b.dilation,
+                )
+                for b in self.blocks
+            ]
+        new_state = []
+        for block, cache in zip(self.blocks, state):
+            residual, cache = block.forward_streaming(x, cache)
+            x = x + residual
+            new_state.append(cache)
+        out = self.output(self.output_act(x)).transpose(1, 2)
+        return out, new_state
 
     def forward(
         self,
         xs_pad: torch.Tensor,
         ilens: torch.Tensor,
-        prev_states: torch.Tensor = None,
+        prev_states: Optional[torch.Tensor] = None,
     ) -> Tuple[torch.Tensor, torch.Tensor, Optional[torch.Tensor]]:
         """Encode a padded batch.
 
@@ -104,21 +352,13 @@ class TCNEncoder(AbsEncoder):
         Returns:
             Encoded features (B, T, output_size), output lengths (B,), None.
         """
-        # (B, T), True past each length; built on the device of the input
-        pad = torch.arange(xs_pad.size(1), device=xs_pad.device) >= ilens[:, None]
-        valid = (~pad)[:, None, :].to(xs_pad.dtype)  # (B, 1, T)
-        net = self.tcn.network
-        out = net[1](net[0](xs_pad.transpose(1, 2)))  # norm, bottleneck: (B, B_, T)
-        for repeat in net[2]:
-            for block in repeat:
-                conv1x1, prelu, norm, dsconv = block.net
-                # Zero the frames past each utterance's length before the dilated
-                # convolution: a padded utterance in a batch then reads zeros
-                # there, as the convolution's own padding gives it alone, and not
-                # the values the earlier layers computed on the padding.
-                h = norm(prelu(conv1x1(out))) * valid
-                out = out + dsconv(h)
-        out = net[3:](out)  # (pre-output nonlinearity,) output projection
-        out = out.transpose(1, 2)  # (B, T, output_size)
-        out = out.masked_fill(pad[:, :, None], 0.0)
+        x = xs_pad.transpose(1, 2)  # (B, input_size, T)
+        # 1 on the frames before each length; built on the device (no host sync)
+        frames = torch.arange(x.size(2), device=x.device)
+        mask = (frames < ilens.to(x.device)[:, None]).unsqueeze(1).to(x.dtype)
+        x = self.bottleneck(self.input_norm(x)) * mask
+        for block in self.blocks:
+            x = (x + block(x, mask)) * mask
+        out = self.output(self.output_act(x)).transpose(1, 2)  # (B, T, output_size)
+        out = out * mask.transpose(1, 2)
         return out, ilens, None

@@ -13,6 +13,7 @@ import torch.nn.functional as F
 from tqdm import trange
 from typeguard import typechecked
 
+from espnet2.asr.encoder.abs_look_ahead_encoder import AbsLookAheadEncoder
 from espnet2.enh.loss.criterions.tf_domain import FrequencyDomainMSE
 from espnet2.enh.loss.criterions.time_domain import SISNRLoss
 from espnet2.enh.loss.wrappers.pit_solver import PITSolver
@@ -61,6 +62,7 @@ class DiarizeSpeech:
         dtype: str = "float32",
         enh_s2t_task: bool = False,
         multiply_diar_result: bool = False,
+        look_ahead: Optional[int] = None,
     ):
 
         task = DiarizationTask if not enh_s2t_task else EnhS2TTask
@@ -81,6 +83,15 @@ class DiarizeSpeech:
             )
 
         diar_model.to(dtype=getattr(torch, dtype)).eval()
+        # Set the encoder's look-ahead (input frames): 0 for online diarization,
+        # up to its max_look_ahead for offline. None keeps the trained value.
+        if look_ahead is not None:
+            if not isinstance(diar_model.encoder, AbsLookAheadEncoder):
+                raise ValueError(
+                    f"look_ahead needs an encoder with a look-ahead, "
+                    f"not {type(diar_model.encoder).__name__}"
+                )
+            diar_model.encoder.set_look_ahead(look_ahead)
 
         self.device = device
         self.dtype = dtype
@@ -605,6 +616,7 @@ def inference(
     normalize_output_wav: bool,
     multiply_diar_result: bool,
     enh_s2t_task: bool,
+    look_ahead: Optional[int],
 ):
     if batch_size > 1 and enh_s2t_task:
         raise NotImplementedError("batch decoding is not implemented for enh_s2t")
@@ -638,6 +650,7 @@ def inference(
         dtype=dtype,
         multiply_diar_result=multiply_diar_result,
         enh_s2t_task=enh_s2t_task,
+        look_ahead=look_ahead,
     )
     diarize_speech = DiarizeSpeech.from_pretrained(
         model_tag=model_tag,
@@ -811,6 +824,14 @@ def get_parser():
         type=int_or_none,
         default=None,
         help="Predetermined number of speakers for inference",
+    )
+    group.add_argument(
+        "--look_ahead",
+        type=int_or_none,
+        default=None,
+        help="Look-ahead of the encoder in input frames: 0 for online "
+        "diarization, up to the encoder's max_look_ahead for offline. "
+        "None keeps the value of the training config",
     )
 
     group = parser.add_argument_group("Enh + Diar related")

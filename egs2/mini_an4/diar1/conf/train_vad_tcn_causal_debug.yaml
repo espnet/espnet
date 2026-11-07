@@ -22,7 +22,7 @@ encoder_conf:
     kernel_size: 3
     num_blocks: 2
     num_repeats: 1
-    causal: true
+    future_taps: 0       # no tap after the current frame: causal
 
 decoder: linear
 

@@ -203,10 +203,21 @@ def _write_config(tmp_path, *args):
         ((), 2),  # EEND, transformer encoder, center=True STFT
         (("--frontend_conf", "center=false"), 2),
         (("--encoder", "rnn"), 2),
-        # TCN: causal, and non-causal (its convolutions also see later frames,
-        # so the padding of a shorter utterance must not reach its own frames)
-        (("--encoder", "tcn", "--encoder_conf", "causal=true"), 2),
-        (("--encoder", "tcn", "--encoder_conf", "causal=false"), 2),
+        # TCN: causal, and with a look-ahead (its convolutions also see later
+        # frames, so the padding of a shorter utterance must not reach its own
+        # frames): part of the maximum (124 frames) and all of it
+        (("--encoder", "tcn", "--encoder_conf", "future_taps=0"), 2),
+        (("--encoder", "tcn", "--encoder_conf", "future_taps=2"), 2),
+        (
+            ("--encoder", "tcn")
+            + ("--encoder_conf", "future_taps=2", "--encoder_conf", "look_ahead=14"),
+            2,
+        ),
+        (
+            ("--encoder", "tcn")
+            + ("--encoder_conf", "future_taps=2", "--encoder_conf", "look_ahead=124"),
+            2,
+        ),
         (("--attractor", "rnn", "--attractor_conf", "unit=256"), 2),
         (("--attractor", "rnn", "--attractor_conf", "unit=256"), None),
     ],
@@ -349,3 +360,34 @@ def test_diarize_batch_utterance_shorter_than_half_window(tmp_path):
     batched = diarize_speech.diarize_batch(batch, torch.tensor(lengths), fs=8000)
     for b in range(2):
         np.testing.assert_allclose(batched[b], expected[b], rtol=1e-5, atol=1e-6)
+
+
+def test_look_ahead_is_set_at_inference(tmp_path):
+    """--look_ahead sets the encoder's look-ahead; None keeps the trained one."""
+    DiarizationTask.main(
+        cmd=[
+            "--dry_run",
+            "true",
+            "--output_dir",
+            str(tmp_path),
+            "--num_spk",
+            "1",
+            "--encoder",
+            "tcn",
+            "--encoder_conf",
+            "future_taps=2",
+            "--encoder_conf",
+            "look_ahead=0",
+        ]
+    )
+    config = tmp_path / "config.yaml"
+    assert DiarizeSpeech(train_config=config).diar_model.encoder.look_ahead == 0
+    offline = DiarizeSpeech(train_config=config, look_ahead=124, num_spk=1)
+    assert offline.diar_model.encoder.look_ahead == 124
+    _, prediction = offline(torch.randn(1, 8000), fs=8000)
+    assert prediction.shape[-1] == 1
+
+
+def test_look_ahead_needs_a_look_ahead_encoder(diar_config_file):
+    with pytest.raises(ValueError):
+        DiarizeSpeech(train_config=diar_config_file, look_ahead=4)
