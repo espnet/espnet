@@ -1,3 +1,6 @@
+import copy
+import sys
+
 import pytest
 import torch
 
@@ -42,3 +45,48 @@ def test_state_dict_keys_do_not_change():
 def test_unknown_name_raises():
     with pytest.raises(ValueError):
         compile_modules(Model(), ["frontend"])
+
+
+def test_duplicate_or_nested_names_raise():
+    with pytest.raises(ValueError):
+        compile_modules(Model(), ["encoder", "encoder"])
+    with pytest.raises(ValueError):
+        compile_modules(Model(), ["encoder", "encoder.0"])
+
+
+def _train_steps(model, steps=3):
+    optimizer = torch.optim.SGD(model.parameters(), lr=0.1)
+    g = torch.Generator().manual_seed(1)
+    for _ in range(steps):
+        x = torch.randn(5, 4, generator=g)
+        loss = model(x).pow(2).mean()
+        optimizer.zero_grad()
+        loss.backward()
+        optimizer.step()
+    return loss.detach()
+
+
+@pytest.mark.parametrize(
+    "conf",
+    [
+        {"backend": "eager"},
+        pytest.param(
+            {},  # the default backend, TorchInductor
+            marks=pytest.mark.skipif(
+                sys.platform == "win32", reason="Inductor needs a C++ compiler"
+            ),
+        ),
+    ],
+)
+def test_training_steps_equal_the_uncompiled_model(conf):
+    """Forward, backward and optimizer steps through a compiled submodule."""
+    torch.manual_seed(0)
+    model = Model()
+    reference = copy.deepcopy(model)
+    compile_modules(model, ["encoder", "decoder"], conf)
+    loss = _train_steps(model)
+    expected = _train_steps(reference)
+    torch.testing.assert_close(loss, expected, rtol=1e-5, atol=1e-6)
+    for p, q in zip(model.parameters(), reference.parameters()):
+        assert p.grad is not None
+        torch.testing.assert_close(p, q, rtol=1e-5, atol=1e-6)

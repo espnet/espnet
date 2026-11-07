@@ -26,8 +26,19 @@ def compile_modules(
         conf: Keyword arguments of torch.compile, e.g. {"mode": "max-autotune"}.
 
     Raises:
-        ValueError: A name is not a submodule of ``model``.
+        ValueError: A name is not a submodule of ``model``, a name is given
+            twice, or a name lies below another one (compiling a module and a
+            module inside it would compile the inner one twice).
     """
+    names = list(names)
+    if len(set(names)) != len(names):
+        raise ValueError(f"a submodule is named twice: {names}")
+    for name in names:
+        for other in names:
+            if other != name and name.startswith(other + "."):
+                raise ValueError(
+                    f"{name!r} is inside {other!r}: compile one or the other"
+                )
     for name in names:
         try:
             module = model.get_submodule(name)
