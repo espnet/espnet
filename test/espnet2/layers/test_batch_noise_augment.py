@@ -266,3 +266,46 @@ def test_multichannel_speech_is_refused(tmp_path):
     scp = write_noises(tmp_path, [(3000, 1)])
     with pytest.raises(ValueError):
         BatchNoiseAugment(scp).train()(torch.zeros(1, 100, 2), None)
+
+
+@pytest.mark.parametrize("t", [500, 2999, 7000])
+def test_host_and_device_banks_give_the_same_noise(tmp_path, t):
+    """Cutting the noise from host memory equals indexing the device bank."""
+    # noises shorter than, equal to and longer than the batch width
+    scp = write_noises(tmp_path, [(300, 1), (3000, 2), (9000, 1)])
+    speech = torch.randn(6, t) * 0.05
+    lengths = torch.tensor([t, t, t - 1, t // 2, t, t // 3 + 1])
+    outs = []
+    for keep in (False, True):
+        aug = BatchNoiseAugment(scp, noise_db_range="0_10", keep_on_device=keep)
+        torch.manual_seed(3)
+        outs.append(aug.train()(speech, lengths)[0])
+    torch.testing.assert_close(outs[0], outs[1])
+
+
+_accelerators = [
+    d
+    for d, ok in [
+        ("cuda", torch.cuda.is_available()),
+        ("mps", torch.backends.mps.is_available()),
+    ]
+    if ok
+]
+
+
+@pytest.mark.skipif(not _accelerators, reason="needs a CUDA or MPS device")
+@pytest.mark.parametrize("device", _accelerators)
+@pytest.mark.parametrize("keep_on_device", [False, True])
+def test_noise_on_an_accelerator(tmp_path, device, keep_on_device):
+    """Both modes add noise at the requested SNR to a batch on an accelerator."""
+    scp = write_noises(tmp_path, [(20000, 1), (3000, 1)])
+    aug = BatchNoiseAugment(
+        scp, noise_db_range="0_10", keep_on_device=keep_on_device
+    ).train()
+    speech = (torch.randn(4, 6000) * 0.01).to(device)
+    out, _ = aug(speech, torch.full((4,), 6000, device=device))
+    assert out.device.type == device
+    added = (out - speech).cpu()
+    snr = 10 * torch.log10(speech.cpu().pow(2).mean(1) / added.pow(2).mean(1))
+    assert torch.all(snr > -0.01) and torch.all(snr < 10.01)
+    assert ("cpu" in aug._cache) != keep_on_device
