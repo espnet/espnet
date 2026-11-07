@@ -568,7 +568,7 @@ fi
 
 packed_model="${diar_exp}/${diar_exp##*/}_${inference_model%.*}.zip"
 # Skip pack preparation if using a downloaded model or skip_packing is true
-if ! "${skip_packing}" && [ -n "${download_model}" ]; then
+if ! "${skip_packing}" && [ -z "${download_model}" ]; then
     if [ ${stage} -le 8 ] && [ ${stop_stage} -ge 8 ]; then
         log "Stage 8: Pack model: ${packed_model}"
 

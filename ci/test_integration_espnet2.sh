@@ -494,6 +494,23 @@ if [ "${task}" == "lid" ] || [ "${task}" == "all" ]; then
     cd "${cwd}"
 fi
 
+if [ "${task}" == "diar" ] || [ "${task}" == "all" ]; then
+    # [ESPnet2] test diar1 recipe: two-speaker mixtures simulated from mini_an4
+    cd ./egs2/mini_an4/diar1
+    gen_dummy_coverage
+    echo "==== [ESPnet2] DIAR ==="
+    # EEND: data, training, inference, scoring and packing
+    ./run.sh --ngpu 0 --stage 1 --stop-stage 8 --skip_packing false --python "${python}" \
+        --diar-args "--num_workers 0"
+    # EEND-EDA: the number of speakers is estimated by the attractors
+    ./run.sh --ngpu 0 --stage 5 --stop-stage 7 --python "${python}" \
+        --diar_config conf/train_diar_eda_debug.yaml --inference_config conf/decode_diar_eda.yaml \
+        --diar-args "--num_workers 0"
+    # Remove generated files in order to reduce the disk usage
+    rm -rf exp dump data
+    cd "${cwd}"
+fi
+
 if [ "${task}" == "s2t" ] || [ "${task}" == "all" ]; then
     # [ESPnet2] test s2t1 recipe
     # # Install s2t dependency
