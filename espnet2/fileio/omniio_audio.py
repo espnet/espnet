@@ -33,6 +33,7 @@ import numpy as np
 from typeguard import typechecked
 
 from espnet2.fileio.read_text import read_2columns_text
+from espnet2.fileio.segments import seconds_to_sample
 
 _EBML = b"\x1aE\xdf\xa3"  # WebM/Opus header: not seekable here
 
@@ -72,11 +73,11 @@ class _ByteRange(io.RawIOBase):
 def segment_bounds(start: float, end: float, rate: int, frames: int) -> Tuple[int, int]:
     """Sample range of a Kaldi segment, as SegmentsExtractor cuts it.
 
-    ``int(start * rate):int(end * rate)``, with ``end == -1`` meaning the end
-    of the recording.
+    ``seconds_to_sample(start):seconds_to_sample(end)``, with ``end == -1``
+    meaning the end of the recording.
     """
-    first = int(start * rate)
-    last = frames if end == -1 else int(end * rate)
+    first = seconds_to_sample(start, rate)
+    last = frames if end == -1 else seconds_to_sample(end, rate)
     if not 0 <= first < last <= frames:
         raise RuntimeError(
             f"segment {start}-{end} s is samples {first}-{last}, "

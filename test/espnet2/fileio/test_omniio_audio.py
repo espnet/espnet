@@ -16,6 +16,7 @@ from espnet2.fileio.omniio_audio import (
     OmniIOSegmentsReader,
     parse_omniio_entry,
 )
+from espnet2.fileio.segments import seconds_to_sample
 from espnet2.train.dataset import ESPnetDataset
 from espnet2.train.iterable_dataset import IterableESPnetDataset
 
@@ -415,7 +416,8 @@ def test_segments_match_the_whole_decode(tmp_path, rate, channels, fmt):
         _write_segments(data, [(k, "rec", st, et) for k, st, et in rows])
     )
     for key, st, et in rows:
-        first, last = int(st * rate), n if et == -1 else int(et * rate)
+        first = seconds_to_sample(st, rate)
+        last = n if et == -1 else seconds_to_sample(et, rate)
         r, seg = reader[key]
         assert r == rate
         assert seg.shape == (
@@ -458,7 +460,8 @@ def test_segments_of_an_ogg_entry(tmp_path):
         )
     )
     for key, (st, et) in {"a": (0.0, 0.0625), "b": (2.0, 3.0), "c": (5.0, -1)}.items():
-        first, last = int(st * rate), len(whole) if et == -1 else int(et * rate)
+        first = seconds_to_sample(st, rate)
+        last = len(whole) if et == -1 else seconds_to_sample(et, rate)
         np.testing.assert_array_equal(reader[key][1], whole[first:last])
 
 
@@ -639,11 +642,9 @@ def test_one_sample_segments_and_flac_block_edges(tmp_path):
     ]
     rows = [(f"s{i}", "rec", a / rate, b / rate) for i, (a, b) in enumerate(spans)]
     reader = OmniIOSegmentsReader(_write_segments(data, rows))
-    for key, _, st, et in rows:
-        # int(t * rate), as SegmentsExtractor: 4095 / 16000 s gives 4094 (float)
-        first, last = int(st * rate), int(et * rate)
-        assert last - first >= 1
-        np.testing.assert_array_equal(reader[key][1], whole[first:last])
+    for (key, _, st, et), (a, b) in zip(rows, spans):
+        assert (seconds_to_sample(st, rate), seconds_to_sample(et, rate)) == (a, b)
+        np.testing.assert_array_equal(reader[key][1], whole[a:b])
 
 
 def test_end_of_recording_boundaries(tmp_path):
@@ -677,7 +678,7 @@ def test_random_segments_in_random_order(tmp_path):
     for i in range(100):
         st = float(rng.uniform(0, len(whole) / rate - 0.01))
         et = float(rng.uniform(st, len(whole) / rate))
-        if int(et * rate) > int(st * rate):
+        if seconds_to_sample(et, rate) > seconds_to_sample(st, rate):
             rows.append((f"r{i:03d}", "rec", st, et))
     rows.append(("nest_outer", "rec", 0.0, 10.0))
     rows.append(("nest_inner", "rec", 2.0, 3.0))
@@ -685,7 +686,8 @@ def test_random_segments_in_random_order(tmp_path):
     for i in rng.permutation(len(rows)):
         key, _, st, et = rows[i]
         np.testing.assert_array_equal(
-            reader[key][1], whole[int(st * rate) : int(et * rate)]
+            reader[key][1],
+            whole[seconds_to_sample(st, rate) : seconds_to_sample(et, rate)],
         )
 
 
@@ -715,7 +717,8 @@ def test_segments_across_bins_with_one_cached_descriptor(tmp_path):
     whole = OmniIOAudioScpReader(data / "wav.scp")
     for key, rec, st, et in rows:
         np.testing.assert_array_equal(
-            reader[key][1], whole[rec][1][int(st * rate) : int(et * rate)]
+            reader[key][1],
+            whole[rec][1][seconds_to_sample(st, rate) : seconds_to_sample(et, rate)],
         )
         assert len(reader.reader._fds) <= 1
 
@@ -771,3 +774,66 @@ def test_stereo_channel_order(tmp_path):
     assert seg.shape == (rate, 2)
     assert not seg[:, 0].any()
     np.testing.assert_allclose(seg[:, 1], sig[rate : 2 * rate, 1], atol=1e-6)
+
+
+@pytest.mark.parametrize(
+    "rate", [8000, 11025, 16000, 22050, 24000, 44100, 48000, 96000]
+)
+def test_sample_times_round_trip_exactly(rate):
+    """n / rate written in seconds (as repr) maps back to sample n, up to 3 h."""
+    rng = np.random.default_rng(rate)
+    samples = list(range(0, 10000)) + rng.integers(0, rate * 3 * 3600, 20000).tolist()
+    for n in samples:
+        assert seconds_to_sample(float(repr(n / rate)), rate) == n, n
+    # also as 6-decimal times, the usual way segments files are written
+    for n in range(0, rate * 2, max(1, rate // 1000)):
+        t = round(n / rate, 6)
+        assert seconds_to_sample(t, rate) == int(np.floor(t * rate + 1e-6))
+
+
+def test_sample_boundary_time_that_int_truncates():
+    assert int(0.2559375 * 16000) == 4094  # the float error being fixed
+    assert seconds_to_sample(0.2559375, 16000) == 4095
+    assert seconds_to_sample(0.5 / 16000, 16000) == 0  # still truncates within a sample
+    assert seconds_to_sample(-0.001, 16000) == 0
+
+
+def test_dump_and_load_cut_sample_boundary_times_alike(tmp_path):
+    """format_wav_scp --segments and omniio_segments agree at float-error times."""
+    rate = 16000
+    sig = np.random.default_rng(14).integers(-2000, 2000, rate * 3) / 32768.0
+    data = _archive(tmp_path, {"rec": (rate, sig)})
+    soundfile.write(tmp_path / "rec.wav", sig, rate, subtype="PCM_16")
+    src = tmp_path / "src"
+    src.mkdir()
+    (src / "wav.scp").write_text(f"rec {tmp_path / 'rec.wav'}\n")
+    rows = [("a", "rec", 4095 / rate, 8191 / rate), ("b", "rec", 0.2559375, 1.0)]
+    _write_segments(src, rows)
+    seg = _write_segments(data, rows)
+    subprocess.run(
+        [
+            sys.executable,
+            str(FORMAT_WAV_SCP),
+            str(src / "wav.scp"),
+            str(tmp_path / "dump"),
+            "--segments",
+            str(src / "segments"),
+            "--audio-format",
+            "wav",
+            "--fs",
+            str(rate),
+        ],
+        check=True,
+    )
+    cut = dict(
+        line.split()[:2]
+        for line in (tmp_path / "dump" / "wav.scp").read_text().splitlines()
+    )
+    reader = OmniIOSegmentsReader(seg)
+    for key, (a, b) in {"a": (4095, 8191), "b": (4095, 16000)}.items():
+        dumped, _ = soundfile.read(cut[key], dtype="float32")
+        assert len(dumped) == b - a
+        np.testing.assert_array_equal(reader[key][1], dumped)
+        np.testing.assert_array_equal(
+            reader[key][1], OmniIOAudioScpReader(data / "wav.scp")["rec"][1][a:b]
+        )
