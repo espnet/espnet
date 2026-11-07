@@ -30,14 +30,14 @@ skip_train=false        # Skip training stages
 skip_eval=false         # Skip decoding and evaluation stages
 skip_packing=true       # Skip the packing stage.
 skip_upload_hf=true     # Skip uploading to huggingface stage.
-skip_dumped=false       # Stage 2: skip sets whose dump directory is complete (has espnet_rttm).
+skip_dumped=false       # Stage 2: skip sets already dumped with the same --audio_format and --fs.
 ngpu=1                  # The number of gpus ("0" uses cpu, otherwise use gpu).
 num_nodes=1             # The number of nodes
 nj=32                   # The number of parallel jobs.
 dumpdir=dump            # Directory to dump features.
 inference_nj=32         # The number of parallel jobs in decoding.
 gpu_inference=false     # Whether to perform gpu decoding.
-inference_max_jobs_run= # Stage 6: most inference jobs at once (--max-jobs-run of the cmd; run.pl allows one per GPU with --gpu).
+inference_max_jobs_run= # Stage 6: most inference jobs at once (--max-jobs-run; run.pl allows one per GPU with --gpu; pbs.pl ignores it).
 expdir=exp              # Directory to save experiments.
 python=python3          # Specify python to execute espnet commands
 
@@ -92,7 +92,8 @@ Options:
     --skip_data_prep     # Skip data preparation stages (default="${skip_data_prep}").
     --skip_train         # Skip training stages (default="${skip_train}").
     --skip_eval          # Skip decoding and evaluation stages (default="${skip_eval}").
-    --skip_dumped        # Stage 2: skip sets whose dump directory is complete (default="${skip_dumped}").
+    --skip_dumped        # Stage 2: skip sets already dumped with the same --audio_format and --fs;
+                         # delete a dump directory to dump it again after changing data/ (default="${skip_dumped}").
     --skip_packing       # Skip the packing stage (default="${skip_packing}").
     --skip_upload_hf     # Skip uploading to huggingface stage (default="${skip_upload_hf}").
     --ngpu               # The number of gpus ("0" uses cpu, otherwise use gpu, default="${ngpu}").
@@ -100,7 +101,8 @@ Options:
     --nj                 # The number of parallel jobs (default="${nj}").
     --inference_nj       # The number of parallel jobs in inference (default="${inference_nj}").
     --gpu_inference      # Whether to use gpu for inference (default="${gpu_inference}").
-    --inference_max_jobs_run # Stage 6: most inference jobs at once (default="${inference_max_jobs_run}").
+    --inference_max_jobs_run # Stage 6: most inference jobs at once; passed as --max-jobs-run to run.pl,
+                         # queue.pl and slurm.pl, ignored by pbs.pl (default="${inference_max_jobs_run}").
     --dumpdir            # Directory to dump features (default="${dumpdir}").
     --expdir             # Directory to save experiments (default="${expdir}").
     --python             # Specify python to execute espnet commands (default="${python}").
@@ -216,11 +218,14 @@ if ! "${skip_data_prep}"; then
             else
                 _suf=""
             fi
-            # espnet_rttm is the last file this stage writes for a set
-            if "${skip_dumped}" && [ -f "${data_feats}${_suf}/${dset}/espnet_rttm" ]; then
+            # .stage2_done is written last, with the audio format and rate of the dump
+            _done="${data_feats}${_suf}/${dset}/.stage2_done"
+            if "${skip_dumped}" && [ -f "${_done}" ] \
+                    && [ "$(<"${_done}")" = "${audio_format} ${fs}" ]; then
                 log "Skip ${dset}: ${data_feats}${_suf}/${dset} is already dumped"
                 continue
             fi
+            rm -f "${_done}"
             utils/copy_data_dir.sh --validate_opts --non-print data/"${dset}" "${data_feats}${_suf}/${dset}"
             rm -f ${data_feats}${_suf}/${dset}/{wav.scp,reco2file_and_channel}
 
@@ -243,6 +248,9 @@ if ! "${skip_data_prep}"; then
                 --utt2num_samples "${data_feats}${_suf}/${dset}"/utt2num_samples \
                 --output_path "${data_feats}${_suf}/${dset}" \
                 --sampling_rate "${fs}"
+
+            echo "${audio_format}" > "${data_feats}${_suf}/${dset}/audio_format"
+            echo "${audio_format} ${fs}" > "${_done}"
         done
     fi
 
@@ -516,10 +524,14 @@ if ! "${skip_eval}"; then
             mkdir -p "${_logdir}"
 
             _scp=wav.scp
-            # the audio type that stage 2 dumped, as in stages 4 and 5
-            if [[ "${audio_format}" == *ark* ]]; then
+            # the format stage 2 dumped this set in, else --audio_format
+            _audio_format=${audio_format}
+            if [ -f "${_data}/audio_format" ]; then
+                _audio_format=$(<"${_data}/audio_format")
+            fi
+            if [[ "${_audio_format}" == *ark* ]]; then
                 _type=kaldi_ark
-            elif [[ "${audio_format}" == omniio ]]; then
+            elif [[ "${_audio_format}" == omniio ]]; then
                 _type=omniio
             else
                 _type=sound
