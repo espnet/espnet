@@ -65,7 +65,9 @@ def main():
         wav_scp.append(f"{rec} {out}")
         for spk, start, n in ((spk1, 0, len(x1)), (spk2, offset, len(x2))):
             seg = f"{spk}-{rec}"
-            segments.append(f"{seg} {rec} {start / fs:.3f} {(start + n) / fs:.3f}")
+            # Write the times with 7 decimals: at 16 kHz a sample is 0.0000625 s,
+            # so every sample boundary is written exactly.
+            segments.append(f"{seg} {rec} {start / fs:.7f} {(start + n) / fs:.7f}")
             utt2spk.append(f"{seg} {spk}")
 
     (a.data_dir / "wav.scp").write_text("\n".join(sorted(wav_scp)) + "\n")
