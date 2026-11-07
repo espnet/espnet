@@ -734,3 +734,200 @@ def test_rir_shift_keeps_padding_zero_and_batch_equals_alone(tmp_path):
     alone = aug.apply(speech[1:, :2500], valid[1:, :2500], one)
     torch.testing.assert_close(batched[1, :2500], alone[0], rtol=1e-4, atol=1e-6)
     assert torch.all(batched[1, 2500:] == 0)
+
+
+# --- snr_reference, noise_rir_apply_prob, context -----------------------------
+
+
+def _decaying_rir(rng, n=3000, peak=40, tau=400.0):
+    rir = (rng.normal(size=n) * np.exp(-np.arange(n) / tau)).astype(np.float32)
+    rir[:peak] *= 0.01
+    rir[peak] = 10.0  # the direct path, above every reflection
+    return rir
+
+
+def test_bad_options():
+    with pytest.raises(ValueError):
+        BatchWavAugment(noise_scp="n.scp", snr_reference="late")
+    with pytest.raises(ValueError):
+        BatchWavAugment(noise_scp="n.scp", noise_rir_apply_prob=0.5)  # no rir_scp
+    with pytest.raises(ValueError):
+        BatchWavAugment(noise_scp="n.scp", context=-1)
+
+
+def test_early_snr_reference_measures_the_early_reverberation(tmp_path):
+    """snr_reference=early: the noise is at the SNR of the early reverberation.
+
+    The early part is the impulse response from 1 ms before its peak to 50 ms
+    after it (Kaldi's ComputeEarlyReverbEnergy); the speech convolved with it,
+    with the same gain as the reverberated speech, gives the reference power.
+    """
+    rng = np.random.default_rng(13)
+    rir = _decaying_rir(rng, n=8000, tau=2000.0)  # a long tail beyond 50 ms
+    rir_scp = _scp(tmp_path, "rir", _write(tmp_path / "rir.wav", rir))
+    noise_scp = write_noises(tmp_path, [(40000, 1)])
+    t = 16000
+    speech = torch.from_numpy(rng.normal(size=(1, t)).astype(np.float32)) * 0.05
+    valid = torch.ones(1, t, dtype=torch.bool)
+    draws = dict(
+        rir_apply=torch.tensor([True]),
+        rir_which=torch.tensor([0]),
+        noise_apply=torch.tensor([True]),
+        noise_which=torch.tensor([0]),
+        noise_offset=torch.tensor([0]),
+        snr=torch.tensor([10.0]),
+    )
+    outs = {}
+    for ref in ("dry", "early"):
+        aug = BatchWavAugment(
+            noise_scp=noise_scp,
+            rir_scp=rir_scp,
+            noise_db_range="10",
+            snr_reference=ref,
+        )
+        no_noise = dict(draws, noise_apply=torch.tensor([False]))
+        reverberant = aug.apply(speech, valid, no_noise)
+        noisy = aug.apply(speech, valid, draws)
+        outs[ref] = (reverberant, noisy - reverberant)
+        # the reverberated speech does not depend on the reference
+    torch.testing.assert_close(outs["dry"][0], outs["early"][0])
+    aug = BatchWavAugment(noise_scp=noise_scp, rir_scp=rir_scp)
+    # the reference powers: the reverberant speech (dry) and its early part
+    x = speech.double().numpy()[0]
+    early = np.zeros_like(rir)
+    early[40 - 16 : 40 + 800] = rir[40 - 16 : 40 + 800]
+    full = np.convolve(x, rir.astype(np.float64))[40 : 40 + t]
+    part = np.convolve(x, early.astype(np.float64))[40 : 40 + t]
+    gain = np.linalg.norm(outs["dry"][0][0].double().numpy()) / np.linalg.norm(full)
+    p_full = float(
+        aug._non_silent_power(torch.from_numpy(full * gain)[None].float(), valid)
+    )
+    p_early = float(
+        aug._non_silent_power(torch.from_numpy(part * gain)[None].float(), valid)
+    )
+    assert p_early < 0.9 * p_full  # the tail carries power
+    for ref, p in (("dry", p_full), ("early", p_early)):
+        noise_power = float(outs[ref][1].pow(2).mean())
+        snr = 10 * np.log10(p / noise_power)
+        assert abs(snr - 10.0) < 0.05, (ref, snr)
+
+
+def test_early_reference_without_reverberation_is_the_dry_power(tmp_path):
+    rng = np.random.default_rng(14)
+    rir_scp = _scp(tmp_path, "rir", _write(tmp_path / "rir.wav", _decaying_rir(rng)))
+    noise_scp = write_noises(tmp_path, [(20000, 1)])
+    speech = torch.from_numpy(rng.normal(size=(1, 8000)).astype(np.float32)) * 0.05
+    valid = torch.ones(1, 8000, dtype=torch.bool)
+    draws = dict(
+        rir_apply=torch.tensor([False]),
+        rir_which=torch.tensor([0]),
+        noise_apply=torch.tensor([True]),
+        noise_which=torch.tensor([0]),
+        noise_offset=torch.tensor([5]),
+        snr=torch.tensor([3.0]),
+    )
+    outs = [
+        BatchWavAugment(noise_scp=noise_scp, rir_scp=rir_scp, snr_reference=r).apply(
+            speech, valid, draws
+        )
+        for r in ("dry", "early")
+    ]
+    torch.testing.assert_close(outs[0], outs[1])
+
+
+def test_noise_is_reverberated_by_its_own_rir(tmp_path):
+    """noise_rir_apply_prob: the added noise is the noise convolved with its RIR."""
+    rng = np.random.default_rng(15)
+    rir = _decaying_rir(rng, n=2000)
+    rir_scp = _scp(tmp_path, "rir", _write(tmp_path / "rir.wav", rir))
+    noise_scp = write_noises(tmp_path, [(30000, 1)])
+    aug = BatchWavAugment(
+        noise_scp=noise_scp,
+        rir_scp=rir_scp,
+        rir_apply_prob=0.0,
+        noise_rir_apply_prob=1.0,
+        noise_db_range="0",
+    ).train()
+    t = 6000
+    speech = torch.from_numpy(rng.normal(size=(1, t)).astype(np.float32)) * 0.05
+    valid = torch.ones(1, t, dtype=torch.bool)
+    torch.manual_seed(0)
+    draws = aug.draw(torch.tensor([t]))
+    assert bool(draws["noise_rir_apply"].all())
+    added = (aug.apply(speech, valid, draws) - speech)[0].double().numpy()
+    bank, starts, _ = aug.bank("noise", torch.device("cpu"))
+    o = int(draws["noise_offset"][0])
+    dry = bank[o : o + t].double().numpy() / 32768
+    expected = np.convolve(dry, rir.astype(np.float64))[40 : 40 + t]
+    expected *= np.dot(added, expected) / np.dot(expected, expected)
+    np.testing.assert_allclose(added, expected, atol=1e-4 * np.abs(expected).max())
+    # SNR 0 dB against the reverberated noise
+    p = float(aug._non_silent_power(speech, valid))
+    assert abs(10 * np.log10(p / np.mean(added**2))) < 0.05
+
+
+def test_noise_rir_probability_zero_keeps_the_noise_dry(tmp_path):
+    rng = np.random.default_rng(16)
+    rir_scp = _scp(tmp_path, "rir", _write(tmp_path / "rir.wav", _decaying_rir(rng)))
+    noise_scp = write_noises(tmp_path, [(30000, 1)])
+    aug = BatchWavAugment(noise_scp=noise_scp, rir_scp=rir_scp, rir_apply_prob=0.0)
+    assert "noise_rir_which" not in aug.draw(torch.tensor([4000]))
+
+
+def test_context_is_removed_and_gives_the_reverberation_its_history(tmp_path):
+    """With context c, the row is reverberated whole and its first c dropped.
+
+    The lengths shrink by c, also in eval mode.
+    """
+    rng = np.random.default_rng(17)
+    rir = _decaying_rir(rng, n=1500, peak=0)
+    rir_scp = _scp(tmp_path, "rir", _write(tmp_path / "rir.wav", rir))
+    c, t = 1500, 4000
+    aug = BatchWavAugment(rir_scp=rir_scp, rir_shift=False, context=c).train()
+    speech = torch.from_numpy(rng.normal(size=(2, c + t)).astype(np.float32)) * 0.05
+    out, lens = aug(speech, torch.tensor([c + t, c + t]))
+    assert out.shape == (2, t) and lens.tolist() == [t, t]
+    for b in range(2):
+        full = np.convolve(speech[b].double().numpy(), rir.astype(np.float64))
+        expected = full[c : c + t]
+        got = out[b].double().numpy()
+        expected *= np.dot(got, expected) / np.dot(expected, expected)
+        np.testing.assert_allclose(got, expected, atol=1e-5 * np.abs(expected).max())
+    # the window's first samples carry the tail of the context
+    head = np.convolve(speech[0, c:].double().numpy(), rir.astype(np.float64))[:200]
+    assert not np.allclose(
+        out[0, :200].double().numpy(),
+        head * (np.linalg.norm(out[0, :200].double().numpy()) / np.linalg.norm(head)),
+        atol=1e-4,
+    )
+    aug.eval()
+    out, lens = aug(speech, torch.tensor([c + t, c + 100]))
+    torch.testing.assert_close(out, speech[:, c:])
+    assert lens.tolist() == [t, 100]
+
+
+def test_context_powers_and_peak_are_measured_after_it(tmp_path):
+    """A loud context does not change the SNR or the peak of the window."""
+    rng = np.random.default_rng(18)
+    noise_scp = write_noises(tmp_path, [(40000, 1)])
+    c, t = 2000, 6000
+    window = torch.from_numpy(rng.normal(size=(1, t)).astype(np.float32)) * 0.05
+    draws = dict(
+        noise_apply=torch.tensor([True]),
+        noise_which=torch.tensor([0]),
+        noise_offset=torch.tensor([0]),
+        snr=torch.tensor([5.0]),
+    )
+    quiet = torch.cat([torch.zeros(1, c), window], 1)
+    loud = torch.cat([torch.full((1, c), 3.0), window], 1)
+    aug = BatchWavAugment(noise_scp=noise_scp, context=c)
+    valid = torch.ones(1, c + t, dtype=torch.bool)
+    a = aug.apply(quiet, valid, draws)[:, c:]
+    b = aug.apply(loud, valid, draws)[:, c:]
+    torch.testing.assert_close(a, b)
+
+
+def test_context_longer_than_the_row_raises(tmp_path):
+    aug = BatchWavAugment(noise_scp=write_noises(tmp_path, [(4000, 1)]), context=100)
+    with pytest.raises(ValueError):
+        aug.eval()(torch.zeros(1, 100), None)

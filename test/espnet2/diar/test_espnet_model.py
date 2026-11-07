@@ -79,12 +79,17 @@ def test_single_channel_model(
 
 
 def test_wav_augment_is_applied_in_training_only(monkeypatch):
-    """In training the encoder gets wav_augment's output; in eval the input."""
+    """The model calls wav_augment in both modes; the module augments in training.
+
+    In training the encoder gets wav_augment's output; in eval, the input.
+    """
     calls = []
 
     class Recorder(torch.nn.Module):
         def forward(self, speech, speech_lengths):
-            calls.append(speech.shape)
+            calls.append((self.training, speech.shape))
+            if not self.training:
+                return speech, speech_lengths
             return speech + 1.0, speech_lengths
 
     model = ESPnetDiarizationModel(
@@ -114,11 +119,11 @@ def test_wav_augment_is_applied_in_training_only(monkeypatch):
     }
     model.train()
     model(**kwargs)
-    assert calls == [torch.Size([2, 300])]
+    assert calls == [(True, torch.Size([2, 300]))]
     torch.testing.assert_close(seen[0][0], speech + 1.0)
     model.eval()
     model(**kwargs)
-    assert len(calls) == 1
+    assert calls[1] == (False, torch.Size([2, 300]))
     torch.testing.assert_close(seen[1][0], speech)
 
 

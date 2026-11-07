@@ -91,7 +91,9 @@ class ESPnetDiarizationModel(AbsESPnetModel):
         assert speech.shape[0] == spk_labels.shape[0], (speech.shape, spk_labels.shape)
         batch_size = speech.shape[0]
 
-        if self.wav_augment is not None and self.training:
+        if self.wav_augment is not None:
+            # The module augments in training mode only; in eval mode it only
+            # removes its leading context, if it has one.
             speech, speech_lengths = self.wav_augment(speech, speech_lengths)
 
         # 1. Encoder

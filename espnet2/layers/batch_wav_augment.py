@@ -63,6 +63,25 @@ class BatchWavAugment(torch.nn.Module):
             CommonPreprocessor does, which delays the speech by the peak
             position (e.g. the propagation delay of a measured or simulated
             impulse response).
+        snr_reference: The speech power the SNR refers to. "dry": the
+            non-silent power of the speech before reverberation (the
+            reverberated speech is scaled back to it), as CommonPreprocessor
+            does. "early": the non-silent power of the early reverberation, the
+            speech convolved with the impulse response from 1 ms before its
+            peak to 50 ms after it, as Kaldi's wav-reverberate does; the late
+            reverberation then counts as distortion, not as speech.
+        noise_rir_apply_prob: Probability of convolving the noise of each
+            utterance with an impulse response of its own (drawn independently
+            of the speech's), so that a point-source noise is reverberated as
+            Kaldi's reverberate_data_dir.py does. Needs rir_scp.
+        context: Number of leading samples of each row that only give the
+            reverberation its history: the row is augmented as a whole, the
+            powers and the peak are measured after the context, and the first
+            ``context`` samples are removed (also in eval mode, without
+            augmentation), so the labels cover the rest. Give the data loader
+            windows that start ``context`` samples early (zeros before the start
+            of a recording); without it the first samples of a window are
+            reverberated as if nothing preceded them. 0 for none.
         fs: Sampling rate of the speech; noise and impulse responses at another
             rate are resampled when they are loaded.
         silence_threshold: A frame is non-silent when its power exceeds this
@@ -83,6 +102,9 @@ class BatchWavAugment(torch.nn.Module):
         rir_scp: Optional[str] = None,
         rir_apply_prob: float = 1.0,
         rir_shift: bool = True,
+        snr_reference: str = "dry",
+        noise_rir_apply_prob: float = 0.0,
+        context: int = 0,
         fs: int = 16000,
         silence_threshold: float = 0.01,
         frame_length: int = 1024,
@@ -109,6 +131,15 @@ class BatchWavAugment(torch.nn.Module):
         self.rir_scp = rir_scp
         self.rir_apply_prob = rir_apply_prob if rir_scp else 0.0
         self.rir_shift = rir_shift
+        if snr_reference not in ("dry", "early"):
+            raise ValueError(f"snr_reference must be dry or early: {snr_reference}")
+        self.snr_reference = snr_reference
+        if noise_rir_apply_prob > 0 and not rir_scp:
+            raise ValueError("noise_rir_apply_prob > 0 needs rir_scp")
+        self.noise_rir_apply_prob = noise_rir_apply_prob if noise_scp else 0.0
+        if context < 0:
+            raise ValueError(f"context must be >= 0: {context}")
+        self.context = int(context)
         self.fs = int(fs)
         self.silence_threshold = silence_threshold
         self.frame_length = frame_length
@@ -126,7 +157,9 @@ class BatchWavAugment(torch.nn.Module):
             f"noise_scp={self.noise_scp}, noise_apply_prob={self.noise_apply_prob}, "
             f"noise_db_range=({self.noise_db_low}, {self.noise_db_high}), "
             f"rir_scp={self.rir_scp}, rir_apply_prob={self.rir_apply_prob}, "
-            f"rir_shift={self.rir_shift}, "
+            f"rir_shift={self.rir_shift}, snr_reference={self.snr_reference}, "
+            f"noise_rir_apply_prob={self.noise_rir_apply_prob}, "
+            f"context={self.context}, "
             f"fs={self.fs}, keep_on_device={self.keep_on_device}"
         )
 
@@ -291,6 +324,36 @@ class BatchWavAugment(torch.nn.Module):
         pinned = device.type == "cuda" and not self.keep_on_device
         return (rirs.pin_memory() if pinned else rirs).to(device, non_blocking=pinned)
 
+    def _reverberate(
+        self, x: torch.Tensor, which: torch.Tensor, early: bool = False
+    ) -> torch.Tensor:
+        """Convolve each row of x (B, T) with the impulse response ``which`` (CPU).
+
+        The full convolution is computed through the FFT; the result keeps T
+        samples: from the impulse response's peak with rir_shift, else the
+        first ones. With early=True the impulse response is cut to its early
+        part, 1 ms before the peak to 50 ms after it (Kaldi's
+        ComputeEarlyReverbEnergy), and aligned as the full one.
+        """
+        t = x.size(1)
+        device = x.device
+        rirs = self._impulse_responses(which, device)
+        peak = self._rir_peaks()[which].to(device)
+        if early:
+            pos = torch.arange(rirs.size(1), device=device)
+            lo = peak - int(0.001 * self.fs)
+            hi = peak + int(0.05 * self.fs)
+            rirs = rirs * ((pos >= lo[:, None]) & (pos < hi[:, None]))
+        n_fft = 1 << (t + rirs.size(1) - 2).bit_length()
+        y = torch.fft.irfft(
+            torch.fft.rfft(x, n_fft) * torch.fft.rfft(rirs, n_fft), n_fft
+        )
+        if self.rir_shift:
+            # Samples peak .. peak + t - 1 of each row: the signal shifted back
+            # by its impulse response's peak. peak + t - 1 <= L + t - 2 < n_fft.
+            return y.gather(1, peak[:, None] + torch.arange(t, device=device))
+        return y[:, :t]
+
     def draw(self, lengths: torch.Tensor) -> Dict:
         """Draw the random choices of a batch: what to apply, which and where.
 
@@ -323,6 +386,14 @@ class BatchWavAugment(torch.nn.Module):
             span = torch.where(n_len >= lengths, n_len - lengths + 1, n_len)
             offset = (u.to(lengths.device) * span).long()
             draws["noise_offset"] = torch.minimum(offset, span - 1)
+            if self.noise_rir_apply_prob > 0:
+                _, _, rir_lengths = self.bank("rir", torch.device("cpu"))
+                draws["noise_rir_apply"] = (
+                    torch.rand(batch_size) < self.noise_rir_apply_prob
+                )
+                draws["noise_rir_which"] = torch.randint(
+                    len(rir_lengths), (batch_size,)
+                )
         return draws
 
     def apply(
@@ -336,30 +407,28 @@ class BatchWavAugment(torch.nn.Module):
         b, t = speech.shape
         device = speech.device
         x = speech.float() * valid
-        power = self._non_silent_power(x, valid)
+        # The powers and the peak are measured after the leading context.
+        if self.context > 0:
+            measure = valid & (torch.arange(t, device=device) >= self.context)
+        else:
+            measure = valid
+        power = self._non_silent_power(x, measure)
+        speech_power = power  # the power the SNR refers to
 
         # The apply flags are on the CPU: testing them does not wait for the GPU.
         if "rir_which" in draws and bool(draws["rir_apply"].any()):
-            rirs = self._impulse_responses(draws["rir_which"].cpu(), device)
-            # Convolve through the FFT: the full convolution, as
-            # scipy.signal.convolve(mode="full") gives it.
-            n_fft = 1 << (t + rirs.size(1) - 2).bit_length()
-            y = torch.fft.irfft(
-                torch.fft.rfft(x, n_fft) * torch.fft.rfft(rirs, n_fft), n_fft
-            )
-            if self.rir_shift:
-                # Keep samples peak .. peak + t - 1 of each row: the speech
-                # shifted back by its impulse response's peak position.
-                # peak + t - 1 <= L + t - 2 < n_fft, so every index exists.
-                peak = self._rir_peaks()[draws["rir_which"].cpu()].to(device)
-                y = y.gather(1, peak[:, None] + torch.arange(t, device=device))
-            else:
-                y = y[:, :t]
-            y = y * valid
+            which = draws["rir_which"].cpu()
+            apply = draws["rir_apply"].to(device)
+            y = self._reverberate(x, which) * valid
             # Scale back to the power before the reverberation.
-            power2 = self._non_silent_power(y, valid)
-            y = y * (power / power2.clamp(min=1e-10)).sqrt()[:, None]
-            x = torch.where(draws["rir_apply"].to(device)[:, None], y, x)
+            gain = (power / self._non_silent_power(y, measure).clamp(min=1e-10)).sqrt()
+            x = torch.where(apply[:, None], y * gain[:, None], x)
+            if self.snr_reference == "early":
+                early = self._reverberate(speech.float() * valid, which, early=True)
+                early = early * valid * gain[:, None]
+                speech_power = torch.where(
+                    apply, self._non_silent_power(early, measure), power
+                )
 
         if "noise_which" in draws and bool(draws["noise_apply"].any()):
             bank_device = device if self.keep_on_device else torch.device("cpu")
@@ -374,16 +443,24 @@ class BatchWavAugment(torch.nn.Module):
             else:
                 noise = self._cut_on_host(bank, starts[which], n_len, offset, t, device)
             noise = noise.float() / 32768 * valid
-            n = valid.sum(1).clamp(min=1)
-            noise_power = noise.pow(2).sum(1) / n
+            if "noise_rir_which" in draws and bool(draws["noise_rir_apply"].any()):
+                # A point-source noise: reverberated by an impulse response of
+                # its own; its power is measured after the reverberation.
+                noisy = self._reverberate(noise, draws["noise_rir_which"].cpu())
+                apply = draws["noise_rir_apply"].to(device)
+                noise = torch.where(apply[:, None], noisy * valid, noise)
+            n = measure.sum(1).clamp(min=1)
+            noise_power = (noise * measure).pow(2).sum(1) / n
             snr = draws["snr"].to(device)
             scale = (
-                10 ** (-snr / 20) * power.sqrt() / noise_power.clamp(min=1e-10).sqrt()
+                10 ** (-snr / 20)
+                * speech_power.sqrt()
+                / noise_power.clamp(min=1e-10).sqrt()
             )
             x = x + (scale * draws["noise_apply"].to(device))[:, None] * noise
 
         # As the preprocessor: divide by the peak when it exceeds 1.
-        peak = (x.abs() * valid).amax(1, keepdim=True)
+        peak = (x.abs() * measure).amax(1, keepdim=True)
         return torch.where(peak > 1.0, x / peak.clamp(min=1e-30), x)
 
     def forward(
@@ -391,24 +468,35 @@ class BatchWavAugment(torch.nn.Module):
     ) -> Tuple[torch.Tensor, Optional[torch.Tensor]]:
         """Add reverberation and noise to speech (B, T) in training mode.
 
-        Returns the augmented speech (same shape and dtype) and speech_lengths.
+        Returns the augmented speech and speech_lengths. With ``context`` the
+        first ``context`` samples of each row are removed afterwards, in
+        training and in eval mode.
         """
-        if not self.training or (
-            self.noise_apply_prob <= 0 and self.rir_apply_prob <= 0
-        ):
-            return speech, speech_lengths
-        if speech.dim() != 2:
-            raise ValueError(f"speech must be (Batch, Time): {tuple(speech.shape)}")
-        b, t = speech.shape
-        device = speech.device
-        if speech_lengths is None:
-            lengths = torch.full((b,), t, dtype=torch.long, device=device)
-        else:
-            lengths = speech_lengths.to(device).long()
-        valid = torch.arange(t, device=device) < lengths[:, None]
-        if not self.keep_on_device:
-            # The noise is cut on the host from offsets that depend on the
-            # lengths: one copy of the lengths to the host per batch.
-            lengths = lengths.cpu()
-        x = self.apply(speech, valid, self.draw(lengths))
-        return x.to(speech.dtype), speech_lengths
+        augment = self.training and (
+            self.noise_apply_prob > 0 or self.rir_apply_prob > 0
+        )
+        if augment:
+            if speech.dim() != 2:
+                raise ValueError(f"speech must be (Batch, Time): {tuple(speech.shape)}")
+            b, t = speech.shape
+            device = speech.device
+            if speech_lengths is None:
+                lengths = torch.full((b,), t, dtype=torch.long, device=device)
+            else:
+                lengths = speech_lengths.to(device).long()
+            valid = torch.arange(t, device=device) < lengths[:, None]
+            if not self.keep_on_device:
+                # The noise is cut on the host from offsets that depend on the
+                # lengths: one copy of the lengths to the host per batch.
+                lengths = lengths.cpu()
+            speech = self.apply(speech, valid, self.draw(lengths)).to(speech.dtype)
+        if self.context > 0:
+            if speech.size(1) <= self.context:
+                raise ValueError(
+                    f"a row of {speech.size(1)} samples has no samples after the "
+                    f"context of {self.context}"
+                )
+            speech = speech[:, self.context :]
+            if speech_lengths is not None:
+                speech_lengths = (speech_lengths - self.context).clamp(min=0)
+        return speech, speech_lengths
