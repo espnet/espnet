@@ -19,15 +19,43 @@ it.
 
 | | |
 | --- | --- |
-| Implemented | WER, CER; the normalization pipeline; the utterance tier; `splet-measure` |
+| Implemented | WER, CER, token error rate; the normalization pipeline including Whisper; the utterance tier; `splet-measure` |
 | Contract only | the session tier (`splet/session_metrics`), the corpus tier (`splet/corpus_metrics`) |
-| Not started | cpWER, ORC-WER, DER, JER, BLEU/chrF/TER, Whisper normalization, structured prediction |
-| Not validated | the S/D/I split against sclite; everything against existing recipe results |
+| Not started | cpWER, ORC-WER, DER, JER, BLEU/chrF, structured prediction |
 
-WER and CER agree with `jiwer` on the corpus figure, which is what espnet3's
-current metrics use (`test/splet/test_error_rate.py::test_matches_jiwer`).
-Nothing here has been checked against SCTK yet, so do not report an S/D/I
-breakdown from SPLET as SCTK-compatible.
+## Parity with sclite
+
+Error rates default to sclite's cost model, so a figure reported here is the
+figure `sclite` reports for the same files. It is checked rather than
+claimed: `test/splet/test_vs_sclite.py` compares every count — not just the
+rate — against sclite's own output for the fixtures in `test_utils/splet`,
+against the binary itself where one is built, and over 200 random pairs.
+
+Measured against sclite 2.10 / SCTK 1.3:
+
+| case | N | Err | S | D | I |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| `wer_default` | 63 | 14 | 2 | 9 | 3 |
+| `wer_poor` | 63 | 32 | 15 | 13 | 4 |
+| `wer_case_sensitive` | 63 | 19 | 7 | 9 | 3 |
+| `cer_default` | 330 | 66 | 8 | 48 | 10 |
+| `cer_poor` | 330 | 116 | 13 | 79 | 24 |
+| `cs_noascii` | 43 | 8 | 3 | 5 | 0 |
+
+Two consequences worth knowing before reading a number:
+
+* **sclite is not minimum edit distance.** It minimises a weighted cost —
+  3 for an insertion or deletion, 4 for a substitution — so it will take
+  five insertions and deletions over four substitutions. Its total is an
+  upper bound on the edit distance `jiwer` reports, never below it. Pass
+  `costs: unit` for the other question.
+* **Case is folded by default**, as `sclite` does without `-s`. Recipes
+  whose hypotheses are cased against lowercase references move by several
+  points. `case: sensitive` is `-s`.
+
+Two of sclite's behaviours are deliberately absent, and a corpus that uses
+either will not match it: `-F` fragment matching, and the `@` null token
+with its own costs. Both are named in `splet/alignment.py`.
 
 ## Running it
 

@@ -1,0 +1,100 @@
+{
+  "wer_default": {
+    "ref": "ref.scp",
+    "hyp": "hyp_good.scp",
+    "sclite_flags": [],
+    "tokenization": "word",
+    "counts": {
+      "errors": 14,
+      "hits": 52,
+      "substitutions": 2,
+      "deletions": 9,
+      "insertions": 3,
+      "ref_len": 63,
+      "hyp_len": 57
+    }
+  },
+  "wer_poor": {
+    "ref": "ref.scp",
+    "hyp": "hyp_poor.scp",
+    "sclite_flags": [],
+    "tokenization": "word",
+    "counts": {
+      "errors": 32,
+      "hits": 35,
+      "substitutions": 15,
+      "deletions": 13,
+      "insertions": 4,
+      "ref_len": 63,
+      "hyp_len": 54
+    }
+  },
+  "wer_case_sensitive": {
+    "ref": "ref.scp",
+    "hyp": "hyp_good.scp",
+    "sclite_flags": [
+      "-s"
+    ],
+    "tokenization": "word",
+    "counts": {
+      "errors": 19,
+      "hits": 47,
+      "substitutions": 7,
+      "deletions": 9,
+      "insertions": 3,
+      "ref_len": 63,
+      "hyp_len": 57
+    }
+  },
+  "cer_default": {
+    "ref": "ref.scp",
+    "hyp": "hyp_good.scp",
+    "sclite_flags": [],
+    "tokenization": "char",
+    "counts": {
+      "errors": 66,
+      "hits": 274,
+      "substitutions": 8,
+      "deletions": 48,
+      "insertions": 10,
+      "ref_len": 330,
+      "hyp_len": 292
+    }
+  },
+  "cer_poor": {
+    "ref": "ref.scp",
+    "hyp": "hyp_poor.scp",
+    "sclite_flags": [],
+    "tokenization": "char",
+    "counts": {
+      "errors": 116,
+      "hits": 238,
+      "substitutions": 13,
+      "deletions": 79,
+      "insertions": 24,
+      "ref_len": 330,
+      "hyp_len": 275
+    }
+  },
+  "cs_noascii": {
+    "ref": "ref_cs.scp",
+    "hyp": "hyp_cs.scp",
+    "sclite_flags": [
+      "-e",
+      "utf-8",
+      "-c",
+      "NOASCII"
+    ],
+    "tokenization": "word",
+    "counts": {
+      "errors": 8,
+      "hits": 35,
+      "substitutions": 3,
+      "deletions": 5,
+      "insertions": 0,
+      "ref_len": 43,
+      "hyp_len": 38
+    }
+  },
+  "_sctk_version": "sclite Version: 2.10, SCTK Version: 1.3"
+}
