@@ -110,6 +110,7 @@ SEOUL_CORPUS= # dir with sound.tgz + label.tgz, or unpacked sound/ + label/
 SNIPS= # smart-light-en-closed-field data path
 SPGISPEECH=
 SPEECH_PROMPT_v2=
+ST_AEDS=${ST_AEDS:-downloads}
 STOP=
 SWBD=
 FISHER_CALLHOME_SPANISH=
