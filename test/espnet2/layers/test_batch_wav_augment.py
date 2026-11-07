@@ -931,3 +931,45 @@ def test_context_longer_than_the_row_raises(tmp_path):
     aug = BatchWavAugment(noise_scp=write_noises(tmp_path, [(4000, 1)]), context=100)
     with pytest.raises(ValueError):
         aug.eval()(torch.zeros(1, 100), None)
+
+
+@pytest.mark.parametrize("snr_reference", ["dry", "early"])
+def test_rows_without_reverberation_are_not_convolved_and_rows_match_alone(
+    tmp_path, snr_reference
+):
+    """Mixed flags: each row equals the row alone with its own flags.
+
+    Only the rows that get reverberation (and the noise rows that get theirs)
+    are convolved; the others keep the dry speech or the dry noise.
+    """
+    rng = np.random.default_rng(19)
+    rir_scp = _scp(tmp_path, "rir", _write(tmp_path / "rir.wav", _decaying_rir(rng)))
+    noise_scp = write_noises(tmp_path, [(40000, 1)])
+    aug = BatchWavAugment(
+        noise_scp=noise_scp,
+        rir_scp=rir_scp,
+        noise_rir_apply_prob=0.5,
+        snr_reference=snr_reference,
+    )
+    t = 5000
+    speech = torch.from_numpy(rng.normal(size=(4, t)).astype(np.float32)) * 0.05
+    valid = torch.ones(4, t, dtype=torch.bool)
+    draws = dict(
+        rir_apply=torch.tensor([True, False, True, False]),
+        rir_which=torch.zeros(4, dtype=torch.long),
+        noise_apply=torch.tensor([True, True, False, True]),
+        noise_which=torch.zeros(4, dtype=torch.long),
+        noise_offset=torch.tensor([0, 100, 200, 300]),
+        snr=torch.tensor([5.0, 10.0, 0.0, 3.0]),
+        noise_rir_apply=torch.tensor([True, False, True, True]),
+        noise_rir_which=torch.zeros(4, dtype=torch.long),
+    )
+    batched = aug.apply(speech, valid, draws)
+    for b in range(4):
+        one = {k: v[b : b + 1] for k, v in draws.items()}
+        alone = aug.apply(speech[b : b + 1], valid[b : b + 1], one)
+        torch.testing.assert_close(batched[b], alone[0], rtol=1e-4, atol=1e-6)
+    # row 3 without its noise: no reverberation and no noise leave it unchanged
+    quiet = {k: v[3:] for k, v in draws.items()}
+    quiet["noise_apply"] = torch.tensor([False])
+    torch.testing.assert_close(aug.apply(speech[3:], valid[3:], quiet), speech[3:])

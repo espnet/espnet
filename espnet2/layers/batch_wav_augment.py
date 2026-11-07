@@ -324,35 +324,51 @@ class BatchWavAugment(torch.nn.Module):
         pinned = device.type == "cuda" and not self.keep_on_device
         return (rirs.pin_memory() if pinned else rirs).to(device, non_blocking=pinned)
 
+    def _convolve(
+        self,
+        spectrum: torch.Tensor,
+        rirs: torch.Tensor,
+        peak: torch.Tensor,
+        t: int,
+        n_fft: int,
+    ) -> torch.Tensor:
+        """Convolve rows given by their spectrum (rfft, n_fft) with rirs (B, L).
+
+        The result keeps t samples of the full convolution: from the impulse
+        response's peak with rir_shift, else the first ones.
+        """
+        y = torch.fft.irfft(spectrum * torch.fft.rfft(rirs, n_fft), n_fft)
+        if self.rir_shift:
+            # Samples peak .. peak + t - 1 of each row: the signal shifted back
+            # by its impulse response's peak. peak + t - 1 <= L + t - 2 < n_fft.
+            return y.gather(1, peak[:, None] + torch.arange(t, device=y.device))
+        return y[:, :t]
+
     def _reverberate(
         self, x: torch.Tensor, which: torch.Tensor, early: bool = False
-    ) -> torch.Tensor:
+    ) -> Tuple[torch.Tensor, Optional[torch.Tensor]]:
         """Convolve each row of x (B, T) with the impulse response ``which`` (CPU).
 
-        The full convolution is computed through the FFT; the result keeps T
-        samples: from the impulse response's peak with rir_shift, else the
-        first ones. With early=True the impulse response is cut to its early
-        part, 1 ms before the peak to 50 ms after it (Kaldi's
-        ComputeEarlyReverbEnergy), and aligned as the full one.
+        The full convolution is computed through the FFT; see _convolve for the
+        samples kept. With early=True, also returns x convolved with the early
+        part of each impulse response, 1 ms before the peak to 50 ms after it
+        (Kaldi's ComputeEarlyReverbEnergy), aligned as the full one; both reuse
+        one FFT of x.
         """
         t = x.size(1)
         device = x.device
         rirs = self._impulse_responses(which, device)
         peak = self._rir_peaks()[which].to(device)
-        if early:
-            pos = torch.arange(rirs.size(1), device=device)
-            lo = peak - int(0.001 * self.fs)
-            hi = peak + int(0.05 * self.fs)
-            rirs = rirs * ((pos >= lo[:, None]) & (pos < hi[:, None]))
         n_fft = 1 << (t + rirs.size(1) - 2).bit_length()
-        y = torch.fft.irfft(
-            torch.fft.rfft(x, n_fft) * torch.fft.rfft(rirs, n_fft), n_fft
-        )
-        if self.rir_shift:
-            # Samples peak .. peak + t - 1 of each row: the signal shifted back
-            # by its impulse response's peak. peak + t - 1 <= L + t - 2 < n_fft.
-            return y.gather(1, peak[:, None] + torch.arange(t, device=device))
-        return y[:, :t]
+        spectrum = torch.fft.rfft(x, n_fft)
+        full = self._convolve(spectrum, rirs, peak, t, n_fft)
+        if not early:
+            return full, None
+        pos = torch.arange(rirs.size(1), device=device)
+        lo = peak - int(0.001 * self.fs)
+        hi = peak + int(0.05 * self.fs)
+        rirs = rirs * ((pos >= lo[:, None]) & (pos < hi[:, None]))
+        return full, self._convolve(spectrum, rirs, peak, t, n_fft)
 
     def draw(self, lengths: torch.Tensor) -> Dict:
         """Draw the random choices of a batch: what to apply, which and where.
@@ -417,17 +433,25 @@ class BatchWavAugment(torch.nn.Module):
 
         # The apply flags are on the CPU: testing them does not wait for the GPU.
         if "rir_which" in draws and bool(draws["rir_apply"].any()):
-            which = draws["rir_which"].cpu()
-            apply = draws["rir_apply"].to(device)
-            y = self._reverberate(x, which) * valid
+            # Only the rows that get reverberation are convolved: their indices
+            # come from the flags on the CPU, so no wait for the GPU.
+            rows = draws["rir_apply"].cpu().nonzero().squeeze(1)
+            rows_d = rows.to(device)
+            early = self.snr_reference == "early"
+            y, e = self._reverberate(
+                x.index_select(0, rows_d), draws["rir_which"].cpu()[rows], early
+            )
+            v, m = valid.index_select(0, rows_d), measure.index_select(0, rows_d)
+            y = y * v
             # Scale back to the power before the reverberation.
-            gain = (power / self._non_silent_power(y, measure).clamp(min=1e-10)).sqrt()
-            x = torch.where(apply[:, None], y * gain[:, None], x)
-            if self.snr_reference == "early":
-                early = self._reverberate(speech.float() * valid, which, early=True)
-                early = early * valid * gain[:, None]
-                speech_power = torch.where(
-                    apply, self._non_silent_power(early, measure), power
+            p = power.index_select(0, rows_d)
+            gain = (p / self._non_silent_power(y, m).clamp(min=1e-10)).sqrt()
+            x = x.index_copy(0, rows_d, y * gain[:, None])
+            if early:
+                # The SNR refers to the early reverberation, with the same gain.
+                e = e * v * gain[:, None]
+                speech_power = speech_power.index_copy(
+                    0, rows_d, self._non_silent_power(e, m)
                 )
 
         if "noise_which" in draws and bool(draws["noise_apply"].any()):
@@ -443,12 +467,21 @@ class BatchWavAugment(torch.nn.Module):
             else:
                 noise = self._cut_on_host(bank, starts[which], n_len, offset, t, device)
             noise = noise.float() / 32768 * valid
-            if "noise_rir_which" in draws and bool(draws["noise_rir_apply"].any()):
+            noise_rir = draws.get("noise_rir_apply")
+            if noise_rir is not None:
                 # A point-source noise: reverberated by an impulse response of
-                # its own; its power is measured after the reverberation.
-                noisy = self._reverberate(noise, draws["noise_rir_which"].cpu())
-                apply = draws["noise_rir_apply"].to(device)
-                noise = torch.where(apply[:, None], noisy * valid, noise)
+                # its own; its power is measured after the reverberation. Only
+                # the rows that get both noise and its reverberation.
+                noise_rir = noise_rir.cpu() & draws["noise_apply"].cpu()
+            if noise_rir is not None and bool(noise_rir.any()):
+                rows = noise_rir.nonzero().squeeze(1)
+                rows_d = rows.to(device)
+                noisy, _ = self._reverberate(
+                    noise.index_select(0, rows_d), draws["noise_rir_which"].cpu()[rows]
+                )
+                noise = noise.index_copy(
+                    0, rows_d, noisy * valid.index_select(0, rows_d)
+                )
             n = measure.sum(1).clamp(min=1)
             noise_power = (noise * measure).pow(2).sum(1) / n
             snr = draws["snr"].to(device)
