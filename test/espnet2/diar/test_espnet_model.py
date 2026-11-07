@@ -163,8 +163,10 @@ def _small_model(num_spk):
 
 
 def test_forward_stats_are_tensors_with_the_scored_ratios():
-    """The statistics stay tensors (no copy to the CPU in forward) and equal
-    the ratios of the error counts."""
+    """The forward statistics are tensors equal to the ratios of the counts.
+
+    They stay tensors: forward makes no copy to the CPU.
+    """
     torch.manual_seed(0)
     model = _small_model(num_spk=2).eval()
     speech = torch.randn(2, 300)
