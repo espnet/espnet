@@ -48,7 +48,7 @@ class ESPnetDiarizationModel(AbsESPnetModel):
 
         super().__init__()
 
-        # waveform augmentation of the batch, training only (e.g. BatchNoiseAugment)
+        # waveform augmentation of the batch, training only (e.g. BatchWavAugment)
         self.wav_augment = wav_augment
 
         self.encoder = encoder

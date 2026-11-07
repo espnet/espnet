@@ -22,7 +22,7 @@ from espnet2.diar.decoder.abs_decoder import AbsDecoder
 from espnet2.diar.decoder.linear_decoder import LinearDecoder
 from espnet2.diar.espnet_model import ESPnetDiarizationModel
 from espnet2.layers.abs_normalize import AbsNormalize
-from espnet2.layers.batch_noise_augment import BatchNoiseAugment
+from espnet2.layers.batch_wav_augment import BatchWavAugment
 from espnet2.layers.global_mvn import GlobalMVN
 from espnet2.layers.label_aggregation import LabelAggregate
 from espnet2.layers.utterance_mvn import UtteranceMVN
@@ -49,7 +49,7 @@ frontend_choices = ClassChoices(
 )
 wav_augment_choices = ClassChoices(
     name="wav_augment",
-    classes=dict(batch_noise=BatchNoiseAugment),
+    classes=dict(batch_wav=BatchWavAugment),
     type_check=torch.nn.Module,
     default=None,
     optional=True,
