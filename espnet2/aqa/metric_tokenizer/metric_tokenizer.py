@@ -5,6 +5,27 @@ from typing import Any, Dict, Iterable, List, Optional, Tuple, Union
 
 from typeguard import typechecked
 
+# A metric named "<m>_full" is reserved for the whole-clip value of metric "<m>"
+# when the model is trained on audio prefixes (see ``is_full_metric``).
+FULL_METRIC_SUFFIX = "_full"
+
+
+def is_full_metric(metric_name: str) -> bool:
+    """Return whether a metric describes the whole clip rather than a prefix.
+
+    Models trained on audio prefixes pair a prefix metric ``<m>`` with
+    ``<m>_full``, a forecast of the same metric on the whole clip. The suffix is
+    therefore reserved: with ``defer_full_meta`` every metric whose name ends
+    in ``_full`` is ordered after all other metrics.
+
+    Args:
+        metric_name: Metric name, e.g. ``"utmos"`` or ``"utmos_full"``.
+
+    Returns:
+        True if the name ends with ``FULL_METRIC_SUFFIX``.
+    """
+    return metric_name.endswith(FULL_METRIC_SUFFIX)
+
 
 class AbsMetricTokenizer(ABC):
     @abstractmethod
