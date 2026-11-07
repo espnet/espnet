@@ -11,8 +11,13 @@ the same time. The result is a Kaldi diarization data directory:
     utt2spk   <spk>-<rec> <spk>
     spk2utt
 
+With --vad, the data directory has one speaker, "speech", whose segments are
+the union of the two utterances (one segment, or two when there is a pause):
+the labels of a voice activity detector trained as diarization with
+num_spk 1.
+
 Usage:
-    simulate_mixtures.py <an4_wav_dir> <split_subdir> <wav_out_dir> <data_dir>
+    simulate_mixtures.py [--vad] <an4_wav_dir> <split_subdir> <wav_out_dir> <data_dir>
 """
 
 import argparse
@@ -31,6 +36,11 @@ def main():
     ap.add_argument("wav_out_dir", type=Path)
     ap.add_argument("data_dir", type=Path)
     ap.add_argument("--seed", type=int, default=0)
+    ap.add_argument(
+        "--vad",
+        action="store_true",
+        help="write one speaker, speech, with the union of the utterances",
+    )
     a = ap.parse_args()
 
     rng = random.Random(a.seed)
@@ -63,11 +73,24 @@ def main():
         out = a.wav_out_dir / f"{rec}.wav"
         soundfile.write(out, mix, fs, subtype="PCM_16")
         wav_scp.append(f"{rec} {out}")
-        for spk, start, n in ((spk1, 0, len(x1)), (spk2, offset, len(x2))):
-            seg = f"{spk}-{rec}"
+        if a.vad:
+            # the second utterance starts at or after the first one
+            if offset <= len(x1):
+                spans = [(0, max(len(x1), offset + len(x2)))]
+            else:
+                spans = [(0, len(x1)), (offset, offset + len(x2))]
+            labels = [
+                (f"speech-{rec}-{k}", "speech", s, e) for k, (s, e) in enumerate(spans)
+            ]
+        else:
+            labels = [
+                (f"{spk1}-{rec}", spk1, 0, len(x1)),
+                (f"{spk2}-{rec}", spk2, offset, offset + len(x2)),
+            ]
+        for seg, spk, start, end in labels:
             # Write the times with 7 decimals: at 16 kHz a sample is 0.0000625 s,
             # so every sample boundary is written exactly.
-            segments.append(f"{seg} {rec} {start / fs:.7f} {(start + n) / fs:.7f}")
+            segments.append(f"{seg} {rec} {start / fs:.7f} {end / fs:.7f}")
             utt2spk.append(f"{seg} {spk}")
 
     (a.data_dir / "wav.scp").write_text("\n".join(sorted(wav_scp)) + "\n")

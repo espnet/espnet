@@ -46,7 +46,12 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
         data/mixtures/train data/train
     python3 local/simulate_mixtures.py --seed 1 "${an4_root}/wav" an4test_clstk \
         data/mixtures/test data/test
-    for x in train test; do
+    # VAD (num_spk 1): the same mixtures, labelled with the union of the speech
+    python3 local/simulate_mixtures.py --vad "${an4_root}/wav" an4_clstk \
+        data/mixtures/train data/train_vad
+    python3 local/simulate_mixtures.py --vad --seed 1 "${an4_root}/wav" an4test_clstk \
+        data/mixtures/test data/test_vad
+    for x in train test train_vad test_vad; do
         utils/validate_data_dir.sh --no-feats --no-text data/${x}
     done
 fi
