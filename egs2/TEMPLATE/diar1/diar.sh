@@ -37,6 +37,7 @@ nj=32                   # The number of parallel jobs.
 dumpdir=dump            # Directory to dump features.
 inference_nj=32         # The number of parallel jobs in decoding.
 gpu_inference=false     # Whether to perform gpu decoding.
+inference_max_jobs_run= # Stage 6: most inference jobs at once (--max-jobs-run of the cmd; run.pl allows one per GPU with --gpu).
 expdir=exp              # Directory to save experiments.
 python=python3          # Specify python to execute espnet commands
 
@@ -99,6 +100,7 @@ Options:
     --nj                 # The number of parallel jobs (default="${nj}").
     --inference_nj       # The number of parallel jobs in inference (default="${inference_nj}").
     --gpu_inference      # Whether to use gpu for inference (default="${gpu_inference}").
+    --inference_max_jobs_run # Stage 6: most inference jobs at once (default="${inference_max_jobs_run}").
     --dumpdir            # Directory to dump features (default="${dumpdir}").
     --expdir             # Directory to save experiments (default="${expdir}").
     --python             # Specify python to execute espnet commands (default="${python}").
@@ -535,8 +537,12 @@ if ! "${skip_eval}"; then
 
             # 2. Submit inference jobs
             log "Diarization started... log: '${_logdir}/diar_inference.*.log'"
+            _cmd_opts=
+            if [ -n "${inference_max_jobs_run}" ]; then
+                _cmd_opts="--max-jobs-run ${inference_max_jobs_run}"
+            fi
             # shellcheck disable=SC2046,SC2086
-            ${_cmd} --gpu "${_ngpu}" JOB=1:"${_nj}" "${_logdir}"/diar_inference.JOB.log \
+            ${_cmd} --gpu "${_ngpu}" ${_cmd_opts} JOB=1:"${_nj}" "${_logdir}"/diar_inference.JOB.log \
                 ${python} -m espnet2.bin.diar_inference \
                     --ngpu "${_ngpu}" \
                     --fs "${fs}" \
