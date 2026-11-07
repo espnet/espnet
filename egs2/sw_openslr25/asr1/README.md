@@ -56,6 +56,10 @@ speed perturbation (0.9/1.0/1.1), BPE 300, no language model.
 
 ### asr_train_raw_bpe300_sp
 
+- Model: https://huggingface.co/Bensolobo/sw_openslr25_asr_transformer
+- ASR config: `conf/train.yaml`
+- Decoding config: `conf/decode.yaml`
+
 Transformer encoder-decoder (6 encoder / 3 decoder blocks, 256-dim attention),
 hybrid CTC/attention (CTC weight 0.3 in training, 0.5 in decoding),
 SpecAugment, speed perturbation, BPE 300, average of the 10 best checkpoints,
