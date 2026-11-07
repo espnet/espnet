@@ -172,11 +172,13 @@ def make_pad_mask(lengths, xs=None, length_dim=-1, maxlen=None):
 
 
 def _make_pad_mask(lengths, xs=None, length_dim=-1, maxlen=None):
-    """make_pad_mask for the inputs the traceable version does not take.
+    """Make the padding mask on the CPU.
 
-    That is, list lengths, an xs of more than 3 dimensions, or length_dim > 2.
-    With a tensor of lengths and an xs, the mask is made on the device of xs.
+    make_pad_mask calls this function when lengths is a list, when xs has more
+    than 3 dimensions, or when length_dim > 2. If lengths is a tensor and xs is
+    given, this function calls _make_pad_mask_on_device instead.
     """
+    # Tensor lengths and xs: make the mask on the device of xs.
     if not isinstance(lengths, list) and xs is not None and maxlen is None:
         return _make_pad_mask_on_device(lengths, xs, length_dim)
 
@@ -216,15 +218,19 @@ def _make_pad_mask(lengths, xs=None, length_dim=-1, maxlen=None):
 
 
 def _make_pad_mask_on_device(lengths, xs, length_dim):
-    """make_pad_mask for a tensor of lengths and any ``xs``, computed on xs.device.
+    """Make the padding mask on the device of xs from a tensor of lengths.
 
-    The (B, maxlen) mask is compared on the device of ``xs`` and expanded to the
-    shape of ``xs`` as a view: no copy of the lengths to the CPU (which waits for
-    the GPU) and no copy of an expanded CPU mask to the device (41 MB for the
-    (64, 1247, 257, 2) STFT output of a batch of 10 s inputs).
+    This function compares torch.arange(maxlen) with the lengths on xs.device
+    and returns the (B, maxlen) mask expanded to the shape of xs. The expanded
+    mask is a view, not a copy.
+
+    Unlike _make_pad_mask, this function does not call lengths.tolist(), which
+    makes the CPU wait for the GPU, and does not copy a full-size mask from the
+    CPU to the GPU. For example, the STFT output (64, 1247, 257, 2) of a batch
+    of 10 s inputs needs a 41 MB mask.
     """
-    # read before normalising length_dim: an out-of-range length_dim raises
-    # IndexError here, as in _make_pad_mask, instead of wrapping around
+    # Get maxlen before converting a negative length_dim to a positive one.
+    # Then an out-of-range length_dim raises IndexError, as in _make_pad_mask.
     maxlen = xs.size(length_dim)
     if length_dim < 0:
         length_dim = xs.dim() + length_dim
