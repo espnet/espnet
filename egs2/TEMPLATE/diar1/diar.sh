@@ -514,7 +514,14 @@ if ! "${skip_eval}"; then
             mkdir -p "${_logdir}"
 
             _scp=wav.scp
-            _type=sound
+            # the audio type that stage 2 dumped, as in stages 4 and 5
+            if [[ "${audio_format}" == *ark* ]]; then
+                _type=kaldi_ark
+            elif [[ "${audio_format}" == omniio ]]; then
+                _type=omniio
+            else
+                _type=sound
+            fi
 
             # 1. Split the key file
             key_file=${_data}/${_scp}
