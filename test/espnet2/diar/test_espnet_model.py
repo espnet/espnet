@@ -141,3 +141,73 @@ def test_pit_loss_reorders_labels_by_best_permutation():
     assert torch.equal(label_perm[0], label[0])
     assert torch.equal(label_perm[1], label[1][:, [1, 0]])
     assert label_perm.device == pred.device
+
+
+def _small_model(num_spk):
+    return ESPnetDiarizationModel(
+        label_aggregator=LabelAggregate(win_length=32, hop_length=16),
+        attractor=None,
+        encoder=TransformerEncoder(
+            input_size=10,
+            input_layer="linear",
+            num_blocks=1,
+            linear_units=32,
+            output_size=16,
+            attention_heads=2,
+        ),
+        decoder=LinearDecoder(encoder_output_size=16, num_spk=num_spk),
+        frontend=DefaultFrontend(n_fft=32, win_length=32, hop_length=16, n_mels=10),
+        specaug=None,
+        normalize=None,
+    )
+
+
+def test_forward_stats_are_tensors_with_the_scored_ratios():
+    """The statistics stay tensors (no copy to the CPU in forward) and equal
+    the ratios of the error counts."""
+    torch.manual_seed(0)
+    model = _small_model(num_spk=2).eval()
+    speech = torch.randn(2, 300)
+    lengths = torch.tensor([300, 200])
+    labels = torch.randint(0, 2, (2, 300, 2)).float()
+    _, stats, _ = model(
+        speech=speech,
+        speech_lengths=lengths,
+        spk_labels=labels,
+        spk_labels_lengths=lengths,
+    )
+    # force_gatherable makes each statistic a 1-element tensor for gathering
+    for key in ("sad_mr", "sad_fr", "mi", "fa", "cf", "acc", "der"):
+        assert isinstance(stats[key], torch.Tensor), key
+        assert stats[key].numel() == 1, key
+    stats = {k: v.reshape(()) for k, v in stats.items() if v is not None}
+
+    encoder_out, encoder_out_lens = model.encode(speech, lengths, None, None)
+    pred = model.decoder(encoder_out, encoder_out_lens)
+    agg, _ = model.label_aggregator(labels, lengths)
+    _, _, _, label_perm = model.pit_loss(pred, agg, encoder_out_lens)
+    c, n, ss, sm, sf, ks, km, kf, ke = model.calc_diarization_error(
+        pred, label_perm, encoder_out_lens
+    )
+    torch.testing.assert_close(stats["sad_mr"], sm / ss)
+    torch.testing.assert_close(stats["sad_fr"], sf / ss)
+    torch.testing.assert_close(stats["mi"], km / ks)
+    torch.testing.assert_close(stats["fa"], kf / ks)
+    torch.testing.assert_close(stats["cf"], ke / ks)
+    torch.testing.assert_close(stats["acc"], c / n)
+    torch.testing.assert_close(stats["der"], (km + kf + ke) / ks)
+
+
+def test_forward_stats_are_zero_without_reference_speech():
+    """Nothing scored (all-silent labels): the ratios are 0, not NaN."""
+    torch.manual_seed(0)
+    model = _small_model(num_spk=1).eval()
+    lengths = torch.tensor([300, 300])
+    _, stats, _ = model(
+        speech=torch.randn(2, 300),
+        speech_lengths=lengths,
+        spk_labels=torch.zeros(2, 300, 1),
+        spk_labels_lengths=lengths,
+    )
+    for key in ("sad_mr", "sad_fr", "mi", "fa", "cf", "acc", "der"):
+        assert float(stats[key]) == 0.0, key

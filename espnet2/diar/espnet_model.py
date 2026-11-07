@@ -155,18 +155,20 @@ class ESPnetDiarizationModel(AbsESPnetModel):
             speaker_error,
         ) = self.calc_diarization_error(pred, label_perm, encoder_out_lens)
 
-        if speech_scored > 0 and num_frames > 0:
-            sad_mr, sad_fr, mi, fa, cf, acc, der = (
-                speech_miss / speech_scored,
-                speech_falarm / speech_scored,
-                speaker_miss / speaker_scored,
-                speaker_falarm / speaker_scored,
-                speaker_error / speaker_scored,
-                correct / num_frames,
-                (speaker_miss + speaker_falarm + speaker_error) / speaker_scored,
-            )
-        else:
-            sad_mr, sad_fr, mi, fa, cf, acc, der = 0, 0, 0, 0, 0, 0, 0
+        # Ratios on the device (0 when nothing is scored), so the forward pass
+        # never waits for the GPU; the reporter reads them after backward.
+        scored = (speech_scored > 0) & (num_frames > 0)
+
+        def ratio(num, den):
+            return torch.where(scored, num / den.clamp(min=1), torch.zeros_like(num))
+
+        sad_mr = ratio(speech_miss, speech_scored)
+        sad_fr = ratio(speech_falarm, speech_scored)
+        mi = ratio(speaker_miss, speaker_scored)
+        fa = ratio(speaker_falarm, speaker_scored)
+        cf = ratio(speaker_error, speaker_scored)
+        acc = ratio(correct, num_frames)
+        der = ratio(speaker_miss + speaker_falarm + speaker_error, speaker_scored)
 
         stats = dict(
             loss=loss.detach(),
@@ -247,10 +249,9 @@ class ESPnetDiarizationModel(AbsESPnetModel):
             encoder_out.size(),
             speech.size(0),
         )
-        assert encoder_out.size(1) <= encoder_out_lens.max(), (
-            encoder_out.size(),
-            encoder_out_lens.max(),
-        )
+        # Checked on the device: reading encoder_out_lens.max() here would make
+        # the CPU wait for the frontend and encoder before queuing the rest.
+        torch._assert_async(encoder_out_lens.max() >= encoder_out.size(1))
 
         return encoder_out, encoder_out_lens
 
@@ -333,8 +334,7 @@ class ESPnetDiarizationModel(AbsESPnetModel):
     def calc_diarization_error(pred, label, length):
         # Note (jiatong): Credit to https://github.com/hitachi-speech/EEND
 
-        # Computed on the device of `pred`; only the nine counts are copied to
-        # the CPU, in one transfer, instead of the whole label and prediction.
+        # Computed on the device of `pred`, without a copy to the CPU.
         batch_size, max_len, num_output = label.size()
         label = label.to(pred.device)
         length = length.to(pred.device)
@@ -365,37 +365,15 @@ class ESPnetDiarizationModel(AbsESPnetModel):
         correct = ((label_np == pred_np) * mask).sum()
         num_frames = length.sum()
 
-        (
-            speech_scored,
-            speech_miss,
-            speech_falarm,
-            speaker_scored,
-            speaker_miss,
-            speaker_falarm,
-            speaker_error,
-            correct,
-            num_frames,
-        ) = torch.stack(
-            [
-                speech_scored,
-                speech_miss,
-                speech_falarm,
-                speaker_scored,
-                speaker_miss,
-                speaker_falarm,
-                speaker_error,
-                correct,
-                num_frames.long(),
-            ]
-        ).tolist()
+        # Float tensors on the device of `pred`: no copy to the CPU here.
         return (
-            float(1.0 * correct / num_output),
-            num_frames,
-            float(speech_scored),
-            float(speech_miss),
-            float(speech_falarm),
-            float(speaker_scored),
-            float(speaker_miss),
-            float(speaker_falarm),
-            float(speaker_error),
+            correct.float() / num_output,
+            num_frames.float(),
+            speech_scored.float(),
+            speech_miss.float(),
+            speech_falarm.float(),
+            speaker_scored.float(),
+            speaker_miss.float(),
+            speaker_falarm.float(),
+            speaker_error.float(),
         )
