@@ -284,3 +284,150 @@ def test_pit_loss_and_counts_stay_on_the_device(device):
     cpu = [t.cpu() for t in (pred, label, length)]
     _, _, _, label_perm_cpu = model.to("cpu").pit_loss(*cpu)
     torch.testing.assert_close(label_perm.cpu(), label_perm_cpu)
+
+
+# --- Equivalence with the implementation on master before #6987 -------------
+# Copies of the NumPy / per-utterance code that this PR replaced, used as the
+# reference: the new code must give the same loss, permutation, reordered
+# labels, mask, error counts and statistics.
+
+
+def _old_create_length_mask(length, max_len, num_output):
+    mask = torch.zeros(len(length), max_len, num_output)
+    for i in range(len(length)):
+        mask[i, : length[i], :] = 1
+    return mask
+
+
+def _old_pit_loss(pred, label, lengths):
+    from itertools import permutations
+
+    import numpy as np
+
+    num_output = label.size(2)
+    permute_list = [np.array(p) for p in permutations(range(num_output))]
+    loss_list = []
+    bce = torch.nn.BCEWithLogitsLoss(reduction="none")
+    mask = _old_create_length_mask(lengths, label.size(1), label.size(2))
+    for p in permute_list:
+        loss_perm = bce(pred, label[:, :, p]) * mask
+        loss_list.append(torch.sum(torch.mean(loss_perm, dim=2), dim=1)[:, None])
+    loss = torch.cat(loss_list, dim=1)
+    min_loss, min_idx = torch.min(loss, dim=1)
+    loss = torch.sum(min_loss) / torch.sum(lengths.float())
+    label_list = [
+        label[i, :, permute_list[min_idx[i]]].data.cpu().numpy()
+        for i in range(len(min_idx))
+    ]
+    return loss, min_idx, torch.from_numpy(np.array(label_list)).float()
+
+
+def _old_calc_diarization_error(pred, label, length):
+    import numpy as np
+
+    batch_size, max_len, num_output = label.size()
+    mask = np.zeros((batch_size, max_len, num_output))
+    for i in range(batch_size):
+        mask[i, : length[i], :] = 1
+    label_np = label.data.cpu().numpy().astype(int) * mask
+    pred_np = (pred.data.cpu().numpy() > 0).astype(int) * mask
+    n_ref = np.sum(label_np, axis=2)
+    n_sys = np.sum(pred_np, axis=2)
+    n_map = np.sum(np.logical_and(label_np == 1, pred_np == 1), axis=2)
+    return (
+        float(1.0 * np.sum((label_np == pred_np) * mask) / num_output),
+        np.sum(length.data.cpu().numpy()),
+        float(np.sum(n_ref > 0)),
+        float(np.sum(np.logical_and(n_ref > 0, n_sys == 0))),
+        float(np.sum(np.logical_and(n_ref == 0, n_sys > 0))),
+        float(np.sum(n_ref)),
+        float(np.sum(np.maximum(n_ref - n_sys, 0))),
+        float(np.sum(np.maximum(n_sys - n_ref, 0))),
+        float(np.sum(np.minimum(n_ref, n_sys) - n_map)),
+    )
+
+
+def _old_stats(counts):
+    c, n, ss, sm, sf, ks, km, kf, ke = counts
+    if ss > 0 and n > 0:
+        return dict(
+            sad_mr=sm / ss,
+            sad_fr=sf / ss,
+            mi=km / ks,
+            fa=kf / ks,
+            cf=ke / ks,
+            acc=c / n,
+            der=(km + kf + ke) / ks,
+        )
+    return dict(sad_mr=0, sad_fr=0, mi=0, fa=0, cf=0, acc=0, der=0)
+
+
+def _random_case(g, num_spk):
+    b = int(torch.randint(1, 6, (1,), generator=g))
+    t = int(torch.randint(1, 41, (1,), generator=g))
+    lengths = torch.randint(1, t + 1, (b,), generator=g)
+    lengths[0] = t  # the longest utterance fills the batch, as after padding
+    pred = torch.randn(b, t, num_spk, generator=g)
+    label = (torch.rand(b, t, num_spk, generator=g) < 0.4).float()
+    if b > 1:
+        label[-1] = 0  # an utterance without speech
+    return pred, label, lengths
+
+
+@pytest.mark.parametrize("num_spk", [1, 2, 3])
+def test_loss_counts_and_mask_equal_the_previous_implementation(num_spk):
+    """pit_loss, create_length_mask and calc_diarization_error equal master's."""
+    model = _small_model(num_spk=num_spk)
+    g = torch.Generator().manual_seed(num_spk)
+    for _ in range(200):
+        pred, label, lengths = _random_case(g, num_spk)
+        t = label.size(1)
+
+        torch.testing.assert_close(
+            model.create_length_mask(lengths, t, num_spk),
+            _old_create_length_mask(lengths, t, num_spk),
+        )
+
+        loss, min_idx, _, label_perm = model.pit_loss(pred, label, lengths)
+        old_loss, old_min_idx, old_label_perm = _old_pit_loss(pred, label, lengths)
+        torch.testing.assert_close(loss, old_loss)
+        assert torch.equal(min_idx, old_min_idx)
+        assert torch.equal(label_perm, old_label_perm)
+
+        counts = model.calc_diarization_error(pred, label_perm, lengths)
+        old_counts = _old_calc_diarization_error(pred, old_label_perm, lengths)
+        # the counts are integers and equal; `correct` is divided by num_output in
+        # float32 on the device instead of float64 on the CPU
+        assert [float(c) for c in counts[1:]] == [float(c) for c in old_counts[1:]]
+        assert float(counts[0]) == pytest.approx(old_counts[0], rel=1e-6)
+
+
+@pytest.mark.parametrize("num_spk", [1, 2])
+def test_forward_stats_equal_the_previous_implementation(num_spk):
+    """forward's loss and statistics equal master's for random batches."""
+    torch.manual_seed(0)
+    model = _small_model(num_spk=num_spk).eval()
+    g = torch.Generator().manual_seed(10 + num_spk)
+    for _ in range(20):
+        b = int(torch.randint(1, 4, (1,), generator=g))
+        lengths = torch.randint(64, 301, (b,), generator=g)
+        lengths[0] = 300
+        speech = torch.randn(b, 300, generator=g)
+        labels = (torch.rand(b, 300, num_spk, generator=g) < 0.4).float()
+        loss, stats, _ = model(
+            speech=speech,
+            speech_lengths=lengths,
+            spk_labels=labels,
+            spk_labels_lengths=lengths,
+        )
+
+        enc, enc_lens = model.encode(speech, lengths, None, None)
+        pred = model.decoder(enc, enc_lens)
+        agg, _ = model.label_aggregator(labels, lengths)
+        old_loss, _, old_label_perm = _old_pit_loss(pred, agg, enc_lens)
+        expected = _old_stats(
+            _old_calc_diarization_error(pred, old_label_perm, enc_lens)
+        )
+        torch.testing.assert_close(loss.reshape(()), old_loss)
+        for key, value in expected.items():
+            assert float(stats[key]) == pytest.approx(value, abs=1e-6), key
