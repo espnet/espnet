@@ -2,6 +2,7 @@
 
 import argparse
 import functools
+import gc
 import itertools
 import logging
 import os
@@ -2519,18 +2520,24 @@ class AbsTask(ABC):
             # only when a checkpoint is about to overwrite the parameters;
             # with none, the initialization is all the model will have
             _drop_init_this_version_removed(args)
-        model = cls.build_model(args)
+        if device != "mps":
+            with torch.device(device):
+                model = cls.build_model(args)
+        else:
+            model = cls.build_model(args)
+
         if not isinstance(model, AbsESPnetModel):
             raise RuntimeError(
                 f"model must inherit {AbsESPnetModel.__name__}, but got {type(model)}"
             )
-        if device != "mps":
-            model.to(device)
 
         # For finetuned model, create adapter
         use_adapter = getattr(args, "use_adapter", False)
         if use_adapter:
             create_adapter(model, args.adapter, args.adapter_conf)
+
+        if device != "mps":
+            model.to(device)
 
         if model_file is not None:
             if device == "cuda":
@@ -2549,10 +2556,15 @@ class AbsTask(ABC):
                 if "state_dict" in state_dict:
                     state_dict = state_dict["state_dict"]
 
-                model.load_state_dict(
-                    state_dict,
-                    strict=False,
-                )
+                model.load_state_dict(state_dict, strict=False, assign=False)
+
+                del state_dict
+
+                gc.collect()
+
+                if torch.cuda.is_available():
+                    torch.cuda.empty_cache()
+
             except UnsafeLoadRefusedError:
                 raise
             except RuntimeError:
