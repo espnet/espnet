@@ -1,3 +1,5 @@
+import copy
+
 import pytest
 import torch
 
@@ -145,6 +147,7 @@ def test_train_loss_is_not_divided_by_accum_grad(tmp_path):
     )
     # the losses the model sees: no update before the second step
     params = [p.detach().clone() for p in model.parameters()]
+    reference = copy.deepcopy(model)
     reporter = Reporter()
     with reporter.observe("train", 1) as sub_reporter:
         Trainer.train_one_epoch(
@@ -165,3 +168,12 @@ def test_train_loss_is_not_divided_by_accum_grad(tmp_path):
     assert reporter.get_value("train", "loss", 1) == pytest.approx(
         sum(expected) / len(expected)
     )
+
+    # and one SGD update with the gradient averaged over the two batches
+    optimizer = torch.optim.SGD(reference.parameters(), lr=0.1)
+    for _, batch in batches[:2]:
+        (reference(**batch)["loss"] / 2).backward()
+    torch.nn.utils.clip_grad_norm_(reference.parameters(), 5.0)
+    optimizer.step()
+    for p, q in zip(model.parameters(), reference.parameters()):
+        torch.testing.assert_close(p, q)
