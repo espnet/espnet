@@ -136,11 +136,13 @@ class DiarizeSpeech:
         the utterance alone, cut to its frames.
 
         This function runs the whole batch through the model at once. It runs
-        the utterances one at a time instead with enh_s2t_task, and when
-        segment-wise diarization applies to an utterance of the batch.
+        the utterances one at a time instead with enh_s2t_task, when
+        segment-wise diarization applies to an utterance of the batch, for
+        multi-channel input, and when a centred STFT cannot reflect an
+        utterance (n_fft / 2 samples or fewer).
 
         Args:
-            speech: zero-padded input speech (Batch, Nsamples)
+            speech: zero-padded input speech (Batch, Nsamples [, Channels])
             speech_lengths: number of samples of each utterance (Batch,);
                 None means that no utterance is padded
             fs: sample rate
@@ -149,7 +151,7 @@ class DiarizeSpeech:
         """
         if isinstance(speech, np.ndarray):
             speech = torch.as_tensor(speech)
-        assert speech.dim() == 2, speech.size()
+        assert speech.dim() > 1, speech.size()
         batch_size = speech.size(0)
         if speech_lengths is None:
             lengths = torch.full([batch_size], speech.size(1), dtype=torch.long)
@@ -159,7 +161,17 @@ class DiarizeSpeech:
         segmenting = self.segmenting_diar and bool(
             (lengths > self.segment_size * fs).any()
         )
-        if self.enh_s2t_task or segmenting:
+        stft = getattr(getattr(self.diar_model, "frontend", None), "stft", None)
+        centred = stft is not None and getattr(stft, "center", False)
+        # Run one utterance at a time: with enh_s2t, segment-wise diarization,
+        # multi-channel input (B, T, C), or an utterance that a centred STFT
+        # cannot reflect (no longer than n_fft / 2 samples).
+        if (
+            self.enh_s2t_task
+            or segmenting
+            or speech.dim() != 2
+            or (centred and int(lengths.min()) <= stft.n_fft // 2)
+        ):
             return [
                 self(speech[b : b + 1, : lengths[b]], fs=fs)[1][0]
                 for b in range(batch_size)
@@ -170,8 +182,7 @@ class DiarizeSpeech:
         order = torch.argsort(lengths, descending=True, stable=True)
         speech, lengths = speech[order], lengths[order]
         speech = speech.to(getattr(torch, self.dtype))
-        stft = getattr(getattr(self.diar_model, "frontend", None), "stft", None)
-        if stft is not None and getattr(stft, "center", False):
+        if centred:
             # Pad each utterance as torch.stft(center=True) pads it alone, and run
             # the STFT with center=False: the frames and their number are those
             # of the utterance alone.

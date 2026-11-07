@@ -309,3 +309,39 @@ def test_diarize_batch_short_gap_center_stft(tmp_path, gap):
         alone = diarize_speech(w[None], fs=8000)[1][0]
         assert batched[b].shape == alone.shape
         np.testing.assert_allclose(batched[b], alone, rtol=1e-5, atol=1e-6)
+
+
+def test_diarize_batch_multichannel_runs_one_by_one(tmp_path):
+    """Multi-channel input (B, T, C): each utterance as __call__ gives it alone."""
+    torch.manual_seed(0)
+    diarize_speech = DiarizeSpeech(train_config=_write_config(tmp_path), num_spk=2)
+    lengths = [12000, 9000]
+    batch = torch.zeros(2, 12000, 2)
+    wavs = [torch.randn(n, 2) * 0.1 for n in lengths]
+    for b, w in enumerate(wavs):
+        batch[b, : len(w)] = w
+    batched = diarize_speech.diarize_batch(batch, torch.tensor(lengths), fs=8000)
+    for b, w in enumerate(wavs):
+        alone = diarize_speech(w[None], fs=8000)[1][0]
+        np.testing.assert_allclose(batched[b], alone, rtol=1e-5, atol=1e-6)
+
+
+def test_diarize_batch_utterance_shorter_than_half_window(tmp_path):
+    """An utterance of n_fft / 2 samples or fewer: same outcome as __call__."""
+    torch.manual_seed(0)
+    diarize_speech = DiarizeSpeech(train_config=_write_config(tmp_path), num_spk=2)
+    lengths = [4000, 200]
+    batch = torch.zeros(2, 4000)
+    wavs = [torch.randn(n) * 0.1 for n in lengths]
+    for b, w in enumerate(wavs):
+        batch[b, : len(w)] = w
+    try:
+        expected = [diarize_speech(w[None], fs=8000)[1][0] for w in wavs]
+    except RuntimeError:
+        # torch.stft cannot reflect it alone either
+        with pytest.raises(RuntimeError):
+            diarize_speech.diarize_batch(batch, torch.tensor(lengths), fs=8000)
+        return
+    batched = diarize_speech.diarize_batch(batch, torch.tensor(lengths), fs=8000)
+    for b in range(2):
+        np.testing.assert_allclose(batched[b], expected[b], rtol=1e-5, atol=1e-6)
