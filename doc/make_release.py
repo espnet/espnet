@@ -52,6 +52,7 @@ from collections import defaultdict
 from pathlib import Path
 
 import github
+from packaging.version import InvalidVersion, Version
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 VERSION_FILE = REPO_ROOT / "version.txt"
@@ -134,6 +135,35 @@ def release_version(milestone_title):
     """The version this milestone releases, or None if it names no release."""
     version = version_of(milestone_title)
     return version if RELEASE_VERSION.fullmatch(version) else None
+
+
+def tag_version(name):
+    """The release a tag names, as a Version, or None if it names none.
+
+    The tags before 202610 spell a patch -patchN, which is not PEP 440, so it
+    is read as the .postN it stands for. Anything else that does not parse -
+    the untagged-<hash> a draft release can leave behind - is not a release.
+    """
+    spelled = re.sub(r"-patch([0-9]+)$", r".post\1", version_of(name))
+    try:
+        parsed = Version(spelled)
+    except InvalidVersion:
+        return None
+    return None if parsed.is_prerelease else parsed
+
+
+def previous_release(tags, version):
+    """The tag of the newest release before this one, or None.
+
+    By version and not by the order GitHub lists tags in: that order put
+    v.202610 ahead of v.202610.post2, so the 202611 notes compared against the
+    wrong release, and the search for merged pull requests without a milestone
+    started from the wrong date.
+    """
+    current = Version(version)
+    earlier = [(tag_version(t.name), t) for t in tags]
+    earlier = [(v, t) for v, t in earlier if v is not None and v < current]
+    return max(earlier, key=lambda pair: pair[0])[1] if earlier else None
 
 
 def pypi_has(version):
@@ -225,10 +255,7 @@ def merged_without_milestone(client, slug, repo, version):
     no milestone is invisible to them. Finding those at release time is the
     last chance; assign_milestone.yml is what stops them happening.
     """
-    previous = next(
-        (t for t in repo.get_tags() if t.name != f"v.{version}"),
-        None,
-    )
+    previous = previous_release(repo.get_tags(), version)
     if previous is None:
         return []
     since = previous.commit.commit.author.date.date().isoformat()
@@ -537,8 +564,38 @@ def render(milestone, grouped, contributors, merged, previous_tag):
     return "\n".join(out) + "\n"
 
 
+def release_commit(version):
+    """The sha to pin the release to: HEAD, if HEAD is the release; else None.
+
+    HEAD is the release once version.txt there names it and nothing is left
+    uncommitted. Before that - the run that writes version.txt - the commit to
+    release does not exist yet, and pinning HEAD would tag the commit before it.
+    """
+    if sh("git", "show", "HEAD:version.txt") != version:
+        return None
+    if sh("git", "status", "--porcelain") != "":
+        return None
+    return sh("git", "rev-parse", "HEAD")
+
+
+def find_release(repo, tag, title):
+    """The release for this tag, including a draft that no longer says its tag.
+
+    A draft can come back from GitHub with tag_name untagged-<hash>, as the
+    v.202611 one did. Looking it up by tag alone would miss it and create a
+    second draft, so a draft carrying this release's title counts too.
+    """
+    for release in repo.get_releases():
+        if release.tag_name == tag or (release.draft and release.title == title):
+            return release
+    return None
+
+
 def apply_changes(repo, milestone, version, notes):
-    """The reversible half: version.txt, and a draft release holding the notes."""
+    """The reversible half: version.txt, and a draft release holding the notes.
+
+    Returns the release as GitHub reports it after the write.
+    """
     if VERSION_FILE.read_text().strip() != version:
         VERSION_FILE.write_text(version + "\n")
         print(f"wrote version.txt = {version}")
@@ -547,19 +604,58 @@ def apply_changes(repo, milestone, version, notes):
     update_readme(version)
     update_pins(version)
 
+    tag = f"v.{version}"
     title = f"ESPnet version {version}"
-    for release in repo.get_releases():
-        if release.tag_name == f"v.{version}":
-            release.update_release(
-                name=title, message=notes, draft=release.draft, prerelease=False
-            )
-            print(f"updated the existing release for v.{version}: {release.html_url}")
-            return
-    draft = repo.create_git_release(
-        tag=f"v.{version}", name=title, message=notes, draft=True
-    )
-    print(f"created a draft release: {draft.html_url}")
-    print("  a draft creates no tag; publishing it does")
+    # The tag and the commit are always sent, not left to what the release
+    # already says: publishing a draft whose tag_name has become
+    # untagged-<hash> creates a tag of that name - one was left on the
+    # 202610.post1 commit - and no v.YYYYMM tag, so nothing is uploaded.
+    target = {}
+    sha = release_commit(version)
+    if sha:
+        target["target_commitish"] = sha
+    release = find_release(repo, tag, title)
+    if release is None:
+        release = repo.create_git_release(
+            tag=tag, name=title, message=notes, draft=True, **target
+        )
+        print(f"created a draft release: {release.html_url}")
+        print("  a draft creates no tag; publishing it does")
+    elif release.draft:
+        release.update_release(
+            name=title,
+            message=notes,
+            draft=True,
+            prerelease=False,
+            tag_name=tag,
+            **target,
+        )
+        print(f"updated the draft release for {tag}: {release.html_url}")
+    else:
+        # Published: the tag exists, and moving it is not this script's job.
+        release.update_release(name=title, message=notes, draft=False)
+        print(f"updated the published release for {tag}: {release.html_url}")
+
+    # Read back rather than trust the response to the write: the v.202611
+    # draft was created with its tag and lost it later.
+    release = repo.get_release(release.id)
+    if release.tag_name != tag:
+        sys.exit(
+            f"the release at {release.html_url} says tag_name "
+            f"{release.tag_name!r}, not {tag!r}. Do not publish it: that would "
+            "create the wrong tag and upload nothing. Set its tag, then re-run."
+        )
+    if sha and release.draft and release.target_commitish != sha:
+        sys.exit(
+            f"the draft release targets {release.target_commitish!r}, not HEAD "
+            f"({sha}). Do not publish it until it targets the release commit."
+        )
+    if not sha:
+        print(
+            "  not pinned to a commit: HEAD is not the release yet. Re-run --apply "
+            "once the version bump is merged, and it pins the merge."
+        )
+    return release
 
 
 def main():
@@ -627,8 +723,8 @@ def main():
             file=sys.stderr,
         )
 
-    tags = [t.name for t in repo.get_tags()]
-    previous_tag = next((t for t in tags if t != f"v.{version}"), None)
+    previous = previous_release(repo.get_tags(), version)
+    previous_tag = previous.name if previous else None
     notes = render(milestone, grouped, contributors, merged, previous_tag)
 
     if args.output:
@@ -637,16 +733,22 @@ def main():
     elif not args.apply:
         print(notes)
 
+    publish = f"  3. Publish the draft. That creates tag v.{version}, which triggers\n"
     if args.apply:
-        apply_changes(repo, milestone, version, notes)
+        release = apply_changes(repo, milestone, version, notes)
+        publish = (
+            f"  3. Publish the draft (tag_name {release.tag_name}, target\n"
+            f"     {release.target_commitish}). Check both first. That creates the\n"
+            f"     tag {release.tag_name}, which triggers\n"
+        )
 
     print(
         "\nRemaining, by hand:\n"
         "  1. Write the README What's new summary, and merge it with the\n"
         "     version.txt bump - the same pull request carries both.\n"
         "  2. Fill in the Overview in the draft release.\n"
-        f"  3. Publish the draft. That creates tag v.{version}, which triggers\n"
-        "     publish_python_package.yml and uploads to PyPI. It cannot be undone.\n"
+        + publish
+        + "     publish_python_package.yml and uploads to PyPI. It cannot be undone.\n"
         "  4. Check the run: gh run list --workflow publish_python_package.yml\n"
         "     Both 202604 tags failed here silently. Do not assume it worked.\n"
         "  5. Move anything still open to the next milestone and close this one.\n"
