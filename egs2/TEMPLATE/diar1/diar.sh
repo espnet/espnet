@@ -30,12 +30,14 @@ skip_train=false        # Skip training stages
 skip_eval=false         # Skip decoding and evaluation stages
 skip_packing=true       # Skip the packing stage.
 skip_upload_hf=true     # Skip uploading to huggingface stage.
+skip_dumped=false       # Stage 2: skip sets whose dump directory is complete (has espnet_rttm).
 ngpu=1                  # The number of gpus ("0" uses cpu, otherwise use gpu).
 num_nodes=1             # The number of nodes
 nj=32                   # The number of parallel jobs.
 dumpdir=dump            # Directory to dump features.
 inference_nj=32         # The number of parallel jobs in decoding.
 gpu_inference=false     # Whether to perform gpu decoding.
+inference_max_jobs_run= # Stage 6: most inference jobs at once (--max-jobs-run of the cmd; run.pl allows one per GPU with --gpu).
 expdir=exp              # Directory to save experiments.
 python=python3          # Specify python to execute espnet commands
 
@@ -90,6 +92,7 @@ Options:
     --skip_data_prep     # Skip data preparation stages (default="${skip_data_prep}").
     --skip_train         # Skip training stages (default="${skip_train}").
     --skip_eval          # Skip decoding and evaluation stages (default="${skip_eval}").
+    --skip_dumped        # Stage 2: skip sets whose dump directory is complete (default="${skip_dumped}").
     --skip_packing       # Skip the packing stage (default="${skip_packing}").
     --skip_upload_hf     # Skip uploading to huggingface stage (default="${skip_upload_hf}").
     --ngpu               # The number of gpus ("0" uses cpu, otherwise use gpu, default="${ngpu}").
@@ -97,6 +100,7 @@ Options:
     --nj                 # The number of parallel jobs (default="${nj}").
     --inference_nj       # The number of parallel jobs in inference (default="${inference_nj}").
     --gpu_inference      # Whether to use gpu for inference (default="${gpu_inference}").
+    --inference_max_jobs_run # Stage 6: most inference jobs at once (default="${inference_max_jobs_run}").
     --dumpdir            # Directory to dump features (default="${dumpdir}").
     --expdir             # Directory to save experiments (default="${expdir}").
     --python             # Specify python to execute espnet commands (default="${python}").
@@ -211,6 +215,11 @@ if ! "${skip_data_prep}"; then
                 _suf="/org"
             else
                 _suf=""
+            fi
+            # espnet_rttm is the last file this stage writes for a set
+            if "${skip_dumped}" && [ -f "${data_feats}${_suf}/${dset}/espnet_rttm" ]; then
+                log "Skip ${dset}: ${data_feats}${_suf}/${dset} is already dumped"
+                continue
             fi
             utils/copy_data_dir.sh --validate_opts --non-print data/"${dset}" "${data_feats}${_suf}/${dset}"
             rm -f ${data_feats}${_suf}/${dset}/{wav.scp,reco2file_and_channel}
@@ -507,7 +516,14 @@ if ! "${skip_eval}"; then
             mkdir -p "${_logdir}"
 
             _scp=wav.scp
-            _type=sound
+            # the audio type that stage 2 dumped, as in stages 4 and 5
+            if [[ "${audio_format}" == *ark* ]]; then
+                _type=kaldi_ark
+            elif [[ "${audio_format}" == omniio ]]; then
+                _type=omniio
+            else
+                _type=sound
+            fi
 
             # 1. Split the key file
             key_file=${_data}/${_scp}
@@ -521,8 +537,12 @@ if ! "${skip_eval}"; then
 
             # 2. Submit inference jobs
             log "Diarization started... log: '${_logdir}/diar_inference.*.log'"
+            _cmd_opts=
+            if [ -n "${inference_max_jobs_run}" ]; then
+                _cmd_opts="--max-jobs-run ${inference_max_jobs_run}"
+            fi
             # shellcheck disable=SC2046,SC2086
-            ${_cmd} --gpu "${_ngpu}" JOB=1:"${_nj}" "${_logdir}"/diar_inference.JOB.log \
+            ${_cmd} --gpu "${_ngpu}" ${_cmd_opts} JOB=1:"${_nj}" "${_logdir}"/diar_inference.JOB.log \
                 ${python} -m espnet2.bin.diar_inference \
                     --ngpu "${_ngpu}" \
                     --fs "${fs}" \
