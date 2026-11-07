@@ -213,3 +213,74 @@ def test_forward_stats_are_zero_without_reference_speech():
     )
     for key in ("sad_mr", "sad_fr", "mi", "fa", "cf", "acc", "der"):
         assert float(stats[key]) == 0.0, key
+
+
+def test_forward_does_not_copy_to_the_cpu(monkeypatch):
+    """No .item(), .tolist(), .numpy() or .cpu() in forward.
+
+    On the GPU each of them would make the CPU wait; forbidding them here
+    catches a regression even where CI has no GPU.
+    """
+    torch.manual_seed(0)
+    # features as input (no frontend): this checks the diarization model itself
+    model = ESPnetDiarizationModel(
+        label_aggregator=LabelAggregate(win_length=32, hop_length=16),
+        attractor=None,
+        encoder=TransformerEncoder(
+            input_size=10,
+            input_layer="linear",
+            num_blocks=1,
+            linear_units=32,
+            output_size=16,
+            attention_heads=2,
+        ),
+        decoder=LinearDecoder(encoder_output_size=16, num_spk=2),
+        frontend=None,
+        specaug=None,
+        normalize=None,
+    ).train()
+    # 19 feature frames; labels of 300 samples aggregate to the same 19 frames
+    kwargs = dict(
+        speech=torch.randn(2, 19, 10),
+        speech_lengths=torch.tensor([19, 12]),
+        spk_labels=torch.randint(0, 2, (2, 300, 2)).float(),
+        spk_labels_lengths=torch.tensor([300, 200]),
+    )
+
+    def forbidden(self, *args, **kw):
+        raise AssertionError("forward copied a tensor to the CPU")
+
+    for name in ("item", "tolist", "numpy", "cpu"):
+        monkeypatch.setattr(torch.Tensor, name, forbidden)
+    loss, stats, weight = model(**kwargs)
+    monkeypatch.undo()
+    assert torch.isfinite(loss)
+
+
+_accelerators = [
+    d
+    for d, ok in [
+        ("cuda", torch.cuda.is_available()),
+        ("mps", torch.backends.mps.is_available()),
+    ]
+    if ok
+]
+
+
+@pytest.mark.skipif(not _accelerators, reason="needs a CUDA or MPS device")
+@pytest.mark.parametrize("device", _accelerators)
+def test_pit_loss_and_counts_stay_on_the_device(device):
+    """On an accelerator, the reordered labels and the counts stay there."""
+    torch.manual_seed(0)
+    model = _small_model(num_spk=2).to(device)
+    pred = torch.randn(3, 20, 2, device=device)
+    label = torch.randint(0, 2, (3, 20, 2), device=device).float()
+    length = torch.tensor([20, 15, 7], device=device)
+    loss, _, _, label_perm = model.pit_loss(pred, label, length)
+    assert loss.device.type == device and label_perm.device.type == device
+    counts = model.calc_diarization_error(pred, label_perm, length)
+    assert all(c.device.type == device for c in counts)
+
+    cpu = [t.cpu() for t in (pred, label, length)]
+    _, _, _, label_perm_cpu = model.to("cpu").pit_loss(*cpu)
+    torch.testing.assert_close(label_perm.cpu(), label_perm_cpu)
