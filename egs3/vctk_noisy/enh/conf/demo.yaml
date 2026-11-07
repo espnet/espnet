@@ -1,0 +1,12 @@
+##########################################################
+#                VCTK-NOISY DEMO OVERRIDES              #
+##########################################################
+# Quick usage:
+#   python run.py --stages pack_demo   --demo_config conf/demo.yaml
+#   python run.py --stages upload_demo --demo_config conf/demo.yaml
+
+model:
+  trust_user_code: true
+
+ui:
+  title: "Speech Enhancement Demo (VCTK-Noisy, Conv-TasNet)"

@@ -1,0 +1,37 @@
+##########################################################
+#             VCTK-NOISY INFERENCE OVERRIDES             #
+##########################################################
+# Common usage:
+#   python run.py --stages infer \
+#       --training_config conf/training.yaml \
+#       --inference_config conf/inference.yaml
+
+##########################################################
+#                    DATASET DEFINITION                  #
+##########################################################
+# ESPnet3 loads ${recipe_dir}/dataset/__init__.py.
+# Both valid and test splits are evaluated.
+dataset:
+  test:
+    - name: valid
+      data_src_args:
+        split: valid
+        inference: true
+    - name: test
+      data_src_args:
+        split: test
+        inference: true
+
+##########################################################
+#                    MODEL AND OUTPUT                    #
+##########################################################
+model:
+  _target_: src.inference.SeparateSpeechWrapper
+  train_config: ${exp_dir}/config.yaml
+  model_file: ${exp_dir}/last.ckpt
+  normalize_output_wav: true
+
+output_fn: src.inference.build_output
+
+runner:
+  batch_size: 4

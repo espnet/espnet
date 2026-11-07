@@ -1,0 +1,5 @@
+##########################################################
+#              VCTK-NOISY PUBLICATION OVERRIDES          #
+##########################################################
+# Common publication values come from TEMPLATE/enh/conf/publication.yaml.
+pack_model: {}
