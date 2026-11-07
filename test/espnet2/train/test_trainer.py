@@ -17,10 +17,8 @@ class ToyModel(AbsESPnetModel):
 
     def forward(self, x, **kwargs):
         loss = self.linear(x).pow(2).mean()
-        # clone: the trainer divides loss in place by accum_grad, which would also
-        # change a detached view of it
-        stats = dict(loss=loss.detach().clone())
-        return dict(loss=loss, stats=stats, weight=x.new_ones(1))
+        # loss.detach() shares the storage of loss, as in the ESPnet models
+        return dict(loss=loss, stats=dict(loss=loss.detach()), weight=x.new_ones(1))
 
     def collect_feats(self, **kwargs):
         return {}
@@ -102,8 +100,9 @@ def test_resume_after_early_stopping_with_larger_patience_continues(tmp_path):
 def test_train_one_epoch_with_grad_accumulation(tmp_path):
     """accum_grad=2: the same updates as a hand-written loop, every step reported.
 
-    The statistics are registered after backward(); this checks that the
-    accumulated updates and the reported mean loss are unchanged.
+    The statistics are registered after backward(), and the reported train loss
+    is the mean of the losses: the trainer does not divide the loss in place by
+    accum_grad, which would divide loss.detach() in the statistics too.
     """
     torch.manual_seed(0)
     model = ToyModel()
