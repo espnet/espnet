@@ -14,11 +14,17 @@ utterance pointing at the utterance's byte range::
 so that every data-directory tool that works on ``wav.scp`` (subsetting,
 fix_data_dir.sh, filter_scp.pl, ...) keeps working, and loading an utterance
 is one positional read from a bin file the reader keeps open.
+
+A Kaldi ``segments`` file over such a ``wav.scp`` (``OmniIOSegmentsReader``,
+data type ``omniio_segments``) reads parts of long recordings: for seekable
+codecs only the part is read and decoded, so a 10 s segment of an hour-long
+recording costs milliseconds instead of decoding the recording.
 """
 
 import collections
 import collections.abc
 import io
+import math
 import os
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple, Union
@@ -27,6 +33,76 @@ import numpy as np
 from typeguard import typechecked
 
 from espnet2.fileio.read_text import read_2columns_text
+from espnet2.fileio.segments import seconds_to_sample
+
+_EBML = b"\x1aE\xdf\xa3"  # WebM/Opus header: not seekable here
+
+
+class _ByteRange(io.RawIOBase):
+    """Seekable read-only view of bytes [start, end) of an open descriptor.
+
+    soundfile reads through it, so seeking inside a FLAC entry fetches only
+    the frames it needs.
+    """
+
+    def __init__(self, fd: int, start: int, end: int):
+        self.fd, self.start, self.size, self.pos = fd, start, end - start, 0
+
+    def readable(self):
+        return True
+
+    def seekable(self):
+        return True
+
+    def tell(self):
+        return self.pos
+
+    def seek(self, offset, whence=io.SEEK_SET):
+        base = {io.SEEK_SET: 0, io.SEEK_CUR: self.pos, io.SEEK_END: self.size}[whence]
+        self.pos = base + offset
+        return self.pos
+
+    def readinto(self, buf):
+        n = max(0, min(len(buf), self.size - self.pos))
+        data = os.pread(self.fd, n, self.start + self.pos)
+        buf[: len(data)] = data
+        self.pos += len(data)
+        return len(data)
+
+
+def segment_bounds(start: float, end: float, rate: int, frames: int) -> Tuple[int, int]:
+    """Sample range of a Kaldi segment, as SegmentsExtractor cuts it.
+
+    ``seconds_to_sample(start):seconds_to_sample(end)``, with ``end == -1``
+    meaning the end of the recording.
+    """
+    first = seconds_to_sample(start, rate)
+    last = frames if end == -1 else seconds_to_sample(end, rate)
+    if not 0 <= first < last <= frames:
+        raise RuntimeError(
+            f"segment {start}-{end} s is samples {first}-{last}, "
+            f"outside a recording of {frames} samples"
+        )
+    return first, last
+
+
+def _segment_times(start: str, end: str, where: str) -> Tuple[float, float]:
+    """Parse and check one segment's times (seconds; end -1: to the end).
+
+    Refused: non-numbers, NaN/inf, a negative start (int() would truncate
+    -0.00001 s to sample 0), and an end at or before the start.
+    """
+    try:
+        st, et = float(start), float(end)
+    except ValueError:
+        raise RuntimeError(f"{where}: times must be numbers: {start} {end}")
+    if not (math.isfinite(st) and math.isfinite(et)):
+        raise RuntimeError(f"{where}: times must be finite: {start} {end}")
+    if st < 0:
+        raise RuntimeError(f"{where}: negative start time {start}")
+    if et != -1 and et <= st:
+        raise RuntimeError(f"{where}: end {end} is not after start {start}")
+    return st, et
 
 
 def parse_omniio_entry(entry: str) -> Tuple[str, int, int]:
@@ -87,22 +163,28 @@ class OmniIOEntryReader:
             self._pid = os.getpid()
         return self._fds
 
+    def _fd(self, path: str) -> int:
+        """Descriptor of `path` from the cache, opening it if needed."""
+        fds = self._own_fds()
+        fd = fds.get(path)
+        if fd is None:
+            fd = os.open(path, os.O_RDONLY)
+            fds[path] = fd
+            # keep at least this one open while it is used; with max_cache_fd=0
+            # it is closed after the read
+            while len(fds) > max(self.max_cache_fd, 1):
+                os.close(fds.popitem(last=False)[1])
+        else:
+            fds.move_to_end(path)
+        return fd
+
     def _read_bytes(self, path: str, start: int, size: int) -> bytes:
         """Read `size` bytes at `start` of `path`, through the descriptor cache."""
         if self.max_cache_fd <= 0 or not hasattr(os, "pread"):
             with open(path, "rb") as f:
                 f.seek(start)
                 return f.read(size)
-        fds = self._own_fds()
-        fd = fds.get(path)
-        if fd is None:
-            fd = os.open(path, os.O_RDONLY)
-            fds[path] = fd
-            while len(fds) > self.max_cache_fd:
-                os.close(fds.popitem(last=False)[1])
-        else:
-            fds.move_to_end(path)
-        data = os.pread(fd, size, start)
+        data = os.pread(self._fd(path), size, start)
         if len(data) != size:
             raise RuntimeError(f"short read from {path}: {len(data)} of {size} bytes")
         return data
@@ -116,7 +198,7 @@ class OmniIOEntryReader:
             return None, None
         path, start, end = parse_omniio_entry(entry)
         blob = self._read_bytes(path, start, end - start)
-        if blob[:4] == b"\x1aE\xdf\xa3":  # WebM/Opus (EBML header)
+        if blob[:4] == _EBML:
             from omniio.interface import audio_read
 
             result = audio_read(path, start_offset=start, file_size=end - start)
@@ -128,6 +210,41 @@ class OmniIOEntryReader:
         if not self.always_2d and array.ndim == 2 and array.shape[1] == 1:
             array = array[:, 0]
         return int(rate), array
+
+    def read_segment(
+        self, entry: str, start: float, end: float
+    ) -> Tuple[int, np.ndarray]:
+        """Return (rate, signal) of seconds `start`..`end` of `entry`.
+
+        Cut as ``SegmentsExtractor`` cuts a Kaldi segment (``end == -1``: to
+        the end). FLAC/WAV/OGG are seeked: only the segment is read and
+        decoded. WebM is decoded whole and sliced.
+        """
+        try:
+            return self._read_segment(entry, start, end)
+        finally:
+            if self.max_cache_fd <= 0:
+                self.close()  # no cache: never keep a descriptor past the read
+
+    def _read_segment(self, entry: str, start: float, end: float):
+        import soundfile
+
+        path, first_byte, end_byte = parse_omniio_entry(entry)
+        if hasattr(os, "pread") and os.pread(self._fd(path), 4, first_byte) != _EBML:
+            src = _ByteRange(self._fd(path), first_byte, end_byte)
+            with soundfile.SoundFile(src) as f:
+                rate = f.samplerate
+                first, last = segment_bounds(start, end, rate, f.frames)
+                f.seek(first)
+                array = f.read(last - first, dtype="float32", always_2d=True)
+            if len(array) != last - first:
+                raise RuntimeError(f"short read of segment {start}-{end} s of {entry}")
+            if not self.always_2d and array.shape[1] == 1:
+                array = array[:, 0]
+            return int(rate), array
+        rate, array = self(entry)
+        first, last = segment_bounds(start, end, rate, len(array))
+        return rate, array[first:last]
 
     def close(self):
         """Close the bin file descriptors this process opened."""
@@ -196,6 +313,83 @@ class OmniIOAudioScpReader(OmniIOEntryReader, collections.abc.Mapping):
     def keys(self):
         """The utterance ids."""
         return self.data.keys()
+
+
+class OmniIOSegmentsReader(collections.abc.Mapping):
+    """Reader of a Kaldi ``segments`` file over a ``wav.scp`` of Omni-IO entries.
+
+    Examples:
+        segments (wav.scp is read from the same directory):
+            win1 rec1 0.0 10.0
+            win2 rec1 10.0 20.0
+
+        >>> reader = OmniIOSegmentsReader('dump/raw/train_win/segments')
+        >>> rate, array = reader['win2']
+
+    Each segment is cut as ``SegmentsExtractor`` cuts it when dumping, but at
+    load time and reading only the segment's part of the archive entry.
+
+    Args:
+        fname: The segments file.
+        wav_scp: The recordings' scp; default: ``wav.scp`` next to `fname`.
+        always_2d: Keep the channel axis even for single-channel audio.
+        max_cache_fd: Bin files kept open; 0 opens and closes per read.
+    """
+
+    @typechecked
+    def __init__(
+        self,
+        fname: Union[Path, str],
+        wav_scp: Optional[Union[Path, str]] = None,
+        always_2d: bool = False,
+        max_cache_fd: int = 32,
+    ):
+        """Read the segments and the recordings' scp."""
+        self.fname = fname
+        self.wav = read_2columns_text(wav_scp or Path(fname).parent / "wav.scp")
+        self.segments: Dict[str, Tuple[str, float, float]] = {}
+        with open(fname, encoding="utf-8") as f:
+            for linenum, line in enumerate(f, 1):
+                sps = line.split()
+                if not sps:
+                    continue
+                where = f"{fname}:{linenum}"
+                if len(sps) != 4:
+                    raise RuntimeError(f"{where}: expected 4 columns: {line!r}")
+                key, rec, start, end = sps
+                if key in self.segments:
+                    raise RuntimeError(f"{where}: segment {key} is duplicated")
+                if rec not in self.wav:
+                    raise RuntimeError(f"{where}: {rec} is not in the wav.scp")
+                self.segments[key] = (rec, *_segment_times(start, end, where))
+        self.reader = OmniIOEntryReader(always_2d=always_2d, max_cache_fd=max_cache_fd)
+
+    def __getitem__(self, key: str) -> Tuple[int, np.ndarray]:
+        """Return (sampling rate, signal) of segment `key`."""
+        rec, start, end = self.segments[key]
+        if self.wav[rec] == "None":
+            raise RuntimeError(f"segment {key}: recording {rec} has no audio")
+        return self.reader.read_segment(self.wav[rec], start, end)
+
+    def __contains__(self, item):
+        """Whether `item` is a segment."""
+        return item in self.segments
+
+    def __len__(self):
+        """Number of segments."""
+        return len(self.segments)
+
+    def __iter__(self):
+        """Iterate over the segment ids."""
+        return iter(self.segments)
+
+    def keys(self):
+        """The segment ids."""
+        return self.segments.keys()
+
+    def close(self):
+        """Close the bin files this process opened."""
+        self.reader.close()
 
 
 class OmniIOAudioWriter:

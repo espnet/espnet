@@ -19,6 +19,7 @@ from typeguard import typechecked
 
 from espnet2.fileio.omniio_audio import OmniIOAudioWriter
 from espnet2.fileio.read_text import read_2columns_text
+from espnet2.fileio.segments import seconds_to_sample
 from espnet2.fileio.sound_scp import SoundScpWriter, soundfile_read
 from espnet2.fileio.vad_scp import VADScpReader
 from espnet2.legacy.utils.cli_utils import get_commandline_args
@@ -142,10 +143,12 @@ class SegmentsExtractor:
                 cached.pop(recodeid)
             # Convert starting time of the segment to corresponding sample number.
             # If end time is -1 then use the whole file starting from start time.
+            # (seconds_to_sample: the same cut as reading the segment from an
+            # Omni-IO archive at load time, robust to float error)
             if et != -1:
-                array = array[int(st * rate) : int(et * rate)]
+                array = array[seconds_to_sample(st, rate) : seconds_to_sample(et, rate)]
             else:
-                array = array[int(st * rate) :]
+                array = array[seconds_to_sample(st, rate) :]
 
             yield utt, (array, rate), None, None
 
