@@ -268,6 +268,8 @@ if ! "${skip_data_prep}"; then
             # Copy data dir
             utils/copy_data_dir.sh "${data_feats}/org/${dset}" "${data_feats}/${dset}"
             cp "${data_feats}/org/${dset}/feats_type" "${data_feats}/${dset}/feats_type"
+            # a stale audio_format must not outlive a source dump that has none
+            rm -f "${data_feats}/${dset}/audio_format"
             if [ -f "${data_feats}/org/${dset}/audio_format" ]; then
                 cp "${data_feats}/org/${dset}/audio_format" "${data_feats}/${dset}/audio_format"
             fi
