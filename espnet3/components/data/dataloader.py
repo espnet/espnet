@@ -3,8 +3,12 @@
 import copy
 import hashlib
 import logging
+import os
+import tempfile
+from contextlib import contextmanager
 from functools import partial
 
+import numpy as np
 import torch
 from hydra.utils import instantiate
 from omegaconf import DictConfig, OmegaConf
@@ -15,6 +19,39 @@ from espnet3.utils.logging_utils import _dump_attrs, build_qualified_name
 
 logger = logging.getLogger(__name__)
 _LOGGED_DISTRIBUTED_BATCHES: set[str] = set()
+
+
+@contextmanager
+def _dataset_shape_file(dataset):
+    """Yield a temporary shape file built from the dataset's item lengths.
+
+    Each dataset wrapped by the ``CombinedDataset`` must provide
+    ``item_lengths()``; the uids are the combined integer indices, as in
+    ``CombinedDataset``'s integer-index mode. The file exists only while the
+    batch sampler reads it.
+    """
+    datasets = getattr(dataset, "datasets", [dataset])
+    if getattr(dataset, "_string_index_mode", False):
+        raise RuntimeError(
+            "lengths_from_dataset needs integer-indexed datasets; "
+            "string-keyed datasets must use shape_files."
+        )
+    missing = [type(d).__name__ for d in datasets if not hasattr(d, "item_lengths")]
+    if missing:
+        raise RuntimeError(
+            "lengths_from_dataset is set but these datasets have no "
+            f"item_lengths(): {missing}"
+        )
+    lengths = np.concatenate([np.asarray(d.item_lengths()) for d in datasets])
+    fd, path = tempfile.mkstemp(prefix="espnet3_shape_", suffix=".txt")
+    try:
+        with os.fdopen(fd, "w", encoding="utf-8") as fh:
+            fh.writelines(f"{uid} {int(n)}\n" for uid, n in enumerate(lengths))
+        yield path
+    finally:
+        os.unlink(path)
+
+
 _LOGGED_DATALOADER: set[str] = set()
 
 
@@ -90,6 +127,8 @@ class DataLoaderBuilder:
         self.collate_fn = collate_fn
         self.num_device = num_device
         self.epoch = epoch
+        # Set by _maybe_shard_dataset when this rank got its own shard.
+        self._rank_sharded = False
 
     def _get_world_info(self):
         if self.num_device > 1:
@@ -149,7 +188,41 @@ class DataLoaderBuilder:
             )
 
         shard_idx = ((self.epoch * runtime_world_size) + rank) % total_shards
+        self._rank_sharded = True
         return dataset.shard(shard_idx)
+
+    def _equalize_rank_batches(self, batches, mode):
+        """Keep the same number of batches on every rank, dropping at random.
+
+        Used when every rank batches its own shard of the data: shards differ
+        in size, and DDP hangs when ranks run different numbers of steps. The
+        dropped batches change every epoch, so no item is always left out.
+        """
+        if not torch.distributed.is_initialized():
+            return batches
+        count = torch.tensor(len(batches), device=self._collective_device())
+        torch.distributed.all_reduce(count, op=torch.distributed.ReduceOp.MIN)
+        keep = int(count.item())
+        if keep == len(batches):
+            return batches
+        logger.info(
+            "[%s] rank-local batches: keeping %d of %d to match other ranks",
+            mode,
+            keep,
+            len(batches),
+        )
+        rng = np.random.default_rng(
+            [self.epoch, torch.distributed.get_rank(), len(batches)]
+        )
+        kept = np.sort(rng.choice(len(batches), size=keep, replace=False))
+        return [batches[i] for i in kept]
+
+    @staticmethod
+    def _collective_device():
+        backend = torch.distributed.get_backend()
+        if backend == "nccl" and torch.cuda.is_available():
+            return torch.device("cuda", torch.cuda.current_device())
+        return torch.device("cpu")
 
     def build(self, mode: str):
         """Build and return a DataLoader for the specified mode ("train" or "valid").
@@ -309,12 +382,25 @@ class DataLoaderBuilder:
             dataset = self.dataset
 
         sampler_config = factory_config.pop("batches")
+        # Batch by the dataset's own item lengths instead of collect_stats
+        # shape files. With a rank-sharded dataset this is what lets each rank
+        # plan batches over its shard only.
+        lengths_from_dataset = sampler_config.pop("lengths_from_dataset", False)
         if batch_distribution == "global" and torch.distributed.is_initialized():
             # Match ESPnet2: every shared batch must be splittable across ranks.
             sampler_config["min_batch_size"] = torch.distributed.get_world_size()
-        batches = build_batch_sampler(**sampler_config)
+        if lengths_from_dataset:
+            with _dataset_shape_file(dataset) as shape_file:
+                sampler_config["shape_files"] = [shape_file]
+                batches = list(build_batch_sampler(**sampler_config))
+        else:
+            batches = build_batch_sampler(**sampler_config)
 
-        if batch_distribution == "global":
+        if lengths_from_dataset and self._rank_sharded:
+            # Each rank already holds a disjoint shard, so its batches are its
+            # own: do not stride them across ranks, only match their count.
+            batches = self._equalize_rank_batches(list(batches), mode)
+        elif batch_distribution == "global":
             rank, world_size = (
                 (torch.distributed.get_rank(), torch.distributed.get_world_size())
                 if torch.distributed.is_initialized()
