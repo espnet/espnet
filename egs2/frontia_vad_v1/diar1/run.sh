@@ -9,7 +9,7 @@
 # model (online and offline with one set of weights):
 #   ./run.sh --train_config conf/tuning/train_dualmode.yaml --diar_tag train_dualmode
 # scores it online (look-ahead 0). diar.sh writes inference into exp/diar_<diar_tag>,
-# so the offline scores (look-ahead 1 s) go to a second directory with the same model:
+# so the offline scores (look-ahead 0.99 s) go to a second directory with the same model:
 #   mkdir -p exp/diar_train_dualmode_offline
 #   ln -s ../diar_train_dualmode/{config.yaml,valid.acc.best.pth} exp/diar_train_dualmode_offline/
 #   ./run.sh --stage 6 --diar_tag train_dualmode_offline \

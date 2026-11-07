@@ -1,5 +1,5 @@
 # Offline inference of the dual-mode model (conf/tuning/train_dualmode.yaml):
-# 124 frames (1.0 s) of look-ahead. conf/decode.yaml runs it online (look-ahead 0).
+# 124 frames (0.99 s) of look-ahead. conf/decode.yaml runs it online (look-ahead 0).
 fs: 16000
 num_spk: 1
 look_ahead: 124

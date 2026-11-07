@@ -1,7 +1,7 @@
 # Dual-mode (online and offline) voice activity detection with one set of weights:
 # a TCN encoder whose look-ahead is chosen at run time. Each training step runs
 # look-ahead 0 (online: causal, 1.0 s of past context) and 124 frames (offline:
-# 1.0 s of future context) and averages the two losses. Inference uses look-ahead 0
+# 0.99 s of future context) and averages the two losses. Inference uses look-ahead 0
 # unless diar_inference gets --look_ahead (conf/tuning/decode_offline.yaml: 124).
 # Needs the look-ahead TCN encoder (encoder_conf future_taps, model_conf look_aheads)
 # and the batch augmentation in the model (wav_augment).

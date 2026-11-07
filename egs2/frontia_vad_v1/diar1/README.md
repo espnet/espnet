@@ -10,7 +10,7 @@ speech when anyone in the recording speaks. Two models:
   context. 184k parameters.
 - **Dual-mode** (`conf/tuning/train_dualmode.yaml`): the same encoder with a
   look-ahead chosen at run time, one set of weights. Online: look-ahead 0
-  (`conf/decode.yaml`); offline: 1 s (`conf/tuning/decode_offline.yaml`).
+  (`conf/decode.yaml`); offline: 124 frames = 0.99 s (`conf/tuning/decode_offline.yaml`).
 
 Training reads 10 s windows straight from the Omni-IO archives that stage 2 dumps
 (`local/train_windowed.sh`, run.sh stage 5); inference runs on whole recordings.
