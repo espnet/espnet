@@ -30,6 +30,7 @@ skip_train=false        # Skip training stages
 skip_eval=false         # Skip decoding and evaluation stages
 skip_packing=true       # Skip the packing stage.
 skip_upload_hf=true     # Skip uploading to huggingface stage.
+skip_dumped=false       # Stage 2: skip sets whose dump directory is complete (has espnet_rttm).
 ngpu=1                  # The number of gpus ("0" uses cpu, otherwise use gpu).
 num_nodes=1             # The number of nodes
 nj=32                   # The number of parallel jobs.
@@ -90,6 +91,7 @@ Options:
     --skip_data_prep     # Skip data preparation stages (default="${skip_data_prep}").
     --skip_train         # Skip training stages (default="${skip_train}").
     --skip_eval          # Skip decoding and evaluation stages (default="${skip_eval}").
+    --skip_dumped        # Stage 2: skip sets whose dump directory is complete (default="${skip_dumped}").
     --skip_packing       # Skip the packing stage (default="${skip_packing}").
     --skip_upload_hf     # Skip uploading to huggingface stage (default="${skip_upload_hf}").
     --ngpu               # The number of gpus ("0" uses cpu, otherwise use gpu, default="${ngpu}").
@@ -211,6 +213,11 @@ if ! "${skip_data_prep}"; then
                 _suf="/org"
             else
                 _suf=""
+            fi
+            # espnet_rttm is the last file this stage writes for a set
+            if "${skip_dumped}" && [ -f "${data_feats}${_suf}/${dset}/espnet_rttm" ]; then
+                log "Skip ${dset}: ${data_feats}${_suf}/${dset} is already dumped"
+                continue
             fi
             utils/copy_data_dir.sh --validate_opts --non-print data/"${dset}" "${data_feats}${_suf}/${dset}"
             rm -f ${data_feats}${_suf}/${dset}/{wav.scp,reco2file_and_channel}
