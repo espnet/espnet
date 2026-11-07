@@ -499,3 +499,39 @@ By default, CuDNN performs deterministic mode in our training and it can be turn
 ```bash
 python -m espnet.bin.asr_train --cudnn_deterministic false
 ```
+
+`--cudnn_deterministic` only covers cuDNN. Many other CUDA kernels accumulate
+with atomics, so their result depends on the order in which the threads happen
+to finish, and two runs started from the same seed diverge from the first
+backward pass onwards. To restrict every operation to its deterministic
+implementation:
+
+```bash
+python -m espnet.bin.asr_train --deterministic true
+```
+
+This calls `torch.use_deterministic_algorithms(True)`, turns cudnn-benchmark
+off, and turns cudnn-deterministic on. It also exports
+`CUBLAS_WORKSPACE_CONFIG=:4096:8`, unless the variable is already set to
+`:4096:8` or `:16:8` -- the only two values with which cuBLAS operations run in
+deterministic mode -- in which case the existing value is kept. Training gets
+slower in exchange.
+
+Not every operation has a deterministic implementation, and a `RuntimeError` is
+raised when the model uses one that has not. `torch.nn.CTCLoss` is the one that
+matters for ASR: its native CUDA backward is non-deterministic, and the
+deterministic cuDNN implementation is used only when the inputs satisfy the
+conditions listed in the
+[PyTorch document](https://pytorch.org/docs/stable/generated/torch.nn.CTCLoss.html)
+(among others, the blank label must be 0, every `input_length` must be equal to
+the input sequence length, the target lengths must be at most 256, and the
+integer arguments must be `torch.int32`). If you would rather keep the
+remaining operations deterministic than stop on such an operation:
+
+```bash
+python -m espnet.bin.asr_train --deterministic true --deterministic_warn_only true
+```
+
+Even then, a bit-wise identical result is not guaranteed across a different
+number of GPUs, a different PyTorch/CUDA version, or a different GPU
+architecture.
