@@ -268,6 +268,9 @@ if ! "${skip_data_prep}"; then
             # Copy data dir
             utils/copy_data_dir.sh "${data_feats}/org/${dset}" "${data_feats}/${dset}"
             cp "${data_feats}/org/${dset}/feats_type" "${data_feats}/${dset}/feats_type"
+            if [ -f "${data_feats}/org/${dset}/audio_format" ]; then
+                cp "${data_feats}/org/${dset}/audio_format" "${data_feats}/${dset}/audio_format"
+            fi
 
             _fs=$(python3 -c "import humanfriendly as h;print(h.parse_size('${fs}'))")
             _min_length=$(python3 -c "print(int(${min_wav_duration} * ${_fs}))")
@@ -528,10 +531,20 @@ if ! "${skip_eval}"; then
             mkdir -p "${_logdir}"
 
             _scp=wav.scp
-            # the format stage 2 dumped this set in, else --audio_format
-            _audio_format=${audio_format}
+            # the format stage 2 recorded for this dump; for a dump made before that
+            # record existed, the form of its wav.scp entries: "<file>.ark:<offset>"
+            # (Kaldi ark), "<file>.bin:<start>:<end>" (Omni-IO) or a sound file
             if [ -f "${_data}/audio_format" ]; then
                 _audio_format=$(<"${_data}/audio_format")
+            else
+                _entry=$(head -n 1 "${_data}/${_scp}" | cut -d " " -f 2-)
+                if [[ "${_entry}" =~ \.ark:[0-9]+$ ]]; then
+                    _audio_format=ark
+                elif [[ "${_entry}" =~ \.bin:[0-9]+:[0-9]+$ ]]; then
+                    _audio_format=omniio
+                else
+                    _audio_format=sound
+                fi
             fi
             if [[ "${_audio_format}" == *ark* ]]; then
                 _type=kaldi_ark
