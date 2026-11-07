@@ -7,6 +7,8 @@ collar=0.0
 frame_shift=128
 fs=8000
 subsampling=1
+thresholds="0.3 0.4 0.5 0.6 0.7"  # decision thresholds to score
+medians="1 11"                     # median filter lengths (frames) to score
 
 . ./utils/parse_options.sh || exit 1
 
@@ -22,8 +24,8 @@ gt_label=$3     # ground truth rttm
 echo "Scoring at ${scoring_dir}"
 mkdir -p $scoring_dir || exit 1;
 
-for med in 1 11; do
-    for th in 0.3 0.4 0.5 0.6 0.7; do
+for med in ${medians}; do
+    for th in ${thresholds}; do
         pyscripts/utils/make_rttm.py --median=$med --threshold=$th \
             --frame_shift=${frame_shift} --subsampling=${subsampling} --sampling_rate=${fs} \
             $infer_scp ${scoring_dir}/hyp_${th}_$med.rttm
