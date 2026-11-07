@@ -1,0 +1,4 @@
+# The repository-wide data* rule also matches recipe source code.
+!dataset/
+!dataset/*.py
+!dataset/config.yaml
