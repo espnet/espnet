@@ -1,3 +1,4 @@
+import pytest
 import torch
 
 from espnet2.iterators.abs_iter_factory import AbsIterFactory
@@ -87,3 +88,80 @@ def test_resume_after_early_stopping_does_not_train_more(tmp_path):
 def test_resume_after_early_stopping_with_larger_patience_continues(tmp_path):
     assert _run(tmp_path, max_epoch=10, resume=False, patience=1) == 3
     assert _run(tmp_path, max_epoch=10, resume=True, patience=3) == 5
+
+
+class ToyModelWithDetachedStats(AbsESPnetModel):
+    """Reports loss.detach(), which shares the storage of the loss."""
+
+    def __init__(self):
+        super().__init__()
+        self.linear = torch.nn.Linear(2, 1)
+
+    def forward(self, x, **kwargs):
+        loss = self.linear(x).pow(2).mean()
+        return dict(loss=loss, stats=dict(loss=loss.detach()), weight=x.new_ones(1))
+
+    def collect_feats(self, **kwargs):
+        return {}
+
+
+def test_train_loss_is_not_divided_by_accum_grad(tmp_path):
+    """With accum_grad=2 the reported train loss is the mean of the losses."""
+    torch.manual_seed(0)
+    model = ToyModelWithDetachedStats()
+    batches = [(["utt"], dict(x=torch.full((1, 2), float(i)))) for i in range(1, 5)]
+    options = TrainerOptions(
+        ngpu=0,
+        resume=False,
+        use_amp=False,
+        train_dtype="float32",
+        grad_noise=False,
+        accum_grad=2,
+        grad_clip=5.0,
+        grad_clip_type=2.0,
+        log_interval=None,
+        no_forward_run=False,
+        use_matplotlib=False,
+        use_tensorboard=False,
+        use_wandb=False,
+        adapter="lora",
+        use_adapter=False,
+        save_strategy="all",
+        output_dir=tmp_path,
+        max_epoch=1,
+        seed=0,
+        sharded_ddp=False,
+        patience=None,
+        keep_nbest_models=1,
+        nbest_averaging_interval=0,
+        early_stopping_criterion=("valid", "loss", "min"),
+        best_model_criterion=[("valid", "loss", "min")],
+        val_scheduler_criterion=("valid", "loss"),
+        unused_parameters=False,
+        wandb_model_log_interval=-1,
+        create_graph_in_tensorboard=False,
+        gradient_as_bucket_view=True,
+        ddp_comm_hook=None,
+    )
+    # the losses the model sees: no update before the second step
+    params = [p.detach().clone() for p in model.parameters()]
+    reporter = Reporter()
+    with reporter.observe("train", 1) as sub_reporter:
+        Trainer.train_one_epoch(
+            model=model,
+            iterator=batches[:2],
+            optimizers=[torch.optim.SGD(model.parameters(), lr=0.1)],
+            schedulers=[None],
+            scaler=None,
+            reporter=sub_reporter,
+            summary_writer=None,
+            options=options,
+            distributed_option=DistributedOption(),
+        )
+    w, b = params
+    expected = [
+        ((x @ w.T + b) ** 2).mean().item() for _, d in batches[:2] for x in [d["x"]]
+    ]
+    assert reporter.get_value("train", "loss", 1) == pytest.approx(
+        sum(expected) / len(expected)
+    )
