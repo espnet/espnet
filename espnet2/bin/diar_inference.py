@@ -169,12 +169,26 @@ class DiarizeSpeech:
         # pack the batch and require it. The results go back in input order.
         order = torch.argsort(lengths, descending=True, stable=True)
         speech, lengths = speech[order], lengths[order]
-        speech = speech.to(getattr(torch, self.dtype)).clone()
-        self._reflect_stft_padding(speech, lengths)
-        speech = to_device(speech, device=self.device)
-        encoder_out, encoder_out_lens = self.encode(
-            speech, to_device(lengths, device=self.device)
-        )
+        speech = speech.to(getattr(torch, self.dtype))
+        stft = getattr(getattr(self.diar_model, "frontend", None), "stft", None)
+        if stft is not None and getattr(stft, "center", False):
+            # Pad each utterance as torch.stft(center=True) pads it alone, and run
+            # the STFT with center=False: the frames and their number are those
+            # of the utterance alone.
+            speech, model_lengths = self._reflect_pad(speech, lengths, stft.n_fft // 2)
+            stft.center = False
+            try:
+                encoder_out, encoder_out_lens = self.encode(
+                    to_device(speech, device=self.device),
+                    to_device(model_lengths, device=self.device),
+                )
+            finally:
+                stft.center = True
+        else:
+            encoder_out, encoder_out_lens = self.encode(
+                to_device(speech, device=self.device),
+                to_device(lengths, device=self.device),
+            )
         frames = encoder_out_lens.tolist()
 
         if self.diar_model.attractor is None or self.num_spk is not None:
@@ -203,25 +217,22 @@ class DiarizeSpeech:
             results[b] = 1 / (1 + np.exp(-predictions[i].cpu().numpy()))
         return results
 
-    def _reflect_stft_padding(self, speech: torch.Tensor, lengths: torch.Tensor):
-        """Write the reflection of each utterance's end into its padding.
+    @staticmethod
+    def _reflect_pad(speech: torch.Tensor, lengths: torch.Tensor, pad: int):
+        """Pad each utterance at both ends by reflection, as torch.stft does.
 
-        With center=True, the STFT pads the end of the whole batch by reflection.
-        A shorter utterance would see zeros after its end instead of its own
-        reflected samples. This function writes those samples, so the frames of
-        every utterance equal its frames alone; the frontend masks the frames
-        after the end.
+        Utterance b of length n becomes x[pad], ..., x[1], x[0], ..., x[n-1],
+        x[n-2], ..., x[n-1-pad] (torch.stft(center=True, pad_mode="reflect")),
+        followed by zeros up to the batch width. Returns the padded batch and
+        the lengths n + 2 * pad.
         """
-        stft = getattr(getattr(self.diar_model, "frontend", None), "stft", None)
-        if stft is None or not getattr(stft, "center", False):
-            return
-        pad = stft.n_fft // 2
+        out = speech.new_zeros(speech.size(0), speech.size(1) + 2 * pad)
         for b, n in enumerate(lengths.tolist()):
-            k = min(pad, speech.size(1) - n)
-            if k > 0:
-                # torch.stft(pad_mode="reflect") pads x[n-2], x[n-3], ...
-                idx = torch.arange(n - 2, n - 2 - k, -1)
-                speech[b, n : n + k] = speech[b, idx]
+            x = speech[b, :n]
+            out[b, :pad] = x[1 : pad + 1].flip(0)
+            out[b, pad : pad + n] = x
+            out[b, pad + n : 2 * pad + n] = x[n - 1 - pad : n - 1].flip(0)
+        return out, lengths + 2 * pad
 
     @torch.no_grad()
     @typechecked

@@ -287,3 +287,25 @@ def test_diarize_batch_estimates_the_number_of_speakers_per_utterance(
     assert out[0].shape[1] == first_negative[9001]
     assert out[1].shape[1] == first_negative[16000]
     assert out[0].shape[0] < out[1].shape[0]
+
+
+@pytest.mark.parametrize("gap", [1, 127, 255, 256, 257])
+def test_diarize_batch_short_gap_center_stft(tmp_path, gap):
+    """An utterance a little shorter than the longest one (gap < n_fft / 2).
+
+    With a centred STFT (default n_fft=512, hop 128) the utterance alone is
+    padded by the reflection of its own last 256 samples; in the batch it
+    must get the same frames.
+    """
+    torch.manual_seed(0)
+    diarize_speech = DiarizeSpeech(train_config=_write_config(tmp_path), num_spk=2)
+    lengths = [16000, 16000 - gap]
+    wavs = [torch.randn(n) * 0.1 for n in lengths]
+    batch = torch.zeros(2, 16000)
+    for b, w in enumerate(wavs):
+        batch[b, : len(w)] = w
+    batched = diarize_speech.diarize_batch(batch, torch.tensor(lengths), fs=8000)
+    for b, w in enumerate(wavs):
+        alone = diarize_speech(w[None], fs=8000)[1][0]
+        assert batched[b].shape == alone.shape
+        np.testing.assert_allclose(batched[b], alone, rtol=1e-5, atol=1e-6)
