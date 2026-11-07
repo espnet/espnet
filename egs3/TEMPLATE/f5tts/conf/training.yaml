@@ -27,9 +27,31 @@ stats_dir: ${exp_dir}/stats
 inference_dir: ${exp_dir}/inference
 
 ##########################################################
+#                 DATASET CREATION SETTING               #
+##########################################################
+# Arguments of the `create_dataset` stage, passed to the recipe's
+# `dataset.DatasetBuilder` (`prepare_source` then `build`). An F5-TTS recipe
+# typically sets `recipe_dir: ${recipe_dir}` so the builder writes its
+# manifests under the recipe's `data/`. Left empty, the builder is called
+# with no arguments.
+create_dataset: {}
+
+##########################################################
 #                    DATASET DEFINITION                  #
 ##########################################################
+# `_recursive_: false` hands `DataOrganizer` the split entries and the
+# `preprocessor` block as configs: it instantiates the preprocessor itself,
+# with `train=True` for the training split and `False` for valid/test. Without
+# it Hydra would build the preprocessor first, and ESPnet2's
+# `CommonPreprocessor` needs that `train` argument.
 dataset:
+  _target_: espnet3.components.data.data_organizer.DataOrganizer
+  _recursive_: false
+  recipe_dir: ${recipe_dir}
+  train:
+  valid:
+  test:
+  preprocessor:
 
 ##########################################################
 #                      MODEL SETTING                     #
@@ -85,11 +107,23 @@ dataloader:
 #                    TRAINER SETTING                     #
 ##########################################################
 # These settings map to `lightning.Trainer(...)`.
+# Lightning `Trainer` arguments, as `egs3/TEMPLATE/esp2_asr` defaults them.
+# `log_every_n_steps` is read by espnet3's trainer for its own progress
+# logging, so it must be set. A recipe adds `max_steps` or `max_epochs`, its
+# callbacks (an F5-TTS recipe trains with `EMACallback`) and anything else.
 trainer:
   accelerator: auto
   devices: ${num_device}
   num_nodes: ${num_nodes}
   strategy: auto
+  accumulate_grad_batches: 1
+  check_val_every_n_epoch: 1
+  gradient_clip_val: 1.0
+  log_every_n_steps: 100
+  logger:
+    - _target_: lightning.pytorch.loggers.TensorBoardLogger
+      save_dir: ${exp_dir}/tensorboard
+      name: tb_logger
 
 ##########################################################
 #                      FIT SETTING                       #
