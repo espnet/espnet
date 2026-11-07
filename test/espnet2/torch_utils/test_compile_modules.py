@@ -47,6 +47,11 @@ def test_unknown_name_raises():
         compile_modules(Model(), ["frontend"])
 
 
+def test_empty_name_raises():
+    with pytest.raises(ValueError):
+        compile_modules(Model(), [""])
+
+
 def test_duplicate_or_nested_names_raise():
     with pytest.raises(ValueError):
         compile_modules(Model(), ["encoder", "encoder"])
@@ -90,3 +95,39 @@ def test_training_steps_equal_the_uncompiled_model(conf):
     for p, q in zip(model.parameters(), reference.parameters()):
         assert p.grad is not None
         torch.testing.assert_close(p, q, rtol=1e-5, atol=1e-6)
+
+
+@pytest.mark.parametrize("collect_stats", [False, True])
+def test_main_worker_compiles_for_training_only(tmp_path, monkeypatch, collect_stats):
+    """AbsTask.main_worker passes the names and the conf, not in collect_stats."""
+    import espnet2.tasks.abs_task as abs_task
+    from espnet2.tasks.diar import DiarizationTask
+
+    calls = []
+    monkeypatch.setattr(
+        abs_task,
+        "compile_modules",
+        lambda model, names, conf: calls.append((type(model).__name__, names, conf)),
+    )
+    cmd = [
+        "--dry_run",
+        "true",
+        "--output_dir",
+        str(tmp_path),
+        "--num_spk",
+        "1",
+        "--torch_compile_modules",
+        "frontend",
+        "encoder",
+        "--torch_compile_conf",
+        "backend=eager",
+    ]
+    if collect_stats:
+        cmd += ["--collect_stats", "true"]
+    DiarizationTask.main(cmd=cmd)
+    if collect_stats:
+        assert calls == []
+    else:
+        assert calls == [
+            ("ESPnetDiarizationModel", ["frontend", "encoder"], {"backend": "eager"})
+        ]

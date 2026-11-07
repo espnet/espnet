@@ -26,11 +26,15 @@ def compile_modules(
         conf: Keyword arguments of torch.compile, e.g. {"mode": "max-autotune"}.
 
     Raises:
-        ValueError: A name is not a submodule of ``model``, a name is given
-            twice, or a name lies below another one (compiling a module and a
-            module inside it would compile the inner one twice).
+        ValueError: A name is empty (the whole model), is not a submodule of
+            ``model``, is given twice, or lies below another one (compiling a
+            module and a module inside it would compile the inner one twice).
     """
     names = list(names)
+    if any(not name for name in names):
+        # get_submodule("") returns the model itself, whose loss and statistics
+        # should stay eager
+        raise ValueError(f"an empty name compiles the whole model: {names}")
     if len(set(names)) != len(names):
         raise ValueError(f"a submodule is named twice: {names}")
     for name in names:
