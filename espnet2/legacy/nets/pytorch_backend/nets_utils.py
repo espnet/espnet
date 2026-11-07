@@ -172,6 +172,11 @@ def make_pad_mask(lengths, xs=None, length_dim=-1, maxlen=None):
 
 
 def _make_pad_mask(lengths, xs=None, length_dim=-1, maxlen=None):
+    """make_pad_mask for the inputs the traceable version does not take.
+
+    That is, list lengths, an xs of more than 3 dimensions, or length_dim > 2.
+    With a tensor of lengths and an xs, the mask is made on the device of xs.
+    """
     if not isinstance(lengths, list) and xs is not None and maxlen is None:
         return _make_pad_mask_on_device(lengths, xs, length_dim)
 
