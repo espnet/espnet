@@ -94,3 +94,9 @@ def test_wav_augment_takes_the_frontend_sampling_rate(tmp_path):
     )
     with pytest.raises(ValueError):
         DiarizationTask.build_model(args)
+
+
+def test_build_model_without_wav_augment():
+    parser = DiarizationTask.get_parser()
+    args = parser.parse_args(["--num_spk", "1", "--encoder_conf", "num_blocks=1"])
+    assert DiarizationTask.build_model(args).wav_augment is None

@@ -90,9 +90,8 @@ class BatchNoiseAugment(torch.nn.Module):
             if fs != self.fs:
                 import librosa
 
-                wav = librosa.resample(
-                    wav.T, orig_sr=fs, target_sr=self.fs, res_type="kaiser_fast"
-                ).T
+                # librosa's default resampler (soxr), installed with librosa
+                wav = librosa.resample(wav.T, orig_sr=fs, target_sr=self.fs).T
             for ch in range(wav.shape[1]):
                 x = wav[:, ch]
                 if x.size == 0:

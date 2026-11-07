@@ -229,3 +229,40 @@ def test_module_can_be_deep_copied_after_loading(tmp_path):
     clone = copy.deepcopy(aug)
     out, _ = clone(torch.randn(1, 2000) * 0.01, None)
     assert out.shape == (1, 2000)
+
+
+def test_repr_names_the_settings(tmp_path):
+    aug = BatchNoiseAugment("noise.scp", noise_apply_prob=0.5, noise_db_range="-5_20")
+    text = repr(aug)
+    assert "noise.scp" in text and "0.5" in text and "(-5.0, 20.0)" in text
+
+
+def test_noise_at_another_rate_is_resampled(tmp_path):
+    """8 kHz noise for 16 kHz speech: twice as many samples in the bank."""
+    pytest.importorskip("librosa")
+    scp = write_noises(tmp_path, [(4000, 1)], fs=8000)
+    aug = BatchNoiseAugment(scp, fs=16000).train()
+    _, _, lengths = aug.noise_bank(torch.device("cpu"))
+    assert abs(int(lengths[0]) - 8000) <= 2
+
+
+def test_empty_noise_is_skipped_and_no_noise_raises(tmp_path):
+    empty = tmp_path / "empty.wav"
+    soundfile.write(empty, np.zeros((0, 1), dtype=np.int16), 16000, subtype="PCM_16")
+    scp = write_noises(tmp_path, [(3000, 1)])
+    with open(scp, "a") as f:
+        f.write(f"empty {empty}\n")
+    aug = BatchNoiseAugment(scp).train()
+    _, _, lengths = aug.noise_bank(torch.device("cpu"))
+    assert lengths.tolist() == [3000]
+
+    only_empty = tmp_path / "only_empty.scp"
+    only_empty.write_text(f"empty {empty}\n")
+    with pytest.raises(RuntimeError):
+        BatchNoiseAugment(str(only_empty)).train()(torch.zeros(1, 100), None)
+
+
+def test_multichannel_speech_is_refused(tmp_path):
+    scp = write_noises(tmp_path, [(3000, 1)])
+    with pytest.raises(ValueError):
+        BatchNoiseAugment(scp).train()(torch.zeros(1, 100, 2), None)
