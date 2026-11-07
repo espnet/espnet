@@ -218,10 +218,14 @@ if ! "${skip_data_prep}"; then
             else
                 _suf=""
             fi
-            # .stage2_done is written last, with the audio format and rate of the dump
-            _done="${data_feats}${_suf}/${dset}/.stage2_done"
+            # .stage2_done is written last, with the audio format and rate of the dump;
+            # a set is skipped only if the files later stages read are still there
+            _dump="${data_feats}${_suf}/${dset}"
+            _done="${_dump}/.stage2_done"
             if "${skip_dumped}" && [ -f "${_done}" ] \
-                    && [ "$(<"${_done}")" = "${audio_format} ${fs}" ]; then
+                    && [ "$(<"${_done}")" = "${audio_format} ${fs}" ] \
+                    && [ -s "${_dump}/wav.scp" ] && [ -s "${_dump}/utt2num_samples" ] \
+                    && [ -s "${_dump}/espnet_rttm" ] && [ -f "${_dump}/feats_type" ]; then
                 log "Skip ${dset}: ${data_feats}${_suf}/${dset} is already dumped"
                 continue
             fi
