@@ -187,19 +187,28 @@ class BatchNoiseAugment(torch.nn.Module):
 
         Row i is bank[start[i] + (offset[i] + j) % n_len[i]] for j < t. The rows
         are written into one pinned int16 tensor, which is copied to ``device``
-        asynchronously.
+        asynchronously. A row whose noise is shorter than the remaining width
+        gets one period of the noise (from the offset) and then copies of what
+        is already written, doubling each time, so every row is a few memory
+        copies.
         """
-        b = len(start)
         pinned = device.type == "cuda"
-        out = torch.empty((b, t), dtype=torch.int16, pin_memory=pinned)
-        for i, (s, n, o) in enumerate(
-            zip(start.tolist(), n_len.tolist(), offset.tolist())
+        out = torch.empty((len(start), t), dtype=torch.int16, pin_memory=pinned)
+        bank_np, out_np = bank.numpy(), out.numpy()
+        for row, s, n, o in zip(
+            out_np, start.tolist(), n_len.tolist(), offset.tolist()
         ):
-            noise = bank[s : s + n]
+            noise = bank_np[s : s + n]
             if n - o >= t:
-                out[i] = noise[o : o + t]
-            else:
-                out[i] = noise[(o + torch.arange(t)) % n]
+                row[:] = noise[o : o + t]
+                continue
+            row[: n - o] = noise[o:]
+            row[n - o : n] = noise[:o]
+            filled = n
+            while filled < t:
+                c = min(filled, t - filled)
+                row[filled : filled + c] = row[:c]
+                filled += c
         return out.to(device, non_blocking=pinned)
 
     def forward(
