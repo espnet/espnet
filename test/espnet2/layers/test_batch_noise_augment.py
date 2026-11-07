@@ -185,3 +185,47 @@ def test_long_noise_uses_every_offset(tmp_path):
         ]
         seen.add(int(torch.stack(corr).argmax()))
     assert seen == {0, 1}
+
+
+def test_concurrent_replicas_load_the_noise_once(tmp_path, monkeypatch):
+    """Replicas running in threads (DataParallel) read the noise list once."""
+    import copy
+    import threading
+    import time
+
+    scp = write_noises(tmp_path, [(8000, 1)])
+    aug = BatchNoiseAugment(scp).train()
+    calls = []
+    load = aug._load
+
+    def slow_load():
+        calls.append(threading.get_ident())
+        time.sleep(0.2)  # long enough for every thread to arrive meanwhile
+        return load()
+
+    monkeypatch.setattr(aug, "_load", slow_load)
+    replicas = [copy.copy(aug) for _ in range(4)]
+    results = [None] * len(replicas)
+
+    def run(i):
+        results[i] = replicas[i].noise_bank(torch.device("cpu"))
+
+    threads = [threading.Thread(target=run, args=(i,)) for i in range(len(replicas))]
+    for t in threads:
+        t.start()
+    for t in threads:
+        t.join()
+    assert len(calls) == 1
+    assert all(r[0] is results[0][0] for r in results)
+
+
+def test_module_can_be_deep_copied_after_loading(tmp_path):
+    """No lock or other non-copyable state on the module."""
+    import copy
+
+    scp = write_noises(tmp_path, [(8000, 1)])
+    aug = BatchNoiseAugment(scp).train()
+    aug(torch.randn(1, 2000) * 0.01, None)
+    clone = copy.deepcopy(aug)
+    out, _ = clone(torch.randn(1, 2000) * 0.01, None)
+    assert out.shape == (1, 2000)

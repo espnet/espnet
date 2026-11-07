@@ -16,6 +16,7 @@ by the replicas of DataParallel. Used in training only: in eval mode, and when
 """
 
 import logging
+import threading
 from typing import Dict, Optional, Tuple
 
 import numpy as np
@@ -23,6 +24,10 @@ import soundfile
 import torch
 
 from espnet2.fileio.read_text import read_2columns_text
+
+# Serialises the first load: DataParallel runs its replicas in threads, which
+# share the cache. Module level, so that the module stays deep-copyable.
+_LOAD_LOCK = threading.Lock()
 
 
 class BatchNoiseAugment(torch.nn.Module):
@@ -114,11 +119,15 @@ class BatchNoiseAugment(torch.nn.Module):
     def noise_bank(self, device: torch.device) -> Tuple[torch.Tensor, ...]:
         """(bank int16, starts, lengths) on ``device``, loaded once per device."""
         key = str(device)
-        if key not in self._cache:
-            if "host" not in self._cache:
-                self._cache["host"] = self._load()
-            self._cache[key] = tuple(t.to(device) for t in self._cache["host"])
-        return self._cache[key]
+        bank = self._cache.get(key)
+        if bank is None:
+            with _LOAD_LOCK:
+                if key not in self._cache:
+                    if "host" not in self._cache:
+                        self._cache["host"] = self._load()
+                    self._cache[key] = tuple(t.to(device) for t in self._cache["host"])
+                bank = self._cache[key]
+        return bank
 
     def _non_silent_power(self, x: torch.Tensor, valid: torch.Tensor) -> torch.Tensor:
         """Mean power of the non-silent samples of each row, as detect_non_silence.
