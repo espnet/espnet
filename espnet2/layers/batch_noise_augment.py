@@ -6,16 +6,17 @@ the utterance, mixed at an SNR drawn uniformly from ``noise_db_range`` relative
 to the power of the non-silent part of the speech, then the result divided by
 its peak if that exceeds 1), but done for the whole batch on the device of the
 batch, typically the GPU, instead of per utterance on the CPU in the data loader
-workers. All noise recordings are loaded once, as int16, into one buffer on that
-device.
+workers.
 
-Used in training only: in eval mode, and when ``apply_prob`` is 0, the input is
-returned unchanged and the noise is never loaded. The buffer is not saved in
-the state dict.
+All noise recordings are loaded once into one int16 bank, kept on the host and
+copied once to each device that uses it. The bank is a cache, not a buffer: it
+is not in the state dict, not broadcast by DistributedDataParallel, and shared
+by the replicas of DataParallel. Used in training only: in eval mode, and when
+``noise_apply_prob`` is 0, the input is returned unchanged and nothing is loaded.
 """
 
 import logging
-from typing import Optional, Tuple
+from typing import Dict, Optional, Tuple
 
 import numpy as np
 import soundfile
@@ -59,86 +60,101 @@ class BatchNoiseAugment(torch.nn.Module):
         if len(bounds) != 2 or bounds[0] > bounds[1]:
             raise ValueError(f"noise_db_range must be 'low_high': {noise_db_range}")
         self.noise_db_low, self.noise_db_high = bounds
-        self.fs = fs
+        self.fs = int(fs)
         self.silence_threshold = silence_threshold
         self.frame_length = frame_length
         self.frame_shift = frame_shift
-        # filled on the first forward pass in training mode
-        self.register_buffer(
-            "bank", torch.empty(0, dtype=torch.int16), persistent=False
-        )
-        self.register_buffer(
-            "starts", torch.empty(0, dtype=torch.long), persistent=False
-        )
-        self.register_buffer(
-            "lengths", torch.empty(0, dtype=torch.long), persistent=False
-        )
+        # Loaded on the first training step: "host" -> (bank, starts, lengths) on
+        # the CPU, and one copy per device. A plain dict, not buffers: the
+        # replicas of DataParallel share it (they copy the module's attributes
+        # shallowly), and DistributedDataParallel does not broadcast it.
+        self._cache: Dict[str, Tuple[torch.Tensor, ...]] = {}
 
     def extra_repr(self) -> str:
         return (
             f"noise_scp={self.noise_scp}, noise_apply_prob={self.noise_apply_prob}, "
-            f"noise_db_range=({self.noise_db_low}, {self.noise_db_high})"
+            f"noise_db_range=({self.noise_db_low}, {self.noise_db_high}), fs={self.fs}"
         )
 
-    def _load(self, device: torch.device):
+    def _load(self) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
         chunks, lengths = [], []
         for path in read_2columns_text(self.noise_scp).values():
-            wav, fs = soundfile.read(path, dtype="int16", always_2d=True)
+            # read as float whatever the file's format (an int16 read of a
+            # floating-point file would not be scaled)
+            wav, fs = soundfile.read(path, dtype="float32", always_2d=True)
             if fs != self.fs:
                 import librosa
 
                 wav = librosa.resample(
-                    wav.T.astype(np.float32) / 32768,
-                    orig_sr=fs,
-                    target_sr=self.fs,
-                    res_type="kaiser_fast",
-                )
-                wav = np.clip(np.round(wav * 32768), -32768, 32767).astype(np.int16).T
+                    wav.T, orig_sr=fs, target_sr=self.fs, res_type="kaiser_fast"
+                ).T
             for ch in range(wav.shape[1]):
-                if wav.shape[0] > 0:
-                    chunks.append(np.ascontiguousarray(wav[:, ch]))
-                    lengths.append(wav.shape[0])
+                x = wav[:, ch]
+                if x.size == 0:
+                    continue
+                # the mixing rescales the noise to the SNR, so its level is free:
+                # use the int16 range fully
+                peak = np.abs(x).max()
+                if peak > 0:
+                    x = x * (32767.0 / peak)
+                chunks.append(np.round(x).astype(np.int16))
+                lengths.append(x.size)
         if not chunks:
             raise RuntimeError(f"no noise in {self.noise_scp}")
         lengths = torch.tensor(lengths, dtype=torch.long)
-        self.bank = torch.from_numpy(np.concatenate(chunks)).to(device)
-        self.lengths = lengths.to(device)
-        self.starts = (torch.cumsum(lengths, 0) - lengths).to(device)
+        bank = torch.from_numpy(np.concatenate(chunks))
+        starts = torch.cumsum(lengths, 0) - lengths
         logging.info(
             f"BatchNoiseAugment: {len(chunks)} noises, "
             f"{lengths.sum().item() / self.fs / 3600:.1f} h, "
-            f"{self.bank.numel() * 2 / 1e9:.1f} GB on {device}"
+            f"{bank.numel() * 2 / 1e9:.1f} GB"
         )
+        return bank, starts, lengths
+
+    def noise_bank(self, device: torch.device) -> Tuple[torch.Tensor, ...]:
+        """(bank int16, starts, lengths) on ``device``, loaded once per device."""
+        key = str(device)
+        if key not in self._cache:
+            if "host" not in self._cache:
+                self._cache["host"] = self._load()
+            self._cache[key] = tuple(t.to(device) for t in self._cache["host"])
+        return self._cache[key]
 
     def _non_silent_power(self, x: torch.Tensor, valid: torch.Tensor) -> torch.Tensor:
         """Mean power of the non-silent samples of each row, as detect_non_silence.
 
-        x: (B, T) float, valid: (B, T) bool. Returns (B,).
+        Each row is treated as detect_non_silence treats the utterance alone
+        (its own length, not the batch width).
+
+        x: (B, T) float, valid: (B, T) bool (a prefix of each row). Returns (B,).
         """
         b, t = x.shape
         fl, fsh = self.frame_length, self.frame_shift
-        if t < fl:  # detect_non_silence treats a short signal as all non-silent
-            n = valid.sum(1).clamp(min=1)
-            return (x.pow(2) * valid).sum(1) / n
-        # frames padded at the end with zeros (framing(..., padded=True))
-        n_frames = -(-(t - fl) // fsh) + 1
-        padded = torch.nn.functional.pad(x * valid, (0, (n_frames - 1) * fsh + fl - t))
-        frame_power = padded.unfold(1, fl, fsh).pow(2).mean(-1)  # (B, F)
-        # frames that start inside each row
-        length = valid.sum(1, keepdim=True)
-        frame_valid = (torch.arange(n_frames, device=x.device) * fsh) < length
-        mean_power = (frame_power * frame_valid).sum(1, keepdim=True) / frame_valid.sum(
-            1, keepdim=True
-        ).clamp(min=1)
-        active = frame_power / mean_power.clamp(min=1e-30) > self.silence_threshold
-        active = active & frame_valid
-        # all-zero rows: every sample counts (and their power is 0)
-        active = torch.where(mean_power > 0, active, frame_valid)
-        # sample i takes the decision of frame i // shift; the tail repeats the last
-        idx = (torch.arange(t, device=x.device) // fsh).clamp(max=n_frames - 1)
-        mask = active[:, idx] & valid
-        n = mask.sum(1).clamp(min=1)
-        return (x.pow(2) * mask).sum(1) / n
+        length = valid.sum(1)  # (B,)
+        x = x * valid
+        # frames of each utterance alone: framing(..., centered=False, padded=True)
+        n_frames = torch.where(
+            length >= fl,
+            torch.div(length - fl + fsh - 1, fsh, rounding_mode="floor") + 1,
+            torch.zeros_like(length),
+        )
+        f_max = -(-(t - fl) // fsh) + 1 if t >= fl else 1
+        padded = torch.nn.functional.pad(x, (0, (f_max - 1) * fsh + fl - t))
+        frame_power = padded.unfold(1, fl, fsh).pow(2).mean(-1)[:, :f_max]  # (B, F)
+        frame_valid = torch.arange(f_max, device=x.device) < n_frames[:, None]
+        mean_power = (frame_power * frame_valid).sum(1, keepdim=True) / n_frames[
+            :, None
+        ].clamp(min=1)
+        active = (frame_power / mean_power.clamp(min=1e-30)) > self.silence_threshold
+        # sample i takes the decision of frame i // shift; the tail repeats the
+        # last frame (np.pad(mode="edge"))
+        idx = torch.div(torch.arange(t, device=x.device), fsh, rounding_mode="floor")
+        idx = torch.minimum(idx[None, :], (n_frames - 1).clamp(min=0)[:, None])
+        mask = torch.gather(active, 1, idx)
+        # shorter than one frame, or all zero: every sample counts
+        whole = (n_frames == 0)[:, None] | (mean_power == 0)
+        mask = torch.where(whole, torch.ones_like(mask), mask) & valid
+        return (x.pow(2) * mask).sum(1) / mask.sum(1).clamp(min=1)
 
     def forward(
         self, speech: torch.Tensor, speech_lengths: Optional[torch.Tensor] = None
@@ -151,8 +167,7 @@ class BatchNoiseAugment(torch.nn.Module):
             return speech, speech_lengths
         if speech.dim() != 2:
             raise ValueError(f"speech must be (Batch, Time): {tuple(speech.shape)}")
-        if self.bank.numel() == 0:
-            self._load(speech.device)
+        bank, starts, lengths = self.noise_bank(speech.device)
 
         b, t = speech.shape
         device = speech.device
@@ -165,14 +180,14 @@ class BatchNoiseAugment(torch.nn.Module):
         power = self._non_silent_power(x, valid)
 
         # a noise, an offset and an SNR per utterance
-        which = torch.randint(len(self.lengths), (b,), device=device)
-        n_len = self.lengths[which]
-        # long noise: an offset where the whole utterance fits;
+        which = torch.randint(len(lengths), (b,), device=device)
+        n_len = lengths[which]
+        # long noise: any offset where the whole utterance fits (n_len - t + 1);
         # short noise: any offset, repeated (np.pad(mode="wrap") in the preprocessor)
-        span = torch.clamp(n_len - t, min=0) + (n_len < t) * n_len
-        offset = (torch.rand(b, device=device) * span.clamp(min=1)).long()
+        span = torch.where(n_len >= t, n_len - t + 1, n_len)
+        offset = (torch.rand(b, device=device) * span).long().clamp(max=span - 1)
         pos = (offset[:, None] + torch.arange(t, device=device)) % n_len[:, None]
-        noise = self.bank[self.starts[which][:, None] + pos].float() / 32768
+        noise = bank[starts[which][:, None] + pos].float() / 32768
         noise = noise * valid
 
         n = valid.sum(1).clamp(min=1)

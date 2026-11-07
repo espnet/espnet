@@ -28,7 +28,7 @@ def test_eval_mode_and_zero_prob_leave_speech_unchanged(tmp_path):
     aug = BatchNoiseAugment(scp, noise_apply_prob=1.0).eval()
     out, out_lengths = aug(speech, lengths)
     assert out is speech and out_lengths is lengths
-    assert aug.bank.numel() == 0  # never loaded outside training
+    assert aug._cache == {}  # never loaded outside training
 
     aug = BatchNoiseAugment(scp, noise_apply_prob=0.0).train()
     out, _ = aug(speech, lengths)
@@ -72,8 +72,10 @@ def test_multichannel_noise_gives_one_noise_per_channel(tmp_path):
     scp = write_noises(tmp_path, [(5000, 3), (4000, 1)])
     aug = BatchNoiseAugment(scp).train()
     aug(torch.randn(1, 2000) * 0.01, None)
-    assert aug.lengths.tolist() == [5000, 5000, 5000, 4000]
-    assert aug.bank.dtype == torch.int16 and aug.bank.numel() == 19000
+    bank, starts, lengths = aug.noise_bank(torch.device("cpu"))
+    assert lengths.tolist() == [5000, 5000, 5000, 4000]
+    assert starts.tolist() == [0, 5000, 10000, 15000]
+    assert bank.dtype == torch.int16 and bank.numel() == 19000
 
 
 @pytest.mark.parametrize("t", [800, 5000, 16000])
@@ -105,10 +107,81 @@ def test_noise_is_not_in_the_state_dict(tmp_path):
     scp = write_noises(tmp_path, [(8000, 1)])
     aug = BatchNoiseAugment(scp).train()
     aug(torch.randn(1, 2000) * 0.01, None)
-    assert aug.bank.numel() > 0
+    assert "cpu" in aug._cache
     assert len(aug.state_dict()) == 0
+    # not a buffer: DistributedDataParallel does not broadcast it
+    assert list(aug.buffers()) == []
 
 
 def test_bad_db_range(tmp_path):
     with pytest.raises(ValueError):
         BatchNoiseAugment("unused.scp", noise_db_range="10_0")
+
+
+@pytest.mark.parametrize("lengths", [[16000, 9000, 5000, 1500, 700], [3000, 2999]])
+def test_non_silent_power_of_padded_rows(tmp_path, lengths):
+    """Each padded row: the power of the utterance alone (detect_non_silence)."""
+    scp = write_noises(tmp_path, [(1000, 1)])
+    aug = BatchNoiseAugment(scp)
+    rng = np.random.default_rng(2)
+    t = max(lengths)
+    x = np.zeros((len(lengths), t), dtype=np.float32)
+    for i, n in enumerate(lengths):
+        row = rng.normal(size=n).astype(np.float32) * 0.1
+        row[n // 2 :] *= 0.001  # ends nearly silent
+        x[i, :n] = row
+    valid = torch.arange(t) < torch.tensor(lengths)[:, None]
+    expected = []
+    for i, n in enumerate(lengths):
+        row = x[i, :n]
+        mask = detect_non_silence(row[None])[0]
+        expected.append((row[mask] ** 2).mean())
+    got = aug._non_silent_power(torch.from_numpy(x), valid)
+    np.testing.assert_allclose(got.numpy(), np.array(expected), rtol=1e-4)
+
+
+def test_float_noise_is_not_lost(tmp_path):
+    """A floating-point WAV of small amplitude keeps its waveform in the bank."""
+    rng = np.random.default_rng(3)
+    wav = (rng.uniform(-1, 1, size=4000) * 1e-3).astype(np.float32)
+    soundfile.write(tmp_path / "float.wav", wav, 16000, subtype="FLOAT")
+    (tmp_path / "noise.scp").write_text(f"f {tmp_path / 'float.wav'}\n")
+    aug = BatchNoiseAugment(str(tmp_path / "noise.scp")).train()
+    bank, _, _ = aug.noise_bank(torch.device("cpu"))
+    assert int(bank.abs().max()) == 32767  # peak-normalised, not rounded to 0
+    corr = np.corrcoef(bank.numpy().astype(np.float64), wav)[0, 1]
+    assert corr > 0.9999
+
+
+def test_replicas_share_the_loaded_noise(tmp_path):
+    """A shallow copy (as DataParallel replicates) reuses and fills the cache."""
+    import copy
+
+    scp = write_noises(tmp_path, [(8000, 1)])
+    aug = BatchNoiseAugment(scp).train()
+    replica = copy.copy(aug)
+    replica(torch.randn(1, 2000) * 0.01, None)
+    assert "cpu" in aug._cache  # the original sees what the replica loaded
+
+
+def test_long_noise_uses_every_offset(tmp_path):
+    """A noise one sample longer than the batch: both offsets 0 and 1 occur."""
+    rng = np.random.default_rng(4)
+    t = 64
+    wav = (rng.uniform(-0.5, 0.5, size=t + 1) * 32767).astype(np.int16)
+    soundfile.write(tmp_path / "n.wav", wav, 16000, subtype="PCM_16")
+    (tmp_path / "noise.scp").write_text(f"n {tmp_path / 'n.wav'}\n")
+    aug = BatchNoiseAugment(str(tmp_path / "noise.scp"), noise_db_range="0").train()
+    torch.manual_seed(0)
+    speech = torch.full((200, t), 0.01)
+    added = aug(speech, None)[0] - speech
+    bank, _, _ = aug.noise_bank(torch.device("cpu"))
+    ref = bank.float()
+    seen = set()
+    for row in added:
+        corr = [
+            torch.nn.functional.cosine_similarity(row, ref[o : o + t], dim=0)
+            for o in (0, 1)
+        ]
+        seen.add(int(torch.stack(corr).argmax()))
+    assert seen == {0, 1}

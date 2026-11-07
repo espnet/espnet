@@ -1,6 +1,7 @@
 import argparse
 from typing import Callable, Collection, Dict, List, Optional, Tuple
 
+import humanfriendly
 import numpy as np
 import torch
 from typeguard import typechecked
@@ -250,7 +251,25 @@ class DiarizationTask(AbsTask):
         # 2a. Data augmentation for the waveform, in the model (training only)
         if getattr(args, "wav_augment", None) is not None:
             wav_augment_class = wav_augment_choices.get_class(args.wav_augment)
-            wav_augment = wav_augment_class(**args.wav_augment_conf)
+            wav_augment_conf = dict(args.wav_augment_conf)
+            # the noise is mixed at the rate of the speech: the frontend's fs
+            frontend_fs = (args.frontend_conf or {}).get("fs")
+            if frontend_fs is not None:
+                frontend_fs = humanfriendly.parse_size(str(frontend_fs))
+                if "fs" not in wav_augment_conf:
+                    wav_augment_conf["fs"] = frontend_fs
+                elif humanfriendly.parse_size(str(wav_augment_conf["fs"])) != (
+                    frontend_fs
+                ):
+                    raise ValueError(
+                        f"wav_augment_conf fs={wav_augment_conf['fs']} differs from "
+                        f"frontend_conf fs={args.frontend_conf['fs']}"
+                    )
+            if "fs" in wav_augment_conf:
+                wav_augment_conf["fs"] = humanfriendly.parse_size(
+                    str(wav_augment_conf["fs"])
+                )
+            wav_augment = wav_augment_class(**wav_augment_conf)
         else:
             wav_augment = None
 

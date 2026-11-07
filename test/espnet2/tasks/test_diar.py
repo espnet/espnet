@@ -60,3 +60,37 @@ def test_build_model_with_wav_augment(tmp_path):
     assert isinstance(model.wav_augment, BatchNoiseAugment)
     # the noise list is read only on the first training step
     assert not (tmp_path / "noise.scp").exists()
+
+
+def test_wav_augment_takes_the_frontend_sampling_rate(tmp_path):
+    """Without wav_augment_conf fs, the noise is mixed at the frontend's fs."""
+    parser = DiarizationTask.get_parser()
+    common = ["--num_spk", "1", "--encoder_conf", "num_blocks=1"]
+    args = parser.parse_args(
+        common
+        + [
+            "--frontend_conf",
+            "fs=8k",
+            "--wav_augment",
+            "batch_noise",
+            "--wav_augment_conf",
+            f"noise_scp={tmp_path / 'noise.scp'}",
+        ]
+    )
+    assert DiarizationTask.build_model(args).wav_augment.fs == 8000
+
+    args = parser.parse_args(
+        common
+        + [
+            "--frontend_conf",
+            "fs=8k",
+            "--wav_augment",
+            "batch_noise",
+            "--wav_augment_conf",
+            f"noise_scp={tmp_path / 'noise.scp'}",
+            "--wav_augment_conf",
+            "fs=16000",
+        ]
+    )
+    with pytest.raises(ValueError):
+        DiarizationTask.build_model(args)

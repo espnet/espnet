@@ -78,14 +78,14 @@ def test_single_channel_model(
     loss, stats, weight = diar_model(**kwargs)
 
 
-def test_wav_augment_is_applied_in_training_only():
-    """The model applies wav_augment to the waveform in training mode only."""
+def test_wav_augment_is_applied_in_training_only(monkeypatch):
+    """In training the encoder gets wav_augment's output; in eval the input."""
     calls = []
 
     class Recorder(torch.nn.Module):
         def forward(self, speech, speech_lengths):
             calls.append(speech.shape)
-            return speech + 0.0, speech_lengths
+            return speech + 1.0, speech_lengths
 
     model = ESPnetDiarizationModel(
         label_aggregator=label_aggregator,
@@ -97,8 +97,17 @@ def test_wav_augment_is_applied_in_training_only():
         normalize=None,
         wav_augment=Recorder(),
     )
+    seen = []
+    encode = model.encode
+
+    def recording_encode(speech, speech_lengths, *args):
+        seen.append((speech.clone(), speech_lengths.clone()))
+        return encode(speech, speech_lengths, *args)
+
+    monkeypatch.setattr(model, "encode", recording_encode)
+    speech = torch.randn(2, 300)
     kwargs = {
-        "speech": torch.randn(2, 300),
+        "speech": speech,
         "speech_lengths": torch.LongTensor([300, 200]),
         "spk_labels": torch.randint(high=2, size=(2, 300, 2)),
         "spk_labels_lengths": torch.LongTensor([300, 200]),
@@ -106,6 +115,8 @@ def test_wav_augment_is_applied_in_training_only():
     model.train()
     model(**kwargs)
     assert calls == [torch.Size([2, 300])]
+    torch.testing.assert_close(seen[0][0], speech + 1.0)
     model.eval()
     model(**kwargs)
     assert len(calls) == 1
+    torch.testing.assert_close(seen[1][0], speech)
