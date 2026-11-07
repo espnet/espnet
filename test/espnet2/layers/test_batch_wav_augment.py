@@ -445,7 +445,7 @@ def test_batch_equals_each_utterance_alone_with_rir_and_noise(tmp_path):
         speech[b, :n] = torch.from_numpy(rng.normal(size=n).astype(np.float32) * 0.05)
     valid = torch.arange(16000)[None] < torch.tensor(lengths)[:, None]
     torch.manual_seed(0)
-    draws = aug.draw(3, 16000, torch.device("cpu"))
+    draws = aug.draw(torch.tensor(lengths))
     batched = aug.apply(speech, valid, draws)
     for b, n in enumerate(lengths):
         one = {k: v[b : b + 1] for k, v in draws.items()}
@@ -505,3 +505,159 @@ def test_string_noise_db_range_does_not_warn(tmp_path, caplog):
     with caplog.at_level(logging.WARNING):
         BatchWavAugment(str(tmp_path / "noise.scp"), noise_db_range="13_15")
     assert "quote a range" not in caplog.text
+
+
+# --- Noise offsets by the length of each utterance ---------------------------
+
+
+def test_noise_offset_by_the_utterance_length_not_the_batch_width(tmp_path):
+    """A 5000-sample utterance in a 16000-sample batch, with a 9000-sample noise.
+
+    CommonPreprocessor gives the utterance alone a contiguous stretch of the
+    noise, starting at 0..4000; the noise is not repeated. The widest row, for
+    which the noise is shorter, starts anywhere in the noise.
+    """
+    scp = write_noises(tmp_path, [(9000, 1)])
+    aug = BatchWavAugment(scp, noise_db_range="0").train()
+    torch.manual_seed(0)
+    offsets = torch.stack(
+        [aug.draw(torch.tensor([16000, 5000]))["noise_offset"] for _ in range(2000)]
+    )
+    assert int(offsets[:, 1].min()) >= 0 and 3900 < int(offsets[:, 1].max()) <= 4000
+    assert int(offsets[:, 0].max()) > 4000
+
+    # the noise added to the short row is one contiguous stretch of the bank
+    bank, _, _ = aug.bank("noise", torch.device("cpu"))
+    ref = bank.float()
+    speech = torch.zeros(2, 16000)
+    speech[:, :5000] = 0.01
+    speech[0] = 0.01
+    for seed in range(20):
+        torch.manual_seed(seed)
+        added = (aug(speech, torch.tensor([16000, 5000]))[0] - speech)[1, :5000]
+        best = max(
+            float(torch.nn.functional.cosine_similarity(added, ref[o : o + 5000], 0))
+            for o in range(0, 4001)
+        )
+        assert best > 0.9999, (seed, best)
+
+
+def test_noise_offsets_are_uniform_over_the_fitting_starts(tmp_path):
+    """noise_offset of a long noise takes every value of 0..n_len-length."""
+    scp = write_noises(tmp_path, [(105, 1)])
+    aug = BatchWavAugment(scp).train()
+    torch.manual_seed(0)
+    offsets = torch.cat(
+        [aug.draw(torch.tensor([100]))["noise_offset"] for _ in range(600)]
+    )
+    assert sorted(set(offsets.tolist())) == [0, 1, 2, 3, 4, 5]
+
+
+# --- Reverberation edge cases -------------------------------------------------
+
+
+def _rir_aug(tmp_path, rir, fs=16000, **kwargs):
+    path = _write(tmp_path / "rir.wav", np.asarray(rir, dtype=np.float32), fs=fs)
+    return BatchWavAugment(rir_scp=_scp(tmp_path, "rir", path), **kwargs).train()
+
+
+def _reverberate(aug, speech, which=0):
+    b, t = speech.shape
+    valid = torch.ones(b, t, dtype=torch.bool)
+    draws = dict(
+        rir_apply=torch.ones(b, dtype=torch.bool),
+        rir_which=torch.full((b,), which),
+    )
+    return aug.apply(speech, valid, draws)
+
+
+def test_delta_rir_leaves_speech_unchanged(tmp_path):
+    aug = _rir_aug(tmp_path, [1.0, 0.0, 0.0, 0.0])
+    speech = torch.from_numpy(np.random.default_rng(8).normal(size=(2, 3000))) * 0.05
+    speech = speech.float()
+    torch.testing.assert_close(_reverberate(aug, speech), speech, atol=1e-6, rtol=1e-5)
+
+
+def test_delayed_delta_rir_shifts_by_one_sample(tmp_path):
+    """speech [1, 2, 3, 4] with [0, 1]: the first 4 samples are [0, 1, 2, 3].
+
+    The power is then scaled back to the input's, so the result is checked up
+    to that factor.
+    """
+    aug = _rir_aug(tmp_path, [0.0, 1.0])
+    speech = torch.tensor([[1.0, 2.0, 3.0, 4.0]]) * 0.1
+    out = _reverberate(aug, speech)[0]
+    assert abs(float(out[0])) < 1e-6
+    torch.testing.assert_close(out / out[1], torch.tensor([0.0, 1.0, 2.0, 3.0]))
+
+
+def test_rir_longer_than_speech(tmp_path):
+    """A 5000-sample impulse response on 1000 samples: np.convolve(...)[:1000]."""
+    rng = np.random.default_rng(9)
+    rir = (rng.normal(size=5000) * np.exp(-np.arange(5000) / 800.0)).astype(np.float32)
+    aug = _rir_aug(tmp_path, rir)
+    x = (rng.normal(size=1000) * 0.05).astype(np.float32)
+    out = _reverberate(aug, torch.from_numpy(x)[None])[0].double().numpy()
+    expected = np.convolve(x.astype(np.float64), rir.astype(np.float64))[:1000]
+    expected *= np.linalg.norm(out) / np.linalg.norm(expected)
+    np.testing.assert_allclose(out, expected, atol=1e-5 * np.abs(expected).max())
+
+
+def test_multichannel_rir_gives_one_rir_per_channel(tmp_path):
+    """Channel 0 is a delta and channel 1 a one-sample delay: two RIRs."""
+    rir = np.zeros((4, 2), dtype=np.float32)
+    rir[0, 0] = 1.0
+    rir[1, 1] = 1.0
+    path = _write(tmp_path / "rir2.wav", rir)
+    aug = BatchWavAugment(rir_scp=_scp(tmp_path, "rir", path)).train()
+    _, _, lengths = aug.bank("rir", torch.device("cpu"))
+    assert lengths.tolist() == [4, 4]
+    speech = torch.tensor([[1.0, 2.0, 3.0, 4.0]]) * 0.1
+    torch.testing.assert_close(_reverberate(aug, speech, which=0), speech)
+    shifted = _reverberate(aug, speech, which=1)[0]
+    torch.testing.assert_close(shifted / shifted[1], torch.tensor([0.0, 1.0, 2.0, 3.0]))
+
+
+def test_rir_at_another_rate_is_resampled(tmp_path):
+    """An 8 kHz impulse response of 400 samples for 16 kHz speech: about 800."""
+    pytest.importorskip("librosa")
+    rir = np.exp(-np.arange(400) / 50.0).astype(np.float32)
+    aug = _rir_aug(tmp_path, rir, fs=8000)  # the module runs at 16 kHz
+    _, _, lengths = aug.bank("rir", torch.device("cpu"))
+    assert abs(int(lengths[0]) - 800) <= 2
+
+
+def test_rir_apply_prob_zero_does_not_load_the_rirs(tmp_path, monkeypatch):
+    scp = write_noises(tmp_path, [(8000, 1)])
+    aug = BatchWavAugment(
+        noise_scp=scp, rir_scp=str(tmp_path / "missing.scp"), rir_apply_prob=0.0
+    ).train()
+    load = aug._load
+
+    def no_rir(kind):
+        assert kind != "rir", "the impulse responses were loaded"
+        return load(kind)
+
+    monkeypatch.setattr(aug, "_load", no_rir)
+    speech = torch.randn(2, 4000) * 0.01
+    out, _ = aug(speech, None)
+    assert not torch.allclose(out, speech)  # the noise is still added
+    assert "rir_apply" not in aug.draw(torch.tensor([4000, 4000]))
+
+
+def test_rir_apply_prob_one_reverberates_every_row(tmp_path):
+    aug = _rir_aug(tmp_path, [0.0, 1.0], rir_apply_prob=1.0)
+    torch.manual_seed(0)
+    assert bool(aug.draw(torch.full((64,), 100))["rir_apply"].all())
+    speech = torch.rand(8, 100) * 0.1 + 0.05
+    out, _ = aug(speech, None)
+    assert torch.all(out[:, 0].abs() < 1e-6)  # every row is delayed by a sample
+
+
+def test_draws_stay_on_the_host_except_the_offsets(tmp_path):
+    """The apply flags are tested on the host: no wait for the device."""
+    scp = write_noises(tmp_path, [(8000, 1)])
+    aug = BatchWavAugment(noise_scp=scp, rir_scp=None).train()
+    draws = aug.draw(torch.tensor([4000, 3000]))
+    for key in ("noise_apply", "noise_which", "snr", "noise_offset"):
+        assert draws[key].device.type == "cpu", key

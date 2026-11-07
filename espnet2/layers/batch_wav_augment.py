@@ -220,7 +220,7 @@ class BatchWavAugment(torch.nn.Module):
 
         Row i is bank[start[i] + (offset[i] + j) % n_len[i]] for j < t. The rows
         are written into one pinned int16 tensor, which is copied to ``device``
-        asynchronously. A row whose noise is shorter than the remaining width
+        asynchronously. A row whose noise from the offset is shorter than t
         gets one period of the noise (from the offset) and then copies of what
         is already written, doubling each time, so every row is a few memory
         copies.
@@ -232,12 +232,13 @@ class BatchWavAugment(torch.nn.Module):
             out_np, start.tolist(), n_len.tolist(), offset.tolist()
         ):
             noise = bank_np[s : s + n]
-            if n - o >= t:
-                row[:] = noise[o : o + t]
-                continue
-            row[: n - o] = noise[o:]
-            row[n - o : n] = noise[:o]
-            filled = n
+            # row[j] = noise[(o + j) % n]: the rest of the noise from the offset,
+            # then its start, then copies of the first period
+            head = min(n - o, t)
+            row[:head] = noise[o : o + head]
+            tail = min(o, t - head)
+            row[head : head + tail] = noise[:tail]
+            filled = head + tail
             while filled < t:
                 c = min(filled, t - filled)
                 row[filled : filled + c] = row[:c]
@@ -245,44 +246,53 @@ class BatchWavAugment(torch.nn.Module):
         return out.to(device, non_blocking=pinned)
 
     def _impulse_responses(self, which: torch.Tensor, device: torch.device):
-        """Return the impulse responses ``which`` as a zero-padded (B, L) batch."""
+        """Return the impulse responses ``which`` (CPU) as a padded (B, L) batch."""
+        # The batch width comes from the host copy of the lengths, so it does not
+        # wait for the GPU.
+        width = int(self.bank("rir", torch.device("cpu"))[2][which].max())
         bank_device = device if self.keep_on_device else torch.device("cpu")
         bank, starts, lengths = self.bank("rir", bank_device)
         which = which.to(bank_device)
         n_len = lengths[which]
-        width = int(n_len.max())
         pos = torch.arange(width, device=bank_device)
         idx = (starts[which][:, None] + pos).clamp(max=len(bank) - 1)
         rirs = bank[idx] * (pos < n_len[:, None])
         pinned = device.type == "cuda" and not self.keep_on_device
         return (rirs.pin_memory() if pinned else rirs).to(device, non_blocking=pinned)
 
-    def draw(self, batch_size: int, width: int, device: torch.device) -> Dict:
+    def draw(self, lengths: torch.Tensor) -> Dict:
         """Draw the random choices of a batch: what to apply, which and where.
 
-        Returns a dict of (B,) tensors: rir_apply, rir_which, noise_apply,
-        noise_which, noise_offset and snr (dB). A long noise starts at any
-        offset where the whole utterance fits (n_len - width + 1 offsets); a
-        short noise starts at any offset and repeats.
+        ``lengths`` (B,) holds the number of samples of each utterance. Returns a
+        dict of (B,) tensors: rir_apply, rir_which, noise_apply, noise_which and
+        snr (dB) on the CPU, and noise_offset on the device of ``lengths``. As in
+        CommonPreprocessor, the noise is cut for each utterance by its own
+        length: a noise at least as long as the utterance starts at any offset
+        where the whole utterance fits (n_len - length + 1 offsets); a shorter
+        noise starts at any offset and repeats.
         """
+        batch_size = len(lengths)
         draws = {}
         if self.rir_apply_prob > 0:
             _, _, rir_lengths = self.bank("rir", torch.device("cpu"))
             draws["rir_apply"] = torch.rand(batch_size) < self.rir_apply_prob
             draws["rir_which"] = torch.randint(len(rir_lengths), (batch_size,))
         if self.noise_apply_prob > 0:
-            _, _, lengths = self.bank("noise", torch.device("cpu"))
-            which = torch.randint(len(lengths), (batch_size,))
-            n_len = lengths[which]
-            span = torch.where(n_len >= width, n_len - width + 1, n_len)
-            offset = (torch.rand(batch_size) * span).long().clamp(max=span - 1)
+            _, _, noise_lengths = self.bank("noise", torch.device("cpu"))
+            which = torch.randint(len(noise_lengths), (batch_size,))
+            u = torch.rand(batch_size)
             draws["noise_apply"] = torch.rand(batch_size) < self.noise_apply_prob
             draws["noise_which"] = which
-            draws["noise_offset"] = offset
             draws["snr"] = torch.empty(batch_size).uniform_(
                 self.noise_db_low, self.noise_db_high
             )
-        return {k: v.to(device) for k, v in draws.items()}
+            # The offset is computed where the lengths are, so lengths on the
+            # GPU are not copied back to the host.
+            n_len = noise_lengths[which].to(lengths.device)
+            span = torch.where(n_len >= lengths, n_len - lengths + 1, n_len)
+            offset = (u.to(lengths.device) * span).long()
+            draws["noise_offset"] = torch.minimum(offset, span - 1)
+        return draws
 
     def apply(
         self, speech: torch.Tensor, valid: torch.Tensor, draws: Dict
@@ -297,8 +307,9 @@ class BatchWavAugment(torch.nn.Module):
         x = speech.float() * valid
         power = self._non_silent_power(x, valid)
 
+        # The apply flags are on the CPU: testing them does not wait for the GPU.
         if "rir_which" in draws and bool(draws["rir_apply"].any()):
-            rirs = self._impulse_responses(draws["rir_which"], device)
+            rirs = self._impulse_responses(draws["rir_which"].cpu(), device)
             # Convolve through the FFT and keep the first t samples, as
             # scipy.signal.convolve(mode="full")[:t] does.
             n_fft = 1 << (t + rirs.size(1) - 2).bit_length()
@@ -309,7 +320,7 @@ class BatchWavAugment(torch.nn.Module):
             # Scale back to the power before the reverberation.
             power2 = self._non_silent_power(y, valid)
             y = y * (power / power2.clamp(min=1e-10)).sqrt()[:, None]
-            x = torch.where(draws["rir_apply"][:, None], y, x)
+            x = torch.where(draws["rir_apply"].to(device)[:, None], y, x)
 
         if "noise_which" in draws and bool(draws["noise_apply"].any()):
             bank_device = device if self.keep_on_device else torch.device("cpu")
@@ -326,11 +337,11 @@ class BatchWavAugment(torch.nn.Module):
             noise = noise.float() / 32768 * valid
             n = valid.sum(1).clamp(min=1)
             noise_power = noise.pow(2).sum(1) / n
-            snr = draws["snr"]
+            snr = draws["snr"].to(device)
             scale = (
                 10 ** (-snr / 20) * power.sqrt() / noise_power.clamp(min=1e-10).sqrt()
             )
-            x = x + (scale * draws["noise_apply"])[:, None] * noise
+            x = x + (scale * draws["noise_apply"].to(device))[:, None] * noise
 
         # As the preprocessor: divide by the peak when it exceeds 1.
         peak = (x.abs() * valid).amax(1, keepdim=True)
@@ -352,8 +363,13 @@ class BatchWavAugment(torch.nn.Module):
         b, t = speech.shape
         device = speech.device
         if speech_lengths is None:
-            valid = torch.ones(b, t, dtype=torch.bool, device=device)
+            lengths = torch.full((b,), t, dtype=torch.long, device=device)
         else:
-            valid = torch.arange(t, device=device) < speech_lengths.to(device)[:, None]
-        x = self.apply(speech, valid, self.draw(b, t, device))
+            lengths = speech_lengths.to(device).long()
+        valid = torch.arange(t, device=device) < lengths[:, None]
+        if not self.keep_on_device:
+            # The noise is cut on the host from offsets that depend on the
+            # lengths: one copy of the lengths to the host per batch.
+            lengths = lengths.cpu()
+        x = self.apply(speech, valid, self.draw(lengths))
         return x.to(speech.dtype), speech_lengths
