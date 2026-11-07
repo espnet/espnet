@@ -203,6 +203,10 @@ def _write_config(tmp_path, *args):
         ((), 2),  # EEND, transformer encoder, center=True STFT
         (("--frontend_conf", "center=false"), 2),
         (("--encoder", "rnn"), 2),
+        # TCN: causal, and non-causal (its convolutions also see later frames,
+        # so the padding of a shorter utterance must not reach its own frames)
+        (("--encoder", "tcn", "--encoder_conf", "causal=true"), 2),
+        (("--encoder", "tcn", "--encoder_conf", "causal=false"), 2),
         (("--attractor", "rnn", "--attractor_conf", "unit=256"), 2),
         (("--attractor", "rnn", "--attractor_conf", "unit=256"), None),
     ],

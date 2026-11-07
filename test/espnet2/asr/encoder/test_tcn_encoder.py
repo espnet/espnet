@@ -71,3 +71,34 @@ def test_receptive_field():
     # first block sees P frames, each later block adds (P - 1) * dilation
     encoder = TCNEncoder(D_IN, kernel_size=3, num_blocks=3, num_repeats=2)
     assert encoder.receptive_field == 3 + 2 * (2 + 4) + 2 * (1 + 2 + 4)
+
+
+@pytest.mark.parametrize("causal", [True, False])
+def test_padded_batch_equals_each_utterance_alone(causal):
+    """A shorter utterance padded in a batch gets what it gets alone.
+
+    The non-causal convolutions read later frames, so the padding must look
+    like the convolution's own zero padding.
+    """
+    torch.manual_seed(0)
+    enc = TCNEncoder(
+        input_size=6, output_size=5, hidden_size=8, bottleneck_size=4, causal=causal
+    ).eval()
+    lengths = [40, 23, 31]
+    xs = torch.randn(3, 40, 6)
+    out, olens, _ = enc(xs, torch.tensor(lengths))
+    for b, n in enumerate(lengths):
+        alone, _, _ = enc(xs[b : b + 1, :n], torch.tensor([n]))
+        # float32 convolutions of different lengths: about 1e-6
+        torch.testing.assert_close(out[b, :n], alone[0], rtol=1e-4, atol=1e-5)
+        assert torch.all(out[b, n:] == 0)
+
+
+def test_forward_equals_the_wrapped_network_on_an_unpadded_batch():
+    """Without padding, forward() is the Conv-TasNet TCN it wraps."""
+    torch.manual_seed(0)
+    enc = TCNEncoder(input_size=6, output_size=5, causal=False).eval()
+    xs = torch.randn(2, 30, 6)
+    out, _, _ = enc(xs, torch.tensor([30, 30]))
+    ref = enc.tcn(xs.transpose(1, 2)).squeeze(1).transpose(1, 2)
+    torch.testing.assert_close(out, ref)

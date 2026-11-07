@@ -13,7 +13,6 @@ from typeguard import typechecked
 
 from espnet2.asr.encoder.abs_encoder import AbsEncoder
 from espnet2.enh.layers.tcn import TemporalConvNet
-from espnet2.legacy.nets.pytorch_backend.nets_utils import make_pad_mask
 
 # Normalizations that pool statistics over time and therefore see the future.
 _NON_CAUSAL_NORMS = ("gLN", "GN")
@@ -105,7 +104,21 @@ class TCNEncoder(AbsEncoder):
         Returns:
             Encoded features (B, T, output_size), output lengths (B,), None.
         """
-        out = self.tcn(xs_pad.transpose(1, 2))  # (B, 1, output_size, T)
-        out = out.squeeze(1).transpose(1, 2)  # (B, T, output_size)
-        out = out.masked_fill(make_pad_mask(ilens, out, 1), 0.0)
+        # (B, T), True past each length; built on the device of the input
+        pad = torch.arange(xs_pad.size(1), device=xs_pad.device) >= ilens[:, None]
+        valid = (~pad)[:, None, :].to(xs_pad.dtype)  # (B, 1, T)
+        net = self.tcn.network
+        out = net[1](net[0](xs_pad.transpose(1, 2)))  # norm, bottleneck: (B, B_, T)
+        for repeat in net[2]:
+            for block in repeat:
+                conv1x1, prelu, norm, dsconv = block.net
+                # Zero the frames past each utterance's length before the dilated
+                # convolution: a padded utterance in a batch then reads zeros
+                # there, as the convolution's own padding gives it alone, and not
+                # the values the earlier layers computed on the padding.
+                h = norm(prelu(conv1x1(out))) * valid
+                out = out + dsconv(h)
+        out = net[3:](out)  # (pre-output nonlinearity,) output projection
+        out = out.transpose(1, 2)  # (B, T, output_size)
+        out = out.masked_fill(pad[:, :, None], 0.0)
         return out, ilens, None
