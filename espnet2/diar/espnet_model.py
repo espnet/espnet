@@ -43,9 +43,13 @@ class ESPnetDiarizationModel(AbsESPnetModel):
         attractor: Optional[AbsAttractor],
         diar_weight: float = 1.0,
         attractor_weight: float = 1.0,
+        wav_augment: Optional[torch.nn.Module] = None,
     ):
 
         super().__init__()
+
+        # waveform augmentation of the batch, training only (e.g. BatchNoiseAugment)
+        self.wav_augment = wav_augment
 
         self.encoder = encoder
         self.normalize = normalize
@@ -86,6 +90,9 @@ class ESPnetDiarizationModel(AbsESPnetModel):
         """
         assert speech.shape[0] == spk_labels.shape[0], (speech.shape, spk_labels.shape)
         batch_size = speech.shape[0]
+
+        if self.wav_augment is not None and self.training:
+            speech, speech_lengths = self.wav_augment(speech, speech_lengths)
 
         # 1. Encoder
         # Use bottleneck_feats if exist. Only for "enh + diar" task.

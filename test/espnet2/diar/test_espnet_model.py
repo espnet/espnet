@@ -76,3 +76,36 @@ def test_single_channel_model(
         "spk_labels_lengths": ilens,
     }
     loss, stats, weight = diar_model(**kwargs)
+
+
+def test_wav_augment_is_applied_in_training_only():
+    """The model applies wav_augment to the waveform in training mode only."""
+    calls = []
+
+    class Recorder(torch.nn.Module):
+        def forward(self, speech, speech_lengths):
+            calls.append(speech.shape)
+            return speech + 0.0, speech_lengths
+
+    model = ESPnetDiarizationModel(
+        label_aggregator=label_aggregator,
+        attractor=None,
+        encoder=encoder,
+        decoder=decoder,
+        frontend=frontend,
+        specaug=None,
+        normalize=None,
+        wav_augment=Recorder(),
+    )
+    kwargs = {
+        "speech": torch.randn(2, 300),
+        "speech_lengths": torch.LongTensor([300, 200]),
+        "spk_labels": torch.randint(high=2, size=(2, 300, 2)),
+        "spk_labels_lengths": torch.LongTensor([300, 200]),
+    }
+    model.train()
+    model(**kwargs)
+    assert calls == [torch.Size([2, 300])]
+    model.eval()
+    model(**kwargs)
+    assert len(calls) == 1

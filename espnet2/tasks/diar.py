@@ -21,6 +21,7 @@ from espnet2.diar.decoder.abs_decoder import AbsDecoder
 from espnet2.diar.decoder.linear_decoder import LinearDecoder
 from espnet2.diar.espnet_model import ESPnetDiarizationModel
 from espnet2.layers.abs_normalize import AbsNormalize
+from espnet2.layers.batch_noise_augment import BatchNoiseAugment
 from espnet2.layers.global_mvn import GlobalMVN
 from espnet2.layers.label_aggregation import LabelAggregate
 from espnet2.layers.utterance_mvn import UtteranceMVN
@@ -43,6 +44,13 @@ frontend_choices = ClassChoices(
     ),
     type_check=AbsFrontend,
     default="default",
+    optional=True,
+)
+wav_augment_choices = ClassChoices(
+    name="wav_augment",
+    classes=dict(batch_noise=BatchNoiseAugment),
+    type_check=torch.nn.Module,
+    default=None,
     optional=True,
 )
 specaug_choices = ClassChoices(
@@ -102,6 +110,8 @@ class DiarizationTask(AbsTask):
     class_choices_list = [
         # --frontend and --frontend_conf
         frontend_choices,
+        # --wav_augment and --wav_augment_conf
+        wav_augment_choices,
         # --specaug and --specaug_conf
         specaug_choices,
         # --normalize and --normalize_conf
@@ -154,7 +164,12 @@ class DiarizationTask(AbsTask):
         group.add_argument(
             "--model_conf",
             action=NestedDictAction,
-            default=get_default_kwargs(ESPnetDiarizationModel),
+            # wav_augment is the module built from --wav_augment, not a model_conf
+            default={
+                k: v
+                for k, v in get_default_kwargs(ESPnetDiarizationModel).items()
+                if k != "wav_augment"
+            },
             help="The keyword arguments for model class.",
         )
 
@@ -232,7 +247,14 @@ class DiarizationTask(AbsTask):
             frontend = None
             input_size = args.input_size
 
-        # 2. Data augmentation for spectrogram
+        # 2a. Data augmentation for the waveform, in the model (training only)
+        if getattr(args, "wav_augment", None) is not None:
+            wav_augment_class = wav_augment_choices.get_class(args.wav_augment)
+            wav_augment = wav_augment_class(**args.wav_augment_conf)
+        else:
+            wav_augment = None
+
+        # 2b. Data augmentation for spectrogram
         if args.specaug is not None:
             specaug_class = specaug_choices.get_class(args.specaug)
             specaug = specaug_class(**args.specaug_conf)
@@ -284,7 +306,8 @@ class DiarizationTask(AbsTask):
             encoder=encoder,
             decoder=decoder,
             attractor=attractor,
-            **args.model_conf,
+            wav_augment=wav_augment,
+            **{k: v for k, v in args.model_conf.items() if k != "wav_augment"},
         )
 
         # FIXME(kamo): Should be done in model?
