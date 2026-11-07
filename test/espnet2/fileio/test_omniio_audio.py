@@ -1,4 +1,5 @@
 import io
+import os
 import subprocess
 import sys
 from pathlib import Path
@@ -425,12 +426,9 @@ def test_segments_match_the_whole_decode(tmp_path, rate, channels, fmt):
 
 def test_segment_outside_the_recording_raises(tmp_path):
     data = _archive(tmp_path, {"rec": (16000, np.zeros(16000 * 3))})
-    reader = OmniIOSegmentsReader(
-        _write_segments(data, [("past", "rec", 2.5, 3.5), ("empty", "rec", 1.0, 1.0)])
-    )
-    for key in ["past", "empty"]:
-        with pytest.raises(RuntimeError):
-            reader[key]
+    reader = OmniIOSegmentsReader(_write_segments(data, [("past", "rec", 2.5, 3.5)]))
+    with pytest.raises(RuntimeError):
+        reader["past"]
 
 
 def test_segments_of_an_unknown_recording_are_refused(tmp_path):
@@ -567,3 +565,209 @@ def test_segments_match_format_wav_scp_cutting(tmp_path):
     for key, *_ in rows:
         dumped, _ = soundfile.read(cut[key], dtype="float32")
         np.testing.assert_array_equal(reader[key][1], dumped)
+
+
+# ---- edge cases of OmniIOSegmentsReader -------------------------------------
+
+
+def _long_archive(tmp_path, rate=16000, seconds=12.0, fmt="flac", seed=10):
+    sig = (
+        np.random.default_rng(seed).integers(-2000, 2000, int(rate * seconds)) / 32768.0
+    )
+    data = _archive(tmp_path, {"rec": (rate, sig)}, fmt)
+    _, whole = OmniIOAudioScpReader(data / "wav.scp")["rec"]
+    return data, whole
+
+
+def test_duplicate_segment_ids_are_refused(tmp_path):
+    data, _ = _long_archive(tmp_path, seconds=3)
+    seg = _write_segments(data, [("s", "rec", 0.0, 1.0), ("s", "rec", 1.0, 2.0)])
+    with pytest.raises(RuntimeError, match="duplicated"):
+        OmniIOSegmentsReader(seg)
+
+
+@pytest.mark.parametrize(
+    "line",
+    [
+        "s rec 0.0",  # 3 columns
+        "s rec 0.0 1.0 x",  # 5 columns
+        "s rec a 1.0",  # not a number
+        "s rec nan 1.0",
+        "s rec 0.0 inf",
+        "s rec -0.000001 1.0",  # int() would truncate this to sample 0
+        "s rec -0.5 1.0",
+        "s rec 1.0 1.0",  # empty
+        "s rec 2.0 1.0",  # end before start
+        "s rec 1.0 -2",  # only -1 means "to the end"
+    ],
+)
+def test_malformed_segments_are_refused(tmp_path, line):
+    data, _ = _long_archive(tmp_path, seconds=3)
+    (data / "segments").write_text(line + "\n")
+    with pytest.raises(RuntimeError):
+        OmniIOSegmentsReader(data / "segments")
+
+
+def test_empty_segments_file_is_an_empty_reader(tmp_path):
+    data, _ = _long_archive(tmp_path, seconds=1)
+    (data / "segments").write_text("")
+    assert len(OmniIOSegmentsReader(data / "segments")) == 0
+
+
+def test_segment_of_a_recording_without_audio_raises(tmp_path):
+    data = tmp_path / "data"
+    data.mkdir()
+    (data / "wav.scp").write_text("rec None\n")
+    reader = OmniIOSegmentsReader(_write_segments(data, [("s", "rec", 0.0, 1.0)]))
+    with pytest.raises(RuntimeError, match="no audio"):
+        reader["s"]
+
+
+def test_one_sample_segments_and_flac_block_edges(tmp_path):
+    """Single samples, incl. both sides of the 4096-sample FLAC block edge."""
+    rate = 16000
+    data, whole = _long_archive(tmp_path, rate)
+    spans = [
+        (0, 1),
+        (10000, 10001),
+        (4095, 4096),
+        (4096, 4097),
+        (4095, 4097),
+        (4096, 8192),
+        (8191, 8193),
+        (len(whole) - 1, len(whole)),
+    ]
+    rows = [(f"s{i}", "rec", a / rate, b / rate) for i, (a, b) in enumerate(spans)]
+    reader = OmniIOSegmentsReader(_write_segments(data, rows))
+    for key, _, st, et in rows:
+        # int(t * rate), as SegmentsExtractor: 4095 / 16000 s gives 4094 (float)
+        first, last = int(st * rate), int(et * rate)
+        assert last - first >= 1
+        np.testing.assert_array_equal(reader[key][1], whole[first:last])
+
+
+def test_end_of_recording_boundaries(tmp_path):
+    """The last sample is in; past it raises; int() truncation as SegmentsExtractor."""
+    rate = 16000
+    data, whole = _long_archive(tmp_path, rate, seconds=3)
+    n = len(whole)
+    dur = n / rate
+    rows = [
+        ("to_end", "rec", 1.0, dur),
+        ("minus1", "rec", 1.0, dur - 1 / rate),
+        ("half_past", "rec", 1.0, dur + 0.5 / rate),  # int() truncates to n
+        ("one_past", "rec", 1.0, dur + 1 / rate),
+        ("sub_sample_start", "rec", 0.5 / rate, 1.0),
+    ]  # int() truncates to 0
+    reader = OmniIOSegmentsReader(_write_segments(data, rows))
+    np.testing.assert_array_equal(reader["to_end"][1], whole[rate:n])
+    np.testing.assert_array_equal(reader["minus1"][1], whole[rate : n - 1])
+    np.testing.assert_array_equal(reader["half_past"][1], whole[rate:n])
+    np.testing.assert_array_equal(reader["sub_sample_start"][1], whole[0:rate])
+    with pytest.raises(RuntimeError):
+        reader["one_past"]
+
+
+def test_random_segments_in_random_order(tmp_path):
+    """100 random, overlapping and nested segments, read in shuffled order."""
+    rate = 16000
+    data, whole = _long_archive(tmp_path, rate, seconds=30)
+    rng = np.random.default_rng(11)
+    rows = []
+    for i in range(100):
+        st = float(rng.uniform(0, len(whole) / rate - 0.01))
+        et = float(rng.uniform(st, len(whole) / rate))
+        if int(et * rate) > int(st * rate):
+            rows.append((f"r{i:03d}", "rec", st, et))
+    rows.append(("nest_outer", "rec", 0.0, 10.0))
+    rows.append(("nest_inner", "rec", 2.0, 3.0))
+    reader = OmniIOSegmentsReader(_write_segments(data, rows))
+    for i in rng.permutation(len(rows)):
+        key, _, st, et = rows[i]
+        np.testing.assert_array_equal(
+            reader[key][1], whole[int(st * rate) : int(et * rate)]
+        )
+
+
+def test_without_pread_segments_fall_back_to_the_whole_decode(tmp_path, monkeypatch):
+    rate = 16000
+    data, whole = _long_archive(tmp_path, rate, seconds=4)
+    reader = OmniIOSegmentsReader(_write_segments(data, [("s", "rec", 1.25, 2.5)]))
+    monkeypatch.delattr(os, "pread")
+    np.testing.assert_array_equal(reader["s"][1], whole[20000:40000])
+
+
+def test_segments_across_bins_with_one_cached_descriptor(tmp_path):
+    """Several bin files and max_cache_fd=1: eviction between reads stays correct."""
+    rate = 16000
+    rng = np.random.default_rng(12)
+    sigs = {f"rec{i}": rng.integers(-2000, 2000, rate * 3) / 32768.0 for i in range(4)}
+    data = tmp_path / "data"
+    with OmniIOAudioWriter(tmp_path / "arc", data / "wav.scp", max_bin_size=1) as w:
+        for rec, sig in sigs.items():
+            w[rec] = rate, sig
+    assert len(list((tmp_path / "arc").glob("blob_*.bin"))) == 4
+    rows = [
+        (f"{rec}-{j}", rec, j * 0.5, j * 0.5 + 1.0) for rec in sigs for j in range(3)
+    ]
+    rng.shuffle(rows)
+    reader = OmniIOSegmentsReader(_write_segments(data, rows), max_cache_fd=1)
+    whole = OmniIOAudioScpReader(data / "wav.scp")
+    for key, rec, st, et in rows:
+        np.testing.assert_array_equal(
+            reader[key][1], whole[rec][1][int(st * rate) : int(et * rate)]
+        )
+        assert len(reader.reader._fds) <= 1
+
+
+def _read_segments_in_child(reader, keys, queue):
+    queue.put([reader[k][1].tolist() for k in keys])
+
+
+def test_segments_reader_pickles_and_works_in_a_forked_process(tmp_path):
+    import multiprocessing as mp
+    import pickle
+
+    rate = 16000
+    data, whole = _long_archive(tmp_path, rate, seconds=3)
+    reader = OmniIOSegmentsReader(
+        _write_segments(data, [("a", "rec", 0.0, 0.01), ("b", "rec", 1.0, 1.01)])
+    )
+    reader["a"]  # opens a descriptor in this process
+    copy = pickle.loads(pickle.dumps(reader))
+    assert not copy.reader._fds
+    np.testing.assert_array_equal(copy["b"][1], whole[16000:16160])
+    if "fork" not in mp.get_all_start_methods():
+        pytest.skip("no fork on this platform")
+    ctx = mp.get_context("fork")
+    q = ctx.Queue()
+    p = ctx.Process(target=_read_segments_in_child, args=(reader, ["a", "b"], q))
+    p.start()
+    got = q.get(timeout=60)
+    p.join(timeout=60)
+    np.testing.assert_array_equal(np.array(got[0], dtype=np.float32), whole[0:160])
+    np.testing.assert_array_equal(
+        np.array(got[1], dtype=np.float32), whole[16000:16160]
+    )
+    np.testing.assert_array_equal(reader["a"][1], whole[0:160])  # parent still reads
+
+
+@pytest.mark.parametrize("rate", [11025, 24000, 96000])
+def test_unusual_rates(tmp_path, rate):
+    data, whole = _long_archive(tmp_path, rate, seconds=2.5)
+    reader = OmniIOSegmentsReader(_write_segments(data, [("s", "rec", 0.3, 1.7)]))
+    np.testing.assert_array_equal(
+        reader["s"][1], whole[int(0.3 * rate) : int(1.7 * rate)]
+    )
+
+
+def test_stereo_channel_order(tmp_path):
+    """Only the right channel carries signal: channel order survives the seek."""
+    rate = 16000
+    sig = np.zeros((rate * 3, 2))
+    sig[:, 1] = np.random.default_rng(13).integers(-2000, 2000, rate * 3) / 32768.0
+    data = _archive(tmp_path, {"rec": (rate, sig)})
+    _, seg = OmniIOSegmentsReader(_write_segments(data, [("s", "rec", 1.0, 2.0)]))["s"]
+    assert seg.shape == (rate, 2)
+    assert not seg[:, 0].any()
+    np.testing.assert_allclose(seg[:, 1], sig[rate : 2 * rate, 1], atol=1e-6)

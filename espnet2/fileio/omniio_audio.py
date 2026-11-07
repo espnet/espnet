@@ -24,6 +24,7 @@ recording costs milliseconds instead of decoding the recording.
 import collections
 import collections.abc
 import io
+import math
 import os
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple, Union
@@ -82,6 +83,25 @@ def segment_bounds(start: float, end: float, rate: int, frames: int) -> Tuple[in
             f"outside a recording of {frames} samples"
         )
     return first, last
+
+
+def _segment_times(start: str, end: str, where: str) -> Tuple[float, float]:
+    """Parse and check one segment's times (seconds; end -1: to the end).
+
+    Refused: non-numbers, NaN/inf, a negative start (int() would truncate
+    -0.00001 s to sample 0), and an end at or before the start.
+    """
+    try:
+        st, et = float(start), float(end)
+    except ValueError:
+        raise RuntimeError(f"{where}: times must be numbers: {start} {end}")
+    if not (math.isfinite(st) and math.isfinite(et)):
+        raise RuntimeError(f"{where}: times must be finite: {start} {end}")
+    if st < 0:
+        raise RuntimeError(f"{where}: negative start time {start}")
+    if et != -1 and et <= st:
+        raise RuntimeError(f"{where}: end {end} is not after start {start}")
+    return st, et
 
 
 def parse_omniio_entry(entry: str) -> Tuple[str, int, int]:
@@ -328,21 +348,26 @@ class OmniIOSegmentsReader(collections.abc.Mapping):
         self.wav = read_2columns_text(wav_scp or Path(fname).parent / "wav.scp")
         self.segments: Dict[str, Tuple[str, float, float]] = {}
         with open(fname, encoding="utf-8") as f:
-            for line in f:
+            for linenum, line in enumerate(f, 1):
                 sps = line.split()
                 if not sps:
                     continue
+                where = f"{fname}:{linenum}"
                 if len(sps) != 4:
-                    raise RuntimeError(f"invalid segments line: {line!r}")
+                    raise RuntimeError(f"{where}: expected 4 columns: {line!r}")
                 key, rec, start, end = sps
+                if key in self.segments:
+                    raise RuntimeError(f"{where}: segment {key} is duplicated")
                 if rec not in self.wav:
-                    raise RuntimeError(f"{rec} of {key} is not in the wav.scp")
-                self.segments[key] = (rec, float(start), float(end))
+                    raise RuntimeError(f"{where}: {rec} is not in the wav.scp")
+                self.segments[key] = (rec, *_segment_times(start, end, where))
         self.reader = OmniIOEntryReader(always_2d=always_2d, max_cache_fd=max_cache_fd)
 
     def __getitem__(self, key: str) -> Tuple[int, np.ndarray]:
         """Return (sampling rate, signal) of segment `key`."""
         rec, start, end = self.segments[key]
+        if self.wav[rec] == "None":
+            raise RuntimeError(f"segment {key}: recording {rec} has no audio")
         return self.reader.read_segment(self.wav[rec], start, end)
 
     def __contains__(self, item):
