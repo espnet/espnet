@@ -34,3 +34,69 @@ def test_print_config_and_load_it(tmp_path):
         DiarizationTask.print_config(f)
     parser = DiarizationTask.get_parser()
     parser.parse_args(["--config", str(config_file)])
+
+
+def test_build_model_with_wav_augment(tmp_path):
+    """--wav_augment builds the module into the model; it is not a model_conf."""
+    from espnet2.layers.batch_wav_augment import BatchWavAugment
+
+    parser = DiarizationTask.get_parser()
+    assert "wav_augment" not in parser.get_default("model_conf")
+    args = parser.parse_args(
+        [
+            "--wav_augment",
+            "batch_wav",
+            "--wav_augment_conf",
+            f"noise_scp={tmp_path / 'noise.scp'}",
+            "--num_spk",
+            "1",
+            "--encoder",
+            "transformer",
+            "--encoder_conf",
+            "num_blocks=1",
+        ]
+    )
+    model = DiarizationTask.build_model(args)
+    assert isinstance(model.wav_augment, BatchWavAugment)
+    # the noise list is read only on the first training step
+    assert not (tmp_path / "noise.scp").exists()
+
+
+def test_wav_augment_takes_the_frontend_sampling_rate(tmp_path):
+    """Without wav_augment_conf fs, the noise is mixed at the frontend's fs."""
+    parser = DiarizationTask.get_parser()
+    common = ["--num_spk", "1", "--encoder_conf", "num_blocks=1"]
+    args = parser.parse_args(
+        common
+        + [
+            "--frontend_conf",
+            "fs=8k",
+            "--wav_augment",
+            "batch_wav",
+            "--wav_augment_conf",
+            f"noise_scp={tmp_path / 'noise.scp'}",
+        ]
+    )
+    assert DiarizationTask.build_model(args).wav_augment.fs == 8000
+
+    args = parser.parse_args(
+        common
+        + [
+            "--frontend_conf",
+            "fs=8k",
+            "--wav_augment",
+            "batch_wav",
+            "--wav_augment_conf",
+            f"noise_scp={tmp_path / 'noise.scp'}",
+            "--wav_augment_conf",
+            "fs=16000",
+        ]
+    )
+    with pytest.raises(ValueError):
+        DiarizationTask.build_model(args)
+
+
+def test_build_model_without_wav_augment():
+    parser = DiarizationTask.get_parser()
+    args = parser.parse_args(["--num_spk", "1", "--encoder_conf", "num_blocks=1"])
+    assert DiarizationTask.build_model(args).wav_augment is None

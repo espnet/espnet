@@ -78,6 +78,50 @@ def test_single_channel_model(
     loss, stats, weight = diar_model(**kwargs)
 
 
+def test_wav_augment_is_applied_in_training_only(monkeypatch):
+    """In training the encoder gets wav_augment's output; in eval the input."""
+    calls = []
+
+    class Recorder(torch.nn.Module):
+        def forward(self, speech, speech_lengths):
+            calls.append(speech.shape)
+            return speech + 1.0, speech_lengths
+
+    model = ESPnetDiarizationModel(
+        label_aggregator=label_aggregator,
+        attractor=None,
+        encoder=encoder,
+        decoder=decoder,
+        frontend=frontend,
+        specaug=None,
+        normalize=None,
+        wav_augment=Recorder(),
+    )
+    seen = []
+    encode = model.encode
+
+    def recording_encode(speech, speech_lengths, *args):
+        seen.append((speech.clone(), speech_lengths.clone()))
+        return encode(speech, speech_lengths, *args)
+
+    monkeypatch.setattr(model, "encode", recording_encode)
+    speech = torch.randn(2, 300)
+    kwargs = {
+        "speech": speech,
+        "speech_lengths": torch.LongTensor([300, 200]),
+        "spk_labels": torch.randint(high=2, size=(2, 300, 2)),
+        "spk_labels_lengths": torch.LongTensor([300, 200]),
+    }
+    model.train()
+    model(**kwargs)
+    assert calls == [torch.Size([2, 300])]
+    torch.testing.assert_close(seen[0][0], speech + 1.0)
+    model.eval()
+    model(**kwargs)
+    assert len(calls) == 1
+    torch.testing.assert_close(seen[1][0], speech)
+
+
 def test_calc_diarization_error_counts():
     """Hand-counted example; the padded frame (index 3 of utt 1) is ignored."""
     # utt 0: 4 frames, utt 1: 3 frames + 1 padded frame; 2 speakers
