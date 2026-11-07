@@ -1,0 +1,63 @@
+# Causal voice activity detection: diar1 with a single output (run.sh: --num_spk 1).
+# Every block is causal: no STFT centring, fixed (global) mean/variance
+# normalisation, a causal TCN encoder, and frame labels aggregated the same way.
+# The look-ahead is one STFT window (32 ms).
+
+frontend: default
+frontend_conf:
+    n_fft: 512
+    win_length: 512
+    hop_length: 128      # 8 ms at 16 kHz
+    n_mels: 40
+    center: false
+
+# normalize: global_mvn with the stats of diar.sh stage 4 is given by
+# local/train_windowed.sh; utterance_mvn would look at the whole input (non-causal).
+
+encoder: tcn
+encoder_conf:
+    output_size: 128
+    bottleneck_size: 64
+    hidden_size: 128
+    kernel_size: 3
+    num_blocks: 5
+    num_repeats: 2       # receptive field 125 frames = 1.0 s of past context
+    norm_type: cLN
+    causal: true
+
+decoder: linear
+
+label_aggregator: label_aggregator
+label_aggregator_conf:
+    win_length: 512
+    hop_length: 128
+    center: false
+
+# on-the-fly noise augmentation (training only); data/noise.scp is made by local/data.sh
+noise_scp: data/noise.scp
+noise_apply_prob: 0.8
+noise_db_range: "-5_20"  # SNR in dB
+
+# 10 s windows indexed by local/make_windows.py, read one window at a time
+# (only that part of the archive entry is decoded) and shuffled over all
+# recordings
+iterator_type: sequence
+batch_type: unsorted
+batch_size: 64
+num_workers: 14
+seed: 1
+optim: adam
+optim_conf:
+    lr: 0.0005
+scheduler: warmuplr
+scheduler_conf:
+    warmup_steps: 10000
+grad_clip: 5
+max_epoch: 30
+patience: 5
+
+best_model_criterion:
+-   - valid
+    - acc
+    - max
+keep_nbest_models: 5
