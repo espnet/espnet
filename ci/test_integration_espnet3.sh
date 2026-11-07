@@ -107,3 +107,20 @@ ${python} run.py \
 rm -rf exp data
 
 cd "${cwd}" || exit
+
+python3 -m pip install -e '.[s2t]'
+
+cd ./egs3/mini_an4/esp2_s2t || exit
+gen_dummy_coverage
+echo "==== [ESPnet3] S2T ===="
+source path.sh
+# No train_tokenizer: an S2T vocabulary ships with the pretrained checkpoint,
+# so ESP2S2TSystem declares no such stage.
+${python} run.py \
+    --stages create_dataset collect_stats train infer measure \
+    --training_config conf/training.yaml \
+    --inference_config conf/inference.yaml \
+    --metrics_config conf/metrics.yaml
+rm -rf exp data downloads
+
+cd "${cwd}" || exit

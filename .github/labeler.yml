@@ -207,6 +207,8 @@ OWSM:
           - "espnet2/tasks/s2t*.py"
           - "espnet2/bin/s2t_*"
           - "egs2/*/s2t1/**"
+          - "espnet3/systems/esp2_s2t/**"
+          - "egs3/*/esp2_s2t/**"
 
 Unsupervise:
   - changed-files:

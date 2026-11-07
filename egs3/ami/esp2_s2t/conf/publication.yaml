@@ -1,0 +1,32 @@
+##########################################################
+#                  PUBLICATION SETTING                   #
+##########################################################
+# Quick usage:
+#   python run.py --stages pack_model \
+#       --training_config conf/training.yaml \
+#       --publication_config conf/publication.yaml \
+#       --inference_config conf/inference.yaml --metrics_config conf/metrics.yaml
+#
+# A partial overlay on egs3/TEMPLATE/esp2_s2t/conf/publication.yaml, which supplies
+# out_dir, the readme template and the upload_model block. Run infer and
+# measure first: pack_model bundles the metrics.json that measure writes and
+# renders it into the model's readme.
+recipe_dir: .
+
+##########################################################
+#                   PACK MODEL SETTING                   #
+##########################################################
+pack_model:
+  include:
+    - ${recipe_dir}/dataset
+  # No token list here: the checkpoint's config.yaml names it by a path into
+  # the corpus, and ESP2S2TSystem.pack_model writes the list itself into the
+  # bundled copy instead.
+
+  exclude:
+    - inference
+    - inference_*
+    - "*.ckpt"
+    - "**/*.log"
+    - "**/tensorboard/**"
+    - "**/wandb/**"
