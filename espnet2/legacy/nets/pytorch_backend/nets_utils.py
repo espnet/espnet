@@ -223,13 +223,15 @@ def _make_pad_mask_on_device(lengths, xs, length_dim):
     the GPU) and no copy of an expanded CPU mask to the device (41 MB for the
     (64, 1247, 257, 2) STFT output of a batch of 10 s inputs).
     """
+    # read before normalising length_dim: an out-of-range length_dim raises
+    # IndexError here, as in _make_pad_mask, instead of wrapping around
+    maxlen = xs.size(length_dim)
     if length_dim < 0:
         length_dim = xs.dim() + length_dim
     assert xs.size(0) == lengths.size(0), (
         f"The size of x.size(0) {xs.size(0)} must match the batch size "
         f"{lengths.size(0)}"
     )
-    maxlen = xs.size(length_dim)
     seq_range = torch.arange(maxlen, dtype=torch.int64, device=xs.device)
     mask = seq_range.unsqueeze(0) >= lengths.to(xs.device).long().unsqueeze(-1)
     # ind = (:, None, ..., None, :, , None, ..., None)

@@ -222,3 +222,42 @@ def test_make_pad_mask_4d_xs_on_device(device):
         mask = make_pad_mask(lengths, xs.to(device), 1)
         assert mask.device.type == device
         assert torch.equal(mask.cpu(), expected)
+
+
+@pytest.mark.parametrize(
+    "shape, length_dim",
+    [((3, 0, 5, 2), 1), ((3, 7, 0, 2), 1), ((0, 7, 5, 2), 1)],
+)
+def test_make_pad_mask_4d_xs_with_an_empty_dimension(shape, length_dim):
+    """An empty time or batch axis gives an empty mask, as for list lengths."""
+    xs = torch.zeros(shape)
+    lengths = torch.zeros(shape[0], dtype=torch.long)
+    mask = make_pad_mask(lengths, xs, length_dim)
+    assert mask.shape == xs.shape
+    assert torch.equal(mask, make_pad_mask(lengths.tolist(), xs, length_dim))
+
+
+@pytest.mark.parametrize("length_dim", [4, 5, -5, -6])
+def test_make_pad_mask_4d_xs_out_of_range_length_dim(length_dim):
+    """An out-of-range length_dim raises IndexError, as for list lengths."""
+    xs = torch.zeros(3, 7, 5, 2)
+    lengths = [7, 3, 0]
+    with pytest.raises(IndexError):
+        make_pad_mask(lengths, xs, length_dim)
+    with pytest.raises(IndexError):
+        make_pad_mask(torch.LongTensor(lengths), xs, length_dim)
+
+
+def test_make_pad_mask_4d_xs_matches_list_lengths_for_any_lengths():
+    """Lengths past the end or negative: the same mask as for list lengths."""
+    g = torch.Generator().manual_seed(0)
+    for _ in range(50):
+        shape = tuple(int(v) for v in torch.randint(1, 6, (4,), generator=g))
+        length_dim = int(torch.randint(1, 4, (1,), generator=g))
+        maxlen = shape[length_dim]
+        lengths = torch.randint(-2, maxlen + 3, (shape[0],), generator=g)
+        xs = torch.zeros(shape)
+        assert torch.equal(
+            make_pad_mask(lengths, xs, length_dim),
+            make_pad_mask(lengths.tolist(), xs, length_dim),
+        ), (shape, length_dim, lengths)
