@@ -1002,3 +1002,119 @@ def test_rows_without_reverberation_are_not_convolved_and_rows_match_alone(
     quiet = {k: v[3:] for k, v in draws.items()}
     quiet["noise_apply"] = torch.tensor([False])
     torch.testing.assert_close(aug.apply(speech[3:], valid[3:], quiet), speech[3:])
+
+
+# --- Other sampling rates -----------------------------------------------------
+
+RATES = [8000, 16000, 22050, 24000, 32000, 44100, 48000]
+
+
+@pytest.mark.parametrize("fs", [8000, 24000, 32000, 48000])
+@pytest.mark.parametrize("noise_factor", [2.5, 0.3])  # longer / shorter noise
+def test_same_result_as_common_preprocessor_at_other_rates(
+    tmp_path, monkeypatch, fs, noise_factor
+):
+    """At 8, 24, 32 and 48 kHz the module equals CommonPreprocessor.
+
+    The speech, the impulse response and the noise are all at fs (neither
+    resamples), with reverberation and noise together and rir_shift=False.
+    """
+    rng = np.random.default_rng(fs)
+    length = fs  # 1 s
+    wav = (rng.normal(size=length) * 0.05).astype(np.float32)
+    wav[length // 3 : length // 2] *= 0.001
+    n_rir = fs // 4
+    rir = (rng.normal(size=n_rir) * np.exp(-np.arange(n_rir) / (fs / 25))).astype(
+        np.float32
+    )
+    rir[0] = 1.0
+    noise_len = int(length * noise_factor)
+    noise = rng.uniform(-0.3, 0.3, size=noise_len).astype(np.float32)
+    rir_path = _write(tmp_path / "rir.wav", rir, fs=fs)
+    noise_path = _write(tmp_path / "noise.wav", noise, fs=fs)
+    snr = 5.0
+    cpu_offset = noise_len // 3 if noise_len > length else noise_len // 5
+    expected = _cpu_reference(
+        tmp_path, monkeypatch, wav, rir_path, noise_path, cpu_offset, snr
+    )
+    aug = BatchWavAugment(
+        noise_scp=_scp(tmp_path, "noise", noise_path),
+        rir_scp=_scp(tmp_path, "rir", rir_path),
+        noise_db_range=str(snr),
+        rir_shift=False,
+        fs=fs,
+    ).train()
+    gpu_offset = cpu_offset if noise_len >= length else (-cpu_offset) % noise_len
+    draws = dict(
+        rir_apply=torch.tensor([True]),
+        rir_which=torch.tensor([0]),
+        noise_apply=torch.tensor([True]),
+        noise_which=torch.tensor([0]),
+        noise_offset=torch.tensor([gpu_offset]),
+        snr=torch.tensor([snr]),
+    )
+    speech = torch.from_numpy(wav)[None]
+    out = aug.apply(speech, torch.ones(1, length, dtype=torch.bool), draws)
+    out = out[0].double().numpy()
+    assert np.abs(expected - wav).max() > 0.01
+    err = np.abs(out - expected).max() / np.abs(expected).max()
+    assert err < 1e-4, err
+
+
+@pytest.mark.parametrize("fs", RATES)
+def test_early_part_is_kaldis_window_at_each_rate(tmp_path, fs):
+    """The early impulse response is Kaldi's window at each rate.
+
+    It runs from int(peak - 0.001 fs) to int(peak + 0.05 fs), exclusive, also
+    where 1 ms is not a whole number of samples (22.05 and 44.1 kHz).
+    """
+    rng = np.random.default_rng(fs + 1)
+    n, peak = int(0.2 * fs), int(0.01 * fs) + 3
+    rir = (rng.normal(size=n) * 0.1).astype(np.float32)
+    rir[peak] = 5.0
+    aug = BatchWavAugment(
+        rir_scp=_scp(tmp_path, "rir", _write(tmp_path / "rir.wav", rir, fs=fs)),
+        fs=fs,
+    )
+    t = int(0.3 * fs)
+    x = rng.normal(size=t).astype(np.float32) * 0.05
+    full, early = aug._reverberate(torch.from_numpy(x)[None], torch.tensor([0]), True)
+    lo, hi = int(peak - 0.001 * fs), int(peak + 0.05 * fs)
+    part = np.zeros(n)
+    part[lo:hi] = rir[lo:hi]
+    ref_full = np.convolve(x.astype(np.float64), rir.astype(np.float64))
+    ref_early = np.convolve(x.astype(np.float64), part)
+    scale = np.abs(ref_full).max()
+    np.testing.assert_allclose(
+        full[0].double().numpy(), ref_full[peak : peak + t], atol=2e-5 * scale
+    )
+    np.testing.assert_allclose(
+        early[0].double().numpy(), ref_early[peak : peak + t], atol=2e-5 * scale
+    )
+
+
+@pytest.mark.parametrize(
+    "src, dst", [(8000, 16000), (48000, 16000), (16000, 24000), (44100, 32000)]
+)
+def test_resampled_banks_equal_librosa(tmp_path, src, dst):
+    """Noise and impulse responses at another rate equal librosa.resample."""
+    librosa = pytest.importorskip("librosa")
+    rng = np.random.default_rng(src + dst)
+    rir = (
+        rng.normal(size=src // 5) * np.exp(-np.arange(src // 5) / (src / 50))
+    ).astype(np.float32)
+    rir[0] = 1.0
+    noise = rng.uniform(-0.5, 0.5, size=src).astype(np.float32)
+    aug = BatchWavAugment(
+        noise_scp=_scp(tmp_path, "noise", _write(tmp_path / "n.wav", noise, fs=src)),
+        rir_scp=_scp(tmp_path, "rir", _write(tmp_path / "r.wav", rir, fs=src)),
+        fs=dst,
+    )
+    want_rir = librosa.resample(rir, orig_sr=src, target_sr=dst)
+    got_rir = aug.bank("rir", torch.device("cpu"))[0].numpy()
+    np.testing.assert_allclose(got_rir, want_rir, rtol=1e-5, atol=1e-6)
+    want_noise = librosa.resample(noise, orig_sr=src, target_sr=dst)
+    want_noise = np.round(want_noise * (32767.0 / np.abs(want_noise).max()))
+    got_noise = aug.bank("noise", torch.device("cpu"))[0].numpy().astype(np.float64)
+    assert got_noise.shape == want_noise.shape
+    assert np.abs(got_noise - want_noise).max() <= 1  # int16 rounding

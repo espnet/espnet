@@ -365,8 +365,11 @@ class BatchWavAugment(torch.nn.Module):
         if not early:
             return full, None
         pos = torch.arange(rirs.size(1), device=device)
-        lo = peak - int(0.001 * self.fs)
-        hi = peak + int(0.05 * self.fs)
+        # As Kaldi: the float bounds are truncated to integers, so at a rate
+        # where 1 ms or 50 ms is not a whole number of samples (22.05 kHz) the
+        # window is the one Kaldi takes.
+        lo = (peak.double() - 0.001 * self.fs).long()
+        hi = (peak.double() + 0.05 * self.fs).long()
         rirs = rirs * ((pos >= lo[:, None]) & (pos < hi[:, None]))
         return full, self._convolve(spectrum, rirs, peak, t, n_fft)
 
