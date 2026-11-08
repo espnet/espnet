@@ -76,9 +76,11 @@ class ESPnetDiarizationModel(AbsESPnetModel):
                     f"not {type(encoder).__name__}"
                 )
             start = encoder.look_ahead
-            for frames in self.look_aheads:
-                encoder.set_look_ahead(frames)  # raises for an invalid one
-            encoder.set_look_ahead(start)
+            try:
+                for frames in self.look_aheads:
+                    encoder.set_look_ahead(frames)  # raises for an invalid one
+            finally:
+                encoder.set_look_ahead(start)
 
     def forward(
         self,
@@ -141,8 +143,14 @@ class ESPnetDiarizationModel(AbsESPnetModel):
         try:
             for frames in self.look_aheads:
                 self.encoder.set_look_ahead(frames)
+                # A copy per look-ahead: without a frontend, the normalization
+                # may work on the input in place (GlobalMVN without gradient).
                 loss, stats = self._forward_one(
-                    speech, speech_lengths, spk_labels, spk_labels_lengths, **kwargs
+                    speech.clone(),
+                    speech_lengths,
+                    spk_labels,
+                    spk_labels_lengths,
+                    **kwargs,
                 )
                 losses.append(loss)
                 per_look_ahead.append((frames, stats))

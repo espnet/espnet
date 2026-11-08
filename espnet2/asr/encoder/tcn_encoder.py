@@ -117,7 +117,7 @@ class TCNEncoder(AbsLookAheadEncoder):
         num_blocks: Blocks per repeat, at dilations 1, 2, ..., 2**(X - 1) (X).
         num_repeats: Number of repeats (R).
         future_taps: Depthwise taps after the current frame that a layer can
-            use. 0 makes a causal encoder.
+            use. 0 makes a causal encoder. Keyword-only, like look_ahead.
         look_ahead: Look-ahead in frames to start with; set_look_ahead()
             changes it.
         norm_type: "cLN" (layer norm over channels, per frame) or "BN".
@@ -143,11 +143,12 @@ class TCNEncoder(AbsLookAheadEncoder):
         kernel_size: int = 3,
         num_blocks: int = 5,
         num_repeats: int = 2,
+        norm_type: str = "cLN",
+        causal: Optional[bool] = None,
+        pre_output_nonlinear: str = "prelu",
+        *,
         future_taps: int = 0,
         look_ahead: int = 0,
-        norm_type: str = "cLN",
-        pre_output_nonlinear: str = "prelu",
-        causal: Optional[bool] = None,
     ):
         super().__init__()
         if causal is not None:
@@ -192,17 +193,27 @@ class TCNEncoder(AbsLookAheadEncoder):
         self.output = torch.nn.Conv1d(bottleneck_size, output_size, 1, bias=False)
         self._look_ahead = 0
         self.set_look_ahead(self.max_look_ahead if causal is False else look_ahead)
-        self._register_load_state_dict_pre_hook(self._rename_conv_tasnet_keys)
+        self._register_load_state_dict_pre_hook(
+            lambda state_dict, prefix, *args: self.upgrade_state_dict(
+                state_dict, prefix
+            )
+        )
 
-    def _rename_conv_tasnet_keys(self, state_dict, prefix, *args):
-        """Rename the keys of the previous TCNEncoder's state dict in place.
+    def upgrade_state_dict(self, state_dict: dict, prefix: str = ""):
+        """Convert a state dict of the previous TCNEncoder in place.
 
         That encoder held espnet2.enh.layers.tcn.TemporalConvNet as ``tcn``:
         network.0 input norm, network.1 bottleneck, network.2.<r>.<x> blocks
         (net.0 1x1 conv, net.1 PReLU, net.2 norm, net.3.net depthwise conv,
         [Chomp1d when causal,] PReLU, norm, 1x1 conv), then the output, after a
-        nonlinearity module unless it was linear. Other state dicts are left as
-        they are.
+        nonlinearity module unless it was linear. Its keys are renamed, and a
+        depthwise kernel with fewer taps than this encoder's gets zero future
+        taps appended: a causal checkpoint then initializes an encoder with
+        future taps and gives the same output at every look-ahead until the
+        future taps are trained. load_state_dict() calls it; call it directly
+        before code that compares keys or shapes first (e.g.
+        espnet2.torch_utils.load_pretrained_model). Other state dicts are left
+        as they are.
         """
         old = prefix + "tcn.network."
         keys = [k for k in state_dict if k.startswith(old)]
@@ -236,7 +247,12 @@ class TCNEncoder(AbsLookAheadEncoder):
                 new = ["output_act"] + parts[1:]
             else:  # the output convolution: network.3, or network.4 after a module
                 new = ["output"] + parts[1:]
-            state_dict[prefix + ".".join(new)] = state_dict.pop(key)
+            value = state_dict.pop(key)
+            if new[0] == "blocks" and new[2] == "depthwise":
+                taps = self.blocks[int(new[1])].depthwise.weight.size(-1)
+                if value.size(-1) < taps:  # append zero future taps
+                    value = torch.nn.functional.pad(value, (0, taps - value.size(-1)))
+            state_dict[prefix + ".".join(new)] = value
 
     def output_size(self) -> int:
         return self._output_size
@@ -306,7 +322,8 @@ class TCNEncoder(AbsLookAheadEncoder):
         """Encode the next frames of a stream online (look-ahead 0).
 
         Feeding a sequence in chunks of any sizes gives forward()'s output on
-        the whole sequence at look-ahead 0, whatever look-ahead is set. Every
+        the whole sequence at look-ahead 0, whatever look-ahead is set. With
+        norm_type "BN" the encoder must be in eval mode. Every
         layer but the depthwise convolutions works per frame, so the state is
         the last (kernel_size - 1) * dilation depthwise inputs of each block:
         receptive_field - 1 frames in all, whatever the stream length.
@@ -320,6 +337,13 @@ class TCNEncoder(AbsLookAheadEncoder):
             Encoded new frames (B, k, output_size) and the state for the next
             call.
         """
+        if self.training and any(
+            isinstance(m, torch.nn.BatchNorm1d) for m in self.modules()
+        ):
+            raise RuntimeError(
+                "forward_streaming with BatchNorm needs eval mode: in training "
+                "mode BatchNorm normalizes each chunk with its own statistics"
+            )
         x = self.bottleneck(self.input_norm(xs.transpose(1, 2)))
         if state is None:
             state = [

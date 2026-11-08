@@ -376,3 +376,48 @@ def test_unused_future_taps_get_no_gradient(look_ahead):
         used = block.kernel_size + block.future_taps
         assert torch.all(grad[..., used:] == 0)
         assert torch.any(grad[..., :used] != 0)
+
+
+def test_positional_arguments_keep_the_previous_order():
+    """norm_type, causal and pre_output_nonlinear follow num_repeats, as before."""
+    encoder = TCNEncoder(D_IN, 6, 4, 8, 3, 3, 2, "BN", True, "linear")
+    assert isinstance(encoder.blocks[0].norm_in, torch.nn.BatchNorm1d)
+    assert encoder.max_look_ahead == 0
+    assert isinstance(encoder.output_act, torch.nn.Identity)
+    with pytest.raises(TypeError):
+        TCNEncoder(D_IN, 6, 4, 8, 3, 3, 2, "cLN", None, "prelu", 2)
+
+
+def test_streaming_with_batch_norm_needs_eval_mode():
+    encoder = _encoder(norm_type="BN").train()
+    with pytest.raises(RuntimeError):
+        encoder.forward_streaming(torch.randn(1, 4, D_IN))
+    _encoder(norm_type="cLN").train().forward_streaming(torch.randn(1, 4, D_IN))
+
+
+@pytest.mark.parametrize("ignore_init_mismatch", [False, True])
+def test_previous_checkpoint_initializes_an_encoder_with_future_taps(
+    tmp_path, ignore_init_mismatch
+):
+    """--init_param with a causal checkpoint of the previous encoder.
+
+    The keys are converted before load_pretrained_model compares them, and the
+    future taps start at zero: every look-ahead gives the causal network's
+    output until they are trained.
+    """
+    from espnet2.torch_utils.load_pretrained_model import load_pretrained_model
+
+    net = _conv_tasnet(causal=True)
+    path = tmp_path / "previous.pth"
+    torch.save({f"encoder.tcn.{k}": v for k, v in net.state_dict().items()}, path)
+    model = torch.nn.Module()
+    model.encoder = TCNEncoder(D_IN, future_taps=2, **SMALL).eval()
+    load_pretrained_model(str(path), model, ignore_init_mismatch)
+    x = torch.randn(1, T, D_IN)
+    with torch.no_grad():
+        expected = net(x.transpose(1, 2)).squeeze(1).transpose(1, 2)
+    for frames in (0, 14, 28):
+        model.encoder.set_look_ahead(frames)
+        torch.testing.assert_close(
+            _run(model.encoder, x), expected, rtol=1e-5, atol=1e-5
+        )

@@ -85,12 +85,14 @@ class DiarizeSpeech:
         # Set the encoder's look-ahead (input frames): 0 for online diarization,
         # up to its max_look_ahead for offline. None keeps the trained value.
         if look_ahead is not None:
-            if not hasattr(diar_model, "set_look_ahead"):
+            # the diarization model, inside the joint model for enh_s2t
+            target = diar_model.s2t_model if enh_s2t_task else diar_model
+            if not hasattr(target, "set_look_ahead"):
                 raise ValueError(
                     f"look_ahead needs a diarization model, "
-                    f"not {type(diar_model).__name__}"
+                    f"not {type(target).__name__}"
                 )
-            diar_model.set_look_ahead(look_ahead)  # raises for other encoders
+            target.set_look_ahead(look_ahead)  # raises for other encoders
 
         self.device = device
         self.dtype = dtype
@@ -615,7 +617,7 @@ def inference(
     normalize_output_wav: bool,
     multiply_diar_result: bool,
     enh_s2t_task: bool,
-    look_ahead: Optional[int],
+    look_ahead: Optional[int] = None,
 ):
     if batch_size > 1 and enh_s2t_task:
         raise NotImplementedError("batch decoding is not implemented for enh_s2t")

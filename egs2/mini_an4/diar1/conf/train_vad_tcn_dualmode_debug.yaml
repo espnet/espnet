@@ -16,6 +16,10 @@ label_aggregator_conf:
     hop_length: 128
     center: false
 
+# No utterance MVN (the task default), which reads the whole utterance;
+# diar.sh passes --normalize global_mvn, whose statistics are fixed.
+normalize: null
+
 encoder: tcn
 encoder_conf:
     output_size: 8

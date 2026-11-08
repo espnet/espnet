@@ -362,7 +362,8 @@ def test_diarize_batch_utterance_shorter_than_half_window(tmp_path):
         np.testing.assert_allclose(batched[b], expected[b], rtol=1e-5, atol=1e-6)
 
 
-def test_look_ahead_is_set_at_inference(tmp_path):
+@pytest.mark.parametrize("trained", [0, 14])
+def test_look_ahead_is_set_at_inference(tmp_path, trained):
     """--look_ahead sets the encoder's look-ahead; None keeps the trained one."""
     DiarizationTask.main(
         cmd=[
@@ -377,11 +378,12 @@ def test_look_ahead_is_set_at_inference(tmp_path):
             "--encoder_conf",
             "future_taps=2",
             "--encoder_conf",
-            "look_ahead=0",
+            f"look_ahead={trained}",
         ]
     )
     config = tmp_path / "config.yaml"
-    assert DiarizeSpeech(train_config=config).diar_model.encoder.look_ahead == 0
+    kept = DiarizeSpeech(train_config=config).diar_model.encoder.look_ahead
+    assert kept == trained
     offline = DiarizeSpeech(train_config=config, look_ahead=124, num_spk=1)
     assert offline.diar_model.encoder.look_ahead == 124
     _, prediction = offline(torch.randn(1, 8000), fs=8000)

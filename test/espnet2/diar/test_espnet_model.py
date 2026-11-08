@@ -561,3 +561,94 @@ def test_set_look_ahead(tmp_path):
     )
     with pytest.raises(ValueError):
         plain.set_look_ahead(0)
+
+
+def test_look_aheads_backpropagate_the_mean_of_the_modes(tmp_path):
+    model = _vad_model(tmp_path, look_aheads=[0, 28]).train()
+    torch.manual_seed(3)
+    lens = torch.tensor([3000, 2500])
+    batch = dict(
+        speech=torch.randn(2, 3000) * 0.1,
+        speech_lengths=lens,
+        spk_labels=(torch.rand(2, 3000, 1) > 0.5).float(),
+        spk_labels_lengths=lens,
+    )
+    args = [batch[k] for k in ("speech", "speech_lengths", "spk_labels")]
+    args.append(batch["spk_labels_lengths"])
+
+    def grads(loss):
+        model.zero_grad()
+        loss.sum().backward()
+        return [p.grad.clone() for p in model.parameters() if p.grad is not None]
+
+    torch.manual_seed(0)
+    dual = grads(model(**batch)[0])
+    each = []
+    for frames in (0, 28):
+        model.encoder.set_look_ahead(frames)
+        each.append(model._forward_one(*args)[0])
+    model.encoder.set_look_ahead(0)
+    mean = grads((each[0] + each[1]) / 2)
+    assert len(dual) == len(mean)
+    for a, b in zip(dual, mean):
+        torch.testing.assert_close(a, b)
+
+
+def test_failed_look_aheads_check_restores_the_encoder(tmp_path):
+    from espnet2.asr.encoder.tcn_encoder import TCNEncoder
+
+    encoder = TCNEncoder(10, num_blocks=3, num_repeats=2, future_taps=2, look_ahead=6)
+    with pytest.raises(ValueError):
+        ESPnetDiarizationModel(
+            label_aggregator=label_aggregator,
+            attractor=None,
+            encoder=encoder,
+            decoder=LinearDecoder(encoder_output_size=128, num_spk=1),
+            frontend=None,
+            specaug=None,
+            normalize=None,
+            look_aheads=[0, 29],
+        )
+    assert encoder.look_ahead == 6
+
+
+def test_look_aheads_without_frontend_see_the_same_features(tmp_path):
+    """Features in, GlobalMVN in place (no gradient): each mode gets them as given."""
+    import numpy as np
+
+    from espnet2.asr.encoder.tcn_encoder import TCNEncoder
+    from espnet2.layers.global_mvn import GlobalMVN
+
+    stats = tmp_path / "feats_stats.npz"
+    # different statistics per dimension: the encoder's per-frame layer norm
+    # would hide a second normalization with the same shift for all dimensions
+    np.savez(
+        stats,
+        count=np.array(10),
+        sum=np.arange(6) * 4.0,
+        sum_square=np.arange(6) ** 2 * 3.0 + 20.0,
+    )
+    torch.manual_seed(0)
+    model = ESPnetDiarizationModel(
+        label_aggregator=LabelAggregate(win_length=1, hop_length=1, center=False),
+        attractor=None,
+        encoder=TCNEncoder(
+            6, output_size=8, num_blocks=2, num_repeats=1, future_taps=2
+        ),
+        decoder=LinearDecoder(encoder_output_size=8, num_spk=1),
+        frontend=None,
+        specaug=None,
+        normalize=GlobalMVN(str(stats)),
+        look_aheads=[0, 6],
+    ).eval()
+    feats = torch.randn(2, 30, 6) + 3.0
+    lens = torch.tensor([30, 24])
+    labels = (torch.rand(2, 30, 1) > 0.5).float()
+    given = feats.clone()
+    with torch.no_grad():
+        loss = model(feats, lens, labels, lens)[0]
+        each = []
+        for frames in (0, 6):
+            model.encoder.set_look_ahead(frames)
+            each.append(model._forward_one(given.clone(), lens, labels, lens)[0])
+    torch.testing.assert_close(loss.reshape(()), (each[0] + each[1]) / 2)
