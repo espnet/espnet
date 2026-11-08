@@ -206,52 +206,115 @@ def predict_files(files, threshold, median):
     return rows
 
 
-def _live_view(state, threshold, median):
-    """The probability so far and its segments, by the sliders' rule."""
-    probs = state.all_probabilities()
+# The live plot scrolls: it shows the last LIVE_WINDOW seconds.
+LIVE_WINDOW = 10.0
+# Waveform drawn as its min/max envelope over 10 ms bins, which is what a
+# 1000-pixel plot can show anyway and keeps each update fast.
+ENVELOPE_SECS = 0.01
+
+
+class LiveSession:
+    """A microphone session: the online stream and the recent audio to draw."""
+
+    def __init__(self):
+        self.stream = live_vad.stream()
+        self.rate = None
+        self.samples = 0  # microphone samples received
+        self.recent = np.zeros(0, dtype=np.float32)  # the last LIVE_WINDOW s
+
+    def add(self, samples, rate):
+        if self.rate is None:
+            self.rate = rate
+        self.samples += len(samples)
+        keep = int(LIVE_WINDOW * self.rate)
+        self.recent = np.concatenate([self.recent, samples])[-keep:]
+        # the stream resamples the microphone rate as one signal across chunks
+        self.stream.accept(samples, rate)
+
+
+def _live_view(session, threshold, median):
+    """The waveform of the last seconds with the speech shaded, and the probability.
+
+    Shaded is what the online model has decided is speech so far, by the
+    sliders' rule; the red line is now. The median filter settles a frame
+    median // 2 frames after it arrives, so the edge of a segment can still
+    move by that much.
+    """
+    probs = session.stream.all_probabilities()
     segments = frames_to_segments(probs, FRAME_SHIFT, threshold, int(median))
-    fig, ax = plt.subplots(figsize=(10, 2))
-    ax.plot(np.arange(len(probs)) * FRAME_SHIFT, probs, linewidth=0.8)
-    ax.axhline(threshold, color="0.5", linestyle="--", linewidth=0.6)
+    rate = session.rate or FS
+    now = session.samples / rate
+    start = max(0.0, now - LIVE_WINDOW)
+    fig, (wave_ax, prob_ax) = plt.subplots(
+        2,
+        1,
+        figsize=(10, 3.4),
+        sharex=True,
+        gridspec_kw={"height_ratios": [2, 1]},
+    )
+    step = max(1, int(ENVELOPE_SECS * rate))
+    usable = len(session.recent) // step * step
+    if usable:
+        bins = session.recent[len(session.recent) - usable :].reshape(-1, step)
+        t = now - usable / rate + np.arange(len(bins)) * step / rate
+        wave_ax.fill_between(t, bins.min(1), bins.max(1), color="0.3", linewidth=0)
+    speaking = bool(segments) and segments[-1].end >= len(probs) * FRAME_SHIFT
     for seg in segments:
-        ax.axvspan(seg.start, seg.end, alpha=0.25)
-    ax.set_ylim(-0.02, 1.02)
-    ax.set_xlabel("seconds")
-    ax.set_ylabel("speech")
+        if seg.end > start:
+            for ax in (wave_ax, prob_ax):
+                ax.axvspan(seg.start, seg.end, color="tab:green", alpha=0.3)
+    frames = np.arange(len(probs)) * FRAME_SHIFT
+    shown = frames >= start
+    prob_ax.plot(frames[shown], probs[shown], linewidth=0.8, color="tab:blue")
+    prob_ax.axhline(threshold, color="0.5", linestyle="--", linewidth=0.6)
+    for ax in (wave_ax, prob_ax):
+        ax.axvline(now, color="tab:red", linewidth=1.0)
+    wave_ax.set_xlim(start, start + LIVE_WINDOW)
+    peak = max(0.05, float(np.abs(session.recent).max()) if usable else 0.05)
+    wave_ax.set_ylim(-peak, peak)
+    wave_ax.set_yticks([])
+    wave_ax.set_title(
+        "speaking" if speaking else "silence",
+        loc="left",
+        color="tab:green" if speaking else "0.4",
+        fontweight="bold",
+    )
+    prob_ax.set_ylim(-0.02, 1.02)
+    prob_ax.set_ylabel("speech")
+    prob_ax.set_xlabel("seconds")
     fig.tight_layout()
     plt.close(fig)
-    return state, fig, _table(segments)
+    return session, fig, _table(segments)
 
 
-def live(state, chunk, threshold, median):
+def live(session, chunk, threshold, median):
     """Feed one microphone chunk to the online model; return what is decided."""
     if chunk is None:
-        return state, None, []
+        return session, None, []
     rate, samples = chunk
     samples = np.asarray(samples)
     if samples.dtype.kind == "i":
         samples = samples.astype(np.float32) / np.iinfo(samples.dtype).max
     if samples.ndim > 1:
         samples = samples[:, 0]
-    if state is None:
-        state = live_vad.stream()
+    if session is None:
+        session = LiveSession()
     # what is left of the session, in samples at the microphone's rate
-    allowed = int((MAX_SECS * FS - state.num_samples) * int(rate) / FS)
+    allowed = int((MAX_SECS * FS - session.stream.num_samples) * int(rate) / FS)
     if len(samples) > allowed:
         gr.Warning(f"A live session stops at {MAX_SECS} s; start a new one.")
         samples = samples[: max(allowed, 0)]
     if len(samples):
-        # the stream resamples the microphone rate as one signal across chunks
-        state.accept(samples, int(rate))
-    return _live_view(state, threshold, median)
+        session.add(samples.astype(np.float32), int(rate))
+    return _live_view(session, threshold, median)
 
 
-def finish_live(state, threshold, median):
+def finish_live(session, threshold, median):
     """When the microphone stops: run the audio the resampler still holds."""
-    if state is None:
-        return state, None, []
-    state.finish()
-    return _live_view(state, threshold, median)
+    if session is None:
+        return session, None, []
+    session.stream.finish()
+    return _live_view(session, threshold, median)
 
 
 def _rule(mode):
@@ -308,12 +371,13 @@ with gr.Blocks(title=TITLE) as demo:
     with gr.Tab("Live"):
         gr.Markdown(
             "Speak into the microphone: the online model decides each 8 ms "
-            "frame as soon as its audio arrives."
+            "frame as soon as its audio arrives, and the speech it finds is "
+            "shaded on the waveform as you talk."
         )
         stream_state = gr.State()
         mic = gr.Audio(sources=["microphone"], streaming=True, label="Microphone")
         live_threshold, live_median = _rule("online")
-        live_plot = gr.Plot(label="Speech probability")
+        live_plot = gr.Plot(label="The last 10 seconds")
         live_table = gr.Dataframe(
             headers=["start (s)", "end (s)", "length (s)"], label="Speech segments"
         )
@@ -321,6 +385,8 @@ with gr.Blocks(title=TITLE) as demo:
             live,
             [stream_state, mic, live_threshold, live_median],
             [stream_state, live_plot, live_table],
+            # a chunk every 0.2 s keeps the plot close to the voice
+            stream_every=0.2,
         )
         mic.start_recording(lambda: None, None, stream_state)
         mic.stop_recording(
