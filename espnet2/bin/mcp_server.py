@@ -43,7 +43,7 @@ ENH_MODEL = os.environ.get(
 # POWSM, the phonetic model built on OWSM. The CTC one: it reads a recording
 # of any length, where the encoder-decoder one repeats itself on the padding.
 PR_MODEL = os.environ.get("ESPNET_MCP_PR_MODEL", "espnet/powsm_ctc")
-# The VAD models `espnet detect` loads (espnet2.bin.vad.MODELS): the offline one
+# The VAD models `espnet detect` loads (diar_inference.VAD_MODELS): the offline one
 # and, for mode="online", the online one. A packed .zip from stage 8 works as
 # well as a tag; unset, each is the published model of its mode.
 VAD_MODEL = os.environ.get("ESPNET_MCP_VAD_MODEL")
@@ -122,7 +122,7 @@ def _enh():  # pragma: no cover - downloads the checkpoint
 @functools.lru_cache(maxsize=None)
 def _vad(mode: str):  # pragma: no cover - downloads the checkpoint
     with _quiet_stdout():
-        from espnet2.bin.vad import VoiceActivityDetector
+        from espnet2.bin.diar_inference import VoiceActivityDetector
 
         tag = VAD_ONLINE_MODEL if mode == "online" else VAD_MODEL
         return VoiceActivityDetector.for_mode(mode, tag, device=_device())
@@ -368,7 +368,11 @@ def detect(
         One line a speech segment: start and end in seconds, tab-separated.
         An empty string means no speech was found.
     """
-    from espnet2.bin.vad import format_segments, frames_to_segments, read_audio
+    from espnet2.bin.diar_inference import (
+        format_segments,
+        frames_to_segments,
+        read_audio,
+    )
 
     if mode not in ("offline", "online"):
         raise ToolError(f'mode is "offline" or "online", not {mode!r}')

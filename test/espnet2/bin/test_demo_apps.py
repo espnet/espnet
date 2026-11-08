@@ -260,7 +260,8 @@ UNRELEASED = {
     # `espnet render`, is unreleased: this is the release it is going into,
     # and the Bagpiper Space cannot be uploaded until that one is out.
     "from_server": "202611",
-    # espnet2.bin.vad, and with it `espnet detect`, is unreleased: the VAD Space
+    # the VAD classes in diar_inference, and with them `espnet detect`, are
+    # unreleased: the VAD Space
     # waits for the release after 202611.
     "VoiceActivityDetector": "202612",
 }
@@ -331,11 +332,11 @@ def test_the_task_demos_ask_for_their_extra(name, extra):
 
 
 def test_the_vad_space_loads_the_models_espnet_vad_loads():
-    """The Space repeats espnet2.bin.vad.MODELS, being one directory; it must agree."""
-    from espnet2.bin import vad
+    """The Space repeats diar_inference.VAD_MODELS (a Space is one directory)."""
+    from espnet2.bin.diar_inference import VAD_MODELS
 
     source = _source("vad")
     for env, mode in (("VAD_MODEL_TAG", "offline"), ("VAD_ONLINE_MODEL_TAG", "online")):
         tag = re.search(rf'"{env}",\s*"([^"]+)"', source).group(1)
-        assert tag == vad.MODELS[mode], (env, tag)
+        assert tag == VAD_MODELS[mode], (env, tag)
         assert tag in (_front_matter("vad").get("models") or []), tag

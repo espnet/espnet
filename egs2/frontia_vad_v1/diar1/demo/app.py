@@ -2,7 +2,8 @@
 
 The source of a Hugging Face Space, kept in espnet at
 egs2/frontia_vad_v1/diar1/demo. The recipe that trained the two checkpoints is the
-directory above this one. The detection itself is espnet2.bin.vad, which
+directory above this one. The detection itself is espnet2.bin.diar_inference
+(VoiceActivityDetector) and diar_inference_streaming (StreamingVAD), which
 `espnet detect` and the MCP tool `detect` call too, so the Space, the
 command line and the agent give the same segments for the same file.
 
@@ -37,8 +38,8 @@ import torch  # noqa: E402
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt  # noqa: E402
 
-from espnet2.bin.vad import (  # noqa: E402
-    RULES,
+from espnet2.bin.diar_inference import (  # noqa: E402
+    VAD_RULES,
     VoiceActivityDetector,
     audio_seconds,
     frames_to_segments,
@@ -50,7 +51,7 @@ from espnet2.bin.vad import (  # noqa: E402
 # a CPU; the cap keeps a shared Space responsive, not the models.
 MAX_SECS = 120
 GPU_SECONDS = 120
-# The offline model and the online one: espnet2.bin.vad.MODELS, repeated here
+# The offline model and the online one: diar_inference.VAD_MODELS, repeated here
 # because a Space is one directory (test_demo_apps.py checks they agree). Each
 # takes a packed .zip from stage 8 as well as a tag.
 MODEL_TAG = os.environ.get("VAD_MODEL_TAG", "espnet/frontia_vad_v1_offline")
@@ -255,7 +256,7 @@ def finish_live(state, threshold, median):
 
 def _rule(mode):
     """Threshold and median sliders, starting at the mode's model's tuned rule."""
-    tuned_threshold, tuned_median = RULES[mode]
+    tuned_threshold, tuned_median = VAD_RULES[mode]
     threshold = gr.Slider(
         0.05,
         0.95,
@@ -298,7 +299,7 @@ with gr.Blocks(title=TITLE) as demo:
         rule_inputs = [on_threshold, on_median, off_threshold, off_median]
         button.click(predict, [audio, *rule_inputs], [plot, table, summary])
         gr.Examples(
-            [[EXAMPLE_WAV, *RULES["online"], *RULES["offline"]]],
+            [[EXAMPLE_WAV, *VAD_RULES["online"], *VAD_RULES["offline"]]],
             inputs=[audio, *rule_inputs],
             outputs=[plot, table, summary],
             fn=predict,

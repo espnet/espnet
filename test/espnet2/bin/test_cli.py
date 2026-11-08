@@ -17,6 +17,7 @@ import pytest
 import soundfile
 
 from espnet2.bin import cli
+from espnet2.bin.diar_inference import VAD_MODELS, VAD_RULES
 
 
 def _fake_module(monkeypatch, name, attr, obj):
@@ -1064,7 +1065,7 @@ class _FakeVAD:
     median = 1
 
     def __init__(self, segments):
-        from espnet2.bin.vad import Segment
+        from espnet2.bin.diar_inference import Segment
 
         self.Segment = Segment
         self.segments_by_file = segments
@@ -1122,11 +1123,11 @@ def test_vad_prints_the_segments_of_one_file(monkeypatch, tmp_path, capsys):
     # the offline model, with its own rule (None: the loader takes the model's)
     assert asked == {
         "mode": "offline",
-        "model": cli.vad_rule.MODELS["offline"],
+        "model": VAD_MODELS["offline"],
         "threshold": None,
         "median": None,
     }
-    assert cli.DEFAULT_MODELS["detect"] == cli.vad_rule.MODELS["offline"]
+    assert cli.DEFAULT_MODELS["detect"] == VAD_MODELS["offline"]
 
 
 def test_vad_names_the_file_on_each_line_of_a_batch(monkeypatch, tmp_path, capsys):
@@ -1141,8 +1142,8 @@ def test_vad_names_the_file_on_each_line_of_a_batch(monkeypatch, tmp_path, capsy
 
     assert capsys.readouterr().out == f"{a}\t0.00\t1.00\n"
     assert vad.calls == [([str(a), str(b)], False, 4)]
-    # --online takes the online model
-    assert (asked["mode"], asked["model"]) == ("online", cli.vad_rule.MODELS["online"])
+    # --online takes the online model; None is the published one (_load_vad)
+    assert (asked["mode"], asked["model"]) == ("online", None)
     assert (asked["threshold"], asked["median"]) == (0.3, 11)
 
 
@@ -1186,36 +1187,6 @@ def test_vad_live_does_not_also_take_a_file(monkeypatch, tmp_path, capsys):
     assert "do not also name a file" in capsys.readouterr().err
 
 
-@pytest.mark.parametrize("mode", ["online", "offline"])
-def test_vad_loads_each_mode_with_its_model_and_rule(monkeypatch, mode):
-    built = {}
-
-    class _Diarize:
-        diar_train_args = types.SimpleNamespace(
-            frontend_conf={"fs": "16k", "n_fft": 512, "hop_length": 128}
-        )
-        diar_model = types.SimpleNamespace(encoder=object())
-
-        @classmethod
-        def from_pretrained(cls, model_tag=None, device="cpu", **kwargs):
-            built.update(tag=model_tag, device=device, **kwargs)
-            return cls()
-
-    _fake_module(monkeypatch, "espnet2.bin.diar_inference", "DiarizeSpeech", _Diarize)
-    monkeypatch.setitem(cli.vad_rule.RULES, mode, (0.35, 7))
-    argv = ["detect", "x.wav", "--model", "off.zip", "--online-model", "on.zip"]
-    args = cli.build_parser().parse_args(argv)
-    args.device = "cpu"
-    vad = cli._load_vad(args, mode)
-    tag = "on.zip" if mode == "online" else "off.zip"
-    assert built == {"tag": tag, "device": "cpu", "num_spk": 1}
-    # the mode's rule, unless --threshold or --median names one
-    assert (vad.threshold, vad.median, vad.fs) == (0.35, 7, 16000)
-    args.threshold, args.median = 0.4, 3
-    vad = cli._load_vad(args, mode)
-    assert (vad.threshold, vad.median) == (0.4, 3)
-
-
 def test_vad_refuses_a_nonpositive_batch_size_before_loading(
     monkeypatch, tmp_path, capsys
 ):
@@ -1232,7 +1203,7 @@ def test_vad_stream_prints_what_the_whole_recording_gives(
     monkeypatch, tmp_path, capsys, median
 ):
     """Blocks of any size print the segments of all the frames at once."""
-    from espnet2.bin.vad import frames_to_segments
+    from espnet2.bin.diar_inference import frames_to_segments
 
     audio = tmp_path / "a.wav"
     audio.write_bytes(b"")
@@ -1251,3 +1222,51 @@ def test_vad_stream_prints_what_the_whole_recording_gives(
     assert capsys.readouterr().out == "".join(
         f"{s.start:.2f}\t{s.end:.2f}\n" for s in expected
     )
+
+
+def _fake_diarize(monkeypatch):
+    """Replace DiarizeSpeech.from_pretrained; record the tag and the device."""
+    from espnet2.bin import diar_inference
+
+    built = {}
+
+    def from_pretrained(model_tag=None, device="cpu", **kwargs):
+        built.update(tag=model_tag, device=device, **kwargs)
+        return types.SimpleNamespace(
+            diar_train_args=types.SimpleNamespace(
+                frontend_conf={"fs": "16k", "n_fft": 512, "hop_length": 128}
+            ),
+            diar_model=types.SimpleNamespace(encoder=object()),
+        )
+
+    monkeypatch.setattr(
+        diar_inference.DiarizeSpeech, "from_pretrained", staticmethod(from_pretrained)
+    )
+    return built
+
+
+@pytest.mark.parametrize("mode", ["online", "offline"])
+def test_vad_loads_each_mode_with_its_model_and_rule(monkeypatch, mode):
+    built = _fake_diarize(monkeypatch)
+    monkeypatch.setitem(VAD_RULES, mode, (0.35, 7))
+    argv = ["detect", "x.wav", "--model", "off.zip", "--online-model", "on.zip"]
+    args = cli.build_parser().parse_args(argv)
+    args.device = "cpu"
+    vad = cli._load_vad(args, mode)
+    tag = "on.zip" if mode == "online" else "off.zip"
+    assert built == {"tag": tag, "device": "cpu", "num_spk": 1}
+    # the mode's rule, unless --threshold or --median names one
+    assert (vad.threshold, vad.median, vad.fs) == (0.35, 7, 16000)
+    args.threshold, args.median = 0.4, 3
+    vad = cli._load_vad(args, mode)
+    assert (vad.threshold, vad.median) == (0.4, 3)
+
+
+def test_vad_without_models_loads_the_published_ones(monkeypatch):
+    built = _fake_diarize(monkeypatch)
+    args = cli.build_parser().parse_args(["detect", "x.wav"])
+    args.device = "cpu"
+    cli._load_vad(args, "online")
+    assert built["tag"] == VAD_MODELS["online"]
+    cli._load_vad(args, "offline")
+    assert built["tag"] == VAD_MODELS["offline"] == cli.DEFAULT_MODELS["detect"]

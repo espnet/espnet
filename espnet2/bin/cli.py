@@ -46,7 +46,6 @@ from pathlib import Path
 from typing import List, Optional
 
 # stdlib-only at import time, so the constant costs nothing here
-from espnet2.bin import vad as vad_rule
 from espnet2.bin.speechlm_inference import UNDERSTAND_PROMPT
 from espnet2.utils.pretrained import ModelTagError, build_pretrained
 
@@ -65,9 +64,10 @@ DEFAULT_MODELS = {
     "synthesize": "espnet/kan-bayashi_ljspeech_vits",
     "enhance": "espnet/Wangyou_Zhang_universal_train_enh_uses_refch0_2mem_raw",
     # the offline VAD model (egs2/frontia_vad_v1/diar1); --online, --stream and
-    # --live load the online one, --online-model. Both are in
-    # espnet2.bin.vad.MODELS, and either takes a packed .zip from stage 8.
-    "detect": vad_rule.MODELS["offline"],
+    # --live load the online one, --online-model. Both are
+    # espnet2.bin.diar_inference.VAD_MODELS, which test_cli.py holds this to;
+    # either takes a packed .zip from stage 8.
+    "detect": "espnet/frontia_vad_v1_offline",
     # Bagpiper, which answers about audio and renders it. The general SFT
     # checkpoint does both directions; --model espnet/bagpiper-tts-sft is the
     # speech-focused one. Either is an 8B model: --server is the other way.
@@ -443,15 +443,21 @@ def _load_vad(args, mode: str):
     The threshold and the median filter are the mode's tuned rule unless
     --threshold or --median names its own.
     """
-    from espnet2.bin.diar_inference import DiarizeSpeech
-    from espnet2.bin.vad import VoiceActivityDetector
+    from espnet2.bin.diar_inference import (
+        VAD_MODELS,
+        VAD_RULES,
+        DiarizeSpeech,
+        VoiceActivityDetector,
+    )
 
-    threshold, median = vad_rule.RULES[mode]
+    threshold, median = VAD_RULES[mode]
     threshold = threshold if args.threshold is None else args.threshold
     median = median if args.median is None else args.median
     if median < 1 or median % 2 == 0:
         raise CLIError(f"--median must be a positive odd number, not {median}")
-    tag = args.online_model if mode == "online" else args.model
+    tag = (
+        (args.online_model or VAD_MODELS["online"]) if mode == "online" else args.model
+    )
     diarize = build_pretrained(
         DiarizeSpeech,
         tag,
@@ -474,7 +480,7 @@ def cmd_detect(args) -> int:
     if args.batch_size < 1:
         raise CLIError(f"--batch-size must be positive, not {args.batch_size}")
 
-    from espnet2.bin.vad import format_segments
+    from espnet2.bin.diar_inference import format_segments
 
     offline = not args.online
     vad = _load_vad(args, "offline" if offline else "online")
@@ -516,7 +522,7 @@ def _detect_as_it_arrives(args) -> int:
     import numpy as np
 
     from espnet2.bin import live
-    from espnet2.bin.vad import frames_to_segments
+    from espnet2.bin.diar_inference import frames_to_segments
 
     vad = _load_vad(args, "online")
     stream = vad.stream()
@@ -832,25 +838,23 @@ def build_parser() -> argparse.ArgumentParser:
     )
     p.add_argument(
         "--online-model",
-        default=vad_rule.MODELS["online"],
+        default=None,
         help="tag or packed .zip of the online model, for --online, --stream "
-        f"and --live (default: {vad_rule.MODELS['online']})",
+        "and --live (default: espnet/frontia_vad_v1_online)",
     )
     p.add_argument(
         "--threshold",
         type=float,
         default=None,
         help="speech probability above which a frame is speech (default: the "
-        f"model's, tuned on AMI MH dev: online {vad_rule.RULES['online'][0]}, "
-        f"offline {vad_rule.RULES['offline'][0]})",
+        "model's, tuned on AMI MH dev)",
     )
     p.add_argument(
         "--median",
         type=int,
         default=None,
         help="median filter over this many frames, odd; 1 for none (default: "
-        f"the model's: online {vad_rule.RULES['online'][1]}, offline "
-        f"{vad_rule.RULES['offline'][1]})",
+        "the model's, tuned with the threshold)",
     )
     p.add_argument(
         "--batch-size",
