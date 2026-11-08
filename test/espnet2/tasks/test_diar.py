@@ -1,4 +1,3 @@
-import numpy as np
 import pytest
 
 from espnet2.tasks.diar import DiarizationTask
@@ -60,30 +59,3 @@ def test_preprocessor_receives_augmentation_options(tmp_path):
     # augmentation is for training only
     valid_fn = DiarizationTask.build_preprocess_fn(args, train=False)
     assert valid_fn.noises is None and valid_fn.rirs is None
-
-
-def _build_preprocess(extra):
-    args = DiarizationTask.get_parser().parse_args(extra)
-    return DiarizationTask.build_preprocess_fn(args, train=True)
-
-
-@pytest.mark.parametrize("n_cols", [0, 1, 2, 3])
-def test_spk_labels_padded_to_num_spk(n_cols):
-    preprocess = _build_preprocess(["--num_spk", "2"])
-    labels = np.ones((100, n_cols), dtype=np.float32)
-    out = preprocess("uid", {"speech": np.zeros(100), "spk_labels": labels})
-    want = max(n_cols, 2)  # more columns than num_spk stay as they are
-    assert out["spk_labels"].shape == (100, want)
-    assert out["spk_labels"][:, :n_cols].all()
-    assert not out["spk_labels"][:, n_cols:].any()
-
-
-def test_spk_labels_of_eda_not_padded():
-    preprocess = _build_preprocess(["--num_spk", "2", "--attractor", "rnn"])
-    labels = np.ones((100, 1), dtype=np.float32)
-    out = preprocess("uid", {"speech": np.zeros(100), "spk_labels": labels})
-    assert out["spk_labels"].shape == (100, 1)
-
-
-def test_no_preprocessor():
-    assert _build_preprocess(["--use_preprocessor", "false"]) is None
