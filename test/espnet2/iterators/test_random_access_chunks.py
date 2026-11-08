@@ -297,3 +297,69 @@ def test_model_on_the_speech_after_its_context(data, train):
                 spk_labels_lengths=torch.full((speech.shape[0],), W),
             )
         assert torch.isfinite(loss)
+
+
+def _write_recording(tmp_path, rate, length):
+    """One recording `rec` of `length` samples at `rate` and its two-speaker label."""
+    rng = np.random.default_rng(rate + length)
+    sig = rng.integers(-2000, 2000, length) / 32768.0
+    d = tmp_path / "data"
+    with OmniIOAudioWriter(tmp_path / "arc", d / "wav.scp", format="flac") as w:
+        w["rec"] = rate, sig
+    a, b = length // 5, length // 2
+    (d / "espnet_rttm").write_text(
+        f"SPEAKER rec 1 {a} {b} <NA> <NA> s1 <NA>\n"
+        f"SPEAKER rec 1 {b // 2} {length - 1} <NA> <NA> s2 <NA>\n"
+        f"END rec <NA> <NA> {length} <NA> <NA> <NA> <NA>\n"
+    )
+    (d / "speech_shape").write_text(f"rec {length}\n")
+    return d, sig.astype(np.float32)
+
+
+@pytest.mark.parametrize(
+    "rate, chunk_length, shift_ratio, context",
+    [
+        # every rate: overlapping chunks with left context
+        (8000, 1000, 0.5, 300),
+        (22050, 1000, 0.5, 300),
+        (44100, 1000, 0.5, 300),
+        (48000, 1000, 0.5, 300),
+        # chunk lengths, at 16 kHz
+        (16000, 1, 1.0, 0),  # one sample
+        (16000, 4096, 1.0, 0),  # one FLAC block (4096 samples)
+        (16000, 4097, 0.25, 5000),  # across blocks, context longer than a start
+        (16000, 10500, 1.0, 0),  # the whole recording
+    ],
+)
+def test_chunks_at_any_rate_and_length(
+    tmp_path, rate, chunk_length, shift_ratio, context
+):
+    """Chunk positions, audio and labels at 8-48 kHz and chunk lengths.
+
+    Chunk lengths go from one sample to the whole recording; each run has one
+    fixed sampling rate.
+    """
+    L, W, S = 10500, chunk_length, int(chunk_length * shift_ratio)
+    d, sig = _write_recording(tmp_path, rate, L)
+    extra = ["--chunk_left_context", str(context)] if context else []
+    factory = _factory(
+        d, chunk_length=W, shift_ratio=shift_ratio, batch_size=3, train=False,
+        extra=extra + ["--num_workers", "0"],
+    )  # fmt: skip
+    rttm = RttmReader(str(d / "espnet_rttm"))
+    starts = []
+    for ids, batch in factory.build_iter(1):
+        for i, cid in enumerate(ids):
+            st = int(cid.rsplit("-", 1)[1])
+            starts.append(st)
+            want = np.concatenate(
+                [
+                    np.zeros(max(context - st, 0), np.float32),
+                    sig[max(st - context, 0) : st + W],
+                ]
+            )
+            np.testing.assert_array_equal(batch["speech"][i].numpy(), want)
+            np.testing.assert_array_equal(
+                batch["spk_labels"][i].numpy(), rttm["rec"][st : st + W]
+            )
+    assert starts == list(range(0, L - W + 1, S))

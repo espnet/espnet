@@ -512,11 +512,6 @@ if [ "${task}" == "diar" ] || [ "${task}" == "all" ]; then
         exp/diar_train_diar_debug_raw_num_workers0 conf/decode_diar.yaml dump/raw/train
     local/check_batch_inference.sh --python "${python}" \
         exp/diar_train_diar_eda_debug_raw_num_workers0 conf/decode_diar_eda.yaml dump/raw/train
-    # EEND trained on 1 s chunks, each read on its own from the Omni-IO dump
-    # (--chunk_random_access). Own dump and exp dirs.
-    ./run.sh --ngpu 0 --stage 2 --stop-stage 7 --python "${python}" \
-        --audio_format omniio --dumpdir dump_ra --expdir exp_ra --diar_tag chunk_ra \
-        --diar-args "--num_workers 0 --iterator_type chunk --chunk_random_access true --chunk_length 16000 --chunk_shift_ratio 1.0"
     # Causal VAD (num_spk 1, causal TCN, STFT without centring) on the same
     # mixtures labelled with the union of the speech. It recomputes the feature
     # statistics in exp/diar_stats_16k, so it runs after the EEND models.
@@ -530,7 +525,7 @@ if [ "${task}" == "diar" ] || [ "${task}" == "all" ]; then
     ${python} local/check_causal_inference.py \
         exp/diar_train_vad_tcn_causal_debug_raw_num_workers0 dump/raw/train_vad/wav.scp
     # Remove generated files in order to reduce the disk usage
-    rm -rf exp dump data exp_ra dump_ra
+    rm -rf exp dump data
     cd "${cwd}"
 fi
 
