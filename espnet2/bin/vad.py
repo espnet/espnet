@@ -104,16 +104,32 @@ def frames_to_segments(
     ]
 
 
-def read_audio(path: Union[str, Path], fs: int) -> np.ndarray:
+def read_audio(
+    path: Union[str, Path], fs: int, max_seconds: Optional[float] = None
+) -> np.ndarray:
     """Read an audio file as mono float32 at ``fs``.
 
     The first channel of a multi-channel file is used, as the model was
-    trained on one channel.
+    trained on one channel. With ``max_seconds``, only that much of the file
+    is decoded and resampled.
     """
     import soundfile
 
-    speech, rate = soundfile.read(str(path), dtype="float32", always_2d=True)
+    frames = -1
+    if max_seconds is not None:
+        frames = int(max_seconds * soundfile.info(str(path)).samplerate)
+    speech, rate = soundfile.read(
+        str(path), frames=frames, dtype="float32", always_2d=True
+    )
     return resample(speech[:, 0], rate, fs)
+
+
+def audio_seconds(path: Union[str, Path]) -> float:
+    """The length of an audio file in seconds, from its header."""
+    import soundfile
+
+    info = soundfile.info(str(path))
+    return info.frames / info.samplerate
 
 
 def resample(speech: np.ndarray, rate: int, fs: int) -> np.ndarray:
@@ -201,6 +217,36 @@ class VoiceActivityDetector:
         return self.hop / self.fs
 
     @property
+    def min_samples(self) -> int:
+        """The shortest input with one frame: n_fft, or n_fft / 2 + 1 centred.
+
+        A centred STFT pads each end by reflection, which needs more than
+        n_fft / 2 samples.
+        """
+        return self.n_fft // 2 + 1 if self.center else self.n_fft
+
+    def num_frames(self, num_samples: int) -> int:
+        """Frames the frontend makes of ``num_samples`` samples."""
+        if num_samples < self.min_samples:
+            return 0
+        if self.center:
+            return num_samples // self.hop + 1
+        return (num_samples - self.n_fft) // self.hop + 1
+
+    def _check_frames(self, probs, num_samples: int):
+        """Refuse an encoder that changes the frame rate.
+
+        Times are frame index * hop / fs, so a subsampling encoder would put
+        every segment at the wrong time.
+        """
+        if len(probs) != self.num_frames(num_samples):
+            raise ValueError(
+                f"{num_samples} samples gave {len(probs)} frames, not the "
+                f"{self.num_frames(num_samples)} of the frontend: an encoder that "
+                "subsamples is not supported"
+            )
+
+    @property
     def offline_look_ahead(self) -> int:
         """The look-ahead offline detection uses: the largest the encoder offers."""
         return self.max_look_ahead
@@ -228,12 +274,14 @@ class VoiceActivityDetector:
 
         speech = resample(speech, fs or self.fs, self.fs)
         self._set_look_ahead(look_ahead)
-        if len(speech) < self.n_fft:
+        if len(speech) < self.min_samples:
             # too short for one frame
             return np.zeros(0, dtype=np.float32)
         with torch.no_grad():
             _, probs = self.diarize(torch.from_numpy(speech)[None], fs=self.fs)
-        return np.asarray(probs, dtype=np.float32)[0, :, 0]
+        probs = np.asarray(probs, dtype=np.float32)[0, :, 0]
+        self._check_frames(probs, len(speech))
+        return probs
 
     def probabilities_batch(
         self, speeches: Sequence[np.ndarray], look_ahead: int = 0
@@ -241,19 +289,27 @@ class VoiceActivityDetector:
         """Frame probabilities of recordings at ``self.fs``, in one batch.
 
         Each result equals :meth:`probabilities` of that recording alone
-        (DiarizeSpeech.diarize_batch).
+        (DiarizeSpeech.diarize_batch); a recording shorter than one frame gets
+        an empty array.
         """
         import numpy as np
         import torch
 
         self._set_look_ahead(look_ahead)
-        lengths = [len(s) for s in speeches]
-        batch = np.zeros((len(speeches), max(lengths)), dtype=np.float32)
-        for b, s in enumerate(speeches):
-            batch[b, : len(s)] = s
+        results = [np.zeros(0, dtype=np.float32) for _ in speeches]
+        ready = [i for i, s in enumerate(speeches) if len(s) >= self.min_samples]
+        if not ready:
+            return results
+        lengths = [len(speeches[i]) for i in ready]
+        batch = np.zeros((len(ready), max(lengths)), dtype=np.float32)
+        for b, i in enumerate(ready):
+            batch[b, : lengths[b]] = speeches[i]
         with torch.no_grad():
             out = self.diarize.diarize_batch(batch, np.asarray(lengths), fs=self.fs)
-        return [np.asarray(p, dtype=np.float32)[:, 0] for p in out]
+        for i, n, p in zip(ready, lengths, out):
+            results[i] = np.asarray(p, dtype=np.float32)[:, 0]
+            self._check_frames(results[i], n)
+        return results
 
     def detect(
         self, speech: np.ndarray, fs: Optional[int] = None, offline: bool = True
@@ -278,26 +334,20 @@ class VoiceActivityDetector:
     ) -> List[List[Segment]]:
         """Speech segments of many files, ``batch_size`` recordings at a time.
 
-        The files are batched in order of length, so a batch holds recordings
-        of similar length and little padding; the results come back in the
-        order of ``paths``.
+        The files are batched in order of length (read from their headers), so
+        a batch holds recordings of similar length and little padding; each
+        batch is decoded when it runs, so only one batch of audio is in memory.
+        The results come back in the order of ``paths``.
         """
         if batch_size < 1:
             raise ValueError(f"batch_size must be positive: {batch_size}")
         look_ahead = self.offline_look_ahead if offline else 0
-        speeches = [read_audio(p, self.fs) for p in paths]
-        order = sorted(range(len(speeches)), key=lambda i: len(speeches[i]))
-        results: List[Optional[List[Segment]]] = [None] * len(speeches)
+        order = sorted(range(len(paths)), key=lambda i: audio_seconds(paths[i]))
+        results: List[List[Segment]] = [[] for _ in paths]
         for k in range(0, len(order), batch_size):
             group = order[k : k + batch_size]
-            # recordings shorter than one frame have no frames to detect
-            ready = [i for i in group if len(speeches[i]) >= self.n_fft]
-            for i in group:
-                results[i] = []
-            if not ready:
-                continue
-            probs = self.probabilities_batch([speeches[i] for i in ready], look_ahead)
-            for i, p in zip(ready, probs):
+            speeches = [read_audio(paths[i], self.fs) for i in group]
+            for i, p in zip(group, self.probabilities_batch(speeches, look_ahead)):
                 results[i] = self.segments(p)
         return results
 
@@ -396,6 +446,26 @@ class StreamingVAD:
                 "(frontend_conf center: false): a centred frame reads n_fft/2 "
                 "samples ahead"
             )
+        model = vad.diarize.diar_model
+        normalize = type(getattr(model, "normalize", None)).__name__
+        if normalize not in ("GlobalMVN", "NoneType"):
+            # the statistics of an utterance include its future
+            raise ValueError(
+                f"streaming needs a normalisation that reads no future frame, "
+                f"such as global_mvn, not {normalize}"
+            )
+        encoder = model.encoder
+        # Online means look-ahead 0: a dual-mode encoder can be set to it, a
+        # causal one is there already; any other encoder reads future frames.
+        if not (
+            hasattr(encoder, "forward_streaming")
+            or hasattr(encoder, "set_look_ahead")
+            or getattr(encoder, "causal", False)
+        ):
+            raise ValueError(
+                f"streaming needs a causal encoder; {type(encoder).__name__} "
+                "does not say it is one"
+            )
         import numpy as np
 
         self.vad = vad
@@ -407,17 +477,12 @@ class StreamingVAD:
         self.probs: List[np.ndarray] = []
         self.resampler = None  # soxr.ResampleStream for input at another rate
         self.resampler_rate = None
-        model = vad.diarize.diar_model
-        # Only the encoder's past is cached, so everything around it has to
-        # work frame by frame: the global (not the utterance) MVN, and a linear
-        # decoder without attractors.
+        # Only the encoder's past is cached, so the decoder has to work frame
+        # by frame: a linear decoder without attractors.
         frame_wise = (
             getattr(model, "attractor", None) is None
-            and type(getattr(model, "normalize", None)).__name__
-            in ("GlobalMVN", "NoneType")
             and type(getattr(model, "decoder", None)).__name__ == "LinearDecoder"
         )
-        encoder = model.encoder
         cacheable = hasattr(encoder, "forward_streaming") or (
             vad.max_look_ahead == 0 and _CachedEncoder.supports(encoder)
         )
@@ -434,20 +499,51 @@ class StreamingVAD:
         A chunk at another rate goes through one soxr stream resampler kept
         across chunks, so the stream is resampled as one signal rather than
         chunk by chunk. The resampler holds back a few milliseconds of audio
-        until the next chunk.
+        until the next chunk; :meth:`finish` releases it.
         """
         import numpy as np
 
         vad = self.vad
         rate = fs or vad.fs
         chunk = np.asarray(chunk, dtype=np.float32).reshape(-1)
+        out = []
+        if self.resampler is not None and self.resampler_rate != rate:
+            # the audio of the old rate goes in before the new rate's
+            out.append(self._push(self._flush_resampler()))
         if rate != vad.fs:
             import soxr
 
-            if self.resampler is None or self.resampler_rate != rate:
+            if self.resampler is None:
                 self.resampler = soxr.ResampleStream(rate, vad.fs, 1, dtype="float32")
                 self.resampler_rate = rate
             chunk = self.resampler.resample_chunk(chunk)
+        out.append(self._push(chunk))
+        return np.concatenate(out)
+
+    def finish(self) -> np.ndarray:
+        """End the stream: run the audio the resampler still holds.
+
+        Returns the probabilities of the frames it completes.
+        """
+        import numpy as np
+
+        if self.resampler is None:
+            return np.zeros(0, dtype=np.float32)
+        return self._push(self._flush_resampler())
+
+    def _flush_resampler(self) -> np.ndarray:
+        import numpy as np
+
+        tail = self.resampler.resample_chunk(np.zeros(0, dtype=np.float32), last=True)
+        self.resampler = None
+        self.resampler_rate = None
+        return np.asarray(tail, dtype=np.float32)
+
+    def _push(self, chunk: np.ndarray) -> np.ndarray:
+        """Add audio at the model's rate; return the new frames' probabilities."""
+        import numpy as np
+
+        vad = self.vad
         self.buffer = np.concatenate([self.buffer, chunk])
         total = self.num_samples
         if total < vad.n_fft:
@@ -474,7 +570,8 @@ class StreamingVAD:
         device = next(model.parameters()).device
         # buffer[0] is the first sample of the first new frame
         end = (new - 1) * vad.hop + vad.n_fft
-        x = torch.from_numpy(self.buffer[:end]).to(device)[None]
+        dtype = next(model.parameters()).dtype
+        x = torch.from_numpy(self.buffer[:end]).to(device=device, dtype=dtype)[None]
         with torch.no_grad():
             lengths = torch.tensor([x.size(1)], device=device)
             feats, flens = model._extract_feats(x, lengths)
@@ -516,3 +613,28 @@ class StreamingVAD:
 def format_segments(segments: Iterable[Segment]) -> str:
     """One line a segment: start and end seconds, tab-separated."""
     return "\n".join(f"{s.start:.2f}\t{s.end:.2f}" for s in segments)
+
+
+def get_parser():
+    """The parser of `espnet detect`, which this module implements."""
+    import argparse
+
+    from espnet2.bin import cli
+
+    for action in cli.build_parser()._actions:
+        if isinstance(action, argparse._SubParsersAction):
+            return action.choices["detect"]
+    raise RuntimeError("espnet has no detect command")
+
+
+def main(cmd=None):
+    """Run `espnet detect` with these arguments."""
+    import sys
+
+    from espnet2.bin import cli
+
+    return cli.main(["detect", *(sys.argv[1:] if cmd is None else cmd)])
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

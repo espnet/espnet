@@ -1060,6 +1060,7 @@ class _FakeVAD:
 
     fs = 16000
     frame_shift = 0.01
+    threshold = 0.5
     median = 1
 
     def __init__(self, segments):
@@ -1076,22 +1077,17 @@ class _FakeVAD:
         ]
 
     def stream(self):
-        vad = self
-
         class _Stream:
+            """Reads each block as the probabilities of its frames."""
+
             emitted = 0
-            probs = []
 
             def accept(self, block, fs):
-                self.probs.extend(block.tolist())
-                self.emitted = len(self.probs)
+                self.emitted += len(block)
+                return np.asarray(block, dtype=np.float32)
 
-            def segments(self):
-                from espnet2.bin.vad import frames_to_segments
-
-                return frames_to_segments(
-                    np.array(self.probs), vad.frame_shift, 0.5, vad.median
-                )
+            def finish(self):
+                return np.zeros(0, dtype=np.float32)
 
         return _Stream()
 
@@ -1218,3 +1214,40 @@ def test_vad_loads_each_mode_with_its_model_and_rule(monkeypatch, mode):
     args.threshold, args.median = 0.4, 3
     vad = cli._load_vad(args, mode)
     assert (vad.threshold, vad.median) == (0.4, 3)
+
+
+def test_vad_refuses_a_nonpositive_batch_size_before_loading(
+    monkeypatch, tmp_path, capsys
+):
+    audio = tmp_path / "a.wav"
+    audio.write_bytes(b"")
+    asked = _fake_vad(monkeypatch, _FakeVAD({}))
+    assert cli.main(["detect", str(audio), "--batch-size", "0"]) == 1
+    assert "--batch-size must be positive" in capsys.readouterr().err
+    assert asked == {}  # no model was loaded
+
+
+@pytest.mark.parametrize("median", [1, 5])
+def test_vad_stream_prints_what_the_whole_recording_gives(
+    monkeypatch, tmp_path, capsys, median
+):
+    """Blocks of any size print the segments of all the frames at once."""
+    from espnet2.bin.vad import frames_to_segments
+
+    audio = tmp_path / "a.wav"
+    audio.write_bytes(b"")
+    rng = np.random.default_rng(median)
+    # speech in runs, with blips and short gaps
+    probs = np.repeat(rng.random(80) > 0.5, rng.integers(1, 12, 80)).astype(np.float32)
+    cuts = np.sort(rng.choice(np.arange(1, len(probs)), 25, replace=False))
+    _stub_live(monkeypatch, np.split(probs, cuts), [])
+    vad = _FakeVAD({})
+    vad.median = median
+    _fake_vad(monkeypatch, vad)
+
+    assert cli.main(["detect", str(audio), "--stream"]) == 0
+
+    expected = frames_to_segments(probs, vad.frame_shift, 0.5, median)
+    assert capsys.readouterr().out == "".join(
+        f"{s.start:.2f}\t{s.end:.2f}\n" for s in expected
+    )

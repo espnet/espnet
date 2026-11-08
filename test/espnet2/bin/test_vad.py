@@ -248,14 +248,6 @@ def test_the_recomputing_stream_equals_the_whole_recording(tmp_path, receptive_f
         assert stream.offset > 0
 
 
-def test_an_utterance_mvn_model_is_not_cached(tmp_path):
-    vad = _model(tmp_path)
-    from espnet2.layers.utterance_mvn import UtteranceMVN
-
-    vad.diarize.diar_model.normalize = UtteranceMVN()
-    assert vad.stream().cached is None
-
-
 def test_batch_equals_each_recording_alone(tmp_path):
     vad = _model(tmp_path)
     speeches = [_speech(s, i) for i, s in enumerate((2.0, 0.7, 1.3))]
@@ -330,3 +322,182 @@ def test_a_look_ahead_beyond_the_encoder_is_refused():
 def test_stream_class_is_exported():
     vad, _ = _stub_detector()
     assert isinstance(vad.stream(), StreamingVAD)
+
+
+# --- reading, short inputs and frame rate ---------------------------------
+
+
+def test_read_audio_decodes_only_what_it_is_asked_for(tmp_path):
+    from espnet2.bin.vad import audio_seconds
+
+    soundfile.write(tmp_path / "a.wav", _speech(3.0), FS)
+    assert audio_seconds(tmp_path / "a.wav") == 3.0
+    assert len(read_audio(tmp_path / "a.wav", FS, max_seconds=1.25)) == 20000
+    assert len(read_audio(tmp_path / "a.wav", FS)) == 3 * FS
+
+
+@pytest.mark.parametrize("center, frames", [(False, 0), (True, 400 // 128 + 1)])
+def test_a_short_input_has_the_frames_the_stft_gives_it(tmp_path, center, frames):
+    """400 samples: no frame of a 512-point STFT, but a centred one pads it."""
+    vad = _model(tmp_path, center=center)
+    assert vad.min_samples == (257 if center else 512)
+    assert len(vad.probabilities(_speech(0.025))) == frames == vad.num_frames(400)
+
+
+def test_an_encoder_that_subsamples_is_refused(tmp_path, monkeypatch):
+    vad = _model(tmp_path)
+    call = type(vad.diarize).__call__
+
+    def every_other_frame(self, speech, fs):
+        waves, probs = call(self, speech, fs=fs)
+        return waves, probs[:, ::2]
+
+    monkeypatch.setattr(type(vad.diarize), "__call__", every_other_frame)
+    with pytest.raises(ValueError, match="subsamples"):
+        vad.probabilities(_speech(1.0))
+
+
+def test_a_batch_with_short_recordings_gives_them_no_frames(tmp_path):
+    vad = _model(tmp_path)
+    speeches = [_speech(0.005), _speech(1.0), _speech(0.01)]
+    probs = vad.probabilities_batch(speeches)
+    assert [len(p) for p in probs] == [0, vad.num_frames(FS), 0]
+    np.testing.assert_allclose(
+        probs[1], vad.probabilities(speeches[1]), rtol=1e-4, atol=1e-5
+    )
+    assert vad.probabilities_batch([_speech(0.001)])[0].shape == (0,)
+
+
+def test_detect_files_decodes_one_batch_at_a_time(tmp_path, monkeypatch):
+    from espnet2.bin import vad as vad_module
+
+    vad = _model(tmp_path / "exp")
+    paths = []
+    for i, seconds in enumerate((1.5, 0.5, 1.0, 0.75)):
+        path = tmp_path / f"{i}.wav"
+        soundfile.write(path, _speech(seconds, i), FS)
+        paths.append(path)
+    events = []
+    read = vad_module.read_audio
+    batch = vad.probabilities_batch
+    monkeypatch.setattr(
+        vad_module,
+        "read_audio",
+        lambda p, fs, **kw: events.append(("read", p)) or read(p, fs, **kw),
+    )
+    monkeypatch.setattr(
+        vad,
+        "probabilities_batch",
+        lambda s, la=0: events.append(("run", len(s))) or batch(s, la),
+    )
+    vad.detect_files(paths, batch_size=2)
+    # shortest first, two files read before each run
+    assert events == [
+        ("read", paths[1]),
+        ("read", paths[3]),
+        ("run", 2),
+        ("read", paths[2]),
+        ("read", paths[0]),
+        ("run", 2),
+    ]
+
+
+# --- streaming: what it refuses, rates and the end of a stream ------------
+
+
+def test_streaming_refuses_an_utterance_normalisation(tmp_path):
+    from espnet2.layers.utterance_mvn import UtteranceMVN
+
+    vad = _model(tmp_path)
+    vad.diarize.diar_model.normalize = UtteranceMVN()
+    with pytest.raises(ValueError, match="normalisation"):
+        vad.stream()
+
+
+def test_streaming_refuses_an_encoder_that_reads_ahead(tmp_path):
+    vad = _model(tmp_path)
+    vad.diarize.diar_model.encoder.causal = False
+    with pytest.raises(ValueError, match="causal encoder"):
+        vad.stream()
+
+
+def test_finish_runs_the_audio_the_resampler_holds(tmp_path):
+    import soxr
+
+    vad = _model(tmp_path)
+    speech48 = (np.random.default_rng(7).normal(size=2 * 48000) * 0.1).astype(
+        np.float32
+    )
+    whole = vad.probabilities(soxr.resample(speech48, 48000, FS), FS)
+    stream = vad.stream()
+    for i in range(0, len(speech48), 4800):
+        stream.accept(speech48[i : i + 4800], 48000)
+    held = len(whole) - len(stream.all_probabilities())
+    stream.finish()
+    assert held > 0 and len(stream.all_probabilities()) == len(whole)
+    np.testing.assert_allclose(stream.all_probabilities(), whole, atol=1e-4)
+    assert stream.finish().shape == (0,)  # nothing left
+
+
+def test_a_new_input_rate_flushes_the_old_one_first(tmp_path):
+    import soxr
+
+    vad = _model(tmp_path)
+    rng = np.random.default_rng(8)
+    first = (rng.normal(size=48000) * 0.1).astype(np.float32)  # 1 s at 48 kHz
+    second = _speech(1.0, 9)
+    whole = vad.probabilities(
+        np.concatenate([soxr.resample(first, 48000, FS), second]), FS
+    )
+    stream = vad.stream()
+    got = [stream.accept(first[i : i + 4800], 48000) for i in range(0, 48000, 4800)]
+    got += [stream.accept(second[i : i + 1600], FS) for i in range(0, FS, 1600)]
+    np.testing.assert_allclose(np.concatenate(got), whole, atol=1e-4)
+
+
+def test_a_float64_model_streams(tmp_path):
+    vad = _model(tmp_path)
+    speech = _speech(1.0)
+    expected = vad.probabilities(speech)
+    vad.diarize.diar_model.double()
+    stream = vad.stream()
+    for i in range(0, len(speech), 3000):
+        stream.accept(speech[i : i + 3000])
+    np.testing.assert_allclose(stream.all_probabilities(), expected, atol=1e-5)
+
+
+# --- a packed model -------------------------------------------------------
+
+
+def test_a_packed_model_loads_and_streams_like_the_whole_recording(tmp_path):
+    """Pack a model as diar.sh stage 8 does, load the zip, stream it."""
+    from espnet2.bin.vad import format_segments
+    from espnet2.main_funcs.pack_funcs import pack
+
+    vad = _model(tmp_path / "exp")
+    model_file = tmp_path / "exp" / "valid.acc.best.pth"
+    torch.save(vad.diarize.diar_model.state_dict(), model_file)
+    packed = tmp_path / "packed.zip"
+    pack(
+        files=dict(model_file=model_file),
+        yaml_files=dict(train_config=tmp_path / "exp" / "config.yaml"),
+        outpath=packed,
+    )
+    loaded = VoiceActivityDetector.load(str(packed), threshold=0.4, median=3)
+    assert (loaded.center, loaded.threshold, loaded.median) == (False, 0.4, 3)
+    speech = _speech(3.0, 11)
+    whole = loaded.probabilities(speech)
+    np.testing.assert_allclose(whole, vad.probabilities(speech), atol=1e-6)
+    stream = loaded.stream()
+    assert stream.cached is not None
+    for i in range(0, len(speech), 1234):
+        stream.accept(speech[i : i + 1234])
+    np.testing.assert_allclose(stream.all_probabilities(), whole, atol=1e-5)
+    assert format_segments(stream.segments()) == format_segments(loaded.segments(whole))
+
+
+def test_get_parser_is_the_detect_command():
+    from espnet2.bin.vad import get_parser
+
+    args = get_parser().parse_args(["a.wav", "--online"])
+    assert args.audio == ["a.wav"] and args.online

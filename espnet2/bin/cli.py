@@ -471,6 +471,8 @@ def cmd_detect(args) -> int:
         raise CLIError("give one or more audio files, or --live to record")
     for path in args.audio:
         _require_file(path)
+    if args.batch_size < 1:
+        raise CLIError(f"--batch-size must be positive, not {args.batch_size}")
 
     from espnet2.bin.vad import format_segments
 
@@ -499,7 +501,10 @@ def _detect_as_it_arrives(args) -> int:
 
     Each block runs the model on the frames it completes, with no look-ahead,
     and a segment is printed once it has ended: once the frames after its
-    end are past the median filter's reach.
+    end are past the median filter's reach. Only the frames since the last
+    printed segment, and the median filter's reach before them, are
+    thresholded and filtered again per block, so the work per block does not
+    grow with the length of the session.
     """
     if args.live and args.audio:
         raise CLIError("--live records from the microphone; do not also name a file")
@@ -508,11 +513,30 @@ def _detect_as_it_arrives(args) -> int:
     if args.stream:
         _require_file(args.audio[0])
 
+    import numpy as np
+
     from espnet2.bin import live
+    from espnet2.bin.vad import frames_to_segments
 
     vad = _load_vad(args, "online")
     stream = vad.stream()
-    printed = 0
+    window = np.zeros(0, dtype=np.float32)  # the probabilities from frame start
+    start = 0  # frame index of window[0]
+    done = 0  # frame index where the last printed segment ended
+
+    def segments_in_window():
+        """(start frame, end frame) of each segment from frame `done` on."""
+        found = frames_to_segments(window, 1.0, vad.threshold, vad.median)
+        return [
+            (start + int(seg.start), start + int(seg.end))
+            for seg in found
+            if start + int(seg.start) >= done
+        ]
+
+    def show(first, last):
+        shift = vad.frame_shift
+        print(f"{first * shift:.2f}\t{last * shift:.2f}", flush=True)
+
     try:
         source = (
             live.from_microphone(sample_rate=vad.fs)
@@ -520,22 +544,26 @@ def _detect_as_it_arrives(args) -> int:
             else live.from_file(args.audio[0], sample_rate=vad.fs)
         )
         for block in source:
-            stream.accept(block, vad.fs)
-            segments = stream.segments()
+            window = np.concatenate([window, stream.accept(block, vad.fs)])
             # the last segment may still grow, and the median filter can still
             # change the frames within median // 2 of the end
-            settled = (stream.emitted - vad.median // 2) * vad.frame_shift
-            done = [s for s in segments if s.end < settled]
-            for seg in done[printed:]:
-                print(f"{seg.start:.2f}\t{seg.end:.2f}", flush=True)
-            printed = max(printed, len(done))
+            settled = stream.emitted - vad.median // 2
+            for first, last in segments_in_window():
+                if last >= settled:
+                    break
+                show(first, last)
+                done = last
+            # keep the median filter's reach before the first open frame
+            keep = max(start, done - vad.median)
+            window, start = window[keep - start :], keep
+        window = np.concatenate([window, stream.finish()])
     except live.LiveError as e:
         raise CLIError(str(e)) from e
     except KeyboardInterrupt:  # pragma: no cover - interactive
         pass
     # what is still open when the audio stops ends where the audio does
-    for seg in stream.segments()[printed:]:
-        print(f"{seg.start:.2f}\t{seg.end:.2f}", flush=True)
+    for first, last in segments_in_window():
+        show(first, last)
     return 0
 
 

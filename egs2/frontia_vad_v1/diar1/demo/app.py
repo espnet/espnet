@@ -40,6 +40,7 @@ import matplotlib.pyplot as plt  # noqa: E402
 from espnet2.bin.vad import (  # noqa: E402
     RULES,
     VoiceActivityDetector,
+    audio_seconds,
     frames_to_segments,
     read_audio,
 )
@@ -102,6 +103,14 @@ FS = offline_vad.fs
 FRAME_SHIFT = offline_vad.frame_shift
 if (online_vad.fs, online_vad.frame_shift) != (FS, FRAME_SHIFT):
     raise ValueError("the online and offline models must share a rate and frames")
+# The microphone's chunks arrive outside any @spaces.GPU call, where ZeroGPU
+# has no GPU attached, so the live tab runs its own copy of the online model
+# on the CPU; the model is a few hundred kilobytes and keeps up there.
+live_vad = (
+    online_vad
+    if DEVICE == "cpu"
+    else VoiceActivityDetector.for_mode("online", ONLINE_MODEL_TAG, device="cpu")
+)
 OFFLINE_INFO = (
     f"the offline model reads {offline_vad.offline_look_ahead} frames "
     f"({offline_vad.offline_look_ahead * FRAME_SHIFT:.2f} s) ahead"
@@ -112,14 +121,13 @@ def _read(path):
     """One recording at the models' rate, trimmed to the cap."""
     if path is None:
         raise gr.Error("Record or upload a recording first.")
-    speech = read_audio(path, FS)
-    if len(speech) > MAX_SECS * FS:
+    # the header gives the length, so only the part that is used is decoded
+    if audio_seconds(path) > MAX_SECS:
         gr.Warning(
             f"Only the first {MAX_SECS} s were used. Run the app yourself, or "
             "`espnet detect`, for longer audio - the models have no such limit."
         )
-        speech = speech[: MAX_SECS * FS]
-    return speech
+    return read_audio(path, FS, max_seconds=MAX_SECS)
 
 
 def _table(segments):
@@ -187,35 +195,18 @@ def predict_files(files, threshold, median):
         files = files[:BATCH_FILES]
     paths = [getattr(f, "name", f) for f in files]
     speeches = [_read(p) for p in paths]
-    ready = [i for i, s in enumerate(speeches) if len(s) >= offline_vad.n_fft]
-    probs = offline_vad.probabilities_batch(
-        [speeches[i] for i in ready], offline_vad.offline_look_ahead
-    )
+    # a recording shorter than one frame gets no frames, and no rows
+    probs = offline_vad.probabilities_batch(speeches, offline_vad.offline_look_ahead)
     rows = []
-    for i, p in zip(ready, probs):
-        name = os.path.basename(paths[i])
+    for path, p in zip(paths, probs):
+        name = os.path.basename(path)
         for seg in frames_to_segments(p, FRAME_SHIFT, threshold, int(median)):
             rows.append([name, round(seg.start, 2), round(seg.end, 2)])
     return rows
 
 
-def live(state, chunk, threshold, median):
-    """Feed one microphone chunk to the online model; return what is decided."""
-    if chunk is None:
-        return state, None, []
-    rate, samples = chunk
-    samples = np.asarray(samples)
-    if samples.dtype.kind == "i":
-        samples = samples.astype(np.float32) / np.iinfo(samples.dtype).max
-    if samples.ndim > 1:
-        samples = samples[:, 0]
-    if state is None:
-        state = online_vad.stream()
-    if state.num_samples > MAX_SECS * FS:
-        gr.Warning(f"A live session stops at {MAX_SECS} s; start a new one.")
-        return state, None, _table(state.segments())
-    # the stream resamples the microphone rate as one signal across chunks
-    state.accept(samples, int(rate))
+def _live_view(state, threshold, median):
+    """The probability so far and its segments, by the sliders' rule."""
     probs = state.all_probabilities()
     segments = frames_to_segments(probs, FRAME_SHIFT, threshold, int(median))
     fig, ax = plt.subplots(figsize=(10, 2))
@@ -229,6 +220,37 @@ def live(state, chunk, threshold, median):
     fig.tight_layout()
     plt.close(fig)
     return state, fig, _table(segments)
+
+
+def live(state, chunk, threshold, median):
+    """Feed one microphone chunk to the online model; return what is decided."""
+    if chunk is None:
+        return state, None, []
+    rate, samples = chunk
+    samples = np.asarray(samples)
+    if samples.dtype.kind == "i":
+        samples = samples.astype(np.float32) / np.iinfo(samples.dtype).max
+    if samples.ndim > 1:
+        samples = samples[:, 0]
+    if state is None:
+        state = live_vad.stream()
+    # what is left of the session, in samples at the microphone's rate
+    allowed = int((MAX_SECS * FS - state.num_samples) * int(rate) / FS)
+    if len(samples) > allowed:
+        gr.Warning(f"A live session stops at {MAX_SECS} s; start a new one.")
+        samples = samples[: max(allowed, 0)]
+    if len(samples):
+        # the stream resamples the microphone rate as one signal across chunks
+        state.accept(samples, int(rate))
+    return _live_view(state, threshold, median)
+
+
+def finish_live(state, threshold, median):
+    """When the microphone stops: run the audio the resampler still holds."""
+    if state is None:
+        return state, None, []
+    state.finish()
+    return _live_view(state, threshold, median)
 
 
 def _rule(mode):
@@ -300,6 +322,11 @@ with gr.Blocks(title=TITLE) as demo:
             [stream_state, live_plot, live_table],
         )
         mic.start_recording(lambda: None, None, stream_state)
+        mic.stop_recording(
+            finish_live,
+            [stream_state, live_threshold, live_median],
+            [stream_state, live_plot, live_table],
+        )
     with gr.Tab("Many files"):
         gr.Markdown(
             f"Up to {BATCH_FILES} recordings, detected offline in one batch - "
