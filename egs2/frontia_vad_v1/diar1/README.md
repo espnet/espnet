@@ -13,7 +13,8 @@ speech when anyone in the recording speaks. Two models:
   (`conf/decode.yaml`); offline: 124 frames = 0.99 s (`conf/tuning/decode_offline.yaml`).
 
 Training reads 10 s windows straight from the Omni-IO archives that stage 2 dumps
-(`local/train_windowed.sh`, run.sh stage 5); inference runs on whole recordings.
+(`diar.sh --train_window_size 160000`; the statistics of stage 4 are collected on
+the same windows); inference runs on whole recordings.
 Scoring is md-eval with no collar. `local/show_vad_result.py` picks one threshold
 and median filter on AMI Mix-Headset dev and reports every set at that setting,
 next to each set's own best (`RESULTS_vad.md` in the experiment directory).
@@ -64,7 +65,8 @@ packed: `local/data.sh` extracts only the members it needs into `downloads/`.
 
 ```bash
 ./run.sh                                        # causal model, stages 1-7
-./run.sh --train_config conf/tuning/train_dualmode.yaml --diar_tag train_dualmode
+./run.sh --diar_config conf/tuning/train_dualmode.yaml --diar_tag train_dualmode
+python3 local/show_vad_result.py exp/diar_train --tune_set ami_mh_dev
 ```
 
 Offline scores of the dual-mode model: see the comment at the top of `run.sh`.

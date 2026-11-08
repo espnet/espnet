@@ -80,7 +80,10 @@ for corpus in ${corpora//,/ }; do
             # the manual annotations may still be the release zip
             ami_wavs=${AMI}; [ -d "${AMI}/wav_db" ] && ami_wavs=${AMI}/wav_db
             ami_annot=${AMI}/annotations
-            [ -d "${ami_annot}" ] || ami_annot=$(ls "${AMI}"/ami_public_manual_*.zip | tail -1)
+            if [ ! -d "${ami_annot}" ]; then
+                ami_zips=("${AMI}"/ami_public_manual_*.zip)  # sorted: the last is the newest
+                ami_annot=${ami_zips[${#ami_zips[@]}-1]}
+            fi
             python3 local/prep_ami.py "${ami_wavs}" "${ami_annot}" \
                 "${ami_lists}/split_${split}.orig" "${out}"
             ;;
