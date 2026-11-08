@@ -502,3 +502,290 @@ def test_get_parser_is_the_detect_command():
 
     args = get_parser().parse_args(["a.wav", "--online"])
     assert args.audio == ["a.wav"] and args.online
+
+
+# --- input: dtypes, channels, bad values ------------------------------------
+
+
+def test_integer_pcm_is_scaled_and_one_column_is_squeezed():
+    from espnet2.bin.vad import as_mono_float
+
+    np.testing.assert_allclose(
+        as_mono_float(np.array([-32768, 0, 16384], dtype=np.int16)), [-1.0, 0.0, 0.5]
+    )
+    np.testing.assert_allclose(
+        as_mono_float(np.array([0, 128, 255], dtype=np.uint8)), [-1.0, 0.0, 127 / 128]
+    )
+    assert as_mono_float(np.zeros((7, 1))).shape == (7,)
+    assert as_mono_float(np.zeros((1, 7))).shape == (7,)
+    assert as_mono_float(np.zeros(3, dtype=np.float64)).dtype == np.float32
+
+
+@pytest.mark.parametrize(
+    "bad, message",
+    [
+        (np.zeros((100, 2)), "one channel"),
+        (np.zeros((2, 3, 4)), "one channel"),
+        (np.array([0.0, np.nan, 0.0]), "NaN"),
+        (np.array([0.0, np.inf]), "NaN"),
+    ],
+)
+def test_bad_audio_is_refused_by_every_entry_point(tmp_path, bad, message):
+    vad = _model(tmp_path)
+    with pytest.raises(ValueError, match=message):
+        vad.probabilities(bad)
+    with pytest.raises(ValueError, match=message):
+        vad.probabilities_batch([_speech(1.0), bad])
+    with pytest.raises(ValueError, match=message):
+        vad.stream().accept(bad)
+
+
+def test_int16_input_gives_what_the_float_input_gives(tmp_path):
+    vad = _model(tmp_path)
+    speech = np.clip(_speech(1.0) * 4, -1, 1)
+    pcm = np.round(speech * 32767).astype(np.int16)
+    np.testing.assert_allclose(
+        vad.probabilities(pcm),
+        vad.probabilities(pcm.astype(np.float32) / 32768),
+        atol=1e-6,
+    )
+    stream = vad.stream()
+    for i in range(0, len(pcm), 1000):
+        stream.accept(pcm[i : i + 1000])
+    np.testing.assert_allclose(
+        stream.all_probabilities(), vad.probabilities(pcm), atol=1e-5
+    )
+
+
+def test_a_nonpositive_rate_is_refused(tmp_path):
+    vad = _model(tmp_path)
+    with pytest.raises(ValueError, match="sample rate"):
+        vad.probabilities(_speech(0.5), fs=0)
+    with pytest.raises(ValueError, match="sample rate"):
+        vad.stream().accept(_speech(0.5), fs=-16000)
+
+
+# --- sample rates -----------------------------------------------------------
+
+
+@pytest.mark.parametrize("rate", [8000, 22050, 44100, 48000])
+def test_any_rate_is_resampled_to_the_models(tmp_path, rate):
+    """probabilities(x, rate) is the model's rate version of x, frame for frame."""
+    from espnet2.bin.vad import resample
+
+    vad = _model(tmp_path)
+    x = (np.random.default_rng(rate).normal(size=rate) * 0.1).astype(np.float32)
+    at_model_rate = resample(x, rate, FS)
+    probs = vad.probabilities(x, rate)
+    assert len(probs) == vad.num_frames(len(at_model_rate))
+    np.testing.assert_allclose(probs, vad.probabilities(at_model_rate), atol=1e-6)
+
+
+@pytest.mark.parametrize(
+    "rate, subtype, channels",
+    [
+        (8000, "PCM_16", 1),
+        (44100, "PCM_24", 2),
+        (48000, "FLOAT", 1),
+        (16000, "PCM_16", 3),
+    ],
+)
+def test_files_at_any_rate_format_and_channel_count(tmp_path, rate, subtype, channels):
+    """A file's segments are those of its first channel at the model's rate."""
+    from espnet2.bin.vad import resample
+
+    vad = _model(tmp_path / "exp")
+    rng = np.random.default_rng(rate + channels)
+    x = (rng.normal(size=(rate, channels)) * 0.1).clip(-0.9, 0.9)
+    ext = "flac" if subtype == "PCM_24" else "wav"
+    path = tmp_path / f"a.{ext}"
+    soundfile.write(path, x, rate, subtype=subtype)
+    first, _ = soundfile.read(path, dtype="float32", always_2d=True)
+    expected = vad.probabilities(resample(first[:, 0], rate, FS))
+    np.testing.assert_allclose(
+        vad.probabilities(read_audio(path, FS)), expected, atol=1e-6
+    )
+    vad.threshold = 0.0
+    assert vad.detect_file(path) == vad.segments(expected)
+    assert vad.detect_files([path, path], batch_size=2) == [vad.segments(expected)] * 2
+
+
+@pytest.mark.parametrize("rate", [8000, 44100])
+def test_a_stream_at_another_rate_equals_the_whole_resampled_once(tmp_path, rate):
+    """Up- and non-integer resampling, chunk by chunk, then finish()."""
+    import soxr
+
+    vad = _model(tmp_path)
+    x = (np.random.default_rng(rate).normal(size=2 * rate) * 0.1).astype(np.float32)
+    whole = vad.probabilities(soxr.resample(x, rate, FS), FS)
+    stream = vad.stream()
+    rng = np.random.default_rng(1)
+    i = 0
+    while i < len(x):
+        n = int(rng.integers(1, rate // 10))
+        stream.accept(x[i : i + n], rate)
+        i += n
+    stream.finish()
+    np.testing.assert_allclose(stream.all_probabilities(), whole, atol=1e-4)
+
+
+# --- lengths at and around a frame -----------------------------------------
+
+
+@pytest.mark.parametrize(
+    "n", [0, 1, 511, 512, 513, 639, 640, 641, 512 + 128 * 7, 512 + 128 * 7 - 1]
+)
+def test_frame_counts_at_the_boundaries(tmp_path, n):
+    """0 frames below n_fft, then one more frame every hop samples."""
+    vad = _model(tmp_path)
+    expected = 0 if n < 512 else (n - 512) // 128 + 1
+    assert vad.num_frames(n) == expected
+    speech = _speech(1.0)[:n]
+    assert len(vad.probabilities(speech)) == expected
+    assert [len(p) for p in vad.probabilities_batch([speech, _speech(1.0)])][
+        0
+    ] == expected
+    stream = vad.stream()
+    stream.accept(speech)
+    assert len(stream.all_probabilities()) == expected
+
+
+def test_empty_inputs_everywhere(tmp_path):
+    vad = _model(tmp_path / "exp")
+    empty = np.zeros(0, dtype=np.float32)
+    assert vad.detect(empty) == []
+    assert vad.probabilities_batch([]) == []
+    assert vad.probabilities_batch([empty, empty])[1].shape == (0,)
+    assert vad.detect_files([]) == []
+    path = tmp_path / "empty.wav"
+    soundfile.write(path, empty, FS)
+    assert vad.detect_file(path) == [] and vad.detect_files([path]) == [[]]
+    stream = vad.stream()
+    assert stream.accept(empty).shape == (0,)
+    assert stream.finish().shape == (0,) and stream.segments() == []
+
+
+def test_a_stream_fed_one_sample_at_a_time(tmp_path):
+    vad = _model(tmp_path)
+    speech = _speech(0.2)
+    stream = vad.stream()
+    for x in speech:
+        stream.accept(np.array([x], dtype=np.float32))
+    np.testing.assert_allclose(
+        stream.all_probabilities(), vad.probabilities(speech), atol=1e-5
+    )
+
+
+def test_a_stream_fed_once(tmp_path):
+    vad = _model(tmp_path)
+    speech = _speech(1.5)
+    stream = vad.stream()
+    np.testing.assert_allclose(
+        stream.accept(speech), vad.probabilities(speech), atol=1e-5
+    )
+
+
+def test_two_streams_do_not_share_state(tmp_path):
+    vad = _model(tmp_path)
+    a, b = _speech(1.0, 1), _speech(1.0, 2)
+    sa, sb = vad.stream(), vad.stream()
+    for i in range(0, FS, 800):
+        sa.accept(a[i : i + 800])
+        sb.accept(b[i : i + 800])
+    np.testing.assert_allclose(sa.all_probabilities(), vad.probabilities(a), atol=1e-5)
+    np.testing.assert_allclose(sb.all_probabilities(), vad.probabilities(b), atol=1e-5)
+
+
+# --- the decision rule at its edges ----------------------------------------
+
+
+@pytest.mark.parametrize(
+    "probs, threshold, median, expected",
+    [
+        ([1.0] * 5, 0.5, 1, [(0, 5)]),  # all speech
+        ([1.0] * 5, 1.0, 1, []),  # not above a threshold of 1
+        ([0.0] * 5, 0.0, 1, []),  # not above a threshold of 0
+        ([0.9], 0.5, 11, []),  # a median longer than the recording
+        ([0.9, 0.9, 0.0, 0.9, 0.9], 0.5, 3, [(0, 5)]),  # a gap filled
+        ([0.0, 0.9, 0.0, 0.0, 0.0], 0.5, 3, []),  # a blip removed
+    ],
+)
+def test_the_rule_at_its_edges(probs, threshold, median, expected):
+    found = frames_to_segments(np.array(probs), 1.0, threshold, median)
+    assert [(s.start, s.end) for s in found] == [
+        (float(a), float(b)) for a, b in expected
+    ]
+
+
+def test_segment_times_of_a_long_recording_are_exact():
+    """Frame 10 hours in: 128 * frame / 16000 s, no float drift."""
+    frames = 10 * 3600 * 125 + 3
+    probs = np.zeros(frames, dtype=np.float32)
+    probs[-3:] = 1.0
+    (seg,) = frames_to_segments(probs, 128 / 16000, 0.5, 1)
+    assert seg.start == (frames - 3) * 128 / 16000 and seg.end == frames * 0.008
+
+
+# --- a dual-mode model: online and offline ----------------------------------
+
+
+def _dual_mode_model(tmp_path):
+    DiarizationTask.main(
+        cmd=[
+            "--dry_run",
+            "true",
+            "--output_dir",
+            str(tmp_path),
+            "--num_spk",
+            "1",
+            "--frontend_conf",
+            f"fs={FS}",
+            "--frontend_conf",
+            "n_fft=512",
+            "--frontend_conf",
+            "hop_length=128",
+            "--frontend_conf",
+            "center=false",
+            "--normalize",
+            "none",
+            "--encoder",
+            "tcn",
+            "--encoder_conf",
+            "future_taps=2",
+            "--encoder_conf",
+            "num_blocks=2",
+            "--encoder_conf",
+            "num_repeats=1",
+            "--encoder_conf",
+            "output_size=8",
+        ]
+    )
+    torch.manual_seed(0)
+    return VoiceActivityDetector(
+        DiarizeSpeech(train_config=tmp_path / "config.yaml", num_spk=1)
+    )
+
+
+def test_a_dual_mode_model_reads_ahead_offline_and_streams_online(tmp_path):
+    vad = _dual_mode_model(tmp_path)
+    assert vad.offline_look_ahead == 6
+    speech = _speech(2.0)
+    online = vad.probabilities(speech, FS, 0)
+    offline = vad.probabilities(speech, FS, vad.offline_look_ahead)
+    assert len(online) == len(offline) and np.abs(online - offline).max() > 1e-4
+    stream = vad.stream()
+    assert stream.cached is not None  # forward_streaming
+    for i in range(0, len(speech), 777):
+        stream.accept(speech[i : i + 777])
+    np.testing.assert_allclose(stream.all_probabilities(), online, atol=1e-5)
+    # streaming leaves offline detection reading ahead
+    np.testing.assert_allclose(
+        vad.probabilities(speech, FS, vad.offline_look_ahead), offline, atol=1e-6
+    )
+    batched = vad.probabilities_batch([speech, speech[:20000]], vad.offline_look_ahead)
+    np.testing.assert_allclose(batched[0], offline, atol=1e-5)
+    np.testing.assert_allclose(
+        batched[1],
+        vad.probabilities(speech[:20000], FS, vad.offline_look_ahead),
+        atol=1e-5,
+    )

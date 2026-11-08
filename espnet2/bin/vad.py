@@ -132,11 +132,42 @@ def audio_seconds(path: Union[str, Path]) -> float:
     return info.frames / info.samplerate
 
 
-def resample(speech: np.ndarray, rate: int, fs: int) -> np.ndarray:
-    """Return ``speech`` (1-D) at ``fs``."""
+def as_mono_float(speech) -> np.ndarray:
+    """Return audio as a 1-D float32 array in [-1, 1].
+
+    Integer PCM (int16, int32, ...) is scaled by its largest value; a
+    (samples, 1) array is squeezed. Several channels are refused rather than
+    flattened, which would interleave them into one signal, and so are NaN
+    and infinite values, which would make every frame non-speech.
+    """
     import numpy as np
 
-    speech = np.asarray(speech, dtype=np.float32).reshape(-1)
+    speech = np.asarray(speech)
+    if speech.ndim == 2 and 1 in speech.shape:
+        speech = speech.reshape(-1)
+    if speech.ndim != 1:
+        raise ValueError(
+            f"audio must be one channel, (samples,), not {speech.shape}; "
+            "read_audio takes the first channel of a file"
+        )
+    if speech.dtype.kind in "iu":
+        info = np.iinfo(speech.dtype)
+        speech = (speech.astype(np.float64) - (info.max + info.min + 1) / 2) / (
+            (info.max - info.min + 1) / 2
+        )
+    speech = speech.astype(np.float32)
+    if not np.isfinite(speech).all():
+        raise ValueError("audio contains NaN or infinite values")
+    return speech
+
+
+def resample(speech: np.ndarray, rate: int, fs: int) -> np.ndarray:
+    """Return ``speech`` (1-D) at ``fs``, as :func:`as_mono_float` reads it."""
+    import numpy as np
+
+    speech = as_mono_float(speech)
+    if rate <= 0:
+        raise ValueError(f"the sample rate must be positive, not {rate}")
     if rate == fs:
         return speech
     import librosa
@@ -272,7 +303,7 @@ class VoiceActivityDetector:
         import numpy as np
         import torch
 
-        speech = resample(speech, fs or self.fs, self.fs)
+        speech = resample(speech, self.fs if fs is None else fs, self.fs)
         self._set_look_ahead(look_ahead)
         if len(speech) < self.min_samples:
             # too short for one frame
@@ -296,6 +327,7 @@ class VoiceActivityDetector:
         import torch
 
         self._set_look_ahead(look_ahead)
+        speeches = [as_mono_float(s) for s in speeches]
         results = [np.zeros(0, dtype=np.float32) for _ in speeches]
         ready = [i for i, s in enumerate(speeches) if len(s) >= self.min_samples]
         if not ready:
@@ -357,69 +389,25 @@ class VoiceActivityDetector:
 
 
 class _CachedEncoder:
-    """Runs a causal encoder on new frames only, keeping what it needs of the past.
+    """Runs an encoder on new frames only, through its ``forward_streaming``.
 
-    Two kinds of encoder qualify:
-    - one with ``forward_streaming(feats, state) -> (out, state)`` (state None
-      at the start), which owns its cache;
-    - the causal Conv-TasNet TCNEncoder of #6995 (v1), cached here: each
-      block keeps the last (kernel - 1) * dilation inputs of its dilated
-      depthwise convolution, which starts as zeros, as the causal left
-      padding does. Every other layer of it works frame by frame.
+    ``forward_streaming(feats, state) -> (out, state)`` (state None at the
+    start) keeps what the encoder needs of the past, e.g. the TCNEncoder's
+    last (kernel - 1) * dilation inputs of each dilated convolution.
     """
 
     def __init__(self, encoder):
         self.encoder = encoder
         self.state = None
-        self.blocks = None
-        if not hasattr(encoder, "forward_streaming"):
-            net = encoder.tcn.network
-            self.head = net[:2]  # input cLN, bottleneck 1x1
-            self.tail = net[3:]  # (PReLU,) output 1x1
-            self.blocks = []
-            for repeat in net[2]:
-                for block in repeat:
-                    conv1x1, prelu, norm, dsconv = block.net
-                    depthwise = dsconv.net[0]
-                    # dsconv.net is depthwise, (chomp,) PReLU, norm, pointwise;
-                    # the chomp drops the right padding, which here is never added
-                    rest = dsconv.net[2:] if len(dsconv.net) == 5 else dsconv.net[1:]
-                    context = (depthwise.kernel_size[0] - 1) * depthwise.dilation[0]
-                    self.blocks.append((conv1x1, prelu, norm, depthwise, rest, context))
-            self.caches = None
 
     @staticmethod
     def supports(encoder) -> bool:
-        if hasattr(encoder, "forward_streaming"):
-            return True
-        tcn = getattr(encoder, "tcn", None)
-        return (
-            getattr(encoder, "causal", False)
-            and tcn is not None
-            and not getattr(tcn, "skip_connection", False)
-            and hasattr(tcn, "network")
-        )
+        return hasattr(encoder, "forward_streaming")
 
     def __call__(self, feats):
         """Encode new frames (1, k, D) given everything before them."""
-        import torch
-        import torch.nn.functional as F
-
-        if self.blocks is None:
-            out, self.state = self.encoder.forward_streaming(feats, self.state)
-            return out
-        out = self.head(feats.transpose(1, 2))  # (1, B, k)
-        if self.caches is None:
-            self.caches = [
-                out.new_zeros(out.size(0), dw.in_channels, ctx)
-                for _, _, _, dw, _, ctx in self.blocks
-            ]
-        for i, (conv1x1, prelu, norm, dw, rest, ctx) in enumerate(self.blocks):
-            h = torch.cat([self.caches[i], norm(prelu(conv1x1(out)))], dim=2)
-            self.caches[i] = h[:, :, h.size(2) - ctx :]
-            y = F.conv1d(h, dw.weight, dw.bias, dilation=dw.dilation, groups=dw.groups)
-            out = out + rest(y)
-        return self.tail(out).transpose(1, 2)  # (1, k, D)
+        out, self.state = self.encoder.forward_streaming(feats, self.state)
+        return out
 
 
 class StreamingVAD:
@@ -431,7 +419,7 @@ class StreamingVAD:
     probabilities equal those of the whole recording at once.
 
     How each call runs the model:
-    - a causal encoder that can be cached (``_CachedEncoder``): only the new
+    - an encoder with ``forward_streaming`` (the TCNEncoder): only the new
       frames go through the frontend, the normalisation, the encoder and the
       decoder; the buffer keeps the samples from the next frame's start on;
     - any other encoder: the new frames and the ``receptive_field - 1``
@@ -483,9 +471,7 @@ class StreamingVAD:
             getattr(model, "attractor", None) is None
             and type(getattr(model, "decoder", None)).__name__ == "LinearDecoder"
         )
-        cacheable = hasattr(encoder, "forward_streaming") or (
-            vad.max_look_ahead == 0 and _CachedEncoder.supports(encoder)
-        )
+        cacheable = _CachedEncoder.supports(encoder)
         vad._set_look_ahead(0)
         self.cached = _CachedEncoder(encoder) if frame_wise and cacheable else None
 
@@ -504,8 +490,10 @@ class StreamingVAD:
         import numpy as np
 
         vad = self.vad
-        rate = fs or vad.fs
-        chunk = np.asarray(chunk, dtype=np.float32).reshape(-1)
+        rate = vad.fs if fs is None else fs
+        if rate <= 0:
+            raise ValueError(f"the sample rate must be positive, not {rate}")
+        chunk = as_mono_float(chunk)
         out = []
         if self.resampler is not None and self.resampler_rate != rate:
             # the audio of the old rate goes in before the new rate's
