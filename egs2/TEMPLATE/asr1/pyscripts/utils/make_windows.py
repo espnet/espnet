@@ -24,6 +24,7 @@ end samples (checked for every window).
 """
 
 import argparse
+import shutil
 from collections import defaultdict
 from pathlib import Path
 from typing import Dict, List, Tuple
@@ -87,13 +88,19 @@ def seconds(sample: int, fs: int) -> str:
 def make_windows(
     src: Path, dst: Path, window: int, shift: int, fs: int
 ) -> Tuple[int, int, int]:
-    """Write DST; return (recordings, windows, windows without speech)."""
+    """Write DST; return (recordings, windows, windows without speech).
+
+    The files are written to DST.tmp and moved to DST when complete, so an
+    interrupted run leaves no partial DST behind.
+    """
     if window <= 0 or shift <= 0:
         raise ValueError(f"window and shift must be positive: {window}, {shift}")
     wav = read_kv(src / "wav.scp")
     nsamp = {k: int(v) for k, v in read_kv(src / "utt2num_samples").items()}
     turns = read_turns(src / "espnet_rttm")
-    dst.mkdir(parents=True, exist_ok=True)
+    final, dst = dst, dst.with_name(dst.name + ".tmp")
+    shutil.rmtree(dst, ignore_errors=True)
+    dst.mkdir(parents=True)
     with (dst / "wav.scp").open("w", encoding="utf-8") as f:
         for rec in sorted(wav):
             f.write(f"{rec} {wav[rec]}\n")
@@ -118,6 +125,8 @@ def make_windows(
                 frttm.write(f"END {wid} <NA> <NA> {window} <NA> <NA> <NA> <NA>\n")
                 n_win += 1
                 n_empty += empty
+    shutil.rmtree(final, ignore_errors=True)
+    dst.rename(final)
     return len(wav), n_win, n_empty
 
 

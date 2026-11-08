@@ -130,3 +130,14 @@ def test_bad_window(make_windows, tmp_path):
     _write_src(src, RECORDINGS)
     with pytest.raises(ValueError):
         make_windows(src, tmp_path / "dst", 0, 1, 16000)
+
+
+def test_output_replaced_only_when_complete(make_windows, tmp_path):
+    src, dst = tmp_path / "src", tmp_path / "dst"
+    _write_src(src, RECORDINGS)
+    dst.mkdir()
+    (dst / "stale").write_text("from an earlier run")
+    make_windows(src, dst, 2000, 2000, 16000)
+    assert not (dst / "stale").exists()
+    assert not (tmp_path / "dst.tmp").exists()
+    assert (dst / "segments").read_text()
