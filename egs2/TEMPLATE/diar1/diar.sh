@@ -111,6 +111,8 @@ diar_tag=    # Suffix to the result dir for diar model training.
 diar_config= # Config for diar model training.
 diar_args=   # Arguments for diar model training, e.g., "--max_epoch 10".
              # Note that it will overwrite args in diar config.
+stats_args=  # Arguments for stage 4 (collect stats) only, after --diar_args,
+             # e.g., "--batch_size 1" for long recordings.
 feats_normalize=global_mvn # Normalizaton layer type.
 num_spk=2    # Number of speakers in the input audio
 train_window_size=  # Stages 4-5: train on windows of this many samples (needs --audio_format omniio).
@@ -188,6 +190,8 @@ Options:
     --diar_config     # Config for diarization model training (default="${diar_config}").
     --diar_args       # Arguments for diarization model training, e.g., "--max_epoch 10" (default="${diar_args}").
                       # Note that it will overwrite args in diar config.
+    --stats_args      # Arguments for stage 4 (collect stats) only, given after --diar_args,
+                      # e.g., "--batch_size 1" for long recordings (default="${stats_args}").
     --feats_normalize # Normalizaton layer type (default="${feats_normalize}").
     --num_spk         # Number of speakers in the input audio (default="${num_spk}")
     --train_window_size  # Stages 4-5: collect statistics and train on windows of this many samples
@@ -472,7 +476,7 @@ if ! "${skip_train}"; then
                 --train_shape_file "${_logdir}/train.JOB.scp" \
                 --valid_shape_file "${_logdir}/valid.JOB.scp" \
                 --output_dir "${_logdir}/stats.JOB" \
-                ${_opts} ${diar_args} || { cat $(grep -l -i error "${_logdir}"/stats.*.log) ; exit 1; }
+                ${_opts} ${diar_args} ${stats_args} || { cat $(grep -l -i error "${_logdir}"/stats.*.log) ; exit 1; }
 
         # 4. Aggregate shape files
         _opts=
