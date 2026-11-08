@@ -227,14 +227,11 @@ class DiarizationTask(AbsTask):
         cls, args: argparse.Namespace, train: bool
     ) -> Optional[Callable[[str, Dict[str, np.array]], Dict[str, np.ndarray]]]:
         if args.use_preprocessor:
-            # the speech's sampling rate (frontend_conf fs), so that RIRs and noises
-            # at another rate are resampled to it; 0 (unknown) leaves them as read
-            fs = (getattr(args, "frontend_conf", None) or {}).get("fs", 0)
-            fs = humanfriendly.parse_size(str(fs)) if fs else 0
             # NOTE: getattr keeps configs saved before these options existed loadable
             retval = CommonPreprocessor(
                 train=train,
-                fs=fs,
+                # RIRs and noises at another rate are resampled to the speech's
+                fs=cls._speech_fs(args),
                 rir_scp=getattr(args, "rir_scp", None),
                 rir_apply_prob=getattr(args, "rir_apply_prob", 1.0),
                 rir_remove_delay=getattr(args, "rir_remove_delay", True),
@@ -247,6 +244,19 @@ class DiarizationTask(AbsTask):
         else:
             retval = None
         return retval
+
+    @staticmethod
+    def _speech_fs(args: argparse.Namespace) -> int:
+        """Return the sampling rate of the speech in Hz, 0 if unknown.
+
+        frontend_conf fs if given, else the default fs of the frontend class
+        (16000 for the default frontend); 0 for a frontend without one.
+        """
+        fs = (getattr(args, "frontend_conf", None) or {}).get("fs")
+        if fs is None and getattr(args, "frontend", None) is not None:
+            frontend_class = frontend_choices.get_class(args.frontend)
+            fs = get_default_kwargs(frontend_class).get("fs")
+        return humanfriendly.parse_size(str(fs)) if fs else 0
 
     @classmethod
     def required_data_names(
