@@ -77,9 +77,15 @@ def _train_steps(model, steps=3):
         {"backend": "eager"},
         pytest.param(
             {},  # the default backend, TorchInductor
-            marks=pytest.mark.skipif(
-                sys.platform == "win32", reason="Inductor needs a C++ compiler"
-            ),
+            marks=[
+                pytest.mark.skipif(
+                    sys.platform == "win32", reason="Inductor needs a C++ compiler"
+                ),
+                # Inductor generates and builds the kernels of the forward and
+                # backward graphs: longer than the 10 s CI default (it timed out
+                # with torch 2.14 on Ubuntu)
+                pytest.mark.execution_timeout(180),
+            ],
         ),
     ],
 )
