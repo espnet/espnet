@@ -27,6 +27,7 @@ import argparse
 import csv
 import logging
 import re
+import shlex
 import zipfile
 from pathlib import Path
 
@@ -69,7 +70,7 @@ def read_textgrid(path):
 
 
 def channel_pipe(path, channel=0):
-    return f"python3 local/select_channel.py {path} {channel} |"
+    return f"python3 local/select_channel.py {shlex.quote(str(path))} {channel} |"
 
 
 def ami_mh(split, ami_root, setup):
@@ -113,7 +114,10 @@ def voxconverse(split, audio, rttm_dir):
             for name in z.namelist():
                 stem = Path(name).stem
                 if name.endswith(".wav") and "__MACOSX" not in name and stem in turns:
-                    files[stem], entries[stem] = None, f"unzip -p {audio} {name} |"
+                    files[stem], entries[stem] = (
+                        None,
+                        f"unzip -p {shlex.quote(str(audio))} {shlex.quote(name)} |",
+                    )
     else:
         for wav in sorted(audio.glob("*.wav")):
             if wav.stem in turns:

@@ -33,9 +33,17 @@ def main():
     logging.basicConfig(level=logging.INFO, format="%(levelname)s %(message)s")
     args.notsofar_root = args.notsofar_root.resolve()
 
+    # <split>/<release>/MTG/MTG_*: meetings of several releases share their ids,
+    # so only the newest release is read
     meetings = sorted(
         args.notsofar_root.glob(f"**/{SPLIT_DIRS[args.split]}/*/MTG/MTG_*")
     )
+    releases = sorted({m.parent.parent for m in meetings})
+    if len(releases) > 1:
+        logging.warning(
+            "%d releases of %s; reading %s", len(releases), args.split, releases[-1]
+        )
+        meetings = [m for m in meetings if m.parent.parent == releases[-1]]
     if not meetings:
         raise SystemExit(
             f"no {SPLIT_DIRS[args.split]}/*/MTG/MTG_* under {args.notsofar_root}"

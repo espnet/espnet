@@ -9,6 +9,7 @@ Utterances whose words are "[redacted]" are still speech and are kept.
 """
 
 import argparse
+import shlex
 import json
 import logging
 import re
@@ -73,7 +74,7 @@ def main():
                 rec, entry = f"chime6_{session}_{device}", str(wav)
             else:
                 rec = f"chime6_{session}_{device}.CH{ch + 1}"
-                entry = f"sox {wav} -t wav - remix {ch + 1} |"
+                entry = f"sox {shlex.quote(str(wav))} -t wav - remix {ch + 1} |"
             recordings[rec] = entry
             speech[rec] = segs
             n_wav[session] += 1

@@ -11,6 +11,7 @@ single speech/non-speech output.
 """
 
 import logging
+import shlex
 from pathlib import Path
 from typing import Dict, Iterable, List, Optional, Tuple
 
@@ -127,7 +128,7 @@ def write_skipped(out_dir: Path, skipped: List[str]):
 def wav_scp_entry(path: Path, sph2pipe: str = "sph2pipe") -> str:
     """wav.scp entry for a single-channel file, decoding SPHERE with sph2pipe."""
     if path.suffix.lower() == ".sph":
-        return f"{sph2pipe} -f wav -p {path} |"
+        return f"{sph2pipe} -f wav -p {shlex.quote(str(path))} |"
     return str(path)
 
 

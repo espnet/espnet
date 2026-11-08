@@ -57,9 +57,14 @@ unpacked() {
     if [ ! -d "downloads/${name}" ]; then
         archive=$(first_existing "${root}/${name}.tar.gz" "${root}/ARCHIVES/${name}.tar.gz")
         [ -n "${archive}" ] || { log "No ${name} or ${name}.tar.gz in ${root}" >&2; exit 1; }
-        mkdir -p downloads
+        # unpacked into a staging dir and moved into place only when tar succeeds,
+        # so an interrupted run is not taken for a complete one
+        rm -rf "downloads/.unpacking_${name}"
+        mkdir -p "downloads/.unpacking_${name}"
         log "Unpacking ${members} from ${archive} into downloads/" >&2
-        tar xzf "${archive}" -C downloads --wildcards "${members}"
+        tar xzf "${archive}" -C "downloads/.unpacking_${name}" --wildcards "${members}"
+        mv "downloads/.unpacking_${name}/${name}" "downloads/${name}"
+        rm -rf "downloads/.unpacking_${name}"
     fi
     echo "downloads/${name}"
 }

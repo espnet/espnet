@@ -34,6 +34,7 @@ done
     --num_spk 1 \
     --collar 0.0 \
     --frame_shift 128 \
+    --score_whole_recording true \
     --train_window_size 160000 \
     --train_set "${train_set}" \
     --valid_set "${valid_set}" \
