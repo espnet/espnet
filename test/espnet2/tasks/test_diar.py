@@ -100,3 +100,52 @@ def test_build_model_without_wav_augment():
     parser = DiarizationTask.get_parser()
     args = parser.parse_args(["--num_spk", "1", "--encoder_conf", "num_blocks=1"])
     assert DiarizationTask.build_model(args).wav_augment is None
+
+
+@pytest.mark.parametrize(
+    "overrides, ok",
+    [
+        (dict(iterator_type="chunk", chunk_left_context=400), True),
+        (dict(iterator_type="sequence", chunk_left_context=400), False),
+        (dict(iterator_type="chunk", chunk_left_context=0), False),
+        (dict(iterator_type="chunk", chunk_left_context=300), False),
+        (
+            dict(
+                iterator_type="chunk",
+                chunk_left_context=400,
+                valid_iterator_type="sequence",
+            ),
+            False,
+        ),
+        (
+            dict(
+                iterator_type="chunk",
+                chunk_left_context=400,
+                chunk_left_context_keys=["x"],
+            ),
+            False,
+        ),
+        (
+            dict(iterator_type="sequence", chunk_left_context=0, collect_stats=True),
+            True,
+        ),
+    ],
+)
+def test_wav_augment_context_needs_chunks_with_left_context(overrides, ok):
+    """context > 0 trains only with chunks whose speech carries the context."""
+    import argparse
+
+    args = argparse.Namespace(
+        iterator_type="chunk",
+        valid_iterator_type=None,
+        chunk_left_context=400,
+        chunk_left_context_keys=["speech"],
+        collect_stats=False,
+    )
+    vars(args).update(overrides)
+    if ok:
+        DiarizationTask._check_wav_augment_context(args, 400)
+    else:
+        with pytest.raises(ValueError, match="chunk_left_context"):
+            DiarizationTask._check_wav_augment_context(args, 400)
+    DiarizationTask._check_wav_augment_context(args, 0)  # no context: no check

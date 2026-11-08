@@ -229,6 +229,39 @@ class DiarizationTask(AbsTask):
         retval = ()
         return retval
 
+    @staticmethod
+    def _check_wav_augment_context(args: argparse.Namespace, context: int):
+        """Check that the chunks give the speech the context wav_augment removes.
+
+        With context > 0 the model removes the first ``context`` samples of the
+        speech, in training and validation. The chunk iterator gives them as
+        --chunk_left_context on the speech only, so the labels keep the chunk.
+        Any other data path would leave the speech ``context`` samples shorter
+        than its labels.
+        """
+        if context <= 0 or getattr(args, "collect_stats", False):
+            return
+        problems = []
+        for mode, it in (
+            ("train", args.iterator_type),
+            ("valid", getattr(args, "valid_iterator_type", None) or args.iterator_type),
+        ):
+            if it != "chunk":
+                problems.append(f"the {mode} iterator is {it!r}, not 'chunk'")
+        if getattr(args, "chunk_left_context", 0) != context:
+            problems.append(
+                f"--chunk_left_context is {getattr(args, 'chunk_left_context', 0)}, "
+                f"not the wav_augment context {context}"
+            )
+        if "speech" not in getattr(args, "chunk_left_context_keys", ["speech"]):
+            problems.append("--chunk_left_context_keys does not include speech")
+        if problems:
+            raise ValueError(
+                "wav_augment_conf context > 0 needs --iterator_type chunk with "
+                "--chunk_left_context equal to the context, so the speech chunks "
+                "carry the context and the labels do not: " + "; ".join(problems)
+            )
+
     @classmethod
     @typechecked
     def build_model(cls, args: argparse.Namespace) -> ESPnetDiarizationModel:
@@ -272,6 +305,7 @@ class DiarizationTask(AbsTask):
                     str(wav_augment_conf["fs"])
                 )
             wav_augment = wav_augment_class(**wav_augment_conf)
+            cls._check_wav_augment_context(args, getattr(wav_augment, "context", 0))
         else:
             wav_augment = None
 

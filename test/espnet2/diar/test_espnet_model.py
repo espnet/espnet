@@ -508,3 +508,63 @@ def test_collect_feats_removes_the_augmentation_context(tmp_path):
     feats, feats_lengths = model._extract_feats(speech[:, 100:], lengths - 100)
     torch.testing.assert_close(out["feats"], feats)
     assert out["feats_lengths"].tolist() == feats_lengths.tolist()
+
+
+def test_chunks_with_left_context_train_and_validate(tmp_path):
+    """Chunk iterator with left context -> model with wav_augment context.
+
+    The speech chunks carry the context and the label chunks do not; after the
+    model removes the context, the encoder frames and the label frames agree,
+    in training (with reverberation) and in validation.
+    """
+    import numpy as np
+    import soundfile
+
+    from espnet2.iterators.chunk_iter_factory import ChunkIterFactory
+    from espnet2.layers.batch_wav_augment import BatchWavAugment
+    from espnet2.train.collate_fn import CommonCollateFn
+
+    rir = np.zeros(200, dtype=np.float32)
+    rir[0], rir[50] = 1.0, 0.5
+    soundfile.write(tmp_path / "rir.wav", rir, 16000, subtype="FLOAT")
+    (tmp_path / "rir.scp").write_text(f"r {tmp_path / 'rir.wav'}\n")
+    context, width = 400, 2000
+
+    class Recordings:
+        def __getitem__(self, item):
+            n = 7000
+            labels = np.zeros((n, 2), dtype=np.float32)
+            labels[1000:5000, 0] = 1
+            labels[3000:6000, 1] = 1
+            speech = np.random.default_rng(0).normal(size=n).astype(np.float32)
+            return item, {"speech": speech * 0.05, "spk_labels": labels}
+
+    iterator = ChunkIterFactory(
+        dataset=Recordings(),
+        batches=[["a"], ["b"]],
+        batch_size=2,
+        chunk_length=width,
+        chunk_shift_ratio=1.0,
+        collate_fn=CommonCollateFn(),
+        left_context=context,
+    )
+    model = ESPnetDiarizationModel(
+        label_aggregator=label_aggregator,
+        attractor=None,
+        encoder=encoder,
+        decoder=decoder,
+        frontend=frontend,
+        specaug=None,
+        normalize=None,
+        wav_augment=BatchWavAugment(rir_scp=str(tmp_path / "rir.scp"), context=context),
+    )
+    n = 0
+    for _, batch in iterator.build_iter(0):
+        assert batch["speech"].shape[1] == context + width
+        assert batch["spk_labels"].shape[1] == width
+        for train in (True, False):
+            model.train(train)
+            loss, stats, weight = model(**batch)
+            assert torch.isfinite(loss)
+        n += 1
+    assert n > 0
