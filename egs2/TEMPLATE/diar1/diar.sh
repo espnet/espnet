@@ -20,6 +20,31 @@ min() {
   done
   echo "${a}"
 }
+# use_train_windows: with --train_window_size, point _diar_train_dir and
+# _diar_valid_dir at windows of the dumped sets (made by
+# pyscripts/utils/make_windows.py when missing or older than the dump) and
+# read them through their segments (_scp, _type).
+use_train_windows() {
+    local _shift _suffix _dir _sr
+    if [ "${audio_format}" != omniio ]; then
+        log "Error: --train_window_size needs --audio_format omniio"
+        exit 2
+    fi
+    _shift=${train_window_shift:-${train_window_size}}
+    _suffix=_win${train_window_size}
+    [ "${_shift}" = "${train_window_size}" ] || _suffix+=_shift${_shift}
+    _sr=$(python3 -c "import humanfriendly as h;print(h.parse_size('${fs}'))")
+    for _dir in "${_diar_train_dir}" "${_diar_valid_dir}"; do
+        if [ ! "${_dir}${_suffix}/segments" -nt "${_dir}/espnet_rttm" ]; then
+            ${python} pyscripts/utils/make_windows.py "${_dir}" "${_dir}${_suffix}" \
+                --window "${train_window_size}" --shift "${_shift}" --fs "${_sr}"
+        fi
+    done
+    _diar_train_dir+=${_suffix}
+    _diar_valid_dir+=${_suffix}
+    _scp=segments
+    _type=omniio_segments
+}
 SECONDS=0
 
 # General configuration
@@ -58,6 +83,8 @@ diar_args=   # Arguments for diar model training, e.g., "--max_epoch 10".
              # Note that it will overwrite args in diar config.
 feats_normalize=global_mvn # Normalizaton layer type.
 num_spk=2    # Number of speakers in the input audio
+train_window_size=  # Stages 4-5: train on windows of this many samples (needs --audio_format omniio).
+train_window_shift= # Stages 4-5: shift between training windows in samples (default: --train_window_size).
 
 # diar related
 inference_config= # Config for diar model inference
@@ -125,6 +152,11 @@ Options:
                       # Note that it will overwrite args in diar config.
     --feats_normalize # Normalizaton layer type (default="${feats_normalize}").
     --num_spk         # Number of speakers in the input audio (default="${num_spk}")
+    --train_window_size  # Stages 4-5: collect statistics and train on windows of this many samples
+                         # of the dumped train and valid recordings instead of whole recordings;
+                         # needs --audio_format omniio (default="${train_window_size}").
+    --train_window_shift # Stages 4-5: shift between windows in samples
+                         # (default="${train_window_shift}", i.e. --train_window_size).
 
     # Diarization related
     --inference_config # Config for diar model inference
@@ -343,6 +375,9 @@ if ! "${skip_train}"; then
         else
             echo "does not support other feats_type (i.e., ${_feats_type}) now"
         fi
+        if [ -n "${train_window_size}" ]; then
+            use_train_windows
+        fi
 
         _opts+="--num_spk ${num_spk} "
 
@@ -435,6 +470,9 @@ if ! "${skip_train}"; then
             _opts+="--frontend_conf hop_length=${hop_length} "
         else
             echo "does not support other feats_type (i.e., ${_feats_type}) now"
+        fi
+        if [ -n "${train_window_size}" ]; then
+            use_train_windows
         fi
 
         if [ "${feats_normalize}" = global_mvn ]; then

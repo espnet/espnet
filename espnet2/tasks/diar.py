@@ -35,6 +35,29 @@ from espnet2.utils.get_default_kwargs import get_default_kwargs
 from espnet2.utils.nested_dict_action import NestedDictAction
 from espnet2.utils.types import int_or_none, str2bool, str_or_none
 
+
+class SpeakerLabelPadder:
+    """Preprocessor that pads spk_labels with zero columns up to num_spk.
+
+    Args:
+        preprocessor: The preprocessor applied first.
+        num_spk: Number of label columns. A label with more columns is unchanged.
+    """
+
+    def __init__(self, preprocessor: Callable, num_spk: int):
+        self.preprocessor = preprocessor
+        self.num_spk = num_spk
+
+    def __call__(self, uid: str, data: Dict[str, np.ndarray]) -> Dict[str, np.ndarray]:
+        data = self.preprocessor(uid, data)
+        labels = data.get("spk_labels")
+        if labels is not None and labels.ndim == 2 and labels.shape[1] < self.num_spk:
+            data["spk_labels"] = np.pad(
+                labels, ((0, 0), (0, self.num_spk - labels.shape[1]))
+            )
+        return data
+
+
 frontend_choices = ClassChoices(
     name="frontend",
     classes=dict(
@@ -243,6 +266,12 @@ class DiarizationTask(AbsTask):
                 noise_db_range=getattr(args, "noise_db_range", "13_15"),
                 short_noise_thres=getattr(args, "short_noise_thres", 0.5),
             )
+            # Without attractors the model has num_spk outputs, so a label with
+            # fewer speakers (e.g. a training window, diar.sh --train_window_size)
+            # gets zero columns up to num_spk. EEND-EDA counts the speakers of
+            # each label, so its labels stay as they are.
+            if getattr(args, "attractor", None) is None and args.num_spk:
+                retval = SpeakerLabelPadder(retval, args.num_spk)
         else:
             retval = None
         return retval
