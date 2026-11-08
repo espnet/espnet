@@ -74,12 +74,7 @@ hf_repo=
 collar=0         # collar for der scoring
 frame_shift=128  # frame shift to convert frame-level label into real time
                  # this should be aligned with frontend feature extraction
-scoring_thresholds="0.3 0.4 0.5 0.6 0.7" # decision thresholds scored in stage 7
-scoring_medians="1 11"                   # median filter lengths (frames) scored in stage 7
-scoring_nj=1     # Stage 7: number of jobs (decode_cmd) the scorings (set, threshold, median) are dealt out to
-score_whole_recording=false # Stage 7: score every recording from start to end (a UEM from
-                            # utt2num_samples) instead of md-eval's default, from its first
-                            # to its last reference segment
+local_score_opts= # The options given to local/score.sh.
 
 # [Task dependent] Set the datadir name created by local/data.sh
 train_set=       # Name of training set.
@@ -145,15 +140,8 @@ Options:
     # Scoring related
     --collar      # collar for der scoring
     --frame_shift # frame shift to convert frame-level label into real time
-    --scoring_thresholds # Decision thresholds scored in stage 7 (default="${scoring_thresholds}").
-    --scoring_medians    # Median filter lengths in frames scored in stage 7 (default="${scoring_medians}").
-    --scoring_nj         # Stage 7: number of decode_cmd jobs the scorings (one set, threshold and
-                         # median each) are dealt out to; 1 scores the sets one after another
-                         # (default="${scoring_nj}").
-    --score_whole_recording # Stage 7: score each whole recording (UEM from utt2num_samples);
-                         # md-eval otherwise scores from the first to the last reference
-                         # segment, leaving out false alarms before and after
-                         # (default="${score_whole_recording}").
+    --local_score_opts # The options given to local/score.sh, which replaces the default
+                       # scoring of stage 7 when the recipe has it (default="${local_score_opts}").
 
     # [Task dependent] Set the datadir name created by local/data.sh
     --train_set               # Name of training set (required).
@@ -615,55 +603,22 @@ if ! "${skip_eval}"; then
         log "Stage 7: Scoring"
         _cmd=${decode_cmd}
 
-        _opts="--collar ${collar} --fs ${fs} --frame_shift ${frame_shift}"
-        if "${score_whole_recording}"; then
-            # <recording> <channel> <start> <end> in seconds, the whole recording
-            _fs_hz=$(python3 -c "import humanfriendly as h;print(h.parse_size('${fs}'))")
-            for dset in "${valid_set}" ${test_sets}; do
-                mkdir -p "${diar_exp}/diarized_${dset}/scoring"
-                awk -v fs="${_fs_hz}" '{ printf "%s 1 0 %.6f\n", $1, $2 / fs }' \
-                    "${data_feats}/${dset}/utt2num_samples" \
-                    > "${diar_exp}/diarized_${dset}/scoring/uem"
-            done
-        fi
-
-        if [ "${scoring_nj}" -le 1 ]; then
-            for dset in "${valid_set}" ${test_sets}; do
-                _dir="${diar_exp}/diarized_${dset}/scoring"
-                _uem=
-                "${score_whole_recording}" && _uem=${_dir}/uem
-                # shellcheck disable=SC2086
-                scripts/utils/score_der.sh ${_opts} \
-                    --thresholds "${scoring_thresholds}" --medians "${scoring_medians}" \
-                    --uem "${_uem}" \
-                    ${_dir} ${diar_exp}/diarized_${dset}/diarize.scp ${data_feats}/${dset}/rttm
-            done
+        if [ -f local/score.sh ]; then
+            # The recipe's own scoring replaces the default below.
+            # shellcheck disable=SC2086
+            local/score.sh ${local_score_opts} "${diar_exp}" "${data_feats}" \
+                "${valid_set}" ${test_sets}
         else
-            # One score_der.sh call per (set, threshold, median), dealt out to
-            # --scoring_nj jobs of ${_cmd}: <logdir>/score.<n>.sh lists the calls of job n.
-            _logdir="${diar_exp}/scoring_logdir"
-            mkdir -p "${_logdir}"
-            rm -f "${_logdir}"/score.*.sh
-            _n=0
             for dset in "${valid_set}" ${test_sets}; do
+                _data="${data_feats}/${dset}"
+                _inf_dir="${diar_exp}/diarized_${dset}"
                 _dir="${diar_exp}/diarized_${dset}/scoring"
                 mkdir -p "${_dir}"
-                _uem=
-                "${score_whole_recording}" && _uem=${_dir}/uem
-                for med in ${scoring_medians}; do
-                    for th in ${scoring_thresholds}; do
-                        echo "scripts/utils/score_der.sh ${_opts} --thresholds ${th} --medians ${med}" \
-                            "--uem '${_uem}' ${_dir} ${diar_exp}/diarized_${dset}/diarize.scp" \
-                            "${data_feats}/${dset}/rttm" \
-                            >> "${_logdir}/score.$((_n % scoring_nj + 1)).sh"
-                        _n=$((_n + 1))
-                    done
-                done
+
+                scripts/utils/score_der.sh \
+                    --collar ${collar} --fs ${fs} --frame_shift ${frame_shift} \
+                    ${_dir} ${_inf_dir}/diarize.scp ${_data}/rttm
             done
-            _nj=$(min "${scoring_nj}" "${_n}")
-            log "Scoring: ${_n} scorings in ${_nj} jobs, log: '${_logdir}/score.*.log'"
-            ${_cmd} JOB=1:"${_nj}" "${_logdir}"/score.JOB.log \
-                bash -e "${_logdir}"/score.JOB.sh
         fi
 
         # Show results in Markdown syntax
