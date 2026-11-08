@@ -15,7 +15,7 @@ speech when anyone in the recording speaks. Two models:
 Training reads 10 s chunks straight from the Omni-IO archives that stage 2 dumps:
 the chunk iterator with `chunk_random_access` reads only each chunk's part of the
 archive entry. The feature statistics of stage 4 are collected over whole
-recordings, one at a time (`--stats_args "--batch_size 1"`); inference runs on
+recordings, one at a time with two loader workers (`--stats_args "--batch_size 1 --num_workers 2"`: each worker holds whole recordings); inference runs on
 whole recordings.
 Scoring is md-eval with no collar. `local/show_vad_result.py` picks one threshold
 and median filter on AMI Mix-Headset dev and reports every set at that setting,
