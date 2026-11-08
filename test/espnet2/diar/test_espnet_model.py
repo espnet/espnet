@@ -78,6 +78,55 @@ def test_single_channel_model(
     loss, stats, weight = diar_model(**kwargs)
 
 
+def test_wav_augment_is_applied_in_training_only(monkeypatch):
+    """The model calls wav_augment in both modes; the module augments in training.
+
+    In training the encoder gets wav_augment's output; in eval, the input.
+    """
+    calls = []
+
+    class Recorder(torch.nn.Module):
+        def forward(self, speech, speech_lengths):
+            calls.append((self.training, speech.shape))
+            if not self.training:
+                return speech, speech_lengths
+            return speech + 1.0, speech_lengths
+
+    model = ESPnetDiarizationModel(
+        label_aggregator=label_aggregator,
+        attractor=None,
+        encoder=encoder,
+        decoder=decoder,
+        frontend=frontend,
+        specaug=None,
+        normalize=None,
+        wav_augment=Recorder(),
+    )
+    seen = []
+    encode = model.encode
+
+    def recording_encode(speech, speech_lengths, *args):
+        seen.append((speech.clone(), speech_lengths.clone()))
+        return encode(speech, speech_lengths, *args)
+
+    monkeypatch.setattr(model, "encode", recording_encode)
+    speech = torch.randn(2, 300)
+    kwargs = {
+        "speech": speech,
+        "speech_lengths": torch.LongTensor([300, 200]),
+        "spk_labels": torch.randint(high=2, size=(2, 300, 2)),
+        "spk_labels_lengths": torch.LongTensor([300, 200]),
+    }
+    model.train()
+    model(**kwargs)
+    assert calls == [(True, torch.Size([2, 300]))]
+    torch.testing.assert_close(seen[0][0], speech + 1.0)
+    model.eval()
+    model(**kwargs)
+    assert calls[1] == (False, torch.Size([2, 300]))
+    torch.testing.assert_close(seen[1][0], speech)
+
+
 def test_calc_diarization_error_counts():
     """Hand-counted example; the padded frame (index 3 of utt 1) is ignored."""
     # utt 0: 4 frames, utt 1: 3 frames + 1 padded frame; 2 speakers
@@ -433,6 +482,94 @@ def test_forward_stats_equal_the_previous_implementation(num_spk):
             assert float(stats[key]) == pytest.approx(value, abs=1e-6), key
 
 
+def test_collect_feats_removes_the_augmentation_context(tmp_path):
+    """The feature statistics are those of the windows without their context."""
+    import numpy as np
+    import soundfile
+
+    from espnet2.layers.batch_wav_augment import BatchWavAugment
+
+    soundfile.write(tmp_path / "n.wav", np.zeros(4000, dtype=np.int16), 16000)
+    (tmp_path / "noise.scp").write_text(f"n {tmp_path / 'n.wav'}\n")
+    aug = BatchWavAugment(noise_scp=str(tmp_path / "noise.scp"), context=100)
+    model = ESPnetDiarizationModel(
+        label_aggregator=label_aggregator,
+        attractor=None,
+        encoder=encoder,
+        decoder=decoder,
+        frontend=frontend,
+        specaug=None,
+        normalize=None,
+        wav_augment=aug,
+    )
+    speech = torch.randn(2, 400)
+    lengths = torch.LongTensor([400, 300])
+    out = model.collect_feats(speech, lengths)
+    feats, feats_lengths = model._extract_feats(speech[:, 100:], lengths - 100)
+    torch.testing.assert_close(out["feats"], feats)
+    assert out["feats_lengths"].tolist() == feats_lengths.tolist()
+
+
+def test_chunks_with_left_context_train_and_validate(tmp_path):
+    """Chunk iterator with left context -> model with wav_augment context.
+
+    The speech chunks carry the context and the label chunks do not; after the
+    model removes the context, the encoder frames and the label frames agree,
+    in training (with reverberation) and in validation.
+    """
+    import numpy as np
+    import soundfile
+
+    from espnet2.iterators.chunk_iter_factory import ChunkIterFactory
+    from espnet2.layers.batch_wav_augment import BatchWavAugment
+    from espnet2.train.collate_fn import CommonCollateFn
+
+    rir = np.zeros(200, dtype=np.float32)
+    rir[0], rir[50] = 1.0, 0.5
+    soundfile.write(tmp_path / "rir.wav", rir, 16000, subtype="FLOAT")
+    (tmp_path / "rir.scp").write_text(f"r {tmp_path / 'rir.wav'}\n")
+    context, width = 400, 2000
+
+    class Recordings:
+        def __getitem__(self, item):
+            n = 7000
+            labels = np.zeros((n, 2), dtype=np.float32)
+            labels[1000:5000, 0] = 1
+            labels[3000:6000, 1] = 1
+            speech = np.random.default_rng(0).normal(size=n).astype(np.float32)
+            return item, {"speech": speech * 0.05, "spk_labels": labels}
+
+    iterator = ChunkIterFactory(
+        dataset=Recordings(),
+        batches=[["a"], ["b"]],
+        batch_size=2,
+        chunk_length=width,
+        chunk_shift_ratio=1.0,
+        collate_fn=CommonCollateFn(),
+        left_context=context,
+    )
+    model = ESPnetDiarizationModel(
+        label_aggregator=label_aggregator,
+        attractor=None,
+        encoder=encoder,
+        decoder=decoder,
+        frontend=frontend,
+        specaug=None,
+        normalize=None,
+        wav_augment=BatchWavAugment(rir_scp=str(tmp_path / "rir.scp"), context=context),
+    )
+    n = 0
+    for _, batch in iterator.build_iter(0):
+        assert batch["speech"].shape[1] == context + width
+        assert batch["spk_labels"].shape[1] == width
+        for train in (True, False):
+            model.train(train)
+            loss, stats, weight = model(**batch)
+            assert torch.isfinite(loss)
+        n += 1
+    assert n > 0
+
+
 # --- Look-ahead (dual-mode) TCN VAD ------------------------------------------
 
 
@@ -652,3 +789,25 @@ def test_look_aheads_without_frontend_see_the_same_features(tmp_path):
             model.encoder.set_look_ahead(frames)
             each.append(model._forward_one(given.clone(), lens, labels, lens)[0])
     torch.testing.assert_close(loss.reshape(()), (each[0] + each[1]) / 2)
+
+
+def test_wav_augment_runs_once_for_all_look_aheads(tmp_path):
+    """With look_aheads, every look-ahead sees the same augmented batch."""
+    calls = []
+
+    class Augment(torch.nn.Module):
+        def forward(self, speech, speech_lengths):
+            calls.append(self.training)
+            return speech + 0.01 * torch.randn_like(speech), speech_lengths
+
+    model = _vad_model(tmp_path, look_aheads=[0, 28]).train()
+    model.wav_augment = Augment()
+    lens = torch.tensor([3000, 2500])
+    batch = dict(
+        speech=torch.randn(2, 3000) * 0.1,
+        speech_lengths=lens,
+        spk_labels=(torch.rand(2, 3000, 1) > 0.5).float(),
+        spk_labels_lengths=lens,
+    )
+    model(**batch)
+    assert calls == [True]

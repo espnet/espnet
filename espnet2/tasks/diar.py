@@ -1,6 +1,7 @@
 import argparse
 from typing import Callable, Collection, Dict, List, Optional, Tuple
 
+import humanfriendly
 import numpy as np
 import torch
 from typeguard import typechecked
@@ -22,6 +23,7 @@ from espnet2.diar.decoder.abs_decoder import AbsDecoder
 from espnet2.diar.decoder.linear_decoder import LinearDecoder
 from espnet2.diar.espnet_model import ESPnetDiarizationModel
 from espnet2.layers.abs_normalize import AbsNormalize
+from espnet2.layers.batch_wav_augment import BatchWavAugment
 from espnet2.layers.global_mvn import GlobalMVN
 from espnet2.layers.label_aggregation import LabelAggregate
 from espnet2.layers.utterance_mvn import UtteranceMVN
@@ -44,6 +46,13 @@ frontend_choices = ClassChoices(
     ),
     type_check=AbsFrontend,
     default="default",
+    optional=True,
+)
+wav_augment_choices = ClassChoices(
+    name="wav_augment",
+    classes=dict(batch_wav=BatchWavAugment),
+    type_check=torch.nn.Module,
+    default=None,
     optional=True,
 )
 specaug_choices = ClassChoices(
@@ -104,6 +113,8 @@ class DiarizationTask(AbsTask):
     class_choices_list = [
         # --frontend and --frontend_conf
         frontend_choices,
+        # --wav_augment and --wav_augment_conf
+        wav_augment_choices,
         # --specaug and --specaug_conf
         specaug_choices,
         # --normalize and --normalize_conf
@@ -156,7 +167,12 @@ class DiarizationTask(AbsTask):
         group.add_argument(
             "--model_conf",
             action=NestedDictAction,
-            default=get_default_kwargs(ESPnetDiarizationModel),
+            # wav_augment is the module built from --wav_augment, not a model_conf
+            default={
+                k: v
+                for k, v in get_default_kwargs(ESPnetDiarizationModel).items()
+                if k != "wav_augment"
+            },
             help="The keyword arguments for model class.",
         )
 
@@ -167,49 +183,15 @@ class DiarizationTask(AbsTask):
             default=True,
             help="Apply preprocessing to data or not",
         )
-        group.add_argument(
-            "--rir_scp",
-            type=str_or_none,
-            default=None,
-            help="The file path of rir scp file.",
-        )
-        group.add_argument(
-            "--rir_apply_prob",
-            type=float,
-            default=1.0,
-            help="The probability for applying RIR convolution.",
-        )
+        # --rir_scp, --rir_apply_prob, --noise_scp, --noise_apply_prob,
+        # --noise_db_range and --short_noise_thres, as the other tasks have them
+        cls.add_augmentation_arguments(parser)
         group.add_argument(
             "--rir_remove_delay",
             type=str2bool,
             default=True,
             help="Remove the direct-path delay of the RIR so that the reverberant "
             "speech stays aligned with the speaker labels.",
-        )
-        group.add_argument(
-            "--noise_scp",
-            type=str_or_none,
-            default=None,
-            help="The file path of noise scp file.",
-        )
-        group.add_argument(
-            "--noise_apply_prob",
-            type=float,
-            default=1.0,
-            help="The probability applying Noise adding.",
-        )
-        group.add_argument(
-            "--noise_db_range",
-            type=str,
-            default="13_15",
-            help="The range of noise decibel level.",
-        )
-        group.add_argument(
-            "--short_noise_thres",
-            type=float,
-            default=0.5,
-            help="If len(noise) / len(speech) is smaller than this threshold during "
-            "dynamic mixing, a warning will be displayed.",
         )
 
         for class_choices in cls.class_choices_list:
@@ -266,6 +248,53 @@ class DiarizationTask(AbsTask):
         retval = ()
         return retval
 
+    @staticmethod
+    def _check_wav_augment_context(
+        args: argparse.Namespace, context: int, fs: Optional[int] = None
+    ):
+        """Check that the chunks give the speech the context wav_augment removes.
+
+        With context > 0 the model removes the first ``context`` samples of the
+        speech (at ``fs``, the rate of wav_augment and the frontend), in
+        training and validation. The chunk iterator gives them as
+        --chunk_left_context on the speech only, so the labels keep the chunk.
+        --chunk_left_context is in samples at --chunk_default_fs when that is
+        given, and the iterator scales it to the data's rate; so it must scale
+        to exactly ``context`` at ``fs``. Any other data path would leave the
+        speech a different number of samples longer than its labels.
+        """
+        if context <= 0 or getattr(args, "collect_stats", False):
+            return
+        problems = []
+        for mode, it in (
+            ("train", args.iterator_type),
+            ("valid", getattr(args, "valid_iterator_type", None) or args.iterator_type),
+        ):
+            if it != "chunk":
+                problems.append(f"the {mode} iterator is {it!r}, not 'chunk'")
+        left = getattr(args, "chunk_left_context", 0)
+        default_fs = getattr(args, "chunk_default_fs", None)
+        if default_fs is not None and fs is not None:
+            # the iterator gives left * fs // default_fs samples at the data's fs
+            given = left * fs // default_fs
+            exact = left * fs % default_fs == 0
+            where = f" ({left} at --chunk_default_fs {default_fs} = {given} at {fs})"
+        else:
+            given, exact, where = left, True, ""
+        if given != context or not exact:
+            problems.append(
+                f"--chunk_left_context {left} gives {given} samples{where}, "
+                f"not the wav_augment context {context}"
+            )
+        if "speech" not in getattr(args, "chunk_left_context_keys", ["speech"]):
+            problems.append("--chunk_left_context_keys does not include speech")
+        if problems:
+            raise ValueError(
+                "wav_augment_conf context > 0 needs --iterator_type chunk with "
+                "--chunk_left_context equal to the context, so the speech chunks "
+                "carry the context and the labels do not: " + "; ".join(problems)
+            )
+
     @classmethod
     @typechecked
     def build_model(cls, args: argparse.Namespace) -> ESPnetDiarizationModel:
@@ -287,7 +316,37 @@ class DiarizationTask(AbsTask):
             frontend = None
             input_size = args.input_size
 
-        # 2. Data augmentation for spectrogram
+        # 2a. Data augmentation for the waveform, in the model (training only)
+        if getattr(args, "wav_augment", None) is not None:
+            wav_augment_class = wav_augment_choices.get_class(args.wav_augment)
+            wav_augment_conf = dict(args.wav_augment_conf)
+            # the noise is mixed at the rate of the speech: the frontend's fs
+            frontend_fs = (args.frontend_conf or {}).get("fs")
+            if frontend_fs is not None:
+                frontend_fs = humanfriendly.parse_size(str(frontend_fs))
+                if "fs" not in wav_augment_conf:
+                    wav_augment_conf["fs"] = frontend_fs
+                elif humanfriendly.parse_size(str(wav_augment_conf["fs"])) != (
+                    frontend_fs
+                ):
+                    raise ValueError(
+                        f"wav_augment_conf fs={wav_augment_conf['fs']} differs from "
+                        f"frontend_conf fs={args.frontend_conf['fs']}"
+                    )
+            if "fs" in wav_augment_conf:
+                wav_augment_conf["fs"] = humanfriendly.parse_size(
+                    str(wav_augment_conf["fs"])
+                )
+            wav_augment = wav_augment_class(**wav_augment_conf)
+            cls._check_wav_augment_context(
+                args,
+                getattr(wav_augment, "context", 0),
+                getattr(wav_augment, "fs", None),
+            )
+        else:
+            wav_augment = None
+
+        # 2b. Data augmentation for spectrogram
         if args.specaug is not None:
             specaug_class = specaug_choices.get_class(args.specaug)
             specaug = specaug_class(**args.specaug_conf)
@@ -339,7 +398,8 @@ class DiarizationTask(AbsTask):
             encoder=encoder,
             decoder=decoder,
             attractor=attractor,
-            **args.model_conf,
+            wav_augment=wav_augment,
+            **{k: v for k, v in args.model_conf.items() if k != "wav_augment"},
         )
 
         # FIXME(kamo): Should be done in model?

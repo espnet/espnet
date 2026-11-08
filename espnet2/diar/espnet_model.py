@@ -45,9 +45,13 @@ class ESPnetDiarizationModel(AbsESPnetModel):
         diar_weight: float = 1.0,
         attractor_weight: float = 1.0,
         look_aheads: Optional[List[int]] = None,
+        wav_augment: Optional[torch.nn.Module] = None,
     ):
 
         super().__init__()
+
+        # waveform augmentation of the batch, training only (e.g. BatchWavAugment)
+        self.wav_augment = wav_augment
 
         self.encoder = encoder
         self.normalize = normalize
@@ -104,6 +108,11 @@ class ESPnetDiarizationModel(AbsESPnetModel):
         """
         assert speech.shape[0] == spk_labels.shape[0], (speech.shape, spk_labels.shape)
         batch_size = speech.shape[0]
+
+        if self.wav_augment is not None:
+            # The module augments in training mode only; in eval mode it only
+            # removes its leading context, if it has one.
+            speech, speech_lengths = self.wav_augment(speech, speech_lengths)
 
         if not self.look_aheads:
             loss, stats = self._forward_one(
@@ -277,6 +286,12 @@ class ESPnetDiarizationModel(AbsESPnetModel):
         spk_labels_lengths: torch.Tensor = None,
         **kwargs,
     ) -> Dict[str, torch.Tensor]:
+        if self.wav_augment is not None and hasattr(self.wav_augment, "remove_context"):
+            # The statistics are those of the windows the model sees: without
+            # their leading context (and without random augmentation).
+            speech, speech_lengths = self.wav_augment.remove_context(
+                speech, speech_lengths
+            )
         feats, feats_lengths = self._extract_feats(speech, speech_lengths)
         return {"feats": feats, "feats_lengths": feats_lengths}
 

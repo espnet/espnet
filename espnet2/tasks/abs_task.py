@@ -257,6 +257,65 @@ class AbsTask(ABC):
         pass
 
     @classmethod
+    def add_augmentation_arguments(
+        cls,
+        parser: argparse.ArgumentParser,
+        short_noise_thres: bool = True,
+    ):
+        """Add the on-the-fly RIR and noise augmentation options.
+
+        Adds --rir_scp, --rir_apply_prob, --noise_scp, --noise_apply_prob,
+        --noise_db_range and, if short_noise_thres is True, --short_noise_thres
+        to the "Data augmentation related" group. A task calls this from its
+        add_task_arguments and passes the values to its preprocessor in
+        build_preprocess_fn.
+
+        Args:
+            parser: The parser of the task.
+            short_noise_thres: Whether to add --short_noise_thres.
+        """
+        group = parser.add_argument_group("Data augmentation related")
+        group.add_argument(
+            "--rir_scp",
+            type=str_or_none,
+            default=None,
+            help="The file path of rir scp file.",
+        )
+        group.add_argument(
+            "--rir_apply_prob",
+            type=float,
+            default=1.0,
+            help="The probability for applying RIR convolution.",
+        )
+        group.add_argument(
+            "--noise_scp",
+            type=str_or_none,
+            default=None,
+            help="The file path of noise scp file.",
+        )
+        group.add_argument(
+            "--noise_apply_prob",
+            type=float,
+            default=1.0,
+            help="The probability for adding noise.",
+        )
+        group.add_argument(
+            "--noise_db_range",
+            type=str,
+            default="13_15",
+            help="The range of signal-to-noise ratio (SNR) in decibels, "
+            "e.g. 13_15 samples the SNR uniformly from [13, 15].",
+        )
+        if short_noise_thres:
+            group.add_argument(
+                "--short_noise_thres",
+                type=float,
+                default=0.5,
+                help="If len(noise) / len(speech) is smaller than this threshold "
+                "during dynamic mixing, a warning will be displayed.",
+            )
+
+    @classmethod
     @abstractmethod
     def build_collate_fn(
         cls, args: argparse.Namespace, train: bool
@@ -2360,6 +2419,8 @@ class AbsTask(ABC):
             default_fs=args.chunk_default_fs,
             chunk_max_abs_length=args.chunk_max_abs_length,
             discard_short_samples=args.chunk_discard_short_samples,
+            left_context=getattr(args, "chunk_left_context", 0),
+            left_context_keys=getattr(args, "chunk_left_context_keys", ["speech"]),
         )
 
     @classmethod
