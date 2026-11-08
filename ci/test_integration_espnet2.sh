@@ -524,6 +524,16 @@ if [ "${task}" == "diar" ] || [ "${task}" == "all" ]; then
     # The prediction of a frame does not change when later samples are removed
     ${python} local/check_causal_inference.py \
         exp/diar_train_vad_tcn_causal_debug_raw_num_workers0 dump/raw/train_vad/wav.scp
+    # Dual-mode VAD (one set of weights, look-ahead 0 and 6 frames): online it reads
+    # no future sample; offline it reads exactly 6 frames ahead
+    ./run.sh --ngpu 0 --stage 5 --stop-stage 7 --python "${python}" --num_spk 1 \
+        --train_set train_vad --valid_set test_vad --test_sets test_vad \
+        --diar_config conf/train_vad_tcn_dualmode_debug.yaml --inference_config conf/decode_vad.yaml \
+        --diar-args "--num_workers 0"
+    for look_ahead in 0 6; do
+        ${python} local/check_causal_inference.py --look_ahead "${look_ahead}" \
+            exp/diar_train_vad_tcn_dualmode_debug_raw_num_workers0 dump/raw/train_vad/wav.scp
+    done
     # Remove generated files in order to reduce the disk usage
     rm -rf exp dump data
     cd "${cwd}"
