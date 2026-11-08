@@ -76,7 +76,22 @@ class AdapterForSoundScpReader(collections.abc.Mapping):
             retval = None, None
         else:
             retval = self.loader[key]
+        return self._to_array(retval)
 
+    def read_span(self, key: str, start: int, end: int) -> np.ndarray:
+        """Return samples `start`..`end` - 1 of `key`.
+
+        A loader with ``read_span`` (e.g. Omni-IO) reads only that part; any
+        other is read whole and sliced.
+        """
+        if hasattr(self.loader, "read_span"):
+            return self._to_array(self.loader.read_span(key, start, end))
+        array = self[key]
+        if array is None or not start < end <= len(array):
+            raise ValueError(f"samples {start}-{end} out of the audio of {key}")
+        return array[start:end]
+
+    def _to_array(self, retval) -> Optional[np.ndarray]:
         if isinstance(retval, tuple):
             assert len(retval) == 2, len(retval)
             if isinstance(retval[0], int) and isinstance(retval[1], np.ndarray):
@@ -518,6 +533,16 @@ class AbsDataset(Dataset, ABC):
         raise NotImplementedError
 
 
+def _read_span(loader, uid: str, start: int, end: int):
+    """Samples start..end - 1 of `uid` from `loader` (see ESPnetDataset)."""
+    if hasattr(loader, "read_span"):
+        return loader.read_span(uid, start, end)
+    value = loader[uid]
+    if isinstance(value, np.ndarray) and value.ndim >= 1 and len(value) >= end:
+        return value[start:end]
+    return value
+
+
 class ESPnetDataset(AbsDataset):
     """Pytorch Dataset class for ESPNet.
 
@@ -645,15 +670,28 @@ class ESPnetDataset(AbsDataset):
 
     @typechecked
     def __getitem__(
-        self, uid: Union[str, int]
+        self, uid: Union[str, int, Tuple[str, int, int]]
     ) -> Tuple[str, Dict[str, Union[str, np.ndarray, Dict[str, Any]]]]:
+        """Return (id, data) of `uid`.
+
+        `uid` may be (uid, start, end): samples start..end - 1 of `uid`, as
+        the chunk iterator with --chunk_random_access asks for them. Loaders
+        with ``read_span`` read only that part; other data with at least `end`
+        entries along the first axis are sliced, and shorter data (e.g. a
+        token sequence) are kept whole. The id is then "<uid>-<start>"
+        (start zero-padded to 10 digits).
+        """
+        span = None
+        if isinstance(uid, tuple):
+            uid, start, end = uid
+            span = (start, end)
 
         # Change integer-id to string-id
         if isinstance(uid, int):
             d = next(iter(self.loader_dict.values()))
             uid = list(d)[uid]
 
-        if self.cache is not None and uid in self.cache:
+        if span is None and self.cache is not None and uid in self.cache:
             data = self.cache[uid]
             return uid, data
 
@@ -661,7 +699,7 @@ class ESPnetDataset(AbsDataset):
         # 1. Load data from each loaders
         for name, loader in self.loader_dict.items():
             try:
-                value = loader[uid]
+                value = loader[uid] if span is None else _read_span(loader, uid, *span)
                 if isinstance(value, (list)):
                     value = np.array(value)
                 if value is None:
@@ -740,6 +778,8 @@ class ESPnetDataset(AbsDataset):
                 raise NotImplementedError(f"Not supported dtype: {value.dtype}")
             data[name] = value
 
+        if span is not None:
+            return f"{uid}-{span[0]:010d}", data
         if self.cache is not None and self.cache.size < self.max_cache_size:
             self.cache[uid] = data
 

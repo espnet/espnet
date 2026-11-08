@@ -1,0 +1,193 @@
+"""--chunk_random_access: chunks read on their own (Omni-IO entries, RTTM labels)."""
+
+import argparse
+import itertools
+
+import numpy as np
+import pytest
+
+from espnet2.fileio.omniio_audio import OmniIOAudioScpReader, OmniIOAudioWriter
+from espnet2.fileio.rttm import RttmReader
+from espnet2.samplers.unsorted_batch_sampler import UnsortedBatchSampler
+from espnet2.tasks.abs_task import IteratorOptions
+from espnet2.tasks.diar import DiarizationTask
+from espnet2.train.collate_fn import CommonCollateFn
+from espnet2.train.dataset import ESPnetDataset
+
+RATE = 16000
+
+
+def _recordings():
+    rng = np.random.default_rng(0)
+    # values on the 16-bit grid, so FLAC stores them exactly
+    return {
+        "recA": rng.integers(-2000, 2000, 10500) / 32768.0,
+        "recB": rng.integers(-2000, 2000, 4000) / 32768.0,
+        "recC": rng.integers(-2000, 2000, 1500) / 32768.0,  # shorter than a chunk
+    }
+
+
+TURNS = {  # espnet RTTM: samples, end inclusive; two speakers each, as collate needs
+    "recA": [("s1", 100, 1999), ("s1", 1500, 2599), ("s2", 2400, 3999)],
+    "recB": [("s3", 0, 999), ("s4", 3000, 3999)],
+    "recC": [("s1", 0, 999), ("s2", 1000, 1499)],
+}
+
+
+@pytest.fixture
+def data(tmp_path):
+    d = tmp_path / "data"
+    sigs = _recordings()
+    with OmniIOAudioWriter(tmp_path / "arc", d / "wav.scp", format="flac") as w:
+        for rec, sig in sigs.items():
+            w[rec] = RATE, sig
+    with (d / "espnet_rttm").open("w") as f:
+        for rec, turns in TURNS.items():
+            for spk, s, e in turns:
+                f.write(f"SPEAKER {rec} 1 {s} {e} <NA> <NA> {spk} <NA>\n")
+            f.write(f"END {rec} <NA> <NA> {len(sigs[rec])} <NA> <NA> <NA> <NA>\n")
+    (d / "speech_shape").write_text(
+        "".join(f"{rec} {len(sig)}\n" for rec, sig in sigs.items())
+    )
+    return d, sigs
+
+
+@pytest.mark.parametrize("start, end", [(0, 1), (0, 4096), (4095, 4097), (100, 10500)])
+def test_omniio_read_span_equals_the_slice(data, start, end):
+    d, sigs = data
+    reader = OmniIOAudioScpReader(d / "wav.scp")
+    rate, span = reader.read_span("recA", start, end)
+    assert rate == RATE
+    np.testing.assert_array_equal(span, reader["recA"][1][start:end])
+    np.testing.assert_array_equal(span, sigs["recA"][start:end].astype(np.float32))
+
+
+@pytest.mark.parametrize("start, end", [(-1, 10), (5, 5), (0, 10501)])
+def test_omniio_read_span_outside_raises(data, start, end):
+    d, _ = data
+    with pytest.raises(ValueError):
+        OmniIOAudioScpReader(d / "wav.scp").read_span("recA", start, end)
+
+
+@pytest.mark.parametrize("start, end", [(0, 2000), (2000, 4000), (4000, 6000), (5, 9)])
+def test_rttm_read_span_equals_the_slice(data, start, end):
+    d, _ = data
+    reader = RttmReader(str(d / "espnet_rttm"))
+    span = reader.read_span("recA", start, end)
+    assert span.shape == (end - start, 2)  # every speaker of the recording
+    np.testing.assert_array_equal(span, reader["recA"][start:end])
+    with pytest.raises(ValueError):
+        reader.read_span("recA", 0, 10501)
+
+
+def test_dataset_item_of_a_span(data):
+    d, sigs = data
+    dataset = ESPnetDataset(
+        [
+            (str(d / "wav.scp"), "speech", "omniio"),
+            (str(d / "espnet_rttm"), "spk_labels", "rttm"),
+        ]
+    )
+    uid, whole = dataset["recA"]
+    cid, span = dataset[("recA", 2000, 4000)]
+    assert (uid, cid) == ("recA", "recA-0000002000")
+    np.testing.assert_array_equal(span["speech"], whole["speech"][2000:4000])
+    np.testing.assert_array_equal(span["spk_labels"], whole["spk_labels"][2000:4000])
+
+
+def _factory(d, chunk_length=2000, shift_ratio=1.0, batch_size=2, train=True):
+    parser = DiarizationTask.get_parser()
+    args = parser.parse_args(
+        [
+            "--iterator_type",
+            "chunk",
+            "--chunk_random_access",
+            "true",
+            "--chunk_length",
+            str(chunk_length),
+            "--chunk_shift_ratio",
+            str(shift_ratio),
+            "--num_spk",
+            "2",
+        ]
+    )
+    options = IteratorOptions(
+        preprocess_fn=None,
+        collate_fn=CommonCollateFn(float_pad_value=0.0, int_pad_value=-1),
+        data_path_and_name_and_type=[
+            (str(d / "wav.scp"), "speech", "omniio"),
+            (str(d / "espnet_rttm"), "spk_labels", "rttm"),
+        ],
+        shape_files=[str(d / "speech_shape")],
+        batch_size=batch_size,
+        batch_bins=0,
+        batch_type="unsorted",
+        max_cache_size=0.0,
+        max_cache_fd=32,
+        allow_multi_rates=False,
+        distributed=False,
+        num_batches=None,
+        num_iters_per_epoch=None,
+        train=train,
+    )
+    return DiarizationTask.build_chunk_iter_factory(args, options, "train")
+
+
+@pytest.mark.parametrize("shift_ratio", [1.0, 0.5])
+def test_chunks_cover_each_sequence_from_its_start(data, shift_ratio):
+    d, sigs = data
+    W, S = 2000, int(2000 * shift_ratio)
+    batches = list(_factory(d, shift_ratio=shift_ratio, train=False).build_iter(1))
+    ids = list(itertools.chain(*(ids for ids, _ in batches)))
+    want = [
+        f"{rec}-{st:010d}"
+        for rec in sorted(sigs)
+        for st in range(0, len(sigs[rec]) - W + 1, S)
+    ]
+    assert ids == want  # recC is shorter than a chunk; tails are dropped
+    rttm = RttmReader(str(d / "espnet_rttm"))
+    for ids_, batch in batches:
+        assert batch["speech"].shape[1] == W
+        assert batch["spk_labels"].shape[1:] == (W, 2)
+        for i, cid in enumerate(ids_):
+            rec, st = cid.rsplit("-", 1)
+            st = int(st)
+            np.testing.assert_allclose(
+                batch["speech"][i].numpy(), sigs[rec][st : st + W], atol=1e-7
+            )
+            np.testing.assert_array_equal(
+                batch["spk_labels"][i].numpy(), rttm[rec][st : st + W]
+            )
+
+
+def test_batches_are_those_of_the_unsorted_sampler(data, tmp_path):
+    """Same mini-batches as --batch_type unsorted over a key file of the chunks."""
+    d, sigs = data
+    keys = [
+        f"{rec}-{st:010d}"
+        for rec in sorted(sigs)
+        for st in range(0, len(sigs[rec]) - 2000 + 1, 2000)
+    ]
+    key_file = tmp_path / "keys"
+    key_file.write_text("".join(f"{k} 2000\n" for k in keys))
+    want = [list(b) for b in UnsortedBatchSampler(batch_size=2, key_file=str(key_file))]
+    factory = _factory(d, batch_size=2)
+    got = [list(ids) for ids, _ in factory.build_iter(1, shuffle=False)]
+    assert got == want
+    # shuffled: the same mini-batches in another order, reproducible per epoch
+    e1 = [tuple(ids) for ids, _ in factory.build_iter(1)]
+    assert sorted(e1) == sorted(tuple(b) for b in want)
+    assert e1 == [tuple(ids) for ids, _ in factory.build_iter(1)]
+
+
+def test_bad_chunk_length(data):
+    d, _ = data
+    with pytest.raises(ValueError):
+        _factory(d, chunk_length="1000,2000")
+    with pytest.raises(RuntimeError):
+        _factory(d, chunk_length=20000)
+
+
+def test_parser_default_is_off():
+    args = DiarizationTask.get_parser().parse_args([])
+    assert isinstance(args, argparse.Namespace) and args.chunk_random_access is False
