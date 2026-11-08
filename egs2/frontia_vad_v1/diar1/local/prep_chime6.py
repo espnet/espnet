@@ -9,10 +9,10 @@ Utterances whose words are "[redacted]" are still speech and are kept.
 """
 
 import argparse
-import shlex
 import json
 import logging
 import re
+import shlex
 from collections import defaultdict
 from pathlib import Path
 
