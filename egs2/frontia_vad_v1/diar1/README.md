@@ -12,9 +12,11 @@ speech when anyone in the recording speaks. Two models:
   look-ahead chosen at run time, one set of weights. Online: look-ahead 0
   (`conf/decode.yaml`); offline: 124 frames = 0.99 s (`conf/tuning/decode_offline.yaml`).
 
-Training reads 10 s windows straight from the Omni-IO archives that stage 2 dumps
-(`diar.sh --train_window_size 160000`; the statistics of stage 4 are collected on
-the same windows); inference runs on whole recordings.
+Training reads 10 s chunks straight from the Omni-IO archives that stage 2 dumps:
+the chunk iterator with `chunk_random_access` reads only each chunk's part of the
+archive entry. The feature statistics of stage 4 are collected over whole
+recordings, one at a time (`--stats_args "--batch_size 1"`); inference runs on
+whole recordings.
 Scoring is md-eval with no collar. `local/show_vad_result.py` picks one threshold
 and median filter on AMI Mix-Headset dev and reports every set at that setting,
 next to each set's own best (`RESULTS_vad.md` in the experiment directory).

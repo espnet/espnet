@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Voice activity detection trained as single-output diarization (diar.sh --num_spk 1),
-# on 10 s windows of the dumped recordings (--train_window_size) and evaluated on
-# whole recordings. The default is the causal model (conf/train.yaml). The dual-mode
+# on 10 s chunks of the dumped recordings, each read on its own from the Omni-IO
+# archive (conf/train.yaml: chunk_random_access), and evaluated on whole recordings. The default is the causal model (conf/train.yaml). The dual-mode
 # model (online and offline with one set of weights):
 #   ./run.sh --diar_config conf/tuning/train_dualmode.yaml --diar_tag train_dualmode
 # scores it online (look-ahead 0). diar.sh writes inference into exp/diar_<diar_tag>,
@@ -36,7 +36,7 @@ done
     --frame_shift 128 \
     --score_whole_recording true \
     --scoring_thresholds "0.3 0.4 0.5 0.6 0.7 0.8 0.9" \
-    --train_window_size 160000 \
+    --stats_args "--batch_size 1" \
     --train_set "${train_set}" \
     --valid_set "${valid_set}" \
     --test_sets "${test_sets}" \

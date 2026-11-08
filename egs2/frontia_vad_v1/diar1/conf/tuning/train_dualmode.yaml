@@ -42,8 +42,11 @@ wav_augment_conf:
     noise_apply_prob: 0.8
     noise_db_range: "-5_20"
 
-iterator_type: sequence
-batch_type: unsorted
+# 10 s chunks of the recordings, each read on its own (as conf/train.yaml)
+iterator_type: chunk
+chunk_random_access: true
+chunk_length: 160000
+chunk_shift_ratio: 1.0
 batch_size: 64
 num_workers: 14
 seed: 1

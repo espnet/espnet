@@ -38,11 +38,13 @@ noise_scp: data/noise.scp
 noise_apply_prob: 0.8
 noise_db_range: "-5_20"  # SNR in dB
 
-# 10 s windows of the recordings (run.sh: diar.sh --train_window_size 160000),
-# read one window at a time (only that part of the archive entry is decoded)
-# and shuffled over all recordings
-iterator_type: sequence
-batch_type: unsorted
+# 10 s chunks of the recordings, each read on its own (only that part of the
+# Omni-IO archive entry is decoded); mini-batches of consecutive chunks, shuffled
+# every epoch
+iterator_type: chunk
+chunk_random_access: true
+chunk_length: 160000
+chunk_shift_ratio: 1.0
 batch_size: 64
 num_workers: 14
 seed: 1
