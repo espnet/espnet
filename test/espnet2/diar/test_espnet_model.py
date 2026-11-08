@@ -480,3 +480,31 @@ def test_forward_stats_equal_the_previous_implementation(num_spk):
         torch.testing.assert_close(loss.reshape(()), old_loss)
         for key, value in expected.items():
             assert float(stats[key]) == pytest.approx(value, abs=1e-6), key
+
+
+def test_collect_feats_removes_the_augmentation_context(tmp_path):
+    """The feature statistics are those of the windows without their context."""
+    import numpy as np
+    import soundfile
+
+    from espnet2.layers.batch_wav_augment import BatchWavAugment
+
+    soundfile.write(tmp_path / "n.wav", np.zeros(4000, dtype=np.int16), 16000)
+    (tmp_path / "noise.scp").write_text(f"n {tmp_path / 'n.wav'}\n")
+    aug = BatchWavAugment(noise_scp=str(tmp_path / "noise.scp"), context=100)
+    model = ESPnetDiarizationModel(
+        label_aggregator=label_aggregator,
+        attractor=None,
+        encoder=encoder,
+        decoder=decoder,
+        frontend=frontend,
+        specaug=None,
+        normalize=None,
+        wav_augment=aug,
+    )
+    speech = torch.randn(2, 400)
+    lengths = torch.LongTensor([400, 300])
+    out = model.collect_feats(speech, lengths)
+    feats, feats_lengths = model._extract_feats(speech[:, 100:], lengths - 100)
+    torch.testing.assert_close(out["feats"], feats)
+    assert out["feats_lengths"].tolist() == feats_lengths.tolist()

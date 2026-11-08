@@ -423,12 +423,15 @@ class BatchWavAugment(torch.nn.Module):
         b, t = speech.shape
         device = speech.device
         x = speech.float() * valid
-        # The powers and the peak are measured after the leading context.
-        if self.context > 0:
-            measure = valid & (torch.arange(t, device=device) >= self.context)
-        else:
-            measure = valid
-        power = self._non_silent_power(x, measure)
+        # The powers and the peak are measured on the samples after the leading
+        # context: the signal and its mask are cropped first, so the frames of
+        # the silence detection start where the window starts.
+        c = self.context
+
+        def window_power(signal, mask):
+            return self._non_silent_power(signal[:, c:], mask[:, c:])
+
+        power = window_power(x, valid)
         speech_power = power  # the power the SNR refers to
 
         # The apply flags are on the CPU: testing them does not wait for the GPU.
@@ -441,18 +444,16 @@ class BatchWavAugment(torch.nn.Module):
             y, e = self._reverberate(
                 x.index_select(0, rows_d), draws["rir_which"].cpu()[rows], early
             )
-            v, m = valid.index_select(0, rows_d), measure.index_select(0, rows_d)
+            v = valid.index_select(0, rows_d)
             y = y * v
             # Scale back to the power before the reverberation.
             p = power.index_select(0, rows_d)
-            gain = (p / self._non_silent_power(y, m).clamp(min=1e-10)).sqrt()
+            gain = (p / window_power(y, v).clamp(min=1e-10)).sqrt()
             x = x.index_copy(0, rows_d, y * gain[:, None])
             if early:
                 # The SNR refers to the early reverberation, with the same gain.
                 e = e * v * gain[:, None]
-                speech_power = speech_power.index_copy(
-                    0, rows_d, self._non_silent_power(e, m)
-                )
+                speech_power = speech_power.index_copy(0, rows_d, window_power(e, v))
 
         if "noise_which" in draws and bool(draws["noise_apply"].any()):
             bank_device = device if self.keep_on_device else torch.device("cpu")
@@ -482,8 +483,8 @@ class BatchWavAugment(torch.nn.Module):
                 noise = noise.index_copy(
                     0, rows_d, noisy * valid.index_select(0, rows_d)
                 )
-            n = measure.sum(1).clamp(min=1)
-            noise_power = (noise * measure).pow(2).sum(1) / n
+            n = valid[:, c:].sum(1).clamp(min=1)
+            noise_power = (noise[:, c:] * valid[:, c:]).pow(2).sum(1) / n
             snr = draws["snr"].to(device)
             scale = (
                 10 ** (-snr / 20)
@@ -493,7 +494,7 @@ class BatchWavAugment(torch.nn.Module):
             x = x + (scale * draws["noise_apply"].to(device))[:, None] * noise
 
         # As the preprocessor: divide by the peak when it exceeds 1.
-        peak = (x.abs() * measure).amax(1, keepdim=True)
+        peak = (x[:, c:].abs() * valid[:, c:]).amax(1, keepdim=True)
         return torch.where(peak > 1.0, x / peak.clamp(min=1e-30), x)
 
     def forward(
@@ -523,13 +524,29 @@ class BatchWavAugment(torch.nn.Module):
                 # lengths: one copy of the lengths to the host per batch.
                 lengths = lengths.cpu()
             speech = self.apply(speech, valid, self.draw(lengths)).to(speech.dtype)
-        if self.context > 0:
-            if speech.size(1) <= self.context:
-                raise ValueError(
-                    f"a row of {speech.size(1)} samples has no samples after the "
-                    f"context of {self.context}"
-                )
-            speech = speech[:, self.context :]
-            if speech_lengths is not None:
-                speech_lengths = (speech_lengths - self.context).clamp(min=0)
+        return self.remove_context(speech, speech_lengths)
+
+    def remove_context(
+        self, speech: torch.Tensor, speech_lengths: Optional[torch.Tensor] = None
+    ) -> Tuple[torch.Tensor, Optional[torch.Tensor]]:
+        """Remove the first ``context`` samples of each row (nothing if 0).
+
+        Raises ValueError when the batch has no sample after the context; a row
+        whose length does not exceed the context fails an assertion on the
+        device (checked without waiting for it).
+        """
+        if self.context <= 0:
+            return speech, speech_lengths
+        if speech.size(1) <= self.context:
+            raise ValueError(
+                f"a row of {speech.size(1)} samples has no samples after the "
+                f"context of {self.context}"
+            )
+        speech = speech[:, self.context :]
+        if speech_lengths is not None:
+            torch._assert_async(
+                (speech_lengths > self.context).all(),
+                "a row has no samples after the context",
+            )
+            speech_lengths = speech_lengths - self.context
         return speech, speech_lengths

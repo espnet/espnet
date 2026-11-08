@@ -906,25 +906,52 @@ def test_context_is_removed_and_gives_the_reverberation_its_history(tmp_path):
     assert lens.tolist() == [t, 100]
 
 
-def test_context_powers_and_peak_are_measured_after_it(tmp_path):
-    """A loud context does not change the SNR or the peak of the window."""
+@pytest.mark.parametrize("snr_reference", ["dry", "early"])
+def test_context_equals_the_window_alone(tmp_path, snr_reference):
+    """With context, the window gets what it gets alone with the same choices.
+
+    The window starts with silence and then has speech, so the frames of the
+    silence detection must start where the window starts; a loud context must
+    not change the window's power, its SNR or its peak.
+    """
     rng = np.random.default_rng(18)
-    noise_scp = write_noises(tmp_path, [(40000, 1)])
-    c, t = 2000, 6000
-    window = torch.from_numpy(rng.normal(size=(1, t)).astype(np.float32)) * 0.05
+    noise_scp = write_noises(tmp_path, [(60000, 1)])
+    c, t = 2000, 9000
+    window = np.zeros(t, dtype=np.float32)
+    window[3000:] = rng.normal(size=t - 3000) * 0.05  # silence, then speech
+    window = torch.from_numpy(window)[None]
     draws = dict(
         noise_apply=torch.tensor([True]),
         noise_which=torch.tensor([0]),
-        noise_offset=torch.tensor([0]),
+        noise_offset=torch.tensor([100]),
         snr=torch.tensor([5.0]),
     )
-    quiet = torch.cat([torch.zeros(1, c), window], 1)
-    loud = torch.cat([torch.full((1, c), 3.0), window], 1)
-    aug = BatchWavAugment(noise_scp=noise_scp, context=c)
-    valid = torch.ones(1, c + t, dtype=torch.bool)
-    a = aug.apply(quiet, valid, draws)[:, c:]
-    b = aug.apply(loud, valid, draws)[:, c:]
-    torch.testing.assert_close(a, b)
+    alone = BatchWavAugment(noise_scp=noise_scp, snr_reference=snr_reference)
+    expected = alone.apply(window, torch.ones(1, t, dtype=torch.bool), draws)
+    aug = BatchWavAugment(noise_scp=noise_scp, context=c, snr_reference=snr_reference)
+    # the noise of the whole row starts c samples earlier
+    with_context = dict(draws, noise_offset=torch.tensor([100 - c + 60000]))
+    for context in (torch.zeros(1, c), torch.full((1, c), 3.0)):
+        row = torch.cat([context, window], 1)
+        out = aug.apply(row, torch.ones(1, c + t, dtype=torch.bool), with_context)
+        torch.testing.assert_close(out[:, c:], expected, rtol=1e-5, atol=1e-7)
+    # the power is that of the window measured on its own frames
+    torch.testing.assert_close(
+        aug._non_silent_power(window, torch.ones(1, t, dtype=torch.bool)),
+        alone._non_silent_power(window, torch.ones(1, t, dtype=torch.bool)),
+    )
+
+
+def test_remove_context_checks_each_row(tmp_path):
+    aug = BatchWavAugment(noise_scp=write_noises(tmp_path, [(4000, 1)]), context=100)
+    speech, lengths = aug.remove_context(torch.zeros(2, 300), torch.tensor([300, 150]))
+    assert speech.shape == (2, 200) and lengths.tolist() == [200, 50]
+    with pytest.raises(RuntimeError):
+        aug.remove_context(torch.zeros(2, 300), torch.tensor([300, 100]))
+    assert aug.remove_context(torch.zeros(1, 300))[0].shape == (1, 200)
+    no_context = BatchWavAugment(noise_scp=write_noises(tmp_path, [(4000, 1)]))
+    x = torch.zeros(1, 300)
+    assert no_context.remove_context(x)[0] is x
 
 
 def test_context_longer_than_the_row_raises(tmp_path):

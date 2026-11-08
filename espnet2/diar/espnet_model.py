@@ -203,6 +203,12 @@ class ESPnetDiarizationModel(AbsESPnetModel):
         spk_labels_lengths: torch.Tensor = None,
         **kwargs,
     ) -> Dict[str, torch.Tensor]:
+        if self.wav_augment is not None and hasattr(self.wav_augment, "remove_context"):
+            # The statistics are those of the windows the model sees: without
+            # their leading context (and without random augmentation).
+            speech, speech_lengths = self.wav_augment.remove_context(
+                speech, speech_lengths
+            )
         feats, feats_lengths = self._extract_feats(speech, speech_lengths)
         return {"feats": feats, "feats_lengths": feats_lengths}
 
