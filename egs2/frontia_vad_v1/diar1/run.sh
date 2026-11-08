@@ -10,8 +10,8 @@
 #   ln -s ../diar_train_dualmode/{config.yaml,valid.acc.best.pth} exp/diar_train_dualmode_offline/
 #   ./run.sh --stage 6 --diar_tag train_dualmode_offline \
 #       --inference_config conf/tuning/decode_offline.yaml
-# After stage 7, local/show_vad_result.py exp/diar_<diar_tag> reports every set at
-# the threshold and median filter tuned on AMI Mix-Headset dev.
+# Stage 7 runs local/score.sh: md-eval over whole recordings, thresholds 0.3-0.9,
+# and local/show_vad_result.py (every set at the setting tuned on AMI Mix-Headset dev).
 set -e
 set -u
 set -o pipefail
@@ -34,8 +34,6 @@ done
     --num_spk 1 \
     --collar 0.0 \
     --frame_shift 128 \
-    --score_whole_recording true \
-    --scoring_thresholds "0.3 0.4 0.5 0.6 0.7 0.8 0.9" \
     --stats_args "--batch_size 1 --num_workers 2" \
     --train_set "${train_set}" \
     --valid_set "${valid_set}" \

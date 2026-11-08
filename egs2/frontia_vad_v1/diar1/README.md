@@ -91,7 +91,7 @@ batch augmentation in the model (`wav_augment`).
 - scoring: md-eval with a UEM of each whole recording, rescored on Sun Nov 8 2026
 
 Detection error (%) = (missed + false alarm speech) / reference speech, md-eval,
-collar 0, over each whole recording (`--score_whole_recording true`: a UEM from
+collar 0, over each whole recording (`local/score.sh`: a UEM from
 0 to the end of the recording, so false alarms before the first and after the
 last speech count). With one pseudo speaker there is no speaker confusion, so
 the diarization error rate is the detection error. Stage 7 scores every set at
