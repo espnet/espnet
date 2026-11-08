@@ -24,6 +24,7 @@ from torch.utils.data import DataLoader
 from typeguard import typechecked
 
 from espnet2 import __version__
+from espnet2.fileio.read_text import read_2columns_text
 from espnet2.iterators.abs_iter_factory import AbsIterFactory
 from espnet2.iterators.category_chunk_iter_factory import CategoryChunkIterFactory
 from espnet2.iterators.category_iter_factory import CategoryIterFactory
@@ -1085,6 +1086,22 @@ class AbsTask(ABC):
             nargs="+",
             default=["speech"],
             help="Keys whose chunks get --chunk_left_context.",
+        )
+        group.add_argument(
+            "--chunk_random_access",
+            type=str2bool,
+            default=False,
+            help="With --iterator_type chunk: read each chunk on its own from the "
+            "data instead of splitting whole loaded sequences. A sequence of L "
+            "samples (first shape file) gives the chunks [i*S, i*S+W), W = "
+            "--chunk_length (a single length), S = int(W * --chunk_shift_ratio), "
+            "for i = 0 .. (L - W) // S. Loaders with read_span (Omni-IO, RTTM) "
+            "read only the chunk. The chunks, ordered by sequence id, form "
+            "mini-batches as --batch_type unsorted does, and the mini-batches are "
+            "shuffled each epoch as the sequence iterator shuffles them. "
+            "--chunk_left_context C: the chunks of --chunk_left_context_keys are "
+            "read as [i*S - C, i*S + W), zeros before the start of the sequence. "
+            "Chunks have one fixed length, so --chunk_default_fs is not supported.",
         )
         group.add_argument(
             "--chunk_discard_short_samples",
@@ -2231,12 +2248,110 @@ class AbsTask(ABC):
 
     @classmethod
     @typechecked
+    def build_random_access_chunk_iter_factory(
+        cls,
+        args: argparse.Namespace,
+        iter_options: IteratorOptions,
+        mode: str,
+    ) -> AbsIterFactory:
+        """Chunks read on their own from the data (--chunk_random_access).
+
+        See the help of --chunk_random_access. Each chunk is the dataset item
+        (sequence id, start, end), so only the chunk is read from loaders with
+        read_span; the mini-batches are those of UnsortedBatchSampler over the
+        chunks, and the sequence iterator shuffles them each epoch.
+        """
+        if len(iter_options.shape_files) == 0:
+            raise RuntimeError("--chunk_random_access needs a shape file (lengths)")
+        try:
+            W = int(args.chunk_length)
+        except ValueError:
+            raise ValueError(
+                f"--chunk_random_access needs one --chunk_length: {args.chunk_length}"
+            )
+        S = int(W * args.chunk_shift_ratio)
+        if W <= 0 or S <= 0:
+            raise ValueError(f"chunk length {W} and shift {S} must be positive")
+        if args.chunk_default_fs is not None:
+            raise ValueError(
+                "--chunk_random_access reads chunks of one fixed length: "
+                "--chunk_default_fs is not supported"
+            )
+        C = getattr(args, "chunk_left_context", 0)
+        if C < 0:
+            raise ValueError(f"--chunk_left_context must be >= 0: {C}")
+        lengths = {
+            k: int(v.split(",")[0])
+            for k, v in read_2columns_text(iter_options.shape_files[0]).items()
+        }
+        chunks = [
+            (uid, start, start + W)
+            for uid in sorted(lengths)
+            for start in range(0, lengths[uid] - W + 1, S)
+        ]
+        if len(chunks) == 0:
+            raise RuntimeError(f"no sequence is {W} samples or longer: {mode}")
+        # the split of UnsortedBatchSampler (drop_last=False)
+        N = max(len(chunks) // iter_options.batch_size, 1)
+        batches = [
+            chunks[i * len(chunks) // N : (i + 1) * len(chunks) // N] for i in range(N)
+        ]
+        if iter_options.num_batches is not None:
+            batches = batches[: iter_options.num_batches]
+        logging.info(
+            f"[{mode}] {len(chunks)} chunks of {W} samples (shift {S}) from "
+            f"{len(lengths)} sequences, {len(batches)} mini-batches"
+        )
+        if iter_options.distributed:
+            world_size = torch.distributed.get_world_size()
+            rank = torch.distributed.get_rank()
+            for batch in batches:
+                if len(batch) < world_size:
+                    raise RuntimeError(
+                        f"The batch-size must be equal or more than world_size: "
+                        f"{len(batch)} < {world_size}"
+                    )
+            batches = [batch[rank::world_size] for batch in batches]
+
+        dataset = ESPnetDataset(
+            iter_options.data_path_and_name_and_type,
+            float_dtype=args.train_dtype,
+            preprocess=iter_options.preprocess_fn,
+            max_cache_size=iter_options.max_cache_size,
+            max_cache_fd=iter_options.max_cache_fd,
+            allow_multi_rates=iter_options.allow_multi_rates,
+        )
+        cls.check_task_requirements(
+            dataset, args.allow_variable_data_keys, train=iter_options.train
+        )
+        if C > 0:
+            dataset.span_left_context = C
+            dataset.span_left_context_keys = set(
+                getattr(args, "chunk_left_context_keys", ["speech"])
+            )
+        logging.info(f"[{mode}] dataset:\n{dataset}")
+        return SequenceIterFactory(
+            dataset=dataset,
+            batches=batches,
+            seed=args.seed,
+            num_iters_per_epoch=iter_options.num_iters_per_epoch,
+            shuffle=iter_options.train,
+            shuffle_within_batch=args.shuffle_within_batch,
+            num_workers=args.num_workers,
+            collate_fn=iter_options.collate_fn,
+            pin_memory=args.ngpu > 0,
+        )
+
+    @classmethod
+    @typechecked
     def build_chunk_iter_factory(
         cls,
         args: argparse.Namespace,
         iter_options: IteratorOptions,
         mode: str,
     ) -> AbsIterFactory:
+        if getattr(args, "chunk_random_access", False):
+            return cls.build_random_access_chunk_iter_factory(args, iter_options, mode)
 
         dataset = ESPnetDataset(
             iter_options.data_path_and_name_and_type,

@@ -56,6 +56,8 @@ diar_tag=    # Suffix to the result dir for diar model training.
 diar_config= # Config for diar model training.
 diar_args=   # Arguments for diar model training, e.g., "--max_epoch 10".
              # Note that it will overwrite args in diar config.
+stats_args=  # Arguments for stage 4 (collect stats) only, after --diar_args,
+             # e.g., "--batch_size 1" for long recordings.
 feats_normalize=global_mvn # Normalizaton layer type.
 num_spk=2    # Number of speakers in the input audio
 
@@ -72,6 +74,7 @@ hf_repo=
 collar=0         # collar for der scoring
 frame_shift=128  # frame shift to convert frame-level label into real time
                  # this should be aligned with frontend feature extraction
+local_score_opts= # The options given to local/score.sh.
 
 # [Task dependent] Set the datadir name created by local/data.sh
 train_set=       # Name of training set.
@@ -123,6 +126,8 @@ Options:
     --diar_config     # Config for diarization model training (default="${diar_config}").
     --diar_args       # Arguments for diarization model training, e.g., "--max_epoch 10" (default="${diar_args}").
                       # Note that it will overwrite args in diar config.
+    --stats_args      # Arguments for stage 4 (collect stats) only, given after --diar_args,
+                      # e.g., "--batch_size 1" for long recordings (default="${stats_args}").
     --feats_normalize # Normalizaton layer type (default="${feats_normalize}").
     --num_spk         # Number of speakers in the input audio (default="${num_spk}")
 
@@ -135,6 +140,8 @@ Options:
     # Scoring related
     --collar      # collar for der scoring
     --frame_shift # frame shift to convert frame-level label into real time
+    --local_score_opts # The options given to local/score.sh, which replaces the default
+                       # scoring of stage 7 when the recipe has it (default="${local_score_opts}").
 
     # [Task dependent] Set the datadir name created by local/data.sh
     --train_set               # Name of training set (required).
@@ -391,7 +398,7 @@ if ! "${skip_train}"; then
                 --train_shape_file "${_logdir}/train.JOB.scp" \
                 --valid_shape_file "${_logdir}/valid.JOB.scp" \
                 --output_dir "${_logdir}/stats.JOB" \
-                ${_opts} ${diar_args} || { cat $(grep -l -i error "${_logdir}"/stats.*.log) ; exit 1; }
+                ${_opts} ${diar_args} ${stats_args} || { cat $(grep -l -i error "${_logdir}"/stats.*.log) ; exit 1; }
 
         # 4. Aggregate shape files
         _opts=
@@ -596,16 +603,23 @@ if ! "${skip_eval}"; then
         log "Stage 7: Scoring"
         _cmd=${decode_cmd}
 
-        for dset in "${valid_set}" ${test_sets}; do
-            _data="${data_feats}/${dset}"
-            _inf_dir="${diar_exp}/diarized_${dset}"
-            _dir="${diar_exp}/diarized_${dset}/scoring"
-            mkdir -p "${_dir}"
+        if [ -f local/score.sh ]; then
+            # The recipe's own scoring replaces the default below.
+            # shellcheck disable=SC2086
+            local/score.sh ${local_score_opts} "${diar_exp}" "${data_feats}" \
+                "${valid_set}" ${test_sets}
+        else
+            for dset in "${valid_set}" ${test_sets}; do
+                _data="${data_feats}/${dset}"
+                _inf_dir="${diar_exp}/diarized_${dset}"
+                _dir="${diar_exp}/diarized_${dset}/scoring"
+                mkdir -p "${_dir}"
 
-            scripts/utils/score_der.sh \
-                --collar ${collar} --fs ${fs} --frame_shift ${frame_shift} \
-                ${_dir} ${_inf_dir}/diarize.scp ${_data}/rttm
-        done
+                scripts/utils/score_der.sh \
+                    --collar ${collar} --fs ${fs} --frame_shift ${frame_shift} \
+                    ${_dir} ${_inf_dir}/diarize.scp ${_data}/rttm
+            done
+        fi
 
         # Show results in Markdown syntax
         scripts/utils/show_diar_result.sh "${diar_exp}" > "${diar_exp}"/RESULTS.md

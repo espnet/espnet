@@ -183,6 +183,29 @@ class DiarizationTask(AbsTask):
             default=True,
             help="Apply preprocessing to data or not",
         )
+        # --rir_scp, --rir_apply_prob, --noise_scp, --noise_apply_prob,
+        # --noise_db_range and --short_noise_thres, as the other tasks have them
+        cls.add_augmentation_arguments(parser)
+        group.add_argument(
+            "--rir_remove_delay",
+            type=str2bool,
+            default=True,
+            help="Shift the reverberant speech so that the peak of the RIR (the "
+            "largest absolute value over its channels) is at time 0, keeping it "
+            "aligned with the speaker labels. The peak, not an estimate of the "
+            "direct path: with a reflection stronger than the direct sound, the "
+            "shift follows the reflection. A multi-channel RIR gets one shift for "
+            "all channels (see --rir_delay_per_channel).",
+        )
+        group.add_argument(
+            "--rir_delay_per_channel",
+            type=str2bool,
+            default=False,
+            help="With --rir_remove_delay and a multi-channel RIR, shift each "
+            "channel by its own peak: every channel aligned with the labels, the "
+            "time differences between the channels lost. False: one shift (the "
+            "overall peak) for all channels, which keeps those differences.",
+        )
 
         for class_choices in cls.class_choices_list:
             # Append --<name> and --<name>_conf.
@@ -204,11 +227,36 @@ class DiarizationTask(AbsTask):
         cls, args: argparse.Namespace, train: bool
     ) -> Optional[Callable[[str, Dict[str, np.array]], Dict[str, np.ndarray]]]:
         if args.use_preprocessor:
-            # FIXME (jiatong): add more argument here
-            retval = CommonPreprocessor(train=train)
+            # NOTE: getattr keeps configs saved before these options existed loadable
+            retval = CommonPreprocessor(
+                train=train,
+                # RIRs and noises at another rate are resampled to the speech's
+                fs=cls._speech_fs(args),
+                rir_scp=getattr(args, "rir_scp", None),
+                rir_apply_prob=getattr(args, "rir_apply_prob", 1.0),
+                rir_remove_delay=getattr(args, "rir_remove_delay", True),
+                rir_delay_per_channel=getattr(args, "rir_delay_per_channel", False),
+                noise_scp=getattr(args, "noise_scp", None),
+                noise_apply_prob=getattr(args, "noise_apply_prob", 1.0),
+                noise_db_range=getattr(args, "noise_db_range", "13_15"),
+                short_noise_thres=getattr(args, "short_noise_thres", 0.5),
+            )
         else:
             retval = None
         return retval
+
+    @staticmethod
+    def _speech_fs(args: argparse.Namespace) -> int:
+        """Return the sampling rate of the speech in Hz, 0 if unknown.
+
+        frontend_conf fs if given, else the default fs of the frontend class
+        (16000 for the default frontend); 0 for a frontend without one.
+        """
+        fs = (getattr(args, "frontend_conf", None) or {}).get("fs")
+        if fs is None and getattr(args, "frontend", None) is not None:
+            frontend_class = frontend_choices.get_class(args.frontend)
+            fs = get_default_kwargs(frontend_class).get("fs")
+        return humanfriendly.parse_size(str(fs)) if fs else 0
 
     @classmethod
     def required_data_names(
