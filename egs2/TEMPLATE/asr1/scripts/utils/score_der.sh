@@ -9,6 +9,8 @@ fs=8000
 subsampling=1
 thresholds="0.3 0.4 0.5 0.6 0.7"  # decision thresholds to score
 medians="1 11"                     # median filter lengths (frames) to score
+uem=        # UEM file of the regions to score (md-eval -u); default: md-eval scores
+            # each recording from its first to its last reference segment
 
 . ./utils/parse_options.sh || exit 1
 
@@ -30,7 +32,7 @@ for med in ${medians}; do
             --frame_shift=${frame_shift} --subsampling=${subsampling} --sampling_rate=${fs} \
             $infer_scp ${scoring_dir}/hyp_${th}_$med.rttm
 
-        md-eval.pl -c ${collar} \
+        md-eval.pl -c ${collar} ${uem:+-u ${uem}} \
             -r ${gt_label} \
             -s ${scoring_dir}/hyp_${th}_$med.rttm \
             > ${scoring_dir}/result_th${th}_med${med}_collar${collar} 2>/dev/null || exit 1

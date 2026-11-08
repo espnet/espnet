@@ -132,6 +132,9 @@ frame_shift=128  # frame shift to convert frame-level label into real time
 scoring_thresholds="0.3 0.4 0.5 0.6 0.7" # decision thresholds scored in stage 7
 scoring_medians="1 11"                   # median filter lengths (frames) scored in stage 7
 scoring_nj=1     # Stage 7: number of scorings (set, threshold, median) run at once on this machine
+score_whole_recording=false # Stage 7: score every recording from start to end (a UEM from
+                            # utt2num_samples) instead of md-eval's default, from its first
+                            # to its last reference segment
 
 # [Task dependent] Set the datadir name created by local/data.sh
 train_set=       # Name of training set.
@@ -206,6 +209,10 @@ Options:
     --scoring_medians    # Median filter lengths in frames scored in stage 7 (default="${scoring_medians}").
     --scoring_nj         # Stage 7: number of scorings (one set, threshold and median each) run at
                          # once on this machine (default="${scoring_nj}").
+    --score_whole_recording # Stage 7: score each whole recording (UEM from utt2num_samples);
+                         # md-eval otherwise scores from the first to the last reference
+                         # segment, leaving out false alarms before and after
+                         # (default="${score_whole_recording}").
 
     # [Task dependent] Set the datadir name created by local/data.sh
     --train_set               # Name of training set (required).
@@ -686,13 +693,28 @@ if ! "${skip_eval}"; then
             local _data="${data_feats}/${dset}"
             local _inf_dir="${diar_exp}/diarized_${dset}"
             local _dir="${diar_exp}/diarized_${dset}/scoring"
+            local _uem=
             mkdir -p "${_dir}"
+            if "${score_whole_recording}"; then
+                _uem=${_dir}/uem
+            fi
 
             scripts/utils/score_der.sh \
                 --collar ${collar} --fs ${fs} --frame_shift ${frame_shift} \
-                --thresholds "${thresholds}" --medians "${medians}" \
+                --thresholds "${thresholds}" --medians "${medians}" --uem "${_uem}" \
                 ${_dir} ${_inf_dir}/diarize.scp ${_data}/rttm
         }
+
+        if "${score_whole_recording}"; then
+            # <recording> <channel> <start> <end> in seconds, the whole recording
+            _fs_hz=$(python3 -c "import humanfriendly as h;print(h.parse_size('${fs}'))")
+            for dset in "${valid_set}" ${test_sets}; do
+                mkdir -p "${diar_exp}/diarized_${dset}/scoring"
+                awk -v fs="${_fs_hz}" '{ printf "%s 1 0 %.6f\n", $1, $2 / fs }' \
+                    "${data_feats}/${dset}/utt2num_samples" \
+                    > "${diar_exp}/diarized_${dset}/scoring/uem"
+            done
+        fi
 
         for dset in "${valid_set}" ${test_sets}; do
             if [ "${scoring_nj}" -le 1 ]; then
