@@ -1011,6 +1011,23 @@ class AbsTask(ABC):
             help="Maximum number of samples per chunk for all sampling rates",
         )
         group.add_argument(
+            "--chunk_left_context",
+            type=int,
+            default=0,
+            help="Number of samples (at --chunk_default_fs if given) that the "
+            "chunks of --chunk_left_context_keys get in front of the chunk, with "
+            "zeros before the start of the sequence; the other keys (e.g. the "
+            "labels) keep the chunk. For a model that removes them after using "
+            "them as history (e.g. the context of --wav_augment_conf). 0: none.",
+        )
+        group.add_argument(
+            "--chunk_left_context_keys",
+            type=str,
+            nargs="+",
+            default=["speech"],
+            help="Keys whose chunks get --chunk_left_context.",
+        )
+        group.add_argument(
             "--chunk_discard_short_samples",
             type=str2bool,
             default=True,
@@ -2228,6 +2245,8 @@ class AbsTask(ABC):
             default_fs=args.chunk_default_fs,
             chunk_max_abs_length=args.chunk_max_abs_length,
             discard_short_samples=args.chunk_discard_short_samples,
+            left_context=getattr(args, "chunk_left_context", 0),
+            left_context_keys=getattr(args, "chunk_left_context_keys", ["speech"]),
         )
 
     @classmethod
