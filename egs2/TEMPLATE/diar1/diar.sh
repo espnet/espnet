@@ -20,35 +20,6 @@ min() {
   done
   echo "${a}"
 }
-# run_limited <max> <command...>: with <max> <= 1, run the command in the
-# foreground; otherwise run it in the background once fewer than <max>
-# background jobs of this shell are running. wait_limited waits for them.
-_bg_pids=()
-run_limited() {
-    local max=$1
-    shift
-    if [ "${max}" -le 1 ]; then
-        "$@"
-        return
-    fi
-    while [ "$(jobs -rp | wc -l)" -ge "${max}" ]; do
-        sleep 1
-    done
-    "$@" &
-    _bg_pids+=("$!")
-}
-# wait_limited <what>: wait for the run_limited jobs; exit if any of them failed.
-wait_limited() {
-    local pid failed=0
-    for pid in ${_bg_pids[@]+"${_bg_pids[@]}"}; do
-        wait "${pid}" || failed=$((failed + 1))
-    done
-    _bg_pids=()
-    if [ "${failed}" -gt 0 ]; then
-        log "${1}: ${failed} job(s) failed"
-        exit 1
-    fi
-}
 SECONDS=0
 
 # General configuration
@@ -67,7 +38,6 @@ dumpdir=dump            # Directory to dump features.
 inference_nj=32         # The number of parallel jobs in decoding.
 gpu_inference=false     # Whether to perform gpu decoding.
 inference_max_jobs_run= # Stage 6: most inference jobs at once (--max-jobs-run; run.pl allows one per GPU with --gpu; pbs.pl ignores it).
-inference_parallel_sets=1 # Stage 6: number of sets inferred at once, each in its own --inference_nj jobs.
 expdir=exp              # Directory to save experiments.
 python=python3          # Specify python to execute espnet commands
 
@@ -106,7 +76,7 @@ frame_shift=128  # frame shift to convert frame-level label into real time
                  # this should be aligned with frontend feature extraction
 scoring_thresholds="0.3 0.4 0.5 0.6 0.7" # decision thresholds scored in stage 7
 scoring_medians="1 11"                   # median filter lengths (frames) scored in stage 7
-scoring_nj=1     # Stage 7: number of scorings (set, threshold, median) run at once on this machine
+scoring_nj=1     # Stage 7: number of jobs (decode_cmd) the scorings (set, threshold, median) are dealt out to
 score_whole_recording=false # Stage 7: score every recording from start to end (a UEM from
                             # utt2num_samples) instead of md-eval's default, from its first
                             # to its last reference segment
@@ -141,8 +111,6 @@ Options:
     --gpu_inference      # Whether to use gpu for inference (default="${gpu_inference}").
     --inference_max_jobs_run # Stage 6: most inference jobs at once; passed as --max-jobs-run to run.pl,
                          # queue.pl and slurm.pl, ignored by pbs.pl (default="${inference_max_jobs_run}").
-    --inference_parallel_sets # Stage 6: number of sets inferred at once, each in its own
-                         # --inference_nj jobs (default="${inference_parallel_sets}").
     --dumpdir            # Directory to dump features (default="${dumpdir}").
     --expdir             # Directory to save experiments (default="${expdir}").
     --python             # Specify python to execute espnet commands (default="${python}").
@@ -179,8 +147,9 @@ Options:
     --frame_shift # frame shift to convert frame-level label into real time
     --scoring_thresholds # Decision thresholds scored in stage 7 (default="${scoring_thresholds}").
     --scoring_medians    # Median filter lengths in frames scored in stage 7 (default="${scoring_medians}").
-    --scoring_nj         # Stage 7: number of scorings (one set, threshold and median each) run at
-                         # once on this machine (default="${scoring_nj}").
+    --scoring_nj         # Stage 7: number of decode_cmd jobs the scorings (one set, threshold and
+                         # median each) are dealt out to; 1 scores the sets one after another
+                         # (default="${scoring_nj}").
     --score_whole_recording # Stage 7: score each whole recording (UEM from utt2num_samples);
                          # md-eval otherwise scores from the first to the last reference
                          # segment, leaving out false alarms before and after
@@ -576,10 +545,7 @@ if ! "${skip_eval}"; then
             _opts+="--config ${inference_config} "
         fi
 
-        # Diarize one set (in the background with --inference_parallel_sets > 1)
-        diarize_set() {
-            local dset=$1 _data _dir _logdir _scp _entry _audio_format _type
-            local key_file split_scps _nj n _cmd_opts i
+        for dset in "${valid_set}" ${test_sets}; do
             _data="${data_feats}/${dset}"
             _dir="${diar_exp}/diarized_${dset}"
             _logdir="${_dir}/logdir"
@@ -641,36 +607,15 @@ if ! "${skip_eval}"; then
             for i in $(seq "${_nj}"); do
                 cat "${_logdir}/output.${i}/diarize.scp"
             done | LC_ALL=C sort -k1 > "${_dir}/diarize.scp"
-        }
 
-        for dset in "${valid_set}" ${test_sets}; do
-            run_limited "${inference_parallel_sets}" diarize_set "${dset}"
         done
-        wait_limited "Stage 6"
     fi
 
     if [ ${stage} -le 7 ] && [ ${stop_stage} -ge 7 ]; then
         log "Stage 7: Scoring"
         _cmd=${decode_cmd}
 
-        # Score one set at the given thresholds and medians
-        score_set() {
-            local dset=$1 thresholds=$2 medians=$3
-            local _data="${data_feats}/${dset}"
-            local _inf_dir="${diar_exp}/diarized_${dset}"
-            local _dir="${diar_exp}/diarized_${dset}/scoring"
-            local _uem=
-            mkdir -p "${_dir}"
-            if "${score_whole_recording}"; then
-                _uem=${_dir}/uem
-            fi
-
-            scripts/utils/score_der.sh \
-                --collar ${collar} --fs ${fs} --frame_shift ${frame_shift} \
-                --thresholds "${thresholds}" --medians "${medians}" --uem "${_uem}" \
-                ${_dir} ${_inf_dir}/diarize.scp ${_data}/rttm
-        }
-
+        _opts="--collar ${collar} --fs ${fs} --frame_shift ${frame_shift}"
         if "${score_whole_recording}"; then
             # <recording> <channel> <start> <end> in seconds, the whole recording
             _fs_hz=$(python3 -c "import humanfriendly as h;print(h.parse_size('${fs}'))")
@@ -682,22 +627,44 @@ if ! "${skip_eval}"; then
             done
         fi
 
-        for dset in "${valid_set}" ${test_sets}; do
-            if [ "${scoring_nj}" -le 1 ]; then
-                score_set "${dset}" "${scoring_thresholds}" "${scoring_medians}"
-            else
-                # one job per threshold and median: each runs make_rttm.py and md-eval.pl
-                log "Scoring ${dset}: log in ${diar_exp}/diarized_${dset}/scoring/score.th*_med*.log"
-                mkdir -p "${diar_exp}/diarized_${dset}/scoring"
+        if [ "${scoring_nj}" -le 1 ]; then
+            for dset in "${valid_set}" ${test_sets}; do
+                _dir="${diar_exp}/diarized_${dset}/scoring"
+                _uem=
+                "${score_whole_recording}" && _uem=${_dir}/uem
+                # shellcheck disable=SC2086
+                scripts/utils/score_der.sh ${_opts} \
+                    --thresholds "${scoring_thresholds}" --medians "${scoring_medians}" \
+                    --uem "${_uem}" \
+                    ${_dir} ${diar_exp}/diarized_${dset}/diarize.scp ${data_feats}/${dset}/rttm
+            done
+        else
+            # One score_der.sh call per (set, threshold, median), dealt out to
+            # --scoring_nj jobs of ${_cmd}: <logdir>/score.<n>.sh lists the calls of job n.
+            _logdir="${diar_exp}/scoring_logdir"
+            mkdir -p "${_logdir}"
+            rm -f "${_logdir}"/score.*.sh
+            _n=0
+            for dset in "${valid_set}" ${test_sets}; do
+                _dir="${diar_exp}/diarized_${dset}/scoring"
+                mkdir -p "${_dir}"
+                _uem=
+                "${score_whole_recording}" && _uem=${_dir}/uem
                 for med in ${scoring_medians}; do
                     for th in ${scoring_thresholds}; do
-                        run_limited "${scoring_nj}" score_set "${dset}" "${th}" "${med}" \
-                            > "${diar_exp}/diarized_${dset}/scoring/score.th${th}_med${med}.log"
+                        echo "scripts/utils/score_der.sh ${_opts} --thresholds ${th} --medians ${med}" \
+                            "--uem '${_uem}' ${_dir} ${diar_exp}/diarized_${dset}/diarize.scp" \
+                            "${data_feats}/${dset}/rttm" \
+                            >> "${_logdir}/score.$((_n % scoring_nj + 1)).sh"
+                        _n=$((_n + 1))
                     done
                 done
-            fi
-        done
-        wait_limited "Stage 7"
+            done
+            _nj=$(min "${scoring_nj}" "${_n}")
+            log "Scoring: ${_n} scorings in ${_nj} jobs, log: '${_logdir}/score.*.log'"
+            ${_cmd} JOB=1:"${_nj}" "${_logdir}"/score.JOB.log \
+                bash -e "${_logdir}"/score.JOB.sh
+        fi
 
         # Show results in Markdown syntax
         scripts/utils/show_diar_result.sh "${diar_exp}" > "${diar_exp}"/RESULTS.md
