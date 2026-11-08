@@ -114,6 +114,20 @@ class ESPnetDiarizationModel(AbsESPnetModel):
         loss, stats, weight = force_gatherable((loss, stats, batch_size), loss.device)
         return loss, stats, weight
 
+    def set_look_ahead(self, frames: int):
+        """Make the encoder read up to `frames` future frames (0: online).
+
+        Raises:
+            ValueError: The encoder is not an AbsLookAheadEncoder, or it cannot
+                use this look-ahead.
+        """
+        if not isinstance(self.encoder, AbsLookAheadEncoder):
+            raise ValueError(
+                f"look_ahead needs an encoder with a look-ahead, "
+                f"not {type(self.encoder).__name__}"
+            )
+        self.encoder.set_look_ahead(frames)
+
     def _forward_look_aheads(
         self, speech, speech_lengths, spk_labels, spk_labels_lengths, **kwargs
     ) -> Tuple[torch.Tensor, Dict[str, Optional[torch.Tensor]]]:

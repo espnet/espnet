@@ -1,12 +1,13 @@
 #!/usr/bin/env python3
 """Check that a diarization model reads no more future than its look-ahead.
 
-For every recording, runs the model on the whole recording and on its first
-half, and compares the predictions of the frames of the first half. With
-look-ahead L (encoder frames; 0 for a causal model) the first-half frames except
-the last L must be the same: a frame's prediction depends on samples up to L
-frames after it only. With L > 0 the last L frames must differ for some
-recording, which shows that the model does read ahead.
+For every recording, changes the samples from a few cut points on and checks
+with espnet2.torch_utils.check_look_ahead that the prediction of frame i changes
+only if frame i + L reads a changed sample (L: the encoder's look-ahead in
+frames; 0 for a causal model). Frame i reads the STFT window of frame i, so with
+look-ahead L it may read samples up to the end of frame i + L's window. Some
+frame that may read a changed sample must change in some recording, which shows
+that the model does read up to its look-ahead.
 
 Usage:
     check_causal_inference.py [--num_spk 1] [--look_ahead L] <diar_exp> <wav_scp>
@@ -15,11 +16,11 @@ Usage:
 import argparse
 from pathlib import Path
 
-import numpy as np
 import soundfile
 import torch
 
 from espnet2.bin.diar_inference import DiarizeSpeech
+from espnet2.torch_utils.check_look_ahead import check_look_ahead, frame_last_sample
 
 
 def main():
@@ -43,47 +44,38 @@ def main():
         look_ahead=a.look_ahead,
     )
     look_ahead = getattr(diarize.diar_model.encoder, "look_ahead", 0)
-    read_ahead = 0.0
-    worst = 0.0
-    n = 0
+    # The frames are those of the frontend's STFT; the encoder keeps the rate.
+    stft = diarize.diar_model.frontend.stft
+    last_sample = frame_last_sample(
+        stft.hop_length, stft.n_fft, look_ahead=look_ahead, center=stft.center
+    )
+
+    def predict(speech):  # (1, samples) -> (1, frames, num_spk)
+        return diarize(speech)[1]
+
+    unread, read, n = 0.0, 0.0, 0
     for line in a.wav_scp.read_text().splitlines():
         rec, path = line.split(maxsplit=1)
-        wav, fs = soundfile.read(path, dtype="float32")
-        _, full = diarize(torch.from_numpy(wav)[None])
-        _, half = diarize(torch.from_numpy(wav[: len(wav) // 2])[None])
-        full, half = full[0], half[0]
-        assert look_ahead < half.shape[0] <= full.shape[0], (
-            rec,
-            half.shape,
-            full.shape,
-        )
-        fixed = half.shape[0] - look_ahead  # frames that read no removed sample
-        diff = float(np.abs(full[:fixed] - half[:fixed]).max())
-        if diff > a.atol:
-            raise SystemExit(
-                f"{rec}: the first {fixed} frames change by {diff:.3g} when the "
-                f"second half of the recording is removed (look-ahead {look_ahead})"
+        wav, _ = soundfile.read(path, dtype="float32")
+        speech = torch.from_numpy(wav)[None]  # (1, samples)
+        cuts = [len(wav) * k // 4 for k in (1, 2, 3)]
+        try:
+            check = check_look_ahead(
+                predict, speech, last_sample, cuts, atol=a.atol, tight=False
             )
-        worst = max(worst, diff)
-        if look_ahead > 0:
-            read_ahead = max(
-                read_ahead,
-                float(np.abs(full[fixed : half.shape[0]] - half[fixed:]).max()),
-            )
+        except AssertionError as e:
+            raise SystemExit(f"{rec} (look-ahead {look_ahead}): {e}")
+        unread, read = max(unread, check.unread), max(read, check.read)
         n += 1
-    if look_ahead > 0 and read_ahead <= a.atol:
+    if read <= a.atol:
         raise SystemExit(
-            f"look-ahead {look_ahead}: the last {look_ahead} first-half frames never "
-            "change, so the model does not read ahead"
+            f"look-ahead {look_ahead}: no frame that may read a changed sample "
+            "changes, so the model reads less far ahead than its look-ahead"
         )
     print(
-        f"{n} recordings, look-ahead {look_ahead}: the first-half predictions that "
-        f"read no removed sample differ by at most {worst:.3g}"
-        + (
-            f"; the last {look_ahead} differ by up to {read_ahead:.3g}"
-            if look_ahead
-            else ""
-        )
+        f"{n} recordings, look-ahead {look_ahead}: the frames that read no changed "
+        f"sample differ by at most {unread:.3g}; the first frames that may read "
+        f"one differ by up to {read:.3g}"
     )
 
 

@@ -13,7 +13,6 @@ import torch.nn.functional as F
 from tqdm import trange
 from typeguard import typechecked
 
-from espnet2.asr.encoder.abs_look_ahead_encoder import AbsLookAheadEncoder
 from espnet2.enh.loss.criterions.tf_domain import FrequencyDomainMSE
 from espnet2.enh.loss.criterions.time_domain import SISNRLoss
 from espnet2.enh.loss.wrappers.pit_solver import PITSolver
@@ -86,12 +85,12 @@ class DiarizeSpeech:
         # Set the encoder's look-ahead (input frames): 0 for online diarization,
         # up to its max_look_ahead for offline. None keeps the trained value.
         if look_ahead is not None:
-            if not isinstance(diar_model.encoder, AbsLookAheadEncoder):
+            if not hasattr(diar_model, "set_look_ahead"):
                 raise ValueError(
-                    f"look_ahead needs an encoder with a look-ahead, "
-                    f"not {type(diar_model.encoder).__name__}"
+                    f"look_ahead needs a diarization model, "
+                    f"not {type(diar_model).__name__}"
                 )
-            diar_model.encoder.set_look_ahead(look_ahead)
+            diar_model.set_look_ahead(look_ahead)  # raises for other encoders
 
         self.device = device
         self.dtype = dtype

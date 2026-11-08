@@ -482,27 +482,25 @@ def _vad_probs(model, speech):
 def test_vad_reads_no_sample_beyond_its_look_ahead(tmp_path, look_ahead):
     """The whole VAD (frontend to output) never reads ahead of its look-ahead.
 
-    Frame i covers samples [16 i, 16 i + 64). With look-ahead L it may read
-    samples up to 16 (i + L) + 63. Changing the samples from s0 on must leave
-    every frame whose window, shifted by L frames, ends before s0 bit-identical.
-    With L = 0 this is the online VAD: no frame reads a sample after its window.
+    Frame i covers samples [16 i, 16 i + 64); with look-ahead L it may read
+    samples up to 16 (i + L) + 63. With L = 0 this is the online VAD. The first
+    frame that may read a sample reads it at the edge of its STFT window, with a
+    tiny weight, so the change is looked for in the first four such frames.
     """
+    from espnet2.torch_utils.check_look_ahead import (
+        check_look_ahead,
+        frame_last_sample,
+    )
+
     model = _vad_model(tmp_path, look_ahead=look_ahead)
     torch.manual_seed(1)
-    speech = torch.randn(1, 3000) * 0.1
-    probs = _vad_probs(model, speech)
-    for s0 in range(200, 3000, 97):
-        other = speech.clone()
-        other[:, s0:] = torch.randn(1, 3000 - s0)
-        probs2 = _vad_probs(model, other)
-        unread = [i for i in range(len(probs)) if 16 * (i + look_ahead) + 64 <= s0]
-        assert torch.equal(probs[unread], probs2[unread]), s0
-        # the frames that may read sample s0 change (the first of them can read
-        # it only at the edge of its STFT window, where the window weight is
-        # tiny, so look at the first four)
-        first = unread[-1] + 1 if unread else 0
-        if first + 4 <= len(probs):
-            assert not torch.equal(probs[first : first + 4], probs2[first : first + 4])
+    check_look_ahead(
+        lambda speech: _vad_probs(model, speech)[None],  # (1, frames)
+        torch.randn(1, 3000) * 0.1,  # (1, samples)
+        frame_last_sample(hop_length=16, win_length=64, look_ahead=look_ahead),
+        range(200, 3000, 97),
+        tight_window=4,
+    )
 
 
 def test_vad_trains_on_each_look_ahead(tmp_path):
@@ -546,3 +544,20 @@ def test_look_aheads_need_a_look_ahead_encoder():
 def test_look_aheads_must_be_reachable(tmp_path):
     with pytest.raises(ValueError):
         _vad_model(tmp_path, look_aheads=[0, 29])
+
+
+def test_set_look_ahead(tmp_path):
+    model = _vad_model(tmp_path)
+    model.set_look_ahead(14)
+    assert model.encoder.look_ahead == 14
+    plain = ESPnetDiarizationModel(
+        label_aggregator=label_aggregator,
+        attractor=None,
+        encoder=encoder,
+        decoder=decoder,
+        frontend=frontend,
+        specaug=None,
+        normalize=None,
+    )
+    with pytest.raises(ValueError):
+        plain.set_look_ahead(0)

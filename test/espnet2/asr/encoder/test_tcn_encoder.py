@@ -4,6 +4,7 @@ import torch
 from espnet2.asr.encoder.abs_look_ahead_encoder import AbsLookAheadEncoder
 from espnet2.asr.encoder.tcn_encoder import TCNEncoder
 from espnet2.enh.layers.tcn import ChannelwiseLayerNorm
+from espnet2.torch_utils.check_look_ahead import check_look_ahead
 
 D_IN = 8
 SMALL = dict(
@@ -109,19 +110,14 @@ def test_online_never_reads_ahead(future_taps, norm_type):
     """Look-ahead 0: no output reads a frame after it.
 
     For every t0, changing the frames from t0 on leaves every output before t0
-    bit-identical.
+    bit-identical, and output t0 changes.
     """
     encoder = _encoder(future_taps=future_taps, norm_type=norm_type)
     assert encoder.look_ahead == 0
     torch.manual_seed(1)
-    x = torch.randn(1, T, D_IN)
-    y = _run(encoder, x)
-    for t0 in range(1, T):
-        x2 = x.clone()
-        x2[:, t0:] = torch.randn(1, T - t0, D_IN) * 10
-        y2 = _run(encoder, x2)
-        assert torch.equal(y[:, :t0], y2[:, :t0]), t0
-        assert not torch.equal(y[:, t0], y2[:, t0]), t0
+    check_look_ahead(
+        lambda x: _run(encoder, x), torch.randn(1, T, D_IN), lambda i: i, range(1, T)
+    )
 
 
 def test_online_does_not_use_the_future_taps():
@@ -137,20 +133,16 @@ def test_online_does_not_use_the_future_taps():
 
 @pytest.mark.parametrize("look_ahead", [1, 3, 8, 14, 28])
 def test_offline_reads_exactly_the_look_ahead(look_ahead):
-    """Output t depends on input frames up to t + look_ahead and not beyond."""
+    """Output t depends on input frame t + look_ahead and on no later frame."""
     encoder = _encoder(future_taps=2, look_ahead=look_ahead)
     assert encoder.look_ahead == look_ahead
     torch.manual_seed(2)
-    x = torch.randn(1, T, D_IN)
-    y = _run(encoder, x)
-    for t0 in range(look_ahead + 1, T):
-        x2 = x.clone()
-        x2[:, t0:] = torch.randn(1, T - t0, D_IN) * 10
-        y2 = _run(encoder, x2)
-        # outputs before t0 - look_ahead read no changed frame
-        assert torch.equal(y[:, : t0 - look_ahead], y2[:, : t0 - look_ahead]), t0
-        # output t0 - look_ahead reads frame t0
-        assert not torch.equal(y[:, t0 - look_ahead], y2[:, t0 - look_ahead]), t0
+    check_look_ahead(
+        lambda x: _run(encoder, x),
+        torch.randn(1, T, D_IN),
+        lambda i: i + look_ahead,
+        range(look_ahead + 1, T),
+    )
 
 
 def test_every_look_ahead_up_to_the_maximum_is_reachable():
@@ -347,3 +339,40 @@ def test_streaming_with_kernel_size_one_has_no_state():
         out2, state = encoder.forward_streaming(x[:, 3:], state)
     assert all(c.size(2) == 0 for c in state)
     torch.testing.assert_close(torch.cat([out, out2], dim=1), _run(encoder, x))
+
+
+def test_look_ahead_0_equals_the_causal_encoder():
+    """Look-ahead 0 is the encoder without future taps, with the same weights."""
+    dual = _encoder(future_taps=2, look_ahead=0)
+    causal = TCNEncoder(D_IN, future_taps=0, **SMALL).eval()
+    state = dual.state_dict()
+    for i, block in enumerate(dual.blocks):
+        key = f"blocks.{i}.depthwise.weight"
+        state[key] = state[key][..., : block.kernel_size]  # drop the future taps
+    causal.load_state_dict(state)
+    x = torch.randn(2, T, D_IN)
+    lens = torch.tensor([T, 31])
+    torch.testing.assert_close(_run(dual, x, lens), _run(causal, x, lens))
+
+
+def test_look_ahead_set_later_equals_look_ahead_at_construction():
+    built = _encoder(future_taps=2, look_ahead=14)
+    switched = _encoder(future_taps=2, look_ahead=0)
+    switched.set_look_ahead(28)
+    switched.set_look_ahead(14)
+    assert switched.future_taps_per_block() == built.future_taps_per_block()
+    x = torch.randn(1, T, D_IN)
+    assert torch.equal(_run(switched, x), _run(built, x))
+
+
+@pytest.mark.parametrize("look_ahead", [0, 4, 28])
+def test_unused_future_taps_get_no_gradient(look_ahead):
+    """Only the future taps the look-ahead uses are trained by that mode."""
+    encoder = _encoder(future_taps=2, look_ahead=look_ahead).train()
+    x = torch.randn(2, T, D_IN)
+    encoder(x, torch.tensor([T, 31]))[0].pow(2).sum().backward()
+    for block in encoder.blocks:
+        grad = block.depthwise.weight.grad
+        used = block.kernel_size + block.future_taps
+        assert torch.all(grad[..., used:] == 0)
+        assert torch.any(grad[..., :used] != 0)

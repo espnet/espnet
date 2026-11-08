@@ -73,16 +73,18 @@ class _TCNBlock(torch.nn.Module):
 
     def forward(self, x: torch.Tensor, mask: torch.Tensor) -> torch.Tensor:
         """Return the residual for x (N, B, T); mask (N, 1, T) is 1 on valid frames."""
-        y = self.norm_in(self.act_in(self.conv_in(x)))
+        y = self.norm_in(self.act_in(self.conv_in(x)))  # (N, H, T)
         # Zero the padded frames, so that a padded utterance sees zeros after
         # its end exactly as it does alone.
         y = y * mask
         d = self.dilation
+        # (H, 1, kernel_size + future_taps): the taps this look-ahead uses
         weight = self.depthwise.weight[..., : self.kernel_size + self.future_taps]
+        # (N, H, (kernel_size - 1) d + T + future_taps d)
         y = F.pad(y, ((self.kernel_size - 1) * d, self.future_taps * d))
-        y = F.conv1d(y, weight, dilation=d, groups=y.size(1))
+        y = F.conv1d(y, weight, dilation=d, groups=y.size(1))  # (N, H, T)
         y = self.norm_out(self.act_out(y))
-        return self.conv_out(y)
+        return self.conv_out(y)  # (N, B, T)
 
     def forward_streaming(
         self, x: torch.Tensor, cache: torch.Tensor
@@ -94,12 +96,12 @@ class _TCNBlock(torch.nn.Module):
         frame, as the left padding of forward()). Returns the residual and the
         cache for the next call.
         """
-        y = self.norm_in(self.act_in(self.conv_in(x)))
-        y = torch.cat([cache, y], dim=2)
-        weight = self.depthwise.weight[..., : self.kernel_size]
-        out = F.conv1d(y, weight, dilation=self.dilation, groups=y.size(1))
-        cache = y[..., y.size(2) - cache.size(2) :]
-        return self.conv_out(self.norm_out(self.act_out(out))), cache
+        y = self.norm_in(self.act_in(self.conv_in(x)))  # (N, H, k)
+        y = torch.cat([cache, y], dim=2)  # (N, H, (kernel_size - 1) d + k)
+        weight = self.depthwise.weight[..., : self.kernel_size]  # causal taps
+        out = F.conv1d(y, weight, dilation=self.dilation, groups=y.size(1))  # (N, H, k)
+        cache = y[..., y.size(2) - cache.size(2) :]  # (N, H, (kernel_size - 1) d)
+        return self.conv_out(self.norm_out(self.act_out(out))), cache  # (N, B, k)
 
 
 class TCNEncoder(AbsLookAheadEncoder):
@@ -354,11 +356,12 @@ class TCNEncoder(AbsLookAheadEncoder):
         """
         x = xs_pad.transpose(1, 2)  # (B, input_size, T)
         # 1 on the frames before each length; built on the device (no host sync)
-        frames = torch.arange(x.size(2), device=x.device)
-        mask = (frames < ilens.to(x.device)[:, None]).unsqueeze(1).to(x.dtype)
-        x = self.bottleneck(self.input_norm(x)) * mask
+        frames = torch.arange(x.size(2), device=x.device)  # (T,)
+        mask = (frames < ilens.to(x.device)[:, None]).unsqueeze(1)  # (B, 1, T)
+        mask = mask.to(x.dtype)
+        x = self.bottleneck(self.input_norm(x)) * mask  # (B, bottleneck_size, T)
         for block in self.blocks:
-            x = (x + block(x, mask)) * mask
-        out = self.output(self.output_act(x)).transpose(1, 2)  # (B, T, output_size)
-        out = out * mask.transpose(1, 2)
+            x = (x + block(x, mask)) * mask  # (B, bottleneck_size, T)
+        out = self.output(self.output_act(x))  # (B, output_size, T)
+        out = out.transpose(1, 2) * mask.transpose(1, 2)  # (B, T, output_size)
         return out, ilens, None
