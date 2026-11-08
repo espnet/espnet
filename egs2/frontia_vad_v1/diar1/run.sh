@@ -35,6 +35,7 @@ done
     --collar 0.0 \
     --frame_shift 128 \
     --score_whole_recording true \
+    --scoring_thresholds "0.3 0.4 0.5 0.6 0.7 0.8 0.9" \
     --train_window_size 160000 \
     --train_set "${train_set}" \
     --valid_set "${valid_set}" \
