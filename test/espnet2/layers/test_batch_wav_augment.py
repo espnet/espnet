@@ -935,11 +935,13 @@ def test_context_equals_the_window_alone(tmp_path, snr_reference):
         row = torch.cat([context, window], 1)
         out = aug.apply(row, torch.ones(1, c + t, dtype=torch.bool), with_context)
         torch.testing.assert_close(out[:, c:], expected, rtol=1e-5, atol=1e-7)
-    # the power is that of the window measured on its own frames
-    torch.testing.assert_close(
-        aug._non_silent_power(window, torch.ones(1, t, dtype=torch.bool)),
-        alone._non_silent_power(window, torch.ones(1, t, dtype=torch.bool)),
-    )
+        # the achieved SNR, against the window's power computed independently
+        # by CommonPreprocessor's detect_non_silence on the window alone
+        w = window.double().numpy()
+        speech_power = (w[detect_non_silence(w)] ** 2).mean()
+        added = (out[:, c:] - window).double().numpy()
+        snr = 10 * np.log10(speech_power / (added**2).mean())
+        assert abs(snr - 5.0) < 0.01, snr
 
 
 def test_remove_context_checks_each_row(tmp_path):
