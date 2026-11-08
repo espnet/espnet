@@ -190,8 +190,11 @@ class DiarizationTask(AbsTask):
             "--rir_remove_delay",
             type=str2bool,
             default=True,
-            help="Remove the direct-path delay of the RIR so that the reverberant "
-            "speech stays aligned with the speaker labels.",
+            help="Shift the reverberant speech so that the peak of the RIR (the "
+            "largest absolute value over its channels) is at time 0, keeping it "
+            "aligned with the speaker labels. The peak, not an estimate of the "
+            "direct path: with a reflection stronger than the direct sound, the "
+            "shift follows the reflection.",
         )
 
         for class_choices in cls.class_choices_list:
@@ -214,9 +217,14 @@ class DiarizationTask(AbsTask):
         cls, args: argparse.Namespace, train: bool
     ) -> Optional[Callable[[str, Dict[str, np.array]], Dict[str, np.ndarray]]]:
         if args.use_preprocessor:
+            # the speech's sampling rate (frontend_conf fs), so that RIRs and noises
+            # at another rate are resampled to it; 0 (unknown) leaves them as read
+            fs = (getattr(args, "frontend_conf", None) or {}).get("fs", 0)
+            fs = humanfriendly.parse_size(str(fs)) if fs else 0
             # NOTE: getattr keeps configs saved before these options existed loadable
             retval = CommonPreprocessor(
                 train=train,
+                fs=fs,
                 rir_scp=getattr(args, "rir_scp", None),
                 rir_apply_prob=getattr(args, "rir_apply_prob", 1.0),
                 rir_remove_delay=getattr(args, "rir_remove_delay", True),

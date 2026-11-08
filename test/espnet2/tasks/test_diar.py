@@ -242,3 +242,11 @@ def test_build_previous_noncausal_tcn_config(norm_type):
     )
     model = DiarizationTask.build_model(args)
     assert model.encoder.look_ahead == model.encoder.max_look_ahead
+
+
+@pytest.mark.parametrize("frontend_fs, fs", [("16k", 16000), ("8000", 8000), (None, 0)])
+def test_preprocessor_gets_the_frontend_sampling_rate(frontend_fs, fs):
+    """RIRs and noises are resampled to the speech rate (frontend_conf fs)."""
+    extra = [] if frontend_fs is None else ["--frontend_conf", f"fs={frontend_fs}"]
+    args = DiarizationTask.get_parser().parse_args(extra)
+    assert DiarizationTask.build_preprocess_fn(args, train=True).fs == fs

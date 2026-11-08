@@ -155,7 +155,6 @@ class CommonPreprocessor(AbsPreprocessor):
         force_single_channel: bool = False,
         rir_scp: Optional[str] = None,
         rir_apply_prob: float = 1.0,
-        rir_remove_delay: bool = False,
         noise_scp: Optional[str] = None,
         noise_apply_prob: float = 1.0,
         noise_db_range: str = "3_10",
@@ -178,6 +177,10 @@ class CommonPreprocessor(AbsPreprocessor):
         # warn at most once per instance when the tokenized text is longer than
         # this; set to 0 or a negative value to disable the check
         text_length_warning_thres: int = 500,
+        # shift the reverberant speech so that the RIR's peak (the largest absolute
+        # value over all its channels) is at time 0; last, so that positional
+        # arguments of older callers keep their meaning
+        rir_remove_delay: bool = False,
     ):
         super().__init__(train)
         self.train = train
@@ -306,8 +309,12 @@ class CommonPreprocessor(AbsPreprocessor):
 
             # speech: (Nmic, Time)
             speech = speech[:1]
-            # Drop the samples before the direct path so the reverberant signal
-            # stays aligned with time-stamped labels (e.g. diarization/VAD).
+            # Shift the reverberant speech so that the peak of the RIR (the
+            # largest absolute value over all channels, one shift for all of them)
+            # is at time 0, keeping it aligned with time-stamped labels (e.g.
+            # diarization/VAD). This is the peak, not an estimate of the direct
+            # path: when a reflection is stronger than the direct sound, the shift
+            # follows the reflection.
             delay = (
                 int(np.argmax(np.max(np.abs(rir), axis=0)))
                 if getattr(self, "rir_remove_delay", False)
@@ -441,7 +448,10 @@ class CommonPreprocessor(AbsPreprocessor):
 
                 # 1. Convolve RIR
                 if self.rirs is not None and self.rir_apply_prob >= np.random.random():
-                    speech, _ = self._convolve_rir(speech, power, self.rirs)
+                    # RIRs at another rate than fs (if given) are resampled to fs
+                    speech, _ = self._convolve_rir(
+                        speech, power, self.rirs, tgt_fs=self.fs or None
+                    )
 
                 # 2. Add Noise
                 if (
@@ -454,6 +464,7 @@ class CommonPreprocessor(AbsPreprocessor):
                         self.noises,
                         self.noise_db_low,
                         self.noise_db_high,
+                        tgt_fs=self.fs or None,
                     )
 
                 speech = speech.T

@@ -166,3 +166,36 @@ def test_rir_remove_delay_keeps_speech_aligned(tmp_path, remove_delay):
             speech[:-delay], speech[:-delay]
         )
         np.testing.assert_allclose(out[delay:], scale * speech[:-delay], atol=1e-6)
+
+
+def test_rir_remove_delay_is_the_last_argument():
+    """Positional arguments of older callers keep their meaning."""
+    import inspect
+
+    params = list(inspect.signature(CommonPreprocessor.__init__).parameters)
+    assert params[-1] == "rir_remove_delay"
+    # the arguments before it keep the order they had without it
+    assert params[params.index("rir_apply_prob") + 1] == "noise_scp"
+
+
+@pytest.mark.parametrize("fs, expected_delay", [(16000, 40), (0, 20)])
+def test_rir_at_another_rate_is_resampled_to_fs(tmp_path, fs, expected_delay):
+    """An 8 kHz RIR on 16 kHz speech: with fs, its 20-sample delay becomes 40."""
+    import soundfile
+
+    if fs:
+        pytest.importorskip("resampy")  # librosa's kaiser_fast (espnet[egs2])
+
+    rir = np.zeros(64)
+    rir[20] = 1.0
+    wav = tmp_path / "rir8k.wav"
+    soundfile.write(wav, rir, 8000, subtype="FLOAT")
+    (tmp_path / "rir.scp").write_text(f"rir1 {wav}\n")
+    preprocessor = CommonPreprocessor(
+        train=True, rir_scp=str(tmp_path / "rir.scp"), rir_apply_prob=1.0, fs=fs
+    )
+    rng = np.random.default_rng(0)
+    speech = 0.1 * rng.standard_normal(1600)
+    out = preprocessor("utt1", {"speech": speech.copy()})["speech"].reshape(-1)
+    corr = [np.dot(out[k:], speech[: len(speech) - k]) for k in range(64)]
+    assert int(np.argmax(corr)) == expected_delay
