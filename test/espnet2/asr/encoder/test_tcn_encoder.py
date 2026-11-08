@@ -66,10 +66,33 @@ def test_is_a_look_ahead_encoder():
     assert encoder.output_size() == 6
 
 
+@pytest.mark.parametrize("causal", [None, True])
 @pytest.mark.parametrize("norm_type", ["gLN", "GN"])
-def test_rejects_time_pooling_norm(norm_type):
+def test_rejects_time_pooling_norm_with_a_bounded_look_ahead(norm_type, causal):
+    with pytest.raises(ValueError, match="causal=False"):
+        TCNEncoder(D_IN, norm_type=norm_type, causal=causal, **SMALL)
     with pytest.raises(ValueError):
-        TCNEncoder(D_IN, norm_type=norm_type, **SMALL)
+        TCNEncoder(D_IN, norm_type=norm_type, future_taps=2, **SMALL)
+
+
+@pytest.mark.parametrize("norm_type", ["gLN", "GN"])
+def test_legacy_noncausal_time_pooling_norm(norm_type):
+    """causal=False with gLN/GN builds, as in the previous encoder.
+
+    Every output reads the whole sequence: the look-ahead stays at the full
+    kernel, and receptive_field and forward_streaming raise.
+    """
+    encoder = TCNEncoder(D_IN, norm_type=norm_type, causal=False, **SMALL).eval()
+    assert encoder.look_ahead == encoder.max_look_ahead
+    encoder.set_look_ahead(encoder.max_look_ahead)
+    with pytest.raises(ValueError):
+        encoder.set_look_ahead(0)
+    with pytest.raises(RuntimeError):
+        encoder.receptive_field
+    with pytest.raises(RuntimeError):
+        encoder.forward_streaming(torch.randn(1, 4, D_IN))
+    y, _, _ = encoder(torch.randn(2, 20, D_IN), torch.tensor([20, 20]))
+    assert y.shape == (2, 20, 6)
 
 
 def test_contexts():
@@ -262,8 +285,11 @@ def _conv_tasnet(causal, norm_type="cLN", pre_output_nonlinear="prelu"):
 
 
 @pytest.mark.parametrize("pre_output_nonlinear", ["prelu", "linear", "tanh"])
-@pytest.mark.parametrize("norm_type", ["cLN", "BN"])
-@pytest.mark.parametrize("causal", [True, False])
+@pytest.mark.parametrize(
+    "causal, norm_type",
+    [(True, "cLN"), (True, "BN"), (False, "cLN"), (False, "BN")]
+    + [(False, "gLN"), (False, "GN")],
+)
 def test_previous_encoder_config_and_checkpoint_load(
     causal, norm_type, pre_output_nonlinear
 ):

@@ -23,20 +23,24 @@ import torch.nn.functional as F
 from typeguard import typechecked
 
 from espnet2.asr.encoder.abs_look_ahead_encoder import AbsLookAheadEncoder
-from espnet2.enh.layers.tcn import ChannelwiseLayerNorm
+from espnet2.enh.layers.tcn import ChannelwiseLayerNorm, choose_norm
+
+# Normalizations over the whole sequence (only for configurations of the
+# previous encoder with causal: false; see TCNEncoder).
+_TIME_POOLING_NORMS = ("gLN", "GN")
 
 
 def _norm(norm_type: str, channels: int) -> torch.nn.Module:
-    # Both normalizations are per frame (BN with its running statistics at
-    # inference), so neither reads other frames.
+    # cLN and BN (with its running statistics at inference) are per frame, so
+    # neither reads other frames. gLN and GN, as in the previous encoder,
+    # normalize over all frames.
     if norm_type == "cLN":
         return ChannelwiseLayerNorm(channels)
     if norm_type == "BN":
         return torch.nn.BatchNorm1d(channels)
-    raise ValueError(
-        f"norm_type must be 'cLN' or 'BN', got {norm_type!r}: a normalization "
-        "that pools over time would read future frames"
-    )
+    if norm_type in _TIME_POOLING_NORMS:
+        return choose_norm(norm_type, channels)
+    raise ValueError(f"norm_type must be 'cLN', 'BN', 'gLN' or 'GN', got {norm_type!r}")
 
 
 class _TCNBlock(torch.nn.Module):
@@ -120,7 +124,13 @@ class TCNEncoder(AbsLookAheadEncoder):
             use. 0 makes a causal encoder. Keyword-only, like look_ahead.
         look_ahead: Look-ahead in frames to start with; set_look_ahead()
             changes it.
-        norm_type: "cLN" (layer norm over channels, per frame) or "BN".
+        norm_type: "cLN" (layer norm over channels, per frame) or "BN". "gLN"
+            and "GN" (over all frames) only with causal=False, for
+            configurations of the previous encoder: every output then reads
+            the whole sequence, so the encoder has no bounded look-ahead (the
+            look-ahead cannot be changed, receptive_field and
+            forward_streaming raise) and a padded utterance in a batch is
+            normalized with the padding, as in the previous encoder.
         pre_output_nonlinear: Nonlinearity before the output projection:
             "linear", "prelu", "relu", "tanh" or "sigmoid".
         causal: The configuration of the previous TCNEncoder (a wrapper around
@@ -164,6 +174,14 @@ class TCNEncoder(AbsLookAheadEncoder):
                     )
                 future_taps = (kernel_size - 1) // 2
                 kernel_size = (kernel_size + 1) // 2
+        self.pools_over_time = norm_type in _TIME_POOLING_NORMS
+        if self.pools_over_time and causal is not False:
+            raise ValueError(
+                f"norm_type {norm_type!r} normalizes over all frames, so every "
+                "output reads the whole sequence: it is only accepted with "
+                "causal=False (configurations of the previous encoder); use "
+                "'cLN' or 'BN' for an encoder with a bounded look-ahead"
+            )
         if kernel_size < 1:
             raise ValueError(f"kernel_size must be at least 1, got {kernel_size}")
         if future_taps < 0:
@@ -270,7 +288,12 @@ class TCNEncoder(AbsLookAheadEncoder):
         can rerun the encoder on each chunk's new frames together with the
         receptive_field - 1 frames before them and get the whole-recording
         output for the new frames.
+
+        Raises:
+            RuntimeError: With gLN/GN, where every output reads every frame.
         """
+        if self.pools_over_time:
+            raise RuntimeError("with gLN/GN every output reads the whole sequence")
         return self.past_context + 1
 
     @property
@@ -296,6 +319,11 @@ class TCNEncoder(AbsLookAheadEncoder):
             ValueError: frames is negative, larger than max_look_ahead, or
                 cannot be made from the blocks' future taps.
         """
+        if self.pools_over_time and frames != self.max_look_ahead:
+            raise ValueError(
+                "with gLN/GN every output reads the whole sequence: the "
+                f"look-ahead stays at the full kernel ({self.max_look_ahead})"
+            )
         if not 0 <= frames <= self.max_look_ahead:
             raise ValueError(
                 f"look_ahead must be in [0, {self.max_look_ahead}], got {frames}"
@@ -337,6 +365,11 @@ class TCNEncoder(AbsLookAheadEncoder):
             Encoded new frames (B, k, output_size) and the state for the next
             call.
         """
+        if self.pools_over_time:
+            raise RuntimeError(
+                "forward_streaming needs per-frame normalization (cLN or BN): "
+                "gLN/GN normalize over the whole sequence"
+            )
         if self.training and any(
             isinstance(m, torch.nn.BatchNorm1d) for m in self.modules()
         ):
