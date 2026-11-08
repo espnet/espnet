@@ -95,10 +95,13 @@ def test_dataset_item_of_a_span(data):
     np.testing.assert_array_equal(span["spk_labels"], whole["spk_labels"][2000:4000])
 
 
-def _factory(d, chunk_length=2000, shift_ratio=1.0, batch_size=2, train=True):
+def _factory(
+    d, chunk_length=2000, shift_ratio=1.0, batch_size=2, train=True, extra=(), args=None
+):
     parser = DiarizationTask.get_parser()
-    args = parser.parse_args(
-        [
+    args = args or parser.parse_args(
+        list(extra)
+        + [
             "--iterator_type",
             "chunk",
             "--chunk_random_access",
@@ -111,7 +114,12 @@ def _factory(d, chunk_length=2000, shift_ratio=1.0, batch_size=2, train=True):
             "2",
         ]
     )
-    options = IteratorOptions(
+    options = _options(d, batch_size, train)
+    return DiarizationTask.build_chunk_iter_factory(args, options, "train")
+
+
+def _options(d, batch_size, train):
+    return IteratorOptions(
         preprocess_fn=None,
         collate_fn=CommonCollateFn(float_pad_value=0.0, int_pad_value=-1),
         data_path_and_name_and_type=[
@@ -130,7 +138,6 @@ def _factory(d, chunk_length=2000, shift_ratio=1.0, batch_size=2, train=True):
         num_iters_per_epoch=None,
         train=train,
     )
-    return DiarizationTask.build_chunk_iter_factory(args, options, "train")
 
 
 @pytest.mark.parametrize("shift_ratio", [1.0, 0.5])
@@ -191,3 +198,102 @@ def test_bad_chunk_length(data):
 def test_parser_default_is_off():
     args = DiarizationTask.get_parser().parse_args([])
     assert isinstance(args, argparse.Namespace) and args.chunk_random_access is False
+
+
+@pytest.mark.parametrize("context", [500, 2500])
+def test_left_context_on_the_speech_only(data, context):
+    """--chunk_left_context C on the speech only.
+
+    The speech chunk is [a - C, a + W), zeros before the start of the
+    recording; the labels keep [a, a + W).
+    """
+    d, sigs = data
+    W, C = 2000, context
+    factory = _factory(d, train=False, extra=["--chunk_left_context", str(C)])
+    rttm = RttmReader(str(d / "espnet_rttm"))
+    n = 0
+    for ids, batch in factory.build_iter(1):
+        assert batch["speech"].shape[1] == C + W
+        assert batch["spk_labels"].shape[1] == W
+        for i, cid in enumerate(ids):
+            rec, st = cid.rsplit("-", 1)
+            st = int(st)
+            sig = sigs[rec].astype(np.float32)
+            want = np.concatenate(
+                [np.zeros(max(C - st, 0), np.float32), sig[max(st - C, 0) : st + W]]
+            )
+            np.testing.assert_array_equal(batch["speech"][i].numpy(), want)
+            np.testing.assert_array_equal(
+                batch["spk_labels"][i].numpy(), rttm[rec][st : st + W]
+            )
+            n += 1
+    assert n == 7  # recA: 5 chunks, recB: 2 chunks
+
+
+def test_left_context_needs_fixed_rate(data):
+    d, _ = data
+    with pytest.raises(ValueError):
+        _factory(
+            d, extra=["--chunk_left_context", "500", "--chunk_default_fs", "16000"]
+        )
+
+
+@pytest.mark.parametrize("train", [True, False])
+def test_model_on_the_speech_after_its_context(data, train):
+    """Chunk iterator to diar model with the context removed from the speech.
+
+    Once the C samples of context are removed from the speech (as
+    BatchWavAugment(context=C) does), the frames match the labels, in
+    training and in validation.
+    """
+    import torch
+
+    d, _ = data
+    W, C = 2000, 512
+    parser = DiarizationTask.get_parser()
+    args = parser.parse_args(
+        [
+            "--iterator_type",
+            "chunk",
+            "--chunk_random_access",
+            "true",
+            "--chunk_length",
+            str(W),
+            "--chunk_shift_ratio",
+            "1.0",
+            "--chunk_left_context",
+            str(C),
+            "--num_spk",
+            "2",
+            "--encoder",
+            "transformer",
+            "--encoder_conf",
+            "input_layer=linear",
+            "--encoder_conf",
+            "num_blocks=1",
+            "--encoder_conf",
+            "linear_units=16",
+            "--encoder_conf",
+            "output_size=8",
+            "--encoder_conf",
+            "attention_heads=2",
+            "--decoder",
+            "linear",
+            "--frontend_conf",
+            "fs=16k",
+        ]
+    )
+    model = DiarizationTask.build_model(args)
+    model.train(train)
+    factory = _factory(d, train=train, args=args)
+    for _, batch in factory.build_iter(1):
+        speech = batch["speech"][:, C:]  # the model's crop of the context
+        assert speech.shape[1] == batch["spk_labels"].shape[1] == W
+        with torch.set_grad_enabled(train):
+            loss, stats, _ = model(
+                speech=speech,
+                speech_lengths=torch.full((speech.shape[0],), W),
+                spk_labels=batch["spk_labels"],
+                spk_labels_lengths=torch.full((speech.shape[0],), W),
+            )
+        assert torch.isfinite(loss)

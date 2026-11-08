@@ -533,13 +533,25 @@ class AbsDataset(Dataset, ABC):
         raise NotImplementedError
 
 
-def _read_span(loader, uid: str, start: int, end: int):
-    """Samples start..end - 1 of `uid` from `loader` (see ESPnetDataset)."""
+def _read_span(loader, uid: str, start: int, end: int, context: int = 0):
+    """Samples start - context .. end - 1 of `uid` from `loader`.
+
+    See ESPnetDataset; samples before the start of the sequence are zeros.
+    """
+    first = max(start - context, 0)
     if hasattr(loader, "read_span"):
-        return loader.read_span(uid, start, end)
-    value = loader[uid]
-    if isinstance(value, np.ndarray) and value.ndim >= 1 and len(value) >= end:
-        return value[start:end]
+        value = loader.read_span(uid, first, end)
+    else:
+        value = loader[uid]
+        if not (
+            isinstance(value, np.ndarray) and value.ndim >= 1 and len(value) >= end
+        ):
+            return value
+        value = value[first:end]
+    missing = context - start
+    if missing > 0:
+        pad = np.zeros((missing,) + value.shape[1:], dtype=value.dtype)
+        value = np.concatenate([pad, value], 0)
     return value
 
 
@@ -679,7 +691,10 @@ class ESPnetDataset(AbsDataset):
         with ``read_span`` read only that part; other data with at least `end`
         entries along the first axis are sliced, and shorter data (e.g. a
         token sequence) are kept whole. The id is then "<uid>-<start>"
-        (start zero-padded to 10 digits).
+        (start zero-padded to 10 digits). With span_left_context C (set by
+        the chunk iterator from --chunk_left_context), the data named in
+        span_left_context_keys get start - C .. end - 1 instead, zeros before
+        the start of the sequence; the other data keep start .. end - 1.
         """
         span = None
         if isinstance(uid, tuple):
@@ -699,7 +714,12 @@ class ESPnetDataset(AbsDataset):
         # 1. Load data from each loaders
         for name, loader in self.loader_dict.items():
             try:
-                value = loader[uid] if span is None else _read_span(loader, uid, *span)
+                if span is None:
+                    value = loader[uid]
+                elif name in getattr(self, "span_left_context_keys", ()):
+                    value = _read_span(loader, uid, *span, self.span_left_context)
+                else:
+                    value = _read_span(loader, uid, *span)
                 if isinstance(value, (list)):
                     value = np.array(value)
                 if value is None:

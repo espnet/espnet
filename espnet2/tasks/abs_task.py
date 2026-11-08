@@ -1012,6 +1012,23 @@ class AbsTask(ABC):
             help="Maximum number of samples per chunk for all sampling rates",
         )
         group.add_argument(
+            "--chunk_left_context",
+            type=int,
+            default=0,
+            help="Number of samples (at --chunk_default_fs if given) that the "
+            "chunks of --chunk_left_context_keys get in front of the chunk, with "
+            "zeros before the start of the sequence; the other keys (e.g. the "
+            "labels) keep the chunk. For a model that removes them after using "
+            "them as history (e.g. the context of --wav_augment_conf). 0: none.",
+        )
+        group.add_argument(
+            "--chunk_left_context_keys",
+            type=str,
+            nargs="+",
+            default=["speech"],
+            help="Keys whose chunks get --chunk_left_context.",
+        )
+        group.add_argument(
             "--chunk_random_access",
             type=str2bool,
             default=False,
@@ -1022,7 +1039,10 @@ class AbsTask(ABC):
             "for i = 0 .. (L - W) // S. Loaders with read_span (Omni-IO, RTTM) "
             "read only the chunk. The chunks, ordered by sequence id, form "
             "mini-batches as --batch_type unsorted does, and the mini-batches are "
-            "shuffled each epoch as the sequence iterator shuffles them.",
+            "shuffled each epoch as the sequence iterator shuffles them. "
+            "--chunk_left_context C: the chunks of --chunk_left_context_keys are "
+            "read as [i*S - C, i*S + W), zeros before the start of the sequence. "
+            "Chunks have one fixed length, so --chunk_default_fs is not supported.",
         )
         group.add_argument(
             "--chunk_discard_short_samples",
@@ -2193,6 +2213,14 @@ class AbsTask(ABC):
         S = int(W * args.chunk_shift_ratio)
         if W <= 0 or S <= 0:
             raise ValueError(f"chunk length {W} and shift {S} must be positive")
+        if args.chunk_default_fs is not None:
+            raise ValueError(
+                "--chunk_random_access reads chunks of one fixed length: "
+                "--chunk_default_fs is not supported"
+            )
+        C = getattr(args, "chunk_left_context", 0)
+        if C < 0:
+            raise ValueError(f"--chunk_left_context must be >= 0: {C}")
         lengths = {
             k: int(v.split(",")[0])
             for k, v in read_2columns_text(iter_options.shape_files[0]).items()
@@ -2237,6 +2265,11 @@ class AbsTask(ABC):
         cls.check_task_requirements(
             dataset, args.allow_variable_data_keys, train=iter_options.train
         )
+        if C > 0:
+            dataset.span_left_context = C
+            dataset.span_left_context_keys = set(
+                getattr(args, "chunk_left_context_keys", ["speech"])
+            )
         logging.info(f"[{mode}] dataset:\n{dataset}")
         return SequenceIterFactory(
             dataset=dataset,
