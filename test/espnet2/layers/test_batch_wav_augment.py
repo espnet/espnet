@@ -1118,3 +1118,23 @@ def test_resampled_banks_equal_librosa(tmp_path, src, dst):
     got_noise = aug.bank("noise", torch.device("cpu"))[0].numpy().astype(np.float64)
     assert got_noise.shape == want_noise.shape
     assert np.abs(got_noise - want_noise).max() <= 1  # int16 rounding
+
+
+def test_host_and_device_impulse_responses_are_the_same(tmp_path):
+    """The host batch (slice copies) equals the device bank's gather."""
+    rng = np.random.default_rng(20)
+    rirs = np.zeros((900, 3), dtype=np.float32)
+    rirs[:, 0] = rng.normal(size=900)
+    rirs[:300, 1] = rng.normal(size=300)  # shorter: zero after its end
+    rirs[:600, 2] = rng.normal(size=600)
+    path = _write(tmp_path / "rirs.wav", rirs)
+    lengths = []
+    outs = []
+    for keep in (False, True):
+        aug = BatchWavAugment(rir_scp=_scp(tmp_path, "rir", path), keep_on_device=keep)
+        lengths.append(aug.bank("rir", torch.device("cpu"))[2].tolist())
+        outs.append(
+            aug._impulse_responses(torch.tensor([2, 0, 1, 2]), torch.device("cpu"))
+        )
+    torch.testing.assert_close(outs[0], outs[1])
+    assert outs[0].shape == (4, max(lengths[0]))

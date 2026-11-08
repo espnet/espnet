@@ -313,16 +313,25 @@ class BatchWavAugment(torch.nn.Module):
         """Return the impulse responses ``which`` (CPU) as a padded (B, L) batch."""
         # The batch width comes from the host copy of the lengths, so it does not
         # wait for the GPU.
-        width = int(self.bank("rir", torch.device("cpu"))[2][which].max())
-        bank_device = device if self.keep_on_device else torch.device("cpu")
-        bank, starts, lengths = self.bank("rir", bank_device)
-        which = which.to(bank_device)
-        n_len = lengths[which]
-        pos = torch.arange(width, device=bank_device)
-        idx = (starts[which][:, None] + pos).clamp(max=len(bank) - 1)
-        rirs = bank[idx] * (pos < n_len[:, None])
-        pinned = device.type == "cuda" and not self.keep_on_device
-        return (rirs.pin_memory() if pinned else rirs).to(device, non_blocking=pinned)
+        host_bank, host_starts, host_lengths = self.bank("rir", torch.device("cpu"))
+        width = int(host_lengths[which].max())
+        if self.keep_on_device:
+            bank, starts, lengths = self.bank("rir", device)
+            which = which.to(device)
+            n_len = lengths[which]
+            pos = torch.arange(width, device=device)
+            idx = (starts[which][:, None] + pos).clamp(max=len(bank) - 1)
+            return bank[idx] * (pos < n_len[:, None])
+        # From host memory: copy each impulse response into one zeroed (pinned)
+        # batch, a slice copy per row, and send it to the device asynchronously.
+        pinned = device.type == "cuda"
+        out = torch.zeros((len(which), width), dtype=host_bank.dtype, pin_memory=pinned)
+        bank_np, out_np = host_bank.numpy(), out.numpy()
+        for row, s, n in zip(
+            out_np, host_starts[which].tolist(), host_lengths[which].tolist()
+        ):
+            row[:n] = bank_np[s : s + n]
+        return out.to(device, non_blocking=pinned)
 
     def _convolve(
         self,
