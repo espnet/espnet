@@ -250,9 +250,7 @@ class ASRTransducerTask(AbsTask):
                 noise_db_range=(
                     args.noise_db_range if hasattr(args, "noise_db_range") else "13_15"
                 ),
-                speech_volume_normalize=(
-                    args.speech_volume_normalize if hasattr(args, "rir_scp") else None
-                ),
+                speech_volume_normalize=getattr(args, "speech_volume_normalize", None),
             )
         else:
             retval = None

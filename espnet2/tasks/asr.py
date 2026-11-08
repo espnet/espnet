@@ -429,9 +429,7 @@ class ASRTask(AbsTask):
                     if hasattr(args, "short_noise_thres")
                     else 0.5
                 ),
-                speech_volume_normalize=(
-                    args.speech_volume_normalize if hasattr(args, "rir_scp") else None
-                ),
+                speech_volume_normalize=getattr(args, "speech_volume_normalize", None),
                 aux_task_names=(
                     args.aux_ctc_tasks if hasattr(args, "aux_ctc_tasks") else None
                 ),

@@ -373,9 +373,7 @@ class S2TTask(AbsTask):
                     if hasattr(args, "short_noise_thres")
                     else 0.5
                 ),
-                speech_volume_normalize=(
-                    args.speech_volume_normalize if hasattr(args, "rir_scp") else None
-                ),
+                speech_volume_normalize=getattr(args, "speech_volume_normalize", None),
                 **args.preprocessor_conf,
             )
         else:
