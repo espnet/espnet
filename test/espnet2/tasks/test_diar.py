@@ -149,3 +149,31 @@ def test_wav_augment_context_needs_chunks_with_left_context(overrides, ok):
         with pytest.raises(ValueError, match="chunk_left_context"):
             DiarizationTask._check_wav_augment_context(args, 400)
     DiarizationTask._check_wav_augment_context(args, 0)  # no context: no check
+
+
+@pytest.mark.parametrize(
+    "left, default_fs, ok",
+    [
+        (800, 16000, True),  # 800 at 16 kHz = 400 at 8 kHz
+        (400, 16000, False),  # 200 at 8 kHz: the model would crop 400
+        (400, None, True),  # no default_fs: samples at the data's rate
+        (801, 16000, False),  # not a whole number of samples at 8 kHz
+    ],
+)
+def test_wav_augment_context_follows_chunk_default_fs(left, default_fs, ok):
+    """--chunk_left_context is at --chunk_default_fs; the context at fs (8 kHz)."""
+    import argparse
+
+    args = argparse.Namespace(
+        iterator_type="chunk",
+        valid_iterator_type=None,
+        chunk_left_context=left,
+        chunk_left_context_keys=["speech"],
+        chunk_default_fs=default_fs,
+        collect_stats=False,
+    )
+    if ok:
+        DiarizationTask._check_wav_augment_context(args, 400, 8000)
+    else:
+        with pytest.raises(ValueError, match="chunk_left_context"):
+            DiarizationTask._check_wav_augment_context(args, 400, 8000)

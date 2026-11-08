@@ -230,14 +230,19 @@ class DiarizationTask(AbsTask):
         return retval
 
     @staticmethod
-    def _check_wav_augment_context(args: argparse.Namespace, context: int):
+    def _check_wav_augment_context(
+        args: argparse.Namespace, context: int, fs: Optional[int] = None
+    ):
         """Check that the chunks give the speech the context wav_augment removes.
 
         With context > 0 the model removes the first ``context`` samples of the
-        speech, in training and validation. The chunk iterator gives them as
+        speech (at ``fs``, the rate of wav_augment and the frontend), in
+        training and validation. The chunk iterator gives them as
         --chunk_left_context on the speech only, so the labels keep the chunk.
-        Any other data path would leave the speech ``context`` samples shorter
-        than its labels.
+        --chunk_left_context is in samples at --chunk_default_fs when that is
+        given, and the iterator scales it to the data's rate; so it must scale
+        to exactly ``context`` at ``fs``. Any other data path would leave the
+        speech a different number of samples longer than its labels.
         """
         if context <= 0 or getattr(args, "collect_stats", False):
             return
@@ -248,9 +253,18 @@ class DiarizationTask(AbsTask):
         ):
             if it != "chunk":
                 problems.append(f"the {mode} iterator is {it!r}, not 'chunk'")
-        if getattr(args, "chunk_left_context", 0) != context:
+        left = getattr(args, "chunk_left_context", 0)
+        default_fs = getattr(args, "chunk_default_fs", None)
+        if default_fs is not None and fs is not None:
+            # the iterator gives left * fs // default_fs samples at the data's fs
+            given = left * fs // default_fs
+            exact = left * fs % default_fs == 0
+            where = f" ({left} at --chunk_default_fs {default_fs} = {given} at {fs})"
+        else:
+            given, exact, where = left, True, ""
+        if given != context or not exact:
             problems.append(
-                f"--chunk_left_context is {getattr(args, 'chunk_left_context', 0)}, "
+                f"--chunk_left_context {left} gives {given} samples{where}, "
                 f"not the wav_augment context {context}"
             )
         if "speech" not in getattr(args, "chunk_left_context_keys", ["speech"]):
@@ -305,7 +319,11 @@ class DiarizationTask(AbsTask):
                     str(wav_augment_conf["fs"])
                 )
             wav_augment = wav_augment_class(**wav_augment_conf)
-            cls._check_wav_augment_context(args, getattr(wav_augment, "context", 0))
+            cls._check_wav_augment_context(
+                args,
+                getattr(wav_augment, "context", 0),
+                getattr(wav_augment, "fs", None),
+            )
         else:
             wav_augment = None
 
