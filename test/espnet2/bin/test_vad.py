@@ -415,8 +415,9 @@ def test_streaming_refuses_an_utterance_normalisation(tmp_path):
 
 
 def test_streaming_refuses_an_encoder_that_reads_ahead(tmp_path):
+    """An encoder that is not causal and cannot be set to look-ahead 0."""
     vad = _model(tmp_path)
-    vad.diarize.diar_model.encoder.causal = False
+    vad.diarize.diar_model.encoder = torch.nn.Identity()
     with pytest.raises(ValueError, match="causal encoder"):
         vad.stream()
 
