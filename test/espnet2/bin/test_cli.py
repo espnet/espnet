@@ -1050,3 +1050,171 @@ def test_demo_runs_when_the_metadata_says_nothing_about_the_task(monkeypatch):
 
     assert cli.main(["demo", "--model", "espnet/undocumented"]) == 0
     assert s2t.tag == "espnet/undocumented"
+
+
+# --- espnet detect ----------------------------------------------------------
+
+
+class _FakeVAD:
+    """Stand in for VoiceActivityDetector and record how it was asked."""
+
+    fs = 16000
+    frame_shift = 0.01
+    median = 1
+
+    def __init__(self, segments):
+        from espnet2.bin.vad import Segment
+
+        self.Segment = Segment
+        self.segments_by_file = segments
+        self.calls = []
+
+    def detect_files(self, paths, offline=True, batch_size=8):
+        self.calls.append((list(paths), offline, batch_size))
+        return [
+            [self.Segment(*s) for s in self.segments_by_file[str(p)]] for p in paths
+        ]
+
+    def stream(self):
+        vad = self
+
+        class _Stream:
+            emitted = 0
+            probs = []
+
+            def accept(self, block, fs):
+                self.probs.extend(block.tolist())
+                self.emitted = len(self.probs)
+
+            def segments(self):
+                from espnet2.bin.vad import frames_to_segments
+
+                return frames_to_segments(
+                    np.array(self.probs), vad.frame_shift, 0.5, vad.median
+                )
+
+        return _Stream()
+
+
+def _fake_vad(monkeypatch, vad):
+    asked = {}
+
+    def load(args, mode):
+        asked.update(
+            mode=mode,
+            model=args.online_model if mode == "online" else args.model,
+            threshold=args.threshold,
+            median=args.median,
+        )
+        return vad
+
+    monkeypatch.setattr(cli, "_load_vad", load)
+    return asked
+
+
+def test_vad_prints_the_segments_of_one_file(monkeypatch, tmp_path, capsys):
+    audio = tmp_path / "a.wav"
+    audio.write_bytes(b"")
+    vad = _FakeVAD({str(audio): [(0.5, 1.25), (2.0, 3.0)]})
+    asked = _fake_vad(monkeypatch, vad)
+
+    assert cli.main(["detect", str(audio)]) == 0
+
+    assert capsys.readouterr().out == "0.50\t1.25\n2.00\t3.00\n"
+    # offline by default, the default model and the tuned rule
+    assert vad.calls == [([str(audio)], True, 8)]
+    # the offline model, with its own rule (None: the loader takes the model's)
+    assert asked == {
+        "mode": "offline",
+        "model": cli.vad_rule.MODELS["offline"],
+        "threshold": None,
+        "median": None,
+    }
+    assert cli.DEFAULT_MODELS["detect"] == cli.vad_rule.MODELS["offline"]
+
+
+def test_vad_names_the_file_on_each_line_of_a_batch(monkeypatch, tmp_path, capsys):
+    a, b = tmp_path / "a.wav", tmp_path / "b.wav"
+    a.write_bytes(b"")
+    b.write_bytes(b"")
+    vad = _FakeVAD({str(a): [(0.0, 1.0)], str(b): []})
+    asked = _fake_vad(monkeypatch, vad)
+
+    argv = ["detect", str(a), str(b), "--online", "--batch-size", "4"]
+    assert cli.main(argv + ["--threshold", "0.3", "--median", "11"]) == 0
+
+    assert capsys.readouterr().out == f"{a}\t0.00\t1.00\n"
+    assert vad.calls == [([str(a), str(b)], False, 4)]
+    # --online takes the online model
+    assert (asked["mode"], asked["model"]) == ("online", cli.vad_rule.MODELS["online"])
+    assert (asked["threshold"], asked["median"]) == (0.3, 11)
+
+
+def test_vad_without_audio_says_what_to_give(capsys):
+    assert cli.main(["detect"]) == 1
+    assert "audio files, or --live" in capsys.readouterr().err
+
+
+def test_vad_refuses_an_even_median(monkeypatch, tmp_path, capsys):
+    audio = tmp_path / "a.wav"
+    audio.write_bytes(b"")
+    args = cli.build_parser().parse_args(["detect", str(audio), "--median", "4"])
+    with pytest.raises(cli.CLIError, match="odd"):
+        cli._load_vad(args, "offline")
+
+
+def test_vad_stream_prints_each_segment_once_it_has_ended(
+    monkeypatch, tmp_path, capsys
+):
+    audio = tmp_path / "a.wav"
+    audio.write_bytes(b"")
+    # the fake stream reads blocks as frame probabilities, 10 ms a frame
+    blocks = [
+        np.array([0.9] * 5 + [0.0] * 5, dtype=np.float32),
+        np.array([0.9] * 3, dtype=np.float32),
+    ]
+    _stub_live(monkeypatch, blocks, [])
+    _fake_vad(monkeypatch, _FakeVAD({}))
+
+    assert cli.main(["detect", str(audio), "--stream"]) == 0
+
+    # the first segment is printed when it has ended; the second, still open
+    # when the audio stops, ends where the audio does
+    assert capsys.readouterr().out == "0.00\t0.05\n0.10\t0.13\n"
+
+
+def test_vad_live_does_not_also_take_a_file(monkeypatch, tmp_path, capsys):
+    audio = tmp_path / "a.wav"
+    audio.write_bytes(b"")
+    assert cli.main(["detect", str(audio), "--live"]) == 1
+    assert "do not also name a file" in capsys.readouterr().err
+
+
+@pytest.mark.parametrize("mode", ["online", "offline"])
+def test_vad_loads_each_mode_with_its_model_and_rule(monkeypatch, mode):
+    built = {}
+
+    class _Diarize:
+        diar_train_args = types.SimpleNamespace(
+            frontend_conf={"fs": "16k", "n_fft": 512, "hop_length": 128}
+        )
+        diar_model = types.SimpleNamespace(encoder=object())
+
+        @classmethod
+        def from_pretrained(cls, model_tag=None, device="cpu", **kwargs):
+            built.update(tag=model_tag, device=device, **kwargs)
+            return cls()
+
+    _fake_module(monkeypatch, "espnet2.bin.diar_inference", "DiarizeSpeech", _Diarize)
+    monkeypatch.setitem(cli.vad_rule.RULES, mode, (0.35, 7))
+    argv = ["detect", "x.wav", "--model", "off.zip", "--online-model", "on.zip"]
+    args = cli.build_parser().parse_args(argv)
+    args.device = "cpu"
+    vad = cli._load_vad(args, mode)
+    tag = "on.zip" if mode == "online" else "off.zip"
+    assert built == {"tag": tag, "device": "cpu", "num_spk": 1}
+    # the mode's rule, unless --threshold or --median names one
+    assert (vad.threshold, vad.median, vad.fs) == (0.35, 7, 16000)
+    args.threshold, args.median = 0.4, 3
+    vad = cli._load_vad(args, mode)
+    assert (vad.threshold, vad.median) == (0.4, 3)

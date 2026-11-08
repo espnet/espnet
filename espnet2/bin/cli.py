@@ -8,6 +8,8 @@
     espnet translate audio.wav --to eng
     espnet synthesize "Hello from ESPnet" -o hello.wav
     espnet enhance noisy.wav -o clean.wav
+    espnet detect meeting.wav
+    espnet detect --live
     espnet describe recording.wav
     espnet render "A bell rings twice in an empty stairwell." -o bell.wav
     espnet describe recording.wav --brief | espnet render - -o again.wav
@@ -44,6 +46,7 @@ from pathlib import Path
 from typing import List, Optional
 
 # stdlib-only at import time, so the constant costs nothing here
+from espnet2.bin import vad as vad_rule
 from espnet2.bin.speechlm_inference import UNDERSTAND_PROMPT
 from espnet2.utils.pretrained import ModelTagError, build_pretrained
 
@@ -61,6 +64,10 @@ DEFAULT_MODELS = {
     "translate": "espnet/owsm_ctc_v4_1B",
     "synthesize": "espnet/kan-bayashi_ljspeech_vits",
     "enhance": "espnet/Wangyou_Zhang_universal_train_enh_uses_refch0_2mem_raw",
+    # the offline VAD model (egs2/frontia_vad_v1/diar1); --online, --stream and
+    # --live load the online one, --online-model. Both are in
+    # espnet2.bin.vad.MODELS, and either takes a packed .zip from stage 8.
+    "detect": vad_rule.MODELS["offline"],
     # Bagpiper, which answers about audio and renders it. The general SFT
     # checkpoint does both directions; --model espnet/bagpiper-tts-sft is the
     # speech-focused one. Either is an 8B model: --server is the other way.
@@ -430,6 +437,108 @@ def cmd_enhance(args) -> int:
     return 0
 
 
+def _load_vad(args, mode: str):
+    """The VAD of a mode: --model offline, --online-model online.
+
+    The threshold and the median filter are the mode's tuned rule unless
+    --threshold or --median names its own.
+    """
+    from espnet2.bin.diar_inference import DiarizeSpeech
+    from espnet2.bin.vad import VoiceActivityDetector
+
+    threshold, median = vad_rule.RULES[mode]
+    threshold = threshold if args.threshold is None else args.threshold
+    median = median if args.median is None else args.median
+    if median < 1 or median % 2 == 0:
+        raise CLIError(f"--median must be a positive odd number, not {median}")
+    tag = args.online_model if mode == "online" else args.model
+    diarize = build_pretrained(
+        DiarizeSpeech,
+        tag,
+        args.device,
+        "`espnet detect`",
+        "Pass --model (offline) or --online-model with a one-speaker "
+        "diarization (VAD) model.",
+        num_spk=1,
+    )
+    return VoiceActivityDetector(diarize, threshold=threshold, median=median)
+
+
+def cmd_detect(args) -> int:
+    if args.live or args.stream:
+        return _detect_as_it_arrives(args)
+    if not args.audio:
+        raise CLIError("give one or more audio files, or --live to record")
+    for path in args.audio:
+        _require_file(path)
+
+    from espnet2.bin.vad import format_segments
+
+    offline = not args.online
+    vad = _load_vad(args, "offline" if offline else "online")
+    try:
+        results = vad.detect_files(
+            args.audio, offline=offline, batch_size=args.batch_size
+        )
+    except (OSError, RuntimeError) as e:
+        raise CLIError(str(e)) from e
+    if len(args.audio) == 1:
+        text = format_segments(results[0])
+        if text:
+            print(text)
+        return 0
+    # one line a segment, the file first, so that `grep` and `cut` take it apart
+    for path, segments in zip(args.audio, results):
+        for seg in segments:
+            print(f"{path}\t{seg.start:.2f}\t{seg.end:.2f}")
+    return 0
+
+
+def _detect_as_it_arrives(args) -> int:
+    """`--live` from the microphone, `--stream` from a file: online detection.
+
+    Each block runs the model on the frames it completes, with no look-ahead,
+    and a segment is printed once it has ended: once the frames after its
+    end are past the median filter's reach.
+    """
+    if args.live and args.audio:
+        raise CLIError("--live records from the microphone; do not also name a file")
+    if args.stream and len(args.audio) != 1:
+        raise CLIError("--stream reads one audio file; --live reads the microphone")
+    if args.stream:
+        _require_file(args.audio[0])
+
+    from espnet2.bin import live
+
+    vad = _load_vad(args, "online")
+    stream = vad.stream()
+    printed = 0
+    try:
+        source = (
+            live.from_microphone(sample_rate=vad.fs)
+            if args.live
+            else live.from_file(args.audio[0], sample_rate=vad.fs)
+        )
+        for block in source:
+            stream.accept(block, vad.fs)
+            segments = stream.segments()
+            # the last segment may still grow, and the median filter can still
+            # change the frames within median // 2 of the end
+            settled = (stream.emitted - vad.median // 2) * vad.frame_shift
+            done = [s for s in segments if s.end < settled]
+            for seg in done[printed:]:
+                print(f"{seg.start:.2f}\t{seg.end:.2f}", flush=True)
+            printed = max(printed, len(done))
+    except live.LiveError as e:
+        raise CLIError(str(e)) from e
+    except KeyboardInterrupt:  # pragma: no cover - interactive
+        pass
+    # what is still open when the audio stops ends where the audio does
+    for seg in stream.segments()[printed:]:
+        print(f"{seg.start:.2f}\t{seg.end:.2f}", flush=True)
+    return 0
+
+
 def _speechlm(args):
     """A SpeechLM, from the server the user named or from a checkpoint.
 
@@ -679,6 +788,58 @@ def build_parser() -> argparse.ArgumentParser:
     p = add("enhance", "remove noise from an audio file", cmd_enhance)
     p.add_argument("audio", help="audio file, any format soundfile reads")
     p.add_argument("-o", "--output", default="enhanced.wav", help="output wav")
+
+    p = add("detect", "find where speech is in audio files", cmd_detect)
+    p.add_argument(
+        "audio",
+        nargs="*",
+        help="audio files, any format soundfile reads; several are run in "
+        "batches and printed as <file> <start> <end>",
+    )
+    p.add_argument(
+        "--online",
+        action="store_true",
+        help="detect with the online model, which reads no future audio, as "
+        "the live stream does (default: the offline model)",
+    )
+    p.add_argument(
+        "--online-model",
+        default=vad_rule.MODELS["online"],
+        help="tag or packed .zip of the online model, for --online, --stream "
+        f"and --live (default: {vad_rule.MODELS['online']})",
+    )
+    p.add_argument(
+        "--threshold",
+        type=float,
+        default=None,
+        help="speech probability above which a frame is speech (default: the "
+        f"model's, tuned on AMI MH dev: online {vad_rule.RULES['online'][0]}, "
+        f"offline {vad_rule.RULES['offline'][0]})",
+    )
+    p.add_argument(
+        "--median",
+        type=int,
+        default=None,
+        help="median filter over this many frames, odd; 1 for none (default: "
+        f"the model's: online {vad_rule.RULES['online'][1]}, offline "
+        f"{vad_rule.RULES['offline'][1]})",
+    )
+    p.add_argument(
+        "--batch-size",
+        type=int,
+        default=8,
+        help="recordings run through the model at once (default: 8)",
+    )
+    p.add_argument(
+        "--stream",
+        action="store_true",
+        help="read one file block by block and print each segment as it ends",
+    )
+    p.add_argument(
+        "--live",
+        action="store_true",
+        help="detect speech from the microphone until Ctrl-C (needs sounddevice)",
+    )
 
     p = add("describe", "say what is in an audio file", cmd_describe)
     p.add_argument("audio", help="audio file, any format soundfile reads")

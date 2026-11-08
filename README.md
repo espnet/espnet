@@ -191,6 +191,7 @@ Four ways to run a published model — a hosted [Space](https://huggingface.co/e
 | **SE** — enhancement | 🟢 [universal-se](https://huggingface.co/spaces/espnet/universal-se) | 🟢 [`enh_demo`](https://github.com/espnet/notebook/blob/master/Demos/enh_demo.ipynb) | 🟢 `enhance` | 🟢 `espnet enhance` |
 | **PR** — phone recognition | 🟢 [powsm-ctc](https://huggingface.co/spaces/espnet/powsm-ctc) | 🟢 [`s2t_pr_demo`](https://github.com/espnet/notebook/blob/master/Demos/s2t_pr_demo.ipynb) | 🟢 `phonemize` | 🟢 `espnet phonemize` |
 | **ALIGN** — forced alignment | 🟢 [forced-alignment](https://huggingface.co/spaces/espnet/forced-alignment) | 🟢 [`s2t_align_demo`](https://github.com/espnet/notebook/blob/master/Demos/s2t_align_demo.ipynb) | 🟢 `align` | 🟢 `espnet align` |
+| **VAD** — voice activity detection | 🚧 `frontia-vad`, after the release | 🚧 `diar_vad_demo` | 🚧 `detect` | 🚧 `espnet detect` |
 | **SPEECHLM** — audio understanding and generation | ❌ [authors' demo](https://bagpiper-cmu.github.io/) | ❌ | 🚧 `describe`, `render` | 🚧 `espnet describe`, `espnet render` |
 
 Every Space is built from a directory in this repository, and [`doc/front_ends.md`](doc/front_ends.md) is how a seventh task gets all four columns.
