@@ -93,7 +93,14 @@ def save_espnet_config(
             preprocess_config = dict(preprocess_config)
             if "_target_" in preprocess_config:
                 preprocess_config.pop("_target_")
-            default_config.update(preprocess_config)
+            # The model's value wins for keys it also defines. Both blocks are
+            # flattened to the root and overlap on token_list/token_type/bpemodel,
+            # which are scalars in the model but LISTS in a multi-tokenizer
+            # preprocessor; a blind update leaves vocab_size = len(list).
+            for key, value in preprocess_config.items():
+                if key in model_config:
+                    continue
+                default_config[key] = value
 
     default_config.update(resolved_config)
 

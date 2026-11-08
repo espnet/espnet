@@ -31,6 +31,7 @@ from typeguard import typechecked
 from espnet2.fileio.json_scp import JsonScpReader
 from espnet2.fileio.multi_sound_scp import MultiSoundScpReader
 from espnet2.fileio.npy_scp import NpyScpReader
+from espnet2.fileio.omniio_audio import OmniIOAudioScpReader, OmniIOSegmentsReader
 from espnet2.fileio.rand_gen_dataset import (
     FloatRandomGenerateDataset,
     IntRandomGenerateDataset,
@@ -44,6 +45,7 @@ from espnet2.fileio.read_text import (
 from espnet2.fileio.rttm import RttmReader
 from espnet2.fileio.score_scp import SingingScoreReader
 from espnet2.fileio.sound_scp import SoundScpReader
+from espnet2.fileio.vad_intervals import VadIntervalsReader
 from espnet2.utils.sized_dict import SizedDict
 
 
@@ -249,6 +251,30 @@ def kaldi_loader(
     )
 
 
+def omniio_loader(
+    path, float_dtype=None, max_cache_fd: int = 32, allow_multi_rates=False
+):
+    """Load audio from Omni-IO archives through an scp of byte ranges."""
+    loader = OmniIOAudioScpReader(path, always_2d=False, max_cache_fd=max_cache_fd)
+    return AdapterForSoundScpReader(
+        loader, float_dtype, allow_multi_rates=allow_multi_rates
+    )
+
+
+def omniio_segments_loader(
+    path, float_dtype=None, max_cache_fd: int = 32, allow_multi_rates=False
+):
+    """Load Kaldi segments of recordings in Omni-IO archives.
+
+    `path` is the segments file; the recordings' scp is the ``wav.scp`` next
+    to it. Only each segment's part of its archive entry is read.
+    """
+    loader = OmniIOSegmentsReader(path, always_2d=False, max_cache_fd=max_cache_fd)
+    return AdapterForSoundScpReader(
+        loader, float_dtype, allow_multi_rates=allow_multi_rates
+    )
+
+
 def rand_int_loader(filepath, loader_type):
     # e.g. rand_int_3_10
     try:
@@ -319,6 +345,28 @@ DATA_TYPES = {
         "\n\n"
         "   utterance_id_A /some/where/a.ark:123\n"
         "   utterance_id_B /some/where/a.ark:456\n"
+        "   ...",
+    ),
+    # before "omniio": types are matched by prefix, first match wins
+    "omniio_segments": dict(
+        func=omniio_segments_loader,
+        kwargs=["float_dtype", "max_cache_fd", "allow_multi_rates"],
+        help="Kaldi segments of recordings stored in Omni-IO archives; the "
+        "recordings' wav.scp must be next to the segments file. Only each "
+        "segment's part of the archive is read and decoded."
+        "\n\n"
+        "   segment_id_a recording_id_x 0.0 10.0\n"
+        "   segment_id_b recording_id_x 10.0 20.0\n"
+        "   ...",
+    ),
+    "omniio": dict(
+        func=omniio_loader,
+        kwargs=["float_dtype", "max_cache_fd", "allow_multi_rates"],
+        help="Audio packed into Omni-IO archives (blob_<i>.bin + metadata.parquet), "
+        "addressed by byte range."
+        "\n\n"
+        "   utterance_id_A /some/where/blob_0.bin:0:31052\n"
+        "   utterance_id_B /some/where/blob_0.bin:31052:92707\n"
         "   ...",
     ),
     "npy": dict(
@@ -418,6 +466,16 @@ DATA_TYPES = {
         "\n\n"
         "   utterance_id_A 3,4\n"
         "   utterance_id_B 10,4\n"
+        "   ...",
+    ),
+    "vad_intervals": dict(
+        func=VadIntervalsReader,
+        kwargs=[],
+        help="Speech intervals of a window (samples, end exclusive), read as a "
+        "(length, 1) speech label"
+        "\n\n"
+        "   window_a 160000 0 4000 9000 160000\n"
+        "   window_b 160000\n"
         "   ...",
     ),
     "rttm": dict(

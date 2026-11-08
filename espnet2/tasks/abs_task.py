@@ -52,6 +52,7 @@ from espnet2.schedulers.tristage_lr import TristageLR
 from espnet2.schedulers.warmup_lr import WarmupLR
 from espnet2.schedulers.warmup_reducelronplateau import WarmupReduceLROnPlateau
 from espnet2.schedulers.warmup_step_lr import WarmupStepLR
+from espnet2.torch_utils.compile_modules import compile_modules
 from espnet2.torch_utils.initialize import INITIALIZATIONS
 from espnet2.torch_utils.load_pretrained_model import load_pretrained_model
 from espnet2.torch_utils.model_summary import model_summary
@@ -662,6 +663,22 @@ class AbsTask(ABC):
             help="Enable Automatic Mixed Precision. This feature requires pytorch>=1.6",
         )
         group.add_argument(
+            "--torch_compile_modules",
+            type=str,
+            nargs="*",
+            default=[],
+            help="Submodules of the model to compile with torch.compile for "
+            "training, as dotted paths, e.g. 'frontend encoder decoder'. Each one "
+            "is compiled in place, so the state dict does not change.",
+        )
+        group.add_argument(
+            "--torch_compile_conf",
+            action=NestedDictAction,
+            default=dict(),
+            help="Keyword arguments of torch.compile for --torch_compile_modules, "
+            "e.g. mode=max-autotune.",
+        )
+        group.add_argument(
             "--log_interval",
             type=int_or_none,
             default=None,
@@ -1052,8 +1069,8 @@ class AbsTask(ABC):
             type=int,
             default=32,
             help="The maximum number of file descriptors to be kept "
-            "as opened for ark files. "
-            "This feature is only valid when data type is 'kaldi_ark'.",
+            "as opened for ark files or Omni-IO bin files. "
+            "This feature is only valid when data type is 'kaldi_ark' or 'omniio'.",
         )
         group.add_argument(
             "--allow_multi_rates",
@@ -1462,6 +1479,12 @@ class AbsTask(ABC):
             # Use adapter to finetune the large pre-trained foundation models
             if getattr(args, "use_adapter", False):
                 create_adapter(model, args.adapter, args.adapter_conf)
+
+            # Compile the chosen submodules for training (not for collect_stats)
+            if getattr(args, "torch_compile_modules", None) and not args.collect_stats:
+                compile_modules(
+                    model, args.torch_compile_modules, args.torch_compile_conf
+                )
 
             # 3. Build optimizer
             optimizers = cls.build_optimizers(args, model=model)
