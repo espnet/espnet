@@ -194,7 +194,17 @@ class DiarizationTask(AbsTask):
             "largest absolute value over its channels) is at time 0, keeping it "
             "aligned with the speaker labels. The peak, not an estimate of the "
             "direct path: with a reflection stronger than the direct sound, the "
-            "shift follows the reflection.",
+            "shift follows the reflection. A multi-channel RIR gets one shift for "
+            "all channels (see --rir_delay_per_channel).",
+        )
+        group.add_argument(
+            "--rir_delay_per_channel",
+            type=str2bool,
+            default=False,
+            help="With --rir_remove_delay and a multi-channel RIR, shift each "
+            "channel by its own peak: every channel aligned with the labels, the "
+            "time differences between the channels lost. False: one shift (the "
+            "overall peak) for all channels, which keeps those differences.",
         )
 
         for class_choices in cls.class_choices_list:
@@ -228,6 +238,7 @@ class DiarizationTask(AbsTask):
                 rir_scp=getattr(args, "rir_scp", None),
                 rir_apply_prob=getattr(args, "rir_apply_prob", 1.0),
                 rir_remove_delay=getattr(args, "rir_remove_delay", True),
+                rir_delay_per_channel=getattr(args, "rir_delay_per_channel", False),
                 noise_scp=getattr(args, "noise_scp", None),
                 noise_apply_prob=getattr(args, "noise_apply_prob", 1.0),
                 noise_db_range=getattr(args, "noise_db_range", "13_15"),

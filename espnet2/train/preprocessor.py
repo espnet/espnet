@@ -181,6 +181,10 @@ class CommonPreprocessor(AbsPreprocessor):
         # value over all its channels) is at time 0; last, so that positional
         # arguments of older callers keep their meaning
         rir_remove_delay: bool = False,
+        # with rir_remove_delay and a multi-channel RIR: shift each channel by its
+        # own peak (each channel aligned with the labels, the time differences
+        # between channels lost) instead of all channels by the overall peak
+        rir_delay_per_channel: bool = False,
     ):
         super().__init__(train)
         self.train = train
@@ -190,6 +194,7 @@ class CommonPreprocessor(AbsPreprocessor):
         self.force_single_channel = force_single_channel
         self.rir_apply_prob = rir_apply_prob
         self.rir_remove_delay = rir_remove_delay
+        self.rir_delay_per_channel = rir_delay_per_channel
         self.noise_apply_prob = noise_apply_prob
         self.short_noise_thres = short_noise_thres
         self.aux_task_names = aux_task_names
@@ -309,21 +314,24 @@ class CommonPreprocessor(AbsPreprocessor):
 
             # speech: (Nmic, Time)
             speech = speech[:1]
-            # Shift the reverberant speech so that the peak of the RIR (the
-            # largest absolute value over all channels, one shift for all of them)
-            # is at time 0, keeping it aligned with time-stamped labels (e.g.
-            # diarization/VAD). This is the peak, not an estimate of the direct
-            # path: when a reflection is stronger than the direct sound, the shift
-            # follows the reflection.
-            delay = (
-                int(np.argmax(np.max(np.abs(rir), axis=0)))
-                if getattr(self, "rir_remove_delay", False)
-                else 0
-            )
+            # With rir_remove_delay, shift the reverberant speech so that the
+            # peak of the RIR is at time 0, keeping it aligned with time-stamped
+            # labels (e.g. diarization/VAD). The peak is the largest absolute
+            # value, not an estimate of the direct path: when a reflection is
+            # stronger than the direct sound, the shift follows the reflection.
+            # A multi-channel RIR is shifted by its overall peak (one shift for
+            # all channels, which keeps the time differences between them), or
+            # each channel by its own peak with rir_delay_per_channel.
+            n = speech.shape[1]
+            full = scipy.signal.convolve(speech, rir, mode="full")
+            if not getattr(self, "rir_remove_delay", False):
+                delays = [0] * len(full)
+            elif getattr(self, "rir_delay_per_channel", False):
+                delays = [int(np.argmax(np.abs(r))) for r in rir]
+            else:
+                delays = [int(np.argmax(np.max(np.abs(rir), axis=0)))] * len(full)
             # Note that this operation doesn't change the signal length
-            speech = scipy.signal.convolve(speech, rir, mode="full")[
-                :, delay : delay + speech.shape[1]
-            ]
+            speech = np.stack([y[d : d + n] for y, d in zip(full, delays)])
             # Reverse mean power to the original power
             power2 = (speech[detect_non_silence(speech)] ** 2).mean()
             speech = np.sqrt(power / max(power2, 1e-10)) * speech

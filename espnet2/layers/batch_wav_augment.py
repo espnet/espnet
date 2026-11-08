@@ -56,7 +56,9 @@ class BatchWavAugment(torch.nn.Module):
         rir_apply_prob: Probability of convolving each utterance with an
             impulse response.
         rir_shift: Shift the reverberated speech back by the position of the
-            impulse response's peak (the direct path, ``argmax |rir|``), so that
+            impulse response's peak (``argmax |rir|``, the largest absolute value,
+            not an estimate of the direct path; each channel of a multi-channel
+            file is its own impulse response with its own peak), so that
             it stays aligned with the dry speech and its labels, as Kaldi's
             ``wav-reverberate --shift-output`` (default), Lhotse and SpeechBrain
             do. False keeps the first samples of the convolution, as

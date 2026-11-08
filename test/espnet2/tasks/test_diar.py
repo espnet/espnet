@@ -250,3 +250,15 @@ def test_preprocessor_gets_the_frontend_sampling_rate(frontend_fs, fs):
     extra = [] if frontend_fs is None else ["--frontend_conf", f"fs={frontend_fs}"]
     args = DiarizationTask.get_parser().parse_args(extra)
     assert DiarizationTask.build_preprocess_fn(args, train=True).fs == fs
+
+
+def test_rir_delay_per_channel_reaches_the_preprocessor():
+    parser = DiarizationTask.get_parser()
+    assert (
+        DiarizationTask.build_preprocess_fn(
+            parser.parse_args([]), train=True
+        ).rir_delay_per_channel
+        is False
+    )
+    args = parser.parse_args(["--rir_delay_per_channel", "true"])
+    assert DiarizationTask.build_preprocess_fn(args, train=True).rir_delay_per_channel
