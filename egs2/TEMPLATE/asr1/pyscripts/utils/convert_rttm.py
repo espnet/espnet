@@ -6,7 +6,7 @@ import logging
 import os
 import re
 from pathlib import Path
-from typing import Union
+from typing import Optional, Union
 
 import humanfriendly
 import numpy as np
@@ -22,11 +22,21 @@ def convert_rttm_text(
     wavscp_path: Union[Path, str],
     sampling_rate: int,
     output_path: Union[Path, str],
+    utt2num_samples_path: Optional[Union[Path, str]] = None,
 ) -> None:
     """Convert a RTTM file
 
     Note: only support speaker information now
+
+    The recording lengths come from ``utt2num_samples`` when it is given (it is
+    written by format_wav_scp.sh at the dump sampling rate); otherwise every
+    wav.scp entry is opened with soundfile, which only works for plain audio
+    files, not for kaldi_ark or omniio entries.
     """
+    num_samples = None
+    if utt2num_samples_path is not None:
+        with Path(utt2num_samples_path).open("r", encoding="utf-8") as f:
+            num_samples = dict(line.split(maxsplit=1) for line in f if line.strip())
 
     output_handler = Path(os.path.join(output_path, "espnet_rttm")).open(
         "w", encoding="utf-8"
@@ -56,18 +66,21 @@ def convert_rttm_text(
 
     with Path(wavscp_path).open("r", encoding="utf-8") as f:
         for linenum, line in enumerate(f, 1):
-            sps = re.split("[ \t]+", line.rstrip())
-            utt_id, wav_path = sps
+            utt_id, wav_path = re.split("[ \t]+", line.rstrip(), maxsplit=1)
             assert utt_id in utt_ids, "{} is not in corresponding rttm {}".format(
                 utt_id, path
             )
 
-            sf = soundfile.SoundFile(wav_path)
-            assert sf.samplerate == sampling_rate
+            if num_samples is not None:
+                frames = int(num_samples[utt_id])
+            else:
+                sf = soundfile.SoundFile(wav_path)
+                assert sf.samplerate == sampling_rate
+                frames = sf.frames
             output_handler.write(
                 (
                     "{} {} <NA> <NA> {} <NA> <NA> <NA> <NA>\n".format(
-                        "END", utt_id, sf.frames
+                        "END", utt_id, frames
                     )
                 )
             )
@@ -92,6 +105,13 @@ def get_parser() -> argparse.Namespace:
         required=True,
         type=str,
         help="Output directory to storry espnet_rttm",
+    )
+    parser.add_argument(
+        "--utt2num_samples",
+        default=None,
+        type=str,
+        help="Take the recording lengths from this file instead of opening "
+        "the audio (needed for kaldi_ark and omniio dumps)",
     )
     parser.add_argument(
         "--sampling_rate",
@@ -131,7 +151,13 @@ def main():
         logging.warning("Skip DEBUG/INFO messages")
 
     sampling_rate = humanfriendly.parse_size(args.sampling_rate)
-    convert_rttm_text(args.rttm, args.wavscp, sampling_rate, args.output_path)
+    convert_rttm_text(
+        args.rttm,
+        args.wavscp,
+        sampling_rate,
+        args.output_path,
+        utt2num_samples_path=args.utt2num_samples,
+    )
 
     logging.info("Successfully finished RTTM converting.")
 

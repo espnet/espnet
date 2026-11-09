@@ -30,12 +30,14 @@ skip_train=false        # Skip training stages
 skip_eval=false         # Skip decoding and evaluation stages
 skip_packing=true       # Skip the packing stage.
 skip_upload_hf=true     # Skip uploading to huggingface stage.
+skip_dumped=false       # Stage 2: skip sets already dumped with the same --audio_format and --fs.
 ngpu=1                  # The number of gpus ("0" uses cpu, otherwise use gpu).
 num_nodes=1             # The number of nodes
 nj=32                   # The number of parallel jobs.
 dumpdir=dump            # Directory to dump features.
 inference_nj=32         # The number of parallel jobs in decoding.
 gpu_inference=false     # Whether to perform gpu decoding.
+inference_max_jobs_run= # Stage 6: most inference jobs at once (--max-jobs-run; run.pl allows one per GPU with --gpu; pbs.pl ignores it).
 expdir=exp              # Directory to save experiments.
 python=python3          # Specify python to execute espnet commands
 
@@ -44,7 +46,7 @@ local_data_opts= # The options given to local/data.sh.
 
 # Feature extraction related
 feats_type=raw       # Feature type (raw or fbank_pitch).
-audio_format=flac    # Audio format: wav, flac, wav.ark, flac.ark  (only in feats_type=raw).
+audio_format=flac    # Audio format: wav, flac, wav.ark, flac.ark, omniio  (only in feats_type=raw).
 fs=8k                # Sampling rate.
 hop_length=128       # Hop length in sample number
 min_wav_duration=0.1 # Minimum duration in second
@@ -54,6 +56,8 @@ diar_tag=    # Suffix to the result dir for diar model training.
 diar_config= # Config for diar model training.
 diar_args=   # Arguments for diar model training, e.g., "--max_epoch 10".
              # Note that it will overwrite args in diar config.
+stats_args=  # Arguments for stage 4 (collect stats) only, after --diar_args,
+             # e.g., "--batch_size 1" for long recordings.
 feats_normalize=global_mvn # Normalizaton layer type.
 num_spk=2    # Number of speakers in the input audio
 
@@ -70,6 +74,7 @@ hf_repo=
 collar=0         # collar for der scoring
 frame_shift=128  # frame shift to convert frame-level label into real time
                  # this should be aligned with frontend feature extraction
+local_score_opts= # The options given to local/score.sh.
 
 # [Task dependent] Set the datadir name created by local/data.sh
 train_set=       # Name of training set.
@@ -90,6 +95,8 @@ Options:
     --skip_data_prep     # Skip data preparation stages (default="${skip_data_prep}").
     --skip_train         # Skip training stages (default="${skip_train}").
     --skip_eval          # Skip decoding and evaluation stages (default="${skip_eval}").
+    --skip_dumped        # Stage 2: skip sets already dumped with the same --audio_format and --fs;
+                         # delete a dump directory to dump it again after changing data/ (default="${skip_dumped}").
     --skip_packing       # Skip the packing stage (default="${skip_packing}").
     --skip_upload_hf     # Skip uploading to huggingface stage (default="${skip_upload_hf}").
     --ngpu               # The number of gpus ("0" uses cpu, otherwise use gpu, default="${ngpu}").
@@ -97,6 +104,8 @@ Options:
     --nj                 # The number of parallel jobs (default="${nj}").
     --inference_nj       # The number of parallel jobs in inference (default="${inference_nj}").
     --gpu_inference      # Whether to use gpu for inference (default="${gpu_inference}").
+    --inference_max_jobs_run # Stage 6: most inference jobs at once; passed as --max-jobs-run to run.pl,
+                         # queue.pl and slurm.pl, ignored by pbs.pl (default="${inference_max_jobs_run}").
     --dumpdir            # Directory to dump features (default="${dumpdir}").
     --expdir             # Directory to save experiments (default="${expdir}").
     --python             # Specify python to execute espnet commands (default="${python}").
@@ -106,7 +115,7 @@ Options:
 
     # Feature extraction related
     --feats_type       # Feature type (only support raw currently).
-    --audio_format     # Audio format: wav, flac, wav.ark, flac.ark  (only in feats_type=raw, default="${audio_format}").
+    --audio_format     # Audio format: wav, flac, wav.ark, flac.ark, omniio  (only in feats_type=raw, default="${audio_format}").
     --fs               # Sampling rate (default="${fs}").
     --hop_length       # Hop length in sample number (default="${hop_length}")
     --min_wav_duration # Minimum duration in second (default="${min_wav_duration}").
@@ -117,6 +126,8 @@ Options:
     --diar_config     # Config for diarization model training (default="${diar_config}").
     --diar_args       # Arguments for diarization model training, e.g., "--max_epoch 10" (default="${diar_args}").
                       # Note that it will overwrite args in diar config.
+    --stats_args      # Arguments for stage 4 (collect stats) only, given after --diar_args,
+                      # e.g., "--batch_size 1" for long recordings (default="${stats_args}").
     --feats_normalize # Normalizaton layer type (default="${feats_normalize}").
     --num_spk         # Number of speakers in the input audio (default="${num_spk}")
 
@@ -129,6 +140,8 @@ Options:
     # Scoring related
     --collar      # collar for der scoring
     --frame_shift # frame shift to convert frame-level label into real time
+    --local_score_opts # The options given to local/score.sh, which replaces the default
+                       # scoring of stage 7 when the recipe has it (default="${local_score_opts}").
 
     # [Task dependent] Set the datadir name created by local/data.sh
     --train_set               # Name of training set (required).
@@ -212,6 +225,18 @@ if ! "${skip_data_prep}"; then
             else
                 _suf=""
             fi
+            # .stage2_done is written last, with the audio format and rate of the dump;
+            # a set is skipped only if the files later stages read are still there
+            _dump="${data_feats}${_suf}/${dset}"
+            _done="${_dump}/.stage2_done"
+            if "${skip_dumped}" && [ -f "${_done}" ] \
+                    && [ "$(<"${_done}")" = "${audio_format} ${fs}" ] \
+                    && [ -s "${_dump}/wav.scp" ] && [ -s "${_dump}/utt2num_samples" ] \
+                    && [ -s "${_dump}/espnet_rttm" ] && [ -f "${_dump}/feats_type" ]; then
+                log "Skip ${dset}: ${data_feats}${_suf}/${dset} is already dumped"
+                continue
+            fi
+            rm -f "${_done}"
             utils/copy_data_dir.sh --validate_opts --non-print data/"${dset}" "${data_feats}${_suf}/${dset}"
             rm -f ${data_feats}${_suf}/${dset}/{wav.scp,reco2file_and_channel}
 
@@ -231,8 +256,12 @@ if ! "${skip_data_prep}"; then
             pyscripts/utils/convert_rttm.py \
                 --rttm "${data_feats}${_suf}/${dset}"/rttm \
                 --wavscp "${data_feats}${_suf}/${dset}"/wav.scp \
+                --utt2num_samples "${data_feats}${_suf}/${dset}"/utt2num_samples \
                 --output_path "${data_feats}${_suf}/${dset}" \
                 --sampling_rate "${fs}"
+
+            echo "${audio_format}" > "${data_feats}${_suf}/${dset}/audio_format"
+            echo "${audio_format} ${fs}" > "${_done}"
         done
     fi
 
@@ -246,6 +275,11 @@ if ! "${skip_data_prep}"; then
             # Copy data dir
             utils/copy_data_dir.sh "${data_feats}/org/${dset}" "${data_feats}/${dset}"
             cp "${data_feats}/org/${dset}/feats_type" "${data_feats}/${dset}/feats_type"
+            # a stale audio_format must not outlive a source dump that has none
+            rm -f "${data_feats}/${dset}/audio_format"
+            if [ -f "${data_feats}/org/${dset}/audio_format" ]; then
+                cp "${data_feats}/org/${dset}/audio_format" "${data_feats}/${dset}/audio_format"
+            fi
 
             _fs=$(python3 -c "import humanfriendly as h;print(h.parse_size('${fs}'))")
             _min_length=$(python3 -c "print(int(${min_wav_duration} * ${_fs}))")
@@ -274,6 +308,7 @@ if ! "${skip_data_prep}"; then
             pyscripts/utils/convert_rttm.py \
                 --rttm "${data_feats}/${dset}"/rttm \
                 --wavscp "${data_feats}/${dset}"/wav.scp \
+                --utt2num_samples "${data_feats}/${dset}"/utt2num_samples \
                 --output_path "${data_feats}/${dset}" \
                 --sampling_rate "${fs}"
         done
@@ -304,6 +339,8 @@ if ! "${skip_train}"; then
             _scp=wav.scp
             if [[ "${audio_format}" == *ark* ]]; then
                 _type=kaldi_ark
+            elif [[ "${audio_format}" == omniio ]]; then
+                _type=omniio
             else
                 # "sound" supports "wav", "flac", etc.
                 _type=sound
@@ -361,7 +398,7 @@ if ! "${skip_train}"; then
                 --train_shape_file "${_logdir}/train.JOB.scp" \
                 --valid_shape_file "${_logdir}/valid.JOB.scp" \
                 --output_dir "${_logdir}/stats.JOB" \
-                ${_opts} ${diar_args} || { cat $(grep -l -i error "${_logdir}"/stats.*.log) ; exit 1; }
+                ${_opts} ${diar_args} ${stats_args} || { cat $(grep -l -i error "${_logdir}"/stats.*.log) ; exit 1; }
 
         # 4. Aggregate shape files
         _opts=
@@ -395,6 +432,8 @@ if ! "${skip_train}"; then
             # "sound" supports "wav", "flac", etc.
             if [[ "${audio_format}" == *ark* ]]; then
                 _type=kaldi_ark
+            elif [[ "${audio_format}" == omniio ]]; then
+                _type=omniio
             else
                 _type=sound
             fi
@@ -501,7 +540,28 @@ if ! "${skip_eval}"; then
             mkdir -p "${_logdir}"
 
             _scp=wav.scp
-            _type=sound
+            # the format stage 2 recorded for this dump; for a dump made before that
+            # record existed, the form of its wav.scp entries: "<file>.ark:<offset>"
+            # (Kaldi ark), "<file>.bin:<start>:<end>" (Omni-IO) or a sound file
+            if [ -f "${_data}/audio_format" ]; then
+                _audio_format=$(<"${_data}/audio_format")
+            else
+                _entry=$(head -n 1 "${_data}/${_scp}" | cut -d " " -f 2-)
+                if [[ "${_entry}" =~ \.ark:[0-9]+$ ]]; then
+                    _audio_format=ark
+                elif [[ "${_entry}" =~ \.bin:[0-9]+:[0-9]+$ ]]; then
+                    _audio_format=omniio
+                else
+                    _audio_format=sound
+                fi
+            fi
+            if [[ "${_audio_format}" == *ark* ]]; then
+                _type=kaldi_ark
+            elif [[ "${_audio_format}" == omniio ]]; then
+                _type=omniio
+            else
+                _type=sound
+            fi
 
             # 1. Split the key file
             key_file=${_data}/${_scp}
@@ -515,8 +575,12 @@ if ! "${skip_eval}"; then
 
             # 2. Submit inference jobs
             log "Diarization started... log: '${_logdir}/diar_inference.*.log'"
+            _cmd_opts=
+            if [ -n "${inference_max_jobs_run}" ]; then
+                _cmd_opts="--max-jobs-run ${inference_max_jobs_run}"
+            fi
             # shellcheck disable=SC2046,SC2086
-            ${_cmd} --gpu "${_ngpu}" JOB=1:"${_nj}" "${_logdir}"/diar_inference.JOB.log \
+            ${_cmd} --gpu "${_ngpu}" ${_cmd_opts} JOB=1:"${_nj}" "${_logdir}"/diar_inference.JOB.log \
                 ${python} -m espnet2.bin.diar_inference \
                     --ngpu "${_ngpu}" \
                     --fs "${fs}" \
@@ -539,16 +603,23 @@ if ! "${skip_eval}"; then
         log "Stage 7: Scoring"
         _cmd=${decode_cmd}
 
-        for dset in "${valid_set}" ${test_sets}; do
-            _data="${data_feats}/${dset}"
-            _inf_dir="${diar_exp}/diarized_${dset}"
-            _dir="${diar_exp}/diarized_${dset}/scoring"
-            mkdir -p "${_dir}"
+        if [ -f local/score.sh ]; then
+            # The recipe's own scoring replaces the default below.
+            # shellcheck disable=SC2086
+            local/score.sh ${local_score_opts} "${diar_exp}" "${data_feats}" \
+                "${valid_set}" ${test_sets}
+        else
+            for dset in "${valid_set}" ${test_sets}; do
+                _data="${data_feats}/${dset}"
+                _inf_dir="${diar_exp}/diarized_${dset}"
+                _dir="${diar_exp}/diarized_${dset}/scoring"
+                mkdir -p "${_dir}"
 
-            scripts/utils/score_der.sh \
-                --collar ${collar} --fs ${fs} --frame_shift ${frame_shift} \
-                ${_dir} ${_inf_dir}/diarize.scp ${_data}/rttm \
-        done
+                scripts/utils/score_der.sh \
+                    --collar ${collar} --fs ${fs} --frame_shift ${frame_shift} \
+                    ${_dir} ${_inf_dir}/diarize.scp ${_data}/rttm
+            done
+        fi
 
         # Show results in Markdown syntax
         scripts/utils/show_diar_result.sh "${diar_exp}" > "${diar_exp}"/RESULTS.md
@@ -562,16 +633,26 @@ fi
 
 packed_model="${diar_exp}/${diar_exp##*/}_${inference_model%.*}.zip"
 # Skip pack preparation if using a downloaded model or skip_packing is true
-if ! "${skip_packing}" && [ -n "${download_model}" ]; then
+if ! "${skip_packing}" && [ -z "${download_model}" ]; then
     if [ ${stage} -le 8 ] && [ ${stop_stage} -ge 8 ]; then
         log "Stage 8: Pack model: ${packed_model}"
 
+        # Pack feats_stats.npz when the model normalises with global_mvn, and
+        # RESULTS.md and images when they exist.
+        _opts=
+        if [ "${feats_normalize}" = global_mvn ]; then
+            _opts+="--option ${diar_stats_dir}/train/feats_stats.npz "
+        fi
+        for _f in "${diar_exp}"/RESULTS.md "${diar_exp}"/images; do
+            if [ -e "${_f}" ]; then
+                _opts+="--option ${_f} "
+            fi
+        done
+        # shellcheck disable=SC2086
         ${python} -m espnet2.bin.pack diar \
             --train_config "${diar_exp}"/config.yaml \
             --model_file "${diar_exp}"/"${inference_model}" \
-            --option "${diar_exp}"/RESULTS.md \
-            --option "${diar_stats_dir}"/train/feats_stats.npz  \
-            --option "${diar_exp}"/images \
+            ${_opts} \
             --outpath "${packed_model}"
     fi
 else
