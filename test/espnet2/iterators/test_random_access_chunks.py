@@ -363,3 +363,82 @@ def test_chunks_at_any_rate_and_length(
                 batch["spk_labels"][i].numpy(), rttm["rec"][st : st + W]
             )
     assert starts == list(range(0, L - W + 1, S))
+
+
+def _with_categories(d, beta, train=True, batch_size=2):
+    (d / "utt2category").write_text("recA big\nrecB small\nrecC small\n")
+    args = DiarizationTask.get_parser().parse_args(
+        [
+            "--iterator_type",
+            "chunk",
+            "--chunk_random_access",
+            "true",
+            "--chunk_length",
+            "1000",
+            "--chunk_shift_ratio",
+            "1.0",
+            "--num_spk",
+            "2",
+            "--chunk_upsampling_factor",
+            str(beta),
+        ]
+    )
+    return DiarizationTask.build_chunk_iter_factory(
+        args, _options(d, batch_size, train), "train"
+    )
+
+
+def test_upsampling_balances_categories_per_epoch(data):
+    """recA: 10 chunks (big), recB + recC: 4 + 1 (small); beta 0: 8 + 7 of 15."""
+    d, sigs = data
+    factory = _with_categories(d, 0.0)
+    for epoch in (1, 2):
+        ids = [i for ids, _ in factory.build_iter(epoch) for i in ids]
+        assert len(ids) == 15
+        assert sum(i.startswith("recA-") for i in ids) == 8
+        small = [i for i in ids if not i.startswith("recA-")]
+        assert len(small) == 7 and set(small) <= {
+            f"{r}-{s:010d}" for r in ("recB", "recC") for s in range(0, 4000, 1000)
+        } | {"recC-0000000000"}
+    # the chunks still carry their own samples
+    for ids, batch in factory.build_iter(1):
+        for k, cid in enumerate(ids):
+            rec, st = cid.rsplit("-", 1)
+            st = int(st)
+            np.testing.assert_allclose(
+                batch["speech"][k].numpy(), sigs[rec][st : st + 1000], atol=1e-7
+            )
+
+
+def test_upsampling_factor_one_and_validation_keep_every_chunk(data):
+    d, _ = data
+    want = sorted(
+        [f"recA-{s:010d}" for s in range(0, 10000, 1000)]
+        + [f"recB-{s:010d}" for s in range(0, 4000, 1000)]
+        + ["recC-0000000000"]
+    )
+    for factory in (_with_categories(d, 1.0), _with_categories(d, 0.0, train=False)):
+        ids = [i for ids, _ in factory.build_iter(1) for i in ids]
+        assert sorted(ids) == want
+
+
+def test_upsampling_needs_utt2category(data):
+    d, _ = data
+    _with_categories(d, 0.5)
+    (d / "utt2category").unlink()
+    args = DiarizationTask.get_parser().parse_args(
+        [
+            "--iterator_type",
+            "chunk",
+            "--chunk_random_access",
+            "true",
+            "--chunk_length",
+            "1000",
+            "--num_spk",
+            "2",
+            "--chunk_upsampling_factor",
+            "0.5",
+        ]
+    )
+    with pytest.raises(RuntimeError):
+        DiarizationTask.build_chunk_iter_factory(args, _options(d, 2, True), "train")
