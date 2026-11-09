@@ -29,8 +29,22 @@ def _dataset_shape_file(dataset):
     ``item_lengths()``; the uids are the combined integer indices, as in
     ``CombinedDataset``'s integer-index mode. The file exists only while the
     batch sampler reads it.
+
+    Yields ``None`` when the dataset has no items, e.g. an empty rank-local
+    shard: the caller then plans no batches, and
+    ``DataLoaderBuilder._equalize_rank_batches`` matches the other ranks to it.
+
+    Raises:
+        RuntimeError: If a non-empty dataset is string-keyed, a wrapped
+            dataset has no ``item_lengths()``, returns a different number of
+            lengths than it has items, or returns non-integer lengths.
     """
     datasets = getattr(dataset, "datasets", [dataset])
+    if len(dataset) == 0:
+        # An empty dataset cannot answer dataset[0], which is what puts
+        # CombinedDataset in string-index mode; there is nothing to batch.
+        yield None
+        return
     if getattr(dataset, "_string_index_mode", False):
         raise RuntimeError(
             "lengths_from_dataset needs integer-indexed datasets; "
@@ -42,7 +56,26 @@ def _dataset_shape_file(dataset):
             "lengths_from_dataset is set but these datasets have no "
             f"item_lengths(): {missing}"
         )
-    lengths = np.concatenate([np.asarray(d.item_lengths()) for d in datasets])
+    per_dataset = []
+    for d in datasets:
+        d_lengths = np.asarray(d.item_lengths())
+        if d_lengths.shape != (len(d),):
+            raise RuntimeError(
+                f"{type(d).__name__}.item_lengths() returned {d_lengths.size} "
+                f"lengths for {len(d)} items."
+            )
+        per_dataset.append(d_lengths)
+    lengths = np.concatenate(per_dataset)
+    # The numel sampler counts lengths in integer units (samples, frames, ...);
+    # truncating seconds or other fractions with int() would mis-batch.
+    integral = lengths.dtype.kind in "iu" or (
+        lengths.dtype.kind == "f" and bool(np.all(np.mod(lengths, 1) == 0))
+    )
+    if not integral:
+        raise RuntimeError(
+            "lengths_from_dataset needs integer item lengths (e.g. samples or "
+            f"frames), got dtype {lengths.dtype}; return an integer length."
+        )
     fd, path = tempfile.mkstemp(prefix="espnet3_shape_", suffix=".txt")
     try:
         with os.fdopen(fd, "w", encoding="utf-8") as fh:
@@ -131,7 +164,15 @@ class DataLoaderBuilder:
         self._rank_sharded = False
 
     def _get_world_info(self):
-        if self.num_device > 1:
+        """Return ``(rank, world_size)`` of the initialized process group.
+
+        Uses the process group when ``num_device > 1`` or one is initialized,
+        so ``num_device: 1`` across several nodes (one GPU per node) still
+        selects shards by the real world size; ``(0, 1)`` otherwise.
+        """
+        if self.num_device > 1 or (
+            torch.distributed.is_available() and torch.distributed.is_initialized()
+        ):
             world_size = torch.distributed.get_world_size()
             rank = torch.distributed.get_rank()
         else:
@@ -219,6 +260,7 @@ class DataLoaderBuilder:
 
     @staticmethod
     def _collective_device():
+        """Return the device collectives must use for the current backend."""
         backend = torch.distributed.get_backend()
         if backend == "nccl" and torch.cuda.is_available():
             return torch.device("cuda", torch.cuda.current_device())
@@ -391,8 +433,11 @@ class DataLoaderBuilder:
             sampler_config["min_batch_size"] = torch.distributed.get_world_size()
         if lengths_from_dataset:
             with _dataset_shape_file(dataset) as shape_file:
-                sampler_config["shape_files"] = [shape_file]
-                batches = list(build_batch_sampler(**sampler_config))
+                if shape_file is None:
+                    batches = []
+                else:
+                    sampler_config["shape_files"] = [shape_file]
+                    batches = list(build_batch_sampler(**sampler_config))
         else:
             batches = build_batch_sampler(**sampler_config)
 

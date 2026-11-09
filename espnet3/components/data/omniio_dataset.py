@@ -184,6 +184,39 @@ def render_query(query: str, params: Mapping[str, Any]) -> str:
     return _PLACEHOLDER.sub(_sub, query)
 
 
+def _sql_string(value: Any) -> str:
+    """Escape ``value`` for use inside a single-quoted SQL string literal.
+
+    Examples:
+        >>> _sql_string("/data/it's")
+        "/data/it''s"
+    """
+    return str(value).replace("'", "''")
+
+
+def _sql_identifier(name: str) -> str:
+    """Return ``name`` as a double-quoted SQL identifier.
+
+    Examples:
+        >>> _sql_identifier('a"b')
+        '"a""b"'
+    """
+    return '"' + name.replace('"', '""') + '"'
+
+
+def _strip_trailing_semicolon(query: str) -> str:
+    """Drop one trailing ``;`` (and whitespace) so the query can be nested.
+
+    Examples:
+        >>> _strip_trailing_semicolon("SELECT 1 ;  ")
+        'SELECT 1'
+    """
+    query = query.rstrip()
+    if query.endswith(";"):
+        query = query[:-1].rstrip()
+    return query
+
+
 def _run(sql: str):
     """Run ``sql`` on a private DuckDB connection; return a pyarrow Table."""
     import duckdb
@@ -279,8 +312,10 @@ class OmniIODataset(BaseDataset):
         )
         params = dict(params or {})
         if "{dump_root}" in query and "dump_root" not in params:
-            params["dump_root"] = resolve_dump_root(dump_root)
-        self.query = render_query(query, params)
+            # {dump_root} sits inside SQL string literals ('{dump_root}/...'),
+            # so quote any apostrophe in the path. Other params are raw SQL.
+            params["dump_root"] = _sql_string(resolve_dump_root(dump_root))
+        self.query = _strip_trailing_semicolon(render_query(query, params))
         # None (not 1) when unsharded: DataLoaderBuilder shards any dataset
         # whose total_shards is set.
         sharded = total_shards is not None and int(total_shards) > 1
@@ -326,12 +361,13 @@ class OmniIODataset(BaseDataset):
         return layout
 
     def _rows_sql(self) -> str:
+        """Return the query for this dataset's rows: all, or one shard's."""
         if self.shard_idx is None:
             return self.query
         return (
             f"SELECT * FROM ({self.query}) AS q "
-            f'WHERE hash(q."{self.shard_by}") % {self.total_shards} '
-            f"= {self.shard_idx}"
+            f"WHERE hash(q.{_sql_identifier(self.shard_by)}) "
+            f"% {self.total_shards} = {self.shard_idx}"
         )
 
     def _columns(self, table) -> dict[str, Any]:
@@ -358,6 +394,7 @@ class OmniIODataset(BaseDataset):
         return index
 
     def _ensure_index(self) -> dict[str, Any]:
+        """Fetch the rows into the in-memory index once; return the index."""
         if self._index is None:
             table = _run(self._rows_sql())
             self._index = self._columns(table)
@@ -409,6 +446,7 @@ class OmniIODataset(BaseDataset):
     # ------------------------------------------------------------------ #
 
     def _decode(self, name: str, row: Mapping[str, Any]) -> Any:
+        """Decode field ``name`` from its inline value or blob byte range."""
         from omniio.interface import audio_read, text_read
 
         if self._layout[name] == "inline":
@@ -438,15 +476,18 @@ class OmniIODataset(BaseDataset):
         return self._decode(name, row)
 
     def _first_item(self) -> dict[str, Any]:
-        """Return item 0 from a ``LIMIT 1`` query, without building the index."""
+        """Return item 0 from a ``LIMIT 1`` query, without building the index.
+
+        Only the raw row is cached; it is decoded (and transformed) on every
+        call, like any other item.
+        """
         if self._head is None:
             row = _run(f"SELECT * FROM ({self._rows_sql()}) AS q LIMIT 1")
             if row.num_rows == 0:
                 raise IndexError("The query returned no rows.")
             row = row.to_pylist()[0]
-            self._head = {}
-            for name, kind in self._layout.items():
-                fields = (
+            self._head = {
+                name: (
                     {name: row[name]}
                     if kind == "inline"
                     else {
@@ -455,13 +496,27 @@ class OmniIODataset(BaseDataset):
                         "size": row[f"{name}_size"],
                     }
                 )
-                self._head[name] = self._decode(name, fields)
-        return dict(self._head)
+                for name, kind in self._layout.items()
+            }
+        return {name: self._decode(name, raw) for name, raw in self._head.items()}
 
     def get_by_id(self, item_id: str) -> dict[str, Any]:
-        """Return the item whose ID is ``item_id``."""
+        """Return the item whose ID is ``item_id``.
+
+        Raises:
+            ValueError: If the query returns the same ID more than once.
+            KeyError: If no row has ID ``item_id``.
+        """
         if self._id_to_index is None:
-            self._id_to_index = {uid: i for i, uid in enumerate(self.keys())}
+            keys = self.keys()
+            id_to_index = {uid: i for i, uid in enumerate(keys)}
+            if len(id_to_index) != len(keys):
+                ids, counts = np.unique(keys, return_counts=True)
+                raise ValueError(
+                    "The query returns duplicate IDs, so items cannot be "
+                    f"looked up by ID: {ids[counts > 1][:5].tolist()}"
+                )
+            self._id_to_index = id_to_index
         return self[self._id_to_index[item_id]]
 
     def __getitem__(self, idx: int | str) -> dict[str, Any]:

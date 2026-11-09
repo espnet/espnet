@@ -5,7 +5,7 @@ from __future__ import annotations
 from pathlib import Path
 from typing import List
 
-from egs3.librispeech_100.esp2_asr_omniio.dataset.builder import resolve_dump_root
+from egs3.librispeech_100.esp2_asr.dataset.omniio.builder import resolve_dump_root
 from espnet3.components.data.omniio_dataset import OmniIODataset
 
 TEXT_QUERY = """

@@ -1,9 +1,9 @@
 """LibriSpeech 100h dataset module backed by an omniio dump."""
 
-from egs3.librispeech_100.esp2_asr_omniio.dataset.builder import (
+from egs3.librispeech_100.esp2_asr.dataset.omniio.builder import (
     LibriSpeech100OmniIOBuilder as DatasetBuilder,
 )
-from egs3.librispeech_100.esp2_asr_omniio.dataset.dataset import (
+from egs3.librispeech_100.esp2_asr.dataset.omniio.dataset import (
     LibriSpeech100OmniIODataset as Dataset,
 )
 

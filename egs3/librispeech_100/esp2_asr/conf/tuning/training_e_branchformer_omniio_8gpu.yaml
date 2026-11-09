@@ -1,7 +1,7 @@
 ##########################################################
-#         TRAINING SETTING: 8 GPUs ON ONE NODE           #
+#     TRAINING SETTING: OMNIIO, 8 GPUs ON ONE NODE       #
 ##########################################################
-# training_e_branchformer.yaml on one 8-GPU node, with the same effective
+# training_e_branchformer_omniio.yaml on one 8-GPU node, with the same effective
 # batch per optimizer update:
 #   base: 1 GPU  x 3.8M batch_bins x accumulate 4 = 15.2M
 #   here: 8 GPUs x 1.9M batch_bins x accumulate 1 = 15.2M
@@ -9,9 +9,9 @@
 # The training index is sharded 8 ways (total_shards follows num_device).
 #
 #   python run.py --stages train \
-#       --training_config conf/tuning/training_e_branchformer_8gpu.yaml
+#       --training_config conf/tuning/training_e_branchformer_omniio_8gpu.yaml
 defaults:
-  - training_e_branchformer
+  - training_e_branchformer_omniio
   - _self_
 
 num_device: 8

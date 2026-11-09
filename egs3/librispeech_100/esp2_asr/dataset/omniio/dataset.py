@@ -6,7 +6,7 @@ from importlib import resources
 from pathlib import Path
 from typing import Any, Mapping
 
-from egs3.librispeech_100.esp2_asr_omniio.dataset.builder import resolve_dump_root
+from egs3.librispeech_100.esp2_asr.dataset.omniio.builder import resolve_dump_root
 from espnet3.components.data.omniio_dataset import OmniIODataset
 from espnet3.utils.config_utils import load_config_with_defaults
 
@@ -23,7 +23,9 @@ class LibriSpeech100OmniIODataset(OmniIODataset):
         query: DuckDB query over the omniio dump; see
             :class:`~espnet3.components.data.omniio_dataset.OmniIODataset`
             for the columns it must return. Defaults to ``default_query`` in
-            ``dataset/config.yaml``, one split joined on utterance ID.
+            ``dataset/omniio/config.yaml``, one split joined on utterance ID.
+        split: Shorthand for ``params={"split": split}``, so entries read
+            like those of the raw-LibriSpeech dataset.
         params: Values for the query's ``{name}`` placeholders, e.g.
             ``{"split": "dev-clean"}``.
         dump_root: omniio dump root for ``{dump_root}``; defaults to
@@ -36,7 +38,7 @@ class LibriSpeech100OmniIODataset(OmniIODataset):
 
     Examples:
         >>> ds = LibriSpeech100OmniIODataset(
-        ...     params={"split": "dev-clean"}
+        ...     split="dev-clean"
         ... )  # doctest: +SKIP
         >>> sorted(ds[0])  # doctest: +SKIP
         ['speech', 'text']
@@ -45,6 +47,7 @@ class LibriSpeech100OmniIODataset(OmniIODataset):
     def __init__(
         self,
         query: str | None = None,
+        split: str | None = None,
         params: Mapping[str, Any] | None = None,
         dump_root: str | Path | None = None,
         recipe_dir: str | Path | None = None,
@@ -53,6 +56,9 @@ class LibriSpeech100OmniIODataset(OmniIODataset):
         shard_by: str = "id",
     ) -> None:
         """Run ``query`` (or the default one) against the dump."""
+        params = dict(params or {})
+        if split is not None:
+            params.setdefault("split", split)
         super().__init__(
             query=query or DEFAULT_QUERY,
             fields={"speech": "audio", "text": "text"},

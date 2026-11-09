@@ -46,7 +46,7 @@ _CFG = _load_builder_config()
 CORPUS = str(_CFG["corpus"])
 SPLITS: dict[str, str] = {str(k): str(v) for k, v in _CFG["splits"].items()}
 
-_DEFAULT_RECIPE_ROOT = Path(__file__).resolve().parents[1]
+_DEFAULT_RECIPE_ROOT = Path(__file__).resolve().parents[2]
 
 
 def _recipe_root(recipe_dir: str | Path | None) -> Path:
@@ -88,7 +88,10 @@ def scan_split(split_dir: Path) -> list[tuple[str, Path, str]]:
     examples = []
     for trans in sorted(split_dir.rglob("*.trans.txt")):
         for line in trans.read_text(encoding="utf-8").splitlines():
-            utt_id, *words = line.strip().split()
+            fields = line.split()
+            if not fields:
+                continue
+            utt_id, *words = fields
             if not words:
                 continue
             flac = trans.parent / f"{utt_id}.flac"
