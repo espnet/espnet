@@ -93,6 +93,37 @@ def test_add_arguments(parser):
     AbsTask.get_parser()
 
 
+def test_add_augmentation_arguments_defaults():
+    parser = argparse.ArgumentParser()
+    AbsTask.add_augmentation_arguments(parser)
+    args = parser.parse_args([])
+    assert vars(args) == dict(
+        rir_scp=None,
+        rir_apply_prob=1.0,
+        noise_scp=None,
+        noise_apply_prob=1.0,
+        noise_db_range="13_15",
+        short_noise_thres=0.5,
+    )
+
+
+def test_add_augmentation_arguments_parses_values():
+    parser = argparse.ArgumentParser()
+    AbsTask.add_augmentation_arguments(parser)
+    args = parser.parse_args(
+        ["--rir_scp", "rir.scp", "--noise_scp", "none", "--noise_apply_prob", "0.3"]
+    )
+    assert args.rir_scp == "rir.scp"
+    assert args.noise_scp is None
+    assert args.noise_apply_prob == 0.3
+
+
+def test_add_augmentation_arguments_without_short_noise_thres():
+    parser = argparse.ArgumentParser()
+    AbsTask.add_augmentation_arguments(parser, short_noise_thres=False)
+    assert "short_noise_thres" not in vars(parser.parse_args([]))
+
+
 def test_add_arguments_help():
     parser = AbsTask.get_parser()
     with pytest.raises(SystemExit):

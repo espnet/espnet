@@ -14,6 +14,10 @@ label_aggregator_conf:
     hop_length: 128
     center: false
 
+# No utterance MVN (the task default), which reads the whole utterance;
+# diar.sh passes --normalize global_mvn, whose statistics are fixed.
+normalize: null
+
 encoder: tcn
 encoder_conf:
     output_size: 8
@@ -22,7 +26,7 @@ encoder_conf:
     kernel_size: 3
     num_blocks: 2
     num_repeats: 1
-    causal: true
+    future_taps: 0       # no tap after the current frame: causal
 
 decoder: linear
 
