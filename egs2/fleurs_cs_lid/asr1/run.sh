@@ -8,7 +8,8 @@ set -o pipefail
 # the full fine-tuning config and --pretrained_model (see README.md).
 # local/score_lidseq.py then scores the decoded language sets.
 data=fleurs_csfleurs    # training data: fleurs | fleurs_csfleurs | fleurs_csfleurs_csyodas
-asr_config=             # default: conf/tuning/train_mms_transformer[_pit]_${data}_frozen.yaml
+                        # (the configs are set for fleurs_csfleurs, see README.md)
+asr_config=conf/tuning/train_mms_transformer_pit_frozen.yaml
 pretrained_model=       # model to initialise from (asr.sh --pretrained_model)
 inference_config=conf/decode.yaml
 inference_asr_model=valid.loss.best.pth
@@ -25,16 +26,18 @@ stop_stage=15
 # Data view, feature type and duration bound used for the published models;
 # the data directories are shared with ../lid1 (local/data.sh).
 case "${data}" in
-    fleurs) view=fleurs; feats_type=raw; max_wav_duration=30
-        config_name=train_mms_transformer_fleurs ;;
-    fleurs_csfleurs) view=cs; feats_type=raw; max_wav_duration=30
-        config_name=train_mms_transformer_pit_fleurs_csfleurs ;;
-    fleurs_csfleurs_csyodas) view=csyodas; feats_type=raw_copy; max_wav_duration=70
-        config_name=train_mms_transformer_pit_fleurs_csfleurs_csyodas ;;
+    fleurs) view=fleurs; feats_type=raw; max_wav_duration=30 ;;
+    fleurs_csfleurs) view=cs; feats_type=raw; max_wav_duration=30 ;;
+    fleurs_csfleurs_csyodas) view=csyodas; feats_type=raw_copy; max_wav_duration=70 ;;
     *) echo "Error: unknown --data ${data}" >&2; exit 1 ;;
 esac
-[ -n "${asr_config}" ] || asr_config=conf/tuning/${config_name}_frozen.yaml
-asr_tag=$(basename "${asr_config}" .yaml)_${feats_type}
+if [ "${data}" != fleurs_csfleurs ] && [ "${stage}" -le 11 ] && [ "${stop_stage}" -ge 11 ] \
+    && [[ "${asr_config}" == conf/tuning/train_mms_transformer_pit*.yaml ]]; then
+    echo "Error: ${asr_config} is set for --data fleurs_csfleurs;" \
+        "give a copy with the values in README.md as --asr_config" >&2
+    exit 1
+fi
+asr_tag=$(basename "${asr_config}" .yaml)_${data}_${feats_type}
 inference_tag="$(basename "${inference_config}" .yaml)_asr_model_${inference_asr_model%.*}"
 
 train_set=train_fleurscs_${view}

@@ -6,12 +6,13 @@ set -o pipefail
 # Language identification of utterances with one or two languages.
 #   head: softmax_hard (one class per language or atomic language pair),
 #         softmax_soft (soft targets, KL loss), sigmoid (multi-hot targets, BCE loss)
-#   data: fleurs | fleurs_csfleurs | fleurs_csfleurs_csyodas
+#   data: fleurs | fleurs_csfleurs | fleurs_csfleurs_csyodas (training data only: the
+#         configs are set for fleurs_csfleurs, see README.md for the other values)
 # Stage 7 of lid.sh scores the exact language-set accuracy with local/score.py;
 # the union of the four CS-FLEURS test sets is scored after lid.sh.
 head=sigmoid
 data=fleurs_csfleurs
-lid_config=             # default: conf/tuning/train_mms_ecapa_${head}_${data}.yaml
+lid_config=             # default: conf/tuning/train_mms_ecapa_${head}.yaml
 lid_tag=
 inference_model=valid.accuracy.best.pth
 inference_batch_size=4
@@ -37,9 +38,16 @@ case "${head}" in
     sigmoid) lid_label_file=utt2langs; pair= ;;
     *) echo "Error: unknown --head ${head}" >&2; exit 1 ;;
 esac
-[ -n "${lid_config}" ] || lid_config=conf/tuning/train_mms_ecapa_${head}_${data}.yaml
+if [ -z "${lid_config}" ]; then
+    lid_config=conf/tuning/train_mms_ecapa_${head}.yaml
+    if [ "${data}" != fleurs_csfleurs ] && [ "${stage}" -le 5 ] && [ "${stop_stage}" -ge 5 ]; then
+        echo "Error: ${lid_config} is set for --data fleurs_csfleurs;" \
+            "give --lid_config with the values in README.md" >&2
+        exit 1
+    fi
+fi
 [ -f "${lid_config}" ] || { echo "Error: ${lid_config} not found" >&2; exit 1; }
-[ -n "${lid_tag}" ] || lid_tag=$(basename "${lid_config}" .yaml)_${feats_type}
+[ -n "${lid_tag}" ] || lid_tag=$(basename "${lid_config}" .yaml)_${data}_${feats_type}
 
 # Data directories are <split>_fleurscs_<view>[_pair] (local/prepare_fleurs_cs_lid_data.py);
 # FLEURS utterances are single-language, so the FLEURS-only sets have no pair view.

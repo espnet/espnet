@@ -1,3 +1,5 @@
+"""Tests for PITAttESPnetModel."""
+
 import itertools
 
 import pytest
@@ -7,6 +9,7 @@ from espnet2.asr.ctc import CTC
 from espnet2.asr.decoder.abs_decoder import AbsDecoder
 from espnet2.asr.decoder.linear_decoder import LinearDecoder
 from espnet2.asr.espnet_model import ESPnetASRModel
+from espnet2.asr.pit_att_espnet_model import PITAttESPnetModel
 from espnet2.legacy.nets.pytorch_backend.transformer.add_sos_eos import add_sos_eos
 from espnet2.legacy.nets.pytorch_backend.transformer.label_smoothing_loss import (
     LabelSmoothingLoss,
@@ -43,8 +46,8 @@ class TinyDecoder(AbsDecoder):
         return self.output(hidden), None
 
 
-def build_model(**options):
-    """Build a tiny attention-only ESPnetASRModel with optional overrides."""
+def build_model(model_class=PITAttESPnetModel, **options):
+    """Build a tiny attention-only model with optional overrides."""
     args = dict(
         vocab_size=5,
         token_list=["<blank>", "<eng>", "<ara>", "<jpn>", "<sos/eos>"],
@@ -63,13 +66,13 @@ def build_model(**options):
         report_wer=False,
     )
     args.update(options)
-    return ESPnetASRModel(**args)
+    return model_class(**args)
 
 
 @pytest.mark.parametrize("normalize_length", [False, True])
 def test_pit_loss_takes_per_utterance_minimum(normalize_length):
-    """The PIT loss is the per-utterance min over all orders of its tokens."""
-    model = build_model(pit_loss=True, length_normalized_loss=normalize_length)
+    """The loss is the per-utterance min over all orders of its tokens."""
+    model = build_model(length_normalized_loss=normalize_length)
     encoder_out = torch.randn(3, 4, 4)
     targets = [[1, 2, 3], [2, 1], [3]]
     # Without length normalization, a batch of one gives the utterance sum
@@ -103,27 +106,20 @@ def test_pit_loss_takes_per_utterance_minimum(normalize_length):
     torch.testing.assert_close(loss, expected)
 
 
-@pytest.mark.parametrize("options", [{}, {"pit_loss": False}])
-def test_pit_loss_off_uses_original_ordered_criterion(options):
-    """Without pit_loss the plain ordered label-smoothing loss is used."""
-    model = build_model(**options)
-    encoder_out = torch.randn(2, 3, 4)
-    targets = torch.tensor([[1, 2], [3, -1]])
-    lengths = torch.tensor([2, 1])
-    loss, _, _, _ = model._calc_att_loss(
-        encoder_out, torch.tensor([3, 3]), targets, lengths
-    )
-    assert model.decoder.calls == 1
-    inputs, outputs = add_sos_eos(targets, model.sos, model.eos, model.ignore_id)
-    logits, _ = model.decoder(encoder_out, torch.tensor([3, 3]), inputs, lengths + 1)
-    torch.testing.assert_close(
-        loss, model.criterion_att(logits, outputs), rtol=0, atol=0
-    )
+def test_pit_loss_equals_ordered_loss_for_one_token_targets():
+    """With 1-token targets the loss equals that of ESPnetASRModel."""
+    model = build_model()
+    base = build_model(ESPnetASRModel, decoder=model.decoder)
+    args = (torch.randn(2, 3, 4), torch.tensor([3, 3]))
+    targets = (torch.tensor([[1], [3]]), torch.tensor([1, 1]))
+    loss, _, _, _ = model._calc_att_loss(*args, *targets)
+    base_loss, _, _, _ = base._calc_att_loss(*args, *targets)
+    torch.testing.assert_close(loss, base_loss)
 
 
 def test_pit_loss_runs_decoder_twice_only_for_two_token_targets():
     """The swapped-order decoder pass is skipped for all 1-token batches."""
-    model = build_model(pit_loss=True)
+    model = build_model()
     encoder_out = torch.randn(2, 3, 4)
     model._calc_att_loss(
         encoder_out,
@@ -147,7 +143,7 @@ def test_pit_loss_accuracy_uses_the_chosen_order():
     logits = torch.full((2, 3, 5), -10.0)
     logits[0, torch.arange(3), torch.tensor([2, 1, 4])] = 10.0
     logits[1, torch.arange(3), torch.tensor([1, 2, 4])] = 10.0
-    model = build_model(pit_loss=True, lsm_weight=0.0, decoder=FixedDecoder(logits))
+    model = build_model(lsm_weight=0.0, decoder=FixedDecoder(logits))
     loss, accuracy, _, _ = model._calc_att_loss(
         torch.zeros(2, 2, 4),
         torch.tensor([2, 2]),
@@ -158,17 +154,37 @@ def test_pit_loss_accuracy_uses_the_chosen_order():
     assert accuracy == 1.0
 
 
+@pytest.mark.parametrize("max_pit_tokens", [1, 2, 3])
+def test_max_pit_tokens(max_pit_tokens):
+    """Targets of max_pit_tokens tokens work and longer ones raise an error."""
+    model = build_model(max_pit_tokens=max_pit_tokens)
+    encoder_out = torch.randn(1, 3, 4)
+    for length in (max_pit_tokens, max_pit_tokens + 1):
+        args = (
+            encoder_out,
+            torch.tensor([3]),
+            torch.tensor([[1, 2, 3, 1][:length]]),
+            torch.tensor([length]),
+        )
+        if length > max_pit_tokens:
+            with pytest.raises(ValueError, match="exceeds max_pit_tokens"):
+                model._calc_att_loss(*args)
+        else:
+            loss, _, _, _ = model._calc_att_loss(*args)
+            assert torch.isfinite(loss)
+
+
 @pytest.mark.parametrize(
     "options,message",
     [
         ({"ctc_weight": 0.5}, "attention-only"),
-        ({"joint_network": torch.nn.Linear(4, 5)}, "not a transducer"),
-        ({"decoder": LinearDecoder(5, 4)}, "not LinearDecoder"),
-        ({"lang_token_id": 1}, "does not support lang_token_id"),
+        ({"joint_network": torch.nn.Linear(4, 5)}, "transducer"),
+        ({"decoder": LinearDecoder(5, 4)}, "LinearDecoder"),
+        ({"lang_token_id": 1}, "lang_token_id"),
     ],
     ids=["ctc", "transducer", "linear_decoder", "lang_token_id"],
 )
-def test_pit_loss_rejects_unsupported_options(options, message):
-    """pit_loss with CTC, a transducer, LinearDecoder or lang_token_id is rejected."""
+def test_rejects_unsupported_options(options, message):
+    """CTC, a transducer, LinearDecoder and lang_token_id are rejected."""
     with pytest.raises(ValueError, match=message):
-        build_model(pit_loss=True, **options)
+        build_model(**options)

@@ -1,4 +1,5 @@
-# Multi-hot targets, BCE loss with positive weight 50, trained on FLEURS + CS-FLEURS + CS-YODAS.
+# Multi-hot targets, BCE loss with positive weight 50.
+# Set for FLEURS + CS-FLEURS; README.md lists the values for the other data.
 # MMS-1B (S3PRL, learned layer weights) + ECAPA-TDNN; batch_size * accum_grad = 32.
 frontend: s3prl
 frontend_conf:
@@ -56,11 +57,11 @@ seed: 3702
 iterator_type: category
 valid_iterator_type: category
 batch_type: catbel
-batch_size: 8
-valid_batch_size: 8
-accum_grad: 4
+batch_size: 4
+valid_batch_size: 4
+accum_grad: 8
 max_epoch: 30
-num_iters_per_epoch: 4120
+num_iters_per_epoch: 7760
 drop_last_iter: true
 
 optim: adam
@@ -71,7 +72,7 @@ optim_conf:
   - 0.98
 scheduler: tristagelr
 scheduler_conf:
-  max_steps: 30900
+  max_steps: 29100
   warmup_ratio: 0.1
   hold_ratio: 0.2
   decay_ratio: 0.7

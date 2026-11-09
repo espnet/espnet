@@ -6,7 +6,7 @@ models use the pretrained [MMS-1B](https://huggingface.co/facebook/mms-1b)
 and [ECAPA-TDNN](https://arxiv.org/pdf/2005.07143) as the embedding extractor,
 with three output heads:
 
-| Head (`conf/tuning/train_mms_ecapa_<head>_*.yaml`) | Target | Loss |
+| Head (`conf/tuning/train_mms_ecapa_<head>.yaml`) | Target | Loss |
 | --- | --- | --- |
 | `softmax_hard` | one class per language; a code-switched pair such as `ara-eng` is one atomic class | AAM-Softmax (sub-center) |
 | `softmax_soft` | one-hot for one language, 0.5/0.5 for two languages | AAM-Softmax (sub-center) + KL divergence |
@@ -15,10 +15,11 @@ with three output heads:
 The head and the training data are selected with `run.sh --head <head> --data
 <data>`, where `<data>` is `fleurs` (102 languages), `fleurs_csfleurs` (+ 16
 code-switched pairs from CS-FLEURS XTTS-train) or `fleurs_csfleurs_csyodas` (+
-six base-language/English pairs from CS-YODAS). The config is
-`conf/tuning/train_mms_ecapa_<head>_<data>.yaml`. The default (`sigmoid`,
-`fleurs_csfleurs`) is also `conf/train.yaml`. The companion `../asr1` recipe trains encoder-decoder
-models that generate the language set as a token sequence.
+six base-language/English pairs from CS-YODAS). The config of each head is set
+for `fleurs_csfleurs`; the values to change for the other training data are
+listed under [Usage](#usage). The default config (`sigmoid`) is also
+`conf/train.yaml`. The companion `../asr1` recipe trains encoder-decoder models
+that generate the language set as a token sequence.
 
 ## Data
 
@@ -44,18 +45,31 @@ models). Train and valid utterances keep `1 s <= duration < 30 s` (CS-YODAS:
 ```bash
 # default: sigmoid head, FLEURS + CS-FLEURS
 ./run.sh
-# other systems
-./run.sh --head softmax_hard --data fleurs_csfleurs_csyodas --ngpu 2
-# a custom config
-./run.sh --head sigmoid --data fleurs_csfleurs --lid_config conf/my_config.yaml
+# another head
+./run.sh --head softmax_soft
+# other training data, with a copy of the config that has the values below
+./run.sh --head softmax_hard --data fleurs_csfleurs_csyodas \
+    --lid_config conf/train_softmax_hard_csyodas.yaml --ngpu 2
 ```
+
+| Head | Training data | `batch_size` | `accum_grad` | `num_iters_per_epoch` | `scheduler_conf.max_steps` |
+| --- | --- | ---: | ---: | ---: | ---: |
+| `sigmoid` | FLEURS | 16 | 2 | 1680 | 25200 |
+| `sigmoid` | FLEURS + CS-FLEURS + CS-YODAS | 8 | 4 | 4120 | 30900 |
+| `softmax_hard` | FLEURS | 8 | 4 | 3360 | 25200 |
+| `softmax_hard` | FLEURS + CS-FLEURS + CS-YODAS | 4 | 8 | 8240 | 30900 |
+| `softmax_soft` | FLEURS + CS-FLEURS + CS-YODAS | 8 | 4 | 8240 | 30900 |
+
+`valid_batch_size` equals `batch_size`; all other values are those of the
+config.
 
 `run.sh` calls `lid.sh` with the training view, label file and feature type of
 the selected system. Stage 7 of `lid.sh` runs `local/score.py`, which computes
-the exact language-set accuracy from the stage-6 embeddings (top-1 for
-FLEURS, top-2 for the code-switched sets, expanded atomic class for
-`softmax_hard` models); `run.sh` then scores the union of the CS-FLEURS test
-sets.
+the exact language-set accuracy from the stage-6 embeddings. The number of
+predicted languages is taken from the reference (`k = len(ref)`), so the system
+is not asked to predict how many languages there are; models with atomic pair
+classes (`softmax_hard`) take the top-1 class, expanded to its languages.
+`run.sh` then scores the union of the CS-FLEURS test sets.
 
 Each model was trained on one, two or four A6000 GPUs. `batch_size` is the
 global batch that is split over the GPUs, so the effective batch size is
@@ -69,16 +83,16 @@ parameter updates and stay the same.
 
 All models are released under CC-BY-NC-4.0 (the MMS-1B backbone is CC-BY-NC-4.0).
 
-| Config (`conf/tuning/`) | Data | HF repo |
+| Head | Training data | HF repo |
 | --- | --- | --- |
-| `train_mms_ecapa_softmax_hard_fleurs.yaml` | FLEURS | [shun3232/mms1b-lid-softmax-hard-fleurs](https://huggingface.co/shun3232/mms1b-lid-softmax-hard-fleurs) |
-| `train_mms_ecapa_softmax_hard_fleurs_csfleurs.yaml` | FLEURS + CS-FLEURS | [shun3232/mms1b-lid-softmax-hard-fleurs-csfleurs](https://huggingface.co/shun3232/mms1b-lid-softmax-hard-fleurs-csfleurs) |
-| `train_mms_ecapa_softmax_hard_fleurs_csfleurs_csyodas.yaml` | FLEURS + CS-FLEURS + CS-YODAS | [shun3232/mms1b-lid-softmax-hard-fleurs-csfleurs-csyodas](https://huggingface.co/shun3232/mms1b-lid-softmax-hard-fleurs-csfleurs-csyodas) |
-| `train_mms_ecapa_softmax_soft_fleurs_csfleurs.yaml` | FLEURS + CS-FLEURS | [shun3232/mms1b-lid-softmax-soft-fleurs-csfleurs](https://huggingface.co/shun3232/mms1b-lid-softmax-soft-fleurs-csfleurs) |
-| `train_mms_ecapa_softmax_soft_fleurs_csfleurs_csyodas.yaml` | FLEURS + CS-FLEURS + CS-YODAS | [shun3232/mms1b-lid-softmax-soft-fleurs-csfleurs-csyodas](https://huggingface.co/shun3232/mms1b-lid-softmax-soft-fleurs-csfleurs-csyodas) |
-| `train_mms_ecapa_sigmoid_fleurs.yaml` | FLEURS | [shun3232/mms1b-lid-sigmoid-fleurs](https://huggingface.co/shun3232/mms1b-lid-sigmoid-fleurs) |
-| `train_mms_ecapa_sigmoid_fleurs_csfleurs.yaml` (`conf/train.yaml`) | FLEURS + CS-FLEURS | [shun3232/mms1b-lid-sigmoid-fleurs-csfleurs](https://huggingface.co/shun3232/mms1b-lid-sigmoid-fleurs-csfleurs) |
-| `train_mms_ecapa_sigmoid_fleurs_csfleurs_csyodas.yaml` | FLEURS + CS-FLEURS + CS-YODAS | [shun3232/mms1b-lid-sigmoid-fleurs-csfleurs-csyodas](https://huggingface.co/shun3232/mms1b-lid-sigmoid-fleurs-csfleurs-csyodas) |
+| `softmax_hard` | FLEURS | [espnet/mms1b-lid-softmax-hard-fleurs](https://huggingface.co/espnet/mms1b-lid-softmax-hard-fleurs) |
+| `softmax_hard` | FLEURS + CS-FLEURS | [espnet/mms1b-lid-softmax-hard-fleurs-csfleurs](https://huggingface.co/espnet/mms1b-lid-softmax-hard-fleurs-csfleurs) |
+| `softmax_hard` | FLEURS + CS-FLEURS + CS-YODAS | [espnet/mms1b-lid-softmax-hard-fleurs-csfleurs-csyodas](https://huggingface.co/espnet/mms1b-lid-softmax-hard-fleurs-csfleurs-csyodas) |
+| `softmax_soft` | FLEURS + CS-FLEURS | [espnet/mms1b-lid-softmax-soft-fleurs-csfleurs](https://huggingface.co/espnet/mms1b-lid-softmax-soft-fleurs-csfleurs) |
+| `softmax_soft` | FLEURS + CS-FLEURS + CS-YODAS | [espnet/mms1b-lid-softmax-soft-fleurs-csfleurs-csyodas](https://huggingface.co/espnet/mms1b-lid-softmax-soft-fleurs-csfleurs-csyodas) |
+| `sigmoid` | FLEURS | [espnet/mms1b-lid-sigmoid-fleurs](https://huggingface.co/espnet/mms1b-lid-sigmoid-fleurs) |
+| `sigmoid` | FLEURS + CS-FLEURS (`conf/train.yaml`) | [espnet/mms1b-lid-sigmoid-fleurs-csfleurs](https://huggingface.co/espnet/mms1b-lid-sigmoid-fleurs-csfleurs) |
+| `sigmoid` | FLEURS + CS-FLEURS + CS-YODAS | [espnet/mms1b-lid-sigmoid-fleurs-csfleurs-csyodas](https://huggingface.co/espnet/mms1b-lid-sigmoid-fleurs-csfleurs-csyodas) |
 
 ## Results
 
@@ -124,28 +138,31 @@ CS-FLEURS all is the union of the four CS-FLEURS test sets.
 
 ## Using a released model
 
-Each HF repository is the model packed by `lid.sh` stage 9, in the layout of
-this recipe: `exp/lid_<config name>_<feats_type>/` (`config.yaml` and
-the checkpoint) and the class list
-`dump/<feats_type>/<train_set>/lang2utt` read by the config. Language ids and
-per-utterance embeddings of a data directory, with the repository cloned in this
-recipe directory and run from its root:
+This prints the top-2 languages, as `local/score.py` scores a two-language
+utterance (`topk(1)` for one language; for `softmax_hard`, whose classes
+include pairs such as `ara-eng`, take `topk(1)`).
 
-```bash
-git clone https://huggingface.co/shun3232/mms1b-lid-sigmoid-fleurs-csfleurs  # needs git-lfs
-cd mms1b-lid-sigmoid-fleurs-csfleurs
-exp=exp/lid_train_mms_ecapa_sigmoid_fleurs_csfleurs_raw
-out=${exp}/inference/30epoch/test_fleurscs_cs_read
-mkdir -p ${out}
-python -m espnet2.bin.lid_inference --ngpu 1 --output_dir ${out} \
-    --data_path_and_name_and_type ../dump/raw/test_fleurscs_cs_read/wav.scp,speech,sound \
-    --lid_train_config ${exp}/config.yaml --lid_model_file ${exp}/30epoch.pth \
-    --use_preprocessor false --fix_duration false --extract_embd true \
-    --save_embd_per_utt true --save_embd_avg_lang false --save_tsne_plot false
+```python
+import soundfile as sf
+import torch
+import torch.nn.functional as F
+from espnet_model_zoo.downloader import ModelDownloader
+from espnet2.tasks.lid import LIDTask
+
+files = ModelDownloader().download_and_unpack("espnet/mms1b-lid-sigmoid-fleurs-csfleurs")
+model, args = LIDTask.build_model_from_file(files["train_config"], files["model_file"])
+languages = [line.split()[0] for line in open(args.lang2utt)]
+
+speech, _ = sf.read("speech.wav", dtype="float32")  # 16 kHz mono
+with torch.inference_mode():
+    embd, _ = model.eval()(torch.tensor(speech)[None], torch.tensor([len(speech)]), extract_embd=True)
+    scores = (F.normalize(embd) @ F.normalize(model.loss.weight).T).view(len(languages), -1).amax(1)
+print([languages[i] for i in scores.topk(2).indices])  # e.g. ['spa', 'eng']
 ```
 
 To score a released model as in the tables, prepare the data
-(`./run.sh --stop_stage 3`), copy its `exp/lid_*` directory into `exp/` and run
+(`./run.sh --stop_stage 3`), copy the directory of `files["model_file"]` into
+`exp/` (`cp -rL`; its name is the default `lid_tag` of `run.sh`) and run
 `./run.sh --stage 6 --stop_stage 7` with the matching `--head`, `--data` and
 `--inference_model <checkpoint>`.
 

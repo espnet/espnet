@@ -20,6 +20,10 @@ from espnet2.layers.abs_normalize import AbsNormalize
 from espnet2.layers.global_mvn import GlobalMVN
 from espnet2.layers.utterance_mvn import UtteranceMVN
 from espnet2.lid.espnet_model import ESPnetLIDModel
+from espnet2.lid.loss.aamsoftmax_subcenter_intertopk import (
+    ArcMarginProduct_intertopk_subcenter_multilabel,
+    ArcMarginProduct_intertopk_subcenter_softtarget,
+)
 from espnet2.spk.encoder.conformer_encoder import MfaConformerEncoder
 from espnet2.spk.encoder.ecapa_tdnn_encoder import EcapaTdnnEncoder
 from espnet2.spk.encoder.identity_encoder import IdentityEncoder
@@ -29,8 +33,6 @@ from espnet2.spk.encoder.xvector_encoder import XvectorEncoder
 from espnet2.spk.loss.aamsoftmax import AAMSoftmax
 from espnet2.spk.loss.aamsoftmax_subcenter_intertopk import (
     ArcMarginProduct_intertopk_subcenter,
-    ArcMarginProduct_intertopk_subcenter_multilabel,
-    ArcMarginProduct_intertopk_subcenter_softtarget,
 )
 from espnet2.spk.loss.abs_loss import AbsLoss
 from espnet2.spk.loss.softmax import Softmax

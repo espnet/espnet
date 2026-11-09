@@ -5,11 +5,13 @@ import pytest
 import torch
 
 from espnet2.lid.espnet_model import ESPnetLIDModel
+from espnet2.lid.loss.aamsoftmax_subcenter_intertopk import (
+    ArcMarginProduct_intertopk_subcenter_multilabel,
+    ArcMarginProduct_intertopk_subcenter_softtarget,
+)
 from espnet2.spk.encoder.identity_encoder import IdentityEncoder
 from espnet2.spk.loss.aamsoftmax_subcenter_intertopk import (
     ArcMarginProduct_intertopk_subcenter,
-    ArcMarginProduct_intertopk_subcenter_multilabel,
-    ArcMarginProduct_intertopk_subcenter_softtarget,
 )
 from espnet2.spk.pooling.mean_pooling import MeanPooling
 from espnet2.tasks.lid import LIDTask

@@ -1,6 +1,8 @@
-# Phase 1 on FLEURS + CS-FLEURS: MMS-1B frozen (its layer weights are trained), lr 1e-3.
+# Phase 1: MMS-1B frozen (its layer weights are trained), lr 1e-3.
+# Set for FLEURS + CS-FLEURS; README.md lists the values for the other data.
 # MMS-1B (S3PRL, learned layer weights) + 24-layer Transformer encoder (d=256) +
-# 4-layer Transformer decoder, attention loss only; batch_size * accum_grad = 32.
+# 4-layer Transformer decoder, permutation-invariant attention loss only;
+# batch_size * accum_grad = 32.
 frontend: s3prl
 frontend_conf:
   fs: 16k
@@ -32,12 +34,13 @@ decoder_conf:
   positional_dropout_rate: 0.1
   self_attention_dropout_rate: 0.0
   src_attention_dropout_rate: 0.0
+model: pit_att_espnet
 model_conf:
   extract_feats_in_collect_stats: false
   ctc_weight: 0.0
   lsm_weight: 0.1
   length_normalized_loss: false
-  pit_loss: true
+  max_pit_tokens: 3
 freeze_param:
 - frontend.upstream
 
