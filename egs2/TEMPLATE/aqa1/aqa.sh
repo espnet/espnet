@@ -47,7 +47,7 @@ local_data_opts="" # Options to be passed to local/data.sh.
 
 # Feature extraction related
 feats_type=raw             # Input feature type.
-audio_format=flac          # Audio format: wav, flac, wav.ark, flac.ark  (only in feats_type=raw).
+audio_format=flac          # Audio format: wav, flac, wav.ark, flac.ark, omniio  (only in feats_type=raw).
 min_wav_duration=0.1       # Minimum duration in second.
 max_wav_duration=30        # Maximum duration in second.
 fs=16000                   # Sampling rate.
@@ -457,6 +457,8 @@ if ! "${skip_train}"; then
         _scp=wav.scp
         if [[ "${audio_format}" == *ark* ]]; then
             _type=kaldi_ark
+        elif [[ "${audio_format}" == omniio ]]; then
+            _type=omniio
         else
             _type=sound
         fi
@@ -542,6 +544,8 @@ if ! "${skip_train}"; then
         _scp=wav.scp
         if [[ "${audio_format}" == *ark* ]]; then
             _type=kaldi_ark
+        elif [[ "${audio_format}" == omniio ]]; then
+            _type=omniio
         else
             _type=sound
         fi
@@ -652,6 +656,8 @@ if ! "${skip_eval}"; then
             _scp=wav.scp
             if [[ "${audio_format}" == *ark* ]]; then
                 _type=kaldi_ark
+            elif [[ "${audio_format}" == omniio ]]; then
+                _type=omniio
             else
                 _type=sound
             fi

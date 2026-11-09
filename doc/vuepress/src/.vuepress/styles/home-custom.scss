@@ -1,0 +1,562 @@
+// ============================================================
+// ESPnet3 Home — Custom Component Styles
+// ============================================================
+
+// ---- Shared tokens ----------------------------------------
+$green:       #0f7a5a;
+$green-light: #edf8f3;
+$green-muted: rgba(15, 122, 90, 0.15);
+$blue:        #4254c8;
+$blue-light:  #eef1ff;
+$amber:       #b06a00;
+$amber-light: #fdf5e6;
+$border:      #e2e6ec;
+$bg-page:     #ffffff;
+$bg-card:     #ffffff;
+$text-1:      #0d1520;
+$text-2:      #3a4a5c;
+$text-3:      #7a8898;
+$mono:        'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+
+// ---- Shared layout ----------------------------------------
+.theme-hope-content {
+  transition: none !important;
+  transform: none !important;
+}
+
+.home-section-inner {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 52px 0;
+}
+
+.home-label {
+  font-family: $mono;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: $green;
+  margin-bottom: 8px;
+}
+
+.home-section-title {
+  font-weight: 700;
+  color: $text-1;
+  margin: 0 0 4px;
+  border: none;
+}
+
+.home-section-desc {
+  color: $text-3;
+  margin-bottom: 24px;
+  line-height: 1.6;
+}
+
+// ---- Section wrappers -------------------------------------
+.home-pipeline,
+.home-capabilities,
+.home-workflow {
+  border-top: 0.5px solid $border;
+  background: $bg-page;
+}
+
+.home-papers {
+  border-top: 0.5px solid $border;
+  background: $bg-card;
+}
+
+.home-doclinks {
+  border-top: 0.5px solid $border;
+  background: #f7f8fa;
+}
+
+// ---- Tag helpers ------------------------------------------
+.tag {
+  font-family: $mono;
+  font-size: 0.8em;
+  padding: 2px 8px;
+  border-radius: 4px;
+  display: inline-block;
+}
+
+.tag-green {
+  background: $green-light;
+  color: $green;
+  border: 0.5px solid rgba($green, 0.2);
+  cursor: pointer;
+
+  &.tag-selected {
+    background: $green;
+    color: #fff;
+    border-color: $green;
+  }
+}
+
+.tag-blue {
+  background: $blue-light;
+  color: $blue;
+  border: 0.5px solid rgba($blue, 0.2);
+}
+
+// ==========================================================
+// HomePipeline
+// ==========================================================
+.pipeline {
+  display: flex;
+  flex-direction: column;
+}
+
+.pipe-step {
+  display: flex;
+  align-items: stretch;
+  cursor: pointer;
+
+  &:hover .pipe-dot {
+    background: $green;
+    border-color: $green;
+  }
+
+  &:hover .pipe-card {
+    border-color: rgba($green, 0.3);
+  }
+
+  &.active .pipe-dot {
+    background: $green;
+    border-color: $green;
+  }
+
+  &.active .pipe-card {
+    border-color: rgba($green, 0.3);
+    background: $green-light;
+  }
+}
+
+.pipe-left {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 36px;
+  flex-shrink: 0;
+}
+
+.pipe-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: $border;
+  border: 1.5px solid #c8d0dc;
+  transition: background 0.2s, border-color 0.2s;
+  flex-shrink: 0;
+  margin-top: 14px;
+}
+
+.pipe-line {
+  flex: 1;
+  width: 1px;
+  background: $border;
+  margin: 2px 0;
+}
+
+.pipe-card {
+  flex: 1;
+  margin: 3px 0 3px 10px;
+  padding: 11px 15px;
+  border-radius: 10px;
+  border: 0.5px solid $border;
+  background: $bg-card;
+  transition: border-color 0.2s, background 0.2s;
+  overflow: hidden;
+}
+
+.pipe-name {
+  font-weight: 600;
+  color: $text-1;
+  margin-bottom: 1px;
+}
+
+.pipe-meta-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.pipe-meta {
+  font-family: $mono;
+  font-size: 0.85em;
+  color: #9aaabb;
+}
+
+.pipe-detail {
+  display: grid;
+  grid-template-rows: 0fr;
+  opacity: 0;
+  margin-top: 0;
+  padding-top: 0;
+  border-top: 0 solid transparent;
+  overflow: hidden;
+  transform: translateY(-4px);
+  transition:
+    grid-template-rows 0.24s ease,
+    opacity 0.18s ease,
+    margin-top 0.24s ease,
+    padding-top 0.24s ease,
+    border-top-width 0.24s ease,
+    border-top-color 0.24s ease,
+    transform 0.24s ease;
+  will-change: grid-template-rows, opacity, transform;
+}
+
+.pipe-detail-inner {
+  min-height: 0;
+}
+
+.pipe-detail-open {
+  grid-template-rows: 1fr;
+  opacity: 1;
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 0.5px solid #e8eef4;
+  transform: translateY(0);
+}
+
+.pipe-detail-row {
+  display: flex;
+  gap: 5px;
+  flex-wrap: wrap;
+  margin-bottom: 5px;
+}
+
+.pipe-yaml {
+  font-family: $mono;
+  font-size: 0.875em;
+  line-height: 1.8;
+  margin-top: 6px;
+  background: $bg-page;
+  border-radius: 6px;
+  padding: 8px 10px;
+  border: 0.5px solid $border;
+  color: $text-3;
+  overflow: auto;
+
+  .k { color: $blue; }
+  .v { color: $green; }
+
+  code {
+    background: transparent;
+    padding: 0;
+    border-radius: 0;
+    color: inherit;
+    font-size: inherit;
+  }
+}
+
+.pipe-link {
+  display: inline-block;
+  margin-top: 10px;
+  font-size: 0.85em;
+  color: $green;
+  text-decoration: none;
+  border: 0.5px solid rgba($green, 0.3);
+  border-radius: 6px;
+  padding: 4px 12px;
+  transition: background 0.15s, border-color 0.15s;
+
+  &:hover {
+    background: $green-light;
+    border-color: $green;
+  }
+}
+
+// ==========================================================
+// HomeCapabilities
+// ==========================================================
+.cap-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+
+  @media (max-width: 520px) {
+    grid-template-columns: 1fr;
+  }
+}
+
+.cap-card {
+  background: $bg-card;
+  border: 0.5px solid $border;
+  border-radius: 12px;
+  padding: 18px;
+  position: relative;
+  overflow: hidden;
+  transition: border-color 0.2s;
+
+  &:hover {
+    border-color: rgba($green, 0.3);
+  }
+}
+
+.cap-icon {
+  display: block;
+  margin-bottom: 10px;
+}
+
+.cap-name {
+  font-weight: 600;
+  color: $text-1;
+  margin-bottom: 4px;
+}
+
+.cap-desc {
+  font-size: 0.9em;
+  color: $text-3;
+  line-height: 1.55;
+}
+
+.cap-anim {
+  position: absolute;
+  bottom: 10px;
+  right: 12px;
+  font-family: $mono;
+  font-size: 0.75em;
+  color: rgba($green, 0.4);
+  letter-spacing: 0.05em;
+  pointer-events: none;
+}
+
+// ==========================================================
+// HomeWorkflow
+// ==========================================================
+.wf-tabs {
+  display: flex;
+  gap: 5px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+
+.wf-tab {
+  font-family: $mono;
+  font-size: 0.85em;
+  padding: 5px 13px;
+  border-radius: 6px;
+  border: 0.5px solid #d8dfe8;
+  background: $bg-card;
+  color: $text-3;
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s, background 0.15s;
+  letter-spacing: 0.04em;
+
+  &:hover {
+    border-color: rgba($green, 0.4);
+    color: $text-1;
+  }
+
+  &.active {
+    background: $green-light;
+    border-color: rgba($green, 0.4);
+    color: $green;
+  }
+}
+
+.wf-panel {
+  background: $bg-card;
+  border: 0.5px solid $border;
+  border-radius: 12px;
+  padding: 18px;
+}
+
+.wf-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+
+  @media (max-width: 480px) {
+    grid-template-columns: 1fr;
+  }
+}
+
+.wf-group-title {
+  font-family: $mono;
+  font-size: 0.75em;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: $green;
+  margin-bottom: 8px;
+}
+
+.wf-item {
+  color: $text-2;
+  padding: 3px 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+
+  &::before {
+    content: '›';
+    color: rgba($green, 0.6);
+  }
+}
+
+.wf-config {
+  font-family: $mono;
+  font-size: 0.875em;
+  line-height: 1.9;
+  color: $text-3;
+  background: $bg-page;
+  border-radius: 6px;
+  padding: 10px 12px;
+  border: 0.5px solid $border;
+  margin-top: 14px;
+  overflow: auto;
+
+  .k { color: $blue; }
+  .v { color: $green; }
+
+  code {
+    background: transparent;
+    padding: 0;
+    border-radius: 0;
+    color: inherit;
+    font-size: inherit;
+  }
+}
+
+// Transition
+.wf-fade-enter-active,
+.wf-fade-leave-active {
+  transition: opacity 0.15s, transform 0.15s;
+}
+
+.wf-fade-enter-from,
+.wf-fade-leave-to {
+  opacity: 0;
+  transform: translateY(4px);
+}
+
+// ==========================================================
+// HomePapers
+// ==========================================================
+.papers-scroll {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding-bottom: 4px;
+  scrollbar-width: none;
+
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+.paper-chip {
+  flex-shrink: 0;
+  background: $bg-card;
+  border: 0.5px solid $border;
+  border-radius: 8px;
+  padding: 7px 13px;
+  color: $text-2;
+  white-space: nowrap;
+  transition: border-color 0.15s;
+
+  &:hover {
+    border-color: rgba($green, 0.3);
+  }
+}
+
+.paper-venue {
+  font-family: $mono;
+  font-size: 0.8em;
+  color: $green;
+  margin-right: 6px;
+}
+
+// ==========================================================
+// Waveform
+// ==========================================================
+@keyframes wave-bar {
+  0%, 100% { transform: scaleY(0.25); }
+  50%       { transform: scaleY(1); }
+}
+
+.wav-wrap {
+  display: flex;
+  gap: 2px;
+  align-items: flex-end;
+  justify-content: center;
+  margin: 16px 0;
+}
+
+.wav-bar {
+  display: inline-block;
+  width: 2px;
+  border-radius: 1px;
+  background: rgba($green, 0.35);
+  transform-origin: bottom;
+  animation: wave-bar 1.3s ease-in-out infinite;
+
+  @for $i from 1 through 12 {
+    &:nth-child(#{$i}) {
+      animation-delay: #{($i - 1) * 0.1}s;
+    }
+  }
+}
+
+// ==========================================================
+// HomeDocLinks
+// ==========================================================
+.dl-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 32px;
+
+  @media (max-width: 600px) {
+    grid-template-columns: 1fr;
+    gap: 24px;
+  }
+}
+
+.dl-heading {
+  font-family: $mono;
+  font-size: 0.75em;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: $green;
+  margin-bottom: 12px;
+}
+
+.dl-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+
+  li {
+    margin: 0;
+    padding: 0;
+  }
+}
+
+.dl-link {
+  display: block;
+  padding: 4px 0;
+  color: $text-2;
+  text-decoration: none;
+  font-size: 0.9em;
+  border-bottom: none;
+  transition: color 0.15s;
+
+  &:hover {
+    color: $green;
+  }
+}
+
+// Key Features card link reset
+.cap-card-link {
+  text-decoration: none;
+  display: block;
+  color: inherit;
+  cursor: pointer;
+
+  &:hover {
+    border-color: rgba($green, 0.4);
+  }
+}

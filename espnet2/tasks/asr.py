@@ -366,43 +366,7 @@ class ASRTask(AbsTask):
             default=None,
             help="Scale the maximum amplitude to the given value.",
         )
-        group.add_argument(
-            "--rir_scp",
-            type=str_or_none,
-            default=None,
-            help="The file path of rir scp file.",
-        )
-        group.add_argument(
-            "--rir_apply_prob",
-            type=float,
-            default=1.0,
-            help="THe probability for applying RIR convolution.",
-        )
-        group.add_argument(
-            "--noise_scp",
-            type=str_or_none,
-            default=None,
-            help="The file path of noise scp file.",
-        )
-        group.add_argument(
-            "--noise_apply_prob",
-            type=float,
-            default=1.0,
-            help="The probability applying Noise adding.",
-        )
-        group.add_argument(
-            "--noise_db_range",
-            type=str,
-            default="13_15",
-            help="The range of noise decibel level.",
-        )
-        group.add_argument(
-            "--short_noise_thres",
-            type=float,
-            default=0.5,
-            help="If len(noise) / len(speech) is smaller than this threshold during "
-            "dynamic mixing, a warning will be displayed.",
-        )
+        cls.add_augmentation_arguments(parser)
         group.add_argument(
             "--aux_ctc_tasks",
             type=str,
@@ -465,9 +429,7 @@ class ASRTask(AbsTask):
                     if hasattr(args, "short_noise_thres")
                     else 0.5
                 ),
-                speech_volume_normalize=(
-                    args.speech_volume_normalize if hasattr(args, "rir_scp") else None
-                ),
+                speech_volume_normalize=getattr(args, "speech_volume_normalize", None),
                 aux_task_names=(
                     args.aux_ctc_tasks if hasattr(args, "aux_ctc_tasks") else None
                 ),

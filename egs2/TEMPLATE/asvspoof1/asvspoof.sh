@@ -41,7 +41,7 @@ python=python3       # Specify python to execute espnet commands
 local_data_opts= # The options given to local/data.sh.
 
 # Feature extraction related
-audio_format=flac    # Audio format: wav, flac, wav.ark, flac.ark.
+audio_format=flac    # Audio format: wav, flac, wav.ark, flac.ark, omniio.
 fs=8k                # Sampling rate.
 
 # asvspoof model related
@@ -83,7 +83,7 @@ Options:
     # Data preparation related
     --local_data_opts # The options given to local/data.sh (default="${local_data_opts}").
     # Feature extraction related
-    --audio_format     # Audio format: wav, flac, wav.ark, flac.ark  (default="${audio_format}").
+    --audio_format     # Audio format: wav, flac, wav.ark, flac.ark, omniio  (default="${audio_format}").
     --fs               # Sampling rate (default="${fs}").
     # ASVSpoof model related
     --asvspoof_tag        # Suffix to the result dir for asvspoofization model training (default="${asvspoof_tag}").
@@ -205,6 +205,8 @@ if ! "${skip_train}"; then
         _scp=wav.scp
         if [[ "${audio_format}" == *ark* ]]; then
             _type=kaldi_ark
+        elif [[ "${audio_format}" == omniio ]]; then
+            _type=omniio
         else
             # "sound" supports "wav", "flac", etc.
             _type=sound
@@ -285,6 +287,8 @@ if ! "${skip_train}"; then
         # "sound" supports "wav", "flac", etc.
         if [[ "${audio_format}" == *ark* ]]; then
             _type=kaldi_ark
+        elif [[ "${audio_format}" == omniio ]]; then
+            _type=omniio
         else
             _type=sound
         fi
@@ -360,7 +364,14 @@ if ! "${skip_eval}"; then
             mkdir -p "${_logdir}"
 
             _scp=wav.scp
-            _type=sound
+            # read the dump with the reader for --audio_format, as the training stage does
+            if [[ "${audio_format}" == *ark* ]]; then
+                _type=kaldi_ark
+            elif [[ "${audio_format}" == omniio ]]; then
+                _type=omniio
+            else
+                _type=sound
+            fi
 
             # 1. Split the key file
             key_file=${_data}/${_scp}

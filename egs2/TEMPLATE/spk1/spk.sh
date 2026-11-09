@@ -52,7 +52,7 @@ speed_perturb_factors="0.9 1.0 1.1" # perturbation factors, e.g. "0.9 1.0 1.1" (
 
 # Feature extraction related
 feats_type=raw      # Feature type (raw, raw_copy, fbank_pitch, or extracted).
-audio_format=wav    # Audio format: wav, flac, wav.ark, flac.ark  (only in feats_type=raw).
+audio_format=wav    # Audio format: wav, flac, wav.ark, flac.ark, omniio  (only in feats_type=raw).
 multi_columns_input_wav_scp=false  # Enable multi columns mode for input wav.scp for format_wav_scp.py
 multi_columns_output_wav_scp=false # Enable multi columns mode for output wav.scp for format_wav_scp.py
 fs=16k               # Sampling rate.
@@ -114,7 +114,7 @@ Options:
 
     # Feature extraction related
     feats_type=raw       # Feature type (raw, raw_copy, fbank_pitch, or extracted).
-    audio_format=wav    # Audio format: wav, flac, wav.ark, flac.ark  (only in feats_type=raw).
+    audio_format=wav    # Audio format: wav, flac, wav.ark, flac.ark, omniio  (only in feats_type=raw).
     multi_columns_input_wav_scp=false  # Enable multi columns mode for input wav.scp for format_wav_scp.py
     multi_columns_output_wav_scp=false # Enable multi columns mode for output wav.scp for format_wav_scp.py
     fs=16k               # Sampling rate.
@@ -380,6 +380,8 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
 
     if [[ "${audio_format}" == *ark* ]]; then
         _type=kaldi_ark
+    elif [[ "${audio_format}" == omniio ]]; then
+        _type=omniio
     else
         # sound supports "wav", "flac", etc.
         _type=sound

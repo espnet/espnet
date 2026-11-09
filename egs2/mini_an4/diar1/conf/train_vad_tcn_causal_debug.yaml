@@ -1,0 +1,46 @@
+# Tiny causal VAD (diarization with num_spk 1, causal TCN encoder) for the CI
+# integration test. The STFT does not pad the start of the signal with future
+# samples (center: false), so every frame depends on past samples only; the
+# labels are aggregated over the same frames.
+frontend: default
+frontend_conf:
+    n_fft: 512
+    hop_length: 128
+    center: false
+
+label_aggregator: label_aggregator
+label_aggregator_conf:
+    win_length: 512
+    hop_length: 128
+    center: false
+
+# No utterance MVN (the task default), which reads the whole utterance;
+# diar.sh passes --normalize global_mvn, whose statistics are fixed.
+normalize: null
+
+encoder: tcn
+encoder_conf:
+    output_size: 8
+    bottleneck_size: 8
+    hidden_size: 16
+    kernel_size: 3
+    num_blocks: 2
+    num_repeats: 1
+    future_taps: 0       # no tap after the current frame: causal
+
+decoder: linear
+
+batch_type: folded
+batch_size: 2
+
+optim: adam
+optim_conf:
+    lr: 0.001
+max_epoch: 1
+num_iters_per_epoch: 2
+
+best_model_criterion:
+-   - valid
+    - acc
+    - max
+keep_nbest_models: 1

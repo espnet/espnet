@@ -1,0 +1,32 @@
+# Tiny EEND-EDA (transformer encoder + RNN attractor) for the CI integration test.
+encoder: transformer
+encoder_conf:
+    input_layer: linear
+    num_blocks: 1
+    linear_units: 16
+    output_size: 8
+    attention_heads: 2
+    dropout_rate: 0.0
+    attention_dropout_rate: 0.0
+
+attractor: rnn
+attractor_conf:
+    unit: 8
+    layer: 1
+    dropout: 0.0
+    attractor_grad: true
+
+batch_type: folded
+batch_size: 2
+
+optim: adam
+optim_conf:
+    lr: 0.001
+max_epoch: 1
+num_iters_per_epoch: 2
+
+best_model_criterion:
+-   - valid
+    - acc
+    - max
+keep_nbest_models: 1
