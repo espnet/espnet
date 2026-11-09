@@ -442,3 +442,43 @@ def test_upsampling_needs_utt2category(data):
     )
     with pytest.raises(RuntimeError):
         DiarizationTask.build_chunk_iter_factory(args, _options(d, 2, True), "train")
+
+
+def test_recording_without_speech_gets_zero_labels(data):
+    """An RTTM recording with only its END line: all-zero num_spk columns."""
+    d, sigs = data
+    with (d / "espnet_rttm").open("a") as f:
+        f.write("END recA2 <NA> <NA> 10500 <NA> <NA> <NA> <NA>\n")
+    with OmniIOAudioWriter(d.parent / "arc2", d / "wav2.scp", format="flac") as w:
+        w["recA2"] = RATE, sigs["recA"]
+    (d / "wav.scp").write_text(
+        (d / "wav.scp").read_text() + (d / "wav2.scp").read_text()
+    )
+    with (d / "speech_shape").open("a") as f:
+        f.write("recA2 10500\n")
+    args = DiarizationTask.get_parser().parse_args(
+        [
+            "--iterator_type",
+            "chunk",
+            "--chunk_random_access",
+            "true",
+            "--chunk_length",
+            "2000",
+            "--chunk_shift_ratio",
+            "1.0",
+            "--num_spk",
+            "2",
+        ]
+    )
+    options = _options(d, 2, False)
+    options.collate_fn = DiarizationTask.build_collate_fn(args, train=False)
+    factory = DiarizationTask.build_chunk_iter_factory(args, options, "valid")
+    batches = list(factory.build_iter(1))
+    seen = 0
+    for ids, batch in batches:
+        assert batch["spk_labels"].shape[1:] == (2000, 2)
+        for k, cid in enumerate(ids):
+            if cid.startswith("recA2-"):
+                seen += 1
+                assert batch["spk_labels"][k].sum() == 0
+    assert seen == 5

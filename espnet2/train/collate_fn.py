@@ -44,6 +44,42 @@ class CommonCollateFn:
         )
 
 
+class DiarCollateFn(CommonCollateFn):
+    """common_collate_fn() with the speaker labels widened to num_spk columns.
+
+    A recording in which fewer than num_spk speakers speak, e.g. one without
+    speech (an RTTM with only its END line gives a (length, 0) label), gets
+    all-zero columns up to num_spk, so that it can share a mini-batch with
+    the others. Labels with more than num_spk columns are kept as they are.
+    """
+
+    @typechecked
+    def __init__(
+        self,
+        num_spk: int,
+        float_pad_value: Union[float, int] = 0.0,
+        int_pad_value: int = -32768,
+        label_key: str = "spk_labels",
+    ):
+        super().__init__(float_pad_value=float_pad_value, int_pad_value=int_pad_value)
+        self.num_spk = num_spk
+        self.label_key = label_key
+
+    def __call__(
+        self, data: Collection[Tuple[str, Dict[str, np.ndarray]]]
+    ) -> Tuple[List[str], Dict[str, torch.Tensor]]:
+        widened = []
+        for uid, d in data:
+            label = d.get(self.label_key)
+            if label is not None and label.ndim == 2 and label.shape[1] < self.num_spk:
+                d = dict(d)
+                d[self.label_key] = np.pad(
+                    label, ((0, 0), (0, self.num_spk - label.shape[1]))
+                )
+            widened.append((uid, d))
+        return super().__call__(widened)
+
+
 class HuBERTCollateFn(CommonCollateFn):
     """HuBERT functor class of common_collate_fn()"""
 
