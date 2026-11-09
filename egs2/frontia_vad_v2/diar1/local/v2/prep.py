@@ -23,8 +23,9 @@ from vad_dump import VadDumpWriter  # noqa: E402
 class Writers:
     """One VadDumpWriter per split, created when the split gets its first recording."""
 
-    def __init__(self, out, spec, corpus, fs, shard, nshards):
+    def __init__(self, out, spec, corpus, fs, shard, nshards, pack_seconds):
         self.out, self.spec, self.corpus, self.fs = out, spec, corpus, fs
+        self.pack_seconds = pack_seconds
         self.shard, self.nshards = shard, nshards
         self.writers = {}
 
@@ -42,6 +43,7 @@ class Writers:
                 label_source=self.spec.label_source,
                 licence=self.spec.licence,
                 fs=self.fs,
+                pack_seconds=self.pack_seconds,
             )
         return self.writers[split]
 
@@ -58,12 +60,27 @@ def main():
     parser.add_argument("--shard", type=int, default=0)
     parser.add_argument("--nshards", type=int, default=1)
     parser.add_argument("--fs", type=int, default=16000)
+    parser.add_argument(
+        "--pack_seconds",
+        type=float,
+        default=30.0,
+        help="concatenate recordings shorter than this (0: never); the training "
+        "chunks (10 s) need recordings at least that long",
+    )
     args = parser.parse_args()
     logging.basicConfig(
         level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s"
     )
     spec = ADAPTERS[args.corpus]
-    writers = Writers(args.out, spec, args.corpus, args.fs, args.shard, args.nshards)
+    writers = Writers(
+        args.out,
+        spec,
+        args.corpus,
+        args.fs,
+        args.shard,
+        args.nshards,
+        args.pack_seconds or None,
+    )
     spec.prepare(args.root / spec.directory, writers, args.shard, args.nshards)
     writers.close()
 

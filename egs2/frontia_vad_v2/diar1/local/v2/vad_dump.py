@@ -80,6 +80,11 @@ class VadDumpWriter:
         licence: Licence of the audio, for the manifest.
         fs: Sampling rate of the dump.
         max_bin_size: Maximum size of one Omni-IO bin file in bytes.
+        pack_seconds: Recordings shorter than this are concatenated, in the
+            order they are added, into recordings of at least this length
+            (per language token and microphone), with their labels and
+            transcripts; the training chunks are fixed-length windows, which a
+            shorter recording cannot give. The id of a pack is "<first id>+<n>".
     """
 
     def __init__(
@@ -91,6 +96,7 @@ class VadDumpWriter:
         licence: str,
         fs: int = 16000,
         max_bin_size: int = 2 * 1024**3,
+        pack_seconds: Optional[float] = None,
     ):
         if label_source not in ("H", "D", "A"):
             raise ValueError(f"unknown label source: {label_source}")
@@ -105,6 +111,9 @@ class VadDumpWriter:
         self.rttm: List[str] = []
         self.rows: List[Dict[str, str]] = []
         self.skipped: List[str] = []
+        self.pack_seconds = pack_seconds
+        self._packs: Dict[tuple, list] = {}
+        self._buffered = set()
         self.text: Dict[str, str] = {}
         self.lang_sym: Dict[str, str] = {}
 
@@ -161,44 +170,90 @@ class VadDumpWriter:
         written = 0
         for k in keep:
             rid = f"{self.corpus}-{rec_id}" + (f"_ch{k}" if multi else "")
-            if rid in self.num_samples:
+            if rid in self.num_samples or rid in self._buffered:
                 raise ValueError(f"duplicate recording id {rid}")
             x = np.clip(signal[:, k], -1.0, 1.0)
-            n = len(x)
-            self.audio[rid] = self.fs, x
-            self.num_samples[rid] = n
-            speech_samples = 0
-            for start, end in intervals:
-                s = max(0, int(round(start * self.fs)))
-                e = min(n, int(round(end * self.fs)))
-                if e > s:
-                    # espnet RTTM: start and end in samples (convert_rttm.py)
-                    self.rttm.append(f"SPEAKER {rid} 1 {s} {e} <NA> <NA> {rid} <NA>\n")
-                    speech_samples += e - s
-            self.rttm.append(f"END {rid} <NA> <NA> {n} <NA> <NA> <NA> <NA>\n")
-            if text is not None:
-                self.text[rid] = " ".join(text.split())
-                self.lang_sym[rid] = lang_sym
-            self.rows.append(
-                dict(
-                    rec_id=rid,
-                    corpus=self.corpus,
-                    domain=self.domain,
-                    label_source=self.label_source,
-                    negative_type=negative_type,
-                    mic=mic,
-                    lang=lang,
-                    licence=self.licence,
-                    source=source,
-                    seconds=f"{n / self.fs:.3f}",
-                    speech_seconds=f"{speech_samples / self.fs:.3f}",
-                )
-            )
-            written += 1
+            meta = dict(negative_type=negative_type, mic=mic, lang=lang, source=source)
+            if self.pack_seconds and len(x) < self.pack_seconds * self.fs:
+                written += self._buffer(rid, x, intervals, meta, text, lang_sym)
+            else:
+                self._write(rid, x, intervals, meta, text, lang_sym)
+                written += 1
         return written
 
+    def _buffer(self, rid, x, intervals, meta, text, lang_sym) -> int:
+        """Queue a short recording for packing; write a pack once it is long enough.
+
+        Recordings are packed in the order they come, separately per language
+        token and microphone, so a pack has one language for the alignment.
+        """
+        key = (lang_sym, meta["mic"])
+        pack = self._packs.setdefault(key, [])
+        pack.append((rid, x, intervals, meta, text))
+        self._buffered.add(rid)
+        if sum(len(p[1]) for p in pack) >= self.pack_seconds * self.fs:
+            self._flush(key)
+            return 1
+        return 0
+
+    def _flush(self, key):
+        """Write the queued recordings of `key` as one recording."""
+        pack = self._packs.pop(key, [])
+        if not pack:
+            return
+        offset, xs, intervals, texts, sources = 0, [], [], [], []
+        for rid, x, ivs, meta, text in pack:
+            t0 = offset / self.fs
+            intervals += [(t0 + s, t0 + e) for s, e in ivs]
+            xs.append(x)
+            offset += len(x)
+            if text is not None:
+                texts.append(text)
+            sources.append(meta["source"] or rid)
+        first = pack[0]
+        meta = dict(first[3])
+        meta["source"] = ";".join(sources)
+        types = sorted({p[3]["negative_type"] for p in pack if p[3]["negative_type"]})
+        meta["negative_type"] = ",".join(types)
+        text = " ".join(texts) if texts else None
+        self._write(
+            f"{first[0]}+{len(pack)}", np.concatenate(xs), intervals, meta, text, key[0]
+        )
+
+    def _write(self, rid, x, intervals, meta, text, lang_sym):
+        """Write one mono recording with its speech intervals (seconds)."""
+        n = len(x)
+        self.audio[rid] = self.fs, x
+        self.num_samples[rid] = n
+        speech_samples = 0
+        for start, end in intervals:
+            s = max(0, int(round(start * self.fs)))
+            e = min(n, int(round(end * self.fs)))
+            if e > s:
+                # espnet RTTM: start and end in samples (convert_rttm.py)
+                self.rttm.append(f"SPEAKER {rid} 1 {s} {e} <NA> <NA> {rid} <NA>\n")
+                speech_samples += e - s
+        self.rttm.append(f"END {rid} <NA> <NA> {n} <NA> <NA> <NA> <NA>\n")
+        if text is not None:
+            self.text[rid] = " ".join(text.split())
+            self.lang_sym[rid] = lang_sym
+        self.rows.append(
+            dict(
+                rec_id=rid,
+                corpus=self.corpus,
+                domain=self.domain,
+                label_source=self.label_source,
+                licence=self.licence,
+                seconds=f"{n / self.fs:.3f}",
+                speech_seconds=f"{speech_samples / self.fs:.3f}",
+                **meta,
+            )
+        )
+
     def close(self):
-        """Write the text files."""
+        """Write the remaining packs and the text files."""
+        for key in list(self._packs):
+            self._flush(key)
         skipped = self.skipped
         self.audio.close()
         ids = sorted(self.num_samples)
