@@ -106,30 +106,31 @@ next to each set's own best setting, which is tuned on that set.
 - inference model: `valid.acc.best.pth` (epoch 11), whole recordings, `conf/decode.yaml`
 - pretrained model: https://huggingface.co/espnet/frontia_vad_v1_online (upload pending)
 - tuned on ami_mh_dev: threshold 0.7, median filter 11
+- DetER over the 21 sets at the tuned setting: 8.71 hour-weighted, 12.18 macro average
 
 | set | speech h | DetER (tuned) | FA | Miss | DetER (set's own best) | its threshold, median |
 |---|---|---|---|---|---|---|
-| aishell4_eval | 11.5 | 8.16 | 3.79 | 4.37 | 7.88 | 0.6, 11 |
-| alimeeting_dev | 3.9 | 7.40 | 5.16 | 2.23 | 7.40 | 0.7, 11 |
-| alimeeting_eval | 9.9 | 7.09 | 4.79 | 2.29 | 7.09 | 0.7, 11 |
-| ami_dev | 75.1 | 10.03 | 4.71 | 5.33 | 9.66 | 0.6, 11 |
-| ami_eval | 90.1 | 10.01 | 2.89 | 7.12 | 8.66 | 0.5, 11 |
-| ami_mh_dev | 7.6 | 10.93 | 7.64 | 3.28 | 10.93 | 0.7, 11 |
-| ami_mh_eval | 7.3 | 11.31 | 6.31 | 5.00 | 11.31 | 0.7, 11 |
-| ava_speech_eval | 19.9 | 50.01 | 44.13 | 5.88 | 32.67 | 0.9, 11 |
-| chime6_dev | 117.9 | 9.60 | 1.92 | 7.69 | 4.62 | 0.3, 11 |
-| chime6_eval | 122.7 | 14.65 | 5.35 | 9.30 | 14.59 | 0.6, 11 |
-| dev | 329.2 | 7.81 | 2.66 | 5.15 | 6.52 | 0.4, 11 |
-| dipco_dev | 98.1 | 10.46 | 4.13 | 6.33 | 8.50 | 0.5, 11 |
-| dipco_eval | 92.0 | 10.01 | 5.35 | 4.66 | 9.37 | 0.6, 11 |
-| earnings21_eval | 32.8 | 14.60 | 10.37 | 4.23 | 14.60 | 0.7, 11 |
-| icsi_dev | 12.5 | 11.74 | 5.31 | 6.44 | 11.74 | 0.7, 11 |
-| icsi_eval | 11.9 | 14.53 | 3.83 | 10.70 | 13.47 | 0.5, 11 |
-| notsofar_dev | 123.7 | 4.35 | 1.85 | 2.50 | 4.23 | 0.6, 11 |
-| notsofar_eval | 398.5 | 4.34 | 2.80 | 1.55 | 4.34 | 0.7, 11 |
-| ten_vad_eval | 0.1 | 22.64 | 21.30 | 1.34 | 16.20 | 0.9, 11 |
-| voxconverse_dev | 18.9 | 4.93 | 3.88 | 1.05 | 4.93 | 0.7, 11 |
-| voxconverse_eval | 39.0 | 8.24 | 7.31 | 0.93 | 8.06 | 0.8, 11 |
+| aishell4_eval | 11.5 | 8.29 | 3.86 | 4.43 | 8.00 | 0.6, 11 |
+| alimeeting_dev | 3.9 | 7.52 | 5.23 | 2.29 | 7.49 | 0.6, 11 |
+| alimeeting_eval | 9.9 | 7.21 | 4.85 | 2.36 | 7.21 | 0.7, 11 |
+| ami_dev | 75.1 | 10.17 | 4.78 | 5.39 | 9.79 | 0.6, 11 |
+| ami_eval | 90.1 | 10.12 | 2.95 | 7.18 | 8.77 | 0.5, 11 |
+| ami_mh_dev | 7.6 | 11.08 | 7.72 | 3.36 | 11.08 | 0.7, 11 |
+| ami_mh_eval | 7.3 | 11.44 | 6.38 | 5.07 | 11.44 | 0.7, 11 |
+| ava_speech_eval | 19.9 | 50.29 | 44.27 | 6.02 | 33.03 | 0.9, 11 |
+| chime6_dev | 117.9 | 9.64 | 1.94 | 7.71 | 4.65 | 0.3, 11 |
+| chime6_eval | 122.7 | 14.78 | 5.41 | 9.37 | 14.76 | 0.6, 11 |
+| dev | 329.2 | 7.93 | 2.72 | 5.21 | 6.58 | 0.4, 11 |
+| dipco_dev | 98.1 | 10.51 | 4.16 | 6.35 | 8.52 | 0.4, 11 |
+| dipco_eval | 92.0 | 10.06 | 5.38 | 4.69 | 9.41 | 0.6, 11 |
+| earnings21_eval | 32.8 | 14.87 | 10.51 | 4.36 | 14.87 | 0.7, 11 |
+| icsi_dev | 12.5 | 11.96 | 5.42 | 6.55 | 11.96 | 0.7, 11 |
+| icsi_eval | 11.9 | 14.71 | 3.92 | 10.79 | 13.60 | 0.5, 11 |
+| notsofar_dev | 123.7 | 4.52 | 1.94 | 2.59 | 4.37 | 0.6, 11 |
+| notsofar_eval | 398.5 | 4.48 | 2.87 | 1.62 | 4.48 | 0.7, 11 |
+| ten_vad_eval | 0.1 | 22.97 | 21.46 | 1.51 | 16.92 | 0.9, 11 |
+| voxconverse_dev | 18.9 | 4.94 | 3.89 | 1.05 | 4.94 | 0.7, 11 |
+| voxconverse_eval | 39.0 | 8.26 | 7.32 | 0.94 | 8.08 | 0.8, 11 |
 # VAD results: diar_dualmode_la0
 
 The false alarm on AVA-Speech (movies with music and effects) is far above every
@@ -150,7 +151,8 @@ DetER (%) over the 21 sets at the tuned setting, hour-weighted / macro average:
 | `valid.acc.ave_2best.pth` | 8.79 / 12.37 | 7.61 / 10.19 |
 | `valid.acc.best.pth` (epoch 11) | - / 12.49 | 7.85 / 10.39 |
 
-The per-set tables below are of `valid.acc.best.pth` (epoch 11).
+The online table below is of `valid.acc.best.pth` (epoch 11); the offline table is of
+`valid.acc.ave_2best.pth` (average of epochs 11 and 17).
 
 ### Online (look-ahead 0, `conf/decode.yaml`)
 
@@ -183,24 +185,24 @@ The per-set tables below are of `valid.acc.best.pth` (epoch 11).
 
 | set | speech h | DetER (tuned) | FA | Miss | DetER (set's own best) | its threshold, median |
 |---|---|---|---|---|---|---|
-| aishell4_eval | 11.5 | 7.63 | 2.15 | 5.48 | 5.87 | 0.5, 11 |
-| alimeeting_dev | 3.9 | 6.34 | 3.54 | 2.80 | 6.09 | 0.7, 11 |
-| alimeeting_eval | 9.9 | 5.72 | 2.81 | 2.91 | 5.53 | 0.7, 11 |
-| ami_dev | 75.1 | 8.62 | 3.35 | 5.27 | 7.74 | 0.6, 11 |
-| ami_eval | 90.1 | 9.09 | 1.64 | 7.45 | 6.65 | 0.6, 11 |
-| ami_mh_dev | 7.6 | 9.07 | 5.07 | 4.01 | 9.07 | 0.8, 11 |
-| ami_mh_eval | 7.3 | 10.21 | 3.85 | 6.37 | 9.50 | 0.7, 11 |
-| ava_speech_eval | 19.9 | 31.59 | 21.31 | 10.28 | 28.39 | 0.9, 11 |
-| chime6_dev | 117.9 | 10.00 | 1.62 | 8.38 | 4.31 | 0.3, 11 |
-| chime6_eval | 122.7 | 14.16 | 3.66 | 10.50 | 12.80 | 0.6, 11 |
-| dev | 329.2 | 7.32 | 1.73 | 5.59 | 5.25 | 0.5, 11 |
-| dipco_dev | 98.1 | 12.56 | 2.39 | 10.17 | 7.74 | 0.5, 11 |
-| dipco_eval | 92.0 | 10.26 | 3.25 | 7.01 | 8.48 | 0.6, 11 |
-| earnings21_eval | 32.8 | 10.13 | 6.37 | 3.76 | 10.13 | 0.8, 11 |
-| icsi_dev | 12.5 | 11.25 | 2.74 | 8.52 | 10.45 | 0.7, 11 |
-| icsi_eval | 11.9 | 15.38 | 2.29 | 13.10 | 12.78 | 0.5, 11 |
-| notsofar_dev | 123.7 | 3.57 | 0.74 | 2.82 | 2.83 | 0.6, 11 |
-| notsofar_eval | 398.5 | 3.34 | 1.34 | 2.00 | 3.08 | 0.7, 11 |
-| ten_vad_eval | 0.1 | 19.53 | 16.72 | 2.81 | 17.52 | 0.9, 11 |
-| voxconverse_dev | 18.9 | 4.78 | 2.50 | 2.28 | 4.55 | 0.7, 11 |
-| voxconverse_eval | 39.0 | 7.52 | 5.55 | 1.97 | 7.52 | 0.8, 11 |
+| aishell4_eval | 11.5 | 7.51 | 2.11 | 5.40 | 5.70 | 0.5, 11 |
+| alimeeting_dev | 3.9 | 6.26 | 4.00 | 2.26 | 6.21 | 0.7, 11 |
+| alimeeting_eval | 9.9 | 5.77 | 3.37 | 2.40 | 5.77 | 0.8, 11 |
+| ami_dev | 75.1 | 8.48 | 3.39 | 5.09 | 7.75 | 0.6, 11 |
+| ami_eval | 90.1 | 8.63 | 1.70 | 6.93 | 6.73 | 0.6, 11 |
+| ami_mh_dev | 7.6 | 8.89 | 5.38 | 3.51 | 8.89 | 0.8, 11 |
+| ami_mh_eval | 7.3 | 9.75 | 4.10 | 5.65 | 9.33 | 0.7, 11 |
+| ava_speech_eval | 19.9 | 32.39 | 22.59 | 9.80 | 28.47 | 0.9, 11 |
+| chime6_dev | 117.9 | 9.75 | 1.58 | 8.18 | 4.25 | 0.3, 11 |
+| chime6_eval | 122.7 | 13.92 | 3.57 | 10.35 | 12.54 | 0.6, 11 |
+| dev | 329.2 | 7.12 | 1.77 | 5.35 | 5.27 | 0.5, 11 |
+| dipco_dev | 98.1 | 11.67 | 2.64 | 9.04 | 7.67 | 0.5, 11 |
+| dipco_eval | 92.0 | 9.96 | 3.56 | 6.41 | 8.53 | 0.6, 11 |
+| earnings21_eval | 32.8 | 9.50 | 6.94 | 2.56 | 9.50 | 0.8, 11 |
+| icsi_dev | 12.5 | 11.03 | 2.83 | 8.20 | 10.35 | 0.7, 11 |
+| icsi_eval | 11.9 | 15.16 | 2.25 | 12.91 | 12.67 | 0.5, 11 |
+| notsofar_dev | 123.7 | 3.39 | 0.87 | 2.52 | 2.89 | 0.7, 11 |
+| notsofar_eval | 398.5 | 3.24 | 1.58 | 1.65 | 3.15 | 0.7, 11 |
+| ten_vad_eval | 0.1 | 19.52 | 17.53 | 1.98 | 16.97 | 0.9, 11 |
+| voxconverse_dev | 18.9 | 4.54 | 2.58 | 1.96 | 4.48 | 0.7, 11 |
+| voxconverse_eval | 39.0 | 7.42 | 5.72 | 1.70 | 7.42 | 0.8, 11 |
