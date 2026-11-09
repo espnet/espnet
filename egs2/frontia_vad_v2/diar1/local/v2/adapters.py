@@ -5,5 +5,9 @@ reader gets the corpus directory, the Writers of its splits (prep.py), and
 its shard; it adds every recording of its shard with Writers[split].add().
 """
 
+import adapters_conversation  # noqa: F401
+import adapters_farfield_read  # noqa: F401
+import adapters_nonspeech  # noqa: F401
+import adapters_read_vocal  # noqa: F401
 import adapters_synthetic  # noqa: F401
 from registry import ADAPTERS, DOMAINS  # noqa: F401
