@@ -55,6 +55,10 @@ fi
 if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     log "Stage 1: v1 meeting corpora and test sets"
     local/data_v1.sh --corpora "${v1_train},${v1_test}" --splits train,dev,eval
+    # noise for augmentation: licence-filtered, no vocals, no babble (replaces
+    # the list local/data_v1.sh wrote, which had all of MUSAN music and CHiME-3)
+    python3 ${v2}/noise_list.py "${MUSAN}" "${CHIME3_BACKGROUND}" > data/noise.scp
+    log "data/noise.scp: $(wc -l < data/noise.scp) noise files"
     declare -A licence=(
         [ami]="CC BY 4.0" [chime6]="CC BY-SA 4.0 (SA to be removed)"
         [notsofar]="CC BY 4.0" [icsi]="CC BY 4.0"
