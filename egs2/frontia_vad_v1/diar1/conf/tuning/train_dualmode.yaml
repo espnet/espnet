@@ -64,7 +64,9 @@ best_model_criterion:
 -   - valid
     - acc
     - max
-keep_nbest_models: 5
+# valid.acc.ave_2best.pth (average of the 2 best) is the inference model of this
+# config (run.sh: --inference_model); valid.acc.ave.pth links to the 5-best average
+keep_nbest_models: [2, 5]
 
 model_conf:
     look_aheads: [0, 124]

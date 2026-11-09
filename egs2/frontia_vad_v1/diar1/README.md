@@ -67,7 +67,8 @@ packed: `local/data.sh` extracts only the members it needs into `downloads/`.
 
 ```bash
 ./run.sh                                        # causal model, stages 1-7
-./run.sh --diar_config conf/tuning/train_dualmode.yaml --diar_tag train_dualmode
+./run.sh --diar_config conf/tuning/train_dualmode.yaml --diar_tag train_dualmode \
+    --inference_model valid.acc.ave_2best.pth
 python3 local/show_vad_result.py exp/diar_train --tune_set ami_mh_dev
 ```
 
@@ -137,9 +138,19 @@ other set; its own best threshold is the highest tried.
 ## Dual-mode model: `conf/tuning/train_dualmode.yaml`
 
 - config: `conf/tuning/train_dualmode.yaml`, 10 s windows, batch 64, learning rate 5e-4, seed 1
-- inference model: `valid.acc.best.pth` (epoch 11), whole recordings
+- inference model: `valid.acc.ave_2best.pth` (average of the 2 best checkpoints,
+  `keep_nbest_models: [2, 5]`), whole recordings
 - pretrained model (offline use): https://huggingface.co/espnet/frontia_vad_v1_offline (upload pending)
 - tuned on ami_mh_dev: online threshold 0.7, offline threshold 0.8, median filter 11
+
+DetER (%) over the 21 sets at the tuned setting, hour-weighted / macro average:
+
+| inference model | online | offline |
+|---|---|---|
+| `valid.acc.ave_2best.pth` | 8.79 / 12.37 | 7.61 / 10.19 |
+| `valid.acc.best.pth` (epoch 11) | - / 12.49 | 7.85 / 10.39 |
+
+The per-set tables below are of `valid.acc.best.pth` (epoch 11).
 
 ### Online (look-ahead 0, `conf/decode.yaml`)
 

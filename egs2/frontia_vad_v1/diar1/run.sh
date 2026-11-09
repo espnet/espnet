@@ -3,12 +3,15 @@
 # on 10 s chunks of the dumped recordings, each read on its own from the Omni-IO
 # archive (conf/train.yaml: chunk_random_access), and evaluated on whole recordings. The default is the causal model (conf/train.yaml). The dual-mode
 # model (online and offline with one set of weights):
-#   ./run.sh --diar_config conf/tuning/train_dualmode.yaml --diar_tag train_dualmode
-# scores it online (look-ahead 0). diar.sh writes inference into exp/diar_<diar_tag>,
-# so the offline scores (look-ahead 0.99 s) go to a second directory with the same model:
+#   ./run.sh --diar_config conf/tuning/train_dualmode.yaml --diar_tag train_dualmode \
+#       --inference_model valid.acc.ave_2best.pth
+# scores the average of its 2 best checkpoints online (look-ahead 0). diar.sh writes
+# inference into exp/diar_<diar_tag>, so the offline scores (look-ahead 0.99 s) go to
+# a second directory with the same model:
 #   mkdir -p exp/diar_train_dualmode_offline
-#   ln -s ../diar_train_dualmode/{config.yaml,valid.acc.best.pth} exp/diar_train_dualmode_offline/
+#   ln -s ../diar_train_dualmode/{config.yaml,valid.acc.ave_2best.pth} exp/diar_train_dualmode_offline/
 #   ./run.sh --stage 6 --diar_tag train_dualmode_offline \
+#       --inference_model valid.acc.ave_2best.pth \
 #       --inference_config conf/tuning/decode_offline.yaml
 # Stage 7 runs local/score.sh: md-eval over whole recordings, thresholds 0.3-0.9,
 # and local/show_vad_result.py (every set at the setting tuned on AMI Mix-Headset dev).
