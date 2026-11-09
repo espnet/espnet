@@ -586,19 +586,39 @@ def egomusic(root, writers, shard: int, nshards: int, instrumental=()):
 def _musan_licences(lic_file: Path, stems: Iterable[str]) -> Dict[str, bool]:
     """licence_ok() of each file of a MUSAN directory, from its LICENSE file.
 
-    A line naming a file (music-fma-0000, noise-free-sound-0001, ...) gives
-    that file's licence; a LICENSE without such lines covers the directory.
+    MUSAN's LICENSE files are blocks separated by lines of "=": a block lists
+    file ids (music-fma-0027, each followed by its title line), then the
+    licence line (e.g. "CC BY-SA 4.0") and a URL; the licence covers every id
+    of the block. A LICENSE without file ids covers the whole directory. An
+    id in no block gets no licence (left out).
     """
     text = lic_file.read_text(errors="replace") if lic_file.exists() else ""
     per = {}
-    for line in text.splitlines():
-        m = re.search(r"((?:music|noise|speech)-[\w-]*?\d{3,})", line)
-        if m:
-            per[m.group(1)] = line[m.end() :]
+    for block in re.split(r"^=+\s*$", text, flags=re.M):
+        ids = re.findall(r"^((?:music|noise|speech)-[\w-]*?\d{3,})\s*$", block, re.M)
+        lines = [ln.strip() for ln in block.splitlines() if ln.strip()]
+        rest = [
+            ln
+            for ln in lines
+            if not re.match(r"(?:music|noise|speech)-[\w-]*?\d{3,}$", ln)
+            and not ln.startswith(("http://", "https://"))
+        ]
+        licence = next(
+            (ln for ln in rest if licence_ok(ln) or _looks_like_licence(ln)), ""
+        )
+        for i in ids:
+            per[i] = licence
     if per:
         return {s: licence_ok(per.get(s, "")) for s in stems}
     ok = licence_ok(text)
     return {s: ok for s in stems}
+
+
+def _looks_like_licence(line: str) -> bool:
+    """Whether a line names a licence (one licence_ok() may still reject)."""
+    return bool(
+        re.search(r"\bCC\b|Creative Commons|Public Domain|licen[cs]e", line, re.I)
+    )
 
 
 def _musan(root, writers, shard, nshards, part: str):

@@ -108,21 +108,37 @@ def read_7z_member(path: Union[Path, str], name: str) -> bytes:
     ).stdout
 
 
+def ffmpeg_exe() -> Optional[str]:
+    """$FFMPEG, else the static build of imageio-ffmpeg, else ffmpeg on PATH.
+
+    A static build avoids a system ffmpeg whose shared libraries a compute
+    node may lack.
+    """
+    if os.environ.get("FFMPEG"):
+        return os.environ["FFMPEG"]
+    try:
+        import imageio_ffmpeg
+
+        return imageio_ffmpeg.get_ffmpeg_exe()
+    except ImportError:
+        return shutil.which("ffmpeg")
+
+
 def decode(data: Union[bytes, Path, str]) -> Tuple[np.ndarray, int]:
     """(samples x channels float32, rate) of an audio file or its bytes.
 
-    libsndfile reads WAV/FLAC/OGG/MP3; anything else (m4a, aac, opus in some
-    containers) goes through ffmpeg if it is on PATH.
+    libsndfile reads WAV/FLAC/OGG/MP3; anything else (m4a, aac, webm, opus in
+    some containers) goes through ffmpeg (see ffmpeg_exe()).
     """
     src = io.BytesIO(data) if isinstance(data, bytes) else str(data)
     try:
         x, rate = soundfile.read(src, dtype="float32", always_2d=True)
         return x, rate
     except Exception:  # noqa: BLE001 - try ffmpeg for the formats libsndfile lacks
-        if shutil.which("ffmpeg") is None:
+        if ffmpeg_exe() is None:
             raise
     cmd = [
-        "ffmpeg",
+        ffmpeg_exe(),
         "-nostdin",
         "-v",
         "error",

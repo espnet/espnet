@@ -64,13 +64,18 @@ class Writers:
                 pack_seconds=self.pack_seconds,
                 **caps,
             )
-        if self.limit is not None:
-            added = sum(
-                len(w.num_samples) + len(w._buffered) for w in self.writers.values()
-            )
-            if added >= self.limit:
-                raise LimitReached()
+            self.writers[split].before_add = self._check_limit
         return self.writers[split]
+
+    def _check_limit(self):
+        """Raise LimitReached once --limit recordings were added."""
+        if self.limit is None:
+            return
+        added = sum(
+            len(w.num_samples) + len(w._buffered) for w in self.writers.values()
+        )
+        if added >= self.limit:
+            raise LimitReached()
 
     def close(self):
         for w in self.writers.values():

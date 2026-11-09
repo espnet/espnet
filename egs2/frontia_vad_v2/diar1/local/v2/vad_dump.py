@@ -120,6 +120,7 @@ class VadDumpWriter:
         self.max_seconds_lang = (
             None if max_hours_per_lang is None else max_hours_per_lang * 3600
         )
+        self.before_add = None  # called at the start of every add() (prep.py --limit)
         self.seconds_added = 0.0
         self.seconds_lang: Dict[str, float] = {}
         self.capped = 0
@@ -169,6 +170,8 @@ class VadDumpWriter:
                 raise ValueError(
                     f"{rec_id}: label source A takes text and lang_sym, not speech"
                 )
+        if self.before_add is not None:
+            self.before_add()
         signal = np.asarray(signal, dtype=np.float32)
         key = lang_sym or lang
         seconds = len(signal) / rate
