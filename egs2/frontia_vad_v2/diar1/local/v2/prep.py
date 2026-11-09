@@ -16,6 +16,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
+import adapters  # noqa: E402
 from adapters import ADAPTERS  # noqa: E402
 from vad_dump import VadDumpWriter  # noqa: E402
 
@@ -41,6 +42,18 @@ class Writers:
             d = self.out / self.corpus / split
             if self.nshards > 1:
                 d = d / f"shard{self.shard}"
+            caps = {}
+            if split == "train":
+                total = adapters.MAX_HOURS_PER_CORPUS.get(
+                    self.corpus, adapters.MAX_HOURS
+                )
+                per_lang = adapters.MAX_HOURS_PER_LANG.get(self.corpus)
+                caps = dict(
+                    max_hours=total / self.nshards,
+                    max_hours_per_lang=(
+                        None if per_lang is None else per_lang / self.nshards
+                    ),
+                )
             self.writers[split] = VadDumpWriter(
                 d,
                 corpus=self.corpus,
@@ -49,6 +62,7 @@ class Writers:
                 licence=self.spec.licence,
                 fs=self.fs,
                 pack_seconds=self.pack_seconds,
+                **caps,
             )
         if self.limit is not None:
             added = sum(
@@ -100,7 +114,13 @@ def main():
         args.limit,
     )
     try:
-        spec.prepare(args.root / spec.directory, writers, args.shard, args.nshards)
+        spec.prepare(
+            args.root / spec.directory,
+            writers,
+            args.shard,
+            args.nshards,
+            **adapters.OPTIONS.get(args.corpus, {}),
+        )
     except LimitReached:
         logging.info("stopped at --limit %d", args.limit)
     writers.close()

@@ -319,7 +319,7 @@ def aishell3(root, writers, shard: int, nshards: int):
         spk = utt[:7]
         w = writers[split_by_hash(spk)]
         add_clip(
-            w, rid(utt), read(), name, text=text[utt], lang_sym="<zho>", lang="cmn"
+            w, rid(utt), read(), name, text=text[utt], lang_sym="<cmn>", lang="cmn"
         )
 
     stream_with_meta(
@@ -694,7 +694,7 @@ MINDS14_LANGS = {
     "pl-PL": "pol",
     "pt-PT": "por",
     "ru-RU": "rus",
-    "zh-CN": "zho",
+    "zh-CN": "cmn",
 }
 
 
@@ -860,9 +860,9 @@ COMMONLANGUAGE_LANGS = {
     "Basque": "eus",
     "Breton": "bre",
     "Catalan": "cat",
-    "Chinese_China": "zho",
+    "Chinese_China": "cmn",
     "Chinese_Hongkong": "yue",
-    "Chinese_Taiwan": "zho",
+    "Chinese_Taiwan": "cmn",
     "Chuvash": "chv",
     "Czech": "ces",
     "Dhivehi": "div",
@@ -991,7 +991,7 @@ CV_LANGS = {
     "tg": "tgk", "th": "tha", "ti": "tir", "tig": "tig", "tk": "tuk", "tn": "tsn",
     "tok": "tok", "tr": "tur", "tt": "tat", "tw": "twi", "ug": "uig", "uk": "ukr",
     "ur": "urd", "uz": "uzb", "vi": "vie", "vot": "vot", "xh": "xho", "yo": "yor",
-    "yue": "yue", "zh-CN": "zho", "zh-HK": "yue", "zh-TW": "zho", "zu": "zul",
+    "yue": "yue", "zh-CN": "cmn", "zh-HK": "yue", "zh-TW": "cmn", "zu": "zul",
 }  # fmt: skip
 
 # Spontaneous Speech quality tags whose transcript may not cover all speech.
@@ -1013,10 +1013,11 @@ def commonvoice(root, writers, shard: int, nshards: int):
     """Common Voice Scripted Speech 27.0 and Spontaneous Speech 5.0 (MDC tarballs).
 
     Scripted: cv-corpus-*/<locale>/validated.tsv (client_id, path, sentence)
-    and clips/*.mp3; only validated clips are used. Spontaneous:
+    and clips/*.mp3; only validated clips are used, without those in
+    test.tsv (the official test split stays out of training). Spontaneous:
     sps-corpus-*-<locale>/ss-corpus-<locale>.tsv (client_id, audio_file,
     transcription, split, quality_tags) and audios/*.mp3; only clips with a
-    validated transcript (split train/dev/test) are used, without quality tags
+    validated transcript (split train/dev) are used, without quality tags
     that mark a transcript that may not cover the audio, and with the
     [noise]-style tags removed. Both are split into train/dev by speaker
     (client_id). Archives up to 20 GB go to one shard each; larger ones
@@ -1045,16 +1046,28 @@ def prepare_cv_archive(tar, writers, shard: int, nshards: int):
         m = re.match(r"cv-corpus-[^/]+/([^/]+)/", name)
         return m.group(1) if m else None
 
+    test_clips = set()  # Scripted: the clips of test.tsv, kept out of training
+
     def is_meta(name):
-        return name.endswith("/validated.tsv") or re.search(
-            r"/ss-corpus-[^/]+\.tsv$", name
+        return (
+            name.endswith("/validated.tsv")
+            or name.endswith("/test.tsv")
+            or re.search(r"/ss-corpus-[^/]+\.tsv$", name)
         )
 
     def on_meta(name, data):
         state["meta"] = True
+        if name.endswith("/test.tsv"):
+            for r in tsv_rows(data):
+                if r.get("path"):
+                    clip = r["path"].rsplit("/", 1)[-1]
+                    test_clips.add(clip)
+                    rows.pop(clip, None)
+            return
         for r in tsv_rows(data):
             if "audio_file" in r:  # Spontaneous Speech
-                if r.get("split") not in ("train", "dev", "test"):
+                # the official test split stays out, as for the other corpora
+                if r.get("split") not in ("train", "dev"):
                     continue
                 if any(t in (r.get("quality_tags") or "") for t in CV_SPS_BAD_TAGS):
                     continue
@@ -1062,7 +1075,9 @@ def prepare_cv_archive(tar, writers, shard: int, nshards: int):
                 if text:
                     rows[r["audio_file"]] = (r["client_id"], text)
             elif r.get("path") and r.get("sentence"):
-                rows[r["path"].rsplit("/", 1)[-1]] = (r["client_id"], r["sentence"])
+                clip = r["path"].rsplit("/", 1)[-1]
+                if clip not in test_clips:
+                    rows[clip] = (r["client_id"], r["sentence"])
 
     class Unsupported(Exception):
         pass

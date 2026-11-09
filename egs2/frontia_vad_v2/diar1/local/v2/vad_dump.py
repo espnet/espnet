@@ -85,6 +85,8 @@ class VadDumpWriter:
             (per language token and microphone), with their labels and
             transcripts; the training chunks are fixed-length windows, which a
             shorter recording cannot give. The id of a pack is "<first id>+<n>".
+        max_hours: Recordings are not added once this many hours are added.
+        max_hours_per_lang: The same per language (lang_sym, else lang).
     """
 
     def __init__(
@@ -97,6 +99,8 @@ class VadDumpWriter:
         fs: int = 16000,
         max_bin_size: int = 2 * 1024**3,
         pack_seconds: Optional[float] = None,
+        max_hours: Optional[float] = None,
+        max_hours_per_lang: Optional[float] = None,
     ):
         if label_source not in ("H", "D", "A"):
             raise ValueError(f"unknown label source: {label_source}")
@@ -112,6 +116,13 @@ class VadDumpWriter:
         self.rows: List[Dict[str, str]] = []
         self.skipped: List[str] = []
         self.pack_seconds = pack_seconds
+        self.max_seconds = None if max_hours is None else max_hours * 3600
+        self.max_seconds_lang = (
+            None if max_hours_per_lang is None else max_hours_per_lang * 3600
+        )
+        self.seconds_added = 0.0
+        self.seconds_lang: Dict[str, float] = {}
+        self.capped = 0
         self._packs: Dict[tuple, list] = {}
         self._buffered = set()
         self.text: Dict[str, str] = {}
@@ -159,6 +170,18 @@ class VadDumpWriter:
                     f"{rec_id}: label source A takes text and lang_sym, not speech"
                 )
         signal = np.asarray(signal, dtype=np.float32)
+        key = lang_sym or lang
+        seconds = len(signal) / rate
+        if (
+            self.max_seconds is not None and self.seconds_added >= self.max_seconds
+        ) or (
+            self.max_seconds_lang is not None
+            and self.seconds_lang.get(key, 0.0) >= self.max_seconds_lang
+        ):
+            self.capped += 1
+            return 0
+        self.seconds_added += seconds
+        self.seconds_lang[key] = self.seconds_lang.get(key, 0.0) + seconds
         if signal.ndim == 1:
             signal = signal[:, None]
         if signal.ndim != 2 or signal.shape[0] == 0:
@@ -286,6 +309,7 @@ class VadDumpWriter:
             hours=round(total / 3600, 3),
             speech_hours=round(speech / 3600, 3),
             skipped=len(skipped),
+            not_added_over_cap=self.capped,
         )
         (self.dir / "summary.json").write_text(json.dumps(summary, indent=1) + "\n")
         logging.info("%s", summary)

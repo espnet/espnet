@@ -971,7 +971,8 @@ def mls(root, writers, shard: int, nshards: int, max_hours=None, max_pending_gb=
 
     The archive has mls_<lang>/<split>/audio/<spk>/<book>/<id>.flac and
     mls_<lang>/<split>/transcripts.txt ("<id>\\t<text>").
-    train is train, dev is dev; test is not read. `max_hours` caps the train
+    train is train, dev is dev; test is not read. `max_hours` (hours, or a
+    dict language -> hours, a missing language uncapped) caps the train
     part of each language: (speaker, book) pairs are kept by a hash at the rate
     max_hours / training hours of the language, and reading stops once the
     cap is reached and the dev part has passed. The languages are the shard
@@ -987,10 +988,9 @@ def mls(root, writers, shard: int, nshards: int, max_hours=None, max_pending_gb=
     for u, sub, nsub in _units(len(langs), shard, nshards):
         lang = langs[u]
         code = MLS_LANGS[lang]
-        cap = _Cap(None if max_hours is None else max_hours / nsub)
-        keep_rate = (
-            1.0 if max_hours is None else min(1.0, max_hours / MLS_TRAIN_HOURS[lang])
-        )
+        hours = max_hours.get(lang) if isinstance(max_hours, dict) else max_hours
+        cap = _Cap(None if hours is None else hours / nsub)
+        keep_rate = 1.0 if hours is None else min(1.0, hours / MLS_TRAIN_HOURS[lang])
         text: Dict[Tuple[str, str], str] = {}
         state = {"last": None, "dev_done": False}
 

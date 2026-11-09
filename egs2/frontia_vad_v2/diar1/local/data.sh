@@ -27,7 +27,7 @@ log() {
 
 stage=1
 stop_stage=4
-corpora=""          # comma separated adapter names; empty: every registered corpus
+corpora=""          # comma separated adapter names; empty: adapters.training_corpora()
 v1_train="ami,chime6,notsofar,icsi"
 v1_test="dipco,ami_mh,alimeeting,aishell4,voxconverse,earnings21,ava_speech,ten_vad"
 nshards=8           # jobs per corpus in stage 2
@@ -49,7 +49,7 @@ v2=local/v2
 
 if [ -z "${corpora}" ]; then
     corpora=$(python3 -c "import sys; sys.path.insert(0, '${v2}'); \
-import adapters; print(','.join(sorted(adapters.ADAPTERS)))")
+import adapters; print(','.join(adapters.training_corpora()))")
 fi
 
 if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
