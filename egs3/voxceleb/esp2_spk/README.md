@@ -146,10 +146,12 @@ frozen for the first 5,000 updates and fine-tuned jointly afterwards.
 - A trained model scores a pair of recordings directly:
 
   ```python
-  from espnet3.systems.esp2_spk.inference import Inference
+  from espnet3.publication.inference_model import InferenceModel
 
-  model = Inference.from_pretrained("exp/training_rawnet3/model_pack")
-  model("enroll.wav", "test.wav")  # {'score': 0.71}
+  model = InferenceModel.from_packed(
+      "exp/training_rawnet3/model_pack", trust_user_code=True
+  )
+  model({"speech": "enroll.wav", "speech2": "test.wav"})  # {'score': 0.71, ...}
   ```
 
 ## Results

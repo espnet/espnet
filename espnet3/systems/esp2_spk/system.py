@@ -6,7 +6,7 @@ from espnet3.contract.stages import StageSpec
 from espnet3.systems.base.system import BaseSystem
 
 
-class SpeakerSystem(BaseSystem):
+class ESP2SPKSystem(BaseSystem):
     """Speaker verification system.
 
     Trains on fixed-length raw waveform crops, so it needs neither a
@@ -14,7 +14,7 @@ class SpeakerSystem(BaseSystem):
     is there a demo yet, so ``pack_demo``/``upload_demo`` are left out.
 
     Examples:
-        >>> [s.name for s in SpeakerSystem.stages]
+        >>> [s.name for s in ESP2SPKSystem.stages]
         ['create_dataset', 'train', 'infer', 'measure', 'pack_model', 'upload_model']
     """
 

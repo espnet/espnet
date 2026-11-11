@@ -43,10 +43,17 @@ def test_default_augmentation_is_off_so_the_template_runs_standalone() -> None:
 
 def test_load_default_config_infer_contains_expected_targets() -> None:
     cfg = load_default_config("inference.yaml", "egs3.TEMPLATE.esp2_spk")
-    assert cfg.model._target_ == "espnet3.systems.esp2_spk.inference.Inference"
-    # The declared inputs replace these; the runner refuses them.
-    assert "input_key" not in cfg and "output_fn" not in cfg
-    # `Inference` crops raw audio itself, so the dataset feeds it unprocessed.
+    assert (
+        cfg.model._target_ == "espnet3.systems.esp2_spk.src.speech2score.TrialScorer"
+    )
+    assert cfg.runner._target_ == (
+        "espnet3.systems.esp2_spk.src.inference_runner.ESP2SPKInferenceRunner"
+    )
+    assert list(cfg.input_key) == ["speech", "speech2"]
+    assert list(cfg.contract.inputs) == ["speech", "speech2"]
+    assert list(cfg.contract.outputs) == ["score"]
+    assert "output_fn" not in cfg
+    # `TrialScorer` crops raw audio itself, so the dataset feeds it unprocessed.
     assert cfg.dataset.preprocessor is None
 
 
@@ -70,8 +77,12 @@ def test_template_metrics_bind_to_the_inference_outputs() -> None:
 
     inference = load_default_config("inference.yaml", "egs3.TEMPLATE.esp2_spk")
     metrics = load_default_config("metrics.yaml", "egs3.TEMPLATE.esp2_spk")
+    outputs = set(inference.contract.outputs)
     for entry in metrics.metrics:
-        check_metric_inputs(instantiate(entry.metric), entry, inference)
+        bindings = check_metric_inputs(instantiate(entry.metric), entry.inputs)
+        assert bindings == {"label": "dataset:spk_labels", "score": "score"}
+        generated = {s for s in bindings.values() if not s.startswith("dataset:")}
+        assert generated <= outputs
 
 
 def test_load_and_merge_config_user_overrides_template_defaults(tmp_path: Path) -> None:
@@ -104,19 +115,19 @@ dataloader:
 
 
 def test_stage_list_skips_tokenizer_and_stats() -> None:
-    from espnet3.systems.esp2_spk.system import SpeakerSystem
+    from espnet3.systems.esp2_spk.system import ESP2SPKSystem
 
-    names = [s.name for s in SpeakerSystem.stages]
+    names = [s.name for s in ESP2SPKSystem.stages]
     assert "train_tokenizer" not in names
     assert "collect_stats" not in names
     assert names[:4] == ["create_dataset", "train", "infer", "measure"]
 
 
 def test_launch_resolves_the_template_package() -> None:
-    from espnet3.systems.esp2_spk.system import SpeakerSystem
+    from espnet3.systems.esp2_spk.system import ESP2SPKSystem
     from espnet3.systems.launch import default_conf_package
 
-    assert default_conf_package(SpeakerSystem) == "egs3.TEMPLATE.esp2_spk"
+    assert default_conf_package(ESP2SPKSystem) == "egs3.TEMPLATE.esp2_spk"
 
 
 def test_average_checkpoint_name_matches_the_inference_config() -> None:

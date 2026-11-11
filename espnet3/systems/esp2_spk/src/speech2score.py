@@ -1,38 +1,38 @@
-"""The speaker verification system's side of :mod:`espnet3.api.inference`.
+"""Trial scoring backend of the speaker verification system.
 
 A trial is two utterances; the model answers how likely they are to share a
-speaker, as one similarity score. :class:`Inference` takes the two
+speaker, as one similarity score. :class:`TrialScorer` takes the two whole
 waveforms, cuts each into evenly spaced fixed-length crops exactly as
-validation does during training, and returns ``{"score": float}``. The
-model itself, and the crops, are :class:`ESPnet2Speech2Score`'s.
+validation does during training, and returns the score. The model itself,
+and the crops, are :class:`ESPnet2Speech2Score`'s.
 
 Examples:
-    From a bundle, by directory or Hub tag::
-
-        >>> from espnet3.systems.esp2_spk.inference import Inference
-        >>> model = Inference.from_pretrained("exp/train/model_pack")
-        >>> model("enroll.wav", "test.wav")
-        {'score': 0.71}
-
-    In the ``infer`` stage, ``inference.yaml`` names this class with the
-    scorer's own arguments::
+    In the ``infer`` stage, ``inference.yaml`` names :class:`TrialScorer`
+    with the scorer's own arguments, and
+    :class:`espnet3.systems.esp2_spk.src.inference_runner.ESP2SPKInferenceRunner`
+    turns its float into ``{"score": float}``::
 
         model:
-          _target_: espnet3.systems.esp2_spk.inference.Inference
+          _target_: espnet3.systems.esp2_spk.src.speech2score.TrialScorer
           train_config: ${exp_dir}/config.yaml
           model_file: ${exp_dir}/valid.eer.ave_3best.pth
           num_eval: 10
+
+    From a ``pack_model`` bundle::
+
+        >>> from espnet3.publication.inference_model import InferenceModel
+        >>> model = InferenceModel.from_packed("exp/train/model_pack")
+        >>> model({"speech": "enroll.wav", "speech2": "test.wav"})
+        {'score': 0.71, 'utt_id': '0'}
 """
 
 from pathlib import Path
-from typing import Any, Mapping, Union
+from typing import Union
 
 import numpy as np
 import torch
 from typeguard import typechecked
 
-from espnet3.api.inference import Audio, Field
-from espnet3.systems.base.backend_inference import BackendInference
 from espnet3.systems.esp2_spk.task import SpeakerTask
 
 
@@ -183,39 +183,42 @@ class ESPnet2Speech2Score:
         return speech.unsqueeze(0).to(self.device)
 
 
-class Inference(BackendInference):
-    """Score a verification trial with a speaker model.
+class TrialScorer:
+    """Score one trial from its two whole waveforms.
 
-    Built as every :class:`BackendInference` is: ``from_pretrained`` from a
-    ``pack_model`` bundle, ``Inference(train_config=..., model_file=...)``
-    from :class:`ESPnet2Speech2Score`'s own arguments, which is what
-    ``inference.yaml`` does, or ``Inference(scorer)`` around one already
-    built.
+    The callable the inference runner calls. It owns an
+    :class:`ESPnet2Speech2Score` rather than subclassing it: the backend's
+    ``__call__`` takes ``(num_eval, T)`` crops and its ``score`` builds those
+    crops, so overriding ``__call__`` in a subclass would make the inherited
+    ``score`` crop twice.
+
+    Args:
+        **kwargs: :class:`ESPnet2Speech2Score`'s arguments (``train_config``,
+            ``model_file``, ``device``, ``sample_rate``, ``target_duration``,
+            ``num_eval``).
 
     Examples:
-        >>> model = Inference.from_pretrained("exp/train/model_pack")
-        >>> model("enroll.wav", "test.wav")
-        {'score': 0.71}
-        >>> model.sample_rate
-        16000
+        >>> scorer = TrialScorer(
+        ...     train_config="exp/train/config.yaml",
+        ...     model_file="exp/train/valid.eer.ave_3best.pth",
+        ... )
+        >>> scorer(enroll_wav, test_wav)
+        0.71
     """
 
-    backend_class = "espnet3.systems.esp2_spk.inference.ESPnet2Speech2Score"
-    inputs = (
-        Field("speech", "audio", "Enrollment speech"),
-        Field("speech2", "audio", "Test speech"),
-    )
-    outputs = (Field("score", "number", "Similarity score"),)
+    def __init__(self, **kwargs):
+        """Build the backend scorer from its constructor arguments."""
+        self.backend = ESPnet2Speech2Score(**kwargs)
+        self.sample_rate = self.backend.sample_rate
 
-    def run(self, speech: Audio, speech2: Audio) -> Mapping[str, Any]:
-        """Return the trial's score; higher means more likely one speaker.
+    def __call__(self, speech: np.ndarray, speech2: np.ndarray) -> float:
+        """Return the similarity score of two whole 1-D waveforms.
 
         Args:
             speech: The enrollment utterance, mono, at :attr:`sample_rate`.
             speech2: The test utterance, mono, at :attr:`sample_rate`.
 
         Returns:
-            ``{"score": float}``: the cosine similarity averaged over every
-            pair of crops.
+            The cosine similarity averaged over every pair of crops.
         """
-        return {"score": self.backend.score(speech.array, speech2.array)}
+        return self.backend.score(speech, speech2)

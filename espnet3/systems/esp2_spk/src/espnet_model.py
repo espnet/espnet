@@ -153,7 +153,7 @@ class ESPnetSpeakerVerificationModel(ESPnetSpeakerModel):
             ...     float(model.score_trials(enroll[:1], enroll[:1]))
             1.0
 
-            :class:`espnet3.systems.esp2_spk.inference.ESPnet2Speech2Score` wraps
+            :class:`espnet3.systems.esp2_spk.src.speech2score.ESPnet2Speech2Score` wraps
             this for one trial at a time, and handles the batching and the device.
         """
         embd = self.extract_crop_embeddings(speech)

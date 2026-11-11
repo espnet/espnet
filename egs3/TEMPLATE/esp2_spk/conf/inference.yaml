@@ -37,9 +37,10 @@ dataset:
   _recursive_: false
   recipe_dir: ${recipe_dir}
   test:
-  # No preprocessor: `Inference` takes each trial's two whole utterances and
-  # cuts the evaluation crops itself (`model.num_eval` below), so a published
-  # model scores raw audio the same way.
+  # No preprocessor: `TrialScorer` takes each trial's two whole utterances
+  # and cuts the evaluation crops itself (`model.num_eval` below), so a
+  # published model scores raw audio the same way. A `SpkPreprocessor` here
+  # would crop first and the scorer would crop the crops.
   preprocessor:
 
 ##########################################################
@@ -52,10 +53,10 @@ parallel:
 ##########################################################
 #                    MODEL AND OUTPUT                    #
 ##########################################################
-# `Inference` declares its inputs (`speech`, `speech2`) and output (`score`),
-# so there is no `input_key` or `output_fn` to set.
+# `TrialScorer` scores one trial from its two whole waveforms. Its arguments
+# are `ESPnet2Speech2Score`'s; `device` is added by the provider.
 model:
-  _target_: espnet3.systems.esp2_spk.inference.Inference
+  _target_: espnet3.systems.esp2_spk.src.speech2score.TrialScorer
   train_config: ${exp_dir}/config.yaml
   model_file: ${exp_dir}/valid.eer.ave_3best.pth
   # The crops validation takes during training: `num_eval` evenly spaced
@@ -64,8 +65,40 @@ model:
   target_duration: 3.0
   num_eval: 10
 
+# The dataset fields passed to the model. Not derived from
+# `contract.inputs`, so it has to agree with them.
+input_key:
+- speech
+- speech2
+
+# Both utterances reach the scorer as one mono waveform at the model's rate.
+# Audio at another rate is resampled (the default `rate_policy`); a
+# multichannel recording is reduced to its first channel before the
+# `channels: 1` check. `score` is written to `score.scp`, which `measure`
+# reads with the trial labels from `dataset:spk_labels`.
+contract:
+  inputs:
+    speech:
+      kind: audio
+      label: Enrollment speech
+      sample_rate: 16000
+      channels: 1
+      normalize:
+      - first_channel
+    speech2:
+      kind: audio
+      label: Test speech
+      sample_rate: 16000
+      channels: 1
+      normalize:
+      - first_channel
+  outputs:
+    score:
+      kind: number
+      label: Similarity score
+
 # Trials are scored one at a time; the crops of a single trial already fill a
-# forward pass.
+# forward pass. `ESP2SPKInferenceRunner` refuses a batch.
 batch_size:
 
 
@@ -75,4 +108,4 @@ batch_size:
 provider:
   _target_: espnet3.systems.base.inference_provider.InferenceProvider
 runner:
-  _target_: espnet3.systems.base.inference_runner.InferenceRunner
+  _target_: espnet3.systems.esp2_spk.src.inference_runner.ESP2SPKInferenceRunner

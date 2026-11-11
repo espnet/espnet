@@ -32,7 +32,7 @@ metrics:
       _target_: espnet3.systems.esp2_spk.metrics.eer.EER
     inputs:
       label: dataset:spk_labels   # 1 for a target trial, 0 for nontarget
-      score: score                # the `Inference` output
+      score: score                # the `TrialScorer` output, `score.scp`
 
   - metric:
       _target_: espnet3.systems.esp2_spk.metrics.min_dcf.MinDCF

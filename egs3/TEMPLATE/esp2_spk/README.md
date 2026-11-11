@@ -5,14 +5,14 @@ The template holds the default configs of the `esp2_spk` system
 model configuration, and its `run.py` is only:
 
 ```python
-from espnet3.systems.esp2_spk.system import SpeakerSystem
+from espnet3.systems.esp2_spk.system import ESP2SPKSystem
 from espnet3.systems.launch import launch
 
 if __name__ == "__main__":
-    launch(SpeakerSystem)
+    launch(ESP2SPKSystem)
 ```
 
-`SpeakerSystem` declares the stages `create_dataset`, `train`, `infer`,
+`ESP2SPKSystem` declares the stages `create_dataset`, `train`, `infer`,
 `measure`, `pack_model` and `upload_model`: training on raw waveform crops
 needs neither a tokenizer nor `collect_stats`.
 
@@ -56,6 +56,7 @@ arguments:
 During training, `SpkPreprocessor` converts both forms into fixed-length crops
 and maps the training speaker strings to integer labels using the `spk2utt`
 file written by `create_dataset`. The `infer` stage uses no preprocessor:
-`espnet3.systems.esp2_spk.inference.Inference` takes a trial's two whole
-utterances, cuts the same evaluation crops itself, and returns `{"score": ...}`,
-so a published model scores raw recordings exactly as `infer` does.
+`espnet3.systems.esp2_spk.src.speech2score.TrialScorer` takes a trial's two
+whole utterances and cuts the same evaluation crops itself, and
+`ESP2SPKInferenceRunner` names its result `{"score": ...}`, so a published
+model scores raw recordings exactly as `infer` does.

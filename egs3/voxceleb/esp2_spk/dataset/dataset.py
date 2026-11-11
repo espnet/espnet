@@ -10,7 +10,7 @@ import numpy as np
 import pyarrow.parquet as pq
 from omniio.interface import audio_read
 
-from espnet3.api import Field
+from espnet3.contract import Field
 from espnet3.components.data.base_dataset import BaseDataset
 from espnet3.utils.config_utils import load_config_with_defaults
 

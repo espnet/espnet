@@ -5,7 +5,7 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Dict, List, Optional, Sequence
 
-from espnet3.api import Field
+from espnet3.contract import Field
 from espnet3.components.metrics.base_metric import BaseMetric
 
 

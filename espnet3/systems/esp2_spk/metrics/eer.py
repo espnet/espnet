@@ -5,7 +5,7 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Dict
 
-from espnet3.api import Field
+from espnet3.contract import Field
 from espnet3.systems.esp2_spk.metrics.trials import TrialMetric
 from espnet3.systems.esp2_spk.src.scoring import compute_eer, score_statistics
 
