@@ -87,6 +87,7 @@ audio_fold_length=256000 # fold_length for audio data.
 
 # Upload model related
 hf_repo=
+hf_license=
 
 help_message=$(cat << EOF
 Usage: $0 --train-set "<train_set_name>" --valid-set "<valid_set_name>" --test_sets "<test_set_names>" --srctexts "<srctexts>"
@@ -154,6 +155,7 @@ Options:
 
     # Upload model related
     ---hf_repo          # Huggingface model tag for huggingface model upload
+    --hf_license        # Hugging Face license identifier for the model card (default="${hf_license}").
 EOF
 )
 
@@ -624,6 +626,9 @@ if [ ${stage} -le 9 ] && [ ${stop_stage} -ge 9 ] && ! "${skip_upload}"; then
     log "Stage 9: Uploading to hugging face: ${hf_repo}"
     [ -z "${hf_repo}" ] && \
         log "ERROR: You need to setup the variable hf_repo with the name of the repository located at HuggingFace, follow the following steps described here https://github.com/espnet/espnet/blob/master/CONTRIBUTING.md#133-publishing-models" && \
+    exit 1
+    [ -z "${hf_license}" ] && \
+        log "ERROR: You need to setup the variable hf_license with the Hugging Face license identifier for the model card (for example apache-2.0, mit, cc-by-4.0, or other)" && \
     exit 1
 
     # Upload model to hugging face
