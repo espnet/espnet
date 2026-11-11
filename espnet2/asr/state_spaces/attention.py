@@ -19,10 +19,13 @@ class MultiHeadedAttention(SequenceModule):
         n_head (int): The number of heads.
         n_feat (int): The number of features.
         dropout_rate (float): Dropout rate.
+        use_sdpa (bool): Use PyTorch's scaled dot product attention.
 
     """
 
-    def __init__(self, n_feat, n_head, dropout=0.0, transposed=False, **kwargs):
+    def __init__(
+        self, n_feat, n_head, dropout=0.0, transposed=False, use_sdpa=False, **kwargs
+    ):
         """Construct an MultiHeadedAttention object."""
         super().__init__()
         assert n_feat % n_head == 0
@@ -36,6 +39,7 @@ class MultiHeadedAttention(SequenceModule):
         self.attn = None
         self.dropout = nn.Dropout(p=dropout)
         self.d_output = n_feat
+        self.use_sdpa = use_sdpa
 
     def forward_qkv(self, query, key, value):
         """Transform query, key and value.
@@ -113,6 +117,16 @@ class MultiHeadedAttention(SequenceModule):
         if memory is None:
             memory = query
         q, k, v = self.forward_qkv(query=query, key=memory, value=memory)
+        if self.use_sdpa:
+            x = torch.nn.functional.scaled_dot_product_attention(
+                q,
+                k,
+                v,
+                mask.unsqueeze(1).ne(0) if mask is not None else None,
+                dropout_p=self.dropout.p if self.training else 0.0,
+            )  # (batch, head, time1, d_k)
+            x = x.transpose(1, 2).reshape(x.size(0), -1, self.h * self.d_k)
+            return self.linear_out(x), None
         scores = torch.matmul(q, k.transpose(-2, -1)) / math.sqrt(self.d_k)
         return self.forward_attention(v, scores, mask), None
 

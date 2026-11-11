@@ -1,3 +1,5 @@
+import importlib
+import sys
 from pathlib import Path
 
 import numpy as np
@@ -8,6 +10,7 @@ from omegaconf import OmegaConf
 
 import espnet3.parallel.parallel as parallel_mod
 import espnet3.systems.base.inference as inference_mod
+import espnet3.systems.base.inference_provider as inference_provider_mod
 import espnet3.systems.base.inference_runner as inference_runner_mod
 from espnet3.systems.base.inference_provider import InferenceProvider
 from espnet3.systems.base.inference_runner import InferenceRunner
@@ -289,6 +292,31 @@ def test_inference_without_output_fn_uses_model_output(tmp_path, monkeypatch):
         "utt1 h1",
         "utt2 h2",
     ]
+
+
+def test_infer_applies_contract_through_runner_and_writes_output(tmp_path, monkeypatch):
+    cfg = OmegaConf.create(
+        {
+            "parallel": {"env": "local"},
+            "inference_dir": str(tmp_path / "infer"),
+            "dataset": {"test": [{"name": "test_a"}]},
+            "input_key": "speech",
+            "mock_dataset": [{"utt_id": "u1", "speech": "  HELLO  "}],
+            "provider": {"_target_": f"{__name__}.StreamingProvider"},
+            "runner": {
+                "_target_": "espnet3.systems.base.inference_runner.InferenceRunner"
+            },
+            "contract": {
+                "inputs": {"speech": {"kind": "text", "normalize": ["strip"]}},
+                "outputs": {"speech": {"kind": "text", "normalize": ["to_lower"]}},
+            },
+        }
+    )
+    monkeypatch.setattr(inference_mod, "set_parallel", lambda arg: None)
+
+    inference_mod.infer(cfg)
+
+    assert _read_scp(tmp_path / "infer" / "test_a" / "speech.scp") == ["u1 hello"]
 
 
 def test_inference_without_idx_key_uses_default_utt_id(tmp_path, monkeypatch):
@@ -789,3 +817,35 @@ def test_infer_rejects_results_with_no_output_keys(tmp_path, monkeypatch):
 
     with pytest.raises(RuntimeError, match="No output keys found in inference results"):
         inference_mod.infer(cfg)
+
+
+def test_build_model_does_not_import_from_the_recipe_dir(tmp_path, monkeypatch):
+    """Building inside ``recipe_dir`` must not let its files shadow imports."""
+    (tmp_path / "cwd_shadow_probe.py").write_text("MARK = 'from the bundle'\n")
+    seen = {}
+
+    def fake_instantiate(model_config, device=None):
+        seen["cwd"] = Path.cwd().resolve()
+        seen["path"] = list(sys.path)
+        try:
+            importlib.import_module("cwd_shadow_probe")
+            seen["imported"] = True
+        except ImportError:
+            seen["imported"] = False
+        return object()
+
+    monkeypatch.setattr(inference_provider_mod, "instantiate", fake_instantiate)
+    monkeypatch.setattr(sys, "path", ["", ".", "relative/dir", *sys.path])
+    monkeypatch.delitem(sys.modules, "cwd_shadow_probe", raising=False)
+    before = list(sys.path)
+    cwd = Path.cwd()
+
+    InferenceProvider.build_model(
+        OmegaConf.create({"recipe_dir": str(tmp_path), "model": {}, "device": "cpu"})
+    )
+
+    assert seen["cwd"] == tmp_path.resolve()
+    assert seen["imported"] is False
+    assert all(Path(p).is_absolute() for p in seen["path"])
+    assert sys.path == before
+    assert Path.cwd() == cwd

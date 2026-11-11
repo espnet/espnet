@@ -18,7 +18,7 @@ from typing import (
     Union,
 )
 
-from espnet3.api.inference import Field
+from espnet3.contract import Field
 from espnet3.contract.metrics import (
     check_metric_batch,
     check_metric_contract,
@@ -34,14 +34,12 @@ StateValue = Union[int, float, List[Any]]
 class BaseMetric(ABC):
     """Base class for metrics that consume inference output paths.
 
-    A subclass declares ``inputs``/``outputs`` (the same
-    :class:`~espnet3.api.inference.Field` declaration
-    :class:`~espnet3.api.inference.InferenceAPI` uses): ``inputs`` names
-    what the metric reads (checked against the configured model's own
-    declared outputs, via
-    ``espnet3.contract.metrics.check_metric_inputs``), and
-    ``outputs`` names the keys of the result dict, each of kind
-    ``"number"``. There is no undeclared fallback: a metric that declares
+    A subclass declares ``inputs``/``outputs`` as tuples of
+    :class:`~espnet3.contract.Field`. ``inputs`` names what the metric
+    reads; the metrics config binds each input to an inference artifact or
+    dataset column, and ``check_metric_inputs`` validates that binding.
+    ``outputs`` names the result keys, each of kind ``"number"``. There is
+    no undeclared fallback: a metric that declares
     neither raises ``TypeError`` as soon as it is instantiated.
 
     A metric whose inputs/outputs never change (most of them - ``WER``,

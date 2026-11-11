@@ -25,7 +25,7 @@ The model is [`espnet/bagpiper-sft`](https://huggingface.co/espnet/bagpiper-sft)
 Captions](https://arxiv.org/abs/2602.05220).
 [`espnet/bagpiper-tts-sft`](https://huggingface.co/espnet/bagpiper-tts-sft) is
 the speech-focused sibling — multi-talker, intent-to-speech, role-play,
-singing — and `BAGPIPER_MODEL_TAG` switches this Space to it.
+singing — and `BAGPIPER_MODEL_TAG` switches this page to it.
 
 ## Run it yourself
 
@@ -39,7 +39,17 @@ codec. Set `BAGPIPER_URL=http://127.0.0.1:9811/v1` to point the page at a
 model already served by the [ESPnet vLLM
 fork](https://github.com/espnet/vllm) instead of loading one here — the
 serving command is in
-[`egs2/bagpiper/speechlm1/README.md`](https://github.com/espnet/espnet/tree/master/egs2/bagpiper/speechlm1).
+[`egs2/bagpiper_tts/speechlm1/README.md`](https://github.com/espnet/espnet/tree/master/egs2/bagpiper_tts/speechlm1#vllm-serving).
+
+The fork documents audio generation with `espnet/bagpiper-tts-sft`, so
+**deploy that converted checkpoint for served rendering**. It documents audio
+output from `espnet/bagpiper-sft` as unsupported, because its decoder does
+not enforce the text-then-audio turn that checkpoint needs — which is
+narrower than that checkpoint being unservable. `BAGPIPER_URL` connects to
+whatever the deployment serves: the page neither inspects nor changes the
+server's checkpoint, and `BAGPIPER_MODEL_TAG` affects local loading only. To
+render with `espnet/bagpiper-sft` — music and environmental sound included —
+load it here instead.
 
 ## Elsewhere
 
@@ -62,10 +72,14 @@ So run it yourself, one of three ways:
 - **on a GPU** — `python app.py`, with `ESPNET_BAGPIPER_ATTN=sdpa` on
   anything before Hopper;
 - **against a served model** — `BAGPIPER_URL=http://127.0.0.1:9811/v1
-  python app.py`, which needs no GPU on this side. If what is served is
-  `espnet/bagpiper-tts-sft`, set `ESPNET_BAGPIPER_TTS_SYSTEM=` (empty): the
-  serving command calls every checkpoint `bagpiper`, and that one was
-  trained with no system turn;
+  python app.py`, which needs no GPU on this side. Rendering then sends the
+  constant audio-generation system prompt, which is what the fork's
+  [reference client](https://github.com/espnet/vllm/blob/main/examples/espnet/clients/client_bagpiper.py)
+  sends by default and the request it reports validating.
+  `ESPNET_BAGPIPER_TTS_SYSTEM=` (empty) sends no system turn instead, which
+  is how the Bagpiper-TTS paper describes that checkpoint's training data;
+  that variant has not been validated against a served checkpoint, so treat
+  it as an override rather than the recipe;
 - **from a cluster** — run it inside a batch job and forward the port:
   `ssh -L 7860:<node>:7860 <cluster>`, then open `localhost:7860`.
 

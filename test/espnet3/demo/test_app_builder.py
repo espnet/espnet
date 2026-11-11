@@ -1,5 +1,3 @@
-"""The packed demo: its session, its app, and the wiring to an Inference."""
-
 from __future__ import annotations
 
 from argparse import Namespace
@@ -10,114 +8,50 @@ import pytest
 from omegaconf import OmegaConf
 
 import egs3.TEMPLATE.esp2_asr.src.app as demo_module
-import espnet3.api.inference.loading as loading
 import espnet3.publication.demo.assets as demo_assets_module
 import espnet3.publication.demo.session as demo_session_module
 from egs3.TEMPLATE.esp2_asr.src.app import build_demo
-from espnet3.api.inference import Audio, Field, InferenceAPI
-from espnet3.publication.demo.session import DemoSession, load_demo_session, to_ui
+from espnet3.contract.kinds.audio import Audio
+from espnet3.publication.demo.session import DemoSession, load_demo_session
 
 
-@pytest.fixture(autouse=True)
-def _test_classes_count_as_installed_espnet_code(monkeypatch):
-    """Let this module's classes stand in for ESPnet's own in bundles.
+class DummyProvider:
+    @staticmethod
+    def build_model(config):
+        _ = config
 
-    A bundle may build only espnet2/espnet3 classes unless trusted; the
-    bundles written here name classes defined in this test module instead.
-    The gate itself is tested with the real namespaces, which
-    ``real_target_policy`` restores.
-    """
-    monkeypatch.setattr(
-        loading,
-        "_BUNDLE_TARGET_PREFIXES",
-        loading._BUNDLE_TARGET_PREFIXES + (f"{__name__}.",),
-    )
+        def model(speech, **kwargs):
+            _ = (speech, kwargs)
+            return {"hyp": "ok"}
+
+        return model
 
 
-class Transcriber(InferenceAPI):
-    """What a bundle's model looks like to the demo: fields and a result."""
+class CallArgsEchoProvider:
+    @staticmethod
+    def build_model(config):
+        _ = config
 
-    inputs = (Field("speech", "audio", "Input Audio"),)
-    outputs = (Field("text", "text", "Transcription"),)
+        def model(speech, **kwargs):
+            return {"hyp": f"beam={kwargs.get('beam_size')}:{speech}"}
 
-    def __init__(self, device="cpu", beam_size=1):
-        self.device = device
-        self.beam_size = beam_size
-
-    @classmethod
-    def from_pretrained(cls, tag_or_dir, *, device="cpu", **kwargs):
-        return cls(device=device)
-
-    sample_rate = 8000
-
-    def run(self, speech):
-        return {"text": f"beam={self.beam_size}:{speech.duration:.1f}s"}
+        return model
 
 
-class Enhancer(InferenceAPI):
-    """Audio out, to check the Gradio conversion and the derived specs."""
-
-    inputs = (Field("speech", "audio"), Field("note", "text", optional=True))
-    outputs = (Field("speech", "audio", "Enhanced"), Field("segments", "segments"))
-
-    def __init__(self, device="cpu"):
-        self.device = device
-
-    @classmethod
-    def from_pretrained(cls, tag_or_dir, *, device="cpu", **kwargs):
-        return cls()
-
-    sample_rate = 8000
-
-    def run(self, speech, note=""):
-        return {
-            "speech": speech,
-            "segments": [{"text": note, "start": 0.0, "end": 1.0}],
-        }
-
-
-class Segmenter(InferenceAPI):
-    """Only segments come out, a kind with no UI asset."""
-
-    inputs = (Field("speech", "audio"),)
-    outputs = (Field("segments", "segments"),)
-
-    def __init__(self, device="cpu"):
-        self.device = device
-
-    @classmethod
-    def from_pretrained(cls, tag_or_dir, *, device="cpu", **kwargs):
-        return cls(device=device)
-
-    sample_rate = 8000
-
-    def run(self, speech):
-        return {"segments": []}
-
-
+# These packs name providers defined in this test module. Declare trust here
+# because these tests exercise demo construction, not the publication trust gate.
 def _write_model_pack(
-    demo_dir: Path, target: str = f"{__name__}.Transcriber", **model
+    demo_dir: Path,
+    provider_target: str = "test.espnet3.demo.test_app_builder.DummyProvider",
 ) -> None:
     model_pack_dir = demo_dir / "model_pack"
     (model_pack_dir / "conf").mkdir(parents=True)
-    lines = [f"model:\n  _target_: {target}\n"] + [
-        f"  {k}: {v}\n" for k, v in model.items()
-    ]
     (model_pack_dir / "conf" / "inference.yaml").write_text(
-        "".join(lines), encoding="utf-8"
-    )
-    (model_pack_dir / "meta.yaml").write_text(
-        "schema_version: 1\nyaml_files:\n  inference_config: conf/inference.yaml\n",
+        "model: {}\n" "provider:\n" f"  _target_: {provider_target}\n",
         encoding="utf-8",
     )
-
-
-def _write_demo(demo_dir: Path, ui: str = "", model: str = "") -> None:
-    (demo_dir / "demo.yaml").write_text(
-        "model:\n  dir_or_tag: model_pack\n  trust_user_code: false\n"
-        + model
-        + "ui:\n"
-        + ui,
+    (model_pack_dir / "meta.yaml").write_text(
+        "yaml_files:\n" "  inference_config: conf/inference.yaml\n",
         encoding="utf-8",
     )
 
@@ -128,130 +62,240 @@ def _find_block_components(app, component_name: str) -> list[object]:
     ]
 
 
-def test_specs_come_from_the_declaration_unless_the_demo_says_otherwise(tmp_path):
+def test_build_demo_with_custom_provider(tmp_path: Path) -> None:
+    gr = pytest.importorskip("gradio")
+    _ = gr
     demo_dir = tmp_path / "demo"
     demo_dir.mkdir()
     _write_model_pack(demo_dir)
-    _write_demo(demo_dir, ui="  title: null\n  description: null\n")
-    session = load_demo_session(demo_dir, demo_dir / "demo.yaml")
-    assert session.input_specs == [
-        {"key": "speech", "type": "audio", "label": "Input Audio"}
-    ]
-    assert session.output_specs == [
-        {"key": "text", "type": "text", "label": "Transcription"}
-    ]
-
-    _write_demo(
-        demo_dir,
-        ui=(
-            "  title: null\n  description: null\n  outputs:\n"
-            "    - key: text\n      type: text\n      label: Words\n"
-        ),
+    (demo_dir / "demo.yaml").write_text(
+        "model:\n"
+        "  dir_or_tag: model_pack\n"
+        "  trust_user_code: true\n"
+        "  call_args: {}\n"
+        "ui:\n"
+        "  title: null\n"
+        "  description: README.md\n"
+        "  inputs:\n"
+        "    - key: speech\n"
+        "      type: audio\n"
+        "      label: Input Audio\n"
+        "  outputs:\n"
+        "    - key: hyp\n"
+        "      type: text\n"
+        "      label: Transcription\n",
+        encoding="utf-8",
     )
-    session = load_demo_session(demo_dir, demo_dir / "demo.yaml")
-    assert session.output_specs[0]["label"] == "Words"
-
-
-def test_fields_without_a_ui_asset_are_left_out(tmp_path):
-    demo_dir = tmp_path / "demo"
-    demo_dir.mkdir()
-    _write_model_pack(demo_dir, target=f"{__name__}.Enhancer")
-    _write_demo(demo_dir, ui="  title: null\n  description: null\n")
-    session = load_demo_session(demo_dir, demo_dir / "demo.yaml")
-    assert [s["key"] for s in session.input_specs] == ["speech", "note"]
-    assert [s["key"] for s in session.output_specs] == [
-        "speech"
-    ]  # no asset for segments
-
-
-def test_inference_fn_calls_the_model_by_field_and_converts_for_gradio(tmp_path):
-    demo_dir = tmp_path / "demo"
-    demo_dir.mkdir()
-    _write_model_pack(demo_dir, target=f"{__name__}.Enhancer")
-    _write_demo(demo_dir, ui="  title: null\n  description: null\n")
-    session = load_demo_session(demo_dir, demo_dir / "demo.yaml")
-    run = session.create_inference_fn(session.input_specs, session.output_specs)
-    rate, samples = run((8000, np.zeros(8000, dtype=np.float32)), "hi")
-    assert rate == 8000 and samples.shape == (8000,)
-    both = session.create_inference_fn(
-        input_keys=["speech"], output_keys=["speech", "segments"]
-    )
-    audio, segments = both((8000, np.zeros((2, 80), dtype=np.float32)))
-    assert audio[1].shape == (
-        80,
-    )  # the audio field keeps channels=1: the reference channel
-    assert segments[0]["end"] == 1.0
-
-
-def test_to_ui_lays_multichannel_audio_out_for_gradio():
-    assert to_ui("text") == "text"
-    rate, samples = to_ui(Audio(np.zeros((2, 10), dtype=np.float32), 8000))
-    assert rate == 8000 and samples.shape == (10, 2)
-
-
-def test_model_arguments_live_in_the_bundle_not_the_demo(tmp_path):
-    demo_dir = tmp_path / "demo"
-    demo_dir.mkdir()
-    _write_model_pack(demo_dir, beam_size=3)
-    _write_demo(demo_dir, ui="  title: null\n  description: null\n")
-    session = load_demo_session(demo_dir, demo_dir / "demo.yaml")
-    run = session.create_inference_fn(input_keys=["speech"], output_keys=["text"])
-    assert run((8000, np.zeros(8000, dtype=np.float32))) == "beam=3:1.0s"
-    _write_demo(
-        demo_dir,
-        ui="  title: null\n  description: null\n",
-        model="  call_args:\n    beam_size: 2\n",
-    )
-    with pytest.raises(TypeError, match="model.call_args"):
-        load_demo_session(demo_dir, demo_dir / "demo.yaml")
-
-
-def test_build_demo_shows_a_description_file_or_inline_text(tmp_path):
-    pytest.importorskip("gradio")
-    demo_dir = tmp_path / "demo"
-    demo_dir.mkdir()
-    _write_model_pack(demo_dir)
-    _write_demo(demo_dir, ui="  title: null\n  description: README.md\n")
     (demo_dir / "README.md").write_text("# Demo\n\nDescription\n", encoding="utf-8")
     app = build_demo(demo_dir)
+    assert app is not None
     markdowns = _find_block_components(app, "Markdown")
-    assert len(markdowns) == 1 and markdowns[0].value == "# Demo\n\nDescription"
-    _write_demo(demo_dir, ui='  title: null\n  description: "**inline**"\n')
+    assert len(markdowns) == 1
+    assert markdowns[0].value == "# Demo\n\nDescription"
+
+
+def test_demo_uses_inference_contract_for_ui_and_inference(tmp_path: Path) -> None:
+    demo_dir = tmp_path / "demo"
+    demo_dir.mkdir()
+    _write_model_pack(demo_dir)
+    inference_yaml = demo_dir / "model_pack" / "conf" / "inference.yaml"
+    with inference_yaml.open("a", encoding="utf-8") as stream:
+        stream.write(
+            "contract:\n"
+            "  inputs:\n"
+            "    speech:\n"
+            "      kind: text\n"
+            "  outputs:\n"
+            "    hyp:\n"
+            "      kind: text\n"
+            "      normalize: [to_lower]\n"
+        )
+    (demo_dir / "demo.yaml").write_text(
+        "model:\n"
+        "  dir_or_tag: model_pack\n"
+        "  trust_user_code: true\n"
+        "ui:\n"
+        "  title: null\n"
+        "  description: null\n",
+        encoding="utf-8",
+    )
+
+    session = load_demo_session(demo_dir, "demo.yaml")
+
+    assert session.input_specs == [{"key": "speech", "type": "text", "label": "Speech"}]
+    assert session.output_specs == [{"key": "hyp", "type": "text", "label": "Hyp"}]
+    assert (
+        session.create_inference_fn(session.input_specs, session.output_specs)("HELLO")
+        == "ok"
+    )
+
+
+def test_demo_converts_contracted_stereo_audio_for_gradio(tmp_path: Path) -> None:
+    """Audio Kind outputs are passed to Gradio as rate and samples by channel."""
+    config = OmegaConf.create(
+        {
+            "model": {"call_args": {}},
+            "ui": {
+                "title": None,
+                "description": None,
+                "inputs": [{"key": "text", "type": "text", "label": "Text"}],
+                "outputs": [{"key": "audio", "type": "audio", "label": "Audio"}],
+            },
+        }
+    )
+    session = DemoSession(
+        tmp_path,
+        config,
+        lambda item: {"audio": Audio(np.zeros((2, 160)), 16000)},
+        demo_assets_module.DEFAULT_UI_ASSETS.clone(),
+    )
+
+    rate, samples = session.create_inference_fn(
+        session.input_specs, session.output_specs
+    )("hello")
+
+    assert rate == 16000
+    assert samples.shape == (160, 2)
+
+
+def test_demo_uses_custom_kind_output_conversion(tmp_path, monkeypatch):
+    """A contract Kind controls conversion even with an explicit text widget."""
+    from espnet3.contract import KINDS
+    from espnet3.contract.inference import load_inference_contract
+    from espnet3.contract.kinds.text import TextKind
+
+    class DisplayText(TextKind):
+        def to_demo_output(self, value):
+            return value.upper()
+
+    monkeypatch.setitem(KINDS, "display_text", DisplayText())
+
+    def model(item):
+        return {"text": "hello"}
+
+    model.contract = load_inference_contract(
+        {
+            "inputs": {"text": {"kind": "text"}},
+            "outputs": {"text": {"kind": "display_text"}},
+        }
+    )
+    config = OmegaConf.create(
+        {
+            "model": {"call_args": {}},
+            "ui": {
+                "title": None,
+                "description": None,
+                "outputs": [{"key": "text", "type": "text", "label": "Text"}],
+            },
+        }
+    )
+    session = DemoSession(
+        tmp_path, config, model, demo_assets_module.DEFAULT_UI_ASSETS.clone()
+    )
+    infer = session.create_inference_fn(session.input_specs, session.output_specs)
+    assert infer("input") == "HELLO"
+
+
+def test_build_demo_uses_inline_description(tmp_path: Path) -> None:
+    gr = pytest.importorskip("gradio")
+    _ = gr
+    demo_dir = tmp_path / "demo"
+    demo_dir.mkdir()
+    _write_model_pack(demo_dir)
+    (demo_dir / "demo.yaml").write_text(
+        "model:\n"
+        "  dir_or_tag: model_pack\n"
+        "  trust_user_code: true\n"
+        "  call_args: {}\n"
+        "ui:\n"
+        "  title: null\n"
+        '  description: "**inline**"\n'
+        "  inputs:\n"
+        "    - key: speech\n"
+        "      type: audio\n"
+        "      label: Input Audio\n"
+        "  outputs:\n"
+        "    - key: hyp\n"
+        "      type: text\n"
+        "      label: Transcription\n",
+        encoding="utf-8",
+    )
     app = build_demo(demo_dir)
-    assert _find_block_components(app, "Markdown")[0].value == "**inline**"
+    markdowns = _find_block_components(app, "Markdown")
+    assert len(markdowns) == 1
+    assert markdowns[0].value == "**inline**"
 
 
-def test_default_assets_build_the_components_for_the_specs(tmp_path):
-    pytest.importorskip("gradio")
+def test_default_assets_pass_through_inputs_and_outputs(tmp_path: Path) -> None:
+    gr = pytest.importorskip("gradio")
+    _ = gr
     demo_dir = tmp_path / "demo"
     demo_dir.mkdir()
-    _write_model_pack(demo_dir)
-    _write_demo(
+    _write_model_pack(
         demo_dir,
-        ui=(
-            "  title: null\n  description: null\n  inputs:\n"
-            "    - key: speech\n      type: text\n      label: Prompt\n"
-        ),
+        provider_target="test.espnet3.demo.test_app_builder.CallArgsEchoProvider",
     )
+    (demo_dir / "demo.yaml").write_text(
+        "model:\n"
+        "  dir_or_tag: model_pack\n"
+        "  trust_user_code: true\n"
+        "  call_args:\n"
+        "    beam_size: 2\n"
+        "ui:\n"
+        "  title: null\n"
+        "  description: null\n"
+        "  inputs:\n"
+        "    - key: speech\n"
+        "      type: text\n"
+        "      label: Prompt\n"
+        "  outputs:\n"
+        "    - key: hyp\n"
+        "      type: text\n"
+        "      label: Result\n",
+        encoding="utf-8",
+    )
+
     session = load_demo_session(demo_dir, demo_dir / "demo.yaml")
-    assert (
-        session.build_input_component(session.input_specs[0]).__class__.__name__
-        == "Textbox"
-    )
-    assert (
-        session.build_output_component(session.output_specs[0]).__class__.__name__
-        == "Textbox"
-    )
+    input_specs = session.input_specs
+    output_specs = session.output_specs
+    input_component = session.build_input_component(input_specs[0])
+    output_component = session.build_output_component(output_specs[0])
+    inference_fn = session.create_inference_fn(input_specs, output_specs)
+
+    assert input_component.__class__.__name__ == "Textbox"
+    assert output_component.__class__.__name__ == "Textbox"
+    assert session.call_args == {"beam_size": 2}
+    assert inference_fn("hello") == "beam=2:hello"
 
 
-def test_build_input_component_requires_type(tmp_path):
+def test_create_inference_fn_accepts_explicit_key_lists(tmp_path: Path) -> None:
     demo_dir = tmp_path / "demo"
     demo_dir.mkdir()
-    _write_model_pack(demo_dir)
-    _write_demo(demo_dir, ui="  title: null\n  description: null\n")
+    _write_model_pack(
+        demo_dir,
+        provider_target="test.espnet3.demo.test_app_builder.CallArgsEchoProvider",
+    )
+    (demo_dir / "demo.yaml").write_text(
+        "model:\n"
+        "  dir_or_tag: model_pack\n"
+        "  trust_user_code: true\n"
+        "  call_args:\n"
+        "    beam_size: 3\n"
+        "ui:\n"
+        "  title: null\n"
+        "  description: null\n"
+        "  inputs: []\n"
+        "  outputs: []\n",
+        encoding="utf-8",
+    )
+
     session = load_demo_session(demo_dir, demo_dir / "demo.yaml")
-    with pytest.raises(KeyError, match="type"):
-        session.build_input_component({"key": "speech", "label": "Input"})
+    inference_fn = session.create_inference_fn(
+        input_keys=["speech"],
+        output_keys=["hyp"],
+    )
+
+    assert inference_fn("hello") == "beam=3:hello"
 
 
 def test_demo_main_writes_demo_log(monkeypatch, tmp_path: Path) -> None:
@@ -264,9 +308,11 @@ def test_demo_main_writes_demo_log(monkeypatch, tmp_path: Path) -> None:
     def fake_configure_logging(log_dir: Path, filename: str):
         calls["log_dir"] = log_dir
         calls["filename"] = filename
+        return None
 
     def fake_build_demo(
-        demo_dir: Path, demo_config_path: Path | None = None
+        demo_dir: Path,
+        demo_config_path: Path | None = None,
     ) -> DummyApp:
         calls["demo_dir"] = demo_dir
         calls["demo_config_path"] = demo_config_path
@@ -276,10 +322,16 @@ def test_demo_main_writes_demo_log(monkeypatch, tmp_path: Path) -> None:
     monkeypatch.setattr(demo_module, "build_demo", fake_build_demo)
     monkeypatch.setattr(
         "argparse.ArgumentParser.parse_args",
-        lambda self: Namespace(demo_dir=tmp_path, demo_config=None),
+        lambda self: Namespace(
+            demo_dir=tmp_path,
+            demo_config=None,
+        ),
     )
+
     demo_module.main()
-    assert calls["log_dir"] == tmp_path and calls["filename"] == "demo.log"
+
+    assert calls["log_dir"] == tmp_path
+    assert calls["filename"] == "demo.log"
     assert calls["demo_dir"] == tmp_path
     assert calls["demo_config_path"] == tmp_path / "demo.yaml"
     assert calls["launched"] is True
@@ -287,6 +339,7 @@ def test_demo_main_writes_demo_log(monkeypatch, tmp_path: Path) -> None:
 
 def test_default_text_ui_requires_gradio(monkeypatch) -> None:
     monkeypatch.setattr(demo_assets_module, "gr", None)
+
     with pytest.raises(ImportError, match="gradio is required"):
         demo_assets_module.DefaultTextUI()
 
@@ -307,12 +360,20 @@ def test_default_assets_use_only_label(monkeypatch) -> None:
         Textbox = FakeTextbox
 
     monkeypatch.setattr(demo_assets_module, "gr", FakeGradio)
+
     demo_assets_module.DefaultAudioUI().build_input(
-        {"label": "Input Audio", "args": {"type": "filepath"}}
+        {"label": "Input Audio", "args": {"type": "filepath", "sources": ["upload"]}}
     )
-    demo_assets_module.DefaultAudioUI().build_output({"label": "Output Audio"})
-    demo_assets_module.DefaultTextUI().build_input({"label": "Input Text"})
-    demo_assets_module.DefaultTextUI().build_output({"label": "Output Text"})
+    demo_assets_module.DefaultAudioUI().build_output(
+        {"label": "Output Audio", "args": {"format": "wav"}}
+    )
+    demo_assets_module.DefaultTextUI().build_input(
+        {"label": "Input Text", "args": {"lines": 7}}
+    )
+    demo_assets_module.DefaultTextUI().build_output(
+        {"label": "Output Text", "args": {"lines": 9}}
+    )
+
     assert calls == [
         ("Audio", {"label": "Input Audio"}),
         ("Audio", {"label": "Output Audio"}),
@@ -321,49 +382,76 @@ def test_default_assets_use_only_label(monkeypatch) -> None:
     ]
 
 
-def test_build_demo_model_loads_a_tag_through_load(monkeypatch, tmp_path: Path) -> None:
+def test_build_input_component_requires_type(tmp_path: Path) -> None:
+    demo_dir = tmp_path / "demo"
+    demo_dir.mkdir()
+    _write_model_pack(demo_dir)
+    (demo_dir / "demo.yaml").write_text(
+        "model:\n"
+        "  dir_or_tag: model_pack\n"
+        "  trust_user_code: true\n"
+        "  call_args: {}\n"
+        "ui:\n"
+        "  title: null\n"
+        "  description: null\n"
+        "  inputs:\n"
+        "    - key: speech\n"
+        "      type: audio\n"
+        "      label: Input Audio\n"
+        "  outputs:\n"
+        "    - key: hyp\n"
+        "      type: text\n"
+        "      label: Transcription\n",
+        encoding="utf-8",
+    )
+
+    session = load_demo_session(demo_dir, demo_dir / "demo.yaml")
+
+    with pytest.raises(KeyError, match="type"):
+        session.build_input_component({"key": "speech", "label": "Input"})
+
+
+def test_build_demo_model_loads_pretrained_tag(monkeypatch, tmp_path: Path) -> None:
     demo_cfg = OmegaConf.create(
         {
             "model": {
                 "dir_or_tag": "espnet/test-model",
                 "trust_user_code": True,
-                "device": "cuda:0",
+                "device": "cpu",
+                "call_args": {},
             },
-            "ui": {"app_script": "src/app.py", "title": None, "description": None},
+            "ui": {
+                "app_script": "src/app.py",
+                "title": None,
+                "description": None,
+                "inputs": [{"key": "speech", "type": "audio", "label": "Input Audio"}],
+                "outputs": [{"key": "hyp", "type": "text", "label": "Transcription"}],
+            },
         }
     )
     captured = {}
 
-    def fake_load(target, *, device="cpu", trust_user_code=False, **kwargs):
-        captured.update(target=target, device=device, trust=trust_user_code)
-        return Transcriber(device=device)
+    class DummyModel:
+        model = None
 
-    monkeypatch.setattr(demo_session_module, "load", fake_load)
-    model = demo_session_module._build_demo_model(demo_cfg, tmp_path)
-    assert isinstance(model, Transcriber)
-    assert captured == {
-        "target": "espnet/test-model",
-        "device": "cuda:0",
-        "trust": True,
-    }
-    # a directory next to the demo is resolved before it is handed over
-    (tmp_path / "model_pack").mkdir()
-    demo_cfg.model.dir_or_tag = "model_pack"
-    demo_session_module._build_demo_model(demo_cfg, tmp_path)
-    assert captured["target"] == (tmp_path / "model_pack").resolve()
-    session = DemoSession(
-        tmp_path, demo_cfg, model, demo_assets_module.DEFAULT_UI_ASSETS.clone()
+    def fake_from_pretrained(model_tag, trust_user_code=False, device=None):
+        captured["model_tag"] = model_tag
+        captured["trust_user_code"] = trust_user_code
+        captured["device"] = device
+        return DummyModel()
+
+    monkeypatch.setattr(
+        demo_session_module.InferenceModel,
+        "from_pretrained",
+        staticmethod(fake_from_pretrained),
     )
-    assert session.input_specs[0]["key"] == "speech"
 
+    model = demo_session_module._build_demo_model(
+        demo_cfg,
+        tmp_path,
+    )
 
-def test_a_demo_with_nothing_to_show_says_so(tmp_path):
-    """Not an app that runs the model and shows nothing."""
-    demo_dir = tmp_path / "demo"
-    demo_dir.mkdir()
-    _write_model_pack(demo_dir, target=f"{__name__}.Segmenter")
-    _write_demo(demo_dir, ui="  title: null\n  description: null\n")
-    with pytest.raises(
-        ValueError, match=r"no UI asset is registered for \['segments'\]"
-    ):
-        load_demo_session(demo_dir, demo_dir / "demo.yaml")
+    assert isinstance(model, DummyModel)
+    assert captured["model_tag"] == "espnet/test-model"
+    assert captured["trust_user_code"] is True
+    assert captured["device"] == "cpu"

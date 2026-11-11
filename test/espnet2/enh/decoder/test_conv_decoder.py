@@ -26,9 +26,11 @@ def test_ConvEncoder_backward(channel, kernel_size, stride):
 @pytest.mark.parametrize("channel", [64])
 @pytest.mark.parametrize("kernel_size", [10, 20])
 @pytest.mark.parametrize("stride", [5, 10])
-def test_conv_dec_streaming(channel, kernel_size, stride):
-    input_audio = torch.randn((1, 100))
-    ilens = torch.LongTensor([100])
+@pytest.mark.parametrize("batch_size", [1, 2])
+@pytest.mark.parametrize("provide_ilens", [True, False])
+def test_conv_dec_streaming(channel, kernel_size, stride, batch_size, provide_ilens):
+    input_audio = torch.randn((batch_size, 100))
+    ilens = torch.LongTensor([100] * batch_size)
 
     encoder = ConvEncoder(kernel_size=kernel_size, stride=stride, channel=channel)
     decoder = ConvDecoder(kernel_size=kernel_size, stride=stride, channel=channel)
@@ -39,7 +41,7 @@ def test_conv_dec_streaming(channel, kernel_size, stride):
 
     sframes = [encoder.forward_streaming(s) for s in splited]
     swavs = [decoder.forward_streaming(s) for s in sframes]
-    merged = decoder.streaming_merge(swavs, ilens)
+    merged = decoder.streaming_merge(swavs, ilens if provide_ilens else None)
 
     sframes = torch.cat(sframes, dim=1)
 

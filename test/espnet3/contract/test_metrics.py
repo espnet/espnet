@@ -3,14 +3,13 @@
 import pytest
 from omegaconf import OmegaConf
 
-from espnet3.api.inference import Field
 from espnet3.components.metrics.base_metric import BaseMetric
+from espnet3.contract import Field
 from espnet3.contract.metrics import (
     MetricContractError,
     check_metric_declaration,
     check_metric_inputs,
     check_metric_output,
-    declared_outputs,
 )
 
 # ---------------------------------------------------------------------------
@@ -122,34 +121,6 @@ def test_check_metric_declaration_rejects_non_number():
 
 
 # ---------------------------------------------------------------------------
-# declared_outputs
-# ---------------------------------------------------------------------------
-
-
-def test_declared_outputs_reads_the_configured_model():
-    cfg = OmegaConf.create(
-        {"model": {"_target_": "espnet3.systems.esp2_asr.inference.Inference"}}
-    )
-    assert [f.name for f in declared_outputs(cfg)] == ["text"]
-
-
-def test_declared_outputs_none_for_non_inference_model():
-    cfg = OmegaConf.create({"model": {"_target_": "builtins.dict"}})
-    assert declared_outputs(cfg) is None
-
-
-def test_declared_outputs_none_when_unset():
-    assert declared_outputs(OmegaConf.create({})) is None
-
-
-def test_declared_outputs_raises_when_the_target_cannot_be_imported():
-    cfg = OmegaConf.create({"model": {"_target_": "nope.Missing"}})
-    with pytest.raises(MetricContractError, match="cannot import") as exc:
-        declared_outputs(cfg)
-    assert exc.value.__cause__ is not None
-
-
-# ---------------------------------------------------------------------------
 # check_metric_inputs
 # ---------------------------------------------------------------------------
 
@@ -159,33 +130,18 @@ class _FakeMetric:
         self.inputs = fields
 
 
-_INFERENCE_CFG = OmegaConf.create(
-    {"model": {"_target_": "espnet3.systems.esp2_asr.inference.Inference"}}
-)
-_NON_INFERENCE_CFG = OmegaConf.create({"model": {"_target_": "builtins.dict"}})
-
-
-def test_check_metric_inputs_passes_when_source_matches_declared_output():
+def test_check_metric_inputs_validates_bindings_without_model_declarations():
     metric = _FakeMetric((Field("ref", "text"),))
     config = OmegaConf.create({"inputs": {"ref": "text"}})
 
-    assert check_metric_inputs(metric, config, _INFERENCE_CFG) == {"ref": "text"}
+    assert check_metric_inputs(metric, config.inputs) == {"ref": "text"}
 
 
-def test_check_metric_inputs_raises_when_source_is_not_a_declared_output():
+def test_check_metric_inputs_does_not_inspect_model_output_names():
     metric = _FakeMetric((Field("ref", "text"),))
-    config = OmegaConf.create({"inputs": {"ref": "missing"}})
+    config = OmegaConf.create({"inputs": {"ref": "custom_output"}})
 
-    with pytest.raises(MetricContractError, match="wants input 'ref' -> 'missing'"):
-        check_metric_inputs(metric, config, _INFERENCE_CFG)
-
-
-def test_check_metric_inputs_rejects_kind_mismatch():
-    metric = _FakeMetric((Field("ref", "audio"),))
-    config = OmegaConf.create({"inputs": {"ref": "text"}})
-
-    with pytest.raises(MetricContractError, match="wants kind 'audio'"):
-        check_metric_inputs(metric, config, _INFERENCE_CFG)
+    assert check_metric_inputs(metric, config.inputs) == {"ref": "custom_output"}
 
 
 def test_check_metric_inputs_accepts_list_style_identity_inputs():
@@ -194,36 +150,28 @@ def test_check_metric_inputs_accepts_list_style_identity_inputs():
     metric = _FakeMetric((Field("text", "text"),))
     config = OmegaConf.create({"inputs": ["text"]})
 
-    assert check_metric_inputs(metric, config, _INFERENCE_CFG) == {"text": "text"}
+    assert check_metric_inputs(metric, config.inputs) == {"text": "text"}
 
 
 def test_check_metric_inputs_skips_dataset_prefixed_sources():
     metric = _FakeMetric((Field("ref", "text"),))
     config = OmegaConf.create({"inputs": {"ref": "dataset:text"}})
 
-    check_metric_inputs(metric, config, _NON_INFERENCE_CFG)
+    check_metric_inputs(metric, config.inputs)
 
 
 def test_check_metric_inputs_optional_input_may_be_omitted():
     metric = _FakeMetric((Field("ref", "text"), Field("prompt", "text", optional=True)))
     config = OmegaConf.create({"inputs": {"ref": "text"}})
 
-    assert check_metric_inputs(metric, config, _INFERENCE_CFG) == {"ref": "text"}
-
-
-def test_check_metric_inputs_rejects_non_inference_model():
-    metric = _FakeMetric((Field("ref", "text"),))
-    config = OmegaConf.create({"inputs": {"ref": "text"}})
-
-    with pytest.raises(MetricContractError, match="declares no outputs"):
-        check_metric_inputs(metric, config, _NON_INFERENCE_CFG)
+    assert check_metric_inputs(metric, config.inputs) == {"ref": "text"}
 
 
 def test_check_metric_inputs_no_declaration_is_noop():
     class _NoInputs:
         inputs = ()
 
-    assert check_metric_inputs(_NoInputs(), None, _NON_INFERENCE_CFG) is None
+    assert check_metric_inputs(_NoInputs(), None) is None
 
 
 # ---------------------------------------------------------------------------
@@ -236,32 +184,32 @@ def test_check_metric_inputs_requires_inputs_in_config():
     metric = _FakeMetric((Field("ref", "text"), Field("hyp", "text")))
 
     with pytest.raises(MetricContractError, match="bind them in the metrics config"):
-        check_metric_inputs(metric, None, _INFERENCE_CFG)
+        check_metric_inputs(metric, None)
 
 
 def test_check_metric_inputs_rejects_missing_required_name():
     metric = _FakeMetric((Field("ref", "text"), Field("hyp", "text")))
     config = OmegaConf.create({"inputs": {"ref": "text"}})
 
-    with pytest.raises(MetricContractError, match="required inputs \\['hyp'\\]"):
-        check_metric_inputs(metric, config, _INFERENCE_CFG)
+    with pytest.raises(MetricContractError, match="missing \\['hyp'\\]"):
+        check_metric_inputs(metric, config.inputs)
 
 
 def test_check_metric_inputs_rejects_undeclared_name():
     metric = _FakeMetric((Field("ref", "text"),))
     config = OmegaConf.create({"inputs": {"ref": "text", "extra": "text"}})
 
-    with pytest.raises(MetricContractError, match="not declared"):
-        check_metric_inputs(metric, config, _INFERENCE_CFG)
+    with pytest.raises(MetricContractError, match="unknown \\['extra'\\]"):
+        check_metric_inputs(metric, config.inputs)
 
 
-def test_check_metric_inputs_resolves_wer_against_declared_model():
+def test_check_metric_inputs_accepts_dataset_and_inference_sources():
     from espnet3.systems.esp2_asr.metrics.wer import WER
 
     metric = WER()
     config = OmegaConf.create({"inputs": {"ref": "dataset:text", "hyp": "text"}})
 
-    assert check_metric_inputs(metric, config, _INFERENCE_CFG) == {
+    assert check_metric_inputs(metric, config.inputs) == {
         "ref": "dataset:text",
         "hyp": "text",
     }
@@ -313,8 +261,8 @@ def test_check_metric_inputs_reads_the_instance_too():
 
     # inputs: missing entirely raises, naming the instance's own declaration
     with pytest.raises(MetricContractError, match="bind them in the metrics config"):
-        check_metric_inputs(metric, None, _INFERENCE_CFG)
+        check_metric_inputs(metric, None)
 
     # ref is optional, so leaving it out of inputs: is enough
     config = OmegaConf.create({"inputs": {"hyp": "text"}})
-    assert check_metric_inputs(metric, config, _INFERENCE_CFG) == {"hyp": "text"}
+    assert check_metric_inputs(metric, config.inputs) == {"hyp": "text"}

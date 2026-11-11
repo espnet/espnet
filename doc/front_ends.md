@@ -51,17 +51,9 @@ Whatever `espnet2.bin` class does the work. It takes `model_tag` through
 `from_pretrained`, and `test/espnet2/bin/test_from_pretrained_routing.py`
 holds every such class to one way of fetching a published model.
 
-An ESPnet3 system states the same thing as an interface: its
-`espnet3/systems/<name>/inference.py` defines `Inference`, a subclass of
-`espnet3.api.inference.InferenceAPI` that declares the fields it takes and
-returns, and `espnet3.api.inference.load(tag)` finds it from the bundle's
-`meta.yaml`. The system does not name a verb: `transcribe` is the front
-end's word for "audio in, `text` out", and a model that answers a
-conversation declares one `messages` field rather than a list of the tasks
-a prompt might ask of it. The declaration is checked when the class is
-defined. Inference is a stream - chunks in, chunks out - and the one-shot
-call is the stream of one chunk: a system implements `run_stream` if it
-works online or `run` if it needs the whole input, and gets the other.
+ESPnet3 recipes construct native inference classes through their provider.
+The Runner passes configured dataset columns directly to the backend and
+uses the recipe's output formatter to produce SCP records.
 
 ### 2. The command line — `espnet2/bin/cli.py`
 
@@ -75,18 +67,6 @@ works online or `run` if it needs the whole input, and gets the other.
 
 A command is one positional input and options. If a task needs two inputs, it
 is a flag (`espnet align audio.wav --text "..."`), not a second positional.
-
-### `espnet run`: the one command with no task in its name
-
-Every verb above is a front end for one task. `espnet run <tag>` is the
-front end for the contract itself: it loads any model `espnet3.api.inference.load`
-reads (`--system` names the system for a checkpoint published without a
-bundle), takes the inputs the model declares as `name=value` - a path for
-audio, a string for text, JSON otherwise - and prints the outputs it
-declares, one after the other, an audio output as a WAV file. `--list`
-prints the declaration. It is what a model card's usage says in Python,
-at a terminal, and so it is the line a generated card can show for any
-system, including one that has no verb here yet.
 
 ### 3. The MCP server — `espnet2/bin/mcp_server.py`
 

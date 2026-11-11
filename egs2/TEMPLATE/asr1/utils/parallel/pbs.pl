@@ -7,6 +7,14 @@ use warnings;
 #           2015  Queensland University of Technology (Author: Ahilan Kanagasundaram <a.kanagasundaram@qut.edu.au>)
 # Apache 2.0.
 
+# NOTE: unlike the other files in egs2/TEMPLATE/asr1/utils/, this one is no
+# longer byte-identical to Kaldi's egs/wsj/s5/utils/parallel/pbs.pl, and
+# ci/check_kaldi_symlinks.sh skips it for that reason.  Kaldi's version does
+# not get a recipe through on PBS Professional - among other things it matches
+# the job-id against a server literally named "pbsserver" - and the changes are
+# described in the commit that made them.  Re-check this file by hand the next
+# time utils/ is synced with Kaldi.
+
 use File::Basename;
 use Cwd;
 use Getopt::Long;
@@ -200,6 +208,21 @@ if ($opened_config_file == 0 && exists($cli_options{"config"})) {
   $config = "Default config";
 }
 
+if (exists $cli_options{"name"}) {
+  # PBS refuses the whole submission with "qsub: illegal -N value" when the job
+  # name holds a character it does not accept, and ESPnet hands --name a path:
+  # "exp/lm_train_lm_rnn_debug_en_bpe30/train.log".  Map the characters PBS
+  # will not take rather than dropping the option from the config file, so the
+  # queue still shows which job is which.  PBS Pro also wants the first
+  # character to be alphanumeric; keep the tail of a long name, since that is
+  # the part that tells two jobs apart.
+  my $name = $cli_options{"name"};
+  $name =~ s/[^A-Za-z0-9_.-]/_/g;
+  if (length($name) > 200) { $name = substr($name, -200); }
+  if ($name !~ /^[A-Za-z0-9]/) { $name = "j" . $name; }
+  $cli_options{"name"} = $name;
+}
+
 my $qsub_cmd = "";
 my $read_command = 0;
 
@@ -216,9 +239,12 @@ while(<CONFIG>) {
     # e.g.: option mem=* -l mem_free=$0,ram_free=$0
     my $option = $1;     # mem
     my $arg= $2;         # -l mem_free=$0,ram_free=$0
-    if ($arg !~ m:\$0:) {
-      die "Unable to parse line '$line' in config file ($config)\n";
-    }
+    # Note: unlike queue.pl and slurm.pl this is not treated as an error, and
+    # not warned about either.  A wildcard option whose argument does not use
+    # $0 is a legitimate fixed mapping: a site may send the GPU count to a
+    # named resource type or queue ("option gpu=* -q gpu.q") rather than
+    # substitute the value into the option.  Warning here would fire on every
+    # single submission.
     if (exists $cli_options{$option}) {
       # Replace $0 with the argument read from command line.
       # e.g. "-l mem_free=$0,ram_free=$0" -> "-l mem_free=2G,ram_free=2G"
@@ -260,13 +286,34 @@ if ($read_command != 1) {
 
 for my $option (keys %cli_options) {
   if ($option eq "config") { next; }
-  if ($option eq "max_jobs_run" && $array_job != 1) { next; }
+  if ($option eq "max_jobs_run") {
+    # PBS Pro has no per-array concurrency throttle (the Slurm "--array a-b%n"
+    # and Grid Engine "-tc" equivalents do not exist); the limit is set by the
+    # site on the queue.  A config file that does map the option is still
+    # honoured for an array job, as the header of this script promises; with no
+    # mapping the option is accepted and ignored, so that recipes do not have
+    # to special case the backend.  A non-array job never had a use for it.
+    my $mapped = exists $cli_config_options{$option}
+      || exists $cli_default_options{($option,$cli_options{$option})};
+    if ($array_job != 1 || !$mapped) {
+      if ($array_job == 1) {
+        print STDERR "pbs.pl: ignoring --max-jobs-run $cli_options{$option}: "
+          . "PBS has no array-concurrency limit\n";
+      }
+      next;
+    }
+  }
   my $value = $cli_options{$option};
 
   if (exists $cli_default_options{($option,$value)}) {
     $qsub_opts .= "$cli_default_options{($option,$value)} ";
   } elsif (exists $cli_config_options{$option}) {
     $qsub_opts .= "$cli_config_options{$option} ";
+  } elsif (exists $cli_default_options{($option,"*")}) {
+    # e.g. a config line "option mem=*" with no argument means "accept any
+    # value and add nothing to the qsub options".  slurm.pl supports this;
+    # without it a site that cannot map an option has no way to ignore it.
+    $qsub_opts .= $cli_default_options{($option,"*")} . " ";
   } else {
     if ($opened_config_file == 0) { $config = "default config file"; }
     die "pbs.pl: Command line option $option not described in $config (or value '$value' not allowed)\n";
@@ -327,8 +374,18 @@ if (! -d "$qdir") {
 }
 
 my $queue_array_opt = "";
+my $single_task_array = 0;
 if ($array_job == 1) { # It's an array job.
-  $queue_array_opt = "-J $jobstart-$jobend";
+  if ($jobend > $jobstart) {
+    $queue_array_opt = "-J $jobstart-$jobend";
+  } else {
+    # PBS Pro rejects a one-element array with "qsub: illegal -J value", and a
+    # recipe reaches that whenever nj collapses to 1 - a data directory holding
+    # a single utterance is enough.  Submit an ordinary job instead and define
+    # PBS_ARRAY_INDEX in the script ourselves, so the log file name, the
+    # command and the sync file below stay exactly as they are for a real array.
+    $single_task_array = 1;
+  }
   $logfile =~ s/$jobname/\$PBS_ARRAY_INDEX/g; # This variable will get
   # replaced by qsub, in each job, with the job-id.
   $cmd =~ s/$jobname/\$\{PBS_ARRAY_INDEX\}/g; # same for the command...
@@ -360,6 +417,9 @@ open(Q, ">$queue_scriptfile") || die "Failed to write to $queue_scriptfile";
 
 print Q "#!/bin/bash\n";
 print Q "cd $cwd\n";
+if ($single_task_array) {
+  print Q "export PBS_ARRAY_INDEX=$jobstart\n";
+}
 print Q ". ./path.sh\n";
 print Q "( echo '#' Running on \`hostname\`\n";
 print Q "  echo '#' Started at \`date\`\n";
@@ -418,7 +478,10 @@ if (! $sync) { # We're not submitting with -sync y, so we
     open my $L, '<', $queue_logfile || die "Error opening log file $queue_logfile";
     undef $pbs_job_id;
     while (<$L>) {
-      if (/(\d+.+\.pbsserver)/) {
+      # The PBS server name is site-specific (e.g. "1234.pbsserver",
+      # "1234.pbs1", "1234[].pbs1"), so match the job-id shape rather than
+      # one particular server name.  qsub prints the job-id and nothing else.
+      if (/^\s*(\d+(?:\[\])?(?:\.\S+)?)\s*$/) {
         if (defined $pbs_job_id) {
           die "Error: your job was submitted more than once (see $queue_logfile)";
         } else {
@@ -464,9 +527,17 @@ if (! $sync) { # We're not submitting with -sync y, so we
       # exceeds some hard limit, or in case of a machine shutdown.
       if (($check_pbs_job_ctr++ % 10) == 0) { # Don't run qstat too often, avoid stress on PBS.
         if ( -f $f ) { next; }; #syncfile appeared: OK.
-        $ret = system("qstat -t $pbs_job_id >/dev/null 2>/dev/null");
+        # PBS Pro does not report a missing job with exit status 1: qstat
+        # exits with the PBS error number, which the shell truncates to eight
+        # bits, so an unknown job gives 153 (15001) and a job that has already
+        # left the queue gives 35.  Match what qstat says instead, so that a
+        # transient qstat failure is not mistaken for a job that is gone - and
+        # keep the status-1 test for the flavours that do use it.
+        my $qstat_out = `qstat -t $pbs_job_id 2>&1`;
+        $ret = $?;
         # system(...) : To get the actual exit value, shift $ret right by eight bits.
-        if ($ret>>8 == 1) {     # Job does not seem to exist
+        if ($qstat_out =~ /Unknown Job Id/ || $qstat_out =~ /Job has finished/
+            || $ret>>8 == 1) {     # Job does not seem to exist
           # Don't consider immediately missing job as error, first wait some
           # time to make sure it is not just delayed creation of the syncfile.
 

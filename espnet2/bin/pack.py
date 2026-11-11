@@ -121,7 +121,6 @@ def get_parser() -> argparse.ArgumentParser:
         ("codec", CodecPackedContents),
         ("cls", ClassificationPackedContents),
         ("aqa", AqaPackedContents),
-        ("universa", AqaPackedContents),
     ]:
         parser_asr = subparsers.add_parser(
             name,

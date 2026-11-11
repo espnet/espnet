@@ -41,6 +41,7 @@ def build_main_parameters(
     short_chunk_threshold: float = 0.75,
     short_chunk_size: int = 25,
     num_left_chunks: int = 0,
+    use_sdpa: bool = False,
     **activation_parameters,
 ) -> Dict[str, Any]:
     """Build encoder main parameters.
@@ -61,6 +62,7 @@ def build_main_parameters(
         short_chunk_size: Minimum number of frames during dynamic chunk training.
         num_left_chunks: Number of left chunks the attention module can see.
                          (null or negative value means full context)
+        use_sdpa: Use PyTorch's scaled dot product attention.
         **activation_parameters: Parameters of the activation functions.
                                  (See espnet2/asr_transducer/activation.py)
 
@@ -82,6 +84,7 @@ def build_main_parameters(
     main_params["pos_enc_max_len"] = pos_enc_max_len
 
     main_params["simplified_att_score"] = simplified_att_score
+    main_params["use_sdpa"] = use_sdpa
 
     main_params["norm_type"] = norm_type
     main_params["conv_mod_norm_type"] = conv_mod_norm_type
@@ -183,6 +186,7 @@ def build_branchformer_block(
         hidden_size,
         configuration.get("att_dropout_rate", 0.0),
         main_params["simplified_att_score"],
+        main_params["use_sdpa"],
     )
 
     norm_class, norm_args = get_normalization(
@@ -244,6 +248,7 @@ def build_conformer_block(
         hidden_size,
         configuration.get("att_dropout_rate", 0.0),
         main_params["simplified_att_score"],
+        main_params["use_sdpa"],
     )
 
     norm_class, norm_args = get_normalization(
@@ -338,6 +343,7 @@ def build_ebranchformer_block(
         hidden_size,
         configuration.get("att_dropout_rate", 0.0),
         main_params["simplified_att_score"],
+        main_params["use_sdpa"],
     )
 
     depthwise_conv_args = (

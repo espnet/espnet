@@ -32,8 +32,7 @@ def test_an_espnet3_pack_says_which_loader_to_use(monkeypatch, key):
         download_pretrained("espnet/some_espnet3_model")
     assert isinstance(e.value, ModelTagError)  # the CLI reports it as a choice
     assert e.value.model_tag == "espnet/some_espnet3_model"
-    assert "espnet.load('espnet/some_espnet3_model')" in str(e.value)
-    assert "espnet3.api.inference.load" in str(e.value)
+    assert "conf/inference.yaml" in str(e.value)  # the message says what to use
 
 
 def test_a_missing_model_zoo_is_named(monkeypatch, caplog):

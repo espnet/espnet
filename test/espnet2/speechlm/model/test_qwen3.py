@@ -1,5 +1,8 @@
 """CPU tests for speechlm/parallel_utils/qwen3.py."""
 
+from types import SimpleNamespace
+from unittest.mock import Mock, patch
+
 import pytest
 import torch
 import torch.nn as nn
@@ -10,6 +13,7 @@ qwen3_moe = pytest.importorskip("transformers.models.qwen3_moe.modeling_qwen3_mo
 from espnet2.speechlm.model.speechlm.parallel_utils.qwen3 import (  # noqa: E402
     _is_moe_layer,
     apply_activation_checkpoint_qwen3,
+    apply_fsdp_qwen3,
     apply_torch_compile_qwen3,
 )
 
@@ -299,3 +303,43 @@ class TestParallelizeQwen3HF:
         )
         # After compile, layer has _orig_mod (torch.compile's OptimizedModule).
         assert hasattr(out.model.layers[0], "_orig_mod")
+
+
+def test_tied_fsdp_setup_owns_shared_weight_once(monkeypatch):
+    """Keep the tied head alias out of root sharding and forward prefetch."""
+    model = _MockHFModel([_MockDenseLayer()])
+    model.lm_head.weight = model.model.embed_tokens.weight
+    model.stream_emb = nn.Embedding(4, 8)
+    mesh = object()
+    parallel_dims = SimpleNamespace(
+        pp_enabled=False,
+        dp_replicate_enabled=False,
+        get_mesh=lambda name: mesh,
+    )
+    calls = []
+
+    def record_shard(module, **kwargs):
+        """Record the sharding target and expose prefetch hook spies."""
+        calls.append((module, kwargs))
+        module.set_modules_to_forward_prefetch = Mock()
+        module.set_modules_to_backward_prefetch = Mock()
+
+    # Exercise CPU-visible sharding decisions without allocating CUDA memory.
+    monkeypatch.setattr(nn.Module, "to", lambda self, *args, **kwargs: self)
+    monkeypatch.setattr(torch.cuda, "current_device", lambda: 0)
+    monkeypatch.setattr(torch.cuda, "max_memory_allocated", lambda device: 0)
+    with patch(
+        "espnet2.speechlm.model.speechlm.parallel_utils.qwen3.fully_shard",
+        side_effect=record_shard,
+    ):
+        assert apply_fsdp_qwen3(model, parallel_dims, {}) is model
+
+    assert model.lm_head.weight is model.model.embed_tokens.weight
+    assert sum(module is model.model.embed_tokens for module, _ in calls) == 1
+    assert all(module is not model.lm_head for module, _ in calls)
+    root_kwargs = next(kwargs for module, kwargs in calls if module is model)
+    assert root_kwargs["ignored_params"] == {model.lm_head.weight}
+    layer = model.model.layers[0]
+    layer.set_modules_to_forward_prefetch.assert_called_once_with(
+        [model.model.norm, model.stream_emb]
+    )

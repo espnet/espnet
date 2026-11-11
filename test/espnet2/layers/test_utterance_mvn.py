@@ -67,3 +67,39 @@ def test_backward_not_leaf_in(norm_vars, norm_means):
     x = x + 2
     y, _ = layer(x)
     y.sum().backward()
+
+
+@pytest.mark.parametrize("norm_means", [True, False])
+@pytest.mark.parametrize("dtype", [torch.float32, torch.float64])
+@pytest.mark.parametrize("eps", [1e-20, 1e-4])
+def test_constant_channels_have_finite_gradients(norm_means, dtype, eps):
+    # Constant, varying, and zero channels; the second utterance is padded.
+    x = torch.tensor(
+        [
+            [[1.0, 2.0, 0.0], [1.0, 4.0, 0.0], [1.0, 6.0, 0.0]],
+            [[1.0, 2.0, 0.0], [1.0, 4.0, 0.0], [0.0, 0.0, 0.0]],
+        ],
+        dtype=dtype,
+        requires_grad=True,
+    )
+    lengths = torch.tensor([3, 2])
+    layer = UtteranceMVN(norm_means=norm_means, norm_vars=True, eps=eps)
+
+    actual, _ = layer(x, lengths)
+    weights = torch.arange(1, 19, dtype=dtype).reshape_as(x)
+    (actual * weights).sum().backward()
+
+    expected_input = x.detach().clone().requires_grad_()
+    expected = []
+    for row, length in zip(expected_input, lengths):
+        valid = row[:length]
+        numerator = valid - valid.mean(0) if norm_means else valid
+        normalized = numerator / valid.std(0, unbiased=False).clamp_min(eps)
+        expected.append(torch.nn.functional.pad(normalized, (0, 0, 0, 3 - length)))
+    expected = torch.stack(expected)
+    (expected * weights).sum().backward()
+
+    assert torch.isfinite(actual).all()
+    assert torch.isfinite(x.grad).all()
+    torch.testing.assert_close(actual, expected)
+    torch.testing.assert_close(x.grad, expected_input.grad)

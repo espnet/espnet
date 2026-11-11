@@ -53,11 +53,7 @@ doc/vuepress/src/.vuepress/.cache
 dist
 
 # recipe related
-egs*/*/*/data*
-# `data*` is meant for the prepared `data/` tree, but it also swallows the
-# `dataset/` python package every egs3 recipe ships, so files added there are
-# invisible to `git status` and `git add` warns.
-!egs*/*/*/dataset/
+egs*/*/*/data
 egs*/*/*/manifest*
 egs*/*/*/db
 egs*/*/*/downloads
@@ -137,3 +133,4 @@ tools/condarc
 tools/lightning_constraints.txt
 tools/versa
 tools/ParallelWaveGAN
+node_modules/

@@ -1,0 +1,16 @@
+# The one-step CI model can choose EOS immediately. This fixture keeps EOS
+# masked for a few frames so a nonempty native result exercises every wrapper.
+# This checks inference plumbing, not recognition accuracy.
+defaults:
+  - ../../../../../egs3/mini_an4/esp2_asr/conf/inference.yaml
+  - _self_
+
+model:
+  # Keep a non-EOS candidate while the minimum-length constraint is active.
+  beam_size: 2
+  minlenratio: 0.05
+  # The check requires batched and single decoding to return the same text.
+  # In float32 padding a batch moves log-probs by ~1e-6, which flips near-ties
+  # of this barely trained model's beam search (5 of 520 batched decodes over
+  # 40 random-weight models differed); in float64 none did.
+  dtype: float64

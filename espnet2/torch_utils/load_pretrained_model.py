@@ -113,6 +113,12 @@ def load_pretrained_model(
             if k.startswith(src_key)
         }
 
+    # Modules that convert older state dicts (upgrade_state_dict) do so before
+    # the keys and shapes are compared.
+    for name, module in obj.named_modules():
+        if callable(getattr(module, "upgrade_state_dict", None)):
+            module.upgrade_state_dict(src_state, f"{name}." if name else "")
+
     dst_state = obj.state_dict()
     if ignore_init_mismatch:
         src_state = filter_state_dict(dst_state, src_state)
