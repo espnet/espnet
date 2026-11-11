@@ -40,8 +40,13 @@ builder:
   blob:
     dir_name: blob
     max_bin_size_mb: 320
-    # Packing copies WAV bytes and is bound by reading the small source files,
-    # which parallelises well on a shared filesystem.
+    # How each utterance is stored. FLAC is lossless, so it decodes to the same
+    # 16-bit samples as WAV, at 0.58x the size (~175 GB instead of ~305 GB for
+    # VoxCeleb 1+2). Decoding costs ~1.5 ms per 6.6 s utterance on one core,
+    # small next to augmentation. `wav` copies the source bytes unchanged.
+    format: flac
+    # Packing is bound by reading the small source files (and, for FLAC, by
+    # encoding), which parallelises well.
     n_workers: 8
 
   # Audio directories inside the VoxCeleb root, relative to it.
@@ -66,7 +71,9 @@ builder:
     vox1_o:
       split: voxceleb1_test
       file_name: veri_test2.txt
-      url: https://www.robots.ox.ac.uk/~vgg/data/voxceleb/meta/veri_test2.txt
+      # The VGG copy (robots.ox.ac.uk/~vgg/data/voxceleb/meta/) now answers
+      # 401; KAIST hosts the same cleaned list (37,611 trials).
+      url: https://mm.kaist.ac.kr/datasets/voxceleb/meta/veri_test2.txt
 
   # RIR rooms used for augmentation. Large rooms are left out, following
   # Kaldi and voxceleb_trainer.

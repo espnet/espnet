@@ -54,7 +54,8 @@ VoxCeleb is ~1.2 M small files. On a shared filesystem, reading them one by
 one is bound by per-file metadata I/O, not by bytes: on a Lustre HDD pool we
 measured under 9 files/s per reader, which starved 16 dataloader workers and
 made a RawNet3 epoch take 4-7.5 h on 2 GPUs. The OmniIO archive holds the same
-WAV bytes (copied, not re-encoded) in a few hundred ~320 MB `blob_<n>.bin`
+audio, losslessly as FLAC (0.58x the size of WAV; set `builder.blob.format:
+wav` to copy the WAV bytes instead), in a few hundred ~320 MB `blob_<n>.bin`
 files, with every utterance's byte range in `metadata.parquet`, so a read is
 one seek into a large file, and copying the corpus to node-local disk is a
 bulk copy of a few hundred files. Packing is resumable: utterances already in

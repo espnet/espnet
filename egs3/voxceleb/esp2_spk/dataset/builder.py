@@ -366,8 +366,9 @@ def pack_split(
     seek into a file that is already open on the server, and staging the
     corpus to local disk is a bulk copy of a few hundred files.
 
-    WAV is stored as WAV: the bytes are copied, not re-encoded, so the
-    archive decodes to exactly what the WAV files hold. OmniIO skips
+    Utterances are stored as ``builder.blob.format``: FLAC by default, which
+    is lossless and so decodes to exactly what the WAV files hold, or ``wav``
+    to copy the bytes unchanged. OmniIO skips
     utterance IDs the archive already holds, so an interrupted pack resumes.
 
     Args:
@@ -398,7 +399,7 @@ def pack_split(
         items=[str(path) for _utt_id, _speaker, path in entries],
         ids=[utt_id for utt_id, _speaker, _path in entries],
         num_workers=workers,
-        target_format="wav",
+        target_format=str(cfg.get("format", "flac")),
     )
 
 
