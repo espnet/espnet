@@ -6,7 +6,7 @@ speaker-conditioned waveform reconstruction losses.
 Set `VCTK` in `db.sh` to the corpus or download directory, then run:
 
 ```bash
-./run.sh --tok_config conf/train_gan_default.yaml
+./run.sh --tok_config conf/train.yaml
 ```
 
 ## Data preparation

@@ -51,7 +51,7 @@ Run joint ASR and GAN reconstruction training:
 ```bash
 ./tok.sh \
     --tok_task gan_tok \
-    --tok_config conf/train_gan.yaml \
+    --tok_config conf/train.yaml \
     ...
 ```
 

@@ -20,7 +20,7 @@ nclusters=2000
 kmeans_portion=1.0
 
 tok_task=gan_tok
-tok_config=conf/train_gan_default.yaml
+tok_config=conf/train.yaml
 
 ./tok.sh \
     --ngpu 4 \
