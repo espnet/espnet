@@ -13,6 +13,20 @@ class SummarizeStage(AtlasStage):
     study_lock_name = "study_controller"
 
     def run(self, context) -> StageResult:
+        """Write ``summary.md`` from the study's trials and best trial, ending the graph.
+
+        Args:
+            context: The node run's ``StageContext``.
+
+        Returns:
+            StageResult: ``status="terminal"`` (ends the graph), with the
+            summary path as an artifact.
+
+        Example:
+            >>> result = SummarizeStage().run(stage_context)
+            >>> result.status
+            'terminal'
+        """
         trials = context.state.list_trials(context.scheduler.study_id)
         best = context.state.get_best_trial(
             context.scheduler.study_id,

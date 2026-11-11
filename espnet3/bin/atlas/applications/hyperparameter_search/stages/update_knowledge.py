@@ -13,6 +13,28 @@ class UpdateKnowledgeStage(AtlasStage):
     """Append a trial's patch + outcome to knowledge_pack.md."""
 
     def run(self, context) -> StageResult:
+        """Append the current trial's patch and outcome to ``knowledge_pack.md``.
+
+        Writes an "Early Stopping Record" section (with a do-not-reuse
+        lesson) for an early-stopped trial, or a normal trial record
+        (status, score, patch, rationale, reflection) otherwise, excluding
+        runtime-only patch keys (``recipe_dir``, ``exp_dir``, etc.) from the
+        displayed patch. No-ops if there is no current trial or no
+        ``knowledge_pack.md`` yet.
+
+        Args:
+            context: The node run's ``StageContext``.
+
+        Returns:
+            StageResult: ``status="done"`` if the study should now stop,
+            ``status="continue"`` otherwise, or ``status="success"`` for the
+            no-op cases.
+
+        Example:
+            >>> result = UpdateKnowledgeStage().run(stage_context)
+            >>> result.status
+            'continue'
+        """
         trial = context.current_trial
         if trial is None:
             return StageResult(status="success", message="No trial to record")

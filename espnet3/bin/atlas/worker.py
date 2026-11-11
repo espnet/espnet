@@ -9,6 +9,25 @@ from espnet3.bin.atlas.command import _load_runtime
 
 
 def main() -> int:
+    """Run one graph node (or its GPU self-controller) as a submitted job.
+
+    This is the command Slurm/local job submission runs: it parses the
+    ``--study-dir``/``--node``/``--run-id`` (and related) arguments, rebuilds
+    the study runtime, and executes either the node's GPU self-controller
+    loop (when enabled and the node is ``execution: submission``) or the
+    node itself.
+
+    Args:
+        None (arguments are read from ``sys.argv`` via ``argparse``).
+
+    Returns:
+        int: ``0`` on success, ``1`` if the node result status is
+        ``"failure"`` or ``"timeout"``.
+
+    Example:
+        >>> # python -m espnet3.bin.atlas.worker --study-dir exp/atlas/s \\
+        ... #     --recipe-dir . --node run_trial --run-id run_1
+    """
     parser = argparse.ArgumentParser()
     parser.add_argument("--study-dir", required=True)
     parser.add_argument("--recipe-dir", required=True)

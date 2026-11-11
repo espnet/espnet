@@ -27,11 +27,12 @@ from espnet3.bin.atlas.core.state import StateStore
 
 
 def _build_agent(config, recipe_dir: Path):
+    """Build the coding-agent client configured under ``config.atlas.agent``."""
     return CliAgent(config.atlas.agent, recipe_dir=recipe_dir)
 
 
 def _default_graph_path(application: str = "hyperparameter_search") -> Path:
-    """Return the packaged default graph for the selected application."""
+    """Return the packaged default graph YAML for the selected application."""
     if application == "architecture_search":
         package = "espnet3.bin.atlas.applications.architecture_search"
         graph_name = "graph.yaml"
@@ -44,11 +45,13 @@ def _default_graph_path(application: str = "hyperparameter_search") -> Path:
 
 
 def _resolve_study_dir(recipe_dir: Path, configured: str | Path) -> Path:
+    """Resolve a study's configured ``study_dir`` relative to the recipe root."""
     path = Path(configured)
     return path.resolve() if path.is_absolute() else (recipe_dir / path).resolve()
 
 
 def _load_runtime(study_dir: Path, recipe_dir: Path):
+    """Rebuild an ``AtlasGraphRuntime`` from a study dir's saved config/graph/state."""
     config = OmegaConf.load(study_dir / "atlas.yaml")
     OmegaConf.resolve(config)
     graph = load_graph(study_dir / "graph.yaml", recipe_dir=recipe_dir)
@@ -68,6 +71,27 @@ def _load_runtime(study_dir: Path, recipe_dir: Path):
 
 
 def cmd_init(args) -> int:
+    """Initialize a study: write its config/graph/program and bootstrap its state.
+
+    Implements ``espnet3 atlas init``. Loads ``args.config`` merged with its
+    TEMPLATE defaults, creates ``config.atlas.study_dir``, writes the
+    resolved config to ``atlas.yaml``, copies the configured (or packaged
+    default) graph to ``graph.yaml``, copies or creates ``program.md``, and
+    registers the study and its first (bootstrap) node run in state — unless
+    a node run already exists for this study, in which case initialization
+    is a no-op beyond refreshing the written files.
+
+    Args:
+        args: Parsed CLI args with ``recipe_dir`` and ``config`` (path to the
+            recipe's ``atlas.yaml``).
+
+    Returns:
+        int: Always ``0``.
+
+    Example:
+        >>> cmd_init(argparse.Namespace(recipe_dir=".", config="conf/atlas.yaml"))
+        0
+    """
     recipe_dir = Path(args.recipe_dir).resolve()
     config_path = Path(args.config).resolve()
     config = load_atlas_config(config_path)
@@ -293,6 +317,35 @@ def _register_tick_job(runtime, resources: Resources):
 
 
 def cmd_run(args) -> int:
+    """Run a study's controller loop, dispatching to the configured environment.
+
+    Implements ``espnet3 atlas run``. Three modes, chosen by ``args`` and the
+    study's ``submission.environment``:
+
+    - ``args.worker`` is set: this process *is* a submitted controller tick
+      job; run :func:`_run_controller_worker` until the study stops, a
+      handoff interval elapses, or it is interrupted, then record this job's
+      final status.
+    - ``environment == "local"``: run the scheduler's own
+      ``runtime.run_forever`` loop in this process (no job submission).
+    - otherwise: submit (or reuse) one controller tick job via
+      :func:`_ensure_tick_job` and return immediately.
+
+    Args:
+        args: Parsed CLI args with ``study_dir``, ``recipe_dir``,
+            ``poll_interval``, ``worker``, and ``job_id``.
+
+    Returns:
+        int: Always ``0``, except that unhandled exceptions from the worker
+        path propagate after marking the job ``"failed"``.
+
+    Example:
+        >>> cmd_run(argparse.Namespace(
+        ...     study_dir="exp/atlas/s", recipe_dir=".", poll_interval=None,
+        ...     worker=False, job_id=None,
+        ... ))
+        0
+    """
     study_dir = Path(args.study_dir).resolve()
     recipe_dir = Path(args.recipe_dir).resolve()
     config = OmegaConf.load(study_dir / "atlas.yaml")
@@ -331,6 +384,16 @@ def cmd_run(args) -> int:
 
 
 async def _run_controller_worker(runtime, job_id, controller_resources, handoff_after, started):
+    """Tick the scheduler in a loop until the study stops or hands off to a new tick job.
+
+    Called from ``cmd_run`` when this process is a submitted controller tick
+    job (``args.worker``). Each iteration calls ``runtime.tick()``, then
+    returns if a ``STOP`` file appears, if the study has no more pending
+    node runs or active (non-tick) jobs, or if ``handoff_after`` seconds have
+    elapsed (in which case it submits a replacement tick job before
+    returning). Otherwise it sleeps for the idle or trial-active tick
+    interval and loops.
+    """
     while True:
         if (runtime.study_dir / "STOP").exists():
             return
@@ -355,6 +418,23 @@ async def _run_controller_worker(runtime, job_id, controller_resources, handoff_
 
 
 def cmd_status(args) -> int:
+    """Print a study's trial count and current best trial.
+
+    Implements ``espnet3 atlas status``.
+
+    Args:
+        args: Parsed CLI args with ``study_dir``.
+
+    Returns:
+        int: Always ``0``.
+
+    Example:
+        >>> cmd_status(argparse.Namespace(study_dir="exp/atlas/my_study"))
+        study_dir: exp/atlas/my_study
+        trials: 3
+        best: trial_002 score=0.12
+        0
+    """
     study_dir = Path(args.study_dir).resolve()
     config = OmegaConf.load(study_dir / "atlas.yaml")
     state = StateStore(study_dir)
@@ -374,6 +454,25 @@ def cmd_status(args) -> int:
 
 
 def cmd_stop(args) -> int:
+    """Request a study stop and mark it ``stopped`` in state.
+
+    Implements ``espnet3 atlas stop``. Writes a ``STOP`` sentinel file the
+    running controller/worker loops check on each iteration, so the study
+    winds down instead of being killed outright. Updating the study's status
+    is best-effort: if ``atlas.yaml``/state cannot be read (for example the
+    study was never initialized), the ``STOP`` file is still written and
+    this still returns ``0``.
+
+    Args:
+        args: Parsed CLI args with ``study_dir``.
+
+    Returns:
+        int: Always ``0``.
+
+    Example:
+        >>> cmd_stop(argparse.Namespace(study_dir="exp/atlas/my_study"))
+        0
+    """
     study_dir = Path(args.study_dir).resolve()
     (study_dir / "STOP").write_text("stop\n", encoding="utf-8")
     try:
@@ -387,7 +486,25 @@ def cmd_stop(args) -> int:
 
 
 def run_from_recipe_config(recipe_dir: Path, config_path: Path, mode: str = "run") -> int:
-    """Recipe helper for launching Atlas from a recipe config."""
+    """Initialize and run a study from Python, without going through the CLI parser.
+
+    Calls :func:`cmd_init` then :func:`cmd_run` (in local/foreground mode,
+    not as a worker) for the study described by ``config_path``. Intended
+    for a recipe's own code (for example a ``run.py`` stage) to kick off an
+    Atlas study directly.
+
+    Args:
+        recipe_dir: Recipe root.
+        config_path: Path to the recipe's ``atlas.yaml``.
+        mode: Reserved for a future non-``"run"`` mode; currently unused.
+
+    Returns:
+        int: The exit code from :func:`cmd_run` (always ``0`` today).
+
+    Example:
+        >>> run_from_recipe_config(Path("."), Path("conf/atlas.yaml"))
+        0
+    """
     recipe_dir, config_path = Path(recipe_dir).resolve(), Path(config_path).resolve()
     cmd_init(argparse.Namespace(recipe_dir=str(recipe_dir), config=str(config_path)))
     config = load_atlas_config(config_path)
@@ -398,6 +515,18 @@ def run_from_recipe_config(recipe_dir: Path, config_path: Path, mode: str = "run
 
 
 def add_arguments(subparsers) -> None:
+    """Register the ``atlas`` subcommand (``init``/``run``/``status``/``stop``).
+
+    Args:
+        subparsers: The ``espnet3`` CLI's top-level subparsers action, as
+            created by ``parser.add_subparsers()``.
+
+    Returns:
+        None.
+
+    Example:
+        >>> add_arguments(parser.add_subparsers())
+    """
     parser = subparsers.add_parser(
         "atlas", help="Run and manage Atlas studies.",
         description="Run and manage ESPnet3 Atlas studies.",

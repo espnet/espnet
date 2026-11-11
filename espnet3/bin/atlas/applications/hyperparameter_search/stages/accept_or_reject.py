@@ -12,6 +12,25 @@ class AcceptOrRejectStage(AtlasStage):
     study_lock_name = "study_controller"
 
     def run(self, context) -> StageResult:
+        """Accept the trial as the new best, or reject it, and write ``decision.md``.
+
+        The first trial, or one improving on the current best (per
+        ``metric.mode``), is accepted and recorded as the study's best;
+        otherwise it is rejected. Either way updates the trial's
+        ``status``/``decision`` and writes a short decision summary.
+
+        Args:
+            context: The node run's ``StageContext``; must have a current
+                trial with a ``score`` already set.
+
+        Returns:
+            StageResult: ``status="accepted"`` or ``status="rejected"``.
+
+        Example:
+            >>> result = AcceptOrRejectStage().run(stage_context)
+            >>> result.status
+            'accepted'
+        """
         trial = context.current_trial
         assert trial is not None
         mode = str(context.config.atlas.metric.mode)

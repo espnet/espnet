@@ -10,7 +10,25 @@ from espnet3.bin.atlas.core.serialization import atomic_write_text, flatten_dict
 
 
 def sync_trials_csv(state, study_dir: Path, study_id: str) -> None:
-    """Regenerate trials.csv from state."""
+    """Regenerate ``study_dir/trials.csv`` from a study's trial records.
+
+    Rewrites the whole file from the current set of trials, with one column
+    per distinct ``config_patch`` key and one per distinct flattened metric
+    key seen across all trials, so the sheet grows as new hyperparameters or
+    metrics appear.
+
+    Args:
+        state: ``StateStore`` to read trial records from.
+        study_dir: Study directory; the CSV is written to
+            ``study_dir/trials.csv``.
+        study_id: Study whose trials to include.
+
+    Returns:
+        None.
+
+    Example:
+        >>> sync_trials_csv(state, Path("exp/atlas/my_study"), "my_study")
+    """
     trials = state.list_trials(study_id)
     all_patch_keys = sorted({k for trial in trials for k in trial.config_patch})
     all_metric_keys = sorted(

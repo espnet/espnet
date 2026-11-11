@@ -15,6 +15,20 @@ class SelectBestStage(AtlasStage):
     study_lock_name = "study_controller"
 
     def run(self, context) -> StageResult:
+        """Write ``leaderboard.csv`` and, if any trial has a score, ``best_trial.yaml``/``best_config.yaml``.
+
+        Args:
+            context: The node run's ``StageContext``.
+
+        Returns:
+            StageResult: ``status="success"``, with the leaderboard path as
+            an artifact.
+
+        Example:
+            >>> result = SelectBestStage().run(stage_context)
+            >>> result.status
+            'success'
+        """
         mode = str(context.config.atlas.metric.mode)
         best = context.state.get_best_trial(
             context.scheduler.study_id,

@@ -39,9 +39,29 @@ def _toml_value(value: Any) -> str:
 
 
 class CliAgent:
-    """Run Codex or Claude Code and return its response."""
+    """Invoke the Codex or Claude Code CLI as a subprocess and parse its response.
+
+    Implements the ``AgentClient`` protocol. Builds the provider-specific
+    command and prompt from an ``AgentRequest``, runs it, parses its
+    JSON-lines (Codex) or streaming-JSON (Claude) stdout into an
+    ``AgentResponse``, and — on structured output — retries with a
+    response-only repair request up to ``config.structured_output_retries``
+    times before giving up.
+    """
 
     def __init__(self, config, recipe_dir: Path) -> None:
+        """Configure the Codex/Claude Code CLI wrapper.
+
+        Args:
+            config: An ``AgentConfig``, or a mapping/OmegaConf node parsed
+                via ``AgentConfig.from_config``.
+            recipe_dir: Recipe root; used as the default working directory
+                when ``config.cwd`` is unset.
+
+        Raises:
+            ValueError: If ``structured_output_retries`` is not a
+                nonnegative integer.
+        """
         if isinstance(config, AgentConfig):
             self.config = config
         else:
@@ -53,6 +73,11 @@ class CliAgent:
             raise ValueError("structured_output_retries must be a nonnegative integer")
 
     def _build_prompt(self, request: AgentRequest) -> str:
+        """Render an ``AgentRequest`` into the plain-text prompt sent to Codex/Claude.
+
+        Includes a strict JSON-only response contract section when
+        ``request.output_schema`` is non-empty.
+        """
         parts = [
             f"Task: {request.task}",
             "",
@@ -124,6 +149,13 @@ class CliAgent:
     def _build_codex_command(
         self, request: AgentRequest, output_path: Path
     ) -> list[str]:
+        """Build the ``codex exec`` argv for one request.
+
+        Uses ``codex exec resume <thread_id>`` when ``request.resume_thread_id``
+        is set, otherwise a fresh ``codex exec`` in ``self.cwd``; applies
+        the configured sandbox/model/config overrides and writes the final
+        message to ``output_path``.
+        """
         options = self.config.codex
         if request.resume_thread_id:
             command = [
@@ -157,6 +189,12 @@ class CliAgent:
         return command
 
     def _build_claude_command(self, request: AgentRequest) -> list[str]:
+        """Build the ``claude --print`` argv for one request.
+
+        Applies the configured model/effort/turn-limit/tool options, resumes
+        ``request.resume_thread_id`` when set, and disables tools/MCP entirely
+        when the request only allows ``"respond_only"``.
+        """
         options = self.config.claude
         command = [
             options.executable,
@@ -194,6 +232,7 @@ class CliAgent:
 
     @staticmethod
     def _events(stdout: str) -> list[dict[str, Any]]:
+        """Parse Codex/Claude's JSON-lines stdout into a list of event dicts, skipping non-JSON lines."""
         events = []
         for line in stdout.splitlines():
             try:
@@ -206,6 +245,7 @@ class CliAgent:
 
     @staticmethod
     def _extract_codex_content(events: list[dict[str, Any]]) -> str:
+        """Return the text of the last Codex ``agent_message`` item, or "" if none."""
         for event in reversed(events):
             if event.get("type") == "item.completed":
                 item = event.get("item", {})
@@ -529,6 +569,12 @@ class CliAgent:
 
     @staticmethod
     def _find_usage_objects(value) -> list[dict[str, Any]]:
+        """Recursively collect token-usage dicts from a nested Codex event structure.
+
+        Finds any ``"usage"`` sub-dict and any dict directly carrying token
+        count fields (``input_tokens``, ``output_tokens``, etc.), at any
+        nesting depth within ``value``.
+        """
         found = []
         if isinstance(value, dict):
             usage = value.get("usage")
@@ -564,6 +610,7 @@ class CliAgent:
         command: list[str],
         events: list[dict[str, Any]],
     ) -> None:
+        """Write a Codex call's token-usage summary to ``agent_usage.json`` and append to ``agent_usage_history.jsonl``."""
         usage_records = [
             usage
             for event in events

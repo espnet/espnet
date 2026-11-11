@@ -18,11 +18,35 @@ from espnet3.bin.atlas.core.serialization import (
 
 
 class AtlasStage(ABC):
-    """Base class implementing idempotent stage execution."""
+    """Base class implementing idempotent, optionally lock-guarded stage execution.
+
+    Subclasses implement :meth:`run`. :meth:`execute` wraps it with
+    success/failure marker files under the node run's artifact directory so a
+    re-dispatched node run short-circuits to the cached result instead of
+    re-running, and with an optional study-wide file lock (``study_lock_name``)
+    so only one worker executes a locked stage (such as ``SkillStage``'s
+    agent call) at a time.
+    """
 
     study_lock_name: str | None = None
+    """Name of the study-wide lock file to hold while running, or ``None``
+    to run without a lock."""
 
     def execute(self, context) -> StageResult:
+        """Run this stage once, idempotently, caching the result on disk.
+
+        Args:
+            context: The node run's ``StageContext`` (study/graph/trial state).
+
+        Returns:
+            StageResult: The cached result from a prior successful run, or
+            the fresh result from calling :meth:`run`.
+
+        Example:
+            >>> result = SkillStage().execute(stage_context)
+            >>> result.status
+            'success'
+        """
         marker_dir = context.artifact_dir()
         marker_dir.mkdir(parents=True, exist_ok=True)
         success_path = marker_dir / ".stage_success.json"
@@ -44,11 +68,31 @@ class AtlasStage(ABC):
 
     @abstractmethod
     def run(self, context) -> StageResult:
-        """Run the stage."""
+        """Run this stage's logic once; subclasses must implement it.
+
+        Args:
+            context: The node run's ``StageContext`` (study/graph/trial state).
+
+        Returns:
+            StageResult: The stage's status, message, and any payload or
+            artifacts.
+
+        Example:
+            >>> result = SkillStage().run(stage_context)
+            >>> result.status
+            'success'
+        """
 
 
 class SkillStage(AtlasStage):
-    """Run a graph-selected skill through the configured coding agent."""
+    """Run a graph node's selected skill through the configured coding agent.
+
+    Builds an ``AgentRequest`` from the study's objective, knowledge pack,
+    trial history, and the node's ``skill_context``, dispatches it to
+    ``context.agent``, applies any ``trial_updates`` the agent returns to the
+    current trial, and writes the node's ``output_file`` when one is
+    configured.
+    """
 
     study_lock_name = "study_controller"
 
@@ -73,6 +117,18 @@ class SkillStage(AtlasStage):
             )
 
         def read_optional(path: Path) -> str:
+            """Read a text file, or return "" when it does not exist yet.
+
+            Args:
+                path: File to read.
+
+            Returns:
+                str: The file's text, or "" if ``path`` is not a file.
+
+            Example:
+                >>> read_optional(Path("study/program.md"))
+                '# Atlas Objective\\n'
+            """
             return path.read_text(encoding="utf-8") if path.is_file() else ""
 
         trial = context.current_trial

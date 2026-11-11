@@ -33,6 +33,13 @@ class StateStore:
     """
 
     def __init__(self, path: Path):
+        """Open (or create) a study's CSV state store, migrating a legacy DB if present.
+
+        Args:
+            path: The study directory, or a legacy ``state.sqlite`` path
+                (its parent directory is used as the study directory either
+                way).
+        """
         path = Path(path)
         self.study_dir = path.parent if path.suffix == ".sqlite" else path
         self.study_dir.mkdir(parents=True, exist_ok=True)
@@ -42,9 +49,11 @@ class StateStore:
         )
 
     def _path(self, table: str) -> Path:
+        """Return ``study_dir/state_<table>.csv`` for one of the known tables."""
         return self.study_dir / f"state_{table}.csv"
 
     def _read_unlocked(self, table: str) -> list[dict]:
+        """Read and JSON-decode every row of a table's CSV, without locking."""
         path = self._path(table)
         if not path.exists():
             return []
@@ -55,6 +64,7 @@ class StateStore:
             ]
 
     def _write_unlocked(self, table: str, rows: list[dict]) -> None:
+        """Atomically overwrite a table's CSV with JSON-encoded ``rows``, without locking."""
         buffer = io.StringIO(newline="")
         fieldnames = sorted({key for row in rows for key in row})
         writer = csv.DictWriter(buffer, fieldnames=fieldnames)
@@ -66,6 +76,7 @@ class StateStore:
         atomic_write_text(self._path(table), buffer.getvalue())
 
     def _rows(self, table: str) -> list[dict]:
+        """Read a table's rows while holding the study's state lock."""
         with file_lock(self.lock_path):
             return self._read_unlocked(table)
 
@@ -85,6 +96,11 @@ class StateStore:
             self._write_unlocked(table, rows)
 
     def _migrate_legacy(self, db_path: Path) -> None:
+        """One-time import of a legacy SQLite ``state.sqlite`` into the CSV tables.
+
+        No-ops if ``db_path`` does not exist, or if any CSV table already
+        exists (migration already happened).
+        """
         if not db_path.exists() or any(self._path(t).exists() for t in TABLES):
             return
         with sqlite3.connect(db_path) as conn, file_lock(self.lock_path):
@@ -99,6 +115,19 @@ class StateStore:
                 self._write_unlocked(table, rows)
 
     def create_or_load_study(self, study_id: str, study_dir: Path) -> Study:
+        """Return the existing study record, or create one if none exists yet.
+
+        Args:
+            study_id: The study's name/key.
+            study_dir: The study's directory, recorded only when creating.
+
+        Returns:
+            Study: The existing or newly created study record.
+
+        Example:
+            >>> store.create_or_load_study("my_study", Path("exp/atlas/my_study")).status
+            'initialized'
+        """
         with file_lock(self.lock_path):
             rows = self._read_unlocked("studies")
             for row in rows:
@@ -112,11 +141,27 @@ class StateStore:
             return study
 
     def get_study(self, study_id: str) -> Study:
+        """Return a study's current record.
+
+        Args:
+            study_id: The study's name/key.
+
+        Returns:
+            Study: The study's record.
+
+        Raises:
+            StopIteration: If no study with this id exists.
+
+        Example:
+            >>> store.get_study("my_study").status
+            'running'
+        """
         row = next(r for r in self._rows("studies") if r["study_id"] == study_id)
         row.pop("id", None)
         return Study(**row)
 
     def _update_study(self, study_id: str, **changes) -> None:
+        """Merge ``changes`` into a study's row and bump its ``updated_at``."""
         with file_lock(self.lock_path):
             rows = self._read_unlocked("studies")
             for row in rows:
@@ -126,25 +171,99 @@ class StateStore:
             self._write_unlocked("studies", rows)
 
     def update_study_status(self, study_id: str, status: str) -> None:
+        """Set a study's lifecycle status.
+
+        Args:
+            study_id: The study's name/key.
+            status: New status, e.g. ``"running"``, ``"stopped"``,
+                ``"completed"``.
+
+        Returns:
+            None.
+
+        Example:
+            >>> store.update_study_status("my_study", "stopped")
+        """
         self._update_study(study_id, status=status)
 
     def get_agent_session_id(self, study_id: str) -> str | None:
+        """Return a study's shared coding-agent session/thread id, if any.
+
+        Args:
+            study_id: The study's name/key.
+
+        Returns:
+            str | None: The persisted session id, or ``None`` if the agent
+            has not been called yet.
+
+        Example:
+            >>> store.get_agent_session_id("my_study")
+            'codex-session-abc123'
+        """
         return self.get_study(study_id).agent_session_id
 
     def set_agent_session_id(self, study_id: str, session_id: str) -> None:
+        """Persist a study's shared coding-agent session/thread id.
+
+        Args:
+            study_id: The study's name/key.
+            session_id: The session/thread id to persist.
+
+        Returns:
+            None.
+
+        Example:
+            >>> store.set_agent_session_id("my_study", "codex-session-abc123")
+        """
         self._update_study(study_id, agent_session_id=session_id)
 
     def agent_context_initialized(self, study_id: str) -> bool:
+        """Whether the agent has already been given this study's full context.
+
+        Args:
+            study_id: The study's name/key.
+
+        Returns:
+            bool: ``True`` once a successful response has set this flag.
+
+        Example:
+            >>> store.agent_context_initialized("my_study")
+            False
+        """
         return self.get_study(study_id).agent_context_initialized
 
     def mark_agent_context_initialized(self, study_id: str) -> None:
+        """Record that the agent has now seen this study's full context.
+
+        Args:
+            study_id: The study's name/key.
+
+        Returns:
+            None.
+
+        Example:
+            >>> store.mark_agent_context_initialized("my_study")
+        """
         self._update_study(study_id, agent_context_initialized=True)
 
     def set_best_trial(self, study_id: str, trial_id: str) -> None:
+        """Record a study's current best trial id.
+
+        Args:
+            study_id: The study's name/key.
+            trial_id: The trial id to record as current best.
+
+        Returns:
+            None.
+
+        Example:
+            >>> store.set_best_trial("my_study", "trial_003")
+        """
         self._update_study(study_id, current_best_trial_id=trial_id)
 
     @staticmethod
     def _row_to_trial(data: dict) -> Trial:
+        """Decode one ``trials`` CSV row (with JSON sub-fields) into a ``Trial``."""
         return Trial(
             trial_id=data["trial_id"],
             study_id=data["study_id"],
@@ -175,6 +294,7 @@ class StateStore:
 
     @staticmethod
     def _trial_row(trial: Trial) -> dict:
+        """Encode a ``Trial`` into a ``trials`` CSV row dict (with JSON sub-fields)."""
         return {
             "trial_id": trial.trial_id,
             "study_id": trial.study_id,
@@ -202,21 +322,75 @@ class StateStore:
         }
 
     def create_trial(self, trial: Trial) -> Trial:
+        """Persist a new trial and refresh the study's ``trials.csv`` report.
+
+        Args:
+            trial: The trial record to store.
+
+        Returns:
+            Trial: The same trial, unchanged (returned for chaining).
+
+        Example:
+            >>> store.create_trial(trial).trial_id
+            'trial_001'
+        """
         self._upsert("trials", trial.trial_id, self._trial_row(trial))
         sync_trials_csv(self, self.study_dir, trial.study_id)
         return trial
 
     def update_trial(self, trial: Trial) -> None:
+        """Persist a trial's current field values, bumping its ``updated_at``.
+
+        Args:
+            trial: The trial record to store (mutated in place: its
+                ``updated_at`` is set to now before saving).
+
+        Returns:
+            None.
+
+        Example:
+            >>> trial.status = "accepted"
+            >>> store.update_trial(trial)
+        """
         trial.updated_at = utc_now()
         self._upsert("trials", trial.trial_id, self._trial_row(trial))
         sync_trials_csv(self, self.study_dir, trial.study_id)
 
     def get_trial(self, trial_id: str) -> Trial:
+        """Return one trial by id.
+
+        Args:
+            trial_id: The trial's id.
+
+        Returns:
+            Trial: The matching trial record.
+
+        Raises:
+            StopIteration: If no trial with this id exists.
+
+        Example:
+            >>> store.get_trial("trial_001").status
+            'running'
+        """
         return self._row_to_trial(
             next(r for r in self._rows("trials") if r["trial_id"] == trial_id)
         )
 
     def list_trials(self, study_id: str, status: str | None = None) -> list[Trial]:
+        """List a study's trials, ordered by creation time then trial id.
+
+        Args:
+            study_id: Study whose trials to list.
+            status: Optional status to filter by (e.g. ``"running"``), or
+                ``None`` for all trials.
+
+        Returns:
+            list[Trial]: Matching trials.
+
+        Example:
+            >>> len(store.list_trials("my_study", status="running"))
+            1
+        """
         rows = [
             r
             for r in self._rows("trials")
@@ -228,6 +402,23 @@ class StateStore:
         ]
 
     def get_best_trial(self, study_id: str, metric: str, mode: str) -> Trial | None:
+        """Return the trial with the best score for a given metric.
+
+        Args:
+            study_id: Study whose trials to search.
+            metric: Score-name to compare (only trials whose ``score_name``
+                matches are considered).
+            mode: ``"max"`` to pick the highest score, anything else to pick
+                the lowest.
+
+        Returns:
+            Trial | None: The best-scoring matching trial, or ``None`` if no
+            trial has a score for this metric yet.
+
+        Example:
+            >>> store.get_best_trial("my_study", "wer", "min").trial_id
+            'trial_002'
+        """
         trials = [
             t
             for t in self.list_trials(study_id)
@@ -245,6 +436,22 @@ class StateStore:
         trial_id: str | None = None,
         attempt: int = 0,
     ) -> None:
+        """Create a new node run record with status ``"pending"``.
+
+        Args:
+            run_id: Unique id for this node run.
+            study_id: Study the node run belongs to.
+            node_name: Graph node to run.
+            trial_id: Trial the node run operates on, or ``None`` for a
+                study-level node.
+            attempt: Attempt number, for a retried ``run_trial`` node run.
+
+        Returns:
+            None.
+
+        Example:
+            >>> store.create_node_run("run_1", "my_study", "init_study")
+        """
         self._upsert(
             "node_runs",
             run_id,
@@ -265,6 +472,7 @@ class StateStore:
         )
 
     def _update_node_run(self, run_id: str, **changes) -> None:
+        """Merge ``changes`` into one node run's row, by ``run_id``."""
         with file_lock(self.lock_path):
             rows = self._read_unlocked("node_runs")
             for row in rows:
@@ -274,11 +482,38 @@ class StateStore:
             self._write_unlocked("node_runs", rows)
 
     def begin_node_run(self, run_id: str, pid: int | None = None) -> None:
+        """Mark a node run ``"running"`` and record its start time/local pid.
+
+        Args:
+            run_id: The node run to mark as started.
+            pid: Local process id executing the node, or ``None`` if not
+                running as a tracked local subprocess.
+
+        Returns:
+            None.
+
+        Example:
+            >>> store.begin_node_run("run_1")
+        """
         self._update_node_run(
             run_id, status="running", started_at=utc_now(), local_pid=pid
         )
 
     def finish_node_run(self, run_id: str, result: StageResult) -> None:
+        """Mark a node run ``"completed"`` or ``"failed"`` and record its result.
+
+        Args:
+            run_id: The node run to mark as finished.
+            result: The stage's result; maps ``status`` in
+                ``{"failure", "timeout", "retry"}`` to node-run status
+                ``"failed"``, anything else to ``"completed"``.
+
+        Returns:
+            None.
+
+        Example:
+            >>> store.finish_node_run("run_1", StageResult(status="success"))
+        """
         status = (
             "failed"
             if result.status in {"failure", "timeout", "retry"}
@@ -293,6 +528,18 @@ class StateStore:
         )
 
     def get_pending_node_runs(self, study_id: str) -> list[dict]:
+        """List a study's not-yet-started node runs, ordered by run id.
+
+        Args:
+            study_id: Study whose node runs to list.
+
+        Returns:
+            list[dict]: Pending node-run rows (raw dicts, not a dataclass).
+
+        Example:
+            >>> len(store.get_pending_node_runs("my_study"))
+            1
+        """
         return sorted(
             [
                 r
@@ -303,20 +550,70 @@ class StateStore:
         )
 
     def get_node_run(self, run_id: str) -> dict | None:
+        """Return one node run's row by id, or ``None`` if it does not exist.
+
+        Args:
+            run_id: The node run's id.
+
+        Returns:
+            dict | None: The matching node-run row, or ``None``.
+
+        Example:
+            >>> store.get_node_run("run_1")["node_name"]
+            'init_study'
+        """
         return next((r for r in self._rows("node_runs") if r["run_id"] == run_id), None)
 
     def list_node_runs(self, study_id: str) -> list[dict]:
+        """List all of a study's node runs, ordered by run id.
+
+        Args:
+            study_id: Study whose node runs to list.
+
+        Returns:
+            list[dict]: All node-run rows for the study.
+
+        Example:
+            >>> len(store.list_node_runs("my_study"))
+            3
+        """
         return sorted(
             [r for r in self._rows("node_runs") if r["study_id"] == study_id],
             key=lambda r: r["run_id"],
         )
 
     def create_job(self, job: JobRecord) -> None:
+        """Persist a new job record.
+
+        Args:
+            job: The job record to store.
+
+        Returns:
+            None.
+
+        Example:
+            >>> store.create_job(job_record)
+        """
         self._upsert("jobs", job.job_id, asdict(job))
 
     def update_job_status(
         self, job_id: str, status: str, external_id: str | None = None
     ) -> None:
+        """Update a job's status (and, once known, its backend-native id).
+
+        Args:
+            job_id: The job to update.
+            status: New status, e.g. ``"running"``, ``"completed"``,
+                ``"failed"``.
+            external_id: Backend-native job id to set, or ``None`` to leave
+                the existing value unchanged.
+
+        Returns:
+            None.
+
+        Example:
+            >>> store.update_job_status("job_1", "completed")
+        """
         with file_lock(self.lock_path):
             rows = self._read_unlocked("jobs")
             for row in rows:
@@ -327,6 +624,19 @@ class StateStore:
             self._write_unlocked("jobs", rows)
 
     def list_active_jobs(self, study_id: str) -> list[JobRecord]:
+        """List a study's jobs still in a non-terminal status.
+
+        Args:
+            study_id: Study whose jobs to list.
+
+        Returns:
+            list[JobRecord]: Jobs with status in ``{"submitted", "pending",
+            "running", "unknown"}``.
+
+        Example:
+            >>> len(store.list_active_jobs("my_study"))
+            1
+        """
         active = {"submitted", "pending", "running", "unknown"}
         return [
             JobRecord(**{k: v for k, v in row.items() if k != "id"})
@@ -362,6 +672,22 @@ class StateStore:
         ]
 
     def compute_trial_gpu_hours(self, study_id: str) -> float:
+        """Sum wall-clock GPU hours used across all of a study's trial node runs.
+
+        For each trial-scoped node run with a recorded start time, adds the
+        elapsed time from ``started_at`` to ``finished_at`` (or now, if still
+        running).
+
+        Args:
+            study_id: Study to compute GPU hours for.
+
+        Returns:
+            float: Total elapsed hours across all trial node runs.
+
+        Example:
+            >>> store.compute_trial_gpu_hours("my_study")
+            12.5
+        """
         now = datetime.now(timezone.utc)
         total = 0.0
         for row in self._rows("node_runs"):
@@ -385,6 +711,19 @@ class StateStore:
         return total
 
     def find_job_by_node_run(self, node_run_id: str) -> JobRecord | None:
+        """Return the most recently created job submitted for a node run, if any.
+
+        Args:
+            node_run_id: The node run to look up.
+
+        Returns:
+            JobRecord | None: The latest matching job, or ``None`` if no job
+            has been submitted for this node run.
+
+        Example:
+            >>> store.find_job_by_node_run("run_1").status
+            'running'
+        """
         rows = [r for r in self._rows("jobs") if r.get("node_run_id") == node_run_id]
         if not rows:
             return None
@@ -392,6 +731,20 @@ class StateStore:
         return JobRecord(**{k: v for k, v in row.items() if k != "id"})
 
     def append_event(self, study_id: str, event_type: str, payload: dict) -> None:
+        """Append one timestamped event row to the study's event log.
+
+        Args:
+            study_id: Study the event belongs to.
+            event_type: Short event name, e.g. ``"node_started"``,
+                ``"study_completed"``.
+            payload: Event-specific JSON-serializable detail.
+
+        Returns:
+            None.
+
+        Example:
+            >>> store.append_event("my_study", "node_started", {"run_id": "run_1"})
+        """
         with file_lock(self.lock_path):
             rows = self._read_unlocked("events")
             rows.append(

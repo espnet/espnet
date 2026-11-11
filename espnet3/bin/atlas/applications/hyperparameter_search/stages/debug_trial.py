@@ -68,6 +68,15 @@ class DebugTrialStage(AtlasStage):
         return sanitized, removed
 
     def _build_request(self, context, trial) -> AgentRequest:
+        """Build the debug agent's request from the trial's logs, configs, and history.
+
+        Gathers training/evaluation logs, stage status, resolved
+        training/inference configs (plus the latest attempt's stdout/stderr
+        if this is a retry), the recipe's base training/inference/metrics
+        configs, trial history, and the knowledge pack, into one
+        ``AgentRequest`` asking for a root cause, fix strategy, any files
+        modified, and config patches.
+        """
         trial_dir = context.trial_dir()
         logs = {
             "trial_dir": str(trial_dir),
@@ -98,6 +107,7 @@ class DebugTrialStage(AtlasStage):
         )
 
         def _load_base(config_path_key: str, config_name: str) -> str:
+            """Return the recipe's base stage config as YAML, or "(unavailable)" on error."""
             try:
                 from espnet3.bin.atlas.applications.hyperparameter_search.config_schema import (
                     load_recipe_stage_config,
@@ -177,6 +187,30 @@ class DebugTrialStage(AtlasStage):
         )
 
     def run(self, context) -> StageResult:
+        """Ask the agent to diagnose a trial's failure and apply its fix (if any).
+
+        Calls the debug agent, sanitizes any proposed training/inference
+        config patches against the study's search space, re-resolves and
+        writes the trial's configs when a patch is applied, invalidates
+        stage-status entries affected by the fix (so they re-run), and
+        decides whether to retry the trial or route to ``reflect`` (when the
+        attempt limit is reached or the agent declines to retry).
+
+        Args:
+            context: The node run's ``StageContext``; must have a current
+                trial.
+
+        Returns:
+            StageResult: ``status="success"`` with ``next_node="run_trial"``
+            when a fix (or no-op retry) is applied, or ``status="continue"``
+            routed to ``"reflect"``/``"run_trial"`` when the agent failed or
+            the attempt limit was reached.
+
+        Example:
+            >>> result = DebugTrialStage().run(stage_context)
+            >>> result.status
+            'success'
+        """
         trial = context.current_trial
         assert trial is not None
         trial_cfg = context.config.atlas.trial

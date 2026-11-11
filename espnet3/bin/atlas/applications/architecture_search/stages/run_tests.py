@@ -53,6 +53,24 @@ class RunTestsStage(AtlasStage):
     """
 
     def run(self, context) -> StageResult:
+        """Run pytest over the trial's ``allowed_dirs`` and route on the outcome.
+
+        Args:
+            context: The node run's ``StageContext``; must have a current
+                trial.
+
+        Returns:
+            StageResult: ``status="success"`` on a pytest pass or no test
+            files found, ``status="failure"`` on a pytest failure (routes
+            back to ``write_files``), or ``status="max_retries_exceeded"``
+            once ``code_edit.max_test_retries`` consecutive runs have
+            failed.
+
+        Example:
+            >>> result = RunTestsStage().run(stage_context)
+            >>> result.status
+            'success'
+        """
         trial = context.current_trial
         assert trial is not None
 

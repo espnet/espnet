@@ -13,6 +13,17 @@ from espnet3.bin.atlas.core.stage import AtlasStage
 
 
 def _extract_from_json(path: Path, key: str) -> Any:
+    """Look up a (possibly dotted) key in a JSON file, trying longest-prefix matches first.
+
+    Tries ``key`` as a literal top-level key first; otherwise walks the
+    dotted path, at each level preferring the longest remaining dotted
+    segment that exists as a literal key (so a key containing literal dots,
+    e.g. ``"dev-clean.WER"``, still matches before falling back to treating
+    each dot as a nesting level).
+
+    Raises:
+        MetricNotFoundError: If no matching path through ``key`` is found.
+    """
     data = json.loads(path.read_text(encoding="utf-8"))
     current: Any = data
     if isinstance(current, dict) and key in current:
@@ -34,6 +45,12 @@ def _extract_from_json(path: Path, key: str) -> Any:
 
 
 def _extract_from_pattern(path: Path, pattern: str) -> float:
+    """Extract the first numeric ``{value}`` match of ``pattern`` from a text file.
+
+    Raises:
+        MetricNotFoundError: If ``pattern`` does not match anywhere in the
+            file.
+    """
     regex = pattern_to_regex(pattern)
     match = regex.search(path.read_text(encoding="utf-8", errors="replace"))
     if match is None:
@@ -42,6 +59,23 @@ def _extract_from_pattern(path: Path, pattern: str) -> float:
 
 
 def _extract_metrics(trial_dir: Path, extraction_rules) -> dict[str, Any]:
+    """Run a trial's ``metric.extraction`` rules against its output files.
+
+    Each rule globs ``trial_dir / rule.path`` and takes the first match,
+    then either looks up ``rule.key`` in that JSON file (optionally
+    averaging a ``sub_key`` across a dict of sub-results when
+    ``aggregate: mean``) or applies ``rule.pattern`` as a text regex. A rule
+    whose glob matches no files is silently skipped.
+
+    Args:
+        trial_dir: Trial's directory, the base for each rule's ``path``.
+        extraction_rules: Iterable of rule objects/dicts with
+            ``path``/``name`` and either ``key`` (+ optional
+            ``aggregate``/``sub_key``) or ``pattern``.
+
+    Returns:
+        dict[str, Any]: Extracted metric name to value.
+    """
     metrics: dict[str, Any] = {}
     for rule in extraction_rules or []:
         rel_path = str(getattr(rule, "path", None) or rule.get("path"))
@@ -79,6 +113,11 @@ def _extract_metrics(trial_dir: Path, extraction_rules) -> dict[str, Any]:
 
 
 def _resolve_primary_score(metrics: dict[str, Any], score_name: str) -> float:
+    """Return ``metrics[score_name]`` as a float.
+
+    Raises:
+        MetricNotFoundError: If ``score_name`` was not extracted.
+    """
     if score_name not in metrics:
         raise MetricNotFoundError(f"Score metric '{score_name}' was not extracted.")
     return float(metrics[score_name])
@@ -90,6 +129,25 @@ class CollectResultStage(AtlasStage):
     study_lock_name = "study_controller"
 
     def run(self, context) -> StageResult:
+        """Extract the trial's configured metrics and primary score, and store them.
+
+        On any extraction error, marks the trial ``"failed"`` and returns a
+        failure result instead of propagating the exception.
+
+        Args:
+            context: The node run's ``StageContext``; must have a current
+                trial.
+
+        Returns:
+            StageResult: ``status="success"`` with ``payload={"score":
+            ...}`` on success, or ``status="failure"`` if metric extraction
+            failed.
+
+        Example:
+            >>> result = CollectResultStage().run(stage_context)
+            >>> result.status
+            'success'
+        """
         trial = context.current_trial
         assert trial is not None
         metric_cfg = context.config.atlas.metric

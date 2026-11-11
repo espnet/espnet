@@ -13,11 +13,32 @@ class ResearchContextStage(AtlasStage):
     """Collect repository context and prior trial summaries."""
 
     def _load_text(self, path: Path) -> str:
+        """Read a text file, or return "" if it does not exist."""
         if not path.is_file():
             return ""
         return path.read_text(encoding="utf-8")
 
     def run(self, context) -> StageResult:
+        """Write ``knowledge/repo_context.md`` and ``knowledge/knowledge_pack.md``.
+
+        Gathers the recipe's config paths, the study objective, a
+        persistent research checklist (``src-checklist.md``, if present),
+        and a summary of the last 10 prior trials into a repo-context file,
+        then wraps that plus the objective and checklist into a combined
+        knowledge pack for the agent.
+
+        Args:
+            context: The node run's ``StageContext``.
+
+        Returns:
+            StageResult: ``status="success"``, with the written file paths
+            as artifacts.
+
+        Example:
+            >>> result = ResearchContextStage().run(stage_context)
+            >>> result.status
+            'success'
+        """
         ar_cfg = context.config.atlas
         knowledge_dir = context.study_dir / "knowledge"
         knowledge_dir.mkdir(parents=True, exist_ok=True)

@@ -18,7 +18,20 @@ _FILE_BLOCK_RE = re.compile(
 
 
 def parse_file_blocks(text: str) -> list[tuple[str, str]]:
-    """Return [(relative_path, content), ...] from <file path="..."> blocks."""
+    """Extract every ``<file path="...">content</file>`` block from agent output.
+
+    Args:
+        text: Agent response text, possibly containing one or more
+            ``<file>`` blocks interleaved with other prose.
+
+    Returns:
+        list[tuple[str, str]]: ``(relative_path, content)`` pairs, in the
+        order they appear in ``text``.
+
+    Example:
+        >>> parse_file_blocks('<file path="src/a.py">x = 1</file>')
+        [('src/a.py', 'x = 1')]
+    """
     return [
         (m.group("path"), m.group("content"))
         for m in _FILE_BLOCK_RE.finditer(text)
@@ -26,11 +39,13 @@ def parse_file_blocks(text: str) -> list[tuple[str, str]]:
 
 
 def _is_allowed(rel_path: str, allowed_dirs: list[str]) -> bool:
+    """Whether ``rel_path`` is inside (or equal to) one of ``allowed_dirs``."""
     p = Path(rel_path)
     return any(p == Path(d) or Path(d) in p.parents for d in allowed_dirs)
 
 
 def _read_files(recipe_dir: Path, allowed_dirs: list[str]) -> str:
+    """Render every file under ``allowed_dirs`` as ``<file path="...">`` blocks."""
     parts: list[str] = []
     for rel in allowed_dirs:
         d = recipe_dir / rel
@@ -48,6 +63,7 @@ def _read_files(recipe_dir: Path, allowed_dirs: list[str]) -> str:
 
 
 def _read_reference_files(paths: list[str]) -> str:
+    """Render each reference file's content as a labeled markdown code block."""
     parts: list[str] = []
     for raw in paths:
         p = Path(raw)
@@ -94,6 +110,7 @@ def _fetch_doc_urls(urls: list[str], cache_dir: Path) -> str:
 
 
 def _read_training_config(trial_dir: Path) -> str:
+    """Return the trial's resolved training config text, or a not-found placeholder."""
     cfg_path = trial_dir / "resolved_training_config.yaml"
     if not cfg_path.exists():
         return "(resolved_training_config.yaml not found)"
@@ -101,6 +118,7 @@ def _read_training_config(trial_dir: Path) -> str:
 
 
 def _latest_test_failure(trial_dir: Path) -> str | None:
+    """Return the most recent ``run_tests`` error log, or ``None`` if none failed yet."""
     test_runs_dir = trial_dir / "test_runs"
     if not test_runs_dir.exists():
         return None
@@ -112,6 +130,7 @@ def _latest_test_failure(trial_dir: Path) -> str | None:
 
 
 def _next_iteration_dir(trial_dir: Path) -> Path:
+    """Create and return the next numbered ``write_files_iterations/iter_NNN`` dir."""
     base = trial_dir / "write_files_iterations"
     base.mkdir(parents=True, exist_ok=True)
     n = len(list(base.iterdir())) + 1
@@ -129,6 +148,13 @@ def _build_prompt(
     training_config_text: str,
     prev_error: str | None,
 ) -> str:
+    """Build the write_files agent prompt from the trial's rationale and context.
+
+    Assembles the prior rationale, any previous test failure (for a fix
+    attempt), the resolved training config, reference files, fetched
+    documentation, the current allowed-directory contents, and output-format
+    instructions into one prompt string.
+    """
     current_files = _read_files(recipe_dir, allowed_dirs)
     allowed_str = "\n".join(f"  - {d}" for d in allowed_dirs)
 
@@ -230,6 +256,28 @@ class WriteFilesStage(AtlasStage):
     study_lock_name = "study_controller"
 
     def run(self, context) -> StageResult:
+        """Ask the agent to write implementation + test files, then apply them.
+
+        Builds the prompt (training config, reference files, fetched docs,
+        current allowed-dir contents, and any previous test failure), calls
+        the agent, parses ``<file>`` blocks from its response, backs up and
+        overwrites each allowed file, and records what was written/skipped.
+
+        Args:
+            context: The node run's ``StageContext``; must have a current
+                trial.
+
+        Returns:
+            StageResult: ``status="success"`` if ``code_edit.allowed_dirs``
+            is unset (no-op), the agent produced no ``<file>`` blocks, or
+            files were written successfully; ``status="failure"`` if the
+            agent call itself failed.
+
+        Example:
+            >>> result = WriteFilesStage().run(stage_context)
+            >>> result.status
+            'success'
+        """
         trial = context.current_trial
         assert trial is not None
 

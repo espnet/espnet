@@ -22,6 +22,7 @@ from espnet3.bin.atlas.core.stage import AtlasStage
 
 
 def _glob_match(patterns, key: str) -> bool:
+    """Return whether ``key`` matches any of the given fnmatch-style glob patterns."""
     import fnmatch
 
     return any(fnmatch.fnmatch(key, pattern) for pattern in patterns)
@@ -59,6 +60,7 @@ class ProposeTrialStage(AtlasStage):
     study_lock_name = "study_controller"
 
     def _next_trial_id(self, trials) -> str:
+        """Return the next sequential ``trial_NNNNNN`` id after ``trials``."""
         return f"trial_{len(trials) + 1:06d}"
 
     def _ensure_provisional_trial(self, context, latest_trial, trials) -> Trial:
@@ -93,6 +95,10 @@ class ProposeTrialStage(AtlasStage):
         return trial
 
     def _sanitize_patch(self, context, patch: dict) -> tuple[dict, list[str]]:
+        """Drop patch keys denied, or not allowed, by the study's search space.
+
+        Returns ``(sanitized_patch, removed_keys)``.
+        """
         search_space = context.config.atlas.search_space
         allowed = list(getattr(search_space, "allowed_keys", []) or [])
         denied = list(getattr(search_space, "denied_keys", []) or [])
@@ -110,6 +116,7 @@ class ProposeTrialStage(AtlasStage):
         return sanitized, removed
 
     def _fallback_candidate(self, context, used_patches: list[dict]) -> dict | None:
+        """Return the first configured ``search_space.candidates`` patch not yet tried."""
         candidates = list(
             getattr(
                 getattr(context.config.atlas, "search_space", None),
@@ -125,6 +132,12 @@ class ProposeTrialStage(AtlasStage):
         return None
 
     def _should_reuse_current_trial(self, context, current_trial: Trial | None) -> bool:
+        """Whether a ``"proposing"`` trial with no resolved config yet should be reused.
+
+        Lets a retried ``propose_trial`` node run (e.g. after an agent
+        repair) continue the same provisional trial id instead of creating
+        a new one.
+        """
         if current_trial is None:
             return False
         if current_trial.status != "proposing":
@@ -136,6 +149,7 @@ class ProposeTrialStage(AtlasStage):
     def _build_runtime_path_patch(
         self, context, trial_dir: Path, trial_id: str
     ) -> dict:
+        """Build the runtime-only patch keys (paths, exp_tag) injected into every trial."""
         return {
             "recipe_dir": str(context.recipe_dir),
             "data_dir": str(context.recipe_dir / "data"),
@@ -144,6 +158,32 @@ class ProposeTrialStage(AtlasStage):
         }
 
     def run(self, context) -> StageResult:
+        """Ask the agent for a new config patch (or reuse a fallback candidate), resolve it, and save it as a trial.
+
+        Reserves (or reuses) a provisional trial, asks the agent to propose
+        a training config patch (falling back to a configured
+        ``search_space.candidate`` if the agent fails), sanitizes the patch
+        against the search space, rejects it as ``"duplicate"`` if an
+        in-progress or past trial already has the same hyperparameter patch
+        or resolves to the same effective training config, then writes the
+        trial's resolved training/inference/metrics configs and metadata.
+
+        Args:
+            context: The node run's ``StageContext``.
+
+        Returns:
+            StageResult: ``status="success"`` (or ``"write_files"``/
+            ``"implement_code"`` for an architecture-search trial needing
+            extra stages first) once a trial is proposed;
+            ``status="no_budget"`` if the study's budget is exhausted;
+            ``status="cancelled"``/``"duplicate"``/``"failure"`` if no valid
+            proposal could be produced.
+
+        Example:
+            >>> result = ProposeTrialStage().run(stage_context)
+            >>> result.status
+            'success'
+        """
         if context.scheduler.should_stop():
             return StageResult(status="no_budget", message="Budget exhausted")
 
@@ -208,6 +248,7 @@ class ProposeTrialStage(AtlasStage):
 
         # Load all base configs so the agent can see what is patchable
         def _load_base_config_text(config_path_key: str, config_name: str) -> str:
+            """Return the recipe's base stage config as YAML, or "(unavailable)" on error."""
             try:
                 cfg = load_recipe_stage_config(
                     context.recipe_dir,

@@ -37,10 +37,12 @@ class _SkillAgent:
     """Attach the graph-selected skill instructions to an agent request."""
 
     def __init__(self, agent, skill_path: Path):
+        """Wrap ``agent`` so every request is given ``skill_path``'s instructions."""
         self.agent = agent
         self.skill_path = skill_path
 
     def run(self, request, artifact_dir=None):
+        """Inject the skill's SKILL.md text and delegate the request to ``agent``."""
         context_files = dict(request.context_files or {})
         context_files["skill_instructions"] = self.skill_path.read_text(
             encoding="utf-8"
@@ -51,6 +53,7 @@ class _SkillAgent:
 
 
 def _find_skill_path(recipe_dir: Path, skill: str) -> Path:
+    """Find ``skill``'s ``SKILL.md`` under ``.agents/skills/`` in ``recipe_dir`` or an ancestor."""
     if not skill or any(part in skill for part in ("/", "\\", "..")):
         raise ValueError(f"Invalid skill name: {skill!r}")
     for root in (recipe_dir, *recipe_dir.parents):
@@ -63,7 +66,12 @@ def _find_skill_path(recipe_dir: Path, skill: str) -> Path:
 
 
 class AtlasGraphRuntime:
-    """Graph-based Atlas runtime."""
+    """Drives one study's graph: runs/schedules nodes, submits jobs, tracks budget.
+
+    Built once per ``init``/``run``/worker invocation via ``_load_runtime``
+    and shared by all of a study's ``cmd_*`` commands and the standalone
+    worker entry point.
+    """
 
     def __init__(
         self,
@@ -75,6 +83,19 @@ class AtlasGraphRuntime:
         trial_resources_default,
         agent,
     ) -> None:
+        """Build the runtime from an already-loaded config/graph/state.
+
+        Args:
+            study_dir: Study's root directory.
+            recipe_dir: Recipe root directory.
+            config: The study's resolved ``atlas.yaml`` config.
+            graph: The study's loaded ``ResearchGraph``.
+            state: The study's ``StateStore``.
+            trial_resources_default: Default ``Resources`` for trial jobs,
+                merged per-node with each node's own ``resources``.
+            agent: The raw coding-agent client (e.g. ``CliAgent``); wrapped
+                here in a ``StudySessionAgentClient`` for session reuse.
+        """
         self.study_dir = Path(study_dir).resolve()
         self.recipe_dir = Path(recipe_dir).resolve()
         self.config = config
@@ -133,13 +154,44 @@ class AtlasGraphRuntime:
             )
 
     def gpu_self_controller_enabled(self) -> bool:
-        """Whether trial workers advance local graph nodes themselves."""
+        """Whether a trial's GPU job acts as its own controller after finishing.
+
+        Reads ``atlas.gpu_self_controller`` (a plain bool, or a mapping with
+        an ``enabled`` key) rather than requiring a separate CPU controller
+        job to observe and advance the trial.
+
+        Args:
+            None.
+
+        Returns:
+            bool: ``True`` if GPU self-controller mode is enabled.
+
+        Example:
+            >>> runtime.gpu_self_controller_enabled()
+            False
+        """
         value = getattr(self.config.atlas, "gpu_self_controller", False)
         if isinstance(value, bool):
             return value
         return bool(getattr(value, "enabled", False))
 
     def gpu_self_monitor_interval_sec(self) -> int:
+        """Return the self-controller's monitor poll interval, in seconds.
+
+        Uses ``atlas.gpu_self_controller.monitor_interval_sec`` when set, or
+        falls back to ``atlas.tick_interval_sec_trial_active`` (default 600),
+        with a floor of 1 second either way.
+
+        Args:
+            None.
+
+        Returns:
+            int: Poll interval in seconds, at least 1.
+
+        Example:
+            >>> runtime.gpu_self_monitor_interval_sec()
+            600
+        """
         value = getattr(self.config.atlas, "gpu_self_controller", None)
         configured = getattr(value, "monitor_interval_sec", None)
         if configured is not None:
@@ -153,6 +205,24 @@ class AtlasGraphRuntime:
         )
 
     def bootstrap_node_name(self) -> str:
+        """Pick the first node to run for a study with no node runs yet.
+
+        Skips ``research_context``/``propose_trial`` setup work that is
+        already done: if the knowledge pack already exists, starts at
+        ``propose_trial``; else if the study's own files already exist,
+        starts at ``research_context``; otherwise falls back to the graph's
+        declared ``start`` node.
+
+        Args:
+            None.
+
+        Returns:
+            str: The node name to create the first node run for.
+
+        Example:
+            >>> runtime.bootstrap_node_name()
+            'init_study'
+        """
         knowledge_dir = self.study_dir / "knowledge"
         knowledge_ready = all(
             (knowledge_dir / name).is_file()
@@ -169,6 +239,7 @@ class AtlasGraphRuntime:
         return self.graph.start
 
     def _job_name(self, node_name: str, trial_id: str | None, attempt_id: str) -> str:
+        """Build a short, backend-friendly job name from the study/trial/node."""
         study = self.study_dir.name.replace("_", "-")
         if trial_id:
             trial = trial_id
@@ -193,6 +264,36 @@ class AtlasGraphRuntime:
         controller_mode: bool = False,
         gpu_self_controller: bool = False,
     ) -> StageResult:
+        """Execute one graph node's stage and, in controller mode, route to the next.
+
+        Builds the node's ``StageContext`` (wrapping the agent with
+        ``_SkillAgent`` if the node declares a ``skill``), records
+        ``node_started``/``node_finished`` events, runs the stage (catching
+        ``InvalidAgentResponseError`` into a failure result instead of
+        propagating it), and — unless the result reports an invalid agent
+        response — calls :meth:`_schedule_next` to advance the graph.
+
+        Args:
+            node_name: Graph node to run.
+            run_id: This node run's unique id.
+            trial_id: Trial the node operates on, or ``None`` for a
+                study-level node.
+            attempt_id: Attempt id within this node run; defaults to
+                ``"attempt_000000"`` when ``None``.
+            controller_mode: Whether this call is itself acting as the
+                controller (so :meth:`_schedule_next` may recurse into the
+                next local node immediately).
+            gpu_self_controller: Whether this run is executing inside a GPU
+                job acting as its own controller.
+
+        Returns:
+            StageResult: The stage's result.
+
+        Example:
+            >>> result = runtime.run_node("init_study", run_id="run_1")
+            >>> result.status
+            'success'
+        """
         node_cfg = self.graph.nodes[node_name]
         stage_cls = load_stage_class(node_cfg.target, recipe_dir=self.recipe_dir)
         stage = stage_cls()
@@ -266,7 +367,28 @@ class AtlasGraphRuntime:
         trial_id: str | None = None,
         attempt_id: str | None = None,
     ) -> StageResult:
-        """Finish a trial and advance its local graph nodes inside the GPU job."""
+        """Finish a trial and advance its local graph nodes inside the GPU job.
+
+        Runs ``node_name`` as usual, then — since in this mode the trial's
+        own GPU job is acting as its controller rather than being observed
+        externally — marks that job's own record ``completed``/``failed``
+        itself, and submits any now-pending trial nodes.
+
+        Args:
+            node_name: Graph node to run (typically ``run_trial`` finishing).
+            run_id: This node run's unique id.
+            trial_id: Trial the node operates on, or ``None``.
+            attempt_id: Attempt id within this node run, or ``None`` to
+                default to ``"attempt_000000"``.
+
+        Returns:
+            StageResult: The stage's result, as from :meth:`run_node`.
+
+        Example:
+            >>> result = runtime.run_gpu_self_controller(
+            ...     "run_trial", run_id="run_1", trial_id="trial_001"
+            ... )
+        """
         result = self.run_node(
             node_name=node_name,
             run_id=run_id,
@@ -306,6 +428,7 @@ class AtlasGraphRuntime:
         trial_id: str | None,
         attempt_id: str,
     ) -> list[str]:
+        """Build the ``python -m espnet3.bin.atlas.worker`` argv for a submitted node run."""
         command = [
             sys.executable,
             "-m",
@@ -332,6 +455,17 @@ class AtlasGraphRuntime:
         current_trial_id: str | None,
         controller_mode: bool = False,
     ) -> None:
+        """Route a finished node's result to its next node and create that node run.
+
+        Updates ``recovery_active`` on a ``run_trial`` result, routes via
+        ``result.next_node`` or ``graph.route()`` (treating a
+        ``propose_trial``+``"duplicate"`` result as a dead end rather than an
+        error), marks the study ``"completed"`` when there is no next node
+        and no in-flight trial work remains (deferring completion
+        otherwise), and — for a node routed to ``"local"`` execution while
+        already in controller mode — runs it immediately rather than waiting
+        for the next tick.
+        """
         if (self.study_dir / "STOP").exists():
             return
         if current_node == "run_trial" and current_trial_id:
@@ -473,6 +607,7 @@ class AtlasGraphRuntime:
         return False
 
     def _has_inflight_trial_work(self) -> bool:
+        """Whether any active trial job or pending/running trial node run remains."""
         active_trial_jobs = any(
             job.job_type == "trial"
             for job in self.state.list_active_jobs(self.study_id)
@@ -490,6 +625,21 @@ class AtlasGraphRuntime:
         trial_id: str | None = None,
         include_trial_jobs: bool = True,
     ) -> None:
+        """Ask the agent for current status of active (non-tick) jobs and reconcile.
+
+        Queries the configured submission agent for every active job
+        matching the given filters, updates each job's persisted status, and
+        calls :meth:`_reconcile_terminal_job` for any that just reached a
+        terminal state. Does nothing if there are no matching active jobs,
+        or logs and returns if the status query itself fails.
+
+        Args:
+            trial_id: If given, restrict to jobs belonging to this trial;
+                ``None`` checks all trials' jobs.
+            include_trial_jobs: Whether to include ``job_type == "trial"``
+                jobs in the query (set ``False`` to check only non-trial
+                jobs, e.g. during a per-trial-only refresh).
+        """
         jobs = [
             job
             for job in self.state.list_active_jobs(self.study_id)
@@ -699,7 +849,48 @@ class AtlasGraphRuntime:
         trial_id: str | None = None,
         node_run_id: str | None = None,
     ) -> JobRecord:
-        """Delegate one asynchronous job submission to the configured agent."""
+        """Delegate one asynchronous job submission to the configured agent.
+
+        Asks the configured submission agent (Slurm, local, or custom) to
+        launch ``command`` with the given resources/environment, then
+        persists a ``JobRecord`` for it in state.
+
+        Args:
+            job_id: Atlas-assigned id for this job.
+            job_type: Kind of job, e.g. ``"trial"`` or ``"tick"``.
+            name: Human-readable job name (e.g. shown in ``squeue``).
+            command: Argv to run.
+            workdir: Working directory for the job.
+            stdout: Path to redirect stdout to.
+            stderr: Path to redirect stderr to.
+            resources: Resource limits to request.
+            env: Extra environment variables for the job process, or
+                ``None``.
+            metadata: Extra metadata recorded alongside the job, or
+                ``None``.
+            trial_id: Trial this job belongs to, or ``None`` for a
+                study-level job.
+            node_run_id: Graph node run this job executes, or ``None``.
+
+        Returns:
+            JobRecord: The persisted job record, including its backend and
+            backend-native ``external_id``.
+
+        Raises:
+            RuntimeError: If the agent reports the submission did not
+                succeed (no ``"submitted"`` status or missing
+                ``external_id``).
+
+        Example:
+            >>> job = runtime.submit_job(
+            ...     job_id="job_1", job_type="trial", name="ar-study-trial-0001",
+            ...     command=["python", "worker.py"], workdir=Path("."),
+            ...     stdout=Path("out.log"), stderr=Path("err.log"),
+            ...     resources=Resources(gpus=1),
+            ... )
+            >>> job.status
+            'submitted'
+        """
         job_metadata = {
             **(metadata or {}),
             "environment": env or {},
@@ -752,6 +943,21 @@ class AtlasGraphRuntime:
         return record
 
     def _reconcile_terminal_job(self, job: JobRecord, status: str) -> None:
+        """Finish a job's node run once its backend job reaches a terminal status.
+
+        Translates the backend's terminal status (``"completed"``/
+        ``"timeout"``/other-as-failure) into a ``StageResult``, unless the
+        trial was already marked ``"early_stopped"`` by the keypoint agent,
+        in which case that takes priority. No-ops if the job has no
+        associated node run, or that node run is no longer pending/running
+        (already reconciled).
+
+        Args:
+            job: The job whose backend status just became terminal.
+            status: The backend-reported terminal status (e.g.
+                ``"completed"``, ``"timeout"``, ``"failed"``,
+                ``"cancelled"``).
+        """
         if not job.node_run_id:
             return
         node_run = self.state.get_node_run(job.node_run_id)
@@ -808,6 +1014,12 @@ class AtlasGraphRuntime:
         )
 
     def _advance_local_ready_nodes(self, trial_id: str | None = None) -> None:
+        """Run every pending ``execution: local`` node run matching ``trial_id``.
+
+        Args:
+            trial_id: If given, only advance that trial's local node runs;
+                ``None`` only advances study-level (no-trial) node runs.
+        """
         for node_run in self.state.get_pending_node_runs(self.study_id):
             if trial_id is None:
                 if node_run["trial_id"] is not None:
@@ -1198,6 +1410,16 @@ class AtlasGraphRuntime:
             )
 
     def _maybe_schedule_parallel_proposals(self) -> None:
+        """Create enough new ``propose_trial`` node runs to fill open parallel slots.
+
+        Only applies to graphs that start at ``propose_trial`` (i.e.
+        continuous proposal/run applications, not a from-scratch init). Under
+        a study-wide lock, computes how many trial "slots" are already
+        occupied by active trial jobs, queued ``run_trial`` nodes, and
+        in-flight ``propose_trial``/``debug_trial`` node runs, then creates
+        new ``propose_trial`` node runs for however many slots remain open,
+        capped by ``budget.max_trials`` if set.
+        """
         if "propose_trial" not in self.graph.nodes:
             return
         if self.bootstrap_node_name() != "propose_trial":
@@ -1310,6 +1532,14 @@ class AtlasGraphRuntime:
             self._submit_pending_trial_nodes_locked()
 
     def _submit_pending_trial_nodes_locked(self) -> None:
+        """Submit as many pending ``execution: submission`` node runs as parallel slots allow.
+
+        Must be called while holding ``.lock_trial_submit`` (see
+        :meth:`_submit_pending_trial_nodes`). Iterates pending node runs in
+        order, skipping ``execution: local`` nodes (handled elsewhere) and
+        nodes that already have a submitted job, and stops once active trial
+        jobs reach ``budget.max_parallel_trials``.
+        """
         budget = self.config.atlas.budget
         max_parallel = int(getattr(budget, "max_parallel_trials", 1) or 1)
         active_trial_jobs = sum(
@@ -1398,6 +1628,26 @@ class AtlasGraphRuntime:
             )
 
     async def run_forever(self, poll_interval: float | None = None) -> None:
+        """Tick the scheduler in a loop until the study has no work left.
+
+        Used for ``submission.environment: local`` studies, where there is
+        no separate controller job — this coroutine itself plays that role
+        in the foreground. Each iteration calls :meth:`tick`, then returns
+        once ``should_stop()`` is true and no pending node runs or active
+        jobs remain; otherwise sleeps for ``poll_interval`` (or the
+        configured idle/trial-active tick interval) and loops.
+
+        Args:
+            poll_interval: Fixed seconds to sleep between ticks, or ``None``
+                to use the study's configured
+                ``tick_interval_sec_idle``/``tick_interval_sec_trial_active``.
+
+        Returns:
+            None.
+
+        Example:
+            >>> asyncio.run(runtime.run_forever(poll_interval=5.0))
+        """
         while True:
             self.tick()
             if self.should_stop():
@@ -1424,6 +1674,28 @@ class AtlasGraphRuntime:
             await asyncio.sleep(max(1, interval))
 
     def tick(self, trial_id: str | None = None) -> None:
+        """Run one scheduler cycle: bootstrap, reconcile jobs, check keypoints, advance.
+
+        Bootstraps the study's first node run if none exist yet, refreshes
+        active job statuses (reconciling any that finished), runs early-stop
+        keypoint checks for the running trial(s), schedules new parallel
+        proposals and submits pending submission-execution nodes (only for a
+        whole-study tick, i.e. ``trial_id is None``), and advances any
+        pending local-execution nodes. No-ops entirely if the study's
+        ``STOP`` file exists.
+
+        Args:
+            trial_id: If given, scope the refresh/keypoint-check/local-node
+                work to this trial only (used by a GPU self-controller
+                acting for just its own trial); ``None`` runs the full
+                study-wide tick.
+
+        Returns:
+            None.
+
+        Example:
+            >>> runtime.tick()
+        """
         if (self.study_dir / "STOP").exists():
             return
         if trial_id is None and not self.state.list_node_runs(self.study_id):

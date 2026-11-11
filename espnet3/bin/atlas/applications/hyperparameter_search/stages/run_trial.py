@@ -25,6 +25,7 @@ class RunTrialStage(AtlasStage):
     """Execute training, inference, and measurement for one trial."""
 
     def _copy_training_curve_csv(self, trial_dir: Path, attempt_dir: Path) -> None:
+        """Copy the latest Lightning ``metrics.csv`` to ``training_metrics.csv``."""
         csv_candidates = sorted(
             (trial_dir / "exp").glob("csv_logs/**/metrics.csv"),
             key=lambda path: path.stat().st_mtime,
@@ -36,6 +37,7 @@ class RunTrialStage(AtlasStage):
         shutil.copyfile(latest, attempt_dir / "training_metrics.csv")
 
     def _run_cmd(self, cmd: list[str], cwd: Path, log_path: Path, timeout: int | None):
+        """Run ``cmd`` synchronously, appending combined stdout/stderr to ``log_path``."""
         with open(log_path, "a", encoding="utf-8") as handle:
             proc = subprocess.run(
                 cmd,
@@ -50,6 +52,7 @@ class RunTrialStage(AtlasStage):
 
     @staticmethod
     def _is_training_command(command: list[str]) -> bool:
+        """Whether ``command``'s ``--stages`` argument is ``"train"`` (or it's a custom template)."""
         try:
             return command[command.index("--stages") + 1] == "train"
         except (ValueError, IndexError):
@@ -114,6 +117,7 @@ class RunTrialStage(AtlasStage):
         inference_cfg: Path,
         metrics_cfg: Path,
     ) -> list[str]:
+        """Build the ``run.py --stages <stage>`` argv, adding configs the stage needs."""
         cmd = [
             sys.executable,
             "run.py",
@@ -138,6 +142,7 @@ class RunTrialStage(AtlasStage):
         metrics_cfg: Path,
         extra_stages: list[str] | None = None,
     ) -> list[list[str]]:
+        """Build the default ``run.py`` commands: any extra stages, then train/infer/measure."""
         cmds: list[list[str]] = []
         for stage in (extra_stages or []):
             cmds.append(self._stage_command(stage, training_cfg, inference_cfg, metrics_cfg))
@@ -147,6 +152,7 @@ class RunTrialStage(AtlasStage):
         return cmds
 
     def _build_commands(self, context, trial_dir: Path, attempt_dir: Path) -> list[list[str]]:
+        """Build this attempt's commands: a configured ``command_template`` if set, else the default train/infer/measure (+ any ``extra_stages``) sequence."""
         training_cfg = trial_dir / "resolved_training_config.yaml"
         inference_cfg = trial_dir / "resolved_inference_config.yaml"
         metrics_cfg = trial_dir / "resolved_metrics_config.yaml"
@@ -209,6 +215,33 @@ class RunTrialStage(AtlasStage):
         return resume_cfg
 
     def run(self, context) -> StageResult:
+        """Run a trial's train/infer/measure commands as a local subprocess pipeline.
+
+        Skips stages already marked ``"completed"`` in ``stage_status.yaml``
+        (so a retried attempt resumes rather than redoing finished work),
+        resumes training from ``exp/last.ckpt`` when present, writes a
+        ``train_eval.sh`` script recording the commands run, and — when
+        ``context.gpu_self_controller`` is set — runs the training command
+        under cooperative early-stop monitoring instead of a plain blocking
+        call.
+
+        Args:
+            context: The node run's ``StageContext``; must have a current
+                trial.
+
+        Returns:
+            StageResult: ``status="success"`` if every command exits 0,
+            ``status="failure"`` if a command exits non-zero,
+            ``status="timeout"`` if a command exceeds
+            ``trial.timeout_sec``, or ``status="early_stopped"`` if the
+            keypoint agent stopped the trial mid-training (GPU
+            self-controller mode only).
+
+        Example:
+            >>> result = RunTrialStage().run(stage_context)
+            >>> result.status
+            'success'
+        """
         trial = context.current_trial
         assert trial is not None
         trial_dir = context.trial_dir()
