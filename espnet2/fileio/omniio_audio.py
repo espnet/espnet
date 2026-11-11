@@ -246,6 +246,45 @@ class OmniIOEntryReader:
         first, last = segment_bounds(start, end, rate, len(array))
         return rate, array[first:last]
 
+    def read_frames(self, entry: str, first: int, last: int) -> Tuple[int, np.ndarray]:
+        """Return (rate, samples `first`..`last` - 1) of `entry`.
+
+        FLAC/WAV/OGG are seeked: only these samples are read and decoded. WebM
+        is decoded whole and sliced. Raises ValueError unless
+        0 <= first < last <= the number of samples.
+        """
+        try:
+            return self._read_frames(entry, first, last)
+        finally:
+            if self.max_cache_fd <= 0:
+                self.close()  # no cache: never keep a descriptor past the read
+
+    def _read_frames(self, entry: str, first: int, last: int):
+        import soundfile
+
+        path, first_byte, end_byte = parse_omniio_entry(entry)
+        if hasattr(os, "pread") and os.pread(self._fd(path), 4, first_byte) != _EBML:
+            src = _ByteRange(self._fd(path), first_byte, end_byte)
+            with soundfile.SoundFile(src) as f:
+                rate = f.samplerate
+                if not 0 <= first < last <= f.frames:
+                    raise ValueError(
+                        f"samples {first}-{last} out of the {f.frames} of {entry}"
+                    )
+                f.seek(first)
+                array = f.read(last - first, dtype="float32", always_2d=True)
+            if len(array) != last - first:
+                raise RuntimeError(f"short read of samples {first}-{last} of {entry}")
+            if not self.always_2d and array.shape[1] == 1:
+                array = array[:, 0]
+            return int(rate), array
+        rate, array = self(entry)
+        if not 0 <= first < last <= len(array):
+            raise ValueError(
+                f"samples {first}-{last} out of the {len(array)} of {entry}"
+            )
+        return rate, array[first:last]
+
     def close(self):
         """Close the bin file descriptors this process opened."""
         fds = self._own_fds()
@@ -293,6 +332,13 @@ class OmniIOAudioScpReader(OmniIOEntryReader, collections.abc.Mapping):
     def __getitem__(self, key: str) -> Tuple[Optional[int], Optional[np.ndarray]]:
         """Return (sampling rate, signal) of `key`, or (None, None) if absent."""
         return self(self.data[key])
+
+    def read_span(self, key: str, start: int, end: int) -> Tuple[int, np.ndarray]:
+        """Return (sampling rate, samples `start`..`end` - 1) of `key`.
+
+        Only that part of the archive entry is read (see ``read_frames``).
+        """
+        return self.read_frames(self.data[key], start, end)
 
     def get_path(self, key: str) -> str:
         """Return the scp entry of `key` (``<bin>:<start>:<end>`` or "None")."""
