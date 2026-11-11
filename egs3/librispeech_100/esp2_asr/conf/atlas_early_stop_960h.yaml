@@ -29,16 +29,10 @@ atlas:
   budget:
     max_trials: 200
     max_parallel_trials: 4
-    max_failures: 10
-    no_improve_stop: 10
     max_wallclock_hours: 24
     max_gpu_hours: 96
 
-  tick_interval_sec_idle: 60
-  tick_interval_sec_trial_active: 600
-
   submission:
-    environment: slurm
     instructions: |
       Submit jobs with Slurm: write the script to the supplied script_path, map
       resource limits to #SBATCH options, and submit it with sbatch. Use squeue
@@ -49,22 +43,10 @@ atlas:
     resources:
       gpus: 2
       cpus: 16
-      mem: 32G
       time: "48:00:00"
-      partition: gpuA100x4,gpuA40x4
-      account: bbjs-delta-gpu
       ntasks-per-node: 2
-    controller:
-      resources:
-        gpus: 0
-        cpus: 1
-        mem: 4G
-        time: "06:00:00"
-        partition: cpu
-        account: bbjs-delta-cpu
-      handoff_after_sec: 18000
-  agent:
-    provider: codex
+      # Set to a partition that provides multi-GPU nodes on your cluster.
+      partition: YOUR_MULTI_GPU_PARTITION
 
   early_stopping:
     enabled: true

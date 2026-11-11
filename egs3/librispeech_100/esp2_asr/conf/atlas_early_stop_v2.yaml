@@ -29,42 +29,13 @@ atlas:
   budget:
     max_trials: 200
     max_parallel_trials: 4
-    max_failures: 10
-    no_improve_stop: 10
     max_wallclock_hours: 24
     max_gpu_hours: 96
 
-  tick_interval_sec_idle: 60
-  tick_interval_sec_trial_active: 600
-
   submission:
-    environment: slurm
-    instructions: |
-      Submit jobs with Slurm: write the script to the supplied script_path, map
-      resource limits to #SBATCH options, and submit it with sbatch. Use squeue
-      and sacct for job status and scancel to cancel jobs. Run the supplied worker
-      command from the recipe directory with the repository's pixi environment.
-      Return the Slurm job ID.
     resources:
-      gpus: 1
       cpus: 16
-      mem: 32G
       time: "12:00:00"
-      partition: gpuA100x4
-      account: bbjs-delta-gpu
-      reservation: sup-27103
-      nodelist: gpua018
-    controller:
-      resources:
-        gpus: 0
-        cpus: 1
-        mem: 4G
-        time: "06:00:00"
-        partition: cpu
-        account: bbjs-delta-cpu
-      handoff_after_sec: 18000
-  agent:
-    provider: codex
 
   early_stopping:
     enabled: true
