@@ -49,8 +49,9 @@ nodes:
       cpus: 15
       mem: 32G
       time: "24:00:00"
-      partition: "gpuA100x4,gpuA40x4"
-      account: bbjs-delta-gpu
+      # Set these to your cluster's Slurm partition/account.
+      partition: YOUR_GPU_PARTITION
+      account: YOUR_SLURM_ACCOUNT
     "on":
       success: collect_result
       failure: debug_trial

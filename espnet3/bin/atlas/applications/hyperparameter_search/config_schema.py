@@ -10,11 +10,9 @@ from espnet3.bin.atlas.core.serialization import save_yaml
 from espnet3.utils.config_utils import load_and_merge_config
 
 
-def load_atlas_config(recipe_dir: Path, config_path: Path):
-    """Load the recipe atlas config."""
-    cfg = OmegaConf.load(config_path)
-    OmegaConf.resolve(cfg)
-    return cfg
+def load_atlas_config(config_path: Path):
+    """Load the recipe atlas config merged with TEMPLATE defaults."""
+    return load_and_merge_config(config_path, config_name="atlas.yaml", resolve=True)
 
 
 def load_recipe_stage_config(

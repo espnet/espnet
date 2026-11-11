@@ -28,46 +28,17 @@ atlas:
 
   budget:
     max_trials: 200
-    max_parallel_trials: 1
-    max_failures: 10
-    no_improve_stop: 10
     # Zero disables the study-wide elapsed-time limit.
     max_wallclock_hours: 0
 
-  tick_interval_sec_idle: 60
-  tick_interval_sec_trial_active: 600
-
   gpu_self_controller:
     enabled: true
-    monitor_cpus: 1
-    monitor_interval_sec: 600
 
   submission:
-    environment: slurm
-    instructions: |
-      Submit jobs with Slurm: write the script to the supplied script_path, map
-      resource limits to #SBATCH options, and submit it with sbatch. Use squeue
-      and sacct for job status and scancel to cancel jobs. Run the supplied worker
-      command from the recipe directory with the repository's pixi environment.
-      Return the Slurm job ID.
     resources:
-      gpus: 1
       cpus: 15
-      mem: 32G
-      time: "24:00:00"
-      partition: gpuA100x4
-      account: bbjs-delta-gpu
-    controller:
-      resources:
-        gpus: 0
-        cpus: 1
-        mem: 4G
-        time: "06:00:00"
-        partition: cpu
-        account: bbjs-delta-cpu
-      handoff_after_sec: 18000
+
   agent:
-    provider: codex
     codex:
       model: gpt-6-luna
       sandbox: danger-full-access
@@ -90,15 +61,12 @@ atlas:
   early_stopping:
     enabled: true
 
-  trial:
-    timeout_sec: 86400
-
   code_edit:
     allowed_dirs: [src, tests]
     max_test_retries: 5
     allow_pixi: false
     doc_urls:
-      - https://masao-someki.github.io/espnet_draft_home_page/espnet3/guides/finetuning/custom-model.html
+      - https://espnet.github.io/espnet/espnet3/guides/finetuning/custom-model.html
 
   search_space:
     allowed_keys:

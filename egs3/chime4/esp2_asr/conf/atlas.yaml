@@ -26,48 +26,16 @@ atlas:
 
   budget:
     max_trials: 50
-    max_parallel_trials: 1
-    max_failures: 10
-    no_improve_stop: 10
     max_wallclock_hours: 72
-
-  tick_interval_sec_idle: 60
-  tick_interval_sec_trial_active: 600
 
   # Run collect/debug/reflect/propose and next-trial submission at the end of
   # each GPU job. This avoids dependence on separate CPU controller jobs.
   gpu_self_controller:
     enabled: false
-    # Extra CPUs added to each GPU allocation for the parent monitor/agent.
-    monitor_cpus: 1
-    monitor_interval_sec: 600
 
   submission:
-    environment: slurm
-    instructions: |
-      Submit jobs with Slurm: write the script to the supplied script_path, map
-      resource limits to #SBATCH options, and submit it with sbatch. Use squeue
-      and sacct for job status and scancel to cancel jobs. Run the supplied worker
-      command from the recipe directory with the repository's pixi environment.
-      Return the Slurm job ID.
     resources:
-      gpus: 1
       cpus: 16
-      mem: 32G
-      time: "24:00:00"
-      partition: gpuA100x4
-      account: bbjs-delta-gpu
-    controller:
-      resources:
-        gpus: 0
-        cpus: 1
-        mem: 4G
-        time: "06:00:00"
-        partition: cpu
-        account: bbjs-delta-cpu
-      handoff_after_sec: 18000
-  agent:
-    provider: codex
 
   early_stopping:
     enabled: false
@@ -79,9 +47,6 @@ atlas:
     iteration_interval: 0
     # Disabled by default. Check every N seconds from GPU worker start (3600 = hourly).
     elapsed_time_interval_sec: 0
-
-  trial:
-    timeout_sec: 86400
 
   search_space:
     allowed_keys:

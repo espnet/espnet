@@ -170,14 +170,15 @@ parallel:
   n_workers: 32
   options:
     queue: cpu
-    account: bbjs-delta-cpu
+    # Set these to your cluster's Slurm account/QOS.
+    account: YOUR_SLURM_ACCOUNT
     cores: 4
     processes: 1
     memory: 16GB
     walltime: 06:00:00
     death_timeout: 300
     job_extra_directives:
-      - --qos=bbjs-delta-cpu
+      - --qos=YOUR_SLURM_ACCOUNT
 
 dataloader:
   train:

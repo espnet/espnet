@@ -18,6 +18,7 @@ from omegaconf import OmegaConf
 from espnet3.bin.atlas.agents.cli import CliAgent
 from espnet3.bin.atlas.applications.hyperparameter_search.config_schema import (
     load_atlas_config,
+    write_resolved_config,
 )
 from espnet3.bin.atlas.core.graph import Resources, load_graph
 from espnet3.bin.atlas.core.scheduler import AtlasGraphRuntime
@@ -69,7 +70,7 @@ def _load_runtime(study_dir: Path, recipe_dir: Path):
 def cmd_init(args) -> int:
     recipe_dir = Path(args.recipe_dir).resolve()
     config_path = Path(args.config).resolve()
-    config = load_atlas_config(recipe_dir, config_path)
+    config = load_atlas_config(config_path)
     study_dir = _resolve_study_dir(recipe_dir, config.atlas.study_dir)
     study_dir.mkdir(parents=True, exist_ok=True)
     graph_src = (
@@ -79,7 +80,7 @@ def cmd_init(args) -> int:
             str(getattr(config.atlas, "application", "hyperparameter_search"))
         )
     )
-    shutil.copyfile(config_path, study_dir / "atlas.yaml")
+    write_resolved_config(study_dir / "atlas.yaml", config)
     shutil.copyfile(graph_src, study_dir / "graph.yaml")
     state = StateStore(study_dir)
     state.create_or_load_study(str(config.atlas.study_name), study_dir)
@@ -389,7 +390,7 @@ def run_from_recipe_config(recipe_dir: Path, config_path: Path, mode: str = "run
     """Recipe helper for launching Atlas from a recipe config."""
     recipe_dir, config_path = Path(recipe_dir).resolve(), Path(config_path).resolve()
     cmd_init(argparse.Namespace(recipe_dir=str(recipe_dir), config=str(config_path)))
-    config = load_atlas_config(recipe_dir, config_path)
+    config = load_atlas_config(config_path)
     study_dir = _resolve_study_dir(recipe_dir, config.atlas.study_dir)
     return cmd_run(argparse.Namespace(
         study_dir=str(study_dir), recipe_dir=str(recipe_dir), poll_interval=None, worker=False
