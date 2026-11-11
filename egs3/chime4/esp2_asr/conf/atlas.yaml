@@ -1,0 +1,105 @@
+atlas:
+  study_name: chime4_hp_search
+  study_dir: exp/atlas/chime4_hp_search
+  graph:
+  application: hyperparameter_search
+  objective_file: program.md
+
+  task: CHiME-4 distant-talking ASR
+  dataset: CHiME-4 (train, dt05, et05; real and simulated 1-channel)
+  model: E-Branchformer encoder with Transformer decoder
+  year: 2026
+
+  recipe:
+    training_config: conf/training.yaml
+    inference_config: conf/inference.yaml
+    metrics_config: conf/metrics.yaml
+
+  # Optimize real development WER; the key is emitted by the measure stage.
+  metric:
+    name: dt05_real_1ch_wer
+    mode: min
+    extraction:
+      - path: inference/metrics.json
+        name: dt05_real_1ch_wer
+        key: espnet3.systems.esp2_asr.metrics.wer.WER.dt05_real_1ch.WER
+
+  budget:
+    max_trials: 50
+    max_parallel_trials: 1
+    max_failures: 10
+    no_improve_stop: 10
+    max_wallclock_hours: 72
+
+  tick_interval_sec_idle: 60
+  tick_interval_sec_trial_active: 600
+
+  # Run collect/debug/reflect/propose and next-trial submission at the end of
+  # each GPU job. This avoids dependence on separate CPU controller jobs.
+  gpu_self_controller:
+    enabled: false
+    # Extra CPUs added to each GPU allocation for the parent monitor/agent.
+    monitor_cpus: 1
+    monitor_interval_sec: 600
+
+  submission:
+    environment: slurm
+    instructions: |
+      Submit jobs with Slurm: write the script to the supplied script_path, map
+      resource limits to #SBATCH options, and submit it with sbatch. Use squeue
+      and sacct for job status and scancel to cancel jobs. Run the supplied worker
+      command from the recipe directory with the repository's pixi environment.
+      Return the Slurm job ID.
+    resources:
+      gpus: 1
+      cpus: 16
+      mem: 32G
+      time: "24:00:00"
+      partition: gpuA100x4
+      account: bbjs-delta-gpu
+    controller:
+      resources:
+        gpus: 0
+        cpus: 1
+        mem: 4G
+        time: "06:00:00"
+        partition: cpu
+        account: bbjs-delta-cpu
+      handoff_after_sec: 18000
+  agent:
+    provider: codex
+
+  early_stopping:
+    enabled: false
+    # Choose exactly one non-zero trigger. `null` means the default epoch trigger.
+    # null keeps the existing default of roughly ten checks over max_epochs;
+    # set 0 to disable epoch-based checks.
+    epoch_interval: null
+    # Disabled by default. Check every N optimizer iterations from metrics.csv.
+    iteration_interval: 0
+    # Disabled by default. Check every N seconds from GPU worker start (3600 = hourly).
+    elapsed_time_interval_sec: 0
+
+  trial:
+    timeout_sec: 86400
+
+  search_space:
+    allowed_keys:
+      - trainer.*
+      - optimizer.*
+      - scheduler.*
+      - model.specaug
+      - model.specaug_conf.*
+      - model.encoder_conf.*
+      - model.decoder_conf.*
+      - model.model_conf.*
+      - dataloader.train.iter_factory.*
+      - tokenizer.*
+    denied_keys:
+      - data.*
+      - output_dir
+      - collect_stats_dir
+      - recipe_dir
+      - exp_dir
+      - stats_dir
+      - inference_dir

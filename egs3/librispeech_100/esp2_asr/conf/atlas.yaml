@@ -1,0 +1,125 @@
+atlas:
+  study_name: ls100_no_early_stop
+  study_dir: exp/atlas/ls100_no_early_stop
+  graph:
+  application: architecture_search
+  objective_file: program.md
+
+  task: ASR
+  dataset: LibriSpeech 100h
+  model: e_branchformer
+  year: 2026
+
+  recipe:
+    training_config: conf/tuning/training_e_branchformer.yaml
+    inference_config: conf/inference.yaml
+    metrics_config: conf/metrics.yaml
+
+  metric:
+    name: dev_clean_wer
+    mode: min
+    extraction:
+      - path: "inference/metrics.json"
+        name: dev_clean_wer
+        key: "espnet3.systems.esp2_asr.metrics.wer.WER.dev-clean.WER"
+      - path: "exp/score_wer/result.txt"
+        name: dev_clean_wer
+        pattern: "WER: {value}"
+
+  budget:
+    max_trials: 200
+    max_parallel_trials: 1
+    max_failures: 10
+    no_improve_stop: 10
+    # Zero disables the study-wide elapsed-time limit.
+    max_wallclock_hours: 0
+
+  tick_interval_sec_idle: 60
+  tick_interval_sec_trial_active: 600
+
+  gpu_self_controller:
+    enabled: true
+    monitor_cpus: 1
+    monitor_interval_sec: 600
+
+  submission:
+    environment: slurm
+    instructions: |
+      Submit jobs with Slurm: write the script to the supplied script_path, map
+      resource limits to #SBATCH options, and submit it with sbatch. Use squeue
+      and sacct for job status and scancel to cancel jobs. Run the supplied worker
+      command from the recipe directory with the repository's pixi environment.
+      Return the Slurm job ID.
+    resources:
+      gpus: 1
+      cpus: 15
+      mem: 32G
+      time: "24:00:00"
+      partition: gpuA100x4
+      account: bbjs-delta-gpu
+    controller:
+      resources:
+        gpus: 0
+        cpus: 1
+        mem: 4G
+        time: "06:00:00"
+        partition: cpu
+        account: bbjs-delta-cpu
+      handoff_after_sec: 18000
+  agent:
+    provider: codex
+    codex:
+      model: gpt-6-luna
+      sandbox: danger-full-access
+    # To use a local Codex-compatible endpoint, set Codex CLI overrides here:
+    # codex:
+    #   model: shogun-worker
+    #   config:
+    #     model_provider: vllm
+    #     model_providers.vllm.name: vLLM
+    #     model_providers.vllm.base_url: http://127.0.0.1:32425/v1
+    #     model_providers.vllm.env_key: OPENAI_API_KEY
+    #     model_providers.vllm.wire_api: responses
+    #     model_providers.vllm.supports_standalone_web_search: true
+    #     model_context_window: 131072
+    #     model_auto_compact_token_limit: 110000
+    #     disable_response_storage: true
+    #     web_search: live
+    #     developer_instructions: "For live Web searches, use the server-side browser.search tool declared in the system message, and browser.open/browser.find to read results."
+
+  early_stopping:
+    enabled: true
+
+  trial:
+    timeout_sec: 86400
+
+  code_edit:
+    allowed_dirs: [src, tests]
+    max_test_retries: 5
+    allow_pixi: false
+    doc_urls:
+      - https://masao-someki.github.io/espnet_draft_home_page/espnet3/guides/finetuning/custom-model.html
+
+  search_space:
+    allowed_keys:
+      - trainer.*
+      - optimizer.*
+      - scheduler.*
+      - model.*
+      - dataset.preprocessor.*
+    denied_keys:
+      # Keep the training horizon, data splits, and loader behavior identical
+      # across trials so the comparison only measures permitted tuning changes.
+      - trainer.max_epochs
+      - dataloader.*
+      - dataset.train
+      - dataset.train.*
+      - dataset.valid
+      - dataset.valid.*
+      - data.*
+      - output_dir
+      - collect_stats_dir
+      - recipe_dir
+      - exp_dir
+      - stats_dir
+      - inference_dir

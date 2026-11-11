@@ -23,6 +23,7 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
         >>> main(["clone", "--list"])  # doctest: +SKIP
         0
     """
+    from espnet3.bin.atlas.command import add_arguments as add_atlas_arguments
     from espnet3.bin.clone.command import add_arguments as add_clone_arguments
 
     parser = argparse.ArgumentParser(
@@ -30,6 +31,7 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     )
     subparsers = parser.add_subparsers(dest="command", metavar="COMMAND")
     subparsers.required = True
+    add_atlas_arguments(subparsers)
     add_clone_arguments(subparsers)
 
     args = parser.parse_args(argv)

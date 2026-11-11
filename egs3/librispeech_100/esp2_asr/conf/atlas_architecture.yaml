@@ -1,0 +1,104 @@
+atlas:
+  study_name: ls100_arch_search
+  study_dir: exp/atlas/ls100_arch_search
+  graph:
+  application: architecture_search
+  objective_file: program.md
+
+  task: ASR
+  dataset: LibriSpeech 100h
+  model: e_branchformer
+  year: 2026
+
+  recipe:
+    training_config: conf/tuning/training_e_branchformer.yaml
+    inference_config: conf/inference.yaml
+    metrics_config: conf/metrics.yaml
+
+  metric:
+    name: dev_clean_wer
+    mode: min
+    extraction:
+      - path: "inference/metrics.json"
+        name: dev_clean_wer
+        key: "espnet3.systems.esp2_asr.metrics.wer.WER.dev-clean.WER"
+      - path: "exp/score_wer/result.txt"
+        name: dev_clean_wer
+        pattern: "WER: {value}"
+
+  budget:
+    max_trials: 50
+    max_parallel_trials: 2
+    max_failures: 10
+    no_improve_stop: 10
+    max_wallclock_hours: 48
+
+  tick_interval_sec_idle: 60
+  tick_interval_sec_trial_active: 600
+
+  submission:
+    environment: slurm
+    instructions: |
+      Submit jobs with Slurm: write the script to the supplied script_path, map
+      resource limits to #SBATCH options, and submit it with sbatch. Use squeue
+      and sacct for job status and scancel to cancel jobs. Run the supplied worker
+      command from the recipe directory with the repository's pixi environment.
+      Return the Slurm job ID.
+    resources:
+      gpus: 1
+      cpus: 16
+      mem: 32G
+      time: "12:00:00"
+      partition: gpuA100x4
+      account: bbjs-delta-gpu
+    controller:
+      resources:
+        gpus: 0
+        cpus: 1
+        mem: 4G
+        time: "06:00:00"
+        partition: cpu
+        account: bbjs-delta-cpu
+      handoff_after_sec: 18000
+  agent:
+    provider: codex
+
+  early_stopping:
+    enabled: false
+
+  trial:
+    timeout_sec: 50000
+
+  # code_edit: controls write_files and run_tests stages
+  code_edit:
+    # Directories the agent is allowed to create / modify (relative to recipe root)
+    allowed_dirs:
+      - src
+      - tests
+    # Max pytest fix-loops before giving up and routing to reflect
+    max_test_retries: 5
+    # Local files whose full content is injected into the write_files prompt as
+    # reference for input format / model interface patterns
+    reference_files:
+      - /u/someki1/workspace/20_other_project/10_atlas_test/src/peft_model.py
+    # URLs whose HTML is stripped and injected as documentation in the prompt.
+    # Fetched once per study; cached under study_dir/.doc_cache/
+    doc_urls:
+      - https://masao-someki.github.io/espnet_draft_home_page/espnet3/guides/finetuning/custom-model.html
+
+  search_space:
+    # For architecture search the agent controls source files, but still uses
+    # config_patch to wire _target_ and hyperparameters.
+    allowed_keys:
+      - model.*
+      - trainer.*
+      - optimizer.*
+      - scheduler.*
+    denied_keys:
+      - data.*
+      - output_dir
+      - collect_stats_dir
+      - recipe_dir
+      - exp_dir
+      - stats_dir
+      - inference_dir

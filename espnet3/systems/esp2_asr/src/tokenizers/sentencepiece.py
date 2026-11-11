@@ -74,7 +74,7 @@ def prepare_sentences(
     table = str.maketrans("", "", remove_characters)
     lines = [line.translate(table) for line in lines]
     texts = "\n".join(
-        [line.split(" ", maxsplit=1)[1].replace("\n", "") for line in lines]
+        [line.split(" ", maxsplit=1)[-1].replace("\n", "") for line in lines if line.strip()]
     )
 
     with open(os.path.join(output_path, "train.txt"), "w") as f:

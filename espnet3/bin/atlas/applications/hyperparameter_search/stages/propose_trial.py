@@ -1,0 +1,503 @@
+"""Propose the next hyperparameter trial."""
+
+from __future__ import annotations
+
+import json
+from pathlib import Path
+
+from omegaconf import OmegaConf
+
+from espnet3.bin.atlas.agents.interface import AgentRequest
+from espnet3.bin.atlas.applications.hyperparameter_search.config_schema import (
+    load_recipe_stage_config,
+    write_resolved_config,
+)
+from espnet3.bin.atlas.core.models import StageResult, Trial
+from espnet3.bin.atlas.core.serialization import (
+    apply_dotted_patch,
+    save_yaml,
+    utc_now,
+)
+from espnet3.bin.atlas.core.stage import AtlasStage
+
+
+def _glob_match(patterns, key: str) -> bool:
+    import fnmatch
+
+    return any(fnmatch.fnmatch(key, pattern) for pattern in patterns)
+
+
+def _normalize_trial_config(value, trial_dir: Path):
+    """Remove trial-specific paths before comparing effective configs."""
+    if isinstance(value, dict):
+        return {
+            key: _normalize_trial_config(item, trial_dir)
+            for key, item in value.items()
+            if key not in {"exp_dir", "exp_tag", "recipe_dir", "data_dir"}
+        }
+    if isinstance(value, list):
+        return [_normalize_trial_config(item, trial_dir) for item in value]
+    if isinstance(value, str):
+        return value.replace(str(trial_dir), "<trial_dir>")
+    return value
+
+
+def _config_signature(config, trial_dir: Path) -> str:
+    """Create a stable signature for a resolved training config."""
+    plain = OmegaConf.to_container(OmegaConf.create(config), resolve=True)
+    normalized = _normalize_trial_config(plain, trial_dir)
+    # Logger names identify runs; they do not distinguish training experiments.
+    # In particular, a trial-specific Wandb name must not defeat deduplication.
+    if isinstance(normalized.get("trainer"), dict):
+        normalized["trainer"].pop("logger", None)
+    return json.dumps(normalized, sort_keys=True, ensure_ascii=False, default=str)
+
+
+class ProposeTrialStage(AtlasStage):
+    """Create a new Trial from agent output or fallback candidates."""
+
+    study_lock_name = "study_controller"
+
+    def _next_trial_id(self, trials) -> str:
+        return f"trial_{len(trials) + 1:06d}"
+
+    def _ensure_provisional_trial(self, context, latest_trial, trials) -> Trial:
+        """Reserve a trial, retaining its ID when JSON generation needs repair."""
+        if self._should_reuse_current_trial(context, latest_trial):
+            return latest_trial
+        trial_id = self._next_trial_id(trials)
+        trial_dir = context.study_dir / "trials" / trial_id
+        trial_dir.mkdir(parents=True, exist_ok=True)
+        trial = Trial(
+            trial_id=trial_id,
+            study_id=str(context.scheduler.study_id),
+            status="proposing",
+            config_patch={},
+            resolved_config_path=None,
+            rationale="",
+            expected_effect="",
+            risk="",
+            score=None,
+            score_name=str(context.config.atlas.metric.name),
+            decision=None,
+            parent_trial_id=latest_trial.trial_id if latest_trial else None,
+            attempt_count=0,
+            created_at=utc_now(),
+            updated_at=utc_now(),
+        )
+        context.state.create_trial(trial)
+        save_yaml(
+            trial_dir / "trial.yaml",
+            {"trial_id": trial_id, "status": trial.status, "pending_agent": None},
+        )
+        return trial
+
+    def _sanitize_patch(self, context, patch: dict) -> tuple[dict, list[str]]:
+        search_space = context.config.atlas.search_space
+        allowed = list(getattr(search_space, "allowed_keys", []) or [])
+        denied = list(getattr(search_space, "denied_keys", []) or [])
+        sanitized: dict = {}
+        removed: list[str] = []
+        for key, value in patch.items():
+            key = str(key)
+            if denied and _glob_match(denied, key):
+                removed.append(key)
+                continue
+            if allowed and not _glob_match(allowed, key):
+                removed.append(key)
+                continue
+            sanitized[key] = value
+        return sanitized, removed
+
+    def _fallback_candidate(self, context, used_patches: list[dict]) -> dict | None:
+        candidates = list(
+            getattr(
+                getattr(context.config.atlas, "search_space", None),
+                "candidates",
+                [],
+            )
+            or []
+        )
+        for candidate in candidates:
+            plain = dict(candidate)
+            if plain not in used_patches:
+                return plain
+        return None
+
+    def _should_reuse_current_trial(self, context, current_trial: Trial | None) -> bool:
+        if current_trial is None:
+            return False
+        if current_trial.status != "proposing":
+            return False
+        if current_trial.resolved_config_path:
+            return False
+        return True
+
+    def _build_runtime_path_patch(
+        self, context, trial_dir: Path, trial_id: str
+    ) -> dict:
+        return {
+            "recipe_dir": str(context.recipe_dir),
+            "data_dir": str(context.recipe_dir / "data"),
+            "exp_tag": trial_id,
+            "exp_dir": str(trial_dir / "exp"),
+        }
+
+    def run(self, context) -> StageResult:
+        if context.scheduler.should_stop():
+            return StageResult(status="no_budget", message="Budget exhausted")
+
+        trials = context.state.list_trials(context.scheduler.study_id)
+        used_patches = [t.config_patch for t in trials]
+        latest_trial = trials[-1] if trials else None
+        current_trial = context.current_trial
+
+        _runtime_keys = frozenset(
+            {"exp_dir", "stats_dir", "recipe_dir", "data_dir", "exp_tag"}
+        )
+
+        if self._should_reuse_current_trial(context, current_trial):
+            trial = current_trial
+        else:
+            trial = self._ensure_provisional_trial(context, latest_trial, trials)
+
+        trial_dir = context.study_dir / "trials" / trial.trial_id
+        trial_id = trial.trial_id
+
+        # Build inflight patches from trials currently in flight
+        inflight_patches = []
+        for t in trials:
+            if (
+                t.status in frozenset({"running", "proposing", "proposed"})
+                and t.trial_id != trial_id
+            ):
+                patch = {
+                    k: v for k, v in t.config_patch.items() if k not in _runtime_keys
+                }
+                inflight_patches.append(patch)
+
+        # Knowledge and history
+        knowledge_path = context.study_dir / "knowledge" / "knowledge_pack.md"
+        knowledge = (
+            knowledge_path.read_text(encoding="utf-8")
+            if knowledge_path.exists()
+            else ""
+        )
+        checklist_path = context.recipe_dir / "src-checklist.md"
+        if checklist_path.is_file():
+            knowledge += (
+                "\n\n## Required persistent checklist (read and update after a trial)\n"
+                f"Path: {checklist_path}\n\n"
+                + checklist_path.read_text(encoding="utf-8")
+            )
+        trials_csv = context.study_dir / "trials.csv"
+        trial_history_csv = (
+            trials_csv.read_text(encoding="utf-8") if trials_csv.exists() else ""
+        )
+
+        # The skill reads logs on demand instead of copying them into every prompt.
+        context_files = {
+            "study_dir": str(context.study_dir),
+            "trial_dir": str(trial_dir),
+            "training_log": str(trial_dir / "train.log"),
+            "evaluation_log": str(trial_dir / "eval.log"),
+            "training_metrics_csv": str(trial_dir / "training_metrics.csv"),
+            "all_trials_dir": str(context.study_dir / "trials"),
+            "checklist": str(checklist_path),
+        }
+
+        # Load all base configs so the agent can see what is patchable
+        def _load_base_config_text(config_path_key: str, config_name: str) -> str:
+            try:
+                cfg = load_recipe_stage_config(
+                    context.recipe_dir,
+                    Path(getattr(context.config.atlas.recipe, config_path_key)),
+                    config_name,
+                    resolve=False,
+                )
+                return OmegaConf.to_yaml(cfg)
+            except Exception:
+                return "(unavailable)"
+
+        base_configs_context = "\n\n".join(
+            [
+                "## Base configs\n"
+                "Runtime keys (exp_dir, stats_dir, recipe_dir, data_dir, exp_tag, "
+                "inference_dir) "
+                "are injected automatically — do NOT include them in your patches.\n",
+                "Locked training keys: trainer.max_epochs, dataloader.*, "
+                "dataset.train, and dataset.valid. Do not propose patches for them.\n",
+                "### training config\n```yaml\n"
+                + _load_base_config_text("training_config", "training.yaml")
+                + "```",
+                "### Fixed inference config (immutable; do not propose patches)\n"
+                "```yaml\n"
+                + _load_base_config_text("inference_config", "inference.yaml")
+                + "```",
+                "### Fixed metrics config (immutable; do not propose patches)\n"
+                "```yaml\n"
+                + _load_base_config_text("metrics_config", "metrics.yaml")
+                + "```",
+            ]
+        )
+
+        repo_context_parts = []
+        repo_context_path = context.study_dir / "repo_context.md"
+        if repo_context_path.exists():
+            repo_context_parts.append(repo_context_path.read_text(encoding="utf-8"))
+        repo_context_parts.append(base_configs_context)
+        repo_context = "\n\n".join(repo_context_parts)
+
+        _ALLOWED_ACTIONS_BY_APPLICATION = {
+            "hyperparameter_search": ["config_patch_only"],
+            "architecture_search": ["config_patch", "implement_code", "pixi_add"],
+        }
+        application = str(
+            getattr(context.config.atlas, "application", "hyperparameter_search")
+        )
+        allowed_actions = _ALLOWED_ACTIONS_BY_APPLICATION.get(
+            application, ["config_patch_only"]
+        )
+
+        if "implement_code" in allowed_actions:
+            extra_stages_hint = (
+                "list of stage names to run before train — "
+                "include 'implement_code' to write/modify src/ files for a new "
+                "architecture, "
+                "or 'train_tokenizer' if a new tokenizer is needed"
+            )
+        else:
+            extra_stages_hint = (
+                "optional list of stage names to run before train, e.g. train_tokenizer"
+            )
+
+        request = AgentRequest(
+            task="propose",
+            objective=(context.study_dir / "program.md").read_text(encoding="utf-8"),
+            knowledge=knowledge,
+            repo_context=repo_context,
+            trial_history_csv=trial_history_csv,
+            latest_metrics={},
+            context_files=context_files,
+            inflight_patches=inflight_patches,
+            allowed_actions=allowed_actions,
+            output_schema={
+                "rationale": "string",
+                "config_patches": {
+                    "training": {"dotted.key": "value (required — HP changes go here)"},
+                },
+                "expected_effect": "string",
+                "risk": "string",
+                "extra_stages": [extra_stages_hint],
+            },
+        )
+        artifact_dir = trial_dir
+        response = context.agent.run(request, artifact_dir=artifact_dir)
+
+        if response.status != "success":
+            # Try fallback candidate
+            fallback = self._fallback_candidate(context, used_patches)
+            if fallback is None:
+                trial.status = "cancelled"
+                context.state.update_trial(trial)
+                return StageResult(
+                    status="cancelled",
+                    message="No remaining candidates",
+                    payload={"trial_id": trial_id},
+                )
+            patch = fallback
+            rationale = "Fallback candidate from configured search_space."
+            expected_effect = "Explore configured candidate."
+            risk = "May not improve the current best."
+            extra_stages: list[str] = []
+            removed: list[str] = []
+        else:
+            structured = dict(response.structured or {})
+            if not {"config_patches", "config_patch"}.intersection(structured):
+                trial.status = "cancelled"
+                context.state.update_trial(trial)
+                return StageResult(
+                    status="failure",
+                    message=(
+                        "Agent output has no structured config patch; refusing to "
+                        "interpret an unreadable proposal as an empty configuration."
+                    ),
+                    payload={"trial_id": trial_id},
+                )
+            # Support both new multi-config format and legacy single config_patch
+            config_patches = dict(structured.get("config_patches", {}) or {})
+            patch = dict(
+                config_patches.get("training", {})
+                or structured.get("config_patch", {})
+                or {}
+            )
+            rationale = str(structured.get("rationale", response.content or ""))
+            expected_effect = str(structured.get("expected_effect", ""))
+            risk = str(structured.get("risk", ""))
+            _known_stages = {
+                "create_dataset",
+                "train_tokenizer",
+                "collect_stats",
+                "implement_code",
+                "write_files",
+            }
+            extra_stages = [
+                str(s)
+                for s in (structured.get("extra_stages") or [])
+                if str(s) in _known_stages
+            ]
+
+            patch, removed = self._sanitize_patch(context, patch)
+            if not patch and removed:
+                trial.status = "cancelled"
+                context.state.update_trial(trial)
+                return StageResult(
+                    status="failure",
+                    message=f"Patch became empty after validation. removed={removed}",
+                    payload={"trial_id": trial_id},
+                )
+
+            # Deduplicate
+            hp_patch = {k: v for k, v in patch.items() if k not in _runtime_keys}
+            for existing in trials:
+                existing_hp = {
+                    k: v
+                    for k, v in existing.config_patch.items()
+                    if k not in _runtime_keys
+                }
+                if existing_hp == hp_patch and existing.trial_id != trial_id:
+                    dup_id = existing.trial_id
+                    trial.status = "cancelled"
+                    context.state.update_trial(trial)
+                    return StageResult(
+                        status="duplicate",
+                        message=f"Duplicate patch: same as {dup_id}",
+                        payload={"trial_id": trial_id},
+                    )
+
+        # Build runtime path patch and merge
+        runtime_patch = self._build_runtime_path_patch(context, trial_dir, trial_id)
+        effective_patch = {**patch, **runtime_patch}
+
+        # Load training config without resolving so that OmegaConf interpolations
+        # (e.g. model.vocab_size: ${tokenizer.vocab_size}) remain as strings.
+        # Applying the patch before resolution ensures dependent fields propagate
+        # correctly when tokenizer settings change.
+        train_cfg = load_recipe_stage_config(
+            context.recipe_dir,
+            Path(context.config.atlas.recipe.training_config),
+            "training.yaml",
+            resolve=False,
+        )
+        train_unresolved = OmegaConf.to_container(train_cfg, resolve=False)
+        train_unresolved = apply_dotted_patch(train_unresolved, effective_patch)
+        train_plain = OmegaConf.to_container(
+            OmegaConf.create(train_unresolved), resolve=True
+        )
+        # Sparse patches can differ while resolving to the same effective
+        # training configuration (for example, omitting a key at its default
+        # value). Compare resolved configs too, ignoring generated trial paths.
+        candidate_signature = _config_signature(train_plain, trial_dir)
+        for existing in trials:
+            existing_path = existing.resolved_config_path
+            if (
+                existing.trial_id == trial_id
+                or existing_path is None
+                or not existing_path.is_file()
+            ):
+                continue
+            existing_config = OmegaConf.load(existing_path)
+            existing_dir = context.study_dir / "trials" / existing.trial_id
+            if _config_signature(existing_config, existing_dir) == candidate_signature:
+                trial.status = "cancelled"
+                context.state.update_trial(trial)
+                return StageResult(
+                    status="duplicate",
+                    message=(
+                        "Duplicate effective training config: same as "
+                        f"{existing.trial_id}"
+                    ),
+                    payload={"trial_id": trial_id, "duplicate_of": existing.trial_id},
+                )
+
+        training_out = trial_dir / "resolved_training_config.yaml"
+        write_resolved_config(training_out, OmegaConf.create(train_plain))
+
+        # Evaluation is a study invariant.  Never apply either training HPs or
+        # agent-provided config_patches.inference/metrics to these configs; only
+        # trial-local runtime paths are substituted below.
+        runtime_inference_paths = {
+            **runtime_patch,
+            "inference_dir": str(trial_dir / "inference"),
+        }
+        for config_key, config_name, out_name in [
+            ("inference_config", "inference.yaml", "resolved_inference_config.yaml"),
+            ("metrics_config", "metrics.yaml", "resolved_metrics_config.yaml"),
+        ]:
+            cfg = load_recipe_stage_config(
+                context.recipe_dir,
+                Path(getattr(context.config.atlas.recipe, config_key)),
+                config_name,
+                resolve=False,
+            )
+            unresolved = OmegaConf.to_container(cfg, resolve=False)
+            unresolved = apply_dotted_patch(unresolved, runtime_inference_paths)
+            plain = OmegaConf.to_container(OmegaConf.create(unresolved), resolve=True)
+            write_resolved_config(trial_dir / out_name, OmegaConf.create(plain))
+
+        inference_out = trial_dir / "resolved_inference_config.yaml"
+        metrics_out = trial_dir / "resolved_metrics_config.yaml"
+
+        # Save metadata
+        hp_patch_only = {
+            k: v for k, v in effective_patch.items() if k not in _runtime_keys
+        }
+        save_yaml(trial_dir / "config_patch.yaml", hp_patch_only, resolve=False)
+        (trial_dir / "rationale.md").write_text(rationale, encoding="utf-8")
+
+        # Update trial
+        trial.status = "proposed"
+        trial.config_patch = effective_patch
+        trial.resolved_config_path = training_out
+        trial.rationale = rationale
+        trial.expected_effect = expected_effect
+        trial.risk = risk
+        trial.updated_at = utc_now()
+        if response.status == "success" and getattr(response, "thread_id", None):
+            trial.codex_thread_id = response.thread_id
+        trial.extra_stages = extra_stages
+        context.state.update_trial(trial)
+        save_yaml(
+            trial_dir / "trial.yaml",
+            {
+                "trial_id": trial_id,
+                "status": trial.status,
+                "config_patch": hp_patch_only,
+                "rationale": rationale,
+                "expected_effect": expected_effect,
+                "risk": risk,
+                "removed_keys": removed,
+                "extra_stages": extra_stages,
+                "codex_thread_id": trial.codex_thread_id,
+            },
+            resolve=False,
+        )
+
+        if "write_files" in extra_stages:
+            next_node = "write_files"
+        elif "implement_code" in extra_stages:
+            next_node = "implement_code"
+        else:
+            next_node = None
+        return StageResult(
+            status=next_node if next_node else "success",
+            next_node=next_node,
+            message=f"Proposed {trial_id}",
+            payload={"trial_id": trial_id},
+            artifacts={
+                "trial_dir": str(trial_dir),
+                "training_config": str(training_out),
+                "inference_config": str(inference_out),
+                "metrics_config": str(metrics_out),
+            },
+        )

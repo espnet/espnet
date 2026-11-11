@@ -1,0 +1,91 @@
+atlas:
+  study_name: ls960_early_stop
+  study_dir: exp/atlas/ls960_early_stop
+  graph:
+  application: hyperparameter_search
+  objective_file: program.md
+
+  task: ASR
+  dataset: LibriSpeech 960h
+  model: e_branchformer
+  year: 2026
+
+  recipe:
+    training_config: conf/tuning/training_e_branchformer_960h.yaml
+    inference_config: conf/inference.yaml
+    metrics_config: conf/metrics.yaml
+
+  metric:
+    name: dev_clean_wer
+    mode: min
+    extraction:
+      - path: "inference/metrics.json"
+        name: dev_clean_wer
+        key: "espnet3.systems.esp2_asr.metrics.wer.WER.dev-clean.WER"
+      - path: "exp/score_wer/result.txt"
+        name: dev_clean_wer
+        pattern: "WER: {value}"
+
+  budget:
+    max_trials: 200
+    max_parallel_trials: 4
+    max_failures: 10
+    no_improve_stop: 10
+    max_wallclock_hours: 24
+    max_gpu_hours: 96
+
+  tick_interval_sec_idle: 60
+  tick_interval_sec_trial_active: 600
+
+  submission:
+    environment: slurm
+    instructions: |
+      Submit jobs with Slurm: write the script to the supplied script_path, map
+      resource limits to #SBATCH options, and submit it with sbatch. Use squeue
+      and sacct for job status and scancel to cancel jobs. Run the supplied worker
+      command from the recipe directory with the repository's pixi environment.
+      Return the Slurm job ID.
+      For two-GPU jobs, launch with `srun --ntasks-per-node=2`.
+    resources:
+      gpus: 2
+      cpus: 16
+      mem: 32G
+      time: "48:00:00"
+      partition: gpuA100x4,gpuA40x4
+      account: bbjs-delta-gpu
+      ntasks-per-node: 2
+    controller:
+      resources:
+        gpus: 0
+        cpus: 1
+        mem: 4G
+        time: "06:00:00"
+        partition: cpu
+        account: bbjs-delta-cpu
+      handoff_after_sec: 18000
+  agent:
+    provider: codex
+
+  early_stopping:
+    enabled: true
+
+  trial:
+    timeout_sec: 172800
+
+  search_space:
+    allowed_keys:
+      - trainer.*
+      - optimizer.*
+      - scheduler.*
+      - model.specaug
+      - model.specaug_conf.*
+      - dataset.preprocessor.*
+      - tokenizer.*
+    denied_keys:
+      - data.*
+      - output_dir
+      - collect_stats_dir
+      - recipe_dir
+      - exp_dir
+      - stats_dir
+      - inference_dir

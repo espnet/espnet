@@ -74,6 +74,8 @@ class ASRSystem(BaseSystem):
 
     def _has_tokenizer(self) -> bool:
         tokenizer_config = self.training_config.tokenizer
+        if tokenizer_config is None or getattr(tokenizer_config, "save_path", None) is None:
+            return True
         output_path = Path(tokenizer_config.save_path)
         model = output_path / f"{tokenizer_config.model_type}.model"
         vocab = output_path / f"{tokenizer_config.model_type}.vocab"
@@ -135,15 +137,7 @@ class ASRSystem(BaseSystem):
         if train_text_path:
             train_text_path = Path(train_text_path)
         else:
-            data_dir = getattr(self.training_config, "data_dir", None)
-            if data_dir:
-                train_text_path = Path(data_dir) / "train_tokenizer" / "train.txt"
-            else:
-                train_text_path = output_path / "train.txt"
-        if train_text_path.exists():
-            raise RuntimeError(
-                f"Tokenizer training text already exists: {train_text_path}"
-            )
+            train_text_path = output_path.parent / "train_tokenizer" / "train.txt"
         train_text_path.parent.mkdir(parents=True, exist_ok=True)
         logger.info("Collected %d transcript lines for tokenizer training", len(texts))
         with open(train_text_path, "w", encoding="utf-8") as f:

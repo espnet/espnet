@@ -1,0 +1,130 @@
+name: architecture_search
+version: 1
+start: init_study
+
+nodes:
+  init_study:
+    target: espnet3.bin.atlas.applications.hyperparameter_search.stages.init_study.InitStudyStage
+    execution: local
+    "on":
+      success: research_context
+      failure: summarize
+
+  research_context:
+    target: espnet3.bin.atlas.applications.hyperparameter_search.stages.research_context.ResearchContextStage
+    execution: local
+    "on":
+      success: propose_trial
+      failure: propose_trial
+
+  propose_trial:
+    target: espnet3.bin.atlas.applications.hyperparameter_search.stages.propose_trial.ProposeTrialStage
+    execution: local
+    "on":
+      success: run_trial       # config-only change, no code modification needed
+      implement_code: implement_code  # agent requested code changes
+      no_budget: select_best
+      failure: summarize
+
+  implement_code:
+    target: espnet3.bin.atlas.applications.architecture_search.stages.write_files.WriteFilesStage
+    execution: local
+    "on":
+      success: run_tests
+      failure: run_trial
+
+  run_tests:
+    target: espnet3.bin.atlas.applications.architecture_search.stages.run_tests.RunTestsStage
+    execution: local
+    "on":
+      success: run_trial
+      failure: implement_code       # loop back with error context in prompt
+      max_retries_exceeded: run_trial
+
+  run_trial:
+    target: espnet3.bin.atlas.applications.hyperparameter_search.stages.run_trial.RunTrialStage
+    execution: submission
+    resources:
+      gpus: 1
+      cpus: 15
+      mem: 32G
+      time: "24:00:00"
+      partition: "gpuA100x4,gpuA40x4"
+      account: bbjs-delta-gpu
+    "on":
+      success: collect_result
+      failure: debug_trial
+      timeout: debug_trial
+      waiting_job: run_trial
+      early_stopped: reflect
+
+  debug_trial:
+    target: espnet3.bin.atlas.applications.hyperparameter_search.stages.debug_trial.DebugTrialStage
+    execution: local
+    "on":
+      success: implement_code
+      continue: run_trial
+      failure: run_trial
+
+  collect_result:
+    target: espnet3.bin.atlas.applications.hyperparameter_search.stages.collect_result.CollectResultStage
+    execution: local
+    "on":
+      success: accept_or_reject
+      failure: reflect
+
+  accept_or_reject:
+    target: espnet3.bin.atlas.applications.hyperparameter_search.stages.accept_or_reject.AcceptOrRejectStage
+    execution: local
+    "on":
+      accepted: reflect
+      rejected: reflect
+      failure: reflect
+
+  reflect:
+    execution: local
+    skill: hyperparameter_search_reflect
+    allowed_actions: [read_only, terminal, file_write]
+    trial_update_keys: [reflection, next_suggestion]
+    output_file: trials/{trial_id}/reflection.md
+    output_key: reflection
+    output_schema:
+      status: continue or done
+      reflection: summary of the trial result
+      next_suggestion: recommended next experiment
+    "on":
+      continue: update_knowledge
+      done: update_knowledge
+      failure: update_knowledge
+
+  update_knowledge:
+    target: espnet3.bin.atlas.applications.hyperparameter_search.stages.update_knowledge.UpdateKnowledgeStage
+    execution: local
+    "on":
+      continue: propose_trial
+      done: select_best
+
+  select_best:
+    target: espnet3.bin.atlas.applications.hyperparameter_search.stages.select_best.SelectBestStage
+    execution: local
+    "on":
+      success: summarize
+      failure: summarize
+
+  summarize:
+    target: espnet3.bin.atlas.applications.hyperparameter_search.stages.summarize.SummarizeStage
+    execution: local
+    "on":
+      terminal: analyze
+
+  analyze:
+    execution: local
+    skill: hyperparameter_search_analyze
+    allowed_actions: [read_only, terminal, file_write]
+    output_file: analysis.md
+    output_key: analysis_markdown
+    fallback_output: "# Study Analysis\n\nAgent analysis was unavailable. See trials.csv for recorded results.\n"
+    output_schema:
+      status: terminal
+      analysis_markdown: final study report in Markdown
+    terminal: true

@@ -1,6 +1,7 @@
 builder:
   dataset_path: download
   source_env_var: LIBRISPEECH
+  dataset_cache_dir: data/huggingface/librispeech_asr
   required_splits:
     - train-clean-100
     - dev-clean

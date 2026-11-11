@@ -166,22 +166,31 @@ collect_stats_train_mode: false
 #                   DATALOADER SETTING                   #
 ##########################################################
 parallel:
-  env: local
-  n_workers: 1
+  env: slurm
+  n_workers: 32
+  options:
+    queue: cpu
+    account: bbjs-delta-cpu
+    cores: 4
+    processes: 1
+    memory: 16GB
+    walltime: 06:00:00
+    death_timeout: 300
+    job_extra_directives:
+      - --qos=bbjs-delta-cpu
 
 dataloader:
   train:
     iter_factory:
-      num_workers: 4
+      num_workers: 16
       batches:
         type: numel
         shape_files:
           - ${stats_dir}/train/feats_shape
         batch_size: 16
-        # For reproducibility, 3.8M corresponds to egs2's 16M setting
-        # (about 475 s of audio per minibatch). With gradient accumulation of
-        # 4, this yields about 1,900 s of audio per optimizer update.
-        batch_bins: 3800000
+        # Keep the numel budget fixed at 11M for every study trial.
+        # The 13M probe exceeded available A40 memory.
+        batch_bins: 11000000
 
 ##########################################################
 #                    TRAINER SETTING                     #
@@ -190,11 +199,16 @@ trainer:
   accumulate_grad_batches: 4
   check_val_every_n_epoch: 1
   gradient_clip_val: 5.0
-  log_every_n_steps: 100
-  max_epochs: 200
+  log_every_n_steps: 50
+  max_epochs: 100
   precision: bf16-mixed
 
   logger:
-    - _target_: lightning.pytorch.loggers.TensorBoardLogger
-      save_dir: ${exp_dir}/tensorboard
-      name: tb_logger
+    - _target_: lightning.pytorch.loggers.CSVLogger
+      save_dir: ${exp_dir}/csv_logs
+      name: ""
+    - _target_: lightning.pytorch.loggers.WandbLogger
+      project: espnet3-librispeech100-atlas
+      entity: msomeki-carnegie-mellon-university
+      name: ${exp_tag}
+      save_dir: ${exp_dir}/wandb
