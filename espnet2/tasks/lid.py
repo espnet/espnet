@@ -20,7 +20,9 @@ from espnet2.layers.abs_normalize import AbsNormalize
 from espnet2.layers.global_mvn import GlobalMVN
 from espnet2.layers.utterance_mvn import UtteranceMVN
 from espnet2.lid.espnet_model import ESPnetLIDModel
+from espnet2.lid.loss.linear_softmax import LinearSoftmax
 from espnet2.spk.encoder.conformer_encoder import MfaConformerEncoder
+from espnet2.spk.encoder.e_branchformer_encoder import MfaEBranchformerEncoder
 from espnet2.spk.encoder.ecapa_tdnn_encoder import EcapaTdnnEncoder
 from espnet2.spk.encoder.identity_encoder import IdentityEncoder
 from espnet2.spk.encoder.rawnet3_encoder import RawNet3Encoder
@@ -102,6 +104,7 @@ encoder_choices = ClassChoices(
     classes=dict(
         ecapa_tdnn=EcapaTdnnEncoder,
         identity=IdentityEncoder,
+        mfa_e_branchformer=MfaEBranchformerEncoder,
         mfaconformer=MfaConformerEncoder,
         rawnet3=RawNet3Encoder,
         ska_tdnn=SkaTdnnEncoder,
@@ -184,6 +187,7 @@ loss_choices = ClassChoices(
     classes=dict(
         aamsoftmax=AAMSoftmax,
         aamsoftmax_sc_topk=ArcMarginProduct_intertopk_subcenter,
+        linear_softmax=LinearSoftmax,
         softmax=Softmax,
     ),
     type_check=AbsLoss,
