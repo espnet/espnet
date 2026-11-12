@@ -49,10 +49,10 @@ families.
 
 ## Naming and terminology
 
-Choose clear names that match nearby code and describe the operation. Use verbs
-that communicate whether a function constructs, resolves, validates, writes, or
-runs something; follow a nearby implementation instead of maintaining a
-repository-wide catalog of function names here.
+Use a verb or verb phrase for every new function and variable name. Choose
+names that clearly describe the operation or the value's role, such as
+`resolve_config`, `validate_input`, `is_ready`, or `should_resample`.
+Follow existing names when implementing an established public interface.
 
 Use `infer`/`inference` for the end-to-end model-running stage and configuration.
 Reserve `decode` for model-architecture components. Follow the local stage and

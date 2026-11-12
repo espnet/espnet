@@ -5,6 +5,13 @@ notes, plans, skill artifacts, or other working files there unless the user
 explicitly requests them as documentation. Use a temporary directory for scratch
 files; keep shared agent guidance under `.agents/`.
 
+# ESPnet3 implementation guidance
+
+Before creating or changing a System, read the [System guide](.agents/espnet3/systems/AGENTS.md)
+for its naming rules and required interfaces. Before creating or changing an
+`egs3/` recipe, read the [recipe guide](.agents/egs3/AGENTS.md) for its structure
+and conventions. Also follow the [shared contributor guide](.agents/AGENTS.md).
+
 # Review guidelines
 
 Before reviewing a pull request, read `CONTRIBUTING.md` and apply the guidelines
