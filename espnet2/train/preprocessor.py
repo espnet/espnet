@@ -1884,6 +1884,25 @@ class TSEPreprocessor(EnhPreprocessor):
         return msg + ")"
 
     def _read_audio_segment(self, path, seg_len=None):
+        if isinstance(path, np.ndarray):
+            audio = path
+            if audio.ndim not in (1, 2) or not len(audio):
+                raise ValueError(
+                    "Enrollment must be nonempty mono or multichannel audio"
+                )
+            if audio.ndim == 2:
+                audio = audio[:, 0]
+            if not np.isfinite(audio).all():
+                raise ValueError("Enrollment samples must be finite")
+            if seg_len is None or len(audio) == seg_len:
+                return audio
+            if len(audio) < seg_len:
+                offset = np.random.randint(0, seg_len - len(audio))
+                return np.pad(
+                    audio, (offset, seg_len - len(audio) - offset), mode="wrap"
+                )
+            offset = np.random.randint(0, len(audio) - seg_len)
+            return audio[offset : offset + seg_len]
         with soundfile.SoundFile(path) as f:
             if seg_len is None or f.frames == seg_len:
                 audio = f.read(dtype=np.float32, always_2d=True)
@@ -1962,6 +1981,12 @@ class TSEPreprocessor(EnhPreprocessor):
                         data.pop(name)
                         continue
 
+                if isinstance(data[name], np.ndarray):
+                    data[name] = self._read_audio_segment(
+                        data[name], self.enroll_segment
+                    )
+                    continue
+
                 if self.train_spk2enroll is None:
                     # normal format in `enroll_spk?.scp`:
                     # MIXTURE_UID /path/to/enrollment_or_embedding
@@ -1985,6 +2010,10 @@ class TSEPreprocessor(EnhPreprocessor):
                     data[name] = soundfile.read(aux_audio)[0]
         else:
             for name in aux_names:
+                if isinstance(data[name], np.ndarray):
+                    segment = self.enroll_segment if ref_names else None
+                    data[name] = self._read_audio_segment(data[name], segment)
+                    continue
                 if isinstance(data[name], str) and data[name].startswith("*"):
                     # in case of collecting stats for training data
                     data[name] = np.zeros(1, dtype=data[self.speech_name].dtype)
