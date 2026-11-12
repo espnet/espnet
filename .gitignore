@@ -131,15 +131,3 @@ tools/lightning_constraints.txt
 tools/versa
 tools/ParallelWaveGAN
 node_modules/
-
-# LibriMix recipe source, not generated corpus data.
-!egs3/librimix/esp2_tse/dataset/
-egs3/librimix/esp2_tse/dataset/*
-!egs3/librimix/esp2_tse/dataset/*.py
-!egs3/librimix/esp2_tse/dataset/config.yaml
-
-# Small TSE integration recipe source.
-!egs3/mini_an4/esp2_tse/dataset/
-egs3/mini_an4/esp2_tse/dataset/*
-!egs3/mini_an4/esp2_tse/dataset/*.py
-!egs3/mini_an4/esp2_tse/dataset/config.yaml
