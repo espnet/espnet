@@ -17,18 +17,18 @@ Tools that support `AGENTS.md` should start at the repository-root
    consumers before changing an interface.
 4. Make the smallest change that fixes the issue, add or update focused tests,
    and update guidance only when a stable convention changed.
-5. Run relevant checks from the [CI guide](ci/AGENT.md) and report what ran and
+5. Run relevant checks from the [CI guide](ci/AGENTS.md) and report what ran and
    any limitations.
 
 ## Where to look
 
-- [Recipe guidance](egs3/AGENT.md) for `egs3/` work.
-- [ESPnet3 package index](espnet3/AGENT.md), then the matching guide for
-  [inference](espnet3/inference/AGENT.md), [components](espnet3/components/AGENT.md),
-  [parallel execution](espnet3/parallel/AGENT.md),
-  [publication](espnet3/publication/AGENT.md),
-  [systems](espnet3/systems/AGENT.md), or [utilities](espnet3/utils/AGENT.md).
-- [CI guidance](ci/AGENT.md) for repository checks.
+- [Recipe guidance](egs3/AGENTS.md) for `egs3/` work.
+- [ESPnet3 package index](espnet3/AGENTS.md), then the matching guide for
+  [inference](espnet3/inference/AGENTS.md), [components](espnet3/components/AGENTS.md),
+  [parallel execution](espnet3/parallel/AGENTS.md),
+  [publication](espnet3/publication/AGENTS.md),
+  [systems](espnet3/systems/AGENTS.md), or [utilities](espnet3/utils/AGENTS.md).
+- [CI guidance](ci/AGENTS.md) for repository checks.
 
 Use `rg --files` and inspect the relevant source tree to find current modules:
 [`espnet3/`](../espnet3/), [`egs3/`](../egs3/), and [`ci/`](../ci/).
@@ -101,12 +101,12 @@ observable behavior; avoid changing a library interface only to make a test
 easier to write.
 
 Before pushing, lint the changed files and run the pytest files that cover the
-changed behavior (see [CI guidance](ci/AGENT.md) for the commands). Fix failures
+changed behavior (see [CI guidance](ci/AGENTS.md) for the commands). Fix failures
 rather than pushing them, and report any check you could not run. Then run any
 broader CI command appropriate to the change.
 
 Keep diffs focused. Do not commit credentials, machine-specific paths, or
-unrelated formatting changes. See [CI guidance](ci/AGENT.md) for the commands
+unrelated formatting changes. See [CI guidance](ci/AGENTS.md) for the commands
 that match the repository's current checks.
 
 `.agents/` is shared project guidance. Code ownership and review requests for

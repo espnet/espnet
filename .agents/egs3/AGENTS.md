@@ -1,7 +1,7 @@
 # `egs3/` recipes
 
-See [the shared contributor guide](../AGENT.md) for cross-cutting conventions
-and [the systems guide](../espnet3/systems/AGENT.md) for System boundaries.
+See [the shared contributor guide](../AGENTS.md) for cross-cutting conventions
+and [the systems guide](../espnet3/systems/AGENTS.md) for System boundaries.
 This guide keeps the recipe-creation workflow and the important contracts; for
 current filenames and implementation details, inspect the referenced recipes
 and source rather than maintaining a second exhaustive inventory here.

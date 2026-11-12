@@ -1,7 +1,7 @@
 # Inference
 
-See [shared contributor guidance](../../AGENT.md) and the
-[Systems guide](../systems/AGENT.md). There is no separate `espnet3.api`
+See [shared contributor guidance](../../AGENTS.md) and the
+[Systems guide](../systems/AGENTS.md). There is no separate `espnet3.api`
 package: the input/output declarations live in
 [`espnet3/contract/`](../../../espnet3/contract/) (`inference.py`, `field.py`,
 `kinds/`), the runner and provider in
@@ -37,4 +37,4 @@ Use focused tests under `test/espnet3/contract/` and
 `test/espnet3/publication/`, plus the affected system tests. Changes to fields
 or call binding should also cover the runner and demo consumers; loading
 changes should cover invalid configs and portable bundle paths. See the
-[CI guide](../../ci/AGENT.md) for publication integration checks.
+[CI guide](../../ci/AGENTS.md) for publication integration checks.

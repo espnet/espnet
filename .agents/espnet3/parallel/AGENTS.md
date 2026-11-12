@@ -1,6 +1,6 @@
 # Parallel execution
 
-See [shared contributor guidance](../../AGENT.md). Inspect `espnet3/parallel/`
+See [shared contributor guidance](../../AGENTS.md). Inspect `espnet3/parallel/`
 and the stage that uses it for the current runner/provider contract; do not keep
 a second file or class inventory here.
 
@@ -25,7 +25,7 @@ locations. Review manifests, locks, completion markers, and merge semantics;
 reusing an output directory with a different item plan must fail clearly or be
 handled by an explicit migration.
 
-For model inference, follow the [inference contract](../inference/AGENT.md).
+For model inference, follow the [inference contract](../inference/AGENTS.md).
 Model-level batching belongs in the model's batch hook; worker and shard
 parallelism belongs in the runner/provider. Do not capture a runner instance in
 a worker closure when the contract expects static worker functions and explicit
@@ -33,4 +33,4 @@ environment values.
 
 Add focused unit tests for runner/provider behavior and a small integration
 check when the stage is part of a recipe workflow. Use current implementations
-and [CI guidance](../../ci/AGENT.md) to select the relevant checks.
+and [CI guidance](../../ci/AGENTS.md) to select the relevant checks.

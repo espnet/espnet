@@ -1,6 +1,6 @@
 # `espnet3/systems/`
 
-See [shared guidance](../../AGENT.md) and inspect
+See [shared guidance](../../AGENTS.md) and inspect
 [`espnet3/systems/`](../../../espnet3/systems/) for the current System
 implementations. This guide describes boundaries, not a fixed inventory of
 systems, classes, or files.
@@ -21,7 +21,7 @@ dispatcher.
 
 Use `systems/base/` for behavior shared across task families. Keep model-facing
 inference implementations in their task family and conform them to the public
-[inference contract](../inference/AGENT.md). Do not put dataset sharding or output-writing
+[inference contract](../inference/AGENTS.md). Do not put dataset sharding or output-writing
 logic inside a model's inference class; those belong to the runner/provider and
 writer contracts.
 
@@ -54,7 +54,7 @@ interface. Preserve the `metrics/` package structure for System metrics:
 [`BaseMetric` contract](../../../espnet3/components/metrics/base_metric.py),
 including declared inputs/outputs and the required update/compute behavior.
 Systems must also follow the shared inference contract; see the
-[inference guide](../inference/AGENT.md). These interfaces are required even
+[inference guide](../inference/AGENTS.md). These interfaces are required even
 when a System's internal taxonomy or module layout differs from other Systems.
 
 ## Adding or changing a stage

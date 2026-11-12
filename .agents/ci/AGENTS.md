@@ -1,6 +1,6 @@
 # `ci/` for ESPnet3
 
-See [the root guide](../AGENT.md) for contribution rules.
+See [the root guide](../AGENTS.md) for contribution rules.
 Read the actual script before running it: integration scripts install dependencies
 and remove generated `exp/` and `data/` directories in their fixture recipes.
 

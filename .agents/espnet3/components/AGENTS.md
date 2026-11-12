@@ -1,9 +1,9 @@
 # ESPnet3 components
 
-See [shared contributor guidance](../../AGENT.md) and inspect `espnet3/components/`
+See [shared contributor guidance](../../AGENTS.md) and inspect `espnet3/components/`
 for current modules. Components are reusable building blocks; stage orchestration
-belongs in [Systems](../systems/AGENT.md), and work distribution belongs in
-[parallel execution](../parallel/AGENT.md).
+belongs in [Systems](../systems/AGENTS.md), and work distribution belongs in
+[parallel execution](../parallel/AGENTS.md).
 
 ## Data
 
@@ -61,4 +61,4 @@ the package source and tests are the index.
 
 Add focused tests under `test/espnet3/components/` for changed contracts, config
 validation, and distributed behavior. Use the relevant integration checks from
-the [CI guide](../../ci/AGENT.md) when a component changes stage behavior.
+the [CI guide](../../ci/AGENTS.md) when a component changes stage behavior.

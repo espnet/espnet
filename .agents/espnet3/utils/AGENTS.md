@@ -1,6 +1,6 @@
 # ESPnet3 utilities
 
-See [shared contributor guidance](../../AGENT.md). The utilities package holds
+See [shared contributor guidance](../../AGENTS.md). The utilities package holds
 cross-cutting helpers for configuration, stage dispatch, logging, artifacts,
 and publication. Inspect `espnet3/utils/` and its callers for the current module
 layout rather than relying on a maintained file/function catalog.
@@ -18,4 +18,4 @@ work. Preserve path handling for recipe-local configs and packed bundles.
 
 When changing a helper, search its call sites and tests across `espnet3/`,
 `egs3/`, and publication/loading paths. Add focused tests under
-`test/espnet3/utils/` and run related checks from the [CI guide](../../ci/AGENT.md).
+`test/espnet3/utils/` and run related checks from the [CI guide](../../ci/AGENTS.md).

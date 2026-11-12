@@ -1,7 +1,7 @@
 # Publication and demos
 
-See [shared contributor guidance](../../AGENT.md), the [inference guide](../inference/AGENT.md),
-and [utilities](../utils/AGENT.md). Inspect current publication and demo code
+See [shared contributor guidance](../../AGENTS.md), the [inference guide](../inference/AGENTS.md),
+and [utilities](../utils/AGENTS.md). Inspect current publication and demo code
 before changing bundle or UI behavior.
 
 Model publication packages configs, checkpoints, tokenizers, and other declared
@@ -30,7 +30,7 @@ needs a new capability so `infer`, packed models, and demos keep the same path.
 Every publication change must verify that the produced pack actually runs via
 `InferenceModel.from_packed`, using a representative sample and checking the
 expected output. Run this from outside the recipe checkout when validating
-portability; the publication integration check in the [CI guide](../../ci/AGENT.md)
+portability; the publication integration check in the [CI guide](../../ci/AGENTS.md)
 is the reference. Also exercise `forward_batch` when the model supports batching.
 
 ESPnet3 inference must use `InferenceRunner` or a compatible subclass in its
@@ -57,6 +57,6 @@ inference contract. Cover the full path from recipe inference through
 and the [publication integration check](../../../ci/test_integration_espnet3_publication_check.py).
 
 Use focused tests for publication, loading, and demo changes. For portability,
-run the relevant integration checks from the [CI guide](../../ci/AGENT.md).
+run the relevant integration checks from the [CI guide](../../ci/AGENTS.md).
 Uploading to an external hub is a separate action requiring the user's request
 and configured credentials.
