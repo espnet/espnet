@@ -727,6 +727,7 @@ jobs:
             exit 0
           fi
           ./ci/test_integration_espnet3.sh
+          ./ci/test_integration_espnet3_tse.sh
       - uses: codecov/codecov-action@303a32d7a59b442fa8d48b6a1cc6825c09c847a5 # v7
         with:
           flags: test_integration_espnet3

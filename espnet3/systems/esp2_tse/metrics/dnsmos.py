@@ -5,17 +5,15 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Dict, List, Tuple
 
-import numpy as np
-import soundfile as sf
 import torch
 from torch import Tensor
-from tqdm import trange
 
-from espnet3.components.metrics.base_metric import BaseMetric
+from espnet3.contract import Field
+from espnet3.systems.esp2_tse.src.audio_metrics import AudioMetric, read_audio
 from espnet3.utils.download_utils import download_url, setup_logger
 
 
-class DNSMOS(BaseMetric):
+class DNSMOS(AudioMetric):
     """Compute DNSMOS scores for hypothesis speech.
 
     This metric expects extracted speech as input,
@@ -32,10 +30,16 @@ class DNSMOS(BaseMetric):
             in Proc. IEEE ICASSP, 2022, pp. 886-890.
     """
 
+    inputs = (Field("hyp", "audio"),)
+    outputs = (
+        Field("DNSMOS_OVRL", "number"),
+        Field("DNSMOS_SIG", "number"),
+        Field("DNSMOS_BAK", "number"),
+        Field("DNSMOS_P808_MOS", "number"),
+    )
+
     def __init__(
         self,
-        ref_key: str = "ref",  # not used (for compatibility)
-        hyp_key: str = "inf",
         batch_size: int = 1,
         ref_channel: int = 0,
         dnsmos_dir: str = ".",
@@ -45,8 +49,6 @@ class DNSMOS(BaseMetric):
         """Initialize the DNSMOS measure.
 
         Args:
-            ref_key: Key name for reference speech.
-            hyp_key: Key name for extracted speech.
             batch_size: batch size for batched inference.
             ref_channel: Reference channel index for aligning multi-channel signals.
             dnsmos_dir: Directory to store the DNSMOS model.
@@ -54,9 +56,8 @@ class DNSMOS(BaseMetric):
             convert_to_torch: Whether to convert the model to TorchScript for faster
                               inference.
         """
-        self.ref_key = ref_key
-        self.hyp_key = hyp_key
-        assert isinstance(batch_size, int) and batch_size > 0, batch_size
+        if not isinstance(batch_size, int) or batch_size < 1:
+            raise ValueError("batch_size must be a positive integer")
         self.batch_size = batch_size
         self.ref_channel = ref_channel
         self.device = "cuda" if use_gpu else "cpu"
@@ -64,6 +65,8 @@ class DNSMOS(BaseMetric):
         self.dnsmos_dir = dnsmos_dir
         self.use_gpu = use_gpu
         self.convert_to_torch = convert_to_torch
+
+        self._init_scores()
 
     def _ensure_dnsmos(self):
         """Load the DNSMOS model if it is not already loaded."""
@@ -76,7 +79,7 @@ class DNSMOS(BaseMetric):
                 "https://github.com/microsoft/DNS-Challenge/"
                 "raw/refs/heads/master/DNSMOS/DNSMOS/"
             )
-            p835_model = f"{self.dnsmos_dir}/sig_bak_ovr.onnx"
+            p835_model = Path(self.dnsmos_dir) / "sig_bak_ovr.onnx"
             if not Path(p835_model).exists():
                 logger.info(f"Downloading '{url}' to '{p835_model}'")
                 download_url(
@@ -85,7 +88,7 @@ class DNSMOS(BaseMetric):
                     logger=logger,
                     step_percent=5,
                 )
-            p808_model = f"{self.dnsmos_dir}/model_v8.onnx"
+            p808_model = Path(self.dnsmos_dir) / "model_v8.onnx"
             if not Path(p808_model).exists():
                 logger.info(f"Downloading '{url}' to '{p808_model}'")
                 download_url(
@@ -95,8 +98,8 @@ class DNSMOS(BaseMetric):
                     step_percent=5,
                 )
             self.dnsmos_model = DNSMOS_local(
-                primary_model_path=p835_model,
-                p808_model_path=p808_model,
+                primary_model_path=str(p835_model),
+                p808_model_path=str(p808_model),
                 use_gpu=self.use_gpu,
                 convert_to_torch=self.convert_to_torch,
             )
@@ -106,7 +109,7 @@ class DNSMOS(BaseMetric):
         """Load the input audio for inference."""
         inf_audios = []
         for inf_path in inf_batch:
-            inf_audio, sr = sf.read(inf_path, dtype="float32")
+            inf_audio, sr = read_audio(inf_path)
             inf_audio = torch.as_tensor(inf_audio, device=self.device)
             inf_audios.append((sr, inf_audio))
         return inf_audios
@@ -122,69 +125,13 @@ class DNSMOS(BaseMetric):
             "P808_MOS": float(score["P808_MOS"]),
         }
 
-    def __call__(
-        self, data: Dict[str, Path], test_name: str, inference_dir: Path
-    ) -> Dict[str, float]:
-        """Compute DNSMOS and return the average metric.
-
-        Args:
-            data: Mapping of field names to SCP file paths.
-                Expected keys: hyp_key (default "inf").
-            test_name: Test set name used for output directory naming.
-            inference_dir: Base directory for storing per-sample metrics.
-        """
-        test_dir = Path(inference_dir) / test_name
-        test_dir.mkdir(parents=True, exist_ok=True)
-
-        samples = []
-        for uid, row in self.iter_inputs(data, self.hyp_key):
-            samples.append((uid, row[self.hyp_key]))
-
-        scores = []
-        num_lines = 0
-        if (test_dir / "dnsmos").exists() and (test_dir / "dnsmos").is_file():
-            with (test_dir / "dnsmos").open("rb") as f:
-                num_lines = sum(1 for _ in f)
-        if num_lines == len(samples):
-            print(
-                f"Found existing DNSMOS scores in '{test_dir / 'dnsmos'}', "
-                "skipping computation and loading scores from file."
+    def update(self, *, hyp):
+        """Accumulate DNSMOS scores for a batch of hypothesis audio."""
+        for rate, audio in self._load_audios(hyp):
+            score = self._compute_dnsmos(audio, rate)
+            self._add_scores(
+                {
+                    f"DNSMOS_{key}": score[key]
+                    for key in ("OVRL", "SIG", "BAK", "P808_MOS")
+                }
             )
-            with (test_dir / "dnsmos").open("r", encoding="utf-8") as f:
-                for line in f:
-                    uid, ovr, sig, bak, p808_mos = line.strip().split()
-                    scores.append(
-                        {
-                            "OVRL": float(ovr),
-                            "SIG": float(sig),
-                            "BAK": float(bak),
-                            "P808_MOS": float(p808_mos),
-                        }
-                    )
-        else:
-            with (test_dir / "dnsmos").open("w", encoding="utf-8") as f:
-                for i in trange(0, len(samples), self.batch_size):
-                    batch = samples[i : i + self.batch_size]
-                    batch_uids = [sample[0] for sample in batch]
-                    inf_paths = [sample[1] for sample in batch]
-
-                    inf_audios = self._load_audios(inf_paths)
-                    for uid, inf_item in zip(batch_uids, inf_audios):
-                        sample_rate = inf_item[0]
-                        inf_audio = inf_item[1]
-                        score = self._compute_dnsmos(inf_audio, sample_rate)
-                        scores.append(score)
-                        f.write(
-                            f"{uid} {score['OVRL']} {score['SIG']} {score['BAK']} "
-                            f"{score['P808_MOS']}\n"
-                        )
-
-        if not scores:
-            raise ValueError("No scores were computed. Please check the input data.")
-
-        return {
-            "DNSMOS_OVRL": float(np.mean([s["OVRL"] for s in scores])),
-            "DNSMOS_SIG": float(np.mean([s["SIG"] for s in scores])),
-            "DNSMOS_BAK": float(np.mean([s["BAK"] for s in scores])),
-            "DNSMOS_P808_MOS": float(np.mean([s["P808_MOS"] for s in scores])),
-        }

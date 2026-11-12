@@ -1,0 +1,9 @@
+archive: downloads.tar.gz
+source: downloads/an4/wav
+data: data
+splits:
+  train: 2
+  valid: 1
+  test: 1
+sample_rate: 16000
+max_samples: 4096

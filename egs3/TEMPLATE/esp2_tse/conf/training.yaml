@@ -19,7 +19,7 @@ num_nodes: 1
 
 # Optional ESPnet task class path used by `get_espnet_model(...)`.
 # If unset, `model` is instantiated directly via Hydra.
-task:
+task: espnet3.systems.esp2_tse.task.TSETask
 
 # Path scaffold relative to the recipe root.
 recipe_dir: .
@@ -38,19 +38,18 @@ stats_dir: ${recipe_dir}/exp/stats
 # Keep this value as the single source of truth for dataset location. Training,
 # inference, and dataset creation should all reuse the same path instead of
 # redefining dataset names in multiple configs.
-dataset_dir: /path/to/your/dataset
+dataset_dir: ${data_dir}
 
 ##########################################################
 #                 DATASET CREATION SETTING               #
 ##########################################################
 # Optional dataset creation hook for the `create_dataset` stage.
-# The function is resolved from `create_dataset.func` and called with the
+# The function is resolved from `the recipe DatasetBuilder` and called with the
 # remaining fields in this block as keyword arguments.
 # If your recipe builds manifests locally, write them under `${dataset_dir}` so
 # later stages can consume the same files without extra path overrides.
 create_dataset:
   recipe_dir: ${recipe_dir}
-  dataset_dir: ${dataset_dir}
 
 ##########################################################
 #                    DATASET DEFINITION                  #
@@ -60,7 +59,7 @@ create_dataset:
 #
 # Each dataset entry supports:
 # - `data_src`: optional dataset source reference.
-#   - `<recipe>/<task>` tag, e.g. `librimix/tse`
+#   - `<recipe>/<task>` tag, e.g. `librimix/esp2_tse`
 #   - dotted module path, e.g. `my_project.datasets.foo`
 #   - omitted: load `${recipe_dir}/dataset/__init__.py`
 # - `data_src_args`: kwargs forwarded to `Dataset(...)`
@@ -77,16 +76,17 @@ create_dataset:
 #   _target_: espnet3.components.data.data_organizer.DataOrganizer
 #   recipe_dir: ${recipe_dir}
 #   train:
-#     - data_src: librimix/tse
+#     - data_src: librimix/esp2_tse
 #       data_src_args:
 #         split: 2mix_16k_max_train_mix-clean
+#         training_placeholders: true
 #         data_path: ${dataset_dir}
 #     - data_src_args:
 #         split: train
 #       transform:
 #         _target_: src.transforms.normalize_text
 #   valid:
-#     - data_src: librimix/tse
+#     - data_src: librimix/esp2_tse
 #       data_src_args:
 #         split: 2mix_16k_max_dev_mix-clean
 #         data_path: ${dataset_dir}

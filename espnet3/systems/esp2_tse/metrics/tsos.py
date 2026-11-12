@@ -2,21 +2,18 @@
 
 from __future__ import annotations
 
-from pathlib import Path
-from typing import Dict, List, Tuple
+from typing import List, Tuple
 
-import numpy as np
-import soundfile as sf
 import torch
 import torch.nn.functional as F
 from torch import Tensor
-from tqdm import trange
 
 from espnet2.enh.encoder.stft_encoder import STFTEncoder
-from espnet3.components.metrics.base_metric import BaseMetric
+from espnet3.contract import Field
+from espnet3.systems.esp2_tse.src.audio_metrics import AudioMetric, read_audio
 
 
-class TSOS(BaseMetric):
+class TSOS(AudioMetric):
     """Compute the TSOS measure for extracted speech.
 
     This metric expects extracted speech and reference speech as input,
@@ -28,10 +25,14 @@ class TSOS(BaseMetric):
         evaluation. in Proc. IEEE ICASSP, 2022, pp. 356-360.
     """
 
+    inputs = (
+        Field("ref", "audio"),
+        Field("hyp", "audio"),
+    )
+    outputs = (Field("TSOS", "number"),)
+
     def __init__(
         self,
-        ref_key: str = "ref",
-        hyp_key: str = "inf",
         batch_size: int = 1,
         power: float = 2.0,
         threshold: float = 0.1,
@@ -45,8 +46,6 @@ class TSOS(BaseMetric):
         """Initialize the TSOS measure.
 
         Args:
-            ref_key: Key name for reference speech.
-            hyp_key: Key name for extracted speech.
             batch_size: batch size for batched inference.
             power: Factor for power-law compression in TSOS calculation.
             threshold: Threshold (gamma) for TSOS calculation.
@@ -57,9 +56,8 @@ class TSOS(BaseMetric):
             ref_channel: Reference channel index for aligning multi-channel signals.
             device: device to use for inference.
         """
-        self.ref_key = ref_key
-        self.hyp_key = hyp_key
-        assert isinstance(batch_size, int) and batch_size > 0, batch_size
+        if not isinstance(batch_size, int) or batch_size < 1:
+            raise ValueError("batch_size must be a positive integer")
         self.batch_size = batch_size
         assert isinstance(power, (float, int)) and power > 0, power
         self.power = power
@@ -74,6 +72,8 @@ class TSOS(BaseMetric):
         ).to(device)
         self.ref_channel = ref_channel
         self.device = device
+
+        self._init_scores()
 
     def _align_shape(self, ref, inf):
         """Align the shape of reference and inference signals."""
@@ -105,12 +105,18 @@ class TSOS(BaseMetric):
         """Load input audio and clean reference audio as paired data."""
         ref_audios, inf_audios = [], []
         for ref_path, inf_path in zip(ref_batch, inf_batch):
-            ref_audio, sr1 = sf.read(ref_path, dtype="float32")
-            inf_audio, sr2 = sf.read(inf_path, dtype="float32")
+            ref_audio, sr1 = read_audio(ref_path)
+            inf_audio, sr2 = read_audio(inf_path)
             ref_audio = torch.as_tensor(ref_audio, device=self.device)
             inf_audio = torch.as_tensor(inf_audio, device=self.device)
-            assert sr1 == sr2, f"Sampling rates must match, but got {sr1} and {sr2}"
+            if sr1 != sr2:
+                raise ValueError(f"Sampling rates must match, but got {sr1} and {sr2}")
             ref_audio, inf_audio = self._align_shape(ref_audio, inf_audio)
+            if ref_audio.shape != inf_audio.shape:
+                raise ValueError(
+                    "Reference and inference shapes must match: "
+                    f"{ref_audio.shape}, {inf_audio.shape}"
+                )
             ref_audios.append(ref_audio)
             inf_audios.append(inf_audio)
         return ref_audios, inf_audios
@@ -120,7 +126,7 @@ class TSOS(BaseMetric):
         dim = x.ndim - dim - 1 if dim >= 0 else -dim - 1
         return F.pad(x, [0] * 2 * dim + list(pad), **kwargs)
 
-    def collate_fn(self, audios: List[Tensor]) -> Tuple[Tensor, Tensor]:
+    def _collate_fn(self, audios: List[Tensor]) -> Tuple[Tensor, Tensor]:
         """Collate a list of audio tensors into a padded batch tensor and lengths."""
         assert len(audios) >= 1
         assert all(x.ndim == audios[0].ndim for x in audios)
@@ -158,58 +164,16 @@ class TSOS(BaseMetric):
         tsos = tsos.sum(-1) / valid_mask.sum(-1).clamp_min(1).to(score_dtype)
         return tsos.cpu().tolist()
 
-    def __call__(
-        self, data: Dict[str, Path], test_name: str, inference_dir: Path
-    ) -> Dict[str, float]:
-        """Compute TSOS and return the average metric.
-
-        Args:
-            data: Mapping of field names to SCP file paths.
-                Expected keys: ref_key (default "ref") and hyp_key (default "inf").
-            test_name: Test set name used for output directory naming.
-            inference_dir: Base directory for storing per-sample metrics.
-        """
-        test_dir = Path(inference_dir) / test_name
-        test_dir.mkdir(parents=True, exist_ok=True)
-
-        # Collect aligned (uid, ref_path, inf_path) pairs via SCP streaming
-        pairs = []
-        for uid, row in self.iter_inputs(data, self.ref_key, self.hyp_key):
-            pairs.append((uid, row[self.ref_key], row[self.hyp_key]))
-
-        tsos_all = []
-        num_lines = 0
-        if (test_dir / "tsos").exists() and (test_dir / "tsos").is_file():
-            with (test_dir / "tsos").open("rb") as f:
-                num_lines = sum(1 for _ in f)
-        if num_lines == len(pairs):
-            print(
-                f"Found existing TSOS scores in '{test_dir / 'tsos'}', "
-                "skipping computation and loading scores from file."
+    def update(self, *, ref, hyp):
+        """Accumulate TSOS with padded STFT frames excluded."""
+        for start in range(0, len(ref), self.batch_size):
+            refs, hyps = self._load_audio_pairs(
+                ref[start : start + self.batch_size],
+                hyp[start : start + self.batch_size],
             )
-            with (test_dir / "tsos").open("r", encoding="utf-8") as f:
-                for line in f:
-                    uid, score = line.strip().split()
-                    tsos_all.append(float(score))
-        else:
-            with (test_dir / "tsos").open("w", encoding="utf-8") as f:
-                for i in trange(0, len(pairs), self.batch_size):
-                    batch = pairs[i : i + self.batch_size]
-                    batch_uids = [b[0] for b in batch]
-                    ref_paths = [b[1] for b in batch]
-                    inf_paths = [b[2] for b in batch]
-                    ref_audios, inf_audios = self._load_audio_pairs(
-                        ref_paths, inf_paths
-                    )
-                    ref_tensor, ref_ilens = self.collate_fn(ref_audios)
-                    inf_tensor, _ = self.collate_fn(inf_audios)
-                    ref_specs, flens = self.stft(ref_tensor, ilens=ref_ilens)
-                    inf_specs, _ = self.stft(inf_tensor, ilens=ref_ilens)
-                    tsos_batch = self._compute_tsos(ref_specs, inf_specs, flens)
-                    tsos_all.extend(tsos_batch)
-                    for uid, score in zip(batch_uids, tsos_batch):
-                        f.write(f"{uid} {score}\n")
-
-        if not tsos_all:
-            raise ValueError("No scores were computed. Please check the input data.")
-        return {"TSOS": float(np.mean(tsos_all))}
+            ref_tensor, lengths = self._collate_fn(refs)
+            hyp_tensor, _ = self._collate_fn(hyps)
+            ref_spec, flens = self.stft(ref_tensor, ilens=lengths)
+            hyp_spec, _ = self.stft(hyp_tensor, ilens=lengths)
+            for score in self._compute_tsos(ref_spec, hyp_spec, flens):
+                self._add_scores({"TSOS": score})

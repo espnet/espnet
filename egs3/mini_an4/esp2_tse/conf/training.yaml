@@ -1,0 +1,78 @@
+task: espnet3.systems.esp2_tse.task.TSETask
+seed: 0
+dataset:
+  train:
+  - data_src_args:
+      split: train
+      recipe_dir: ${recipe_dir}
+    transform:
+      _target_: espnet3.systems.esp2_tse.src.transforms.TSEAudioLoadTransform
+  valid:
+  - data_src_args:
+      split: valid
+      recipe_dir: ${recipe_dir}
+    transform:
+      _target_: espnet3.systems.esp2_tse.src.transforms.TSEAudioLoadTransform
+  preprocessor:
+    _target_: espnet2.train.preprocessor.TSEPreprocessor
+    train_spk2enroll: null
+    load_all_speakers: true
+    num_spk: 2
+    enroll_segment: 1024
+create_dataset:
+  recipe_dir: ${recipe_dir}
+model:
+  encoder: conv
+  encoder_conf:
+    channel: 4
+    kernel_size: 8
+    stride: 4
+  decoder: conv
+  decoder_conf:
+    channel: 4
+    kernel_size: 8
+    stride: 4
+  extractor: td_speakerbeam
+  extractor_conf:
+    layer: 2
+    stack: 1
+    bottleneck_dim: 4
+    hidden_dim: 8
+    skip_dim: 4
+    kernel: 3
+    i_adapt_layer: 1
+    adapt_enroll_dim: 4
+  model_conf:
+    num_spk: 2
+    share_encoder: true
+  criterions:
+  - name: snr
+    conf:
+      eps: 1.0e-07
+    wrapper: fixed_order
+    wrapper_conf:
+      weight: 1.0
+dataloader:
+  train:
+    iter_factory:
+      batches:
+        batch_size: 1
+        batch_bins: -1
+trainer:
+  accelerator: cpu
+  devices: 1
+  strategy: auto
+  max_epochs: 1
+  limit_train_batches: 1
+  limit_val_batches: 1
+  num_sanity_val_steps: 0
+best_model_criterion:
+- - valid/loss
+  - 1
+  - min
+parallel:
+  env: local
+  n_workers: 1
+  options:
+    processes: false
+    dashboard_address: null

@@ -59,6 +59,8 @@ RELEVANT = {
         "espnet3/",
         "egs3/",  # mini_an4, TEMPLATE and integration_test are all small
         "ci/test_integration_espnet3.sh",
+        "ci/test_integration_espnet3_tse.sh",
+        "ci/check_espnet3_tse.py",
         "ci/check_espnet3_parallel_workers.py",  # what the parallel runs must give
         "ci/test_integration_espnet3_publication.sh",
     ),

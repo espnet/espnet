@@ -1,0 +1,11 @@
+dataset:
+  test:
+  - name: test
+    data_src_args:
+      split: test
+      include_ids: true
+      recipe_dir: ${recipe_dir}
+parallel:
+  options:
+    processes: false
+    dashboard_address: null

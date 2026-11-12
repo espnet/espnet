@@ -1,3 +1,5 @@
+"""Audio decoding before ESPnet2 TSE preprocessing."""
+
 from __future__ import annotations
 
 from pathlib import Path
@@ -51,7 +53,7 @@ class TSEAudioLoadTransform:
                     split: 2mix_16k_max_train_mix-clean
                     ignore_key_prefix: ["text_spk", "utt_id", "num_spk"]
                   transform:
-                    _target_: src.transforms.TSEAudioLoadTransform
+                    _target_: espnet3.systems.esp2_tse.src.transforms.TSEAudioLoadTransform  # noqa: E501
                     load_enrollment_as_audio: true
 
         Called directly::

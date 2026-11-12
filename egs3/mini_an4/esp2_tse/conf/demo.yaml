@@ -1,0 +1,5 @@
+model:
+  dir_or_tag: exp/training/model_pack
+ui:
+  title: Tiny TSE integration fixture
+  description: Two-source AN4 smoke test, not a benchmark model.

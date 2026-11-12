@@ -14,7 +14,7 @@ source path.sh
 # Option 1: Run all/multiple stages in one command
 #-----------------------------------------
 python run.py \
-    --stages all \
+    --stages create_dataset collect_stats train infer measure \
     --training_config conf/tuning/training_td_speakerbeam_16k.yaml \
     --inference_config conf/inference.yaml \
     --metrics_config conf/metrics.yaml \
@@ -30,7 +30,8 @@ python run.py \
 #    environment variable to the existing LibriMix root.
 # Otherwise, the dataset will be created under `data/LibriMix`.
 python run.py \
-    --stages create_dataset
+    --stages create_dataset \
+    --training_config conf/training.yaml
 
 # 2) Collect statistics for normalization
 python run.py \
@@ -50,11 +51,14 @@ python run.py --stages infer \
 # 5) Score to evaluate the extracted speech
 python run.py --stages measure \
     --training_config conf/tuning/training_td_speakerbeam_16k.yaml \
+    --inference_config conf/inference.yaml \
     --metrics_config conf/metrics.yaml
 
 # 6) Pack the model for publication
 python run.py --stages pack_model \
     --training_config conf/tuning/training_td_speakerbeam_16k.yaml \
+    --inference_config conf/inference.yaml \
+    --metrics_config conf/metrics.yaml \
     --publication_config conf/publication.yaml
 
 # 7) Create a demo for the model
@@ -73,6 +77,29 @@ python run.py --stages upload_model upload_demo \
     --publication_config conf/publication.yaml \
     --demo_config conf/demo.yaml
 ```
+
+## Data and evaluation contracts
+
+`create_dataset` validates LibriSpeech, prepares WHAM!/LibriMix source resources and
+fixed enrollment maps, then simulates mixtures and writes manifests. Dataset loading
+is offline; missing manifests/maps produce an error asking for `create_dataset`.
+An existing prepared root can be supplied with `LIBRIMIX` (the directory containing
+both `LibriMix/` and split manifest directories). Training retains `*utterance speaker`
+enrollment placeholders for TSEPreprocessor's speaker lookup and 48000-sample crop.
+Evaluation uses fixed enrollment audio and keeps utterance IDs for scoring.
+
+Inference is single-item and selects the first native extraction target. The model
+still trains with `num_spk: 2`. The checked runner derives `fs` from the audio contract
+and the model returns only extracted audio; reference scoring uses the dataset column
+`speech_ref1`, materialized as WAV. `metrics.yaml` preserves the original scorer options,
+including CUDA settings for SI-SNR/SDR; use CPU overrides on a CPU-only machine.
+PESQ and STOI/ESTOI require their optional scorer packages; DNSMOS requires its model
+files (configure `dnsmos_dir`) or download access. Corpus scores below are historical
+reported results, not newly reproduced by the contract migration. TSOS's implementation
+returns a fraction; the results table displays percentages.
+
+The smoke recipe at `egs3/mini_an4/esp2_tse` validates the software pipeline with a tiny
+model; it does not reproduce LibriMix benchmark results.
 
 ## Pretrained Models
 

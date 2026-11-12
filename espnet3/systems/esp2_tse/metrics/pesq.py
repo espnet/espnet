@@ -2,20 +2,17 @@
 
 from __future__ import annotations
 
-from pathlib import Path
-from typing import Dict, List, Tuple
+from typing import List, Tuple
 
 import librosa
-import numpy as np
-import soundfile as sf
 import torch
 from torch import Tensor
-from tqdm import trange
 
-from espnet3.components.metrics.base_metric import BaseMetric
+from espnet3.contract import Field
+from espnet3.systems.esp2_tse.src.audio_metrics import AudioMetric, read_audio
 
 
-class PESQ(BaseMetric):
+class PESQ(AudioMetric):
     """Compute PESQ scores for reference/hypothesis speech pairs.
 
     This metric expects extracted speech and reference speech as input,
@@ -30,27 +27,30 @@ class PESQ(BaseMetric):
         in Proc. IEEE ICASSP, 2001, pp. 749-752.
     """  # noqa: H405, D205, D400
 
+    inputs = (
+        Field("ref", "audio"),
+        Field("hyp", "audio"),
+    )
+    outputs = (Field("PESQ", "number"),)
+
     def __init__(
         self,
-        ref_key: str = "ref",
-        hyp_key: str = "inf",
         batch_size: int = 1,
         ref_channel: int = 0,
     ) -> None:
         """Initialize the PESQ measure.
 
         Args:
-            ref_key: Key name for reference speech.
-            hyp_key: Key name for extracted speech.
             batch_size: batch size for batched inference.
             ref_channel: Reference channel index for aligning multi-channel signals.
         """
-        self.ref_key = ref_key
-        self.hyp_key = hyp_key
-        assert isinstance(batch_size, int) and batch_size > 0, batch_size
+        if not isinstance(batch_size, int) or batch_size < 1:
+            raise ValueError("batch_size must be a positive integer")
         self.batch_size = batch_size
         self.ref_channel = ref_channel
         self.device = "cpu"
+
+        self._init_scores()
 
     def _ensure_pesq(self):
         """Ensure that the PESQ library is available for use."""
@@ -84,12 +84,18 @@ class PESQ(BaseMetric):
         """Load input audio and clean reference audio as paired data."""
         ref_audios, inf_audios = [], []
         for ref_path, inf_path in zip(ref_batch, inf_batch):
-            ref_audio, sr1 = sf.read(ref_path, dtype="float32")
-            inf_audio, sr2 = sf.read(inf_path, dtype="float32")
+            ref_audio, sr1 = read_audio(ref_path)
+            inf_audio, sr2 = read_audio(inf_path)
             ref_audio = torch.as_tensor(ref_audio, device=self.device)
             inf_audio = torch.as_tensor(inf_audio, device=self.device)
-            assert sr1 == sr2, f"Sampling rates must match, but got {sr1} and {sr2}"
+            if sr1 != sr2:
+                raise ValueError(f"Sampling rates must match, but got {sr1} and {sr2}")
             ref_audio, inf_audio = self._align_shape(ref_audio, inf_audio)
+            if ref_audio.shape != inf_audio.shape:
+                raise ValueError(
+                    "Reference and inference shapes must match: "
+                    f"{ref_audio.shape}, {inf_audio.shape}"
+                )
             ref_audios.append((sr1, ref_audio))
             inf_audios.append((sr2, inf_audio))
         return ref_audios, inf_audios
@@ -134,59 +140,9 @@ class PESQ(BaseMetric):
             return float("nan")
         return float(score)
 
-    def __call__(
-        self, data: Dict[str, Path], test_name: str, inference_dir: Path
-    ) -> Dict[str, float]:
-        """Compute PESQ and return the average metric.
-
-        Args:
-            data: Mapping of field names to SCP file paths.
-                Expected keys: ref_key (default "ref") and hyp_key (default "inf").
-            test_name: Test set name used for output directory naming.
-            inference_dir: Base directory for storing per-sample metrics.
-        """
-        test_dir = Path(inference_dir) / test_name
-        test_dir.mkdir(parents=True, exist_ok=True)
-
-        pairs = []
-        for uid, row in self.iter_inputs(data, self.ref_key, self.hyp_key):
-            pairs.append((uid, row[self.ref_key], row[self.hyp_key]))
-
-        scores = []
-        num_lines = 0
-        if (test_dir / "pesq").exists() and (test_dir / "pesq").is_file():
-            with (test_dir / "pesq").open("rb") as f:
-                num_lines = sum(1 for _ in f)
-        if num_lines == len(pairs):
-            print(
-                f"Found existing PESQ scores in '{test_dir / 'pesq'}', "
-                "skipping computation and loading scores from file."
-            )
-            with (test_dir / "pesq").open("r", encoding="utf-8") as f:
-                for line in f:
-                    uid, score = line.strip().split()
-                    scores.append(float(score))
-        else:
-            with (test_dir / "pesq").open("w", encoding="utf-8") as f:
-                for i in trange(0, len(pairs), self.batch_size):
-                    batch = pairs[i : i + self.batch_size]
-                    batch_uids = [sample[0] for sample in batch]
-                    ref_paths = [sample[1] for sample in batch]
-                    inf_paths = [sample[2] for sample in batch]
-
-                    ref_audios, inf_audios = self._load_audio_pairs(
-                        ref_paths, inf_paths
-                    )
-                    for uid, ref_item, inf_item in zip(
-                        batch_uids, ref_audios, inf_audios
-                    ):
-                        sample_rate = ref_item[0]
-                        ref_audio = ref_item[1]
-                        inf_audio = inf_item[1]
-                        score = self._compute_pesq(ref_audio, inf_audio, sample_rate)
-                        scores.append(score)
-                        f.write(f"{uid} {score}\n")
-
-        if not scores:
-            raise ValueError("No scores were computed. Please check the input data.")
-        return {"PESQ": float(np.nanmean(scores))}
+    def update(self, *, ref, hyp):
+        """Accumulate per-utterance PESQ scores."""
+        refs, hyps = self._load_audio_pairs(ref, hyp)
+        for (rate, reference), (_, estimate) in zip(refs, hyps):
+            score = self._compute_pesq(reference, estimate, rate)
+            self._add_scores({"PESQ": score}, skip_nan=True)
