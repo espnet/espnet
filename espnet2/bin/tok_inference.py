@@ -61,7 +61,7 @@ def build_tokenizer(
                 "No tokenizer.quantizer.centroids parameter found in " f"{model_file}"
             ) from error
         quantizer_conf.pop("centroid_path", None)
-        quantizer = quantizer_class.from_centroids(centroids, **quantizer_conf)
+        quantizer = quantizer_class(centroids=centroids, **quantizer_conf)
     else:
         quantizer = quantizer_class(**quantizer_conf)
     tokenizer = SpeechTokenizer(

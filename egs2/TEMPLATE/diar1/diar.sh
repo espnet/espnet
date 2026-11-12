@@ -547,7 +547,7 @@ if ! "${skip_eval}"; then
 
             scripts/utils/score_der.sh \
                 --collar ${collar} --fs ${fs} --frame_shift ${frame_shift} \
-                ${_dir} ${_inf_dir}/diarize.scp ${_data}/rttm \
+                ${_dir} ${_inf_dir}/diarize.scp ${_data}/rttm
         done
 
         # Show results in Markdown syntax
