@@ -1,7 +1,6 @@
 import logging
 import re
 from collections import defaultdict
-from copy import deepcopy
 from math import inf
 from typing import Any, Dict, Iterator, List, Optional, Sequence, Tuple, Union
 
@@ -132,7 +131,7 @@ class ChunkIterFactory(AbsIterFactory):
         if excluded_key_prefixes is None:
             _excluded_key_prefixes = DEFAULT_EXCLUDED_KEY_PREFIXES
         else:
-            _excluded_key_prefixes = deepcopy(excluded_key_prefixes)
+            _excluded_key_prefixes = list(excluded_key_prefixes)
             for k in DEFAULT_EXCLUDED_KEY_PREFIXES:
                 if k not in _excluded_key_prefixes:
                     _excluded_key_prefixes.append(k)

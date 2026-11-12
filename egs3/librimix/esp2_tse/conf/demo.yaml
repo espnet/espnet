@@ -1,0 +1,20 @@
+model:
+  dir_or_tag: exp/training_td_speakerbeam_16k/model_pack
+  trust_user_code: true
+  call_args: {}
+ui:
+  title: Demo page for the TSE model trained on Libri2Mix (16 kHz)
+  description: README.md
+  inputs:
+  - key: speech_mix
+    type: audio
+    label: Mixture Audio
+  - key: enroll_ref1
+    type: audio
+    label: Enrollment Audio (Target Speaker)
+  outputs:
+  - key: inf
+    type: audio
+    label: Extracted Audio
+upload_demo:
+  hf_repo: espnet/librimix_tse_training_td_speakerbeam_16k_demo

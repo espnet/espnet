@@ -1,0 +1,46 @@
+# Checked single-target inference. Override the sample rate for other models.
+recipe_dir: .
+data_dir: ${recipe_dir}/data
+exp_tag:
+exp_dir: ${recipe_dir}/exp/${exp_tag}
+inference_dir: ${exp_dir}/inference
+dataset:
+  _target_: espnet3.components.data.data_organizer.DataOrganizer
+  _recursive_: false
+  recipe_dir: ${recipe_dir}
+  test:
+  preprocessor:
+model:
+  _target_: espnet2.bin.enh_tse_inference.SeparateSpeech
+  train_config: ${exp_dir}/config.yaml
+  model_file: ${exp_dir}/last.ckpt
+input_key:
+  - speech_mix
+  - enroll_ref1
+batch_size: null
+output_artifacts:
+  inf:
+    type: wav
+    sample_rate: 16000
+contract:
+  inputs:
+    speech_mix:
+      kind: audio
+      sample_rate: 16000
+      channels: 1
+    enroll_ref1:
+      kind: audio
+      sample_rate: 16000
+      channels: 1
+  outputs:
+    inf:
+      kind: audio
+      sample_rate: 16000
+      channels: 1
+provider:
+  _target_: espnet3.systems.base.inference_provider.InferenceProvider
+runner:
+  _target_: espnet3.systems.esp2_tse.src.inference_runner.ESP2TSEInferenceRunner
+parallel:
+  env: local
+  n_workers: 1

@@ -412,7 +412,9 @@ class DataLoaderBuilder:
             )
             _LOGGED_DISTRIBUTED_BATCHES.add(log_key)
 
-        iter_factory = instantiate(factory_config, dataset, batches=batches)
+        iter_factory = instantiate(
+            factory_config, dataset, batches=batches, _convert_="all"
+        )
         # espnet2 iter factories count epochs from 1 (their RNGs seed with
         # epoch - 1), while self.epoch is Lightning's 0-based current_epoch;
         # _maybe_shard_dataset keeps the 0-based convention.

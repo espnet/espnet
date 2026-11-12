@@ -1,0 +1,18 @@
+recipe_dir: .
+data_dir: ${recipe_dir}/data
+exp_tag: null
+exp_dir: ${recipe_dir}/exp/${exp_tag}
+metrics:
+- metric:
+    _target_: espnet3.systems.esp2_tse.metrics.tsos.TSOS
+    batch_size: 1
+    power: 2.0
+    threshold: 0.1
+    ref_channel: 0
+  inputs:
+    ref: dataset:speech_ref1
+    hyp: inf
+dataset_artifacts:
+  speech_ref1:
+    type: wav
+    sample_rate: 16000

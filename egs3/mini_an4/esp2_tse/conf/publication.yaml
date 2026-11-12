@@ -1,0 +1,8 @@
+pack_model:
+  include: []
+  exclude:
+  - model_pack
+  - tensorboard
+  - inference
+  - stats
+  - '*.log'

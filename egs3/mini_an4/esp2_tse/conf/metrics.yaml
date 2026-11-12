@@ -1,0 +1,6 @@
+metrics:
+- metric:
+    _target_: espnet3.systems.esp2_tse.metrics.sisnr.SISNR
+  inputs:
+    ref: dataset:speech_ref1
+    hyp: inf

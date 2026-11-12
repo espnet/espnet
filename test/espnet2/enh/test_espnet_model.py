@@ -322,7 +322,10 @@ def test_dptnet(training, loss_wrappers):
 @pytest.mark.parametrize("separator", [svoice_separator])
 @pytest.mark.parametrize("training", [True, False])
 @pytest.mark.parametrize("loss_wrappers", [[multilayer_pit_solver]])
-def test_svoice_model(encoder, decoder, separator, training, loss_wrappers):
+@pytest.mark.parametrize("normalization", ["none", "global", "per_channel"])
+def test_svoice_model(
+    encoder, decoder, separator, training, loss_wrappers, normalization
+):
     inputs = torch.randn(2, 300)
     ilens = torch.LongTensor([300, 200])
     speech_refs = [torch.randn(2, 300).float(), torch.randn(2, 300).float()]
@@ -332,6 +335,8 @@ def test_svoice_model(encoder, decoder, separator, training, loss_wrappers):
         decoder=decoder,
         mask_module=None,
         loss_wrappers=loss_wrappers,
+        normalize_variance=normalization == "global",
+        normalize_variance_per_ch=normalization == "per_channel",
     )
 
     if training:

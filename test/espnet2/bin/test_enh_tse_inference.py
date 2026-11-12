@@ -112,3 +112,15 @@ def test_SeparateSpeech_invalid_inference_config(
 
     with pytest.raises(AssertionError):
         SeparateSpeech(train_config=None, inference_config=invalid_enh_inference_config)
+
+
+@pytest.mark.execution_timeout(10)
+def test_unbatched_matches_single_item_batch(config_file):
+    """The ESPnet3 single-item path preserves the native ESPnet2 target."""
+    separate = SeparateSpeech(train_config=config_file)
+    speech = torch.rand(16000)
+    enroll = torch.rand(16000)
+    single = separate(speech.numpy(), fs=8000, enroll_ref1=enroll.numpy())
+    batch = separate(speech[None], fs=8000, enroll_ref1=enroll[None])
+    assert single[0].shape == (16000,)
+    torch.testing.assert_close(torch.as_tensor(single[0]), torch.as_tensor(batch[0][0]))

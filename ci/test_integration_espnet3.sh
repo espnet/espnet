@@ -93,6 +93,24 @@ rm -rf exp data
 
 cd "${cwd}" || exit
 
+# Keep the TSE recipe and its outputs in the same disposable workspace as ASR.
+echo "==== [ESPnet3] TSE ===="
+espnet3 clone mini_an4/esp2_tse --project "${clone_workdir}/tse"
+cp egs3/mini_an4/esp2_asr/downloads.tar.gz "${clone_workdir}/tse/"
+cd "${clone_workdir}/tse" || exit
+${python} run.py \
+    --stages create_dataset collect_stats train infer measure pack_model pack_demo \
+    --training_config conf/training.yaml \
+    --inference_config conf/inference.yaml \
+    --metrics_config conf/metrics.yaml \
+    --publication_config conf/publication.yaml \
+    --demo_config conf/demo.yaml
+# Validate bundle portability from outside the recipe directory.
+cd "${clone_workdir}" || exit
+${python} "${cwd}/ci/check_espnet3_tse.py" --recipe "${clone_workdir}/tse"
+
+cd "${cwd}" || exit
+
 python3 -m pip install -e '.[st]'
 
 cd ./egs3/mini_an4/esp2_st || exit

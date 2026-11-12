@@ -1,0 +1,23 @@
+dataset:
+  test:
+  - name: 2mix_16k_max_dev_mix-clean
+    data_src_args:
+      split: 2mix_16k_max_dev_mix-clean
+      ignore_key_prefix:
+      - text_spk
+      - num_spk
+      recipe_dir: ${recipe_dir}
+      data_dir: ${oc.env:LIBRIMIX,${data_dir}}
+  - name: 2mix_16k_max_test_mix-clean
+    data_src_args:
+      split: 2mix_16k_max_test_mix-clean
+      ignore_key_prefix:
+      - text_spk
+      - num_spk
+      recipe_dir: ${recipe_dir}
+      data_dir: ${oc.env:LIBRIMIX,${data_dir}}
+provider:
+  inference_config:
+    device: cpu
+parallel:
+  allow_overwrite_lock: false
