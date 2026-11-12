@@ -13,6 +13,3 @@ python run.py --stages create_dataset collect_stats train infer measure pack_mod
   --metrics_config conf/metrics.yaml --publication_config conf/publication.yaml \
   --demo_config conf/demo.yaml
 ```
-
-`ci/test_integration_espnet3_tse.sh` runs this flow in a temporary clone and checks
-packed/demo/native output parity from outside the recipe. No model is uploaded.
