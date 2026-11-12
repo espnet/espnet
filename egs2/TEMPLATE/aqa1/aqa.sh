@@ -7,10 +7,12 @@ set -e
 set -u
 set -o pipefail
 
+# Print a timestamped message with the calling script and line number.
 log() {
     local fname=${BASH_SOURCE[1]##*/}
     echo -e "$(date '+%Y-%m-%dT%H:%M:%S') (${fname}:${BASH_LINENO[0]}:${FUNCNAME[1]}) $*"
 }
+# Return the smallest integer, normalizing padded line counts from BSD wc.
 min() {
   local a b
   a=$1
@@ -19,7 +21,8 @@ min() {
           a="${b}"
       fi
   done
-  echo "${a}"
+  # BSD wc pads line counts; emit a normalized integer for JOB=1:<nj>.
+  echo "$((a))"
 }
 SECONDS=0
 
@@ -44,7 +47,7 @@ local_data_opts="" # Options to be passed to local/data.sh.
 
 # Feature extraction related
 feats_type=raw             # Input feature type.
-audio_format=flac          # Audio format: wav, flac, wav.ark, flac.ark  (only in feats_type=raw).
+audio_format=flac          # Audio format: wav, flac, wav.ark, flac.ark, omniio  (only in feats_type=raw).
 min_wav_duration=0.1       # Minimum duration in second.
 max_wav_duration=30        # Maximum duration in second.
 fs=16000                   # Sampling rate.
@@ -95,6 +98,7 @@ text_fold_length=150     # fold_length for reference text.
 
 # Upload model related
 hf_repo=
+hf_license=
 
 help_message=$(cat << EOF
 Usage: $0 --train-set "<train_set_name>" --valid-set "<valid_set_name>" --test_sets "<test_set_names>"
@@ -134,6 +138,7 @@ Common options (all configuration variables above can be set with --name value):
     --download_model            Model Zoo tag for inference
     --sys_info                  Utterance-to-system mapping for system scoring
     --hf_repo                   Hugging Face repository for upload
+    --hf_license                Hugging Face license identifier for the model card
 See the configuration section at the top of this script for tokenization options
 and their defaults (nbpe, bpemode, bpe_nlsyms, cleaner, nlsyms_txt, etc.).
 EOF
@@ -152,6 +157,9 @@ fi
 
 . ./path.sh
 . ./cmd.sh
+
+# Match CI's multi-word interpreter commands, e.g. coverage run --append.
+read -r -a python_command <<< "${python}"
 
 # Check feature type
 if [ "${feats_type}" = raw ]; then
@@ -267,7 +275,7 @@ if ! "${skip_data_prep}"; then
                     "data/${dset}/ref_wav.scp" "${data_feats}${_suf}/${dset}"
 
                 # NOTE(jiatong): align the reference audio with the formulated wav
-                "${python}" pyscripts/utils/align_wav_keys.py \
+                "${python_command[@]}" pyscripts/utils/align_wav_keys.py \
                     "${data_feats}${_suf}/${dset}/wav.scp" \
                     "${data_feats}${_suf}/${dset}/ref_wav.scp" \
                     "${data_feats}${_suf}/${dset}/ref_wav.tmp"
@@ -279,7 +287,7 @@ if ! "${skip_data_prep}"; then
 
             # NOTE(jiatong): some extra treatment for extra files, including sorting and duplication remove
             for utt_extra_file in ${utt_extra_files}; do
-                "${python}" pyscripts/utils/remove_duplicate_keys.py ${data_feats}${_suf}/${dset}/${utt_extra_file} \
+                "${python_command[@]}" pyscripts/utils/remove_duplicate_keys.py ${data_feats}${_suf}/${dset}/${utt_extra_file} \
                     > ${data_feats}${_suf}/${dset}/${utt_extra_file}.tmp
                 mv ${data_feats}${_suf}/${dset}/${utt_extra_file}.tmp ${data_feats}${_suf}/${dset}/${utt_extra_file}
                 sort -o ${data_feats}${_suf}/${dset}/${utt_extra_file} ${data_feats}${_suf}/${dset}/${utt_extra_file}
@@ -295,12 +303,12 @@ if ! "${skip_data_prep}"; then
         if [ -z "${metric2id}" ] ; then
             if [ -z "${metric2type}" ] ; then
                 log "metric2id and metric2type are not specificed. Generate it from metric.scp"
-                "${python}" pyscripts/utils/prep_metric_id.py \
+                "${python_command[@]}" pyscripts/utils/prep_metric_id.py \
                     "${data_feats}/org/${train_set}"/metric.scp \
                     "${data_feats}/org/${train_set}"/metric2id
             else
                 log "metric2id_file is not specificed but metric2type is. Generate it from metric2type"
-                "${python}" pyscripts/utils/prep_metric_id.py \
+                "${python_command[@]}" pyscripts/utils/prep_metric_id.py \
                     "${data_feats}/org/${train_set}"/metric.scp \
                     "${data_feats}/org/${train_set}"/metric2id \
                     --metric2type "${metric2type}"
@@ -323,9 +331,9 @@ if ! "${skip_data_prep}"; then
             cp "${data_feats}/org/${dset}/feats_type" "${data_feats}/${dset}/feats_type"
 
             # Remove short utterances
-            _fs=$("${python}" -c "import humanfriendly as h;print(h.parse_size('${fs}'))")
-            _min_length=$("${python}" -c "print(int(${min_wav_duration} * ${_fs}))")
-            _max_length=$("${python}" -c "print(int(${max_wav_duration} * ${_fs}))")
+            _fs=$(python3 -c "import humanfriendly as h;print(h.parse_size('${fs}'))")
+            _min_length=$(python3 -c "print(int(${min_wav_duration} * ${_fs}))")
+            _max_length=$(python3 -c "print(int(${max_wav_duration} * ${_fs}))")
 
             # utt2num_samples is created by format_wav_scp.sh
             <"${data_feats}/org/${dset}/utt2num_samples" \
@@ -363,7 +371,7 @@ if ! "${skip_data_prep}"; then
 
             # NOTE(jiatong): some extra treatment for extra files, including sorting and duplication remove
             for utt_extra_file in ${utt_extra_files}; do
-                "${python}" pyscripts/utils/remove_duplicate_keys.py ${data_feats}/${dset}/${utt_extra_file} \
+                "${python_command[@]}" pyscripts/utils/remove_duplicate_keys.py ${data_feats}/${dset}/${utt_extra_file} \
                     > ${data_feats}/${dset}/${utt_extra_file}.tmp
                 mv ${data_feats}/${dset}/${utt_extra_file}.tmp ${data_feats}/${dset}/${utt_extra_file}
                 sort -o ${data_feats}/${dset}/${utt_extra_file} ${data_feats}/${dset}/${utt_extra_file}
@@ -416,7 +424,7 @@ if ! "${skip_data_prep}"; then
 
             _opts="--non_linguistic_symbols ${nlsyms_txt}"
 
-            ${python} -m espnet2.bin.tokenize_text  \
+            "${python_command[@]}" -m espnet2.bin.tokenize_text  \
                 --token_type "${token_type}" \
                 --input "${bpe_train_text}" --output "${token_list}" ${_opts} \
                 --field 2- \
@@ -451,6 +459,8 @@ if ! "${skip_train}"; then
         _scp=wav.scp
         if [[ "${audio_format}" == *ark* ]]; then
             _type=kaldi_ark
+        elif [[ "${audio_format}" == omniio ]]; then
+            _type=omniio
         else
             _type=sound
         fi
@@ -501,7 +511,7 @@ if ! "${skip_train}"; then
 
         # shellcheck disable=SC2046,SC2086
         ${train_cmd} JOB=1:"${_nj}" "${_logdir}"/stats.JOB.log \
-            ${python} -m "espnet2.bin.aqa_train" \
+            "${python_command[@]}" -m "espnet2.bin.aqa_train" \
                 --collect_stats true \
                 --use_preprocessor true \
                 --use_ref_audio "${use_ref_wav}" \
@@ -520,7 +530,7 @@ if ! "${skip_train}"; then
         for i in $(seq "${_nj}"); do
             _opts+="--input_dir ${_logdir}/stats.${i} "
         done
-        ${python} -m espnet2.bin.aggregate_stats_dirs --skip_sum_stats ${_opts} --output_dir "${aqa_stats_dir}"
+        "${python_command[@]}" -m espnet2.bin.aggregate_stats_dirs --skip_sum_stats ${_opts} --output_dir "${aqa_stats_dir}"
     fi
 
     if [ ${stage} -le 7 ] && [ ${stop_stage} -ge 7 ]; then
@@ -536,6 +546,8 @@ if ! "${skip_train}"; then
         _scp=wav.scp
         if [[ "${audio_format}" == *ark* ]]; then
             _type=kaldi_ark
+        elif [[ "${audio_format}" == omniio ]]; then
+            _type=omniio
         else
             _type=sound
         fi
@@ -577,14 +589,14 @@ if ! "${skip_train}"; then
         fi
 
         # shellcheck disable=SC2086
-        ${python} -m espnet2.bin.launch \
+        "${python_command[@]}" -m espnet2.bin.launch \
             --cmd "${cuda_cmd} --name ${jobname}" \
             --log "${aqa_exp}"/train.log \
             --ngpu "${ngpu}" \
             --num_nodes "${num_nodes}" \
             --init_file_prefix "${aqa_exp}"/.dist_init_ \
             --multiprocessing_distributed true -- \
-            ${python} -m "espnet2.bin.aqa_train" \
+            "${python_command[@]}" -m "espnet2.bin.aqa_train" \
                 --use_preprocessor true \
                 --use_ref_audio "${use_ref_wav}" \
                 --use_ref_text "${use_ref_text}" \
@@ -646,6 +658,8 @@ if ! "${skip_eval}"; then
             _scp=wav.scp
             if [[ "${audio_format}" == *ark* ]]; then
                 _type=kaldi_ark
+            elif [[ "${audio_format}" == omniio ]]; then
+                _type=omniio
             else
                 _type=sound
             fi
@@ -677,7 +691,7 @@ if ! "${skip_eval}"; then
 
             # shellcheck disable=SC2046,SC2086
             ${_cmd} --gpu "${_ngpu}" JOB=1:"${_nj}" "${_logdir}"/aqa_inference.JOB.log \
-                ${python} -m espnet2.bin.aqa_inference \
+                "${python_command[@]}" -m espnet2.bin.aqa_inference \
                     --ngpu "${_ngpu}" \
                     --data_path_and_name_and_type ${_data}/${_scp},audio,${_type} \
                     --key_file "${_logdir}"/keys.JOB.scp \
@@ -706,7 +720,7 @@ if ! "${skip_eval}"; then
             log "Begin evaluation on ${dset}, results are written under ${_dir}"
 
             log "Perform utt-level evaluation, results are written in ${_dir}/utt_result.json"
-            "${python}" pyscripts/utils/aqa_eval.py \
+            "${python_command[@]}" pyscripts/utils/aqa_eval.py \
                 --level utt \
                 --ref_metrics "${_ref_metrics}" \
                 --pred_metrics "${_pred_metrics}" \
@@ -718,7 +732,7 @@ if ! "${skip_eval}"; then
 
             if [ -n "${sys_info}" ]; then
                 log "Perform system-level evaluation using ${sys_info}, results are written in ${_dir}/sys_result.json"
-                "${python}" pyscripts/utils/aqa_eval.py \
+                "${python_command[@]}" pyscripts/utils/aqa_eval.py \
                     --level sys \
                     --ref_metrics "${_ref_metrics}" \
                     --pred_metrics "${_pred_metrics}" \
@@ -741,7 +755,7 @@ if [ ${stage} -le 10 ] && [ ${stop_stage} -ge 10 ] && ! "${skip_upload}"; then
     log "Stage 10: Packing model: ${packed_model}"
     if [ -e "${aqa_exp}/${inference_model}" ]; then
         # shellcheck disable=SC2086
-        ${python} -m espnet2.bin.pack aqa \
+        "${python_command[@]}" -m espnet2.bin.pack aqa \
             --model_file "${aqa_exp}/${inference_model}" \
             --train_config "${aqa_exp}/config.yaml" \
             --option "${aqa_exp}/images" \
@@ -755,6 +769,9 @@ if [ ${stage} -le 11 ] && [ ${stop_stage} -ge 11 ] && ! "${skip_upload}"; then
     log "Stage 11: Uploading to hugging face: ${hf_repo}"
     [ -z "${hf_repo}" ] && \
         log "ERROR: You need to setup the variable hf_repo with the name of the repository located at HuggingFace, follow the following steps described here https://github.com/espnet/espnet/blob/master/CONTRIBUTING.md#132-espnet2-recipes" && \
+    exit 1
+    [ -z "${hf_license}" ] && \
+        log "ERROR: You need to setup the variable hf_license with the Hugging Face license identifier for the model card (for example apache-2.0, mit, cc-by-4.0, or other)" && \
     exit 1
 
     if [ -e "${packed_model}" ]; then

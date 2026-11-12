@@ -17,7 +17,9 @@ from omniio import kaldi as kaldi_io
 from tqdm import tqdm
 from typeguard import typechecked
 
+from espnet2.fileio.omniio_audio import OmniIOAudioWriter
 from espnet2.fileio.read_text import read_2columns_text
+from espnet2.fileio.segments import seconds_to_sample
 from espnet2.fileio.sound_scp import SoundScpWriter, soundfile_read
 from espnet2.fileio.vad_scp import VADScpReader
 from espnet2.legacy.utils.cli_utils import get_commandline_args
@@ -141,10 +143,12 @@ class SegmentsExtractor:
                 cached.pop(recodeid)
             # Convert starting time of the segment to corresponding sample number.
             # If end time is -1 then use the whole file starting from start time.
+            # (seconds_to_sample: the same cut as reading the segment from an
+            # Omni-IO archive at load time, robust to float error)
             if et != -1:
-                array = array[int(st * rate) : int(et * rate)]
+                array = array[seconds_to_sample(st, rate) : seconds_to_sample(et, rate)]
             else:
-                array = array[int(st * rate) :]
+                array = array[seconds_to_sample(st, rate) :]
 
             yield utt, (array, rate), None, None
 
@@ -172,7 +176,12 @@ def main():
         default=None,
         help="If the sampling rate specified, Change the sampling rate.",
     )
-    parser.add_argument("--audio-format", default="wav")
+    parser.add_argument(
+        "--audio-format",
+        default="wav",
+        help="wav, flac, ... (one file per utterance), wav.ark, flac.ark "
+        "(Kaldi ark), or omniio (FLAC packed into an Omni-IO archive)",
+    )
     parser.add_argument("--vad_based_trim", type=str, default=None)
     group = parser.add_mutually_exclusive_group()
     group.add_argument("--ref-channels", default=None, type=str2int_tuple)
@@ -225,8 +234,12 @@ def main():
     else:
         utt2ref_channels = None
 
-    if args.audio_format.endswith("ark") and args.multi_columns_output:
-        raise RuntimeError("Multi columns wav.scp is not supported for ark type")
+    omniio = args.audio_format == "omniio"
+    packed = omniio or args.audio_format.endswith("ark")
+    if packed and args.multi_columns_output:
+        raise RuntimeError(
+            f"Multi columns wav.scp is not supported for {args.audio_format}"
+        )
 
     Path(args.outdir).mkdir(parents=True, exist_ok=True)
     out_wavscp = Path(args.outdir) / f"{args.name}.scp"
@@ -235,6 +248,17 @@ def main():
         fark = open(Path(args.outdir) / f"data_{args.name}.ark", "wb")
         fscp_out = out_wavscp.open("w")
         writer = None
+    elif omniio:
+        subtype = args.audio_subtype or "PCM_16"
+        if not subtype.startswith("PCM_"):
+            raise RuntimeError(f"omniio needs a PCM_* subtype, got {subtype}")
+        writer = OmniIOAudioWriter(
+            Path(args.outdir) / args.name,
+            out_wavscp,
+            format="flac",
+            bit_depth=int(subtype[len("PCM_") :]),
+        )
+        fscp_out = None
     else:
         writer = SoundScpWriter(
             args.outdir,
@@ -326,7 +350,7 @@ def main():
             if args.segments is not None:
                 save_asis = False
 
-            if args.audio_format.endswith("ark"):
+            if packed:
                 save_asis = False
 
             if args.multi_columns_input:
@@ -356,7 +380,7 @@ def main():
             if wavpath is not None and Path(wavpath).suffix != "." + args.audio_format:
                 save_asis = False
 
-            if not args.audio_format.endswith("ark") and subtypes is not None:
+            if not packed and subtypes is not None:
                 if args.audio_subtype is None:
                     subtype2 = soundfile.default_subtype(args.audio_format)
                 else:
@@ -391,6 +415,10 @@ def main():
             else:
                 writer[uttid] = rate, wave
             fnum_samples.write(f"{uttid} {len(wave)}\n")
+
+    if omniio:
+        # writes metadata.parquet, without which the archive is not complete
+        writer.close()
 
 
 if __name__ == "__main__":

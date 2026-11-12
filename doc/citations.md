@@ -2,9 +2,21 @@
 
 [[toc]]
 
+## ESPnet3
+```
+@inproceedings{someki2026espnet3,
+  title={ESPnet3: Infrastructure for Scalable Speech and Audio Research in the Foundation Model Era},
+  author={Masao Someki and Alexander Polok and Carlos Carvalho and Chyi-Jiunn Lin and Da-Hee Yang and Jiatong Shi and Jinchuan Tian and Nelson Enrique Yalta Soplin and Samuele Cornell and Siddhant Arora and Francisco Teixeira and Wei Wang and William Chen and Alberto Abad and Chenda Li and Shinji Watanabe and Wangyou Zhang},
+  booktitle={Interspeech},
+  year={2026},
+  pages={4767--4772},
+  doi={10.21437/Interspeech.2026-2698},
+}
+```
+
 ## ESPnet-EZ
 ```
-@inproceedings{hayashi2020espnet,
+@inproceedings{someki2024espnetez,
   title={ESPnet-EZ: Python-only ESPnet for Easy Fine-tuning and Integration},
   author={Masao Someki and Kwanghee Choi and Siddhant Arora and William Chen and Samuele Cornell and Jionghao Han and Yifan Peng and Jiatong Shi and Vaibhav Srivastav and Shinji Watanabe},
   booktitle={SLT},

@@ -44,7 +44,7 @@ local_data_opts= # The options given to local/data.sh.
 
 # Feature extraction related
 feats_type=raw          # Feature type (raw or fbank_pitch).
-audio_format=flac       # Audio format: wav, flac, wav.ark, flac.ark  (only in feats_type=raw).
+audio_format=flac       # Audio format: wav, flac, wav.ark, flac.ark, omniio  (only in feats_type=raw).
 fs=16k                  # Sampling rate.
 min_wav_duration=0.1    # Minimum duration in second.
 max_wav_duration=20     # Maximum duration in second.
@@ -114,6 +114,7 @@ write_collected_feats=false  # Whether to dump feature in stats collection (for 
 
 # Upload model related
 hf_repo= # Huggingface repositary for model uploading
+hf_license= # Hugging Face license identifier for the model card
 
 # Decoding related
 batch_size=1      # decoding batch size
@@ -184,7 +185,7 @@ Options:
 
     # Feature extraction related
     --feats_type       # Feature type (raw, fbank_pitch or extracted, default="${feats_type}").
-    --audio_format     # Audio format: wav, flac, wav.ark, flac.ark  (only in feats_type=raw, default="${audio_format}").
+    --audio_format     # Audio format: wav, flac, wav.ark, flac.ark, omniio  (only in feats_type=raw, default="${audio_format}").
     --fs               # Sampling rate (default="${fs}").
     --min_wav_duration # Minimum duration in second (default="${min_wav_duration}").
     --max_wav_duration # Maximum duration in second (default="${max_wav_duration}").
@@ -247,6 +248,7 @@ Options:
 
     # Upload model related
     --hf_repo          # Huggingface repositary for model uploading (default="${hf_repo}")
+    --hf_license       # Hugging Face license identifier for the model card (default="${hf_license}")
 
     # Decoding related
     --inference_tag       # Suffix to the result dir for decoding (default="${inference_tag}").
@@ -960,6 +962,8 @@ if ! "${skip_train}"; then
             _src_scp=wav.scp.${src_lang}
             if [[ "${audio_format}" == *ark* ]]; then
                 _src_type=kaldi_ark
+            elif [[ "${audio_format}" == omniio ]]; then
+                _src_type=omniio
             else
                 # "sound" supports "wav", "flac", etc.
                 _src_type=sound
@@ -974,6 +978,8 @@ if ! "${skip_train}"; then
                 _tgt_scp=wav.scp.${tgt_lang}
                 if [[ "${audio_format}" == *ark* ]]; then
                     _tgt_type=kaldi_ark
+                elif [[ "${audio_format}" == omniio ]]; then
+                    _tgt_type=omniio
                 else
                     # "sound" supports "wav", "flac", etc.
                     _tgt_type=sound
@@ -1105,6 +1111,8 @@ if ! "${skip_train}"; then
             _src_scp=wav.scp.${src_lang}
             if [[ "${audio_format}" == *ark* ]]; then
                 _src_type=kaldi_ark
+            elif [[ "${audio_format}" == omniio ]]; then
+                _src_type=omniio
             else
                 # "sound" supports "wav", "flac", etc.
                 _src_type=sound
@@ -1119,6 +1127,8 @@ if ! "${skip_train}"; then
                 _tgt_scp=wav.scp.${tgt_lang}
                 if [[ "${audio_format}" == *ark* ]]; then
                     _tgt_type=kaldi_ark
+                elif [[ "${audio_format}" == omniio ]]; then
+                    _tgt_type=omniio
                 else
                     # "sound" supports "wav", "flac", etc.
                     _tgt_type=sound
@@ -1333,6 +1343,8 @@ if ! "${skip_eval}"; then
                 _src_scp=wav.scp.${src_lang}
                 if [[ "${audio_format}" == *ark* ]]; then
                     _src_type=kaldi_ark
+                elif [[ "${audio_format}" == omniio ]]; then
+                    _src_type=omniio
                 else
                     _src_type=sound
                 fi
@@ -1345,6 +1357,8 @@ if ! "${skip_eval}"; then
                     _tgt_scp=wav.scp.${tgt_lang}
                     if [[ "${audio_format}" == *ark* ]]; then
                         _tgt_type=kaldi_ark
+                    elif [[ "${audio_format}" == omniio ]]; then
+                        _tgt_type=omniio
                     else
                         # "sound" supports "wav", "flac", etc.
                         _tgt_type=sound
@@ -1585,6 +1599,9 @@ if ! "${skip_upload_hf}"; then
     if [ ${stage} -le 11 ] && [ ${stop_stage} -ge 11 ]; then
         [ -z "${hf_repo}" ] && \
             log "ERROR: You need to setup the variable hf_repo with the name of the repository located at HuggingFace" && \
+            exit 1
+        [ -z "${hf_license}" ] && \
+            log "ERROR: You need to setup the variable hf_license with the Hugging Face license identifier for the model card (for example apache-2.0, mit, cc-by-4.0, or other)" && \
             exit 1
         log "Stage 11: Upload model to HuggingFace: ${hf_repo}"
 

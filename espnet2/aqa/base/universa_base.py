@@ -87,6 +87,7 @@ class UniversaBase(AbsUniversa):
         use_l1: bool = True,
         metric_pad_value: float = -100,
         loss_weights: Optional[Dict[Union[str, int], float]] = None,
+        use_sdpa: bool = False,
         **kwargs,
     ):
         """Initialize UniversaBase module.
@@ -115,6 +116,9 @@ class UniversaBase(AbsUniversa):
             use_l1 (bool): Whether to use L1 loss.
             metric_pad_value (float): Metric padding value.
             loss_weights (Optional[Dict[str, float]]): Loss weights.
+            use_sdpa (bool): Use PyTorch's scaled dot product attention in the
+                audio encoder, text encoder, and cross attention when those
+                parameter dicts do not already set it.
 
         """
         super().__init__()
@@ -156,6 +160,15 @@ class UniversaBase(AbsUniversa):
             self.loss_weights = dict(loss_weights)
         else:
             raise ValueError("loss_weights must cover all metric names or integer IDs")
+
+        # Copy before writing. The signature defaults are shared, and a caller
+        # dict that already sets use_sdpa must keep that value.
+        audio_encoder_params = dict(audio_encoder_params)
+        audio_encoder_params.setdefault("use_sdpa", use_sdpa)
+        text_encoder_params = dict(text_encoder_params)
+        text_encoder_params.setdefault("use_sdpa", use_sdpa)
+        cross_attention_params = dict(cross_attention_params)
+        cross_attention_params.setdefault("use_sdpa", use_sdpa)
 
         # Initialize audio encoder
         if audio_encoder_type == "transformer":

@@ -47,7 +47,7 @@ speed_perturb_factors=  # perturbation factors, e.g. "0.9 1.0 1.1" (separated by
 
 # Feature extraction related
 feats_type=raw    # Feature type (raw or fbank_pitch).
-audio_format=flac # Audio format: wav, flac, wav.ark, flac.ark  (only in feats_type=raw).
+audio_format=flac # Audio format: wav, flac, wav.ark, flac.ark, omniio  (only in feats_type=raw).
 fs=16k            # Sampling rate.
 min_wav_duration=0.1   # Minimum duration in second
 max_wav_duration=20    # Maximum duration in second
@@ -107,6 +107,7 @@ lang=noinfo      # The language type of corpus
 
 # Upload model related
 hf_repo=
+hf_license=
 
 help_message=$(cat << EOF
 Usage: $0 --train-set <train_set_name> --valid-set <valid_set_name> --test_sets <test_set_names>
@@ -120,6 +121,8 @@ Options:
     --skip_eval          # Skip inference and evaluation stages (default="${skip_eval}").
     --skip_packing       # Skip the packing stage (default="${skip_packing}").
     --skip_upload_hf     # Skip uploading to huggingface stage (default="${skip_upload_hf}").
+    --hf_repo            # Hugging Face repository for upload (default="${hf_repo}").
+    --hf_license         # Hugging Face license identifier for the model card (default="${hf_license}").
     --ngpu               # The number of gpus ("0" uses cpu, otherwise use gpu, default="${ngpu}").
     --num_nodes          # The number of nodes
     --nj                 # The number of parallel jobs (default="${nj}").
@@ -137,7 +140,7 @@ Options:
 
     # Feature extraction related
     --feats_type   # Feature type (only support raw currently).
-    --audio_format # Audio format: wav, flac, wav.ark, flac.ark  (only in feats_type=raw, default="${audio_format}").
+    --audio_format # Audio format: wav, flac, wav.ark, flac.ark, omniio  (only in feats_type=raw, default="${audio_format}").
     --fs           # Sampling rate (default="${fs}").
     --min_wav_duration # Minimum duration in second (default="${min_wav_duration}").
     --max_wav_duration # Maximum duration in second (default="${max_wav_duration}").
@@ -534,6 +537,9 @@ if ! "${skip_train}"; then
         if [[ "${audio_format}" == *ark* ]]; then
             _type=kaldi_ark
             _type_ref=kaldi_ark
+        elif [[ "${audio_format}" == omniio ]]; then
+            _type=omniio
+            _type_ref=omniio
         else
             # "sound" supports "wav", "flac", etc.
             _type=sound
@@ -680,6 +686,9 @@ if ! "${skip_train}"; then
         if [[ "${audio_format}" == *ark* ]]; then
             _type=kaldi_ark
             _type_ref=kaldi_ark
+        elif [[ "${audio_format}" == omniio ]]; then
+            _type=omniio
+            _type_ref=omniio
         else
             # "sound" supports "wav", "flac", etc.
             _type=sound
@@ -846,6 +855,8 @@ if ! "${skip_eval}"; then
             _scp=wav.scp
             if [[ "${audio_format}" == *ark* ]]; then
                 _type=kaldi_ark
+            elif [[ "${audio_format}" == omniio ]]; then
+                _type=omniio
             else
                 # "sound" supports "wav", "flac", etc.
                 _type=sound
@@ -1099,6 +1110,8 @@ if "${score_with_asr}"; then
 
                     if [[ "${audio_format}" == *ark* ]]; then
                         _type=kaldi_ark
+                    elif [[ "${audio_format}" == omniio ]]; then
+                        _type=omniio
                     else
                         # "sound" supports "wav", "flac", etc.
                         _type=sound
@@ -1273,6 +1286,9 @@ if ! "${skip_upload_hf}"; then
     if [ ${stage} -le 12 ] && [ ${stop_stage} -ge 12 ]; then
         [ -z "${hf_repo}" ] && \
             log "ERROR: You need to setup the variable hf_repo with the name of the repository located at HuggingFace" && \
+            exit 1
+        [ -z "${hf_license}" ] && \
+            log "ERROR: You need to setup the variable hf_license with the Hugging Face license identifier for the model card (for example apache-2.0, mit, cc-by-4.0, or other)" && \
             exit 1
         log "Stage 12: Upload model to HuggingFace: ${hf_repo}"
 

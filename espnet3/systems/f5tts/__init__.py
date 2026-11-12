@@ -1,5 +1,7 @@
 """F5-TTS for ESPnet3 (DiT backbone + conditional flow matching).
 
+The listed modules now live under the `src/` directory.
+
 Self-contained package: the model (``f5tts``, ``cfm``, ``dit``, ``modules``,
 ``rotary``, ``solvers``, ``utils``), its mel front end (``vocoder_mel``), its
 zh+en tokenizer (``pinyin``, ``preprocessor``) and the inference engine

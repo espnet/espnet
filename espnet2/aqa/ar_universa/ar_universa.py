@@ -116,6 +116,7 @@ class ARUniversa(AbsUniversa):
         # Pretrained HF Tokenizer may needs custom sym_sos and sym_eos
         sym_sos: str = "<sos>",
         sym_eos: str = "<eos>",
+        use_sdpa: bool = False,
         **kwargs,
     ):
         """Initialize ARECHO with the published architecture and token convention.
@@ -152,6 +153,9 @@ class ARUniversa(AbsUniversa):
             lsm_weight (float): Label smoothing weight.
             sym_sos (str): Legacy config field; ARECHO uses SOS ID 2.
             sym_eos (str): Legacy config field; ARECHO uses EOS ID 3.
+            use_sdpa (bool): Use PyTorch's scaled dot product attention in the
+                audio encoder, text encoder, cross attention, and metric decoder
+                when those parameter dicts do not already set it.
             **kwargs: Additional parameters.
 
         """
@@ -185,6 +189,17 @@ class ARUniversa(AbsUniversa):
         # Published ARECHO checkpoints reverse the tokenizer's SOS/EOS names.
         self.sos = 2
         self.eos = 3
+
+        # Copy before writing. The signature defaults are shared, and a caller
+        # dict that already sets use_sdpa must keep that value.
+        audio_encoder_params = dict(audio_encoder_params)
+        audio_encoder_params.setdefault("use_sdpa", use_sdpa)
+        text_encoder_params = dict(text_encoder_params)
+        text_encoder_params.setdefault("use_sdpa", use_sdpa)
+        cross_attention_params = dict(cross_attention_params)
+        cross_attention_params.setdefault("use_sdpa", use_sdpa)
+        metric_decoder_params = dict(metric_decoder_params)
+        metric_decoder_params.setdefault("use_sdpa", use_sdpa)
 
         # Initialize audio encoder
         if audio_encoder_type == "transformer":

@@ -8,8 +8,8 @@ import soundfile as sf
 from omegaconf import OmegaConf
 
 import espnet3.parallel.parallel as parallel_module
-import espnet3.systems.f5tts.remove_long_short as stage_module
-from espnet3.systems.f5tts.remove_long_short import (
+import espnet3.systems.f5tts.src.remove_long_short as stage_module
+from espnet3.systems.f5tts.src.remove_long_short import (
     RemoveLongShortProvider,
     RemoveLongShortRunner,
     load_manifest_entries,

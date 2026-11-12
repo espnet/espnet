@@ -44,7 +44,7 @@ use_lightning=false     # Whether to use pytorch lightning trainer for training.
 local_data_opts= # The options given to local/data.sh.
 
 # Feature extraction related
-audio_format=flac    # Audio format: wav, flac, wav.ark, flac.ark.
+audio_format=flac    # Audio format: wav, flac, wav.ark, flac.ark, omniio.
 fs=16k               # Sampling rate.
 speech_fold_length=160000 # The length of the speech input to the cls model.
 label_fold_length=1   # fold_length for labels during CLS training. Set to 1 for multi-class classification.
@@ -71,6 +71,7 @@ inference_tag=    # Suffix to the inference dir for cls model inference
 output_all_probabilities=true
 
 hf_repo=        # Huggingface repo name
+hf_license=    # Huggingface license identifier for the model card
 
 # [Task dependent] Set the datadir name created by local/data.sh
 train_set=       # Name of training set.
@@ -101,7 +102,7 @@ Options:
     # Data preparation related
     --local_data_opts # The options given to local/data.sh (default="${local_data_opts}").
     # Feature extraction related
-    --audio_format     # Audio format: wav, flac, wav.ark, flac.ark  (default="${audio_format}").
+    --audio_format     # Audio format: wav, flac, wav.ark, flac.ark, omniio  (default="${audio_format}").
     --fs               # Sampling rate (default="${fs}").
     --speech_fold_length # The length of the speech input to the cls model (default="${speech_fold_length}").
     --label_fold_length  # fold_length for labels during CLS training (default="${label_fold_length}").
@@ -124,6 +125,7 @@ Options:
     --output_all_probabilities # Output all probabilities in the inference stage (default="${output_all_probabilities}").
     # Huggingface related
     --hf_repo        # Huggingface repo name (default="${hf_repo}").
+    --hf_license     # Hugging Face license identifier for the model card (default="${hf_license}").
     # [Task dependent] Set the datadir name created by local/data.sh
     --train_set               # Name of training set (required).
     --valid_set               # Name of development set (required).
@@ -293,6 +295,8 @@ if ! "${skip_train}"; then
         _scp=wav.scp
         if [[ "${audio_format}" == *ark* ]]; then
             _type=kaldi_ark
+        elif [[ "${audio_format}" == omniio ]]; then
+            _type=omniio
         else
             # "sound" supports "wav", "flac", etc.
             _type=sound
@@ -375,6 +379,8 @@ if ! "${skip_train}"; then
         # "sound" supports "wav", "flac", etc.
         if [[ "${audio_format}" == *ark* ]]; then
             _type=kaldi_ark
+        elif [[ "${audio_format}" == omniio ]]; then
+            _type=omniio
         else
             _type=sound
         fi
@@ -493,6 +499,8 @@ if ! "${skip_eval}"; then
             _type=sound
             if [[ "${audio_format}" == *ark* ]]; then
                 _type=kaldi_ark
+            elif [[ "${audio_format}" == omniio ]]; then
+                _type=omniio
             fi
 
             # 1. Split the key file
@@ -574,6 +582,9 @@ if ! "${skip_upload}"; then
         log "Stage 10: Upload to huggingface"
         [ -z "${hf_repo}" ] && \
             log "ERROR: You need to setup the variable hf_repo with the name of the repository located at HuggingFace, follow the following steps described here https://github.com/espnet/espnet/blob/master/CONTRIBUTING.md#133-publishing-models" && \
+        exit 1
+        [ -z "${hf_license}" ] && \
+            log "ERROR: You need to setup the variable hf_license with the Hugging Face license identifier for the model card (for example apache-2.0, mit, cc-by-4.0, or other)" && \
         exit 1
         if [ ! -f "${packed_model}" ]; then
             log "ERROR: ${packed_model} does not exist. Please run previous stage first."

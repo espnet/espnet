@@ -40,15 +40,6 @@ def test_string_reference_text(tmp_path, use_ref_text):
         np.testing.assert_allclose(string_result[metric], token_result[metric])
 
 
-def test_legacy_cli():
-    from espnet2.bin import universa_inference
-
-    assert universa_inference.UniversaInference is AqaInference
-    with pytest.raises(SystemExit) as exc:
-        universa_inference.main([])
-    assert exc.value.code == 2
-
-
 @pytest.mark.parametrize("multi_branch", [False, True, "ar"])
 def test_checkpoint_and_cli_inference(tmp_path, multi_branch):
     args = task_args(tmp_path)

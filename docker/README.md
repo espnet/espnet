@@ -89,7 +89,7 @@ environment.
 To build it locally, or to build one for a release other than the current one:
 
 ```sh
-docker build -f inference.dockerfile --build-arg ESPNET_VERSION=202610 -t espnet-inference .
+docker build -f inference.dockerfile --build-arg ESPNET_VERSION=202611 -t espnet-inference .
 ```
 
 ### Development images

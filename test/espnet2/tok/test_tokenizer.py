@@ -1,10 +1,10 @@
 import torch
 
 from espnet2.asr.frontend.abs_frontend import AbsFrontend
-from espnet2.tok.output import SpeechTokenizerOutput
-from espnet2.tok.quantizer.abs_quantizer import (
+from espnet2.tok.abs_quantizer import (
     AbsSpeechTokenizerQuantizer,
 )
+from espnet2.tok.output import SpeechTokenizerOutput
 from espnet2.tok.tokenizer import SpeechTokenizer
 
 
@@ -62,28 +62,55 @@ def test_tokenizer_composes_frontend_and_quantizer():
     assert tokenizer.num_clusters == 2
 
 
-def test_tokenizer_freezes_then_unfreezes_by_epoch():
+def test_tokenizer_freezes_then_unfreezes_by_step():
     quantizer = DummyQuantizer()
-    tokenizer = SpeechTokenizer(DummyFrontend(), quantizer, freeze_epochs=2)
+    tokenizer = SpeechTokenizer(DummyFrontend(), quantizer, freeze_steps=2)
     speech = torch.tensor([[-1.0, 2.0]])
     lengths = torch.tensor([2])
 
     tokenizer.train()
-    tokenizer.set_epoch(1)
     tokenizer(speech, lengths)
     assert tokenizer.is_frozen
+    assert tokenizer.current_step.item() == 1
     assert quantizer.encode_count == 1
     assert quantizer.forward_count == 0
 
-    assert tokenizer.set_epoch(2) is False
-    tokenizer(speech, lengths)
-    assert quantizer.encode_count == 2
-
-    assert tokenizer.set_epoch(3) is True
     tokenizer(speech, lengths)
     assert not tokenizer.is_frozen
+    assert tokenizer.current_step.item() == 2
+    assert quantizer.encode_count == 2
+
+    tokenizer(speech, lengths)
+    assert not tokenizer.is_frozen
+    assert tokenizer.current_step.item() == 3
     assert quantizer.forward_count == 1
 
     tokenizer.eval()
     tokenizer(speech, lengths)
     assert quantizer.encode_count == 3
+    assert tokenizer.current_step.item() == 3
+
+
+def test_tokenizer_can_skip_generator_forward_count():
+    tokenizer = SpeechTokenizer(DummyFrontend(), DummyQuantizer(), freeze_steps=1)
+    speech = torch.tensor([[-1.0, 2.0]])
+    lengths = torch.tensor([2])
+
+    tokenizer.train()
+    tokenizer(speech, lengths, count_update=False)
+
+    assert tokenizer.is_frozen
+    assert tokenizer.current_step.item() == 0
+
+
+def test_tokenizer_update_count_is_restored_from_state_dict():
+    tokenizer = SpeechTokenizer(DummyFrontend(), DummyQuantizer(), freeze_steps=2)
+    speech = torch.tensor([[-1.0, 2.0]])
+    lengths = torch.tensor([2])
+    tokenizer(speech, lengths)
+
+    restored = SpeechTokenizer(DummyFrontend(), DummyQuantizer(), freeze_steps=2)
+    restored.load_state_dict(tokenizer.state_dict())
+
+    assert restored.current_step.item() == 1
+    assert restored.is_frozen

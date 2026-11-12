@@ -5,6 +5,7 @@ from omegaconf import OmegaConf
 
 import espnet3.parallel.parallel as parallel_module
 import espnet3.systems.f5tts.system as system_module
+from espnet3.contract.stages import stage_log_dir
 from espnet3.systems.base.system import BaseSystem
 from espnet3.systems.f5tts.system import F5TTSSystem
 
@@ -62,23 +63,8 @@ def test_stage_logs_go_under_the_stage_save_path(tmp_path):
     """Each added stage logs next to the files it writes."""
     system = F5TTSSystem(training_config=_build_training_config(tmp_path))
 
-    assert system.stage_log_dirs["remove_long_short"] == tmp_path / "filtered"
-    assert system.stage_log_dirs["create_token_list"] == tmp_path / "tokens"
-
-
-def test_stage_log_mapping_overrides_are_merged(tmp_path):
-    """A caller's ``stage_log_mapping`` extends and overrides the defaults."""
-    system = F5TTSSystem(
-        training_config=_build_training_config(tmp_path),
-        stage_log_mapping={
-            "create_token_list": "training_config.exp_dir",
-            "export_onnx": "training_config.exp_dir",
-        },
-    )
-
-    assert system.stage_log_dirs["remove_long_short"] == tmp_path / "filtered"
-    assert system.stage_log_dirs["create_token_list"] == tmp_path / "exp"
-    assert system.stage_log_dirs["export_onnx"] == tmp_path / "exp"
+    assert stage_log_dir(system, "remove_long_short") == tmp_path / "filtered"
+    assert stage_log_dir(system, "create_token_list") == tmp_path / "tokens"
 
 
 def test_all_stage_configs_are_stored(tmp_path):

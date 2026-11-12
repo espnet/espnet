@@ -5,6 +5,84 @@ import torch
 from espnet2.aqa.base import UniversaBase
 
 
+def _encoder_params(**kwargs):
+    params = dict(
+        num_blocks=1,
+        attention_heads=2,
+        linear_units=16,
+        input_layer="linear",
+        dropout_rate=0.0,
+        positional_dropout_rate=0.0,
+        attention_dropout_rate=0.0,
+        use_flash_attn=False,
+    )
+    params.update(kwargs)
+    return params
+
+
+def _build_universa(**kwargs):
+    torch.manual_seed(0)
+    options = dict(
+        input_size=8,
+        metric2id={"mos": 0},
+        use_ref_audio=True,
+        use_ref_text=True,
+        vocab_size=8,
+        embedding_size=8,
+        use_normalize=False,
+        audio_encoder_params=_encoder_params(),
+        text_encoder_params=_encoder_params(),
+        cross_attention_params=dict(n_head=2, dropout_rate=0.0),
+    )
+    options.update(kwargs)
+    return UniversaBase(**options)
+
+
+def test_use_sdpa_reaches_the_attention_and_matches_the_default():
+    """`use_sdpa` has to be forwarded, and must not change the output.
+
+    eval() so dropout does not make the two forward passes draw different
+    masks. Reference audio is included so the cross attention runs too.
+    """
+    audio = torch.randn(2, 10, 8)
+    lengths = torch.tensor([10, 8])
+    reference = torch.randn(2, 12, 8)
+    reference_lengths = torch.tensor([12, 9])
+
+    outputs = {}
+    for use_sdpa in (False, True):
+        model = _build_universa(use_sdpa=use_sdpa).eval()
+        attentions = [m for m in model.modules() if hasattr(m, "use_sdpa")]
+        assert attentions and all(m.use_sdpa is use_sdpa for m in attentions)
+        with torch.no_grad():
+            encoded, encoded_lengths = model.encode(
+                audio, lengths, reference, reference_lengths
+            )
+        outputs[use_sdpa] = (encoded, encoded_lengths)
+
+    torch.testing.assert_close(
+        outputs[True][0], outputs[False][0], atol=1e-5, rtol=1e-5
+    )
+    torch.testing.assert_close(outputs[True][1], outputs[False][1])
+
+
+@pytest.mark.parametrize("component_use_sdpa", [False, True])
+def test_component_use_sdpa_is_preserved(component_use_sdpa):
+    """An explicit use_sdpa in a component dict wins over the constructor."""
+    model = _build_universa(
+        use_sdpa=not component_use_sdpa,
+        audio_encoder_params=_encoder_params(use_sdpa=component_use_sdpa),
+        text_encoder_params=_encoder_params(use_sdpa=component_use_sdpa),
+        cross_attention_params=dict(
+            n_head=2, dropout_rate=0.0, use_sdpa=component_use_sdpa
+        ),
+    )
+    assert model.audio_encoder.encoders[0].self_attn.use_sdpa is component_use_sdpa
+    assert model.ref_audio_encoder.encoders[0].self_attn.use_sdpa is component_use_sdpa
+    assert model.text_encoder.encoders[0].self_attn.use_sdpa is component_use_sdpa
+    assert model.cross_attention.use_sdpa is component_use_sdpa
+
+
 @pytest.mark.parametrize("multi_branch", [False, True])
 @pytest.mark.parametrize("pooling_type", ["mean", "channel_attention"])
 @pytest.mark.parametrize("use_normalize", [False, True])

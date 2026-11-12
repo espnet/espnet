@@ -196,8 +196,8 @@ class CustomCollate:
     def __init__(self):
         pass
 
-    def __call__(batch):
-        return {"custom": True}
+    def __call__(self, batch):
+        return {"custom": True, "batch_size": len(batch)}
 
 
 def test_use_espnet_collator_flag_false(tmp_path, dummy_model, dummy_dataset_config):
@@ -217,10 +217,18 @@ def test_use_espnet_collator_flag_false(tmp_path, dummy_model, dummy_dataset_con
         }
     )
     model = ESPnetLightningModule(dummy_model, config)
-    _ = model.train_dataloader()
-    _ = model.val_dataloader()
+    train_loader = model.train_dataloader()
+    valid_loader = model.val_dataloader()
     assert model.train_dataset.use_espnet_collator is False
     assert model.valid_dataset.use_espnet_collator is False
+
+    # Actually drive a batch through the custom collate_fn: previously
+    # ``CustomCollate.__call__`` had no ``self`` parameter, so it was never
+    # invoked by this test and the resulting TypeError went unnoticed.
+    train_batch = next(iter(train_loader))
+    assert train_batch == {"custom": True, "batch_size": 1}
+    valid_batch = next(iter(valid_loader))
+    assert valid_batch == {"custom": True, "batch_size": 1}
 
 
 # ---------------------- Error Cases ----------------------

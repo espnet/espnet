@@ -494,6 +494,51 @@ if [ "${task}" == "lid" ] || [ "${task}" == "all" ]; then
     cd "${cwd}"
 fi
 
+if [ "${task}" == "diar" ] || [ "${task}" == "all" ]; then
+    # [ESPnet2] test diar1 recipe: two-speaker mixtures simulated from mini_an4
+    cd ./egs2/mini_an4/diar1
+    gen_dummy_coverage
+    echo "==== [ESPnet2] DIAR ==="
+    # EEND: data, training, inference, scoring and packing
+    ./run.sh --ngpu 0 --stage 1 --stop-stage 8 --skip_packing false --python "${python}" \
+        --diar-args "--num_workers 0"
+    # EEND-EDA: the number of speakers is estimated by the attractors
+    ./run.sh --ngpu 0 --stage 5 --stop-stage 7 --python "${python}" \
+        --diar_config conf/train_diar_eda_debug.yaml --inference_config conf/decode_diar_eda.yaml \
+        --diar-args "--num_workers 0"
+    # Batched inference gives every recording what it gets alone (11 recordings
+    # of different lengths, batches of 4)
+    local/check_batch_inference.sh --python "${python}" \
+        exp/diar_train_diar_debug_raw_num_workers0 conf/decode_diar.yaml dump/raw/train
+    local/check_batch_inference.sh --python "${python}" \
+        exp/diar_train_diar_eda_debug_raw_num_workers0 conf/decode_diar_eda.yaml dump/raw/train
+    # Causal VAD (num_spk 1, causal TCN, STFT without centring) on the same
+    # mixtures labelled with the union of the speech. It recomputes the feature
+    # statistics in exp/diar_stats_16k, so it runs after the EEND models.
+    ./run.sh --ngpu 0 --stage 2 --stop-stage 7 --python "${python}" --num_spk 1 \
+        --train_set train_vad --valid_set test_vad --test_sets test_vad \
+        --diar_config conf/train_vad_tcn_causal_debug.yaml --inference_config conf/decode_vad.yaml \
+        --diar-args "--num_workers 0"
+    local/check_batch_inference.sh --python "${python}" \
+        exp/diar_train_vad_tcn_causal_debug_raw_num_workers0 conf/decode_vad.yaml dump/raw/train_vad
+    # The prediction of a frame does not change when later samples are removed
+    ${python} local/check_causal_inference.py \
+        exp/diar_train_vad_tcn_causal_debug_raw_num_workers0 dump/raw/train_vad/wav.scp
+    # Dual-mode VAD (one set of weights, look-ahead 0 and 6 frames): online it reads
+    # no future sample; offline it reads exactly 6 frames ahead
+    ./run.sh --ngpu 0 --stage 5 --stop-stage 7 --python "${python}" --num_spk 1 \
+        --train_set train_vad --valid_set test_vad --test_sets test_vad \
+        --diar_config conf/train_vad_tcn_dualmode_debug.yaml --inference_config conf/decode_vad.yaml \
+        --diar-args "--num_workers 0"
+    for look_ahead in 0 6; do
+        ${python} local/check_causal_inference.py --look_ahead "${look_ahead}" \
+            exp/diar_train_vad_tcn_dualmode_debug_raw_num_workers0 dump/raw/train_vad/wav.scp
+    done
+    # Remove generated files in order to reduce the disk usage
+    rm -rf exp dump data
+    cd "${cwd}"
+fi
+
 if [ "${task}" == "s2t" ] || [ "${task}" == "all" ]; then
     # [ESPnet2] test s2t1 recipe
     # # Install s2t dependency
@@ -563,6 +608,16 @@ if [ "${task}" == "rst" ] || [ "${task}" == "all" ]; then
     echo "==== [ESPnet2] RST ==="
     ./run.sh --stage 1 --stop_stage 9 --python "${python}"
     # Remove generated files in order to reduce the disk usage
+    rm -rf exp dump data downloads
+    cd "${cwd}"
+fi
+
+if [ "${task}" == "aqa" ] || [ "${task}" == "all" ]; then
+    # [ESPnet2] test AQA training and inference with synthetic metric labels
+    cd ./egs2/mini_an4/aqa1
+    gen_dummy_coverage
+    echo "==== [ESPnet2] AQA ==="
+    ./run.sh --ngpu 0 --stage 1 --stop_stage 9 --python "${python}"
     rm -rf exp dump data downloads
     cd "${cwd}"
 fi

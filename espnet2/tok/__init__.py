@@ -1,1 +1,1 @@
-"""Trainable speech tokenizers and their auxiliary objectives."""
+"""Trainable speech tokenizers and their auxiliary losses."""

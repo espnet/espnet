@@ -10,6 +10,7 @@ from espnet2.train.preprocessor import AbsPreprocessor
 from espnet3.components.data import data_organizer as data_organizer_module
 from espnet3.components.data.data_organizer import (
     DataOrganizer,
+    DatasetConfig,
     do_nothing,
 )
 from espnet3.components.data.dataset import (
@@ -17,6 +18,7 @@ from espnet3.components.data.dataset import (
     DatasetWithTransform,
     ShardedDataset,
 )
+from espnet3.components.data.dataset_module import parse_dataset_reference_config
 
 # ===============================================================
 # Test Case Summary for DataOrganizer & CombinedDataset
@@ -89,6 +91,10 @@ SPLIT_RECORDING_PREPROCESSOR_TARGET = (
 ESPNET_TRAIN_FLAG_PREPROCESSOR_TARGET = (
     "test.espnet3.components.data." "test_data_organizer.TrainFlagRecordingPreprocessor"
 )
+ESPNET_TRAIN_FLAG_FACTORY_TARGET = (
+    "test.espnet3.components.data."
+    "test_data_organizer.build_train_flag_recording_preprocessor"
+)
 
 
 # Dummy classes
@@ -151,6 +157,13 @@ class TrainFlagRecordingPreprocessor(AbsPreprocessor):
 
     def __call__(self, uid, sample):
         return {**sample, "was_train": self.train}
+
+
+def build_train_flag_recording_preprocessor(
+    train: bool = False,
+) -> TrainFlagRecordingPreprocessor:
+    """Factory function (not a class) that returns an AbsPreprocessor."""
+    return TrainFlagRecordingPreprocessor(train=train)
 
 
 class DummyDataset:
@@ -347,6 +360,29 @@ def test_combined_dataset_mixed_index_types():
     assert combined[3]["text"] == "world"
     # Direct string lookup hits the string-backed dataset
     assert combined["utt1"]["text"] == "world"
+
+
+@pytest.mark.xfail(
+    strict=True,
+    reason=(
+        "data-organizer#23: in mixed (string-index) mode, an "
+        "int-addressable sub-dataset's numeric position is not registered "
+        "in _uid_to_dataset, so combined[str(int_position)] raises "
+        "ValueError instead of resolving like combined[int_position] does."
+    ),
+)
+def test_combined_dataset_mixed_index_types_numeric_string_lookup():
+    numeric = DummyDataset()
+    stringy = DummyStringKeyDataset()
+    combined = CombinedDataset(
+        [numeric, stringy],
+        [
+            (do_nothing, do_nothing),
+            (do_nothing, do_nothing),
+        ],
+    )
+
+    assert combined["0"]["text"] == combined[0]["text"] == "hello"
 
 
 def test_combined_dataset_duplicate_string_ids_error():
@@ -969,6 +1005,35 @@ def test_combined_dataset_sharded_metadata_mismatch():
         )
 
 
+def test_combined_dataset_repr_is_callable():
+    # [data-organizer#25] repr() used to raise AttributeError via a stray
+    # self.multiple_iterator reference that is never set in __init__.
+    ds1 = DummyDataset()
+    ds2 = DummyDataset()
+    combined = CombinedDataset(
+        [ds1, ds2],
+        [(DummyTransform(), do_nothing), (DummyTransform(), do_nothing)],
+    )
+    text = repr(combined)
+    assert "CombinedDataset(" in text
+    assert "total_len=4" in text
+    assert "multiple_iterator" not in text
+
+
+def test_parse_dataset_reference_config_accepts_dataset_config_instance():
+    # [data-organizer#27] a real (non-dict, non-DictConfig) DatasetConfig
+    # instance used to raise "TypeError: 'DatasetConfig' object is not
+    # iterable" inside dataset_module._to_plain_dict's dict(config) fallback.
+    config = DatasetConfig(
+        name="train_dummy",
+        data_src="mini_an4/asr",
+        data_src_args={"split": "train"},
+    )
+    data_src, data_src_args = parse_dataset_reference_config(config)
+    assert data_src == "mini_an4/asr"
+    assert data_src_args == {"split": "train"}
+
+
 # -----------------------------------------------------------------------
 # ESPnet preprocessor train-flag auto-setting
 # -----------------------------------------------------------------------
@@ -983,6 +1048,33 @@ def test_espnet_preprocessor_train_flag_auto_set_from_dictconfig():
     preprocessor_cfg = OmegaConf.create(
         {"_target_": ESPNET_TRAIN_FLAG_PREPROCESSOR_TARGET}
     )
+    organizer = DataOrganizer(
+        train=config["train"],
+        valid=config["valid"],
+        preprocessor=preprocessor_cfg,
+    )
+    assert organizer.train[0]["was_train"] is True
+    assert organizer.valid[0]["was_train"] is False
+
+
+@pytest.mark.xfail(
+    strict=True,
+    reason=(
+        "data-organizer#26: _instantiate_preprocessor_from_config detects "
+        "an ESPnet AbsPreprocessor via "
+        "isinstance(partial_preprocessor.func, type), which is False for a "
+        "_target_ factory *function* (as opposed to the class itself), so "
+        "the per-split train flag is never auto-set for factory-based "
+        "shared preprocessor configs."
+    ),
+)
+def test_espnet_preprocessor_train_flag_auto_set_from_factory_function():
+    """A _target_ that is a factory function should still get train auto-set."""
+    config = {
+        "train": [_entry("train_dummy")],
+        "valid": [_entry("valid_dummy")],
+    }
+    preprocessor_cfg = OmegaConf.create({"_target_": ESPNET_TRAIN_FLAG_FACTORY_TARGET})
     organizer = DataOrganizer(
         train=config["train"],
         valid=config["valid"],

@@ -85,7 +85,7 @@ def test_build_model_cpu(monkeypatch):
 
     import torch
 
-    import espnet3.api.inference.loading as provider_mod
+    import espnet3.systems.base.inference_provider as provider_mod
 
     monkeypatch.setattr(torch.cuda, "is_available", lambda: False)
 
@@ -107,7 +107,7 @@ def test_build_model_cuda_defaults_to_logical_device_zero(monkeypatch):
 
     import torch
 
-    import espnet3.api.inference.loading as provider_mod
+    import espnet3.systems.base.inference_provider as provider_mod
 
     monkeypatch.setattr(torch.cuda, "is_available", lambda: True)
     import torch
@@ -131,7 +131,7 @@ def test_build_model_cuda_uses_logical_device_index(monkeypatch):
 
     import torch
 
-    import espnet3.api.inference.loading as provider_mod
+    import espnet3.systems.base.inference_provider as provider_mod
 
     monkeypatch.setattr(torch.cuda, "is_available", lambda: True)
     import torch
@@ -155,7 +155,7 @@ def test_build_model_cuda_respects_explicit_device(monkeypatch):
 
     import torch
 
-    import espnet3.api.inference.loading as provider_mod
+    import espnet3.systems.base.inference_provider as provider_mod
 
     monkeypatch.setattr(torch.cuda, "is_available", lambda: True)
 
@@ -233,16 +233,8 @@ def test_forward_batch_with_batched_inputs():
     ]
 
 
-def test_forward_batch_falls_back_to_single_items(caplog):
-    """A model or output_fn that takes no batch is run one item at a time.
-
-    `batch_size` is set by default in the ASR recipes, and not every
-    `Speech2Text` (the transducer one, for instance) accepts a list, so the
-    runner must degrade to single-item calls rather than fail the shard. It
-    says so once.
-    """
-    import logging
-
+def test_forward_batch_failure_propagates():
+    """A model that rejects a batch fails without per-item retry."""
     dataset = [
         {"utt_id": "utt1", "speech": "audio1", "text": "ref1"},
         {"utt_id": "utt2", "speech": "audio2", "text": "ref2"},
@@ -255,14 +247,7 @@ def test_forward_batch_falls_back_to_single_items(caplog):
             return [[f"hyp-{speech}"]]
 
     output_path = f"{__name__}._output_fn"
-    with caplog.at_level(logging.WARNING):
-        out = InferenceRunner.forward(
-            [0, 1],
-            dataset=dataset,
-            model=DummyModel(),
-            input_key="speech",
-            output_fn_path=output_path,
-        )
+    with pytest.raises(TypeError, match="single utterance"):
         InferenceRunner.forward(
             [0, 1],
             dataset=dataset,
@@ -270,12 +255,6 @@ def test_forward_batch_falls_back_to_single_items(caplog):
             input_key="speech",
             output_fn_path=output_path,
         )
-    assert out == [
-        {"utt_id": "utt1", "hyp": "hyp-audio1", "ref": "ref1"},
-        {"utt_id": "utt2", "hyp": "hyp-audio2", "ref": "ref2"},
-    ]
-    notes = [r for r in caplog.records if "one at a time" in r.getMessage()]
-    assert len(notes) == 1, [r.getMessage() for r in caplog.records]
 
 
 def test_forward_requires_fields():
@@ -340,3 +319,141 @@ def test_inference_params_affect_runner_forward(tmp_path, flip, expected):
     scp_path = tmp_path / "test" / "hyp.scp"
     assert scp_path.exists()
     assert scp_path.read_text().strip() == f"utt1 {expected}"
+
+
+class NativeASRProvider(InferenceProvider):
+    @staticmethod
+    def build_dataset(config):
+        import numpy as np
+
+        return [
+            {"utt_id": f"u{i}", "speech": np.sin(np.arange(2000 + i * 160) / 20)}
+            for i in range(3)
+        ]
+
+
+# Builds a real ASR model and decodes it; the first run pays the import cost,
+# which exceeds the default 10-second execution timeout on CI.
+@pytest.mark.execution_timeout(60)
+@pytest.mark.parametrize("batch_size", [None, 2])
+def test_native_asr_recipe_writes_the_backends_text(tmp_path, batch_size):
+    """Exercise model construction, native decoding, formatting and SCP writing."""
+    from espnet2.tasks.asr import ASRTask
+    from espnet3.parallel.parallel import set_parallel
+
+    tokens = tmp_path / "tokens.txt"
+    tokens.write_text("<blank>\n<unk>\na\nb\n<sos/eos>\n", encoding="utf-8")
+    ASRTask.main(
+        cmd=[
+            "--dry_run",
+            "true",
+            "--output_dir",
+            str(tmp_path / "train"),
+            "--token_list",
+            str(tokens),
+            "--token_type",
+            "char",
+            "--encoder",
+            "transformer",
+            "--encoder_conf",
+            "{output_size: 8, attention_heads: 2, linear_units: 8, num_blocks: 1}",
+            "--decoder",
+            "transformer",
+            "--decoder_conf",
+            "{attention_heads: 2, linear_units: 8, num_blocks: 1}",
+        ]
+    )
+    overrides = OmegaConf.create(
+        {
+            "inference_dir": str(tmp_path / "decode"),
+            "dataset": {"test": [{"name": "test"}]},
+            "model": {
+                "asr_train_config": str(tmp_path / "train" / "config.yaml"),
+                "beam_size": 1,
+                "ctc_weight": 1.0,
+            },
+            "batch_size": batch_size,
+            "provider": {"_target_": f"{__name__}.NativeASRProvider"},
+            "runner": {
+                "_target_": "espnet3.systems.esp2_asr.inference.ASRInferenceRunner"
+            },
+            "parallel": {"env": "local", "n_workers": 1},
+        }
+    )
+    from espnet3.utils.config_utils import load_default_config
+
+    config = OmegaConf.merge(
+        load_default_config("inference.yaml", "egs3.TEMPLATE.esp2_asr"), overrides
+    )
+    set_parallel(None)
+    model = NativeASRProvider.build_model(config)
+    expected = [
+        f"{item['utt_id']} {model(speech=item['speech'])[0][0] or ''}"
+        for item in NativeASRProvider.build_dataset(config)
+    ]
+    # Build another instance with identical initialized weights.
+    checkpoint = tmp_path / "model.pth"
+    import torch
+
+    torch.save(model.asr_model.state_dict(), checkpoint)
+    config.model.asr_model_file = str(checkpoint)
+    # The publication API should decode the packed model through the same
+    # inference config and output formatter as the recipe's infer stage.
+    from espnet3.publication import InferenceModel
+
+    pack = tmp_path / "model_pack"
+    (pack / "conf").mkdir(parents=True)
+    OmegaConf.save(config, pack / "conf" / "inference.yaml")
+    OmegaConf.save(
+        OmegaConf.create(
+            {
+                "schema_version": 1,
+                "yaml_files": {"inference_config": "conf/inference.yaml"},
+            }
+        ),
+        pack / "meta.yaml",
+    )
+    publication_model = InferenceModel.from_packed(pack, trust_user_code=True)
+    from espnet3.publication.demo.assets import DEFAULT_UI_ASSETS
+    from espnet3.publication.demo.session import DemoSession
+
+    demo = DemoSession(
+        pack,
+        OmegaConf.create(
+            {"model": {"call_args": {}}, "ui": {"title": None, "description": None}}
+        ),
+        publication_model,
+        DEFAULT_UI_ASSETS.clone(),
+    )
+    callback = demo.create_inference_fn(demo.input_specs, demo.output_specs)
+    samples = NativeASRProvider.build_dataset(config)
+    batch_results = publication_model.forward_batch(samples)
+    assert len(batch_results) == len(samples)
+    assert [f"{item['utt_id']} {item['text']}" for item in batch_results] == expected
+    reversed_results = publication_model.forward_batch(list(reversed(samples)))
+    assert [item["text"] for item in reversed_results] == [
+        item["text"] for item in reversed(batch_results)
+    ]
+    for item, expected_line in zip(NativeASRProvider.build_dataset(config), expected):
+        result = publication_model(item, idx=item["utt_id"])
+        assert isinstance(result, dict)
+        assert f"{result['utt_id']} {result['text']}" == expected_line
+        assert callback((16000, item["speech"])) == result["text"]
+    try:
+        infer(config)
+        assert (
+            tmp_path / "decode" / "test" / "text.scp"
+        ).read_text().splitlines() == expected
+    finally:
+        set_parallel(None)
+
+    from hydra.errors import InstantiationException
+
+    checkpoint.unlink()
+    with pytest.raises((FileNotFoundError, InstantiationException)) as caught:
+        InferenceModel.from_packed(pack, trust_user_code=True)
+    cause = caught.value
+    while cause.__cause__ is not None:
+        cause = cause.__cause__
+    assert isinstance(cause, FileNotFoundError)
+    assert cause.filename == str(checkpoint)
