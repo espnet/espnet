@@ -9,7 +9,7 @@ and remove generated `exp/` and `data/` directories in their fixture recipes.
 | Script | Coverage |
 |---|---|
 | `test_python_espnet3.sh` | flake8 wrapper, repository pycodestyle, timed pytest over test/espnet3, test/ci, and test/splet, coverage |
-| `test_integration_espnet3.sh` | In-place mini_an4/esp2_asr stages across four model configs, then serial/two-worker equivalence |
+| `test_integration_espnet3.sh` | Main ESPnet3 integration flow for Systems and recipes, including serial/parallel checks |
 | `check_espnet3_parallel_workers.py` | Compares serial and parallel inference/statistics artifacts |
 | `test_integration_espnet3_publication.sh` | Training through model packing, optional upload, external bundle loading, demo packing/UI checks |
 | `test_integration_espnet3_publication_check.py` | Loads a bundle with the inference API from outside the recipe tree |
@@ -45,22 +45,24 @@ describe a narrowed local invocation as the full CI check.
 
 ## Integration behavior
 
-The ASR script runs `create_dataset train_tokenizer collect_stats train infer measure`
-inside `egs3/mini_an4/esp2_asr/`. It covers streaming, transformer, and transducer
-configs, including the separate RNNT inference config. It then compares serial and
-two-CPU-worker statistics/inference using `check_espnet3_parallel_workers.py`.
-There is no recipe-cloning CLI step.
+`test_integration_espnet3.sh` is the shared integration entry point for ESPnet3
+Systems and recipes. Read the script for its current fixtures, stages, model
+configs, and parallel checks.
 
 Publication integration validates relative bundle paths and model loading outside
 the recipe. It also packs default/custom demos and exercises them with Playwright.
 Upload is optional and controlled by `ESPNET3_PUBLICATION_TEST_UPLOAD` and the
 configured Hugging Face repository.
 
-Extend the relevant integration flow when changing stage outputs, worker dispatch,
-bundle format, or demo contracts. Use a small fixture/model for a new System.
-When adding a System, add a mini_an4-based integration test that runs the new
-System through its supported stages; include it in the ESPnet3 integration CI
-flow (or an appropriate dedicated integration job).
+When adding integration coverage for a System or recipe, extend
+`ci/test_integration_espnet3.sh` rather than creating a separate recipe-specific
+script such as `ci/test_integration_espnet3_tse.sh`. Use a small fixture/model
+(prefer mini_an4 when suitable) and exercise the System's supported stages. Add
+only the dependencies needed for that coverage and keep its cleanup scoped to the
+fixture. Use an existing specialized flow when the change belongs there, such as
+publication or demo integration; do not add a standalone job just for a recipe.
+For an example, see the ST coverage added to the shared script in
+[commit `0ad91a3`](https://github.com/espnet/espnet/commit/0ad91a395de02257331024cbac70b41143a65480).
 Run cleanup-producing integration scripts only in a disposable checkout/worktree
 or after confirming their recipe output directories contain disposable artifacts.
 

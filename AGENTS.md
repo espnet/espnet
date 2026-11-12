@@ -1,3 +1,10 @@
+# Agent working files
+
+`doc/` and `docs/` are for website documentation. Do not place agent-generated
+notes, plans, skill artifacts, or other working files there unless the user
+explicitly requests them as documentation. Use a temporary directory for scratch
+files; keep shared agent guidance under `.agents/`.
+
 # Review guidelines
 
 Before reviewing a pull request, read `CONTRIBUTING.md` and apply the guidelines
