@@ -43,7 +43,7 @@ Noise for on-the-fly augmentation (`data/noise.scp`, SNR -5 to 20 dB):
 
 | corpus | `db.sh` | licence | part used |
 |---|---|---|---|
-| MUSAN | `MUSAN` | CC / public domain (per-file LICENSE) | `noise/`, `music/` (`speech/` is left out: babble added to a non-speech region would be labelled non-speech) |
+| MUSAN | `MUSAN` | CC licences (some `music/` tracks CC BY-SA) / public domain (per-file LICENSE) | `noise/`, `music/` (`speech/` is left out: babble added to a non-speech region would be labelled non-speech) |
 | CHiME-3 background noise | `CHIME3_BACKGROUND` | CC BY 4.0 | all channels |
 
 Evaluation only (test sets; the dev/eval splits of the training corpora are test
@@ -62,6 +62,15 @@ sets too). Multi-channel recordings are scored on their first channel.
 
 Archives that unpack into many small files (AliMeeting, AISHELL-4) can stay
 packed: `local/data.sh` extracts only the members it needs into `downloads/`.
+
+### Training noise
+
+The training audio was augmented by adding recorded noise to it. That noise
+audio is not distributed with the models trained by this recipe; it was used
+only as additive background noise during training. All of MUSAN `music/` was
+used, and some of those tracks are licensed CC BY-SA. The next release
+restricts the music to MUSAN tracks without vocals that are CC0, CC BY or
+public domain.
 
 ## Running
 
