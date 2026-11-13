@@ -50,7 +50,8 @@ download_jobs=8       # parallel downloads in stage 0
 v1_train="ami,chime6,notsofar,icsi"
 v1_test="dipco,ami_mh,alimeeting,aishell4,voxconverse,earnings21,ava_speech,ten_vad"
 v1_nshards=8          # jobs per v1 corpus split in stage 1
-nshards=8             # jobs per corpus in stage 3 (changes the packing; keep 8)
+nshards=8             # shards per corpus in stage 3 (changes the packing; keep 8)
+prep_tasks=1          # stage 3 tasks (${train_cmd} JOB=1:N), each the shards of its corpora in parallel
 pack_seconds=30       # recordings shorter than this are packed (training chunks: 10 s)
 align_model=espnet/owsm_ctc_v4_1B
 align_revision=6075bf3d42e6037d1ef7abd7c5558ade886e6eaa
@@ -60,7 +61,7 @@ align_batch_seconds=3840    # audio per GPU forward (0: one recording at a time)
 align_dtype=float32         # encoder precision of the alignment
 align_use_sdpa=true         # encoder attention through scaled_dot_product_attention (same alignments, 32 % less memory)
 align_tf32=false            # TF32 matrix multiplication in the alignment
-align_jobs=1                # alignments at once per stage-4 run (one GPU each)
+align_tasks=1               # stage 4 tasks (${cuda_cmd} --gpu 1 JOB=1:N), one GPU each
 align_shards=""             # stage 4 for these shard numbers only, e.g. "0 1"; empty: all
 dumpdir=dump/v2
 
@@ -131,23 +132,20 @@ fi
 
 if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
     log "Stage 3: corpora from their archives: ${corpora}"
+    mkdir -p "${dumpdir}/log"
+    echo "${corpora}" | tr , '\n' > "${dumpdir}/log/prep_corpora.txt"
+    ${train_cmd} JOB=1:${prep_tasks} "${dumpdir}/log/prep.JOB.log" \
+        ${v2}/prep_task.sh "${dumpdir}/log/prep_corpora.txt" JOB ${prep_tasks} \
+            "${VAD_CORPORA}" "${dumpdir}" ${nshards} ${pack_seconds}
     for corpus in ${corpora//,/ }; do
-        if [ -f "${dumpdir}/${corpus}/.done" ]; then
-            log "Skip ${corpus}: ${dumpdir}/${corpus}/.done exists"
-            continue
-        fi
-        ${train_cmd} JOB=1:${nshards} "${dumpdir}/log/${corpus}.JOB.log" \
-            python3 ${v2}/prep.py --corpus "${corpus}" --root "${VAD_CORPORA}" \
-                --out "${dumpdir}" --shard "\$((JOB-1))" --nshards ${nshards} \
-                --pack_seconds ${pack_seconds}
-        touch "${dumpdir}/${corpus}/.done"
+        [ -f "${dumpdir}/${corpus}/.done" ] || { log "${corpus} failed: see ${dumpdir}/log"; exit 1; }
     done
 fi
 
 if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
     log "Stage 4: CTC alignment (${align_model}@${align_revision})"
     # the dump directories of --corpora with transcripts and no .aligned yet,
-    # one GPU job each
+    # spread over --align_tasks GPU tasks
     todo=()
     for corpus in ${corpora//,/ }; do
         [ -d "${dumpdir}/${corpus}" ] || continue
@@ -160,19 +158,16 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
             todo+=("${d}")
         done < <(find "${dumpdir}/${corpus}" -name text -not -path '*/before_align/*' -printf '%h\n' | sort)
     done
-    for d in "${todo[@]}"; do
-        # at most --align_jobs at once: each fills its GPU with batches
-        while [ "$(jobs -rp | wc -l)" -ge "${align_jobs}" ]; do wait -n || true; done
-        name=$(echo "${d#"${dumpdir}"/}" | tr / _)
-        ${cuda_cmd} --gpu 1 "${dumpdir}/log/align_${name}.log" \
-            python3 ${v2}/align.py --dump "${d}" --model_tag "${align_model}" \
-                --revision "${align_revision}" --device cuda \
+    printf '%s\n' "${todo[@]}" > "${dumpdir}/log/align_dumps.txt"
+    if [ ${#todo[@]} -gt 0 ]; then
+        ${cuda_cmd} --gpu 1 JOB=1:${align_tasks} "${dumpdir}/log/align.JOB.log" \
+            ${v2}/align_task.sh "${dumpdir}/log/align_dumps.txt" JOB ${align_tasks} \
+                --model_tag "${align_model}" --revision "${align_revision}" \
                 --min_pause "${align_min_pause}" \
                 --min_word_score "${align_min_word_score}" \
                 --batch_seconds "${align_batch_seconds}" --dtype "${align_dtype}" \
-                --use_sdpa "${align_use_sdpa}" --tf32 "${align_tf32}" &
-    done
-    wait
+                --use_sdpa "${align_use_sdpa}" --tf32 "${align_tf32}" || true
+    fi
     for d in "${todo[@]}"; do
         [ -f "${d}/.aligned" ] || { log "${d} is not aligned: see ${dumpdir}/log"; exit 1; }
     done

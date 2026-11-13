@@ -200,13 +200,21 @@ Downloads that need an account or an agreement are not in `local/v2/downloads/`:
 
 ## Running
 
-Set `VAD_CORPORA` (and the v1 corpus paths) in `db.sh`, and the job backend in
-`cmd.sh`: `run.pl` runs the jobs on the local machine, `slurm.pl` or `pbs.pl` submit
-them to a cluster (`conf/slurm.conf`, `conf/pbs.conf`). Stage 3 runs `--nshards` CPU
-jobs per corpus with `${train_cmd}`; stage 4 runs one GPU job per transcribed dump
-with `${cuda_cmd} --gpu 1`. On a cluster where a job cannot submit others, run
-`local/data.sh --stage N --stop_stage N --corpora <list>` inside a job with
-`cmd_backend=local`, so the shards of a stage run in parallel on that node.
+Set `VAD_CORPORA` (and the v1 corpus paths) in `db.sh`. The parallel work of every
+stage goes through `cmd.sh`: `CMD_BACKEND=local` (the default) runs the tasks with
+`run.pl` on this machine; `pbs`, `slurm` or `sge` submit each task as a job with
+`pbs.pl`, `slurm.pl` or `queue.pl`, configured in `conf/pbs.conf`, `conf/slurm.conf` or
+`conf/queue.conf`. Those files hold generic settings; a site puts its own there (the
+queue, the project or account, the resource type of CPU and GPU tasks, e.g.
+`option gpu=0 ...` and `option gpu=* ...` lines), the way it sets its paths in `db.sh`.
+The task counts are options:
+
+| stage | tasks | option |
+|---|---|---|
+| 3 corpora | `${train_cmd} JOB=1:N`, each the shards of its corpora in parallel | `--prep_tasks` |
+| 4 alignment | `${cuda_cmd} --gpu 1 JOB=1:N`, one GPU each | `--align_tasks` |
+| statistics (diar.sh 4) | `${train_cmd} JOB=1:N`, with N data loaders each | `--nj`, `--stats_args "--num_workers W"` |
+| inference (diar.sh 6) | `${cuda_cmd}` / `${decode_cmd}` | `--inference_nj` |
 
 ```sh
 ./run.sh                                   # all stages
