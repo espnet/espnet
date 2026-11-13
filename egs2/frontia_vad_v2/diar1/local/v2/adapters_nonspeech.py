@@ -1334,7 +1334,9 @@ def berst(root, writers, shard: int, nshards: int):
             if not mine(index, shard, nshards):
                 continue
             text = (row.get("script") or "").strip()
-            rid = safe_id(f"{row.get('user_id', '')}_{row.get('audio_id', index)}")
+            # an audio_id can occur in several rows (one per phone), so the row
+            # number keeps the ids unique
+            rid = safe_id(f"{index:07d}_{row.get('audio_id', '')}")
             if not text:
                 writers[split].skip(rid, "no script")
                 continue
