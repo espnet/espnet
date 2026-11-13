@@ -22,6 +22,7 @@ are reproducible.
 import argparse
 import json
 import logging
+import os
 import shutil
 import sys
 from pathlib import Path
@@ -121,6 +122,26 @@ def main():
         default=-10.0,
         help="drop a recording if a word's CTC segmentation score is below this",
     )
+    parser.add_argument(
+        "--batch_seconds",
+        type=float,
+        default=1920.0,
+        help="audio encoded per GPU forward, in the model's 30 s buffers "
+        "(local/v2/ctc_batch.py); 0: one recording at a time, as "
+        "espnet2.bin.s2t_align.CTCSegmentation does it",
+    )
+    parser.add_argument(
+        "--workers",
+        type=int,
+        default=max(1, (os.cpu_count() or 2) - 2),
+        help="processes for the CTC segmentation of the batched path",
+    )
+    parser.add_argument(
+        "--dtype",
+        default="float32",
+        choices=("float32", "bfloat16", "float16"),
+        help="encoder precision",
+    )
     args = parser.parse_args()
     logging.basicConfig(
         level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s"
@@ -147,6 +168,7 @@ def main():
         s2t_train_config=config,
         s2t_model_file=model,
         device=args.device,
+        dtype=args.dtype,
         kaldi_style_text=False,
         time_stamps="auto",
     )
@@ -156,21 +178,49 @@ def main():
     lang = read_table(d / "utt2lang")
     num_samples = {k: int(v) for k, v in read_table(d / "utt2num_samples").items()}
 
-    speech, dropped, word_rows, rates = {}, [], [], {}
-    for i, rid in enumerate(sorted(text)):
-        words = text[rid].split()
+    speech, dropped, word_rows = {}, [], []
+    rates = {}
+    todo = []
+    for rid in sorted(text):
         if lang[rid] not in tokens:
             dropped.append((rid, f"language {lang[rid]} not in the model"))
+        else:
+            todo.append(rid)
+    if args.batch_seconds > 0:
+        from ctc_batch import align_batched
+
+        def read(rid):
+            rate, x = audio[rid]
+            rates[rid] = rate
+            return rate, x
+
+        items = (
+            (rid, model_words(text[rid].split()), lang[rid], lambda r=rid: read(r))
+            for rid in todo
+        )
+        results = align_batched(aligner, items, args.batch_seconds, args.workers)
+    else:
+        results = {}
+        for i, rid in enumerate(todo):
+            rate, x = audio[rid]
+            rates[rid] = rate
+            aligner.lang_sym = lang[rid]
+            words = model_words(text[rid].split())
+            try:
+                task = aligner(np.asarray(x, dtype=np.float32), words, fs=rate)
+                segments = [tuple(map(float, s)) for s in task.segments]
+                results[rid] = (segments, None)
+            except Exception as e:  # noqa: BLE001 - e.g. transcript longer than audio
+                results[rid] = (None, f"{type(e).__name__}: {e}")
+            if i % 1000 == 0:
+                logging.info("%d / %d aligned", i, len(todo))
+    for rid in todo:
+        segments, error = results[rid]
+        if error is not None:
+            dropped.append((rid, f"alignment failed: {error}"))
             continue
-        rate, x = audio[rid]
-        rates[rid] = rate
-        aligner.lang_sym = lang[rid]
-        try:
-            task = aligner(np.asarray(x, dtype=np.float32), model_words(words), fs=rate)
-        except Exception as e:  # noqa: BLE001 - e.g. a transcript longer than the audio
-            dropped.append((rid, f"alignment failed: {type(e).__name__}: {e}"))
-            continue
-        spans = [(float(s), float(e), float(c)) for s, e, c in task.segments]
+        words = text[rid].split()
+        spans = [(s, e, c) for s, e, c in segments]
         worst = min(c for _, _, c in spans)
         for w, (s, e, c) in zip(words, spans):
             word_rows.append(f"{rid}\t{w}\t{s:.3f}\t{e:.3f}\t{c:.4f}\n")
@@ -178,8 +228,6 @@ def main():
             dropped.append((rid, f"word score {worst:.2f} < {args.min_word_score}"))
             continue
         speech[rid] = speech_of_words([(s, e) for s, e, _ in spans], args.min_pause)
-        if i % 1000 == 0:
-            logging.info("%d / %d aligned", i, len(text))
 
     kept = sorted(speech)
     rttm = []
@@ -224,7 +272,9 @@ def main():
     (d / "align.tsv").write_text(
         "rec_id\tword\tstart\tend\tscore\n" + "".join(word_rows)
     )
-    (d / "align_dropped.tsv").write_text("".join(f"{r}\t{why}\n" for r, why in dropped))
+    (d / "align_dropped.tsv").write_text(
+        "".join(f"{r}\t{why}\n" for r, why in sorted(dropped))
+    )
     import espnet
 
     config_out = dict(
@@ -233,6 +283,7 @@ def main():
         model_dir=str(root),
         min_pause=args.min_pause,
         min_word_score=args.min_word_score,
+        dtype=args.dtype,
         espnet_version=espnet.__version__,
         aligned=len(kept),
         dropped=len(dropped),

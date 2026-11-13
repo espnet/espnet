@@ -56,6 +56,9 @@ align_model=espnet/owsm_ctc_v4_1B
 align_revision=6075bf3d42e6037d1ef7abd7c5558ade886e6eaa
 align_min_pause=0.2         # pauses between words shorter than this are speech
 align_min_word_score=-10.0  # a recording with a word scored lower is dropped
+align_batch_seconds=1920    # audio per GPU forward (0: one recording at a time)
+align_dtype=float32         # encoder precision of the alignment
+align_jobs=1                # alignments at once per stage-4 run (one GPU each)
 dumpdir=dump/v2
 
 log "$0 $*"
@@ -150,12 +153,15 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
         done < <(find "${dumpdir}/${corpus}" -name text -printf '%h\n' | sort)
     done
     for d in "${todo[@]}"; do
+        # at most --align_jobs at once: each fills its GPU with batches
+        while [ "$(jobs -rp | wc -l)" -ge "${align_jobs}" ]; do wait -n || true; done
         name=$(echo "${d#"${dumpdir}"/}" | tr / _)
         ${cuda_cmd} --gpu 1 "${dumpdir}/log/align_${name}.log" \
             python3 ${v2}/align.py --dump "${d}" --model_tag "${align_model}" \
                 --revision "${align_revision}" --device cuda \
                 --min_pause "${align_min_pause}" \
-                --min_word_score "${align_min_word_score}" &
+                --min_word_score "${align_min_word_score}" \
+                --batch_seconds "${align_batch_seconds}" --dtype "${align_dtype}" &
     done
     wait
     for d in "${todo[@]}"; do
