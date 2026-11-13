@@ -47,6 +47,9 @@ iterator_type: chunk
 chunk_random_access: true
 chunk_length: 160000
 chunk_shift_ratio: 1.0
+# each epoch draws its chunks per domain (utt2category), domain c getting a share
+# proportional to n_c^0.3 of its n_c chunks: small domains are upsampled
+chunk_upsampling_factor: 0.3
 batch_size: 64
 num_workers: 14
 seed: 1
@@ -64,7 +67,7 @@ best_model_criterion:
 -   - valid
     - acc
     - max
-keep_nbest_models: 5
+keep_nbest_models: [2, 5]  # averages of the 2 and 5 best
 
 model_conf:
     look_aheads: [0, 124]
