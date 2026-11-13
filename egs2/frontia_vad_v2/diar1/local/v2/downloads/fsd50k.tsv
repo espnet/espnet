@@ -1,0 +1,12 @@
+# corpus_dir	relative_path	url	size_bytes	checksum	unpack
+fsd50k	ARCHIVES/FSD50K.dev_audio.z01	https://zenodo.org/api/records/4060432/files/FSD50K.dev_audio.z01/content	3221225472	md5:faa7cf4cc076fc34a44a479a5ed862a3	
+fsd50k	ARCHIVES/FSD50K.dev_audio.z02	https://zenodo.org/api/records/4060432/files/FSD50K.dev_audio.z02/content	3221225472	md5:8f9b66153e68571164fb1315d00bc7bc	
+fsd50k	ARCHIVES/FSD50K.dev_audio.z03	https://zenodo.org/api/records/4060432/files/FSD50K.dev_audio.z03/content	3221225472	md5:1196ef47d267a993d30fa98af54b7159	
+fsd50k	ARCHIVES/FSD50K.dev_audio.z04	https://zenodo.org/api/records/4060432/files/FSD50K.dev_audio.z04/content	3221225472	md5:d088ac4e11ba53daf9f7574c11cccac9	
+fsd50k	ARCHIVES/FSD50K.dev_audio.z05	https://zenodo.org/api/records/4060432/files/FSD50K.dev_audio.z05/content	3221225472	md5:81356521aa159accd3c35de22da28c7f	
+fsd50k	ARCHIVES/FSD50K.dev_audio.zip	https://zenodo.org/api/records/4060432/files/FSD50K.dev_audio.zip/content	2306663327	md5:c480d119b8f7a7e32fdb58f3ea4d6c5a	
+fsd50k	ARCHIVES/FSD50K.doc.zip	https://zenodo.org/api/records/4060432/files/FSD50K.doc.zip/content	6984	md5:3516162b82dc2945d3e7feba0904e800	
+fsd50k	ARCHIVES/FSD50K.eval_audio.z01	https://zenodo.org/api/records/4060432/files/FSD50K.eval_audio.z01/content	3221225472	md5:3090670eaeecc013ca1ff84fe4442aeb	
+fsd50k	ARCHIVES/FSD50K.eval_audio.zip	https://zenodo.org/api/records/4060432/files/FSD50K.eval_audio.zip/content	3037675767	md5:6fa47636c3a3ad5c7dfeba99f2637982	
+fsd50k	ARCHIVES/FSD50K.ground_truth.zip	https://zenodo.org/api/records/4060432/files/FSD50K.ground_truth.zip/content	334701	md5:ca27382c195e37d2269c4c866dd73485	
+fsd50k	ARCHIVES/FSD50K.metadata.zip	https://zenodo.org/api/records/4060432/files/FSD50K.metadata.zip/content	6700838	md5:b9ea0c829a411c1d42adb9da539ed237	

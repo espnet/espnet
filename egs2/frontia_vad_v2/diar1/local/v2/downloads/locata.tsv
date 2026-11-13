@@ -1,0 +1,3 @@
+# corpus_dir	relative_path	url	size_bytes	checksum	unpack
+locata	ARCHIVES/dev.zip	https://zenodo.org/records/3630471/files/dev.zip?download=1	6207354195	md5:d5a5417c3f6b2ed0e43581dd06f504e6	
+locata	ARCHIVES/eval.zip	https://zenodo.org/records/3630471/files/eval.zip?download=1	13045105034	md5:46709713350bc16c106e788920d30a8b	

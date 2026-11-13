@@ -1,0 +1,6 @@
+# corpus_dir	relative_path	url	size_bytes	checksum	unpack
+fuss	ARCHIVES/FUSS_fsd_data.tar.gz	https://zenodo.org/api/records/4012661/files/FUSS_fsd_data.tar.gz/content	1928324222	md5:79742c73e0d4164f35207e6e74487098	
+fuss	ARCHIVES/FUSS_license_doc.tar.gz	https://zenodo.org/api/records/4012661/files/FUSS_license_doc.tar.gz/content	4022	md5:7d00e8b03601698413045b7293c04fc2	
+fuss	ARCHIVES/FUSS_rir_data.tar.gz	https://zenodo.org/api/records/4012661/files/FUSS_rir_data.tar.gz/content	5769611010	md5:e43c7d6d29332eae4bb193f7a940b194	
+fuss	ARCHIVES/FUSS_ssdata.tar.gz	https://zenodo.org/api/records/4012661/files/FUSS_ssdata.tar.gz/content	8892152218	md5:d1f35069880185056ab1bde5aa1da1e7	
+fuss	ARCHIVES/FUSS_ssdata_reverb.tar.gz	https://zenodo.org/api/records/4012661/files/FUSS_ssdata_reverb.tar.gz/content	7890709248	md5:0ee3f1229194b5b7ab2cdf8a12add0b6	

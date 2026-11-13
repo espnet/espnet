@@ -1,0 +1,3 @@
+# corpus_dir	relative_path	url	size_bytes	checksum	unpack
+dcase2025_bioacoustic	ARCHIVES/Development_Set.zip	https://zenodo.org/api/records/15228365/files/Development_Set.zip/content	224706547	md5:23448f262adf19ea6377d9cb915b50ce	
+dcase2025_bioacoustic	ARCHIVES/ReadMe.md	https://zenodo.org/api/records/15228365/files/ReadMe.md/content	5126	md5:885bf2a562b92886755a071e41aa1fc5	

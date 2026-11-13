@@ -1,0 +1,5 @@
+# corpus_dir	relative_path	url	size_bytes	checksum	unpack
+voices	ARCHIVES/VOiCES_competition.tar.gz	https://lab41openaudiocorpus.s3.amazonaws.com/VOiCES_competition.tar.gz	20946282205	s3etag:e902d126b4df39024d600e644287115d-2497	
+voices	ARCHIVES/VOiCES_devkit.tar.gz	https://lab41openaudiocorpus.s3.amazonaws.com/VOiCES_devkit.tar.gz	29543349376	s3etag:6b7099813f051cc9555a1ff30d304186-3522	
+voices	ARCHIVES/VOiCES_release.tar.gz	https://lab41openaudiocorpus.s3.amazonaws.com/VOiCES_release.tar.gz	448753406236	s3etag:b584fd318beb0b4279e5357e71ef936b-6687	
+voices	ARCHIVES/recording_data.tar.gz	https://lab41openaudiocorpus.s3.amazonaws.com/recording_data.tar.gz	59238743	s3etag:a0e3ca112dcbf4a85de9e67e963ed0eb-8	
