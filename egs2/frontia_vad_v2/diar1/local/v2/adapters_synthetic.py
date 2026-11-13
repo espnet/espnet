@@ -1,7 +1,6 @@
 """Synthetic recordings."""
 
 import numpy as np
-
 from registry import corpus, mine
 
 
