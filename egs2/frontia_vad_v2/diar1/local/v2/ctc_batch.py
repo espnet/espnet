@@ -12,6 +12,7 @@ while the GPU encodes the next batch. The results are those of
 CTCSegmentation.__call__ for each recording.
 """
 
+import collections
 import copy
 import logging
 import queue
@@ -63,13 +64,19 @@ class BufferGeometry:
 
 @torch.no_grad()
 def encode(
-    aligner, geometry: BufferGeometry, buffers: torch.Tensor, prefix: torch.Tensor
+    aligner,
+    geometry: BufferGeometry,
+    buffers: torch.Tensor,
+    prefix: torch.Tensor,
+    spent: Dict[str, float] = None,
 ):
     """CTC log posteriors (buffers, chunk_frames, vocabulary) of a batch of buffers.
 
     The same steps as get_lpz() of the aligner, for buffers of any recordings;
-    `prefix` holds the (language, task) token ids of each buffer.
+    `prefix` holds the (language, task) token ids of each buffer. `spent`
+    collects the seconds of the host-to-device copy and of the forward.
     """
+    spent = {} if spent is None else spent
     model = aligner.s2t_model
     n = buffers.size(0)
     text_prev = torch.full((n, 1), model.na, dtype=torch.long)
@@ -81,7 +88,10 @@ def encode(
         "prefix": prefix,
         "prefix_lengths": torch.full((n,), prefix.size(1), dtype=torch.long),
     }
+    t0 = time.perf_counter()
     batch = to_device(batch, device=aligner.device)
+    _sync(batch["speech"])
+    t1 = time.perf_counter()
     enc, _ = model.encode(**batch)
     if isinstance(enc, tuple):
         enc = enc[0]
@@ -89,10 +99,19 @@ def encode(
     c, k = geometry.context_frames, geometry.chunk_frames
     if enc.size(1) < c + k:
         raise ValueError("context is too short for the encoder's edge loss")
-    return aligner.ctc.log_softmax(enc[:, c : c + k])
+    out = aligner.ctc.log_softmax(enc[:, c : c + k])
+    _sync(out)
+    spent["h2d"] = spent.get("h2d", 0.0) + t1 - t0
+    spent["forward"] = spent.get("forward", 0.0) + time.perf_counter() - t1
+    return out
 
 
-def reduce_task(task, lpz: torch.Tensor):
+def _sync(x: torch.Tensor):
+    if x.is_cuda:
+        torch.cuda.synchronize(x.device)
+
+
+def reduce_task(task, lpz: torch.Tensor, spent: Dict[str, float] = None):
     """The task with posteriors of only its tokens and the blank.
 
     CTC segmentation reads the posteriors of the ground-truth tokens and of
@@ -100,7 +119,8 @@ def reduce_task(task, lpz: torch.Tensor):
     ground truth (and the blank and character list of the config) renumbered.
     """
     gt = task.ground_truth_mat
-    config = copy.deepcopy(task.config)
+    # a shallow copy: only blank and char_list change, and they are replaced
+    config = copy.copy(task.config)
     ids = sorted({int(i) for i in np.unique(gt) if i >= 0} | {config.blank})
     new = np.full(max(ids) + 1, -1, dtype=np.int64)
     new[ids] = np.arange(len(ids))
@@ -108,8 +128,11 @@ def reduce_task(task, lpz: torch.Tensor):
     config.blank = int(new[config.blank])
     config.char_list = [config.char_list[i] for i in ids]
     task.config = config
+    t0 = time.perf_counter()
     cols = torch.tensor(ids, device=lpz.device)
     task.lpz = lpz.index_select(-1, cols).float().cpu().numpy()
+    if spent is not None:
+        spent["gather_d2h"] = spent.get("gather_d2h", 0.0) + time.perf_counter() - t0
     return task
 
 
@@ -117,11 +140,13 @@ def _segments(task):
     """Run in a worker: the segments of one task (get_segments + task.set)."""
     from espnet2.bin.s2t_align import CTCSegmentation
 
+    t0 = time.perf_counter()
     try:
         task.set(**CTCSegmentation.get_segments(task))
-        return task.name, [tuple(map(float, s)) for s in task.segments], None
+        segments = [tuple(map(float, s)) for s in task.segments]
+        return task.name, segments, None, time.perf_counter() - t0
     except Exception as e:  # noqa: BLE001 - reported per recording, as one by one
-        return task.name, None, f"{type(e).__name__}: {e}"
+        return task.name, None, f"{type(e).__name__}: {e}", time.perf_counter() - t0
 
 
 def align_batched(
@@ -135,31 +160,55 @@ def align_batched(
 
     `read` returns (rate, samples) of the recording; it runs in a reader
     thread, `prefetch` recordings ahead. Buffers are encoded `batch_seconds`
-    of audio (in buffers of the model's length) at a time; the segmentation
-    runs in `workers` processes.
+    of audio (in buffers of the model's length) at a time. A second thread
+    turns each encoded batch into segmentation tasks (tokenization, the
+    posterior columns of each recording, copy to the host) while the GPU
+    encodes the next one; the segmentation runs in `workers` processes.
     """
+    import multiprocessing
+
     geometry = BufferGeometry(aligner)
     per_batch = max(1, int(batch_seconds // geometry.buffer_secs))
     task_sym = aligner.token_list.index(aligner.task_sym)
     results: Dict[str, Tuple[list, str]] = {}
-    q: "queue.Queue" = queue.Queue(maxsize=prefetch)
+    inq: "queue.Queue" = queue.Queue(maxsize=prefetch)
+    postq: "queue.Queue" = queue.Queue(maxsize=2)  # encoded batches
+    futures = []
+    # seconds per phase, logged per batch and at the end
+    spent: Dict[str, float] = collections.defaultdict(float)
+    wall0 = time.perf_counter()
 
     def reader():
         for rid, words, lang_sym, read in items:
             try:
-                q.put((rid, words, lang_sym, read(), None))
+                inq.put((rid, words, lang_sym, read(), None))
             except Exception as e:  # noqa: BLE001 - an unreadable recording
-                q.put((rid, words, lang_sym, None, f"{type(e).__name__}: {e}"))
-        q.put(None)
+                inq.put((rid, words, lang_sym, None, f"{type(e).__name__}: {e}"))
+        inq.put(None)
 
-    threading.Thread(target=reader, daemon=True).start()
-    futures = []
-    pending: list = []  # (rid, words, lang_id, buffers, covered)
-    # seconds spent waiting for audio, encoding, preparing tasks, and waiting
-    # for the segmentation at the end (logged; tells which side is the limit)
-    spent = {"read_wait": 0.0, "encode": 0.0, "prepare": 0.0, "segment_wait": 0.0}
+    def post(pool):
+        while True:
+            item = postq.get()
+            if item is None:
+                return
+            pending, lpz_all = item
+            start = 0
+            for rid, words, _, bufs, covered in pending:
+                lpz = lpz_all[start : start + len(bufs)].reshape(-1, lpz_all.size(-1))
+                start += len(bufs)
+                t0 = time.perf_counter()
+                try:
+                    placeholder = np.zeros((lpz.size(0), 1), dtype=np.float32)
+                    task = aligner.prepare_segmentation_task(
+                        words, placeholder, name=rid, speech_len=covered
+                    )
+                    spent["prepare"] += time.perf_counter() - t0
+                    task = reduce_task(task, lpz, spent)
+                    futures.append(pool.submit(_segments, task))
+                except Exception as e:  # noqa: BLE001 - e.g. no token of the transcript
+                    results[rid] = (None, f"{type(e).__name__}: {e}")
 
-    def flush(pool):
+    def flush(pending):
         if not pending:
             return
         rows = np.concatenate([p[3] for p in pending])
@@ -167,45 +216,35 @@ def align_batched(
             [[p[2], task_sym] for p in pending for _ in range(len(p[3]))],
             dtype=torch.long,
         )
-        t0 = time.perf_counter()
         outs = [
             encode(
                 aligner,
                 geometry,
                 torch.from_numpy(rows[i : i + per_batch]),
                 prefix[i : i + per_batch],
+                spent,
             )
             for i in range(0, len(rows), per_batch)
         ]
-        lpz_all = torch.cat(outs)
-        if lpz_all.is_cuda:
-            torch.cuda.synchronize()
-        t1 = time.perf_counter()
-        spent["encode"] += t1 - t0
-        start = 0
-        for rid, words, _, bufs, covered in pending:
-            lpz = lpz_all[start : start + len(bufs)].reshape(-1, lpz_all.size(-1))
-            start += len(bufs)
-            try:
-                placeholder = np.zeros((lpz.size(0), 1), dtype=np.float32)
-                task = aligner.prepare_segmentation_task(
-                    words, placeholder, name=rid, speech_len=covered
-                )
-                futures.append(pool.submit(_segments, reduce_task(task, lpz)))
-            except Exception as e:  # noqa: BLE001 - e.g. no token of the transcript
-                results[rid] = (None, f"{type(e).__name__}: {e}")
-        spent["prepare"] += time.perf_counter() - t1
-        pending.clear()
-
-    import multiprocessing
+        t0 = time.perf_counter()
+        postq.put((list(pending), torch.cat(outs)))
+        spent["post_wait"] += time.perf_counter() - t0
+        logging.info(
+            "batch of %d buffers; so far (s): %s",
+            len(rows),
+            ", ".join(f"{k} {v:.0f}" for k, v in sorted(spent.items())),
+        )
 
     with ProcessPoolExecutor(
         workers, mp_context=multiprocessing.get_context("fork")
     ) as pool:
-        queued = 0
+        threading.Thread(target=reader, daemon=True).start()
+        poster = threading.Thread(target=post, args=(pool,))
+        poster.start()
+        pending, queued = [], 0
         while True:
             t0 = time.perf_counter()
-            item = q.get()
+            item = inq.get()
             spent["read_wait"] += time.perf_counter() - t0
             if item is None:
                 break
@@ -222,15 +261,24 @@ def align_batched(
             pending.append((rid, words, lang_id, bufs, covered))
             queued += len(bufs)
             if queued >= per_batch:
-                flush(pool)
-                queued = 0
-        flush(pool)
+                flush(pending)
+                pending, queued = [], 0
+        flush(pending)
+        postq.put(None)
+        poster.join()
         t0 = time.perf_counter()
-        for n, f in enumerate(futures):
-            rid, segments, error = f.result()
+        for f in futures:
+            rid, segments, error, dp = f.result()
             results[rid] = (segments, error)
-            if n % 1000 == 0:
-                logging.info("%d / %d segmented", n, len(futures))
-        spent["segment_wait"] += time.perf_counter() - t0
-    logging.info("time (s): %s", ", ".join(f"{k} {v:.0f}" for k, v in spent.items()))
+            spent["dp_in_workers"] += dp
+        spent["dp_wait"] += time.perf_counter() - t0
+    wall = time.perf_counter() - wall0
+    logging.info(
+        "time: wall %.0f s; %s; GPU busy %.0f %% of the wall",
+        wall,
+        ", ".join(
+            f"{k} {v:.0f} s ({v / wall * 100:.0f} %)" for k, v in sorted(spent.items())
+        ),
+        spent["forward"] / wall * 100,
+    )
     return results

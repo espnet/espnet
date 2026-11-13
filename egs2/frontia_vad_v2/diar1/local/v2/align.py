@@ -24,6 +24,7 @@ import json
 import logging
 import os
 import shutil
+import time
 import sys
 from pathlib import Path
 
@@ -137,6 +138,12 @@ def main():
         help="processes for the CTC segmentation of the batched path",
     )
     parser.add_argument(
+        "--prefetch",
+        type=int,
+        default=64,
+        help="recordings read ahead by the batched path",
+    )
+    parser.add_argument(
         "--dtype",
         default="float32",
         choices=("float32", "bfloat16", "float16"),
@@ -198,7 +205,9 @@ def main():
             (rid, model_words(text[rid].split()), lang[rid], lambda r=rid: read(r))
             for rid in todo
         )
-        results = align_batched(aligner, items, args.batch_seconds, args.workers)
+        results = align_batched(
+            aligner, items, args.batch_seconds, args.workers, args.prefetch
+        )
     else:
         results = {}
         for i, rid in enumerate(todo):
@@ -214,6 +223,7 @@ def main():
                 results[rid] = (None, f"{type(e).__name__}: {e}")
             if i % 1000 == 0:
                 logging.info("%d / %d aligned", i, len(todo))
+    t_write = time.perf_counter()
     for rid in todo:
         segments, error = results[rid]
         if error is not None:
@@ -290,6 +300,7 @@ def main():
     )
     (d / "align_config.json").write_text(json.dumps(config_out, indent=1) + "\n")
     (d / ".aligned").write_text("")
+    logging.info("writing the outputs: %.0f s", time.perf_counter() - t_write)
     logging.info("aligned %d, dropped %d: %s", len(kept), len(dropped), d)
 
 
