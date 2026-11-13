@@ -255,14 +255,10 @@ def main():
 
     # keep the unaligned inputs, then rewrite the files without the dropped ones
     backup = d / "before_align"
+    # every input (also text and utt2lang, which are filtered below), so that a
+    # rerun after an interruption starts from the inputs again
     backup.mkdir(exist_ok=True)
-    for name in (
-        "wav.scp",
-        "utt2num_samples",
-        "utt2category",
-        "espnet_rttm",
-        "manifest.tsv",
-    ):
+    for name in names:
         shutil.copy(d / name, backup / name)
     keep = set(kept)
     for name in ("wav.scp", "utt2num_samples", "utt2category", "text", "utt2lang"):
