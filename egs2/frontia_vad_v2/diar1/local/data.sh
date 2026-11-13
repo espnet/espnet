@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Prepare the training and validation dumps of frontia_vad_v2, and the test sets.
 #
-# The training corpora are written straight from their archives under ${CORPORA}
+# The training corpora are written straight from their archives under ${VAD_CORPORA}
 # (db.sh) into 16 kHz Omni-IO dumps, one per corpus and split, with labels and
 # domains (local/v2/vad_dump.py); nothing is unpacked. Then:
 #   dump/raw/train, dump/raw/dev   all training corpora, combined
@@ -44,7 +44,7 @@ log "$0 $*"
 . ./db.sh
 . ./cmd.sh
 
-[ -n "${CORPORA:-}" ] || { log "Set CORPORA (the corpora root) in db.sh"; exit 1; }
+[ -n "${VAD_CORPORA:-}" ] || { log "Set VAD_CORPORA (the root of the frontia_vad_v2 training corpora) in db.sh"; exit 1; }
 v2=local/v2
 
 if [ -z "${corpora}" ]; then
@@ -84,7 +84,7 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
             continue
         fi
         ${train_cmd} JOB=1:${nshards} "${dumpdir}/log/${corpus}.JOB.log" \
-            python3 ${v2}/prep.py --corpus "${corpus}" --root "${CORPORA}" \
+            python3 ${v2}/prep.py --corpus "${corpus}" --root "${VAD_CORPORA}" \
                 --out "${dumpdir}" --shard "\$((JOB-1))" --nshards ${nshards}
         touch "${dumpdir}/${corpus}/.done"
     done

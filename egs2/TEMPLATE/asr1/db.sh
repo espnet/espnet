@@ -100,6 +100,7 @@ LIBRITTS_R=downloads
 LJSPEECH=downloads
 LT_SPEECH_CMD=
 MUSAN=
+VAD_CORPORA= # Root of the frontia_vad_v2 training corpora, one directory per corpus (see egs2/frontia_vad_v2/diar1/local/v2/registry.py)
 MUSDB18=downloads
 MUST_C=downloads
 MUSTARD=
