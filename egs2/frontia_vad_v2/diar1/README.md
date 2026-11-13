@@ -213,8 +213,8 @@ The task counts are options:
 |---|---|---|
 | 3 corpora | `${train_cmd} JOB=1:N`, each the shards of its corpora in parallel | `--prep_tasks` |
 | 4 alignment | `${cuda_cmd} --gpu 1 JOB=1:N`, one GPU each | `--align_tasks` |
-| statistics (diar.sh 4) | `${train_cmd} JOB=1:N`, with N data loaders each | `--nj`, `--stats_args "--num_workers W"` |
-| inference (diar.sh 6) | `${cuda_cmd}` / `${decode_cmd}` | `--inference_nj` |
+| statistics (diar.sh 4) | `${train_cmd} JOB=1:N`, with N data loaders each | `--nj`, `--split_by_length true`, `--stats_args "--num_workers W"` |
+| inference (diar.sh 6) | `${cuda_cmd}` / `${decode_cmd}` | `--inference_nj`, `--split_by_length true` |
 
 Every stage except training follows the same pattern on a cluster: many small
 tasks, of which at most 64 CPU tasks or 8 GPU tasks run at once (`cmd.sh` gives
@@ -225,11 +225,16 @@ tasks, of which at most 64 CPU tasks or 8 GPU tasks run at once (`cmd.sh` gives
 
 Split a stage into many small tasks and cap how many run at once,
 rather than a few large ones: the tasks then queue instead of holding many nodes,
-and a slow task (diar.sh gives each statistics task a contiguous block of
-recordings, so some get the long meeting recordings) delays the stage little. For
-the statistics of the v2 training data, `--nj 512` tasks with at most 64 running,
-each with `--stats_args "--batch_size 1 --num_workers 28"` on a 32-core node,
-replaced `--nj 32`, where single tasks ran for hours. The cap is pbs.pl's or slurm.pl's
+and a slow task delays the stage little. Give the tasks equal audio, too, with
+`--split_by_length true`: by default diar.sh gives each statistics and inference
+task a contiguous block of the same number of recordings, and the long meeting
+recordings sit together. On the v2 training set (830,951 recordings, 13,193 h),
+the largest of 512 contiguous blocks holds 1,275.8 h, 49.5 times the mean of
+25.8 h; split by length, every part holds 25.8 h (at 32 parts: 1,812.6 h against
+412.3 h). For the statistics of the v2 training data, use `--nj 512
+--split_by_length true` with at most 64 tasks running, each with `--stats_args
+"--batch_size 1 --num_workers 28"` on a 32-core node; `--nj 32` without it ran
+single tasks for hours. The cap is pbs.pl's or slurm.pl's
 `--max-jobs-run`, which becomes `-W max_run_subjobs=N` on PBS Professional and the
 array `%N` on Slurm.
 
