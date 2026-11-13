@@ -5,6 +5,10 @@
 #
 #   ./run.sh                    data preparation (local/data.sh), then diar.sh
 #   ./run.sh --stage 4          training and evaluation only
+#   CMD_BACKEND=pbs ./run.sh --stage 4 --stop_stage 4 --nj 512 \
+#       --stats_args "--batch_size 1 --num_workers 28"
+#                               statistics on a cluster: many small tasks (cmd.sh,
+#                               conf/pbs.conf with a cap on running tasks; README)
 #   ./run.sh --stage 5 --stop_stage 5 --ngpu 4 \
 #       --diar_config conf/tuning/train_dualmode_v2_lr1e-3.yaml \
 #       --diar_tag train_dualmode_v2_lr1e-3     the v2 dual-mode model on 4 GPUs

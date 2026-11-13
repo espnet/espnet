@@ -216,6 +216,16 @@ The task counts are options:
 | statistics (diar.sh 4) | `${train_cmd} JOB=1:N`, with N data loaders each | `--nj`, `--stats_args "--num_workers W"` |
 | inference (diar.sh 6) | `${cuda_cmd}` / `${decode_cmd}` | `--inference_nj` |
 
+On a cluster, split a stage into many small tasks and cap how many run at once,
+rather than a few large ones: the tasks then queue instead of holding many nodes,
+and a slow task (diar.sh gives each statistics task a contiguous block of
+recordings, so some get the long meeting recordings) delays the stage little. For
+the statistics of the v2 training data, `--nj 512` tasks with at most 64 running,
+each with `--stats_args "--batch_size 1 --num_workers 28"` on a 32-core node,
+replaced `--nj 32`, where single tasks ran for hours. The cap goes in the cluster
+conf: `-W max_run_subjobs=64` on PBS Professional (or `pbs.pl --max-jobs-run 64`),
+the array `%64` on Slurm (`slurm.pl --max-jobs-run 64`).
+
 ```sh
 ./run.sh                                   # all stages
 ./run.sh --stage 4                         # training and evaluation only
