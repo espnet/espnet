@@ -122,6 +122,7 @@ class VadDumpWriter:
             None if max_hours_per_lang is None else max_hours_per_lang * 3600
         )
         self.before_add = None  # called at the start of every add() (prep.py --limit)
+        self.pack_by_group = False  # packs hold one group each (adapters.PACK_BY_GROUP)
         self.seconds_added = 0.0
         self.seconds_lang: Dict[str, float] = {}
         self.capped = 0
@@ -224,6 +225,8 @@ class VadDumpWriter:
         token and microphone, so a pack has one language for the alignment.
         """
         key = (lang_sym, meta["mic"])
+        if self.pack_by_group:
+            key += (meta["group"],)
         pack = self._packs.setdefault(key, [])
         pack.append((rid, x, intervals, meta, text))
         self._buffered.add(rid)

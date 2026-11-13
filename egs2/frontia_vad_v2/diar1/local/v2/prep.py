@@ -84,6 +84,7 @@ class Writers:
                 **caps,
             )
             self.writers[split].before_add = self._check_limit
+            self.writers[split].pack_by_group = self.corpus in adapters.PACK_BY_GROUP
         return self.writers[split]
 
     def _check_limit(self):

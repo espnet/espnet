@@ -845,7 +845,8 @@ def speech_commands_background(root, writers, shard: int, nshards: int):
     """The six background-noise recordings of Speech Commands v0.02 (no speech).
 
     White and pink noise, dishes, exercise bike, running tap, cat ("dude
-    miaowing"), about a minute each, all in train.
+    miaowing"), about a minute each; each recording is its own group, so
+    stage 5 puts one of them in dev.
     """
     (tgz,) = archives(root)
     for name, read in tar_members(tgz):
@@ -854,7 +855,11 @@ def speech_commands_background(root, writers, shard: int, nshards: int):
         if junk(name) or not mine_key(name, shard, nshards):
             continue
         add_clip(
-            writers["train"], rid(stem(name)), read(), name, negative_type=stem(name)
+            writers[split_by_hash(stem(name))],
+            rid(stem(name)),
+            read(),
+            name,
+            negative_type=stem(name),
         )
 
 

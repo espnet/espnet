@@ -28,6 +28,12 @@ NOT_USED = {
     "egomusic": "singing without timed vocal labels",
 }
 
+# Corpora with few groups (speakers) whose short clips are packed: their packs
+# hold one group each, so that stage 5 can put a group in dev (packs that mix
+# groups join them into one unit; local/v2/splits.py). Other corpora pack
+# across groups, which keeps short clips of one-clip groups usable.
+PACK_BY_GROUP = {"avp", "clarity_speech"}
+
 # Keyword arguments of the readers.
 OPTIONS = {
     # each of small/medium/large: 509 + 700 + 700 h, about 1,900 h in all

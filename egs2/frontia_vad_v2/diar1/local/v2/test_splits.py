@@ -97,3 +97,16 @@ def test_combine_reports_a_corpus_without_dev(tmp_path):
     )
     assert r.returncode == 0 and "no dev recordings in: nodev" in r.stderr
     assert (tmp_path / "raw" / "train" / "wav.scp").read_text().startswith("nodev-a ")
+
+
+def test_pack_by_group_gives_one_group_per_pack(tmp_path):
+    import adapters
+
+    adapters.PACK_BY_GROUP.add("toy")
+    try:
+        recs = [(f"c{i}", f"spk{i % 5}", 10.0) for i in range(30)]
+        final, summary = resolve(_write(tmp_path, recs, pack_seconds=30))
+    finally:
+        adapters.PACK_BY_GROUP.discard("toy")
+    assert summary["units"] == 5 and len(summary["dev_groups"]) == 1
+    assert "dev" in final.values() and "train" in final.values()

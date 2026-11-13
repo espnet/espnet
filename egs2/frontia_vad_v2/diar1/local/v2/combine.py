@@ -40,7 +40,12 @@ def main():
         for _, dump in corpus_dumps(corpus_dir):
             for name in KEYED:
                 for line in (dump / name).read_text().splitlines(keepends=True):
-                    split = final[line.split(maxsplit=1)[0]]
+                    key = line.split(maxsplit=1)[0]
+                    if key not in final:
+                        raise KeyError(
+                            f"{dump / name}: {key[:80]!r} is not in manifest.tsv"
+                        )
+                    split = final[key]
                     if split != "drop":
                         lines[split][name].append(line)
             for line in (dump / "espnet_rttm").read_text().splitlines(keepends=True):
