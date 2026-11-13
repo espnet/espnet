@@ -249,10 +249,38 @@ def test_forward_stats_are_tensors_with_the_scored_ratios():
     torch.testing.assert_close(stats["der"], (km + kf + ke) / ks)
 
 
-def test_forward_stats_are_zero_without_reference_speech():
-    """Nothing scored (all-silent labels): the ratios are 0, not NaN."""
+def test_forward_stats_without_reference_speech():
+    """All-silent labels: error rates 0, acc the share of correct frames.
+
+    The error rates are relative to the reference speech, so they are 0 (not
+    NaN) without any; a batch of non-speech windows still has a frame accuracy,
+    which must not be reported as 0.
+    """
     torch.manual_seed(0)
     model = _small_model(num_spk=1).eval()
+    speech = torch.randn(2, 300)
+    lengths = torch.tensor([300, 300])
+    labels = torch.zeros(2, 300, 1)
+    _, stats, _ = model(
+        speech=speech,
+        speech_lengths=lengths,
+        spk_labels=labels,
+        spk_labels_lengths=lengths,
+    )
+    for key in ("sad_mr", "sad_fr", "mi", "fa", "cf", "der"):
+        assert float(stats[key]) == 0.0, key
+    encoder_out, encoder_out_lens = model.encode(speech, lengths, None, None)
+    pred = model.decoder(encoder_out, encoder_out_lens)
+    expected = (pred <= 0).float().mean()  # every frame's label is non-speech
+    torch.testing.assert_close(stats["acc"].reshape(()), expected)
+
+
+def test_forward_acc_of_a_correct_non_speech_batch_is_one():
+    """A model that outputs non-speech everywhere scores acc 1 on non-speech."""
+    model = _small_model(num_spk=1).eval()
+    with torch.no_grad():
+        model.decoder.linear_decoder.weight.zero_()
+        model.decoder.linear_decoder.bias.fill_(-10.0)
     lengths = torch.tensor([300, 300])
     _, stats, _ = model(
         speech=torch.randn(2, 300),
@@ -260,8 +288,7 @@ def test_forward_stats_are_zero_without_reference_speech():
         spk_labels=torch.zeros(2, 300, 1),
         spk_labels_lengths=lengths,
     )
-    for key in ("sad_mr", "sad_fr", "mi", "fa", "cf", "acc", "der"):
-        assert float(stats[key]) == 0.0, key
+    assert float(stats["acc"]) == 1.0
 
 
 def test_forward_does_not_copy_to_the_cpu(monkeypatch):

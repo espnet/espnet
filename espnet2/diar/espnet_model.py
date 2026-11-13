@@ -261,19 +261,22 @@ class ESPnetDiarizationModel(AbsESPnetModel):
             speaker_error,
         ) = self.calc_diarization_error(pred, label_perm, encoder_out_lens)
 
-        # Ratios on the device (0 when nothing is scored), so the forward pass
-        # never waits for the GPU; the reporter reads them after backward.
+        # Ratios on the device, so the forward pass never waits for the GPU;
+        # the reporter reads them after backward. The error rates are relative
+        # to the reference speech and are 0 for a batch without any; the frame
+        # accuracy is defined for every batch with frames, so a batch of
+        # non-speech only gets its accuracy too, not 0.
         scored = (speech_scored > 0) & (num_frames > 0)
 
-        def ratio(num, den):
-            return torch.where(scored, num / den.clamp(min=1), torch.zeros_like(num))
+        def ratio(num, den, valid=scored):
+            return torch.where(valid, num / den.clamp(min=1), torch.zeros_like(num))
 
         sad_mr = ratio(speech_miss, speech_scored)
         sad_fr = ratio(speech_falarm, speech_scored)
         mi = ratio(speaker_miss, speaker_scored)
         fa = ratio(speaker_falarm, speaker_scored)
         cf = ratio(speaker_error, speaker_scored)
-        acc = ratio(correct, num_frames)
+        acc = ratio(correct, num_frames, num_frames > 0)
         der = ratio(speaker_miss + speaker_falarm + speaker_error, speaker_scored)
 
         stats = dict(
