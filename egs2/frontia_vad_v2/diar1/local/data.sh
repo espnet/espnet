@@ -165,16 +165,19 @@ fi
 
 if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
     log "Stage 5: combine into dump/raw/{train,dev}, and the corpus reports"
+    corpus_dirs=$(find "${dumpdir}" -mindepth 1 -maxdepth 1 -type d \
+        ! -name log ! -name reports | sort)
+    # a transcribed dump must have been aligned
+    for d in ${corpus_dirs}; do
+        while read -r t; do
+            [ -f "${t}/.aligned" ] || { log "${t} is not aligned: run stage 4"; exit 1; }
+        done < <(find "${d}" -name text -printf '%h\n')
+    done
+    # the final train/dev split of each recording: official splits kept, the dev
+    # groups of the other corpora chosen over all their groups (local/v2/splits.py)
+    # shellcheck disable=SC2086
+    python3 ${v2}/combine.py dump/raw ${corpus_dirs}
     for split in train dev; do
-        dirs=$(find "${dumpdir}" -mindepth 2 -maxdepth 2 -type d -name "${split}" | sort)
-        # a transcribed dump must have been aligned
-        for d in ${dirs}; do
-            while read -r t; do
-                [ -f "${t}/.aligned" ] || { log "${t} is not aligned: run stage 4"; exit 1; }
-            done < <(find "${d}" -name text -printf '%h\n')
-        done
-        # shellcheck disable=SC2086
-        python3 ${v2}/combine.py "dump/raw/${split}" ${dirs}
         # diar.sh skips stage 2 for a set marked done in dump/raw/org/<set>
         mkdir -p "dump/raw/org/${split}"
         for f in wav.scp utt2num_samples espnet_rttm feats_type utt2category; do

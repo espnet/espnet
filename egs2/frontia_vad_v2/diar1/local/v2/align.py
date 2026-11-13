@@ -171,12 +171,13 @@ def main():
         )
     (d / "espnet_rttm").write_text("".join(sorted(rttm)))
     with (backup / "manifest.tsv").open() as f, (d / "manifest.tsv").open("w") as g:
-        g.write(f.readline())
+        cols = f.readline().rstrip("\n").split("\t")
+        g.write("\t".join(MANIFEST_FIELDS) + "\n")
         for line in f:
-            row = dict(zip(MANIFEST_FIELDS, line.rstrip("\n").split("\t")))
+            row = dict(zip(cols, line.rstrip("\n").split("\t")))
             if row["rec_id"] in keep:
                 row["speech_seconds"] = f"{speech_seconds[row['rec_id']]:.3f}"
-                g.write("\t".join(row[k] for k in MANIFEST_FIELDS) + "\n")
+                g.write("\t".join(row.get(k, "") for k in MANIFEST_FIELDS) + "\n")
     (d / "align.tsv").write_text(
         "rec_id\tword\tstart\tend\tscore\n" + "".join(word_rows)
     )

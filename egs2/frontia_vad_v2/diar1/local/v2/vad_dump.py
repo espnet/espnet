@@ -45,6 +45,7 @@ MANIFEST_FIELDS = (
     "source",
     "seconds",
     "speech_seconds",
+    "group",
 )
 
 
@@ -147,6 +148,7 @@ class VadDumpWriter:
         source: str = "",
         text: Optional[str] = None,
         lang_sym: Optional[str] = None,
+        group: str = "",
     ) -> int:
         """Add a recording; return the number of recordings written.
 
@@ -164,6 +166,8 @@ class VadDumpWriter:
             source: Where the audio came from (archive member), for the manifest.
             text: Transcript (label source "A": align.py finds the speech).
             lang_sym: OWSM language token of the transcript, e.g. "<eng>".
+            group: The group of a recording whose split is decided by group
+                (registry.split_by_hash); empty for an official split.
         """
         if self.label_source == "A":
             if not text or not lang_sym or speech:
@@ -199,7 +203,13 @@ class VadDumpWriter:
             if rid in self.num_samples or rid in self._buffered:
                 raise ValueError(f"duplicate recording id {rid}")
             x = np.clip(signal[:, k], -1.0, 1.0)
-            meta = dict(negative_type=negative_type, mic=mic, lang=lang, source=source)
+            meta = dict(
+                negative_type=negative_type,
+                mic=mic,
+                lang=lang,
+                source=source,
+                group=group,
+            )
             if self.pack_seconds and len(x) < self.pack_seconds * self.fs:
                 written += self._buffer(rid, x, intervals, meta, text, lang_sym)
             else:
@@ -241,6 +251,8 @@ class VadDumpWriter:
         meta["source"] = ";".join(sources)
         types = sorted({p[3]["negative_type"] for p in pack if p[3]["negative_type"]})
         meta["negative_type"] = ",".join(types)
+        # every group of a pack: splits.py keeps a pack whole in one split
+        meta["group"] = ";".join(sorted({p[3]["group"] for p in pack if p[3]["group"]}))
         text = " ".join(texts) if texts else None
         self._write(
             f"{first[0]}+{len(pack)}", np.concatenate(xs), intervals, meta, text, key[0]

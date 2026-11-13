@@ -18,11 +18,25 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 import adapters  # noqa: E402
 from adapters import ADAPTERS  # noqa: E402
+from registry import AUTO, hash_split  # noqa: E402
 from vad_dump import VadDumpWriter  # noqa: E402
 
 
 class LimitReached(Exception):
     """Raised once --limit recordings were added (a quick check of a reader)."""
+
+
+class GroupWriter:
+    """A VadDumpWriter whose add() records the group of every recording."""
+
+    def __init__(self, writer: VadDumpWriter, group: str):
+        self.writer, self.group = writer, group
+
+    def add(self, *args, **kwargs):
+        return self.writer.add(*args, group=self.group, **kwargs)
+
+    def __getattr__(self, name):
+        return getattr(self.writer, name)
 
 
 class Writers:
@@ -36,6 +50,11 @@ class Writers:
         self.writers = {}
 
     def __getitem__(self, split: str) -> VadDumpWriter:
+        if split.startswith(AUTO):
+            # a split by group (registry.split_by_hash): written by hash, the
+            # group recorded; stage 5 fixes the dev groups (splits.py)
+            group = split[len(AUTO) :]
+            return GroupWriter(self[hash_split(group)], group)
         if split not in ("train", "dev"):
             raise ValueError(f"unknown split {split}")
         if split not in self.writers:

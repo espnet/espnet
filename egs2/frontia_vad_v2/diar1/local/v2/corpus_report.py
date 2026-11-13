@@ -9,7 +9,10 @@ licence, domain, label source, reader options and hour caps, and per split
 the recordings and hours written by the reader, the recordings and hours kept
 after the alignment, the speech hours, and the reasons and counts of every
 exclusion (unreadable or filtered sources, recordings over a cap, recordings
-dropped by the alignment). reports/not_used.json lists the registered
+dropped by the alignment), and the final split: the groups of a corpus
+split by group, its dev groups, the recordings moved between splits, and the
+recordings and hours of each final split (local/v2/splits.py).
+reports/not_used.json lists the registered
 corpora left out, with the reason. The reports have no timestamps or
 machine-specific paths, so two runs of the same recipe can be compared with
 diff.
@@ -23,6 +26,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 import adapters  # noqa: E402
+from splits import corpus_dumps, manifest_rows, resolve  # noqa: E402
 
 
 def dump_dirs(split_dir: Path):
@@ -110,6 +114,21 @@ def report(corpus: str, root: Path):
                 k: c[k]
                 for k in ("model_tag", "revision", "min_pause", "min_word_score")
             }
+    final, summary = resolve(root / corpus)
+    totals = collections.Counter()
+    for _, dump in corpus_dumps(root / corpus):
+        for r in manifest_rows(dump):
+            split = final[r["rec_id"]]
+            totals[(split, "recordings")] += 1
+            totals[(split, "hours")] += float(r["seconds"]) / 3600
+            totals[(split, "speech_hours")] += float(r["speech_seconds"]) / 3600
+    rep["final_split"] = dict(
+        summary,
+        **{
+            f"{split}_{k}": round(v, 3) if isinstance(v, float) else v
+            for (split, k), v in sorted(totals.items())
+        },
+    )
     return rep
 
 
