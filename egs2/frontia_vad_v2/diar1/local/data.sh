@@ -158,7 +158,7 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
                 continue
             fi
             todo+=("${d}")
-        done < <(find "${dumpdir}/${corpus}" -name text -printf '%h\n' | sort)
+        done < <(find "${dumpdir}/${corpus}" -name text -not -path '*/before_align/*' -printf '%h\n' | sort)
     done
     for d in "${todo[@]}"; do
         # at most --align_jobs at once: each fills its GPU with batches
@@ -186,7 +186,7 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
     for d in ${corpus_dirs}; do
         while read -r t; do
             [ -f "${t}/.aligned" ] || { log "${t} is not aligned: run stage 4"; exit 1; }
-        done < <(find "${d}" -name text -printf '%h\n')
+        done < <(find "${d}" -name text -not -path '*/before_align/*' -printf '%h\n')
     done
     # the final train/dev split of each recording: official splits kept, the dev
     # groups of the other corpora chosen over all their groups (local/v2/splits.py)
