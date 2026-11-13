@@ -6,8 +6,8 @@
 #   ./run.sh                    data preparation (local/data.sh), then diar.sh
 #   ./run.sh --stage 4          training and evaluation only
 #   ./run.sh --stage 5 --stop_stage 5 --ngpu 4 \
-#       --diar_config conf/tuning/train_dualmode_v2_lr5e-4.yaml \
-#       --diar_tag train_dualmode_v2_lr5e-4     the v2 dual-mode model on 4 GPUs
+#       --diar_config conf/tuning/train_dualmode_v2_lr1e-3.yaml \
+#       --diar_tag train_dualmode_v2_lr1e-3     the v2 dual-mode model on 4 GPUs
 #
 # local/data.sh writes dump/raw/{train,dev} itself, with recordings that have no
 # speech (non-speech domains); diar.sh stage 3 would drop those (it rebuilds the

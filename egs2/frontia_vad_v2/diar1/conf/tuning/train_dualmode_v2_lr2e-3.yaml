@@ -1,9 +1,12 @@
-# frontia_vad_v2, dual-mode model, learning rate 0.0005 (4 GPUs x 64 windows).
+# frontia_vad_v2, dual-mode model, learning rate 0.002, 1024 windows per update
+# (64 per GPU x 4 GPUs x accum_grad 4).
 # The frontia_vad_v1 dual-mode setup with: reverberation (BUT ReverbDB impulse
 # responses, local/data.sh stage 2) and its 1 s context before each window
 # (wav_augment context and chunk_left_context, 16000 samples), the domains of
-# utt2category balanced per epoch (chunk_upsampling_factor 0.3), and a global
-# batch of 256 windows: the chunk iterator splits each mini-batch over the GPUs.
+# utt2category balanced per epoch (chunk_upsampling_factor 0.3), and 1024
+# windows per update, so that the small domains are not outweighed within an
+# update: mini-batches of 256 (the chunk iterator splits each over the GPUs),
+# gradients accumulated over 4.
 # Dual-mode (online and offline) voice activity detection with one set of weights:
 # a TCN encoder whose look-ahead is chosen at run time. Each training step runs
 # look-ahead 0 (online: causal, 1.0 s of past context) and 124 frames (offline:
@@ -61,15 +64,16 @@ chunk_shift_ratio: 1.0
 chunk_upsampling_factor: 0.3
 # the 1 s context of wav_augment: speech chunks start 16000 samples early
 chunk_left_context: 16000
-batch_size: 256      # global: 64 windows per GPU on 4 GPUs
+batch_size: 256      # per mini-batch, all GPUs: 64 windows per GPU on 4 GPUs
+accum_grad: 4        # 1024 windows per update
 num_workers: 16      # per GPU process
 seed: 1
 optim: adam
 optim_conf:
-    lr: 0.0005
+    lr: 0.002
 scheduler: warmuplr
 scheduler_conf:
-    warmup_steps: 10000
+    warmup_steps: 625    # updates: the 640k windows of v1's 10000 steps x 64
 grad_clip: 5
 max_epoch: 30
 patience: 5
