@@ -18,6 +18,7 @@ are reproducible.
 """
 
 import argparse
+import contextlib
 import json
 import logging
 import shutil
@@ -100,13 +101,16 @@ def main():
             shutil.copy(backup / name, d / name)
     root, config, model = model_files(args.model_tag, args.revision)
     torch.manual_seed(0)
-    aligner = CTCSegmentation(
-        s2t_train_config=config,
-        s2t_model_file=model,
-        device=args.device,
-        kaldi_style_text=False,
-        time_stamps="auto",
-    )
+    # the model's config names its statistics, BPE model and token list relative
+    # to the model directory
+    with contextlib.chdir(root):
+        aligner = CTCSegmentation(
+            s2t_train_config=config,
+            s2t_model_file=model,
+            device=args.device,
+            kaldi_style_text=False,
+            time_stamps="auto",
+        )
     tokens = set(aligner.token_list)
     audio = OmniIOAudioScpReader(d / "wav.scp")
     text = read_table(d / "text")
