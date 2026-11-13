@@ -51,6 +51,8 @@ contract:
       kind: audio
       sample_rate: 16000
       channels: 1
+      normalize:
+        - mean_channels
   outputs:
     hyp:
       kind: text
