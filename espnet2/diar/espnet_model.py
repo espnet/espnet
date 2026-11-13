@@ -46,9 +46,21 @@ class ESPnetDiarizationModel(AbsESPnetModel):
         attractor_weight: float = 1.0,
         look_aheads: Optional[List[int]] = None,
         wav_augment: Optional[torch.nn.Module] = None,
+        valid_category_file: Optional[str] = None,
     ):
 
         super().__init__()
+
+        # Category of each sequence (utt2category: "<id> <category>") for
+        # per-category validation statistics; see _category_stats().
+        self.categories: Dict[str, str] = {}
+        if valid_category_file is not None:
+            with open(valid_category_file, encoding="utf-8") as f:
+                for line in f:
+                    if line.strip():
+                        key, category = line.split(maxsplit=1)
+                        self.categories[key] = category.strip()
+        self.category_names = sorted(set(self.categories.values()))
 
         # waveform augmentation of the batch, training only (e.g. BatchWavAugment)
         self.wav_augment = wav_augment
@@ -276,7 +288,59 @@ class ESPnetDiarizationModel(AbsESPnetModel):
             acc=acc,
             der=der,
         )
+        if not self.training and self.category_names and "utt_id" in kwargs:
+            stats.update(
+                self._category_stats(
+                    pred, label_perm, encoder_out_lens, kwargs["utt_id"]
+                )
+            )
         return loss, stats
+
+    def _category_stats(self, pred, label, lengths, utt_ids) -> Dict[str, torch.Tensor]:
+        """Per-category loss and frame accuracy of a validation batch.
+
+        For every category c of valid_category_file, three statistics, also
+        for categories without a window in the batch (so that every process
+        of a distributed run reports the same keys):
+          valid_frac_<c>      windows of c / windows of the batch
+          valid_loss_num_<c>  sum of the windows' losses of c / windows
+          valid_acc_num_<c>   sum of the windows' frame accuracies of c / windows
+        The reporter averages them over batches weighted by the batch size, so
+        the epoch's loss of c is valid_loss_num_<c> / valid_frac_<c>, its
+        accuracy valid_acc_num_<c> / valid_frac_<c> (exact, also over GPUs).
+        A window's loss is the binary cross entropy over its frames and
+        outputs; its accuracy the share of frames whose decisions (logit > 0)
+        all match the label. The category of a window is that of its id, or of
+        the id without its last "-<start>" (a chunk of a sequence).
+        """
+        n = pred.size(0)
+        mask = (
+            torch.arange(pred.size(1), device=pred.device)[None, :]
+            < lengths.to(pred.device)[:, None]
+        ).float()
+        frames = mask.sum(1).clamp(min=1)
+        bce = F.binary_cross_entropy_with_logits(
+            pred, label.to(pred.dtype), reduction="none"
+        ).mean(2)
+        loss = (bce * mask).sum(1) / frames
+        right = ((pred > 0) == (label > 0.5)).all(2).float()
+        acc = (right * mask).sum(1) / frames
+        index = []
+        for uid in utt_ids:
+            category = self.categories.get(uid)
+            if category is None:
+                category = self.categories.get(uid.rsplit("-", 1)[0])
+            index.append(
+                self.category_names.index(category) if category is not None else -1
+            )
+        index = torch.tensor(index, device=pred.device)
+        stats = {}
+        for k, c in enumerate(self.category_names):
+            sel = (index == k).float()
+            stats[f"valid_frac_{c}"] = sel.sum() / n
+            stats[f"valid_loss_num_{c}"] = (loss.detach() * sel).sum() / n
+            stats[f"valid_acc_num_{c}"] = (acc * sel).sum() / n
+        return stats
 
     def collect_feats(
         self,

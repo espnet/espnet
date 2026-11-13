@@ -811,3 +811,82 @@ def test_wav_augment_runs_once_for_all_look_aheads(tmp_path):
     )
     model(**batch)
     assert calls == [True]
+
+
+def test_category_stats_give_each_categorys_mean(tmp_path):
+    """valid_loss_num_<c> / valid_frac_<c> is the mean loss of the windows of c."""
+    categories = tmp_path / "utt2category"
+    categories.write_text("recA small\nrecB big\nrecC big\n")
+    model = _small_model(1)
+    model = ESPnetDiarizationModel(
+        frontend=model.frontend,
+        specaug=None,
+        normalize=None,
+        label_aggregator=model.label_aggregator,
+        encoder=model.encoder,
+        decoder=model.decoder,
+        attractor=None,
+        valid_category_file=str(categories),
+    )
+    pred = torch.tensor(
+        [[[2.0], [-1.0]], [[0.5], [0.5]], [[-3.0], [1.0]], [[1.0], [1.0]]]
+    )
+    label = torch.tensor(
+        [[[1.0], [1.0]], [[0.0], [1.0]], [[0.0], [1.0]], [[1.0], [0.0]]]
+    )
+    lengths = torch.tensor([2, 2, 1, 2])
+    ids = ["recA-0000000000", "recB-0000000000", "recC", "unknown-0000000000"]
+    stats = model._category_stats(pred, label, lengths, ids)
+    assert set(stats) == {
+        f"valid_{k}_{c}"
+        for k in ("frac", "loss_num", "acc_num")
+        for c in ("big", "small")
+    }
+    bce = torch.nn.functional.binary_cross_entropy_with_logits
+    want_a = bce(pred[0], label[0])
+    want_big = (bce(pred[1], label[1]) + bce(pred[2, :1], label[2, :1])) / 2
+    torch.testing.assert_close(
+        stats["valid_loss_num_small"] / stats["valid_frac_small"], want_a
+    )
+    torch.testing.assert_close(
+        stats["valid_loss_num_big"] / stats["valid_frac_big"], want_big
+    )
+    # frame accuracy: recA 1/2; recB 1/2, recC 1/1 -> big (0.5 + 1) / 2
+    torch.testing.assert_close(
+        stats["valid_acc_num_small"] / stats["valid_frac_small"], torch.tensor(0.5)
+    )
+    torch.testing.assert_close(
+        stats["valid_acc_num_big"] / stats["valid_frac_big"], torch.tensor(0.75)
+    )
+    assert stats["valid_frac_big"] == 0.5 and stats["valid_frac_small"] == 0.25
+
+
+def test_category_stats_only_in_validation(tmp_path):
+    categories = tmp_path / "utt2category"
+    categories.write_text("a x\n")
+    base = _small_model(1)
+    model = ESPnetDiarizationModel(
+        frontend=base.frontend,
+        specaug=None,
+        normalize=None,
+        label_aggregator=base.label_aggregator,
+        encoder=base.encoder,
+        decoder=base.decoder,
+        attractor=None,
+        valid_category_file=str(categories),
+    )
+    speech = torch.randn(1, 300)
+    labels = torch.randint(high=2, size=(1, 300, 1)).float()
+    kw = dict(
+        speech=speech,
+        speech_lengths=torch.tensor([300]),
+        spk_labels=labels,
+        spk_labels_lengths=torch.tensor([300]),
+        utt_id=["a-0000000000"],
+    )
+    model.train()
+    assert not any(k.startswith("valid_") for k in model(**kw)[1])
+    model.eval()
+    with torch.no_grad():
+        stats = model(**kw)[1]
+    assert {"valid_frac_x", "valid_loss_num_x", "valid_acc_num_x"} <= set(stats)
