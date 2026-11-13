@@ -703,7 +703,7 @@ def minds14(root, writers, shard: int, nshards: int):
     """MInDS-14 (PolyAI): e-banking requests spoken into phones, 8 kHz, 14 locales.
 
     <locale>/train-*.parquet has path, audio (bytes), transcription. There is
-    no speaker id; the dev split is by file name.
+    no speaker id; the dev split is by recording (its whole path).
     """
     for pq in sorted(Path(root).glob("*/*.parquet")):
         locale = pq.parent.name
@@ -712,7 +712,10 @@ def minds14(root, writers, shard: int, nshards: int):
             writers["train"].skip(str(pq), f"no OWSM language for {locale}")
             continue
         for row in iter_parquet(pq, ["path", "audio", "transcription"]):
-            utt = stem(row["path"] or (row["audio"] or {}).get("path") or "")
+            # file names repeat across the intents of a locale (cs-CZ~CARD_ISSUES/
+            # response_22.wav, ...): the id is the whole path
+            path = row["path"] or (row["audio"] or {}).get("path") or ""
+            utt = path.rsplit(".", 1)[0].replace("/", "_").replace("~", "_")
             r = rid(locale, utt)
             if not utt or not row["transcription"] or not mine_key(r, shard, nshards):
                 continue
