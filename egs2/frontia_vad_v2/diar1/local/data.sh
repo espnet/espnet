@@ -110,6 +110,7 @@ fi
 
 if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     log "Stage 2: augmentation noise and room impulse responses"
+    mkdir -p data
     # licence-filtered MUSAN noise and music without vocals, CHiME-3 backgrounds
     # (replaces the list local/data_v1.sh wrote)
     python3 ${v2}/noise_list.py "${VAD_CORPORA}/musan" "${VAD_CORPORA}/chime3_background" \
