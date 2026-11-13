@@ -58,6 +58,8 @@ align_min_pause=0.2         # pauses between words shorter than this are speech
 align_min_word_score=-15.0  # a recording with a word scored lower is dropped
 align_batch_seconds=3840    # audio per GPU forward (0: one recording at a time)
 align_dtype=float32         # encoder precision of the alignment
+align_use_sdpa=false        # encoder attention through scaled_dot_product_attention
+align_tf32=false            # TF32 matrix multiplication in the alignment
 align_jobs=1                # alignments at once per stage-4 run (one GPU each)
 align_shards=""             # stage 4 for these shard numbers only, e.g. "0 1"; empty: all
 dumpdir=dump/v2
@@ -167,7 +169,8 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
                 --revision "${align_revision}" --device cuda \
                 --min_pause "${align_min_pause}" \
                 --min_word_score "${align_min_word_score}" \
-                --batch_seconds "${align_batch_seconds}" --dtype "${align_dtype}" &
+                --batch_seconds "${align_batch_seconds}" --dtype "${align_dtype}" \
+                --use_sdpa "${align_use_sdpa}" --tf32 "${align_tf32}" &
     done
     wait
     for d in "${todo[@]}"; do

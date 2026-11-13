@@ -106,6 +106,32 @@ def encode(
     return out
 
 
+def encode_or_split(aligner, geometry, buffers, prefix, spent=None):
+    """encode(), and if the GPU runs out of memory, the two halves separately.
+
+    Each buffer is encoded independently of the others in its batch, so the
+    halves give the posteriors of the whole batch.
+    """
+    try:
+        return encode(aligner, geometry, buffers, prefix, spent)
+    except torch.cuda.OutOfMemoryError:
+        if buffers.size(0) == 1:
+            raise
+        torch.cuda.empty_cache()
+        half = buffers.size(0) // 2
+        logging.warning("out of GPU memory at %d buffers: halves", buffers.size(0))
+        return torch.cat(
+            [
+                encode_or_split(
+                    aligner, geometry, buffers[:half], prefix[:half], spent
+                ),
+                encode_or_split(
+                    aligner, geometry, buffers[half:], prefix[half:], spent
+                ),
+            ]
+        )
+
+
 def _sync(x: torch.Tensor):
     if x.is_cuda:
         torch.cuda.synchronize(x.device)
@@ -217,7 +243,7 @@ def align_batched(
             dtype=torch.long,
         )
         outs = [
-            encode(
+            encode_or_split(
                 aligner,
                 geometry,
                 torch.from_numpy(rows[i : i + per_batch]),

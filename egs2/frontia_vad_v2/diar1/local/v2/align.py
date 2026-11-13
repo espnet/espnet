@@ -47,7 +47,9 @@ def model_files(tag: str, revision: str):
     return root, configs[0], models[0]
 
 
-def absolute_config(root: Path, config: Path, out: Path) -> Path:
+def absolute_config(
+    root: Path, config: Path, out: Path, use_sdpa: bool = False
+) -> Path:
     """Write `config` with its model-relative paths made absolute, to `out`.
 
     The config names its feature statistics, BPE model and token list relative
@@ -70,6 +72,9 @@ def absolute_config(root: Path, config: Path, out: Path) -> Path:
     for section in ("normalize_conf", "frontend_conf"):
         if isinstance(conf.get(section), dict):
             conf[section] = {k: fix(v) for k, v in conf[section].items()}
+    if use_sdpa:
+        # the encoder's attention through torch's scaled_dot_product_attention
+        conf.setdefault("encoder_conf", {})["use_sdpa"] = True
     out.write_text(yaml.safe_dump(conf, allow_unicode=True))
     return out
 
@@ -144,6 +149,18 @@ def main():
         help="recordings read ahead by the batched path",
     )
     parser.add_argument(
+        "--use_sdpa",
+        type=lambda x: x.lower() in ("1", "true", "yes"),
+        default=False,
+        help="encoder attention through scaled_dot_product_attention",
+    )
+    parser.add_argument(
+        "--tf32",
+        type=lambda x: x.lower() in ("1", "true", "yes"),
+        default=False,
+        help="allow TF32 matrix multiplication on the GPU",
+    )
+    parser.add_argument(
         "--dtype",
         default="float32",
         choices=("float32", "bfloat16", "float16"),
@@ -170,7 +187,9 @@ def main():
             shutil.copy(backup / name, d / name)
     root, config, model = model_files(args.model_tag, args.revision)
     torch.manual_seed(0)
-    config = absolute_config(root, config, d / "owsm_config.yaml")
+    config = absolute_config(root, config, d / "owsm_config.yaml", args.use_sdpa)
+    torch.backends.cuda.matmul.allow_tf32 = args.tf32
+    torch.backends.cudnn.allow_tf32 = args.tf32
     aligner = CTCSegmentation(
         s2t_train_config=config,
         s2t_model_file=model,
@@ -290,6 +309,9 @@ def main():
         min_pause=args.min_pause,
         min_word_score=args.min_word_score,
         dtype=args.dtype,
+        use_sdpa=args.use_sdpa,
+        tf32=args.tf32,
+        batch_seconds=args.batch_seconds,
         espnet_version=espnet.__version__,
         aligned=len(kept),
         dropped=len(dropped),
