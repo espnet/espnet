@@ -5,6 +5,9 @@
 #
 #   ./run.sh                    data preparation (local/data.sh), then diar.sh
 #   ./run.sh --stage 4          training and evaluation only
+#   ./run.sh --stage 5 --stop_stage 5 --ngpu 4 \
+#       --diar_config conf/tuning/train_dualmode_v2_lr5e-4.yaml \
+#       --diar_tag train_dualmode_v2_lr5e-4     the v2 dual-mode model on 4 GPUs
 #
 # local/data.sh writes dump/raw/{train,dev} itself, with recordings that have no
 # speech (non-speech domains); diar.sh stage 3 would drop those (it rebuilds the
@@ -16,7 +19,15 @@ set -o pipefail
 
 stage=1
 stop_stage=100
-. utils/parse_options.sh
+# --stage and --stop_stage are read here; every other option goes to diar.sh
+diar_extra=()
+while [ $# -gt 0 ]; do
+    case "$1" in
+        --stage) stage=$2; shift 2 ;;
+        --stop_stage) stop_stage=$2; shift 2 ;;
+        *) diar_extra+=("$1"); shift ;;
+    esac
+done
 
 # test sets of frontia_vad_v1 (local/data.sh stage 1)
 v1_test="ami,chime6,notsofar,icsi,dipco,ami_mh,alimeeting,aishell4,voxconverse,earnings21,ava_speech,ten_vad"
@@ -50,6 +61,8 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     # dumps the test sets; train and dev are marked done by local/data.sh
     ./diar.sh "${diar_opts[@]}" --stage 2 --stop_stage 2
 fi
-if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
-    ./diar.sh "${diar_opts[@]}" --stage 4 --stop_stage "${stop_stage}" "$@"
+if [ ${stop_stage} -ge 4 ]; then
+    # statistics (4), training (5), inference and scoring (6-8) of diar.sh
+    ./diar.sh "${diar_opts[@]}" --stage "$(( stage > 4 ? stage : 4 ))" \
+        --stop_stage "${stop_stage}" ${diar_extra[@]+"${diar_extra[@]}"}
 fi
