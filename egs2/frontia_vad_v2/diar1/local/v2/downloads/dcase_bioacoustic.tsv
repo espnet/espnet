@@ -1,9 +1,9 @@
 # corpus_dir	relative_path	url	size_bytes	checksum	unpack
-dcase_bioacoustic	ARCHIVES/Annotations_only.zip	https://zenodo.org/api/records/7879692/files/Annotations_only.zip/content	56749	md5:f634b7afa16a6e7d59a5873fbf38db9d	
-dcase_bioacoustic	ARCHIVES/DCASE2024_task5_training_set_classes.csv	https://zenodo.org/api/records/10829604/files/DCASE2024_task5_training_set_classes.csv/content	1485	md5:abce1818ba10436971bad0b6a3464aa6	
-dcase_bioacoustic	ARCHIVES/DCASE2024_task5_validation_set_classes.csv	https://zenodo.org/api/records/10829604/files/DCASE2024_task5_validation_set_classes.csv/content	1680	md5:9d0cee37c62eb4e3dea900a73f3a660d	
-dcase_bioacoustic	ARCHIVES/Development_set.zip	https://zenodo.org/api/records/10829604/files/Development_set.zip/content	21890063576	md5:480e95ccf90a9c66803da03b47566176	
-dcase_bioacoustic	ARCHIVES/Development_set_annotations.zip	https://zenodo.org/api/records/10829604/files/Development_set_annotations.zip/content	372297	md5:893e656b957ebec36954cfc8ec2b2149	
-dcase_bioacoustic	ARCHIVES/eval_1.zip	https://zenodo.org/api/records/7879692/files/eval_1.zip/content	448376378	md5:b132901019a9917e32d07dc6df8d9044	
-dcase_bioacoustic	ARCHIVES/eval_2.zip	https://zenodo.org/api/records/7879692/files/eval_2.zip/content	605169499	md5:77b6f76caa2a3a34c469e99da11d162d	
-dcase_bioacoustic	ARCHIVES/eval_3.zip	https://zenodo.org/api/records/7879692/files/eval_3.zip/content	2150308315	md5:032ce046c045aeab4802fa2538030089	
+dcase_bioacoustic	ARCHIVES/Annotations_only.zip	https://zenodo.org/api/records/7879692/files/Annotations_only.zip/content	56749	md5:f634b7afa16a6e7d59a5873fbf38db9d
+dcase_bioacoustic	ARCHIVES/DCASE2024_task5_training_set_classes.csv	https://zenodo.org/api/records/10829604/files/DCASE2024_task5_training_set_classes.csv/content	1485	md5:abce1818ba10436971bad0b6a3464aa6
+dcase_bioacoustic	ARCHIVES/DCASE2024_task5_validation_set_classes.csv	https://zenodo.org/api/records/10829604/files/DCASE2024_task5_validation_set_classes.csv/content	1680	md5:9d0cee37c62eb4e3dea900a73f3a660d
+dcase_bioacoustic	ARCHIVES/Development_set.zip	https://zenodo.org/api/records/10829604/files/Development_set.zip/content	21890063576	md5:480e95ccf90a9c66803da03b47566176
+dcase_bioacoustic	ARCHIVES/Development_set_annotations.zip	https://zenodo.org/api/records/10829604/files/Development_set_annotations.zip/content	372297	md5:893e656b957ebec36954cfc8ec2b2149
+dcase_bioacoustic	ARCHIVES/eval_1.zip	https://zenodo.org/api/records/7879692/files/eval_1.zip/content	448376378	md5:b132901019a9917e32d07dc6df8d9044
+dcase_bioacoustic	ARCHIVES/eval_2.zip	https://zenodo.org/api/records/7879692/files/eval_2.zip/content	605169499	md5:77b6f76caa2a3a34c469e99da11d162d
+dcase_bioacoustic	ARCHIVES/eval_3.zip	https://zenodo.org/api/records/7879692/files/eval_3.zip/content	2150308315	md5:032ce046c045aeab4802fa2538030089

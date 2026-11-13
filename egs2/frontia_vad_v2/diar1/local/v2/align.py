@@ -24,8 +24,8 @@ import json
 import logging
 import os
 import shutil
-import time
 import sys
+import time
 from pathlib import Path
 
 import numpy as np

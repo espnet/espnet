@@ -1,9 +1,9 @@
 # corpus_dir	relative_path	url	size_bytes	checksum	unpack
-mls	ARCHIVES/mls_dutch.tar.gz	https://dl.fbaipublicfiles.com/mls/mls_dutch.tar.gz	92158429530	md5:6b171a16baff0108efd320b1ad65b9d1	
-mls	ARCHIVES/mls_english.tar.gz	https://dl.fbaipublicfiles.com/mls/mls_english.tar.gz	2633483710211	md5:9d4249911e318c2b8dcfcfecb484d865	
-mls	ARCHIVES/mls_french.tar.gz	https://dl.fbaipublicfiles.com/mls/mls_french.tar.gz	64474642518	md5:4172e807697259bff9ad63661aecabf6	
-mls	ARCHIVES/mls_german.tar.gz	https://dl.fbaipublicfiles.com/mls/mls_german.tar.gz	122944886305	md5:91ac982bf63869307f1b8950dfb7c776	
-mls	ARCHIVES/mls_italian.tar.gz	https://dl.fbaipublicfiles.com/mls/mls_italian.tar.gz	15395281399	md5:dc77f5805aecc7182aa20786032e5dc1	
-mls	ARCHIVES/mls_polish.tar.gz	https://dl.fbaipublicfiles.com/mls/mls_polish.tar.gz	6609569551	md5:ce1a1278006cc373c9d1cb6dbfc03d47	
-mls	ARCHIVES/mls_portuguese.tar.gz	https://dl.fbaipublicfiles.com/mls/mls_portuguese.tar.gz	9982803818	md5:12d54613fae75ae5fb1d55836408f3ee	
-mls	ARCHIVES/mls_spanish.tar.gz	https://dl.fbaipublicfiles.com/mls/mls_spanish.tar.gz	53296894035	md5:6c34698dd522dde28fdc43309e9cc1ac	
+mls	ARCHIVES/mls_dutch.tar.gz	https://dl.fbaipublicfiles.com/mls/mls_dutch.tar.gz	92158429530	md5:6b171a16baff0108efd320b1ad65b9d1
+mls	ARCHIVES/mls_english.tar.gz	https://dl.fbaipublicfiles.com/mls/mls_english.tar.gz	2633483710211	md5:9d4249911e318c2b8dcfcfecb484d865
+mls	ARCHIVES/mls_french.tar.gz	https://dl.fbaipublicfiles.com/mls/mls_french.tar.gz	64474642518	md5:4172e807697259bff9ad63661aecabf6
+mls	ARCHIVES/mls_german.tar.gz	https://dl.fbaipublicfiles.com/mls/mls_german.tar.gz	122944886305	md5:91ac982bf63869307f1b8950dfb7c776
+mls	ARCHIVES/mls_italian.tar.gz	https://dl.fbaipublicfiles.com/mls/mls_italian.tar.gz	15395281399	md5:dc77f5805aecc7182aa20786032e5dc1
+mls	ARCHIVES/mls_polish.tar.gz	https://dl.fbaipublicfiles.com/mls/mls_polish.tar.gz	6609569551	md5:ce1a1278006cc373c9d1cb6dbfc03d47
+mls	ARCHIVES/mls_portuguese.tar.gz	https://dl.fbaipublicfiles.com/mls/mls_portuguese.tar.gz	9982803818	md5:12d54613fae75ae5fb1d55836408f3ee
+mls	ARCHIVES/mls_spanish.tar.gz	https://dl.fbaipublicfiles.com/mls/mls_spanish.tar.gz	53296894035	md5:6c34698dd522dde28fdc43309e9cc1ac

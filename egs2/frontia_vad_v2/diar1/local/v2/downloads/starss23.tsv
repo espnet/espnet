@@ -1,12 +1,12 @@
 # corpus_dir	relative_path	url	size_bytes	checksum	unpack
-starss23	ARCHIVES/LICENSE	https://zenodo.org/records/23735039/files/LICENSE?download=1	1194	md5:1c11108eda7c915172b10c48276cc189	
-starss23	ARCHIVES/README.md	https://zenodo.org/records/23735039/files/README.md?download=1	28574	md5:c30b4d366c7f39639df901f4414a805e	
-starss23	ARCHIVES/foa_dev.zip	https://zenodo.org/records/23735039/files/foa_dev.zip?download=1	3406085425	md5:316b834ee6393c22862c314cc3c7ebb0	
-starss23	ARCHIVES/foa_eval.zip	https://zenodo.org/records/23735039/files/foa_eval.zip?download=1	1643937003	md5:7caa61bb6ea997f5bfac5b20177f505a	
-starss23	ARCHIVES/metadata_dev.zip	https://zenodo.org/records/23735039/files/metadata_dev.zip?download=1	1165845	md5:e73af95a6d5f3f7e009ac6a70804f44a	
-starss23	ARCHIVES/metadata_eval.zip	https://zenodo.org/records/23735039/files/metadata_eval.zip?download=1	573735	md5:a35720627712f45d67cc7f59b3724087	
-starss23	ARCHIVES/metadata_eval_map_to_original_filenames.txt	https://zenodo.org/records/23735039/files/metadata_eval_map_to_original_filenames.txt?download=1	3284	md5:73f23d23c54aea0ae4b9f3ae959029d7	
-starss23	ARCHIVES/mic_dev.zip	https://zenodo.org/records/23735039/files/mic_dev.zip?download=1	3370049004	md5:06967bcc8def1580c2425fabc311dbd2	
-starss23	ARCHIVES/mic_eval.zip	https://zenodo.org/records/23735039/files/mic_eval.zip?download=1	1619951989	md5:904dde7a7bff1a2b81527f16e4f26625	
-starss23	ARCHIVES/video_dev.zip	https://zenodo.org/records/23735039/files/video_dev.zip?download=1	4102871214	md5:b92295e162600adb545ed99bdc0a9c76	
-starss23	ARCHIVES/video_eval.zip	https://zenodo.org/records/23735039/files/video_eval.zip?download=1	2112074971	md5:646f6678af32e4205f45a3d77d4eaa29	
+starss23	ARCHIVES/LICENSE	https://zenodo.org/records/23735039/files/LICENSE?download=1	1194	md5:1c11108eda7c915172b10c48276cc189
+starss23	ARCHIVES/README.md	https://zenodo.org/records/23735039/files/README.md?download=1	28574	md5:c30b4d366c7f39639df901f4414a805e
+starss23	ARCHIVES/foa_dev.zip	https://zenodo.org/records/23735039/files/foa_dev.zip?download=1	3406085425	md5:316b834ee6393c22862c314cc3c7ebb0
+starss23	ARCHIVES/foa_eval.zip	https://zenodo.org/records/23735039/files/foa_eval.zip?download=1	1643937003	md5:7caa61bb6ea997f5bfac5b20177f505a
+starss23	ARCHIVES/metadata_dev.zip	https://zenodo.org/records/23735039/files/metadata_dev.zip?download=1	1165845	md5:e73af95a6d5f3f7e009ac6a70804f44a
+starss23	ARCHIVES/metadata_eval.zip	https://zenodo.org/records/23735039/files/metadata_eval.zip?download=1	573735	md5:a35720627712f45d67cc7f59b3724087
+starss23	ARCHIVES/metadata_eval_map_to_original_filenames.txt	https://zenodo.org/records/23735039/files/metadata_eval_map_to_original_filenames.txt?download=1	3284	md5:73f23d23c54aea0ae4b9f3ae959029d7
+starss23	ARCHIVES/mic_dev.zip	https://zenodo.org/records/23735039/files/mic_dev.zip?download=1	3370049004	md5:06967bcc8def1580c2425fabc311dbd2
+starss23	ARCHIVES/mic_eval.zip	https://zenodo.org/records/23735039/files/mic_eval.zip?download=1	1619951989	md5:904dde7a7bff1a2b81527f16e4f26625
+starss23	ARCHIVES/video_dev.zip	https://zenodo.org/records/23735039/files/video_dev.zip?download=1	4102871214	md5:b92295e162600adb545ed99bdc0a9c76
+starss23	ARCHIVES/video_eval.zip	https://zenodo.org/records/23735039/files/video_eval.zip?download=1	2112074971	md5:646f6678af32e4205f45a3d77d4eaa29
