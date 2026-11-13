@@ -9,8 +9,8 @@ splits.resolve(): official splits are kept, and corpora split by group get
 their dev groups there. Writes <out>/train and <out>/dev: wav.scp,
 utt2num_samples, utt2category, espnet_rttm, manifest.tsv (sorted; the Omni-IO
 entries keep pointing at the archives of the inputs), feats_type, and
-domains.tsv (recordings and hours per domain and corpus). Exits with an error
-if a corpus has no dev recording.
+domains.tsv (recordings and hours per domain and corpus). A corpus without dev
+recordings is reported on stderr (and in its corpus report).
 """
 
 import argparse
@@ -54,7 +54,8 @@ def main():
                     row = "\t".join(r.get(k, "") for k in MANIFEST_FIELDS)
                     lines[split]["manifest.tsv"].append(row + "\n")
     if no_dev:
-        sys.exit(f"no dev recordings in: {', '.join(no_dev)}")
+        # reported, not fatal: e.g. one unit of groups, or only an official train
+        print(f"WARNING: no dev recordings in: {', '.join(no_dev)}", file=sys.stderr)
     header = "\t".join(MANIFEST_FIELDS) + "\n"
     cols = list(MANIFEST_FIELDS)
     for split in SPLITS:

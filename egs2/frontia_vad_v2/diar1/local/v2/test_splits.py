@@ -57,23 +57,31 @@ def test_resolve_keeps_groups_apart(tmp_path):
     assert sum(s == {"dev"} for s in by_group.values()) == 1
 
 
-def test_mixed_pack_is_dropped(tmp_path):
-    # 10 s clips packed to 30 s: a pack may hold several groups
-    recs = [(f"c{i}", f"spk{i % 4}", 10.0) for i in range(12)]
-    final, _ = resolve(_write(tmp_path, recs, pack_seconds=30))
-    dev = dev_groups([f"spk{i}" for i in range(4)])
+def test_packed_groups_stay_together(tmp_path):
+    # 10 s clips packed to 30 s: a pack holds several groups, which then form
+    # units; no unit is split and nothing is dropped
+    recs = [(f"c{i}", f"spk{i}", 10.0) for i in range(60)]
+    final, summary = resolve(_write(tmp_path, recs, pack_seconds=30))
+    assert set(final.values()) <= {"train", "dev"}
+    assert (
+        summary["units"] >= 20 and "dev" in final.values() and "train" in final.values()
+    )
     for line in (tmp_path / "toy").glob("*/manifest.tsv"):
         for row in line.read_text().splitlines()[1:]:
-            rid, groups = row.split("\t")[0], set(row.split("\t")[-1].split(";"))
-            if groups <= dev:
-                assert final[rid] == "dev"
-            elif groups & dev:
-                assert final[rid] == "drop"
-            else:
-                assert final[rid] == "train"
+            rid = row.split("\t")[0]
+            assert final[rid] in ("train", "dev")
 
 
-def test_combine_fails_without_dev(tmp_path):
+def test_one_unit_stays_in_train(tmp_path):
+    recs = [(f"c{i}", "only_speaker", 40.0) for i in range(3)]
+    final, summary = resolve(_write(tmp_path, recs))
+    assert summary["units"] == 1 and set(final.values()) <= {"train", "dev"}
+    assert (
+        "dev" not in final.values() or all(v == "dev" for v in final.values()) is False
+    )
+
+
+def test_combine_reports_a_corpus_without_dev(tmp_path):
     w = Writers(tmp_path, SPEC, "nodev", 16000, 0, 1, None)
     w["train"].add("a", np.zeros(16000, dtype=np.float32), 16000)
     w.close()
@@ -87,4 +95,5 @@ def test_combine_fails_without_dev(tmp_path):
         capture_output=True,
         text=True,
     )
-    assert r.returncode != 0 and "no dev recordings in: nodev" in r.stderr
+    assert r.returncode == 0 and "no dev recordings in: nodev" in r.stderr
+    assert (tmp_path / "raw" / "train" / "wav.scp").read_text().startswith("nodev-a ")
