@@ -54,7 +54,7 @@ def mine(index: int, shard: int, nshards: int) -> bool:
 
 
 def split_by_hash(key: str, dev_percent: int = 2) -> str:
-    """"dev" for about dev_percent % of keys, else "train"; stable across runs.
+    """ "dev" for about dev_percent % of keys, else "train"; stable across runs.
 
     Use a key that groups what must not be split, e.g. the speaker or the
     session, for corpora without an official dev split.
