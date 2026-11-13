@@ -5,9 +5,9 @@
 
 The same files as the non-speech training corpora: MUSAN noise/ and music/
 files whose licence is CC0, CC BY or public domain (MUSAN's per-block
-LICENSE), music without vocals (ANNOTATIONS), never speech/; CHiME-3
-backgrounds of the bus and street only (cafe and pedestrian have babble,
-which added to a non-speech region would be labelled non-speech).
+LICENSE), music without vocals (ANNOTATIONS), never speech/; all CHiME-3
+backgrounds (bus, cafe, pedestrian area, street). The babble in the cafe and
+pedestrian backgrounds counts as non-speech (Shinji, 2026-11-12).
 """
 
 import re
@@ -41,7 +41,7 @@ def musan_files(root: Path):
 def chime3_files(root: Path):
     for p in sorted(root.rglob("*.wav")):
         tokens = set(re.split(r"[^A-Z0-9]+", p.name.upper()))
-        if tokens & {"BUS", "STR"}:
+        if tokens & {"BUS", "CAF", "PED", "STR"}:
             yield p.stem, p
 
 

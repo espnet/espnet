@@ -1010,12 +1010,18 @@ def fsdnoisy18k(root, writers, shard: int, nshards: int, verified_only=True):
 
 @corpus("chime3_background", "chime3_background", "environment", "D", "CC BY 4.0")
 def chime3_background(
-    root, writers, shard: int, nshards: int, envs=("BUS", "STR"), mics=("CH1",)
+    root,
+    writers,
+    shard: int,
+    nshards: int,
+    envs=("BUS", "CAF", "PED", "STR"),
+    mics=("CH1",),
 ):
-    """CHiME-3 background noise of the environments in `envs` (bus, street).
+    """CHiME-3 background noise of the environments in `envs`.
 
-    Cafe (CAF) and pedestrian area (PED) backgrounds have babble and are left
-    out. One file per channel; only the channels in `mics` (CH1..CH6) are used,
+    All four by default: bus, cafe, pedestrian area, street. The babble in the
+    cafe and pedestrian backgrounds counts as non-speech (Shinji, 2026-11-12).
+    One file per channel; only the channels in `mics` (CH1..CH6) are used,
     or all if the names have no channel tag. Cut into PIECE_SECONDS pieces.
     """
     files = []
