@@ -66,7 +66,12 @@ Each corpus has one label source:
   correct transcript (-10 dropped 9 % of them), while mismatched transcripts score
   -18 or lower. The buffers of many recordings are encoded together
   (`--align_batch_seconds 3840`, fp32), which gives the same alignments as one
-  recording at a time (`local/v2/test_align_batch.py`); bf16 changed them.
+  recording at a time (`local/v2/test_align_batch.py`); bf16 changed them. The
+  encoder's attention runs through `scaled_dot_product_attention`
+  (`--align_use_sdpa true`): on 480 recordings in Kazakh, Korean, Icelandic and
+  Mandarin it gave the same words, times, labels and dropped recordings as one
+  recording at a time in fp32, with 62 instead of 91 GiB of GPU memory. TF32
+  changed 44 word times (up to 0.32 s) and is off.
 
 Human non-speech vocalisations (laughter, coughs, breathing, crying) are non-speech;
 singing is speech. Clips of the non-speech corpora that are tagged with speech or
