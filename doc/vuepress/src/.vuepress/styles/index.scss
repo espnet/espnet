@@ -1,7 +1,11 @@
-// place your custom styles here
+@use "./home-custom.scss" as *; // import all variables and mixins from home-custom.scss
+@use "./docs-tools.scss" as *;
+@use "./espnet3-guide.scss" as *;
+
 body {
   color: #1f1e33;
 }
+
 // place your custom styles here
 .custom-h3 {
   padding: 0.5em !important;
@@ -40,4 +44,109 @@ body {
 .small-bracket {
   font-size: 90%;
   opacity: 90%;
+}
+
+details {
+  margin: 1.25rem 0;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.02);
+  overflow: hidden;
+
+  > summary {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 1rem;
+
+    padding: 1rem 1.25rem;
+    cursor: pointer;
+    list-style: none;
+
+    font-weight: 600;
+    line-height: 1.5;
+
+    &::-webkit-details-marker {
+      display: none;
+    }
+
+    &::marker {
+      content: "";
+    }
+
+    &::before {
+      content: "›";
+      flex: 0 0 auto;
+      font-size: 1.4rem;
+      line-height: 1;
+      opacity: 0.7;
+      transform: rotate(0deg);
+      transition: transform 0.2s ease;
+    }
+  }
+
+  &[open] > summary::before {
+    transform: rotate(90deg);
+  }
+
+  > :not(summary) {
+    margin-left: 1.25rem;
+    margin-right: 1.25rem;
+  }
+
+  > :last-child {
+    margin-bottom: 1.25rem;
+  }
+}
+
+.theme-container .vp-page :where(.theme-hope-content, .vp-page-content, .markdown-content) > ol {
+  counter-reset: espnet-ordered-list;
+  margin: 1.25rem 0;
+  padding: 0;
+  list-style: none;
+}
+
+.theme-container .vp-page :where(.theme-hope-content, .vp-page-content, .markdown-content) > ol > li {
+  position: relative;
+  margin: 0;
+  padding: 0.1rem 0 0.9rem 2.5rem;
+  counter-increment: espnet-ordered-list;
+}
+
+.theme-container .vp-page :where(.theme-hope-content, .vp-page-content, .markdown-content) > ol > li::before {
+  content: counter(espnet-ordered-list);
+  position: absolute;
+  top: 0.05rem;
+  left: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.6rem;
+  height: 1.6rem;
+  border: 1px solid rgba(15, 23, 42, 0.1);
+  border-radius: 999px;
+  background: #f3f4f6;
+  color: #475569;
+  font-size: 0.82rem;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.theme-container .vp-page :where(.theme-hope-content, .vp-page-content, .markdown-content) > ol > li > :first-child {
+  margin-top: 0;
+}
+
+.theme-container .vp-page :where(.theme-hope-content, .vp-page-content, .markdown-content) > ol > li > :last-child {
+  margin-bottom: 0;
+}
+
+.theme-container .vp-page:not(.not-found) + .vp-footer-wrapper {
+  margin-top: 0;
+}
+
+@media (max-width: 719px) {
+  .theme-container .vp-page :where(.theme-hope-content, .vp-page-content, .markdown-content) > ol > li {
+    padding-left: 2.25rem;
+  }
 }

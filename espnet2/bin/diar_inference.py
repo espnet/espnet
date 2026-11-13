@@ -61,6 +61,7 @@ class DiarizeSpeech:
         dtype: str = "float32",
         enh_s2t_task: bool = False,
         multiply_diar_result: bool = False,
+        look_ahead: Optional[int] = None,
     ):
 
         task = DiarizationTask if not enh_s2t_task else EnhS2TTask
@@ -81,6 +82,17 @@ class DiarizeSpeech:
             )
 
         diar_model.to(dtype=getattr(torch, dtype)).eval()
+        # Set the encoder's look-ahead (input frames): 0 for online diarization,
+        # up to its max_look_ahead for offline. None keeps the trained value.
+        if look_ahead is not None:
+            # the diarization model, inside the joint model for enh_s2t
+            target = diar_model.s2t_model if enh_s2t_task else diar_model
+            if not hasattr(target, "set_look_ahead"):
+                raise ValueError(
+                    f"look_ahead needs a diarization model, "
+                    f"not {type(target).__name__}"
+                )
+            target.set_look_ahead(look_ahead)  # raises for other encoders
 
         self.device = device
         self.dtype = dtype
@@ -122,16 +134,144 @@ class DiarizeSpeech:
 
     @torch.no_grad()
     @typechecked
+    def diarize_batch(
+        self,
+        speech: Union[torch.Tensor, np.ndarray],
+        speech_lengths: Optional[Union[torch.Tensor, np.ndarray]] = None,
+        fs: int = 8000,
+    ) -> List[np.ndarray]:
+        """Diarize a zero-padded batch and return the result of each utterance.
+
+        Utterance b gets an array (frames_b, num_spk_b) of speaker activity
+        probabilities: its own frames only, and with EEND-EDA without num_spk,
+        its own number of speakers. Each array equals what __call__ returns for
+        the utterance alone, cut to its frames.
+
+        This function runs the whole batch through the model at once. It runs
+        the utterances one at a time instead with enh_s2t_task, when
+        segment-wise diarization applies to an utterance of the batch, for
+        multi-channel input, and when a centred STFT cannot reflect an
+        utterance (n_fft / 2 samples or fewer).
+
+        Args:
+            speech: zero-padded input speech (Batch, Nsamples [, Channels])
+            speech_lengths: number of samples of each utterance (Batch,);
+                None means that no utterance is padded
+            fs: sample rate
+        Returns:
+            list of (frames_b, num_spk_b) arrays, one per utterance
+        """
+        if isinstance(speech, np.ndarray):
+            speech = torch.as_tensor(speech)
+        assert speech.dim() > 1, speech.size()
+        batch_size = speech.size(0)
+        if speech_lengths is None:
+            lengths = torch.full([batch_size], speech.size(1), dtype=torch.long)
+        else:
+            lengths = torch.as_tensor(speech_lengths).long().cpu()
+
+        segmenting = self.segmenting_diar and bool(
+            (lengths > self.segment_size * fs).any()
+        )
+        stft = getattr(getattr(self.diar_model, "frontend", None), "stft", None)
+        centred = stft is not None and getattr(stft, "center", False)
+        # Run one utterance at a time: with enh_s2t, segment-wise diarization,
+        # multi-channel input (B, T, C), or an utterance that a centred STFT
+        # cannot reflect (no longer than n_fft / 2 samples).
+        if (
+            self.enh_s2t_task
+            or segmenting
+            or speech.dim() != 2
+            or (centred and int(lengths.min()) <= stft.n_fft // 2)
+        ):
+            return [
+                self(speech[b : b + 1, : lengths[b]], fs=fs)[1][0]
+                for b in range(batch_size)
+            ]
+
+        # Sort the utterances by decreasing length: some encoders (RNNEncoder)
+        # pack the batch and require it. The results go back in input order.
+        order = torch.argsort(lengths, descending=True, stable=True)
+        speech, lengths = speech[order], lengths[order]
+        speech = speech.to(getattr(torch, self.dtype))
+        if centred:
+            # Pad each utterance as torch.stft(center=True) pads it alone, and run
+            # the STFT with center=False: the frames and their number are those
+            # of the utterance alone.
+            speech, model_lengths = self._reflect_pad(speech, lengths, stft.n_fft // 2)
+            stft.center = False
+            try:
+                encoder_out, encoder_out_lens = self.encode(
+                    to_device(speech, device=self.device),
+                    to_device(model_lengths, device=self.device),
+                )
+            finally:
+                stft.center = True
+        else:
+            encoder_out, encoder_out_lens = self.encode(
+                to_device(speech, device=self.device),
+                to_device(lengths, device=self.device),
+            )
+        frames = encoder_out_lens.tolist()
+
+        if self.diar_model.attractor is None or self.num_spk is not None:
+            spk_prediction, _ = self.decode(encoder_out, encoder_out_lens)
+            predictions = [spk_prediction[b, : frames[b]] for b in range(batch_size)]
+        else:
+            # EEND-EDA without num_spk: each utterance gets its own number of
+            # speakers, the index of its first attractor with a negative
+            # probability, as decode() finds it for one utterance.
+            max_num_spk = 15
+            attractor, att_prob = self.diar_model.attractor(
+                encoder_out,
+                encoder_out_lens,
+                encoder_out.new_zeros(batch_size, max_num_spk + 1, encoder_out.size(2)),
+            )
+            predictions = []
+            for b in range(batch_size):
+                negative = (att_prob[b, :, 0] < 0).nonzero()
+                num_spk = int(negative[0]) if len(negative) else max_num_spk
+                predictions.append(
+                    encoder_out[b, : frames[b]] @ attractor[b, :num_spk].T
+                )
+        # Apply the same sigmoid as __call__, in numpy, and restore the order.
+        results = [None] * batch_size
+        for i, b in enumerate(order.tolist()):
+            results[b] = 1 / (1 + np.exp(-predictions[i].cpu().numpy()))
+        return results
+
+    @staticmethod
+    def _reflect_pad(speech: torch.Tensor, lengths: torch.Tensor, pad: int):
+        """Pad each utterance at both ends by reflection, as torch.stft does.
+
+        Utterance b of length n becomes x[pad], ..., x[1], x[0], ..., x[n-1],
+        x[n-2], ..., x[n-1-pad] (torch.stft(center=True, pad_mode="reflect")),
+        followed by zeros up to the batch width. Returns the padded batch and
+        the lengths n + 2 * pad.
+        """
+        out = speech.new_zeros(speech.size(0), speech.size(1) + 2 * pad)
+        for b, n in enumerate(lengths.tolist()):
+            x = speech[b, :n]
+            out[b, :pad] = x[1 : pad + 1].flip(0)
+            out[b, pad : pad + n] = x
+            out[b, pad + n : 2 * pad + n] = x[n - 1 - pad : n - 1].flip(0)
+        return out, lengths + 2 * pad
+
+    @torch.no_grad()
+    @typechecked
     def __call__(
         self, speech: Union[torch.Tensor, np.ndarray], fs: int = 8000
-    ) -> Union[List[torch.Tensor], Tuple]:
+    ) -> Tuple[Optional[List[np.ndarray]], np.ndarray]:
         """Inference
 
         Args:
             speech: Input speech data (Batch, Nsamples [, Channels])
             fs: sample rate
         Returns:
-            [speaker_info1, speaker_info2, ...]
+            (waves, spk_prediction): spk_prediction holds the speaker activity
+            probabilities (Batch, Frames, num_spk). waves is the list of separated
+            waveforms, one (Batch, Nsamples) array per speaker, with
+            enh_s2t_task, and None without it.
 
         """
 
@@ -319,7 +459,7 @@ class DiarizeSpeech:
         spk_prediction = spk_prediction.cpu().numpy()
         spk_prediction = 1 / (1 + np.exp(-spk_prediction))
 
-        return waves, spk_prediction if self.enh_s2t_task else spk_prediction
+        return waves, spk_prediction
 
     @torch.no_grad()
     def cal_permumation(self, ref_wavs, enh_wavs, criterion="si_snr"):
@@ -477,9 +617,10 @@ def inference(
     normalize_output_wav: bool,
     multiply_diar_result: bool,
     enh_s2t_task: bool,
+    look_ahead: Optional[int] = None,
 ):
-    if batch_size > 1:
-        raise NotImplementedError("batch decoding is not implemented")
+    if batch_size > 1 and enh_s2t_task:
+        raise NotImplementedError("batch decoding is not implemented for enh_s2t")
     if ngpu > 1:
         raise NotImplementedError("only single GPU decoding is supported")
 
@@ -510,6 +651,7 @@ def inference(
         dtype=dtype,
         multiply_diar_result=multiply_diar_result,
         enh_s2t_task=enh_s2t_task,
+        look_ahead=look_ahead,
     )
     diarize_speech = DiarizeSpeech.from_pretrained(
         model_tag=model_tag,
@@ -558,6 +700,7 @@ def inference(
         assert all(isinstance(s, str) for s in keys), keys
         _bs = len(next(iter(batch.values())))
         assert len(keys) == _bs, f"{len(keys)} != {_bs}"
+        speech_lengths = batch.get("speech_lengths")
         batch = {k: v for k, v in batch.items() if not k.endswith("_lengths")}
 
         if enh_s2t_task:
@@ -567,9 +710,11 @@ def inference(
                 for spk, w in enumerate(waves):
                     wav_writers[spk][keys[b]] = fs, w[b]
         else:
-            spk_predictions = diarize_speech(**batch)
-            for b in range(batch_size):
-                writer[keys[b]] = spk_predictions[b]
+            spk_predictions = diarize_speech.diarize_batch(
+                batch["speech"], speech_lengths, fs=fs
+            )
+            for key, prediction in zip(keys, spk_predictions):
+                writer[key] = prediction
 
     if enh_s2t_task:
         for w in wav_writers:
@@ -680,6 +825,14 @@ def get_parser():
         type=int_or_none,
         default=None,
         help="Predetermined number of speakers for inference",
+    )
+    group.add_argument(
+        "--look_ahead",
+        type=int_or_none,
+        default=None,
+        help="Look-ahead of the encoder in input frames: 0 for online "
+        "diarization, up to the encoder's max_look_ahead for offline. "
+        "None keeps the value of the training config",
     )
 
     group = parser.add_argument_group("Enh + Diar related")

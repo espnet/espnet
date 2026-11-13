@@ -47,7 +47,7 @@ local_data_opts="" # Options to be passed to local/data.sh.
 
 # Feature extraction related
 feats_type=raw             # Input feature type.
-audio_format=flac          # Audio format: wav, flac, wav.ark, flac.ark  (only in feats_type=raw).
+audio_format=flac          # Audio format: wav, flac, wav.ark, flac.ark, omniio  (only in feats_type=raw).
 min_wav_duration=0.1       # Minimum duration in second.
 max_wav_duration=30        # Maximum duration in second.
 fs=16000                   # Sampling rate.
@@ -98,6 +98,7 @@ text_fold_length=150     # fold_length for reference text.
 
 # Upload model related
 hf_repo=
+hf_license=
 
 help_message=$(cat << EOF
 Usage: $0 --train-set "<train_set_name>" --valid-set "<valid_set_name>" --test_sets "<test_set_names>"
@@ -137,6 +138,7 @@ Common options (all configuration variables above can be set with --name value):
     --download_model            Model Zoo tag for inference
     --sys_info                  Utterance-to-system mapping for system scoring
     --hf_repo                   Hugging Face repository for upload
+    --hf_license                Hugging Face license identifier for the model card
 See the configuration section at the top of this script for tokenization options
 and their defaults (nbpe, bpemode, bpe_nlsyms, cleaner, nlsyms_txt, etc.).
 EOF
@@ -457,6 +459,8 @@ if ! "${skip_train}"; then
         _scp=wav.scp
         if [[ "${audio_format}" == *ark* ]]; then
             _type=kaldi_ark
+        elif [[ "${audio_format}" == omniio ]]; then
+            _type=omniio
         else
             _type=sound
         fi
@@ -542,6 +546,8 @@ if ! "${skip_train}"; then
         _scp=wav.scp
         if [[ "${audio_format}" == *ark* ]]; then
             _type=kaldi_ark
+        elif [[ "${audio_format}" == omniio ]]; then
+            _type=omniio
         else
             _type=sound
         fi
@@ -652,6 +658,8 @@ if ! "${skip_eval}"; then
             _scp=wav.scp
             if [[ "${audio_format}" == *ark* ]]; then
                 _type=kaldi_ark
+            elif [[ "${audio_format}" == omniio ]]; then
+                _type=omniio
             else
                 _type=sound
             fi
@@ -761,6 +769,9 @@ if [ ${stage} -le 11 ] && [ ${stop_stage} -ge 11 ] && ! "${skip_upload}"; then
     log "Stage 11: Uploading to hugging face: ${hf_repo}"
     [ -z "${hf_repo}" ] && \
         log "ERROR: You need to setup the variable hf_repo with the name of the repository located at HuggingFace, follow the following steps described here https://github.com/espnet/espnet/blob/master/CONTRIBUTING.md#132-espnet2-recipes" && \
+    exit 1
+    [ -z "${hf_license}" ] && \
+        log "ERROR: You need to setup the variable hf_license with the Hugging Face license identifier for the model card (for example apache-2.0, mit, cc-by-4.0, or other)" && \
     exit 1
 
     if [ -e "${packed_model}" ]; then

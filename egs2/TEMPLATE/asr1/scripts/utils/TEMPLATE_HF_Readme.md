@@ -6,7 +6,7 @@ tags:
 language: ${lang}
 datasets:
 - ${_corpus}
-license: cc-by-4.0
+license: ${hf_license}
 ---
 
 ## ESPnet2 ${espnet_task} model

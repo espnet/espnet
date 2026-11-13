@@ -1,0 +1,75 @@
+##########################################################
+#                 METRIC SCORING SETTING                 #
+##########################################################
+# Quick usage:
+#   python run.py --stages measure --metrics_config conf/metrics.yaml
+#
+# Assumptions:
+# - `infer` has already produced `<test_name>/{hyp,score}.scp`; each reference
+#   is read from the dataset's `label` field (`dataset:label`).
+# - `prepare_labels` has written `${data_dir}/token_list`.
+# - If `dataset.test` is omitted, test sets are discovered from `${inference_dir}`
+#   subdirectories.
+
+##########################################################
+#                    PATHS AND INPUTS                    #
+##########################################################
+# Common case:
+# - pass `--training_config`, `--inference_config`, and `--metrics_config`
+# - `run.py` copies `training_config.exp_tag` / `training_config.exp_dir` here
+# - `run.py` also copies `inference_config.inference_dir` here, so `measure`
+#   reads the same directory used by `infer`
+#
+# Standalone `measure` is also supported. In that case, set either `exp_tag` or
+# a concrete `exp_dir` below, and add `inference_dir` here unless
+# `--inference_config` provides it.
+recipe_dir: .
+exp_tag:
+exp_dir: ${recipe_dir}/exp/${exp_tag}
+data_dir: ${recipe_dir}/data
+
+dataset:
+
+##########################################################
+#                    METRIC DEFINITION                   #
+##########################################################
+# WA, mAP and AUC reproduce `mean_acc` / `mAP` / `mean_auc` from ESPnet2's
+# `pyscripts/utils/cls_score.py`. UA and MacroF1 are added because
+# classification corpora are usually imbalanced and WA alone hides that.
+#
+# A recipe that only wants a subset should redefine the whole `metrics` list;
+# OmegaConf replaces lists rather than appending to them.
+metrics:
+  - metric:
+      _target_: espnet3.systems.esp2_cls.metrics.wa.WA
+    inputs:
+      ref: dataset:label
+      hyp: hyp
+
+  - metric:
+      _target_: espnet3.systems.esp2_cls.metrics.ua.UA
+      token_list: ${data_dir}/token_list  # optional; fixes the class set
+    inputs:
+      ref: dataset:label
+      hyp: hyp
+
+  - metric:
+      _target_: espnet3.systems.esp2_cls.metrics.macro_f1.MacroF1
+      token_list: ${data_dir}/token_list  # optional; fixes the class set
+    inputs:
+      ref: dataset:label
+      hyp: hyp
+
+  - metric:
+      _target_: espnet3.systems.esp2_cls.metrics.mean_ap.MAP
+      token_list: ${data_dir}/token_list  # required; sets the column order
+    inputs:
+      ref: dataset:label
+      score: score
+
+  - metric:
+      _target_: espnet3.systems.esp2_cls.metrics.auc.AUC
+      token_list: ${data_dir}/token_list  # required; sets the column order
+    inputs:
+      ref: dataset:label
+      score: score
