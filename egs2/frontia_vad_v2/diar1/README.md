@@ -61,8 +61,12 @@ Each corpus has one label source:
   transcript word by word with OWSM-CTC v4 (`espnet/owsm_ctc_v4_1B` at revision
   `6075bf3d42e6037d1ef7abd7c5558ade886e6eaa`) and CTC segmentation. The speech is the
   union of the word spans, with pauses shorter than 0.2 s counted as speech
-  (`--align_min_pause`); a recording with a word scored below -10 is dropped
-  (`--align_min_word_score`).
+  (`--align_min_pause`); a recording with a word scored below -15 is dropped
+  (`--align_min_word_score`). On LibriSpeech dev, -15 drops no recording with a
+  correct transcript (-10 dropped 9 % of them), while mismatched transcripts score
+  -18 or lower. The buffers of many recordings are encoded together
+  (`--align_batch_seconds 3840`, fp32), which gives the same alignments as one
+  recording at a time (`local/v2/test_align_batch.py`); bf16 changed them.
 
 Human non-speech vocalisations (laughter, coughs, breathing, crying) are non-speech;
 singing is speech. Clips of the non-speech corpora that are tagged with speech or

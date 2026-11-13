@@ -119,13 +119,13 @@ def main():
     parser.add_argument(
         "--min_word_score",
         type=float,
-        default=-10.0,
+        default=-15.0,
         help="drop a recording if a word's CTC segmentation score is below this",
     )
     parser.add_argument(
         "--batch_seconds",
         type=float,
-        default=1920.0,
+        default=3840.0,
         help="audio encoded per GPU forward, in the model's 30 s buffers "
         "(local/v2/ctc_batch.py); 0: one recording at a time, as "
         "espnet2.bin.s2t_align.CTCSegmentation does it",
