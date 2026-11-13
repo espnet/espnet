@@ -13,6 +13,7 @@ from omniio import kaldi as kaldi_io
 from torch.utils.data.dataset import IterableDataset
 from typeguard import typechecked
 
+from espnet2.fileio.omniio_audio import OmniIOEntryReader
 from espnet2.train.dataset import ESPnetDataset
 
 
@@ -51,6 +52,10 @@ DATA_TYPES = {
         [soundfile.read(xx)[0] for xx in x.split()], axis=0
     ),
     "kaldi_ark": load_kaldi,
+    # one reader per process keeps the bin files of the archive open
+    "omniio": lambda x, _read=OmniIOEntryReader(): (
+        _read(x)[1] if x is not None else None
+    ),
     "npy": np.load,
     "text_int": lambda x: np.loadtxt(
         StringIO(x), ndmin=1, dtype=np.int64, delimiter=" "
@@ -199,7 +204,11 @@ class IterableESPnetDataset(IterableDataset):
                     key, value = sps
                     keys.append(key)
                     # NOTE(jiatong): set None value for missing values
-                    if value == "None" and data_type in ("sound", "kaldi_ark"):
+                    if value == "None" and data_type in (
+                        "sound",
+                        "kaldi_ark",
+                        "omniio",
+                    ):
                         value = None
 
                     values.append(value)

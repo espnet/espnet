@@ -47,7 +47,7 @@ speed_perturb_factors=  # perturbation factors, e.g. "0.9 1.0 1.1" (separated by
 
 # Feature extraction related
 feats_type=raw       # Feature type (raw or fbank_pitch).
-audio_format=flac    # Audio format: wav, flac, wav.ark, flac.ark  (only in feats_type=raw).
+audio_format=flac    # Audio format: wav, flac, wav.ark, flac.ark, omniio  (only in feats_type=raw).
 fs=16k               # Sampling rate.
 min_wav_duration=0.1 # Minimum duration in second.
 max_wav_duration=20  # Maximum duration in second.
@@ -114,6 +114,7 @@ use_src_lang=true          # Incorporate ASR loss (use src texts) or not
 
 # Upload model related
 hf_repo=
+hf_license=
 
 # Decoding related
 use_k2=false      # Whether to use k2 based decoder
@@ -181,7 +182,7 @@ Options:
 
     # Feature extraction related
     --feats_type       # Feature type (raw, fbank_pitch or extracted, default="${feats_type}").
-    --audio_format     # Audio format: wav, flac, wav.ark, flac.ark  (only in feats_type=raw, default="${audio_format}").
+    --audio_format     # Audio format: wav, flac, wav.ark, flac.ark, omniio  (only in feats_type=raw, default="${audio_format}").
     --fs               # Sampling rate (default="${fs}").
     --min_wav_duration # Minimum duration in second (default="${min_wav_duration}").
     --max_wav_duration # Maximum duration in second (default="${max_wav_duration}").
@@ -263,6 +264,10 @@ Options:
     --st_speech_fold_length # fold_length for speech data during ST training (default="${st_speech_fold_length}").
     --st_text_fold_length   # fold_length for text data during ST training (default="${st_text_fold_length}").
     --lm_fold_length         # fold_length for LM training (default="${lm_fold_length}").
+
+    # Upload model related
+    --hf_repo            # Hugging Face repository for upload (default="${hf_repo}").
+    --hf_license         # Hugging Face license identifier for the model card (default="${hf_license}").
 EOF
 )
 
@@ -1159,6 +1164,8 @@ if ! "${skip_train}"; then
             _scp=wav.scp
             if [[ "${audio_format}" == *ark* ]]; then
                 _type=kaldi_ark
+            elif [[ "${audio_format}" == omniio ]]; then
+                _type=omniio
             else
                 # "sound" supports "wav", "flac", etc.
                 _type=sound
@@ -1284,6 +1291,8 @@ if ! "${skip_train}"; then
             # "sound" supports "wav", "flac", etc.
             if [[ "${audio_format}" == *ark* ]]; then
                 _type=kaldi_ark
+            elif [[ "${audio_format}" == omniio ]]; then
+                _type=omniio
             else
                 _type=sound
             fi
@@ -1493,6 +1502,8 @@ if ! "${skip_eval}"; then
                 _scp=wav.scp
                 if [[ "${audio_format}" == *ark* ]]; then
                     _type=kaldi_ark
+                elif [[ "${audio_format}" == omniio ]]; then
+                    _type=omniio
                 else
                     _type=sound
                 fi
@@ -1759,6 +1770,9 @@ if ! "${skip_upload_hf}"; then
 
         [ -z "${hf_repo}" ] && \
             log "ERROR: You need to setup the variable hf_repo with the name of the repository located at HuggingFace" && \
+            exit 1
+        [ -z "${hf_license}" ] && \
+            log "ERROR: You need to setup the variable hf_license with the Hugging Face license identifier for the model card (for example apache-2.0, mit, cc-by-4.0, or other)" && \
             exit 1
         log "Stage 16: Upload model to HuggingFace: ${hf_repo}"
 

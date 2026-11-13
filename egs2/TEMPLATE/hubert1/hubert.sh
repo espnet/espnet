@@ -53,7 +53,7 @@ speed_perturb_factors=  # perturbation factors, e.g. "0.9 1.0 1.1" (separated by
 
 # Feature extraction related
 feats_type=raw       # Feature type (raw or fbank_pitch).
-audio_format=flac    # Audio format: wav, flac, wav.ark, flac.ark  (only in feats_type=raw).
+audio_format=flac    # Audio format: wav, flac, wav.ark, flac.ark, omniio  (only in feats_type=raw).
 fs=16k               # Sampling rate.
 min_wav_duration=0.1 # Minimum duration in second.
 max_wav_duration=20  # Maximum duration in second.
@@ -81,6 +81,7 @@ alignment_phoneme_dir=  # Phoneme alignment directory with tsv file (utt_id, pho
 
 # Upload model related
 hf_repo=
+hf_license=
 inference_ssl_model=valid.loss.best.pth # SSL model path from previous iteration and uploading
 download_model= # Download a model from Model Zoo and use it for decoding.
 
@@ -110,6 +111,7 @@ Options:
     --expdir         # Directory to save experiments (default="${expdir}").
     --python         # Specify python to execute espnet commands (default="${python}").
     --hf_repo        # Hugging face repository name (default="${hf_repo}").
+    --hf_license     # Hugging Face license identifier for the model card (default="${hf_license}").
 
     # Data preparation related
     --local_data_opts # The options given to local/data.sh (default="${local_data_opts}").
@@ -119,7 +121,7 @@ Options:
 
     # Feature extraction related
     --feats_type       # Feature type (raw, fbank_pitch or extracted, default="${feats_type}").
-    --audio_format     # Audio format: wav, flac, wav.ark, flac.ark  (only in feats_type=raw, default="${audio_format}").
+    --audio_format     # Audio format: wav, flac, wav.ark, flac.ark, omniio  (only in feats_type=raw, default="${audio_format}").
     --fs               # Sampling rate (default="${fs}").
     --min_wav_duration # Minimum duration in second (default="${min_wav_duration}").
     --max_wav_duration # Maximum duration in second (default="${max_wav_duration}").
@@ -429,6 +431,8 @@ if ! "${skip_train}"; then
                 _scp=wav.scp
                 if [[ "${audio_format}" == *ark* ]]; then
                     _type=kaldi_ark
+                elif [[ "${audio_format}" == omniio ]]; then
+                    _type=omniio
                 else
                     # "sound" supports "wav", "flac", etc.
                     _type=sound
@@ -533,6 +537,8 @@ if ! "${skip_train}"; then
                 # "sound" supports "wav", "flac", etc.
                 if [[ "${audio_format}" == *ark* ]]; then
                     _type=kaldi_ark
+                elif [[ "${audio_format}" == omniio ]]; then
+                    _type=omniio
                 else
                     _type=sound
                 fi
@@ -663,6 +669,9 @@ if ! "${skip_upload_hf}"; then
     if [ ${stage} -le 9 ] && [ ${stop_stage} -ge 9 ]; then
         [ -z "${hf_repo}" ] && \
             log "ERROR: You need to setup the variable hf_repo with the name of the repository located at HuggingFace, follow the following steps described here https://github.com/espnet/espnet/blob/master/CONTRIBUTING.md#133-publishing-models" && \
+        exit 1
+        [ -z "${hf_license}" ] && \
+            log "ERROR: You need to setup the variable hf_license with the Hugging Face license identifier for the model card (for example apache-2.0, mit, cc-by-4.0, or other)" && \
         exit 1
         log "Stage 9: Upload model to HuggingFace: ${hf_repo}"
 

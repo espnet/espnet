@@ -52,7 +52,7 @@ speed_perturb_factors="" # perturbation factors, e.g. "0.9 1.0 1.1" (separated b
 
 # Feature extraction related
 feats_type=raw      # Feature type (raw, raw_copy, fbank_pitch, or extracted).
-audio_format=wav    # Audio format: wav, flac, wav.ark, flac.ark  (only in feats_type=raw).
+audio_format=wav    # Audio format: wav, flac, wav.ark, flac.ark, omniio  (only in feats_type=raw).
 multi_columns_input_wav_scp=false  # Enable multi columns mode for input wav.scp for format_wav_scp.py
 multi_columns_output_wav_scp=false # Enable multi columns mode for output wav.scp for format_wav_scp.py
 fs=16k               # Sampling rate.
@@ -85,6 +85,7 @@ tsne_set=         # Name of set for t-SNE visualization, typically the train set
 
 # Upload model related
 hf_repo=
+hf_license=
 
 help_message=$(cat <<EOF
 Usage: $0 --train-set "<train_set_name>" --valid-set "<valid_set_name>" --test_sets "<test_set_names>"
@@ -115,7 +116,7 @@ Options:
 
     # Feature extraction related
     feats_type=raw       # Feature type (raw, raw_copy, fbank_pitch, or extracted).
-    audio_format=wav    # Audio format: wav, flac, wav.ark, flac.ark  (only in feats_type=raw).
+    audio_format=wav    # Audio format: wav, flac, wav.ark, flac.ark, omniio  (only in feats_type=raw).
     multi_columns_input_wav_scp=false  # Enable multi columns mode for input wav.scp for format_wav_scp.py
     multi_columns_output_wav_scp=false # Enable multi columns mode for output wav.scp for format_wav_scp.py
     fs=16k               # Sampling rate.
@@ -146,6 +147,7 @@ Options:
 
     # Upload model related
     hf_repo=          # The huggingface repository directory
+    hf_license=       # Hugging Face license identifier for the model card
 
 EOF
 )
@@ -403,6 +405,8 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
 
     if [[ "${audio_format}" == *ark* ]]; then
         _type=kaldi_ark
+    elif [[ "${audio_format}" == omniio ]]; then
+        _type=omniio
     else
         # sound supports "wav", "flac", etc.
         _type=sound
@@ -652,6 +656,9 @@ if [ ${stage} -le 10 ] && [ ${stop_stage} -ge 10 ] && ! [[ " ${skip_stages} " =~
     log "Stage 10: Upload model to HuggingFace: ${hf_repo}"
     [ -z "${hf_repo}" ] && \
         log "ERROR: You need to setup the variable hf_repo with the name of the repository located at HuggingFace, follow the following steps described here https://github.com/espnet/espnet/blob/master/CONTRIBUTING.md#133-publishing-models" && \
+    exit 1
+    [ -z "${hf_license}" ] && \
+        log "ERROR: You need to setup the variable hf_license with the Hugging Face license identifier for the model card (for example apache-2.0, mit, cc-by-4.0, or other)" && \
     exit 1
 
     if [ ! -f "${packed_model}" ]; then

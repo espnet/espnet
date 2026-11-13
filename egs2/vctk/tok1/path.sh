@@ -1,0 +1,1 @@
+../../TEMPLATE/tok1/path.sh
