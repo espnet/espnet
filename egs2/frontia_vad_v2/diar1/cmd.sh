@@ -66,10 +66,12 @@ elif [ "${cmd_backend}" = sge ]; then
 # "qsub" (Torque/PBS.)
 elif [ "${cmd_backend}" = pbs ]; then
     # The default setting is written in conf/pbs.conf.
+    # Stages are split into many small array tasks; at most 64 CPU tasks and 8 GPU
+    # tasks of an array run at once (PBS Professional max_run_subjobs).
 
-    export train_cmd="pbs.pl"
-    export cuda_cmd="pbs.pl"
-    export decode_cmd="pbs.pl"
+    export train_cmd="pbs.pl --max-jobs-run 64"
+    export cuda_cmd="pbs.pl --max-jobs-run 8"
+    export decode_cmd="pbs.pl --max-jobs-run 64"
 
 
 # "sbatch" (Slurm)
@@ -80,9 +82,10 @@ elif [ "${cmd_backend}" = slurm ]; then
     # You can use "--gpu * " by default for slurm and it is interpreted as "--gres gpu:*"
     # The devices are allocated exclusively using "${CUDA_VISIBLE_DEVICES}".
 
-    export train_cmd="slurm.pl"
-    export cuda_cmd="slurm.pl"
-    export decode_cmd="slurm.pl"
+    # At most 64 CPU tasks and 8 GPU tasks of an array run at once (array %N).
+    export train_cmd="slurm.pl --max-jobs-run 64"
+    export cuda_cmd="slurm.pl --max-jobs-run 8"
+    export decode_cmd="slurm.pl --max-jobs-run 64"
 
 elif [ "${cmd_backend}" = ssh ]; then
     # You have to create ".queue/machines" to specify the host to execute jobs.

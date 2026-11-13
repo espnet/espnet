@@ -9,6 +9,10 @@
 #       --stats_args "--batch_size 1 --num_workers 28"
 #                               statistics on a cluster: many small tasks (cmd.sh,
 #                               conf/pbs.conf with a cap on running tasks; README)
+#   CMD_BACKEND=pbs local/data.sh --stage 3 --stop_stage 4 --prep_tasks 256 --align_tasks 64
+#                               data preparation on a cluster (corpus and GPU tasks)
+#   CMD_BACKEND=pbs ./run.sh --stage 6 --inference_nj 64 --diar_tag ...
+#                               inference and scoring of the test sets on a cluster
 #   ./run.sh --stage 5 --stop_stage 5 --ngpu 4 \
 #       --diar_config conf/tuning/train_dualmode_v2_lr1e-3.yaml \
 #       --diar_tag train_dualmode_v2_lr1e-3     the v2 dual-mode model on 4 GPUs
