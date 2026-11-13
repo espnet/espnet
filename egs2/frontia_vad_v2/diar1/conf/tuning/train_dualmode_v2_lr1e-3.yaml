@@ -86,3 +86,5 @@ keep_nbest_models: [2, 5]  # averages of the 2 and 5 best
 
 model_conf:
     look_aheads: [0, 124]
+    # loss and accuracy per domain at each validation (local/v2/domain_dev_stats.py)
+    valid_category_file: dump/raw/dev/utt2category
