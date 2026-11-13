@@ -8,7 +8,9 @@ For a dump directory of label source "A" (vad_dump.py: wav.scp, text,
 utt2lang), each recording is aligned word by word to its transcript with
 OWSM-CTC and CTC segmentation (espnet2.bin.s2t_align). The speech is the
 union of the word spans, with pauses shorter than --min_pause bridged. A
-recording is dropped (and listed in align_dropped.tsv) if its language token
+transcript written all in capitals is lower-cased for the model (its BPE is
+case-sensitive). A recording is dropped (and listed in align_dropped.tsv) if
+its language token
 is not in the model, the transcript has no tokens, or a word scores below
 --min_word_score. The result replaces espnet_rttm and the speech column of
 manifest.tsv; align.tsv keeps every word span and score, align_config.json
@@ -18,7 +20,6 @@ are reproducible.
 """
 
 import argparse
-import contextlib
 import json
 import logging
 import shutil
@@ -42,6 +43,46 @@ def model_files(tag: str, revision: str):
     if len(configs) != 1 or len(models) != 1:
         raise RuntimeError(f"expected one config and one model in {root}")
     return root, configs[0], models[0]
+
+
+def absolute_config(root: Path, config: Path, out: Path) -> Path:
+    """Write `config` with its model-relative paths made absolute, to `out`.
+
+    The config names its feature statistics, BPE model and token list relative
+    to the model directory; the tokenizer opens its BPE model only when it is
+    first used, so the paths must be right whatever the working directory.
+    """
+    import yaml
+
+    conf = yaml.safe_load(config.read_text())
+
+    def fix(value):
+        if isinstance(value, str) and not Path(value).is_absolute():
+            if (root / value).exists():
+                return str(root / value)
+        return value
+
+    for key in ("bpemodel", "token_list"):
+        if key in conf:
+            conf[key] = fix(conf[key])
+    for section in ("normalize_conf", "frontend_conf"):
+        if isinstance(conf.get(section), dict):
+            conf[section] = {k: fix(v) for k, v in conf[section].items()}
+    out.write_text(yaml.safe_dump(conf, allow_unicode=True))
+    return out
+
+
+def model_words(words):
+    """The words as the model's tokenizer expects them.
+
+    The OWSM BPE is case-sensitive and learned on mixed-case text: a transcript
+    written all in capitals (LibriSpeech, ...) would be split into letters and
+    align poorly, so it is lower-cased. Other transcripts are kept as written.
+    """
+    joined = " ".join(words)
+    if joined.upper() == joined and joined.lower() != joined:
+        return [w.lower() for w in words]
+    return words
 
 
 def speech_of_words(words, min_pause: float):
@@ -101,16 +142,14 @@ def main():
             shutil.copy(backup / name, d / name)
     root, config, model = model_files(args.model_tag, args.revision)
     torch.manual_seed(0)
-    # the model's config names its statistics, BPE model and token list relative
-    # to the model directory
-    with contextlib.chdir(root):
-        aligner = CTCSegmentation(
-            s2t_train_config=config,
-            s2t_model_file=model,
-            device=args.device,
-            kaldi_style_text=False,
-            time_stamps="auto",
-        )
+    config = absolute_config(root, config, d / "owsm_config.yaml")
+    aligner = CTCSegmentation(
+        s2t_train_config=config,
+        s2t_model_file=model,
+        device=args.device,
+        kaldi_style_text=False,
+        time_stamps="auto",
+    )
     tokens = set(aligner.token_list)
     audio = OmniIOAudioScpReader(d / "wav.scp")
     text = read_table(d / "text")
@@ -127,7 +166,7 @@ def main():
         rates[rid] = rate
         aligner.lang_sym = lang[rid]
         try:
-            task = aligner(np.asarray(x, dtype=np.float32), words, fs=rate)
+            task = aligner(np.asarray(x, dtype=np.float32), model_words(words), fs=rate)
         except Exception as e:  # noqa: BLE001 - e.g. a transcript longer than the audio
             dropped.append((rid, f"alignment failed: {type(e).__name__}: {e}"))
             continue
