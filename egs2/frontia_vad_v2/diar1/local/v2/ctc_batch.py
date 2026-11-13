@@ -16,6 +16,7 @@ import copy
 import logging
 import queue
 import threading
+import time
 from concurrent.futures import ProcessPoolExecutor
 from typing import Callable, Dict, Iterable, List, Tuple
 
@@ -154,6 +155,9 @@ def align_batched(
     threading.Thread(target=reader, daemon=True).start()
     futures = []
     pending: list = []  # (rid, words, lang_id, buffers, covered)
+    # seconds spent waiting for audio, encoding, preparing tasks, and waiting
+    # for the segmentation at the end (logged; tells which side is the limit)
+    spent = {"read_wait": 0.0, "encode": 0.0, "prepare": 0.0, "segment_wait": 0.0}
 
     def flush(pool):
         if not pending:
@@ -163,6 +167,7 @@ def align_batched(
             [[p[2], task_sym] for p in pending for _ in range(len(p[3]))],
             dtype=torch.long,
         )
+        t0 = time.perf_counter()
         outs = [
             encode(
                 aligner,
@@ -173,6 +178,10 @@ def align_batched(
             for i in range(0, len(rows), per_batch)
         ]
         lpz_all = torch.cat(outs)
+        if lpz_all.is_cuda:
+            torch.cuda.synchronize()
+        t1 = time.perf_counter()
+        spent["encode"] += t1 - t0
         start = 0
         for rid, words, _, bufs, covered in pending:
             lpz = lpz_all[start : start + len(bufs)].reshape(-1, lpz_all.size(-1))
@@ -185,6 +194,7 @@ def align_batched(
                 futures.append(pool.submit(_segments, reduce_task(task, lpz)))
             except Exception as e:  # noqa: BLE001 - e.g. no token of the transcript
                 results[rid] = (None, f"{type(e).__name__}: {e}")
+        spent["prepare"] += time.perf_counter() - t1
         pending.clear()
 
     import multiprocessing
@@ -194,7 +204,9 @@ def align_batched(
     ) as pool:
         queued = 0
         while True:
+            t0 = time.perf_counter()
             item = q.get()
+            spent["read_wait"] += time.perf_counter() - t0
             if item is None:
                 break
             rid, words, lang_sym, audio, error = item
@@ -213,9 +225,12 @@ def align_batched(
                 flush(pool)
                 queued = 0
         flush(pool)
+        t0 = time.perf_counter()
         for n, f in enumerate(futures):
             rid, segments, error = f.result()
             results[rid] = (segments, error)
             if n % 1000 == 0:
                 logging.info("%d / %d segmented", n, len(futures))
+        spent["segment_wait"] += time.perf_counter() - t0
+    logging.info("time (s): %s", ", ".join(f"{k} {v:.0f}" for k, v in spent.items()))
     return results
