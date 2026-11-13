@@ -1,6 +1,6 @@
 # LibriSpeech 100h ASR recipe
 
-## Data preparation
+## Data Preparation
 
 Place the LibriSpeech corpus under `download/LibriSpeech`, or point
 `LIBRISPEECH` to an existing LibriSpeech root. The recipe uses
@@ -11,13 +11,9 @@ Run the commands below from `egs3/librispeech_100/esp2_asr/`.
 export LIBRISPEECH=/path/to/LibriSpeech
 ```
 
-## E-Branchformer
+## Commands
 
-- Training config: `conf/tuning/training_e_branchformer.yaml`
-- Inference config: `conf/inference.yaml`
-- Metrics config: `conf/metrics.yaml`
-
-### Run
+### E-Branchformer
 
 ```bash
 python run.py --stages create_dataset train_tokenizer collect_stats \
@@ -32,7 +28,13 @@ python run.py --stages infer measure \
     --metrics_config conf/metrics.yaml
 ```
 
-### Results
+## Results
+
+### E-Branchformer
+
+- Training config: `conf/tuning/training_e_branchformer.yaml`
+- Inference config: `conf/inference.yaml`
+- Metrics config: `conf/metrics.yaml`
 
 The [published model card](https://huggingface.co/ms180/librispeech_100h_e_branchformer)
 reports the following results for an E-Branchformer with 38.47 million
@@ -50,6 +52,6 @@ The current inference config uses beam size 20, CTC weight 0.3, and the
 average of the ten best `valid/acc` checkpoints. Consult the published model's
 own configuration for the settings used for the reported results.
 
-### Pretrained model
+#### Pretrained model
 
 - [E-Branchformer on Hugging Face](https://huggingface.co/ms180/librispeech_100h_e_branchformer)

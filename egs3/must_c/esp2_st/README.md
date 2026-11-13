@@ -1,6 +1,6 @@
 # MuST-C speech translation recipe
 
-## Data preparation
+## Data Preparation
 
 This egs3 data module reads the **raw MuST-C v1** corpus release directly —
 no Kaldi data preparation (`egs2/must_c/st1/local/data.sh`) is required.
@@ -83,13 +83,9 @@ no Kaldi data preparation (`egs2/must_c/st1/local/data.sh`) is required.
 
 - Scope: this module reproduces the **egs2 ST recipe** (`egs2/must_c/st1`).
 
-## Conformer ST
+## Commands
 
-- Training config: `conf/tuning/train_st_conformer.yaml`
-- Inference config: `conf/inference.yaml`
-- Metrics config: `conf/metrics.yaml`
-
-### Run
+### Conformer ST
 
 Run these commands from `egs3/must_c/esp2_st/` after preparing the corpus:
 
@@ -106,7 +102,13 @@ python run.py --stages infer measure \
     --metrics_config conf/metrics.yaml
 ```
 
-### Results
+## Results
+
+### Conformer ST
+
+- Training config: `conf/tuning/train_st_conformer.yaml`
+- Inference config: `conf/inference.yaml`
+- Metrics config: `conf/metrics.yaml`
 
 MuST-C en-de, conformer ST (`conf/tuning/train_st_conformer.yaml`), trained on
 the **v1** release (`dataset/config.yaml: version: v1`), decoded with
@@ -132,7 +134,7 @@ python run.py --stages infer measure \
     --metrics_config conf/metrics.yaml
 ```
 
-### Pretrained model
+#### Pretrained model
 
 The converged model is published at
 **<https://huggingface.co/espnet/must_c_esp2_st_train_st_conformer>**, packed with
@@ -156,7 +158,7 @@ this recipe's own dataset modules; the bundle carries them alongside the
 checkpoint.
 
 
-### Comparison
+#### Comparison
 
 `egs2/must_c/st1` publishes no results, so there is no like-for-like reference.
 The nearest published number is `egs2/must_c_v2/st1`'s `decode_st_conformer`
@@ -166,7 +168,7 @@ at **25.7** BLEU on tst-COMMON, against **24.22** here. That row is MuST-C
 a like-for-like deficit -- treat it as indicative rather than a target.
 
 
-### Dataset usage
+## Dataset usage
 
 ```python
 from egs3.must_c.esp2_st.dataset import Dataset, DatasetBuilder

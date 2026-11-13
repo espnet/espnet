@@ -4,7 +4,7 @@ Port of [`egs2/spgispeech/asr1`](../../../egs2/spgispeech/asr1) to ESPnet3.
 SPGISpeech is 5,000 h of transcribed financial-earnings-call audio
 (1,966,109 utterances, 5.01–15.00 s each).
 
-## Data preparation
+## Data Preparation
 
 The corpus is not downloadable automatically. Point the `SPGISPEECH`
 environment variable at an existing SPGISpeech root — the directory holding
@@ -20,15 +20,11 @@ export SPGISPEECH=/path/to/spgispeech
 the first 4,000 rows become `dev_4k`, the remainder `train_nodev`
 (`dataset/config.yaml: dev_size`).
 
-## Conformer
+## Commands
 
-- Training config: `conf/tuning/train_asr_conformer6_n_fft512_hop_length256.yaml`
-- Inference config: `conf/inference.yaml`
-- Metrics config: `conf/metrics.yaml`
+### Conformer
 
 Run the following commands from `egs3/spgispeech/esp2_asr/`.
-
-### Run
 
 ```bash
 # 1) Build the audio index (validates every file; writes data/hf/)
@@ -58,7 +54,13 @@ python run.py --stages infer measure \
 `parallel.env` to a cluster backend and supply your scheduler's `options`
 (queue, account, walltime) in the training config.
 
-### Results
+## Results
+
+### Conformer
+
+- Training config: `conf/tuning/train_asr_conformer6_n_fft512_hop_length256.yaml`
+- Inference config: `conf/inference.yaml`
+- Metrics config: `conf/metrics.yaml`
 
 | dataset | CER | WER |
 | --- | --- | --- |
@@ -81,11 +83,11 @@ same hardware.
 `val` (39,341 utterances) -- the set egs2 also reports -- has not been
 decoded.
 
-### Pretrained model
+#### Pretrained model
 
 - [`espnet/spgispeech_asr_train_asr_conformer6_n_fft512_hop_length256`](https://huggingface.co/espnet/spgispeech_asr_train_asr_conformer6_n_fft512_hop_length256)
 
-### Differences from the egs2 recipe
+#### Differences from the egs2 recipe
 
 These are deliberate; each is marked `[DEVIATION]` in the training config.
 
