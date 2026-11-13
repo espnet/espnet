@@ -1,7 +1,7 @@
 """The kinds a contract field can hold, and their registry.
 
-``audio``, ``text``, ``segments`` and ``number`` are built in. A new modality - a
-conversation, video, a JSON document - is a
+``audio``, ``text``, ``segments``, ``number`` and ``vector`` are built in. A
+new modality - a conversation, video, a JSON document - is a
 :class:`Kind` subclass passed to :func:`register_kind`::
 
     from espnet3.contract import Field, Kind, register_kind
@@ -23,6 +23,7 @@ from espnet3.contract.kinds.base import Kind
 from espnet3.contract.kinds.number import NumberKind
 from espnet3.contract.kinds.segments import SegmentsKind
 from espnet3.contract.kinds.text import TextKind
+from espnet3.contract.kinds.vector import VectorKind
 
 # What a field can hold, by the name a Field's ``kind`` gives.
 KINDS: dict[str, Kind] = {
@@ -30,6 +31,7 @@ KINDS: dict[str, Kind] = {
     "text": TextKind(),
     "segments": SegmentsKind(),
     "number": NumberKind(),
+    "vector": VectorKind(),
 }
 
 
@@ -71,5 +73,6 @@ __all__ = [
     "NumberKind",
     "SegmentsKind",
     "TextKind",
+    "VectorKind",
     "register_kind",
 ]

@@ -1,0 +1,38 @@
+##########################################################
+#                      DEMO SETTING                      #
+##########################################################
+# Quick usage:
+#   python run.py --stages pack_demo \
+#       --training_config conf/training.yaml --demo_config conf/demo.yaml
+#   python run.py --stages upload_demo \
+#       --training_config conf/training.yaml --demo_config conf/demo.yaml
+#
+# Assumptions:
+# - `pack_model` has already created the model pack referenced by the
+#   inherited `model.dir_or_tag`, or that field is overridden with a Hugging
+#   Face model repo.
+#
+# Merged over egs3/TEMPLATE/esp2_gan_tts/conf/demo.yaml, which supplies the
+# text-plus-reference-recording launcher (`src/app.py`), the Space README
+# template and the upload target. This recipe only names the speaker
+# embedding extractor its model was trained against.
+
+##########################################################
+#               SPEAKER EMBEDDING SETTING                #
+##########################################################
+# Same extractor as `xvector` in conf/training.yaml (SpeechBrain ECAPA-TDNN,
+# 192-dim); the template default is espnet's RawNet3, whose embeddings this
+# model was not trained on.
+xvector:
+  toolkit: speechbrain
+  pretrained_model: speechbrain/spkrec-ecapa-voxceleb
+
+##########################################################
+#                    PACKING SETTING                     #
+##########################################################
+# The demo extracts the embedding with SpeechBrain, so the Space needs it on
+# top of the template's espnet requirement.
+pack:
+  requirements:
+    - "espnet[train,tts] @ git+https://github.com/espnet/espnet.git"
+    - speechbrain
