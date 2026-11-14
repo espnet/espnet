@@ -16,7 +16,7 @@ python run.py --stages create_dataset --training_config conf/training.yaml
 # 2) Train with the default Branchformer configuration
 python run.py --stages train --training_config conf/training.yaml
 
-# 3) Decode
+# 3) Infer
 python run.py --stages infer --inference_config conf/inference.yaml
 
 # 4) Score
