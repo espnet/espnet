@@ -10,3 +10,6 @@ VOXCELEB=downloads
 MUSAN=downloads
 RIR=downloads
 VOXLINGUA107=downloads
+FLEURS=downloads
+CS_FLEURS=downloads
+CS_YODAS=downloads

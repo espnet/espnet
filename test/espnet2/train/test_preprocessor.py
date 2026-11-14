@@ -5,6 +5,8 @@ import pytest
 
 from espnet2.train.preprocessor import (
     CommonPreprocessor,
+    LIDMultiLabelPreprocessor,
+    LIDSoftLabelPreprocessor,
     Qwen2AudioPreprocessor,
     S2TCTCPreprocessor,
     S2TPreprocessor,
@@ -127,6 +129,93 @@ def test_the_s2t_preprocessors_pass_the_augmentation_through(preprocessor_class)
     )
     assert preprocessor.data_aug is not None
     assert preprocessor.data_aug_prob == 1.0
+
+
+@pytest.fixture()
+def lang2utt(tmp_path):
+    """Write a three-language lang2utt file."""
+    path = tmp_path / "lang2utt"
+    path.write_text("ara u1\neng u2\njpn u3\n", encoding="utf-8")
+    return path
+
+
+def _label_set_preprocessor(preprocessor_class, lang2utt, **kwargs):
+    """Build a LID label-set preprocessor without data augmentation."""
+    return preprocessor_class(
+        train=False,
+        lang2utt=str(lang2utt),
+        fix_duration=False,
+        noise_apply_prob=0.0,
+        rir_apply_prob=0.0,
+        **kwargs,
+    )
+
+
+@pytest.mark.parametrize(
+    "preprocessor_class,raw,expected",
+    [
+        (LIDSoftLabelPreprocessor, "eng", [0.0, 1.0, 0.0]),
+        (LIDSoftLabelPreprocessor, "ara eng", [0.5, 0.5, 0.0]),
+        (LIDSoftLabelPreprocessor, "jpn ara eng", [1 / 3, 1 / 3, 1 / 3]),
+        (LIDMultiLabelPreprocessor, "eng", [0.0, 1.0, 0.0]),
+        (LIDMultiLabelPreprocessor, "ara eng", [1.0, 1.0, 0.0]),
+        (LIDMultiLabelPreprocessor, "jpn ara eng", [1.0, 1.0, 1.0]),
+    ],
+)
+def test_lid_target_preprocessor_label_sets(
+    lang2utt, preprocessor_class, raw, expected
+):
+    """Soft labels split the mass over the languages; multi-labels set each to 1."""
+    preprocessor = _label_set_preprocessor(preprocessor_class, lang2utt)
+    speech = np.zeros(1600, dtype=np.float32)
+    data = preprocessor("u1", {"speech": speech, "lid_labels": raw})
+    assert data["lid_labels"].dtype == np.float32
+    np.testing.assert_allclose(data["lid_labels"], expected)
+
+
+@pytest.mark.parametrize(
+    "preprocessor_class", [LIDSoftLabelPreprocessor, LIDMultiLabelPreprocessor]
+)
+@pytest.mark.parametrize(
+    "raw,error,message",
+    [
+        ("", ValueError, "empty"),
+        ("eng eng", ValueError, "duplicate"),
+        ("missing", KeyError, "unknown"),
+    ],
+)
+def test_lid_target_preprocessor_rejects_invalid_labels(
+    lang2utt, preprocessor_class, raw, error, message
+):
+    """Empty, duplicate and unknown labels raise errors."""
+    preprocessor = _label_set_preprocessor(preprocessor_class, lang2utt)
+    with pytest.raises(error, match=message):
+        preprocessor("u1", {"speech": np.zeros(1600, np.float32), "lid_labels": raw})
+
+
+@pytest.mark.parametrize(
+    "preprocessor_class", [LIDSoftLabelPreprocessor, LIDMultiLabelPreprocessor]
+)
+def test_lid_target_preprocessor_rejects_lang2vec_table(
+    tmp_path, lang2utt, preprocessor_class
+):
+    """lang2vec targets are not defined for label sets and are rejected."""
+    table = tmp_path / "lang2vec"
+    table.write_text("ara 0.1 0.2\neng 0.3 0.4\n", encoding="utf-8")
+    with pytest.raises(ValueError, match="lang2vec_table"):
+        _label_set_preprocessor(preprocessor_class, lang2utt, lang2vec_table=str(table))
+
+
+@pytest.mark.parametrize(
+    "preprocessor_class", [LIDSoftLabelPreprocessor, LIDMultiLabelPreprocessor]
+)
+def test_lid_target_preprocessor_passes_speech_only_data(lang2utt, preprocessor_class):
+    """Data without lid_labels (inference, statistics) is processed unchanged."""
+    preprocessor = _label_set_preprocessor(preprocessor_class, lang2utt)
+    speech = np.zeros(1600, dtype=np.float32)
+    data = preprocessor("u1", {"speech": speech})
+    assert list(data) == ["speech"]
+    np.testing.assert_array_equal(data["speech"], speech)
 
 
 def _write_delayed_impulse_rir(tmp_path, delay):
