@@ -113,7 +113,9 @@ next to each set's own best setting, which is tuned on that set.
 
 - config: `conf/train.yaml`, 10 s windows, batch 64, learning rate 5e-4, seed 1
 - inference model: `valid.acc.best.pth` (epoch 11), whole recordings, `conf/decode.yaml`
-- pretrained model: https://huggingface.co/espnet/frontia_vad_v1_online (upload pending)
+- pretrained model: https://huggingface.co/espnet/frontia_vad_v1_online
+- model licence: CC BY-SA 4.0 (the training data include material under CC BY-SA:
+  CHiME-6 and some MUSAN `music/` tracks)
 - tuned on ami_mh_dev: threshold 0.7, median filter 11
 - DetER over the 21 sets at the tuned setting: 8.71 hour-weighted, 12.18 macro average
 
@@ -150,7 +152,9 @@ other set; its own best threshold is the highest tried.
 - config: `conf/tuning/train_dualmode.yaml`, 10 s windows, batch 64, learning rate 5e-4, seed 1
 - inference model: `valid.acc.ave_2best.pth` (average of the 2 best checkpoints,
   `keep_nbest_models: [2, 5]`), whole recordings
-- pretrained model (offline use): https://huggingface.co/espnet/frontia_vad_v1_offline (upload pending)
+- pretrained model (offline use): https://huggingface.co/espnet/frontia_vad_v1_offline
+- model licence: CC BY-SA 4.0 (the training data include material under CC BY-SA:
+  CHiME-6 and some MUSAN `music/` tracks)
 - tuned on ami_mh_dev: online threshold 0.7, offline threshold 0.8, median filter 11
 
 DetER (%) over the 21 sets at the tuned setting, hour-weighted / macro average:
