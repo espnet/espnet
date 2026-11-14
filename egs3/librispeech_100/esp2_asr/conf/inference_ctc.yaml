@@ -1,0 +1,60 @@
+##########################################################
+#                   Inference SETTING                    #
+##########################################################
+# CTC-only decoding for `conf/tuning/training_conformer_ctc.yaml`.
+#
+# Common usage:
+#   python run.py --stages infer \
+#       --training_config conf/tuning/training_conformer_ctc.yaml \
+#       --inference_config conf/inference_ctc.yaml
+#
+##########################################################
+#                    PATHS AND INPUTS                    #
+##########################################################
+# This recipe omits `exp_tag`, `exp_dir`, and `inference_dir` on purpose.
+# `run.py` copies `training_config.exp_tag` and `training_config.exp_dir` here
+# before resolving `${exp_dir}`.
+#
+# If `inference_dir` is omitted, `conf/<name>.yaml` becomes `${exp_dir}/<name>`,
+# so this file writes to `${exp_dir}/inference_ctc/<test set>/`.
+
+##########################################################
+#                    DATASET DEFINITION                  #
+##########################################################
+# Same test sets as `conf/inference.yaml`; `data_src_args` is passed directly
+# to `LibriSpeech100Dataset(...)`.
+dataset:
+  test:
+    - name: dev-clean
+      data_src_args:
+        split: dev-clean
+    - name: dev-other
+      data_src_args:
+        split: dev-other
+    - name: test-clean
+      data_src_args:
+        split: test-clean
+    - name: test-other
+      data_src_args:
+        split: test-other
+
+##########################################################
+#                    MODEL AND OUTPUT                    #
+##########################################################
+# The model has no attention decoder, so only the CTC prefix scorer is used
+# (`ctc_weight: 1.0`). `beam_size: 1` matches egs2's
+# `conf/tuning/decode_ctc_bs1.yaml`: with no decoder or LM to rescore with, a
+# wider CTC prefix beam over the 5,000-token vocabulary is slow and changes
+# little.
+model:
+  _target_: espnet2.bin.asr_inference.Speech2Text
+  asr_train_config: ${exp_dir}/config.yaml
+  # Weight average over the top-10 `valid/cer_ctc` checkpoints, written by
+  # `AverageCheckpointsCallback` (espnet3/components/callbacks/default_callbacks.py).
+  asr_model_file: ${exp_dir}/valid.cer_ctc.ave_10best.pth
+  beam_size: 1
+  ctc_weight: 1.0
+  lm_weight: 0.0
+
+# utterances per beam search; `null` decodes one at a time (see TEMPLATE)
+batch_size: 4
