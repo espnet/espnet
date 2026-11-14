@@ -13,7 +13,7 @@ import re
 import sys
 import warnings
 from pathlib import Path
-from typing import List
+from typing import List, Optional
 
 import numpy as np
 import soundfile
@@ -43,6 +43,11 @@ ENH_MODEL = os.environ.get(
 # POWSM, the phonetic model built on OWSM. The CTC one: it reads a recording
 # of any length, where the encoder-decoder one repeats itself on the padding.
 PR_MODEL = os.environ.get("ESPNET_MCP_PR_MODEL", "espnet/powsm_ctc")
+# The VAD models `espnet detect` loads (diar_inference.VAD_MODELS): the offline one
+# and, for mode="online", the online one. A packed .zip from stage 8 works as
+# well as a tag; unset, each is the published model of its mode.
+VAD_MODEL = os.environ.get("ESPNET_MCP_VAD_MODEL")
+VAD_ONLINE_MODEL = os.environ.get("ESPNET_MCP_VAD_ONLINE_MODEL")
 ENH_FS = int(os.environ.get("ESPNET_MCP_ENH_FS", "16000"))
 if ENH_FS <= 0:
     raise ValueError(f"ESPNET_MCP_ENH_FS must be a positive integer, not {ENH_FS}")
@@ -112,6 +117,15 @@ def _enh():  # pragma: no cover - downloads the checkpoint
         from espnet2.bin.enh_inference import SeparateSpeech
 
         return SeparateSpeech.from_pretrained(ENH_MODEL, device=_device())
+
+
+@functools.lru_cache(maxsize=None)
+def _vad(mode: str):  # pragma: no cover - downloads the checkpoint
+    with _quiet_stdout():
+        from espnet2.bin.diar_inference import VoiceActivityDetector
+
+        tag = VAD_ONLINE_MODEL if mode == "online" else VAD_MODEL
+        return VoiceActivityDetector.for_mode(mode, tag, device=_device())
 
 
 @functools.lru_cache(maxsize=None)
@@ -327,6 +341,61 @@ def enhance(audio_path: str, output_path: str) -> str:
     return str(out.resolve())
 
 
+def detect(
+    audio_path: str,
+    mode: str = "offline",
+    threshold: Optional[float] = None,
+    median: Optional[int] = None,
+) -> str:
+    """Find where someone is speaking in a recording (voice activity detection).
+
+    Use it to cut a long recording into the parts that hold speech before
+    transcribing them, or to measure how much of a file is speech.
+
+    Args:
+        audio_path: Local audio file. Any common format, sample rate or
+            length; the first channel of a multi-channel file is used.
+        mode: "offline" uses the offline model, which reads up to about a
+            second of future audio and places the boundaries best; "online"
+            uses the causal model, which reads no future audio, as a live
+            stream does.
+        threshold: Speech probability above which a frame is speech. Default:
+            the mode's model's value, tuned on AMI MH dev.
+        median: Median filter over this many frames (odd; 1 for none), which
+            removes short blips. Default: tuned with the threshold.
+
+    Returns:
+        One line a speech segment: start and end in seconds, tab-separated.
+        An empty string means no speech was found.
+    """
+    from espnet2.bin.diar_inference import (
+        format_segments,
+        frames_to_segments,
+        read_audio,
+    )
+
+    if mode not in ("offline", "online"):
+        raise ToolError(f'mode is "offline" or "online", not {mode!r}')
+    if median is not None and (median < 1 or median % 2 == 0):
+        raise ToolError(f"median must be a positive odd number, not {median}")
+    path = _existing_file(audio_path)
+    vad = _vad(mode)
+    threshold = vad.threshold if threshold is None else float(threshold)
+    median = vad.median if median is None else int(median)
+    try:
+        speech = read_audio(path, vad.fs)
+    except (OSError, RuntimeError) as e:
+        raise ToolError(f"Cannot read {audio_path}: {e}") from e
+    look_ahead = vad.offline_look_ahead if mode == "offline" else 0
+    with _quiet_stdout():
+        probs = vad.probabilities(speech, vad.fs, look_ahead)
+    # the rule is applied here rather than set on the cached detector, so a
+    # call's threshold does not carry over to the next call
+    return format_segments(
+        frames_to_segments(probs, vad.frame_shift, threshold, median)
+    )
+
+
 def describe(audio_path: str, prompt: str = "What sound is in this audio?") -> str:
     """Answer a question about what a recording contains, in words.
 
@@ -394,6 +463,7 @@ TOOLS = (
     align,
     synthesize,
     enhance,
+    detect,
     describe,
     render,
 )
@@ -415,7 +485,9 @@ def build_server():
             "phonemize: the phones that were said, as IPA (POWSM). "
             "align: when each utterance was said. "
             "synthesize: text-to-speech to a WAV file. "
-            "enhance: denoise a recording. Audio is passed as file paths on "
+            "enhance: denoise a recording. "
+            "detect: where speech is in a recording (VAD). "
+            "Audio is passed as file paths on "
             "this machine."
         ),
     )
