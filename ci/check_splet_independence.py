@@ -59,6 +59,9 @@ ALLOWED_THIRD_PARTY = {
     "scipy",  # optional: the assignment step of speaker-permuted metrics
     "sacrebleu",  # optional: MT metrics, once the corpus tier has them
     "sentencepiece",  # optional: token error rate
+    # The distribution is whisper-normalizer; this is the module it
+    # installs. Not openai-whisper, which would bring torch.
+    "whisper_normalizer",  # optional: Whisper-style normalization
 }
 
 
