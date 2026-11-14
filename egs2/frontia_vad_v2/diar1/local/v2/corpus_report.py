@@ -28,7 +28,6 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 import adapters  # noqa: E402
 from splits import corpus_dumps, manifest_rows, resolve  # noqa: E402
 
-
 # corpora whose alignment labels have a known caveat (reported with their settings)
 LABEL_NOTES = {
     corpus: (
