@@ -253,3 +253,22 @@ scores whole recordings (UEM over each recording) on the test sets of frontia_va
 the headline number is the macro average of DetER over the sets.
 
 Results will follow the training.
+
+### Training from a frozen source tree
+
+A training run reads the code of this checkout for hours: every epoch starts new data
+loader workers, which import the recipe's Python modules again. Run it from a checkout
+that nothing updates while it trains, separate from the one data preparation and label
+work use, e.g. a git worktree at a fixed commit that links the data of the working one:
+
+```sh
+git worktree add --detach ../espnet_train <commit>
+cd ../espnet_train/egs2/frontia_vad_v2/diar1
+ln -s <working checkout>/egs2/frontia_vad_v2/diar1/{data,dump,exp} .
+PYTHONPATH=$(cd ../../..; pwd) ./run.sh --stage 5 --stop_stage 5 ...
+```
+
+Updating the working checkout while a run imports from it can make a worker find a module
+missing (an update that switched branches before merging removed the library files for a
+moment, and one of two v2 runs stopped). The run continues in the same exp directory, and
+`--resume true` (diar.sh) starts from its checkpoint.pth.
