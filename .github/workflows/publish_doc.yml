@@ -102,7 +102,14 @@ jobs:
       - name: check OS
         run: cat /etc/os-release
       - name: install dependencies
+        # cmake, pandoc, ffmpeg, nodejs and npm are in the universe component.
+        # On the ubuntu-26.04 runner image 20261111.196 apt-get could not find
+        # any of them, while git, bc and python3-dev (main) installed. Print the
+        # configured components, then enable universe explicitly instead of
+        # relying on the image default.
         run: |
+          grep -rhE "^(Components:|deb )" /etc/apt/sources.list /etc/apt/sources.list.d/ || true
+          sudo add-apt-repository -y -n universe
           sudo apt-get update -qq
           sudo apt-get install -qq -y cmake python3-dev git pandoc ffmpeg bc nodejs npm
       - name: install espnet
