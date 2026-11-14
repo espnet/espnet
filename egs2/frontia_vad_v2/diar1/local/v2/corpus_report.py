@@ -29,6 +29,18 @@ import adapters  # noqa: E402
 from splits import corpus_dumps, manifest_rows, resolve  # noqa: E402
 
 
+# corpora whose alignment labels have a known caveat (reported with their settings)
+LABEL_NOTES = {
+    corpus: (
+        "closer to spontaneous speech than the read corpora the in-clip min_pause "
+        "0.5 s was chosen on (LibriSpeech dev); on AMI dev, spontaneous speech, "
+        "min_pause 0.5 s made CTC token labels split utterances at false pauses. "
+        "Same setting for now, not measured on this corpus."
+    )
+    for corpus in ("nb_samtale", "minds14")
+}
+
+
 def dump_dirs(split_dir: Path):
     if (split_dir / "wav.scp").exists():
         return [split_dir]
@@ -110,10 +122,11 @@ def report(corpus: str, root: Path):
         cfg = sorted(split_dir.glob("**/align_config.json"))
         if cfg:
             c = json.loads(cfg[0].read_text())
-            rep["alignment"] = {
-                k: c[k]
-                for k in ("model_tag", "revision", "min_pause", "min_word_score")
-            }
+            keys = ("model_tag", "revision", "min_pause", "min_word_score")
+            keys += ("word_timing", "clip_mode", "pad_start", "pad_end", "labels")
+            rep["alignment"] = {k: c[k] for k in keys if k in c}
+            if corpus in LABEL_NOTES:
+                rep["alignment"]["note"] = LABEL_NOTES[corpus]
     final, summary = resolve(root / corpus)
     totals = collections.Counter()
     for _, dump in corpus_dumps(root / corpus):
