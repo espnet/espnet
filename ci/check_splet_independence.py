@@ -57,7 +57,7 @@ ALLOWED_THIRD_PARTY = {
     "yaml",  # required: the metrics config
     "rapidfuzz",  # optional: linear-memory alignment
     "scipy",  # optional: the assignment step of speaker-permuted metrics
-    "sacrebleu",  # optional: MT metrics, once the corpus tier has them
+    "sacrebleu",  # optional: BLEU, chrF and TER in the corpus tier
     "sentencepiece",  # optional: token error rate
 }
 
