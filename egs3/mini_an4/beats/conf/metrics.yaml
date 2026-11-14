@@ -1,0 +1,15 @@
+##########################################################
+#                 METRIC SCORING SETTING                 #
+##########################################################
+# Codebook usage of the tiny CI tokenizer (16 codes).
+
+dataset:
+  test:
+    - name: valid
+
+metrics:
+  - metric:
+      _target_: espnet3.systems.beats.metrics.codebook_usage.CodebookUsage
+      codebook_size: 16
+    inputs:
+      target: target

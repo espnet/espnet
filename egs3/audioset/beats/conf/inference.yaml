@@ -1,0 +1,21 @@
+##########################################################
+#                  TOKENIZATION SETTING                  #
+##########################################################
+# Tokenize AudioSet-2M into BEATs targets (egs2 stage 5 / `conf/as2m_inf.yaml`).
+# `train` and `valid` are the target directories read by `conf/training.yaml`.
+
+dataset:
+  test:
+    - name: train
+      data_src_args:
+        split: train
+        recipe_dir: ${recipe_dir}
+    - name: valid
+      data_src_args:
+        split: eval
+        recipe_dir: ${recipe_dir}
+
+# Clips per tokenizer forward while dumping targets, carried over from egs2
+# (`--tokenizer_inference_batch_size 144`). It is not tuned: it only affects
+# speed and GPU memory, not the targets, so lower it if tokenization OOMs.
+batch_size: 144
