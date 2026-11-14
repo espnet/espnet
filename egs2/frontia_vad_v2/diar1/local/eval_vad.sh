@@ -21,6 +21,7 @@ tune_set=ami_mh_dev
 . utils/parse_options.sh
 [ -n "${src_exp}" ] && [ -n "${test_sets}" ] || { echo "$0: give --src_exp and --test_sets"; exit 1; }
 src=$(cd "${src_exp}" && pwd)
+read -r first rest <<< "${test_sets}"
 for m in ${models}; do
     [ -f "${src}/${m}" ] || { echo "$0: no ${src}/${m}"; exit 1; }
     for la in ${look_aheads}; do
@@ -32,10 +33,12 @@ for m in ${models}; do
         # whole recordings, one per batch (conf/decode.yaml), at this look-ahead
         { cat conf/decode.yaml; echo "look_ahead: ${la}"; } > "${e}/decode.yaml"
         echo "== ${name}"
+        # stage 6 also runs on --valid_set: the first test set, not the training dev set
         ./run.sh --stage 6 --stop_stage 7 --expdir "${e}" --diar_tag eval \
             --inference_model "${m}" --inference_config "${e}/decode.yaml" \
-            --test_sets "${test_sets}" --gpu_inference true \
+            --valid_set "${first}" --test_sets "${rest}" --gpu_inference true \
             --inference_nj "${inference_nj}" --inference_max_jobs_run "${inference_max_jobs_run}" \
-            --split_by_length true --local_score_opts "--tune_set ${tune_set}"
+            --split_by_length true \
+            --local_score_opts "--tune_set ${tune_set} --score_valid true"
     done
 done
