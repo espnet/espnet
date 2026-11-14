@@ -6,7 +6,11 @@
 set -euo pipefail
 list=$1; task=$2; ntasks=$3; shift 3
 v2=$(dirname "$0")
-awk -v t="${task}" -v n="${ntasks}" '(NR - 1) % n == t - 1' "${list}" | while read -r d; do
+# "<task> <dump>" lines (assign_tasks.py): this task's dumps; a plain list of dumps
+# is dealt round robin
+awk -v t="${task}" -v n="${ntasks}" \
+    'NF == 2 { if ($1 == t) print $2; next } (NR - 1) % n == t - 1' "${list}" |
+while read -r d; do
     [ -f "${d}/.aligned" ] && continue
     echo "$(date '+%F %T') ${d}"
     python3 "${v2}/align.py" --dump "${d}" --device cuda "$@"

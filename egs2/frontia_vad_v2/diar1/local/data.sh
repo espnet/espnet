@@ -71,6 +71,7 @@ align_clip_mode=false       # align and label every transcript clip on its own (
 align_pad_start=0.0         # clip mode: seconds of speech added before every segment
 align_pad_end=0.0           # clip mode: seconds of speech added after every segment
 align_tasks=1               # stage 4 tasks (${cuda_cmd} --gpu 1 JOB=1:N), one GPU each
+align_max_jobs=""           # stage 4 GPU tasks at once (--max-jobs-run); empty: cuda_cmd's cap
 align_shards=""             # stage 4 for these shard numbers only, e.g. "0 1"; empty: all
 dumpdir=dump/v2
 reuse_dumpdir=""      # stage 5: also combine the corpus dumps of this directory that are not
@@ -171,9 +172,15 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
             todo+=("${d}")
         done < <(find "${dumpdir}/${corpus}" -name text -not -path '*/before_align/*' -printf '%h\n' | sort)
     done
-    printf '%s\n' "${todo[@]}" > "${dumpdir}/log/align_dumps.txt"
+    # dumps to tasks by their encoder work, longest first to the lightest task
+    # (local/v2/assign_tasks.py): "<task> <dump>" per line
+    printf '%s\n' "${todo[@]}" | python3 ${v2}/assign_tasks.py ${align_tasks} \
+        > "${dumpdir}/log/align_dumps.txt"
+    max_jobs=""
+    [ -n "${align_max_jobs}" ] && max_jobs="--max-jobs-run ${align_max_jobs}"
     if [ ${#todo[@]} -gt 0 ]; then
-        ${cuda_cmd} --gpu 1 JOB=1:${align_tasks} "${dumpdir}/log/align.JOB.log" \
+        # shellcheck disable=SC2086
+        ${cuda_cmd} ${max_jobs} --gpu 1 JOB=1:${align_tasks} "${dumpdir}/log/align.JOB.log" \
             ${v2}/align_task.sh "${dumpdir}/log/align_dumps.txt" JOB ${align_tasks} \
                 --model_tag "${align_model}" --revision "${align_revision}" \
                 --min_pause "${align_min_pause}" \
