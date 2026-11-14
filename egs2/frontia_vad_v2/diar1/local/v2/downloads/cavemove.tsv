@@ -1,0 +1,3 @@
+# corpus_dir	relative_path	url	size_bytes	checksum	unpack
+cavemove	ARCHIVES/cavemove_dataset.zip	https://zenodo.org/api/records/17404917/files/cavemove_dataset.zip/content	7613945771	md5:dec31a69f02a304a2b55b6b4db665c5e
+cavemove	ARCHIVES/dataset_documentation.pdf	https://zenodo.org/api/records/17404917/files/dataset_documentation.pdf/content	14945213	md5:a76e68b81c8ea7c042b89c111f157040

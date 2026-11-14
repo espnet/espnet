@@ -1,0 +1,95 @@
+# frontia_vad_v2, dual-mode model, learning rate 0.002, 1024 windows per update
+# (64 per GPU x 4 GPUs x accum_grad 4).
+# The frontia_vad_v1 dual-mode setup with: reverberation (BUT ReverbDB impulse
+# responses, local/data.sh stage 2) and its 1 s context before each window
+# (wav_augment context and chunk_left_context, 16000 samples), the domains of
+# utt2category balanced per epoch (chunk_upsampling_factor 0.3), and 1024
+# windows per update, so that the small domains are not outweighed within an
+# update: mini-batches of 256 (the chunk iterator splits each over the GPUs),
+# gradients accumulated over 4.
+# Dual-mode (online and offline) voice activity detection with one set of weights:
+# a TCN encoder whose look-ahead is chosen at run time. Each training step runs
+# look-ahead 0 (online: causal, 1.0 s of past context) and 124 frames (offline:
+# 0.99 s of future context) and averages the two losses. Inference uses look-ahead 0
+# unless diar_inference gets --look_ahead (conf/tuning/decode_offline.yaml: 124).
+# Needs the look-ahead TCN encoder (encoder_conf future_taps, model_conf look_aheads)
+# and the batch augmentation in the model (wav_augment).
+
+frontend: default
+frontend_conf:
+    n_fft: 512
+    win_length: 512
+    hop_length: 128      # 8 ms at 16 kHz
+    n_mels: 40
+    center: false
+
+encoder: tcn
+encoder_conf:
+    output_size: 128
+    bottleneck_size: 64
+    hidden_size: 128
+    kernel_size: 3
+    num_blocks: 5
+    num_repeats: 2       # receptive field 125 frames = 1.0 s of past context
+    norm_type: cLN
+    future_taps: 2       # 2 taps after the current frame per depthwise conv
+    look_ahead: 0        # online at inference unless --look_ahead is given
+
+decoder: linear
+
+label_aggregator: label_aggregator
+label_aggregator_conf:
+    win_length: 512
+    hop_length: 128
+    center: false
+
+# on-the-fly noise augmentation of the whole batch on the GPU, in the model
+# (training only): the same procedure as the preprocessor's noise_scp
+wav_augment: batch_wav
+wav_augment_conf:
+    noise_scp: data/noise.scp
+    noise_apply_prob: 0.8
+    noise_db_range: "-5_20"
+    rir_scp: data/rir.scp
+    rir_apply_prob: 0.5
+    context: 16000       # 1 s of reverberation history, removed before the frontend
+    # both banks on the GPU (noise 11.5 GB, impulse responses 0.15 GB per GPU),
+    # copied once: no pinned host buffers per step, which stalled the data
+    # loader's pin-memory thread (127 -> 75 ms per step of 64 windows on an
+    # H200); the same output as the host banks
+    keep_on_device: true
+
+# 10 s chunks of the recordings, each read on its own (as conf/train.yaml)
+iterator_type: chunk
+chunk_random_access: true
+chunk_length: 160000
+chunk_shift_ratio: 1.0
+# each epoch draws its chunks per domain (utt2category), domain c getting a share
+# proportional to n_c^0.3 of its n_c chunks: small domains are upsampled
+chunk_upsampling_factor: 0.3
+# the 1 s context of wav_augment: speech chunks start 16000 samples early
+chunk_left_context: 16000
+batch_size: 256      # per mini-batch, all GPUs: 64 windows per GPU on 4 GPUs
+accum_grad: 4        # 1024 windows per update
+num_workers: 16      # per GPU process
+seed: 1
+optim: adam
+optim_conf:
+    lr: 0.002
+scheduler: warmuplr
+scheduler_conf:
+    warmup_steps: 625    # updates: the 640k windows of v1's 10000 steps x 64
+grad_clip: 5
+max_epoch: 30
+patience: 5
+
+best_model_criterion:
+-   - valid
+    - acc
+    - max
+keep_nbest_models: [2, 5]  # averages of the 2 and 5 best
+
+model_conf:
+    look_aheads: [0, 124]
+    # loss and accuracy per domain at each validation (local/v2/domain_dev_stats.py)
+    valid_category_file: dump/raw/dev/utt2category

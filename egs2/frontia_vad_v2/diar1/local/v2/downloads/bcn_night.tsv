@@ -1,0 +1,7 @@
+# corpus_dir	relative_path	url	size_bytes	checksum	unpack
+bcn_night	ARCHIVES/File-1.wav	https://zenodo.org/api/records/3956503/files/File-1.wav/content	2146468750	md5:0f7f4c512bd3a99fa06f55f486ac123a
+bcn_night	ARCHIVES/File-1_labels.txt	https://zenodo.org/api/records/3956503/files/File-1_labels.txt/content	81612	md5:e03215eeec525032578d33d441dfb5b7
+bcn_night	ARCHIVES/File-2.wav	https://zenodo.org/api/records/3956503/files/File-2.wav/content	1995080590	md5:8a15e1c7da58af3a621273d58636bc1c
+bcn_night	ARCHIVES/File-2_labels.txt	https://zenodo.org/api/records/3956503/files/File-2_labels.txt/content	55024	md5:a70e5eb457ed01455d7874323408362f
+bcn_night	ARCHIVES/File-3.wav	https://zenodo.org/api/records/3956503/files/File-3.wav/content	2146468750	md5:c6d2b4bf34187ee6e29e5197e53eac52
+bcn_night	ARCHIVES/File-3_labels.txt	https://zenodo.org/api/records/3956503/files/File-3_labels.txt/content	37561	md5:3c795c3703bd2fc51ad47e26d47c7df5

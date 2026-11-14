@@ -1,0 +1,7 @@
+# Whole recordings at once (no segment_size): the causal TCN sees about 1 s of
+# the past, so cutting a recording into segments would only drop the context
+# at each segment start. One recording per batch: recordings run to hours, and
+# a batch of eight 2.5 h recordings needs 18 GB of GPU memory; run parallel
+# jobs instead (diar.sh --inference_max_jobs_run).
+fs: 16000
+num_spk: 1

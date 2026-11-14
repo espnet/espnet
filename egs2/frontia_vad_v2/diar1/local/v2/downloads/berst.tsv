@@ -1,0 +1,12 @@
+# corpus_dir	relative_path	url	size_bytes	checksum	unpack
+berst	README.md	https://huggingface.co/datasets/Rosie-Lab/BERSt/resolve/fed35c477427cff44206464b7f85e68d1fc99062/README.md	6115
+berst	berst-data/test/metadata.csv	https://huggingface.co/datasets/Rosie-Lab/BERSt/resolve/fed35c477427cff44206464b7f85e68d1fc99062/berst-data/test/metadata.csv	190504
+berst	berst-data/train/metadata.csv	https://huggingface.co/datasets/Rosie-Lab/BERSt/resolve/fed35c477427cff44206464b7f85e68d1fc99062/berst-data/train/metadata.csv	1256434
+berst	berst-data/validation/metadata.csv	https://huggingface.co/datasets/Rosie-Lab/BERSt/resolve/fed35c477427cff44206464b7f85e68d1fc99062/berst-data/validation/metadata.csv	174776
+berst	data/test-00000-of-00001.parquet	https://huggingface.co/datasets/Rosie-Lab/BERSt/resolve/fed35c477427cff44206464b7f85e68d1fc99062/data/test-00000-of-00001.parquet	116203074	sha256:f68cdfde5e5003f1c457f0a2d651300647b5c6031dd9487b4124ae200a86a976
+berst	data/train-00000-of-00002.parquet	https://huggingface.co/datasets/Rosie-Lab/BERSt/resolve/fed35c477427cff44206464b7f85e68d1fc99062/data/train-00000-of-00002.parquet	410896159	sha256:ae0a26f8cb9ee4b4653f3d15240ec50d067fe653e43334894284a16fb154a206
+berst	data/train-00001-of-00002.parquet	https://huggingface.co/datasets/Rosie-Lab/BERSt/resolve/fed35c477427cff44206464b7f85e68d1fc99062/data/train-00001-of-00002.parquet	416283048	sha256:b67800f5dfb54c067184d8dc8567c22c99c0dc4c13ecec21f39892ba2c8eac3a
+berst	data/validation-00000-of-00001.parquet	https://huggingface.co/datasets/Rosie-Lab/BERSt/resolve/fed35c477427cff44206464b7f85e68d1fc99062/data/validation-00000-of-00001.parquet	112213896	sha256:733e61551eaffc648bfb86c0d46d129bc0676548534496052efa6072303179d2
+berst	raw_test-data.zip	https://huggingface.co/datasets/Rosie-Lab/BERSt/resolve/fed35c477427cff44206464b7f85e68d1fc99062/raw_test-data.zip	92853626	sha256:8a6bd159c81664650e60bfe0587a4dfdd8c0a40eac5e0aa57a62d780520a829c
+berst	raw_train-data.zip	https://huggingface.co/datasets/Rosie-Lab/BERSt/resolve/fed35c477427cff44206464b7f85e68d1fc99062/raw_train-data.zip	672858136	sha256:f6b03d3411b582398c6edfabe02d97675f016209590e2388815fe47c973f77ee
+berst	raw_validation-data.zip	https://huggingface.co/datasets/Rosie-Lab/BERSt/resolve/fed35c477427cff44206464b7f85e68d1fc99062/raw_validation-data.zip	91778494	sha256:113c75f63b48718b7fb8f8acbba3fe9b829b8fad42ac9022f8eabb027fa0a316
