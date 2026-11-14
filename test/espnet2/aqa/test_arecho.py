@@ -87,6 +87,49 @@ def test_arecho_backward_and_constrained_search(make_arecho, pool_size):
     assert result["token_seq"][0][1::2] == [10, 4]
 
 
+@pytest.mark.parametrize("beam_size", [1, 3])
+@pytest.mark.parametrize("skip_label_score", [False, True])
+def test_defer_full_meta_trains_and_decodes_whole_clip_last(
+    make_arecho, full_token_info, beam_size, skip_label_score
+):
+    """Whole-clip metrics follow prefix metrics in targets and in decoding."""
+    info = full_token_info
+    metrics = ["mos_full", "mos", "language_full", "language"]
+    model = make_arecho(
+        metric2id={name: i for i, name in enumerate(metrics)},
+        metric_token_info=info,
+        metric_vocab_size=len(info["VOCAB"]) + 4,
+    )
+    full_labels = {14, 20}  # mos_full and language_full label IDs
+    processor = ARMetricProcessor(
+        metric_token_info=info, metrics_list=metrics, train=True
+    )
+    values = {"mos_full": 2.5, "mos": 1.5, "language_full": "jpn", "language": "eng"}
+    sample = processor("a", dict(audio=np.ones(10, dtype=np.float32), metrics=values))
+    sample["audio"] = np.random.randn(10, 8).astype(np.float32)
+    collate = ARMetricCollateFn(randomize=True, defer_full_meta=True)
+    _, batch = collate([("a", sample)])
+    assert set(batch["metrics"]["metric_token"][0, 4::2].tolist()) == full_labels
+    loss, _, _ = model(**batch)
+    loss.backward()
+
+    model.eval()
+    with torch.no_grad():
+        model.decoder.output_layer.bias[list(full_labels)] = 100
+    audio, lengths = torch.randn(1, 5, 8), torch.tensor([5])
+    model.set_inference(1, metrics, False, True)
+    # Unconstrained, the biased decoder starts with a whole-clip metric.
+    assert model.inference(audio, lengths)["token_seq"][0][1] in full_labels
+    model.set_inference(
+        beam_size, metrics, skip_label_score, True, defer_full_meta=True
+    )
+    result = model.inference(audio, lengths)
+    labels = result["token_seq"][0][1::2]
+    assert sorted(labels) == [4, 10, 14, 20]
+    assert set(labels[2:]) == full_labels
+    assert set(metrics) <= set(result)
+
+
 @pytest.mark.parametrize("reference", ["ref_audio", "ref_text"])
 def test_reference_requires_lengths(make_arecho, reference):
     """Reject supplied references that have no length information."""
