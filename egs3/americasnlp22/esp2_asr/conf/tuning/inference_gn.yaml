@@ -1,0 +1,11 @@
+# Inference for the Guarani (gn) model; every setting but the language is
+# shared in conf/inference.yaml.
+#
+#   python run.py --stages infer \
+#       --training_config conf/tuning/training_gn.yaml \
+#       --inference_config conf/tuning/inference_gn.yaml
+defaults:
+  - ../inference
+  - _self_
+
+lang: gn
