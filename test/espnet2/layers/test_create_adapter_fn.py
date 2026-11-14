@@ -11,7 +11,6 @@ from espnet2.layers.houlsby_adapter_layer import (  # Houlsby_Adapter,
 
 transformers = pytest.importorskip("transformers")
 pytest.importorskip("s3prl")
-pytest.importorskip("loralib")
 
 
 @pytest.fixture
