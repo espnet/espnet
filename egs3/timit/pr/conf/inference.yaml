@@ -1,0 +1,20 @@
+# Scores a pretrained model, so `exp_tag` is set here rather than inherited
+# from a training config.
+exp_tag: phoneticxeus
+data_dir: ${oc.env:TIMIT_OUTPUT,${recipe_dir}/data}
+
+dataset:
+  test:
+    - name: test
+      data_src_args: {}
+
+model:
+  _target_: src.inference.PhoneticXeus
+  model_id: changelinglab/PhoneticXeus
+
+input_key: speech
+output_fn: src.inference.build_output
+
+# The model decodes one utterance at a time: the CNN frontend normalizes over
+# the whole input tensor, so a batch would change each result.
+batch_size: null
