@@ -1,0 +1,61 @@
+##########################################################
+#                  PUBLICATION SETTING                   #
+##########################################################
+# Quick usage:
+#   python run.py --stages pack_model \
+#       --training_config conf/training.yaml \
+#       --publication_config conf/publication.yaml
+#
+# Run `infer` and `measure` first: `pack_model` bundles the `metrics.json`
+# that `measure` writes under `${inference_dir}` and renders it into the
+# packed model's readme.
+
+##########################################################
+#                    PATHS AND INPUTS                    #
+##########################################################
+recipe_dir: .
+exp_tag: ${self_name:}
+exp_dir: exp/${exp_tag}
+inference_dir: ${exp_dir}/inference
+data_dir: ${recipe_dir}/data
+
+##########################################################
+#                   PACK MODEL SETTING                   #
+##########################################################
+pack_model:
+  out_dir: ${exp_dir}/model_pack
+  allow_overwrite: false
+  inference_dir: ${inference_dir}
+  include_model_detail: false
+  # The packed readme renders ${system} and ${corpus} from the bundle's own
+  # metadata, so it is the same file for every system. Referenced where it
+  # already lives rather than copied, so one file stays the source of truth.
+  readme: ${config_path:../../esp2_asr/src/hf_model_readme.md}
+  include:
+    # The system's own code is installed with espnet; the recipe ships only
+    # its dataset module.
+    - dataset
+  exclude:
+    # Applied to the bulk copy only, never to `files` or `yaml_files`.
+    - inference
+    - inference_*
+    - last.ckpt
+    - "**/step*.ckpt"
+    - "**/*.log"
+    - "**/tensorboard/**"
+    - "**/wandb/**"
+
+##########################################################
+#                  UPLOAD MODEL SETTING                  #
+##########################################################
+# Uses `huggingface_hub` with your local login; run `hf auth login` first.
+upload_model:
+  hf_repo: espnet/${set_corpus_and_system:}_${exp_tag}
+  private: false
+  # true to upload over an existing repo; false refuses, so a published model
+  # cannot be overwritten by accident.
+  update: false
+  # Existing repo files to delete before uploading, used only when update is
+  # true. [] makes the upload additive.
+  delete_patterns:
+    - "*"

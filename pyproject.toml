@@ -218,8 +218,17 @@ st = [
   "sacrebleu>=2.0.0",
 ]
 
+# espnet2/s2t and espnet3/systems/esp2_s2t (OWSM and Whisper-style S2T),
+# plus the egs3 recipes built on them.
 s2t = [
   "editdistance",
+  # The Whisper tokenizer and the whisper_en text cleaner.
+  "openai-whisper",
+  # egs3 recipes read their splits as Lhotse CutSets.
+  "lhotse",
+  # espnet3/systems/esp2_s2t/metrics: cpWER over speaker permutations, and DER.
+  "meeteval",
+  "pyannote.metrics",
 ]
 
 spk = [
