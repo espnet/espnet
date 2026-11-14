@@ -720,6 +720,10 @@ def inference(
         for w in wav_writers:
             w.close()
     writer.close()
+    if device == "cuda":
+        logging.info(
+            f"peak GPU memory: {torch.cuda.max_memory_allocated() / 2**30:.2f} GiB"
+        )
 
 
 def get_parser():
