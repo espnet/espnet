@@ -1,0 +1,47 @@
+##########################################################
+#                 METRIC SCORING SETTING                 #
+##########################################################
+# Quick usage:
+#   python run.py --stages measure \
+#       --training_config conf/training.yaml \
+#       --inference_config conf/inference.yaml \
+#       --metrics_config conf/metrics.yaml
+#
+# Scores `${inference_dir}/test/resyn_audio.scp` against the test set's own
+# waveforms (`dataset:wav_path`) with versa (https://github.com/wavlab-speech/versa).
+
+dataset:
+  test:
+    - name: test
+      data_src_args:
+        split: test
+        inference: true
+
+metrics:
+  - metric:
+      _target_: espnet3.systems.lace.metrics.versa.VersaMetric
+      score_config:
+        # signal related metrics: sdr, si-snr, ci-sdr (versa also computes
+        # sir and sar, which only mean something with several sources; for
+        # a one-source resynthesis sir is +inf and sar equals sdr, so they
+        # are not declared below and do not reach the results)
+        - name: signal_metric
+        # pseudo subjective metrics: utmos, dnsmos, plcmos
+        - name: pseudo_mos
+          predictor_types: [utmos, dnsmos, plcmos]
+          predictor_args:
+            utmos:
+              fs: 16000
+            dnsmos:
+              fs: 16000
+            plcmos:
+              fs: 16000
+      # The scores the configuration above promises and the only ones that
+      # reach metrics.json; `measure` fails if versa drops one.
+      outputs: [sdr, si_snr, ci_sdr, utmos, dns_overall, dns_p808, plcmos]
+      wav_key: wav
+      ref_key: ref
+      use_gpu: true
+    inputs:
+      wav: resyn_audio        # the model's output -> <test_name>/resyn_audio.scp
+      ref: dataset:wav_path   # the test set's ground-truth waveform

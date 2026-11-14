@@ -1,0 +1,125 @@
+##########################################################
+#                   Inference SETTING                    #
+##########################################################
+# Quick usage:
+#   python run.py --stages infer --inference_config conf/inference.yaml
+#
+# Outputs:
+# - `${inference_dir}/<test_name>/resyn_audio.scp`
+# - each line is `utt_id path`, the path of one resynthesized WAV file
+#
+# Shared default merged under every LACE recipe's inference config. A recipe
+# names its test sets under `dataset.test` and the fine-tuning run under
+# `model`; see `egs3/libritts/lace/conf/inference.yaml` for a working example.
+
+##########################################################
+#                    PATHS AND INPUTS                    #
+##########################################################
+recipe_dir: .
+# Common case:
+# - pass both `--training_config` and `--inference_config`
+# - `launch()` copies `training_config.exp_tag` / `training_config.exp_dir` here
+# - `${self_name:}` resolves to the stem of the config file passed to
+#   `--inference_config`
+# - if `inference_dir` is omitted, `conf/<name>.yaml` becomes `${exp_dir}/<name>`
+# Override `inference_dir` only when you want a different output location.
+exp_tag:
+exp_dir: ${recipe_dir}/exp/${exp_tag}
+data_dir: ${recipe_dir}/data
+inference_dir: ${exp_dir}/${self_name:}
+
+# Test split definitions are required for inference.
+# Each item in `dataset.test` is a dataset reference entry.
+# - `name` becomes the output subdirectory name under `${inference_dir}`
+# - `data_src` can be a `<recipe>/<task>` tag, a dotted module path, or be
+#   omitted to load `${recipe_dir}/dataset/__init__.py`
+# - `data_src_args` is forwarded to `Dataset(...)`
+# - `transform` is optional and runs before `preprocessor`
+#
+# The recipe `Dataset` class must inherit
+# `espnet3.components.data.base_dataset.BaseDataset` and declare `fields`:
+# for a codec that is the waveform `audio`, plus `utt_id` (heads every output
+# line) and the ground-truth path the `measure` stage scores against.
+#
+# Example:
+# dataset:
+#   test:
+#     - name: test
+#       data_src_args:
+#         split: test
+#         inference: true
+dataset:
+  _target_: espnet3.components.data.data_organizer.DataOrganizer
+  _recursive_: false
+  recipe_dir: ${recipe_dir}
+  test:
+  preprocessor:
+
+##########################################################
+#                  PARALLELIZATION SETTING               #
+##########################################################
+parallel:
+  env: local
+  n_workers: 1
+  # Replace a stale shard lock left by an interrupted run. Do not enable while
+  # another run may still be writing to the same output directory.
+  allow_overwrite_lock: false
+
+##########################################################
+#                    MODEL AND OUTPUT                    #
+##########################################################
+# `model` takes the arguments of
+# `espnet3.systems.lace.src.inference.LACEAudioCoding`: the `lace_model.yaml`
+# spec and the fine-tuned checkpoint of a training run, the compression
+# `rate`, and the optional `anchor_start_layer` / `target_bandwidth`;
+# `device` is added by the provider. A recipe names the run:
+#
+# model:
+#   train_config: ${exp_dir}/lace_model.yaml
+#   model_file: ${exp_dir}/last.ckpt
+#   rate: 0.5
+model:
+  _target_: espnet3.systems.lace.src.inference.LACEAudioCoding
+
+# The dataset field passed to the model. The recipe dataset returns
+# `{"audio": ...}`, matching `CommonPreprocessor(speech_name="audio")`; it must
+# be exactly the name `contract.inputs` declares.
+input_key: audio
+
+# LACEAudioCoding encodes one waveform per call, so there is no batching.
+batch_size:
+
+# What the model takes and returns, checked around every call: the `infer`
+# stage, `InferenceModel` on a packed bundle, and the demo, which also builds
+# its widgets from these fields and their labels. The input arrives in any
+# form the caller holds (a path, the `(rate, samples)` pair `gr.Audio`
+# returns, an array, a tensor), is resampled to the codec's rate and averaged
+# to one channel, as the training preprocessor's `force_single_channel` does;
+# `channels: 1` then rejects anything else. The output is the resynthesized
+# mono waveform at the same rate, written as a WAV file. Neither field names a
+# `sample_rate`: the model exposes the codec's (`LACEAudioCoding.sample_rate`,
+# 24 kHz for the LibriTTS EnCodec, 16 kHz for `espnet/libritts_dac_16k`), so
+# one template serves every pretrained codec.
+contract:
+  inputs:
+    audio:
+      kind: audio
+      label: Input audio
+      channels: 1
+      normalize:
+        - mean_channels
+  outputs:
+    resyn_audio:
+      kind: audio
+      label: Resynthesized audio
+      channels: 1
+
+##########################################################
+#               PROVIDER AND RUNNER SETTING              #
+##########################################################
+# The provider builds `model`; `LACEInferenceRunner` hands LACEAudioCoding the
+# bare waveform and keeps its `resyn_audio` as the contracted output.
+provider:
+  _target_: espnet3.systems.base.inference_provider.InferenceProvider
+runner:
+  _target_: espnet3.systems.lace.src.inference_runner.LACEInferenceRunner

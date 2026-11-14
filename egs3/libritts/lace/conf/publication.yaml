@@ -1,0 +1,23 @@
+##########################################################
+#                  PUBLICATION SETTING                   #
+##########################################################
+# Quick usage:
+#   python run.py --stages pack_model upload_model \
+#       --training_config conf/training.yaml \
+#       --inference_config conf/inference.yaml \
+#       --publication_config conf/publication.yaml
+#
+# Merged over egs3/TEMPLATE/lace/conf/publication.yaml (README template,
+# exclude list, upload settings). The bundle is `${exp_dir}/lace_model.yaml`,
+# which names the pretrained codec by its Hugging Face id, plus the one
+# checkpoint registered below.
+
+pack_model:
+  # Keep in sync with `model.model_file` in conf/inference.yaml: the template
+  # excludes every checkpoint from the bulk copy, so this one is registered.
+  files:
+    model_file: ${exp_dir}/last.ckpt
+  # Nothing in the bundle imports recipe code: inference runs through the
+  # installed `espnet3.systems.lace` runner, so neither `src` nor `dataset`
+  # is packed.
+  include: []
