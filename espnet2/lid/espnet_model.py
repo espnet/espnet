@@ -230,7 +230,9 @@ class ESPnetLIDModel(AbsESPnetModel):
         feats, feat_lengths, intermediate_lang2vec_preds = self.extract_feats(
             speech, speech_lengths, return_intermediate=True
         )
-        frame_level_feats = self.encode_frame(feats)
+        frame_level_feats, feat_lengths = self.encode_frame_with_lengths(
+            feats, feat_lengths
+        )
 
         # 2. aggregation into utterance-level
         utt_level_feat = self.pooling(frame_level_feats, feat_lengths=feat_lengths)
@@ -340,9 +342,29 @@ class ESPnetLIDModel(AbsESPnetModel):
         return feats, feat_lengths
 
     def encode_frame(self, feats: torch.Tensor) -> torch.Tensor:
-        frame_level_feats = self.encoder(feats)
+        """Encode unpadded features and return the frames only."""
+        return self.encode_frame_with_lengths(feats, None)[0]
 
-        return frame_level_feats
+    def encode_frame_with_lengths(
+        self, feats: torch.Tensor, feat_lengths: Optional[torch.Tensor]
+    ) -> Tuple[torch.Tensor, Optional[torch.Tensor]]:
+        """Encode frames and return the frame lengths of the output.
+
+        Encoders with ``returns_lengths = True`` (e.g. ``mfa_e_branchformer``,
+        which subsamples the frames and masks the padding in self-attention)
+        take the lengths and return the new ones, which the pooling then uses.
+        The TDNN encoders keep the frame rate and the input lengths.
+
+        Args:
+            feats: Features (batch, frames, dim).
+            feat_lengths: Valid frames of each utterance (batch,).
+
+        Returns:
+            Encoded frames (batch, channels, frames') and their valid lengths.
+        """
+        if getattr(self.encoder, "returns_lengths", False):
+            return self.encoder(feats, feat_lengths)
+        return self.encoder(feats), feat_lengths
 
     def project_lang_embd(self, utt_level_feat: torch.Tensor) -> torch.Tensor:
         if self.projector is not None:
