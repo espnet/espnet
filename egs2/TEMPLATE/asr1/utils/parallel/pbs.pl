@@ -287,19 +287,20 @@ if ($read_command != 1) {
 for my $option (keys %cli_options) {
   if ($option eq "config") { next; }
   if ($option eq "max_jobs_run") {
-    # PBS Pro has no per-array concurrency throttle (the Slurm "--array a-b%n"
-    # and Grid Engine "-tc" equivalents do not exist); the limit is set by the
-    # site on the queue.  A config file that does map the option is still
-    # honoured for an array job, as the header of this script promises; with no
-    # mapping the option is accepted and ignored, so that recipes do not have
-    # to special case the backend.  A non-array job never had a use for it.
+    # A config file that maps the option keeps its mapping, as the header of
+    # this script promises.  Otherwise an array of more than one task gets the
+    # PBS Professional throttle "-W max_run_subjobs=N" (at most N of its tasks
+    # run at once); a single task, submitted as an ordinary job below, and a
+    # non-array job have no use for it.
     my $mapped = exists $cli_config_options{$option}
       || exists $cli_default_options{($option,$cli_options{$option})};
-    if ($array_job != 1 || !$mapped) {
-      if ($array_job == 1) {
-        print STDERR "pbs.pl: ignoring --max-jobs-run $cli_options{$option}: "
-          . "PBS has no array-concurrency limit\n";
+    if (!$mapped) {
+      if ($array_job == 1 && $jobend > $jobstart) {
+        $qsub_opts .= "-W max_run_subjobs=$cli_options{$option} ";
       }
+      next;
+    }
+    if ($array_job != 1) {
       next;
     }
   }
