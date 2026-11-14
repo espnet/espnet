@@ -13,6 +13,7 @@
 #                               data preparation on a cluster (corpus and GPU tasks)
 #   CMD_BACKEND=pbs ./run.sh --stage 6 --inference_nj 64 --split_by_length true --diar_tag ...
 #                               inference and scoring of the test sets on a cluster
+#                               (at most 8 GPU tasks at once: --inference_max_jobs_run 8)
 #   ./run.sh --stage 5 --stop_stage 5 --ngpu 4 \
 #       --diar_config conf/tuning/train_dualmode_v2_lr1e-3.yaml \
 #       --diar_tag train_dualmode_v2_lr1e-3     the v2 dual-mode model on 4 GPUs
@@ -59,6 +60,7 @@ diar_opts=(
     --diar_config conf/train.yaml
     --diar_tag train
     --inference_config conf/decode.yaml
+    --inference_max_jobs_run 8   # GPU inference tasks at once (also cuda_cmd's cap in cmd.sh)
     --skip_dumped true
 )
 

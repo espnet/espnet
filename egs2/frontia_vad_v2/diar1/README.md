@@ -221,7 +221,10 @@ tasks, of which at most 64 CPU tasks or 8 GPU tasks run at once (`cmd.sh` gives
 `--max-jobs-run 64` to `train_cmd` and `decode_cmd`, `--max-jobs-run 8` to
 `cuda_cmd`, for pbs.pl and slurm.pl): data preparation (`--prep_tasks`,
 `--align_tasks`), statistics (`--nj`), inference and scoring of the test sets
-(`--inference_nj`). Training runs as one job on the GPUs it is given.
+(`--inference_nj`; run.sh also gives diar.sh `--inference_max_jobs_run 8`).
+Every GPU stage (alignment, inference) runs as one array of one-GPU tasks, so
+the cap of 8 GPUs at once holds whatever the number of tasks; do not submit GPU
+jobs one by one. Training runs as one job on the GPUs it is given.
 
 Split a stage into many small tasks and cap how many run at once,
 rather than a few large ones: the tasks then queue instead of holding many nodes,
