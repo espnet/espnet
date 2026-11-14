@@ -1,5 +1,5 @@
 # corpus_dir	relative_path	url	size_bytes	checksum	unpack
-bsd10k	ARCHIVES/README.md	https://zenodo.org/api/records/19868804/files/README.md/content	11487	md5:8615852cbd55686651e4e005920cf686	
-bsd10k	ARCHIVES/audio.zip	https://zenodo.org/api/records/19868804/files/audio.zip/content	8576285410	md5:2a08977c01f3c6fd26609849da050e06	
-bsd10k	ARCHIVES/features.zip	https://zenodo.org/api/records/19868804/files/features.zip/content	49346956	md5:79642258fdbdd21783764a561eeed21a	
-bsd10k	ARCHIVES/metadata.zip	https://zenodo.org/api/records/19868804/files/metadata.zip/content	2726927	md5:4c62c705fc39b83cd351098ab314274c	
+bsd10k	ARCHIVES/README.md	https://zenodo.org/api/records/19868804/files/README.md/content	11487	md5:8615852cbd55686651e4e005920cf686
+bsd10k	ARCHIVES/audio.zip	https://zenodo.org/api/records/19868804/files/audio.zip/content	8576285410	md5:2a08977c01f3c6fd26609849da050e06
+bsd10k	ARCHIVES/features.zip	https://zenodo.org/api/records/19868804/files/features.zip/content	49346956	md5:79642258fdbdd21783764a561eeed21a
+bsd10k	ARCHIVES/metadata.zip	https://zenodo.org/api/records/19868804/files/metadata.zip/content	2726927	md5:4c62c705fc39b83cd351098ab314274c

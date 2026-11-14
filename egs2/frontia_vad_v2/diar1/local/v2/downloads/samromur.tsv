@@ -1,7 +1,7 @@
 # corpus_dir	relative_path	url	size_bytes	checksum	unpack
-samromur	ARCHIVES/samromur_21.05.tgz	https://openslr.elda.org/resources/112/samromur_21.05.tgz	7035026731		
-samromur	ARCHIVES/samromur_L2_22.09.zip	https://openslr.elda.org/resources/130/samromur_L2_22.09.zip	7944156598		
-samromur	ARCHIVES/samromur_L2_22.09_README.txt	https://openslr.elda.org/resources/130/README.txt	8889		
-samromur	ARCHIVES/samromur_mimic_22.09.zip	https://openslr.elda.org/resources/131/samromur_mimic_22.09.zip	3597151423		
-samromur	ARCHIVES/samromur_mimic_22.09_README.txt	https://openslr.elda.org/resources/131/README.txt	8928		
-samromur	ARCHIVES/samromur_queries_21.12.zip	https://openslr.elda.org/resources/116/samromur_queries_21.12.zip	1033506806		
+samromur	ARCHIVES/samromur_21.05.tgz	https://openslr.elda.org/resources/112/samromur_21.05.tgz	7035026731
+samromur	ARCHIVES/samromur_L2_22.09.zip	https://openslr.elda.org/resources/130/samromur_L2_22.09.zip	7944156598
+samromur	ARCHIVES/samromur_L2_22.09_README.txt	https://openslr.elda.org/resources/130/README.txt	8889
+samromur	ARCHIVES/samromur_mimic_22.09.zip	https://openslr.elda.org/resources/131/samromur_mimic_22.09.zip	3597151423
+samromur	ARCHIVES/samromur_mimic_22.09_README.txt	https://openslr.elda.org/resources/131/README.txt	8928
+samromur	ARCHIVES/samromur_queries_21.12.zip	https://openslr.elda.org/resources/116/samromur_queries_21.12.zip	1033506806
