@@ -391,11 +391,16 @@ class CombinedDataset:
                 "espnet3.components.data.dataset.ShardedDataset."
             )
         sharded_datasets = [dataset.shard(shard_idx) for dataset in self.datasets]
-        return CombinedDataset(
+        sharded = CombinedDataset(
             sharded_datasets,
             self.transforms,
             self.use_espnet_preprocessor,
         )
+        # The module sets this on the unsharded dataset before the dataloader
+        # shards it; without it, items lose their uid and ESPnet's collator
+        # (which takes (uid, item) pairs) fails.
+        sharded.use_espnet_collator = self.use_espnet_collator
+        return sharded
 
     def __repr__(self) -> str:
         """Return a concise, inspectable summary of combined datasets."""
