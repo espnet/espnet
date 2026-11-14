@@ -1,0 +1,12 @@
+##########################################################
+#                 METRIC SCORING SETTING                 #
+##########################################################
+# Common usage:
+#   python run.py --stages measure \
+#       --training_config conf/training.yaml \
+#       --inference_config conf/inference.yaml \
+#       --metrics_config conf/metrics.yaml
+
+inference_dir: ${exp_dir}/inference
+
+# The metrics and their `inputs` come from egs3/TEMPLATE/esp2_lid/conf/metrics.yaml.
