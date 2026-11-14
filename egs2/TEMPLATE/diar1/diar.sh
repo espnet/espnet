@@ -242,6 +242,10 @@ if ! "${skip_data_prep}"; then
             rm -f "${_done}"
             utils/copy_data_dir.sh --validate_opts --non-print data/"${dset}" "${data_feats}${_suf}/${dset}"
             rm -f ${data_feats}${_suf}/${dset}/{wav.scp,reco2file_and_channel}
+            # the category of each recording (wav.scp key), for --chunk_upsampling_factor
+            if [ -f "data/${dset}/reco2category" ]; then
+                cp "data/${dset}/reco2category" "${data_feats}${_suf}/${dset}/utt2category"
+            fi
 
             # shellcheck disable=SC2086
             scripts/audio/format_wav_scp.sh --nj "${nj}" --cmd "${train_cmd}" \
@@ -300,6 +304,12 @@ if ! "${skip_data_prep}"; then
 
             # fix_data_dir.sh leaves only utts which exist in all files
             utils/fix_data_dir.sh "${data_feats}/${dset}"
+            rm -f "${data_feats}/${dset}/utt2category"
+            if [ -f "${data_feats}/org/${dset}/utt2category" ]; then
+                utils/filter_scp.pl "${data_feats}/${dset}/wav.scp" \
+                    <"${data_feats}/org/${dset}/utt2category" \
+                    >"${data_feats}/${dset}/utt2category"
+            fi
 
             # specifics for diarization
             steps/segmentation/convert_utt2spk_and_segments_to_rttm.py \

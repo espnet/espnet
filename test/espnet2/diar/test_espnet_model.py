@@ -249,10 +249,38 @@ def test_forward_stats_are_tensors_with_the_scored_ratios():
     torch.testing.assert_close(stats["der"], (km + kf + ke) / ks)
 
 
-def test_forward_stats_are_zero_without_reference_speech():
-    """Nothing scored (all-silent labels): the ratios are 0, not NaN."""
+def test_forward_stats_without_reference_speech():
+    """All-silent labels: error rates 0, acc the share of correct frames.
+
+    The error rates are relative to the reference speech, so they are 0 (not
+    NaN) without any; a batch of non-speech windows still has a frame accuracy,
+    which must not be reported as 0.
+    """
     torch.manual_seed(0)
     model = _small_model(num_spk=1).eval()
+    speech = torch.randn(2, 300)
+    lengths = torch.tensor([300, 300])
+    labels = torch.zeros(2, 300, 1)
+    _, stats, _ = model(
+        speech=speech,
+        speech_lengths=lengths,
+        spk_labels=labels,
+        spk_labels_lengths=lengths,
+    )
+    for key in ("sad_mr", "sad_fr", "mi", "fa", "cf", "der"):
+        assert float(stats[key]) == 0.0, key
+    encoder_out, encoder_out_lens = model.encode(speech, lengths, None, None)
+    pred = model.decoder(encoder_out, encoder_out_lens)
+    expected = (pred <= 0).float().mean()  # every frame's label is non-speech
+    torch.testing.assert_close(stats["acc"].reshape(()), expected)
+
+
+def test_forward_acc_of_a_correct_non_speech_batch_is_one():
+    """A model that outputs non-speech everywhere scores acc 1 on non-speech."""
+    model = _small_model(num_spk=1).eval()
+    with torch.no_grad():
+        model.decoder.linear_decoder.weight.zero_()
+        model.decoder.linear_decoder.bias.fill_(-10.0)
     lengths = torch.tensor([300, 300])
     _, stats, _ = model(
         speech=torch.randn(2, 300),
@@ -260,8 +288,7 @@ def test_forward_stats_are_zero_without_reference_speech():
         spk_labels=torch.zeros(2, 300, 1),
         spk_labels_lengths=lengths,
     )
-    for key in ("sad_mr", "sad_fr", "mi", "fa", "cf", "acc", "der"):
-        assert float(stats[key]) == 0.0, key
+    assert float(stats["acc"]) == 1.0
 
 
 def test_forward_does_not_copy_to_the_cpu(monkeypatch):
@@ -811,3 +838,82 @@ def test_wav_augment_runs_once_for_all_look_aheads(tmp_path):
     )
     model(**batch)
     assert calls == [True]
+
+
+def test_category_stats_give_each_categorys_mean(tmp_path):
+    """valid_loss_num_<c> / valid_frac_<c> is the mean loss of the windows of c."""
+    categories = tmp_path / "utt2category"
+    categories.write_text("recA small\nrecB big\nrecC big\n")
+    model = _small_model(1)
+    model = ESPnetDiarizationModel(
+        frontend=model.frontend,
+        specaug=None,
+        normalize=None,
+        label_aggregator=model.label_aggregator,
+        encoder=model.encoder,
+        decoder=model.decoder,
+        attractor=None,
+        valid_category_file=str(categories),
+    )
+    pred = torch.tensor(
+        [[[2.0], [-1.0]], [[0.5], [0.5]], [[-3.0], [1.0]], [[1.0], [1.0]]]
+    )
+    label = torch.tensor(
+        [[[1.0], [1.0]], [[0.0], [1.0]], [[0.0], [1.0]], [[1.0], [0.0]]]
+    )
+    lengths = torch.tensor([2, 2, 1, 2])
+    ids = ["recA-0000000000", "recB-0000000000", "recC", "unknown-0000000000"]
+    stats = model._category_stats(pred, label, lengths, ids)
+    assert set(stats) == {
+        f"valid_{k}_{c}"
+        for k in ("frac", "loss_num", "acc_num")
+        for c in ("big", "small")
+    }
+    bce = torch.nn.functional.binary_cross_entropy_with_logits
+    want_a = bce(pred[0], label[0])
+    want_big = (bce(pred[1], label[1]) + bce(pred[2, :1], label[2, :1])) / 2
+    torch.testing.assert_close(
+        stats["valid_loss_num_small"] / stats["valid_frac_small"], want_a
+    )
+    torch.testing.assert_close(
+        stats["valid_loss_num_big"] / stats["valid_frac_big"], want_big
+    )
+    # frame accuracy: recA 1/2; recB 1/2, recC 1/1 -> big (0.5 + 1) / 2
+    torch.testing.assert_close(
+        stats["valid_acc_num_small"] / stats["valid_frac_small"], torch.tensor(0.5)
+    )
+    torch.testing.assert_close(
+        stats["valid_acc_num_big"] / stats["valid_frac_big"], torch.tensor(0.75)
+    )
+    assert stats["valid_frac_big"] == 0.5 and stats["valid_frac_small"] == 0.25
+
+
+def test_category_stats_only_in_validation(tmp_path):
+    categories = tmp_path / "utt2category"
+    categories.write_text("a x\n")
+    base = _small_model(1)
+    model = ESPnetDiarizationModel(
+        frontend=base.frontend,
+        specaug=None,
+        normalize=None,
+        label_aggregator=base.label_aggregator,
+        encoder=base.encoder,
+        decoder=base.decoder,
+        attractor=None,
+        valid_category_file=str(categories),
+    )
+    speech = torch.randn(1, 300)
+    labels = torch.randint(high=2, size=(1, 300, 1)).float()
+    kw = dict(
+        speech=speech,
+        speech_lengths=torch.tensor([300]),
+        spk_labels=labels,
+        spk_labels_lengths=torch.tensor([300]),
+        utt_id=["a-0000000000"],
+    )
+    model.train()
+    assert not any(k.startswith("valid_") for k in model(**kw)[1])
+    model.eval()
+    with torch.no_grad():
+        stats = model(**kw)[1]
+    assert {"valid_frac_x", "valid_loss_num_x", "valid_acc_num_x"} <= set(stats)

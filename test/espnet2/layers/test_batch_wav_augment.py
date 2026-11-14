@@ -1138,3 +1138,36 @@ def test_host_and_device_impulse_responses_are_the_same(tmp_path):
         )
     torch.testing.assert_close(outs[0], outs[1])
     assert outs[0].shape == (4, max(lengths[0]))
+
+
+def test_keep_on_device_equals_host_with_rir_noise_and_context(tmp_path):
+    """The banks on the device give the output of the host banks.
+
+    Reverberation, noise and a leading context together, as frontia_vad_v2
+    trains: the same seed gives the same draws, so the outputs are equal.
+    """
+    rng = np.random.default_rng(11)
+    noise_scp = write_noises(tmp_path, [(300, 1), (5000, 2), (12000, 1)])
+    rirs = np.zeros((1500, 3), dtype=np.float32)
+    for k, n in enumerate((1500, 400, 900)):
+        rirs[:n, k] = rng.normal(size=n) * np.exp(-np.arange(n) / 200.0)
+    rir_scp = _scp(tmp_path, "rir", _write(tmp_path / "rirs.wav", rirs))
+    c, t = 1000, 6000
+    speech = torch.from_numpy(rng.normal(size=(8, c + t)).astype(np.float32)) * 0.05
+    lengths = torch.full((8,), c + t)
+    outs = []
+    for keep in (False, True):
+        aug = BatchWavAugment(
+            noise_scp,
+            noise_apply_prob=0.8,
+            noise_db_range="-5_20",
+            rir_scp=rir_scp,
+            rir_apply_prob=0.5,
+            context=c,
+            keep_on_device=keep,
+        ).train()
+        torch.manual_seed(5)
+        out, out_lengths = aug(speech, lengths)
+        outs.append(out)
+    assert outs[0].shape == (8, t) and out_lengths.tolist() == [t] * 8
+    torch.testing.assert_close(outs[0], outs[1], rtol=0, atol=0)

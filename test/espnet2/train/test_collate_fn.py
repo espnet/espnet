@@ -265,3 +265,20 @@ def test_HuBERTCollateFn_repr(
             sample_rate=sample_rate,
         )
     )
+
+
+def test_diar_collate_fn_widens_labels_to_num_spk():
+    from espnet2.train.collate_fn import DiarCollateFn
+
+    data = [
+        ("a", {"speech": np.ones(4, np.float32), "spk_labels": np.ones((4, 1))}),
+        ("b", {"speech": np.ones(3, np.float32), "spk_labels": np.zeros((3, 0))}),
+    ]
+    ids, batch = DiarCollateFn(num_spk=1, int_pad_value=-1)(data)
+    assert ids == ["a", "b"]
+    assert batch["spk_labels"].shape == (2, 4, 1)
+    np.testing.assert_array_equal(batch["spk_labels"][1].numpy(), np.zeros((4, 1)))
+    np.testing.assert_array_equal(batch["spk_labels_lengths"].numpy(), [4, 3])
+    # wider labels are kept
+    wide = [("c", {"spk_labels": np.ones((2, 3))})]
+    assert DiarCollateFn(num_spk=2)(wide)[1]["spk_labels"].shape == (1, 2, 3)
