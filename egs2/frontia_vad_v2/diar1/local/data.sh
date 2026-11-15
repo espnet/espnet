@@ -26,6 +26,9 @@
 #      OWSM-CTC at --align_revision, one GPU job per dump (local/v2/align.py)
 #   5  combine into dump/raw/{train,dev} (local/v2/combine.py) and write the
 #      corpus reports (local/v2/corpus_report.py)
+#   6  standard VAD benchmarks as test sets dump/raw/<set>, read from their archives
+#      (local/v2/bench_test_sets.py, --bench_sets): libricss_eval, aishell5_eval
+#      (AISHELL-5 is CC BY-SA: evaluation only)
 # Each stage skips the corpora it has finished (.done / .aligned markers), so a
 # stage can be rerun, or run for some corpora at a time (--corpora).
 #
@@ -80,6 +83,7 @@ reuse_dumpdir=""      # stage 5: also combine the corpus dumps of these director
                       # separated, the first that has a corpus wins) that are not in
                       # ${dumpdir} (a label version that redoes only some corpora)
 raw_dir=dump/raw      # stage 5: the combined train/dev sets (diar.sh --dumpdir is its parent)
+bench_sets="libricss_eval aishell5_eval"  # stage 6: benchmark test sets (dump/raw/<set>)
 exclude_corpora=""    # stage 5: comma separated corpora left out of ${raw_dir} (their dumps stay)
 dev_pick=units          # stage 5: dev units of corpora split by group (local/v2/splits.py):
                         # about 2 % of the units, or one when 50 or fewer (units: v2, v2.1),
@@ -248,6 +252,22 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
     done
     python3 ${v2}/corpus_report.py "${dumpdir}" "${dumpdir}/reports" "${dev_pick}"
     log "corpus reports: ${dumpdir}/reports"
+fi
+
+if [ ${stage} -le 6 ] && [ ${stop_stage} -ge 6 ]; then
+    log "Stage 6: benchmark test sets: ${bench_sets}"
+    mkdir -p exp/bench_test_sets/log
+    printf '%s\n' ${bench_sets} > exp/bench_test_sets/sets.txt
+    n=$(wc -l < exp/bench_test_sets/sets.txt)
+    # shellcheck disable=SC2016
+    ${train_cmd} JOB=1:${n} exp/bench_test_sets/log/bench.JOB.log \
+        python3 ${v2}/bench_test_sets.py --set '$(sed -n JOBp exp/bench_test_sets/sets.txt)' \
+            --root "${VAD_CORPORA}" --out dump/raw \
+            --mfa "${VAD_CORPORA}/librispeech_mfa/ARCHIVES/librispeech_alignments.zip"
+    for s in ${bench_sets}; do
+        [ -f "dump/raw/${s}/.done" ] || { log "${s} failed: see exp/bench_test_sets/log"; exit 1; }
+        log "dump/raw/${s}: $(wc -l < "dump/raw/${s}/wav.scp") recordings"
+    done
 fi
 
 log "Successfully finished. [elapsed=${SECONDS}s]"

@@ -234,6 +234,20 @@ chunks, and the chunk iterator skips such recordings.
 It trains with `--dumpdir dump_v2_2 --expdir exp_v2_2` and
 `conf/tuning/train_dualmode_v2_2_lr1e-3.yaml`.
 
+### Benchmark test sets
+
+Stage 6 of `local/data.sh` (`local/v2/bench_test_sets.py`) writes standard VAD
+benchmarks as test sets in `dump/raw/<set>`, read from their archives without
+unpacking:
+
+| set | audio | reference | licence |
+|---|---|---|---|
+| `libricss_eval` | LibriCSS sessions 1-9 of every condition (session 0 is dev), channel 0 of the recording | MFA word alignments of the played LibriSpeech utterances at their start times, offset to the recording by cross-correlation, gaps under 0.2 s joined | CC BY 4.0 (LibriSpeech), tools MIT |
+| `aishell5_eval` | AISHELL-5 Eval1 + Eval2, the four far-field channels of every session | manual transcription intervals of the near-field TextGrids, union over speakers | CC BY-SA 4.0, evaluation only |
+
+RealVAD (Zenodo 3928151) ships labels and acoustic features only; its audio is a
+video that is not part of the release, so it is not a test set here.
+
 ## Running
 
 Set `VAD_CORPORA` (and the v1 corpus paths) in `db.sh`. The parallel work of every
