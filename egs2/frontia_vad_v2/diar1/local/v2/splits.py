@@ -14,7 +14,7 @@ import collections
 from pathlib import Path
 from typing import Dict, List, Tuple
 
-from registry import dev_groups
+from registry import dev_by_hours, dev_groups
 
 SPLITS = ("train", "dev")
 
@@ -71,21 +71,33 @@ def _components(packs: List[List[str]]) -> Dict[str, str]:
     return {g: find(g) for g in parent}
 
 
-def resolve(corpus_dir: Path) -> Tuple[Dict[str, str], dict]:
+def resolve(corpus_dir: Path, dev_pick: str = "units") -> Tuple[Dict[str, str], dict]:
     """(recording id -> "train" | "dev", summary) of a corpus dump.
 
     Groups that share a packed recording are one unit (a connected component
-    of the groups), so a split never separates them; the dev units are
-    registry.dev_groups() over the units.
+    of the groups), so a split never separates them. The dev units are
+    registry.dev_groups() over the units (dev_pick "units", labels v2 and
+    v2.1: about 2 % of the units, or one unit when there are 50 or fewer,
+    whatever its size) or registry.dev_by_hours() over the units' hours
+    (dev_pick "hours", labels v2.2: about 2 % of the hours, at most 3 %).
     """
+    if dev_pick not in ("units", "hours"):
+        raise ValueError(f"dev_pick must be units or hours: {dev_pick}")
     rows = []
     for written, dump in corpus_dumps(corpus_dir):
         rows += [(written, r) for r in manifest_rows(dump)]
     packs = [[g for g in (r.get("group") or "").split(";") if g] for _, r in rows]
     unit_of = _components([gs for gs in packs if gs])
     units = set(unit_of.values())
-    # one unit only: no dev (it would take the whole corpus)
-    dev = dev_groups(units) if len(units) >= 2 else set()
+    if dev_pick == "hours":
+        unit_hours = collections.Counter()
+        for (_, r), gs in zip(rows, packs):
+            if gs:
+                unit_hours[unit_of[gs[0]]] += float(r["seconds"]) / 3600
+        dev = dev_by_hours(unit_hours)
+    else:
+        # one unit only: no dev (it would take the whole corpus)
+        dev = dev_groups(units) if len(units) >= 2 else set()
     final, moved = {}, collections.Counter()
     for (written, r), gs in zip(rows, packs):
         split = written if not gs else ("dev" if unit_of[gs[0]] in dev else "train")

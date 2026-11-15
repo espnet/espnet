@@ -223,6 +223,15 @@ without Common Voice select their checkpoints on the same dev set; it trains wit
 `conf/tuning/train_dualmode_v2_1cv_lr1e-3.yaml`. A separate `--expdir` keeps the
 statistics of each version (`<expdir>/diar_stats_16k`).
 
+`conf/data_v2_2.conf` (labels v2.2) fixes the dev split. Through v2.1, packs of short
+clips joined a corpus's groups (speakers, sessions) into a few units, and stage 5 put a
+whole unit in dev when a corpus had 50 or fewer: aishell3, babycry and samromur had
+94-98 % of their grouped hours in dev. v2.2 packs within one group in the corpora where
+packs joined groups (`--pack_by_group`, stages 3 and 4 again for those corpora) and picks
+dev by hours (`--dev_pick hours`: about 2 % of each corpus's hours, at most 3 %, a unit
+larger than that kept in train). A group's last pack can be shorter than the 10 s training
+chunks, and the chunk iterator skips such recordings.
+
 ## Running
 
 Set `VAD_CORPORA` (and the v1 corpus paths) in `db.sh`. The parallel work of every

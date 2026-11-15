@@ -37,12 +37,18 @@ def main():
         default="",
         help="comma separated corpora whose dev recordings are left out (train kept)",
     )
+    parser.add_argument(
+        "--dev_pick",
+        choices=("units", "hours"),
+        default="units",
+        help="dev units of corpora split by group (splits.resolve)",
+    )
     args = parser.parse_args()
     dev_exclude = {c for c in args.dev_exclude.split(",") if c}
     lines = {s: collections.defaultdict(list) for s in SPLITS}
     no_dev = []
     for corpus_dir in args.corpora:
-        final, _ = resolve(corpus_dir)
+        final, _ = resolve(corpus_dir, args.dev_pick)
         if corpus_dir.name in dev_exclude:
             # the train/dev split stays; the dev recordings go to neither set
             final = {k: "drop" if v == "dev" else v for k, v in final.items()}

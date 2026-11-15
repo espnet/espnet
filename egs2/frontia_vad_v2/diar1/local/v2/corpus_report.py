@@ -1,7 +1,9 @@
 #!/usr/bin/env python3
 """Write one report per corpus of what the data preparation read and kept.
 
-    python3 local/v2/corpus_report.py dump/v2 dump/v2/reports
+    python3 local/v2/corpus_report.py dump/v2 dump/v2/reports [units|hours]
+
+The optional last argument is the dev pick of combine.py --dev_pick.
 
 For every corpus directory of the dump root, reports/<corpus>.json holds the
 source files (from local/v2/downloads/<corpus>.tsv: path, size, checksum),
@@ -79,7 +81,7 @@ def sources(directory: str):
     return out
 
 
-def report(corpus: str, root: Path):
+def report(corpus: str, root: Path, dev_pick: str = "units"):
     spec = adapters.ADAPTERS.get(corpus)
     rep = dict(
         corpus=corpus,
@@ -126,7 +128,7 @@ def report(corpus: str, root: Path):
             rep["alignment"] = {k: c[k] for k in keys if k in c}
             if corpus in LABEL_NOTES:
                 rep["alignment"]["note"] = LABEL_NOTES[corpus]
-    final, summary = resolve(root / corpus)
+    final, summary = resolve(root / corpus, dev_pick)
     totals = collections.Counter()
     for _, dump in corpus_dumps(root / corpus):
         for r in manifest_rows(dump):
@@ -146,11 +148,12 @@ def report(corpus: str, root: Path):
 
 def main():
     root, out = Path(sys.argv[1]), Path(sys.argv[2])
+    dev_pick = sys.argv[3] if len(sys.argv) > 3 else "units"  # as combine.py --dev_pick
     out.mkdir(parents=True, exist_ok=True)
     for corpus_dir in corpus_dirs(root):
         if corpus_dir.name == out.name:
             continue
-        rep = report(corpus_dir.name, root)
+        rep = report(corpus_dir.name, root, dev_pick)
         (out / f"{corpus_dir.name}.json").write_text(
             json.dumps(rep, indent=1, sort_keys=True) + "\n"
         )

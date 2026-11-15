@@ -42,12 +42,29 @@ class GroupWriter:
 class Writers:
     """One VadDumpWriter per split, created when the split gets its first recording."""
 
-    def __init__(self, out, spec, corpus, fs, shard, nshards, pack_seconds, limit=None):
+    def __init__(
+        self,
+        out,
+        spec,
+        corpus,
+        fs,
+        shard,
+        nshards,
+        pack_seconds,
+        limit=None,
+        pack_by_group="listed",
+    ):
         self.out, self.spec, self.corpus, self.fs = out, spec, corpus, fs
         self.pack_seconds = pack_seconds
         self.limit = limit
         self.shard, self.nshards = shard, nshards
         self.writers = {}
+        # packs hold one group each: in the corpora of adapters.PACK_BY_GROUP
+        # ("listed", labels v2 and v2.1), in these and the corpora of a comma
+        # separated list, or in every corpus ("all")
+        self.pack_by_group = pack_by_group == "all" or corpus in (
+            adapters.PACK_BY_GROUP | set(pack_by_group.split(","))
+        )
 
     def __getitem__(self, split: str) -> VadDumpWriter:
         if split.startswith(AUTO):
@@ -84,7 +101,7 @@ class Writers:
                 **caps,
             )
             self.writers[split].before_add = self._check_limit
-            self.writers[split].pack_by_group = self.corpus in adapters.PACK_BY_GROUP
+            self.writers[split].pack_by_group = self.pack_by_group
         return self.writers[split]
 
     def _check_limit(self):
@@ -118,6 +135,14 @@ def main():
         "chunks (10 s) need recordings at least that long",
     )
     parser.add_argument(
+        "--pack_by_group",
+        default="listed",
+        help="pack recordings of one group only, so that packs do not join "
+        "groups into units (splits.resolve): in the corpora of "
+        "adapters.PACK_BY_GROUP (listed), in those and a comma separated list "
+        "of corpora, or in every corpus (all)",
+    )
+    parser.add_argument(
         "--limit",
         type=int,
         default=None,
@@ -137,6 +162,7 @@ def main():
         args.nshards,
         args.pack_seconds or None,
         args.limit,
+        args.pack_by_group,
     )
     try:
         spec.prepare(

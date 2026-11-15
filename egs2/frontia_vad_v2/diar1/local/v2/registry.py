@@ -95,3 +95,34 @@ def dev_groups(groups, dev_percent: int = 2, few: int = 50) -> set:
         return {lowest}
     dev = {g for g in groups if hash_split(g, dev_percent) == "dev"}
     return dev or {lowest}
+
+
+def dev_by_hours(
+    hours, dev_percent: float = 2.0, max_percent: float = 3.0, fallback_percent=10.0
+) -> set:
+    """The dev units of a corpus chosen by hours, from {unit: hours}.
+
+    Units are taken in hash order (group_hash), each only if dev stays within
+    max_percent % of the corpus hours, until dev holds dev_percent %: a unit
+    larger than that stays in train, and no corpus gives more than
+    max_percent % of its hours to dev. If no unit fits, the smallest unit is
+    dev when it holds at most fallback_percent % of the hours; else, and for
+    a corpus of one unit, there is no dev.
+    """
+    hours = dict(hours)
+    if len(hours) < 2:
+        return set()
+    total = sum(hours.values())
+    target, cap = total * dev_percent / 100, total * max_percent / 100
+    dev, h = set(), 0.0
+    for u in sorted(hours, key=lambda u: (group_hash(u), u)):
+        if h >= target:
+            break
+        if h + hours[u] <= cap:
+            dev.add(u)
+            h += hours[u]
+    if not dev:
+        u = min(hours, key=lambda u: (hours[u], group_hash(u), u))
+        if hours[u] <= total * fallback_percent / 100:
+            dev = {u}
+    return dev

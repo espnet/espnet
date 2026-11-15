@@ -54,6 +54,8 @@ v1_nshards=8          # jobs per v1 corpus split in stage 1
 nshards=8             # shards per corpus in stage 3 (changes the packing; keep 8)
 prep_tasks=1          # stage 3 tasks (${train_cmd} JOB=1:N), each the shards of its corpora in parallel
 pack_seconds=30       # recordings shorter than this are packed (training chunks: 10 s)
+pack_by_group=listed  # stage 3: packs hold one group each in the corpora of adapters.PACK_BY_GROUP
+                      # (listed), in those and a comma separated list of corpora, or in all
 align_model=espnet/owsm_ctc_v4_1B
 align_revision=6075bf3d42e6037d1ef7abd7c5558ade886e6eaa
 align_min_pause=0.2         # pauses between words shorter than this are speech
@@ -74,10 +76,14 @@ align_tasks=1               # stage 4 tasks (${cuda_cmd} --gpu 1 JOB=1:N), one G
 align_max_jobs=""           # stage 4 GPU tasks at once (--max-jobs-run); empty: cuda_cmd's cap
 align_shards=""             # stage 4 for these shard numbers only, e.g. "0 1"; empty: all
 dumpdir=dump/v2
-reuse_dumpdir=""      # stage 5: also combine the corpus dumps of this directory that are not
-                      # in ${dumpdir} (a label version that redoes only some corpora)
+reuse_dumpdir=""      # stage 5: also combine the corpus dumps of these directories (space
+                      # separated, the first that has a corpus wins) that are not in
+                      # ${dumpdir} (a label version that redoes only some corpora)
 raw_dir=dump/raw      # stage 5: the combined train/dev sets (diar.sh --dumpdir is its parent)
 exclude_corpora=""    # stage 5: comma separated corpora left out of ${raw_dir} (their dumps stay)
+dev_pick=units          # stage 5: dev units of corpora split by group (local/v2/splits.py):
+                        # about 2 % of the units, or one when 50 or fewer (units: v2, v2.1),
+                        # or about 2 % of the hours, at most 3 % (hours: v2.2)
 dev_exclude_corpora=""  # stage 5: comma separated corpora whose dev recordings are left out
                         # of ${raw_dir}/dev (their train recordings stay in train)
 
@@ -153,7 +159,7 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
     echo "${corpora}" | tr , '\n' > "${dumpdir}/log/prep_corpora.txt"
     ${train_cmd} JOB=1:${prep_tasks} "${dumpdir}/log/prep.JOB.log" \
         ${v2}/prep_task.sh "${dumpdir}/log/prep_corpora.txt" JOB ${prep_tasks} \
-            "${VAD_CORPORA}" "${dumpdir}" ${nshards} ${pack_seconds}
+            "${VAD_CORPORA}" "${dumpdir}" ${nshards} ${pack_seconds} ${pack_by_group}
     for corpus in ${corpora//,/ }; do
         [ -f "${dumpdir}/${corpus}/.done" ] || { log "${corpus} failed: see ${dumpdir}/log"; exit 1; }
     done
@@ -204,13 +210,13 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
     # the corpus directories (not log, reports, or q: pbs.pl/queue.pl/slurm.pl
     # write the job scripts of the ${dumpdir}/log tasks to ${dumpdir}/q)
     corpus_dirs=$(find "${dumpdir}" -mindepth 1 -maxdepth 1 -type d \
-        ! -name log ! -name reports ! -name q | sort)
-    if [ -n "${reuse_dumpdir}" ]; then
-        for d in $(find "${reuse_dumpdir}" -mindepth 1 -maxdepth 1 -type d \
+        ! -name log ! -name reports ! -name q | sort | tr '\n' ' ')
+    for reuse in ${reuse_dumpdir}; do
+        for d in $(find "${reuse}" -mindepth 1 -maxdepth 1 -type d \
                 ! -name log ! -name reports ! -name q | sort); do
-            [ -d "${dumpdir}/${d##*/}" ] || corpus_dirs+=" ${d}"
+            [[ " ${corpus_dirs} " == *"/${d##*/} "* ]] || corpus_dirs+=" ${d}"
         done
-    fi
+    done
     if [ -n "${exclude_corpora}" ]; then
         kept_dirs=""
         for d in ${corpus_dirs}; do
@@ -228,7 +234,8 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
     # the final train/dev split of each recording: official splits kept, the dev
     # groups of the other corpora chosen over all their groups (local/v2/splits.py)
     # shellcheck disable=SC2086
-    python3 ${v2}/combine.py "${raw_dir}" ${corpus_dirs} --dev_exclude "${dev_exclude_corpora}"
+    python3 ${v2}/combine.py "${raw_dir}" ${corpus_dirs} --dev_exclude "${dev_exclude_corpora}" \
+        --dev_pick "${dev_pick}"
     for split in train dev; do
         # diar.sh skips stage 2 for a set marked done in <raw_dir>/org/<set>
         mkdir -p "${raw_dir}/org/${split}"
@@ -239,7 +246,7 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
         log "${raw_dir}/${split}: $(wc -l < "${raw_dir}/${split}/wav.scp") recordings"
         column -t -s $'\t' "${raw_dir}/${split}/domains.tsv"
     done
-    python3 ${v2}/corpus_report.py "${dumpdir}" "${dumpdir}/reports"
+    python3 ${v2}/corpus_report.py "${dumpdir}" "${dumpdir}/reports" "${dev_pick}"
     log "corpus reports: ${dumpdir}/reports"
 fi
 

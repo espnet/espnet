@@ -13,7 +13,13 @@ HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
 
 from prep import Writers  # noqa: E402
-from registry import Adapter, dev_groups, group_hash, split_by_hash  # noqa: E402
+from registry import (  # noqa: E402
+    Adapter,
+    dev_by_hours,
+    dev_groups,
+    group_hash,
+    split_by_hash,
+)
 from splits import corpus_dirs, resolve  # noqa: E402
 
 SPEC = Adapter("", "meeting", "H", "CC BY 4.0", None)
@@ -37,8 +43,10 @@ def test_no_group_in_dev_by_hash_still_gives_one():
     assert len(groups) == 60 and len(dev_groups(groups)) == 1
 
 
-def _write(tmp_path, recordings, pack_seconds=None):
-    w = Writers(tmp_path, SPEC, "toy", 16000, 0, 1, pack_seconds)
+def _write(tmp_path, recordings, pack_seconds=None, pack_by_group="listed"):
+    w = Writers(
+        tmp_path, SPEC, "toy", 16000, 0, 1, pack_seconds, pack_by_group=pack_by_group
+    )
     for rid, group, seconds in recordings:
         x = np.zeros(int(seconds * 16000), dtype=np.float32)
         w[split_by_hash(group)].add(rid, x, 16000, speech=[(0.1, 0.5)])
@@ -140,3 +148,67 @@ def test_combine_dev_exclude_keeps_train(tmp_path):
     }
     assert keys[("all", "train")] == keys[("nodev", "train")] == ["toy-a"]
     assert keys[("all", "dev")] == ["toy-b"] and keys[("nodev", "dev")] == []
+
+
+def _share(dev, hours):
+    return 100 * sum(hours[u] for u in dev) / sum(hours.values())
+
+
+def test_dev_by_hours_one_unit_gives_no_dev():
+    assert dev_by_hours({"only": 6.3}) == set()
+    assert dev_by_hours({}) == set()
+
+
+def test_dev_by_hours_many_units_give_two_to_three_percent():
+    hours = {f"spk{i}": 0.5 + (group_hash(f"spk{i}") % 7) / 4 for i in range(400)}
+    dev = dev_by_hours(hours)
+    assert 2.0 <= _share(dev, hours) <= 3.0
+    assert dev_by_hours(dict(reversed(list(hours.items())))) == dev  # order-free
+
+
+def test_dev_by_hours_keeps_a_giant_unit_in_train():
+    # one unit holds 98 % of the hours (packs that joined most speakers)
+    hours = {"giant": 98.0, **{f"s{i}": 0.1 for i in range(20)}}
+    dev = dev_by_hours(hours)
+    assert "giant" not in dev and 0 < _share(dev, hours) <= 3.0
+
+
+def test_dev_by_hours_units_larger_than_the_target():
+    # every unit above 3 %: the smallest when it holds at most 10 %, else no dev
+    hours = {"a": 50.0, "b": 3.2}
+    assert dev_by_hours(hours) == {"b"}  # 6 %
+    eight = {f"d{i}": 3.0 + i / 10 for i in range(8)}  # each 10.9-14.4 %
+    assert dev_by_hours(eight) == set()
+    assert dev_by_hours(eight, fallback_percent=12.0) == {"d0"}
+
+
+def test_resolve_dev_by_hours(tmp_path):
+    # 60 speakers, one with 40 recordings, the others with 1-3: 2-3 % of hours
+    recs = [(f"big{k}", "spk_big", 40.0) for k in range(40)]
+    recs += [
+        (f"r{i}_{k}", f"spk{i}", 40.0) for i in range(59) for k in range(1 + i % 3)
+    ]
+    final, summary = resolve(_write(tmp_path, recs), dev_pick="hours")
+    dev = sum(v == "dev" for v in final.values())
+    assert 0.02 <= dev / len(final) <= 0.03
+    assert all(final[f"toy-big{k}"] == "train" for k in range(40))
+    by_group = {}
+    for rid, group, _ in recs:
+        by_group.setdefault(group, set()).add(final[f"toy-{rid}"])
+    assert all(len(v) == 1 for v in by_group.values())
+
+
+def test_pack_by_group_for_a_listed_corpus(tmp_path):
+    # 10 s clips of 12 speakers packed to 30 s: across speakers they join into
+    # few units; packed within a speaker every speaker is a unit of its own
+    # clips come speaker after speaker in turn, as in a shuffled corpus
+    recs = [(f"c{i}_{k}", f"spk{i}", 10.0) for k in range(6) for i in range(12)]
+    _, joined = resolve(_write(tmp_path / "a", recs, pack_seconds=30))
+    _, own = resolve(_write(tmp_path / "b", recs, pack_seconds=30, pack_by_group="toy"))
+    _, every = resolve(
+        _write(tmp_path / "c", recs, pack_seconds=30, pack_by_group="all")
+    )
+    assert joined["units"] < 12 and own["units"] == every["units"] == 12
+    for line in (tmp_path / "b" / "toy").glob("*/manifest.tsv"):
+        for row in line.read_text().splitlines()[1:]:
+            assert ";" not in row.split("\t")[-1]  # one group per pack
