@@ -31,6 +31,7 @@ aishell5_eval   AISHELL-5 (aishell5/ARCHIVES/Eval1.tar.gz and Eval2.tar.gz, Open
 import argparse
 import collections
 import io
+import json
 import re
 import sys
 import tarfile
@@ -62,8 +63,13 @@ def is_speech(text: str) -> bool:
     return bool(text.strip()) and not MARKER_RE.match(text)
 
 
-def write_set(out: Path, recordings, reference: str):
-    """Write recordings [(rec_id, mono float32 at FS, [(start, end)] s)] as a set."""
+def write_set(out: Path, recordings, reference: str, uem=None):
+    """Write recordings [(rec_id, mono float32 at FS, segments)] as a set.
+
+    segments: [(start, end)] s, written as one pseudo speaker "speech", or
+    [(start, end, speaker)], written per speaker (for md-eval -1). uem: {rec_id:
+    [(start, end)]}, written as the file uem (score_vad.py score --uem).
+    """
     from espnet2.fileio.omniio_audio import OmniIOAudioWriter
 
     out.mkdir(parents=True, exist_ok=True)
@@ -73,27 +79,88 @@ def write_set(out: Path, recordings, reference: str):
             w[rid] = FS, x
             nums[rid] = len(x)
             dur = len(x) / FS
-            for s, e in merge(segs):
-                s, e = max(0.0, s), min(dur, e)
-                if e > s:
-                    rttm.append(
-                        f"SPEAKER {rid} 1 {s:.3f} {e - s:.3f} "
-                        "<NA> <NA> speech <NA> <NA>\n"
-                    )
+            by_spk = collections.defaultdict(list)
+            for seg in segs:
+                by_spk[seg[2] if len(seg) == 3 else "speech"].append(seg[:2])
+            for spk, ss in sorted(by_spk.items()):
+                for s, e in merge(ss):
+                    s, e = max(0.0, s), min(dur, e)
+                    if e > s:
+                        rttm.append(
+                            f"SPEAKER {rid} 1 {s:.3f} {e - s:.3f} "
+                            f"<NA> <NA> {spk} <NA> <NA>\n"
+                        )
     (out / "utt2num_samples").write_text(
         "".join(f"{r} {n}\n" for r, n in sorted(nums.items()))
     )
     (out / "rttm").write_text("".join(sorted(rttm)))
+    if uem:
+        (out / "uem").write_text(
+            "".join(
+                f"{r} 1 {s:.3f} {min(e, nums[r] / FS):.3f}\n"
+                for r in sorted(uem)
+                for s, e in uem[r]
+            )
+        )
     (out / "feats_type").write_text("raw\n")
     (out / "audio_format").write_text("omniio\n")
     (out / "reference.txt").write_text(reference.strip() + "\n")
-    speech = sum(float(x.split()[4]) for x in rttm)
+    speech = sum(e - s for r in nums for s, e in merge(rttm_spans(rttm, r)))
     total = sum(nums.values()) / FS
     print(
         f"{out}: {len(nums)} recordings, {total / 3600:.2f} h, speech "
         f"{speech / 3600:.2f} h ({100 * speech / max(total, 1e-9):.1f} %)",
         flush=True,
     )
+
+
+def rttm_spans(lines, rid):
+    out = []
+    for x in lines:
+        p = x.split()
+        if p[1] == rid:
+            out.append((float(p[3]), float(p[3]) + float(p[4])))
+    return out
+
+
+def hms(t: str) -> float:
+    h, m, s = t.split(":")
+    return int(h) * 3600 + int(m) * 60 + float(s)
+
+
+def chime6(root: Path, refs: Path, split: str, kind: str):
+    """CHiME-6 dev or eval: array U06, channel 1, one recording per session.
+
+    kind "track2": the forced-alignment reference of the CHiME-6 Track 2 baseline
+    (refs/<split>_rttm, per speaker) and its UEM (refs/uem_file, the U06 rows);
+    kind "u06ann": the annotation (transcription JSON utterance times, the union
+    of the speakers, as chime6_<split>_v1) over each whole recording.
+    """
+    fa = collections.defaultdict(list)
+    for line in (refs / f"{split}_rttm").read_text().splitlines():
+        p = line.split()
+        if p and p[0] == "SPEAKER":
+            s = float(p[3])
+            fa[p[1].split("_")[0]].append((s, s + float(p[4]), p[7]))
+    uem = {}
+    for line in (refs / "uem_file").read_text().splitlines():
+        p = line.split()
+        if p and p[0].endswith("_U06"):
+            uem[p[0].split("_")[0]] = (float(p[2]), float(p[3]))
+    for session in sorted(fa):
+        wav = sorted(root.glob(f"**/audio/{split}/{session}_U06.CH1.wav"))
+        if not wav:
+            raise FileNotFoundError(f"{session}_U06.CH1.wav under {root}")
+        x, rate = soundfile.read(str(wav[0]), dtype="float32")
+        x = to_mono(x, rate)
+        rid = f"chime6_{split}_{session}_U06"
+        if kind == "track2":
+            yield rid, x, fa[session], [uem[session]]
+        else:
+            js = sorted(root.glob(f"**/transcriptions/{split}/{session}.json"))
+            utts = json.loads(js[0].read_text(encoding="utf-8"))
+            segs = [(hms(u["start_time"]), hms(u["end_time"])) for u in utts]
+            yield rid, x, segs, None
 
 
 def to_mono(x, rate, channel=0):
@@ -200,6 +267,23 @@ def aishell5(root: Path):
 
 
 REFERENCES = {
+    "chime6_dev_track2": """CHiME-6 dev (S02, S09), array U06 channel 1 (raw; the Track
+2 baseline scores the WPE + BeamformIt output of U06). Reference: the forced-alignment
+RTTM of the CHiME-6 Track 2 baseline (github.com/nateanl/chime6_rttm, MIT), per
+speaker; scoring region: its UEM (kaldi egs/chime6/s5_track2/local/uem_file, U06
+rows). CHiME-6 licence: evaluation only.""",
+    "chime6_eval_track2": """CHiME-6 eval (S01, S21), array U06 channel 1 (raw; the
+Track 2 baseline scores the WPE + BeamformIt output of U06). Reference: the
+forced-alignment RTTM of the CHiME-6 Track 2 baseline (github.com/nateanl/chime6_rttm,
+MIT), per
+speaker; scoring region: its UEM (kaldi egs/chime6/s5_track2/local/uem_file, U06
+rows). CHiME-6 licence: evaluation only.""",
+    "chime6_dev_u06ann": """CHiME-6 dev (S02, S09), array U06 channel 1. Reference: the
+transcription JSON utterance times, union of the speakers (as chime6_dev_v1), each
+whole recording.""",
+    "chime6_eval_u06ann": """CHiME-6 eval (S01, S21), array U06 channel 1. Reference:
+the transcription JSON utterance times, union of the speakers (as chime6_eval_v1), each
+whole recording.""",
     "libricss_eval": """LibriCSS eval (sessions 1-9 of 0L, 0S, OV10-OV40), channel 0 of
 the recordings in libricss/ARCHIVES/for_release.zip. Licence: CC BY 4.0 (LibriSpeech);
 LibriCSS tools MIT. Reference: MFA word alignments (Lugosch, CC BY 4.0) of the played
@@ -220,17 +304,31 @@ def main():
     ap.add_argument("--out", default=Path("dump/raw"), type=Path)
     ap.add_argument("--mfa", type=Path, default=None)
     ap.add_argument("--bridge", type=float, default=0.2)
+    ap.add_argument("--chime6", type=Path, default=None, help="CHiME-6 root (db.sh)")
+    ap.add_argument(
+        "--chime6_refs",
+        type=Path,
+        default=None,
+        help="dev_rttm, eval_rttm, uem_file (local/v2/downloads/chime6_track2.tsv)",
+    )
     a = ap.parse_args()
     out = a.out / a.set
     if (out / ".done").exists():
         print(f"{out} is done; left as is")
         return
-    recs = (
-        libricss(a.root, a.mfa, a.bridge)
-        if a.set == "libricss_eval"
-        else aishell5(a.root)
-    )
-    write_set(out, recs, REFERENCES[a.set])
+    if a.set.startswith("chime6_"):
+        _, split, kind = a.set.split("_")
+        items = list(chime6(a.chime6, a.chime6_refs, split, kind))
+        uem = {r: u for r, _, _, u in items if u}
+        recs = [(r, x, segs) for r, x, segs, _ in items]
+        write_set(out, recs, REFERENCES[a.set], uem or None)
+    else:
+        recs = (
+            libricss(a.root, a.mfa, a.bridge)
+            if a.set == "libricss_eval"
+            else aishell5(a.root)
+        )
+        write_set(out, recs, REFERENCES[a.set])
     (out / ".done").touch()
 
 

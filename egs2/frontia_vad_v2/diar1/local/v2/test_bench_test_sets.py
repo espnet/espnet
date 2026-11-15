@@ -75,3 +75,16 @@ def test_write_set(tmp_path):
     ]
     assert (tmp_path / "s" / "utt2num_samples").read_text() == f"r1 {3 * b.FS}\n"
     assert (tmp_path / "s" / "wav.scp").read_text().startswith("r1 ")
+
+
+def test_write_set_per_speaker_with_uem(tmp_path):
+    pytest.importorskip("espnet2.fileio.omniio_audio")
+    x = np.zeros(4 * b.FS, dtype=np.float32)
+    segs = [(0.5, 1.0, "P1"), (0.8, 1.5, "P2"), (0.9, 1.2, "P1"), (2.0, 9.0, "P2")]
+    b.write_set(tmp_path / "s", [("r1", x, segs)], "ref", {"r1": [(0.4, 12000.0)]})
+    assert (tmp_path / "s" / "rttm").read_text().splitlines() == [
+        "SPEAKER r1 1 0.500 0.700 <NA> <NA> P1 <NA> <NA>",
+        "SPEAKER r1 1 0.800 0.700 <NA> <NA> P2 <NA> <NA>",
+        "SPEAKER r1 1 2.000 2.000 <NA> <NA> P2 <NA> <NA>",
+    ]
+    assert (tmp_path / "s" / "uem").read_text() == "r1 1 0.400 4.000\n"

@@ -28,7 +28,8 @@
 #      corpus reports (local/v2/corpus_report.py)
 #   6  standard VAD benchmarks as test sets dump/raw/<set>, read from their archives
 #      (local/v2/bench_test_sets.py, --bench_sets): libricss_eval, aishell5_eval
-#      (AISHELL-5 is CC BY-SA: evaluation only)
+#      (AISHELL-5 is CC BY-SA: evaluation only); chime6_{dev,eval}_track2 (CHiME-6
+#      U06 with the Track 2 SAD reference and UEM) and chime6_{dev,eval}_u06ann
 # Each stage skips the corpora it has finished (.done / .aligned markers), so a
 # stage can be rerun, or run for some corpora at a time (--corpora).
 #
@@ -257,13 +258,18 @@ fi
 if [ ${stage} -le 6 ] && [ ${stop_stage} -ge 6 ]; then
     log "Stage 6: benchmark test sets: ${bench_sets}"
     mkdir -p exp/bench_test_sets/log
+    if [[ " ${bench_sets} " == *" chime6_"* ]]; then
+        # the CHiME-6 Track 2 SAD references (local/v2/downloads/chime6_track2.tsv)
+        python3 ${v2}/download.py --root "${VAD_CORPORA}" --corpora chime6_track2 --jobs 1
+    fi
     printf '%s\n' ${bench_sets} > exp/bench_test_sets/sets.txt
     n=$(wc -l < exp/bench_test_sets/sets.txt)
     # shellcheck disable=SC2016
     ${train_cmd} JOB=1:${n} exp/bench_test_sets/log/bench.JOB.log \
         python3 ${v2}/bench_test_sets.py --set '$(sed -n JOBp exp/bench_test_sets/sets.txt)' \
             --root "${VAD_CORPORA}" --out dump/raw \
-            --mfa "${VAD_CORPORA}/librispeech_mfa/ARCHIVES/librispeech_alignments.zip"
+            --mfa "${VAD_CORPORA}/librispeech_mfa/ARCHIVES/librispeech_alignments.zip" \
+            --chime6 "${CHIME6:-}" --chime6_refs "${VAD_CORPORA}/chime6_track2"
     for s in ${bench_sets}; do
         [ -f "dump/raw/${s}/.done" ] || { log "${s} failed: see exp/bench_test_sets/log"; exit 1; }
         log "dump/raw/${s}: $(wc -l < "dump/raw/${s}/wav.scp") recordings"

@@ -13,17 +13,18 @@ median-filtered, centred (scipy medfilt, (M-1)/2 future frames) or causal
 segments, frame i covering [offset + (i - 0.5) shift, offset + (i + 0.5)
 shift) with shift 128 and offset 256 samples by default (this recipe's
 512-sample frames every 128 samples, not centred; --shift and --offset in seconds
-for other models). md-eval.pl -c 0 scores them against the set's rttm over each
+for other models). md-eval.pl -c 0 (--collar; --single_speaker_regions adds
+-1) scores them against the set's rttm over each
 whole recording (a UEM from utt2num_samples), or over the regions of --uem
 (DIHARD style; recordings it does not list are scored whole). Writes
-result_th<T>_med<M>_collar0.0, as scripts/utils/score_der.sh names them.
+result_th<T>_med<M>_collar<C>, as scripts/utils/score_der.sh names them.
 Recording ids with dots get underscores for md-eval, which cuts UEM names
 at the first dot.
 
 summarize: for each exp directory, the (threshold, median) with the lowest
 detection error on --tune_set is applied to every set (and each set's own
 best is reported next to it); detection error = (missed + false alarm
-speech) / reference speech. Writes one csv row per exp and set, and prints
+speech) / reference speech (--metric: read_md_eval). Writes one csv row per exp and set, and prints
 the macro average over the sets and the average weighted by speech hours.
 """
 
@@ -124,10 +125,18 @@ def cmd_score(a):
                             f"SPEAKER {md_id(rid)} 1 {start:.3f} {dur:.3f} "
                             "<NA> <NA> speech <NA> <NA>\n"
                         )
-            with (out / f"result_th{thr}_med{med}_collar0.0").open("w") as f:
+            name = f"result_th{thr}_med{med}_collar{a.collar}"
+            with (out / name).open("w") as f:
                 subprocess.run(
-                    [a.md_eval, "-c", "0.0", "-r", str(out / "ref.md-eval.rttm")]
-                    + ["-s", str(hyp), "-u", str(out / "uem.md-eval")],
+                    [
+                        a.md_eval,
+                        "-c",
+                        str(a.collar),
+                        "-r",
+                        str(out / "ref.md-eval.rttm"),
+                    ]
+                    + ["-s", str(hyp), "-u", str(out / "uem.md-eval")]
+                    + (["-1"] if a.single_speaker_regions else []),
                     stdout=f,
                     stderr=subprocess.DEVNULL,
                     check=True,
@@ -135,11 +144,26 @@ def cmd_score(a):
             hyp.unlink()
 
 
-def read_md_eval(path):
+METRICS = {
+    # (missed + false alarm) / denominator, from md-eval's summary lines
+    "speaker": ("SCORED SPEAKER TIME", "MISSED SPEAKER TIME", "FALARM SPEAKER TIME"),
+    "speech": ("SCORED SPEECH", "MISSED SPEECH", "FALARM SPEECH"),
+    "speech_of_time": ("SCORED TIME", "MISSED SPEECH", "FALARM SPEECH"),
+}
+
+
+def read_md_eval(path, metric="speaker"):
+    """(denominator, missed, false alarm) in seconds, or None.
+
+    speaker: over the scored speaker time (one pseudo speaker: the reference
+    speech); speech: over the scored speech (the union of the speakers, also for a
+    reference with several speakers); speech_of_time: over the scored time,
+    speech and non-speech (the CHiME-6 Track 2 SAD numbers).
+    """
     text = Path(path).read_text()
     vals = []
-    for name in ("SCORED SPEAKER TIME", "MISSED SPEAKER TIME", "FALARM SPEAKER TIME"):
-        m = re.search(rf"{name}\s*=\s*([0-9.]+)\s*secs", text)
+    for name in METRICS[metric]:
+        m = re.search(rf"^\s*{name}\s*=\s*([0-9.]+)\s*secs", text, re.M)
         if not m:
             return None
         vals.append(float(m.group(1)))
@@ -162,9 +186,9 @@ def cmd_summarize(a):
         sets = {}
         for sdir in sorted(exp.glob(f"diarized_*/{a.scoring}")):
             res = {}
-            for path in sdir.glob("result_th*_med*_collar0.0"):
+            for path in sdir.glob("result_th*_med*_collar*"):
                 m = RESULT_RE.match(path.name)
-                r = read_md_eval(path)
+                r = read_md_eval(path, a.metric)
                 if m and r:
                     res[(m.group(1), int(m.group(2)))] = r
             if res:
@@ -221,6 +245,12 @@ def main():
     sc.add_argument(
         "--uem", default=None, help="score these regions only (DIHARD all.uem)"
     )
+    sc.add_argument("--collar", type=float, default=0.0, help="md-eval -c")
+    sc.add_argument(
+        "--single_speaker_regions",
+        action="store_true",
+        help="md-eval -1: score only where one reference speaker talks",
+    )
     sc.add_argument("--shift", type=float, default=SHIFT, help="seconds between frames")
     sc.add_argument(
         "--offset", type=float, default=OFFSET, help="centre of frame 0 (seconds)"
@@ -230,6 +260,7 @@ def main():
     su.add_argument("exp_dirs", nargs="+")
     su.add_argument("--tune_set", default="ami_mh_dev")
     su.add_argument("--scoring", default="scoring", help="scoring or scoring_causal")
+    su.add_argument("--metric", choices=sorted(METRICS), default="speaker")
     a = ap.parse_args()
     cmd_score(a) if a.cmd == "score" else cmd_summarize(a)
 
