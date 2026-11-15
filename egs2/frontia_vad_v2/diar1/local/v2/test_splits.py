@@ -14,7 +14,7 @@ sys.path.insert(0, str(HERE))
 
 from prep import Writers  # noqa: E402
 from registry import Adapter, dev_groups, group_hash, split_by_hash  # noqa: E402
-from splits import resolve  # noqa: E402
+from splits import corpus_dirs, resolve  # noqa: E402
 
 SPEC = Adapter("", "meeting", "H", "CC BY 4.0", None)
 
@@ -110,3 +110,11 @@ def test_pack_by_group_gives_one_group_per_pack(tmp_path):
         adapters.PACK_BY_GROUP.discard("toy")
     assert summary["units"] == 5 and len(summary["dev_groups"]) == 1
     assert "dev" in final.values() and "train" in final.values()
+
+
+def test_corpus_dirs_skip_logs_reports_and_queue_dir(tmp_path):
+    # pbs.pl/queue.pl/slurm.pl put the job scripts of <dumpdir>/log tasks in <dumpdir>/q
+    for name in ("ami", "log", "q", "reports", "voices"):
+        (tmp_path / name).mkdir()
+    (tmp_path / "notes.txt").write_text("")
+    assert [p.name for p in corpus_dirs(tmp_path)] == ["ami", "voices"]

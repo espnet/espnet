@@ -198,11 +198,13 @@ fi
 
 if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
     log "Stage 5: combine into ${raw_dir}/{train,dev}, and the corpus reports"
+    # the corpus directories (not log, reports, or q: pbs.pl/queue.pl/slurm.pl
+    # write the job scripts of the ${dumpdir}/log tasks to ${dumpdir}/q)
     corpus_dirs=$(find "${dumpdir}" -mindepth 1 -maxdepth 1 -type d \
-        ! -name log ! -name reports | sort)
+        ! -name log ! -name reports ! -name q | sort)
     if [ -n "${reuse_dumpdir}" ]; then
         for d in $(find "${reuse_dumpdir}" -mindepth 1 -maxdepth 1 -type d \
-                ! -name log ! -name reports | sort); do
+                ! -name log ! -name reports ! -name q | sort); do
             [ -d "${dumpdir}/${d##*/}" ] || corpus_dirs+=" ${d}"
         done
     fi

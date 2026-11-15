@@ -26,7 +26,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 import adapters  # noqa: E402
-from splits import corpus_dumps, manifest_rows, resolve  # noqa: E402
+from splits import corpus_dirs, corpus_dumps, manifest_rows, resolve  # noqa: E402
 
 # corpora whose alignment labels have a known caveat (reported with their settings)
 LABEL_NOTES = {
@@ -147,8 +147,8 @@ def report(corpus: str, root: Path):
 def main():
     root, out = Path(sys.argv[1]), Path(sys.argv[2])
     out.mkdir(parents=True, exist_ok=True)
-    for corpus_dir in sorted(p for p in root.iterdir() if p.is_dir()):
-        if corpus_dir.name in ("log", out.name):
+    for corpus_dir in corpus_dirs(root):
+        if corpus_dir.name == out.name:
             continue
         rep = report(corpus_dir.name, root)
         (out / f"{corpus_dir.name}.json").write_text(

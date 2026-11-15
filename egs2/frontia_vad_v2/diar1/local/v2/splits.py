@@ -18,6 +18,17 @@ from registry import dev_groups
 
 SPLITS = ("train", "dev")
 
+# Directories of a dump directory that are not corpora: the logs, the corpus
+# reports, and q, where pbs.pl, queue.pl and slurm.pl put the job scripts and
+# done markers of the tasks whose logs are in <dumpdir>/log (they move a
+# .../log/q directory up to .../q).
+NOT_CORPORA = ("log", "reports", "q")
+
+
+def corpus_dirs(root: Path) -> List[Path]:
+    """The corpus directories of a dump directory, sorted."""
+    return sorted(p for p in root.iterdir() if p.is_dir() and p.name not in NOT_CORPORA)
+
 
 def corpus_dumps(corpus_dir: Path) -> List[Tuple[str, Path]]:
     """(written split, dump directory) of every dump of a corpus."""

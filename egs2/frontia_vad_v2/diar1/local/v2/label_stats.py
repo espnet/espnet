@@ -18,7 +18,7 @@ import numpy as np
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
-from splits import corpus_dumps, manifest_rows  # noqa: E402
+from splits import corpus_dirs, corpus_dumps, manifest_rows  # noqa: E402
 
 
 def stats(corpus_dir: Path):
@@ -56,11 +56,7 @@ def main():
     ap.add_argument("--new", type=Path, required=True)
     ap.add_argument("corpora", nargs="*")
     a = ap.parse_args()
-    corpora = a.corpora or sorted(
-        d.name
-        for d in a.new.iterdir()
-        if d.is_dir() and d.name not in ("log", "reports")
-    )
+    corpora = a.corpora or [d.name for d in corpus_dirs(a.new)]
     print(
         "corpus\tversion\trecordings\thours\tspeech_h\tspeech_%\t"
         "pauses/speech_h\tpause_median_s\tpauses<0.5s_%\tpauses>2s_%"
