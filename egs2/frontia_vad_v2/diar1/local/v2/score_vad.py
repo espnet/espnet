@@ -129,6 +129,11 @@ def err(r):
     return 100 * (miss + fa) / scored
 
 
+def name_of(exp: Path) -> str:
+    """The model's name: the exp directory, or its parent for <name>/diar_<tag>."""
+    return exp.parent.name if exp.name.startswith("diar_") else exp.name
+
+
 def cmd_summarize(a):
     rows = []
     for exp in map(Path, a.exp_dirs):
@@ -154,7 +159,7 @@ def cmd_summarize(a):
             devs.append((err(res[setting]), scored))
             rows.append(
                 dict(
-                    model=exp.name,
+                    model=name_of(exp),
                     set=name,
                     speech_h=round(scored / 3600, 2),
                     deter=round(err(res[setting]), 2),
@@ -170,7 +175,7 @@ def cmd_summarize(a):
         macro = sum(d for d, _ in devs) / len(devs)
         weighted = sum(d * h for d, h in devs) / sum(h for _, h in devs)
         print(
-            f"{exp.name}: {len(devs)} sets, threshold {setting[0]}, median "
+            f"{name_of(exp)}: {len(devs)} sets, threshold {setting[0]}, median "
             f"{setting[1]} ({a.scoring}): macro DetER {macro:.2f}, "
             f"hour-weighted {weighted:.2f}"
         )
