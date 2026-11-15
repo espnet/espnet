@@ -7,6 +7,9 @@
     python3 local/v2/vad_infer.py run exp/eval_vad/plan/task.<k>.tsv \
         [--batch_seconds 14400]
 
+A set's wav.scp holds Omni-IO entries (the dumps of this recipe) or plain audio files
+(Kaldi style); the first channel is used, resampled to 16 kHz if needed.
+
 plan: every (model, look-ahead, set, recording) is a work item. The items of
 each (model, look-ahead) are cut into chunks of about equal audio (the
 recordings longest first, round robin), and the chunks go, longest first, to
@@ -28,6 +31,7 @@ peak GPU memory of every group.
 import argparse
 import collections
 import logging
+import re
 import sys
 import time
 from pathlib import Path
@@ -92,12 +96,53 @@ def cmd_plan(a):
     )
 
 
+OMNIIO_ENTRY = re.compile(r"^.+:\d+:\d+$")
+
+
+class SetReader:
+    """Audio of one set's wav.scp, the first channel at `fs`.
+
+    The entries are Omni-IO entries (<bin>:<start>:<end>) or plain audio files
+    (Kaldi style, e.g. other corpora's test sets), read with soundfile and
+    resampled when the file has another rate.
+    """
+
+    def __init__(self, scp: str, fs: int = 16000):
+        self.table = read_table(Path(scp))
+        self.fs = fs
+        self.omniio = all(OMNIIO_ENTRY.match(v.strip()) for v in self.table.values())
+        if self.omniio:
+            from espnet2.fileio.omniio_audio import OmniIOAudioScpReader
+
+            self.reader = OmniIOAudioScpReader(scp)
+
+    def __getitem__(self, rid: str):
+        import numpy as np
+
+        if self.omniio:
+            rate, x = self.reader[rid]
+        else:
+            import soundfile
+
+            x, rate = soundfile.read(self.table[rid].strip(), dtype="float32")
+        x = np.asarray(x, dtype=np.float32)
+        if x.ndim == 2:
+            x = x[:, 0]
+        if rate != self.fs:
+            from math import gcd
+
+            from scipy.signal import resample_poly
+
+            g = gcd(int(rate), self.fs)
+            x = resample_poly(x, self.fs // g, int(rate) // g).astype(np.float32)
+        return self.fs, x
+
+
 def cmd_run(a):
     import numpy as np
     import torch
 
     from espnet2.bin.diar_inference import DiarizeSpeech
-    from espnet2.fileio.omniio_audio import OmniIOAudioScpReader
 
     logging.basicConfig(
         level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s"
@@ -136,7 +181,7 @@ def cmd_run(a):
             wavs = []
             for sdir, rid, n, od in batch:
                 if sdir not in readers:
-                    readers[sdir] = OmniIOAudioScpReader(f"{sdir}/wav.scp")
+                    readers[sdir] = SetReader(f"{sdir}/wav.scp")
                 rate, x = readers[sdir][rid]
                 wavs.append(np.asarray(x, dtype=np.float32))
             lengths = [len(w) for w in wavs]

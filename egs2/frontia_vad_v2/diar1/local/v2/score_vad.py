@@ -13,7 +13,8 @@ median-filtered, centred (scipy medfilt, (M-1)/2 future frames) or causal
 segments, frame i covering [offset + (i - 0.5) shift, offset + (i + 0.5)
 shift) with shift 128 and offset 256 samples (the model's 512-sample frames
 every 128 samples, not centred). md-eval.pl -c 0 scores them against the
-set's rttm over each whole recording (a UEM from utt2num_samples). Writes
+set's rttm over each whole recording (a UEM from utt2num_samples), or over the
+regions of --uem (DIHARD style; recordings it does not list are scored whole). Writes
 result_th<T>_med<M>_collar0.0, as scripts/utils/score_der.sh names them.
 Recording ids with dots get underscores for md-eval, which cuts UEM names
 at the first dot.
@@ -26,6 +27,7 @@ the macro average over the sets and the average weighted by speech hours.
 """
 
 import argparse
+import collections
 import csv
 import re
 import subprocess
@@ -63,6 +65,25 @@ def md_id(rid):
     return rid.replace(".", "_")
 
 
+def write_uem(path, rids, num_samples, uem=None):
+    """The md-eval UEM: each recording whole, or the regions of a given UEM file.
+
+    uem: lines "<recording> <channel> <start s> <end s>" (the DIHARD all.uem); only
+    its regions are scored (md-eval ignores reference and system speech outside
+    them). A recording it does not list is scored whole.
+    """
+    regions = collections.defaultdict(list)
+    if uem:
+        for line in open(uem):
+            p = line.split()
+            if len(p) >= 4 and p[0] in rids:
+                regions[p[0]].append((float(p[2]), float(p[3])))
+    with open(path, "w") as f:
+        for rid in sorted(rids):
+            for s, e in regions.get(rid) or [(0.0, num_samples[rid] / FS)]:
+                f.write(f"{md_id(rid)} 1 {s:.6f} {e:.6f}\n")
+
+
 def cmd_score(a):
     inf, data, out = Path(a.inference_dir), Path(a.data_dir), Path(a.out_dir)
     if any(m % 2 == 0 for m in a.medians):
@@ -89,9 +110,7 @@ def cmd_score(a):
         raise SystemExit(
             f"{len(missing)} reference recordings have no output: {missing[:3]}"
         )
-    with (out / "uem.md-eval").open("w") as f:
-        for rid in sorted(probs):
-            f.write(f"{md_id(rid)} 1 0 {num_samples[rid] / FS:.6f}\n")
+    write_uem(out / "uem.md-eval", probs, num_samples, a.uem)
     for thr in a.thresholds:
         for med in a.medians:
             hyp = out / f"hyp_{thr}_{med}.rttm"
@@ -196,6 +215,9 @@ def main():
     sc.add_argument("--thresholds", nargs="+", required=True)
     sc.add_argument("--medians", nargs="+", type=int, required=True)
     sc.add_argument("--median_mode", choices=["centred", "causal"], default="centred")
+    sc.add_argument(
+        "--uem", default=None, help="score these regions only (DIHARD all.uem)"
+    )
     su = sub.add_parser("summarize")
     su.add_argument("out_csv")
     su.add_argument("exp_dirs", nargs="+")
