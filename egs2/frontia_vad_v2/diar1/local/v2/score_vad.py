@@ -11,10 +11,11 @@ speech probability (diarize.scp, one column) above the threshold are
 median-filtered, centred (scipy medfilt, (M-1)/2 future frames) or causal
 (the past M frames, zeros before the start), and become one-speaker RTTM
 segments, frame i covering [offset + (i - 0.5) shift, offset + (i + 0.5)
-shift) with shift 128 and offset 256 samples (the model's 512-sample frames
-every 128 samples, not centred). md-eval.pl -c 0 scores them against the
-set's rttm over each whole recording (a UEM from utt2num_samples), or over the
-regions of --uem (DIHARD style; recordings it does not list are scored whole). Writes
+shift) with shift 128 and offset 256 samples by default (this recipe's
+512-sample frames every 128 samples, not centred; --shift and --offset in seconds
+for other models). md-eval.pl -c 0 scores them against the set's rttm over each
+whole recording (a UEM from utt2num_samples), or over the regions of --uem
+(DIHARD style; recordings it does not list are scored whole). Writes
 result_th<T>_med<M>_collar0.0, as scripts/utils/score_der.sh names them.
 Recording ids with dots get underscores for md-eval, which cuts UEM names
 at the first dot.
@@ -116,7 +117,9 @@ def cmd_score(a):
             hyp = out / f"hyp_{thr}_{med}.rttm"
             with hyp.open("w") as f:
                 for rid, prob in sorted(probs.items()):
-                    for start, dur in segments(prob, float(thr), med, a.median_mode):
+                    for start, dur in segments(
+                        prob, float(thr), med, a.median_mode, a.shift, a.offset
+                    ):
                         f.write(
                             f"SPEAKER {md_id(rid)} 1 {start:.3f} {dur:.3f} "
                             "<NA> <NA> speech <NA> <NA>\n"
@@ -217,6 +220,10 @@ def main():
     sc.add_argument("--median_mode", choices=["centred", "causal"], default="centred")
     sc.add_argument(
         "--uem", default=None, help="score these regions only (DIHARD all.uem)"
+    )
+    sc.add_argument("--shift", type=float, default=SHIFT, help="seconds between frames")
+    sc.add_argument(
+        "--offset", type=float, default=OFFSET, help="centre of frame 0 (seconds)"
     )
     su = sub.add_parser("summarize")
     su.add_argument("out_csv")

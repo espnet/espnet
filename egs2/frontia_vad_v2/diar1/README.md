@@ -248,6 +248,21 @@ unpacking:
 RealVAD (Zenodo 3928151) ships labels and acoustic features only; its audio is a
 video that is not part of the release, so it is not a test set here.
 
+### External VAD baselines
+
+`local/baselines/eval.sh` runs external VAD models on the test sets with this recipe's
+scorer (md-eval, collar 0, whole recordings, the union of all speakers): Silero VAD
+(silero-vad 6.2.3), WebRTC VAD (aggressiveness 0) and NVIDIA Frame VAD Multilingual
+MarbleNet v2.0 (pinned revision). Each model's threshold and centred median (in its own
+frames: Silero 32 ms, WebRTC 30 ms, MarbleNet 20 ms) are tuned on AMI Mix-Headset dev
+and then fixed for every set. Their packages are in `local/baselines/requirements.txt`
+(`local/baselines/install.sh <venv>`).
+
+```sh
+local/baselines/eval.sh --python <venv>/bin/python --models "silero webrtc0 marblenet" \
+    --test_sets "ami_mh_dev_v1 libricss_eval aishell5_eval"
+```
+
 ## Running
 
 Set `VAD_CORPORA` (and the v1 corpus paths) in `db.sh`. The parallel work of every
