@@ -118,3 +118,25 @@ def test_corpus_dirs_skip_logs_reports_and_queue_dir(tmp_path):
         (tmp_path / name).mkdir()
     (tmp_path / "notes.txt").write_text("")
     assert [p.name for p in corpus_dirs(tmp_path)] == ["ami", "voices"]
+
+
+def test_combine_dev_exclude_keeps_train(tmp_path):
+    w = Writers(tmp_path, SPEC, "toy", 16000, 0, 1, None)
+    w["train"].add("a", np.zeros(16000, dtype=np.float32), 16000)
+    w["dev"].add("b", np.zeros(16000, dtype=np.float32), 16000)
+    w.close()
+    for out, opt in (("all", []), ("nodev", ["--dev_exclude", "other,toy"])):
+        subprocess.run(
+            [sys.executable, str(HERE / "combine.py"), str(tmp_path / out)]
+            + [str(tmp_path / "toy")]
+            + opt,
+            check=True,
+            capture_output=True,
+        )
+    keys = {
+        (out, split): (tmp_path / out / split / "wav.scp").read_text().split()[::2]
+        for out in ("all", "nodev")
+        for split in ("train", "dev")
+    }
+    assert keys[("all", "train")] == keys[("nodev", "train")] == ["toy-a"]
+    assert keys[("all", "dev")] == ["toy-b"] and keys[("nodev", "dev")] == []

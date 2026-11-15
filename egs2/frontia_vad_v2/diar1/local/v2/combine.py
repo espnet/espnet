@@ -4,7 +4,9 @@
     python3 local/v2/combine.py dump/raw dump/v2/ami dump/v2/fsd50k ...
 
 Each input is a corpus directory written by prep.py or from_kaldi.py
-(<corpus>/<split>[/shard<k>]). The final split of every recording comes from
+(<corpus>/<split>[/shard<k>]). --dev_exclude leaves the dev recordings of some
+corpora out (their train recordings stay in train), so that sets with and
+without a corpus can share one dev set. The final split of every recording comes from
 splits.resolve(): official splits are kept, and corpora split by group get
 their dev groups there. Writes <out>/train and <out>/dev: wav.scp,
 utt2num_samples, utt2category, espnet_rttm, manifest.tsv (sorted; the Omni-IO
@@ -30,11 +32,20 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     parser.add_argument("out", type=Path)
     parser.add_argument("corpora", type=Path, nargs="+")
+    parser.add_argument(
+        "--dev_exclude",
+        default="",
+        help="comma separated corpora whose dev recordings are left out (train kept)",
+    )
     args = parser.parse_args()
+    dev_exclude = {c for c in args.dev_exclude.split(",") if c}
     lines = {s: collections.defaultdict(list) for s in SPLITS}
     no_dev = []
     for corpus_dir in args.corpora:
         final, _ = resolve(corpus_dir)
+        if corpus_dir.name in dev_exclude:
+            # the train/dev split stays; the dev recordings go to neither set
+            final = {k: "drop" if v == "dev" else v for k, v in final.items()}
         if "dev" not in final.values():
             no_dev.append(corpus_dir.name)
         for _, dump in corpus_dumps(corpus_dir):

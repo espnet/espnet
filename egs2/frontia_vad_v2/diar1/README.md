@@ -216,7 +216,12 @@ CMD_BACKEND=pbs ./run.sh --stage 4 --stop_stage 4 --dumpdir dump_v2_1_nocv \
     --diar_tag train_dualmode_v2_1nocv_lr1e-3
 ```
 
-A separate `--expdir` keeps the statistics of each version (`<expdir>/diar_stats_16k`).
+`conf/data_v2_1cv.conf` combines the v2.1 train set with Common Voice and the dev set
+without it into `dump_v2_1cv/raw` (`--dev_exclude_corpora`), so that the runs with and
+without Common Voice select their checkpoints on the same dev set; it trains with
+`--dumpdir dump_v2_1cv --expdir exp_v2_1cv` and
+`conf/tuning/train_dualmode_v2_1cv_lr1e-3.yaml`. A separate `--expdir` keeps the
+statistics of each version (`<expdir>/diar_stats_16k`).
 
 ## Running
 

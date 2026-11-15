@@ -78,6 +78,8 @@ reuse_dumpdir=""      # stage 5: also combine the corpus dumps of this directory
                       # in ${dumpdir} (a label version that redoes only some corpora)
 raw_dir=dump/raw      # stage 5: the combined train/dev sets (diar.sh --dumpdir is its parent)
 exclude_corpora=""    # stage 5: comma separated corpora left out of ${raw_dir} (their dumps stay)
+dev_exclude_corpora=""  # stage 5: comma separated corpora whose dev recordings are left out
+                        # of ${raw_dir}/dev (their train recordings stay in train)
 
 log "$0 $*"
 . utils/parse_options.sh
@@ -226,7 +228,7 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
     # the final train/dev split of each recording: official splits kept, the dev
     # groups of the other corpora chosen over all their groups (local/v2/splits.py)
     # shellcheck disable=SC2086
-    python3 ${v2}/combine.py "${raw_dir}" ${corpus_dirs}
+    python3 ${v2}/combine.py "${raw_dir}" ${corpus_dirs} --dev_exclude "${dev_exclude_corpora}"
     for split in train dev; do
         # diar.sh skips stage 2 for a set marked done in <raw_dir>/org/<set>
         mkdir -p "${raw_dir}/org/${split}"
