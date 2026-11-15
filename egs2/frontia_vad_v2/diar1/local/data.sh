@@ -77,6 +77,7 @@ dumpdir=dump/v2
 reuse_dumpdir=""      # stage 5: also combine the corpus dumps of this directory that are not
                       # in ${dumpdir} (a label version that redoes only some corpora)
 raw_dir=dump/raw      # stage 5: the combined train/dev sets (diar.sh --dumpdir is its parent)
+exclude_corpora=""    # stage 5: comma separated corpora left out of ${raw_dir} (their dumps stay)
 
 log "$0 $*"
 . utils/parse_options.sh
@@ -207,6 +208,14 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
                 ! -name log ! -name reports ! -name q | sort); do
             [ -d "${dumpdir}/${d##*/}" ] || corpus_dirs+=" ${d}"
         done
+    fi
+    if [ -n "${exclude_corpora}" ]; then
+        kept_dirs=""
+        for d in ${corpus_dirs}; do
+            [[ ",${exclude_corpora}," == *",${d##*/},"* ]] || kept_dirs+=" ${d}"
+        done
+        log "left out of ${raw_dir}: ${exclude_corpora}"
+        corpus_dirs=${kept_dirs}
     fi
     # a transcribed dump must have been aligned
     for d in ${corpus_dirs}; do

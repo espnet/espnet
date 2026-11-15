@@ -198,6 +198,26 @@ Downloads that need an account or an agreement are not in `local/v2/downloads/`:
   counts of every exclusion; the reports have no timestamps or paths, so two runs can
   be compared with `diff -r`.
 
+### Label versions
+
+`conf/data_v2_1.conf` (labels v2.1: clip mode, token timing, pads 0/300 ms, min_pause
+0.5 s) prepares and aligns the A corpora again into `dump/v2_1` and combines them, with
+the other corpora of `dump/v2`, into `dump_v2_1/raw`. `conf/data_v2_1_nocv.conf` combines
+the same dumps without Common Voice into `dump_v2_1_nocv/raw` (stage 5 only,
+`--exclude_corpora`), so that a model trained on it differs from v2 in the labels only:
+
+```sh
+local/data.sh --config conf/data_v2_1_nocv.conf --stage 5 --stop_stage 5
+CMD_BACKEND=pbs ./run.sh --stage 4 --stop_stage 4 --dumpdir dump_v2_1_nocv \
+    --expdir exp_v2_1nocv --nj 512 --split_by_length true \
+    --stats_args "--batch_size 1 --num_workers 28"
+./run.sh --stage 5 --stop_stage 5 --ngpu 4 --dumpdir dump_v2_1_nocv --expdir exp_v2_1nocv \
+    --diar_config conf/tuning/train_dualmode_v2_1nocv_lr1e-3.yaml \
+    --diar_tag train_dualmode_v2_1nocv_lr1e-3
+```
+
+A separate `--expdir` keeps the statistics of each version (`<expdir>/diar_stats_16k`).
+
 ## Running
 
 Set `VAD_CORPORA` (and the v1 corpus paths) in `db.sh`. The parallel work of every
