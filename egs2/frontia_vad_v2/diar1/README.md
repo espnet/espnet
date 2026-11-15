@@ -231,6 +231,8 @@ packs joined groups (`--pack_by_group`, stages 3 and 4 again for those corpora) 
 dev by hours (`--dev_pick hours`: about 2 % of each corpus's hours, at most 3 %, a unit
 larger than that kept in train). A group's last pack can be shorter than the 10 s training
 chunks, and the chunk iterator skips such recordings.
+It trains with `--dumpdir dump_v2_2 --expdir exp_v2_2` and
+`conf/tuning/train_dualmode_v2_2_lr1e-3.yaml`.
 
 ## Running
 
