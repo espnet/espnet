@@ -1,9 +1,9 @@
 # corpus_dir	relative_path	url	size_bytes	checksum	unpack
-motus	ARCHIVES/zenodo_record_4923187.json	https://zenodo.org/api/records/4923187			
-motus	ARCHIVES/sh_rirs.zip	https://zenodo.org/records/4923187/files/sh_rirs.zip?download=1	16121312508	md5:b38d29a9b2ebfc22c49812d267b55a0c	
-motus	ARCHIVES/code.zip	https://zenodo.org/records/4923187/files/code.zip?download=1	7731	md5:6a1613e0c41ede44eba119d6edf578cd	
-motus	ARCHIVES/best_of.zip	https://zenodo.org/records/4923187/files/best_of.zip?download=1	461467032	md5:2631fb020ac959754f601b7db2c06b5c	
-motus	ARCHIVES/3d_models.zip	https://zenodo.org/records/4923187/files/3d_models.zip?download=1	136003155	md5:eb3df759068ad1ef38b4c155d53b0676	
-motus	ARCHIVES/metadata.zip	https://zenodo.org/records/4923187/files/metadata.zip?download=1	71496267	md5:9d0bee4263664c1c12fdf1f05d908428	
-motus	ARCHIVES/raw_rirs.zip	https://zenodo.org/records/4923187/files/raw_rirs.zip?download=1	22190015793	md5:41f666a6e454e95d926712f1db9018cb	
-motus	ARCHIVES/sph_img.zip	https://zenodo.org/records/4923187/files/sph_img.zip?download=1	24668741477	md5:2d7d5145600668be3b1cf648ed91016c	
+motus	ARCHIVES/zenodo_record_4923187.json	https://zenodo.org/api/records/4923187
+motus	ARCHIVES/sh_rirs.zip	https://zenodo.org/records/4923187/files/sh_rirs.zip?download=1	16121312508	md5:b38d29a9b2ebfc22c49812d267b55a0c
+motus	ARCHIVES/code.zip	https://zenodo.org/records/4923187/files/code.zip?download=1	7731	md5:6a1613e0c41ede44eba119d6edf578cd
+motus	ARCHIVES/best_of.zip	https://zenodo.org/records/4923187/files/best_of.zip?download=1	461467032	md5:2631fb020ac959754f601b7db2c06b5c
+motus	ARCHIVES/3d_models.zip	https://zenodo.org/records/4923187/files/3d_models.zip?download=1	136003155	md5:eb3df759068ad1ef38b4c155d53b0676
+motus	ARCHIVES/metadata.zip	https://zenodo.org/records/4923187/files/metadata.zip?download=1	71496267	md5:9d0bee4263664c1c12fdf1f05d908428
+motus	ARCHIVES/raw_rirs.zip	https://zenodo.org/records/4923187/files/raw_rirs.zip?download=1	22190015793	md5:41f666a6e454e95d926712f1db9018cb
+motus	ARCHIVES/sph_img.zip	https://zenodo.org/records/4923187/files/sph_img.zip?download=1	24668741477	md5:2d7d5145600668be3b1cf648ed91016c
