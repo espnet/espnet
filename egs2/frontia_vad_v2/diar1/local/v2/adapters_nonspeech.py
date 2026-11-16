@@ -642,8 +642,9 @@ def musan_licence_table(lic_file: Path, stems: Iterable[str]) -> Dict[str, tuple
             per[i] = (licence, url) if licence else None
     if per:
         return {s: per.get(s) or (default if s in per else ("", "")) for s in stems}
-    urls = re.findall(r"https?://\S+", text)
-    return {s: (text.strip(), urls[0] if urls else "") for s in stems}
+    urls = re.findall(r"https?://[^\s)]+", text)
+    # one line: the whole LICENSE text, its whitespace collapsed (it goes into TSV fields)
+    return {s: (" ".join(text.split()), urls[0] if urls else "") for s in stems}
 
 
 def _looks_like_licence(line: str) -> bool:
