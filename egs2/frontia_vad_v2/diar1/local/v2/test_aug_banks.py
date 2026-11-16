@@ -126,3 +126,35 @@ def test_write_lists_filters_per_file_and_records_urls(tmp_path):
         ("music", "fsd50k_music", "fsd_00000.wav"),
         ("music", "slakh2100", "slakh_00000.wav"),
     ]
+
+
+def test_a_pack_left_out_once_can_be_kept_again(tmp_path):
+    """packs.tsv keeps every pack: a relist with another filter can bring one back."""
+    from types import SimpleNamespace
+
+    import aug_banks
+    from aug_banks import read_packs, write_lists
+
+    root = tmp_path / "corpora"
+    (root / "musan" / "music").mkdir(parents=True)
+    (root / "musan" / "noise").mkdir(parents=True)
+    (root / "chime3_background").mkdir()
+    out = tmp_path / "banks"
+    out.mkdir()
+    pack = out / "music" / "openmic2018_00000.wav"
+    badge = "http://i.creativecommons.org/p/zero/1.0/88x31.png"
+    packs = [("music", "openmic2018", pack, [["k1", 0.0, 10.0, badge, "m1"]])]
+    a = SimpleNamespace(
+        root=root, out=out, music_scp=tmp_path / "m.scp", noise_scp=tmp_path / "n.scp"
+    )
+    real = aug_banks.clip_ok
+    try:
+        aug_banks.clip_ok = lambda source, licence: False  # a filter that drops it
+        write_lists(a, packs)
+    finally:
+        aug_banks.clip_ok = real
+    assert a.music_scp.read_text() == ""
+    again = read_packs(out / "packs.tsv")
+    assert [p.name for _, _, p, _ in again] == ["openmic2018_00000.wav"]
+    write_lists(a, again)  # the current filter: the CC0 badge passes
+    assert a.music_scp.read_text().split()[0] == "openmic2018_00000"

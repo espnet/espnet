@@ -32,8 +32,12 @@ LICENSE; FSD50K and OpenMIC-2018: the clip's own; Slakh2100: CC BY 4.0, Zenodo
 ND, NC, Sampling+ and unknown are left out, and a pack with one such clip is left
 out whole.
 
---relist rebuilds the lists and licences.tsv from the packs of an earlier run
-(its licences.tsv) with the current filter, without reading the archives.
+<out>/packs.tsv lists every pack on disk and its clips (bank, file, start, end,
+corpus, clip, licence, source), whether the filter keeps it or not. --relist
+rebuilds the lists and licences.tsv from it (or from --relist_from, e.g. the
+licences.tsv of a run that had no packs.tsv) with the current filter, without
+reading the archives: a pack left out once is still there to be kept again when
+the filter changes.
 """
 
 import argparse
@@ -177,7 +181,13 @@ def main():
         "--relist",
         action="store_true",
         help="read no archive: rebuild the lists and licences.tsv from the packs "
-        "in <out> and their old licences.tsv, with the current licence filter",
+        "of <out>/packs.tsv (or --relist_from), with the current licence filter",
+    )
+    p.add_argument(
+        "--relist_from",
+        type=Path,
+        help="with --relist: the manifest of the packs (packs.tsv or licences.tsv "
+        "format) instead of <out>/packs.tsv",
     )
     a = p.parse_args()
     logging.basicConfig(
@@ -226,7 +236,11 @@ def main():
         (pw.bank, pw.source, path, clips) for pw in packs for path, clips in pw.files
     ]
     if a.relist:
-        pack_files = read_packs(a.out / "licences.tsv")
+        src = a.relist_from or a.out / "packs.tsv"
+        if not src.exists():
+            raise SystemExit(f"--relist: no {src} (give --relist_from)")
+        pack_files = read_packs(src)
+        logging.info("relist: %d packs from %s", len(pack_files), src)
     write_lists(a, pack_files)
 
 
@@ -321,12 +335,22 @@ def write_lists(a, pack_files):
             for key, path in sorted(lists[bank]):
                 f.write(f"{key} {path}\n")
         logging.info("%s: %d entries", scp, len(lists[bank]))
+    head = "bank\tfile\tstart_s\tend_s\tcorpus\tclip\tlicence\turl\tsource\n"
     tmp = a.out / "licences.tsv.tmp"
     with tmp.open("w") as f:
-        f.write("bank\tfile\tstart_s\tend_s\tcorpus\tclip\tlicence\turl\tsource\n")
+        f.write(head)
         for r in rows:
             f.write("\t".join(str(v) for v in r) + "\n")
     tmp.replace(a.out / "licences.tsv")
+    # every pack on disk, kept or not (what --relist reads)
+    tmp = a.out / "packs.tsv.tmp"
+    with tmp.open("w") as f:
+        f.write(head)
+        for bank, source, path, clips in pack_files:
+            for clip, s, e, licence, member in clips:
+                row = [bank, path.resolve(), f"{s:.3f}", f"{e:.3f}", source, clip]
+                f.write("\t".join(str(v) for v in row + [licence, "", member]) + "\n")
+    tmp.replace(a.out / "packs.tsv")
 
 
 if __name__ == "__main__":
