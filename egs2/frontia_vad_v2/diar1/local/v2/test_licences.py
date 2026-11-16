@@ -114,9 +114,8 @@ def test_musan_whole_directory_licence(tmp_path):
     )
     ok = _musan_licences(lic, ["noise-free-sound-0001"])
     assert ok == {"noise-free-sound-0001": True}
-    assert musan_licence_table(lic, ["a"])["a"][1].startswith(
-        "https://www.freesound.org"
-    )
+    lic_text, url = musan_licence_table(lic, ["a"])["a"]
+    assert url == "https://www.freesound.org/" and "\n" not in lic_text
     assert _musan_licences(tmp_path / "missing", ["a"]) == {"a": False}
 
 
