@@ -24,9 +24,16 @@ audio), resampled to 16 kHz, first channel, and concatenated in file order into
 random offset in it, so a pack stands for one source and its offsets for its
 clips. MUSAN and CHiME-3 files are listed as they are.
 
-<out>/licences.tsv lists every clip: bank, pack file, start and end (s) in the
-pack, corpus, clip id, licence (the clip's own for FSD50K and OpenMIC-2018) and
-the archive member.
+<out>/licences.tsv lists every file and clip: bank, file, start and end (s) in
+the pack, corpus, clip id, licence and its URL (MUSAN: the file's block of its
+LICENSE; FSD50K and OpenMIC-2018: the clip's own; Slakh2100: CC BY 4.0, Zenodo
+4599666; CHiME-3: CC BY 4.0, Hugging Face), and the archive member. Licence filter
+(adapters_nonspeech.licence_ok, per file): CC0, CC BY or public domain only; SA,
+ND, NC, Sampling+ and unknown are left out, and a pack with one such clip is left
+out whole.
+
+--relist rebuilds the lists and licences.tsv from the packs of an earlier run
+(its licences.tsv) with the current filter, without reading the archives.
 """
 
 import argparse
@@ -166,11 +173,17 @@ def main():
         default="slakh2100,openmic2018,fsd50k_music,fsd50k_effects",
         help="comma list of the archive sources to read",
     )
+    p.add_argument(
+        "--relist",
+        action="store_true",
+        help="read no archive: rebuild the lists and licences.tsv from the packs "
+        "in <out> and their old licences.tsv, with the current licence filter",
+    )
     a = p.parse_args()
     logging.basicConfig(
         level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s"
     )
-    sources = set(a.sources.split(","))
+    sources = set() if a.relist else set(a.sources.split(","))
     a.out.mkdir(parents=True, exist_ok=True)
     packs = []
 
@@ -208,57 +221,112 @@ def main():
         logging.info(
             "%s/%s: %d packs, %.2f h", pw.bank, pw.source, len(pw.files), pw.hours()
         )
+    # (bank, source, pack path, [[clip, start, end, licence, member], ...])
+    pack_files = [
+        (pw.bank, pw.source, path, clips) for pw in packs for path, clips in pw.files
+    ]
+    if a.relist:
+        pack_files = read_packs(a.out / "licences.tsv")
+    write_lists(a, pack_files)
 
-    musan = list(musan_files(a.root / "musan"))
-    chime3 = list(chime3_files(a.root / "chime3_background"))
+
+SLAKH = ("CC BY 4.0", "https://zenodo.org/records/4599666")
+CHIME3 = (
+    "CC BY 4.0",
+    "https://huggingface.co/datasets/chimechallenge/chime3-background-noise",
+)
+
+
+def clip_ok(source: str, licence: str) -> bool:
+    """Return the per-clip licence filter: Slakh2100 is CC BY 4.0 as a whole."""
+    return source == "slakh2100" or ans.licence_ok(licence)
+
+
+def read_packs(manifest: Path):
+    """Return the packs of an earlier run, from its licences.tsv."""
+    import csv
+
+    packs = {}
+    with manifest.open() as f:
+        for r in csv.DictReader(f, delimiter="\t"):
+            if r["corpus"] in ("musan", "chime3_background") or not r["end_s"]:
+                continue
+            key = (r["bank"], r["corpus"], Path(r["file"]))
+            packs.setdefault(key, []).append(
+                [
+                    r["clip"],
+                    float(r["start_s"]),
+                    float(r["end_s"]),
+                    r["licence"],
+                    r["source"],
+                ]
+            )
+    return [(b, src, path, clips) for (b, src, path), clips in sorted(packs.items())]
+
+
+def write_lists(a, pack_files):
+    """Write the music and noise lists and licences.tsv.
+
+    MUSAN (per-file licence filter) and CHiME-3 files, and the packs whose clips
+    all pass the licence filter: a pack with one failing clip is left out whole.
+    """
     lists = {"music": [], "effects": []}
     rows = []
-    for key, path in musan:
-        bank = "music" if "music" in Path(path).parts else "effects"
-        lists[bank].append((key, Path(path)))
-        rows.append(
-            [bank, Path(path), 0.0, "", "musan", key, "MUSAN per-file CC0/BY/PD", ""]
-        )
-    for key, path in chime3:
+    tables = {}
+    for key, path in musan_files(a.root / "musan"):
+        path = Path(path)
+        if path.parent not in tables:
+            stems = [p.stem for p in path.parent.glob("*.wav")]
+            tables[path.parent] = ans.musan_licence_table(
+                path.parent / "LICENSE", stems
+            )
+        licence, url = tables[path.parent][path.stem]
+        bank = "music" if "music" in path.parts else "effects"
+        lists[bank].append((key, path))
+        rows.append([bank, path, 0.0, "", "musan", key, licence, url, ""])
+    for key, path in chime3_files(a.root / "chime3_background"):
         lists["effects"].append((key, Path(path)))
         rows.append(
-            [
-                "effects",
-                Path(path),
-                0.0,
-                "",
-                "chime3_background",
-                key,
-                "CC BY 4.0",
-                "",
-            ]
+            ["effects", Path(path), 0.0, "", "chime3_background", key, *CHIME3, ""]
         )
-    for pw in packs:
-        for path, clips in pw.files:
-            lists[pw.bank].append((path.stem, path.resolve()))
-            for clip, s, e, licence, member in clips:
-                rows.append(
-                    [
-                        pw.bank,
-                        path.resolve(),
-                        f"{s:.3f}",
-                        f"{e:.3f}",
-                        pw.source,
-                        clip,
-                        licence,
-                        member,
-                    ]
-                )
+    dropped = 0
+    for bank, source, path, clips in pack_files:
+        if not all(clip_ok(source, c[3]) for c in clips):
+            dropped += 1
+            logging.info("left out %s: a clip fails the licence filter", path)
+            continue
+        lists[bank].append((path.stem, path.resolve()))
+        for clip, s, e, licence, member in clips:
+            if source == "slakh2100":
+                licence, url = SLAKH
+            else:
+                url = licence if licence.startswith("http") else ""
+            rows.append(
+                [
+                    bank,
+                    path.resolve(),
+                    f"{s:.3f}",
+                    f"{e:.3f}",
+                    source,
+                    clip,
+                    licence,
+                    url,
+                    member,
+                ]
+            )
+    logging.info("%d packs left out by the licence filter", dropped)
     for scp, bank in ((a.music_scp, "music"), (a.noise_scp, "effects")):
         scp.parent.mkdir(parents=True, exist_ok=True)
         with scp.open("w") as f:
             for key, path in sorted(lists[bank]):
                 f.write(f"{key} {path}\n")
         logging.info("%s: %d entries", scp, len(lists[bank]))
-    with (a.out / "licences.tsv").open("w") as f:
-        f.write("bank\tfile\tstart_s\tend_s\tcorpus\tclip\tlicence\tsource\n")
+    tmp = a.out / "licences.tsv.tmp"
+    with tmp.open("w") as f:
+        f.write("bank\tfile\tstart_s\tend_s\tcorpus\tclip\tlicence\turl\tsource\n")
         for r in rows:
             f.write("\t".join(str(v) for v in r) + "\n")
+    tmp.replace(a.out / "licences.tsv")
 
 
 if __name__ == "__main__":

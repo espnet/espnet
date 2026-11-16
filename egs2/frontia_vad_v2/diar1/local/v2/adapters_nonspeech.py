@@ -104,11 +104,13 @@ def licence_ok(text: str) -> bool:
         return False
     if re.search(r"sampling", t):
         return False
-    if re.search(r"(\bnc\b|-nc\b|non-?commercial)", t):
+    # hyphen, space or nothing between the words: "ShareAlike", "Share-Alike",
+    # "Share Alike" (MUSAN fma-western-art), "NoDerivs", "No Derivatives"
+    if re.search(r"(\bnc\b|-nc\b|non[- ]?commercial)", t):
         return False
-    if re.search(r"(\bsa\b|-sa\b|share-?alike)", t):
+    if re.search(r"(\bsa\b|-sa\b|share[- ]?alike)", t):
         return False
-    if re.search(r"(\bnd\b|-nd\b|no-?deriv)", t):
+    if re.search(r"(\bnd\b|-nd\b|no[- ]?deriv)", t):
         return False
     if re.search(r"(zero|cc0|cc 0|commons 0|public ?domain|publicdomain)", t):
         return True
@@ -592,8 +594,23 @@ def _musan_licences(lic_file: Path, stems: Iterable[str]) -> Dict[str, bool]:
     of the block. A LICENSE without file ids covers the whole directory. An
     id in no block gets no licence (left out).
     """
+    return {
+        s: licence_ok(lic)
+        for s, (lic, _) in musan_licence_table(lic_file, stems).items()
+    }
+
+
+def musan_licence_table(lic_file: Path, stems: Iterable[str]) -> Dict[str, tuple]:
+    """(licence line, URL) of each file of a MUSAN directory, from its LICENSE file.
+
+    The block format of _musan_licences. A block that lists file ids but has no
+    licence line takes the licence (and URL) of the block without file ids, the
+    one for the whole directory (music/rfm: "CC BY 3.0" before the id blocks).
+    A LICENSE without file ids covers the whole directory. An id in no block
+    gets ("", "").
+    """
     text = lic_file.read_text(errors="replace") if lic_file.exists() else ""
-    per = {}
+    per, default = {}, ("", "")
     for block in re.split(r"^=+\s*$", text, flags=re.M):
         ids = re.findall(r"^((?:music|noise|speech)-[\w-]*?\d{3,})\s*$", block, re.M)
         lines = [ln.strip() for ln in block.splitlines() if ln.strip()]
@@ -606,12 +623,16 @@ def _musan_licences(lic_file: Path, stems: Iterable[str]) -> Dict[str, bool]:
         licence = next(
             (ln for ln in rest if licence_ok(ln) or _looks_like_licence(ln)), ""
         )
+        urls = re.findall(r"https?://\S+", block)
+        url = urls[0] if urls else ""
+        if not ids and licence:
+            default = (licence, url)
         for i in ids:
-            per[i] = licence
+            per[i] = (licence, url) if licence else None
     if per:
-        return {s: licence_ok(per.get(s, "")) for s in stems}
-    ok = licence_ok(text)
-    return {s: ok for s in stems}
+        return {s: per.get(s) or (default if s in per else ("", "")) for s in stems}
+    urls = re.findall(r"https?://\S+", text)
+    return {s: (text.strip(), urls[0] if urls else "") for s in stems}
 
 
 def _looks_like_licence(line: str) -> bool:

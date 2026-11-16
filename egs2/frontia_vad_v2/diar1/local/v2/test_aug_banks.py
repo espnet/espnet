@@ -53,3 +53,76 @@ def test_collector_stops_at_max_hours(tmp_path):
     col = Collector(pw, lambda r: "", max_hours=2.5 / 3600)
     added = [col["train"].add(f"c{i}", np.ones(FS, np.float32), FS) for i in range(5)]
     assert added == [1, 1, 1, 0, 0]
+
+
+def test_write_lists_filters_per_file_and_records_urls(tmp_path):
+    import csv
+    from types import SimpleNamespace
+
+    from aug_banks import read_packs, write_lists
+
+    root = tmp_path / "corpora"
+    music = root / "musan" / "music" / "x"
+    noise = root / "musan" / "noise" / "y"
+    for d in (music, noise):
+        d.mkdir(parents=True)
+    for stem in ("music-x-0001", "music-x-0002"):
+        soundfile.write(music / f"{stem}.wav", np.zeros(160, np.float32), FS)
+    (music / "LICENSE").write_text(
+        "music-x-0001\nCC BY 3.0\nhttp://a\n=====\n"
+        "music-x-0002\nAttribution-Share Alike 3.0 United States License.\nhttp://b\n"
+    )
+    (music / "ANNOTATIONS").write_text("music-x-0001.wav g N\nmusic-x-0002.wav g N\n")
+    soundfile.write(noise / "noise-y-0001.wav", np.zeros(160, np.float32), FS)
+    (noise / "LICENSE").write_text("Public Domain\nhttp://pd\n")
+    (root / "chime3_background").mkdir()
+    out = tmp_path / "banks"
+    out.mkdir()
+    good, bad = out / "music" / "fsd_00000.wav", out / "music" / "fsd_00001.wav"
+    packs = [
+        ("music", "fsd50k_music", good, [["c1", 0.0, 1.0, "http://cc0", "m1"]]),
+        (
+            "music",
+            "fsd50k_music",
+            bad,
+            [
+                ["c2", 0.0, 1.0, "https://creativecommons.org/licenses/by/3.0/", "m2"],
+                [
+                    "c3",
+                    1.0,
+                    2.0,
+                    "https://creativecommons.org/licenses/by-sa/3.0/",
+                    "m3",
+                ],
+            ],
+        ),
+        (
+            "music",
+            "slakh2100",
+            out / "music" / "slakh_00000.wav",
+            [["t", 0, 9, "", "s"]],
+        ),
+    ]
+    a = SimpleNamespace(
+        root=root,
+        out=out,
+        music_scp=tmp_path / "music.scp",
+        noise_scp=tmp_path / "noise.scp",
+    )
+    packs[0][3][0][3] = "http://creativecommons.org/publicdomain/zero/1.0/"
+    write_lists(a, packs)
+    music_keys = [ln.split()[0] for ln in a.music_scp.read_text().splitlines()]
+    assert music_keys == ["fsd_00000", "music-x-0001", "slakh_00000"]
+    assert a.noise_scp.read_text().split()[0] == "noise-y-0001"
+    rows = list(csv.DictReader((out / "licences.tsv").open(), delimiter="\t"))
+    by_clip = {r["clip"]: r for r in rows}
+    assert by_clip["music-x-0001"]["licence"] == "CC BY 3.0"
+    assert by_clip["music-x-0001"]["url"] == "http://a"
+    assert "music-x-0002" not in by_clip and "c2" not in by_clip
+    assert by_clip["t"]["licence"] == "CC BY 4.0" and "zenodo" in by_clip["t"]["url"]
+    # --relist reads the packs back from licences.tsv
+    again = read_packs(out / "licences.tsv")
+    assert [(b, s, p.name) for b, s, p, _ in again] == [
+        ("music", "fsd50k_music", "fsd_00000.wav"),
+        ("music", "slakh2100", "slakh_00000.wav"),
+    ]
