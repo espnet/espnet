@@ -10,6 +10,7 @@
 #   data/<corpus>_{dev,eval}         the test sets (Kaldi directories; diar.sh
 #                                   stage 2 dumps them)
 #   data/noise.scp, data/rir.scp     augmentation noise and room impulse responses
+#   data/music.scp, data/noise_aug.scp  music and noise+effects banks (aug_banks.py)
 #   dump/v2/reports/<corpus>.json    what was read, kept and left out, and why
 #
 # Stages:
@@ -156,6 +157,14 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
         mv data/rir.scp.tmp data/rir.scp
     fi
     log "data/rir.scp: $(wc -l < data/rir.scp) impulse responses"
+    # music and effects banks with their licences (conf/tuning/*aug*.yaml):
+    # data/music.scp, data/noise_aug.scp, data/aug_banks/licences.tsv
+    if [ ! -s data/aug_banks/licences.tsv ]; then
+        python3 ${v2}/aug_banks.py "${VAD_CORPORA}" data/aug_banks \
+            --music_scp data/music.scp --noise_scp data/noise_aug.scp
+    fi
+    log "data/music.scp: $(wc -l < data/music.scp) music files;" \
+        "data/noise_aug.scp: $(wc -l < data/noise_aug.scp) noise files"
 fi
 
 if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
