@@ -158,6 +158,10 @@ def test_real_musan_licences(sub):
         ("Some Song by Some Artist", "unknown"),
         ("http://creativecommons.org/publicdomain/zero/1.0/", "PD/CC0"),
         ("CC0 1.0 Universal", "PD/CC0"),
+        # OpenMIC-2018 licence fields are the Creative Commons badge URLs
+        ("http://i.creativecommons.org/p/zero/1.0/88x31.png", "PD/CC0"),
+        ("http://i.creativecommons.org/l/publicdomain/88x31.png", "PD/CC0"),
+        ("Zero", "unknown"),
         ("CC-BY 4.0", "BY"),
         ("Attribution-ShareAlike 3.0 Unported (CC BY-SA 3.0)", "SA"),
     ],

@@ -113,10 +113,12 @@ def licence_class(text: str) -> str:
         return "SA"
     if re.search(r"(\bnd\b|-nd\b|no[- ]?deriv)", t):
         return "ND"
-    # CC0 and public domain by name or URL only ("publicdomain/zero"): never a bare
-    # "zero" (a title: "Zero Gravity")
+    # CC0 and public domain by name or URL only (publicdomain/zero/1.0, the CC0 badge
+    # creativecommons.org/p/zero/1.0/88x31.png): never a bare "zero" (a title:
+    # "Zero Gravity")
     if re.search(
-        r"(\bcc[ -]?0\b|creative ?commons ?zero|commons 0|publicdomain/zero|"
+        r"(\bcc[ -]?0\b|creative ?commons ?zero|commons 0|publicdomain/zero/1\.0|"
+        r"creativecommons\.org/p/zero/1\.0|"
         r"public ?domain)",
         t,
     ):
