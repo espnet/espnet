@@ -5,7 +5,7 @@ import pytest
 import soundfile
 import torch
 
-from espnet2.layers.batch_wav_augment import BatchWavAugment
+from espnet2.layers.batch_wav_augment import BatchWavAugment, a_law_8bit, mu_law_8bit
 from espnet2.train.preprocessor import detect_non_silence
 
 
@@ -1171,3 +1171,226 @@ def test_keep_on_device_equals_host_with_rir_noise_and_context(tmp_path):
         outs.append(out)
     assert outs[0].shape == (8, t) and out_lengths.tolist() == [t] * 8
     torch.testing.assert_close(outs[0], outs[1], rtol=0, atol=0)
+
+
+# ---------------------------------------------------------------- telephone, music
+
+
+def band_energy(x, fs, lo, hi):
+    """Energy of x in [lo, hi) Hz, Hann-windowed (no leakage from the row ends)."""
+    spec = np.abs(np.fft.rfft(x * np.hanning(len(x)))) ** 2
+    f = np.fft.rfftfreq(len(x), 1 / fs)
+    return spec[(f >= lo) & (f < hi)].sum()
+
+
+def telephone(**kw):
+    opts = dict(
+        telephone_apply_prob=1.0,
+        telephone_highpass_prob=0.0,
+        telephone_companding_prob=0.0,
+    )
+    opts.update(kw)
+    return BatchWavAugment(**opts).train()
+
+
+def test_telephone_only_needs_no_list():
+    aug = telephone()
+    speech = torch.randn(2, 8000) * 0.1
+    out, lengths = aug(speech, torch.tensor([8000, 8000]))
+    assert out.shape == speech.shape and out.dtype == speech.dtype
+    with pytest.raises(ValueError):
+        BatchWavAugment()
+
+
+@pytest.mark.parametrize("t", [16000, 16001, 12345])
+def test_telephone_band_limits_to_the_cutoff(t):
+    torch.manual_seed(0)
+    aug = telephone(telephone_cutoff_range="3400_3400")
+    speech = torch.randn(1, t) * 0.1
+    out, _ = aug(speech, None)
+    x, y = speech[0].numpy(), out[0].numpy()
+    # nothing above 4 kHz (the 8 kHz Nyquist frequency) and the cut-off
+    assert band_energy(y, 16000, 4000, 8000) < 1e-8 * band_energy(y, 16000, 0, 8000)
+    assert band_energy(y, 16000, 3500, 4000) < 1e-6 * band_energy(y, 16000, 0, 8000)
+    # the pass band is kept
+    ratio = band_energy(y, 16000, 300, 3300) / band_energy(x, 16000, 300, 3300)
+    assert 0.98 < ratio < 1.02
+
+
+def test_telephone_keeps_a_tone_in_the_band_and_its_timing():
+    fs, t = 16000, 16000
+    n = torch.arange(t)
+    tone = torch.sin(2 * np.pi * 1000 * n / fs) * 0.5
+    burst = torch.zeros(t)
+    burst[6000:10000] = tone[6000:10000]
+    aug = telephone()
+    out, _ = aug(burst[None], None)
+    y = out[0]
+    # the burst stays where it was: the labels need no change
+    env = y.abs() > 0.1
+    on = int(env.nonzero().min())
+    off = int(env.nonzero().max())
+    assert abs(on - 6000) < 40 and abs(off - 9999) < 40
+    torch.testing.assert_close(y[6500:9500], burst[6500:9500], atol=2e-3, rtol=0)
+    # a 5 kHz tone is removed (away from the row ends, where cutting it off
+    # spreads its energy into the pass band)
+    high = (torch.sin(2 * np.pi * 5000 * n / fs) * 0.5)[None]
+    out, _ = aug(high, None)
+    assert out[:, 2000:-2000].abs().max() < 1e-3
+
+
+def test_telephone_highpass_removes_the_low_band():
+    torch.manual_seed(0)
+    aug = telephone(telephone_highpass_prob=1.0, telephone_highpass_hz=300.0)
+    speech = torch.randn(1, 32000) * 0.1
+    out, _ = aug(speech, None)
+    x, y = speech[0].numpy(), out[0].numpy()
+    assert band_energy(y, 16000, 0, 200) < 1e-6 * band_energy(x, 16000, 0, 200)
+    ratio = band_energy(y, 16000, 500, 3000) / band_energy(x, 16000, 500, 3000)
+    assert 0.98 < ratio < 1.02
+
+
+@pytest.mark.parametrize("fn", [mu_law_8bit, a_law_8bit])
+def test_companding_has_256_levels_and_small_error(fn):
+    x = torch.linspace(-1, 1, 200001)
+    y = fn(x)
+    assert len(torch.unique(y)) <= 256
+    assert torch.all(torch.diff(y) >= 0)  # monotonic
+    # relative error of a log quantiser: a few percent above the linear segment
+    big = x.abs() > 0.05
+    assert ((y[big] - x[big]).abs() / x[big].abs()).max() < 0.07
+    assert (y - x).abs().max() < 0.05
+
+
+def test_telephone_companding_adds_quantisation_noise_in_band():
+    torch.manual_seed(0)
+    speech = torch.randn(4, 16000) * 0.1
+    clean = telephone()(speech, None)[0]
+    for alaw in (False, True):
+        aug = telephone(telephone_companding_prob=1.0)
+        draws = aug.draw(torch.full((4,), 16000))
+        draws["telephone_alaw"][:] = alaw
+        valid = torch.ones(4, 16000, dtype=torch.bool)
+        draws["telephone_cutoff"] = torch.full((4,), 3950.0)
+        out = aug.apply(speech, valid, draws)
+        ref_draws = dict(draws, telephone_compand=torch.zeros(4, dtype=torch.bool))
+        ref = aug.apply(speech, valid, ref_draws)
+        noise = out - ref
+        snr = 10 * torch.log10(ref.pow(2).mean() / noise.pow(2).mean())
+        assert 20 < snr < 45, (alaw, snr)
+        # the quantisation noise is made at 8 kHz: no images above 4 kHz
+        # (below -40 dB from 4.2 kHz; the window's leakage from just below
+        # 4 kHz is the rest)
+        for row in noise.numpy():
+            assert band_energy(row, 16000, 4200, 8000) < 1e-4 * band_energy(
+                row, 16000, 0, 8000
+            )
+    assert clean.shape == speech.shape
+
+
+def test_telephone_batch_equals_each_row_alone_and_padding_stays_zero():
+    torch.manual_seed(0)
+    aug = telephone(telephone_highpass_prob=0.5, telephone_companding_prob=0.5)
+    b, t = 6, 9000
+    speech = torch.randn(b, t) * 0.1
+    lengths = torch.tensor([9000, 7000, 9000, 5000, 9000, 8000])
+    valid = torch.arange(t) < lengths[:, None]
+    speech = speech * valid
+    draws = aug.draw(lengths)
+    out = aug.apply(speech, valid, draws)
+    assert torch.all(out[~valid] == 0)
+    for i in range(b):
+        one = {k: v[i : i + 1] for k, v in draws.items()}
+        alone = aug.apply(speech[i : i + 1], valid[i : i + 1], one)
+        torch.testing.assert_close(out[i : i + 1], alone, atol=1e-5, rtol=0)
+
+
+def test_telephone_probability_and_options():
+    aug = telephone(telephone_apply_prob=0.3)
+    draws = aug.draw(torch.full((20000,), 100))
+    assert abs(draws["telephone_apply"].float().mean() - 0.3) < 0.02
+    assert abs(draws["telephone_alaw"].float().mean() - 0.5) < 0.02
+    c = draws["telephone_cutoff"]
+    assert c.min() >= 3400 and c.max() <= 3950
+    with pytest.raises(ValueError):
+        telephone(telephone_cutoff_range="3400_4500")
+    with pytest.raises(ValueError):
+        telephone(fs=22050)
+    assert "telephone_apply_prob=1.0" in repr(telephone())
+
+
+def test_eval_mode_skips_telephone_and_music(tmp_path):
+    scp = write_noises(tmp_path, [(8000, 1)])
+    aug = BatchWavAugment(music_scp=scp, music_apply_prob=1.0, telephone_apply_prob=1.0)
+    speech = torch.randn(2, 4000) * 0.1
+    out, _ = aug.eval()(speech, None)
+    assert out is speech
+
+
+def test_music_has_its_own_snr_range(tmp_path):
+    noise = write_noises(tmp_path, [(20000, 1)])
+    music_dir = tmp_path / "m"
+    music_dir.mkdir()
+    music = write_noises(music_dir, [(20000, 1), (5000, 2)])
+    torch.manual_seed(0)
+    b, t = 16, 6000
+    speech = torch.randn(b, t) * 0.01
+    aug = BatchWavAugment(
+        noise,
+        noise_apply_prob=0.0,
+        music_scp=music,
+        music_apply_prob=1.0,
+        music_db_range="-10_-8",
+    ).train()
+    assert aug.noise_apply_prob == 0.0
+    out, _ = aug(speech, None)
+    added = out - speech
+    for i in range(b):
+        snr = 10 * torch.log10(speech[i].pow(2).mean() / added[i].pow(2).mean())
+        assert -10.01 <= snr <= -7.99, (i, snr)
+    assert aug.bank("music", torch.device("cpu"))[2].tolist() == [20000, 5000, 5000]
+    assert ("noise", "host") not in aug._cache  # noise_apply_prob 0: not loaded
+
+
+def test_noise_and_music_are_added_independently(tmp_path):
+    noise = write_noises(tmp_path, [(20000, 1)])
+    music_dir = tmp_path / "m"
+    music_dir.mkdir()
+    music = write_noises(music_dir, [(20000, 1)])
+    aug = BatchWavAugment(
+        noise,
+        noise_apply_prob=0.5,
+        noise_db_range="5_20",
+        music_scp=music,
+        music_apply_prob=0.25,
+    ).train()
+    draws = aug.draw(torch.full((20000,), 4000))
+    assert abs(draws["noise_apply"].float().mean() - 0.5) < 0.02
+    assert abs(draws["music_apply"].float().mean() - 0.25) < 0.02
+    assert draws["snr"].min() >= 5 and draws["music_snr"].min() >= -10
+    both = draws["noise_apply"] & draws["music_apply"]
+    assert abs(both.float().mean() - 0.125) < 0.02
+    # with both applied, the sum of the two scaled signals is added
+    speech = torch.randn(3, 4000) * 0.01
+    valid = torch.ones(3, 4000, dtype=torch.bool)
+    d = aug.draw(torch.full((3,), 4000))
+    d["noise_apply"][:] = True
+    d["music_apply"][:] = True
+    out = aug.apply(speech, valid, d)
+    only_noise = aug.apply(
+        speech, valid, dict(d, music_apply=torch.zeros(3, dtype=torch.bool))
+    )
+    only_music = aug.apply(
+        speech, valid, dict(d, noise_apply=torch.zeros(3, dtype=torch.bool))
+    )
+    torch.testing.assert_close(
+        out - speech, (only_noise - speech) + (only_music - speech)
+    )
+
+
+@pytest.mark.parametrize("value", ["-10_20", "-5", "-20_-10"])
+def test_negative_db_ranges(tmp_path, value):
+    scp = write_noises(tmp_path, [(8000, 1)])
+    aug = BatchWavAugment(scp, noise_db_range=value)
+    lo, hi = [float(v) for v in value.split("_")] * (2 if "_" not in value else 1)
+    assert (aug.noise_db_low, aug.noise_db_high) == (lo, hi)

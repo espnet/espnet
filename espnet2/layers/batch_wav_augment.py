@@ -11,7 +11,16 @@ per utterance on the CPU in the data loader workers. For each utterance:
 3. With probability ``noise_apply_prob``, add a random noise at a random offset,
    repeated when it is shorter than the utterance, at an SNR drawn uniformly from
    ``noise_db_range`` relative to the power of step 1.
-4. Divide the utterance by its peak when the peak exceeds 1.
+4. With probability ``music_apply_prob``, add a random recording of a second
+   list (``music_scp``) the same way, at an SNR drawn from its own
+   ``music_db_range``.
+5. With probability ``telephone_apply_prob``, pass it through a telephone
+   channel: band-limited to a cut-off drawn from ``telephone_cutoff_range``,
+   resampled to 8 kHz, optionally high-passed at ``telephone_highpass_hz``,
+   optionally companded to 8 bits (mu-law or A-law, 50/50) and resampled back.
+6. Divide the utterance by its peak when the peak exceeds 1.
+
+The labels are not changed: none of the steps moves the speech in time.
 
 All recordings of each list are loaded once into one bank in host memory: the
 noise as int16, the impulse responses as float32. By default each step copies
@@ -38,6 +47,46 @@ from espnet2.fileio.read_text import read_2columns_text
 # the cache, load each list once. It is a module-level object so that the module
 # can still be deep-copied.
 _LOAD_LOCK = threading.Lock()
+
+
+def _db_range(name: str, value) -> Tuple[float, float]:
+    """Parse ``"low_high"`` (or a single value) into (low, high)."""
+    if not isinstance(value, str):
+        # YAML reads an unquoted 13_15 as the integer 1315
+        logging.warning(
+            f"{name}={value!r} is not a string: quote a range in YAML, e.g. '13_15'"
+        )
+    text = str(value)
+    # a leading minus belongs to the first bound: "-10_20" is (-10, 20)
+    bounds = [float(v) for v in text.split("_")] if text else []
+    if len(bounds) == 1:
+        bounds = bounds * 2
+    if len(bounds) != 2 or bounds[0] > bounds[1]:
+        raise ValueError(f"{name} must be 'low_high': {value}")
+    return bounds[0], bounds[1]
+
+
+def mu_law_8bit(x: torch.Tensor, mu: float = 255.0) -> torch.Tensor:
+    """Compress x (in [-1, 1]) with the mu-law, quantise to 8 bits, and expand."""
+    y = torch.sign(x) * torch.log1p(mu * x.abs()) / np.log1p(mu)
+    y = torch.round(y * 127.5 - 0.5) + 0.5  # 256 levels, midrise
+    y = (y / 127.5).clamp(-1, 1)
+    return torch.sign(y) * torch.expm1(y.abs() * np.log1p(mu)) / mu
+
+
+def a_law_8bit(x: torch.Tensor, a: float = 87.6) -> torch.Tensor:
+    """Compress x (in [-1, 1]) with the A-law, quantise to 8 bits, and expand."""
+    ax = x.abs()
+    log_a = 1 + np.log(a)
+    y = torch.where(
+        ax < 1 / a, a * ax / log_a, (1 + torch.log((a * ax).clamp(min=1))) / log_a
+    )
+    y = torch.sign(x) * y
+    y = torch.round(y * 127.5 - 0.5) + 0.5
+    y = (y / 127.5).clamp(-1, 1)
+    ay = y.abs()
+    e = torch.where(ay < 1 / log_a, ay * log_a / a, torch.exp(ay * log_a - 1) / a)
+    return torch.sign(y) * e
 
 
 class BatchWavAugment(torch.nn.Module):
@@ -94,6 +143,24 @@ class BatchWavAugment(torch.nn.Module):
             instead of copying what each batch needs from host memory. Faster,
             but uses 2 bytes of device memory per noise sample (11.4 GB for 99 h
             at 16 kHz) and 4 bytes per impulse-response sample.
+        music_scp: Kaldi-style list of a second set of additive recordings
+            (e.g. music), added independently of noise_scp with its own
+            probability and SNR range, or None.
+        music_apply_prob: Probability of adding a recording of music_scp to
+            each utterance.
+        music_db_range: SNR range in dB of music_scp, ``"low_high"``.
+        telephone_apply_prob: Probability of passing each utterance through the
+            telephone channel (after reverberation and the additive signals).
+        telephone_cutoff_range: Low-pass cut-off range in Hz, ``"low_high"``,
+            drawn per utterance; at most 4000 (the 8 kHz Nyquist frequency).
+        telephone_highpass_hz: Cut-off of the optional high-pass in Hz.
+        telephone_highpass_prob: Probability of the high-pass, per telephone
+            utterance.
+        telephone_companding_prob: Probability of 8-bit companding at 8 kHz,
+            per telephone utterance; mu-law (G.711 mu, 255) or A-law (G.711 A,
+            87.6) with equal probability.
+        telephone_transition_hz: Width in Hz of the raised-cosine transition of
+            the low-pass and the high-pass.
     """
 
     def __init__(
@@ -112,24 +179,50 @@ class BatchWavAugment(torch.nn.Module):
         frame_length: int = 1024,
         frame_shift: int = 512,
         keep_on_device: bool = False,
+        music_scp: Optional[str] = None,
+        music_apply_prob: float = 0.0,
+        music_db_range: str = "-10_20",
+        telephone_apply_prob: float = 0.0,
+        telephone_cutoff_range: str = "3400_3950",
+        telephone_highpass_hz: float = 300.0,
+        telephone_highpass_prob: float = 0.5,
+        telephone_companding_prob: float = 0.5,
+        telephone_transition_hz: float = 100.0,
     ):
         super().__init__()
-        if noise_scp is None and rir_scp is None:
-            raise ValueError("give noise_scp, rir_scp or both")
+        if (
+            noise_scp is None
+            and rir_scp is None
+            and music_scp is None
+            and telephone_apply_prob <= 0
+        ):
+            raise ValueError(
+                "give noise_scp, rir_scp, music_scp or telephone_apply_prob > 0"
+            )
         self.noise_scp = noise_scp
         self.noise_apply_prob = noise_apply_prob if noise_scp else 0.0
-        if not isinstance(noise_db_range, str):
-            # YAML reads an unquoted 13_15 as the integer 1315
-            logging.warning(
-                f"noise_db_range={noise_db_range!r} is not a string: "
-                "quote a range in YAML, e.g. '13_15'"
+        self.noise_db_low, self.noise_db_high = _db_range(
+            "noise_db_range", noise_db_range
+        )
+        self.music_scp = music_scp
+        self.music_apply_prob = music_apply_prob if music_scp else 0.0
+        self.music_db_low, self.music_db_high = _db_range(
+            "music_db_range", music_db_range
+        )
+        self.telephone_apply_prob = telephone_apply_prob
+        low, high = _db_range("telephone_cutoff_range", telephone_cutoff_range)
+        if not 0 < low <= high <= 4000:
+            raise ValueError(
+                "telephone_cutoff_range must lie in (0, 4000]: "
+                f"{telephone_cutoff_range}"
             )
-        bounds = [float(v) for v in str(noise_db_range).split("_")]
-        if len(bounds) == 1:
-            bounds = bounds * 2
-        if len(bounds) != 2 or bounds[0] > bounds[1]:
-            raise ValueError(f"noise_db_range must be 'low_high': {noise_db_range}")
-        self.noise_db_low, self.noise_db_high = bounds
+        if telephone_apply_prob > 0 and fs % 8000 != 0:
+            raise ValueError(f"the telephone channel needs fs a multiple of 8000: {fs}")
+        self.telephone_cutoff_low, self.telephone_cutoff_high = low, high
+        self.telephone_highpass_hz = float(telephone_highpass_hz)
+        self.telephone_highpass_prob = telephone_highpass_prob
+        self.telephone_companding_prob = telephone_companding_prob
+        self.telephone_transition_hz = float(telephone_transition_hz)
         self.rir_scp = rir_scp
         self.rir_apply_prob = rir_apply_prob if rir_scp else 0.0
         self.rir_shift = rir_shift
@@ -162,12 +255,22 @@ class BatchWavAugment(torch.nn.Module):
             f"rir_shift={self.rir_shift}, snr_reference={self.snr_reference}, "
             f"noise_rir_apply_prob={self.noise_rir_apply_prob}, "
             f"context={self.context}, "
-            f"fs={self.fs}, keep_on_device={self.keep_on_device}"
+            f"fs={self.fs}, keep_on_device={self.keep_on_device}, "
+            f"music_scp={self.music_scp}, music_apply_prob={self.music_apply_prob}, "
+            f"music_db_range=({self.music_db_low}, {self.music_db_high}), "
+            f"telephone_apply_prob={self.telephone_apply_prob}, "
+            f"telephone_cutoff_range=({self.telephone_cutoff_low}, "
+            f"{self.telephone_cutoff_high}), "
+            f"telephone_highpass_hz={self.telephone_highpass_hz}, "
+            f"telephone_highpass_prob={self.telephone_highpass_prob}, "
+            f"telephone_companding_prob={self.telephone_companding_prob}"
         )
 
     def _load(self, kind: str) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
-        """Load the noise (int16) or impulse-response (float32) list into a bank."""
-        scp = self.noise_scp if kind == "noise" else self.rir_scp
+        """Load the noise or music (int16) or impulse-response (float32) list."""
+        scp = {"noise": self.noise_scp, "music": self.music_scp, "rir": self.rir_scp}[
+            kind
+        ]
         chunks, lengths = [], []
         for key, path in read_2columns_text(scp).items():
             # A one-column line holds the path only, as in CommonPreprocessor
@@ -184,7 +287,7 @@ class BatchWavAugment(torch.nn.Module):
                 x = wav[:, ch]
                 if x.size == 0:
                     continue
-                if kind == "noise":
+                if kind in ("noise", "music"):
                     # Scale the noise to the full int16 range. The mixing
                     # rescales it to the SNR, so its level does not change the
                     # result.
@@ -207,7 +310,7 @@ class BatchWavAugment(torch.nn.Module):
         return bank, starts, lengths
 
     def bank(self, kind: str, device: torch.device) -> Tuple[torch.Tensor, ...]:
-        """Return (bank, starts, lengths) of "noise" or "rir" on ``device``.
+        """Return (bank, starts, lengths) of "noise", "music" or "rir" on ``device``.
 
         The first call loads the list; each device gets one copy.
         """
@@ -389,7 +492,10 @@ class BatchWavAugment(torch.nn.Module):
 
         ``lengths`` (B,) holds the number of samples of each utterance. Returns a
         dict of (B,) tensors: rir_apply, rir_which, noise_apply, noise_which and
-        snr (dB) on the CPU, and noise_offset on the device of ``lengths``. As in
+        snr (dB) on the CPU, and noise_offset on the device of ``lengths``; the
+        same for music (music_snr), and the telephone choices (telephone_apply,
+        telephone_cutoff, telephone_highpass, telephone_compand,
+        telephone_alaw) on the CPU. As in
         CommonPreprocessor, the noise is cut for each utterance by its own
         length: a noise at least as long as the utterance starts at any offset
         where the whole utterance fits (n_len - length + 1 offsets); a shorter
@@ -401,30 +507,133 @@ class BatchWavAugment(torch.nn.Module):
             _, _, rir_lengths = self.bank("rir", torch.device("cpu"))
             draws["rir_apply"] = torch.rand(batch_size) < self.rir_apply_prob
             draws["rir_which"] = torch.randint(len(rir_lengths), (batch_size,))
-        if self.noise_apply_prob > 0:
-            _, _, noise_lengths = self.bank("noise", torch.device("cpu"))
+        for kind, prob, low, high in (
+            ("noise", self.noise_apply_prob, self.noise_db_low, self.noise_db_high),
+            ("music", self.music_apply_prob, self.music_db_low, self.music_db_high),
+        ):
+            if prob <= 0:
+                continue
+            _, _, noise_lengths = self.bank(kind, torch.device("cpu"))
             which = torch.randint(len(noise_lengths), (batch_size,))
             u = torch.rand(batch_size)
-            draws["noise_apply"] = torch.rand(batch_size) < self.noise_apply_prob
-            draws["noise_which"] = which
-            draws["snr"] = torch.empty(batch_size).uniform_(
-                self.noise_db_low, self.noise_db_high
-            )
+            draws[f"{kind}_apply"] = torch.rand(batch_size) < prob
+            draws[f"{kind}_which"] = which
+            draws[f"{kind}_snr"] = torch.empty(batch_size).uniform_(low, high)
             # The offset is computed where the lengths are, so lengths on the
             # GPU are not copied back to the host.
             n_len = noise_lengths[which].to(lengths.device)
             span = torch.where(n_len >= lengths, n_len - lengths + 1, n_len)
             offset = (u.to(lengths.device) * span).long()
-            draws["noise_offset"] = torch.minimum(offset, span - 1)
+            draws[f"{kind}_offset"] = torch.minimum(offset, span - 1)
             if self.noise_rir_apply_prob > 0:
                 _, _, rir_lengths = self.bank("rir", torch.device("cpu"))
-                draws["noise_rir_apply"] = (
+                draws[f"{kind}_rir_apply"] = (
                     torch.rand(batch_size) < self.noise_rir_apply_prob
                 )
-                draws["noise_rir_which"] = torch.randint(
+                draws[f"{kind}_rir_which"] = torch.randint(
                     len(rir_lengths), (batch_size,)
                 )
+        if "noise_snr" in draws:
+            draws["snr"] = draws.pop("noise_snr")
+        if self.telephone_apply_prob > 0:
+            draws["telephone_apply"] = (
+                torch.rand(batch_size) < self.telephone_apply_prob
+            )
+            draws["telephone_cutoff"] = torch.empty(batch_size).uniform_(
+                self.telephone_cutoff_low, self.telephone_cutoff_high
+            )
+            draws["telephone_highpass"] = (
+                torch.rand(batch_size) < self.telephone_highpass_prob
+            )
+            draws["telephone_compand"] = (
+                torch.rand(batch_size) < self.telephone_companding_prob
+            )
+            draws["telephone_alaw"] = torch.rand(batch_size) < 0.5
         return draws
+
+    def _additive(self, kind, draws, snr, speech_power, valid, t):
+        """Return the noise or music (``kind``) of each row, scaled to its SNR.
+
+        Rows that do not get it are zero.
+        """
+        device = valid.device
+        c = self.context
+        bank_device = device if self.keep_on_device else torch.device("cpu")
+        bank, starts, lengths = self.bank(kind, bank_device)
+        which = draws[f"{kind}_which"].to(bank_device)
+        offset = draws[f"{kind}_offset"].to(bank_device)
+        n_len = lengths[which]
+        if self.keep_on_device:
+            pos = torch.arange(t, device=device)
+            pos = (offset[:, None] + pos) % n_len[:, None]
+            noise = bank[starts[which][:, None] + pos]
+        else:
+            noise = self._cut_on_host(bank, starts[which], n_len, offset, t, device)
+        noise = noise.float() / 32768 * valid
+        noise_rir = draws.get(f"{kind}_rir_apply")
+        if noise_rir is not None:
+            # A point-source noise: reverberated by an impulse response of
+            # its own; its power is measured after the reverberation. Only
+            # the rows that get both noise and its reverberation.
+            noise_rir = noise_rir.cpu() & draws[f"{kind}_apply"].cpu()
+        if noise_rir is not None and bool(noise_rir.any()):
+            rows = noise_rir.nonzero().squeeze(1)
+            rows_d = rows.to(device)
+            noisy, _ = self._reverberate(
+                noise.index_select(0, rows_d), draws[f"{kind}_rir_which"].cpu()[rows]
+            )
+            noise = noise.index_copy(0, rows_d, noisy * valid.index_select(0, rows_d))
+        n = valid[:, c:].sum(1).clamp(min=1)
+        noise_power = (noise[:, c:] * valid[:, c:]).pow(2).sum(1) / n
+        snr = snr.to(device)
+        scale = (
+            10 ** (-snr / 20)
+            * speech_power.sqrt()
+            / noise_power.clamp(min=1e-10).sqrt()
+        )
+        return (scale * draws[f"{kind}_apply"].to(device))[:, None] * noise
+
+    def _telephone(self, x, cutoff, highpass, compand, alaw):
+        """Pass rows of x (B, T) through a telephone channel.
+
+        In the frequency domain (one FFT of the row): a raised-cosine low-pass
+        at ``cutoff`` (B,) Hz and, where ``highpass``, a high-pass at
+        telephone_highpass_hz; the band up to 4 kHz is then taken as an 8 kHz
+        signal, companded to 8 bits where ``compand`` (A-law where ``alaw``,
+        else mu-law; each row scaled to its peak first and back afterwards),
+        and resampled back to fs by zero-padding its spectrum. Returns (B, T).
+        """
+        b, t = x.shape
+        device = x.device
+        # Zero-pad by 0.1 s, so the circular filtering does not carry the end of
+        # the row into its start, to an even number of samples at 8 kHz.
+        ratio = self.fs // 8000
+        n = -(-(t + self.fs // 10) // (2 * ratio)) * 2 * ratio
+        n8 = n // ratio
+        spec = torch.fft.rfft(x, n)  # (B, n // 2 + 1)
+        freq = torch.fft.rfftfreq(n, 1 / self.fs).to(device)
+        w = self.telephone_transition_hz
+
+        def ramp(f):  # 0 below -w/2, 1 above w/2, raised cosine between
+            return 0.5 - 0.5 * torch.cos(np.pi * ((f / w) + 0.5).clamp(0, 1))
+
+        gain = ramp(cutoff.to(device)[:, None] - freq)
+        hp = ramp(freq - self.telephone_highpass_hz)
+        gain = gain * torch.where(highpass.to(device)[:, None], hp, torch.ones_like(hp))
+        # the 8 kHz signal: the bins up to 4 kHz, with irfft's 1/n scaling kept
+        x8 = torch.fft.irfft(spec[:, : n8 // 2 + 1] * gain[:, : n8 // 2 + 1], n8)
+        x8 = x8 / ratio
+        if bool(compand.any()):
+            peak = x8.abs().amax(1, keepdim=True).clamp(min=1e-10)
+            y = x8 / peak
+            y = torch.where(alaw.to(device)[:, None], a_law_8bit(y), mu_law_8bit(y))
+            x8 = torch.where(compand.to(device)[:, None], y * peak, x8)
+        out = torch.fft.rfft(x8, n8) * ratio
+        # the 4 kHz bin (the Nyquist bin of the 8 kHz signal) is dropped: the
+        # pass band ends below it, and companding noise there has no image
+        out[:, -1] = 0
+        out = torch.nn.functional.pad(out, (0, n // 2 + 1 - out.size(1)))
+        return torch.fft.irfft(out, n)[:, :t]
 
     def apply(
         self, speech: torch.Tensor, valid: torch.Tensor, draws: Dict
@@ -469,43 +678,22 @@ class BatchWavAugment(torch.nn.Module):
                 e = e * v * gain[:, None]
                 speech_power = speech_power.index_copy(0, rows_d, window_power(e, v))
 
-        if "noise_which" in draws and bool(draws["noise_apply"].any()):
-            bank_device = device if self.keep_on_device else torch.device("cpu")
-            bank, starts, lengths = self.bank("noise", bank_device)
-            which = draws["noise_which"].to(bank_device)
-            offset = draws["noise_offset"].to(bank_device)
-            n_len = lengths[which]
-            if self.keep_on_device:
-                pos = torch.arange(t, device=device)
-                pos = (offset[:, None] + pos) % n_len[:, None]
-                noise = bank[starts[which][:, None] + pos]
-            else:
-                noise = self._cut_on_host(bank, starts[which], n_len, offset, t, device)
-            noise = noise.float() / 32768 * valid
-            noise_rir = draws.get("noise_rir_apply")
-            if noise_rir is not None:
-                # A point-source noise: reverberated by an impulse response of
-                # its own; its power is measured after the reverberation. Only
-                # the rows that get both noise and its reverberation.
-                noise_rir = noise_rir.cpu() & draws["noise_apply"].cpu()
-            if noise_rir is not None and bool(noise_rir.any()):
-                rows = noise_rir.nonzero().squeeze(1)
-                rows_d = rows.to(device)
-                noisy, _ = self._reverberate(
-                    noise.index_select(0, rows_d), draws["noise_rir_which"].cpu()[rows]
-                )
-                noise = noise.index_copy(
-                    0, rows_d, noisy * valid.index_select(0, rows_d)
-                )
-            n = valid[:, c:].sum(1).clamp(min=1)
-            noise_power = (noise[:, c:] * valid[:, c:]).pow(2).sum(1) / n
-            snr = draws["snr"].to(device)
-            scale = (
-                10 ** (-snr / 20)
-                * speech_power.sqrt()
-                / noise_power.clamp(min=1e-10).sqrt()
+        for kind in ("noise", "music"):
+            if f"{kind}_which" in draws and bool(draws[f"{kind}_apply"].any()):
+                snr = draws["snr" if kind == "noise" else f"{kind}_snr"]
+                x = x + self._additive(kind, draws, snr, speech_power, valid, t)
+
+        if "telephone_apply" in draws and bool(draws["telephone_apply"].any()):
+            rows = draws["telephone_apply"].cpu().nonzero().squeeze(1)
+            rows_d = rows.to(device)
+            y = self._telephone(
+                x.index_select(0, rows_d),
+                draws["telephone_cutoff"].cpu()[rows],
+                draws["telephone_highpass"].cpu()[rows],
+                draws["telephone_compand"].cpu()[rows],
+                draws["telephone_alaw"].cpu()[rows],
             )
-            x = x + (scale * draws["noise_apply"].to(device))[:, None] * noise
+            x = x.index_copy(0, rows_d, y * valid.index_select(0, rows_d))
 
         # As the preprocessor: divide by the peak when it exceeds 1.
         peak = (x[:, c:].abs() * valid[:, c:]).amax(1, keepdim=True)
@@ -521,7 +709,10 @@ class BatchWavAugment(torch.nn.Module):
         training and in eval mode.
         """
         augment = self.training and (
-            self.noise_apply_prob > 0 or self.rir_apply_prob > 0
+            self.noise_apply_prob > 0
+            or self.rir_apply_prob > 0
+            or self.music_apply_prob > 0
+            or self.telephone_apply_prob > 0
         )
         if augment:
             if speech.dim() != 2:
