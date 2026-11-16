@@ -130,7 +130,7 @@ MUSAN_EXPECTED = {
     "music/jamendo": (27, 190),  # 18 BY + 9 PD; SA 156, ND 28, none 6
     "music/rfm": (147, 0),  # CC BY 3.0 for the whole directory
     "noise/free-sound": (843, 0),  # public domain
-    "noise/sound-bible": (87, 0),  # 67 BY + 20 PD
+    "noise/sound-bible": (86, 1),  # 66 BY + 20 PD; noise-sound-bible-0000 has no block
 }
 
 
