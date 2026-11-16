@@ -149,8 +149,17 @@ one; do not assume every recipe needs these hooks.
 
 ### README and validation
 
-Document the actual data setup and copy-pasteable stage commands in the
-recipe's `README.md`; use LibriSpeech's README as the quick-start pattern.
+Use the following structure in each recipe's `README.md`: a `# <corpus>
+<system> recipe` title, `## Data Preparation`, `## Commands`, and `## Results`.
+Describe how to obtain or locate the corpus under data preparation. Show
+copy-pasteable stage commands under commands, grouped by configuration when
+needed. Under results, list each model configuration in its own `###` section
+with its config paths, evaluation results, checkpoint and decoding settings,
+and a pretrained model link when available. If a result or pretrained model is
+unavailable, say so rather than inventing one. Identify results obtained with a
+different version or configuration and do not claim they reproduce the current
+config without verification.
+
 Commands should run from the documented directory, source `path.sh` where
 needed, and prepare the dataset before stages that consume it. Keep `path.sh`
 portable and avoid machine-specific paths or resource settings.

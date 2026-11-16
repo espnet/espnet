@@ -54,6 +54,17 @@ outputs. Prefer established external implementations for correctness-critical
 metrics when available; otherwise follow the existing ESPnet implementation
 and tests.
 
+Every metric class must inherit the current `BaseMetric` and support both uses:
+
+1. The inherited `__call__` reads the declared SCP inputs for the `measure`
+   stage, updates metric state, and returns the computed values.
+2. `update` and `compute` work independently on in-memory batches so a training
+   callback can accumulate and calculate the same metric without SCP files.
+   Register state through the base contract so `reset` clears it correctly.
+
+Test the SCP-based call and incremental updates against the same expected
+results, including multiple batches and reset between independent runs.
+
 Optimizers and schedulers are normally selected by Hydra targets. Add a shared
 implementation only when existing framework or PyTorch options cannot express
 the behavior. Avoid maintaining an inventory of every class or module here;

@@ -12,13 +12,19 @@ split. The conversion dominates the stage: 13,708 clips take over an hour one
 at a time, so it is sharded over `parallel.n_workers` workers. Raise that from
 its default of 1 in `conf/training.yaml` to convert clips concurrently.
 
+## Data Preparation
+
 Two environment variables control where the data lives. Both are optional and
 default to `download/` and `data/` under the recipe.
 
 - `MELD` — an existing MELD source tree, or where to download it to
 - `MELD_OUTPUT` — where the converted WAV files and manifests are written
 
-## Quick start
+## Commands
+
+### WavLM Base+ and Transformer encoder
+
+Run the following commands from `egs3/meld/esp2_cls/`.
 
 ```bash
 # 1) Fetch MELD, convert the audio, and write the manifests
@@ -51,6 +57,12 @@ split is left untouched so the reported scores cover the whole set.
 
 ## Results
 
+### WavLM Base+ and Transformer encoder
+
+- Training config: `conf/training.yaml`
+- Inference config: `conf/inference.yaml`
+- Metrics config: `conf/metrics.yaml`
+
 `measure` writes all five metrics to `${inference_dir}/metrics.json`.
 
 | | WA | UA | Macro F1 | mAP | AUC |
@@ -66,7 +78,7 @@ Utterance-level alignment in MELD is known to be imperfect
 ([declare-lab/MELD#30](https://github.com/declare-lab/MELD/issues/30)), which
 limits the accuracy any model can reach on it.
 
-## Pretrained Models
+#### Pretrained model
 
 - [`conf/training.yaml`](https://huggingface.co/espnet/meld_esp2_cls_wavlm_base_plus)
 - [Demo Space](https://huggingface.co/spaces/espnet/meld_esp2_cls_wavlm_base_plus)
