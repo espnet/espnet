@@ -126,7 +126,10 @@ MUSAN_EXPECTED = {
     "music/fma": (85, 43),  # 78 BY + 7 PD; SA 37, ND 2, none 4
     "music/fma-western-art": (58, 35),  # 29 BY + 29 PD; SA 26 ("Share Alike"), none 9
     "music/hd-classical": (19, 56),  # 1 BY + 18 PD; SA 56
-    "music/jamendo": (27, 190),  # 18 BY + 9 PD; SA 156, ND 28, none 6
+    "music/jamendo": (
+        18,
+        199,
+    ),  # 18 BY; SA 165 (0047-0055: "Zero Gravity"), ND 28, none 6
     "music/rfm": (147, 0),  # CC BY 3.0 for the whole directory
     "noise/free-sound": (843, 0),  # public domain
     "noise/sound-bible": (86, 1),  # 66 BY + 20 PD; noise-sound-bible-0000 has no block
@@ -145,3 +148,66 @@ def test_real_musan_licences(sub):
     ok = _musan_licences(d / "LICENSE", stems)
     kept = sum(ok.values())
     assert (kept, len(stems) - kept) == MUSAN_EXPECTED[sub]
+
+
+@pytest.mark.parametrize(
+    "text, cls",
+    [
+        ("from Zero Gravity -2010 mix- by BS", "unknown"),
+        ("Air [ BS - Remix ]", "unknown"),
+        ("Some Song by Some Artist", "unknown"),
+        ("http://creativecommons.org/publicdomain/zero/1.0/", "PD/CC0"),
+        ("CC0 1.0 Universal", "PD/CC0"),
+        ("CC-BY 4.0", "BY"),
+        ("Attribution-ShareAlike 3.0 Unported (CC BY-SA 3.0)", "SA"),
+    ],
+)
+def test_licence_class_ignores_titles(text, cls):
+    from adapters_nonspeech import licence_class
+
+    assert licence_class(text) == cls
+
+
+# music/jamendo/LICENSE, the block of music-jamendo-0047 .. 0055 (id lines with
+# trailing spaces as in the file); its title line was taken as the licence before
+JAMENDO_BLOCK = """==============================================================================
+music-jamendo-0048   
+Andromeda
+music-jamendo-0049 
+Blue Sky
+music-jamendo-0050
+Cosmic
+music-jamendo-0051
+Dreams
+music-jamendo-0052
+Escape
+music-jamendo-0053
+Forever
+music-jamendo-0054
+Galaxy
+music-jamendo-0055
+Horizon
+Air [ BS - Remix ]
+music-jamendo-0047
+from Zero Gravity -2010 mix- by BS
+Attribution-ShareAlike 3.0 Unported (CC BY-SA 3.0)
+https://www.jamendo.com/en/list/a73592/zero-gravity-2010-mix
+==============================================================================
+music-jamendo-0100
+Other
+Attribution 3.0 Unported (CC BY 3.0)
+https://www.jamendo.com/en/list/a1/other
+"""
+
+
+def test_most_restrictive_line_of_a_block_wins(tmp_path):
+    lic = tmp_path / "LICENSE"
+    lic.write_text(JAMENDO_BLOCK)
+    stems = [f"music-jamendo-{i:04d}" for i in range(47, 56)] + ["music-jamendo-0100"]
+    table = musan_licence_table(lic, stems)
+    ok = _musan_licences(lic, stems)
+    for s in stems[:9]:
+        assert table[s][0] == "Attribution-ShareAlike 3.0 Unported (CC BY-SA 3.0)", s
+        assert table[s][1].startswith("https://www.jamendo.com/"), s
+        assert not ok[s], s
+    assert ok["music-jamendo-0100"]

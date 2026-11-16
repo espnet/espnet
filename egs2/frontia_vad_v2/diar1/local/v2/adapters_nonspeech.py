@@ -113,11 +113,23 @@ def licence_class(text: str) -> str:
         return "SA"
     if re.search(r"(\bnd\b|-nd\b|no[- ]?deriv)", t):
         return "ND"
-    if re.search(r"(zero|cc0|cc 0|commons 0|public ?domain|publicdomain)", t):
+    # CC0 and public domain by name or URL only ("publicdomain/zero"): never a bare
+    # "zero" (a title: "Zero Gravity")
+    if re.search(
+        r"(\bcc[ -]?0\b|creative ?commons ?zero|commons 0|publicdomain/zero|"
+        r"public ?domain)",
+        t,
+    ):
         return "PD/CC0"
+    # CC BY by name or URL only: "Attribution", "CC BY", "CC-BY", licenses/by/; never
+    # a bare "by" (a title: "... by BS")
     if re.search(r"(licenses/by/|\bcc[ -]?by\b|attribution)", t):
         return "BY"
     return "unknown"
+
+
+# Most restrictive first: a MUSAN block's licence is the most restrictive of its lines
+LICENCE_RANK = {"NC": 0, "Sampling+": 1, "ND": 2, "SA": 3, "BY": 4, "PD/CC0": 5}
 
 
 def licence_ok(text: str) -> bool:
@@ -614,27 +626,35 @@ def _musan_licences(lic_file: Path, stems: Iterable[str]) -> Dict[str, bool]:
 def musan_licence_table(lic_file: Path, stems: Iterable[str]) -> Dict[str, tuple]:
     """(licence line, URL) of each file of a MUSAN directory, from its LICENSE file.
 
-    The block format of _musan_licences. A block that lists file ids but has no
-    licence line takes the licence (and URL) of the block without file ids, the
-    one for the whole directory (music/rfm: "CC BY 3.0" before the id blocks).
-    A LICENSE without file ids covers the whole directory. An id in no block
-    gets ("", "").
+    The block format of _musan_licences. Every line of a block other than its file
+    ids and URLs is classified (licence_class); the block's licence is its most
+    restrictive classified line (LICENCE_RANK), so a title or an artist line can
+    neither replace nor relax the licence line. A block that lists file ids but has
+    no classified line takes the licence (and URL) of the block without file ids,
+    the one for the whole directory (music/rfm: "CC BY 3.0" before the id blocks).
+    A LICENSE without file ids covers the whole directory. An id in no block gets
+    ("", "").
     """
     text = lic_file.read_text(errors="replace") if lic_file.exists() else ""
+    id_re = r"(?:music|noise|speech)-[\w-]*?\d{3,}"
     per, default = {}, ("", "")
     for block in re.split(r"^=+\s*$", text, flags=re.M):
-        ids = re.findall(r"^((?:music|noise|speech)-[\w-]*?\d{3,})\s*$", block, re.M)
-        lines = [ln.strip() for ln in block.splitlines() if ln.strip()]
+        ids = re.findall(rf"^\s*({id_re})\s*$", block, re.M)
         rest = [
-            ln
-            for ln in lines
-            if not re.match(r"(?:music|noise|speech)-[\w-]*?\d{3,}$", ln)
-            and not ln.startswith(("http://", "https://"))
+            ln.strip()
+            for ln in block.splitlines()
+            if ln.strip()
+            and not re.fullmatch(id_re, ln.strip())
+            and not ln.strip().startswith(("http://", "https://"))
         ]
-        licence = next(
-            (ln for ln in rest if licence_ok(ln) or _looks_like_licence(ln)), ""
-        )
-        urls = re.findall(r"https?://\S+", block)
+        classified = [
+            (LICENCE_RANK[c], ln)
+            for ln in rest
+            for c in [licence_class(ln)]
+            if c in LICENCE_RANK
+        ]
+        licence = min(classified)[1] if classified else ""
+        urls = re.findall(r"https?://[^\s)]+", block)
         url = urls[0] if urls else ""
         if not ids and licence:
             default = (licence, url)
@@ -643,15 +663,8 @@ def musan_licence_table(lic_file: Path, stems: Iterable[str]) -> Dict[str, tuple
     if per:
         return {s: per.get(s) or (default if s in per else ("", "")) for s in stems}
     urls = re.findall(r"https?://[^\s)]+", text)
-    # one line: the whole LICENSE text, its whitespace collapsed (it goes into TSV fields)
+    # one line: the whole LICENSE text, whitespace collapsed (it goes into TSV fields)
     return {s: (" ".join(text.split()), urls[0] if urls else "") for s in stems}
-
-
-def _looks_like_licence(line: str) -> bool:
-    """Whether a line names a licence (one licence_ok() may still reject)."""
-    return bool(
-        re.search(r"\bCC\b|Creative Commons|Public Domain|licen[cs]e", line, re.I)
-    )
 
 
 def _musan(root, writers, shard, nshards, part: str):
