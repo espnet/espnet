@@ -94,27 +94,38 @@ QUIET_RE = re.compile(
 )
 
 
-def licence_ok(text: str) -> bool:
-    """Whether a licence (URL or name) is CC0, public domain or CC BY.
+def licence_class(text: str) -> str:
+    """Class of a licence (URL or name): "PD/CC0", "BY", "SA", "ND", "NC",
+    "Sampling+" or "unknown".
 
-    NC, SA, ND, Sampling+ and anything unrecognised are False.
+    Restrictions win: a text naming NC, SA or ND (with a hyphen, a space or
+    nothing between the words: "ShareAlike", "Share Alike", "No Derivatives")
+    is that class even if it also names CC BY.
     """
     t = (text or "").lower()
     if not t.strip():
-        return False
+        return "unknown"
     if re.search(r"sampling", t):
-        return False
-    # hyphen, space or nothing between the words: "ShareAlike", "Share-Alike",
-    # "Share Alike" (MUSAN fma-western-art), "NoDerivs", "No Derivatives"
+        return "Sampling+"
     if re.search(r"(\bnc\b|-nc\b|non[- ]?commercial)", t):
-        return False
+        return "NC"
     if re.search(r"(\bsa\b|-sa\b|share[- ]?alike)", t):
-        return False
+        return "SA"
     if re.search(r"(\bnd\b|-nd\b|no[- ]?deriv)", t):
-        return False
+        return "ND"
     if re.search(r"(zero|cc0|cc 0|commons 0|public ?domain|publicdomain)", t):
-        return True
-    return bool(re.search(r"(licenses/by/|\bcc[ -]?by\b|attribution)", t))
+        return "PD/CC0"
+    if re.search(r"(licenses/by/|\bcc[ -]?by\b|attribution)", t):
+        return "BY"
+    return "unknown"
+
+
+def licence_ok(text: str) -> bool:
+    """Whether a licence (URL or name) is CC0, public domain or CC BY.
+
+    NC, SA, ND, Sampling+ and anything unrecognised are False (licence_class).
+    """
+    return licence_class(text) in ("PD/CC0", "BY")
 
 
 # ---------------------------------------------------------------- helpers

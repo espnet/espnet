@@ -126,7 +126,14 @@ fi
 
 if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     log "Stage 1: v1 meeting corpora and the test sets"
+    # local/data_v1.sh (the v1 recipe's data.sh) also writes data/noise.scp with
+    # every MUSAN file; v2's list is stage 2's, with the per-file licence filter,
+    # so the v1 list is put back or removed here (run after stage 2, it replaced
+    # the filtered list for the v2-v2.2 trainings)
+    [ -e data/noise.scp ] && mv data/noise.scp data/noise.scp.stage2
     local/data_v1.sh --corpora "${v1_train},${v1_test}" --splits train,dev,eval
+    rm -f data/noise.scp
+    [ -e data/noise.scp.stage2 ] && mv data/noise.scp.stage2 data/noise.scp
     declare -A licence=(
         [ami]="CC BY 4.0" [chime6]="CC BY-SA 4.0 (SA to be removed)"
         [notsofar]="CC BY 4.0" [icsi]="CC BY 4.0"
@@ -165,6 +172,9 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     fi
     log "data/music.scp: $(wc -l < data/music.scp) music files;" \
         "data/noise_aug.scp: $(wc -l < data/noise_aug.scp) noise files"
+    # every entry by its own licence: stop on SA, ND, NC or unknown
+    python3 ${v2}/licence_audit.py lists "${VAD_CORPORA}" data/noise.scp data/rir.scp \
+        data/music.scp data/noise_aug.scp || { log "licence audit of the lists failed"; exit 1; }
 fi
 
 if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
