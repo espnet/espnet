@@ -118,3 +118,31 @@ def test_musan_whole_directory_licence(tmp_path):
         "https://www.freesound.org"
     )
     assert _musan_licences(tmp_path / "missing", ["a"]) == {"a": False}
+
+
+# Per-file licences of the real MUSAN LICENSE files (2016 release), counted file by
+# file: (CC BY or PD files, files with SA, ND or no licence). Set MUSAN_ROOT to the
+# directory holding music/ and noise/ to run it.
+MUSAN_EXPECTED = {
+    "music/fma": (85, 43),  # 78 BY + 7 PD; SA 37, ND 2, none 4
+    "music/fma-western-art": (58, 35),  # 29 BY + 29 PD; SA 26 ("Share Alike"), none 9
+    "music/hd-classical": (19, 56),  # 1 BY + 18 PD; SA 56
+    "music/jamendo": (27, 190),  # 18 BY + 9 PD; SA 156, ND 28, none 6
+    "music/rfm": (147, 0),  # CC BY 3.0 for the whole directory
+    "noise/free-sound": (843, 0),  # public domain
+    "noise/sound-bible": (87, 0),  # 67 BY + 20 PD
+}
+
+
+@pytest.mark.skipif(
+    not __import__("os").environ.get("MUSAN_ROOT"), reason="set MUSAN_ROOT"
+)
+@pytest.mark.parametrize("sub", sorted(MUSAN_EXPECTED))
+def test_real_musan_licences(sub):
+    import os
+
+    d = Path(os.environ["MUSAN_ROOT"]) / sub
+    stems = [p.stem for p in d.glob("*.wav")]
+    ok = _musan_licences(d / "LICENSE", stems)
+    kept = sum(ok.values())
+    assert (kept, len(stems) - kept) == MUSAN_EXPECTED[sub]
