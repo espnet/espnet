@@ -1,9 +1,9 @@
 # corpus_dir	relative_path	url	size_bytes	checksum	unpack
-meshrir	ARCHIVES/zenodo_record_5002818.json	https://zenodo.org/api/records/5002818			
-meshrir	ARCHIVES/README.md	https://zenodo.org/records/5002818/files/README.md?download=1	1250	md5:9f2285275abe12393f6344561c12956d	
-meshrir	ARCHIVES/src.zip	https://zenodo.org/records/5002818/files/src.zip?download=1	487499	md5:938b6470a8c1771715c24e4b4657bc27	
-meshrir	ARCHIVES/S32-M441_npy.zip	https://zenodo.org/records/5002818/files/S32-M441_npy.zip?download=1	3534777656	md5:4fcd6137bcadb6914d4170ff366c86f9	
-meshrir	ARCHIVES/S32-M441_mat.zip	https://zenodo.org/records/5002818/files/S32-M441_mat.zip?download=1	3535113047	md5:1b1c808188810344f5420ee23914643e	
-meshrir	ARCHIVES/S1-M3969_npy.zip	https://zenodo.org/records/5002818/files/S1-M3969_npy.zip?download=1	1005258313	md5:15a0cf2467f74f31a0ea861a54b923c1	
-meshrir	ARCHIVES/S1-M3969_mat.zip	https://zenodo.org/records/5002818/files/S1-M3969_mat.zip?download=1	994520000	md5:1f1c4f4d32970e6694e795dda3329ee4	
-meshrir	ARCHIVES/LICENSE	https://zenodo.org/records/5002818/files/LICENSE?download=1	18656	md5:527dc6cad772ccb187d5bfe5af738204	
+meshrir	ARCHIVES/zenodo_record_5002818.json	https://zenodo.org/api/records/5002818
+meshrir	ARCHIVES/README.md	https://zenodo.org/records/5002818/files/README.md?download=1	1250	md5:9f2285275abe12393f6344561c12956d
+meshrir	ARCHIVES/src.zip	https://zenodo.org/records/5002818/files/src.zip?download=1	487499	md5:938b6470a8c1771715c24e4b4657bc27
+meshrir	ARCHIVES/S32-M441_npy.zip	https://zenodo.org/records/5002818/files/S32-M441_npy.zip?download=1	3534777656	md5:4fcd6137bcadb6914d4170ff366c86f9
+meshrir	ARCHIVES/S32-M441_mat.zip	https://zenodo.org/records/5002818/files/S32-M441_mat.zip?download=1	3535113047	md5:1b1c808188810344f5420ee23914643e
+meshrir	ARCHIVES/S1-M3969_npy.zip	https://zenodo.org/records/5002818/files/S1-M3969_npy.zip?download=1	1005258313	md5:15a0cf2467f74f31a0ea861a54b923c1
+meshrir	ARCHIVES/S1-M3969_mat.zip	https://zenodo.org/records/5002818/files/S1-M3969_mat.zip?download=1	994520000	md5:1f1c4f4d32970e6694e795dda3329ee4
+meshrir	ARCHIVES/LICENSE	https://zenodo.org/records/5002818/files/LICENSE?download=1	18656	md5:527dc6cad772ccb187d5bfe5af738204
