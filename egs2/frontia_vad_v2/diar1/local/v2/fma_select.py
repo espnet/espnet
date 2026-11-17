@@ -4,21 +4,25 @@
     python3 local/v2/fma_select.py <fma_metadata.zip> <out.tsv> [--full_zip_url URL]
 
 tracks.csv (fma_metadata/tracks.csv, three header rows) gives each track's licence
-('track', 'license'), its copyright notes ('track', 'copyright_c' / 'copyright_p'),
-genre_top, tags and duration. A track is accepted when its licence is CC BY (1.0-4.0),
-CC0 or the Public Domain Mark (adapters_nonspeech.licence_class: "BY" or "PD/CC0"),
-and none of its copyright notes names a more restrictive licence (NC, ND, SA,
-Sampling+): e.g. WFMU tracks labelled CC BY 4.0 whose copyright reads "by-nc-sa 3.0 US"
-are dropped. NC, ND, SA, Sampling+, the Free Art License, "FMA Sound Recording Common
-Law" and unknown licences are dropped. Singing is speech: may_have_vocals = 0 only for
-genre_top "Instrumental" or a track tag naming instrumental music.
+('track', 'license'), genre_top, tags and duration; raw_tracks.csv (one header row),
+joined by track_id, gives what tracks.csv leaves out: the copyright notes
+(track_copyright_c / track_copyright_p), the licence URL, the uploader's instrumental
+flag (track_instrumental) and the credit fields (artist_name, track_title, track_url).
+A track is accepted when its licence is CC BY (1.0-4.0), CC0 or the Public Domain Mark
+(adapters_nonspeech.licence_class: "BY" or "PD/CC0"), the licence is not FMA's "Public
+Domain / Sound Recording Common Law Protection" (the composition is public domain, the
+recording is not), and none of its copyright notes names a more restrictive licence (NC,
+ND, SA, Sampling+): e.g. WFMU tracks labelled CC BY 4.0 whose copyright reads "by-nc-sa
+3.0 US" are dropped. NC, ND, SA, Sampling+, the Free Art License and unknown licences are
+dropped. Singing is speech: may_have_vocals = 0 only for genre_top "Instrumental", a
+track tag naming instrumental music, or the uploader's instrumental flag.
 
 With --full_zip_url, the size and CRC32 of each accepted track in fma_full.zip are read
 from its central directory (HTTP range requests; nothing else is downloaded).
 
 Writes one row per track: track_id, member (path in fma_full.zip), accepted, reason,
-licence, licence_class, copyright_c, copyright_p, genre_top, may_have_vocals,
-duration_s, size_bytes, crc32.
+licence, licence_class, licence_url, copyright_c, copyright_p, genre_top,
+may_have_vocals, duration_s, size_bytes, crc32, artist, title, url.
 """
 
 import argparse
@@ -53,20 +57,35 @@ def tracks(meta_zip: Path):
             yield dict(zip(keys, row))
 
 
-def decide(t):
+def raw_tracks(meta_zip: Path):
+    """{track_id: row of fma_metadata/raw_tracks.csv} (one header row)."""
+    with zipfile.ZipFile(meta_zip) as z:
+        name = next(n for n in z.namelist() if Path(n).name == "raw_tracks.csv")
+        text = io.TextIOWrapper(z.open(name), encoding="utf-8", newline="")
+        return {r["track_id"]: r for r in csv.DictReader(text)}
+
+
+COMMON_LAW = re.compile(r"common law", re.I)
+
+
+def decide(t, raw):
     lic = t.get("track.license", "")
     cls = licence_class(lic)
     if cls not in ("BY", "PD/CC0"):
         return 0, f"licence {cls}", cls
-    for k in ("track.copyright_c", "track.copyright_p"):
-        c = licence_class(t.get(k, ""))
+    if COMMON_LAW.search(lic):
+        return 0, "licence: sound recording common-law protection", cls
+    for k in ("track_copyright_c", "track_copyright_p"):
+        c = licence_class(raw.get(k, "") or "")
         if c in RESTRICT:
-            return 0, f"{k.split('.')[1]} names {c}", cls
+            return 0, f"{k.split('_', 1)[1]} names {c}", cls
     return 1, "", cls
 
 
-def vocals(t):
+def vocals(t, raw):
     if t.get("track.genre_top", "") == "Instrumental":
+        return 0
+    if str(raw.get("track_instrumental", "")).strip() == "1":
         return 0
     try:
         tags = ast.literal_eval(t.get("track.tags", "") or "[]")
@@ -91,16 +110,19 @@ def main():
         with zipfile.ZipFile(HttpRangeFile(a.full_zip_url)) as z:
             info = {i.filename: (i.file_size, i.CRC) for i in z.infolist()}
         print(f"fma_full.zip: {len(info)} members in its central directory")
+    raws = raw_tracks(a.meta_zip)
     n = acc = 0
     hours = acc_h = acc_bytes = 0.0
     reasons = {}
     with a.out.open("w") as f:
         f.write(
-            "track_id\tmember\taccepted\treason\tlicence\tlicence_class\tcopyright_c\t"
-            "copyright_p\tgenre_top\tmay_have_vocals\tduration_s\tsize_bytes\tcrc32\n"
+            "track_id\tmember\taccepted\treason\tlicence\tlicence_class\tlicence_url\t"
+            "copyright_c\tcopyright_p\tgenre_top\tmay_have_vocals\tduration_s\tsize_bytes\t"
+            "crc32\tartist\ttitle\turl\n"
         )
         for t in tracks(a.meta_zip):
-            ok, why, cls = decide(t)
+            raw = raws.get(t["track_id"], {})
+            ok, why, cls = decide(t, raw)
             m = member(t["track_id"])
             size, crc = info.get(m, ("", ""))
             if info and ok and m not in info:
@@ -120,13 +142,17 @@ def main():
                 why,
                 t.get("track.license", ""),
                 cls,
-                t.get("track.copyright_c", ""),
-                t.get("track.copyright_p", ""),
+                raw.get("license_url", ""),
+                raw.get("track_copyright_c", ""),
+                raw.get("track_copyright_p", ""),
                 t.get("track.genre_top", ""),
-                vocals(t),
+                vocals(t, raw),
                 f"{d:.1f}",
                 size,
                 f"{crc:08x}" if crc != "" else "",
+                raw.get("artist_name", ""),
+                raw.get("track_title", ""),
+                raw.get("track_url", ""),
             ]
             f.write(
                 "\t".join(str(v).replace("\t", " ").replace("\n", " ") for v in vals)
@@ -140,6 +166,10 @@ def main():
         print(f"  {v:7d}  {k}")
     if not n or not hours:
         raise SystemExit("no track with a duration: tracks.csv was not read correctly")
+    joined = sum(1 for k in raws)
+    print(f"raw_tracks.csv: {joined} rows joined by track_id")
+    if not joined:
+        raise SystemExit("raw_tracks.csv gave no rows: copyright notes cannot be checked")
 
 
 if __name__ == "__main__":
