@@ -42,7 +42,9 @@ INSTRUMENTAL = re.compile(r"instrumental", re.I)
 def tracks(meta_zip: Path):
     """Rows of tracks.csv as dicts keyed "<group>.<field>" (two header rows)."""
     with zipfile.ZipFile(meta_zip) as z:
-        name = next(n for n in z.namelist() if n.endswith("tracks.csv"))
+        # fma_metadata/tracks.csv, not raw_tracks.csv (one header row, other columns),
+        # which also ends in "tracks.csv" and comes first in the archive
+        name = next(n for n in z.namelist() if Path(n).name == "tracks.csv")
         text = io.TextIOWrapper(z.open(name), encoding="utf-8", newline="")
         r = csv.reader(text)
         top, sub, _ = next(r), next(r), next(r)
@@ -136,6 +138,8 @@ def main():
     )
     for k, v in sorted(reasons.items(), key=lambda z: -z[1]):
         print(f"  {v:7d}  {k}")
+    if not n or not hours:
+        raise SystemExit("no track with a duration: tracks.csv was not read correctly")
 
 
 if __name__ == "__main__":

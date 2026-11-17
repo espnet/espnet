@@ -7,8 +7,11 @@ Each manifest line: corpus_dir, relative_path, url, size_bytes, checksum
 (md5:<hex>, sha256:<hex> or empty), unpack (empty, "untar": unpack the archive
 into the corpus directory, "untar_strip1": the same without the archive's top
 directory). A file that already has the listed size (and checksum) is kept,
-so a rerun only fetches what is missing. Downloads resume (wget -c). Every
-file is reported as OK or BAD; the exit status is 1 if any file is BAD. The
+so a rerun only fetches what is missing. Downloads resume (wget -c). A line
+without a size takes the server's Content-Length (HEAD request) as the size;
+when the server gives none, the file counts only after wget succeeds. An empty
+file is always BAD, and a downloaded .zip must pass a CRC test of every member.
+Every file is reported as OK or BAD; the exit status is 1 if any file is BAD. The
 checksum is verified after a download; a file already there is checked by
 size only.
 
@@ -42,14 +45,32 @@ def digest(path: Path, algo: str) -> str:
 
 
 def complete(dest: Path, size: str) -> bool:
-    return dest.exists() and (not size or dest.stat().st_size == int(size))
+    """dest has the expected size (a file whose size is not known is never complete)."""
+    return bool(size) and dest.exists() and dest.stat().st_size == int(size)
+
+
+def served_size(url: str) -> str:
+    """The Content-Length of the final response to a HEAD request, or "" if none."""
+    r = subprocess.run(
+        ["curl", "-sIL", "--max-time", "120", url], capture_output=True, text=True
+    )
+    sizes = [
+        line.split(":", 1)[1].strip()
+        for line in r.stdout.splitlines()
+        if line.lower().startswith("content-length:")
+    ]
+    return sizes[-1] if sizes and sizes[-1].isdigit() and int(sizes[-1]) > 0 else ""
 
 
 def fetch(row, root: Path) -> str:
     corpus, rel, url, size, check, unpack = row
     dest = root / corpus / rel
     dest.parent.mkdir(parents=True, exist_ok=True)
+    # Without a listed size, the server's Content-Length is the size to reach. A failed
+    # wget -O leaves an empty file behind, which must not count as downloaded.
+    size = size or served_size(url)
     present = complete(dest, size)
+    fetched = False
     for attempt in range(3):
         if complete(dest, size):
             break
@@ -58,12 +79,27 @@ def fetch(row, root: Path) -> str:
             capture_output=True,
             text=True,
         )
-        if r.returncode == 0 and not size:
+        fetched = r.returncode == 0
+        if fetched and (not size or complete(dest, size)):
             break
         log(f"retry {attempt + 1} {url}: rc={r.returncode} {r.stderr.strip()[-200:]}")
         time.sleep(30)
-    if not complete(dest, size):
-        return f"BAD size {dest}"
+    if not dest.exists() or dest.stat().st_size == 0:
+        return f"BAD empty {dest}"
+    if size and not complete(dest, size):
+        return f"BAD size {dest} ({dest.stat().st_size} of {size} bytes)"
+    if not size and not present and not fetched:
+        return f"BAD download {dest} (no size known and wget failed)"
+    if dest.suffix == ".zip" and not present:
+        import zipfile
+
+        try:
+            with zipfile.ZipFile(dest) as z:
+                bad = z.testzip()
+        except zipfile.BadZipFile as e:
+            return f"BAD zip {dest}: {e}"
+        if bad is not None:
+            return f"BAD zip {dest}: CRC error in {bad}"
     algo, _, want = check.partition(":")
     # a file that was already there was checked when it was downloaded
     if not present and algo in ("md5", "sha256") and digest(dest, algo) != want:
