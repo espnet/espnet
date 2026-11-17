@@ -101,7 +101,9 @@ def test_windowed_is_causal_and_batched_equals_sequential(look_ahead):
     sys_ = rs.WindowedOffline(ToyOffline(look_ahead), 160, 160 / FS, 80 / FS, FS)
     seq, emit_seq = rs.simulate(sys_, wav, block=1600)
     bat, emit_bat = rs.windowed_probs(sys_, wav, block=1600, batch=4)
-    assert np.allclose(seq, bat, rtol=1e-5, atol=1e-4) and np.allclose(emit_seq, emit_bat)
+    assert np.allclose(seq, bat, rtol=1e-5, atol=1e-4) and np.allclose(
+        emit_seq, emit_bat
+    )
     lat = rs.latencies(emit_seq, 160 / FS, 80 / FS)
     assert lat.min() >= -1e-12 and lat.max() <= 0.1 + 1e-12
     full = ToyOffline(look_ahead)([wav])[0][: len(seq)]
