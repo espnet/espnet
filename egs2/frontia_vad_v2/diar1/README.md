@@ -285,6 +285,16 @@ model state. MarbleNet (convolutions over the whole input) reads at least 1.4 s 
 Look-ahead is measured by changing the input from a time on and seeing which earlier
 frames change, as `espnet2/torch_utils/check_look_ahead.py` does.
 
+`local/v2/realtime_sim.py` is the real-time benchmark mode: a system gets a recording in
+blocks of b ms in time order, and after each block returns the frames that end by the
+block's end, using only the audio it has been given; those decisions are final, and every
+frame is dated with its emission time (latency between 0 and b). Streaming systems keep
+their state (ours at look-ahead 0 through the TCN encoder's `forward_streaming`, Silero,
+WebRTC); an offline model is rerun at each block end on the last W seconds and keeps the
+frames of the new block (MarbleNet), so its rows read "latency <= b". It writes the layout
+of `local/v2/vad_infer.py` plus `frames.json`, scored by `local/v2/score_vad.py` with the
+frame shift and offset given there.
+
 ## Running
 
 Set `VAD_CORPORA` (and the v1 corpus paths) in `db.sh`. The parallel work of every
