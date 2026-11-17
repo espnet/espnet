@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Per-file licence manifests of the downloaded music corpora (read from their archives).
+"""Per-file licence manifests of the downloaded music corpora (from their archives).
 
     python3 local/v2/music_manifests.py nsynth <corpus dir> <out.tsv>
     python3 local/v2/music_manifests.py musicnet <corpus dir> <out.tsv>
@@ -62,7 +62,9 @@ def musicnet(d: Path, out):
     lic, url = "CC BY 4.0", "https://zenodo.org/records/5120004"
     n = v = 0
     for r in csv.DictReader(open(d / "ARCHIVES" / "musicnet_metadata.csv")):
-        text = f"{r.get('ensemble', '')} {r.get('composition', '')} {r.get('movement', '')}"
+        text = " ".join(
+            r.get(k, "") for k in ("ensemble", "composition", "movement")
+        )
         vocal = int(bool(VOCAL_WORDS.search(text)))
         out.write(
             f"musicnet\t{r['id']}.wav\t{lic}\t{url}\t{vocal}\t{r.get('ensemble', '')}"
