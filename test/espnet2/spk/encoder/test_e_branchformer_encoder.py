@@ -39,6 +39,16 @@ def test_without_aggregation_returns_the_last_block():
     assert out.shape == (2, 8, 7)
 
 
+@pytest.mark.parametrize(
+    "input_layer", ["conv1d1", "conv1d2", "conv1d3", "conv2d", "conv2d1", "linear"]
+)
+def test_every_input_layer_runs(input_layer):
+    encoder = _encoder(input_layer=input_layer).eval()
+    with torch.no_grad():
+        out = encoder(torch.randn(2, 20, 16))
+    assert out.shape[:2] == (2, 24)
+
+
 def test_dropped_layers_keep_the_output_size():
     encoder = _encoder(layer_drop_rate=1.0).train()
     out = encoder(torch.randn(2, 20, 16))

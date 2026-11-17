@@ -6,6 +6,9 @@ from typeguard import typechecked
 from espnet2.asr.encoder.e_branchformer_encoder import EBranchformerEncoder
 from espnet2.legacy.nets.pytorch_backend.transformer.layer_norm import LayerNorm
 from espnet2.legacy.nets.pytorch_backend.transformer.subsampling import (
+    Conv1dSubsampling1,
+    Conv1dSubsampling2,
+    Conv1dSubsampling3,
     Conv2dSubsampling,
     Conv2dSubsampling1,
     Conv2dSubsampling2,
@@ -56,6 +59,9 @@ class EBranchformerSpkEncoder(EBranchformerEncoder):
         if isinstance(
             self.embed,
             (
+                Conv1dSubsampling1,
+                Conv1dSubsampling2,
+                Conv1dSubsampling3,
                 Conv2dSubsampling,
                 Conv2dSubsampling1,
                 Conv2dSubsampling2,
