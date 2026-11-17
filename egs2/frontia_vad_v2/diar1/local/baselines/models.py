@@ -49,16 +49,20 @@ class WebRTC:
     gpu = False
 
     def __init__(self, model_dir=None, mode=0):
-        import webrtcvad
-
-        self.vad = webrtcvad.Vad(mode)
+        self.mode = mode
 
     def __call__(self, wav):
+        import webrtcvad
+
+        # A new detector per recording: webrtcvad.Vad adapts its noise estimates
+        # frame by frame, and one instance kept across calls would start each
+        # recording from the state the previous one left.
+        vad = webrtcvad.Vad(self.mode)
         pcm = (np.clip(wav, -1, 1) * 32767).astype("<i2")
         n = len(pcm) // 480
         return np.array(
             [
-                self.vad.is_speech(pcm[i * 480 : (i + 1) * 480].tobytes(), FS)
+                vad.is_speech(pcm[i * 480 : (i + 1) * 480].tobytes(), FS)
                 for i in range(n)
             ],
             dtype=np.float32,
