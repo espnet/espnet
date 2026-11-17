@@ -11,9 +11,13 @@ speech probability (diarize.scp, one column) above the threshold are
 median-filtered, centred (scipy medfilt, (M-1)/2 future frames) or causal
 (the past M frames, zeros before the start), and become one-speaker RTTM
 segments, frame i covering [offset + (i - 0.5) shift, offset + (i + 0.5)
-shift) with shift 128 and offset 256 samples by default (this recipe's
-512-sample frames every 128 samples, not centred; --shift and --offset in seconds
-for other models). md-eval.pl -c 0 (--collar; --single_speaker_regions adds
+shift). The defaults are this recipe's frames: 512-sample windows every 128
+samples, not centred, so frame i reads samples [128 i, 128 i + 512); shift 128
+and offset 448 samples (0.028 s) give it the interval [128 i + 384, 128 i + 512),
+which ends at the window's last sample, so no frame is due before all its
+samples have been read (latency 0 at look-ahead 0). Until 2026-11-18 the default
+offset was 256 samples, the window centre, which dated each decision 12 ms
+before its last sample. --shift and --offset (seconds) set them for other models. md-eval.pl -c 0 (--collar; --single_speaker_regions adds
 -1) scores them against the set's rttm over each
 whole recording (a UEM from utt2num_samples), or over the regions of --uem
 (DIHARD style; recordings it does not list are scored whole). Writes
@@ -38,7 +42,8 @@ from pathlib import Path
 import numpy as np
 
 FS = 16000
-SHIFT, OFFSET = 128 / FS, 256 / FS
+WIN, HOP = 512, 128  # the frontend's win_length and hop_length (center: false)
+SHIFT, OFFSET = HOP / FS, (WIN - HOP / 2) / FS  # frame interval ends at the window end
 RESULT_RE = re.compile(r"result_th([0-9.]+)_med(\d+)_collar")
 
 

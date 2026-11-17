@@ -263,6 +263,28 @@ local/baselines/eval.sh --python <venv>/bin/python --models "silero webrtc0 marb
     --test_sets "ami_mh_dev_v1 libricss_eval aishell5_eval"
 ```
 
+### Frame time, look-ahead and latency
+
+The model's frames are 512-sample windows every 128 samples (`center: false`), so
+frame i reads samples [128 i, 128 i + 512). `local/v2/score_vad.py` dates frame i
+with the 8 ms interval that ends at the window's last sample (shift 128, offset 448
+samples), so a decision is never due before its samples have been read:
+
+- look-ahead 0 (`la0`) with median 1 is a strictly causal VAD with latency 0, and is
+  how online results are reported;
+- look-ahead L frames adds L x 8 ms (`la124`: 992 ms);
+- a centred median of M frames adds (M - 1) / 2 frames; a causal median
+  (`--median_mode causal`) adds none.
+
+Until 2026-11-18 the scorer dated frame i at the window centre (offset 256 samples),
+12 ms before the window's last sample, so la0 results scored then are 12 ms ahead of
+real time. Other models are scored at their own frames: Silero's 512-sample and
+WebRTC's 480-sample windows are dated by the window, and TEN VAD's 256-sample hops are
+streamed; their measured look-ahead is 0 ms when each recording starts from a new
+model state. MarbleNet (convolutions over the whole input) reads at least 1.4 s ahead.
+Look-ahead is measured by changing the input from a time on and seeing which earlier
+frames change, as `espnet2/torch_utils/check_look_ahead.py` does.
+
 ## Running
 
 Set `VAD_CORPORA` (and the v1 corpus paths) in `db.sh`. The parallel work of every
