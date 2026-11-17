@@ -169,7 +169,9 @@ def main():
     joined = sum(1 for k in raws)
     print(f"raw_tracks.csv: {joined} rows joined by track_id")
     if not joined:
-        raise SystemExit("raw_tracks.csv gave no rows: copyright notes cannot be checked")
+        raise SystemExit(
+            "raw_tracks.csv gave no rows: copyright notes cannot be checked"
+        )
 
 
 if __name__ == "__main__":
