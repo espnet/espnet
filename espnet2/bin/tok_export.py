@@ -6,10 +6,12 @@ from pathlib import Path
 
 import torch
 
+from espnet2.torch_utils.safe_torch_load import safe_torch_load
+
 
 def export_tokenizer_checkpoint(model_file: str, output_file: str) -> None:
     """Save only tokenizer parameters using normalized ``tokenizer.*`` keys."""
-    checkpoint = torch.load(model_file, map_location="cpu")
+    checkpoint = safe_torch_load(model_file, map_location="cpu")
     if isinstance(checkpoint, dict) and "model" in checkpoint:
         checkpoint = checkpoint["model"]
     if not isinstance(checkpoint, dict):
