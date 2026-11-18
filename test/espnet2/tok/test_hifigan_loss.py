@@ -99,6 +99,20 @@ def test_synthesize():
     torch.testing.assert_close(waveform_lengths, torch.tensor([10]))
 
 
+def test_synthesize_from_tokens():
+    loss_module = make_loss()
+    token_ids = torch.tensor([[0, 1, 2, 3, 0]])
+    token_lengths = torch.tensor([5])
+    spembs = torch.ones(1, 2)
+
+    waveform, waveform_lengths = loss_module.synthesize_from_tokens(
+        token_ids, token_lengths, spembs
+    )
+
+    assert waveform.shape == (1, 1, 10)
+    torch.testing.assert_close(waveform_lengths, torch.tensor([10]))
+
+
 def test_generator_and_discriminator_losses_with_cache():
     loss_module = make_loss()
     tokenizer_output = make_tokenizer_output()

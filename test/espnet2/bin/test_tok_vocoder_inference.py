@@ -56,6 +56,52 @@ def test_inference_requires_speaker_embeddings():
         )
 
 
+def test_inference_writes_wav_scp(tmp_path, monkeypatch):
+    class Model(torch.nn.Module):
+        @staticmethod
+        def synthesize_from_tokens(token_ids, token_lengths, spembs):
+            assert token_ids.tolist() == [[1, 2, 3]]
+            assert token_lengths.tolist() == [3]
+            return torch.zeros(1, 1, 4), torch.tensor([4])
+
+    monkeypatch.setattr(
+        GANSpeechTokenizerTask,
+        "build_model_from_file",
+        staticmethod(lambda train_config, model_file, device: (Model(), None)),
+    )
+    token_file = tmp_path / "tokens"
+    token_file.write_text("utt1 1 2 3\n", encoding="utf-8")
+    spembs_scp = tmp_path / "spembs.scp"
+    with kaldi_io.WriteHelper(
+        f"ark,scp:{tmp_path / 'spembs.ark'},{spembs_scp}"
+    ) as writer:
+        writer["utt1"] = np.array([0.1, 0.2], dtype=np.float32)
+    model_file = tmp_path / "model.pth"
+    torch.save({"losses.reconstruction.weight": torch.tensor(1.0)}, model_file)
+    output = tmp_path / "output"
+
+    inference(
+        task="gan_tok",
+        token_file=str(token_file),
+        spembs_scp=str(spembs_scp),
+        output_dir=str(output),
+        train_config="unused.yaml",
+        model_file=str(model_file),
+        key_file=None,
+        ngpu=0,
+        dtype="float32",
+        num_workers=0,
+        sample_rate="16k",
+    )
+
+    wav_scp = (output / "wav" / "wav.scp").read_text(encoding="utf-8")
+    key, wav_path = wav_scp.rstrip().split(maxsplit=1)
+    assert key == "utt1"
+    waveform, sample_rate = soundfile.read(wav_path)
+    assert waveform.shape == (4,)
+    assert sample_rate == 16000
+
+
 @pytest.mark.parametrize(
     ("sample_rate", "frontend_conf", "expected_sample_rate"),
     (("16k", {}, 16000), (None, {"fs": 24000}, 24000)),
