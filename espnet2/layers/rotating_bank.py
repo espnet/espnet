@@ -1,10 +1,11 @@
 """Pools of additive recordings from which BatchWavAugment draws a capped bank.
 
-A pool is a TSV, one row per file (e.g. a pack of noise pieces of one source), with the
-columns id, path, kind, source, licence, duration_s and flagged (1: the file holds speech,
-singing or vocals). ``caps`` gives the hours to draw per kind, e.g. {"noise": 150,
-"babble": 50}. A pool refuses a flagged row of any kind other than "babble", and a kind
-it has no cap for: nothing that is speech can enter a noise or music bank by accident.
+A pool is a TSV, one row per file (e.g. a pack of noise pieces of one source), with
+the columns id, path, kind, source, licence, duration_s and flagged (1: the file holds
+speech, singing or vocals). ``caps`` gives the hours to draw per kind, e.g.
+{"noise": 150, "babble": 50}. A pool refuses a flagged row of any kind other than
+"babble", and a kind it has no cap for: nothing that is speech can enter a noise or
+music bank by accident.
 
 draw(seed) returns a subset whose hours per kind reach the kind's cap, drawn source by
 source in turn (in a random order within each source, from the seed), so that no source
@@ -24,6 +25,8 @@ SPEECH_KINDS = ("babble",)
 
 @dataclass(frozen=True)
 class PoolRow:
+    """One file of a pool."""
+
     id: str
     path: str
     kind: str
@@ -45,7 +48,10 @@ def parse_caps(caps) -> Dict[str, float]:
 
 
 class Pool:
+    """The files of a pool TSV and the caps in hours per kind."""
+
     def __init__(self, path: str, caps):
+        """Read the pool at ``path`` and check its rows against ``caps``."""
         self.path = path
         self.caps = parse_caps(caps)
         if not self.caps or any(v <= 0 for v in self.caps.values()):
@@ -83,7 +89,7 @@ class Pool:
         self.hours = sum(r.duration_s for r in self.rows) / 3600
 
     def draw(self, seed: Sequence[int]) -> List[PoolRow]:
-        """The capped subset of every kind for this seed (a sequence of ints)."""
+        """Return the capped subset of every kind for this seed (a sequence of ints)."""
         out = []
         for ki, kind in enumerate(self.kinds):
             rng = np.random.default_rng(np.random.SeedSequence(list(seed) + [ki]))

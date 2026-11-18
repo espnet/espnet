@@ -1421,7 +1421,9 @@ def test_lowpass_band_limits_at_16k_without_resampling(cutoff):
     # nothing above the cut-off and its transition
     assert band_energy(y, 16000, cutoff + 150, 8000) < 1e-6 * total
     # the band below it is kept, up to well above 4 kHz when the cut-off is
-    ratio = band_energy(y, 16000, 300, cutoff - 150) / band_energy(x, 16000, 300, cutoff - 150)
+    ratio = band_energy(y, 16000, 300, cutoff - 150) / band_energy(
+        x, 16000, 300, cutoff - 150
+    )
     assert 0.98 < ratio < 1.02
 
 
@@ -1442,7 +1444,10 @@ def test_lowpass_keeps_timing_and_skips_the_telephone_rows():
     burst[6000:10000] = (torch.sin(2 * np.pi * 1000 * n / fs) * 0.5)[6000:10000]
     y = lowpass()(burst[None], None)[0][0]
     env = y.abs() > 0.1
-    assert abs(int(env.nonzero().min()) - 6000) < 40 and abs(int(env.nonzero().max()) - 9999) < 40
+    assert (
+        abs(int(env.nonzero().min()) - 6000) < 40
+        and abs(int(env.nonzero().max()) - 9999) < 40
+    )
     torch.testing.assert_close(y[6500:9500], burst[6500:9500], atol=2e-3, rtol=0)
     # a row in the telephone channel is not low-passed again
     aug = BatchWavAugment(telephone_apply_prob=1.0, lowpass_apply_prob=1.0).train()
@@ -1470,4 +1475,6 @@ def test_lowpass_batch_equals_each_row_alone_and_padding_stays_zero():
 def test_lowpass_cutoff_above_nyquist_is_refused_only_when_used():
     with pytest.raises(ValueError):
         BatchWavAugment(lowpass_apply_prob=1.0, lowpass_cutoff_range="3400_9000")
-    BatchWavAugment(telephone_apply_prob=1.0, fs=8000, telephone_cutoff_range="3400_3950")
+    BatchWavAugment(
+        telephone_apply_prob=1.0, fs=8000, telephone_cutoff_range="3400_3950"
+    )

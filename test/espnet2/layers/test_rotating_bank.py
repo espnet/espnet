@@ -1,4 +1,4 @@
-"""Tests of rotating noise/music banks (espnet2.layers.rotating_bank, BatchWavAugment)."""
+"""Tests of rotating noise and music banks (rotating_bank, BatchWavAugment)."""
 
 import numpy as np
 import pytest

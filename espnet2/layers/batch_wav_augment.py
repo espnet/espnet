@@ -28,13 +28,14 @@ Rotating banks: with ``noise_pool`` (or ``music_pool``) instead of a fixed list,
 bank is a capped subset of a larger pool (espnet2.layers.rotating_bank.Pool: hours per
 kind in ``noise_pool_hours``, drawn source by source), redrawn every
 ``rotate_every_steps`` training steps. Subset k is drawn with the seed (rotate_seed, k,
-rank), loaded on a background thread into host memory (pinned with rotate_pin_memory) while subset k - 1 is in
-use, and swapped in at step k * rotate_every_steps: the old device copy is freed before
-the new one is made, so the device holds one bank at the cap. The step counter is a
-buffer (``rotate_step``, in the state dict), so a resumed training continues with the
-subsets it would have drawn. Each swap logs the subset's hours by kind, source and licence,
-the share of the pool drawn so far, and the time spent waiting and copying; with
-``rotate_log`` it also appends them to that TSV (one file per rank).
+rank), loaded on a background thread into host memory (pinned with
+rotate_pin_memory) while subset k - 1 is in use, and swapped in at step
+k * rotate_every_steps: the old device copy is freed before the new one is made, so
+the device holds one bank at the cap. The step counter is a buffer
+(``rotate_step``, in the state dict), so a resumed training continues with the
+subsets it would have drawn. Each swap logs the subset's hours by kind, source and
+licence, the share of the pool drawn so far, and the time spent waiting and copying;
+with ``rotate_log`` it also appends them to that TSV (one file per rank).
 
 The labels are not changed: none of the steps moves the speech in time.
 
@@ -223,6 +224,7 @@ class BatchWavAugment(torch.nn.Module):
         rotate_log: Optional[str] = None,
         rotate_pin_memory: bool = False,
     ):
+        """Check the options; the lists and pools are read at the first step."""
         super().__init__()
         if noise_scp and noise_pool:
             raise ValueError("give noise_scp or noise_pool, not both")
@@ -271,7 +273,8 @@ class BatchWavAugment(torch.nn.Module):
         low, high = _db_range("lowpass_cutoff_range", lowpass_cutoff_range)
         if lowpass_apply_prob > 0 and not 0 < low <= high <= fs / 2:
             raise ValueError(
-                f"lowpass_cutoff_range must lie in (0, {fs / 2:g}]: {lowpass_cutoff_range}"
+                f"lowpass_cutoff_range must lie in (0, {fs / 2:g}]: "
+                f"{lowpass_cutoff_range}"
             )
         self.lowpass_cutoff_low, self.lowpass_cutoff_high = low, high
         self.lowpass_transition_hz = float(lowpass_transition_hz)
@@ -322,6 +325,7 @@ class BatchWavAugment(torch.nn.Module):
             self.register_buffer("rotate_step", torch.zeros((), dtype=torch.long))
 
     def extra_repr(self) -> str:
+        """Return the options for the module's repr."""
         return (
             f"noise_scp={self.noise_scp}, noise_apply_prob={self.noise_apply_prob}, "
             f"noise_db_range=({self.noise_db_low}, {self.noise_db_high}), "
@@ -339,7 +343,8 @@ class BatchWavAugment(torch.nn.Module):
             f"telephone_highpass_prob={self.telephone_highpass_prob}, "
             f"telephone_companding_prob={self.telephone_companding_prob}, "
             f"lowpass_apply_prob={self.lowpass_apply_prob}, "
-            f"lowpass_cutoff_range=({self.lowpass_cutoff_low}, {self.lowpass_cutoff_high})"
+            f"lowpass_cutoff_range=({self.lowpass_cutoff_low}, "
+            f"{self.lowpass_cutoff_high})"
         )
 
     def _load(self, kind: str) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
@@ -421,7 +426,10 @@ class BatchWavAugment(torch.nn.Module):
         return dist.get_rank() if dist.is_available() and dist.is_initialized() else 0
 
     def _prepare(self, kind: str, k: int):
-        """Draw and load subset k of the pool of ``kind``: (bank, starts, lengths, rows)."""
+        """Draw and load subset k of the ``kind`` pool.
+
+        Returns (bank, starts, lengths, rows).
+        """
         from espnet2.layers.rotating_bank import Pool  # noqa: F401
 
         pool = self._pools[kind]
@@ -446,7 +454,8 @@ class BatchWavAugment(torch.nn.Module):
             }
             for kind, pool in self._pools.items():
                 logging.info(
-                    f"BatchWavAugment: {kind} pool {pool.path}: {len(pool.rows)} files, "
+                    f"BatchWavAugment: {kind} pool {pool.path}: "
+                    f"{len(pool.rows)} files, "
                     f"{pool.hours:.1f} h, caps {pool.caps} h, a new subset every "
                     f"{self.rotate_every_steps} steps"
                 )
@@ -485,8 +494,9 @@ class BatchWavAugment(torch.nn.Module):
             stats[f"{kind}_coverage"] = cover
             logging.info(
                 f"BatchWavAugment: {kind} subset {k} (rank {self._rank()}): "
-                f"{len(rows)} files, {hours:.1f} h; pool drawn so far {100 * cover:.1f}% "
-                f"of {pool.hours:.1f} h; waited {stats[f'{kind}_wait_s']:.2f} s, copied "
+                f"{len(rows)} files, {hours:.1f} h; pool drawn so far "
+                f"{100 * cover:.1f}% of {pool.hours:.1f} h; waited "
+                f"{stats[f'{kind}_wait_s']:.2f} s, copied "
                 f"in {stats[f'{kind}_copy_s']:.2f} s"
             )
             if self.rotate_log:
@@ -494,13 +504,16 @@ class BatchWavAugment(torch.nn.Module):
                 new = not os.path.exists(path)
                 with open(path, "a") as f:
                     if new:
-                        f.write("k\tstep\trank\tbank\tkind\tsource\tlicence\tfiles"
-                                "\thours\tpool_coverage\twait_s\tcopy_s\n")
+                        f.write(
+                            "k\tstep\trank\tbank\tkind\tsource\tlicence\tfiles"
+                            "\thours\tpool_coverage\twait_s\tcopy_s\n"
+                        )
                     for (kd, src, lic), (n, h) in sorted(comp.items()):
                         f.write(
                             f"{k}\t{self._py_step}\t{self._rank()}\t{kind}\t{kd}\t{src}"
                             f"\t{lic}\t{n}\t{h:.3f}\t{cover:.4f}"
-                            f"\t{stats[f'{kind}_wait_s']:.3f}\t{stats[f'{kind}_copy_s']:.3f}\n"
+                            f"\t{stats[f'{kind}_wait_s']:.3f}"
+                            f"\t{stats[f'{kind}_copy_s']:.3f}\n"
                         )
         self.rotate_stats.append(stats)
         self._loaded_k = k
@@ -528,7 +541,10 @@ class BatchWavAugment(torch.nn.Module):
         self.rotate_step += 1
 
     def __getstate__(self):
-        # the loader thread and its futures cannot be copied or pickled
+        """Return the state without the loader thread and its futures.
+
+        They cannot be copied or pickled.
+        """
         state = self.__dict__.copy()
         state["_executor"] = None
         state["_pending"] = {}
@@ -933,7 +949,9 @@ class BatchWavAugment(torch.nn.Module):
         if "lowpass_apply" in draws and bool(draws["lowpass_apply"].any()):
             rows = draws["lowpass_apply"].cpu().nonzero().squeeze(1)
             rows_d = rows.to(device)
-            y = self._lowpass(x.index_select(0, rows_d), draws["lowpass_cutoff"].cpu()[rows])
+            y = self._lowpass(
+                x.index_select(0, rows_d), draws["lowpass_cutoff"].cpu()[rows]
+            )
             x = x.index_copy(0, rows_d, y * valid.index_select(0, rows_d))
 
         # As the preprocessor: divide by the peak when it exceeds 1.
