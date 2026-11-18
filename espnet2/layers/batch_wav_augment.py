@@ -24,6 +24,18 @@ per utterance on the CPU in the data loader workers. For each utterance:
    reduced bandwidth (e.g. 4-6 kHz meeting and earnings-call audio).
 7. Divide the utterance by its peak when the peak exceeds 1.
 
+Rotating banks: with ``noise_pool`` (or ``music_pool``) instead of a fixed list, the
+bank is a capped subset of a larger pool (espnet2.layers.rotating_bank.Pool: hours per
+kind in ``noise_pool_hours``, drawn source by source), redrawn every
+``rotate_every_steps`` training steps. Subset k is drawn with the seed (rotate_seed, k,
+rank), loaded on a background thread into host (pinned) memory while subset k - 1 is in
+use, and swapped in at step k * rotate_every_steps: the old device copy is freed before
+the new one is made, so the device holds one bank at the cap. The step counter is a
+buffer (``rotate_step``, in the state dict), so a resumed training continues with the
+subsets it would have drawn. Each swap logs the subset's hours by kind, source and licence,
+the share of the pool drawn so far, and the time spent waiting and copying; with
+``rotate_log`` it also appends them to that TSV (one file per rank).
+
 The labels are not changed: none of the steps moves the speech in time.
 
 All recordings of each list are loaded once into one bank in host memory: the
@@ -38,6 +50,7 @@ the input unchanged and loads nothing.
 """
 
 import logging
+import os
 import threading
 from typing import Dict, Optional, Tuple
 
@@ -201,12 +214,27 @@ class BatchWavAugment(torch.nn.Module):
         lowpass_apply_prob: float = 0.0,
         lowpass_cutoff_range: str = "3400_8000",
         lowpass_transition_hz: float = 200.0,
+        noise_pool: Optional[str] = None,
+        noise_pool_hours=None,
+        music_pool: Optional[str] = None,
+        music_pool_hours=None,
+        rotate_every_steps: int = 0,
+        rotate_seed: int = 0,
+        rotate_log: Optional[str] = None,
     ):
         super().__init__()
+        if noise_scp and noise_pool:
+            raise ValueError("give noise_scp or noise_pool, not both")
+        if music_scp and music_pool:
+            raise ValueError("give music_scp or music_pool, not both")
+        if (noise_pool or music_pool) and rotate_every_steps <= 0:
+            raise ValueError("a noise_pool or music_pool needs rotate_every_steps > 0")
         if (
             noise_scp is None
+            and noise_pool is None
             and rir_scp is None
             and music_scp is None
+            and music_pool is None
             and telephone_apply_prob <= 0
             and lowpass_apply_prob <= 0
         ):
@@ -215,12 +243,12 @@ class BatchWavAugment(torch.nn.Module):
                 "lowpass_apply_prob > 0"
             )
         self.noise_scp = noise_scp
-        self.noise_apply_prob = noise_apply_prob if noise_scp else 0.0
+        self.noise_apply_prob = noise_apply_prob if (noise_scp or noise_pool) else 0.0
         self.noise_db_low, self.noise_db_high = _db_range(
             "noise_db_range", noise_db_range
         )
         self.music_scp = music_scp
-        self.music_apply_prob = music_apply_prob if music_scp else 0.0
+        self.music_apply_prob = music_apply_prob if (music_scp or music_pool) else 0.0
         self.music_db_low, self.music_db_high = _db_range(
             "music_db_range", music_db_range
         )
@@ -254,7 +282,9 @@ class BatchWavAugment(torch.nn.Module):
         self.snr_reference = snr_reference
         if noise_rir_apply_prob > 0 and not rir_scp:
             raise ValueError("noise_rir_apply_prob > 0 needs rir_scp")
-        self.noise_rir_apply_prob = noise_rir_apply_prob if noise_scp else 0.0
+        self.noise_rir_apply_prob = (
+            noise_rir_apply_prob if (noise_scp or noise_pool) else 0.0
+        )
         if context < 0:
             raise ValueError(f"context must be >= 0: {context}")
         self.context = int(context)
@@ -269,6 +299,25 @@ class BatchWavAugment(torch.nn.Module):
         # of DataParallel share it (they copy the module's attributes shallowly),
         # and DistributedDataParallel does not broadcast it.
         self._cache: Dict[Tuple[str, str], Tuple[torch.Tensor, ...]] = {}
+        # rotating banks: {kind: (pool path, caps)}; the pools are read at the
+        # first training step (an eval-mode model reads nothing)
+        self.pool_specs = {}
+        if noise_pool:
+            self.pool_specs["noise"] = (noise_pool, noise_pool_hours)
+        if music_pool:
+            self.pool_specs["music"] = (music_pool, music_pool_hours)
+        self.rotate_every_steps = int(rotate_every_steps)
+        self.rotate_seed = int(rotate_seed)
+        self.rotate_log = rotate_log
+        self._pools = None
+        self._loaded_k = None
+        self._py_step = None
+        self._pending = {}
+        self._executor = None
+        self._seen = {}
+        self.rotate_stats = []
+        if self.pool_specs:
+            self.register_buffer("rotate_step", torch.zeros((), dtype=torch.long))
 
     def extra_repr(self) -> str:
         return (
@@ -296,8 +345,14 @@ class BatchWavAugment(torch.nn.Module):
         scp = {"noise": self.noise_scp, "music": self.music_scp, "rir": self.rir_scp}[
             kind
         ]
+        return self._load_entries(kind, read_2columns_text(scp).items(), scp)
+
+    def _load_entries(
+        self, kind: str, entries, name: str
+    ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+        """Load (key, path) entries as the bank of ``kind``."""
         chunks, lengths = [], []
-        for key, path in read_2columns_text(scp).items():
+        for key, path in entries:
             # A one-column line holds the path only, as in CommonPreprocessor
             path = path or key
             # Read every file as float. Reading a floating-point file as int16
@@ -323,7 +378,7 @@ class BatchWavAugment(torch.nn.Module):
                 chunks.append(np.ascontiguousarray(x))
                 lengths.append(x.size)
         if not chunks:
-            raise RuntimeError(f"no {kind} in {scp}")
+            raise RuntimeError(f"no {kind} in {name}")
         lengths = torch.tensor(lengths, dtype=torch.long)
         bank = torch.from_numpy(np.concatenate(chunks))
         starts = torch.cumsum(lengths, 0) - lengths
@@ -341,6 +396,13 @@ class BatchWavAugment(torch.nn.Module):
         """
         key = (kind, str(device))
         bank = self._cache.get(key)
+        if bank is None and kind in self.pool_specs:
+            # a rotating bank is filled by _swap; another device gets a copy
+            host = self._cache.get((kind, "host"))
+            if host is None:
+                raise RuntimeError(f"the rotating {kind} bank is not loaded yet")
+            self._cache[key] = tuple(t.to(device) for t in host)
+            return self._cache[key]
         if bank is None:
             with _LOAD_LOCK:
                 if key not in self._cache:
@@ -350,6 +412,120 @@ class BatchWavAugment(torch.nn.Module):
                     self._cache[key] = tuple(t.to(device) for t in self._cache[host])
                 bank = self._cache[key]
         return bank
+
+    # ------------------------------------------------------------ rotating banks
+    def _rank(self) -> int:
+        dist = torch.distributed
+        return dist.get_rank() if dist.is_available() and dist.is_initialized() else 0
+
+    def _prepare(self, kind: str, k: int):
+        """Draw and load subset k of the pool of ``kind``: (bank, starts, lengths, rows)."""
+        from espnet2.layers.rotating_bank import Pool  # noqa: F401
+
+        pool = self._pools[kind]
+        seed = (self.rotate_seed, k, self._rank(), 0 if kind == "noise" else 1)
+        rows = pool.draw(seed)
+        bank, starts, lengths = self._load_entries(
+            kind, [(r.id, r.path) for r in rows], f"{pool.path} subset {k}"
+        )
+        if torch.cuda.is_available():
+            bank = bank.pin_memory()
+        return bank, starts, lengths, rows
+
+    def _swap(self, k: int, device: torch.device):
+        """Put subset k of every pool in the cache (host and ``device``)."""
+        import time
+
+        from espnet2.layers.rotating_bank import Pool, composition
+
+        if self._pools is None:
+            self._pools = {
+                kind: Pool(path, caps) for kind, (path, caps) in self.pool_specs.items()
+            }
+            for kind, pool in self._pools.items():
+                logging.info(
+                    f"BatchWavAugment: {kind} pool {pool.path}: {len(pool.rows)} files, "
+                    f"{pool.hours:.1f} h, caps {pool.caps} h, a new subset every "
+                    f"{self.rotate_every_steps} steps"
+                )
+        stats = {"k": k, "step": self._py_step}
+        for kind in self._pools:
+            t0 = time.perf_counter()
+            future = self._pending.pop((kind, k), None)
+            bank, starts, lengths, rows = (
+                future.result() if future is not None else self._prepare(kind, k)
+            )
+            stats[f"{kind}_wait_s"] = time.perf_counter() - t0
+            t0 = time.perf_counter()
+            for key in [x for x in self._cache if x[0] == kind]:
+                del self._cache[key]  # free the old subset before the new copy
+            self._cache[(kind, "host")] = (bank, starts, lengths)
+            if device.type != "cpu":
+                self._cache[(kind, str(device))] = tuple(
+                    t.to(device, non_blocking=True) for t in (bank, starts, lengths)
+                )
+                if device.type == "cuda":
+                    torch.cuda.synchronize(device)
+            stats[f"{kind}_copy_s"] = time.perf_counter() - t0
+            seen = self._seen.setdefault(kind, {})
+            for r in rows:
+                seen[r.id] = r.duration_s
+            pool = self._pools[kind]
+            cover = sum(seen.values()) / 3600 / pool.hours
+            comp = composition(rows)
+            hours = sum(v[1] for v in comp.values())
+            stats[f"{kind}_hours"] = hours
+            stats[f"{kind}_coverage"] = cover
+            logging.info(
+                f"BatchWavAugment: {kind} subset {k} (rank {self._rank()}): "
+                f"{len(rows)} files, {hours:.1f} h; pool drawn so far {100 * cover:.1f}% "
+                f"of {pool.hours:.1f} h; waited {stats[f'{kind}_wait_s']:.2f} s, copied "
+                f"in {stats[f'{kind}_copy_s']:.2f} s"
+            )
+            if self.rotate_log:
+                path = f"{self.rotate_log}.rank{self._rank()}.tsv"
+                new = not os.path.exists(path)
+                with open(path, "a") as f:
+                    if new:
+                        f.write("k\tstep\trank\tbank\tkind\tsource\tlicence\tfiles"
+                                "\thours\tpool_coverage\twait_s\tcopy_s\n")
+                    for (kd, src, lic), (n, h) in sorted(comp.items()):
+                        f.write(
+                            f"{k}\t{self._py_step}\t{self._rank()}\t{kind}\t{kd}\t{src}"
+                            f"\t{lic}\t{n}\t{h:.3f}\t{cover:.4f}"
+                            f"\t{stats[f'{kind}_wait_s']:.3f}\t{stats[f'{kind}_copy_s']:.3f}\n"
+                        )
+        self.rotate_stats.append(stats)
+        self._loaded_k = k
+        # the next subset loads in the background while this one is in use
+        if self._executor is None:
+            from concurrent.futures import ThreadPoolExecutor
+
+            self._executor = ThreadPoolExecutor(1)
+        for kind in self._pools:
+            if (kind, k + 1) not in self._pending:
+                self._pending[(kind, k + 1)] = self._executor.submit(
+                    self._prepare, kind, k + 1
+                )
+
+    def _rotate(self, device: torch.device):
+        """Swap in the subset of the current step if it is not loaded."""
+        if self._py_step is None:
+            self._py_step = int(self.rotate_step.item())  # once: a resumed counter
+        k = self._py_step // self.rotate_every_steps
+        if k != self._loaded_k:
+            self._swap(k, device)
+
+    def _count_step(self):
+        self._py_step += 1
+        self.rotate_step += 1
+
+    def __getstate__(self):
+        # the loader thread and its futures cannot be copied or pickled
+        state = self.__dict__.copy()
+        state["_executor"] = None
+        state["_pending"] = {}
+        return state
 
     def _rir_peaks(self) -> torch.Tensor:
         """Return the index of the peak (``argmax |rir|``) of each impulse response.
@@ -783,11 +959,15 @@ class BatchWavAugment(torch.nn.Module):
             else:
                 lengths = speech_lengths.to(device).long()
             valid = torch.arange(t, device=device) < lengths[:, None]
+            if self.pool_specs:
+                self._rotate(device)
             if not self.keep_on_device:
                 # The noise is cut on the host from offsets that depend on the
                 # lengths: one copy of the lengths to the host per batch.
                 lengths = lengths.cpu()
             speech = self.apply(speech, valid, self.draw(lengths)).to(speech.dtype)
+            if self.pool_specs:
+                self._count_step()
         return self.remove_context(speech, speech_lengths)
 
     def remove_context(
