@@ -3,7 +3,9 @@
 # model, lr 0.001, 1024 windows per update) with the noise, music and impulse-response banks
 # of OpenNoise v0.1 (train split; local/v2/opennoise_banks.py writes data/opennoise_v01/) and
 # a stronger telephone channel: on 40% of the windows (v2.2aug 20%), low-pass at 3.0-3.95 kHz
-# (3.4-3.95), 300 Hz high-pass on 70% of them (50%), 8-bit mu-law or A-law on 70% (50%).
+# (3.4-3.95), 300 Hz high-pass on 70% of them (50%), 8-bit mu-law or A-law on 70% (50%);
+# and on 30% of the other windows a wide-band low-pass at 16 kHz with a cut-off of 3.4-8 kHz
+# (BatchWavAugment lowpass_*; the 4-6 kHz band limits of e.g. Earnings21).
 # No item flagged as singing, vocals or speech is in any bank.
 # No babble (the control for train_dualmode_v2_3babble_lr1e-3.yaml).
 # Run with --dumpdir dump_v2_2_clean2 and its own --expdir (its diar_stats_16k: the
@@ -52,6 +54,9 @@ wav_augment_conf:
     telephone_highpass_hz: 300
     telephone_highpass_prob: 0.7     # v2.2aug: 0.5
     telephone_companding_prob: 0.7   # v2.2aug: 0.5
+    # wide-band low-pass at 16 kHz (no resampling), Earnings21-style band limits
+    lowpass_apply_prob: 0.3          # of the windows outside the telephone channel
+    lowpass_cutoff_range: "3400_8000"
     rir_scp: data/opennoise_v01/rir.scp
     rir_apply_prob: 0.5
     context: 16000       # 1 s of reverberation history, removed before the frontend
