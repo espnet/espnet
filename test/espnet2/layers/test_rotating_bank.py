@@ -194,3 +194,6 @@ def test_swap_keeps_the_device(tmp_path):
     bank = aug.bank("noise", speech.device)
     assert all(t.device.type == "cuda" for t in bank)
     assert sum(k[0] == "noise" and k[1] != "host" for k in aug._cache) == 1
+    # with keep_on_device the host keeps only starts and lengths
+    host = aug._cache[("noise", "host")]
+    assert host[0].numel() == 0 and int(host[2].sum()) == bank[0].numel()

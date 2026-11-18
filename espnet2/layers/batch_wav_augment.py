@@ -468,6 +468,11 @@ class BatchWavAugment(torch.nn.Module):
                 )
                 if device.type == "cuda":
                     torch.cuda.synchronize(device)
+                if self.keep_on_device:
+                    # the host keeps only starts and lengths (draw() needs them): the
+                    # samples are on the device, and the host memory holds the next
+                    # subset being loaded instead
+                    self._cache[(kind, "host")] = (bank.new_empty(0), starts, lengths)
             stats[f"{kind}_copy_s"] = time.perf_counter() - t0
             seen = self._seen.setdefault(kind, {})
             for r in rows:
