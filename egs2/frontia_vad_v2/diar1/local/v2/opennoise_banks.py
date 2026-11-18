@@ -1,155 +1,129 @@
 #!/usr/bin/env python3
-"""Augmentation banks of v2.3 from OpenNoise's per-file manifest (train split only).
+"""Pools of the v2.3 rotating banks from OpenNoise v0.1's training lists.
 
-    python3 local/v2/opennoise_banks.py --manifest <OpenNoise manifest.tsv> \
-        --audio_root <dir the manifest paths are relative to> --out data/opennoise_v01 \
-        [--cap_hours noise=150,music=75,babble=50] [--seed 0]
+    python3 local/v2/opennoise_banks.py --lists <OpenNoise data/lists> --out data/opennoise_v01 \
+        [--keep_babble_routed_noise]
 
-Reads one row per audio file (tab-separated, a header). Columns: id, path, kind (noise,
-music, rir, babble, human_nonspeech), split, source, license (SPDX or LicenseRef),
-duration_s, and any of the flag columns may_have_vocals, vocal, singing, contains_speech
-(true: 1/true/yes). Keeps split train; refuses a licence outside ALLOWED (the manifest
-should hold none). Excludes every row flagged as vocal, singing or speech from the noise
-and music banks (singing is speech: never used as noise). Writes:
+OpenNoise writes, per kind (noise, music, rir, babble, human_nonspeech) and split,
+<kind>_<split>.scp ("<entry> <wav path>"; noise, music and babble entries are packs of
+about 300 s of one source) and <kind>_<split>_manifest.tsv, one row per piece: entry,
+start_s, end_s, kind, source, split, duration_s, spdx, licence_class, speech_flag,
+vocal_flag, speech_check, and the credit columns. From the train split this writes:
 
-- noise.scp (kind noise), music.scp (kind music), rir.scp (kind rir), babble.scp (kind
-  babble, which is speech by definition and goes only into noise_babble.scp), and
-  noise_babble.scp = noise.scp + babble.scp; "<id> <absolute audio path>" lines;
-- bank.tsv: every row written to a list, with its bank, source, license and duration;
-- counts.tsv: files and hours per bank x licence and per bank x flag.
+- noise_pool.tsv (packs of kind noise), noise_babble_pool.tsv (noise and babble packs) and
+  music_pool.tsv: one row per pack (id, path, kind, source, licence = the SPDX ids of its
+  pieces joined by "+", duration_s = its last piece's end, flagged = any piece with
+  speech_flag or vocal_flag, babble packs always 1), the input of BatchWavAugment's
+  noise_pool / music_pool (espnet2.layers.rotating_bank.Pool);
+- rir.scp: every impulse response (a small bank, loaded whole);
+- pool_counts.tsv: packs, pieces and hours per pool by licence and by flag.
 
-The banks are loaded onto every GPU (wav_augment keep_on_device), about 2 bytes per
-sample, i.e. 115 MB per hour of audio. --cap_hours limits a bank's hours: files are
-drawn source by source in turn, in a seeded random order within each source, so that no
-single source fills the cap.
+It stops when a noise or music piece is flagged as speech or vocals, when a licence class is
+outside PD/CC0, BY, permissive and accepted, or when an scp entry has no manifest row (or
+the reverse). Noise packs routed from babble candidates (a piece whose speech_check starts
+with "noise ratio=": crowd recordings that passed the speech screen) are left out unless
+--keep_babble_routed_noise.
 """
 
 import argparse
 import collections
 import csv
-import random
 from pathlib import Path
 
-ALLOWED = (
-    "CC0-1.0",
-    "PDM-1.0",
-    "LicenseRef-Public-Domain",
-    "LicenseRef-US-Public-Domain",
-    "CC-BY-1.0",
-    "CC-BY-2.0",
-    "CC-BY-2.5",
-    "CC-BY-3.0",
-    "CC-BY-4.0",
-    "CC-BY",
-    "Apache-2.0",
-    "MIT",
-    "BSD-2-Clause",
-    "BSD-3-Clause",
-    "CDLA-Permissive-1.0",
-    "CDLA-Permissive-2.0",
-    "ODC-By-1.0",
-    "LicenseRef-Open-AoE-Dataset-License",
-    "LicenseRef-UIowa-MIS-free-use",
-)
-FLAGS = ("may_have_vocals", "vocal", "singing", "contains_speech")
-TRUE = {"1", "true", "yes", "y"}
+CLASSES = {"PD/CC0", "BY", "permissive", "accepted"}
+TRUE = {"1", "true", "yes"}
 
 
-def flagged(r):
-    return [f for f in FLAGS if str(r.get(f, "")).strip().lower() in TRUE]
-
-
-def capped(rows, hours, seed):
-    """Rows drawn source by source in turn until `hours` (None: all rows)."""
-    if hours is None:
-        return rows
-    rng = random.Random(seed)
-    by = collections.defaultdict(list)
-    for r in rows:
-        by[r["source"]].append(r)
-    for v in by.values():
-        rng.shuffle(v)
-    out, total, queues = [], 0.0, [list(v) for _, v in sorted(by.items())]
-    while queues and total < hours * 3600:
-        nxt = []
-        for q in queues:
-            if total >= hours * 3600:
-                break
-            r = q.pop()
-            out.append(r)
-            total += float(r["duration_s"])
-            if q:
-                nxt.append(q)
-        queues = nxt
-    return out
+def read_kind(lists: Path, kind: str):
+    scp = dict(
+        x.split(maxsplit=1)
+        for x in (lists / f"{kind}_train.scp").read_text().splitlines()
+        if x
+    )
+    pieces = collections.defaultdict(list)
+    with open(lists / f"{kind}_train_manifest.tsv", newline="") as f:
+        for r in csv.DictReader(f, delimiter="\t"):
+            pieces[r["entry"]].append(r)
+    if set(scp) != set(pieces):
+        raise SystemExit(
+            f"{kind}: {len(set(scp) - set(pieces))} scp entries without manifest rows, "
+            f"{len(set(pieces) - set(scp))} manifest entries without scp lines"
+        )
+    return scp, pieces
 
 
 def main():
     ap = argparse.ArgumentParser(description=__doc__.split("\n")[0])
-    ap.add_argument("--manifest", required=True, type=Path)
-    ap.add_argument("--audio_root", required=True, type=Path)
+    ap.add_argument("--lists", required=True, type=Path)
     ap.add_argument("--out", required=True, type=Path)
-    ap.add_argument(
-        "--cap_hours", default="", help="bank=hours,... (noise, music, babble, rir)"
-    )
-    ap.add_argument("--seed", type=int, default=0)
+    ap.add_argument("--keep_babble_routed_noise", action="store_true")
     a = ap.parse_args()
-    caps = {k: float(v) for k, v in (x.split("=") for x in a.cap_hours.split(",") if x)}
-    rows = list(csv.DictReader(a.manifest.open(), delimiter="\t"))
-    need = {"id", "path", "kind", "split", "source", "license", "duration_s"}
-    missing = need - set(rows[0]) if rows else need
-    if missing:
-        raise SystemExit(f"{a.manifest}: no column {sorted(missing)}")
-    if not any(f in rows[0] for f in FLAGS):
-        raise SystemExit(f"{a.manifest}: none of the flag columns {FLAGS}")
-    train = [r for r in rows if r["split"] == "train"]
-    bad = collections.Counter(
-        r["license"] for r in train if r["license"] not in ALLOWED
-    )
-    if bad:
-        raise SystemExit(f"licences outside the allowed list: {dict(bad)}")
-    banks = {}
-    dropped = collections.Counter()
-    for kind in ("noise", "music", "rir", "babble"):
-        keep = []
-        for r in (x for x in train if x["kind"] == kind):
-            f = flagged(r)
-            if f and kind != "babble":
-                dropped[(kind, ",".join(f))] += 1
-                continue
-            keep.append(r)
-        banks[kind] = capped(keep, caps.get(kind), a.seed)
-    banks["noise_babble"] = banks["noise"] + banks["babble"]
     a.out.mkdir(parents=True, exist_ok=True)
-    for name, rs in banks.items():
-        with (a.out / f"{name}.scp").open("w") as f:
-            for r in rs:
-                f.write(f"{r['id']} {(a.audio_root / r['path']).resolve()}\n")
-    counts = collections.defaultdict(lambda: [0, 0.0])
-    with (a.out / "bank.tsv").open("w") as f:
-        f.write("bank\tid\tkind\tsource\tlicense\tflags\tduration_s\n")
-        for name in ("noise", "music", "rir", "babble"):
-            for r in banks[name]:
-                fl = ",".join(flagged(r)) or "-"
-                f.write(
-                    f"{name}\t{r['id']}\t{r['kind']}\t{r['source']}\t{r['license']}\t{fl}"
-                    f"\t{r['duration_s']}\n"
+    packs, counts, routed = {}, collections.defaultdict(lambda: [0, 0, 0.0]), 0
+    for kind in ("noise", "music", "babble"):
+        scp, pieces = read_kind(a.lists, kind)
+        rows = []
+        for entry, ps in sorted(pieces.items()):
+            bad = {p["licence_class"] for p in ps} - CLASSES
+            if bad:
+                raise SystemExit(f"{kind} {entry}: licence class {bad}")
+            flagged = any(
+                str(p.get(c, "")).strip().lower() in TRUE
+                for p in ps
+                for c in ("speech_flag", "vocal_flag")
+            )
+            if flagged and kind != "babble":
+                raise SystemExit(
+                    f"{kind} {entry}: a piece is flagged as speech or vocals"
                 )
-                for key in (("licence", name, r["license"]), ("flag", name, fl)):
-                    counts[key][0] += 1
-                    counts[key][1] += float(r["duration_s"]) / 3600
-    with (a.out / "counts.tsv").open("w") as f:
-        f.write("what\tbank\tvalue\tfiles\thours\n")
-        for (w, b, v), (n, h) in sorted(counts.items()):
-            f.write(f"{w}\t{b}\t{v}\t{n}\t{h:.2f}\n")
-    for name, rs in banks.items():
-        h = sum(float(r["duration_s"]) for r in rs) / 3600
-        print(f"{name}: {len(rs)} files, {h:.1f} h, about {h * 0.115:.1f} GB per GPU")
-    for (kind, f), n in sorted(dropped.items()):
-        print(f"  dropped from {kind}: {n} rows flagged {f}")
-    leak = [r["id"] for k in ("noise", "music") for r in banks[k] if flagged(r)]
-    if leak:
-        raise SystemExit(f"flagged rows in noise/music banks: {leak[:5]}")
+            if kind == "noise" and any(
+                p.get("speech_check", "").startswith("noise ratio=") for p in ps
+            ):
+                routed += 1
+                if not a.keep_babble_routed_noise:
+                    continue
+            lic = "+".join(sorted({p["spdx"] for p in ps}))
+            dur = max(float(p["end_s"]) for p in ps)
+            fl = 1 if kind == "babble" else int(flagged)
+            rows.append(
+                (entry, scp[entry].strip(), kind, ps[0]["source"], lic, dur, fl)
+            )
+            for key in (("licence", lic), ("flag", str(fl))):
+                c = counts[(kind,) + key]
+                c[0] += 1
+                c[1] += len(ps)
+                c[2] += dur / 3600
+        packs[kind] = rows
+    head = "id\tpath\tkind\tsource\tlicence\tduration_s\tflagged\n"
+    for name, kinds in (
+        ("noise_pool", ("noise",)),
+        ("noise_babble_pool", ("noise", "babble")),
+        ("music_pool", ("music",)),
+    ):
+        with open(a.out / f"{name}.tsv", "w") as f:
+            f.write(head)
+            for k in kinds:
+                for r in packs[k]:
+                    f.write("\t".join(map(str, r)) + "\n")
+    rir = dict(
+        x.split(maxsplit=1)
+        for x in (a.lists / "rir_train.scp").read_text().splitlines()
+        if x
+    )
+    (a.out / "rir.scp").write_text(
+        "".join(f"{k} {v.strip()}\n" for k, v in sorted(rir.items()))
+    )
+    with open(a.out / "pool_counts.tsv", "w") as f:
+        f.write("kind\twhat\tvalue\tpacks\tpieces\thours\n")
+        for (k, w, v), (n, p, h) in sorted(counts.items()):
+            f.write(f"{k}\t{w}\t{v}\t{n}\t{p}\t{h:.2f}\n")
+    for k, rows in packs.items():
+        print(f"{k}: {len(rows)} packs, {sum(r[5] for r in rows) / 3600:.1f} h")
+    print(f"rir: {len(rir)} impulse responses")
+    print(
+        f"noise packs routed from babble candidates: {routed} "
+        f"({'kept' if a.keep_babble_routed_noise else 'left out'})"
+    )
 
 
 if __name__ == "__main__":

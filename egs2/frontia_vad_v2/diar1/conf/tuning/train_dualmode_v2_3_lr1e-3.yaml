@@ -1,12 +1,13 @@
 # frontia_vad_v2 v2.3: the v2.2aug clean2 setup
 # (train_dualmode_v2_2aug_clean2_lr1e-3.yaml: dump_v2_2_clean2, labels unchanged, dual-mode
 # model, lr 0.001, 1024 windows per update) with the noise, music and impulse-response banks
-# of OpenNoise v0.1 (train split; local/v2/opennoise_banks.py writes data/opennoise_v01/) and
+# of OpenNoise v0.1 (train split, local/v2/opennoise_banks.py writes data/opennoise_v01/), rotated
+# every epoch (noise 150 h, music 75 h, babble 50 h in run B, out of the full pools), and
 # a stronger telephone channel: on 40% of the windows (v2.2aug 20%), low-pass at 3.0-3.95 kHz
 # (3.4-3.95), 300 Hz high-pass on 70% of them (50%), 8-bit mu-law or A-law on 70% (50%);
 # and on 30% of the other windows a wide-band low-pass at 16 kHz with a cut-off of 3.4-8 kHz
 # (BatchWavAugment lowpass_*; the 4-6 kHz band limits of e.g. Earnings21).
-# No item flagged as singing, vocals or speech is in any bank.
+# No noise or music item is flagged as singing, vocals or speech (babble only in run B).
 # No babble (the control for train_dualmode_v2_3babble_lr1e-3.yaml).
 # Run with --dumpdir dump_v2_2_clean2 and its own --expdir (its diar_stats_16k: the
 # statistics of exp_v2_2_clean2, the same data).
@@ -43,10 +44,17 @@ label_aggregator_conf:
 # (training only): the same procedure as the preprocessor's noise_scp
 wav_augment: batch_wav
 wav_augment_conf:
-    noise_scp: data/opennoise_v01/noise.scp
+    # rotating banks (BatchWavAugment noise_pool / music_pool): a new capped subset of the
+    # OpenNoise v0.1 train packs every rotate_every_steps mini-batches (18,660 = one epoch of
+    # v2.2aug), drawn source by source with the seed (rotate_seed, subset, rank); the next
+    # subset loads in the background; each swap is logged with its hours by source and
+    # licence (rotate_log)
+    noise_pool: data/opennoise_v01/noise_pool.tsv
+    noise_pool_hours: "noise=150"
     noise_apply_prob: 0.6
     noise_db_range: "-5_20"
-    music_scp: data/opennoise_v01/music.scp
+    music_pool: data/opennoise_v01/music_pool.tsv
+    music_pool_hours: "music=75"
     music_apply_prob: 0.4
     music_db_range: "-10_20"
     telephone_apply_prob: 0.4        # v2.2aug: 0.2
@@ -59,6 +67,9 @@ wav_augment_conf:
     lowpass_cutoff_range: "3400_8000"
     rir_scp: data/opennoise_v01/rir.scp
     rir_apply_prob: 0.5
+    rotate_every_steps: 18660
+    rotate_seed: 1
+    rotate_log: exp_v2_3/rotating_banks
     context: 16000       # 1 s of reverberation history, removed before the frontend
     # the banks on the GPU (noise and music about 2 bytes per sample, impulse
     # responses 0.15 GB per GPU),
