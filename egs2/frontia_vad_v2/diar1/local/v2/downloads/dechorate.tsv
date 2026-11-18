@@ -1,0 +1,7 @@
+# corpus_dir	relative_path	url	size_bytes	checksum	unpack
+# dEchorate v1.0 (Zenodo 5562386, CC BY 4.0): the processed RIRs. The v2.0 RIR file (Zenodo
+# 6576203, on ABCI) was never closed by its writer and cannot be read; the SOFA release
+# (Zenodo 6580691) was removed by its uploader on 2022-06-07.
+dechorate	ARCHIVES/zenodo_5562386/dechorate_rir_processed.hdf5	https://zenodo.org/api/records/5562386/files/dechorate_rir_processed.hdf5/content	357238396	md5:02171edaaf2210cc4182a7e5b1f183a9	
+dechorate	ARCHIVES/zenodo_5562386/load_positions_and_plot.py	https://zenodo.org/api/records/5562386/files/load_positions_and_plot.py/content	7061	md5:7c24b3558507e16f806d730e8662edab	
+dechorate	ARCHIVES/zenodo_5562386/zenodo_record_5562386.json	https://zenodo.org/api/records/5562386			
