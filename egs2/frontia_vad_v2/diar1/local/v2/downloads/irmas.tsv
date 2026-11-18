@@ -1,7 +1,7 @@
 # corpus_dir	relative_path	url	size_bytes	checksum	unpack
 # IRMAS: a dataset for instrument recognition in musical audio signals (Zenodo 1290750, version 1.0); licence on the record: cc-by-nc-sa-4.0; files as published
-irmas	ARCHIVES/IRMAS-TestingData-Part2.zip	https://zenodo.org/api/records/1290750/files/IRMAS-TestingData-Part2.zip/content	3387310839	md5:afb0c8ea92f34ee653693106be95c895	
-irmas	ARCHIVES/IRMAS-TestingData-Part1.zip	https://zenodo.org/api/records/1290750/files/IRMAS-TestingData-Part1.zip/content	2282264831	md5:5a2e65520dcedada565dff2050bb2a56	
-irmas	ARCHIVES/IRMAS-TrainingData.zip	https://zenodo.org/api/records/1290750/files/IRMAS-TrainingData.zip/content	3181049879	md5:4fd9f5ed5a18d8e2687e6360b5f60afe	
-irmas	ARCHIVES/IRMAS-TestingData-Part3.zip	https://zenodo.org/api/records/1290750/files/IRMAS-TestingData-Part3.zip/content	2132712716	md5:9b3fb2d0c89cdc98037121c25bd5b556	
-irmas	ARCHIVES/zenodo_record_1290750.json	https://zenodo.org/api/records/1290750			
+irmas	ARCHIVES/IRMAS-TestingData-Part2.zip	https://zenodo.org/api/records/1290750/files/IRMAS-TestingData-Part2.zip/content	3387310839	md5:afb0c8ea92f34ee653693106be95c895
+irmas	ARCHIVES/IRMAS-TestingData-Part1.zip	https://zenodo.org/api/records/1290750/files/IRMAS-TestingData-Part1.zip/content	2282264831	md5:5a2e65520dcedada565dff2050bb2a56
+irmas	ARCHIVES/IRMAS-TrainingData.zip	https://zenodo.org/api/records/1290750/files/IRMAS-TrainingData.zip/content	3181049879	md5:4fd9f5ed5a18d8e2687e6360b5f60afe
+irmas	ARCHIVES/IRMAS-TestingData-Part3.zip	https://zenodo.org/api/records/1290750/files/IRMAS-TestingData-Part3.zip/content	2132712716	md5:9b3fb2d0c89cdc98037121c25bd5b556
+irmas	ARCHIVES/zenodo_record_1290750.json	https://zenodo.org/api/records/1290750
