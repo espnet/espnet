@@ -35,6 +35,7 @@ num_nodes=1
 nj=32
 stats_nj=4
 inference_nj=32
+score_nj=4
 gpu_inference=false
 dumpdir=dump
 expdir=exp
@@ -124,6 +125,7 @@ Main options:
   --stop_stage INT
   --skip_stages "INT ..."
   --stats_nj INT
+  --score_nj INT
   --train_set NAME
   --valid_set NAME
   --test_sets "NAME ..."
@@ -822,13 +824,13 @@ if [ "${stage}" -le 12 ] && [ "${stop_stage}" -ge 12 ] \
         done
         versa_dir=${score_dir}/versa
         mkdir -p "${versa_dir}"
-        score_nj=$(min "${inference_nj}" "$(wc -l < "${decode_dir}/vocoder/wav.scp")")
+        versa_nj=$(min "${score_nj}" "$(wc -l < "${decode_dir}/vocoder/wav.scp")")
         score_splits=()
-        for job in $(seq "${score_nj}"); do
+        for job in $(seq "${versa_nj}"); do
             score_splits+=("${versa_dir}/pred.${job}.scp")
         done
         utils/split_scp.pl "${decode_dir}/vocoder/wav.scp" "${score_splits[@]}"
-        ${cuda_cmd} --gpu 1 JOB=1:"${score_nj}" "${versa_dir}/versa.JOB.log" \
+        ${cuda_cmd} --gpu 1 JOB=1:"${versa_nj}" "${versa_dir}/versa.JOB.log" \
             "${python}" -m versa.bin.scorer \
                 --pred "${versa_dir}/pred.JOB.scp" \
                 --gt "${decode_data}/wav.scp" \
@@ -840,7 +842,7 @@ if [ "${stage}" -le 12 ] && [ "${stop_stage}" -ge 12 ] \
                 --scoring_mode metric \
                 --io soundfile
         "${python}" pyscripts/utils/aggregate_eval.py \
-            --logdir "${versa_dir}" --scoredir "${versa_dir}" --nj "${score_nj}"
+            --logdir "${versa_dir}" --scoredir "${versa_dir}" --nj "${versa_nj}"
     done
     scripts/utils/show_tok_result.sh \
         "${tok_exp}" "${inference_tag}" "${inference_model}" "${test_sets}" \
