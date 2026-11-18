@@ -2,14 +2,14 @@
 # (train_dualmode_v2_2aug_clean2_lr1e-3.yaml: dump_v2_2_clean2, labels unchanged, dual-mode
 # model, lr 0.001, 1024 windows per update) with the noise, music and impulse-response banks
 # of OpenNoise v0.1 (train split, local/v2/opennoise_banks.py writes data/opennoise_v01/), rotated
-# every epoch (noise 150 h, music 75 h, babble 50 h in run B, out of the full pools), and
+# every epoch (noise 300 h, music 150 h, babble 50 h in run B, out of the full pools), and
 # a stronger telephone channel: on 40% of the windows (v2.2aug 20%), low-pass at 3.0-3.95 kHz
 # (3.4-3.95), 300 Hz high-pass on 70% of them (50%), 8-bit mu-law or A-law on 70% (50%);
 # and on 30% of the other windows a wide-band low-pass at 16 kHz with a cut-off of 3.4-8 kHz
 # (BatchWavAugment lowpass_*; the 4-6 kHz band limits of e.g. Earnings21).
 # No noise or music item is flagged as singing, vocals or speech (babble only in run B).
 # Babble: OpenNoise's real-recorded crowd speech (kind babble) is part of the noise bank
-# (noise_babble_pool.tsv: noise packs and babble packs, 150 h + 50 h per subset), mixed like any
+# (noise_babble_pool.tsv: noise packs and babble packs, 300 h + 50 h per subset), mixed like any
 # noise; the frames keep their labels, so background babble is trained as non-speech
 # interference.
 # Run with --dumpdir dump_v2_2_clean2 and its own --expdir (its diar_stats_16k: the
@@ -53,11 +53,11 @@ wav_augment_conf:
     # subset loads in the background; each swap is logged with its hours by source and
     # licence (rotate_log)
     noise_pool: data/opennoise_v01/noise_babble_pool.tsv
-    noise_pool_hours: "noise=150,babble=50"
+    noise_pool_hours: "noise=300,babble=50"
     noise_apply_prob: 0.6
     noise_db_range: "-5_20"
     music_pool: data/opennoise_v01/music_pool.tsv
-    music_pool_hours: "music=75"
+    music_pool_hours: "music=150"
     music_apply_prob: 0.4
     music_db_range: "-10_20"
     telephone_apply_prob: 0.4        # v2.2aug: 0.2
