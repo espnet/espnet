@@ -1,11 +1,11 @@
 # corpus_dir	relative_path	url	size_bytes	checksum	unpack
 # TAU Spatial Room Impulse Response Database (TAU-SRIR DB) (Zenodo 6408611, version None); licence on the record: other-nc; files as published
-tau_srir	ARCHIVES/TAU-SNoise_DB.zip	https://zenodo.org/api/records/6408611/files/TAU-SNoise_DB.zip/content	2349603940	md5:d3820fc7611dab261527c573ca4ebff2	
-tau_srir	ARCHIVES/TAU-SNoise_DB.z01	https://zenodo.org/api/records/6408611/files/TAU-SNoise_DB.z01/content	4294967296	md5:d037ea4fc55922256ccee884cc9a96c1	
-tau_srir	ARCHIVES/TAU-SRIR_DB.z02	https://zenodo.org/api/records/6408611/files/TAU-SRIR_DB.z02/content	4294967296	md5:3bb4bf28755250a170642ff64cb1b25e	
-tau_srir	ARCHIVES/TAU-SRIR_DB.z03	https://zenodo.org/api/records/6408611/files/TAU-SRIR_DB.z03/content	4294967296	md5:1a7f1ce10c5501dda6bdf6ad1e5a4e24	
-tau_srir	ARCHIVES/TAU-SRIR_DB.z01	https://zenodo.org/api/records/6408611/files/TAU-SRIR_DB.z01/content	4294967296	md5:c57dd9b1e6fdae85aa4af3ce6af61d43	
-tau_srir	ARCHIVES/README.md	https://zenodo.org/api/records/6408611/files/README.md/content	19060	md5:f42fbe2ccbe933c974818a80b8d68bb4	
-tau_srir	ARCHIVES/LICENSE.txt	https://zenodo.org/api/records/6408611/files/LICENSE.txt/content	1557	md5:b93a2731871de0c62e1216d0152b3802	
-tau_srir	ARCHIVES/TAU-SRIR_DB.zip	https://zenodo.org/api/records/6408611/files/TAU-SRIR_DB.zip/content	3920131466	md5:32315cfddc2fd6d732f27b4323f9fd1c	
-tau_srir	ARCHIVES/zenodo_record_6408611.json	https://zenodo.org/api/records/6408611			
+tau_srir	ARCHIVES/TAU-SNoise_DB.zip	https://zenodo.org/api/records/6408611/files/TAU-SNoise_DB.zip/content	2349603940	md5:d3820fc7611dab261527c573ca4ebff2
+tau_srir	ARCHIVES/TAU-SNoise_DB.z01	https://zenodo.org/api/records/6408611/files/TAU-SNoise_DB.z01/content	4294967296	md5:d037ea4fc55922256ccee884cc9a96c1
+tau_srir	ARCHIVES/TAU-SRIR_DB.z02	https://zenodo.org/api/records/6408611/files/TAU-SRIR_DB.z02/content	4294967296	md5:3bb4bf28755250a170642ff64cb1b25e
+tau_srir	ARCHIVES/TAU-SRIR_DB.z03	https://zenodo.org/api/records/6408611/files/TAU-SRIR_DB.z03/content	4294967296	md5:1a7f1ce10c5501dda6bdf6ad1e5a4e24
+tau_srir	ARCHIVES/TAU-SRIR_DB.z01	https://zenodo.org/api/records/6408611/files/TAU-SRIR_DB.z01/content	4294967296	md5:c57dd9b1e6fdae85aa4af3ce6af61d43
+tau_srir	ARCHIVES/README.md	https://zenodo.org/api/records/6408611/files/README.md/content	19060	md5:f42fbe2ccbe933c974818a80b8d68bb4
+tau_srir	ARCHIVES/LICENSE.txt	https://zenodo.org/api/records/6408611/files/LICENSE.txt/content	1557	md5:b93a2731871de0c62e1216d0152b3802
+tau_srir	ARCHIVES/TAU-SRIR_DB.zip	https://zenodo.org/api/records/6408611/files/TAU-SRIR_DB.zip/content	3920131466	md5:32315cfddc2fd6d732f27b4323f9fd1c
+tau_srir	ARCHIVES/zenodo_record_6408611.json	https://zenodo.org/api/records/6408611
