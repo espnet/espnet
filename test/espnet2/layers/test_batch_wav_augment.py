@@ -1394,3 +1394,80 @@ def test_negative_db_ranges(tmp_path, value):
     aug = BatchWavAugment(scp, noise_db_range=value)
     lo, hi = [float(v) for v in value.split("_")] * (2 if "_" not in value else 1)
     assert (aug.noise_db_low, aug.noise_db_high) == (lo, hi)
+
+
+# ---------------------------------------------------------------- wide-band low-pass
+def lowpass(**kw):
+    opts = dict(lowpass_apply_prob=1.0)
+    opts.update(kw)
+    return BatchWavAugment(**opts).train()
+
+
+def test_lowpass_only_needs_no_list_and_keeps_the_rate():
+    aug = lowpass()
+    speech = torch.randn(2, 8000) * 0.1
+    out, _ = aug(speech, torch.tensor([8000, 8000]))
+    assert out.shape == speech.shape and out.dtype == speech.dtype
+
+
+@pytest.mark.parametrize("cutoff", [3400.0, 5000.0, 6500.0])
+def test_lowpass_band_limits_at_16k_without_resampling(cutoff):
+    torch.manual_seed(0)
+    aug = lowpass(lowpass_cutoff_range=f"{cutoff:g}_{cutoff:g}")
+    speech = torch.randn(1, 16000) * 0.1
+    y = aug(speech, None)[0][0].numpy()
+    x = speech[0].numpy()
+    total = band_energy(y, 16000, 0, 8000)
+    # nothing above the cut-off and its transition
+    assert band_energy(y, 16000, cutoff + 150, 8000) < 1e-6 * total
+    # the band below it is kept, up to well above 4 kHz when the cut-off is
+    ratio = band_energy(y, 16000, 300, cutoff - 150) / band_energy(x, 16000, 300, cutoff - 150)
+    assert 0.98 < ratio < 1.02
+
+
+def test_lowpass_at_nyquist_keeps_the_full_band():
+    torch.manual_seed(0)
+    aug = lowpass(lowpass_cutoff_range="8000_8000")
+    speech = torch.randn(1, 16000) * 0.1
+    y = aug(speech, None)[0][0].numpy()
+    x = speech[0].numpy()
+    ratio = band_energy(y, 16000, 300, 7800) / band_energy(x, 16000, 300, 7800)
+    assert 0.98 < ratio < 1.02
+
+
+def test_lowpass_keeps_timing_and_skips_the_telephone_rows():
+    fs, t = 16000, 16000
+    n = torch.arange(t)
+    burst = torch.zeros(t)
+    burst[6000:10000] = (torch.sin(2 * np.pi * 1000 * n / fs) * 0.5)[6000:10000]
+    y = lowpass()(burst[None], None)[0][0]
+    env = y.abs() > 0.1
+    assert abs(int(env.nonzero().min()) - 6000) < 40 and abs(int(env.nonzero().max()) - 9999) < 40
+    torch.testing.assert_close(y[6500:9500], burst[6500:9500], atol=2e-3, rtol=0)
+    # a row in the telephone channel is not low-passed again
+    aug = BatchWavAugment(telephone_apply_prob=1.0, lowpass_apply_prob=1.0).train()
+    draws = aug.draw(torch.full((3,), 8000))
+    assert draws["telephone_apply"].all() and not draws["lowpass_apply"].any()
+
+
+def test_lowpass_batch_equals_each_row_alone_and_padding_stays_zero():
+    torch.manual_seed(0)
+    aug = lowpass(lowpass_apply_prob=0.5)
+    b, t = 6, 9000
+    lengths = torch.tensor([9000, 7000, 9000, 5000, 9000, 8000])
+    valid = torch.arange(t) < lengths[:, None]
+    speech = torch.randn(b, t) * 0.1 * valid
+    draws = aug.draw(lengths)
+    out = aug.apply(speech, valid, draws)
+    assert (out * ~valid).abs().max() == 0
+    for i in range(b):
+        n = int(lengths[i])
+        one = {k: v[i : i + 1] for k, v in draws.items()}
+        ref = aug.apply(speech[i : i + 1, :n], valid[i : i + 1, :n], one)
+        torch.testing.assert_close(out[i : i + 1, :n], ref, atol=1e-5, rtol=0)
+
+
+def test_lowpass_cutoff_above_nyquist_is_refused_only_when_used():
+    with pytest.raises(ValueError):
+        BatchWavAugment(lowpass_apply_prob=1.0, lowpass_cutoff_range="3400_9000")
+    BatchWavAugment(telephone_apply_prob=1.0, fs=8000, telephone_cutoff_range="3400_3950")

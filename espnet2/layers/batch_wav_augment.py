@@ -18,7 +18,11 @@ per utterance on the CPU in the data loader workers. For each utterance:
    channel: band-limited to a cut-off drawn from ``telephone_cutoff_range``,
    resampled to 8 kHz, optionally high-passed at ``telephone_highpass_hz``,
    optionally companded to 8 bits (mu-law or A-law, 50/50) and resampled back.
-6. Divide the utterance by its peak when the peak exceeds 1.
+6. Otherwise, with probability ``lowpass_apply_prob``, low-pass it at a cut-off
+   drawn from ``lowpass_cutoff_range`` at its own rate (no resampling): a band
+   limit between telephone and full band, as in recordings made or stored at a
+   reduced bandwidth (e.g. 4-6 kHz meeting and earnings-call audio).
+7. Divide the utterance by its peak when the peak exceeds 1.
 
 The labels are not changed: none of the steps moves the speech in time.
 
@@ -161,6 +165,12 @@ class BatchWavAugment(torch.nn.Module):
             87.6) with equal probability.
         telephone_transition_hz: Width in Hz of the raised-cosine transition of
             the low-pass and the high-pass.
+        lowpass_apply_prob: Probability of the wide-band low-pass, per utterance
+            that does not go through the telephone channel.
+        lowpass_cutoff_range: Its cut-off range in Hz, ``"low_high"``, drawn per
+            utterance; at most fs / 2 (8000 at 16 kHz, where the filter keeps the
+            full band).
+        lowpass_transition_hz: Width in Hz of its raised-cosine transition.
     """
 
     def __init__(
@@ -188,6 +198,9 @@ class BatchWavAugment(torch.nn.Module):
         telephone_highpass_prob: float = 0.5,
         telephone_companding_prob: float = 0.5,
         telephone_transition_hz: float = 100.0,
+        lowpass_apply_prob: float = 0.0,
+        lowpass_cutoff_range: str = "3400_8000",
+        lowpass_transition_hz: float = 200.0,
     ):
         super().__init__()
         if (
@@ -195,9 +208,11 @@ class BatchWavAugment(torch.nn.Module):
             and rir_scp is None
             and music_scp is None
             and telephone_apply_prob <= 0
+            and lowpass_apply_prob <= 0
         ):
             raise ValueError(
-                "give noise_scp, rir_scp, music_scp or telephone_apply_prob > 0"
+                "give noise_scp, rir_scp, music_scp, telephone_apply_prob > 0 or "
+                "lowpass_apply_prob > 0"
             )
         self.noise_scp = noise_scp
         self.noise_apply_prob = noise_apply_prob if noise_scp else 0.0
@@ -223,6 +238,14 @@ class BatchWavAugment(torch.nn.Module):
         self.telephone_highpass_prob = telephone_highpass_prob
         self.telephone_companding_prob = telephone_companding_prob
         self.telephone_transition_hz = float(telephone_transition_hz)
+        self.lowpass_apply_prob = lowpass_apply_prob
+        low, high = _db_range("lowpass_cutoff_range", lowpass_cutoff_range)
+        if lowpass_apply_prob > 0 and not 0 < low <= high <= fs / 2:
+            raise ValueError(
+                f"lowpass_cutoff_range must lie in (0, {fs / 2:g}]: {lowpass_cutoff_range}"
+            )
+        self.lowpass_cutoff_low, self.lowpass_cutoff_high = low, high
+        self.lowpass_transition_hz = float(lowpass_transition_hz)
         self.rir_scp = rir_scp
         self.rir_apply_prob = rir_apply_prob if rir_scp else 0.0
         self.rir_shift = rir_shift
@@ -263,7 +286,9 @@ class BatchWavAugment(torch.nn.Module):
             f"{self.telephone_cutoff_high}), "
             f"telephone_highpass_hz={self.telephone_highpass_hz}, "
             f"telephone_highpass_prob={self.telephone_highpass_prob}, "
-            f"telephone_companding_prob={self.telephone_companding_prob}"
+            f"telephone_companding_prob={self.telephone_companding_prob}, "
+            f"lowpass_apply_prob={self.lowpass_apply_prob}, "
+            f"lowpass_cutoff_range=({self.lowpass_cutoff_low}, {self.lowpass_cutoff_high})"
         )
 
     def _load(self, kind: str) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
@@ -495,7 +520,8 @@ class BatchWavAugment(torch.nn.Module):
         snr (dB) on the CPU, and noise_offset on the device of ``lengths``; the
         same for music (music_snr), and the telephone choices (telephone_apply,
         telephone_cutoff, telephone_highpass, telephone_compand,
-        telephone_alaw) on the CPU. As in
+        telephone_alaw), and the low-pass choices (lowpass_apply, lowpass_cutoff)
+        on the CPU. As in
         CommonPreprocessor, the noise is cut for each utterance by its own
         length: a noise at least as long as the utterance starts at any offset
         where the whole utterance fits (n_len - length + 1 offsets); a shorter
@@ -549,6 +575,15 @@ class BatchWavAugment(torch.nn.Module):
                 torch.rand(batch_size) < self.telephone_companding_prob
             )
             draws["telephone_alaw"] = torch.rand(batch_size) < 0.5
+        if self.lowpass_apply_prob > 0:
+            # only the rows that do not go through the telephone channel
+            apply = torch.rand(batch_size) < self.lowpass_apply_prob
+            if "telephone_apply" in draws:
+                apply = apply & ~draws["telephone_apply"].cpu()
+            draws["lowpass_apply"] = apply
+            draws["lowpass_cutoff"] = torch.empty(batch_size).uniform_(
+                self.lowpass_cutoff_low, self.lowpass_cutoff_high
+            )
         return draws
 
     def _additive(self, kind, draws, snr, speech_power, valid, t):
@@ -635,6 +670,23 @@ class BatchWavAugment(torch.nn.Module):
         out = torch.nn.functional.pad(out, (0, n // 2 + 1 - out.size(1)))
         return torch.fft.irfft(out, n)[:, :t]
 
+    def _lowpass(self, x, cutoff):
+        """Low-pass rows of x (B, T) at ``cutoff`` (B,) Hz, at fs, no resampling.
+
+        One FFT of each row, zero-padded by 0.1 s so that the circular filtering
+        does not carry the end of the row into its start, times a raised-cosine
+        gain of width ``lowpass_transition_hz`` centred on the cut-off.
+        Returns (B, T).
+        """
+        b, t = x.shape
+        n = t + self.fs // 10
+        spec = torch.fft.rfft(x, n)
+        freq = torch.fft.rfftfreq(n, 1 / self.fs).to(x.device)
+        w = self.lowpass_transition_hz
+        f = (cutoff.to(x.device)[:, None] - freq) / w + 0.5
+        gain = 0.5 - 0.5 * torch.cos(np.pi * f.clamp(0, 1))
+        return torch.fft.irfft(spec * gain, n)[:, :t]
+
     def apply(
         self, speech: torch.Tensor, valid: torch.Tensor, draws: Dict
     ) -> torch.Tensor:
@@ -695,6 +747,12 @@ class BatchWavAugment(torch.nn.Module):
             )
             x = x.index_copy(0, rows_d, y * valid.index_select(0, rows_d))
 
+        if "lowpass_apply" in draws and bool(draws["lowpass_apply"].any()):
+            rows = draws["lowpass_apply"].cpu().nonzero().squeeze(1)
+            rows_d = rows.to(device)
+            y = self._lowpass(x.index_select(0, rows_d), draws["lowpass_cutoff"].cpu()[rows])
+            x = x.index_copy(0, rows_d, y * valid.index_select(0, rows_d))
+
         # As the preprocessor: divide by the peak when it exceeds 1.
         peak = (x[:, c:].abs() * valid[:, c:]).amax(1, keepdim=True)
         return torch.where(peak > 1.0, x / peak.clamp(min=1e-30), x)
@@ -713,6 +771,7 @@ class BatchWavAugment(torch.nn.Module):
             or self.rir_apply_prob > 0
             or self.music_apply_prob > 0
             or self.telephone_apply_prob > 0
+            or self.lowpass_apply_prob > 0
         )
         if augment:
             if speech.dim() != 2:
