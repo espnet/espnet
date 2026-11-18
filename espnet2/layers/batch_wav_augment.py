@@ -28,7 +28,7 @@ Rotating banks: with ``noise_pool`` (or ``music_pool``) instead of a fixed list,
 bank is a capped subset of a larger pool (espnet2.layers.rotating_bank.Pool: hours per
 kind in ``noise_pool_hours``, drawn source by source), redrawn every
 ``rotate_every_steps`` training steps. Subset k is drawn with the seed (rotate_seed, k,
-rank), loaded on a background thread into host (pinned) memory while subset k - 1 is in
+rank), loaded on a background thread into host memory (pinned with rotate_pin_memory) while subset k - 1 is in
 use, and swapped in at step k * rotate_every_steps: the old device copy is freed before
 the new one is made, so the device holds one bank at the cap. The step counter is a
 buffer (``rotate_step``, in the state dict), so a resumed training continues with the
@@ -221,6 +221,7 @@ class BatchWavAugment(torch.nn.Module):
         rotate_every_steps: int = 0,
         rotate_seed: int = 0,
         rotate_log: Optional[str] = None,
+        rotate_pin_memory: bool = False,
     ):
         super().__init__()
         if noise_scp and noise_pool:
@@ -309,6 +310,7 @@ class BatchWavAugment(torch.nn.Module):
         self.rotate_every_steps = int(rotate_every_steps)
         self.rotate_seed = int(rotate_seed)
         self.rotate_log = rotate_log
+        self.rotate_pin_memory = rotate_pin_memory
         self._pools = None
         self._loaded_k = None
         self._py_step = None
@@ -428,7 +430,7 @@ class BatchWavAugment(torch.nn.Module):
         bank, starts, lengths = self._load_entries(
             kind, [(r.id, r.path) for r in rows], f"{pool.path} subset {k}"
         )
-        if torch.cuda.is_available():
+        if self.rotate_pin_memory and torch.cuda.is_available():
             bank = bank.pin_memory()
         return bank, starts, lengths, rows
 
