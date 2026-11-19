@@ -59,6 +59,9 @@ dependencies = [
     "filelock",
     "sentencepiece==0.2.1",
     "librosa>=0.10.2",
+    # Imported directly by egs3/voxceleb/esp2_spk/dataset/dataset.py for speed
+    # perturbation; until now it arrived only through librosa.
+    "soxr>=0.3.2",
     "torch_complex",
     "einops",
     # enh_inference and enh_tse_inference import it at module level; until now

@@ -136,8 +136,16 @@ frozen for the first 5,000 updates and fine-tuned jointly afterwards.
 ## Notes
 
 - `spk_num` in the training config must equal the number of speakers in the
-  label space, that is `wc -l < data/voxceleb12_dev/spk2utt`. It is 7,205 for
-  VoxCeleb 1 dev + VoxCeleb 2 dev. `create_dataset` logs the number it wrote.
+  label space, that is `wc -l < data/voxceleb12_dev/spk2utt` times the number
+  of `speed_perturb_factors`. It is 7,205 for VoxCeleb 1 dev + VoxCeleb 2 dev,
+  so 21,615 with the default factors. `create_dataset` logs the number it wrote.
+- `training_rawnet3.yaml` speed-perturbs the training set by 0.9/1.0/1.1 on
+  the fly, as ESPnet2's `spk.sh` does by default: each perturbed copy of an
+  utterance is labelled as a new speaker (`sp0.9-id10001`), which triples both
+  the epoch and the label space. Nothing extra is written to disk. Its
+  scheduler restarts every 10 epochs at the global batch of 512
+  (`num_device x dataloader.train.batch_size`); recompute
+  `scheduler.first_cycle_steps` if you change either.
 - Checkpoints are selected on `valid/eer`, computed each epoch over a strided
   10,000-trial subset of Vox1-O. Raise `num_trials` for a tighter estimate, at
   the cost of slower epochs. The `infer` stage always scores the full list.

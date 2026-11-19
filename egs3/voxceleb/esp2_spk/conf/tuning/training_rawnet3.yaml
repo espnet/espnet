@@ -13,6 +13,17 @@
 #
 # The model consumes raw waveform through a learnable sinc filterbank, so
 # there is no feature normalization and no statistics collection.
+#
+# This reproduces egs2/voxceleb/spk1 conf/train_rawnet3.yaml (Vox1-O EER
+# 0.739%), which matters in three places that are easy to get wrong:
+# - ESPnet2's `spk.sh` speed-perturbs the training set by 0.9/1.0/1.1 by
+#   default and makes every perturbed copy a speaker of its own, so it trains
+#   on 3 x 1,240,651 utterances and 3 x 7,205 speakers. `speed_perturb_factors`
+#   below does the same on the fly.
+# - ESPnet2's `batch_size: 512` is the global batch, split across GPUs.
+# - Its scheduler restarts every 10 epochs (4 cycles in 40 epochs).
+# Without speed perturbation and with a 40-epoch cycle this recipe reached
+# 1.154% EER instead.
 
 ##########################################################
 #                  SYSTEM AND PATH SETTING               #
@@ -21,14 +32,18 @@
 # from the TEMPLATE config. In particular, `exp_tag` follows `${self_name:}`.
 #
 # 4 is this recipe's reference environment (see below) and stays the default.
-# `dataloader.train.batch_size` is per rank, so a smaller world size shrinks the
-# effective global batch -- 2 ranks give 2x256 rather than 4x256 -- while the
-# AAMSoftmax margin and the warmup/decay schedule were tuned for 4x256. Running
-# narrower therefore needs `batch_size` or the scheduler adjusted to reproduce
-# the published EER; it is not a bug to chase. Override only to match the
-# hardware actually allocated, and note Lightning's SLURMEnvironment requires
-# this to equal the job's `--ntasks-per-node`.
+# `dataloader.train.batch_size` is per rank, so the global batch is
+# `num_device x batch_size`: 4 x 128 = 512, ESPnet2's global batch. On another
+# world size, set `batch_size` so the product stays 512; `first_cycle_steps`
+# then needs no change. Note Lightning's SLURMEnvironment requires this to
+# equal the job's `--ntasks-per-node`.
 num_device: ${oc.env:VOX_NUM_DEVICE,4}
+
+# Speed perturbation of the training set, as ESPnet2's `speed_perturb_factors`.
+# Read by both the training datasets and the preprocessor, which must agree on
+# the perturbed speakers; `model.spk_num` must equal 7,205 x the number of
+# factors. Set to `[1.0]` (and `spk_num: 7205`) to train without it.
+speed_perturb_factors: [0.9, 1.0, 1.1]
 
 # Escape hatch for sites where reading the corpus over the shared filesystem is
 # the bottleneck: a launcher can copy it to fast local storage and point the
@@ -53,9 +68,11 @@ dataset:
     - data_src_args:
         data_dir: ${data_dir}
         split: voxceleb1_dev
+        speed_perturb_factors: ${speed_perturb_factors}
     - data_src_args:
         data_dir: ${data_dir}
         split: voxceleb2_dev
+        speed_perturb_factors: ${speed_perturb_factors}
   valid:
     - data_src_args:
         data_dir: ${data_dir}
@@ -67,6 +84,7 @@ dataset:
     # these SCP files from $MUSAN and $RIRS_NOISES. Set both probabilities to
     # 0.0 to train without them.
     spk2utt: ${data_dir}/voxceleb12_dev/spk2utt
+    speed_perturb_factors: ${speed_perturb_factors}
     noise_apply_prob: 0.5
     noise_info:
       - [1.0, "${data_dir}/musan_speech.scp", [4, 7], [13, 20]]
@@ -82,10 +100,10 @@ create_dataset:
 #                      MODEL SETTING                     #
 ##########################################################
 model:
-  # VoxCeleb 1 dev (1,211) + VoxCeleb 2 dev (5,994) speakers. Must match the
-  # label space the preprocessor maps through, that is
-  # `wc -l < data/voxceleb12_dev/spk2utt`.
-  spk_num: 7205
+  # VoxCeleb 1 dev (1,211) + VoxCeleb 2 dev (5,994) = 7,205 speakers
+  # (`wc -l < data/voxceleb12_dev/spk2utt`), times 3 speed factors. Must match
+  # the label space the preprocessor maps through.
+  spk_num: 21615
 
   frontend: asteroid_frontend
   frontend_conf:
@@ -120,9 +138,12 @@ model:
 ##########################################################
 scheduler:
   _target_: espnet2.schedulers.cosine_anneal_warmup_restart.CosineAnnealingWarmupRestarts
-  # One cycle is 10 epochs: 1,240,651 utterances / batch_size 256, rounded
-  # down because the loader drops the last partial batch.
-  first_cycle_steps: 48460
+  # One cycle is 10 epochs, as in ESPnet2. An epoch is 3 x 1,240,651 speed-
+  # perturbed utterances over the global batch of 512, rounded down because
+  # the loader drops the last partial batch: 7,269 steps. Recompute this if
+  # the global batch, the factors or the training sets change; a cycle that
+  # spans the whole run never restarts the learning rate.
+  first_cycle_steps: 72690
   cycle_mult: 1.0
   max_lr: 0.001
   min_lr: 0.000005
@@ -150,3 +171,11 @@ trainer:
 # with full optimizer state.
 fit:
   ckpt_path: last
+
+##########################################################
+#                   DATALOADER SETTING                   #
+##########################################################
+# Per rank; 4 x 128 = 512 global, see `num_device` above.
+dataloader:
+  train:
+    batch_size: 128

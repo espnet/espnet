@@ -4,14 +4,16 @@ from __future__ import annotations
 
 from importlib import resources
 from pathlib import Path
-from typing import Any, Dict, List, Tuple
+from typing import Any, Dict, List, Sequence, Tuple
 
 import numpy as np
 import pyarrow.parquet as pq
+import soxr
 from omniio.interface import audio_read
 
-from espnet3.contract import Field
 from espnet3.components.data.base_dataset import BaseDataset
+from espnet3.contract import Field
+from espnet3.systems.esp2_spk.src.preprocessor import speed_perturbed_speaker
 from espnet3.utils.config_utils import load_config_with_defaults
 
 _CONFIG_RESOURCE = resources.files(__package__).joinpath("config.yaml")
@@ -44,6 +46,41 @@ def _read_scp(path: Path) -> Dict[str, str]:
         key, value = line.split(maxsplit=1)
         entries[key] = value.strip()
     return entries
+
+
+def speed_perturb(audio: np.ndarray, factor: float) -> np.ndarray:
+    """Change speed and pitch together, as ``sox ... speed <factor>`` does.
+
+    ``sox speed f`` reads the samples as if recorded at ``f`` times the rate and
+    resamples them back with its high-quality ``rate`` effect, so a factor above
+    one gives a shorter, higher-pitched signal. ESPnet2's
+    ``perturb_enh_data_dir_speed.sh`` runs exactly that, and libsoxr at
+    ``"HQ"`` is the same resampler: it matches sox output to ~0.03%.
+
+    The resampling filter matters. A factor below one leaves the band above
+    ``f * 8`` kHz empty, and a factor above one has to remove the content
+    folded down from above Nyquist. scipy's default ``resample_poly`` filter
+    leaves ~35 dB more energy in that band than sox does, and a speaker model
+    trained on sox-perturbed copies only recognizes ~63% of such copies (99%
+    of sox ones), so they are not the training data ESPnet2 recipes use.
+
+    Args:
+        audio: Mono waveform.
+        factor: Speed factor.
+
+    Returns:
+        The perturbed waveform, ``len(audio) / factor`` samples long, as float32.
+    """
+    if factor == 1.0:
+        return audio
+    # Only the ratio of the two rates matters.
+    out = soxr.resample(
+        np.asarray(audio, dtype=np.float32),
+        factor * _SAMPLE_RATE,
+        _SAMPLE_RATE,
+        quality="HQ",
+    )
+    return out.astype(np.float32, copy=False)
 
 
 def _subsample_trials(
@@ -159,9 +196,17 @@ class VoxCelebDataset(BaseDataset):
         data_dir: Optional directory holding the prepared splits, in place
             of ``<recipe_dir>/data``. Point it at a copy of ``data/`` on
             node-local disk to read the OmniIO archives from there.
+        speed_perturb_factors: Optional speed factors, utterance mode only,
+            such as ``[0.9, 1.0, 1.1]``. The dataset then holds one copy of
+            every utterance per factor, perturbed on the fly, and each copy
+            belongs to a new speaker named by :func:`speed_perturbed_speaker`.
+            This is ESPnet2's ``speed_perturb_factors``, so the preprocessor's
+            label space and ``spk_num`` must cover the perturbed speakers too.
 
     Raises:
-        ValueError: If ``split`` is unknown, or ``num_trials`` is not positive.
+        ValueError: If ``split`` is unknown, ``num_trials`` is not positive,
+            or ``speed_perturb_factors`` is empty, repeats a factor, holds a
+            non-positive one, or is combined with ``trials``.
         FileNotFoundError: If the manifests or the OmniIO archive have not
             been built yet.
 
@@ -181,6 +226,7 @@ class VoxCelebDataset(BaseDataset):
         num_trials: int | None = None,
         recipe_dir: str | Path | None = None,
         data_dir: str | Path | None = None,
+        speed_perturb_factors: Sequence[float] | None = None,
     ) -> None:
         """Load the manifests of one split and index its items."""
         self.split = str(split)
@@ -189,6 +235,19 @@ class VoxCelebDataset(BaseDataset):
             raise ValueError(f"Unknown split '{self.split}'. Expected one of: {known}")
         if num_trials is not None and int(num_trials) <= 0:
             raise ValueError(f"num_trials must be positive, got {num_trials}")
+        factors = (
+            [1.0]
+            if speed_perturb_factors is None
+            else [float(f) for f in speed_perturb_factors]
+        )
+        if not factors or len(set(factors)) != len(factors) or min(factors) <= 0:
+            raise ValueError(
+                "speed_perturb_factors must be distinct positive numbers, "
+                f"got {speed_perturb_factors}"
+            )
+        if trials is not None and factors != [1.0]:
+            raise ValueError("speed_perturb_factors applies to utterance mode only")
+        self.speed_perturb_factors = factors
 
         recipe_root = (
             Path(recipe_dir).resolve()
@@ -244,7 +303,26 @@ class VoxCelebDataset(BaseDataset):
 
     def __len__(self) -> int:
         """Return the number of utterances, or of trials in trial mode."""
-        return len(self._trials) if self.trials else len(self._utt_ids)
+        if self.trials:
+            return len(self._trials)
+        return len(self._utt_ids) * len(self.speed_perturb_factors)
+
+    def speaker_labels(self) -> List[str]:
+        """Return the speaker label of every index, without reading audio.
+
+        This is ``self[i]["spk_labels"]`` for each ``i``, which is what a
+        speaker-balanced batch sampler groups by.
+
+        Raises:
+            ValueError: In trial mode, which has no speakers.
+        """
+        if self.trials:
+            raise ValueError("speaker_labels is only defined in utterance mode")
+        return [
+            speed_perturbed_speaker(self.utt2spk[utt_id], factor)
+            for factor in self.speed_perturb_factors
+            for utt_id in self._utt_ids
+        ]
 
     def __getitem__(self, idx: int) -> Dict[str, Any]:
         """Return one utterance, or one trial pair in trial mode."""
@@ -257,8 +335,13 @@ class VoxCelebDataset(BaseDataset):
                 "spk_labels": str(label),
             }
 
-        utt_id = self._utt_ids[idx]
+        # Copies are laid out factor-major: [all utts @ f0, all utts @ f1, ...].
+        copy, row = divmod(idx, len(self._utt_ids))
+        if copy >= len(self.speed_perturb_factors):
+            raise IndexError(idx)
+        factor = self.speed_perturb_factors[copy]
+        utt_id = self._utt_ids[row]
         return {
-            "speech": self._read_audio(utt_id),
-            "spk_labels": self.utt2spk[utt_id],
+            "speech": speed_perturb(self._read_audio(utt_id), factor),
+            "spk_labels": speed_perturbed_speaker(self.utt2spk[utt_id], factor),
         }
