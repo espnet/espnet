@@ -43,9 +43,7 @@ def test_default_augmentation_is_off_so_the_template_runs_standalone() -> None:
 
 def test_load_default_config_infer_contains_expected_targets() -> None:
     cfg = load_default_config("inference.yaml", "egs3.TEMPLATE.esp2_spk")
-    assert (
-        cfg.model._target_ == "espnet3.systems.esp2_spk.src.speech2score.TrialScorer"
-    )
+    assert cfg.model._target_ == "espnet3.systems.esp2_spk.src.speech2score.TrialScorer"
     assert cfg.runner._target_ == (
         "espnet3.systems.esp2_spk.src.inference_runner.ESP2SPKInferenceRunner"
     )
