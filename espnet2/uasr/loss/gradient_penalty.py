@@ -31,7 +31,7 @@ class UASRGradientPenalty(AbsUASRLoss):
         fake_sample: torch.Tensor,
         real_sample: torch.Tensor,
         is_training: str2bool,
-        is_discrimininative_step: str2bool,
+        is_discriminative_step: str2bool,
     ):
         """Forward.
 
@@ -41,7 +41,7 @@ class UASRGradientPenalty(AbsUASRLoss):
             is_training: whether is at training step
             is_discriminative_step: whether is training discriminator
         """
-        if self.weight > 0 and is_discrimininative_step and is_training:
+        if self.weight > 0 and is_discriminative_step and is_training:
             batch_size = min(fake_sample.size(0), real_sample.size(0))
             time_length = min(fake_sample.size(1), real_sample.size(1))
 
