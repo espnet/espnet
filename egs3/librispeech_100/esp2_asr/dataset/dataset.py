@@ -12,7 +12,7 @@ import numpy as np
 import soundfile as sf
 
 from egs3.librispeech_100.esp2_asr.dataset.builder import (
-    LibriSpeech100Builder,
+    missing_required_splits,
     resolve_source_root,
 )
 from espnet3.components.data.base_dataset import BaseDataset
@@ -84,8 +84,8 @@ class LibriSpeech100Dataset(BaseDataset):
 
     Raises:
         ValueError: If ``split`` is unknown.
-        FileNotFoundError: If the resolved source root or split directory does
-            not exist.
+        FileNotFoundError: If the source root, a required split, or ``split``
+            does not exist. Run the ``create_dataset`` stage to download it.
         RuntimeError: If no transcript/audio pairs are found for the split.
 
     Examples:
@@ -114,17 +114,17 @@ class LibriSpeech100Dataset(BaseDataset):
             else Path(__file__).resolve().parents[1]
         )
 
-        builder = LibriSpeech100Builder()
-        if not builder.is_source_prepared(
-            recipe_dir=recipe_root,
-            source_dir=source_dir,
-        ):
-            builder.prepare_source(recipe_dir=recipe_root, source_dir=source_dir)
-
         self.librispeech_root = resolve_source_root(
             recipe_root,
             source_dir=source_dir,
         )
+        missing = missing_required_splits(self.librispeech_root)
+        if missing:
+            raise FileNotFoundError(
+                f"LibriSpeech source at {self.librispeech_root} is missing split "
+                f"directories: {', '.join(missing)}. Run the create_dataset stage "
+                "first."
+            )
         split_dir = self.librispeech_root / self.split
         if not split_dir.is_dir():
             raise FileNotFoundError(f"Split directory not found: {split_dir}")
