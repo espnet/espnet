@@ -74,20 +74,9 @@ def setup_instructions(recipe_dir: str | Path) -> str:
 
 
 def _resolve_tgt_lang(tgt_lang: str | None) -> str:
-    """Return the target language, warning when the config default is taken.
-
-    The default is ``all``, which indexes every installed ``en-<tgt>`` pair --
-    14 of them for MuST-C v1.2, so dev becomes 17,740 examples instead of
-    en-de's 1,423. That is a surprising thing to get by omission, hence the
-    warning; pass ``tgt_lang="de"`` to reproduce egs2.
-    """
+    """Return the target language, or ``dataset/config.yaml``'s default."""
     if tgt_lang:
         return str(tgt_lang)
-    logger.warning(
-        "tgt_lang was not given; using the dataset/config.yaml default %r. "
-        "Pass tgt_lang='de' to reproduce egs2/must_c/st1.",
-        TGT_LANG,
-    )
     return TGT_LANG
 
 
@@ -151,11 +140,13 @@ def resolve_source_root(
         if lang_pair_root is not None:
             return lang_pair_root
 
+    installed = available_target_languages(recipe_root, source_dir)
     raise FileNotFoundError(
         f"MuST-C {VERSION} language pair '{SRC_LANG}-{tgt_lang}' not found. "
         "Checked these locations:\n"
         + "\n".join(f"  - {path}/{SRC_LANG}-{tgt_lang}" for path in checked)
         + "\n"
+        + (f"Installed pairs: {', '.join(installed)}.\n" if installed else "")
         + setup_instructions(recipe_root)
     )
 
@@ -197,16 +188,8 @@ class MustCSTBuilder(DatasetBuilder):
         recipe_root = Path(recipe_dir).resolve()
         try:
             selected = _resolve_tgt_lang(tgt_lang)
-            targets = (
-                available_target_languages(recipe_root, source_dir)
-                if selected == "all"
-                else [selected]
-            )
-            return bool(targets) and all(
-                not missing_required_splits(
-                    resolve_source_root(recipe_root, source_dir, item), item
-                )
-                for item in targets
+            return not missing_required_splits(
+                resolve_source_root(recipe_root, source_dir, selected), selected
             )
         except FileNotFoundError:
             return False
@@ -226,7 +209,7 @@ class MustCSTBuilder(DatasetBuilder):
         Args:
             recipe_dir: Recipe root directory.
             source_dir: Optional override pointing at the raw corpus root.
-            tgt_lang: Target language, or ``all`` for every installed pair.
+            tgt_lang: Target language of the pair to validate.
             **_kwargs: Unused extra options for API compatibility.
 
         Raises:
@@ -236,27 +219,16 @@ class MustCSTBuilder(DatasetBuilder):
         """
         recipe_root = Path(recipe_dir).resolve()
         selected = _resolve_tgt_lang(tgt_lang)
-        targets = (
-            available_target_languages(recipe_root, source_dir)
-            if selected == "all"
-            else [selected]
-        )
-        if not targets:
-            raise FileNotFoundError(
-                f"No complete MuST-C {SRC_LANG}-<target> pairs found.\n"
-                + setup_instructions(recipe_root)
-            )
         # Validate the pinned target too: without this, prepare_source could
         # return while is_source_prepared stayed False.
-        for target in targets:
-            lang_pair_root = resolve_source_root(recipe_root, source_dir, target)
-            missing = missing_required_splits(lang_pair_root, target)
-            if missing:
-                raise FileNotFoundError(
-                    f"MuST-C {SRC_LANG}-{target} is missing required splits "
-                    f"{missing} under {lang_pair_root}.\n"
-                    + setup_instructions(recipe_root)
-                )
+        lang_pair_root = resolve_source_root(recipe_root, source_dir, selected)
+        missing = missing_required_splits(lang_pair_root, selected)
+        if missing:
+            raise FileNotFoundError(
+                f"MuST-C {SRC_LANG}-{selected} is missing required splits "
+                f"{missing} under {lang_pair_root}.\n"
+                + setup_instructions(recipe_root)
+            )
 
     def is_built(self, recipe_dir, cache=None, **kwargs):
         """Whether the HF cache exists with the columns the Dataset reads.

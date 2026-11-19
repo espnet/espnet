@@ -181,9 +181,8 @@ builder = DatasetBuilder()
 if not builder.is_built(recipe_dir=".", cache=cache):
     builder.build(recipe_dir=".", cache=cache, tgt_lang="de")
 
-# tgt_lang="de" reproduces egs2. Omitting it takes the builder default
-# `all`, which aggregates every installed pair -- dev is then 17,740
-# examples over 14 pairs instead of en-de's 1,423.
+# tgt_lang="de" reproduces egs2 and is the builder default, so it may be
+# omitted; it is spelled out because the pair decides which cache is written.
 #
 # Lengths are post-filter: the cache holds the corpus as released (229,703
 # train segments) and the Dataset drops the ones st.sh stage 4 would.
