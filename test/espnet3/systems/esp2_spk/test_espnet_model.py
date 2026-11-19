@@ -50,6 +50,32 @@ def test_training_batch_returns_a_classification_loss(model):
     assert model.trial_metric.update_count == 0
 
 
+def test_classification_loss_runs_in_fp32_under_bf16_autocast(model):
+    from espnet2.spk.espnet_model import ESPnetSpeakerModel
+
+    torch.manual_seed(0)
+    speech = torch.randn(4, 100, FEAT_DIM)
+    lengths = torch.full((4,), 100)
+    labels = torch.randint(0, NUM_SPEAKERS, (4, 1))
+    was_training = model.training
+    model.eval()  # fixed BatchNorm statistics, so both passes see one embedding
+    try:
+        with torch.no_grad(), torch.autocast("cpu", dtype=torch.bfloat16):
+            loss, _, _ = model(speech=speech, speech_lengths=lengths, spk_labels=labels)
+            embd = ESPnetSpeakerModel.forward(
+                model, speech=speech, speech_lengths=lengths, extract_embd=True
+            )
+        with torch.no_grad():
+            expected, _, _ = model.loss(embd.float(), labels.squeeze())
+    finally:
+        model.train(was_training)
+
+    assert loss.dtype == torch.float32
+    # A bf16 head rounds the cosines to ~3 digits, which moves the loss by far
+    # more than this tolerance.
+    torch.testing.assert_close(loss.squeeze(), expected, rtol=1e-5, atol=1e-5)
+
+
 def test_trial_batch_scores_pairs_instead_of_classifying(model):
     model.eval()
     enroll = torch.randn(3, 5, 100, FEAT_DIM)

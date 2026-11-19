@@ -99,11 +99,8 @@ class ESPnetSpeakerVerificationModel(ESPnetSpeakerModel):
             (0.0, {}, 1)
         """
         if speech2 is None:
-            return super().forward(
-                speech=speech,
-                speech_lengths=speech_lengths,
-                spk_labels=spk_labels,
-                **kwargs,
+            return self._classification_step(
+                speech, speech_lengths, spk_labels, **kwargs
             )
 
         if spk_labels is None:
@@ -118,6 +115,50 @@ class ESPnetSpeakerVerificationModel(ESPnetSpeakerModel):
         stats: Dict[str, torch.Tensor] = {}
         loss = scores.new_zeros(())
         return force_gatherable((loss, stats, speech.shape[0]), scores.device)
+
+    def _classification_step(
+        self,
+        speech: torch.Tensor,
+        speech_lengths: Optional[torch.Tensor],
+        spk_labels: Optional[torch.Tensor],
+        **kwargs,
+    ):
+        """Embed a training batch, then compute the classification loss in fp32.
+
+        The margin losses compare each embedding with every class (sub-)center
+        and add an angular margin of a few tenths of a radian before scaling
+        the logits by ~30. Under bf16 autocast the cosines come out with about
+        three significant digits, so ``cos`` near 1 rounds to exactly 1.0 and
+        the margin is applied to coarse angles. ESPnet2 recipes train in fp16,
+        which is 8x finer. The head is one matmul against the class centers,
+        so it runs in fp32 here whatever the trainer precision; the encoder
+        keeps the autocast dtype.
+
+        Args:
+            speech: ``(Batch, Samples)`` waveforms or ``(Batch, T, D)`` features.
+            speech_lengths: Unpadded length of each entry.
+            spk_labels: ``(Batch, 1)`` speaker indices.
+            **kwargs: Remaining collate fields, such as ``task_tokens``.
+
+        Returns:
+            The ``(loss, stats, weight)`` triple of
+            :class:`espnet2.spk.espnet_model.ESPnetSpeakerModel`.
+        """
+        assert spk_labels is not None, "spk_labels is None, cannot compute loss"
+        spk_embd = super().forward(
+            speech=speech,
+            speech_lengths=speech_lengths,
+            spk_labels=spk_labels,
+            extract_embd=True,
+            **kwargs,
+        )
+        with torch.autocast(device_type=spk_embd.device.type, enabled=False):
+            loss, accuracy, _ = self.loss(spk_embd.float(), spk_labels.squeeze())
+
+        stats = dict(loss=loss.detach())
+        if accuracy is not None:
+            stats["accuracy"] = accuracy.detach()
+        return force_gatherable((loss, stats, speech.shape[0]), loss.device)
 
     def score_trials(self, speech: torch.Tensor, speech2: torch.Tensor) -> torch.Tensor:
         """Return one similarity score per trial pair in the batch.
