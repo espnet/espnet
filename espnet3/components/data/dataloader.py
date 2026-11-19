@@ -280,6 +280,31 @@ class DataLoaderBuilder:
         if hasattr(self.config, "batch_sampler"):
             batch_sampler = instantiate(self.config.batch_sampler, dataset)
 
+        # A per-mode batch sampler, e.g. speaker-balanced batches for training
+        # only: a torch `BatchSampler` subclass taking
+        # `(sampler, batch_size, drop_last, dataset)`. It wraps the index
+        # sampler the mode's `shuffle` selects, so under DDP Lightning can
+        # swap that for a `DistributedSampler` as it does for any BatchSampler.
+        mode_batch_sampler = config.pop("batch_sampler", None)
+        if mode_batch_sampler is not None:
+            if sampler is not None or batch_sampler is not None:
+                raise ValueError(
+                    f"dataloader.{mode}.batch_sampler cannot be combined with a "
+                    "top-level sampler or batch_sampler."
+                )
+            index_sampler = (
+                torch.utils.data.RandomSampler(dataset)
+                if config.pop("shuffle", False)
+                else torch.utils.data.SequentialSampler(dataset)
+            )
+            batch_sampler = instantiate(
+                mode_batch_sampler,
+                index_sampler,
+                batch_size=config.pop("batch_size", 1),
+                drop_last=config.pop("drop_last", False),
+                dataset=dataset,
+            )
+
         assert not (
             sampler and batch_sampler
         ), "Cannot specify both sampler and batch_sampler"
