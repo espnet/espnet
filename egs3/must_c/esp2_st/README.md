@@ -5,12 +5,12 @@
 This egs3 data module reads the **raw MuST-C v1** corpus release directly —
 no Kaldi data preparation (`egs2/must_c/st1/local/data.sh`) is required.
 
-- Language pair: the training config pins **en-de** (English speech, German
-  translation), matching `src_lang`/`tgt_lang` in `egs2/must_c/st1/run.sh`.
-  The builder itself defaults to `tgt_lang: all` (`dataset/config.yaml`) and
-  will index every `en-<tgt>` pair present under the corpus root, so pass
-  `tgt_lang="de"` — as `conf/tuning/train_st_conformer.yaml` does — to
-  reproduce egs2 exactly.
+- Language pair: **en-de** (English speech, German translation), matching
+  `src_lang`/`tgt_lang` in `egs2/must_c/st1/run.sh`. It is the builder's
+  default (`dataset/config.yaml`) and is named explicitly in
+  `conf/tuning/train_st_conformer.yaml`. One cache holds one pair; pass
+  `tgt_lang` to read another, and point `cache.cache_dir` at that pair's
+  cache.
 - Corpus version: **v1** (`MUSTC_v1.0_en-de.tar.gz` from
   https://mt.fbk.eu/must-c-release-v1-0/), matching the `"v1"` argument
   `egs2/must_c/st1/local/data.sh` passes to `local/data_prep.sh`.

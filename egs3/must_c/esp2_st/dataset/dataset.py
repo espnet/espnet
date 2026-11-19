@@ -329,8 +329,15 @@ def _assert_cache_language(cached, tgt_lang, cache):
         return
     found = str(cached[0]["tgt_lang"])
     if found != str(tgt_lang):
+        # `cache` is None when _load_hf_cache resolved the directory from
+        # EGS3_HF_CACHE_DIR, so the name is recovered the same way.
+        import os
+
+        where = (cache or {}).get("cache_dir") or os.environ.get(
+            "EGS3_HF_CACHE_DIR", "<unknown>"
+        )
         raise ValueError(
-            f"The HF cache under {cache.get('cache_dir')!r} holds "
+            f"The HF cache under {str(where)!r} holds "
             f"en-{found}, but tgt_lang={str(tgt_lang)!r} was requested. "
             f"Point cache.cache_dir at the en-{tgt_lang} cache, or build it "
             "with `--stages create_dataset`."
