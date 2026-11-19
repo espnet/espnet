@@ -226,8 +226,7 @@ class MustCSTBuilder(DatasetBuilder):
         if missing:
             raise FileNotFoundError(
                 f"MuST-C {SRC_LANG}-{selected} is missing required splits "
-                f"{missing} under {lang_pair_root}.\n"
-                + setup_instructions(recipe_root)
+                f"{missing} under {lang_pair_root}.\n" + setup_instructions(recipe_root)
             )
 
     def is_built(self, recipe_dir, cache=None, **kwargs):
