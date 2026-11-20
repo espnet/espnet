@@ -1,6 +1,6 @@
 import copy
 import os
-from typing import Iterable, List, Optional, Union
+from typing import Dict, Iterable, List, Optional, Union
 
 import numpy as np
 from typeguard import typechecked
@@ -79,6 +79,27 @@ class OpenAIWhisperTokenIDConverter:
                 dict(extra_special_tokens=timestamps + sc)
             )
         self.model_type = model_type
+        self._token2id: Optional[Dict[str, int]] = None
+
+    @property
+    def token2id(self) -> Dict[str, int]:
+        """Return the mapping from token symbol to token id.
+
+        ``TokenIDConverter`` exposes the same attribute, and callers such as
+        ``espnet2.bin.s2t_inference`` use it to resolve prompt symbols such as
+        ``<|en|>`` or ``<|notimestamps|>``. It is built on first use because
+        the vocabulary has tens of thousands of entries.
+
+        Note:
+            Resolve timestamp ids through this mapping rather than through
+            ``whisper.tokenizer.Tokenizer.timestamp_begin``, which no longer
+            matches the vocabulary once the extra special tokens above have
+            been added.
+
+        """
+        if self._token2id is None:
+            self._token2id = dict(self.tokenizer.tokenizer.get_vocab())
+        return self._token2id
 
     def get_num_vocabulary_size(self) -> int:
         if self.model_type == "whisper_en":
