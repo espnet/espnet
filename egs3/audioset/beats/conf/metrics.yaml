@@ -1,0 +1,9 @@
+##########################################################
+#                 METRIC SCORING SETTING                 #
+##########################################################
+# Codebook usage of the AudioSet-2M targets. Only the eval split is scored;
+# the train split has ~1B target ids and adds little over eval.
+
+dataset:
+  test:
+    - name: valid

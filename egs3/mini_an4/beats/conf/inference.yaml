@@ -1,0 +1,22 @@
+##########################################################
+#                  TOKENIZATION SETTING                  #
+##########################################################
+# Tokenize Mini AN4 for the tiny BEATs CI recipe.
+
+dataset:
+  test:
+    - name: train
+      data_src_args:
+        split: train
+        recipe_dir: ${recipe_dir}
+    - name: valid
+      data_src_args:
+        split: valid
+        recipe_dir: ${recipe_dir}
+
+model:
+  tokenizer_config:
+    quant_n: 16
+
+batch_size: 4
+device: cpu

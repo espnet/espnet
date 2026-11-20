@@ -111,3 +111,44 @@ def test_beats_random_tokenizer_var_length():
         assert torch.all(
             token_ids1[i, : token_id_len1[i]] == token_ids2[0, : token_id_len2[0]]
         )
+
+
+def test_norm_ema_quantizer_all_reduces_after_late_ddp_init(monkeypatch):
+    """Codebook EMA uses global stats when DDP starts after model build."""
+    generator = torch.Generator().manual_seed(1)
+    codebook = torch.nn.functional.normalize(
+        torch.randn(4, 3, generator=generator), dim=-1
+    )
+    inputs = [torch.randn(1, 50, 3, generator=generator) for _ in range(2)]
+
+    def build_quantizer():
+        quantizer = NormEMAVectorQuantizer(
+            n_embed=4, embedding_dim=3, beta=1.0, decay=0.5, kmeans_init=True
+        )
+        quantizer.embedding.weight.copy_(codebook)
+        quantizer.embedding.initted.fill_(True)
+        return quantizer.train()
+
+    # A single process seeing both ranks' data computes the global EMA update.
+    expected = build_quantizer()
+    expected(torch.cat(inputs, dim=1))
+
+    # Built before the process group exists, as Lightning does.
+    quantizer = build_quantizer()
+
+    # Statistics the other rank contributes for inputs[1]: bins, then embed_sum.
+    other = torch.nn.functional.normalize(inputs[1], dim=-1).reshape(-1, 3)
+    other_codes = torch.cdist(other, codebook).argmin(dim=1)
+    other_encodings = torch.nn.functional.one_hot(other_codes, 4).to(other.dtype)
+    contributions = [other_encodings.sum(0), other.t() @ other_encodings]
+
+    def fake_all_reduce(tensor):
+        tensor.add_(contributions.pop(0))
+
+    monkeypatch.setattr(torch.distributed, "is_available", lambda: True)
+    monkeypatch.setattr(torch.distributed, "is_initialized", lambda: True)
+    monkeypatch.setattr(torch.distributed, "all_reduce", fake_all_reduce)
+    quantizer(inputs[0])
+
+    assert contributions == []
+    torch.testing.assert_close(quantizer.embedding.weight, expected.embedding.weight)
