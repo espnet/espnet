@@ -61,7 +61,7 @@ class ContextualBlockTransformerEncoder(AbsEncoder):
         positionwise_conv_kernel_size: kernel size of positionwise conv1d layer
         padding_idx: padding_idx for input_layer=embed
         block_size: block size for contextual block processing
-        hop_Size: hop size for block processing
+        hop_size: hop size for block processing
         look_ahead: look-ahead size for block_processing
         init_average: whether to use average as initial context (otherwise max values)
         ctx_pos_enc: whether to use positional encoding to the context vectors
