@@ -20,6 +20,10 @@ from espnet2.layers.abs_normalize import AbsNormalize
 from espnet2.layers.global_mvn import GlobalMVN
 from espnet2.layers.utterance_mvn import UtteranceMVN
 from espnet2.lid.espnet_model import ESPnetLIDModel
+from espnet2.lid.loss.aamsoftmax_subcenter_intertopk import (
+    ArcMarginProduct_intertopk_subcenter_multilabel,
+    ArcMarginProduct_intertopk_subcenter_softtarget,
+)
 from espnet2.spk.encoder.conformer_encoder import MfaConformerEncoder
 from espnet2.spk.encoder.ecapa_tdnn_encoder import EcapaTdnnEncoder
 from espnet2.spk.encoder.identity_encoder import IdentityEncoder
@@ -49,7 +53,9 @@ from espnet2.train.lid_trainer import LIDTrainer
 from espnet2.train.preprocessor import (
     AbsPreprocessor,
     CommonPreprocessor,
+    LIDMultiLabelPreprocessor,
     LIDPreprocessor,
+    LIDSoftLabelPreprocessor,
 )
 from espnet2.utils.types import int_or_none, str2bool, str_or_none
 
@@ -174,6 +180,8 @@ preprocessor_choices = ClassChoices(
     classes=dict(
         common=CommonPreprocessor,
         lid=LIDPreprocessor,
+        lid_multilabel=LIDMultiLabelPreprocessor,
+        lid_softlabel=LIDSoftLabelPreprocessor,
     ),
     type_check=AbsPreprocessor,
     default="lid",
@@ -184,6 +192,8 @@ loss_choices = ClassChoices(
     classes=dict(
         aamsoftmax=AAMSoftmax,
         aamsoftmax_sc_topk=ArcMarginProduct_intertopk_subcenter,
+        aamsoftmax_sc_topk_multilabel=ArcMarginProduct_intertopk_subcenter_multilabel,
+        aamsoftmax_sc_topk_softtarget=ArcMarginProduct_intertopk_subcenter_softtarget,
         softmax=Softmax,
     ),
     type_check=AbsLoss,

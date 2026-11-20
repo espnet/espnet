@@ -1,0 +1,7 @@
+beam_size: 5
+ctc_weight: 0.0
+lm_weight: 0.0
+penalty: 0.0
+# The output is a list of one or two language tokens, not a transcript.
+maxlenratio: 0.05
+minlenratio: 0.0
