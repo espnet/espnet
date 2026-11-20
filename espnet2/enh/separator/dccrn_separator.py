@@ -40,9 +40,9 @@ class DCCRNSeparator(AbsSeparator):
             input_dim (int): input dimension。
             num_spk (int, optional): number of speakers. Defaults to 1.
             rnn_layer (int, optional): number of lstm layers in the crn. Defaults to 2.
-            rnn_units (int, optional): rnn units. Defaults to 128.
+            rnn_units (int, optional): rnn units. Defaults to 256.
             masking_mode (str, optional): usage of the estimated mask. Defaults to "E".
-            use_clstm (bool, optional): whether use complex LSTM. Defaults to False.
+            use_clstm (bool, optional): whether use complex LSTM. Defaults to True.
             bidirectional (bool, optional): whether use BLSTM. Defaults to False.
             use_cbn (bool, optional): whether use complex BN. Defaults to False.
             kernel_size (int, optional): convolution kernel size. Defaults to 5.
