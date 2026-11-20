@@ -172,5 +172,5 @@ frozen for the first 5,000 updates and fine-tuned jointly afterwards.
 
 | Config | EER(%) | minDCF | Hugging Face |
 |---|---|---|---|
-| `conf/tuning/training_rawnet3.yaml` | | | |
+| `conf/tuning/training_rawnet3.yaml` | 0.755 | 0.0608 | https://huggingface.co/espnet/voxcelebs12_rawnet3_espnet3 |
 | `conf/tuning/training_xeus_ecapa.yaml` | | | |
