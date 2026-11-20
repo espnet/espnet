@@ -173,8 +173,6 @@ class Transformer(AbsTTS):
             gst_conv_stride (int): Stride size of conv layers in GST.
             gst_gru_layers (int): Number of GRU layers in GST.
             gst_gru_units (int): Number of GRU units in GST.
-            transformer_lr (float): Initial value of learning rate.
-            transformer_warmup_steps (int): Optimizer warmup steps.
             transformer_enc_dropout_rate (float): Dropout rate in encoder except
                 attention and positional encoding.
             transformer_enc_positional_dropout_rate (float): Dropout rate after encoder
