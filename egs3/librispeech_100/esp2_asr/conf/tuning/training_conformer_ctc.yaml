@@ -1,0 +1,203 @@
+##########################################################
+#                    TRAINING SETTING                    #
+##########################################################
+# Conformer encoder trained with the CTC loss only (no attention decoder).
+# Port of egs2/librispeech_100/asr1/conf/tuning/train_conformer_ctc.yaml.
+#
+# Quick usage (run `collect_stats` and `train` as separate commands; see README):
+#   python run.py --stages create_dataset train_tokenizer collect_stats \
+#       --training_config conf/tuning/training_conformer_ctc.yaml
+#   python run.py --stages train \
+#       --training_config conf/tuning/training_conformer_ctc.yaml
+#   python run.py --stages infer measure \
+#       --training_config conf/tuning/training_conformer_ctc.yaml \
+#       --inference_config conf/inference_ctc.yaml \
+#       --metrics_config conf/metrics.yaml
+#
+# Reference training environment:
+# - Number of GPUs: 1
+# - GPU type: NVIDIA A100 (40 GB)
+#
+# Deliberate deviations from egs2 are marked [DEVIATION].
+
+##########################################################
+#                  SYSTEM AND PATH SETTING               #
+##########################################################
+# `recipe_dir`, `data_dir`, `exp_tag`, `exp_dir`, and `stats_dir` are inherited
+# from the TEMPLATE config. In particular, `exp_tag` follows `${self_name:}`.
+# `stats_dir`, `data_dir` and the tokenizer are shared with
+# `training_e_branchformer.yaml`: both configs use the same data, frontend and
+# BPE model, so whichever runs second can skip `train_tokenizer` and
+# `collect_stats`.
+task: espnet3.systems.esp2_asr.task.ASRTask
+
+##########################################################
+#                    DATASET DEFINITION                  #
+##########################################################
+dataset:
+  train:
+    - data_src_args:
+        split: train-clean-100
+  valid:
+    - data_src_args:
+        split: dev-clean
+    - data_src_args:
+        split: dev-other
+  preprocessor:
+    _target_: espnet2.train.preprocessor.CommonPreprocessor
+    train: true
+    token_type: bpe
+    token_list: ${tokenizer.save_path}/tokens.txt
+    bpemodel: ${tokenizer.save_path}/bpe.model
+    text_cleaner:
+    fs: 16000
+    # egs2 run.sh applies `--speed_perturb_factors "0.9 1.0 1.1"`; this is the
+    # on-the-fly equivalent (each factor with probability 1/3).
+    data_aug_prob: 0.667
+    data_aug_effects:
+      - [0.5, "speed_perturb", {"factor": 0.9}]
+      - [0.5, "speed_perturb", {"factor": 1.1}]
+
+create_dataset:
+  recipe_dir: ${recipe_dir}
+
+##########################################################
+#                   TOKENIZER SETTING                    #
+##########################################################
+tokenizer:
+  vocab_size: 5000
+  character_coverage: 1.0
+  model_type: bpe
+  save_path: ${data_dir}/${tokenizer.model_type}_${tokenizer.vocab_size}
+  text_builder:
+    func: src.tokenizer.gather_training_text
+    recipe_dir: ${recipe_dir}
+    split: train-clean-100
+
+##########################################################
+#                      MODEL SETTING                     #
+##########################################################
+model:
+  vocab_size: ${tokenizer.vocab_size}
+  token_list: ${tokenizer.save_path}/tokens.txt
+
+  encoder: conformer
+  encoder_conf:
+    output_size: 256
+    attention_heads: 4
+    linear_units: 1024
+    num_blocks: 18
+    dropout_rate: 0.1
+    positional_dropout_rate: 0.1
+    attention_dropout_rate: 0.1
+    input_layer: conv2d
+    normalize_before: true
+    macaron_style: true
+    rel_pos_type: latest
+    pos_enc_layer_type: rel_pos
+    selfattention_layer_type: rel_selfattn
+    activation_type: swish
+    use_cnn_module: true
+    cnn_module_kernel: 31
+
+  # No attention decoder: `decoder` is left unset (do not write the string
+  # `none`). With `ctc_weight: 1.0` the model is trained with the CTC loss only,
+  # so `valid/acc` is never reported; see `best_model_criterion` below.
+  model_conf:
+    ctc_weight: 1.0
+    lsm_weight: 0.1
+    length_normalized_loss: false
+
+  normalize: global_mvn
+  normalize_conf:
+    stats_file: ${stats_dir}/train/feats_stats.npz
+
+  # [DEVIATION] egs2 leaves `frontend_conf` at the espnet2 default
+  # (win_length 512, hop_length 128). This uses the 25 ms / 10 ms window of
+  # `training_e_branchformer.yaml` and of egs2's CTC E-Branchformer config, so
+  # both configs share `exp/stats`.
+  frontend: default
+  frontend_conf:
+    n_fft: 512
+    win_length: 400
+    hop_length: 160
+
+  specaug: specaug
+  specaug_conf:
+    apply_time_warp: true
+    time_warp_window: 5
+    time_warp_mode: bicubic
+    apply_freq_mask: true
+    freq_mask_width_range: [0, 27]
+    num_freq_mask: 2
+    apply_time_mask: true
+    time_mask_width_ratio_range: [0.0, 0.05]
+    num_time_mask: 5
+
+##########################################################
+#            OPTIMIZER & SCHEDULER SETTING               #
+##########################################################
+optimizer:
+  _target_: torch.optim.Adam
+  lr: 0.002
+  weight_decay: 0.000001
+
+scheduler:
+  _target_: espnet2.schedulers.warmup_lr.WarmupLR
+  warmup_steps: 15000
+
+##########################################################
+#                OTHER TRAINING SETTING                  #
+##########################################################
+# A CTC-only model logs `valid/loss`, `valid/loss_ctc` and `valid/cer_ctc`
+# (no `valid/acc`). The averaged model is written to
+# `${exp_dir}/valid.cer_ctc.ave_10best.pth`.
+best_model_criterion:
+  - - valid/cer_ctc
+    - 10
+    - min
+
+collect_stats_train_mode: false
+
+##########################################################
+#                   DATALOADER SETTING                   #
+##########################################################
+parallel:
+  env: local
+  n_workers: 1
+
+dataloader:
+  train:
+    iter_factory:
+      num_workers: 4
+      batches:
+        type: numel
+        shape_files:
+          - ${stats_dir}/train/feats_shape
+        batch_size: 16
+        # [DEVIATION] egs2 uses `batch_bins: 2000000` (raw samples, 125 s of
+        # audio) with `accum_grad: 16`, i.e. about 2,000 s of audio per update.
+        # ESPnet3 bins on `feats_shape` (frames x 80 at 100 frames/s), so
+        # 4,000,000 is about 500 s of audio; with gradient accumulation of 4
+        # this keeps about 2,000 s per update while using a larger minibatch.
+        batch_bins: 4000000
+
+##########################################################
+#                    TRAINER SETTING                     #
+##########################################################
+trainer:
+  accumulate_grad_batches: 4
+  check_val_every_n_epoch: 1
+  gradient_clip_val: 5.0
+  log_every_n_steps: 100
+  # [DEVIATION] egs2 trains 60 epochs over the 3x speed-perturbed copy of
+  # train-clean-100. Here perturbation is on the fly, so an epoch covers the
+  # 100 h set once; 180 epochs keep the same number of updates (and let the
+  # 15,000-step warmup finish).
+  max_epochs: 180
+  precision: bf16-mixed
+
+  logger:
+    - _target_: lightning.pytorch.loggers.TensorBoardLogger
+      save_dir: ${exp_dir}/tensorboard
+      name: tb_logger
