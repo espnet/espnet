@@ -1,0 +1,7 @@
+builder:
+  url: https://huggingface.co/datasets/espnet/an4/resolve/main/an4_sphere.tar.gz
+  dev_size: 100
+  sample_rate: 16000
+  min_duration: 0.1
+  max_duration: 20.0
+  speed_factors: [0.9, 1.0, 1.1]

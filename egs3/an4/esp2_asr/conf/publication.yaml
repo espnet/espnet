@@ -1,0 +1,16 @@
+# Bundle the external tokenizer, normalization and shallow-fusion LM assets.
+# Override these paths together with training/inference for subset experiments.
+tokenizer_dir: ${data_dir}/unigram_30
+stats_dir: ${recipe_dir}/exp/stats_sinc_rnn
+lm_exp_dir: ${recipe_dir}/exp/lm
+
+pack_model:
+  files:
+    token_list: ${tokenizer_dir}/tokens.txt
+    bpemodel: ${tokenizer_dir}/unigram.model
+    normalization: ${stats_dir}/train/feats_stats.npz
+    language_model: ${lm_exp_dir}/valid.loss.ave_1best.pth
+    # Native ESPnet2 configs use recipe-relative paths and plain YAML loading.
+    # Copy them as files; Hydra interpolation is only for ESPnet3 configs.
+    asr_train_config: ${exp_dir}/config.yaml
+    lm_train_config: ${lm_exp_dir}/config.yaml
