@@ -22,8 +22,11 @@
 #   below does the same on the fly.
 # - ESPnet2's `batch_size: 512` is the global batch, split across GPUs.
 # - Its scheduler restarts every 10 epochs (4 cycles in 40 epochs).
-# Without speed perturbation and with a 40-epoch cycle this recipe reached
-# 1.154% EER instead.
+# Its batches also never repeat a speaker (`batch_sampler` below), although
+# that barely moves the EER. Without speed perturbation and with a 40-epoch
+# cycle this recipe reached 1.154% EER; as configured here, the last epoch
+# reaches 0.755% (8 s x 4 crops), against 0.750% for ESPnet2's released model
+# scored the same way.
 
 ##########################################################
 #                  SYSTEM AND PATH SETTING               #
@@ -179,3 +182,8 @@ fit:
 dataloader:
   train:
     batch_size: 128
+    # No speaker twice in a batch, as ESPnet2's `batch_type: catbel`. Under
+    # DDP each rank balances its own shard. It wraps the `shuffle` sampler, so
+    # `shuffle` and `drop_last` above still apply.
+    batch_sampler:
+      _target_: egs3.voxceleb.esp2_spk.dataset.sampler.SpeakerBalancedBatchSampler
