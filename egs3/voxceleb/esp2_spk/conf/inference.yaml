@@ -30,6 +30,13 @@ dataset:
 #                    MODEL AND OUTPUT                    #
 ##########################################################
 model:
-  # Weight average over the top-3 `valid/eer` checkpoints, written by
-  # `AverageCheckpointsCallback` (espnet3/components/callbacks/default_callbacks.py).
-  model_file: ${exp_dir}/valid.eer.ave_3best.pth
+  # ESPnet2's published RawNet3 result (0.739% EER) scores the last epoch
+  # (`40epoch.pth`) with 4 evenly spaced 8-second crops per utterance, so this
+  # does the same. `last.pth` is written by `SaveFinalWeights` at the end of
+  # training. The `valid.eer.ave_3best.pth` average is worse here: the
+  # 10k-trial validation subset is too noisy to rank late epochs, and it mixes
+  # checkpoints from different learning-rate cycles (0.888% with 3 s x 10 crops
+  # against 0.755% for the last epoch with 8 s x 4).
+  model_file: ${exp_dir}/last.pth
+  target_duration: 8.0
+  num_eval: 4

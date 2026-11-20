@@ -1,8 +1,9 @@
-"""Validation-time callbacks for speaker verification training."""
+"""Training callbacks for speaker verification."""
 
 import logging
 import math
 import warnings
+from pathlib import Path
 
 import torch
 from lightning.pytorch.callbacks import Callback
@@ -128,3 +129,44 @@ class SpeakerVerificationScoring(Callback):
             logger=True,
             sync_dist=False,
         )
+
+
+class SaveFinalWeights(Callback):
+    """Save the model weights at the end of training as a plain state dict.
+
+    ESPnet2 speaker recipes publish the weights of the last epoch
+    (``40epoch.pth`` for VoxCeleb RawNet3) rather than an average of the best
+    validation checkpoints: with a cosine schedule that restarts the learning
+    rate, the best validation epochs come from different cycles, and averaging
+    across cycles hurts. The Lightning ``last.ckpt`` holds the same weights but
+    also the optimizer state, and ``pack_model`` does not ship it, so this
+    writes a weights-only copy that the inference config and ``pack_model``
+    can point at. Keys follow the averaged ``*.ave_*best.pth`` files.
+
+    Args:
+        output_dir: Directory to write to, normally ``${exp_dir}``.
+        filename: Name of the file written there.
+
+    Examples:
+        ```yaml
+        trainer:
+          callbacks:
+            - _target_: espnet3.systems.esp2_spk.src.callbacks.SaveFinalWeights
+              output_dir: ${exp_dir}
+        ```
+    """
+
+    def __init__(self, output_dir, filename: str = "last.pth") -> None:
+        """Remember where to write the final weights."""
+        self.output_dir = output_dir
+        self.filename = filename
+
+    def on_train_end(self, trainer, pl_module) -> None:
+        """Write the weights from rank 0 once ``fit`` has finished."""
+        if not trainer.is_global_zero:
+            return
+        path = Path(self.output_dir) / self.filename
+        path.parent.mkdir(parents=True, exist_ok=True)
+        state = {k: v.detach().cpu() for k, v in pl_module.state_dict().items()}
+        torch.save(state, path)
+        logger.info("Saved final weights (epoch %d) to %s", trainer.current_epoch, path)

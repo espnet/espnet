@@ -163,3 +163,21 @@ def test_no_trials_on_any_rank_logs_nothing(tmp_path):
     logged = _score_across_ranks(tmp_path, [[], []])
 
     assert logged == [{}, {}]
+
+
+def test_final_weights_are_saved_by_rank_zero_only(tmp_path):
+    from espnet3.systems.esp2_spk.src.callbacks import SaveFinalWeights
+
+    module = torch.nn.Linear(2, 1)
+    callback = SaveFinalWeights(output_dir=tmp_path / "exp")
+
+    callback.on_train_end(
+        SimpleNamespace(is_global_zero=False, current_epoch=3), module
+    )
+    assert not (tmp_path / "exp" / "last.pth").exists()
+
+    callback.on_train_end(SimpleNamespace(is_global_zero=True, current_epoch=3), module)
+    saved = torch.load(tmp_path / "exp" / "last.pth")
+    assert saved.keys() == module.state_dict().keys()
+    for key, value in module.state_dict().items():
+        assert torch.equal(saved[key], value)

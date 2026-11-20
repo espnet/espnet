@@ -146,9 +146,14 @@ frozen for the first 5,000 updates and fine-tuned jointly afterwards.
   scheduler restarts every 10 epochs at the global batch of 512
   (`num_device x dataloader.train.batch_size`); recompute
   `scheduler.first_cycle_steps` if you change either.
-- Checkpoints are selected on `valid/eer`, computed each epoch over a strided
-  10,000-trial subset of Vox1-O. Raise `num_trials` for a tighter estimate, at
-  the cost of slower epochs. The `infer` stage always scores the full list.
+- `valid/eer` is computed each epoch over a strided 10,000-trial subset of
+  Vox1-O. Raise `num_trials` for a tighter estimate, at the cost of slower
+  epochs. The `infer` stage always scores the full list.
+- `conf/inference.yaml` scores the last-epoch weights (`last.pth`) with 4
+  evenly spaced 8-second crops per utterance, as ESPnet2's published RawNet3
+  result does, rather than the `valid.eer.ave_3best.pth` average: the
+  validation subset is too noisy to rank late epochs, and the average mixes
+  checkpoints from different learning-rate cycles.
 - Trial IDs in `score.scp` are line numbers in
   `data/voxceleb1_test/vox1_o.trials`. `measure` reads each trial's
   target/nontarget label from the same dataset (`dataset:spk_labels`).

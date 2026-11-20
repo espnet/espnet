@@ -17,7 +17,8 @@
 # - `pack_model` bundles `${exp_dir}` plus the recipe's `src` and `dataset`
 #   modules, excluding the per-epoch and `last` checkpoints, the logs, the
 #   tensorboard traces and the `inference*` output directories, so what ships
-#   is the averaged `*.ave_*best.pth` the inference config points at.
+#   is the `last.pth` the inference config points at (written by
+#   `SaveFinalWeights`), alongside the averaged `*.ave_*best.pth`.
 # - `upload_model.hf_repo` resolves to `espnet/${set_corpus_and_system:}_${exp_tag}`,
 #   that is `espnet/voxceleb_spk_training_rawnet3` for the RawNet3 config.
 # - `private: false`, because a recipe result is meant to be published.

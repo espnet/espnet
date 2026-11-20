@@ -178,6 +178,10 @@ trainer:
       p_target: 0.05
       c_miss: 1.0
       c_fa: 1.0
+    # Writes `${exp_dir}/last.pth`, the last-epoch weights without optimizer
+    # state, which is what ESPnet2 speaker recipes publish (e.g. 40epoch.pth).
+    - _target_: espnet3.systems.esp2_spk.src.callbacks.SaveFinalWeights
+      output_dir: ${exp_dir}
 
   logger:
     - _target_: lightning.pytorch.loggers.TensorBoardLogger
