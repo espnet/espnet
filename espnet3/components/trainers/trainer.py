@@ -139,6 +139,7 @@ class ESPnet3LightningTrainer:
 
         trainer_config = copy.deepcopy(self.config)
         for key in (
+            "init",
             "accelerator",
             "strategy",
             "logger",
