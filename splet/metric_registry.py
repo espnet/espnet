@@ -102,6 +102,17 @@ METRIC_CHOICES: Dict[str, MetricSpec] = {
         requires=("reference",),
         defaults={"tokenizer": "char"},
     ),
+    # Spelled out rather than "ter": sacrebleu's TER is translation edit
+    # rate, which differs from this by a shift operation. Confusing the
+    # two yields a believable wrong number rather than a crash.
+    "token_error_rate": MetricSpec(
+        tier="utterance",
+        setup=error_rate.error_rate_setup,
+        metric=error_rate.error_rate_metric,
+        outputs=error_rate.OUTPUTS,
+        requires=("reference",),
+        defaults={"tokenizer": "sentencepiece"},
+    ),
 }
 
 

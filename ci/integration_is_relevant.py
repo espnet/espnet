@@ -57,6 +57,9 @@ RELEVANT = {
     "espnet3": SHARED
     + (
         "espnet3/",
+        # espnet3 scores through SPLET, so a splet-only change still has
+        # to run the espnet3 integration suite.
+        "splet/",
         "egs3/",  # mini_an4, TEMPLATE and integration_test are all small
         "ci/test_integration_espnet3.sh",
         "ci/check_espnet3_parallel_workers.py",  # what the parallel runs must give
