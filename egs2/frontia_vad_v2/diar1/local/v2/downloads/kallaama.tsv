@@ -1,0 +1,4 @@
+# corpus_dir	relative_path	url	size_bytes	checksum	unpack
+kallaama	ARCHIVES/speech_dataset_fuc.tar.gz	https://zenodo.org/records/10892569/files/speech_dataset_fuc.tar.gz	3143491621	md5:87895c981fa9593e232380e07c331c59
+kallaama	ARCHIVES/speech_dataset_srr.tar.gz	https://zenodo.org/records/10892569/files/speech_dataset_srr.tar.gz	3983487281	md5:5e11b5c8140680e74009c13c43366cc6
+kallaama	ARCHIVES/speech_dataset_wol.tar.gz	https://zenodo.org/records/10892569/files/speech_dataset_wol.tar.gz	5446230054	md5:984d0804f628a3257f3d063ff4a4be31

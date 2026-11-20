@@ -1,0 +1,8 @@
+# corpus_dir	relative_path	url	size_bytes	checksum	unpack
+# DESED_synthetic (Zenodo 3702397, version v2.2); licence on the record: cc-by-4.0; files as published
+desed_synthetic	ARCHIVES/DESED_synth_dcase2019jams.tar.gz	https://zenodo.org/api/records/3702397/files/DESED_synth_dcase2019jams.tar.gz/content	2888312	md5:16053563caa8e761eec043f44255d96f
+desed_synthetic	ARCHIVES/DESED_synth_dcase20_train_jams.tar.gz	https://zenodo.org/api/records/3702397/files/DESED_synth_dcase20_train_jams.tar.gz/content	1912300	md5:b611e1573b173e8625133237ecbe4d7c
+desed_synthetic	ARCHIVES/DESED_synth_eval_dcase2019.tar.gz	https://zenodo.org/api/records/3702397/files/DESED_synth_eval_dcase2019.tar.gz/content	7710291574	md5:e1aad0a714bb98d2b58f3d62122077b8
+desed_synthetic	ARCHIVES/DESED_synth_soundbank.tar.gz	https://zenodo.org/api/records/3702397/files/DESED_synth_soundbank.tar.gz/content	2423131154	md5:f061ed2322be7d338ab5f9628750ce6a
+desed_synthetic	ARCHIVES/DESED_synth_source.tar.gz	https://zenodo.org/api/records/3702397/files/DESED_synth_source.tar.gz/content	27706	md5:b1d91688a56740c9ec63afc3fc769c46
+desed_synthetic	ARCHIVES/zenodo_record_3702397.json	https://zenodo.org/api/records/3702397

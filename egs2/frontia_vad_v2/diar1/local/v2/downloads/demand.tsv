@@ -1,0 +1,40 @@
+# corpus_dir	relative_path	url	size_bytes	checksum	unpack
+# DEMAND: a collection of multi-channel recordings of acoustic noise in diverse environments (Zenodo 1227121, version 1.0); licence on the record: cc-by-4.0; files as published
+demand	ARCHIVES/PRESTO_16k.zip	https://zenodo.org/api/records/1227121/files/PRESTO_16k.zip/content	111292815	md5:b98d2e6854eeebb397f29a8ad7457092
+demand	ARCHIVES/PCAFETER_48k.zip	https://zenodo.org/api/records/1227121/files/PCAFETER_48k.zip/content	314117272	md5:b7b8b10f41b747cd0fd3849db13cebd2
+demand	ARCHIVES/DWASHING_16k.zip	https://zenodo.org/api/records/1227121/files/DWASHING_16k.zip/content	102343250	md5:7e5ee9437ce9409c5f9a779b6212a240
+demand	ARCHIVES/PCAFETER_16k.zip	https://zenodo.org/api/records/1227121/files/PCAFETER_16k.zip/content	107431494	md5:99927d148128254141a9417d051510bb
+demand	ARCHIVES/OOFFICE_48k.zip	https://zenodo.org/api/records/1227121/files/OOFFICE_48k.zip/content	277643831	md5:6f87edf8a6b03f17b3f693af1754aab4
+demand	ARCHIVES/OOFFICE_16k.zip	https://zenodo.org/api/records/1227121/files/OOFFICE_16k.zip/content	88995191	md5:7b61cc2d182d5a654cb9c3101ddd4041
+demand	ARCHIVES/OMEETING_48k.zip	https://zenodo.org/api/records/1227121/files/OMEETING_48k.zip/content	253340198	md5:eae4c54c0e441df8375a979c0e9828f6
+demand	ARCHIVES/OMEETING_16k.zip	https://zenodo.org/api/records/1227121/files/OMEETING_16k.zip/content	82703355	md5:62f7cfe7fe6d30b7d8a215fe37c2dfd2
+demand	ARCHIVES/OHALLWAY_48k.zip	https://zenodo.org/api/records/1227121/files/OHALLWAY_48k.zip/content	252905617	md5:cb9227a75d2c1342de0b6548da4bbb1b
+demand	ARCHIVES/DLIVING_48k.zip	https://zenodo.org/api/records/1227121/files/DLIVING_48k.zip/content	253978613	md5:6ea02bb944e7e5950274f9e7d5faab4b
+demand	ARCHIVES/DKITCHEN_48k.zip	https://zenodo.org/api/records/1227121/files/DKITCHEN_48k.zip/content	336992458	md5:b4d38241fbd50d8a17f8742ca6870c10
+demand	ARCHIVES/DKITCHEN_16k.zip	https://zenodo.org/api/records/1227121/files/DKITCHEN_16k.zip/content	110501049	md5:7ffbf52d7f4699f96927846103dc8788
+demand	ARCHIVES/TMETRO_16k.zip	https://zenodo.org/api/records/1227121/files/TMETRO_16k.zip/content	126589090	md5:95daf4df678e13b120e14211e6d89571
+demand	ARCHIVES/scripts.zip	https://zenodo.org/api/records/1227121/files/scripts.zip/content	4783	md5:8e4cfde3e264e1a0cc1bcc24fa3f16f9
+demand	ARCHIVES/SCAFE_48k.zip	https://zenodo.org/api/records/1227121/files/SCAFE_48k.zip/content	325884186	md5:1a4ee387f1900f4b15ba219481c76556
+demand	ARCHIVES/PSTATION_48k.zip	https://zenodo.org/api/records/1227121/files/PSTATION_48k.zip/content	348948834	md5:b40f603504997111b0bf7e2ce78e0594
+demand	ARCHIVES/PSTATION_16k.zip	https://zenodo.org/api/records/1227121/files/PSTATION_16k.zip/content	119441094	md5:d7448009f6c2aeb6ba570375df1750a3
+demand	ARCHIVES/PRESTO_48k.zip	https://zenodo.org/api/records/1227121/files/PRESTO_48k.zip/content	327432202	md5:6e9fef96d78e636029fd4c5929b9cece
+demand	ARCHIVES/TMETRO_48k.zip	https://zenodo.org/api/records/1227121/files/TMETRO_48k.zip/content	367513573	md5:00d895020233f94348aafce7140d671f
+demand	ARCHIVES/OHALLWAY_16k.zip	https://zenodo.org/api/records/1227121/files/OHALLWAY_16k.zip/content	77941854	md5:fe918bbb0e63e73d09ba7f4843ef33f1
+demand	ARCHIVES/NRIVER_48k.zip	https://zenodo.org/api/records/1227121/files/NRIVER_48k.zip/content	284560347	md5:112c7997f19ef8f1f952fb3e066f6e1f
+demand	ARCHIVES/DLIVING_16k.zip	https://zenodo.org/api/records/1227121/files/DLIVING_16k.zip/content	80170627	md5:46741384d9e434a0bd8b3ec1830b6052
+demand	ARCHIVES/NRIVER_16k.zip	https://zenodo.org/api/records/1227121/files/NRIVER_16k.zip/content	98689565	md5:54264db61d3fe073fb81f2e40e0d19b5
+demand	ARCHIVES/NPARK_48k.zip	https://zenodo.org/api/records/1227121/files/NPARK_48k.zip/content	257645848	md5:bb90ec754ac02eede51bf80675a78cfe
+demand	ARCHIVES/DEMAND.pdf	https://zenodo.org/api/records/1227121/files/DEMAND.pdf/content	87837	md5:a513afe131e08cdacf7c1854b174d5ab
+demand	ARCHIVES/NPARK_16k.zip	https://zenodo.org/api/records/1227121/files/NPARK_16k.zip/content	86029332	md5:80f1385a34d7f1705758926b57f138ce
+demand	ARCHIVES/NFIELD_48k.zip	https://zenodo.org/api/records/1227121/files/NFIELD_48k.zip/content	270538724	md5:937eab7d3f64cea99fa377238e84c185
+demand	ARCHIVES/NFIELD_16k.zip	https://zenodo.org/api/records/1227121/files/NFIELD_16k.zip/content	86536782	md5:a740046c6f4e174e16f5d568aaec5024
+demand	ARCHIVES/DWASHING_48k.zip	https://zenodo.org/api/records/1227121/files/DWASHING_48k.zip/content	306101499	md5:ecf765f12b8d3ada7ef0ec664b8f8d73
+demand	ARCHIVES/SPSQUARE_16k.zip	https://zenodo.org/api/records/1227121/files/SPSQUARE_16k.zip/content	110928528	md5:205d0e7b8fe74504a2f8d252fc414b9e
+demand	ARCHIVES/TBUS_16k.zip	https://zenodo.org/api/records/1227121/files/TBUS_16k.zip/content	128916709	md5:706b11b0d8504f9f3b3f3211e91b3863
+demand	ARCHIVES/STRAFFIC_48k.zip	https://zenodo.org/api/records/1227121/files/STRAFFIC_48k.zip/content	348263839	md5:ffbcdebb7e1c39d3d5b7920b0594e20b
+demand	ARCHIVES/TBUS_48k.zip	https://zenodo.org/api/records/1227121/files/TBUS_48k.zip/content	376202003	md5:f7d6657314d90c6f270955eaed411ddc
+demand	ARCHIVES/STRAFFIC_16k.zip	https://zenodo.org/api/records/1227121/files/STRAFFIC_16k.zip/content	118572691	md5:2efa87262f272bbf9ba578088e81939c
+demand	ARCHIVES/SPSQUARE_48k.zip	https://zenodo.org/api/records/1227121/files/SPSQUARE_48k.zip/content	320482248	md5:f5fbdd5c1e03ab8c44c32ad96261ca26
+demand	ARCHIVES/TCAR_16k.zip	https://zenodo.org/api/records/1227121/files/TCAR_16k.zip/content	130045975	md5:4d930012796bd298932245a26189f973
+demand	ARCHIVES/TCAR_48k.zip	https://zenodo.org/api/records/1227121/files/TCAR_48k.zip/content	373520251	md5:8550f03e8356d8054ae845e8b4b6c773
+demand	ARCHIVES/zenodo_record_1227121.json	https://zenodo.org/api/records/1227121

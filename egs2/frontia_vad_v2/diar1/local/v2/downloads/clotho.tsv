@@ -1,0 +1,5 @@
+# corpus_dir	relative_path	url	size_bytes	checksum	unpack
+clotho	ARCHIVES/LICENSE_v2.1	https://zenodo.org/records/4783391/files/LICENSE?download=1	1874	md5:38d422ac8a2c9c35c288232576e2e810
+clotho	ARCHIVES/LICENSE_v1.0	https://zenodo.org/records/3490684/files/LICENSE?download=1	1864	md5:afceb2583a64aea27ed4f14099126af0
+clotho	ARCHIVES/zenodo_record_4783391.json	https://zenodo.org/api/records/4783391
+clotho	ARCHIVES/zenodo_record_3490684.json	https://zenodo.org/api/records/3490684

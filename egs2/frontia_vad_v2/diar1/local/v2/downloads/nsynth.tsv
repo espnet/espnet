@@ -1,0 +1,5 @@
+# corpus_dir	relative_path	url	size_bytes	checksum	unpack
+nsynth	ARCHIVES/nsynth_page.html	https://magenta.tensorflow.org/datasets/nsynth
+nsynth	ARCHIVES/nsynth-train.jsonwav.tar.gz	http://download.magenta.tensorflow.org/datasets/nsynth/nsynth-train.jsonwav.tar.gz	23815298079	md5:fde6665a93865503ba598b9fac388660
+nsynth	ARCHIVES/nsynth-valid.jsonwav.tar.gz	http://download.magenta.tensorflow.org/datasets/nsynth/nsynth-valid.jsonwav.tar.gz	1068767009	md5:87e94a00a19b6dbc99cf6d4c0c0cae87
+nsynth	ARCHIVES/nsynth-test.jsonwav.tar.gz	http://download.magenta.tensorflow.org/datasets/nsynth/nsynth-test.jsonwav.tar.gz	349501546	md5:5e6f8719bf7e16ad0a00d518b78af77d

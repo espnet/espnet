@@ -1,0 +1,5 @@
+# corpus_dir	relative_path	url	size_bytes	checksum	unpack
+musicnet	ARCHIVES/zenodo_record_5120004.json	https://zenodo.org/api/records/5120004
+musicnet	ARCHIVES/musicnet.tar.gz	https://zenodo.org/records/5120004/files/musicnet.tar.gz?download=1	11097394998	md5:844764911fa0d5b97c97da944a057590
+musicnet	ARCHIVES/musicnet_metadata.csv	https://zenodo.org/records/5120004/files/musicnet_metadata.csv?download=1	43775	md5:1caef62cee9c875235e62aac368b49d8
+musicnet	ARCHIVES/musicnet_midis.tar.gz	https://zenodo.org/records/5120004/files/musicnet_midis.tar.gz?download=1	2601302	md5:b5fa98a113bfc51c8a445def9f24dc7e

@@ -1,0 +1,614 @@
+# corpus_dir	relative_path	url	size_bytes	checksum	unpack
+fleurs	data/af_za/audio/dev.tar.gz	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/af_za/audio/dev.tar.gz	110737457	sha256:0cf5cfa5390f3a6c81e05dcf0d6d140fb678014cf44d0ab4b432ce7184187641
+fleurs	data/af_za/audio/test.tar.gz	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/af_za/audio/test.tar.gz	156331424	sha256:c76ea67a8adfd83ac14e620327a3d5da83cdbad6b8f95a9c53c867c71411c0b2
+fleurs	data/af_za/audio/train.tar.gz	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/af_za/audio/train.tar.gz	647239521	sha256:9d0dcc929086ef61d40036112447bec41ae3fd74d6ad8490625f4329bb6cb010
+fleurs	data/af_za/dev.tsv	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/af_za/dev.tsv	108425
+fleurs	data/af_za/test.tsv	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/af_za/test.tsv	149544
+fleurs	data/af_za/train.tsv	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/af_za/train.tsv	594901
+fleurs	data/am_et/audio/dev.tar.gz	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/am_et/audio/dev.tar.gz	112147481	sha256:7d91176bd88f3a6c8a278809b75871300c3b0ae0650b250a5891f72e285fa20a
+fleurs	data/am_et/audio/test.tar.gz	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/am_et/audio/test.tar.gz	277608292	sha256:9a5dc623af946751766f1df0ee6195e06a4c41f1ae83cabc1479858254adb309
+fleurs	data/am_et/audio/train.tar.gz	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/am_et/audio/train.tar.gz	1945492308	sha256:8406307028b4792365ac2fc93896ed49cdf0eb4a4aaadc826d79bfd2c6ea5c50
+fleurs	data/am_et/dev.tsv	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/am_et/dev.tsv	156393
+fleurs	data/am_et/test.tsv	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/am_et/test.tsv	392155
+fleurs	data/am_et/train.tsv	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/am_et/train.tsv	2436704
+fleurs	data/ar_eg/audio/dev.tar.gz	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/ar_eg/audio/dev.tar.gz	162715645	sha256:22271b3500c0e952aedbf0a6d7d3b959a91e1f02612293dce761fe5c87b66117
+fleurs	data/ar_eg/audio/test.tar.gz	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/ar_eg/audio/test.tar.gz	243532527	sha256:787dc348725c0924ff58c8e379d4ef41a7e488dc2ab2990a0eba4a063856edb1
+fleurs	data/ar_eg/audio/train.tar.gz	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/ar_eg/audio/train.tar.gz	1113698891	sha256:b19fa9435c0d7587bf0ede7c9da134567b2eb55a06e2e7523547f0a6fcb3eef7
+fleurs	data/ar_eg/dev.tsv	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/ar_eg/dev.tsv	214607
+fleurs	data/ar_eg/test.tsv	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/ar_eg/test.tsv	324236
+fleurs	data/ar_eg/train.tsv	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/ar_eg/train.tsv	1528714
+fleurs	data/as_in/audio/dev.tar.gz	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/as_in/audio/dev.tar.gz	267206767	sha256:84ae2875dcdc8173640e132e549bcf4473951186b1257aee5669fbe91973d4bc
+fleurs	data/as_in/audio/test.tar.gz	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/as_in/audio/test.tar.gz	656346858	sha256:56fad7d019b09b9efd0bbf3817c91d6f537ebe17b0f44224becc27a6a7156581
+fleurs	data/as_in/audio/train.tar.gz	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/as_in/audio/train.tar.gz	1932719229	sha256:0a53e3725a9832c6bd698c5c36bbce792ce7a2895e17cc7bfd036750a7cc3881
+fleurs	data/as_in/dev.tsv	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/as_in/dev.tsv	466502
+fleurs	data/as_in/test.tsv	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/as_in/test.tsv	1156787
+fleurs	data/as_in/train.tsv	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/as_in/train.tsv	3171528
+fleurs	data/ast_es/audio/dev.tar.gz	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/ast_es/audio/dev.tar.gz	186508069	sha256:67acd06f34a0d8b30323ee28dc66143f9546aefc52b177008d885ad7174e9e98
+fleurs	data/ast_es/audio/test.tar.gz	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/ast_es/audio/test.tar.gz	461151662	sha256:06b80036148e4d9e5cd3d3922057abfce01f7ab15cbcd4b28590ab8d915d6e62
+fleurs	data/ast_es/audio/train.tar.gz	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/ast_es/audio/train.tar.gz	1382500508	sha256:51806649c5447153f427b5c4570b1da9f5ce98873f5e15bf9a118d05685f400a
+fleurs	data/ast_es/dev.tsv	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/ast_es/dev.tsv	223847
+fleurs	data/ast_es/test.tsv	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/ast_es/test.tsv	559062
+fleurs	data/ast_es/train.tsv	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/ast_es/train.tsv	1396369
+fleurs	data/az_az/audio/dev.tar.gz	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/az_az/audio/dev.tar.gz	246988270	sha256:98d0a64d7b5eb5372160bc17e45bee9228da784e6137203770a7b2e00272d21d
+fleurs	data/az_az/audio/test.tar.gz	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/az_az/audio/test.tar.gz	591560675	sha256:f2ef9ec467420e2accb50238c7747adc9532a3630a857f0edbe0929bf3c1f26d
+fleurs	data/az_az/audio/train.tar.gz	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/az_az/audio/train.tar.gz	1603851494	sha256:259e6d57cb34d52a63aa028c21b55b36af38489bfc0a54c38850aca15341fc07
+fleurs	data/az_az/dev.tsv	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/az_az/dev.tsv	256051
+fleurs	data/az_az/test.tsv	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/az_az/test.tsv	623643
+fleurs	data/az_az/train.tsv	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/az_az/train.tsv	1741553
+fleurs	data/be_by/audio/dev.tar.gz	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/be_by/audio/dev.tar.gz	282038358	sha256:a1477879b97012680bb9b087dd60475bc67ca502629a60c849da7cd1a1e6d42d
+fleurs	data/be_by/audio/test.tar.gz	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/be_by/audio/test.tar.gz	694422377	sha256:16f14328bc329497e9746e03da6d9b0fa907c66f32c317ee0c80faa370d7900d
+fleurs	data/be_by/audio/train.tar.gz	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/be_by/audio/train.tar.gz	1646636853	sha256:02fc1791047f1ac347338bc0430658f3bd098e579318ac322d11bb865bb6d70b
+fleurs	data/be_by/dev.tsv	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/be_by/dev.tsv	386510
+fleurs	data/be_by/test.tsv	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/be_by/test.tsv	965731
+fleurs	data/be_by/train.tsv	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/be_by/train.tsv	2308062
+fleurs	data/bg_bg/audio/dev.tar.gz	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/bg_bg/audio/dev.tar.gz	192374952	sha256:6a03dc3d5a4dd8f2dcb24716438aea8094779d7966a0a7fc5fcfd2c380435665
+fleurs	data/bg_bg/audio/test.tar.gz	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/bg_bg/audio/test.tar.gz	340376747	sha256:8ecfcc9dd44186b3ea5a0bc4a867cdc3efdfe3049bba5fd3de9b8af078abba46
+fleurs	data/bg_bg/audio/train.tar.gz	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/bg_bg/audio/train.tar.gz	1724798952	sha256:084d5af139cb9c6207b9e40aeb8ee8ab7314fe2a769a2f3239856d71bae15323
+fleurs	data/bg_bg/dev.tsv	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/bg_bg/dev.tsv	347954
+fleurs	data/bg_bg/test.tsv	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/bg_bg/test.tsv	606008
+fleurs	data/bg_bg/train.tsv	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/bg_bg/train.tsv	2632071
+fleurs	data/bn_in/audio/dev.tar.gz	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/bn_in/audio/dev.tar.gz	278667778	sha256:b7f380b67d50bc59f328af3e1bd8096ab9e728bd0103349b9746ca95ab75ff30
+fleurs	data/bn_in/audio/test.tar.gz	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/bn_in/audio/test.tar.gz	659700249	sha256:6c1cc66b258b711d49e5bcd8e5508c18484c8cbcbe76d323ad46947756029b0f
+fleurs	data/bn_in/audio/train.tar.gz	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/bn_in/audio/train.tar.gz	2034709059	sha256:27199ad0041edeb5efe16948718b866c2417f4c88c2eeadebdadf269a041ab8f
+fleurs	data/bn_in/dev.tsv	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/bn_in/dev.tsv	465963
+fleurs	data/bn_in/test.tsv	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/bn_in/test.tsv	1089017
+fleurs	data/bn_in/train.tsv	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/bn_in/train.tsv	3481282
+fleurs	data/bs_ba/audio/dev.tar.gz	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/bs_ba/audio/dev.tar.gz	229650390	sha256:cfa7f705623119f04b9e893feef2681637775a4566b5770d11a52a6b7fd7bd14
+fleurs	data/bs_ba/audio/test.tar.gz	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/bs_ba/audio/test.tar.gz	539987352	sha256:028e2bf89271f6751abde10836645176e4c6e90083505d4f8e4a83aca7d31cc6
+fleurs	data/bs_ba/audio/train.tar.gz	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/bs_ba/audio/train.tar.gz	1707866066	sha256:8c3d96ebbdf632b2703ca4e6482c4b231ed274b8a748c49e2bcc1c0046a7c315
+fleurs	data/bs_ba/dev.tsv	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/bs_ba/dev.tsv	222398
+fleurs	data/bs_ba/test.tsv	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/bs_ba/test.tsv	531476
+fleurs	data/bs_ba/train.tsv	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/bs_ba/train.tsv	1717511
+fleurs	data/ca_es/audio/dev.tar.gz	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/ca_es/audio/dev.tar.gz	236198566	sha256:6a5c76d541797e0c7e8d805f25499ce26db70f2fdc1ea31362af876f12b4210c
+fleurs	data/ca_es/audio/test.tar.gz	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/ca_es/audio/test.tar.gz	572984714	sha256:1dd0c257cd36a431027b00a8e836f6e2a70af3e1c8a2d8e7608c055df9dd42e9
+fleurs	data/ca_es/audio/train.tar.gz	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/ca_es/audio/train.tar.gz	1340195348	sha256:b93d54db7249feb312c24a579686e7a03bd1ec59c281a3abdd6e1d9c1ed688e3
+fleurs	data/ca_es/dev.tsv	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/ca_es/dev.tsv	243617
+fleurs	data/ca_es/test.tsv	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/ca_es/test.tsv	592251
+fleurs	data/ca_es/train.tsv	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/ca_es/train.tsv	1338830
+fleurs	data/ceb_ph/audio/dev.tar.gz	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/ceb_ph/audio/dev.tar.gz	162310744	sha256:75b77d9ad97b633366d8cef7c64f5036eb711a1556e172d920abc79c0c36d6e9
+fleurs	data/ceb_ph/audio/test.tar.gz	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/ceb_ph/audio/test.tar.gz	408532155	sha256:27d5b16036d0cb50f67d64bd21955a39375b3a704d5bda28cda628eb0e44e041
+fleurs	data/ceb_ph/audio/train.tar.gz	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/ceb_ph/audio/train.tar.gz	2251585331	sha256:7a85da4fb5990b034a9cadce08a1c07aef4bbfbb844cd6224576968c7c317753
+fleurs	data/ceb_ph/dev.tsv	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/ceb_ph/dev.tsv	138403
+fleurs	data/ceb_ph/test.tsv	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/ceb_ph/test.tsv	345758
+fleurs	data/ceb_ph/train.tsv	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/ceb_ph/train.tsv	2085898
+fleurs	data/ckb_iq/audio/dev.tar.gz	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/ckb_iq/audio/dev.tar.gz	234447031	sha256:8de33e65ae9b312e8fdef7ac2d2c2264af98707e7231f1c8623c9b48db77b89b
+fleurs	data/ckb_iq/audio/test.tar.gz	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/ckb_iq/audio/test.tar.gz	563835664	sha256:d50774dd1cb81bbbf366d1cfc53d703c64711daaaeeaf138bdf616f688f4a71f
+fleurs	data/ckb_iq/audio/train.tar.gz	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/ckb_iq/audio/train.tar.gz	1840768164	sha256:60a8dc4e6988684cf7e34b9b8fc4f708601fea8ca031308d91699b47f9950a03
+fleurs	data/ckb_iq/dev.tsv	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/ckb_iq/dev.tsv	323042
+fleurs	data/ckb_iq/test.tsv	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/ckb_iq/test.tsv	787637
+fleurs	data/ckb_iq/train.tsv	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/ckb_iq/train.tsv	2526910
+fleurs	data/cmn_hans_cn/audio/dev.tar.gz	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/cmn_hans_cn/audio/dev.tar.gz	217347747	sha256:3bc33212d5974eef7feb04bc4792458d6cd7e14ff10a1a24772f3c45ea87a822
+fleurs	data/cmn_hans_cn/audio/test.tar.gz	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/cmn_hans_cn/audio/test.tar.gz	525346466	sha256:09d19ad18f5d7e91076880807e866cd16abd924c7052b55f71cdae91714fc166
+fleurs	data/cmn_hans_cn/audio/train.tar.gz	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/cmn_hans_cn/audio/train.tar.gz	1771862730	sha256:812346f79314a46347e1ed481c4948626fa63a6220e511907d1ec5860855df68
+fleurs	data/cmn_hans_cn/dev.tsv	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/cmn_hans_cn/dev.tsv	205248
+fleurs	data/cmn_hans_cn/test.tsv	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/cmn_hans_cn/test.tsv	491487
+fleurs	data/cmn_hans_cn/train.tsv	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/cmn_hans_cn/train.tsv	1658957
+fleurs	data/cs_cz/audio/dev.tar.gz	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/cs_cz/audio/dev.tar.gz	182057185	sha256:a4befac721e3decca3e3a882dbf2e6731c49a73a2052de5926dd04865754d7b5
+fleurs	data/cs_cz/audio/test.tar.gz	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/cs_cz/audio/test.tar.gz	451208368	sha256:52c6278419ec578089c19183185d082b3759029adda5538c279cf06a7e460bc1
+fleurs	data/cs_cz/audio/train.tar.gz	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/cs_cz/audio/train.tar.gz	1430524096	sha256:a08b3ac6ff7bf7f6cd5a71c6b7fb760ee06df58ab2824be21402129ee52f9ff2
+fleurs	data/cs_cz/dev.tsv	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/cs_cz/dev.tsv	165522
+fleurs	data/cs_cz/test.tsv	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/cs_cz/test.tsv	419940
+fleurs	data/cs_cz/train.tsv	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/cs_cz/train.tsv	1593795
+fleurs	data/cy_gb/audio/dev.tar.gz	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/cy_gb/audio/dev.tar.gz	321409071	sha256:0412bb9eda80173cb300358ff83cf504726f3a2db8138650146d480895e878bc
+fleurs	data/cy_gb/audio/test.tar.gz	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/cy_gb/audio/test.tar.gz	764260631	sha256:7789d3cdc12d48119787ceafe78641c41e99772c039f12cd6b1764e1c2d85dc4
+fleurs	data/cy_gb/audio/train.tar.gz	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/cy_gb/audio/train.tar.gz	2009289672	sha256:def18a501c1af92f68f0cd5b8e3c82409cb8eeed721ac2f13dd64ea38e3588ed
+fleurs	data/cy_gb/dev.tsv	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/cy_gb/dev.tsv	256676
+fleurs	data/cy_gb/test.tsv	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/cy_gb/test.tsv	613628
+fleurs	data/cy_gb/train.tsv	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/cy_gb/train.tsv	1987321
+fleurs	data/da_dk/audio/dev.tar.gz	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/da_dk/audio/dev.tar.gz	207442602	sha256:77e17d23de3a3fc1381309525efcf4ddc6cda7b7bbaaea7bd7a84b7b69ccd21c
+fleurs	data/da_dk/audio/test.tar.gz	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/da_dk/audio/test.tar.gz	520839098	sha256:2b49ad7a59ea8066f5b719ecc9c3e111fe00a9260ce8f0a0e62c52b7fb6f8456
+fleurs	data/da_dk/audio/train.tar.gz	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/da_dk/audio/train.tar.gz	1218955484	sha256:44f976d35202aa54c7e4eec85aa5c50d23771ae7b58d1c4f1c7bb03aaabbc2fc
+fleurs	data/da_dk/dev.tsv	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/da_dk/dev.tsv	217986
+fleurs	data/da_dk/test.tsv	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/da_dk/test.tsv	542644
+fleurs	data/da_dk/train.tsv	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/da_dk/train.tsv	1350983
+fleurs	data/de_de/audio/dev.tar.gz	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/de_de/audio/dev.tar.gz	227694463	sha256:72cac13bbddbddf674d8102a9e7b90a3b1db5d777ed92e88eccc5ae69cb8fc9d
+fleurs	data/de_de/audio/test.tar.gz	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/de_de/audio/test.tar.gz	568734559	sha256:e86b42dfcdef749926cd92135045f87c25966c09e50d01c401adb04ee7d8628f
+fleurs	data/de_de/audio/train.tar.gz	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/de_de/audio/train.tar.gz	1614896315	sha256:6708e4052d924a9b18d3f48a7e308d35adff4a0352b1ca26ce21ce0b810ddc11
+fleurs	data/de_de/dev.tsv	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/de_de/dev.tsv	221691
+fleurs	data/de_de/test.tsv	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/de_de/test.tsv	559542
+fleurs	data/de_de/train.tsv	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/de_de/train.tsv	1864650
+fleurs	data/el_gr/audio/dev.tar.gz	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/el_gr/audio/dev.tar.gz	140844764	sha256:a927aca3d5ab5694b219433a1d12fd3bcd02da577783c6624c99012ddbf5c1cf
+fleurs	data/el_gr/audio/test.tar.gz	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/el_gr/audio/test.tar.gz	348820912	sha256:dfb63d8d6da161b25d374ac34dce06e23b839958cf4086d49e25f0048bab2a38
+fleurs	data/el_gr/audio/train.tar.gz	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/el_gr/audio/train.tar.gz	1910047081	sha256:f7b63bf58310b8983503815b793adf96f15a24c4bf0cd4dac3563e191b25aaf5
+fleurs	data/el_gr/dev.tsv	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/el_gr/dev.tsv	270544
+fleurs	data/el_gr/test.tsv	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/el_gr/test.tsv	667945
+fleurs	data/el_gr/train.tsv	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/el_gr/train.tsv	3238397
+fleurs	data/en_us/audio/dev.tar.gz	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/en_us/audio/dev.tar.gz	171250900	sha256:2658fda72f199e12676ecac9415094667a4e14e149b146e568ea00b2a2f0954c
+fleurs	data/en_us/audio/test.tar.gz	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/en_us/audio/test.tar.gz	289851356	sha256:d9c2e37b41aacd41bc283554a0a82b5476b36887049774ecb2819dcaaa55a356
+fleurs	data/en_us/audio/train.tar.gz	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/en_us/audio/train.tar.gz	1380572241	sha256:5f4491948c2bd29ac00f4b8afae2378f0a1dcdde4041b5cd284a80dff01fa9f5
+fleurs	data/en_us/dev.tsv	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/en_us/dev.tsv	213065
+fleurs	data/en_us/test.tsv	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/en_us/test.tsv	367864
+fleurs	data/en_us/train.tsv	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/en_us/train.tsv	1414907
+fleurs	data/es_419/audio/dev.tar.gz	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/es_419/audio/dev.tar.gz	255285841	sha256:94f0f3d9fd89c0496385bf0991f2565410cc489a73dd18cafa0ee0177dc5c815
+fleurs	data/es_419/audio/test.tar.gz	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/es_419/audio/test.tar.gz	582112372	sha256:981802f6c828fd214fcf8bfc1036d80c9184b6eeb5650b3f7882f8affec046c9
+fleurs	data/es_419/audio/train.tar.gz	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/es_419/audio/train.tar.gz	1439647524	sha256:f832ccb74a59f53ec3bceb77e26826d0516ba6a2e8cd1e9a7f8876615a056985
+fleurs	data/es_419/dev.tsv	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/es_419/dev.tsv	261638
+fleurs	data/es_419/test.tsv	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/es_419/test.tsv	599882
+fleurs	data/es_419/train.tsv	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/es_419/train.tsv	1791549
+fleurs	data/et_ee/audio/dev.tar.gz	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/et_ee/audio/dev.tar.gz	209848270	sha256:ad7c8a257cea5cd6b86df76bae30998b88b48fa9d5e88d8439af55c33424d3e7
+fleurs	data/et_ee/audio/test.tar.gz	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/et_ee/audio/test.tar.gz	506753754	sha256:cdece29c50357790dc87f034242d54066fcacbc694cd057e75a29f2f56c14cbf
+fleurs	data/et_ee/audio/train.tar.gz	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/et_ee/audio/train.tar.gz	1290465249	sha256:0a9e8fa13cde853c17fd41cdb36d6bb2f7347ad0026a02e61d45e17e163fc34b
+fleurs	data/et_ee/dev.tsv	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/et_ee/dev.tsv	206579
+fleurs	data/et_ee/test.tsv	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/et_ee/test.tsv	498848
+fleurs	data/et_ee/train.tsv	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/et_ee/train.tsv	1338877
+fleurs	data/fa_ir/audio/dev.tar.gz	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/fa_ir/audio/dev.tar.gz	271532969	sha256:05e562f18e9b7b99383c5ce487828606265f873d00386fad120592570a7348ef
+fleurs	data/fa_ir/audio/test.tar.gz	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/fa_ir/audio/test.tar.gz	657317725	sha256:f787ae225da693ed28c734c18aac1932c0f271473c3fb49a98db5e9b222fa11d
+fleurs	data/fa_ir/audio/train.tar.gz	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/fa_ir/audio/train.tar.gz	2139837482	sha256:8c70fd5f09511bf04990ad350b7d7614e4eefbba67ffe79a881402fbc46cd0a8
+fleurs	data/fa_ir/dev.tsv	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/fa_ir/dev.tsv	290279
+fleurs	data/fa_ir/test.tsv	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/fa_ir/test.tsv	707771
+fleurs	data/fa_ir/train.tsv	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/fa_ir/train.tsv	2476310
+fleurs	data/ff_sn/audio/dev.tar.gz	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/ff_sn/audio/dev.tar.gz	170928598	sha256:008644964216b7c7b1591c0e2a1217c5f08c07e3444941b24c0a4de3b33a74f7
+fleurs	data/ff_sn/audio/test.tar.gz	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/ff_sn/audio/test.tar.gz	436271003	sha256:103aab9cc0c5de52bca598bdcb17ac820bf895c8fd4f391b25b6092309ac7ab4
+fleurs	data/ff_sn/audio/train.tar.gz	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/ff_sn/audio/train.tar.gz	2521538085	sha256:1b541393c5b8cf40862f69c7917ce1d4c820f9f3ddc95867c9b816e90ea932d6
+fleurs	data/ff_sn/dev.tsv	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/ff_sn/dev.tsv	139114
+fleurs	data/ff_sn/test.tsv	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/ff_sn/test.tsv	363623
+fleurs	data/ff_sn/train.tsv	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/ff_sn/train.tsv	1686071
+fleurs	data/fi_fi/audio/dev.tar.gz	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/fi_fi/audio/dev.tar.gz	240530021	sha256:5298b34ee240b7d33e0d473062b75be6eee2804d84616593cea6348c25dfb544
+fleurs	data/fi_fi/audio/test.tar.gz	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/fi_fi/audio/test.tar.gz	565221524	sha256:028efe8b0c52555633280661c2837013c4a1585c08492dcb993bb024255fc1c8
+fleurs	data/fi_fi/audio/train.tar.gz	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/fi_fi/audio/train.tar.gz	1560614115	sha256:936405bcde784c75c7816853abf58a09f7de3109418314dcd4ae21674db0d08f
+fleurs	data/fi_fi/dev.tsv	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/fi_fi/dev.tsv	241363
+fleurs	data/fi_fi/test.tsv	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/fi_fi/test.tsv	559353
+fleurs	data/fi_fi/train.tsv	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/fi_fi/train.tsv	1582065
+fleurs	data/fil_ph/audio/dev.tar.gz	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/fil_ph/audio/dev.tar.gz	366614305	sha256:d2ca75380daf5e6844333fc371646b67bafd968d0f905453ffa4b0c4fe0d979a
+fleurs	data/fil_ph/audio/test.tar.gz	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/fil_ph/audio/test.tar.gz	889243315	sha256:eb8349c6fc36fb363d6d9c30e53c503d1531ca599ad2100afd822aec2774e31b
+fleurs	data/fil_ph/audio/train.tar.gz	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/fil_ph/audio/train.tar.gz	1389520781	sha256:636fe1e4e775a9a03892b66ca30f77d57a459c103d25f08600535ff1694fda61
+fleurs	data/fil_ph/dev.tsv	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/fil_ph/dev.tsv	277902
+fleurs	data/fil_ph/test.tsv	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/fil_ph/test.tsv	676138
+fleurs	data/fil_ph/train.tsv	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/fil_ph/train.tsv	1228039
+fleurs	data/fr_fr/audio/dev.tar.gz	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/fr_fr/audio/dev.tar.gz	142638560	sha256:f2f065dec3b02212e27151c51162d2213df55d0a8efc6b88e36992673ddf66e6
+fleurs	data/fr_fr/audio/test.tar.gz	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/fr_fr/audio/test.tar.gz	349036055	sha256:d23690e102f373554d1b544cd2ff1e76e4fedeb04953c0b72751a1b7c518cfdd
+fleurs	data/fr_fr/audio/train.tar.gz	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/fr_fr/audio/train.tar.gz	1730529959	sha256:39b5bad1f61d3ae4ef64c2eb16f9524ffb21d8568965dd71b09702befdbd7f95
+fleurs	data/fr_fr/dev.tsv	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/fr_fr/dev.tsv	180518
+fleurs	data/fr_fr/test.tsv	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/fr_fr/test.tsv	456972
+fleurs	data/fr_fr/train.tsv	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/fr_fr/train.tsv	2064047
+fleurs	data/ga_ie/audio/dev.tar.gz	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/ga_ie/audio/dev.tar.gz	245081535	sha256:51653896bd1bae0cf8a5214a8341d0e0a8dc1d2351952f6431eae881f255b3ed
+fleurs	data/ga_ie/audio/test.tar.gz	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/ga_ie/audio/test.tar.gz	572220022	sha256:5e5d872c66259050f280a01c0bb024e9fbade4dd4a14e4ad774b998257118734
+fleurs	data/ga_ie/audio/train.tar.gz	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/ga_ie/audio/train.tar.gz	2148108976	sha256:7052404e00012659beb43e27da0c788b22329b8f892f21d60b6968ccdd367390
+fleurs	data/ga_ie/dev.tsv	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/ga_ie/dev.tsv	233621
+fleurs	data/ga_ie/test.tsv	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/ga_ie/test.tsv	552383
+fleurs	data/ga_ie/train.tsv	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/ga_ie/train.tsv	1837187
+fleurs	data/gl_es/audio/dev.tar.gz	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/gl_es/audio/dev.tar.gz	192435758	sha256:8f5b6b0cfdc093fb391940add22d8011b49ba0da9fd15785ab2ba5dd9bb8b443
+fleurs	data/gl_es/audio/test.tar.gz	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/gl_es/audio/test.tar.gz	479607545	sha256:f3e648a783e82180d6463d0e9d7a2038d2a16cbd05c2f0c248666bc9f8009bd7
+fleurs	data/gl_es/audio/train.tar.gz	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/gl_es/audio/train.tar.gz	1245340582	sha256:5f9f5d4f4217327f9eabc2b82373a5c37d282907fa0b0ace5ddd1c3bb94bce1c
+fleurs	data/gl_es/dev.tsv	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/gl_es/dev.tsv	237541
+fleurs	data/gl_es/test.tsv	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/gl_es/test.tsv	591172
+fleurs	data/gl_es/train.tsv	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/gl_es/train.tsv	1301880
+fleurs	data/gu_in/audio/dev.tar.gz	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/gu_in/audio/dev.tar.gz	225657147	sha256:67b61fe0b78c80585ffc3743eba2528e18d756819495abd3c603e0824c0b78bc
+fleurs	data/gu_in/audio/test.tar.gz	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/gu_in/audio/test.tar.gz	550848306	sha256:5fc83e07252460d44c6789909bb09c44839e0107b39b730ab746472d7f9a1583
+fleurs	data/gu_in/audio/train.tar.gz	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/gu_in/audio/train.tar.gz	1721238849	sha256:160af68bd04acb38a07b602beda09ba788d71cb8ff6862a90461e55770aac607
+fleurs	data/gu_in/dev.tsv	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/gu_in/dev.tsv	474781
+fleurs	data/gu_in/test.tsv	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/gu_in/test.tsv	1149873
+fleurs	data/gu_in/train.tsv	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/gu_in/train.tsv	3474724
+fleurs	data/ha_ng/audio/dev.tar.gz	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/ha_ng/audio/dev.tar.gz	275434657	sha256:06295d8a2708264571cc6753510bb76f06896720ec89ef2a83765182013487db
+fleurs	data/ha_ng/audio/test.tar.gz	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/ha_ng/audio/test.tar.gz	602186873	sha256:3302c045c14ad6fc11bfc7291b32b04c4c6c27d867bded65b2620da5d868b337
+fleurs	data/ha_ng/audio/train.tar.gz	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/ha_ng/audio/train.tar.gz	2485334043	sha256:bd8ec6b85c676f149917fb2efa8135eafbb3f2cd21ae27cd0f2acae026a1cc09
+fleurs	data/ha_ng/dev.tsv	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/ha_ng/dev.tsv	172992
+fleurs	data/ha_ng/test.tsv	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/ha_ng/test.tsv	378427
+fleurs	data/ha_ng/train.tsv	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/ha_ng/train.tsv	1874842
+fleurs	data/he_il/audio/dev.tar.gz	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/he_il/audio/dev.tar.gz	152912700	sha256:3752e56b764bd0ed531afa805aa589cf4153d9585a3c034faafbf6c852663652
+fleurs	data/he_il/audio/test.tar.gz	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/he_il/audio/test.tar.gz	386970225	sha256:f09f2335973d7ff5469c0e88fc37b528e66ec2ff2af5346438daacb3fbd84a53
+fleurs	data/he_il/audio/train.tar.gz	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/he_il/audio/train.tar.gz	1836943783	sha256:f088561e2505dc18a4029990065728ef22dfd2d5ee865f888dbd69f78b57ee5a
+fleurs	data/he_il/dev.tsv	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/he_il/dev.tsv	217841
+fleurs	data/he_il/test.tsv	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/he_il/test.tsv	537204
+fleurs	data/he_il/train.tsv	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/he_il/train.tsv	2147840
+fleurs	data/hi_in/audio/dev.tar.gz	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/hi_in/audio/dev.tar.gz	131741732	sha256:9adbca6d6fc70e40c121910941bcd7c8906eee60b402b6d21b4bd160e20030c7
+fleurs	data/hi_in/audio/test.tar.gz	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/hi_in/audio/test.tar.gz	249331325	sha256:47c238b9cf7016ba596639bb3038b0c89dc6e85759f16d09c4f58c6dfa25c65f
+fleurs	data/hi_in/audio/train.tar.gz	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/hi_in/audio/train.tar.gz	1256867167	sha256:bb6f52bfb27ca91c54539480111163eb9245305008cfe0526c6f4af3bfdd04e9
+fleurs	data/hi_in/dev.tsv	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/hi_in/dev.tsv	249853
+fleurs	data/hi_in/test.tsv	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/hi_in/test.tsv	473366
+fleurs	data/hi_in/train.tsv	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/hi_in/train.tsv	2346160
+fleurs	data/hr_hr/audio/dev.tar.gz	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/hr_hr/audio/dev.tar.gz	168940243	sha256:76ab5cc70cd945b8464bd32e607d1b7c6afafc8b68b3bd47c82d6a120f90cf10
+fleurs	data/hr_hr/audio/test.tar.gz	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/hr_hr/audio/test.tar.gz	423226240	sha256:1b8712ddbeecab54ca44f40ff864f905a9ccc3a7d7a830062ef8d14a9c87076b
+fleurs	data/hr_hr/audio/train.tar.gz	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/hr_hr/audio/train.tar.gz	1969430195	sha256:d472a34126d4055a0ab61c08abe2c9cbaa78ad126cd78089da6b783a5c33f1d4
+fleurs	data/hr_hr/dev.tsv	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/hr_hr/dev.tsv	202367
+fleurs	data/hr_hr/test.tsv	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/hr_hr/test.tsv	508215
+fleurs	data/hr_hr/train.tsv	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/hr_hr/train.tsv	1894301
+fleurs	data/hu_hu/audio/dev.tar.gz	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/hu_hu/audio/dev.tar.gz	236642267	sha256:ad1a82e5d62e727434092b0cc0588fcbfb4e1e088d6f9f4e44d2c5507ab1032d
+fleurs	data/hu_hu/audio/test.tar.gz	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/hu_hu/audio/test.tar.gz	542250479	sha256:d2335311350b4c9a6a1811b3ca3faff772a97befe0a7106dbda1edf675b0cb8a
+fleurs	data/hu_hu/audio/train.tar.gz	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/hu_hu/audio/train.tar.gz	1719469928	sha256:60f1f1a620046a245399d806e9e7fcf568b8413f427677bf7638556af1125e8b
+fleurs	data/hu_hu/dev.tsv	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/hu_hu/dev.tsv	244900
+fleurs	data/hu_hu/test.tsv	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/hu_hu/test.tsv	561505
+fleurs	data/hu_hu/train.tsv	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/hu_hu/train.tsv	1865646
+fleurs	data/hy_am/audio/dev.tar.gz	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/hy_am/audio/dev.tar.gz	208927496	sha256:d881e8f14c602bafe8953f5770bd387c37cdc6bbef8188c7316dd468166bcb33
+fleurs	data/hy_am/audio/test.tar.gz	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/hy_am/audio/test.tar.gz	518230946	sha256:786d62c511962b8d3c4a4a208dc6402f1da0a6a06eb6f00274a7deaeb572e0de
+fleurs	data/hy_am/audio/train.tar.gz	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/hy_am/audio/train.tar.gz	1725889983	sha256:d5bfa2269de55feb2039f3967b70a1c547dd2fb2f61227efc47c7d673ca56c97
+fleurs	data/hy_am/dev.tsv	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/hy_am/dev.tsv	368752
+fleurs	data/hy_am/test.tsv	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/hy_am/test.tsv	916646
+fleurs	data/hy_am/train.tsv	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/hy_am/train.tsv	2905620
+fleurs	data/id_id/audio/dev.tar.gz	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/id_id/audio/dev.tar.gz	220586217	sha256:74e5f1c8676a321dc4c34944b171846d40923dabe765a767d8dbc2f56cac3142
+fleurs	data/id_id/audio/test.tar.gz	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/id_id/audio/test.tar.gz	451704157	sha256:bf7e7f608f8834012d7f79a583b6b0dd5bb82e74e2f5fb6336fc99d3af7ffcf8
+fleurs	data/id_id/audio/train.tar.gz	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/id_id/audio/train.tar.gz	1697523639	sha256:44983febf5a3d9670352f9765d05b9238056bf6ab64ee1479af198670597c11d
+fleurs	data/id_id/dev.tsv	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/id_id/dev.tsv	200236
+fleurs	data/id_id/test.tsv	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/id_id/test.tsv	408796
+fleurs	data/id_id/train.tsv	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/id_id/train.tsv	1499201
+fleurs	data/ig_ng/audio/dev.tar.gz	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/ig_ng/audio/dev.tar.gz	313463803	sha256:7e25eb9801d5e61a6e61d508b9f48b930d2be15382caf3d28c3ae750817bf5ef
+fleurs	data/ig_ng/audio/test.tar.gz	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/ig_ng/audio/test.tar.gz	793270844	sha256:15d86018ab820be2a79f631917893bfb548c56ac8221628767c9a6c93e3af783
+fleurs	data/ig_ng/audio/train.tar.gz	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/ig_ng/audio/train.tar.gz	2441056534	sha256:fbbcc68aeba7093d57f44e0aeb3f25dc271f7e01db65d23aa4039110a9a0503e
+fleurs	data/ig_ng/dev.tsv	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/ig_ng/dev.tsv	257271
+fleurs	data/ig_ng/test.tsv	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/ig_ng/test.tsv	636812
+fleurs	data/ig_ng/train.tsv	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/ig_ng/train.tsv	1743627
+fleurs	data/is_is/audio/dev.tar.gz	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/is_is/audio/dev.tar.gz	21924933	sha256:2aa351ba6416cf40c79bb256957ca78c7137c81125a2878857cf54a1c7e06eaf
+fleurs	data/is_is/audio/test.tar.gz	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/is_is/audio/test.tar.gz	32531300	sha256:fa03338a41ee5b18537b5a04955a0fa1df120e11144ed34d21acfa1e8fd40836
+fleurs	data/is_is/audio/train.tar.gz	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/is_is/audio/train.tar.gz	529684355	sha256:06b6cd7e68c9ff7e6b2f2eaf2c87d6da85a8072943b1f3a54f0dd60bab3d1547
+fleurs	data/is_is/dev.tsv	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/is_is/dev.tsv	20192
+fleurs	data/is_is/test.tsv	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/is_is/test.tsv	30209
+fleurs	data/is_is/train.tsv	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/is_is/train.tsv	551698
+fleurs	data/it_it/audio/dev.tar.gz	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/it_it/audio/dev.tar.gz	288887332	sha256:9ebd7a079958e9980b3f2d91766a968fbc4d60c615a775b064acfe5bd2bc4472
+fleurs	data/it_it/audio/test.tar.gz	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/it_it/audio/test.tar.gz	657731057	sha256:97dbaedbfa52f4fa4a7b380be90b343066330b8526e1a88f5ab9f82f71f1758e
+fleurs	data/it_it/audio/train.tar.gz	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/it_it/audio/train.tar.gz	1636156015	sha256:6a88b1850e27834a8f24d5eb4d94abf14828da822778b029be2fbb61e01d16b4
+fleurs	data/it_it/dev.tsv	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/it_it/dev.tsv	242066
+fleurs	data/it_it/test.tsv	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/it_it/test.tsv	561609
+fleurs	data/it_it/train.tsv	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/it_it/train.tsv	1884619
+fleurs	data/ja_jp/audio/dev.tar.gz	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/ja_jp/audio/dev.tar.gz	179387192	sha256:2547f19203e1272aeba99c2235326fea525d6cfb9348bafbea2c3a7929e8e441
+fleurs	data/ja_jp/audio/test.tar.gz	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/ja_jp/audio/test.tar.gz	448762391	sha256:5de465fa7aaafc4e2c13aba44771550b8cd2dd29bb9b265daeb6d92ca8e0c136
+fleurs	data/ja_jp/audio/train.tar.gz	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/ja_jp/audio/train.tar.gz	1332680503	sha256:9a67e38bff0077e74dded7c7b735f7958f1d1d2075e330e62f95c9e18deb30a7
+fleurs	data/ja_jp/dev.tsv	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/ja_jp/dev.tsv	142341
+fleurs	data/ja_jp/test.tsv	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/ja_jp/test.tsv	361174
+fleurs	data/ja_jp/train.tsv	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/ja_jp/train.tsv	1246771
+fleurs	data/jv_id/audio/dev.tar.gz	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/jv_id/audio/dev.tar.gz	212873526	sha256:2653bf0c0d63209b628ef9955b47b0eb9b66004189aea8fbccf8e8ffa4795b27
+fleurs	data/jv_id/audio/test.tar.gz	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/jv_id/audio/test.tar.gz	539756503	sha256:18c7001ce92323838303e859a3699c5ab68848ef038a756e562c58e515b2ff22
+fleurs	data/jv_id/audio/train.tar.gz	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/jv_id/audio/train.tar.gz	2123987602	sha256:16684278cd18370a77462e768feed3ccd3adcf19cc6fd2cd4e51cdbe822d0324
+fleurs	data/jv_id/dev.tsv	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/jv_id/dev.tsv	165060
+fleurs	data/jv_id/test.tsv	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/jv_id/test.tsv	419771
+fleurs	data/jv_id/train.tsv	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/jv_id/train.tsv	1706458
+fleurs	data/ka_ge/audio/dev.tar.gz	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/ka_ge/audio/dev.tar.gz	201956911	sha256:60380992bc06ced7181d350425e9a578d8de91ef807242e7cec0f8bccbcdb61f
+fleurs	data/ka_ge/audio/test.tar.gz	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/ka_ge/audio/test.tar.gz	509011884	sha256:072b5e75864ae962f9f95709c2e1ef2c008c0e159082c9de01342e8695df077e
+fleurs	data/ka_ge/audio/train.tar.gz	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/ka_ge/audio/train.tar.gz	895671574	sha256:7eb86b8bf93fd96116f078c7bdf897b858ddd89a92b246cb43cabcd349bf3094
+fleurs	data/ka_ge/dev.tsv	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/ka_ge/dev.tsv	514462
+fleurs	data/ka_ge/test.tsv	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/ka_ge/test.tsv	1316817
+fleurs	data/ka_ge/train.tsv	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/ka_ge/train.tsv	1835107
+fleurs	data/kam_ke/audio/dev.tar.gz	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/kam_ke/audio/dev.tar.gz	281997184	sha256:2ca2ec44270b1ca39c29547ca3e3d99ea9f349dc9e8eab8c2d285b25141e0b81
+fleurs	data/kam_ke/audio/test.tar.gz	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/kam_ke/audio/test.tar.gz	728364215	sha256:17c0ab56c2dbba82722bfbee89b180d52977ea8eef7bd96c25a90dc6e7dda2b2
+fleurs	data/kam_ke/audio/train.tar.gz	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/kam_ke/audio/train.tar.gz	2666891585	sha256:26e5990a26a0bef1595c7dda375f67e49d539c679e8bbe8ecc0cd70d0f51c6ca
+fleurs	data/kam_ke/dev.tsv	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/kam_ke/dev.tsv	181202
+fleurs	data/kam_ke/test.tsv	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/kam_ke/test.tsv	471577
+fleurs	data/kam_ke/train.tsv	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/kam_ke/train.tsv	1833294
+fleurs	data/kea_cv/audio/dev.tar.gz	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/kea_cv/audio/dev.tar.gz	245767311	sha256:91773408c2dfab64281f69bcd1f6c890a24ef43cfd49ac329d4052b7deb0479a
+fleurs	data/kea_cv/audio/test.tar.gz	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/kea_cv/audio/test.tar.gz	605798471	sha256:6f75e5e58facc034fd05a3e3c8d1c34c5771b0becd2815e7d465a9db9f84ef78
+fleurs	data/kea_cv/audio/train.tar.gz	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/kea_cv/audio/train.tar.gz	1873893500	sha256:2f79d04c3ee7deffbb1ee0570b7a7599c8d53d69b26ce3be19de3ee7027dd7bf
+fleurs	data/kea_cv/dev.tsv	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/kea_cv/dev.tsv	193587
+fleurs	data/kea_cv/test.tsv	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/kea_cv/test.tsv	480396
+fleurs	data/kea_cv/train.tsv	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/kea_cv/train.tsv	1461847
+fleurs	data/kk_kz/audio/dev.tar.gz	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/kk_kz/audio/dev.tar.gz	248842953	sha256:a0481dd445d9ae8424eb870751f1ab51d82f0b7f5566318ffa5adab7f9c9f69d
+fleurs	data/kk_kz/audio/test.tar.gz	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/kk_kz/audio/test.tar.gz	628328020	sha256:f29331a9731a00f544e2cb7d1dbcbb5a4258fd200323811ec837d15dd3c2e8a0
+fleurs	data/kk_kz/audio/train.tar.gz	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/kk_kz/audio/train.tar.gz	1992291838	sha256:4d28cb336b1c3207b993b96a301e23aceb513739ea0079ba9dd19e30da661393
+fleurs	data/kk_kz/dev.tsv	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/kk_kz/dev.tsv	312534
+fleurs	data/kk_kz/test.tsv	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/kk_kz/test.tsv	787758
+fleurs	data/kk_kz/train.tsv	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/kk_kz/train.tsv	2812850
+fleurs	data/km_kh/audio/dev.tar.gz	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/km_kh/audio/dev.tar.gz	232879431	sha256:59854dbc8ad21b041919125ea53260a57f061eec6c73f52cbcc03531afe646b6
+fleurs	data/km_kh/audio/test.tar.gz	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/km_kh/audio/test.tar.gz	571702566	sha256:6cf389e24c55b7b7d397ba944f1acbbba5e76c9ab1506651ab51e19f5b9dc8d8
+fleurs	data/km_kh/audio/train.tar.gz	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/km_kh/audio/train.tar.gz	1201877230	sha256:71b80075f374844b2238986cdb076a5b87c3fa58e5e593bb20effc166f3521e9
+fleurs	data/km_kh/dev.tsv	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/km_kh/dev.tsv	434578
+fleurs	data/km_kh/test.tsv	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/km_kh/test.tsv	1071082
+fleurs	data/km_kh/train.tsv	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/km_kh/train.tsv	2310896
+fleurs	data/kn_in/audio/dev.tar.gz	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/kn_in/audio/dev.tar.gz	250757423	sha256:328125e46f46552790fb8ad83f0ad8abab9a5701c61f8ff73231c82a958055ed
+fleurs	data/kn_in/audio/test.tar.gz	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/kn_in/audio/test.tar.gz	615231116	sha256:e9bd97241fea7373d554b37b30f13ae8dbe51549f1675334c7d824e0c4ccd51f
+fleurs	data/kn_in/audio/train.tar.gz	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/kn_in/audio/train.tar.gz	1559626761	sha256:7a3b64baf0a75b4167f17ac727d079ff7223504c1a532a1a789aa166f1d7be02
+fleurs	data/kn_in/dev.tsv	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/kn_in/dev.tsv	443713
+fleurs	data/kn_in/test.tsv	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/kn_in/test.tsv	1071974
+fleurs	data/kn_in/train.tsv	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/kn_in/train.tsv	2944601
+fleurs	data/ko_kr/audio/dev.tar.gz	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/ko_kr/audio/dev.tar.gz	126162634	sha256:496edcb5323e75b4a2830f5b5623684a0baf86d3728101853fd4fe503372157c
+fleurs	data/ko_kr/audio/test.tar.gz	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/ko_kr/audio/test.tar.gz	214425558	sha256:3489e529f2aad18d3357b746c5f955941d258b79dc60d8a102d5bced2a223184
+fleurs	data/ko_kr/audio/train.tar.gz	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/ko_kr/audio/train.tar.gz	1420236944	sha256:985d45a1ab3967f6851761bac8f7f325360eba3381ffed96f9ce920d3c24e9d9
+fleurs	data/ko_kr/dev.tsv	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/ko_kr/dev.tsv	124920
+fleurs	data/ko_kr/test.tsv	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/ko_kr/test.tsv	211844
+fleurs	data/ko_kr/train.tsv	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/ko_kr/train.tsv	1249277
+fleurs	data/ky_kg/audio/dev.tar.gz	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/ky_kg/audio/dev.tar.gz	217037119	sha256:8780c897c5dc88faa16981f361b081b3773bf80d4c8e9e12fea2873986d08bdd
+fleurs	data/ky_kg/audio/test.tar.gz	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/ky_kg/audio/test.tar.gz	530691968	sha256:e7d33ece89fbf39890fc097ee2e5ab090a10dd5f2dc22ca4ae5e4427f4b04d17
+fleurs	data/ky_kg/audio/train.tar.gz	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/ky_kg/audio/train.tar.gz	1581302604	sha256:ddf38e01642f77f08e139de595350044a516612c082db189caeb01a05b8f0fd4
+fleurs	data/ky_kg/dev.tsv	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/ky_kg/dev.tsv	366910
+fleurs	data/ky_kg/test.tsv	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/ky_kg/test.tsv	901752
+fleurs	data/ky_kg/train.tsv	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/ky_kg/train.tsv	2455320
+fleurs	data/lb_lu/audio/dev.tar.gz	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/lb_lu/audio/dev.tar.gz	190628054	sha256:80c3546e83427b57519211d0a316f184c4a4a496aa7360eb7a63c4c1de9d0890
+fleurs	data/lb_lu/audio/test.tar.gz	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/lb_lu/audio/test.tar.gz	473145314	sha256:c26498520d921ed633783ee6d0576590416f949e1b18f1ac85aac386511d4b82
+fleurs	data/lb_lu/audio/train.tar.gz	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/lb_lu/audio/train.tar.gz	1406002416	sha256:d1307ee8a7c901652ec5b519d8d80018c2c85e6c5519dcf0c45c79e98e777100
+fleurs	data/lb_lu/dev.tsv	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/lb_lu/dev.tsv	244578
+fleurs	data/lb_lu/test.tsv	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/lb_lu/test.tsv	592854
+fleurs	data/lb_lu/train.tsv	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/lb_lu/train.tsv	1501764
+fleurs	data/lg_ug/audio/dev.tar.gz	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/lg_ug/audio/dev.tar.gz	244221951	sha256:6ec9f623baa4732e0895d5d34edf3c5b1cdb769fef5506a18aef29b93d532b0b
+fleurs	data/lg_ug/audio/test.tar.gz	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/lg_ug/audio/test.tar.gz	596197840	sha256:4cf9a1945640988f07818c47072f2b7d16c2d8b20b21fc5edab3137578c6be74
+fleurs	data/lg_ug/audio/train.tar.gz	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/lg_ug/audio/train.tar.gz	2186016960	sha256:268defc637423abe3d6917fb36309a96bc9f07fc07d2af2a500512cf68c8197d
+fleurs	data/lg_ug/dev.tsv	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/lg_ug/dev.tsv	171384
+fleurs	data/lg_ug/test.tsv	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/lg_ug/test.tsv	416966
+fleurs	data/lg_ug/train.tsv	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/lg_ug/train.tsv	1371095
+fleurs	data/ln_cd/audio/dev.tar.gz	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/ln_cd/audio/dev.tar.gz	197474891	sha256:e90c4f040e089ac87ba588d45969cc9539f5c80c1c428079876d0af037f8aedf
+fleurs	data/ln_cd/audio/test.tar.gz	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/ln_cd/audio/test.tar.gz	481475396	sha256:c2433cf8d09015fce8ade51be958100b17b5e487bbe7eba618eaf556e079e59a
+fleurs	data/ln_cd/audio/train.tar.gz	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/ln_cd/audio/train.tar.gz	3261244123	sha256:03e1a67b1c70ec3e0182142c913d86ca64e9c64a9c41cd7adbc92cf163e66601
+fleurs	data/ln_cd/dev.tsv	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/ln_cd/dev.tsv	113006
+fleurs	data/ln_cd/test.tsv	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/ln_cd/test.tsv	265840
+fleurs	data/ln_cd/train.tsv	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/ln_cd/train.tsv	1955132
+fleurs	data/lo_la/audio/dev.tar.gz	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/lo_la/audio/dev.tar.gz	103588273	sha256:9e872fe33a65030030673da77015439e86f0442e2c26aabc662d00c12c2c9f18
+fleurs	data/lo_la/audio/test.tar.gz	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/lo_la/audio/test.tar.gz	252993421	sha256:26a4d969c101d755df37a93fd81646e1ef5da7b1c6bfc7a5365ec7198c34d10f
+fleurs	data/lo_la/audio/train.tar.gz	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/lo_la/audio/train.tar.gz	1365224291	sha256:45605a31c6ac519125006cfec67450c88b2995b4b7d7ed4c1034573bc37ce560
+fleurs	data/lo_la/dev.tsv	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/lo_la/dev.tsv	214344
+fleurs	data/lo_la/test.tsv	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/lo_la/test.tsv	492591
+fleurs	data/lo_la/train.tsv	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/lo_la/train.tsv	2063825
+fleurs	data/lt_lt/audio/dev.tar.gz	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/lt_lt/audio/dev.tar.gz	213277383	sha256:68e14b327f8d6ad3aa31525b1a3f6853e9038949ef2b28d25085c96de8731109
+fleurs	data/lt_lt/audio/test.tar.gz	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/lt_lt/audio/test.tar.gz	541779652	sha256:ff599eb74b96540707fad072926eba5d92e9f0991f8eb8838dbc4c9ca2a19d93
+fleurs	data/lt_lt/audio/train.tar.gz	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/lt_lt/audio/train.tar.gz	1640026006	sha256:f64a602a2694f23a2d08823bcb65e636c0fdd65b0cf7c54de90cc161e4519ff9
+fleurs	data/lt_lt/dev.tsv	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/lt_lt/dev.tsv	227949
+fleurs	data/lt_lt/test.tsv	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/lt_lt/test.tsv	576213
+fleurs	data/lt_lt/train.tsv	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/lt_lt/train.tsv	1644287
+fleurs	data/luo_ke/audio/dev.tar.gz	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/luo_ke/audio/dev.tar.gz	71465736	sha256:4c37450a19a366a7b1212354d535e8212e6768d74f51ad896df8c94001af10bb
+fleurs	data/luo_ke/audio/test.tar.gz	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/luo_ke/audio/test.tar.gz	186204079	sha256:83b6b2b0b5f7c25b4e237eb6da861167099ff0b82b1ea8a696361b18ff56e409
+fleurs	data/luo_ke/audio/train.tar.gz	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/luo_ke/audio/train.tar.gz	1745932768	sha256:2f3b84815078fc02648f78205cb313f13fe6d785ad3c08689cfcda41debf16f2
+fleurs	data/luo_ke/dev.tsv	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/luo_ke/dev.tsv	56207
+fleurs	data/luo_ke/test.tsv	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/luo_ke/test.tsv	146098
+fleurs	data/luo_ke/train.tsv	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/luo_ke/train.tsv	1344896
+fleurs	data/lv_lv/audio/dev.tar.gz	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/lv_lv/audio/dev.tar.gz	197335846	sha256:ca6e72a2dfb1e3c9da2be50b50fa7d133977c18642aa45479808e7513bdfb505
+fleurs	data/lv_lv/audio/test.tar.gz	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/lv_lv/audio/test.tar.gz	498353648	sha256:43186c8407ebdb992f4117419a12f53037358de1ef67896598173f4998ff884b
+fleurs	data/lv_lv/audio/train.tar.gz	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/lv_lv/audio/train.tar.gz	1165435500	sha256:11defc182e0bf4701362d6079c3c88fea8c8b8b94b2595b92e543c5f2f38cf3f
+fleurs	data/lv_lv/dev.tsv	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/lv_lv/dev.tsv	199757
+fleurs	data/lv_lv/test.tsv	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/lv_lv/test.tsv	503480
+fleurs	data/lv_lv/train.tsv	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/lv_lv/train.tsv	1195602
+fleurs	data/metadata.zip	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/metadata.zip	64825504	sha256:aca40140670aeb810b5b0963b0a6c573e9bd5206c66e2fbab6ff2571f0f3d1b7
+fleurs	data/mi_nz/audio/dev.tar.gz	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/mi_nz/audio/dev.tar.gz	413627868	sha256:933cb951b7601d4e128a96f84535739e46cea2ee8c0abadbe69079a328c4d002
+fleurs	data/mi_nz/audio/test.tar.gz	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/mi_nz/audio/test.tar.gz	1040054529	sha256:602d850f7fe33b0f826da387eee3d2f043e7d2c269428e4cfe93d5e4def46dc9
+fleurs	data/mi_nz/audio/train.tar.gz	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/mi_nz/audio/train.tar.gz	3301619930	sha256:f7537c88da583fc4a0f8aca295c63dda4e8c98b1e273b5207626af24211684d7
+fleurs	data/mi_nz/dev.tsv	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/mi_nz/dev.tsv	263438
+fleurs	data/mi_nz/test.tsv	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/mi_nz/test.tsv	650467
+fleurs	data/mi_nz/train.tsv	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/mi_nz/train.tsv	1981835
+fleurs	data/mk_mk/audio/dev.tar.gz	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/mk_mk/audio/dev.tar.gz	214059599	sha256:a591efe6f36b288f4b346c10f637479b4379cc05089ec21de6b41d723ba71b91
+fleurs	data/mk_mk/audio/test.tar.gz	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/mk_mk/audio/test.tar.gz	539145660	sha256:b1d410ecbb9baeca7d62b7a03f31b4a10bd44010571b50f704f4c04c4cda2a3c
+fleurs	data/mk_mk/audio/train.tar.gz	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/mk_mk/audio/train.tar.gz	1290622566	sha256:a4157f796e8e9e6cec0ac84b1227e70b1605183fb1f9d52ba0af20b6079f3365
+fleurs	data/mk_mk/dev.tsv	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/mk_mk/dev.tsv	364184
+fleurs	data/mk_mk/test.tsv	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/mk_mk/test.tsv	906343
+fleurs	data/mk_mk/train.tsv	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/mk_mk/train.tsv	1986610
+fleurs	data/ml_in/audio/dev.tar.gz	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/ml_in/audio/dev.tar.gz	309781739	sha256:dea4629cd7dd0bcd2ba1d306f51e8864a82aa0c2dc630444c6ef0be70c36c3a6
+fleurs	data/ml_in/audio/test.tar.gz	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/ml_in/audio/test.tar.gz	721760708	sha256:a74d76d7515ce51cf085c00e79219d9f59696618db6e00c4af1b36369f2c705c
+fleurs	data/ml_in/audio/train.tar.gz	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/ml_in/audio/train.tar.gz	1842433397	sha256:b2bcc59eed8259768f61f9efb4cf77986e69763d1b0fc0aea74940960226f40c
+fleurs	data/ml_in/dev.tsv	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/ml_in/dev.tsv	563228
+fleurs	data/ml_in/test.tsv	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/ml_in/test.tsv	1356471
+fleurs	data/ml_in/train.tsv	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/ml_in/train.tsv	4108523
+fleurs	data/mn_mn/audio/dev.tar.gz	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/mn_mn/audio/dev.tar.gz	206140292	sha256:5990ccd8fbf82648a4d60a969f38e68577b8fa227fbf7e3ecc1855952d7aa762
+fleurs	data/mn_mn/audio/test.tar.gz	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/mn_mn/audio/test.tar.gz	506292829	sha256:95af5148c35103268f264d8a5fe57a29697bd02e9c04b9abbe377d01f24c4205
+fleurs	data/mn_mn/audio/train.tar.gz	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/mn_mn/audio/train.tar.gz	1648542182	sha256:b25f7b8f2e7832777d1dfac2f97bf63b6d704ad82cefadbe6e00056acb6fc42f
+fleurs	data/mn_mn/dev.tsv	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/mn_mn/dev.tsv	352597
+fleurs	data/mn_mn/test.tsv	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/mn_mn/test.tsv	874571
+fleurs	data/mn_mn/train.tsv	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/mn_mn/train.tsv	2756640
+fleurs	data/mr_in/audio/dev.tar.gz	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/mr_in/audio/dev.tar.gz	292468044	sha256:a8cdc2253a0de4b1d43170e836313a2139c2451946a49344b43cef1a200fc6c1
+fleurs	data/mr_in/audio/test.tar.gz	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/mr_in/audio/test.tar.gz	719656565	sha256:c1ca11b378f81ca5d8e7a57b58925f3ba76c8b7edf373bc37812b9db117422cd
+fleurs	data/mr_in/audio/train.tar.gz	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/mr_in/audio/train.tar.gz	2198704464	sha256:51488db44bc69da4c38e3d6a40a6bec2d13ce00236f6556a0398dcf3e72a8df8
+fleurs	data/mr_in/dev.tsv	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/mr_in/dev.tsv	513623
+fleurs	data/mr_in/test.tsv	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/mr_in/test.tsv	1259313
+fleurs	data/mr_in/train.tsv	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/mr_in/train.tsv	3846592
+fleurs	data/ms_my/audio/dev.tar.gz	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/ms_my/audio/dev.tar.gz	175565952	sha256:609ff21def5760f5a96af59ae652db31b10a53d6120432b7d8996783ef29c474
+fleurs	data/ms_my/audio/test.tar.gz	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/ms_my/audio/test.tar.gz	430823061	sha256:4eefaa4ebbf010d9c1d5816356b7bb2bdae3b745de1b78e2e938a77f976ec914
+fleurs	data/ms_my/audio/train.tar.gz	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/ms_my/audio/train.tar.gz	1776659050	sha256:e489d03ad39c6e55c184eb1e8454134c91eeb48e4cecc41249f2dd9c2237dba9
+fleurs	data/ms_my/dev.tsv	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/ms_my/dev.tsv	184998
+fleurs	data/ms_my/test.tsv	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/ms_my/test.tsv	447951
+fleurs	data/ms_my/train.tsv	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/ms_my/train.tsv	1574140
+fleurs	data/mt_mt/audio/dev.tar.gz	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/mt_mt/audio/dev.tar.gz	256914694	sha256:14e6d30c0a2f92b063e9650e62104e6142281c60a2cfc929ddfd56d532f27abe
+fleurs	data/mt_mt/audio/test.tar.gz	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/mt_mt/audio/test.tar.gz	611254780	sha256:de7e2cf282ee722d859c5c14561e3ce2f01f450c15a277cd822de15a2c3d0101
+fleurs	data/mt_mt/audio/train.tar.gz	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/mt_mt/audio/train.tar.gz	1686299058	sha256:0ec462bf6034e28f87343d7ddfecdf256fbef0e77c4b9e0ed82f2ebadf3721f2
+fleurs	data/mt_mt/dev.tsv	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/mt_mt/dev.tsv	245759
+fleurs	data/mt_mt/test.tsv	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/mt_mt/test.tsv	590895
+fleurs	data/mt_mt/train.tsv	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/mt_mt/train.tsv	1749202
+fleurs	data/my_mm/audio/dev.tar.gz	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/my_mm/audio/dev.tar.gz	281897959	sha256:62ba83a3bac4607beb9569bdc408bce79df447aa1c9e956d6b0eff5d60219466
+fleurs	data/my_mm/audio/test.tar.gz	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/my_mm/audio/test.tar.gz	655695557	sha256:44ad9884f297293c2c363b29dd362bd5a05420880201143bfd0bd515df6864ff
+fleurs	data/my_mm/audio/train.tar.gz	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/my_mm/audio/train.tar.gz	2105049088	sha256:6a8ab62bfcee7fb33f73fe5eef9a4ad48d966e74f77e06c37b5933a10244b7ab
+fleurs	data/my_mm/dev.tsv	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/my_mm/dev.tsv	584463
+fleurs	data/my_mm/test.tsv	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/my_mm/test.tsv	1371588
+fleurs	data/my_mm/train.tsv	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/my_mm/train.tsv	4619980
+fleurs	data/nb_no/audio/dev.tar.gz	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/nb_no/audio/dev.tar.gz	107763138	sha256:9e9d84da6f39eb79701cc086c0a3531bd171a266b09fc25b69f9ccd02c076bbb
+fleurs	data/nb_no/audio/test.tar.gz	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/nb_no/audio/test.tar.gz	232953239	sha256:96fa705a6b30bc24548855f8dd1a2d722feb6bc78b9dfb2750dc075dc83a1ff4
+fleurs	data/nb_no/audio/train.tar.gz	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/nb_no/audio/train.tar.gz	1961209525	sha256:045e84d5f0fca36cb1e594556ee23590ef84491aa256d400f970898ac744a50f
+fleurs	data/nb_no/dev.tsv	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/nb_no/dev.tsv	93302
+fleurs	data/nb_no/test.tsv	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/nb_no/test.tsv	202444
+fleurs	data/nb_no/train.tsv	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/nb_no/train.tsv	1747235
+fleurs	data/ne_np/audio/dev.tar.gz	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/ne_np/audio/dev.tar.gz	174279504	sha256:fc1e048e8a56c2c48e882dbdafc378019c1ef3f5f29b2d700608bf9f2e203908
+fleurs	data/ne_np/audio/test.tar.gz	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/ne_np/audio/test.tar.gz	439683126	sha256:29b05fe545d9d8595f190f598573605cc1554a6351fad82cca02b7f8ad17bf15
+fleurs	data/ne_np/audio/train.tar.gz	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/ne_np/audio/train.tar.gz	2026504237	sha256:c936febe64a9ee6a74e7306e682431b84a1511efa1d9f9843b854aa420f93246
+fleurs	data/ne_np/dev.tsv	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/ne_np/dev.tsv	327695
+fleurs	data/ne_np/test.tsv	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/ne_np/test.tsv	835622
+fleurs	data/ne_np/train.tsv	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/ne_np/train.tsv	3757790
+fleurs	data/nl_nl/audio/dev.tar.gz	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/nl_nl/audio/dev.tar.gz	74413758	sha256:a15ab529e0a320816c01fc162e3b7c34b746300db2638a83981f6063b83b9f00
+fleurs	data/nl_nl/audio/test.tar.gz	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/nl_nl/audio/test.tar.gz	158900753	sha256:304a4b2f1db429bf8c586e94d0097ff3bc641f78150ae0de0b3a6f615919805a
+fleurs	data/nl_nl/audio/train.tar.gz	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/nl_nl/audio/train.tar.gz	1433854007	sha256:60fe2cfcf58516a34d7f0f337cd32f755aea43e15d918c0c0d2c06ff78e59b54
+fleurs	data/nl_nl/dev.tsv	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/nl_nl/dev.tsv	102027
+fleurs	data/nl_nl/test.tsv	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/nl_nl/test.tsv	227402
+fleurs	data/nl_nl/train.tsv	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/nl_nl/train.tsv	1717675
+fleurs	data/nso_za/audio/dev.tar.gz	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/nso_za/audio/dev.tar.gz	352271212	sha256:b659ff70ee8a95ec1379c7fa4fbd63c5abb1f7442f8567cc171297a481972f37
+fleurs	data/nso_za/audio/test.tar.gz	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/nso_za/audio/test.tar.gz	813992649	sha256:8ad30d3f1a30105f51adafb8a32939635c97aca8bf8d1f9dd1f1dadd4687169b
+fleurs	data/nso_za/audio/train.tar.gz	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/nso_za/audio/train.tar.gz	2329111764	sha256:063ee7126e391ef28d4dc31c43983a3ce65828c0d05c982c3c5ae9e4c4a6691f
+fleurs	data/nso_za/dev.tsv	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/nso_za/dev.tsv	222508
+fleurs	data/nso_za/test.tsv	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/nso_za/test.tsv	520691
+fleurs	data/nso_za/train.tsv	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/nso_za/train.tsv	1225580
+fleurs	data/ny_mw/audio/dev.tar.gz	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/ny_mw/audio/dev.tar.gz	242868997	sha256:6be53b2c84f43b24853358072d4cfecb78ad8ca77aa54a27f8e7c4899850e9b7
+fleurs	data/ny_mw/audio/test.tar.gz	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/ny_mw/audio/test.tar.gz	618572780	sha256:f7a816ab288f9d6eacc5c37bc5cf587c3a42e6f3114628272b1c45afd33bd21a
+fleurs	data/ny_mw/audio/train.tar.gz	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/ny_mw/audio/train.tar.gz	1925935964	sha256:fc0b742c91d24abc8974d6e5f597d4f0acfcf86541dfd56ee459366b4f4139de
+fleurs	data/ny_mw/dev.tsv	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/ny_mw/dev.tsv	176650
+fleurs	data/ny_mw/test.tsv	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/ny_mw/test.tsv	458313
+fleurs	data/ny_mw/train.tsv	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/ny_mw/train.tsv	1603948
+fleurs	data/oc_fr/audio/dev.tar.gz	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/oc_fr/audio/dev.tar.gz	336732090	sha256:2573fd57434690cf3beafef73281da1f3bfa7199e056ed6e5b3e339ebcc95c32
+fleurs	data/oc_fr/audio/test.tar.gz	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/oc_fr/audio/test.tar.gz	836716138	sha256:e74aaaf500ed6300b7fd7e7e3baa81bd4e3ab4ff56708d7fd3e215431e140db1
+fleurs	data/oc_fr/audio/train.tar.gz	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/oc_fr/audio/train.tar.gz	2591760985	sha256:50b0656bc2ae3feb7d01faffd76c3b36677508bfcf7c6a4a9f42983c56798f1b
+fleurs	data/oc_fr/dev.tsv	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/oc_fr/dev.tsv	268288
+fleurs	data/oc_fr/test.tsv	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/oc_fr/test.tsv	661888
+fleurs	data/oc_fr/train.tsv	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/oc_fr/train.tsv	2117409
+fleurs	data/om_et/audio/dev.tar.gz	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/om_et/audio/dev.tar.gz	11338685	sha256:c2ba3a2b3ec526607b89641a1288264fcc57fb1ed94c33f3da0b52aa7672d0c9
+fleurs	data/om_et/audio/test.tar.gz	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/om_et/audio/test.tar.gz	24572697	sha256:b9bc799f0aa0181b6547cd6fd0a841dd1587c7f4b54f2190fc97fd1c305e8d4a
+fleurs	data/om_et/audio/train.tar.gz	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/om_et/audio/train.tar.gz	1226467675	sha256:609112cb78f3075a511dbe9e5448c39c5a910a70d48085e8e6509eea64c9f8c9
+fleurs	data/om_et/dev.tsv	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/om_et/dev.tsv	9588
+fleurs	data/om_et/test.tsv	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/om_et/test.tsv	20696
+fleurs	data/om_et/train.tsv	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/om_et/train.tsv	1055752
+fleurs	data/or_in/audio/dev.tar.gz	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/or_in/audio/dev.tar.gz	229674555	sha256:f9bddd65e871d9f83ae08bc447aabc3e88f37099595ab19301c11b537993ca6b
+fleurs	data/or_in/audio/test.tar.gz	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/or_in/audio/test.tar.gz	549772551	sha256:c81ea9e2f522425d18e679b84a99600c447e9b9e3fbb45fa8808682fe3025ce0
+fleurs	data/or_in/audio/train.tar.gz	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/or_in/audio/train.tar.gz	622952005	sha256:558d4fecf72feb42ecd50d4bd718dfed78e165f4c09fb266845712b089674530
+fleurs	data/or_in/dev.tsv	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/or_in/dev.tsv	460483
+fleurs	data/or_in/test.tsv	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/or_in/test.tsv	1123680
+fleurs	data/or_in/train.tsv	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/or_in/train.tsv	1300243
+fleurs	data/pa_in/audio/dev.tar.gz	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/pa_in/audio/dev.tar.gz	144158281	sha256:18b3dc7a1ee1e57cae51769f7654813ed9333bf2b9bf09f182a88190f9436d2b
+fleurs	data/pa_in/audio/test.tar.gz	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/pa_in/audio/test.tar.gz	357040876	sha256:64c437f9f46690e6d607b1d762412ba9aa63339fa0d56ef52ce6fc3c1f875031
+fleurs	data/pa_in/audio/train.tar.gz	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/pa_in/audio/train.tar.gz	1190537423	sha256:bba47f777c7382c7f44c8048bab0f6955eae1c9af64d1df761d6a6e05e34fa1f
+fleurs	data/pa_in/dev.tsv	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/pa_in/dev.tsv	269486
+fleurs	data/pa_in/test.tsv	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/pa_in/test.tsv	656494
+fleurs	data/pa_in/train.tsv	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/pa_in/train.tsv	2130349
+fleurs	data/pl_pl/audio/dev.tar.gz	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/pl_pl/audio/dev.tar.gz	145951886	sha256:f14102f21a1be72af158f5cd1165ebf5fc750e0bbb0e01844e35b21b2571832b
+fleurs	data/pl_pl/audio/test.tar.gz	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/pl_pl/audio/test.tar.gz	354544776	sha256:dad5fa1600b6c283b57af9b4c80aa8ddf29ed79393bfb7e7221914224ab9b638
+fleurs	data/pl_pl/audio/train.tar.gz	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/pl_pl/audio/train.tar.gz	1583812248	sha256:98aa2cfca63f3eec1393b9437a67da1aea9b1e4794e39d8056ca4b4a7be421cd
+fleurs	data/pl_pl/dev.tsv	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/pl_pl/dev.tsv	190088
+fleurs	data/pl_pl/test.tsv	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/pl_pl/test.tsv	455535
+fleurs	data/pl_pl/train.tsv	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/pl_pl/train.tsv	1664798
+fleurs	data/ps_af/audio/dev.tar.gz	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/ps_af/audio/dev.tar.gz	124075489	sha256:e6240c4ff264009d5a42f3a62dcfcf1c4da26f7569e0454646da489f5894d9ee
+fleurs	data/ps_af/audio/test.tar.gz	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/ps_af/audio/test.tar.gz	303903990	sha256:153dc026a7790539d71aeead7933d0f092b318ade0f327cd4355b8de5473795e
+fleurs	data/ps_af/audio/train.tar.gz	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/ps_af/audio/train.tar.gz	1593043365	sha256:4976e75164fc467974d1e378b367b257118a851254b888dcc853dba77701c9ea
+fleurs	data/ps_af/dev.tsv	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/ps_af/dev.tsv	166562
+fleurs	data/ps_af/test.tsv	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/ps_af/test.tsv	404590
+fleurs	data/ps_af/train.tsv	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/ps_af/train.tsv	1986299
+fleurs	data/pt_br/audio/dev.tar.gz	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/pt_br/audio/dev.tar.gz	247399617	sha256:15f2a075859c3b6448e81c867f9c2a77694b3deab6b24ebc632de09bbf401838
+fleurs	data/pt_br/audio/test.tar.gz	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/pt_br/audio/test.tar.gz	621291324	sha256:968d1b68a90132ca1f044f664866418b0db0351a93601a671d5637016da4f49b
+fleurs	data/pt_br/audio/train.tar.gz	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/pt_br/audio/train.tar.gz	1805414677	sha256:49c6a02a57576f99bd0e6e51aacebfdea9a0bd2cee146e5d20cdceac56e9be9e
+fleurs	data/pt_br/dev.tsv	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/pt_br/dev.tsv	225324
+fleurs	data/pt_br/test.tsv	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/pt_br/test.tsv	563257
+fleurs	data/pt_br/train.tsv	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/pt_br/train.tsv	1638562
+fleurs	data/ro_ro/audio/dev.tar.gz	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/ro_ro/audio/dev.tar.gz	211755441	sha256:21c1f9c017f545b8fbcc895c914ffe795709511c8586c01f453aae791b8dffff
+fleurs	data/ro_ro/audio/test.tar.gz	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/ro_ro/audio/test.tar.gz	494780654	sha256:00ab100aaa032bb0f1bd693df2c8ce2205e657b3338d7cc28a4c8a6ed7f0e896
+fleurs	data/ro_ro/audio/train.tar.gz	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/ro_ro/audio/train.tar.gz	1851170105	sha256:4d08e642079e44ab078f4a29d6f64d8300018752ee31fafabe59bba520cd9044
+fleurs	data/ro_ro/dev.tsv	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/ro_ro/dev.tsv	240314
+fleurs	data/ro_ro/test.tsv	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/ro_ro/test.tsv	568389
+fleurs	data/ro_ro/train.tsv	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/ro_ro/train.tsv	1790902
+fleurs	data/ru_ru/audio/dev.tar.gz	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/ru_ru/audio/dev.tar.gz	187377526	sha256:4dc533cd0f312f749bd6d0fe968f3183288d938e07ed97dc141d9f10570457f9
+fleurs	data/ru_ru/audio/test.tar.gz	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/ru_ru/audio/test.tar.gz	433142634	sha256:8a0d6a0d23c3421f50c575bcf65d875cd19dadae2f7cabb415024f81b65178b1
+fleurs	data/ru_ru/audio/train.tar.gz	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/ru_ru/audio/train.tar.gz	1427743798	sha256:1966e34c17d612317f03916fb45159c793947de77e1988fe76b3b53cf6c40b44
+fleurs	data/ru_ru/dev.tsv	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/ru_ru/dev.tsv	316328
+fleurs	data/ru_ru/test.tsv	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/ru_ru/test.tsv	735258
+fleurs	data/ru_ru/train.tsv	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/ru_ru/train.tsv	2358557
+fleurs	data/sd_in/audio/dev.tar.gz	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/sd_in/audio/dev.tar.gz	250878831	sha256:f028fcd5931d1d36d723b882429b8f8e2e4692fd420c084af351ce8df16b6d4a
+fleurs	data/sd_in/audio/test.tar.gz	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/sd_in/audio/test.tar.gz	621842598	sha256:94f572b97e73c8176f39de3922a4022f729f50d285a493aea630ccfc664487ed
+fleurs	data/sd_in/audio/train.tar.gz	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/sd_in/audio/train.tar.gz	2343910464	sha256:e2ba37ee31cb7e2dd82ab2866d9bef54bb33eccd3ebdee8ad253f8beb75731ce
+fleurs	data/sd_in/dev.tsv	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/sd_in/dev.tsv	315645
+fleurs	data/sd_in/test.tsv	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/sd_in/test.tsv	772521
+fleurs	data/sd_in/train.tsv	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/sd_in/train.tsv	2608521
+fleurs	data/sk_sk/audio/dev.tar.gz	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/sk_sk/audio/dev.tar.gz	186571842	sha256:6c6c448b29d992cef3cc5807dc477e8e952d9472c2b0077ab69427ef20d493ba
+fleurs	data/sk_sk/audio/test.tar.gz	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/sk_sk/audio/test.tar.gz	450050397	sha256:25c24d53d789e7b18dabc01eabeb1f7e12ed6ee0e6329de5adf47cfe31d343d8
+fleurs	data/sk_sk/audio/train.tar.gz	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/sk_sk/audio/train.tar.gz	1019228048	sha256:4bfabe61a6f7224845338a93727aa3a5d3755869ed4075dc3723b3cfd57c684c
+fleurs	data/sk_sk/dev.tsv	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/sk_sk/dev.tsv	199402
+fleurs	data/sk_sk/test.tsv	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/sk_sk/test.tsv	465458
+fleurs	data/sk_sk/train.tsv	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/sk_sk/train.tsv	1085904
+fleurs	data/sl_si/audio/dev.tar.gz	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/sl_si/audio/dev.tar.gz	152329567	sha256:5a8a3800829a9668cb31ddedb9cb44cc935cec1e7155515ad21a6817adeeb431
+fleurs	data/sl_si/audio/test.tar.gz	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/sl_si/audio/test.tar.gz	385059821	sha256:24f96a44036f3efcaaec7b5bb42101bec0b4a5d1eadc8fd3a3004c738b36c6fe
+fleurs	data/sl_si/audio/train.tar.gz	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/sl_si/audio/train.tar.gz	1317667231	sha256:9340e7741a83cd2ee71e768ebe247d16d68d9d1aa7378618e7a581c4be16959c
+fleurs	data/sl_si/dev.tsv	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/sl_si/dev.tsv	185040
+fleurs	data/sl_si/test.tsv	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/sl_si/test.tsv	464628
+fleurs	data/sl_si/train.tsv	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/sl_si/train.tsv	1362636
+fleurs	data/sn_zw/audio/dev.tar.gz	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/sn_zw/audio/dev.tar.gz	247887515	sha256:07c5fe2c105bac660cbd5fa81ea38ec95e463e04fbb88302646250e90167a555
+fleurs	data/sn_zw/audio/test.tar.gz	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/sn_zw/audio/test.tar.gz	609718779	sha256:f101b8a181fedb87b48456c73680a2673ce2940431bf8b6b6ee4beec3e8d83fd
+fleurs	data/sn_zw/audio/train.tar.gz	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/sn_zw/audio/train.tar.gz	1819632565	sha256:83a871d8acc222a75950493dd078c1b6352e3c21244e19c7043d28f8a3d52917
+fleurs	data/sn_zw/dev.tsv	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/sn_zw/dev.tsv	234062
+fleurs	data/sn_zw/test.tsv	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/sn_zw/test.tsv	575108
+fleurs	data/sn_zw/train.tsv	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/sn_zw/train.tsv	1453320
+fleurs	data/so_so/audio/dev.tar.gz	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/so_so/audio/dev.tar.gz	291423796	sha256:8172b242456506e7c483823997156e83d543dc6d44ed455c7b9087aecce1afd8
+fleurs	data/so_so/audio/test.tar.gz	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/so_so/audio/test.tar.gz	736569254	sha256:d163bab828f107828a0e59eca643917159985eb3746ed1a3fcfbffe160a311bd
+fleurs	data/so_so/audio/train.tar.gz	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/so_so/audio/train.tar.gz	2310047653	sha256:fd5e9d5e9d29bf97aed17d3634caad8bc15dcfba2c87f6e18318e2a3a1e632a7
+fleurs	data/so_so/dev.tsv	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/so_so/dev.tsv	267826
+fleurs	data/so_so/test.tsv	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/so_so/test.tsv	658428
+fleurs	data/so_so/train.tsv	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/so_so/train.tsv	1940593
+fleurs	data/sr_rs/audio/dev.tar.gz	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/sr_rs/audio/dev.tar.gz	151190432	sha256:dbeaf9ad5c6684446eb567aca884b5f915ee54296810c2db53ad21e941cba5a9
+fleurs	data/sr_rs/audio/test.tar.gz	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/sr_rs/audio/test.tar.gz	384486100	sha256:92f1bacea9fb20bc4065d8d18038fc27154d885a0c3ef89d3303f74c2e9ba694
+fleurs	data/sr_rs/audio/train.tar.gz	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/sr_rs/audio/train.tar.gz	1993653394	sha256:ee859c5a5505fe231b81fc9f7aa7c8ccfc41b116b3f500a1726c4853411dfce7
+fleurs	data/sr_rs/dev.tsv	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/sr_rs/dev.tsv	181289
+fleurs	data/sr_rs/test.tsv	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/sr_rs/test.tsv	466297
+fleurs	data/sr_rs/train.tsv	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/sr_rs/train.tsv	1960668
+fleurs	data/sv_se/audio/dev.tar.gz	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/sv_se/audio/dev.tar.gz	186447216	sha256:be0ef68902b1c5e332a71fd245b5bbaa828c8ebfc8a1174084132911eb6e09e0
+fleurs	data/sv_se/audio/test.tar.gz	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/sv_se/audio/test.tar.gz	440702047	sha256:3792fd432675e16d85a67f5caf9927ad608aefc2484d738f26704f75584a5a6f
+fleurs	data/sv_se/audio/train.tar.gz	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/sv_se/audio/train.tar.gz	1459456451	sha256:04a18cb93720cfed1ed992abebe977ac3880cab17ec7cf9cb5afe77d439988d3
+fleurs	data/sv_se/dev.tsv	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/sv_se/dev.tsv	182136
+fleurs	data/sv_se/test.tsv	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/sv_se/test.tsv	437092
+fleurs	data/sv_se/train.tsv	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/sv_se/train.tsv	1313805
+fleurs	data/sw_ke/audio/dev.tar.gz	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/sw_ke/audio/dev.tar.gz	136397450	sha256:f597ddb14c91fb7750a5a27b69b10949203c74f69944cf262339fde4793830e7
+fleurs	data/sw_ke/audio/test.tar.gz	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/sw_ke/audio/test.tar.gz	333019109	sha256:8f893fd1f8ab0e53022297a0a89de0454a8a94fcd50c8d2d8784e3dc3261570f
+fleurs	data/sw_ke/audio/train.tar.gz	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/sw_ke/audio/train.tar.gz	2421455236	sha256:4ef56bbc35b70a87d3ef84f29a46914e6119a87b88b1571099381b07e3d1dd6b
+fleurs	data/sw_ke/dev.tsv	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/sw_ke/dev.tsv	116122
+fleurs	data/sw_ke/test.tsv	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/sw_ke/test.tsv	276161
+fleurs	data/sw_ke/train.tsv	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/sw_ke/train.tsv	1734767
+fleurs	data/ta_in/audio/dev.tar.gz	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/ta_in/audio/dev.tar.gz	238893728	sha256:63faa53c804949dae73c9a953927fb50d59540830261cff374588ba4c901f09e
+fleurs	data/ta_in/audio/test.tar.gz	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/ta_in/audio/test.tar.gz	406616353	sha256:244344ef4ca6ee0d9a0a4815686ab633ec2e8d0b70dcb7f63d53033266b99d6e
+fleurs	data/ta_in/audio/train.tar.gz	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/ta_in/audio/train.tar.gz	1638765342	sha256:89ea516b1115d8cc7419ae5c44a35f356cb65fdd0480e3b799b1c02fdfdeab37
+fleurs	data/ta_in/dev.tsv	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/ta_in/dev.tsv	507783
+fleurs	data/ta_in/test.tsv	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/ta_in/test.tsv	846022
+fleurs	data/ta_in/train.tsv	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/ta_in/train.tsv	3245761
+fleurs	data/te_in/audio/dev.tar.gz	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/te_in/audio/dev.tar.gz	166827973	sha256:2ac52fa35be22b05ad041e2a2a443d10f4ef59449db07fe42cd644eb81ed7123
+fleurs	data/te_in/audio/test.tar.gz	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/te_in/audio/test.tar.gz	270257144	sha256:65d764ab4c3e9531eb61ffea4d0a78832d520f238ef0f339a7871f19c1653fd8
+fleurs	data/te_in/audio/train.tar.gz	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/te_in/audio/train.tar.gz	1502869666	sha256:6098b3d50ae7b49f9ddaac9b3f84aa7a36701ef196859a34b9b85cc9111a09f1
+fleurs	data/te_in/dev.tsv	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/te_in/dev.tsv	350269
+fleurs	data/te_in/test.tsv	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/te_in/test.tsv	566075
+fleurs	data/te_in/train.tsv	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/te_in/train.tsv	2601693
+fleurs	data/tg_tj/audio/dev.tar.gz	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/tg_tj/audio/dev.tar.gz	156123426	sha256:c015c30ce44f7573201fd9005e192ca64a5ddc605249088845b9af1db4684be0
+fleurs	data/tg_tj/audio/test.tar.gz	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/tg_tj/audio/test.tar.gz	398410068	sha256:2b100146aba5657d58ef1f8521a1ee092540c842469497f7b32b61925d072915
+fleurs	data/tg_tj/audio/train.tar.gz	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/tg_tj/audio/train.tar.gz	1358013794	sha256:3f23a041cdf9b249d10d1532a27be1cdf8bc024d279612272fe534b3f98bdb92
+fleurs	data/tg_tj/dev.tsv	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/tg_tj/dev.tsv	229174
+fleurs	data/tg_tj/test.tsv	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/tg_tj/test.tsv	573772
+fleurs	data/tg_tj/train.tsv	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/tg_tj/train.tsv	2134278
+fleurs	data/th_th/audio/dev.tar.gz	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/th_th/audio/dev.tar.gz	247248092	sha256:505c9e40878df8690a4b20ecb8cd630aec7951259c51c007ac8df2fe78377685
+fleurs	data/th_th/audio/test.tar.gz	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/th_th/audio/test.tar.gz	593463305	sha256:a3c8bbfab5a124fb6b6475c238a9ec09957be5727aeacefe00eddbcf4bc0a82e
+fleurs	data/th_th/audio/train.tar.gz	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/th_th/audio/train.tar.gz	1556370935	sha256:6235988c35d446462659168aa8695b52ae99f3024ba6c5534fd8b6df82521628
+fleurs	data/th_th/dev.tsv	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/th_th/dev.tsv	540430
+fleurs	data/th_th/test.tsv	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/th_th/test.tsv	1284689
+fleurs	data/th_th/train.tsv	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/th_th/train.tsv	3081988
+fleurs	data/tr_tr/audio/dev.tar.gz	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/tr_tr/audio/dev.tar.gz	198683867	sha256:7476fc01bc50750f2854dbc1b4fa285f00092808e7e43244e0b978e031cbe712
+fleurs	data/tr_tr/audio/test.tar.gz	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/tr_tr/audio/test.tar.gz	464259241	sha256:a7db7a681e4460d2922626bf2037ddc1a9146efba27d78bfc9543250eabc3a09
+fleurs	data/tr_tr/audio/train.tar.gz	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/tr_tr/audio/train.tar.gz	1468477481	sha256:bb8f81d19282cab8068b915265f60147f84127d37c71ad920fd45409ba5072aa
+fleurs	data/tr_tr/dev.tsv	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/tr_tr/dev.tsv	191300
+fleurs	data/tr_tr/test.tsv	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/tr_tr/test.tsv	447909
+fleurs	data/tr_tr/train.tsv	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/tr_tr/train.tsv	1460325
+fleurs	data/uk_ua/audio/dev.tar.gz	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/uk_ua/audio/dev.tar.gz	166536328	sha256:0f2b35ffe6277d53a19ce440a0195e86a34aaf94a2063c7f8d75b2afbe3f38da
+fleurs	data/uk_ua/audio/test.tar.gz	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/uk_ua/audio/test.tar.gz	399073340	sha256:1c2a1bc5afafc576a68902f8dcc5f2c2313e454742674cfedc3a053be7418114
+fleurs	data/uk_ua/audio/train.tar.gz	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/uk_ua/audio/train.tar.gz	1577650527	sha256:06578dd3086a25403a2e50500f735b05b50368870a1f257963a430be0ed16955
+fleurs	data/uk_ua/dev.tsv	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/uk_ua/dev.tsv	280745
+fleurs	data/uk_ua/test.tsv	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/uk_ua/test.tsv	667425
+fleurs	data/uk_ua/train.tsv	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/uk_ua/train.tsv	2421863
+fleurs	data/umb_ao/audio/dev.tar.gz	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/umb_ao/audio/dev.tar.gz	175485241	sha256:6c9d4f6848d78031e7803e664b7d7e35e2ba7be9cfcde5c8c66b1241aba57d1c
+fleurs	data/umb_ao/audio/test.tar.gz	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/umb_ao/audio/test.tar.gz	514159861	sha256:4c117573ef3bbea4c242ceed2754e87f79f6250741f8d1da03bbcda273fa8f4d
+fleurs	data/umb_ao/audio/train.tar.gz	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/umb_ao/audio/train.tar.gz	2070327519	sha256:e5f93d3c7d92ca16abdb57824f1c4ba218b04d4b5db96bf85053e06a727e6da5
+fleurs	data/umb_ao/dev.tsv	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/umb_ao/dev.tsv	73222
+fleurs	data/umb_ao/test.tsv	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/umb_ao/test.tsv	210782
+fleurs	data/umb_ao/train.tsv	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/umb_ao/train.tsv	849811
+fleurs	data/ur_pk/audio/dev.tar.gz	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/ur_pk/audio/dev.tar.gz	142910101	sha256:ee0a7a18242a70ea9088e9618337e4835ce1972557bdc2cd3d500555ce89520f
+fleurs	data/ur_pk/audio/test.tar.gz	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/ur_pk/audio/test.tar.gz	149549883	sha256:618840ad5fb21a59cc179ec535ddbc8e756e2fb40624689c6d59c93e019cd745
+fleurs	data/ur_pk/audio/train.tar.gz	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/ur_pk/audio/train.tar.gz	1224331874	sha256:00fbfdd4b98fa4c264b843355aa7450a3922642b73cb13e54ffa8950c4cdd93a
+fleurs	data/ur_pk/dev.tsv	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/ur_pk/dev.tsv	217526
+fleurs	data/ur_pk/test.tsv	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/ur_pk/test.tsv	261554
+fleurs	data/ur_pk/train.tsv	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/ur_pk/train.tsv	1742600
+fleurs	data/uz_uz/audio/dev.tar.gz	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/uz_uz/audio/dev.tar.gz	212433643	sha256:46388b7c1f11d9ff21a38920c3417e92afe0a2d2bcfc378ab876794310a051c5
+fleurs	data/uz_uz/audio/test.tar.gz	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/uz_uz/audio/test.tar.gz	519354861	sha256:1c9e47b37064c4a84bb901e18c79cdc35b6f481673f500bf58ace0145dec057a
+fleurs	data/uz_uz/audio/train.tar.gz	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/uz_uz/audio/train.tar.gz	1756864942	sha256:aeb37720254cc7fa884289d713735043812da504b9dc5ee8f14b1c5e6f9d8380
+fleurs	data/uz_uz/dev.tsv	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/uz_uz/dev.tsv	217254
+fleurs	data/uz_uz/test.tsv	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/uz_uz/test.tsv	543547
+fleurs	data/uz_uz/train.tsv	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/uz_uz/train.tsv	1779236
+fleurs	data/vi_vn/audio/dev.tar.gz	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/vi_vn/audio/dev.tar.gz	214500592	sha256:8821a394c99069409b3ce7bb5cd14b10b709f2ee2fea16f42b4701e1cc9ef673
+fleurs	data/vi_vn/audio/test.tar.gz	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/vi_vn/audio/test.tar.gz	544139865	sha256:b359261216ef14b8eea159abce794e270c2a0be903218cf1e1e8f7c7c1565b5c
+fleurs	data/vi_vn/audio/train.tar.gz	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/vi_vn/audio/train.tar.gz	1607278457	sha256:016a568afc1909cfaf9efb1a2fc2f1d3311e646d9b52d05dc2e84ac0c17c34ce
+fleurs	data/vi_vn/dev.tsv	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/vi_vn/dev.tsv	247001
+fleurs	data/vi_vn/test.tsv	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/vi_vn/test.tsv	613728
+fleurs	data/vi_vn/train.tsv	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/vi_vn/train.tsv	2056005
+fleurs	data/wo_sn/audio/dev.tar.gz	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/wo_sn/audio/dev.tar.gz	125963590	sha256:a741e5e35bda46c55f1edb6a29c9a9c0a342bd33ad1adc69701e5294d24cf5bb
+fleurs	data/wo_sn/audio/test.tar.gz	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/wo_sn/audio/test.tar.gz	285754533	sha256:7ac7c6cf4c7013ce1509d77ef4c30590a070aa711364750a35279a36c9a998bc
+fleurs	data/wo_sn/audio/train.tar.gz	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/wo_sn/audio/train.tar.gz	1415693401	sha256:5373b8dc661345ea184b2ea012ce4a7473ee585d3b15a7830d5d48d88845ed52
+fleurs	data/wo_sn/dev.tsv	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/wo_sn/dev.tsv	87558
+fleurs	data/wo_sn/test.tsv	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/wo_sn/test.tsv	200547
+fleurs	data/wo_sn/train.tsv	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/wo_sn/train.tsv	1189389
+fleurs	data/xh_za/audio/dev.tar.gz	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/xh_za/audio/dev.tar.gz	227136215	sha256:1f28c1f4cdf923ea17b4474130b10b4f8fc451b2d05a28bf6e29d228acbf609a
+fleurs	data/xh_za/audio/test.tar.gz	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/xh_za/audio/test.tar.gz	557441878	sha256:8cb1a3f1ef02d1747980c2df6646d4ee804b1c3de8a314d31fd2786936962be8
+fleurs	data/xh_za/audio/train.tar.gz	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/xh_za/audio/train.tar.gz	2273505983	sha256:48d71a6010d0e72597d1224aaae83604e8aee11ead63ce655bc8c1f96cf76fec
+fleurs	data/xh_za/dev.tsv	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/xh_za/dev.tsv	253789
+fleurs	data/xh_za/test.tsv	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/xh_za/test.tsv	616503
+fleurs	data/xh_za/train.tsv	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/xh_za/train.tsv	2005301
+fleurs	data/yo_ng/audio/dev.tar.gz	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/yo_ng/audio/dev.tar.gz	315960914	sha256:302f23555cb4408e561af50e27bcf4280bd843ec309210643952801de031c135
+fleurs	data/yo_ng/audio/test.tar.gz	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/yo_ng/audio/test.tar.gz	692401948	sha256:80f3a2ba2ea9f7da76d744d4e8eda813eaa76eadab9bfda59608ff56fc822bcf
+fleurs	data/yo_ng/audio/train.tar.gz	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/yo_ng/audio/train.tar.gz	1828073509	sha256:3e1ad86df16340f0d1c056f77fd3cf7e1e4ad374f337c90730114ca08965af7b
+fleurs	data/yo_ng/dev.tsv	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/yo_ng/dev.tsv	238452
+fleurs	data/yo_ng/test.tsv	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/yo_ng/test.tsv	535617
+fleurs	data/yo_ng/train.tsv	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/yo_ng/train.tsv	1517028
+fleurs	data/yue_hant_hk/audio/dev.tar.gz	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/yue_hant_hk/audio/dev.tar.gz	205691507	sha256:7d4cd3a51507fb6a6d214b4e8ad79d383a487d6f5c870f3142bfe37bf005f03d
+fleurs	data/yue_hant_hk/audio/test.tar.gz	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/yue_hant_hk/audio/test.tar.gz	478501748	sha256:6b0b4c9c75d7bf27b5ac45ad3d86016e0f5a6a0d0d40516df3f6ad2c3febe940
+fleurs	data/yue_hant_hk/audio/train.tar.gz	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/yue_hant_hk/audio/train.tar.gz	1304311230	sha256:fc149199b47698cb0aa6ed6154f069560fb1a06cc0a2a220cfcfd3c8d7574f9c
+fleurs	data/yue_hant_hk/dev.tsv	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/yue_hant_hk/dev.tsv	176212
+fleurs	data/yue_hant_hk/test.tsv	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/yue_hant_hk/test.tsv	414628
+fleurs	data/yue_hant_hk/train.tsv	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/yue_hant_hk/train.tsv	927957
+fleurs	data/zu_za/audio/dev.tar.gz	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/zu_za/audio/dev.tar.gz	266932993	sha256:9feb8c31c2ac0f64ed81ec8df0d4ca7b20a44d49c2c37fd3d98e4442c4fbf863
+fleurs	data/zu_za/audio/test.tar.gz	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/zu_za/audio/test.tar.gz	675647553	sha256:f860d003e672943ccf2c3d4e6e8a000f46f0b410ea0eb937d9bd6b3512877744
+fleurs	data/zu_za/audio/train.tar.gz	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/zu_za/audio/train.tar.gz	2418938626	sha256:18e147fdb60301359a14d59edea622bd446231f9106b26a6046cbcb200c40e07
+fleurs	data/zu_za/dev.tsv	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/zu_za/dev.tsv	214205
+fleurs	data/zu_za/test.tsv	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/zu_za/test.tsv	534158
+fleurs	data/zu_za/train.tsv	https://huggingface.co/datasets/google/fleurs/resolve/70bb2e84b976b7e960aa89f1c648e09c59f894dd/data/zu_za/train.tsv	1723401
