@@ -58,6 +58,9 @@ parallel:
 model:
   _target_: espnet3.systems.esp2_spk.src.speech2score.TrialScorer
   train_config: ${exp_dir}/config.yaml
+  # The average of the top-3 `valid/eer` checkpoints. With a schedule that
+  # restarts the learning rate, prefer `${exp_dir}/last.pth` (the last-epoch
+  # weights written by `SaveFinalWeights`), as `egs3/voxceleb/esp2_spk` does.
   model_file: ${exp_dir}/valid.eer.ave_3best.pth
   # The crops validation takes during training: `num_eval` evenly spaced
   # `target_duration`-second windows of each utterance.

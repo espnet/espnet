@@ -3,7 +3,7 @@
 Trains a speaker embedding extractor on the VoxCeleb 1 and 2 development sets
 and evaluates it on the cleaned Vox1-O protocol (`veri_test2.txt`).
 
-## Corpus layout
+## Data Preparation
 
 VoxCeleb cannot be downloaded automatically, so point `VOXCELEB` at a root that
 holds the three audio trees below, or place them under `download/`:
@@ -48,7 +48,7 @@ RIRS_NOISES are missing it says so and skips those lists; set
 `noise_apply_prob` and `rir_apply_prob` to `0.0` in the training config to
 train without them.
 
-## Why the audio is packed
+### Why the audio is packed
 
 VoxCeleb is ~1.2 M small files. On a shared filesystem, reading them one by
 one is bound by per-file metadata I/O, not by bytes: on a Lustre HDD pool we
@@ -62,7 +62,7 @@ bulk copy of a few hundred files. Packing is resumable: utterances already in
 the archive are skipped. `builder.blob` in `dataset/config.yaml` sets the bin
 size and the number of packing workers.
 
-## Training on several corpora
+### Training on several corpora
 
 Splits are never concatenated on disk. List them under `dataset.train` and
 ESPnet3 merges them with `CombinedDataset`, which is how the default configs
@@ -84,18 +84,23 @@ is its line count. So `dataset/config.yaml` declares the union under
 `data/voxceleb12_dev/spk2utt` holding nothing but that label space. Add a
 corpus by adding it to `builder.sources`, to the union, and to `dataset.train`.
 
-Mini-batches over a merged training set are drawn by the plain shuffling
-sampler of `dataloader.train`, so a batch is speaker-balanced only in the
-statistical sense: it is a uniform sample of the merged utterance list, and a
-corpus contributes in proportion to its size. That is what the reference
-RawNet3 result below was trained with. If you need an explicit guarantee of
-how many speakers appear per batch, or per corpus, that is what ESPnet3's
-`CategoryIterator` is for; wire it up under `dataloader.train.iter_factory`.
+`training_rawnet3.yaml` draws mini-batches with
+`SpeakerBalancedBatchSampler` (`dataset/sampler.py`), ESPnet2's `catbel`
+batching: no speaker appears twice in a batch, and under DDP each rank balances
+its own shard. Within that constraint a batch is a uniform sample of the merged
+utterance list, so a corpus contributes in proportion to its size.
 
-## Quick start
+## Commands
+
+Run the following commands from `egs3/voxceleb/esp2_spk/`.
+
+### RawNet3
+
+RawNet3 trained from scratch on raw waveform through a learnable sinc
+filterbank; it downloads no pretrained model.
 
 ```bash
-# 1) Prepare manifests and trial lists (run once)
+# 1) Prepare manifests, trial lists and audio archives (run once)
 python run.py --stages create_dataset \
     --training_config conf/tuning/training_rawnet3.yaml
 
@@ -113,18 +118,20 @@ python run.py --stages measure \
     --training_config conf/tuning/training_rawnet3.yaml \
     --inference_config conf/inference.yaml \
     --metrics_config conf/metrics.yaml
+
+# 5) Pack and upload the model (see conf/publication.yaml)
+python run.py --stages pack_model upload_model \
+    --training_config conf/tuning/training_rawnet3.yaml \
+    --inference_config conf/inference.yaml \
+    --metrics_config conf/metrics.yaml \
+    --publication_config conf/publication.yaml
 ```
 
-## Configurations
+### XEUS and ECAPA-TDNN
 
-| Config | Frontend | Encoder | Notes |
-|---|---|---|---|
-| [`conf/tuning/training_rawnet3.yaml`](conf/tuning/training_rawnet3.yaml) | learnable sinc filterbank | RawNet3 | trained from scratch on raw waveform |
-| [`conf/tuning/training_xeus_ecapa.yaml`](conf/tuning/training_xeus_ecapa.yaml) | XEUS (jointly fine-tuned) | ECAPA-TDNN | needs the XEUS checkpoint, see below |
-
-`training_xeus_ecapa.yaml`, and only that config, expects a local XEUS
-checkpoint. The default RawNet3 config consumes raw waveform through a
-learnable sinc filterbank and downloads no pretrained model at all:
+ECAPA-TDNN on a jointly fine-tuned XEUS frontend. Run the same commands with
+`--training_config conf/tuning/training_xeus_ecapa.yaml`. This config, and only
+this one, expects a local XEUS checkpoint:
 
 ```bash
 hf download espnet/xeus model/xeus_checkpoint.pth --local-dir download
@@ -149,11 +156,6 @@ frozen for the first 5,000 updates and fine-tuned jointly afterwards.
 - `valid/eer` is computed each epoch over a strided 10,000-trial subset of
   Vox1-O. Raise `num_trials` for a tighter estimate, at the cost of slower
   epochs. The `infer` stage always scores the full list.
-- `conf/inference.yaml` scores the last-epoch weights (`last.pth`) with 4
-  evenly spaced 8-second crops per utterance, as ESPnet2's published RawNet3
-  result does, rather than the `valid.eer.ave_3best.pth` average: the
-  validation subset is too noisy to rank late epochs, and the average mixes
-  checkpoints from different learning-rate cycles.
 - Trial IDs in `score.scp` are line numbers in
   `data/voxceleb1_test/vox1_o.trials`. `measure` reads each trial's
   target/nontarget label from the same dataset (`dataset:spk_labels`).
@@ -170,7 +172,39 @@ frozen for the first 5,000 updates and fine-tuned jointly afterwards.
 
 ## Results
 
-| Config | EER(%) | minDCF | Hugging Face |
-|---|---|---|---|
-| `conf/tuning/training_rawnet3.yaml` | 0.755 | 0.0608 | https://huggingface.co/espnet/voxcelebs12_rawnet3_espnet3 |
-| `conf/tuning/training_xeus_ecapa.yaml` | | | |
+EER (%) and minDCF (p_target 0.05) on the cleaned Vox1-O trial list (37,611
+trials).
+
+### RawNet3
+
+- Training config: `conf/tuning/training_rawnet3.yaml`
+- Inference config: `conf/inference.yaml`
+- Metrics config: `conf/metrics.yaml`
+- Checkpoint: `last.pth`, the weights after the last (40th) epoch
+- Decoding: 4 evenly spaced 8-second crops per utterance, cosine scoring
+  averaged over crop pairs, no score normalization
+
+| | EER(%) | minDCF |
+|---|---|---|
+| vox1_o | 0.755 | 0.0608 |
+
+This reproduces ESPnet2's `egs2/voxceleb/spk1` RawNet3 (0.739% reported). Its
+released model, `espnet/voxcelebs12_rawnet3`, scores 0.750% EER under the
+protocol above. The result was trained on one GPU (global batch 512, bf16).
+`conf/inference.yaml` scores the last epoch rather than
+`valid.eer.ave_3best.pth`, as ESPnet2's published result does: the 10,000-trial
+validation subset is too noisy to rank late epochs, and that average mixes
+checkpoints from different learning-rate cycles (0.888% EER with 3 s x 10
+crops).
+
+#### Pretrained model
+
+- [`conf/tuning/training_rawnet3.yaml`](https://huggingface.co/espnet/voxcelebs12_rawnet3_espnet3),
+  uploaded with `upload_model.hf_repo: espnet/voxcelebs12_rawnet3_espnet3`
+  overriding the default repo name of `conf/publication.yaml`
+
+### XEUS and ECAPA-TDNN
+
+- Training config: `conf/tuning/training_xeus_ecapa.yaml`
+
+Not yet evaluated.

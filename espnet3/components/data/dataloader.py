@@ -198,7 +198,9 @@ class DataLoaderBuilder:
             ```
 
         Raises:
-            ValueError: If batch_distribution is not per_gpu or global.
+            ValueError: If batch_distribution is not per_gpu or global, or if a
+                per-mode `batch_sampler` is combined with an `iter_factory` or
+                with a top-level `sampler`/`batch_sampler`.
             RuntimeError: If global batching cannot preserve the shared batch plan.
 
         Examples:
@@ -262,6 +264,12 @@ class DataLoaderBuilder:
                 )
         dataset = self._maybe_shard_dataset(self.dataset)
         if config.iter_factory is not None:
+            if config.get("batch_sampler") is not None:
+                raise ValueError(
+                    f"dataloader.{mode}.batch_sampler applies to the standard "
+                    f"DataLoader only; set dataloader.{mode}.iter_factory to null "
+                    "to use it."
+                )
             factory_config = OmegaConf.to_container(config.iter_factory, resolve=True)
             return self._build_iter_factory(
                 factory_config, dataset, mode, batch_distribution

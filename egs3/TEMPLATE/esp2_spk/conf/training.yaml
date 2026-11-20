@@ -124,12 +124,10 @@ dataloader:
   # context of a parent that has already initialized CUDA and NCCL but cannot
   # use it, so releasing a pinned tensor inside a worker aborts the run with
   # `CUDA error: initialization error` out of `CachingHostAllocator::free`
-  # (VoxCeleb job 21588635, which died before its first batch under DDP; a
-  # single-GPU run is unaffected). forkserver exec's a fresh interpreter for its
-  # server process, so workers fork from something that never touched CUDA:
-  # measured inheritance is 2 CUDA tensors under fork, 0 under forkserver
-  # (SpeakerVerification/scripts/ddp_repro.py, job 21606878). Verified on the
-  # VoxCeleb recipe in job 21608065.
+  # before the first batch under DDP (a single-GPU run is unaffected).
+  # forkserver exec's a fresh interpreter for its server process, so workers
+  # fork from something that never touched CUDA: measured inheritance is 2 CUDA
+  # tensors under fork and 0 under forkserver.
   #
   # This pairs with `pin_memory: true` below -- pinned host memory is what makes
   # the inherited context fatal rather than merely unused.

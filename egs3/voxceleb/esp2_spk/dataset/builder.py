@@ -171,14 +171,14 @@ def scan_split(split_dir: Path) -> list[tuple[str, str, Path]]:
     # Resolved once here, never per entry. `Path.resolve()` lstats every
     # component of a path to test it for a symlink, which on Lustre costs one
     # metadata RPC per component -- about ten per file, ~13M over a VoxCeleb2
-    # scan. That is what left job 21539732 sitting in `ptlrpc_set_wait` for
-    # 12.5 h without writing a manifest. Everything `rglob` yields below is
+    # scan, enough to leave a job sitting in `ptlrpc_set_wait` for hours
+    # without writing a manifest. Everything `rglob` yields below is
     # already under this resolved root, so the paths are absolute either way.
     split_dir = split_dir.resolve()
     entries = []
     # A whole-corpus scan is ~20 min of pure Lustre metadata I/O that writes
     # nothing, so without this the log is silent long enough to be mistaken for
-    # the hang of job 21539732. Report progress on file count rather than on a
+    # that hang. Report progress on file count rather than on a
     # percentage: `rglob` does not know how many files it is about to yield.
     started = time.perf_counter()
     # Both VoxCeleb1 and VoxCeleb2 have a `dev` split, so name the parent too.

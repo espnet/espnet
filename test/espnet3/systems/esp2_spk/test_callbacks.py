@@ -1,6 +1,7 @@
 import datetime
 from types import SimpleNamespace
 
+import pytest
 import torch
 
 from espnet3.systems.esp2_spk.src.callbacks import SpeakerVerificationScoring
@@ -134,6 +135,8 @@ def _score_across_ranks(tmp_path, trials):
         return [results[rank] for rank in range(len(trials))]
 
 
+# Two spawned gloo ranks each import torch and espnet2.
+@pytest.mark.execution_timeout(30)
 def test_ranks_with_unequal_trial_counts_are_gathered(tmp_path):
     # 3 trials against 1: every rank must score all four, and padding left
     # behind by the gather would break the perfect separation.
@@ -148,6 +151,8 @@ def test_ranks_with_unequal_trial_counts_are_gathered(tmp_path):
     assert logged == [{"valid/eer": 0.0, "valid/mindcf": 0.0}] * 2
 
 
+# Two spawned gloo ranks each import torch and espnet2.
+@pytest.mark.execution_timeout(30)
 def test_a_rank_without_trials_still_joins_the_collective(tmp_path):
     # Rank 1 saw no trial batch. If it skipped the gather, rank 0 would time
     # out waiting for it; instead both ranks score rank 0's trials.
@@ -159,6 +164,8 @@ def test_a_rank_without_trials_still_joins_the_collective(tmp_path):
     assert logged == [{"valid/eer": 0.0, "valid/mindcf": 0.0}] * 2
 
 
+# Two spawned gloo ranks each import torch and espnet2.
+@pytest.mark.execution_timeout(30)
 def test_no_trials_on_any_rank_logs_nothing(tmp_path):
     logged = _score_across_ranks(tmp_path, [[], []])
 

@@ -210,3 +210,42 @@ def test_run_stages_train_unknown_log_mode_falls_back_to_rank0(
     assert seen["log_dir"] == tmp_path
     assert seen["filename"] == "train.log"
     assert "Unknown stage_log_mode='unknown'" in caplog.text
+
+
+@pytest.mark.parametrize("rank, expected_log_dir", [(0, "exp"), (2, None)])
+def test_run_stages_non_train_stage_follows_rank0_log_mode(
+    monkeypatch, tmp_path, rank, expected_log_dir
+):
+    # Every rank runs the stages before `train` too (one `srun ... --stages
+    # create_dataset train`), so rank0 mode must keep the others off the file.
+    seen = {}
+
+    class DataSystem:
+        stages: ClassVar[tuple[StageSpec, ...]] = (
+            StageSpec(name="create_dataset", config="training"),
+        )
+
+        def __init__(self):
+            self._default_log_dir = tmp_path
+            self.training_config = argparse.Namespace(stage_log_mode="rank0")
+
+        def create_dataset(self):
+            seen["called"] = True
+
+    monkeypatch.setattr(stages_utils, "log_stage", lambda _: contextlib.nullcontext())
+    monkeypatch.setattr(stages_utils, "log_stage_metadata", lambda *_, **__: None)
+    monkeypatch.setattr(stages_utils, "_get_process_rank", lambda: rank)
+
+    def fake_set_stage_log_handler(log_dir, filename):
+        seen["log_dir"] = log_dir
+        seen["filename"] = filename
+
+    monkeypatch.setattr(
+        stages_utils, "set_stage_log_handler", fake_set_stage_log_handler
+    )
+
+    run_stages(DataSystem(), ["create_dataset"])
+
+    assert seen["called"] is True
+    assert seen["log_dir"] == (tmp_path if expected_log_dir else None)
+    assert seen["filename"] == "create_dataset.log"
