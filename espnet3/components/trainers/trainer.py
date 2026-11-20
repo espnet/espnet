@@ -72,7 +72,9 @@ class ESPnet3LightningTrainer:
         # Instantiate the Lightning Model
         self.model = model
         if getattr(self.config, "init", None) is not None:
-            initialize(self.model, self.config.init)
+            # initialize() restores pretrained frontend/encoder weights only when
+            # given the ESPnet model itself, not the Lightning wrapper.
+            initialize(self.model.model, self.config.init)
 
         # Accelerator
         accelerator = _get_or_initialize(self.config, "accelerator", "auto")
@@ -139,6 +141,7 @@ class ESPnet3LightningTrainer:
 
         trainer_config = copy.deepcopy(self.config)
         for key in (
+            "init",
             "accelerator",
             "strategy",
             "logger",
