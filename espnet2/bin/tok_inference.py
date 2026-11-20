@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Extract discrete speech tokens without constructing downstream losses."""
+"""Extract discrete speech tokens without constructing jointly trained branches."""
 
 import argparse
 import logging
@@ -19,6 +19,7 @@ from espnet2.tasks.gan_tok import (
 from espnet2.tok.quantizer_differentiable_kmeans import DifferentiableKMeans
 from espnet2.tok.tokenizer import SpeechTokenizer
 from espnet2.torch_utils.device_funcs import to_device
+from espnet2.torch_utils.safe_torch_load import safe_torch_load
 from espnet2.utils import config_argparse
 from espnet2.utils.types import str2bool, str2triple_str
 
@@ -33,7 +34,7 @@ def build_tokenizer(
     with Path(train_config).open(encoding="utf-8") as stream:
         config = yaml.safe_load(stream)
 
-    checkpoint = torch.load(model_file, map_location="cpu")
+    checkpoint = safe_torch_load(model_file, map_location="cpu")
     if isinstance(checkpoint, dict) and "model" in checkpoint:
         checkpoint = checkpoint["model"]
     if not isinstance(checkpoint, dict):

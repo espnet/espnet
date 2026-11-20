@@ -13,7 +13,7 @@ from espnet2.train.abs_gan_espnet_model import AbsGANESPnetModel
 
 
 class ESPnetGANSpeechTokenizerModel(AbsGANESPnetModel):
-    """Optimize a shared speech tokenizer with downstream losses.
+    """Optimize a shared speech tokenizer with jointly trained losses.
 
     The model combines ASR and speech reconstruction. GAN discriminator updates
     are exposed separately from the shared main loss.
@@ -31,7 +31,7 @@ class ESPnetGANSpeechTokenizerModel(AbsGANESPnetModel):
         reconstruction_weight: float = 0.1,
         extract_feats_in_collect_stats: bool = False,
     ) -> None:
-        """Initialize a shared tokenizer with weighted downstream losses.
+        """Initialize a shared tokenizer with weighted joint-training losses.
 
         Args:
             tokenizer: Shared SSL and differentiable-k-means tokenizer.
@@ -206,6 +206,23 @@ class ESPnetGANSpeechTokenizerModel(AbsGANESPnetModel):
         """Tokenize speech and reconstruct waveform with speaker conditioning."""
         tokenizer_output = self.tokenize(speech, speech_lengths)
         return self.reconstruction_loss.synthesize(tokenizer_output, spembs=spembs)
+
+    def encode_asr_from_tokens(
+        self, token_ids: torch.Tensor, token_lengths: torch.Tensor
+    ):
+        """Run the ASR encoder on saved hard token IDs."""
+        return self.asr_loss.encode_from_tokens(token_ids, token_lengths)
+
+    def synthesize_from_tokens(
+        self,
+        token_ids: torch.Tensor,
+        token_lengths: torch.Tensor,
+        spembs: torch.Tensor,
+    ):
+        """Reconstruct waveforms from saved hard token IDs."""
+        return self.reconstruction_loss.synthesize_from_tokens(
+            token_ids, token_lengths, spembs
+        )
 
     def collect_feats(self, **batch: torch.Tensor) -> Dict[str, torch.Tensor]:
         """Return no offline statistics; the SSL frontend runs inside the model."""
