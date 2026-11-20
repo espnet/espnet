@@ -6,6 +6,7 @@ from omegaconf import OmegaConf
 import espnet3.components.trainers.trainer as trainer_mod
 import espnet3.systems.base.training as train_mod
 from espnet3.components.data import data_organizer as data_organizer_module
+from espnet3.components.modeling.lightning_module import ESPnetLightningModule
 from espnet3.systems.base.training import _build_trainer, _instantiate_model
 from espnet3.utils.config_utils import load_config_with_defaults
 
@@ -214,10 +215,29 @@ class _InitDummyDataset(torch.utils.data.Dataset):
         return 2
 
 
+class _PretrainedFrontend(torch.nn.Module):
+    def __init__(self, in_features):
+        super().__init__()
+        self.proj = torch.nn.Linear(in_features, in_features)
+        self.pretrained = {k: v.clone() for k, v in self.state_dict().items()}
+
+    def reload_pretrained_parameters(self):
+        self.load_state_dict(self.pretrained)
+
+
+class _PretrainedFrontendModel(torch.nn.Module):
+    """Model whose frontend restores its own weights after ``initialize()``."""
+
+    def __init__(self, in_features, out_features):
+        super().__init__()
+        self.frontend = _PretrainedFrontend(in_features)
+        self.head = torch.nn.Linear(in_features, out_features)
+
+
 _INIT_TRAINING_YAML = """
 exp_dir: {exp_dir}
 model:
-  _target_: torch.nn.Linear
+  _target_: {model_target}
   in_features: 3
   out_features: 1
 optim:
@@ -260,8 +280,10 @@ def load_init_training_config(tmp_path, monkeypatch):
         lambda config, recipe_dir=None: _InitDummyDataset(),
     )
 
-    def load(top_init=_UNSET, trainer_init=_UNSET):
-        text = _INIT_TRAINING_YAML.format(exp_dir=tmp_path / "exp")
+    def load(top_init=_UNSET, trainer_init=_UNSET, model_target="torch.nn.Linear"):
+        text = _INIT_TRAINING_YAML.format(
+            exp_dir=tmp_path / "exp", model_target=model_target
+        )
         if trainer_init is not _UNSET:
             text += f"  init: {trainer_init or 'null'}\n"
         if top_init is not _UNSET:
@@ -279,6 +301,7 @@ def record_initialize(monkeypatch):
     real_initialize = trainer_mod.initialize
 
     def fake_initialize(model, init):
+        assert not isinstance(model, ESPnetLightningModule)
         calls.append(init)
         real_initialize(model, init)
 
@@ -306,6 +329,22 @@ def test_build_trainer_applies_init_without_leaking_to_lightning(
     assert record_initialize == ["xavier_uniform"]
     assert isinstance(trainer.trainer, lightning.Trainer)
     assert OmegaConf.to_container(config, resolve=False) == original
+
+
+def test_build_trainer_init_keeps_pretrained_frontend_weights(
+    load_init_training_config, record_initialize
+):
+    config = load_init_training_config(
+        top_init="xavier_uniform",
+        model_target=f"{__name__}._PretrainedFrontendModel",
+    )
+
+    trainer = _build_trainer(config)
+
+    frontend = trainer.model.model.frontend
+    assert record_initialize == ["xavier_uniform"]
+    assert torch.equal(frontend.proj.weight, frontend.pretrained["proj.weight"])
+    assert torch.equal(frontend.proj.bias, frontend.pretrained["proj.bias"])
 
 
 @pytest.mark.parametrize(
