@@ -198,7 +198,9 @@ class DataLoaderBuilder:
             ```
 
         Raises:
-            ValueError: If batch_distribution is not per_gpu or global.
+            ValueError: If batch_distribution is not per_gpu or global, or if a
+                per-mode `batch_sampler` is combined with an `iter_factory` or
+                with a top-level `sampler`/`batch_sampler`.
             RuntimeError: If global batching cannot preserve the shared batch plan.
 
         Examples:
@@ -262,6 +264,12 @@ class DataLoaderBuilder:
                 )
         dataset = self._maybe_shard_dataset(self.dataset)
         if config.iter_factory is not None:
+            if config.get("batch_sampler") is not None:
+                raise ValueError(
+                    f"dataloader.{mode}.batch_sampler applies to the standard "
+                    f"DataLoader only; set dataloader.{mode}.iter_factory to null "
+                    "to use it."
+                )
             factory_config = OmegaConf.to_container(config.iter_factory, resolve=True)
             return self._build_iter_factory(
                 factory_config, dataset, mode, batch_distribution
@@ -279,6 +287,31 @@ class DataLoaderBuilder:
             sampler = instantiate(self.config.sampler, dataset)
         if hasattr(self.config, "batch_sampler"):
             batch_sampler = instantiate(self.config.batch_sampler, dataset)
+
+        # A per-mode batch sampler, e.g. speaker-balanced batches for training
+        # only: a torch `BatchSampler` subclass taking
+        # `(sampler, batch_size, drop_last, dataset)`. It wraps the index
+        # sampler the mode's `shuffle` selects, so under DDP Lightning can
+        # swap that for a `DistributedSampler` as it does for any BatchSampler.
+        mode_batch_sampler = config.pop("batch_sampler", None)
+        if mode_batch_sampler is not None:
+            if sampler is not None or batch_sampler is not None:
+                raise ValueError(
+                    f"dataloader.{mode}.batch_sampler cannot be combined with a "
+                    "top-level sampler or batch_sampler."
+                )
+            index_sampler = (
+                torch.utils.data.RandomSampler(dataset)
+                if config.pop("shuffle", False)
+                else torch.utils.data.SequentialSampler(dataset)
+            )
+            batch_sampler = instantiate(
+                mode_batch_sampler,
+                index_sampler,
+                batch_size=config.pop("batch_size", 1),
+                drop_last=config.pop("drop_last", False),
+                dataset=dataset,
+            )
 
         assert not (
             sampler and batch_sampler

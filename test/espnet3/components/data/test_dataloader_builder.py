@@ -1095,3 +1095,75 @@ def test_build_iter_factory_defaults_to_the_builder_dataset(monkeypatch):
     }
     loader = builder._build_iter_factory(factory_config)  # dataset=None path
     assert list(loader) == [[0], [1]]
+
+
+# --- per-mode `dataloader.<mode>.batch_sampler` ---------------------------
+
+
+class EvenOddBatches:
+    """A batch sampler taking `(sampler, batch_size, drop_last, dataset)`."""
+
+    def __init__(self, sampler, batch_size, drop_last, dataset):
+        self.sampler = sampler
+        self.batches = [
+            list(range(start, len(dataset), 2))[:batch_size] for start in (0, 1)
+        ]
+        self.drop_last = drop_last
+
+    def __iter__(self):
+        return iter(self.batches)
+
+    def __len__(self):
+        return len(self.batches)
+
+
+def _mode_batch_sampler_loader(mode_config, top_level=None):
+    from espnet3.components.data.dataset import CombinedDataset
+
+    dataset = CombinedDataset(
+        datasets=[[{"value": index} for index in range(10)]],
+        transforms=[(None, None)],
+    )
+    # Top-level `sampler`/`batch_sampler` sit at the config root, next to
+    # `dataloader`, as in `make_standard_dataloader_config`.
+    config = OmegaConf.create(
+        {**(top_level or {}), "dataloader": {"train": mode_config}}
+    )
+    return DataLoaderBuilder(dataset, config, None, 1, epoch=0).build("train")
+
+
+def _even_odd_mode_config(**overrides):
+    return {
+        "iter_factory": None,
+        "batch_size": 3,
+        "shuffle": True,
+        "drop_last": True,
+        "batch_sampler": {"_target_": f"{__name__}.EvenOddBatches"},
+        **overrides,
+    }
+
+
+def test_mode_batch_sampler_gets_the_batch_size_and_owns_the_order():
+    loader = _mode_batch_sampler_loader(_even_odd_mode_config())
+    assert loader.batch_sampler.drop_last is True
+    assert isinstance(loader.batch_sampler.sampler, torch.utils.data.RandomSampler)
+    assert [batch["value"].tolist() for batch in loader] == [[0, 2, 4], [1, 3, 5]]
+
+
+def test_mode_batch_sampler_wraps_a_sequential_sampler_without_shuffle():
+    loader = _mode_batch_sampler_loader(_even_odd_mode_config(shuffle=False))
+    assert isinstance(loader.batch_sampler.sampler, torch.utils.data.SequentialSampler)
+
+
+def test_mode_batch_sampler_rejects_a_top_level_batch_sampler():
+    top_level = {"batch_sampler": {"_target_": DUMMY_BATCH_SAMPLER_TARGET}}
+    with pytest.raises(ValueError, match="cannot be combined"):
+        _mode_batch_sampler_loader(_even_odd_mode_config(), top_level=top_level)
+
+
+def test_mode_batch_sampler_rejects_an_iter_factory():
+    mode_config = _even_odd_mode_config(
+        iter_factory={"_target_": f"{__name__}.DummyIterFactory"}
+    )
+    with pytest.raises(ValueError, match="standard DataLoader only"):
+        _mode_batch_sampler_loader(mode_config)

@@ -1,0 +1,114 @@
+##########################################################
+#                   Inference SETTING                    #
+##########################################################
+# Quick usage:
+#   python run.py --stages infer --inference_config conf/inference.yaml
+#
+# Output, one line per trial: `${inference_dir}/<test_name>/score.scp`.
+# `measure` reads the target/nontarget labels from the dataset itself
+# (`dataset:spk_labels` in `metrics.yaml`).
+
+##########################################################
+#                    PATHS AND INPUTS                    #
+##########################################################
+recipe_dir: .
+# Common case:
+# - pass both `--training_config` and `--inference_config`
+# - `run.py` copies `training_config.exp_tag` / `training_config.exp_dir` here
+# - if `inference_dir` is omitted, `conf/<name>.yaml` becomes `${exp_dir}/<name>`
+exp_tag:
+exp_dir: ${recipe_dir}/exp/${exp_tag}
+data_dir: ${recipe_dir}/data
+inference_dir: ${exp_dir}/${self_name:}
+
+# Each entry of `dataset.test` is a trial list. `name` becomes the output
+# subdirectory under `${inference_dir}`, and `data_src_args` is forwarded to
+# the recipe `Dataset` class.
+#
+# Example:
+# dataset:
+#   test:
+#     - name: vox1_o
+#       data_src_args:
+#         split: voxceleb1_test
+#         trials: vox1_o
+dataset:
+  _target_: espnet3.components.data.data_organizer.DataOrganizer
+  _recursive_: false
+  recipe_dir: ${recipe_dir}
+  test:
+  # No preprocessor: `TrialScorer` takes each trial's two whole utterances
+  # and cuts the evaluation crops itself (`model.num_eval` below), so a
+  # published model scores raw audio the same way. A `SpkPreprocessor` here
+  # would crop first and the scorer would crop the crops.
+  preprocessor:
+
+##########################################################
+#                  PARALLELIZATION SETTING               #
+##########################################################
+parallel:
+  env: local
+  n_workers: 1
+
+##########################################################
+#                    MODEL AND OUTPUT                    #
+##########################################################
+# `TrialScorer` scores one trial from its two whole waveforms. Its arguments
+# are `ESPnet2Speech2Score`'s; `device` is added by the provider.
+model:
+  _target_: espnet3.systems.esp2_spk.src.speech2score.TrialScorer
+  train_config: ${exp_dir}/config.yaml
+  # The average of the top-3 `valid/eer` checkpoints. With a schedule that
+  # restarts the learning rate, prefer `${exp_dir}/last.pth` (the last-epoch
+  # weights written by `SaveFinalWeights`), as `egs3/voxceleb/esp2_spk` does.
+  model_file: ${exp_dir}/valid.eer.ave_3best.pth
+  # The crops validation takes during training: `num_eval` evenly spaced
+  # `target_duration`-second windows of each utterance.
+  sample_rate: 16000
+  target_duration: 3.0
+  num_eval: 10
+
+# The dataset fields passed to the model. Not derived from
+# `contract.inputs`, so it has to agree with them.
+input_key:
+- speech
+- speech2
+
+# Both utterances reach the scorer as one mono waveform at the model's rate.
+# Audio at another rate is resampled (the default `rate_policy`); a
+# multichannel recording is reduced to its first channel before the
+# `channels: 1` check. `score` is written to `score.scp`, which `measure`
+# reads with the trial labels from `dataset:spk_labels`.
+contract:
+  inputs:
+    speech:
+      kind: audio
+      label: Enrollment speech
+      sample_rate: 16000
+      channels: 1
+      normalize:
+      - first_channel
+    speech2:
+      kind: audio
+      label: Test speech
+      sample_rate: 16000
+      channels: 1
+      normalize:
+      - first_channel
+  outputs:
+    score:
+      kind: number
+      label: Similarity score
+
+# Trials are scored one at a time; the crops of a single trial already fill a
+# forward pass. `ESP2SPKInferenceRunner` refuses a batch.
+batch_size:
+
+
+##########################################################
+#               PROVIDER AND RUNNER SETTING              #
+##########################################################
+provider:
+  _target_: espnet3.systems.base.inference_provider.InferenceProvider
+runner:
+  _target_: espnet3.systems.esp2_spk.src.inference_runner.ESP2SPKInferenceRunner
