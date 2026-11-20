@@ -1,0 +1,35 @@
+##########################################################
+#           INFERENCE SETTING: DATA FROM OMNIIO          #
+##########################################################
+# inference.yaml with the test sets read from the omniio dump:
+#   python run.py --stages infer \
+#       --training_config conf/tuning/training_e_branchformer_omniio.yaml \
+#       --inference_config conf/inference_omniio.yaml
+#
+# `data_src_args` is passed to `LibriSpeech100OmniIODataset(...)`
+# (dataset/omniio/); with no `query`, it runs `default_query` from
+# dataset/omniio/config.yaml for `split`.
+defaults:
+  - inference
+  - _self_
+
+omniio_data_src: egs3.librispeech_100.esp2_asr.dataset.omniio
+
+dataset:
+  test:
+    - name: dev-clean
+      data_src: ${omniio_data_src}
+      data_src_args:
+        split: dev-clean
+    - name: dev-other
+      data_src: ${omniio_data_src}
+      data_src_args:
+        split: dev-other
+    - name: test-clean
+      data_src: ${omniio_data_src}
+      data_src_args:
+        split: test-clean
+    - name: test-other
+      data_src: ${omniio_data_src}
+      data_src_args:
+        split: test-other

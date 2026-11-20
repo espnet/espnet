@@ -1,0 +1,57 @@
+builder:
+  # Corpus name shared by every modality in the omniio dump:
+  #   <dump_root>/audio/librispeech/<split>, <dump_root>/text/librispeech/<split>
+  corpus: librispeech
+
+  # Raw corpus: <corpora_root>/librispeech/LibriSpeech/<split>.
+  # <corpora_root> is the `corpora_root` create_dataset option, else
+  # $CORPORA_ROOT, else <recipe_dir>/<local_corpora_dir>. It is checked before
+  # anything is downloaded.
+  corpora_root_env: CORPORA_ROOT
+  local_corpora_dir: download
+
+  # omniio dump root: the `dump_root` option, else $OMNIIO_DUMP_ROOT, else
+  # <recipe_dir>/<local_dump_dir>.
+  local_dump_dir: dump/omniio
+
+  # OpenSLR mirrors, tried in order; the first that serves an archive with
+  # the right md5 wins.
+  mirrors:
+    - https://openslr.elda.org/resources/12
+    - https://www.openslr.org/resources/12
+    - https://openslr.trmal.net/resources/12
+  # split -> md5 of <split>.tar.gz (https://www.openslr.org/resources/12/md5sum.txt)
+  splits:
+    train-clean-100: 2a93770f6d5c6c964bc36631d331a522
+    dev-clean: 42e2234ba48799c1f50f24a7926300a1
+    dev-other: c8d0bcc9cca99d4f8b62fcc847357931
+    test-clean: 32fa31d27d2e1cad72775fee3f4849a9
+    test-other: fb5a50374b501bb3bac4815ee91d3135
+
+  dump:
+    # Blob.append worker processes
+    num_workers: 8
+    # LibriSpeech is already 16-bit FLAC, so it is stored as-is (no re-encode).
+    audio: {}
+    text:
+      is_path: false
+      compression_level: 3
+
+dataset:
+  # Query used when a dataset entry gives `params: {split: ...}` but no
+  # `query`. One row per utterance: the audio and text blobs of one split,
+  # joined on the utterance ID. `{dump_root}` is $OMNIIO_DUMP_ROOT (or the
+  # entry's `dump_root`), `{split}` comes from `params`.
+  # `length` is the size of the frontend's output (frames x 80 mel bins at a
+  # 160-sample hop), the unit `batch_bins` is set in.
+  default_query: |
+    SELECT a.id,
+           a.path AS speech_path, a.start_byte AS speech_start,
+           a.end_byte - a.start_byte AS speech_size,
+           (a.samples // 160 + 1) * 80 AS length,
+           t.path AS text_path, t.start_byte AS text_start,
+           t.end_byte - t.start_byte AS text_size
+    FROM read_parquet('{dump_root}/audio/librispeech/{split}/metadata.parquet') AS a
+    JOIN read_parquet('{dump_root}/text/librispeech/{split}/metadata.parquet') AS t
+      USING (id)
+    ORDER BY a.id

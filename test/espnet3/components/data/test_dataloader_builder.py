@@ -1095,3 +1095,126 @@ def test_build_iter_factory_defaults_to_the_builder_dataset(monkeypatch):
     }
     loader = builder._build_iter_factory(factory_config)  # dataset=None path
     assert list(loader) == [[0], [1]]
+
+
+# -------- lengths_from_dataset --------
+
+
+class LengthDataset:
+    """Integer-indexed dataset that reports its own item lengths."""
+
+    def __init__(self, lengths):
+        """Store one length per item."""
+        self.lengths = list(lengths)
+
+    def __len__(self):
+        """Return the number of items."""
+        return len(self.lengths)
+
+    def __getitem__(self, idx):
+        """Return a zero waveform of the item's length."""
+        if not 0 <= int(idx) < len(self.lengths):
+            raise IndexError(idx)
+        return {"audio": np.zeros(int(self.lengths[idx]), dtype=np.float32)}
+
+    def item_lengths(self):
+        """Return every item's length."""
+        return np.asarray(self.lengths)
+
+
+def collate_uids(batch):
+    """Collate ``(uid, item)`` pairs to their uids."""
+    return [uid for uid, _ in batch]
+
+
+def _length_combined(dataset):
+    """Wrap ``dataset`` in a CombinedDataset that yields ``(uid, item)``."""
+    from espnet3.components.data.dataset import CombinedDataset
+
+    combined = CombinedDataset([dataset], [(None, None)], use_espnet_preprocessor=False)
+    combined.use_espnet_collator = True  # items come as (uid, item)
+    return combined
+
+
+def _lengths_iter_config(batch_bins):
+    """Return a numel iter_factory config with lengths_from_dataset."""
+    return OmegaConf.create(
+        {
+            "dataloader": {
+                "train": {
+                    "iter_factory": {
+                        "_target_": (
+                            "espnet2.iterators.sequence_iter_factory."
+                            "SequenceIterFactory"
+                        ),
+                        "shuffle": False,
+                        "collate_fn": {
+                            "_target_": (
+                                "test.espnet3.components.data."
+                                "test_dataloader_builder.collate_uids"
+                            ),
+                            "_partial_": True,
+                        },
+                        "batches": {
+                            "type": "numel",
+                            "lengths_from_dataset": True,
+                            "shape_files": [],
+                            "batch_size": 1,
+                            "batch_bins": batch_bins,
+                        },
+                    }
+                }
+            }
+        }
+    )
+
+
+def test_builder_batches_from_lengths():
+    """Batches are planned from item_lengths() without shape files."""
+    lengths = [2000 * (i + 1) for i in range(0, 12, 2)]  # 2000 ... 22000
+    builder = build_builder(
+        _length_combined(LengthDataset(lengths)),
+        _lengths_iter_config(max(lengths) * 2),
+        collate_fn=None,
+        num_device=1,
+        epoch=0,
+    )
+    batches = list(builder.build("train"))
+    assert [len(batch) for batch in batches] == [4, 2]
+    seen = sorted(int(u) for batch in batches for u in batch)
+    assert seen == list(range(len(lengths)))
+
+
+@pytest.mark.parametrize(
+    "lengths, match",
+    [([1.5, 2.0, 3.0], "integer item lengths"), (None, "returned 2 lengths")],
+)
+def test_dataset_shape_file_rejects_bad_lengths(lengths, match):
+    """Fractional lengths, or a count that differs from len(), are errors."""
+    from espnet3.components.data.dataloader import _dataset_shape_file
+
+    dataset = LengthDataset(lengths or [1, 2, 3])
+    if lengths is None:
+        dataset.item_lengths = lambda: np.asarray([1, 2])
+    with pytest.raises(RuntimeError, match=match):
+        with _dataset_shape_file(_length_combined(dataset)):
+            pass
+
+
+def test_dataset_shape_file_accepts_integral_floats():
+    """Float lengths with integer values (e.g. from SQL) are kept as is."""
+    from espnet3.components.data.dataloader import _dataset_shape_file
+
+    combined = _length_combined(LengthDataset([1.0, 20.0]))
+    with _dataset_shape_file(combined) as path:
+        assert open(path).read().splitlines() == ["0 1", "1 20"]
+
+
+def test_builder_empty_dataset_has_no_batches():
+    """An empty (rank-local) dataset plans no batches instead of failing."""
+    combined = _length_combined(LengthDataset([]))
+    assert combined._string_index_mode  # dataset[0] fails on an empty dataset
+    builder = build_builder(
+        combined, _lengths_iter_config(100), collate_fn=None, num_device=1, epoch=0
+    )
+    assert list(builder.build("train")) == []
