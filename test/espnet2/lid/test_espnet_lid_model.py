@@ -192,3 +192,100 @@ def test_conditioning_requires_ssl_frontend(plain_lid_args):
     plain_lid_args.projector_condition = "rawnet3"
     with pytest.raises(ValueError, match="require S3prlFrontend"):
         LIDTask.build_model(plain_lid_args)
+
+
+def _mfa_e_branchformer_model():
+    from espnet2.lid.loss.linear_softmax import LinearSoftmax
+    from espnet2.spk.encoder.e_branchformer_encoder import MfaEBranchformerEncoder
+    from espnet2.spk.pooling.stat_pooling import StatsPooling
+
+    torch.manual_seed(0)
+    encoder = MfaEBranchformerEncoder(
+        input_size=20,
+        output_size=16,
+        attention_heads=2,
+        linear_units=32,
+        cgmlp_linear_units=32,
+        num_blocks=2,
+        input_layer="conv2d",
+        attention_layer_type="selfattn",
+        pos_enc_layer_type="abs_pos",
+        use_ffn=True,
+        macaron_ffn=True,
+        merge_conv_kernel=3,
+        cgmlp_conv_kernel=3,
+        use_flash_attn=False,
+    )
+    pooling = StatsPooling(input_size=encoder.output_size())
+    projector = RawNet3Projector(input_size=pooling.output_size(), output_size=8)
+    return ESPnetLIDModel(
+        frontend=DefaultFrontend(fs=16000, n_mels=20),
+        specaug=None,
+        normalize=UtteranceMVN(norm_means=True, norm_vars=False),
+        encoder=encoder,
+        pooling=pooling,
+        projector=projector,
+        loss=LinearSoftmax(nout=projector.output_size(), nclasses=5),
+    )
+
+
+@pytest.mark.parametrize("training", [True, False])
+def test_lid_model_with_mfa_e_branchformer(training):
+    model = _mfa_e_branchformer_model().train(training)
+    speech, lengths = torch.randn(2, 8000), torch.tensor([8000, 5600])
+    loss, stats, _ = model(speech, lengths, lid_labels=torch.tensor([0, 3]))
+    loss.backward()
+    assert torch.isfinite(loss) and "accuracy" in stats
+    model.eval()
+    embeddings, predictions = model(speech, lengths, extract_embd=True)
+    assert embeddings.shape == (2, 8)
+    assert torch.equal(predictions, model.loss.linear(embeddings).argmax(1))
+
+
+def test_mfa_e_branchformer_embedding_ignores_padding():
+    # From the features on: the STFT frontend itself lets the last frames of
+    # an utterance see the padding (centered windows), for every encoder.
+    model = _mfa_e_branchformer_model().eval()
+
+    def embed(feats, lengths):
+        frames, frame_lengths = model.encode_frame_with_lengths(feats, lengths)
+        utt = model.pooling(frames, feat_lengths=frame_lengths)
+        return model.project_lang_embd(utt)
+
+    feats = torch.randn(1, 37, 20)
+    alone = embed(feats, torch.tensor([37]))
+    padded = torch.cat([feats, torch.randn(1, 24, 20) * 5], dim=1)
+    batch = embed(padded, torch.tensor([37]))
+    torch.testing.assert_close(alone, batch, atol=1e-5, rtol=1e-5)
+
+
+def test_mfa_e_branchformer_encode_frame_returns_the_frames():
+    model = _mfa_e_branchformer_model().eval()
+    feats = torch.randn(2, 37, 20)
+    frames, _ = model.encode_frame_with_lengths(feats, torch.tensor([37, 37]))
+    torch.testing.assert_close(model.encode_frame(feats), frames)
+
+
+def test_tdnn_encoders_keep_the_input_lengths():
+    """ECAPA-TDNN models compute the same embeddings as before."""
+    model = ESPnetLIDModel(
+        frontend=default_frontend,
+        specaug=None,
+        normalize=normalize,
+        encoder=ecapa_tdnn_encoder,
+        pooling=chan_attn_stat_pooling,
+        projector=rawnet3_projector,
+        loss=aamsoftmax_it_sub_loss,
+    ).eval()
+    feats, lengths = torch.randn(2, 30, 80), torch.tensor([30, 21])
+    out, out_lengths = model.encode_frame_with_lengths(feats, lengths)
+    assert out_lengths is lengths
+    assert torch.equal(out, model.encode_frame(feats))
+
+    speech, speech_lengths = torch.randn(2, 8000), torch.tensor([8000, 5600])
+    embeddings, _ = model(speech, speech_lengths, extract_embd=True)
+    feats, feat_lengths = model.extract_feats(speech, speech_lengths)
+    expected = model.projector(
+        model.pooling(model.encoder(feats), feat_lengths=feat_lengths)
+    )
+    torch.testing.assert_close(embeddings, expected)
