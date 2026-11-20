@@ -1,0 +1,4 @@
+espnet>=202612
+espnet_model_zoo>=0.1.11
+librosa
+matplotlib
