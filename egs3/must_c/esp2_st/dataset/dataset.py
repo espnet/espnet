@@ -32,6 +32,7 @@ from egs3.must_c.esp2_st.dataset.builder import (
     TGT_LANG,
     VERSION,
     MustCSTBuilder,
+    cache_language_error,
     read_segment,
 )
 from espnet3.components.data.base_dataset import BaseDataset
@@ -336,12 +337,7 @@ def _assert_cache_language(cached, tgt_lang, cache):
         where = (cache or {}).get("cache_dir") or os.environ.get(
             "EGS3_HF_CACHE_DIR", "<unknown>"
         )
-        raise ValueError(
-            f"The HF cache under {str(where)!r} holds "
-            f"en-{found}, but tgt_lang={str(tgt_lang)!r} was requested. "
-            f"Point cache.cache_dir at the en-{tgt_lang} cache, or build it "
-            "with `--stages create_dataset`."
-        )
+        raise cache_language_error(found, tgt_lang, where)
 
 
 def _load_hf_cache(cache, recipe_dir, split, missing_ok: bool = False):

@@ -232,14 +232,27 @@ class MustCSTBuilder(DatasetBuilder):
     def is_built(self, recipe_dir, cache=None, **kwargs):
         """Whether the HF cache exists with the columns the Dataset reads.
 
-        A cheap filesystem check, as ``DatasetBuilder`` asks for: source
-        readiness is ``is_source_prepared``'s job, and the framework runs
+        Source readiness is ``is_source_prepared``'s job; the framework runs
         ``prepare_source`` before it ever calls ``build``.
+
+        Raises:
+            ValueError: If the cache holds a different language pair. Returning
+                False instead would rebuild over it.
         """
         cache_root = _hf_cache_root(recipe_dir, cache)
         if cache_root is None:
             return False
-        return all(_cache_has_columns(cache_root / split) for split in _HF_CACHE_SPLITS)
+        if not all(
+            _cache_has_columns(cache_root / split) for split in _HF_CACHE_SPLITS
+        ):
+            return False
+        # Raise rather than return False: a rebuild would overwrite the cache
+        # that is there, which belongs to whoever built that other pair.
+        selected = _resolve_tgt_lang(kwargs.get("tgt_lang"))
+        found = _cache_language(cache_root)
+        if found is not None and found != selected:
+            raise cache_language_error(found, selected, cache.get("cache_dir"))
+        return True
 
     def build(self, recipe_dir, cache=None, **kwargs):
         """Write one HF cache split per required split."""
@@ -261,6 +274,35 @@ _HF_CACHE_REQUIRED_COLUMNS = {
     "offset",
     "duration",
 }
+
+
+def cache_language_error(found, requested, where) -> ValueError:
+    """The error the builder and the reader both raise on a pair mismatch."""
+    return ValueError(
+        f"The HF cache under {str(where)!r} holds en-{found}, but "
+        f"tgt_lang={str(requested)!r} was requested. Point cache.cache_dir at "
+        f"the en-{requested} cache, or build it with `--stages create_dataset`."
+    )
+
+
+# Smallest first: load_from_disk over train's 229,703 rows takes 14 s against
+# 0.3 s for tst-HE, and any split records the same pair.
+_LANGUAGE_PROBE_SPLITS = ("tst-HE", "dev", "test", "train")
+
+
+def _cache_language(cache_root):
+    """Return the target language a built cache holds, or None if unrecorded."""
+    from datasets import load_from_disk
+
+    for split in _LANGUAGE_PROBE_SPLITS:
+        path = cache_root / split
+        if not _cache_has_columns(path):
+            continue
+        cached = load_from_disk(str(path))
+        if len(cached) == 0 or "tgt_lang" not in cached.column_names:
+            return None
+        return str(cached[0]["tgt_lang"])
+    return None
 
 
 def _cache_has_columns(path):

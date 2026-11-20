@@ -126,3 +126,44 @@ def test_cache_from_the_environment_is_refused_with_a_message(monkeypatch):
 )
 def test_cache_is_accepted(cached, tgt_lang):
     _assert_cache_language(cached, tgt_lang, {"cache_dir": "data/hf/en_de"})
+
+
+def _build_cache(root, tgt_lang, with_language=True):
+    """Write the splits and columns ``is_built`` looks for."""
+    index = root / "hf_audio_index"
+    for split in builder._HF_CACHE_SPLITS:
+        data = {
+            "audio_path": ["a.wav"],
+            "src_text": ["hello"],
+            "tgt_text": ["hallo"],
+            "offset": [0.0],
+            "duration": [1.0],
+        }
+        if with_language:
+            data["tgt_lang"] = [tgt_lang]
+        HFDataset.from_dict(data).save_to_disk(str(index / split))
+    return {"enabled": True, "backend": "hf", "cache_dir": str(root)}
+
+
+def test_is_built_refuses_a_cache_built_for_another_pair(tmp_path):
+    # create_dataset skips build() when is_built() is true, so a cache of the
+    # wrong pair was reported as ready and the mismatch only surfaced later,
+    # when the Dataset read it.
+    cache = _build_cache(tmp_path / "en_fr", "fr")
+    with pytest.raises(ValueError, match="holds en-fr"):
+        builder.MustCSTBuilder().is_built(tmp_path, cache, tgt_lang="de")
+
+
+def test_is_built_accepts_the_pair_it_was_built_for(tmp_path):
+    cache = _build_cache(tmp_path / "en_fr", "fr")
+    assert builder.MustCSTBuilder().is_built(tmp_path, cache, tgt_lang="fr") is True
+
+
+def test_is_built_accepts_a_cache_predating_the_language_column(tmp_path):
+    cache = _build_cache(tmp_path / "en_de", "de", with_language=False)
+    assert builder.MustCSTBuilder().is_built(tmp_path, cache, tgt_lang="de") is True
+
+
+def test_is_built_is_false_when_there_is_no_cache(tmp_path):
+    cache = {"enabled": True, "backend": "hf", "cache_dir": str(tmp_path / "absent")}
+    assert builder.MustCSTBuilder().is_built(tmp_path, cache, tgt_lang="de") is False
