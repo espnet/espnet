@@ -31,9 +31,12 @@ cache:
   backend: hf
   cache_dir: ${data_dir}/hf/en_de
 
+# `create_dataset` forwards only this block to the builder; the pair in the
+# `dataset:` entries below never reaches it, so it is named here too.
 create_dataset:
   recipe_dir: ${recipe_dir}
   cache: ${cache}
+  tgt_lang: de
 
 ##########################################################
 #                        DATASET                         #

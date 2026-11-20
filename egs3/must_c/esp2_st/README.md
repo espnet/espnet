@@ -5,12 +5,12 @@
 This egs3 data module reads the **raw MuST-C v1** corpus release directly —
 no Kaldi data preparation (`egs2/must_c/st1/local/data.sh`) is required.
 
-- Language pair: the training config pins **en-de** (English speech, German
-  translation), matching `src_lang`/`tgt_lang` in `egs2/must_c/st1/run.sh`.
-  The builder itself defaults to `tgt_lang: all` (`dataset/config.yaml`) and
-  will index every `en-<tgt>` pair present under the corpus root, so pass
-  `tgt_lang="de"` — as `conf/tuning/train_st_conformer.yaml` does — to
-  reproduce egs2 exactly.
+- Language pair: **en-de** (English speech, German translation), matching
+  `src_lang`/`tgt_lang` in `egs2/must_c/st1/run.sh`. It is the builder's
+  default (`dataset/config.yaml`) and is named explicitly in
+  `conf/tuning/train_st_conformer.yaml`. One cache holds one pair; pass
+  `tgt_lang` to read another, and point `cache.cache_dir` at that pair's
+  cache.
 - Corpus version: **v1** (`MUSTC_v1.0_en-de.tar.gz` from
   https://mt.fbk.eu/must-c-release-v1-0/), matching the `"v1"` argument
   `egs2/must_c/st1/local/data.sh` passes to `local/data_prep.sh`.
@@ -181,9 +181,8 @@ builder = DatasetBuilder()
 if not builder.is_built(recipe_dir=".", cache=cache):
     builder.build(recipe_dir=".", cache=cache, tgt_lang="de")
 
-# tgt_lang="de" reproduces egs2. Omitting it takes the builder default
-# `all`, which aggregates every installed pair -- dev is then 17,740
-# examples over 14 pairs instead of en-de's 1,423.
+# tgt_lang="de" reproduces egs2 and is the builder default, so it may be
+# omitted; it is spelled out because the pair decides which cache is written.
 #
 # Lengths are post-filter: the cache holds the corpus as released (229,703
 # train segments) and the Dataset drops the ones st.sh stage 4 would.
