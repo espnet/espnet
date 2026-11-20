@@ -504,7 +504,7 @@ class DatasetWithTransform:
         )
 
 
-class ShardedDataset(ABC, Dataset):
+class ShardedDataset(Dataset, ABC):
     """Abstract base class for datasets that support sharding.
 
     This interface is used when datasets are split into shards for parallel or

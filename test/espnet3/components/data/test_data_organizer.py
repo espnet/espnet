@@ -8,6 +8,7 @@ from omegaconf import DictConfig, OmegaConf
 
 from espnet2.train.preprocessor import AbsPreprocessor
 from espnet3.components.data import data_organizer as data_organizer_module
+from espnet3.components.data.base_dataset import BaseDataset
 from espnet3.components.data.data_organizer import (
     DataOrganizer,
     DatasetConfig,
@@ -19,6 +20,7 @@ from espnet3.components.data.dataset import (
     ShardedDataset,
 )
 from espnet3.components.data.dataset_module import parse_dataset_reference_config
+from espnet3.contract import Field
 
 # ===============================================================
 # Test Case Summary for DataOrganizer & CombinedDataset
@@ -227,6 +229,21 @@ class DummyShardedDataset(ShardedDataset):
             total_shards=self.total_shards,
             dist_world_size=self.dist_world_size,
         )
+
+
+def test_sharded_dataset_combines_with_base_dataset():
+    class ShardedRecipeDataset(BaseDataset, ShardedDataset):
+        fields = (Field("speech", "audio"),)
+
+        def __getitem__(self, idx):
+            return {"speech": np.zeros(16000, dtype=np.float32)}
+
+        def __len__(self):
+            return 1
+
+    dataset = ShardedRecipeDataset()
+    assert isinstance(dataset, BaseDataset)
+    assert isinstance(dataset, ShardedDataset)
 
 
 class DummyBrokenShardedDataset(ShardedDataset):
