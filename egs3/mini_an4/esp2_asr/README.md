@@ -13,7 +13,9 @@ Run from this directory. This command prepares the data, trains a SentencePiece 
 ```bash
 source path.sh
 python run.py \
-  --stages create_dataset train_tokenizer collect_stats train infer measure \
+  --stages create_dataset train_tokenizer collect_stats \
+  --training_config conf/training_asr_transformer.yaml
+python run.py --stages train infer measure \
   --training_config conf/training_asr_transformer.yaml \
   --inference_config conf/inference.yaml \
   --metrics_config conf/metrics.yaml

@@ -2,7 +2,7 @@
 
 ## Overview
 
-This template uses `espnet3.systems.esp2_cls.ESP2CLSSystem` for an ESPnet2 classification task. Corpus recipes provide the dataset implementation and task-specific configuration.
+This template uses `espnet3.systems.esp2_cls.system.ESP2CLSSystem` for an ESPnet2 classification task. Corpus recipes provide the dataset implementation and task-specific configuration.
 
 ## Data
 
@@ -38,7 +38,9 @@ metrics:
 Run from the corpus recipe directory after configuring the dataset and classification model. `run.py` calls `launch()` to combine this template with recipe-specific overrides.
 
 ```bash
-python run.py --stages create_dataset remove_long_short prepare_labels collect_stats train \
+python run.py --stages create_dataset remove_long_short prepare_labels collect_stats \
+  --training_config conf/training.yaml
+python run.py --stages train \
   --training_config conf/training.yaml
 python run.py --stages infer \
   --training_config conf/training.yaml \

@@ -13,7 +13,9 @@ Run from this directory. The command prepares the data, trains separate source a
 ```bash
 source path.sh
 python run.py \
-  --stages create_dataset train_tokenizer collect_stats train infer measure \
+  --stages create_dataset train_tokenizer collect_stats \
+  --training_config conf/training.yaml
+python run.py --stages train infer measure \
   --training_config conf/training.yaml \
   --inference_config conf/inference.yaml \
   --metrics_config conf/metrics.yaml

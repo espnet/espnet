@@ -2,7 +2,7 @@
 
 ## Overview
 
-This template uses `espnet3.systems.esp2_st.ESP2STSystem` for an ESPnet2 speech translation task. Corpus recipes provide the dataset implementation and language-pair-specific configuration.
+This template uses `espnet3.systems.esp2_st.system.ESP2STSystem` for an ESPnet2 speech translation task. Corpus recipes provide the dataset implementation and language-pair-specific configuration.
 
 ## Data
 
@@ -39,7 +39,9 @@ metrics:
 Run from a corpus recipe directory after configuring the language pair, data source, and model. Its `run.py` calls `launch()` to combine template defaults with recipe-specific settings.
 
 ```bash
-python run.py --stages create_dataset train_tokenizer collect_stats train \
+python run.py --stages create_dataset train_tokenizer collect_stats \
+  --training_config conf/training.yaml
+python run.py --stages train \
   --training_config conf/training.yaml
 python run.py --stages infer \
   --training_config conf/training.yaml \

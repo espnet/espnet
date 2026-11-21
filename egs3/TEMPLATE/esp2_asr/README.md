@@ -2,7 +2,7 @@
 
 ## Overview
 
-This template uses `espnet3.systems.esp2_asr.ASRSystem` for an ESPnet2 ASR task. Corpus recipes supply the dataset implementation and configuration overrides; this directory provides shared defaults.
+This template uses `espnet3.systems.esp2_asr.system.ASRSystem` for an ESPnet2 ASR task. Corpus recipes supply the dataset implementation and configuration overrides; this directory provides shared defaults.
 
 ## Data
 
@@ -40,18 +40,20 @@ metrics:
 
 ## Commands
 
-Run from a corpus recipe directory after configuring its dataset and model. The recipe's `run.py` uses `launch()` to combine these defaults with recipe-specific settings.
+Run from a corpus recipe directory after configuring its dataset and model. Replace `<training_config>` with the recipe-specific path. The recipe's `run.py` uses `launch()` to combine these defaults with recipe-specific settings.
 
 ```bash
-python run.py --stages create_dataset train_tokenizer collect_stats train \
-  --training_config conf/training.yaml
+python run.py --stages create_dataset train_tokenizer collect_stats \
+  --training_config <training_config>
+python run.py --stages train \
+  --training_config <training_config>
 python run.py --stages infer \
-  --training_config conf/training.yaml \
+  --training_config <training_config> \
   --inference_config conf/inference.yaml
 python run.py --stages measure \
-  --training_config conf/training.yaml \
+  --training_config <training_config> \
   --inference_config conf/inference.yaml \
   --metrics_config conf/metrics.yaml
 ```
 
-For a small runnable example, see [mini_an4](../../mini_an4/esp2_asr/README.md). For a full recipe, see [LibriSpeech 100h](../../librispeech_100/esp2_asr/README.md).
+For [mini_an4](../../mini_an4/esp2_asr/README.md), use `conf/training_asr_transformer.yaml`; for [LibriSpeech 100h](../../librispeech_100/esp2_asr/README.md), use `conf/tuning/training_e_branchformer.yaml`.

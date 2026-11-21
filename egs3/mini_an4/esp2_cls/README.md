@@ -20,7 +20,8 @@ Run from this directory. The command exercises dataset preparation, duration fil
 source path.sh
 python run.py \
   --stages create_dataset remove_long_short prepare_labels collect_stats \
-           train infer measure \
+  --training_config conf/training.yaml
+python run.py --stages train infer measure \
   --training_config conf/training.yaml \
   --inference_config conf/inference.yaml \
   --metrics_config conf/metrics.yaml
