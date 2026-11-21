@@ -1,6 +1,8 @@
 # Copyright 2021 Jiatong Shi
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
+import logging
+import os
 from itertools import permutations
 from typing import Dict, List, Optional, Tuple
 
@@ -52,15 +54,17 @@ class ESPnetDiarizationModel(AbsESPnetModel):
         super().__init__()
 
         # Category of each sequence (utt2category: "<id> <category>") for
-        # per-category validation statistics; see _category_stats().
-        self.categories: Dict[str, str] = {}
-        if valid_category_file is not None:
-            with open(valid_category_file, encoding="utf-8") as f:
-                for line in f:
-                    if line.strip():
-                        key, category = line.split(maxsplit=1)
-                        self.categories[key] = category.strip()
-        self.category_names = sorted(set(self.categories.values()))
+        # per-category validation statistics; see _category_stats(). The file
+        # is read at the first validation step, not here: a packed model used
+        # for inference (e.g. from the Hub) has a config naming a file of the
+        # training directory that is not there.
+        self.valid_category_file = valid_category_file
+        self._categories: Optional[Dict[str, str]] = None
+        if valid_category_file is not None and not os.path.exists(valid_category_file):
+            logging.warning(
+                f"valid_category_file {valid_category_file} does not exist: "
+                "validation with utterance ids will fail unless it is created"
+            )
 
         # waveform augmentation of the batch, training only (e.g. BatchWavAugment)
         self.wav_augment = wav_augment
@@ -291,13 +295,36 @@ class ESPnetDiarizationModel(AbsESPnetModel):
             acc=acc,
             der=der,
         )
-        if not self.training and self.category_names and "utt_id" in kwargs:
+        if (
+            not self.training
+            and self.valid_category_file is not None
+            and "utt_id" in kwargs
+        ):
             stats.update(
                 self._category_stats(
                     pred, label_perm, encoder_out_lens, kwargs["utt_id"]
                 )
             )
         return loss, stats
+
+    @property
+    def categories(self) -> Dict[str, str]:
+        """{id: category} of valid_category_file, read at the first use."""
+        if self._categories is None:
+            categories = {}
+            if self.valid_category_file is not None:
+                with open(self.valid_category_file, encoding="utf-8") as f:
+                    for line in f:
+                        if line.strip():
+                            key, category = line.split(maxsplit=1)
+                            categories[key] = category.strip()
+            self._categories = categories
+        return self._categories
+
+    @property
+    def category_names(self) -> List[str]:
+        """The sorted categories of valid_category_file."""
+        return sorted(set(self.categories.values()))
 
     def _category_stats(self, pred, label, lengths, utt_ids) -> Dict[str, torch.Tensor]:
         """Per-category loss and frame accuracy of a validation batch.
@@ -328,17 +355,16 @@ class ESPnetDiarizationModel(AbsESPnetModel):
         loss = (bce * mask).sum(1) / frames
         right = ((pred > 0) == (label > 0.5)).all(2).float()
         acc = (right * mask).sum(1) / frames
+        names = self.category_names
         index = []
         for uid in utt_ids:
             category = self.categories.get(uid)
             if category is None:
                 category = self.categories.get(uid.rsplit("-", 1)[0])
-            index.append(
-                self.category_names.index(category) if category is not None else -1
-            )
+            index.append(names.index(category) if category is not None else -1)
         index = torch.tensor(index, device=pred.device)
         stats = {}
-        for k, c in enumerate(self.category_names):
+        for k, c in enumerate(names):
             sel = (index == k).float()
             stats[f"valid_frac_{c}"] = sel.sum() / n
             stats[f"valid_loss_num_{c}"] = (loss.detach() * sel).sum() / n

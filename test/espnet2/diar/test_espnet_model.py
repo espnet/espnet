@@ -917,3 +917,37 @@ def test_category_stats_only_in_validation(tmp_path):
     with torch.no_grad():
         stats = model(**kw)[1]
     assert {"valid_frac_x", "valid_loss_num_x", "valid_acc_num_x"} <= set(stats)
+
+
+def test_valid_category_file_is_read_at_the_first_validation_step(tmp_path):
+    """A missing file does not stop the build (a packed model used for inference)."""
+    categories = tmp_path / "utt2category"
+    base = _small_model(1)
+    model = ESPnetDiarizationModel(
+        frontend=base.frontend,
+        specaug=None,
+        normalize=None,
+        label_aggregator=base.label_aggregator,
+        encoder=base.encoder,
+        decoder=base.decoder,
+        attractor=None,
+        valid_category_file=str(categories),
+    ).eval()
+    speech = torch.randn(1, 300)
+    with torch.no_grad():
+        enc, enc_lens = model.encode(speech, torch.tensor([300]), None, None)
+        assert model.decoder(enc, enc_lens).shape[-1] == 1
+    kw = dict(
+        speech=speech,
+        speech_lengths=torch.tensor([300]),
+        spk_labels=torch.randint(high=2, size=(1, 300, 1)).float(),
+        spk_labels_lengths=torch.tensor([300]),
+        utt_id=["a-0000000000"],
+    )
+    # validation with ids needs the file
+    with pytest.raises(FileNotFoundError), torch.no_grad():
+        model(**kw)
+    categories.write_text("a x\n")
+    with torch.no_grad():
+        stats = model(**kw)[1]
+    assert {"valid_frac_x", "valid_loss_num_x", "valid_acc_num_x"} <= set(stats)
