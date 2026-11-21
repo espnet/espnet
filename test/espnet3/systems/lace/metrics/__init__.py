@@ -1,1 +1,0 @@
-"""LACE metric tests."""

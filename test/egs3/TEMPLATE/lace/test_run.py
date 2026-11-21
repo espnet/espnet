@@ -127,7 +127,7 @@ def test_libritts_metrics_config_reads_the_reference_from_the_data():
         RECIPE_CONF / "metrics.yaml", "metrics.yaml", default_package=PACKAGE
     )
     (metric,) = config.metrics
-    assert metric.metric._target_ == "espnet3.systems.lace.metrics.versa.VersaMetric"
+    assert metric.metric._target_ == "espnet3.components.metrics.versa.VersaMetric"
     assert dict(metric.inputs) == {"wav": "resyn_audio", "ref": "dataset:wav_path"}
     assert "utmos" in metric.metric.outputs
     assert "sir" not in metric.metric.outputs and "sar" not in metric.metric.outputs

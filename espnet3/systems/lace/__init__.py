@@ -22,11 +22,11 @@ under ``src/``:
 - ``inference_runner``: ``LACEInferenceRunner``, which hands that model the
   waveform the inference contract checked and keeps its resynthesis.
 
-Beside it, ``metrics/`` holds ``VersaMetric``, the VERSA scorer the
-``measure`` stage runs, and ``system`` at the package root holds
-``LACESystem``, the staged pipeline a recipe under ``egs3/<corpus_name>/lace/``
-runs; it builds the GAN trainer and writes the ``lace_model.yaml`` spec at
-training time.
+Beside it, ``system`` at the package root holds ``LACESystem``, the staged
+pipeline a recipe under ``egs3/<corpus_name>/lace/`` runs; it builds the GAN
+trainer and writes the ``lace_model.yaml`` spec at training time. The
+``measure`` stage uses the shared
+``espnet3.components.metrics.versa.VersaMetric``.
 
 The model is described in:
 
