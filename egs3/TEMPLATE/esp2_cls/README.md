@@ -1,6 +1,8 @@
 # ESPnet3 audio classification template
 
-This template uses `espnet3.systems.esp2_cls.ESP2CLSSystem` for an ESPnet2 classification task. In addition to the common training and inference stages, the system prepares labels and supports removing examples outside configured duration limits. The recipe supplies its dataset builder and task-specific configuration.
+## Overview
+
+This template uses `espnet3.systems.esp2_cls.ESP2CLSSystem` for an ESPnet2 classification task. Corpus recipes provide the dataset implementation and task-specific configuration.
 
 ## Data
 
@@ -14,9 +16,13 @@ fields:
 
 The default inference contract resamples audio to 16 kHz, averages multichannel input to mono, and emits a predicted label (`hyp`) and class scores (`score`).
 
+## System Features
+
+The system prepares labels, filters examples by configured duration, and provides the common statistics, training, inference, measurement, and packaging stages.
+
 ## Metrics
 
-The system provides weighted accuracy (WA), unweighted accuracy (UA), macro F1, mean average precision (MAP), and AUC metrics. Metrics read the reference from `dataset:label`; MAP and AUC also consume `score`. Set `token_list` to the class order used by the model when configuring score-based metrics.
+The system provides WA, UA, macro F1, MAP, and AUC. Metrics read references from `dataset:label`; MAP and AUC also consume `score`. Set `token_list` to the model's class order for score-based metrics.
 
 ```yaml
 metrics:
@@ -27,9 +33,7 @@ metrics:
       hyp: hyp
 ```
 
-Use the metric class names and required options exposed by the recipe's installed ESPnet version when enabling the other supported classification metrics.
-
-## Typical workflow
+## Commands
 
 Run from the corpus recipe directory after configuring the dataset and classification model. `run.py` calls `launch()` to combine this template with recipe-specific overrides.
 
@@ -45,4 +49,4 @@ python run.py --stages measure \
   --metrics_config conf/metrics.yaml
 ```
 
-See [mini_an4](../../mini_an4/esp2_cls) for a small runnable example and [MELD](../../meld/esp2_cls) for a corpus recipe.
+See [mini_an4](../../mini_an4/esp2_cls/README.md) for a small runnable example and [MELD](../../meld/esp2_cls/README.md) for a corpus recipe.

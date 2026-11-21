@@ -26,8 +26,4 @@ python run.py \
   --metrics_config conf/metrics.yaml
 ```
 
-## Results
-
-### Tiny Transformer classifier
-
 This one-epoch, one-batch model checks that the classification pipeline runs. The resulting scores are not meaningful, and no pretrained model is provided.

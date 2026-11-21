@@ -21,16 +21,8 @@ python run.py \
 
 Other training configs exercise streaming ASR and transducer variants: `training_asr_streaming.yaml`, `training_asr_transducer.yaml`, and `training_transducer_asr_conformer_rnnt.yaml`. The latter uses `conf/inference_transducer.yaml`. CI also checks serial and two-worker inference equivalence.
 
-## Results
-
-### Tiny Transformer ASR
-
 `conf/training_asr_transformer.yaml` runs a tiny model for one batch and one epoch. Its recognition scores are not benchmark results; no pretrained model is provided.
 
-### Streaming ASR
-
 `conf/training_asr_streaming.yaml` exercises the streaming path. CI additionally compares serial and two-worker inference outputs.
-
-### Transducer ASR
 
 `conf/training_asr_transducer.yaml` and `conf/training_transducer_asr_conformer_rnnt.yaml` exercise transducer paths; the latter uses `conf/inference_transducer.yaml`. These are CI fixtures, not benchmark configurations.

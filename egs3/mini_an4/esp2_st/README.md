@@ -19,8 +19,4 @@ python run.py \
   --metrics_config conf/metrics.yaml
 ```
 
-## Results
-
-### Tiny Transformer speech translation fixture
-
 The one-epoch model verifies the ST pipeline and metric wiring only. Its translation scores are not meaningful, and no pretrained model is provided.

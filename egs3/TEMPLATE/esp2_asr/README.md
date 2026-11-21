@@ -1,10 +1,12 @@
 # ESPnet3 ASR template
 
-This template uses `espnet3.systems.esp2_asr.ASRSystem` to train and evaluate an ESPnet2 ASR task model. It provides the standard dataset creation, tokenizer training, statistics collection, training, inference, measurement, and publication stages. Recipe code supplies the corpus-specific dataset and configuration.
+## Overview
+
+This template uses `espnet3.systems.esp2_asr.ASRSystem` for an ESPnet2 ASR task. Corpus recipes supply the dataset implementation and configuration overrides; this directory provides shared defaults.
 
 ## Data
 
-Provide speech and transcription fields. The standard inference contract expects mono audio at 16 kHz; audio contracts can resample input as configured.
+Provide speech and transcription fields. The default inference contract resamples audio to 16 kHz and requires mono input.
 
 ```yaml
 fields:
@@ -12,11 +14,15 @@ fields:
   text: text
 ```
 
-The training configuration must identify an ESPnet2 ASR task/model and its tokenizer settings. The recipe's dataset builder determines how source data is prepared and cached.
+The training configuration selects the ESPnet2 ASR task/model and tokenizer settings. Dataset download, preparation, and caching are recipe-specific.
+
+## System Features
+
+`ASRSystem` provides dataset creation, tokenizer training, statistics collection, training, inference, measurement, and model/demo packaging stages.
 
 ## Metrics
 
-The system provides WER, CER, and TER metrics. Configure references from the dataset and hypotheses from inference output. TER is recipe-specific: point it at the trained SentencePiece model in the metrics configuration.
+The system provides WER, CER, and TER. Bind references to the dataset transcript and hypotheses to inference output. TER is recipe-specific and requires the trained SentencePiece model path.
 
 ```yaml
 metrics:
@@ -32,9 +38,9 @@ metrics:
       hyp: text
 ```
 
-## Typical workflow
+## Commands
 
-Run these commands from the corpus recipe directory after setting its dataset and model configuration. The recipe's `run.py` uses `launch()` to apply the shared template defaults and recipe overrides.
+Run from a corpus recipe directory after configuring its dataset and model. The recipe's `run.py` uses `launch()` to combine these defaults with recipe-specific settings.
 
 ```bash
 python run.py --stages create_dataset train_tokenizer collect_stats train \
@@ -48,4 +54,4 @@ python run.py --stages measure \
   --metrics_config conf/metrics.yaml
 ```
 
-For a runnable small example, see [mini_an4](../../mini_an4/esp2_asr). For a full recipe, see [LibriSpeech 100h](../../librispeech_100/esp2_asr).
+For a small runnable example, see [mini_an4](../../mini_an4/esp2_asr/README.md). For a full recipe, see [LibriSpeech 100h](../../librispeech_100/esp2_asr/README.md).
