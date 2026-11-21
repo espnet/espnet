@@ -28,7 +28,13 @@ reports them.
 
 ## Commands
 
-Run the following commands from `egs3/librispeech_100/esp2_asr/`.
+Run the following commands from `egs3/librispeech_100/esp2_asr/`, after
+sourcing `path.sh` to activate the tools environment and put this checkout on
+`PYTHONPATH`:
+
+```bash
+. ./path.sh
+```
 
 Both configurations use the same data, BPE-5000 tokenizer and frontend, so
 `data/` and `exp/stats` are shared: once one configuration has run steps 1-3,
@@ -58,14 +64,10 @@ python run.py --stages collect_stats \
 python run.py --stages train \
     --training_config conf/tuning/training_e_branchformer.yaml
 
-# 5) Decode
-python run.py --stages infer \
+# 5) Decode and score
+python run.py --stages infer measure \
     --training_config conf/tuning/training_e_branchformer.yaml \
-    --inference_config conf/inference.yaml
-
-# 6) Score
-python run.py --stages measure \
-    --training_config conf/tuning/training_e_branchformer.yaml \
+    --inference_config conf/inference.yaml \
     --metrics_config conf/metrics.yaml
 ```
 
@@ -102,7 +104,17 @@ Checkpoints are ranked by `valid/acc` and the 10 best are averaged into
 `valid.acc.ave_10best.pth`. `conf/inference.yaml` decodes that average with
 beam 20 and `ctc_weight` 0.3.
 
-No evaluation results for this configuration are recorded here yet.
+The [published model card](https://huggingface.co/ms180/librispeech_100h_e_branchformer)
+reports the following results for an E-Branchformer with 38.47 M parameters.
+They were produced with an earlier version of this recipe; rerunning the
+current config has not been verified to reproduce them.
+
+| dataset | WER | CER |
+| --- | --- | --- |
+| dev-clean | 6.36 | 2.55 |
+| dev-other | 16.80 | 8.33 |
+| test-clean | 6.41 | 2.49 |
+| test-other | 17.12 | 8.31 |
 
 #### Pretrained model
 
