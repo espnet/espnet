@@ -28,69 +28,32 @@ reports them.
 
 ## Commands
 
-Run the following commands from `egs3/librispeech_100/esp2_asr/`, after
-sourcing `path.sh` to activate the tools environment and put this checkout on
-`PYTHONPATH`:
+Run the following commands from `egs3/librispeech_100/esp2_asr/`. `path.sh`
+activates the tools environment and puts this checkout on `PYTHONPATH`. Set
+the two config variables to the ones listed under [Results](#results) for the
+model you want; the defaults train the E-Branchformer.
 
 ```bash
 . ./path.sh
-```
+# Set these to the configs listed under Results for the model you want.
+train_config=conf/tuning/training_e_branchformer.yaml
+inference_config=conf/inference.yaml
 
-Both configurations use the same data, BPE-5000 tokenizer and frontend, so
-`data/` and `exp/stats` are shared: once one configuration has run steps 1-3,
-the other can start from `train`.
+python run.py --stages create_dataset train_tokenizer --training_config $train_config
+python run.py --stages collect_stats --training_config $train_config
+python run.py --stages train --training_config $train_config
+python run.py --stages infer measure --training_config $train_config \
+    --inference_config $inference_config --metrics_config conf/metrics.yaml
+```
 
 Run `collect_stats` and `train` as separate commands: `collect_stats` removes
 `model.normalize` from the training config it was given, so a `train` stage
 in the same command builds the model without global mean/variance
 normalization.
 
-### E-Branchformer
-
-```bash
-# 1) Download and index the corpus (see Data Preparation)
-python run.py --stages create_dataset \
-    --training_config conf/tuning/training_e_branchformer.yaml
-
-# 2) Train the BPE-5000 tokenizer
-python run.py --stages train_tokenizer \
-    --training_config conf/tuning/training_e_branchformer.yaml
-
-# 3) Collect feature statistics (global_mvn + batch shapes)
-python run.py --stages collect_stats \
-    --training_config conf/tuning/training_e_branchformer.yaml
-
-# 4) Train
-python run.py --stages train \
-    --training_config conf/tuning/training_e_branchformer.yaml
-
-# 5) Decode and score
-python run.py --stages infer measure \
-    --training_config conf/tuning/training_e_branchformer.yaml \
-    --inference_config conf/inference.yaml \
-    --metrics_config conf/metrics.yaml
-```
-
-### Conformer-CTC
-
-```bash
-# 1)-3) Download and index the corpus, train the tokenizer, collect statistics
-python run.py --stages create_dataset train_tokenizer collect_stats \
-    --training_config conf/tuning/training_conformer_ctc.yaml
-
-# 4) Train
-python run.py --stages train \
-    --training_config conf/tuning/training_conformer_ctc.yaml
-
-# 5) Decode and score
-python run.py --stages infer measure \
-    --training_config conf/tuning/training_conformer_ctc.yaml \
-    --inference_config conf/inference_ctc.yaml \
-    --metrics_config conf/metrics.yaml
-```
-
-`conf/inference_ctc.yaml` writes to
-`exp/training_conformer_ctc/inference_ctc/<test set>/`.
+Both models use the same data, BPE-5000 tokenizer and frontend, so `data/`
+and `exp/stats` are shared: once one model has run `collect_stats`, the other
+can start from `train`.
 
 ## Results
 
@@ -133,7 +96,8 @@ Without a decoder `valid/acc` is not logged, so checkpoints are ranked by
 `valid/cer_ctc` and the 10 best are averaged into
 `exp/training_conformer_ctc/valid.cer_ctc.ave_10best.pth`.
 `conf/inference_ctc.yaml` decodes with the CTC prefix scorer alone
-(`ctc_weight: 1.0`, `beam_size: 1`, as egs2's `decode_ctc_bs1.yaml`).
+(`ctc_weight: 1.0`, `beam_size: 1`, as egs2's `decode_ctc_bs1.yaml`) and
+writes to `exp/training_conformer_ctc/inference_ctc/<test set>/`.
 
 | dataset | WER | CER |
 | --- | --- | --- |
