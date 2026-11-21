@@ -1,0 +1,19 @@
+##########################################################
+#                   Inference SETTING                    #
+##########################################################
+# Merged over egs3/TEMPLATE/lace/conf/inference.yaml. The contract names no
+# `sample_rate`, so both sides run at the codec's rate, 16 kHz here, which is
+# AN4's own. The model is rebuilt from `${exp_dir}/lace_model.yaml`, written
+# by the `train` stage, and the one-batch `last.ckpt`.
+dataset:
+  test:
+    - name: test
+      data_src_args:
+        split: test
+        inference: true
+
+model:
+  train_config: ${exp_dir}/lace_model.yaml
+  model_file: ${exp_dir}/last.ckpt
+  rate: 0.5
+  anchor_start_layer: null
