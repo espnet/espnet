@@ -127,3 +127,108 @@ def test_the_s2t_preprocessors_pass_the_augmentation_through(preprocessor_class)
     )
     assert preprocessor.data_aug is not None
     assert preprocessor.data_aug_prob == 1.0
+
+
+def _write_delayed_impulse_rir(tmp_path, delay):
+    import soundfile
+
+    rir = np.zeros(64)
+    rir[delay] = 1.0
+    wav = tmp_path / "rir.wav"
+    soundfile.write(wav, rir, 16000, subtype="FLOAT")
+    scp = tmp_path / "rir.scp"
+    scp.write_text(f"rir1 {wav}\n")
+    return str(scp)
+
+
+@pytest.mark.parametrize("remove_delay", [False, True])
+def test_rir_remove_delay_keeps_speech_aligned(tmp_path, remove_delay):
+    # an RIR that is a pure impulse after `delay` samples only shifts the signal,
+    # so removing the direct-path delay must give back the input unchanged
+    delay = 20
+    preprocessor = CommonPreprocessor(
+        train=True,
+        rir_scp=_write_delayed_impulse_rir(tmp_path, delay),
+        rir_apply_prob=1.0,
+        rir_remove_delay=remove_delay,
+    )
+    rng = np.random.default_rng(0)
+    speech = (0.1 * rng.standard_normal(1600)).astype(np.float64)
+    out = preprocessor("utt1", {"speech": speech.copy()})["speech"].reshape(-1)
+    assert out.shape == speech.shape
+    if remove_delay:
+        np.testing.assert_allclose(out, speech, rtol=1e-5, atol=1e-6)
+    else:
+        # the tail falls off the end and the power is renormalized, so compare
+        # the shifted signal up to a scale factor
+        np.testing.assert_allclose(out[:delay], 0.0, atol=1e-12)
+        scale = np.dot(out[delay:], speech[:-delay]) / np.dot(
+            speech[:-delay], speech[:-delay]
+        )
+        np.testing.assert_allclose(out[delay:], scale * speech[:-delay], atol=1e-6)
+
+
+def test_rir_delay_arguments_are_last():
+    """Positional arguments of older callers keep their meaning."""
+    import inspect
+
+    params = list(inspect.signature(CommonPreprocessor.__init__).parameters)
+    assert params[-2:] == ["rir_remove_delay", "rir_delay_per_channel"]
+    # the arguments before it keep the order they had without it
+    assert params[params.index("rir_apply_prob") + 1] == "noise_scp"
+
+
+@pytest.mark.parametrize("fs, expected_delay", [(16000, 40), (0, 20)])
+def test_rir_at_another_rate_is_resampled_to_fs(tmp_path, fs, expected_delay):
+    """An 8 kHz RIR on 16 kHz speech: with fs, its 20-sample delay becomes 40."""
+    import soundfile
+
+    if fs:
+        pytest.importorskip("resampy")  # librosa's kaiser_fast (espnet[egs2])
+
+    rir = np.zeros(64)
+    rir[20] = 1.0
+    wav = tmp_path / "rir8k.wav"
+    soundfile.write(wav, rir, 8000, subtype="FLOAT")
+    (tmp_path / "rir.scp").write_text(f"rir1 {wav}\n")
+    preprocessor = CommonPreprocessor(
+        train=True, rir_scp=str(tmp_path / "rir.scp"), rir_apply_prob=1.0, fs=fs
+    )
+    rng = np.random.default_rng(0)
+    speech = 0.1 * rng.standard_normal(1600)
+    out = preprocessor("utt1", {"speech": speech.copy()})["speech"].reshape(-1)
+    corr = [np.dot(out[k:], speech[: len(speech) - k]) for k in range(64)]
+    assert int(np.argmax(corr)) == expected_delay
+
+
+@pytest.mark.parametrize("per_channel, expected", [(False, [0, 20]), (True, [0, 0])])
+def test_rir_delay_of_a_multichannel_rir(tmp_path, per_channel, expected):
+    """A two-channel RIR with peaks at samples 10 and 30.
+
+    One shift (the overall peak) keeps the 20-sample difference between the
+    channels; per channel, both channels are aligned.
+    """
+    import soundfile
+
+    rir = np.zeros((64, 2))
+    rir[10, 0] = 1.0
+    rir[30, 1] = 0.9
+    wav = tmp_path / "rir2ch.wav"
+    soundfile.write(wav, rir, 16000, subtype="FLOAT")
+    (tmp_path / "rir.scp").write_text(f"rir1 {wav}\n")
+    preprocessor = CommonPreprocessor(
+        train=True,
+        rir_scp=str(tmp_path / "rir.scp"),
+        rir_apply_prob=1.0,
+        rir_remove_delay=True,
+        rir_delay_per_channel=per_channel,
+    )
+    rng = np.random.default_rng(0)
+    speech = 0.1 * rng.standard_normal(1600)
+    out = preprocessor("utt1", {"speech": speech.copy()})["speech"]
+    assert out.shape == (1600, 2)
+    shifts = []
+    for ch in range(2):
+        corr = [np.dot(out[k:, ch], speech[: 1600 - k]) for k in range(64)]
+        shifts.append(int(np.argmax(corr)))
+    assert shifts == expected

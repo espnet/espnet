@@ -1,0 +1,4 @@
+fs: 16000
+segment_size: 10
+# the number of speakers is estimated by the attractors
+num_spk: null

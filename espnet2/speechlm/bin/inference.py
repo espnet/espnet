@@ -175,7 +175,10 @@ def inference_worker(
         inference_config = yaml.safe_load(f)
 
     job_template_class = _all_job_types[train_config["job_type"]]
-    job_template = job_template_class(train_config, is_train=False)
+    # the checkpoint loaded strictly below carries every weight
+    job_template = job_template_class(
+        train_config, is_train=False, load_pretrained=False
+    )
 
     # Build model and preprocessor in worker
     model = job_template.build_model()

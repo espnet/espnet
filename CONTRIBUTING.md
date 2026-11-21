@@ -91,12 +91,21 @@ exactly like a model under `espnet/`, and no organization membership is involved
 
    ``` console
    $ ./run.sh --stage 14 --stop-stage 15 \
-       --skip_upload_hf false --hf_repo <your-username>/<model-name>
+       --skip_packing false --skip_upload_hf false \
+       --hf_repo <your-username>/<model-name> --hf_license <license>
    ```
 
    Stage 14 packs the model; stage 15 pushes it with git-lfs and generates the model card
    from `scripts/utils/TEMPLATE_HF_Readme.md`, keeping the `espnet` tag that makes it
    findable on the Hub. You need `git-lfs` installed.
+
+   `--hf_license` is required for the upload stage and sets the license in the model card.
+   The license of the released model is not automatically the same as the license of its
+   training data. Choose it by considering all relevant factors: the licenses and usage
+   restrictions of the training data, the licenses of the model and code components,
+   third-party rights, and any distribution conditions. Pass it as a Hugging Face license
+   identifier such as `apache-2.0`, `mit` or `cc-by-4.0`, or use `other` and describe the
+   terms in the model card when none of the standard identifiers fits.
 4. Link the model from your recipe's `RESULTS.md`. That link, in your recipe pull request,
    is all the registration a model needs.
 

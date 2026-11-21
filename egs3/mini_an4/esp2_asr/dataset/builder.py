@@ -56,7 +56,17 @@ def _parse_transcript_line(line: str) -> tuple[str, str, str]:
 
 
 class MiniAn4Builder(DatasetBuilder):
-    """Prepare and build Mini AN4 assets for ESPnet3 recipes."""
+    """Prepare and build Mini AN4 assets for ESPnet3 recipes.
+
+    Examples:
+        ```python
+        builder = MiniAn4Builder()
+        if not builder.is_source_prepared(recipe_dir="."):
+            builder.prepare_source(recipe_dir=".")
+        if not builder.is_built(recipe_dir="."):
+            builder.build(recipe_dir=".")
+        ```
+    """
 
     def is_source_prepared(self, recipe_dir: str | Path, **_kwargs) -> bool:
         """Check whether raw AN4 source files are already available.
@@ -114,8 +124,11 @@ class MiniAn4Builder(DatasetBuilder):
         recipe_root = Path(recipe_dir).resolve()
         dataset_root = recipe_root / _CFG["dataset_path"]
         archive = (recipe_root / _CFG["archive_path"]).resolve()
-        if not archive.exists():
-            raise FileNotFoundError(f"Archive not found: {archive}")
+        if not archive.is_file():
+            raise FileNotFoundError(
+                f"Archive not found: {archive}. Place the recipe's downloads.tar.gz "
+                "in the recipe directory before preparing the source."
+            )
         dataset_root.mkdir(parents=True, exist_ok=True)
         _normalize_downloads_layout(dataset_root)
         if self.is_source_prepared(recipe_dir=recipe_dir):

@@ -29,12 +29,14 @@ between them together with a verdict. The checkpoint is
 trained on VoxCeleb 1+2 by the recipe in the directory above this one, where
 it reaches 0.739% equal error rate on VoxCeleb1-O.
 
-It is the best of that recipe's models that a `pip install` can load. The
-three that score better - `ecapa_frozen` at 0.638%, and the two that
-fine-tune WavLM - reach their front end through S3PRL, whose released
-version calls `torchaudio.set_audio_backend`, removed in torchaudio 2.1. A
-Space installs from `requirements.txt` and nothing else, so those checkpoints
-would leave this one failing to start.
+It is the best of that recipe's models that loads without S3PRL. The three
+that score better - `ecapa_frozen` at 0.638%, and the two that fine-tune
+WavLM - reach their front end through S3PRL. Upstream `s3prl` calls
+`torchaudio.set_audio_backend`, removed in torchaudio 2.9, so they need the
+ESPnet fork, `espnet-s3prl`, which the `spk` extra declares from the release
+after v.202611 on. A Space installs from `requirements.txt` and nothing else,
+so moving it to one of those checkpoints also means raising the `espnet[spk]`
+floor there to that release.
 
 The threshold is not read from the checkpoint and could not be: the recipe
 records each model's equal error *rate*, not the score at which it occurs.
@@ -81,8 +83,8 @@ front-end is `asteroid_frontend`, which imports `asteroid_filterbanks`, and
 that extra is where it comes from. A Space installs from `requirements.txt`
 and nothing else, so leaving it out is a build that succeeds and a Space that
 cannot start - which is how it was found. A checkpoint with a `melspec_torch`
-front-end needs nothing beyond the core install, and the extra costs it one
-small package.
+front-end needs nothing beyond the core install; the extra costs it
+`asteroid_filterbanks` and `espnet-s3prl`, neither of which it uses.
 
 ## Running and publishing
 
