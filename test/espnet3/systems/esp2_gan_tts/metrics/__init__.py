@@ -1,1 +1,0 @@
-"""Codec metric tests."""

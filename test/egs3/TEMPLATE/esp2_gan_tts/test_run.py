@@ -92,7 +92,7 @@ def test_load_default_config_metrics_binds_versa_to_the_dataset_columns() -> Non
     assert [entry.name for entry in cfg.dataset.test] == ["valid", "test"]
     entry = cfg.metrics[0]
     metric = entry.metric
-    assert metric._target_ == "espnet3.systems.esp2_gan_tts.metrics.versa.VersaMetric"
+    assert metric._target_ == "espnet3.components.metrics.versa.VersaMetric"
     assert [score.name for score in metric.score_config] == [
         "pseudo_mos",
         "whisper_wer",

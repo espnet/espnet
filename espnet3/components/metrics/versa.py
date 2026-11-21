@@ -1,11 +1,12 @@
-"""VERSA-based metric for the GAN-TTS `measure` stage.
+"""VERSA-based metric for the `measure` stage of waveform-producing systems.
 
 Wraps `versa.bin.scorer` (https://github.com/wavlab-speech/versa) as an
-ESPnet3 `BaseMetric`. The GAN-TTS protocol (pseudo-MOS predictors, Whisper
-WER/CER against the transcript, speaker similarity against the ground-truth
-recording) is a VERSA score config, declared in
-`egs3/TEMPLATE/esp2_gan_tts/conf/metrics.yaml`; this class runs it over the
-`infer` outputs of a test set and aggregates the per-utterance records.
+ESPnet3 `BaseMetric` for any system whose `infer` stage writes waveforms (a
+neural codec, a TTS model). A recipe names the VERSA metrics it scores with
+(signal metrics such as SDR and SI-SNR, pseudo-MOS predictors such as UTMOS)
+in its `conf/metrics.yaml`; this class runs them over the `infer` outputs of
+a test set against the reference waveforms and aggregates the per-utterance
+records.
 """
 
 from __future__ import annotations
@@ -48,8 +49,8 @@ class VersaMetric(BaseMetric):
     files, runs the scorer once over everything added, and returns the
     per-utterance average of each declared output (a corpus-level WER/CER
     pooled from the edit-operation counts when a recognition metric is
-    configured). VERSA emits more keys than a recipe declares, such as the
-    edit-operation counts behind ``whisper_wer``; those are kept in the
+    configured). VERSA emits more keys than a task declares, such as the
+    separation-only ``sir`` of ``signal_metric``; those are kept in the
     scorer's ``avg_result.json`` but not returned, so the declaration is
     exactly what reaches the results table. :meth:`__call__`, which `measure`
     uses once per test set, reads the rows from the `infer` stage's SCP
@@ -64,7 +65,7 @@ class VersaMetric(BaseMetric):
 
             metrics:
               - metric:
-                  _target_: espnet3.systems.esp2_gan_tts.metrics.versa.VersaMetric
+                  _target_: espnet3.components.metrics.versa.VersaMetric
                   score_config:
                     - name: signal_metric
                     - name: pseudo_mos
@@ -115,10 +116,11 @@ class VersaMetric(BaseMetric):
             score_config: Path to a versa score-config YAML file, or an
                 inline list of versa metric definitions.
             outputs: The score names this metric returns, such as
-                ``["whisper_wer", "spk_similarity", "utmos"]``; each becomes
-                a declared ``number`` output. VERSA computes more keys than
-                these (the WER edit counts, say); the extra keys stay in the
-                scorer's ``avg_result.json`` and only the declared ones are
+                ``["sdr", "si_snr", "utmos"]``; each becomes a declared
+                ``number`` output. VERSA computes more keys than these (the
+                WER edit counts, say, or ``sir`` and ``sar`` next to
+                ``sdr``); the extra keys stay in the scorer's
+                ``avg_result.json`` and only the declared ones are
                 returned.
             wav_key: Input alias for the output-wav SCP file.
             ref_key: Input alias for the reference-wav SCP file (the original
