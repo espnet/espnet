@@ -42,6 +42,7 @@ from espnet2.samplers.build_batch_sampler import (
     build_batch_sampler,
     build_category_batch_sampler,
 )
+from espnet2.samplers.category_power_chunk_sampler import CategoryPowerChunkSampler
 from espnet2.samplers.unsorted_batch_sampler import UnsortedBatchSampler
 from espnet2.schedulers.cosine_anneal_warmup_restart import (
     CosineAnnealingWarmupRestarts,
@@ -86,6 +87,7 @@ from espnet2.utils.build_dataclass import build_dataclass
 from espnet2.utils.get_default_kwargs import get_default_kwargs
 from espnet2.utils.nested_dict_action import NestedDictAction
 from espnet2.utils.types import (
+    float_or_none,
     humanfriendly_parse_size_or_none,
     int_or_none,
     str2bool,
@@ -1102,6 +1104,17 @@ class AbsTask(ABC):
             "--chunk_left_context C: the chunks of --chunk_left_context_keys are "
             "read as [i*S - C, i*S + W), zeros before the start of the sequence. "
             "Chunks have one fixed length, so --chunk_default_fs is not supported.",
+        )
+        group.add_argument(
+            "--chunk_upsampling_factor",
+            type=float_or_none,
+            default=None,
+            help="With --chunk_random_access, training only: draw the chunks of "
+            "each epoch per category (utt2category next to the first data file, "
+            "one category per sequence). An epoch keeps the number of chunks N; "
+            "category c with n_c chunks gets about N * n_c^b / sum_c' n_c'^b of "
+            "them, b = this factor in [0, 1]: 1 keeps every chunk once, 0 gives "
+            "every category the same share. None: every chunk once.",
         )
         group.add_argument(
             "--chunk_discard_short_samples",
@@ -2246,6 +2259,41 @@ class AbsTask(ABC):
                 pin_memory=args.ngpu > 0,
             )
 
+    @staticmethod
+    def _category_power_chunk_sampler(
+        chunks, upsampling_factor: float, seed: int, iter_options, mode: str
+    ):
+        """CategoryPowerChunkSampler over the chunks (--chunk_upsampling_factor)."""
+        utt2category_file = (
+            Path(iter_options.data_path_and_name_and_type[0][0]).parent / "utt2category"
+        )
+        if not utt2category_file.exists():
+            raise RuntimeError(
+                f"--chunk_upsampling_factor needs {utt2category_file}: {mode}"
+            )
+        if iter_options.distributed:
+            rank = torch.distributed.get_rank()
+            world_size = torch.distributed.get_world_size()
+        else:
+            rank, world_size = 0, 1
+        sampler = CategoryPowerChunkSampler(
+            chunks=chunks,
+            utt2category=read_2columns_text(utt2category_file),
+            batch_size=iter_options.batch_size,
+            upsampling_factor=upsampling_factor,
+            num_batches=iter_options.num_batches,
+            seed=seed,
+            rank=rank,
+            world_size=world_size,
+        )
+        for category, (n, m) in sampler.category_counts().items():
+            logging.info(f"[{mode}] category {category}: {n} chunks, {m} per epoch")
+        logging.info(
+            f"[{mode}] {len(chunks)} chunks drawn per epoch with upsampling factor "
+            f"{upsampling_factor}, {len(sampler)} mini-batches"
+        )
+        return sampler
+
     @classmethod
     @typechecked
     def build_random_access_chunk_iter_factory(
@@ -2291,27 +2339,34 @@ class AbsTask(ABC):
         ]
         if len(chunks) == 0:
             raise RuntimeError(f"no sequence is {W} samples or longer: {mode}")
-        # the split of UnsortedBatchSampler (drop_last=False)
-        N = max(len(chunks) // iter_options.batch_size, 1)
-        batches = [
-            chunks[i * len(chunks) // N : (i + 1) * len(chunks) // N] for i in range(N)
-        ]
-        if iter_options.num_batches is not None:
-            batches = batches[: iter_options.num_batches]
-        logging.info(
-            f"[{mode}] {len(chunks)} chunks of {W} samples (shift {S}) from "
-            f"{len(lengths)} sequences, {len(batches)} mini-batches"
-        )
-        if iter_options.distributed:
-            world_size = torch.distributed.get_world_size()
-            rank = torch.distributed.get_rank()
-            for batch in batches:
-                if len(batch) < world_size:
-                    raise RuntimeError(
-                        f"The batch-size must be equal or more than world_size: "
-                        f"{len(batch)} < {world_size}"
-                    )
-            batches = [batch[rank::world_size] for batch in batches]
+        beta = getattr(args, "chunk_upsampling_factor", None)
+        if beta is not None and iter_options.train:
+            batches = cls._category_power_chunk_sampler(
+                chunks, beta, args.seed, iter_options, mode
+            )
+        else:
+            # the split of UnsortedBatchSampler (drop_last=False)
+            N = max(len(chunks) // iter_options.batch_size, 1)
+            batches = [
+                chunks[i * len(chunks) // N : (i + 1) * len(chunks) // N]
+                for i in range(N)
+            ]
+            if iter_options.num_batches is not None:
+                batches = batches[: iter_options.num_batches]
+            if iter_options.distributed:
+                world_size = torch.distributed.get_world_size()
+                rank = torch.distributed.get_rank()
+                for batch in batches:
+                    if len(batch) < world_size:
+                        raise RuntimeError(
+                            f"The batch-size must be equal or more than world_size: "
+                            f"{len(batch)} < {world_size}"
+                        )
+                batches = [batch[rank::world_size] for batch in batches]
+            logging.info(
+                f"[{mode}] {len(chunks)} chunks of {W} samples (shift {S}) from "
+                f"{len(lengths)} sequences, {len(batches)} mini-batches"
+            )
 
         dataset = ESPnetDataset(
             iter_options.data_path_and_name_and_type,

@@ -1,6 +1,8 @@
 # Copyright 2021 Jiatong Shi
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
+import logging
+import os
 from itertools import permutations
 from typing import Dict, List, Optional, Tuple
 
@@ -46,9 +48,23 @@ class ESPnetDiarizationModel(AbsESPnetModel):
         attractor_weight: float = 1.0,
         look_aheads: Optional[List[int]] = None,
         wav_augment: Optional[torch.nn.Module] = None,
+        valid_category_file: Optional[str] = None,
     ):
 
         super().__init__()
+
+        # Category of each sequence (utt2category: "<id> <category>") for
+        # per-category validation statistics; see _category_stats(). The file
+        # is read at the first validation step, not here: a packed model used
+        # for inference (e.g. from the Hub) has a config naming a file of the
+        # training directory that is not there.
+        self.valid_category_file = valid_category_file
+        self._categories: Optional[Dict[str, str]] = None
+        if valid_category_file is not None and not os.path.exists(valid_category_file):
+            logging.warning(
+                f"valid_category_file {valid_category_file} does not exist: "
+                "validation with utterance ids will fail unless it is created"
+            )
 
         # waveform augmentation of the batch, training only (e.g. BatchWavAugment)
         self.wav_augment = wav_augment
@@ -249,19 +265,22 @@ class ESPnetDiarizationModel(AbsESPnetModel):
             speaker_error,
         ) = self.calc_diarization_error(pred, label_perm, encoder_out_lens)
 
-        # Ratios on the device (0 when nothing is scored), so the forward pass
-        # never waits for the GPU; the reporter reads them after backward.
+        # Ratios on the device, so the forward pass never waits for the GPU;
+        # the reporter reads them after backward. The error rates are relative
+        # to the reference speech and are 0 for a batch without any; the frame
+        # accuracy is defined for every batch with frames, so a batch of
+        # non-speech only gets its accuracy too, not 0.
         scored = (speech_scored > 0) & (num_frames > 0)
 
-        def ratio(num, den):
-            return torch.where(scored, num / den.clamp(min=1), torch.zeros_like(num))
+        def ratio(num, den, valid=scored):
+            return torch.where(valid, num / den.clamp(min=1), torch.zeros_like(num))
 
         sad_mr = ratio(speech_miss, speech_scored)
         sad_fr = ratio(speech_falarm, speech_scored)
         mi = ratio(speaker_miss, speaker_scored)
         fa = ratio(speaker_falarm, speaker_scored)
         cf = ratio(speaker_error, speaker_scored)
-        acc = ratio(correct, num_frames)
+        acc = ratio(correct, num_frames, num_frames > 0)
         der = ratio(speaker_miss + speaker_falarm + speaker_error, speaker_scored)
 
         stats = dict(
@@ -276,7 +295,81 @@ class ESPnetDiarizationModel(AbsESPnetModel):
             acc=acc,
             der=der,
         )
+        if (
+            not self.training
+            and self.valid_category_file is not None
+            and "utt_id" in kwargs
+        ):
+            stats.update(
+                self._category_stats(
+                    pred, label_perm, encoder_out_lens, kwargs["utt_id"]
+                )
+            )
         return loss, stats
+
+    @property
+    def categories(self) -> Dict[str, str]:
+        """{id: category} of valid_category_file, read at the first use."""
+        if self._categories is None:
+            categories = {}
+            if self.valid_category_file is not None:
+                with open(self.valid_category_file, encoding="utf-8") as f:
+                    for line in f:
+                        if line.strip():
+                            key, category = line.split(maxsplit=1)
+                            categories[key] = category.strip()
+            self._categories = categories
+        return self._categories
+
+    @property
+    def category_names(self) -> List[str]:
+        """The sorted categories of valid_category_file."""
+        return sorted(set(self.categories.values()))
+
+    def _category_stats(self, pred, label, lengths, utt_ids) -> Dict[str, torch.Tensor]:
+        """Per-category loss and frame accuracy of a validation batch.
+
+        For every category c of valid_category_file, three statistics, also
+        for categories without a window in the batch (so that every process
+        of a distributed run reports the same keys):
+          valid_frac_<c>      windows of c / windows of the batch
+          valid_loss_num_<c>  sum of the windows' losses of c / windows
+          valid_acc_num_<c>   sum of the windows' frame accuracies of c / windows
+        The reporter averages them over batches weighted by the batch size, so
+        the epoch's loss of c is valid_loss_num_<c> / valid_frac_<c>, its
+        accuracy valid_acc_num_<c> / valid_frac_<c> (exact, also over GPUs).
+        A window's loss is the binary cross entropy over its frames and
+        outputs; its accuracy the share of frames whose decisions (logit > 0)
+        all match the label. The category of a window is that of its id, or of
+        the id without its last "-<start>" (a chunk of a sequence).
+        """
+        n = pred.size(0)
+        mask = (
+            torch.arange(pred.size(1), device=pred.device)[None, :]
+            < lengths.to(pred.device)[:, None]
+        ).float()
+        frames = mask.sum(1).clamp(min=1)
+        bce = F.binary_cross_entropy_with_logits(
+            pred, label.to(pred.dtype), reduction="none"
+        ).mean(2)
+        loss = (bce * mask).sum(1) / frames
+        right = ((pred > 0) == (label > 0.5)).all(2).float()
+        acc = (right * mask).sum(1) / frames
+        names = self.category_names
+        index = []
+        for uid in utt_ids:
+            category = self.categories.get(uid)
+            if category is None:
+                category = self.categories.get(uid.rsplit("-", 1)[0])
+            index.append(names.index(category) if category is not None else -1)
+        index = torch.tensor(index, device=pred.device)
+        stats = {}
+        for k, c in enumerate(names):
+            sel = (index == k).float()
+            stats[f"valid_frac_{c}"] = sel.sum() / n
+            stats[f"valid_loss_num_{c}"] = (loss.detach() * sel).sum() / n
+            stats[f"valid_acc_num_{c}"] = (acc * sel).sum() / n
+        return stats
 
     def collect_feats(
         self,
