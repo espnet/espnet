@@ -6,20 +6,19 @@ This template uses `espnet3.systems.esp2_st.system.ESP2STSystem` for an ESPnet2 
 
 ## Data
 
-Each example contains speech and target translation text. A source transcript (`src_text`) can also be supplied when training uses an auxiliary source-text objective.
+Each item carries speech, the target translation (`text`), and the source transcript (`src_text`). The target side feeds the ST decoder; the source side feeds the auxiliary ASR decoder and CTC. A recipe's dataset class (`dataset/dataset.py`, a `BaseDataset` subclass) declares the fields as a class attribute; both the MuST-C and mini_an4 recipes use:
 
-```yaml
-fields:
-  speech: audio
-  src_text: text
-  text: text
+```python
+from espnet3.contract import Field
+
+fields = (Field("speech", "audio"), Field("text", "text"), Field("src_text", "text"))
 ```
 
-The inference contract accepts speech and produces translated text. By default, it selects the first audio channel and requires 16 kHz input.
+`fields` is declared on the dataset class, not in a configuration file. The inference contract accepts speech and produces translated text. By default it resamples input to 16 kHz (`rate_policy` defaults to `resample`) and keeps the first audio channel (`first_channel`).
 
 ## System Features
 
-The system provides source/target tokenizer preparation where configured, statistics collection, training, inference, measurement, and model/demo packaging.
+`train_tokenizer` trains separate target (`tokenizer.tgt`) and source (`tokenizer.src`) SentencePiece models. The system also provides statistics collection, training, inference, measurement, and model/demo packaging.
 
 ## Metrics
 

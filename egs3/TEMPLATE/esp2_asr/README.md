@@ -6,13 +6,15 @@ This template uses `espnet3.systems.esp2_asr.system.ASRSystem` for an ESPnet2 AS
 
 ## Data
 
-Provide speech and transcription fields. The default inference contract resamples audio to 16 kHz and requires mono input.
+A recipe's dataset class (`dataset/dataset.py`, a `BaseDataset` subclass) declares the fields each item carries as a class attribute. Both the LibriSpeech 100h and mini_an4 recipes use:
 
-```yaml
-fields:
-  speech: audio
-  text: text
+```python
+from espnet3.contract import Field
+
+fields = (Field("speech", "audio"), Field("text", "text"))
 ```
+
+`fields` is declared on the dataset class, not in a configuration file. The default inference contract in `conf/inference.yaml` resamples input audio to 16 kHz (`rate_policy: resample`) and requires mono input: multichannel audio is rejected unless a normalizer such as `mean_channels` or `first_channel` is enabled.
 
 The training configuration selects the ESPnet2 ASR task/model and tokenizer settings. Dataset download, preparation, and caching are recipe-specific.
 
@@ -22,7 +24,7 @@ The training configuration selects the ESPnet2 ASR task/model and tokenizer sett
 
 ## Metrics
 
-The system provides WER, CER, and TER. Bind references to the dataset transcript and hypotheses to inference output. TER is recipe-specific and requires the trained SentencePiece model path.
+The system provides WER, CER, and TER. Bind references to the dataset transcript and hypotheses to inference output. TER scores the model's subword tokens, so it is commented out in the template's `conf/metrics.yaml`; enable it by setting `bpemodel` to the recipe's trained SentencePiece model.
 
 ```yaml
 metrics:

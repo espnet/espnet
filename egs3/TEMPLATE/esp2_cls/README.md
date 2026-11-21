@@ -6,15 +6,17 @@ This template uses `espnet3.systems.esp2_cls.system.ESP2CLSSystem` for an ESPnet
 
 ## Data
 
-Provide audio and a class label for each example. The label vocabulary and ordering must match the model's class indices.
+Each item carries audio and a class label. A recipe's dataset class (`dataset/dataset.py`, a `BaseDataset` subclass) declares them as a class attribute; both the MELD and mini_an4 recipes use:
 
-```yaml
-fields:
-  speech: audio
-  label: text
+```python
+from espnet3.contract import Field
+
+fields = (Field("speech", "audio"), Field("label", "text"))
 ```
 
-The default inference contract resamples audio to 16 kHz, averages multichannel input to mono, and emits a predicted label (`hyp`) and class scores (`score`).
+`fields` is declared on the dataset class, not in a configuration file. The `prepare_labels` stage writes the class list to `${data_dir}/token_list`, which fixes the class order the model and the score-based metrics use.
+
+The default inference contract resamples audio to 16 kHz, averages multichannel input to mono (`mean_channels`), and emits a predicted label (`hyp`) and class scores (`score`).
 
 ## System Features
 
@@ -22,7 +24,7 @@ The system prepares labels, filters examples by configured duration, and provide
 
 ## Metrics
 
-The system provides WA, UA, macro F1, MAP, and AUC. Metrics read references from `dataset:label`; MAP and AUC also consume `score`. Set `token_list` to the model's class order for score-based metrics.
+The system provides WA, UA, macro F1, MAP, and AUC. Metrics read references from `dataset:label`; MAP and AUC also consume `score`. MAP and AUC require `token_list` (the class order written by `prepare_labels`); UA and macro F1 accept it optionally to fix the class set.
 
 ```yaml
 metrics:
