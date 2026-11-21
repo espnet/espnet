@@ -2,7 +2,7 @@
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
 from itertools import permutations
-from typing import Dict, Optional, Tuple
+from typing import Dict, List, Optional, Tuple
 
 import numpy as np
 import torch
@@ -11,6 +11,7 @@ from torch.amp import autocast
 from typeguard import typechecked
 
 from espnet2.asr.encoder.abs_encoder import AbsEncoder
+from espnet2.asr.encoder.abs_look_ahead_encoder import AbsLookAheadEncoder
 from espnet2.asr.frontend.abs_frontend import AbsFrontend
 from espnet2.asr.specaug.abs_specaug import AbsSpecAug
 from espnet2.diar.attractor.abs_attractor import AbsAttractor
@@ -43,9 +44,14 @@ class ESPnetDiarizationModel(AbsESPnetModel):
         attractor: Optional[AbsAttractor],
         diar_weight: float = 1.0,
         attractor_weight: float = 1.0,
+        look_aheads: Optional[List[int]] = None,
+        wav_augment: Optional[torch.nn.Module] = None,
     ):
 
         super().__init__()
+
+        # waveform augmentation of the batch, training only (e.g. BatchWavAugment)
+        self.wav_augment = wav_augment
 
         self.encoder = encoder
         self.normalize = normalize
@@ -63,6 +69,22 @@ class ESPnetDiarizationModel(AbsESPnetModel):
             self.num_spk = decoder.num_spk
         else:
             raise NotImplementedError
+
+        # Look-aheads (input frames) of the encoder that each forward pass
+        # trains and validates; the loss is their mean (dual-mode training).
+        self.look_aheads = list(look_aheads) if look_aheads else []
+        if self.look_aheads:
+            if not isinstance(encoder, AbsLookAheadEncoder):
+                raise ValueError(
+                    f"look_aheads needs an encoder with a look-ahead, "
+                    f"not {type(encoder).__name__}"
+                )
+            start = encoder.look_ahead
+            try:
+                for frames in self.look_aheads:
+                    encoder.set_look_ahead(frames)  # raises for an invalid one
+            finally:
+                encoder.set_look_ahead(start)
 
     def forward(
         self,
@@ -87,6 +109,78 @@ class ESPnetDiarizationModel(AbsESPnetModel):
         assert speech.shape[0] == spk_labels.shape[0], (speech.shape, spk_labels.shape)
         batch_size = speech.shape[0]
 
+        if self.wav_augment is not None:
+            # The module augments in training mode only; in eval mode it only
+            # removes its leading context, if it has one.
+            speech, speech_lengths = self.wav_augment(speech, speech_lengths)
+
+        if not self.look_aheads:
+            loss, stats = self._forward_one(
+                speech, speech_lengths, spk_labels, spk_labels_lengths, **kwargs
+            )
+        else:
+            loss, stats = self._forward_look_aheads(
+                speech, speech_lengths, spk_labels, spk_labels_lengths, **kwargs
+            )
+        loss, stats, weight = force_gatherable((loss, stats, batch_size), loss.device)
+        return loss, stats, weight
+
+    def set_look_ahead(self, frames: int):
+        """Make the encoder read up to `frames` future frames (0: online).
+
+        Raises:
+            ValueError: The encoder is not an AbsLookAheadEncoder, or it cannot
+                use this look-ahead.
+        """
+        if not isinstance(self.encoder, AbsLookAheadEncoder):
+            raise ValueError(
+                f"look_ahead needs an encoder with a look-ahead, "
+                f"not {type(self.encoder).__name__}"
+            )
+        self.encoder.set_look_ahead(frames)
+
+    def _forward_look_aheads(
+        self, speech, speech_lengths, spk_labels, spk_labels_lengths, **kwargs
+    ) -> Tuple[torch.Tensor, Dict[str, Optional[torch.Tensor]]]:
+        """Run _forward_one at each look-ahead and average the losses.
+
+        The statistics of each look-ahead get the suffix "_la<frames>"; the
+        plain names hold their mean. The encoder gets its look-ahead back.
+        """
+        start = self.encoder.look_ahead
+        losses, per_look_ahead = [], []
+        try:
+            for frames in self.look_aheads:
+                self.encoder.set_look_ahead(frames)
+                # A copy per look-ahead: without a frontend, the normalization
+                # may work on the input in place (GlobalMVN without gradient).
+                loss, stats = self._forward_one(
+                    speech.clone(),
+                    speech_lengths,
+                    spk_labels,
+                    spk_labels_lengths,
+                    **kwargs,
+                )
+                losses.append(loss)
+                per_look_ahead.append((frames, stats))
+        finally:
+            self.encoder.set_look_ahead(start)
+        loss = torch.stack(losses).mean()
+        stats = {}
+        for frames, one in per_look_ahead:
+            for key, value in one.items():
+                if value is not None:
+                    stats[f"{key}_la{frames}"] = value
+        for key in per_look_ahead[0][1]:
+            values = [one[key] for _, one in per_look_ahead if one[key] is not None]
+            stats[key] = torch.stack(values).mean() if values else None
+        stats["loss"] = loss.detach()
+        return loss, stats
+
+    def _forward_one(
+        self, speech, speech_lengths, spk_labels, spk_labels_lengths, **kwargs
+    ) -> Tuple[torch.Tensor, Dict[str, Optional[torch.Tensor]]]:
+        """Return the loss and the statistics at the encoder's look-ahead."""
         # 1. Encoder
         # Use bottleneck_feats if exist. Only for "enh + diar" task.
         bottleneck_feats = kwargs.get("bottleneck_feats", None)
@@ -155,18 +249,20 @@ class ESPnetDiarizationModel(AbsESPnetModel):
             speaker_error,
         ) = self.calc_diarization_error(pred, label_perm, encoder_out_lens)
 
-        if speech_scored > 0 and num_frames > 0:
-            sad_mr, sad_fr, mi, fa, cf, acc, der = (
-                speech_miss / speech_scored,
-                speech_falarm / speech_scored,
-                speaker_miss / speaker_scored,
-                speaker_falarm / speaker_scored,
-                speaker_error / speaker_scored,
-                correct / num_frames,
-                (speaker_miss + speaker_falarm + speaker_error) / speaker_scored,
-            )
-        else:
-            sad_mr, sad_fr, mi, fa, cf, acc, der = 0, 0, 0, 0, 0, 0, 0
+        # Ratios on the device (0 when nothing is scored), so the forward pass
+        # never waits for the GPU; the reporter reads them after backward.
+        scored = (speech_scored > 0) & (num_frames > 0)
+
+        def ratio(num, den):
+            return torch.where(scored, num / den.clamp(min=1), torch.zeros_like(num))
+
+        sad_mr = ratio(speech_miss, speech_scored)
+        sad_fr = ratio(speech_falarm, speech_scored)
+        mi = ratio(speaker_miss, speaker_scored)
+        fa = ratio(speaker_falarm, speaker_scored)
+        cf = ratio(speaker_error, speaker_scored)
+        acc = ratio(correct, num_frames)
+        der = ratio(speaker_miss + speaker_falarm + speaker_error, speaker_scored)
 
         stats = dict(
             loss=loss.detach(),
@@ -180,9 +276,7 @@ class ESPnetDiarizationModel(AbsESPnetModel):
             acc=acc,
             der=der,
         )
-
-        loss, stats, weight = force_gatherable((loss, stats, batch_size), loss.device)
-        return loss, stats, weight
+        return loss, stats
 
     def collect_feats(
         self,
@@ -192,6 +286,12 @@ class ESPnetDiarizationModel(AbsESPnetModel):
         spk_labels_lengths: torch.Tensor = None,
         **kwargs,
     ) -> Dict[str, torch.Tensor]:
+        if self.wav_augment is not None and hasattr(self.wav_augment, "remove_context"):
+            # The statistics are those of the windows the model sees: without
+            # their leading context (and without random augmentation).
+            speech, speech_lengths = self.wav_augment.remove_context(
+                speech, speech_lengths
+            )
         feats, feats_lengths = self._extract_feats(speech, speech_lengths)
         return {"feats": feats, "feats_lengths": feats_lengths}
 
@@ -247,10 +347,9 @@ class ESPnetDiarizationModel(AbsESPnetModel):
             encoder_out.size(),
             speech.size(0),
         )
-        assert encoder_out.size(1) <= encoder_out_lens.max(), (
-            encoder_out.size(),
-            encoder_out_lens.max(),
-        )
+        # Checked on the device: reading encoder_out_lens.max() here would make
+        # the CPU wait for the frontend and encoder before queuing the rest.
+        torch._assert_async(encoder_out_lens.max() >= encoder_out.size(1))
 
         return encoder_out, encoder_out_lens
 
@@ -301,18 +400,20 @@ class ESPnetDiarizationModel(AbsESPnetModel):
         loss = torch.cat(loss_list, dim=1)
         min_loss, min_idx = torch.min(loss, dim=1)
         loss = torch.sum(min_loss) / torch.sum(lengths.float())
-        batch_size = len(min_idx)
-        label_list = []
-        for i in range(batch_size):
-            label_list.append(label[i, :, permute_list[min_idx[i]]].data.cpu().numpy())
-        label_permute = torch.from_numpy(np.array(label_list)).float()
+        # Reorder each sample's label by its best permutation on the device,
+        # without a per-sample copy to the CPU.
+        permutation = torch.as_tensor(
+            np.stack(permute_list), dtype=torch.long, device=label.device
+        )[min_idx]
+        label_permute = torch.gather(
+            label, 2, permutation.unsqueeze(1).expand(-1, label.size(1), -1)
+        ).float()
         return loss, min_idx, permute_list, label_permute
 
     def create_length_mask(self, length, max_len, num_output):
-        batch_size = len(length)
-        mask = torch.zeros(batch_size, max_len, num_output)
-        for i in range(batch_size):
-            mask[i, : length[i], :] = 1
+        """Float mask (Batch, max_len, num_output): 1 inside each length, else 0."""
+        valid = torch.arange(max_len, device=length.device) < length.unsqueeze(1)
+        mask = valid.unsqueeze(2).expand(-1, -1, num_output).float()
         mask = to_device(self, mask)
         return mask
 
@@ -331,42 +432,46 @@ class ESPnetDiarizationModel(AbsESPnetModel):
     def calc_diarization_error(pred, label, length):
         # Note (jiatong): Credit to https://github.com/hitachi-speech/EEND
 
+        # Computed on the device of `pred`, without a copy to the CPU.
         batch_size, max_len, num_output = label.size()
+        label = label.to(pred.device)
+        length = length.to(pred.device)
         # mask the padding part
-        mask = np.zeros((batch_size, max_len, num_output))
-        for i in range(batch_size):
-            mask[i, : length[i], :] = 1
+        mask = (
+            (torch.arange(max_len, device=pred.device) < length.unsqueeze(1))
+            .unsqueeze(2)
+            .long()
+        )
 
         # pred and label have the shape (batch_size, max_len, num_output)
-        label_np = label.data.cpu().numpy().astype(int)
-        pred_np = (pred.data.cpu().numpy() > 0).astype(int)
-        label_np = label_np * mask
-        pred_np = pred_np * mask
-        length = length.data.cpu().numpy()
+        label_np = label.long() * mask
+        pred_np = (pred > 0).long() * mask
 
         # compute speech activity detection error
-        n_ref = np.sum(label_np, axis=2)
-        n_sys = np.sum(pred_np, axis=2)
-        speech_scored = float(np.sum(n_ref > 0))
-        speech_miss = float(np.sum(np.logical_and(n_ref > 0, n_sys == 0)))
-        speech_falarm = float(np.sum(np.logical_and(n_ref == 0, n_sys > 0)))
+        n_ref = label_np.sum(dim=2)
+        n_sys = pred_np.sum(dim=2)
+        speech_scored = (n_ref > 0).sum()
+        speech_miss = torch.logical_and(n_ref > 0, n_sys == 0).sum()
+        speech_falarm = torch.logical_and(n_ref == 0, n_sys > 0).sum()
 
         # compute speaker diarization error
-        speaker_scored = float(np.sum(n_ref))
-        speaker_miss = float(np.sum(np.maximum(n_ref - n_sys, 0)))
-        speaker_falarm = float(np.sum(np.maximum(n_sys - n_ref, 0)))
-        n_map = np.sum(np.logical_and(label_np == 1, pred_np == 1), axis=2)
-        speaker_error = float(np.sum(np.minimum(n_ref, n_sys) - n_map))
-        correct = float(1.0 * np.sum((label_np == pred_np) * mask) / num_output)
-        num_frames = np.sum(length)
+        speaker_scored = n_ref.sum()
+        speaker_miss = torch.clamp(n_ref - n_sys, min=0).sum()
+        speaker_falarm = torch.clamp(n_sys - n_ref, min=0).sum()
+        n_map = torch.logical_and(label_np == 1, pred_np == 1).sum(dim=2)
+        speaker_error = (torch.minimum(n_ref, n_sys) - n_map).sum()
+        correct = ((label_np == pred_np) * mask).sum()
+        num_frames = length.sum()
+
+        # Float tensors on the device of `pred`: no copy to the CPU here.
         return (
-            correct,
-            num_frames,
-            speech_scored,
-            speech_miss,
-            speech_falarm,
-            speaker_scored,
-            speaker_miss,
-            speaker_falarm,
-            speaker_error,
+            correct.float() / num_output,
+            num_frames.float(),
+            speech_scored.float(),
+            speech_miss.float(),
+            speech_falarm.float(),
+            speaker_scored.float(),
+            speaker_miss.float(),
+            speaker_falarm.float(),
+            speaker_error.float(),
         )

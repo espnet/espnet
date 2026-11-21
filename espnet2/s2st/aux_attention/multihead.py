@@ -16,12 +16,14 @@ class MultiHeadAttention(AbsS2STAuxAttention):
         n_head: int = 4,
         n_feat: int = 512,
         dropout_rate: float = 0.0,
+        use_sdpa: bool = False,
     ):
         super().__init__()
         self.attn = MultiHeadedAttention(
             n_head=n_head,
             n_feat=n_feat,
             dropout_rate=dropout_rate,
+            use_sdpa=use_sdpa,
         )
 
     def forward(

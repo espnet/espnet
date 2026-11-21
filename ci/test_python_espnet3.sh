@@ -28,8 +28,10 @@ echo "::endgroup::"
 # If the test is marked with @pytest.mark.execution_timeout,
 # the value in the mark will be used as the timeout value.
 echo "::group::=== Run pytest ==="
-# test/ci holds the tests of ci/ scripts, such as the integration checker
-pytest -q --execution-timeout 10.0 --timeouts-order moi test/espnet3/ test/ci/ test/splet/
+# test/ci holds the tests of ci/ scripts, such as the integration checker;
+# test/doc those of doc/ scripts, such as make_release.py
+pytest -q --execution-timeout 10.0 --timeouts-order moi \
+    test/espnet3/ test/ci/ test/doc/ test/splet/
 echo "::endgroup::"
 
 echo "::group::=== Report ==="
