@@ -1,10 +1,12 @@
-"""VERSA-based metric for the F5-TTS `measure` stage.
+"""VERSA-based metric for the `measure` stage of waveform-producing systems.
 
 Wraps `versa.bin.scorer` (https://github.com/wavlab-speech/versa) as an
-ESPnet3 `BaseMetric`. The F5-TTS evaluation protocol (faster-whisper WER,
-speaker similarity, UTMOS) is a VERSA score config, declared in
-`egs3/TEMPLATE/f5tts/conf/metrics.yaml`; this class runs it over the
-`infer` outputs of a test set and aggregates the per-utterance records.
+ESPnet3 `BaseMetric` for any system whose `infer` stage writes waveforms (a
+neural codec, a TTS model). A recipe names the VERSA metrics it scores with
+(signal metrics such as SDR and SI-SNR, pseudo-MOS predictors such as UTMOS)
+in its `conf/metrics.yaml`; this class runs them over the `infer` outputs of
+a test set against the reference waveforms and aggregates the per-utterance
+records.
 """
 
 from __future__ import annotations
@@ -34,7 +36,7 @@ class VersaMetric(BaseMetric):
 
     The declaration follows the metric's own configuration, as
     :class:`~espnet3.components.metrics.base_metric.BaseMetric` allows:
-    ``inputs`` are the synthesized wav (``wav_key``), the reference wav
+    ``inputs`` are the model's output wav (``wav_key``), the reference wav
     (``ref_key``) and, when ``text_key`` is set, the transcript, all read
     as files; ``outputs`` are the score names the caller promises, since
     VERSA's own keys exist only once it has run. The `measure` stage
@@ -45,9 +47,12 @@ class VersaMetric(BaseMetric):
     one path or transcript per input): :meth:`update` adds a batch of
     them, numbered as they arrive, and :meth:`compute` writes them as SCP
     files, runs the scorer once over everything added, and returns the
-    per-utterance average of every numeric field VERSA emitted, plus a
-    corpus-level WER/CER pooled from the edit-operation counts when a
-    recognition metric is configured. :meth:`__call__`, which `measure`
+    per-utterance average of each declared output (a corpus-level WER/CER
+    pooled from the edit-operation counts when a recognition metric is
+    configured). VERSA emits more keys than a task declares, such as the
+    separation-only ``sir`` of ``signal_metric``; those are kept in the
+    scorer's ``avg_result.json`` but not returned, so the declaration is
+    exactly what reaches the results table. :meth:`__call__`, which `measure`
     uses once per test set, reads the rows from the `infer` stage's SCP
     files with their real utterance ids and scores them the same way
     under ``<output_dir>/<test_name>/scoring/versa_eval``. A metric that
@@ -60,18 +65,18 @@ class VersaMetric(BaseMetric):
 
             metrics:
               - metric:
-                  _target_: espnet3.systems.f5tts.metrics.versa.VersaMetric
+                  _target_: espnet3.components.metrics.versa.VersaMetric
                   score_config:
                     - name: signal_metric
                     - name: pseudo_mos
                       predictor_types: [utmos]
-                  outputs: [mcd, utmos]
+                  outputs: [sdr, si_snr, utmos]
                   wav_key: wav
                   ref_key: ref
                   use_gpu: true
                 inputs:
                   wav: wav
-                  ref: dataset:ref_wav_path
+                  ref: dataset:wav_path
 
         Or directly, pointing at an existing VERSA config file:
 
@@ -80,7 +85,7 @@ class VersaMetric(BaseMetric):
             metric = VersaMetric(score_config="conf/versa.yaml", outputs=["mcd"])
             scores = metric(
                 {"wav": Path("exp/inference/test/wav.scp"),
-                 "ref": Path("exp/inference/test/ref.scp")},
+                 "ref": Path("exp/inference/test/dataset/wav_path.scp")},
                 test_name="test",
                 output_dir=Path("exp/inference"),
             )
@@ -90,7 +95,7 @@ class VersaMetric(BaseMetric):
         .. code-block:: python
 
             metric.reset()
-            metric.update(wav=["gen/a.wav"], ref=["prompt/a.wav"])
+            metric.update(wav=["resyn/a.wav"], ref=["orig/a.wav"])
             metric.compute()
             # -> {"mcd": 3.1416, ...}
     """
@@ -110,14 +115,16 @@ class VersaMetric(BaseMetric):
         Args:
             score_config: Path to a versa score-config YAML file, or an
                 inline list of versa metric definitions.
-            outputs: The score names this metric promises to return, such
-                as ``["fwhisper_wer", "spk_similarity", "utmos"]``; each
-                becomes a declared ``number`` output. VERSA returns more
-                keys than these (the WER edit counts, say); extra keys are
-                returned too, only the declared ones are checked.
-            wav_key: Input alias for the synthesized-wav SCP file.
-            ref_key: Input alias for the reference-wav SCP file (the prompt
-                each utterance was synthesized from, for speaker similarity).
+            outputs: The score names this metric returns, such as
+                ``["sdr", "si_snr", "utmos"]``; each becomes a declared
+                ``number`` output. VERSA computes more keys than these (the
+                WER edit counts, say, or ``sir`` and ``sar`` next to
+                ``sdr``); the extra keys stay in the scorer's
+                ``avg_result.json`` and only the declared ones are
+                returned.
+            wav_key: Input alias for the output-wav SCP file.
+            ref_key: Input alias for the reference-wav SCP file (the original
+                waveform each utterance was resynthesized from).
             text_key: Optional input alias for the transcript SCP file the
                 recognition metric scores against. ``None`` omits ``--text``
                 from the scorer command, for a score config without one;
@@ -217,7 +224,7 @@ class VersaMetric(BaseMetric):
             TypeError: If an audio value is not a path.
 
         Examples:
-            >>> metric.update(wav=["gen/a.wav"], ref=["prompt/a.wav"])
+            >>> metric.update(wav=["resyn/a.wav"], ref=["orig/a.wav"])
         """
         names = [f.name for f in self.inputs if values.get(f.name) is not None]
         if not names:
@@ -242,9 +249,11 @@ class VersaMetric(BaseMetric):
         are also written there as ``avg_result.json``.
 
         Returns:
-            Dict of metric name to per-utterance average, plus the pooled
-            ``<prefix>_wer`` / ``<prefix>_cer`` percentage when the scorer
-            emitted edit-operation counts (see :meth:`_aggregate`).
+            Dict of declared output name to per-utterance average; a
+            declared ``<prefix>_wer`` / ``<prefix>_cer`` is the pooled
+            percentage from the edit-operation counts (see
+            :meth:`_aggregate`). Keys VERSA emitted but the declaration
+            does not name are written to ``avg_result.json`` only.
 
         Raises:
             ValueError: If no row was added.
@@ -255,7 +264,7 @@ class VersaMetric(BaseMetric):
                 failed to load or computed no value for any utterance.
 
         Examples:
-            >>> metric.update(wav=["gen/a.wav"], ref=["prompt/a.wav"])
+            >>> metric.update(wav=["resyn/a.wav"], ref=["orig/a.wav"])
             >>> metric.compute()
             {'mcd': 3.1416}
         """
@@ -310,7 +319,8 @@ class VersaMetric(BaseMetric):
         logger.info(
             "Wrote VERSA averages to %s (%d metrics)", average_path, len(averages)
         )
-        return averages
+        declared = {field.name for field in self.outputs}
+        return {name: averages[name] for name in averages if name in declared}
 
     def __call__(
         self,
@@ -349,11 +359,11 @@ class VersaMetric(BaseMetric):
                 )
                 scores = metric(
                     {"wav": output_dir / "test" / "wav.scp",
-                     "ref": output_dir / "test" / "ref.scp"},
+                     "ref": output_dir / "test" / "dataset" / "wav_path.scp"},
                     test_name="test",
                     output_dir=output_dir,
                 )
-                # -> {"mcd": 3.1416, "sdr": 12.7, ...}
+                # -> {"sdr": 12.7, "si_snr": 11.9, ...}
         """
         for key in (f.name for f in self.inputs):
             if key not in data:
