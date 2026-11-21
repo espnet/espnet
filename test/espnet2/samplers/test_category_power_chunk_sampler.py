@@ -52,8 +52,11 @@ def test_epochs_differ_and_repeat():
     assert s.generate(1) == s.generate(1)
     assert s.generate(1) != s.generate(2)
     # downsampled category: other chunks in another epoch
-    a = lambda e: {c for b in s.generate(e) for c in b if UTT2CAT[c[0]] == "a"}  # noqa
-    assert a(1) != a(2)
+
+    def chunks_of_a(epoch):
+        return {c for b in s.generate(epoch) for c in b if UTT2CAT[c[0]] == "a"}
+
+    assert chunks_of_a(1) != chunks_of_a(2)
 
 
 def test_batches_split_like_unsorted():
