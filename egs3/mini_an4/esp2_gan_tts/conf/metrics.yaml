@@ -1,11 +1,21 @@
 ##########################################################
 #                 METRIC SCORING SETTING                 #
 ##########################################################
-# Merged over egs3/TEMPLATE/esp2_gan_tts/conf/metrics.yaml, which names the
-# `valid` and `test` sets. Only the signal metrics are scored here, against
-# the ground-truth recording: the template's WER, speaker similarity and
-# pseudo-MOS metrics download their models, which the integration test
-# avoids. The numbers only show that `measure` runs.
+# Merged over egs3/TEMPLATE/esp2_gan_tts/conf/metrics.yaml. Only the signal
+# metrics are scored here, against the ground-truth recording: the template's
+# WER, speaker similarity and pseudo-MOS metrics download their models, which
+# the integration test avoids. The numbers only show that `measure` runs.
+
+# `infer` synthesizes the template's `valid` and `test` sets; only `test` is
+# scored. The one `valid` utterance is the three-character "YES", for which
+# an untrained VITS can emit under 0.02 s of audio, and the signal metrics
+# fail on a waveform that short. The two `test` utterances have over 30
+# characters each, and VITS gives every token at least one 64-sample frame,
+# so their outputs are always long enough.
+dataset:
+  test:
+    - name: test
+
 metrics:
   - metric:
       _target_: espnet3.components.metrics.versa.VersaMetric
