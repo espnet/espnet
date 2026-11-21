@@ -566,8 +566,8 @@ class TestLoss:
         count_after_two = float(parallel_model._loss_stats["count"])
         assert count_after_two == 2 * count_after_one
 
-    def test_loss_stream_emb_dtensor(self, parallel_model):
-        """If stream_emb.weight has .full_tensor(), it's materialized."""
+    def test_loss_stream_embeddings_preserve_base_stream(self, parallel_model):
+        """Add stream offsets without changing stream zero or the weight table."""
         batch_size, seq_len = 1, 4
         num_stream = parallel_model.num_stream
         hidden_dim = parallel_model.config.hidden_size
@@ -576,32 +576,24 @@ class TestLoss:
         input_ids = torch.zeros(batch_size, seq_len, num_stream, dtype=torch.long)
         loss_mask = torch.ones(batch_size, seq_len, num_stream)
 
-        # Wrap the stream_emb weight with a .full_tensor() shim.
-        real_weight = parallel_model.stream_emb.weight.data
-
-        class _DTensorShim:
-            full_tensor_calls = 0
-
-            def __init__(self, tensor):
-                self._tensor = tensor
-                self.dtype = tensor.dtype
-                self.device = tensor.device
-
-            def full_tensor(self):
-                _DTensorShim.full_tensor_calls += 1
-                return self._tensor
-
-            def to(self, *args, **kwargs):
-                return self._tensor.to(*args, **kwargs)
-
-        shim = _DTensorShim(real_weight)
-        # monkey-patch the stream_emb.weight attribute with a DTensor shim
-        object.__setattr__(parallel_model.stream_emb, "weight", shim)
+        with torch.no_grad():
+            parallel_model.stream_emb.weight.normal_()
+        original_weight = parallel_model.stream_emb.weight.detach().clone()
 
         parallel_model.train()
         parallel_model.reset_loss_stats()
         parallel_model._loss((last_hidden_state, None), (input_ids, loss_mask))
-        assert _DTensorShim.full_tensor_calls >= 1
+        torch.testing.assert_close(
+            _FakeLigerFn.calls[0][0],
+            last_hidden_state[:, :-1].reshape(-1, hidden_dim),
+        )
+        expected_mm = (
+            last_hidden_state[:, :-1, None, :] + original_weight[None, None, 1:, :]
+        )
+        torch.testing.assert_close(
+            _FakeLigerFn.calls[1][0], expected_mm.reshape(-1, hidden_dim)
+        )
+        torch.testing.assert_close(parallel_model.stream_emb.weight, original_weight)
 
 
 # ---------------------------------------------------------------------------

@@ -265,8 +265,8 @@ def test_espnet_model_translatotron2(encoder):
     )
 
     inputs = dict(
-        src_speech=torch.randn(2, 10, 20, requires_grad=True),
-        src_speech_lengths=torch.tensor([10, 8], dtype=torch.long),
+        src_speech=torch.randn(2, 30, 20, requires_grad=True),
+        src_speech_lengths=torch.tensor([30, 20], dtype=torch.long),
         src_text=torch.randint(2, 4, [2, 4], dtype=torch.long),
         src_text_lengths=torch.tensor([4, 3], dtype=torch.long),
         tgt_text=torch.randint(2, 4, [2, 4], dtype=torch.long),
@@ -274,5 +274,36 @@ def test_espnet_model_translatotron2(encoder):
         tgt_speech=torch.randn(2, 10, 15, requires_grad=True),
         tgt_speech_lengths=torch.tensor([10, 8], dtype=torch.long),
     )
+    encoder_out_lens = []
+    model.encoder.register_forward_hook(
+        lambda module, args, output: encoder_out_lens.append(output[1])
+    )
     loss, *_ = model(**inputs)
     loss.backward()
+
+    # The aux attention must attend to the valid encoder frames, not the padding.
+    attn = model.aux_attention.attn.attn  # (batch, head, time1, time2)
+    lens = encoder_out_lens[-1]
+    assert lens[0] > lens[1]
+    row_sums = attn.sum(-1)
+    torch.testing.assert_close(row_sums, torch.ones_like(row_sums))
+    assert (attn[1, :, :, lens[1] :] == 0).all()
+
+
+@pytest.mark.parametrize("lengths", [[5, 5], [5, 3]])
+def test_aux_attention_use_sdpa_matches_the_default(lengths):
+    query = torch.randn(2, 4, 8)
+    key = torch.randn(2, 5, 8)
+    mask = (torch.arange(5)[None, :] < torch.tensor(lengths)[:, None]).unsqueeze(1)
+
+    def build(**kwargs):
+        torch.manual_seed(0)
+        return MultiHeadAttention(n_head=2, n_feat=8, **kwargs).eval()
+
+    sdpa_attention = build(use_sdpa=True)
+    attentions = [m for m in sdpa_attention.modules() if hasattr(m, "use_sdpa")]
+    assert attentions and all(m.use_sdpa for m in attentions)
+
+    default_out = build()(query, key, key, mask)
+    sdpa_out = sdpa_attention(query, key, key, mask)
+    assert torch.allclose(default_out, sdpa_out, atol=1e-5)

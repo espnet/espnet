@@ -68,7 +68,7 @@ done
 # rm unnecessary files
 for i in $num_spk; do
     for dir in data/test data/train data/dev; do
-        rm ${dir}${i}/spk*.scp noise1.scp
+        rm ${dir}${i}/spk*.scp ${dir}${i}/noise1.scp
     done
 done
 

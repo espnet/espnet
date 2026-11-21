@@ -19,6 +19,11 @@ while IFS= read -r f; do
     if [ "${f}" = steps/README.md ]; then
         continue
     fi
+    if [ "${f}" = utils/parallel/pbs.pl ]; then
+        # Deliberately diverged from Kaldi: Kaldi's pbs.pl does not work on PBS
+        # Professional.  Re-check it by hand when utils/ is synced with Kaldi.
+        continue
+    fi
 
     echo diff egs2/TEMPLATE/asr1/$f tools/kaldi/egs/wsj/s5/$f
     diff egs2/TEMPLATE/asr1/$f tools/kaldi/egs/wsj/s5/$f

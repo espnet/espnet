@@ -431,43 +431,7 @@ class STTask(AbsTask):
             default=None,
             help="Scale the maximum amplitude to the given value.",
         )
-        group.add_argument(
-            "--rir_scp",
-            type=str_or_none,
-            default=None,
-            help="The file path of rir scp file.",
-        )
-        group.add_argument(
-            "--rir_apply_prob",
-            type=float,
-            default=1.0,
-            help="THe probability for applying RIR convolution.",
-        )
-        group.add_argument(
-            "--noise_scp",
-            type=str_or_none,
-            default=None,
-            help="The file path of noise scp file.",
-        )
-        group.add_argument(
-            "--noise_apply_prob",
-            type=float,
-            default=1.0,
-            help="The probability applying Noise adding.",
-        )
-        group.add_argument(
-            "--noise_db_range",
-            type=str,
-            default="13_15",
-            help="The range of noise decibel level.",
-        )
-        group.add_argument(
-            "--short_noise_thres",
-            type=float,
-            default=0.5,
-            help="If len(noise) / len(speech) is smaller than this threshold during "
-            "dynamic mixing, a warning will be displayed.",
-        )
+        cls.add_augmentation_arguments(parser)
         group.add_argument(
             "--ctc_sample_rate",
             type=float,
