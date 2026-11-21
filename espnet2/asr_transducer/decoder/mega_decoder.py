@@ -28,7 +28,7 @@ class MEGADecoder(AbsDecoder):
         qk_size: Shared query and key size for attention module.
         v_size: Value size for attention module.
         num_heads: Number of EMA heads.
-        rel_pos_bias: Type of relative position bias in attention module.
+        rel_pos_bias_type: Type of relative position bias in attention module.
         max_positions: Maximum number of position for RelativePositionBias.
         truncation_length: Maximum length for truncation in EMA module.
         normalization_type: Normalization layer type.

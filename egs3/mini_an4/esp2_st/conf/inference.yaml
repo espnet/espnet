@@ -1,0 +1,45 @@
+##########################################################
+#                   INFERENCE SETTING                    #
+##########################################################
+# Common usage:
+#   python run.py --stages infer \
+#       --training_config conf/training.yaml \
+#       --inference_config conf/inference.yaml
+#
+##########################################################
+#                    PATHS AND INPUTS                    #
+##########################################################
+# This recipe omits `exp_tag`, `exp_dir`, and `inference_dir` on purpose.
+# `run.py` copies `training_config.exp_tag` and `training_config.exp_dir` here
+# before resolving `${exp_dir}`, and `conf/<name>.yaml` becomes
+# `${exp_dir}/<name>`.
+
+##########################################################
+#                    DATASET DEFINITION                  #
+##########################################################
+# `return_utt_id` is set only here: training cannot take it, because
+# CommonCollateFn stacks every value and a str has no dtype.
+#
+# No `preprocessor:` -- `measure` reads the reference out of this test set
+# (`ref_key: dataset:text`), so the text has to stay a raw string.
+dataset:
+  test:
+    - name: valid
+      data_src_args:
+        split: valid
+        return_utt_id: true
+    - name: test
+      data_src_args:
+        split: test
+        return_utt_id: true
+
+##########################################################
+#                    MODEL AND OUTPUT                    #
+##########################################################
+# Only the checkpoint and beam differ from the template, which supplies the
+# backend adapter, `input_key`, the contract and the ST runner.
+model:
+  _target_: espnet3.systems.esp2_st.src.backend.Speech2TextShortSafe
+  st_train_config: ${exp_dir}/config.yaml
+  st_model_file: ${exp_dir}/epoch0_step1_valid.loss.ckpt
+  beam_size: 1

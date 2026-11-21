@@ -34,8 +34,8 @@ def logmel2linear(
         fs: Sampling frequency.
         n_fft: The number of FFT points.
         n_mels: The number of mel basis.
-        f_min: Minimum frequency to analyze.
-        f_max: Maximum frequency to analyze.
+        fmin: Minimum frequency to analyze.
+        fmax: Maximum frequency to analyze.
 
     Returns:
         Linear spectrogram (T, n_fft // 2 + 1).
@@ -135,8 +135,8 @@ class Spectrogram2Waveform(object):
             n_mels: The number of mel basis.
             win_length: Window length in points.
             window: Window function type.
-            f_min: Minimum frequency to analyze.
-            f_max: Maximum frequency to analyze.
+            fmin: Minimum frequency to analyze.
+            fmax: Maximum frequency to analyze.
             griffin_lim_iters: The number of iterations.
 
         """

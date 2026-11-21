@@ -3,6 +3,7 @@ from typing import Callable, Collection, Dict, List, Optional, Tuple
 
 import numpy as np
 import torch
+import torch.nn as nn
 from typeguard import typechecked
 
 from espnet2.asr.encoder.abs_encoder import AbsEncoder
@@ -387,6 +388,25 @@ class LIDTask(AbsTask):
         )
         projector_output_size = projector.output_size()
 
+        condition_modules = {}
+        conditioning_layers = args.model_conf.get("lang2vec_conditioning_layers") or []
+        if conditioning_layers:
+            for name in ("encoder", "pooling", "projector"):
+                condition_modules[name + "_condition"] = nn.ModuleDict()
+            for layer in conditioning_layers:
+                size = input_size
+                for name, choices in (
+                    ("encoder", encoder_condition_choices),
+                    ("pooling", pooling_condition_choices),
+                    ("projector", projector_condition_choices),
+                ):
+                    key = name + "_condition"
+                    module = choices.get_class(getattr(args, key))(
+                        input_size=size, **getattr(args, key + "_conf")
+                    )
+                    condition_modules[key][str(layer)] = module
+                    size = module.output_size()
+
         loss_class = loss_choices.get_class(args.loss)
         loss = loss_class(
             nout=projector_output_size, nclasses=args.lang_num, **args.loss_conf
@@ -396,7 +416,6 @@ class LIDTask(AbsTask):
         if model_arg is None:
             model_arg = "espnet"
         model_class = model_choices.get_class(model_arg)
-
         model = model_class(
             frontend=frontend,
             specaug=specaug,
@@ -405,6 +424,7 @@ class LIDTask(AbsTask):
             pooling=pooling,
             projector=projector,
             loss=loss,
+            **condition_modules,
             **args.model_conf,
         )
 

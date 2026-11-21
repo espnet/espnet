@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 import ast
+import functools
 import importlib  # noqa
 import os
 import subprocess
@@ -9,11 +10,15 @@ from glob import glob
 import configargparse
 
 
+@functools.lru_cache(maxsize=None)
 def get_git_revision_hash() -> str:
+    """The commit the generated source links point at.
+
+    Resolved on first use rather than at import, so that importing this
+    module needs no git checkout: test/doc imports it, and CI's debian12 job
+    gets the source as a tarball without .git.
+    """
     return subprocess.check_output(["git", "rev-parse", "HEAD"]).decode("ascii").strip()
-
-
-GIT_HASH = get_git_revision_hash()
 
 
 def to_module(path_name):
@@ -54,7 +59,7 @@ def parse_ast(filename):
 def gen_func_rst(func_name, writer, filepath, lineno):
     sourceurl = (
         "https://github.com/espnet/espnet/blob/"
-        + GIT_HASH
+        + get_git_revision_hash()
         + "/"
         + filepath
         + f"#L{lineno}"
@@ -74,7 +79,7 @@ def gen_func_rst(func_name, writer, filepath, lineno):
 def gen_class_rst(class_name, writer, filepath, lineno):
     sourceurl = (
         "https://github.com/espnet/espnet/blob/"
-        + GIT_HASH
+        + get_git_revision_hash()
         + "/"
         + filepath
         + f"#L{lineno}"

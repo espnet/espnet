@@ -486,6 +486,32 @@ def _resolve_egs3_path(path: Path, as_package: bool = False) -> str | None:
     return f"{corpus}_{system}"
 
 
+def _resolve_cloned_recipe_name(conf_dir: Path) -> str | None:
+    """Name a recipe that lives outside ``egs3/`` after its directory.
+
+    A recipe made by ``espnet3 clone`` is not under ``egs3/<corpus>/<system>/``,
+    so :func:`_resolve_egs3_path` cannot name it. The directory that holds
+    ``conf/`` (the clone's project name) is used instead.
+
+    Args:
+        conf_dir (Path): The ``conf/`` directory of the recipe.
+
+    Returns:
+        str | None: The recipe directory name, or ``None`` when ``conf_dir`` is
+        not a ``conf/`` directory inside a named directory.
+
+    Examples:
+        >>> _resolve_cloned_recipe_name(Path("/work/my_asr/conf"))
+        'my_asr'
+        >>> _resolve_cloned_recipe_name(Path("/work/my_asr")) is None
+        True
+    """
+    path = Path(conf_dir).resolve()
+    if path.name != "conf" or not path.parent.name:
+        return None
+    return path.parent.name
+
+
 def _normalize_relative_resolver_paths(
     cfg, base_path: Path, config_name: str | None
 ) -> None:
@@ -499,7 +525,9 @@ def _normalize_relative_resolver_paths(
             raw = raw.replace("${self_name:}", config_name)
             if "${set_corpus_and_system:}" in raw:
                 if _corpus_and_system is None:
-                    _corpus_and_system = _resolve_egs3_path(base_path)
+                    _corpus_and_system = _resolve_egs3_path(
+                        base_path
+                    ) or _resolve_cloned_recipe_name(base_path)
                 if _corpus_and_system is not None:
                     raw = raw.replace(
                         "${set_corpus_and_system:}",

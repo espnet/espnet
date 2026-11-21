@@ -186,36 +186,7 @@ class ASRTransducerTask(AbsTask):
             default=None,
             help="Normalization value for maximum amplitude scaling.",
         )
-        group.add_argument(
-            "--rir_scp",
-            type=str_or_none,
-            default=None,
-            help="The RIR SCP file path.",
-        )
-        group.add_argument(
-            "--rir_apply_prob",
-            type=float,
-            default=1.0,
-            help="The probability of the applied RIR convolution.",
-        )
-        group.add_argument(
-            "--noise_scp",
-            type=str_or_none,
-            default=None,
-            help="The path of noise SCP file.",
-        )
-        group.add_argument(
-            "--noise_apply_prob",
-            type=float,
-            default=1.0,
-            help="The probability of the applied noise addition.",
-        )
-        group.add_argument(
-            "--noise_db_range",
-            type=str,
-            default="13_15",
-            help="The range of the noise decibel level.",
-        )
+        cls.add_augmentation_arguments(parser, short_noise_thres=False)
 
         for class_choices in cls.class_choices_list:
             # Append --<name> and --<name>_conf.
@@ -279,9 +250,7 @@ class ASRTransducerTask(AbsTask):
                 noise_db_range=(
                     args.noise_db_range if hasattr(args, "noise_db_range") else "13_15"
                 ),
-                speech_volume_normalize=(
-                    args.speech_volume_normalize if hasattr(args, "rir_scp") else None
-                ),
+                speech_volume_normalize=getattr(args, "speech_volume_normalize", None),
             )
         else:
             retval = None

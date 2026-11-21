@@ -13,6 +13,7 @@ import io
 import json
 import urllib.error
 import wave
+from unittest.mock import MagicMock
 
 import numpy as np
 import pytest
@@ -577,6 +578,23 @@ def test_an_ambiguous_release_says_what_to_pass(tmp_path):
     assert "checkpoint=" in str(raised.value)
     # and it names what it found, so the choice can be made
     assert "base.pt" in str(raised.value)
+
+
+def test_a_local_load_fetches_no_pretrained_weights(tmp_path, monkeypatch):
+    """The checkpoint carries every weight: 82 GB for Bagpiper, unfetched."""
+    from espnet2.speechlm import model as job_types
+    from espnet2.speechlm.bin import inference
+
+    model = MagicMock()
+    model.to.return_value.eval.return_value = model
+    template = MagicMock()
+    template.return_value.build_model.return_value = model
+    monkeypatch.setattr(job_types, "_all_job_types", {"speechlm": template})
+    monkeypatch.setattr(inference, "load_checkpoint", lambda model, path: model)
+
+    LocalBagpiper.from_pretrained(_release(tmp_path), device="cpu")
+
+    assert template.call_args.kwargs == {"is_train": False, "load_pretrained": False}
 
 
 def test_stereo_audio_arrives_as_channels_first(tmp_path):

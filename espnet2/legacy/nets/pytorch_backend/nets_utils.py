@@ -172,6 +172,16 @@ def make_pad_mask(lengths, xs=None, length_dim=-1, maxlen=None):
 
 
 def _make_pad_mask(lengths, xs=None, length_dim=-1, maxlen=None):
+    """Make the padding mask on the CPU.
+
+    make_pad_mask calls this function when lengths is a list, when xs has more
+    than 3 dimensions, or when length_dim > 2. If lengths is a tensor and xs is
+    given, this function calls _make_pad_mask_on_device instead.
+    """
+    # Tensor lengths and xs: make the mask on the device of xs.
+    if not isinstance(lengths, list) and xs is not None and maxlen is None:
+        return _make_pad_mask_on_device(lengths, xs, length_dim)
+
     if not isinstance(lengths, list):
         lengths = lengths.long().tolist()
 
@@ -207,14 +217,43 @@ def _make_pad_mask(lengths, xs=None, length_dim=-1, maxlen=None):
     return mask
 
 
+def _make_pad_mask_on_device(lengths, xs, length_dim):
+    """Make the padding mask on the device of xs from a tensor of lengths.
+
+    This function compares torch.arange(maxlen) with the lengths on xs.device
+    and returns the (B, maxlen) mask expanded to the shape of xs. The expanded
+    mask is a view, not a copy.
+
+    Unlike _make_pad_mask, this function does not call lengths.tolist(), which
+    makes the CPU wait for the GPU, and does not copy a full-size mask from the
+    CPU to the GPU. For example, the STFT output (64, 1247, 257, 2) of a batch
+    of 10 s inputs needs a 41 MB mask.
+    """
+    # Get maxlen before converting a negative length_dim to a positive one.
+    # Then an out-of-range length_dim raises IndexError, as in _make_pad_mask.
+    maxlen = xs.size(length_dim)
+    if length_dim < 0:
+        length_dim = xs.dim() + length_dim
+    assert xs.size(0) == lengths.size(0), (
+        f"The size of x.size(0) {xs.size(0)} must match the batch size "
+        f"{lengths.size(0)}"
+    )
+    seq_range = torch.arange(maxlen, dtype=torch.int64, device=xs.device)
+    mask = seq_range.unsqueeze(0) >= lengths.to(xs.device).long().unsqueeze(-1)
+    # ind = (:, None, ..., None, :, , None, ..., None)
+    ind = tuple(slice(None) if i in (0, length_dim) else None for i in range(xs.dim()))
+    return mask[ind].expand_as(xs)
+
+
 def _make_pad_mask_traceable(lengths, xs, length_dim, maxlen=None):
     """Make mask tensor containing indices of padded part.
 
     This is a simplified implementation of make_pad_mask without the xs input
     that supports JIT tracing for applications like exporting models to ONNX.
     Dimension length of xs should be 2 or 3
-    This function will create torch.ones(maxlen, maxlen).triu(diagonal=1) and
-    select rows to create mask tensor.
+    This function compares the frame indices torch.arange(maxlen) with each
+    length, so the memory is linear in maxlen (a (maxlen, maxlen) lookup
+    table would need hundreds of GB for an hour-long input).
     """
     if xs is None:
         device = lengths.device
@@ -245,10 +284,14 @@ def _make_pad_mask_traceable(lengths, xs, length_dim, maxlen=None):
     # clip max(length) to maxlen
     lengths = torch.clamp(lengths, max=maxlen).type(torch.long)
 
-    mask = torch.ones(maxlen + 1, maxlen + 1, dtype=torch.bool, device=device)
-    # Row i is the mask for length i, so a zero length selects an all-True row.
-    mask = triu_onnx(mask)[:, :-1]  # onnx cannot handle diagonal argument.
-    mask = mask[lengths][..., :maxlen]
+    # Frame t is padding when t >= length, so a zero length masks every frame.
+    # maxlen may be a one-element tensor; taking the size of a (maxlen,) tensor
+    # accepts it, and keeps it dynamic when traced.
+    frames = torch.ones(maxlen, dtype=torch.bool, device=device)
+    # lengths may stay on the CPU while xs is on an accelerator.
+    mask = torch.arange(frames.size(0), device=device) >= lengths.to(device).unsqueeze(
+        -1
+    )
 
     if xs is not None and len(xs.shape) == 3 and length_dim == 1:
         return mask.transpose(1, 2)

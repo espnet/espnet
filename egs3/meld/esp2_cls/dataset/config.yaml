@@ -1,0 +1,61 @@
+builder:
+  # Source layout ---------------------------------------------------------
+  # MELD is distributed as MP4 clips plus per-split CSV annotations.
+  # `prepare_source()` downloads and unpacks the corpus when it is missing.
+  # Point `MELD` at the directory to hold it, or let the recipe use
+  # `<recipe_dir>/download`.
+  source_env_var: MELD
+  dataset_path: download
+  metadata_subdir: data
+  audio_subdir: wavs
+
+  # Download --------------------------------------------------------------
+  # The archive is about 11 GB. The second URL is a mirror used when the
+  # original site is unreachable.
+  archive_name: MELD.Raw.tar.gz
+  data_urls:
+    - https://web.eecs.umich.edu/~mihalcea/downloads/
+    - https://huggingface.co/datasets/declare-lab/MELD/resolve/main/
+  remove_archive: true
+
+  # Build outputs ---------------------------------------------------------
+  # `build()` converts every clip to 16 kHz mono WAV, so the output tree is
+  # a few GB. Set `MELD_OUTPUT` to keep those files outside the recipe.
+  output_env_var: MELD_OUTPUT
+  data_path: data
+  wav_subdir: wav
+  sampling_rate: 16000
+
+  splits:
+    train:
+      csv_name: train_sent_emo.csv
+      audio_subdir: train
+    valid:
+      csv_name: valid_sent_emo.csv
+      audio_subdir: valid
+    test:
+      csv_name: test_sent_emo.csv
+      audio_subdir: test
+
+  manifest_paths:
+    train: manifest/train.tsv
+    valid: manifest/valid.tsv
+    test: manifest/test.tsv
+
+  # Utterances whose audio is far longer than the annotated turn. Unlike the
+  # duration filter, this list also applies to the test split, which is kept
+  # unfiltered so that scores stay comparable with the ESPnet2 recipe.
+  excluded_utterance_ids:
+    - Ross-dia125-utt3-sea4-epi18-train
+    - Phoebe-dia110-utt7-sea6-epi11-valid
+    - Student-dia38-utt4-sea3-epi7-test
+    - Phoebe-dia220-utt0-sea2-epi1-test
+
+dataset:
+  # Train and valid read the `remove_long_short` output; test stays unfiltered
+  # for ESPnet2 parity. Move this selection to `conf/training.yaml` if a recipe
+  # ever needs to switch between filtered and unfiltered inputs.
+  split_manifest_paths:
+    train: manifest_filtered/train.tsv
+    valid: manifest_filtered/valid.tsv
+    test: manifest/test.tsv
