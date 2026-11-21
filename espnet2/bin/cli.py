@@ -84,16 +84,23 @@ def _version() -> str:
         return "unknown (running from a source tree)"
 
 
+# Device names the parser takes. The accelerators are the ones
+# ``resolve_device`` knows how to check; repeating them here keeps this module
+# free of a torch import, which the argument parser must not need.
+_DEVICE_NAMES = ("auto", "cpu", "mps", "cuda", "xpu", "npu", "mlu", "musa", "hcu")
+
+
 def _device(value: str) -> str:
     """Accept a device name now, so a typo fails before a download.
 
     Whether this machine has the device, and what ``auto`` is on it, is
     settled once the arguments are parsed (:func:`_resolve_device`).
     """
-    if value in ("auto", "cpu", "mps", "cuda") or re.fullmatch(r"cuda:\d+", value):
+    name, _, index = value.partition(":")
+    if name in _DEVICE_NAMES and (not index or index.isdigit()):
         return value
     raise argparse.ArgumentTypeError(
-        f"unknown device {value!r}: use auto, cpu, mps, cuda or cuda:<n>"
+        f"unknown device {value!r}: use auto, cpu, mps or <backend>:<n>"
     )
 
 

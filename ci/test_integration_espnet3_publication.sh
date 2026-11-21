@@ -8,6 +8,7 @@ set -euo pipefail
 python="coverage run --append"
 cwd=$(pwd)
 check_workdir=""
+clone_workdir=""
 
 training_config=${1:-conf/training_asr_transformer.yaml}
 inference_config=${2:-${cwd}/test_utils/egs3/integration_test/esp2_asr/conf/inference_publication.yaml}
@@ -24,6 +25,9 @@ gen_dummy_coverage() {
 }
 
 cleanup() {
+    if [ -n "${clone_workdir}" ] && [ -d "${clone_workdir}" ]; then
+        rm -rf "${clone_workdir}"
+    fi
     if [ -n "${check_workdir}" ] && [ -d "${check_workdir}" ]; then
         rm -rf "${check_workdir}"
     fi
@@ -51,10 +55,13 @@ PY
 
 python3 -m pip install -e '.[asr]'
 
-cd ./egs3/mini_an4/esp2_asr || exit
+clone_workdir=$(mktemp -d)
+espnet3 clone mini_an4/esp2_asr --project "${clone_workdir}/recipe"
+# The tiny integration-test corpus is a fixture, not recipe source.
+cp egs3/mini_an4/esp2_asr/downloads.tar.gz "${clone_workdir}/recipe/"
+cd "${clone_workdir}/recipe" || exit
 gen_dummy_coverage
 echo "==== [ESPnet3] Publication ===="
-source path.sh
 rm -rf exp data
 
 if [ "${upload_enabled}" = "true" ]; then
@@ -76,7 +83,7 @@ ${python} run.py \
 
 pack_dir=$(find exp -mindepth 2 -maxdepth 2 -type d -name model_pack | sort | head -n 1)
 if [ -z "${pack_dir}" ]; then
-    echo "Packed model directory not found under egs3/mini_an4/esp2_asr/exp" >&2
+    echo "Packed model directory not found under the cloned recipe exp" >&2
     exit 1
 fi
 

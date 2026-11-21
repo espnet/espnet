@@ -177,6 +177,14 @@ class CommonPreprocessor(AbsPreprocessor):
         # warn at most once per instance when the tokenized text is longer than
         # this; set to 0 or a negative value to disable the check
         text_length_warning_thres: int = 500,
+        # shift the reverberant speech so that the RIR's peak (the largest absolute
+        # value over all its channels) is at time 0; last, so that positional
+        # arguments of older callers keep their meaning
+        rir_remove_delay: bool = False,
+        # with rir_remove_delay and a multi-channel RIR: shift each channel by its
+        # own peak (each channel aligned with the labels, the time differences
+        # between channels lost) instead of all channels by the overall peak
+        rir_delay_per_channel: bool = False,
     ):
         super().__init__(train)
         self.train = train
@@ -185,6 +193,8 @@ class CommonPreprocessor(AbsPreprocessor):
         self.speech_volume_normalize = speech_volume_normalize
         self.force_single_channel = force_single_channel
         self.rir_apply_prob = rir_apply_prob
+        self.rir_remove_delay = rir_remove_delay
+        self.rir_delay_per_channel = rir_delay_per_channel
         self.noise_apply_prob = noise_apply_prob
         self.short_noise_thres = short_noise_thres
         self.aux_task_names = aux_task_names
@@ -304,10 +314,24 @@ class CommonPreprocessor(AbsPreprocessor):
 
             # speech: (Nmic, Time)
             speech = speech[:1]
+            # With rir_remove_delay, shift the reverberant speech so that the
+            # peak of the RIR is at time 0, keeping it aligned with time-stamped
+            # labels (e.g. diarization/VAD). The peak is the largest absolute
+            # value, not an estimate of the direct path: when a reflection is
+            # stronger than the direct sound, the shift follows the reflection.
+            # A multi-channel RIR is shifted by its overall peak (one shift for
+            # all channels, which keeps the time differences between them), or
+            # each channel by its own peak with rir_delay_per_channel.
+            n = speech.shape[1]
+            full = scipy.signal.convolve(speech, rir, mode="full")
+            if not getattr(self, "rir_remove_delay", False):
+                delays = [0] * len(full)
+            elif getattr(self, "rir_delay_per_channel", False):
+                delays = [int(np.argmax(np.abs(r))) for r in rir]
+            else:
+                delays = [int(np.argmax(np.max(np.abs(rir), axis=0)))] * len(full)
             # Note that this operation doesn't change the signal length
-            speech = scipy.signal.convolve(speech, rir, mode="full")[
-                :, : speech.shape[1]
-            ]
+            speech = np.stack([y[d : d + n] for y, d in zip(full, delays)])
             # Reverse mean power to the original power
             power2 = (speech[detect_non_silence(speech)] ** 2).mean()
             speech = np.sqrt(power / max(power2, 1e-10)) * speech
@@ -432,7 +456,10 @@ class CommonPreprocessor(AbsPreprocessor):
 
                 # 1. Convolve RIR
                 if self.rirs is not None and self.rir_apply_prob >= np.random.random():
-                    speech, _ = self._convolve_rir(speech, power, self.rirs)
+                    # RIRs at another rate than fs (if given) are resampled to fs
+                    speech, _ = self._convolve_rir(
+                        speech, power, self.rirs, tgt_fs=self.fs or None
+                    )
 
                 # 2. Add Noise
                 if (
@@ -445,6 +472,7 @@ class CommonPreprocessor(AbsPreprocessor):
                         self.noises,
                         self.noise_db_low,
                         self.noise_db_high,
+                        tgt_fs=self.fs or None,
                     )
 
                 speech = speech.T
@@ -2281,6 +2309,10 @@ class LIDPreprocessor(CommonPreprocessor):
                 - `db_range` (Tuple[float, float]) is the range of noise levels in dB.
         noise_apply_prob (float): Probability of applying noise.
         short_noise_thres (float): Threshold of short noise.
+        lang2vec_table (str): Optional per-language target table, one row per
+            language: ``<language> <v1> ... <vN>``. Languages absent from this
+            table retain their classification labels but receive a zero mask
+            for auxiliary supervision.
     """
 
     def __init__(
@@ -2297,6 +2329,7 @@ class LIDPreprocessor(CommonPreprocessor):
         ] = None,
         noise_apply_prob: float = 1.0,
         short_noise_thres: float = 0.5,
+        lang2vec_table: Optional[str] = None,
     ):
         super().__init__(train, rir_scp=rir_scp, rir_apply_prob=rir_apply_prob)
 
@@ -2313,7 +2346,10 @@ class LIDPreprocessor(CommonPreprocessor):
         with open(lang2utt, "r") as f_s2u:
             self.lang2utt = f_s2u.readlines()
         self._make_label_mapping()
-        # self.nlang = len(self.lang2utt)
+
+        if lang2vec_table is not None:
+            self.lang2vec = self._read_lang2vec_table(lang2vec_table)
+            self.lang2vec_dim = len(next(iter(self.lang2vec.values())))
 
         self.rir_scp = rir_scp
 
@@ -2374,6 +2410,34 @@ class LIDPreprocessor(CommonPreprocessor):
             lang = lang.strip().split(" ")[0]
             self.lang2label[lang] = label_idx
             label_idx += 1
+
+    @staticmethod
+    def _read_lang2vec_table(path):
+        """Read finite, equally sized language targets without external packages."""
+        targets = {}
+        dimension = None
+        with open(path, encoding="utf-8") as stream:
+            for number, line in enumerate(stream, 1):
+                fields = line.split()
+                if not fields:
+                    continue
+                language = fields[0]
+                if language in targets:
+                    raise ValueError(
+                        f"Duplicate language {language} in {path}:{number}"
+                    )
+                vector = np.asarray(fields[1:], dtype=np.float32)
+                if not vector.size or not np.isfinite(vector).all():
+                    raise ValueError(f"Invalid language target in {path}:{number}")
+                if dimension is not None and vector.size != dimension:
+                    raise ValueError(
+                        f"Inconsistent target dimension in {path}:{number}"
+                    )
+                dimension = vector.size
+                targets[language] = vector
+        if not targets:
+            raise ValueError(f"Empty language target table: {path}")
+        return targets
 
     def _speech_process(self, data: Dict[np.ndarray, str]):
         audio = data["speech"]
@@ -2493,6 +2557,15 @@ class LIDPreprocessor(CommonPreprocessor):
         iso3_labels = data["lid_labels"]
         int_label = self.lang2label[iso3_labels]
         data["lid_labels"] = np.asarray([int_label], dtype=np.int64)
+
+        if self.lang2vec is not None:
+            observed = iso3_labels in self.lang2vec
+            data["lang2vecs"] = (
+                self.lang2vec[iso3_labels].copy()
+                if observed
+                else np.zeros(self.lang2vec_dim, dtype=np.float32)
+            )
+            data["lang2vec_mask"] = np.asarray([observed], dtype=np.int64)
 
         return data
 

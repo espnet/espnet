@@ -12,7 +12,7 @@ ROOT = Path(__file__).resolve().parents[3]
 UTILS = ROOT / "egs2/TEMPLATE/asr1/pyscripts/utils"
 
 
-@pytest.mark.parametrize("audio_format", ["wav", "wav.ark"])
+@pytest.mark.parametrize("audio_format", ["wav", "wav.ark", "omniio"])
 def test_format_missing_waveform(tmp_path, audio_format):
     """Missing references survive formatting beside real audio in both modes."""
     waveform = tmp_path / "input.wav"

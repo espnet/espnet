@@ -31,6 +31,7 @@ from typeguard import typechecked
 from espnet2.fileio.json_scp import JsonScpReader
 from espnet2.fileio.multi_sound_scp import MultiSoundScpReader
 from espnet2.fileio.npy_scp import NpyScpReader
+from espnet2.fileio.omniio_audio import OmniIOAudioScpReader, OmniIOSegmentsReader
 from espnet2.fileio.rand_gen_dataset import (
     FloatRandomGenerateDataset,
     IntRandomGenerateDataset,
@@ -44,6 +45,7 @@ from espnet2.fileio.read_text import (
 from espnet2.fileio.rttm import RttmReader
 from espnet2.fileio.score_scp import SingingScoreReader
 from espnet2.fileio.sound_scp import SoundScpReader
+from espnet2.fileio.vad_intervals import VadIntervalsReader
 from espnet2.utils.sized_dict import SizedDict
 
 
@@ -74,7 +76,22 @@ class AdapterForSoundScpReader(collections.abc.Mapping):
             retval = None, None
         else:
             retval = self.loader[key]
+        return self._to_array(retval)
 
+    def read_span(self, key: str, start: int, end: int) -> np.ndarray:
+        """Return samples `start`..`end` - 1 of `key`.
+
+        A loader with ``read_span`` (e.g. Omni-IO) reads only that part; any
+        other is read whole and sliced.
+        """
+        if hasattr(self.loader, "read_span"):
+            return self._to_array(self.loader.read_span(key, start, end))
+        array = self[key]
+        if array is None or not start < end <= len(array):
+            raise ValueError(f"samples {start}-{end} out of the audio of {key}")
+        return array[start:end]
+
+    def _to_array(self, retval) -> Optional[np.ndarray]:
         if isinstance(retval, tuple):
             assert len(retval) == 2, len(retval)
             if isinstance(retval[0], int) and isinstance(retval[1], np.ndarray):
@@ -249,6 +266,30 @@ def kaldi_loader(
     )
 
 
+def omniio_loader(
+    path, float_dtype=None, max_cache_fd: int = 32, allow_multi_rates=False
+):
+    """Load audio from Omni-IO archives through an scp of byte ranges."""
+    loader = OmniIOAudioScpReader(path, always_2d=False, max_cache_fd=max_cache_fd)
+    return AdapterForSoundScpReader(
+        loader, float_dtype, allow_multi_rates=allow_multi_rates
+    )
+
+
+def omniio_segments_loader(
+    path, float_dtype=None, max_cache_fd: int = 32, allow_multi_rates=False
+):
+    """Load Kaldi segments of recordings in Omni-IO archives.
+
+    `path` is the segments file; the recordings' scp is the ``wav.scp`` next
+    to it. Only each segment's part of its archive entry is read.
+    """
+    loader = OmniIOSegmentsReader(path, always_2d=False, max_cache_fd=max_cache_fd)
+    return AdapterForSoundScpReader(
+        loader, float_dtype, allow_multi_rates=allow_multi_rates
+    )
+
+
 def rand_int_loader(filepath, loader_type):
     # e.g. rand_int_3_10
     try:
@@ -319,6 +360,28 @@ DATA_TYPES = {
         "\n\n"
         "   utterance_id_A /some/where/a.ark:123\n"
         "   utterance_id_B /some/where/a.ark:456\n"
+        "   ...",
+    ),
+    # before "omniio": types are matched by prefix, first match wins
+    "omniio_segments": dict(
+        func=omniio_segments_loader,
+        kwargs=["float_dtype", "max_cache_fd", "allow_multi_rates"],
+        help="Kaldi segments of recordings stored in Omni-IO archives; the "
+        "recordings' wav.scp must be next to the segments file. Only each "
+        "segment's part of the archive is read and decoded."
+        "\n\n"
+        "   segment_id_a recording_id_x 0.0 10.0\n"
+        "   segment_id_b recording_id_x 10.0 20.0\n"
+        "   ...",
+    ),
+    "omniio": dict(
+        func=omniio_loader,
+        kwargs=["float_dtype", "max_cache_fd", "allow_multi_rates"],
+        help="Audio packed into Omni-IO archives (blob_<i>.bin + metadata.parquet), "
+        "addressed by byte range."
+        "\n\n"
+        "   utterance_id_A /some/where/blob_0.bin:0:31052\n"
+        "   utterance_id_B /some/where/blob_0.bin:31052:92707\n"
         "   ...",
     ),
     "npy": dict(
@@ -420,6 +483,16 @@ DATA_TYPES = {
         "   utterance_id_B 10,4\n"
         "   ...",
     ),
+    "vad_intervals": dict(
+        func=VadIntervalsReader,
+        kwargs=[],
+        help="Speech intervals of a window (samples, end exclusive), read as a "
+        "(length, 1) speech label"
+        "\n\n"
+        "   window_a 160000 0 4000 9000 160000\n"
+        "   window_b 160000\n"
+        "   ...",
+    ),
     "rttm": dict(
         func=RttmReader,
         kwargs=[],
@@ -458,6 +531,28 @@ class AbsDataset(Dataset, ABC):
     @abstractmethod
     def __getitem__(self, uid) -> Tuple[Any, Dict[str, np.ndarray]]:
         raise NotImplementedError
+
+
+def _read_span(loader, uid: str, start: int, end: int, context: int = 0):
+    """Samples start - context .. end - 1 of `uid` from `loader`.
+
+    See ESPnetDataset; samples before the start of the sequence are zeros.
+    """
+    first = max(start - context, 0)
+    if hasattr(loader, "read_span"):
+        value = loader.read_span(uid, first, end)
+    else:
+        value = loader[uid]
+        if not (
+            isinstance(value, np.ndarray) and value.ndim >= 1 and len(value) >= end
+        ):
+            return value
+        value = value[first:end]
+    missing = context - start
+    if missing > 0:
+        pad = np.zeros((missing,) + value.shape[1:], dtype=value.dtype)
+        value = np.concatenate([pad, value], 0)
+    return value
 
 
 class ESPnetDataset(AbsDataset):
@@ -587,15 +682,31 @@ class ESPnetDataset(AbsDataset):
 
     @typechecked
     def __getitem__(
-        self, uid: Union[str, int]
+        self, uid: Union[str, int, Tuple[str, int, int]]
     ) -> Tuple[str, Dict[str, Union[str, np.ndarray, Dict[str, Any]]]]:
+        """Return (id, data) of `uid`.
+
+        `uid` may be (uid, start, end): samples start..end - 1 of `uid`, as
+        the chunk iterator with --chunk_random_access asks for them. Loaders
+        with ``read_span`` read only that part; other data with at least `end`
+        entries along the first axis are sliced, and shorter data (e.g. a
+        token sequence) are kept whole. The id is then "<uid>-<start>"
+        (start zero-padded to 10 digits). With span_left_context C (set by
+        the chunk iterator from --chunk_left_context), the data named in
+        span_left_context_keys get start - C .. end - 1 instead, zeros before
+        the start of the sequence; the other data keep start .. end - 1.
+        """
+        span = None
+        if isinstance(uid, tuple):
+            uid, start, end = uid
+            span = (start, end)
 
         # Change integer-id to string-id
         if isinstance(uid, int):
             d = next(iter(self.loader_dict.values()))
             uid = list(d)[uid]
 
-        if self.cache is not None and uid in self.cache:
+        if span is None and self.cache is not None and uid in self.cache:
             data = self.cache[uid]
             return uid, data
 
@@ -603,7 +714,12 @@ class ESPnetDataset(AbsDataset):
         # 1. Load data from each loaders
         for name, loader in self.loader_dict.items():
             try:
-                value = loader[uid]
+                if span is None:
+                    value = loader[uid]
+                elif name in getattr(self, "span_left_context_keys", ()):
+                    value = _read_span(loader, uid, *span, self.span_left_context)
+                else:
+                    value = _read_span(loader, uid, *span)
                 if isinstance(value, (list)):
                     value = np.array(value)
                 if value is None:
@@ -682,6 +798,8 @@ class ESPnetDataset(AbsDataset):
                 raise NotImplementedError(f"Not supported dtype: {value.dtype}")
             data[name] = value
 
+        if span is not None:
+            return f"{uid}-{span[0]:010d}", data
         if self.cache is not None and self.cache.size < self.max_cache_size:
             self.cache[uid] = data
 

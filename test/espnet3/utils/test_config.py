@@ -4,11 +4,14 @@ from unittest.mock import mock_open, patch
 
 import pytest
 from omegaconf import OmegaConf
+from omegaconf.errors import InterpolationResolutionError
 from yaml.parser import ParserError
 
 from espnet3.utils.config_utils import (
     _build_config_path,
     _ensure_target_convert_all,
+    _normalize_relative_resolver_paths,
+    _resolve_cloned_recipe_name,
     _resolve_egs3_path,
     _rewrite_relative_resolver_paths,
     convert_to_dict,
@@ -862,3 +865,32 @@ def test_convert_to_dict_returns_a_plain_dict_unchanged():
 def test_convert_to_dict_passes_non_omegaconf_values_through(value):
     """`token_list` reaches the helper as a path string or a plain list."""
     assert convert_to_dict(value) is value
+
+
+def test_resolve_cloned_recipe_name_uses_recipe_directory(tmp_path):
+    assert _resolve_cloned_recipe_name(tmp_path / "my_asr" / "conf") == "my_asr"
+
+
+@pytest.mark.parametrize("name", ("my_asr", "config"))
+def test_resolve_cloned_recipe_name_requires_conf_directory(tmp_path, name):
+    assert _resolve_cloned_recipe_name(tmp_path / "my_asr" / name) is None
+
+
+def test_resolve_cloned_recipe_name_rejects_root_conf():
+    assert _resolve_cloned_recipe_name(Path("/conf")) is None
+
+
+def test_set_corpus_and_system_resolves_for_recipe_outside_egs3(tmp_path):
+    conf = tmp_path / "my_asr" / "conf"
+    conf.mkdir(parents=True)
+    cfg = OmegaConf.create({"repo": "espnet/${set_corpus_and_system:}_x"})
+    _normalize_relative_resolver_paths(cfg, conf, "publication")
+    OmegaConf.resolve(cfg)
+    assert cfg.repo == "espnet/my_asr_x"
+
+
+def test_set_corpus_and_system_still_fails_without_recipe_layout(tmp_path):
+    cfg = OmegaConf.create({"repo": "espnet/${set_corpus_and_system:}_x"})
+    _normalize_relative_resolver_paths(cfg, tmp_path, "publication")
+    with pytest.raises(InterpolationResolutionError):
+        OmegaConf.resolve(cfg)

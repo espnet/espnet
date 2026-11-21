@@ -1,8 +1,13 @@
-import glob
-import os  # noqa
 import re
+from pathlib import Path
 
 import configargparse
+
+LANGUAGE_TAG_SET = [
+    ("default", "text"),
+    ("pycon", "python"),
+    ("cd", "text"),
+]
 
 ALL_HTML_TAGS = [
     "a",
@@ -132,12 +137,6 @@ ALL_HTML_TAGS = [
     "wbr",
 ]
 
-LANGUAGE_TAG_SET = [
-    ("default", "text"),
-    ("pycon", "python"),
-    ("cd", "text"),
-]
-
 
 def get_parser():
     parser = configargparse.ArgumentParser(
@@ -153,9 +152,9 @@ def get_parser():
     return parser
 
 
-def replace_custom_tags(content):
-    # Regex to find tags and their content
-    tag_pattern = re.compile(r"<(?!!--)([^>]+)>")
+def replace_escaped_tags(content):
+    # Convert author-marked literal angle brackets in prose.
+    tag_pattern = re.compile(r"\\<([^<>\n]{1,50}?)(?:\\)?>")
 
     def replace_tag(match):
         tag_name = match.group(1)
@@ -189,26 +188,30 @@ def replace_custom_tags(content):
 
 
 def replace_string_tags(content):
-    # Regex to find tags and their content
-    tag_pattern = re.compile(r"['|\"]<(?!\/)(.+?)(?!\/)>['|\"]")
+    # Convert tag-like string literals in generated HTML signatures.
+    tag_pattern = re.compile(r"(?P<quote>['\"])<(?P<tag>[^<>\n]{1,50})>(?P=quote)")
+
+    def replace_tag(match):
+        quote = match.group("quote")
+        tag_name = match.group("tag")
+        return f"{quote}&lt;{tag_name}&gt;{quote}"
+
+    return tag_pattern.sub(replace_tag, content)
+
+
+def replace_all_tags(content):
+    # Generated docstrings do not support raw HTML/Vue tags. Keep Sphinx's
+    # leading metadata comments hidden, but escape every other tag-like span.
+    # Matches across line breaks (unlike replace_escaped_tags) because a
+    # docstring's tag-like span can itself wrap onto a following line; code
+    # spans/blocks are already carved out before this runs, by
+    # _replace_tags_skip_code, so there is no code content left to protect
+    # here.
+    tag_pattern = re.compile(r"<(?![!]--)([^<>]+?)>", re.DOTALL)
 
     def replace_tag(match):
         tag_name = match.group(1)
-        if len(tag_name) > 50:
-            # heuristics to ignore tags with too long names
-            # This might occur with image tags, since they have image data
-            # in base64 format.
-            return match.group(0)
-        if tag_name.split()[0] not in ALL_HTML_TAGS or (
-            len(tag_name.split()) > 1 and "=" not in tag_name
-        ):
-            return f"'&lt;{tag_name}&gt;'"
-
-        end_tag_pattern = re.compile(f"</{tag_name.split()[0]}>")
-        end_tag_match = end_tag_pattern.search(content, match.end())
-        if not end_tag_match:
-            return f"'&lt;{tag_name}&gt;'"
-        return match.group(0)
+        return f"&lt;{tag_name}&gt;"
 
     return tag_pattern.sub(replace_tag, content)
 
@@ -220,34 +223,119 @@ def replace_language_tags(content):
     return content
 
 
+def _split_fenced_code_blocks(text):
+    segments = []
+    fence_re = re.compile(r"^[ \t]*([`~]{3,}).*$")
+    in_fence = False
+    fence_marker = None
+    buffer = []
+
+    for line in text.splitlines(keepends=True):
+        if not in_fence:
+            match = fence_re.match(line)
+            if match:
+                if buffer:
+                    segments.append((False, "".join(buffer)))
+                    buffer = []
+                in_fence = True
+                fence_marker = match.group(1)[0]
+                buffer.append(line)
+            else:
+                buffer.append(line)
+        else:
+            buffer.append(line)
+            match = fence_re.match(line)
+            if match and match.group(1)[0] == fence_marker:
+                segments.append((True, "".join(buffer)))
+                buffer = []
+                in_fence = False
+                fence_marker = None
+
+    if buffer:
+        segments.append((in_fence, "".join(buffer)))
+
+    return segments
+
+
+def _split_inline_code(text):
+    segments = []
+    pattern = re.compile(r"(`+)([^`\n]*?)\1")
+    last = 0
+    for match in pattern.finditer(text):
+        if match.start() > last:
+            segments.append((False, text[last : match.start()]))
+        segments.append((True, match.group(0)))
+        last = match.end()
+    if last < len(text):
+        segments.append((False, text[last:]))
+    return segments
+
+
+def replace_tags_skip_code(content):
+    return _replace_tags_skip_code(content, replace_string_tags, replace_escaped_tags)
+
+
+def replace_all_tags_skip_code(content):
+    return _replace_tags_skip_code(content, replace_all_tags)
+
+
+def _replace_tags_skip_code(content, *replacers):
+    content = replace_language_tags(content)
+    fenced_segments = _split_fenced_code_blocks(content)
+    output = []
+    for is_code_block, block in fenced_segments:
+        if is_code_block:
+            output.append(block)
+            continue
+        inline_segments = _split_inline_code(block)
+        for is_inline_code, seg in inline_segments:
+            if is_inline_code:
+                output.append(seg)
+            else:
+                for replacer in replacers:
+                    seg = replacer(seg)
+                output.append(seg)
+    return "".join(output)
+
+
+def is_handwritten_path(root):
+    # ci/doc.sh invokes this script with the already-copied destination
+    # (doc/vuepress/src/guide, .../tools, .../recipe), which never has
+    # "build" in its path -- so a "build" in path parts check here never
+    # actually distinguishes anything at the real call site, and every
+    # auto-generated API page fell back to the permissive, author-escape-
+    # aware path meant for hand-written docs. A bare tag-like span in a
+    # docstring (e.g. "<SOS>") then passed through unescaped and broke the
+    # Vue build. Hand-written espnet3 docs are the only content that should
+    # get that permissive path (they use real <DocCard>/<Foo /> components);
+    # everything else is sphinx-generated prose with no real components, so
+    # blanket-escape it unconditionally.
+    return "espnet3" in Path(root).parts
+
+
+def iter_markdown_files(root):
+    root_path = Path(root)
+    if root_path.is_file():
+        if root_path.suffix == ".md":
+            yield root_path
+        return
+
+    yield from root_path.rglob("*.md")
+
+
 if __name__ == "__main__":
     # parser
     args = get_parser().parse_args()
+    if is_handwritten_path(args.root):
+        replace_tags = replace_tags_skip_code
+    else:
+        replace_tags = replace_all_tags_skip_code
 
-    for md in glob.glob(f"{args.root}/*.md", recursive=True):
-        with open(md, "r") as f:
+    for md in iter_markdown_files(args.root):
+        with open(md, "r", encoding="utf-8") as f:
             content = f.read()
 
-        # Replace the "" and "" with "&lt;" and "&gt;", respectively
-        # if the tag is not in ALL_HTML_TAGS and does not have its end tag
-        # we need to apply this two functions because
-        # there are custom tags like: "<custom-tag a='<type>' b='<value>' />"
-        content = replace_language_tags(content)
-        content = replace_string_tags(content)
-        content = replace_custom_tags(content)
+        content = replace_tags(content)
 
-        with open(md, "w") as f:
-            f.write(content)
-
-    for md in glob.glob(f"{args.root}/**/*.md", recursive=True):
-        with open(md, "r") as f:
-            content = f.read()
-
-        # Replace the "" and "" with "&lt;" and "&gt;", respectively
-        # if the tag is not in ALL_HTML_TAGS
-        content = replace_language_tags(content)
-        content = replace_string_tags(content)
-        content = replace_custom_tags(content)
-
-        with open(md, "w") as f:
+        with open(md, "w", encoding="utf-8") as f:
             f.write(content)

@@ -55,8 +55,25 @@ class ChunkIterFactory(AbsIterFactory):
         discard_short_samples: bool = True,
         default_fs: Optional[int] = None,
         chunk_max_abs_length: Optional[int] = None,
+        left_context: int = 0,
+        left_context_keys: Sequence[str] = ("speech",),
     ):
+        """Initialize.
+
+        left_context: Number of samples (at ``default_fs`` if given) that the
+            chunks of ``left_context_keys`` get in front of the chunk: the
+            chunk [a, a + W) of such a key becomes [a - left_context, a + W),
+            with zeros before the start of the sequence; the other keys (e.g.
+            the labels) keep [a, a + W). For a model that uses the samples
+            before the chunk as history and then removes them, such as the
+            reverberation of BatchWavAugment(context=...). 0 for none.
+        left_context_keys: Keys whose chunks get the left context.
+        """
         assert all(len(x) == 1 for x in batches), "batch-size must be 1"
+        if left_context < 0:
+            raise ValueError(f"left_context must be >= 0: {left_context}")
+        self.left_context = int(left_context)
+        self.left_context_keys = set(left_context_keys)
 
         self.per_sample_iter_factory = SequenceIterFactory(
             dataset=dataset,
@@ -127,6 +144,24 @@ class ChunkIterFactory(AbsIterFactory):
                 f"Data keys with the following patterns will be excluded from the "
                 f"length consistency check:\n{self.excluded_key_pattern}"
             )
+
+    @staticmethod
+    def _with_left_context(v, start: int, width: int, context: int):
+        """Return v[start - context : start + width], zero-padded on the left.
+
+        The samples before the start of the sequence are zeros, so the result
+        always has context + width samples along the first axis.
+        """
+        chunk = v[max(start - context, 0) : start + width]
+        missing = context - start
+        if missing > 0:
+            if isinstance(chunk, torch.Tensor):
+                pad = chunk.new_zeros((missing,) + tuple(chunk.shape[1:]))
+                chunk = torch.cat([pad, chunk], 0)
+            else:
+                pad = np.zeros((missing,) + chunk.shape[1:], dtype=chunk.dtype)
+                chunk = np.concatenate([pad, chunk], 0)
+        return chunk
 
     def build_iter(
         self,
@@ -231,6 +266,12 @@ class ChunkIterFactory(AbsIterFactory):
                     ):
                         for _ in range(N):
                             cache_chunks[k].append(v)
+                    elif self.left_context > 0 and k in self.left_context_keys:
+                        C = self.left_context * fs // default_fs
+                        cache_chunks[k] += [
+                            self._with_left_context(v, Z + i * S, W, C)
+                            for i in range(N)
+                        ]
                     else:
                         cache_chunks[k] += [
                             v[Z + i * S : Z + i * S + W] for i in range(N)
