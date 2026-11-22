@@ -35,18 +35,18 @@ metrics:
 
 ## Commands
 
-Run from a corpus recipe directory after configuring the language pair, data source, and model. Its `run.py` calls `launch()` to combine template defaults with recipe-specific settings.
+Run from a corpus recipe directory after configuring the language pair, data source, and model. Replace `<training_config>` with the recipe-specific path: `conf/tuning/train_st_conformer.yaml` for MuST-C, `conf/training.yaml` for mini_an4. Its `run.py` calls `launch()` to combine template defaults with recipe-specific settings.
 
 ```bash
 python run.py --stages create_dataset train_tokenizer collect_stats \
-  --training_config conf/training.yaml
+  --training_config <training_config>
 python run.py --stages train \
-  --training_config conf/training.yaml
+  --training_config <training_config>
 python run.py --stages infer \
-  --training_config conf/training.yaml \
+  --training_config <training_config> \
   --inference_config conf/inference.yaml
 python run.py --stages measure \
-  --training_config conf/training.yaml \
+  --training_config <training_config> \
   --inference_config conf/inference.yaml \
   --metrics_config conf/metrics.yaml
 ```
