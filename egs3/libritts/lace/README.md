@@ -5,24 +5,31 @@ LACE wraps the residual vector quantizer of a trained codec so that, before ever
 The compression `rate` controls how much is merged: a higher rate keeps more segments and compresses less.
 The model code lives in `espnet3/systems/lace`; the default configuration fine-tunes the LibriTTS EnCodec published from the ESPnet3 codec recipe, [`NewGame/libritts_codec_train_encodec_libritts`](https://huggingface.co/NewGame/libritts_codec_train_encodec_libritts).
 
-## Corpus
+## Data Preparation
 
-On the first run `create_dataset` downloads the five LibriTTS subsets into `downloads/LibriTTS`, roughly 80 GB, and writes the `train`/`valid`/`test` manifests under `data/manifest`.
+On the first run `create_dataset` downloads the five LibriTTS subsets into `downloads/LibriTTS`, roughly 80 GB, and writes the `train`/`valid`/`test` manifests under `data/manifest`:
+
+```bash
+python run.py --stages create_dataset --training_config conf/training.yaml
+```
 
 If LibriTTS is already on disk, point the recipe at it rather than downloading a second copy: set `builder.dataset_path` in `dataset/config.yaml` to the directory that holds the `LibriTTS` folder.
 An absolute path is used exactly as written, and a relative one is resolved from the recipe directory.
 A subset counts as prepared only once it carries a `.complete` marker, which `create_dataset` writes after extracting that subset; a corpus staged any other way needs the markers created by hand (`touch <dataset_path>/LibriTTS/<subset>/.complete`), or the recipe downloads the subsets again.
-
-## Pretrained codec
 
 The codec that is fine-tuned is a published ESPnet3 model bundle (the `pack_model` output of the codec recipe, uploaded by its `upload_model` stage).
 `model.pretrained_model_tag` names it by its Hugging Face id, and `espnet_model_zoo` downloads and caches it on first use.
 An espnet2 zoo model (`meta.yaml` with `train_config`) is accepted the same way, as long as its checkpoint matches the current espnet2 code.
 To fine-tune a codec you trained with an ESPnet3 codec recipe instead, run its `pack_model` stage and set `model.pretrained_model_dir` to the resulting `model_pack` directory (or `pretrained_model_tag` to the repo its `upload_model` stage pushed to).
 
-## Quick start
+## Commands
+
+Run the following commands from `egs3/libritts/lace/`.
+`path.sh` activates the tools environment and puts this checkout on `PYTHONPATH`.
 
 ```bash
+. ./path.sh
+
 # 1) Build the manifests
 python run.py --stages create_dataset --training_config conf/training.yaml
 
@@ -34,6 +41,17 @@ python run.py --stages infer measure \
     --training_config conf/training.yaml \
     --inference_config conf/inference.yaml \
     --metrics_config conf/metrics.yaml
+
+# 4) Pack a self-contained bundle, then upload it
+python run.py --stages pack_model upload_model \
+    --training_config conf/training.yaml \
+    --inference_config conf/inference.yaml \
+    --publication_config conf/publication.yaml
+
+# 5) Build the Gradio demo and push it as a Space
+python run.py --stages pack_demo upload_demo \
+    --training_config conf/training.yaml \
+    --demo_config conf/demo.yaml
 ```
 
 There is no `collect_stats` stage to run: the chunk-based data loader needs no shape files.
@@ -43,39 +61,6 @@ Training writes the wrapped model spec to `exp/${exp_tag}/lace_model.yaml`.
 `measure` scores them against the test set's own waveforms (`dataset:wav_path` in `conf/metrics.yaml`) with versa.
 Set `model.rate` in `conf/inference.yaml` to choose the compression rate, and `model.anchor_start_layer` to make later layers reuse the boundaries of earlier ones.
 To sweep rates, copy the config once per rate (for example `conf/inference_r025.yaml`): the output directory is named after the config file, so the runs do not overwrite each other.
-
-Outside the recipe, a packed or published model loads through `espnet3.publication.InferenceModel`, and any `LACEAudioCoding` argument replaces the packed one:
-
-```python
-from espnet3.publication import InferenceModel
-
-model = InferenceModel.from_packed("exp/train_encodec_lace_libritts/model_pack", rate=0.25)
-resynthesized = model("utt.wav")["resyn_audio"]  # an Audio at 24 kHz
-```
-
-A published bundle loads the same way by its Hugging Face id, with `InferenceModel.from_pretrained(tag, rate=...)`.
-
-## Publishing
-
-```bash
-# Pack a self-contained bundle, then upload it
-python run.py --stages pack_model upload_model \
-    --training_config conf/training.yaml \
-    --inference_config conf/inference.yaml \
-    --publication_config conf/publication.yaml
-
-# Build the Gradio demo and push it as a Space
-python run.py --stages pack_demo upload_demo \
-    --training_config conf/training.yaml \
-    --demo_config conf/demo.yaml
-```
-
-The bundle carries `lace_model.yaml` and the fine-tuned checkpoint; the pretrained codec it names by Hugging Face id is downloaded again when the bundle is loaded.
-Nothing in the bundle imports recipe code: the packed `conf/inference.yaml` names only installed classes and declares its contract inline, so the bundle loads with `trust_user_code=False`.
-The demo stages require `--training_config` because the demo config resolves `${exp_tag}` from it.
-`conf/demo.yaml` points the demo at `${upload_demo.hf_repo}`, so `upload_model` has to publish to that repo before the Space can load a model.
-
-## Compression models
 
 `model.compression_model.name` in `conf/training.yaml` selects how frames are merged:
 
@@ -88,6 +73,37 @@ The demo stages require `--training_config` because the demo config resolves `${
 
 For the first two models a higher rate therefore means more segments and less compression, and `dp_segmentation` follows the same direction by construction.
 During training a rate is sampled per forward pass in `[min_rate, max_rate]`; validation and inference use a fixed rate.
+
+The bundle `pack_model` writes carries `lace_model.yaml` and the fine-tuned checkpoint; the pretrained codec it names by Hugging Face id is downloaded again when the bundle is loaded.
+Nothing in the bundle imports recipe code: the packed `conf/inference.yaml` names only installed classes and declares its contract inline, so the bundle loads with `trust_user_code=False`.
+The demo stages require `--training_config` because the demo config resolves `${exp_tag}` from it.
+`conf/demo.yaml` points the demo at `${upload_demo.hf_repo}`, so `upload_model` has to publish to that repo before the Space can load a model.
+
+Outside the recipe, a packed or published model loads through `espnet3.publication.InferenceModel`, and any `LACEAudioCoding` argument replaces the packed one:
+
+```python
+from espnet3.publication import InferenceModel
+
+model = InferenceModel.from_packed("exp/train_encodec_lace_libritts/model_pack", rate=0.25)
+resynthesized = model("utt.wav")["resyn_audio"]  # an Audio at 24 kHz
+```
+
+A published bundle loads the same way by its Hugging Face id, with `InferenceModel.from_pretrained(tag, rate=...)`.
+
+## Results
+
+### EnCodec with LACE
+
+- Training config: `conf/training.yaml`
+- Inference config: `conf/inference.yaml`
+- Metrics config: `conf/metrics.yaml`
+
+`conf/training.yaml` fine-tunes the LibriTTS EnCodec with the `cosine_similarity` compression model, and `conf/metrics.yaml` scores the test-set resynthesis with the VERSA `signal_metric` and `pseudo_mos` groups.
+No evaluation results are available for this configuration yet.
+
+#### Pretrained model
+
+No pretrained model is available for this configuration yet.
 
 ## Citation
 
