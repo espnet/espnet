@@ -1,5 +1,7 @@
 F5-TTS is a zero-shot text-to-speech model: it speaks the text you give it in the voice of a short recording you provide.
 
+Based on [F5-TTS](https://arxiv.org/abs/2410.06885) ([official implementation](https://github.com/SWivid/F5-TTS)).
+
 **Inputs**
 
 - **Text to synthesize**: the sentence to speak, in a language the model was trained on; punctuation is read as pauses.
