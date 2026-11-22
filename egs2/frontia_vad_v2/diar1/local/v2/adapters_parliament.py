@@ -150,7 +150,7 @@ def rixvox2(
     writers,
     shard: int,
     nshards: int,
-    keep: float = 0.15,
+    keep: float = 0.25,
     max_wer: float = 0.2,
     min_lang_prob: float = 0.9,
 ):
