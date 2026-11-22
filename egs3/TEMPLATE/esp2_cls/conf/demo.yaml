@@ -48,7 +48,7 @@ model:
 ui:
   app_script: src/app.py
   title: ${set_corpus_and_system:} demo
-  description: readme.md
+  description: Upload speech or record with the microphone to classify it.
   inputs:
     - key: speech
       type: audio
