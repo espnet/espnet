@@ -103,7 +103,7 @@ The last checkpoint of the run (`last.ckpt`) is scored on test-clean (4,837 utte
 
 The model above, published from the last checkpoint of its run with the `pack_model` and `pack_demo` stages.
 
-- Model: [`NewGame/libritts_codec_train_encodec_libritts`](https://huggingface.co/NewGame/libritts_codec_train_encodec_libritts)
+- Model: [`espnet/libritts_esp2_codec_train_encodec_libritts`](https://huggingface.co/espnet/libritts_esp2_codec_train_encodec_libritts)
 - Demo Space: [`NewGame/libritts_codec_train_encodec_libritts`](https://huggingface.co/spaces/NewGame/libritts_codec_train_encodec_libritts)
 
 The Space runs on ZeroGPU.
@@ -115,6 +115,6 @@ The input is anything that carries audio (a path, a `(rate, samples)` pair, an a
 ```python
 from espnet3.publication.inference_model import InferenceModel
 
-model = InferenceModel.from_pretrained("NewGame/libritts_codec_train_encodec_libritts")
+model = InferenceModel.from_pretrained("espnet/libritts_esp2_codec_train_encodec_libritts")
 resynthesized = model("utt.wav")["wav"]
 ```
