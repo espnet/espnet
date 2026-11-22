@@ -76,5 +76,5 @@ These results were produced with an earlier revision of this recipe; rerunning t
 
 #### Pretrained model
 
-- Model: [`NewGame/libritts_f5tts_training`](https://huggingface.co/NewGame/libritts_f5tts_training)
+- Model: [`espnet/libritts_f5tts_training`](https://huggingface.co/espnet/libritts_f5tts_training)
 - Demo Space: [`NewGame/libritts_f5tts_training`](https://huggingface.co/spaces/NewGame/libritts_f5tts_training)
