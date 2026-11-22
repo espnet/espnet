@@ -72,7 +72,6 @@ Scored by the `measure` stage through VERSA on the 1127 LibriSpeech-PC test-clea
 | LibriSpeech-PC test-clean | 1.64 | 0.76 | 0.706 | 4.13 |
 
 WER and CER are corpus-level rates from faster-whisper large-v3, and SIM uses the `espnet/voxcelebs12_ecapa_wavlm_joint` speaker model, so they are not on the scale of the F5-TTS paper; `egs3/TEMPLATE/f5tts/conf/metrics.yaml` describes the differences from the official scorer.
-These results were produced with an earlier revision of this recipe; rerunning the current configuration has not been verified to reproduce them.
 
 #### Pretrained model
 
