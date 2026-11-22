@@ -62,28 +62,11 @@ OPTIONS = {
 # multilingual corpora (dev is not capped). prep.py divides them by the
 # number of shards.
 MAX_HOURS = 2000
-MAX_HOURS_PER_CORPUS = {
-    "babycry": 50,
-    # v3 (Shinji 2026-11-22: prepare A and B); 300 h each is provisional, until
-    # Shinji sets the caps
-    **{
-        corpus: 300
-        for corpus in (
-            "voxpopuli_en",
-            "rixvox2",
-            "parczech4speech",
-            "basque_parliament",
-            "stortinget_ssc",
-            "parlamentparla2",
-            "peoples_speech_clean",
-        )
-    },
-}
+MAX_HOURS_PER_CORPUS = {"babycry": 50}
 MAX_HOURS_PER_LANG = {
     corpus: 300
     for corpus in ("commonvoice", "fleurs", "minds14", "commonlanguage", "waxal")
 }
-MAX_HOURS_PER_LANG["basque_parliament"] = 150  # Basque and Spanish
 
 
 def training_corpora():

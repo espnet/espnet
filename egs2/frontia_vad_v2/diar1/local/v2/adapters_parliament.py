@@ -7,7 +7,8 @@ corpus gives segment times, and align.py finds the speech in it.
 The large corpora are read in part: a reader keeps an item (session, archive
 member or parquet row group) when an MD5 hash of its key falls below `keep`,
 so that the hours written are drawn from the whole corpus, not from its first
-archives. The writer then stops at the corpus cap (adapters.MAX_HOURS_PER_CORPUS).
+archives. The writer then stops at the corpus cap (adapters.MAX_HOURS, 2,000 h of
+train as in v2).
 """
 
 import collections
@@ -121,14 +122,20 @@ def voxpopuli_en(root, writers, shard: int, nshards: int, keep: float = 1.0):
 
 
 def _parquet_row_groups(paths, shard: int, nshards: int, keep: float):
-    """(path, row group) of this shard among the kept row groups of `paths`."""
+    """(path, row group) of this shard among the kept row groups of `paths`.
+
+    In an order fixed by a hash of each row group, so that a writer that stops
+    at its cap has read row groups from all the files, not the first ones.
+    """
     import pyarrow.parquet as pq
 
+    out = []
     for p in paths:
         for g in range(pq.ParquetFile(p).num_row_groups):
             key = f"{p.name}:{g}"
             if mine_key(key, shard, nshards) and _keep(key, keep):
-                yield p, g
+                out.append((_hash01("order:" + key), p, g))
+    return [(p, g) for _, p, g in sorted(out)]
 
 
 def _read_row_group(path: Path, group: int, columns: List[str]) -> List[dict]:
@@ -143,7 +150,7 @@ def rixvox2(
     writers,
     shard: int,
     nshards: int,
-    keep: float = 0.03,
+    keep: float = 0.15,
     max_wer: float = 0.2,
     min_lang_prob: float = 0.9,
 ):
@@ -214,7 +221,7 @@ def _psp_archive(file_path: str) -> str:
     "A",
     "CC BY (ParCzech4Speech 1.0); audio CC0-1.0 (AudioPSP 24.01)",
 )
-def parczech4speech(root, writers, shard: int, nshards: int, keep: float = 0.2):
+def parczech4speech(root, writers, shard: int, nshards: int, keep: float = 1.0):
     """ParCzech4Speech 1.0: Czech Chamber of Deputies, sentence segments.
 
     ARCHIVES/sentence_segmented.tsv lists sentences (true_text, the official
@@ -270,7 +277,7 @@ BASQUE_LANGS = {"eu": "eus", "es": "spa"}
 
 
 @corpus("basque_parliament", "basque_parliament", "broadcast", "A", "CC0-1.0")
-def basque_parliament(root, writers, shard: int, nshards: int, keep: float = 0.35):
+def basque_parliament(root, writers, shard: int, nshards: int, keep: float = 1.0):
     """Basque Parliament: Basque and Spanish segments of plenary sessions.
 
     metadata/{train_clean,dev}.tsv (path, language, speaker_id, PRR, length,
@@ -321,7 +328,7 @@ def basque_parliament(root, writers, shard: int, nshards: int, keep: float = 0.3
 
 @corpus("stortinget_ssc", "stortinget_ssc", "broadcast", "A", "CC0-1.0")
 def stortinget_ssc(
-    root, writers, shard: int, nshards: int, keep: float = 0.1, min_score: float = 0.8
+    root, writers, shard: int, nshards: int, keep: float = 0.6, min_score: float = 0.8
 ):
     """Stortinget Speech Corpus 1.0: Norwegian parliament, aligned proceedings.
 
@@ -435,7 +442,7 @@ def parlamentparla2(root, writers, shard: int, nshards: int, keep: float = 1.0):
     "A",
     "CC BY 2.0-4.0 (config cc-by-clean)",
 )
-def peoples_speech_clean(root, writers, shard: int, nshards: int, keep: float = 0.07):
+def peoples_speech_clean(root, writers, shard: int, nshards: int, keep: float = 0.4):
     """The People's Speech, config "clean" (CC BY only; clean_sa is left out).
 
     clean/train-*.parquet rows: id, audio (FLAC bytes), duration_ms, text.
