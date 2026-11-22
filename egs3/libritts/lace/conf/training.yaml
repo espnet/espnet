@@ -2,7 +2,7 @@
 #                 LACE FINE-TUNING SETTING               #
 ##########################################################
 # Fine-tunes the published LibriTTS EnCodec of the ESPnet3 codec recipe
-# (NewGame/libritts_codec_train_encodec_libritts) with the LACE quantizer
+# (espnet/libritts_esp2_codec_train_encodec_libritts) with the LACE quantizer
 # wrapper. Merged over egs3/TEMPLATE/lace/conf/training.yaml, which
 # supplies the path scaffold, `num_device`, `parallel` and the base
 # `trainer` keys.
@@ -56,7 +56,7 @@ model:
   # The pretrained codec: an ESPnet3 `pack_model` bundle on the Hugging Face
   # Hub, strict-loaded before the quantizer is wrapped. For a codec you
   # trained yourself, use `pretrained_model_dir: <that run>/model_pack`.
-  pretrained_model_tag: NewGame/libritts_codec_train_encodec_libritts
+  pretrained_model_tag: espnet/libritts_esp2_codec_train_encodec_libritts
   freeze_codec_module_name: none   # none | encoder | decoder
   compression_model:
     name: cosine_similarity        # cosine_similarity | density_peak | dp_segmentation | identity

@@ -457,7 +457,7 @@ class LACE(ESPnetGANCodecModel):
 
             model:
               _target_: espnet3.systems.lace.src.lace.LACE
-              pretrained_model_tag: NewGame/libritts_codec_train_encodec_libritts
+              pretrained_model_tag: espnet/libritts_esp2_codec_train_encodec_libritts
               freeze_codec_module_name: none
               compression_model:
                 name: cosine_similarity
@@ -504,7 +504,7 @@ class LACE(ESPnetGANCodecModel):
             pretrained_model_tag: Hugging Face model id of a published codec,
                 downloaded through ``espnet_model_zoo``: the repo an espnet3
                 ``upload_model`` stage pushed to (e.g.
-                ``NewGame/libritts_codec_train_encodec_libritts``) or an
+                ``espnet/libritts_esp2_codec_train_encodec_libritts``) or an
                 espnet2 zoo model (e.g. ``espnet/libritts_encodec_24k``).
             pretrained_model_dir: Local bundle directory with a ``meta.yaml``:
                 an unpacked zoo model or an espnet3 ``pack_model`` output.

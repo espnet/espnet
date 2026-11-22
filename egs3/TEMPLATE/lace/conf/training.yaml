@@ -119,7 +119,7 @@ dataset:
 # Example:
 # model:
 #   _target_: espnet3.systems.lace.src.lace.LACE
-#   pretrained_model_tag: NewGame/libritts_codec_train_encodec_libritts
+#   pretrained_model_tag: espnet/libritts_esp2_codec_train_encodec_libritts
 #   freeze_codec_module_name: none   # none | encoder | decoder
 #   compression_model:
 #     name: cosine_similarity        # cosine_similarity | density_peak | dp_segmentation | identity

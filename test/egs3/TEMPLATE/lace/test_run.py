@@ -96,7 +96,7 @@ def test_libritts_training_config_resolves():
     assert config.model._target_ == "espnet3.systems.lace.src.lace.LACE"
     assert (
         config.model.pretrained_model_tag
-        == "NewGame/libritts_codec_train_encodec_libritts"
+        == "espnet/libritts_esp2_codec_train_encodec_libritts"
     )
     assert "pretrained_model_dir" not in config.model
     assert config.create_dataset.recipe_dir == "."

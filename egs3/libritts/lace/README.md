@@ -3,7 +3,7 @@
 LACE (Layer-Adaptive Codec Encoding) fine-tuning of a neural codec on LibriTTS, the ESPnet3 recipe of [LACE: Layer-Wise Compression for Dynamic Frame Rate Codecs](https://arxiv.org/abs/2609.17509) (SLT 2026).
 LACE wraps the residual vector quantizer of a trained codec so that, before every codebook layer, similar neighbouring frames are merged into segments and each layer runs at its own, lower frame rate.
 The compression `rate` controls how much is merged: a higher rate keeps more segments and compresses less.
-The model code lives in `espnet3/systems/lace`; the default configuration fine-tunes the LibriTTS EnCodec published from the ESPnet3 codec recipe, [`NewGame/libritts_codec_train_encodec_libritts`](https://huggingface.co/NewGame/libritts_codec_train_encodec_libritts).
+The model code lives in `espnet3/systems/lace`; the default configuration fine-tunes the LibriTTS EnCodec published from the ESPnet3 codec recipe, [`espnet/libritts_esp2_codec_train_encodec_libritts`](https://huggingface.co/espnet/libritts_esp2_codec_train_encodec_libritts).
 
 ## Data Preparation
 
