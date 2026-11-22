@@ -8,7 +8,6 @@ from espnet3.systems.esp2_slu.src.inference_runner import (
     FirstPassTranscriptRunner,
     SLUInferenceRunner,
 )
-from espnet3.systems.esp2_slu.src.slu_output import split_intent
 
 
 def _result(text):
@@ -16,10 +15,12 @@ def _result(text):
     return [(text, ["t"], [1], None)]
 
 
-def test_split_intent_handles_partial_text():
-    assert split_intent("news_query read the news") == ("news_query", "read the news")
-    assert split_intent("news_query") == ("news_query", "")
-    assert split_intent("   ") == ("", "")
+def test_whitespace_only_hypothesis_yields_empty_fields():
+    """A hypothesis of only whitespace must not fail the stage."""
+    out = SLUInferenceRunner.format_output([("   ", [], [], None)], batched=False)
+
+    assert out["hyp_intent"] == ""
+    assert out["hyp_transcript"] == ""
 
 
 def test_slu_runner_splits_the_hypothesis():

@@ -133,9 +133,39 @@ def test_dataset_returns_the_declared_fields(recipe_dir: Path, slurp_root: Path)
     """A recipe sample must never carry utt_id: it breaks downstream collation."""
     dataset = SlurpDataset(split="devel", recipe_dir=recipe_dir, source_dir=slurp_root)
     sample = dataset[0]
-    assert sorted(sample) == ["intent", "reference_transcript", "speech", "text"]
+    assert sorted(sample) == ["speech", "text"]
     assert sample["text"] == "calendar_query what's on my agenda at noon"
     assert sample["speech"].dtype == np.float32
+
+
+def test_training_samples_carry_no_plain_string_fields(
+    recipe_dir: Path, slurp_root: Path
+):
+    """Training must not see the scoring references.
+
+    `intent` and `reference_transcript` are plain strings that no preprocessor
+    tokenizes, so `common_collate_fn` raises `AttributeError: 'str' object has
+    no attribute 'dtype'` on them. They are read at scoring time from the test
+    set, which is why `with_references` gates them and the training configs
+    leave it off.
+    """
+    train = SlurpDataset(
+        split="devel",
+        recipe_dir=recipe_dir,
+        source_dir=slurp_root,
+        with_transcript=True,
+    )[0]
+    assert "intent" not in train and "reference_transcript" not in train
+    # `with_transcript` is the model's input and is unaffected by the gate
+    assert train["transcript"] == "what's on my agenda at noon"
+
+    scored = SlurpDataset(
+        split="devel",
+        recipe_dir=recipe_dir,
+        source_dir=slurp_root,
+        with_references=True,
+    )[0]
+    assert sorted(scored) == ["intent", "reference_transcript", "speech", "text"]
 
 
 def test_scoring_references_are_separate_from_the_transcript_input(
@@ -154,6 +184,7 @@ def test_scoring_references_are_separate_from_the_transcript_input(
         recipe_dir=recipe_dir,
         source_dir=slurp_root,
         with_transcript=True,
+        with_references=True,
         transcript_source=source_dir,
     )
     sample = dataset[0]

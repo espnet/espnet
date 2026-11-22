@@ -1,0 +1,24 @@
+##########################################################
+#                   INFERENCE SETTING                    #
+##########################################################
+# Only values that differ from `egs3/TEMPLATE/esp2_slu/conf/inference.yaml`
+# appear here. The template supplies the contract, `SLUInferenceRunner` and
+# `batch_size: null`.
+#
+# The backend is `Speech2Understand` directly rather than
+# `espnet3.systems.esp2_slu.src.slu_backend.SLUInference`: that wrapper exists
+# to tokenize a transcript for a post-decoder, and this fixture has none. The
+# runner, the contract and `IntentAccuracy` are exercised either way.
+dataset:
+  test:
+    - name: test
+      data_src_args:
+        split: test
+        with_references: true
+
+model:
+  _target_: espnet2.bin.slu_inference.Speech2Understand
+  slu_train_config: ${exp_dir}/config.yaml
+  slu_model_file: ${exp_dir}/epoch0_step1_valid.acc.ckpt
+  beam_size: 1
+  ctc_weight: 0.3

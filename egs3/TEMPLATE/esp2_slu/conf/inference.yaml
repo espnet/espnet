@@ -90,7 +90,7 @@ model:
 input_key: speech
 
 # Optional output key list.
-# These keys must exist in the dict returned by `output_fn`.
+# These keys must exist in the dict the runner's `format_output()` returns.
 # Only the fields listed here are written as SCP files under
 # `${inference_dir}/<test_name>/`.
 # If omitted, keys are inferred from the first returned sample except for
@@ -115,7 +115,7 @@ input_key: speech
 # 8-16 pays off when the test set is roughly sorted by length. A batch that does
 # not fit in memory is split in halves and retried with a warning; a single
 # utterance that does not fit raises an error that names its length.
-# Set to `null` for a model or `output_fn` that only supports one item per call.
+# Set to `null` for a model or runner that only supports one item per call.
 # The SLU backend decodes one utterance at a time, so batching is off by
 # default. `SLUInferenceRunner` refuses a batched call rather than score
 # the wrong shape.

@@ -43,10 +43,10 @@ class SlurpDataset(BaseDataset):
       the words on their own, which ``espnet2.tasks.slu.SLUTask`` tokenizes
       separately and its BERT post-decoder reads.
 
-    ``intent`` and ``reference_transcript`` are always present. They are the
-    scoring references -- `metrics.yaml` binds them with `dataset:` -- and are
-    deliberately separate from the optional ``transcript`` input, which may
-    hold a first-pass hypothesis rather than the truth.
+    ``intent`` and ``reference_transcript`` are the scoring references, which
+    `metrics.yaml` binds with `dataset:`. They are deliberately separate from
+    the optional ``transcript`` input, which may hold a first-pass hypothesis
+    rather than the truth.
 
     No ``utt_id`` is added: the sample dictionary is passed onward by the
     dataset pipeline, where an unsupported field breaks collation, so items
@@ -61,6 +61,13 @@ class SlurpDataset(BaseDataset):
         with_transcript: Whether to also return the transcript. Set it from
             ``data_src_args`` in the SLU config; leave it off for ASR, whose
             collate function cannot take the extra field.
+        with_references: Whether to also return ``intent`` and
+            ``reference_transcript``, the columns ``conf/metrics.yaml`` binds
+            with ``dataset:``. They are read at scoring time from the test set
+            only, and they are plain strings, which the training collate
+            function cannot pad -- so inference turns them on and training
+            leaves them off. Independent of ``with_transcript``: that one is
+            the model's *input*, these are what it is scored against.
         transcript_source: Where that transcript comes from. ``None`` (default)
             uses the corpus transcript from the manifest, the ground-truth
             setting -- ``--gt true`` in ``egs2/slurp/slu1/local/data.sh``. A
@@ -80,8 +87,9 @@ class SlurpDataset(BaseDataset):
     Examples:
         >>> dataset = SlurpDataset(split="devel")
         >>> sorted(dataset[0])
-        ['intent', 'reference_transcript', 'speech', 'text']
-        >>> sorted(SlurpDataset(split="devel", with_transcript=True)[0])
+        ['speech', 'text']
+        >>> sorted(SlurpDataset(split="devel", with_transcript=True,
+        ...                     with_references=True)[0])
         ['intent', 'reference_transcript', 'speech', 'text', 'transcript']
         >>> dataset[0]["text"].split(maxsplit=1)[0]
         'calendar_query'
@@ -91,8 +99,8 @@ class SlurpDataset(BaseDataset):
         Field("speech", "audio"),
         Field("text", "text"),
         Field("transcript", "text", optional=True),
-        Field("intent", "text"),
-        Field("reference_transcript", "text"),
+        Field("intent", "text", optional=True),
+        Field("reference_transcript", "text", optional=True),
     )
 
     def __init__(
@@ -102,6 +110,7 @@ class SlurpDataset(BaseDataset):
         source_dir: str | Path | None = None,
         with_transcript: bool = False,
         transcript_source: str | Path | None = None,
+        with_references: bool = False,
     ) -> None:
         self.split = str(split)
         if self.split not in _KNOWN_SPLITS:
@@ -116,6 +125,7 @@ class SlurpDataset(BaseDataset):
         ensure_built(recipe_root, source_dir=source_dir)
 
         self.with_transcript = bool(with_transcript)
+        self.with_references = bool(with_references)
         self._rows = read_manifest(get_manifest_path(recipe_root, self.split))
         self._transcripts = (
             read_hypothesis_transcripts(
@@ -135,9 +145,10 @@ class SlurpDataset(BaseDataset):
         sample = {
             "speech": np.asarray(array, dtype=np.float32),
             "text": f"{row['intent']} {row['transcript']}",
-            "intent": row["intent"],
-            "reference_transcript": row["transcript"],
         }
+        if self.with_references:
+            sample["intent"] = row["intent"]
+            sample["reference_transcript"] = row["transcript"]
         if self.with_transcript:
             sample["transcript"] = (
                 row["transcript"]

@@ -58,7 +58,7 @@ def normalize_transcript(sentence: str, lowercase: bool = False) -> str:
     return text.replace("<unk>", "unknown")
 
 
-def resolve_slurp_root(data_dir: str | Path) -> Path:
+def _resolve_slurp_root(data_dir: str | Path) -> Path:
     """Resolve one candidate directory to an on-disk SLURP root.
 
     Args:
@@ -128,7 +128,7 @@ def resolve_source_root(
     for candidate in iter_source_candidates(recipe_root, source_dir):
         checked.append(str(candidate))
         try:
-            return resolve_slurp_root(candidate)
+            return _resolve_slurp_root(candidate)
         except FileNotFoundError:
             continue
 

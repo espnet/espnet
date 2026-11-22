@@ -33,8 +33,10 @@ exp_dir: ${recipe_dir}/exp/${exp_tag}
 ##########################################################
 # The headline number is intent accuracy; WER and CER score the transcript on
 # its own. They read the `*_transcript` fields rather than the raw hypothesis,
-# so the intent label does not contaminate the word error rate -- a recipe's
-# `output_fn` is expected to split the decoded sequence into those fields.
+# so the intent label does not contaminate the word error rate --
+# `SLUInferenceRunner.format_output()` splits the decoded sequence into those
+# fields. `ref` comes from the dataset, so the corpus text is scored even when
+# the model's own transcript input is a first-pass hypothesis.
 metrics:
   - metric:
       _target_: espnet3.systems.esp2_slu.metrics.intent_accuracy.IntentAccuracy

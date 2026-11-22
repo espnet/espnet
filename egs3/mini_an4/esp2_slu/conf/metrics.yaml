@@ -1,0 +1,6 @@
+##########################################################
+#                     METRICS SETTING                    #
+##########################################################
+# Nothing to override: `egs3/TEMPLATE/esp2_slu/conf/metrics.yaml` already
+# scores intent accuracy plus transcript WER/CER. The file exists because
+# `--metrics_config` takes a path.

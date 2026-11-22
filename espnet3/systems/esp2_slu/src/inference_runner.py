@@ -4,7 +4,6 @@ from __future__ import annotations
 
 from espnet3.contract.kinds.audio import Audio
 from espnet3.systems.base.inference_runner import InferenceRunner
-from espnet3.systems.esp2_slu.src.slu_output import split_intent
 
 
 def _waveform(value):
@@ -57,10 +56,22 @@ class SLUInferenceRunner(InferenceRunner):
             ValueError: If called on a batch.
 
         Examples:
-            >>> result = [("news_query read the news", ["n"], [1], None)]
-            >>> SLUInferenceRunner.format_output(result, batched=False)
-            {'hyp': 'news_query read the news', 'hyp_intent': 'news_query', \
-'hyp_transcript': 'read the news'}
+            >>> nbest = [("news_query read the news", [], [], None)]
+            >>> out = SLUInferenceRunner.format_output(nbest, batched=False)
+            >>> out["hyp_intent"], out["hyp_transcript"]
+            ('news_query', 'read the news')
+
+            A label with no words after it, and an empty hypothesis: neither
+            may fail the stage.
+
+            >>> label = SLUInferenceRunner.format_output(
+            ...     [("news_query", [], [], None)], batched=False)
+            >>> label["hyp_intent"], label["hyp_transcript"]
+            ('news_query', '')
+            >>> empty = SLUInferenceRunner.format_output(
+            ...     [(None, [], [], None)], batched=False)
+            >>> empty["hyp"], empty["hyp_intent"], empty["hyp_transcript"]
+            ('', '', '')
         """
         if batched:
             raise ValueError(
@@ -68,7 +79,11 @@ class SLUInferenceRunner(InferenceRunner):
                 "Set `batch_size: null` in the inference config."
             )
         hyp = result[0][0] or ""
-        intent, transcript = split_intent(hyp)
+        # The first token is the intent label, the rest the words. A hypothesis
+        # can be empty or hold only a label, and neither may fail the stage.
+        parts = hyp.strip().split(maxsplit=1)
+        intent = parts[0] if parts else ""
+        transcript = parts[1] if len(parts) > 1 else ""
         return {"hyp": hyp, "hyp_intent": intent, "hyp_transcript": transcript}
 
 
@@ -107,10 +122,11 @@ class FirstPassTranscriptRunner(InferenceRunner):
             list of them.
 
         Examples:
-            >>> result = [("read the news", ["r"], [1], None)]
-            >>> FirstPassTranscriptRunner.format_output(result, batched=False)
-            {'hyp': 'read the news', 'hyp_intent': '', \
-'hyp_transcript': 'read the news'}
+            >>> nbest = [("read the news", [], [], None)]
+            >>> out = FirstPassTranscriptRunner.format_output(
+            ...     nbest, batched=False)
+            >>> out["hyp_transcript"], out["hyp_intent"]
+            ('read the news', '')
         """
 
         def one(hypotheses):

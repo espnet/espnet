@@ -31,15 +31,19 @@ dataset:
     - name: train
       data_src_args:
         split: train
+        with_references: true
     - name: train_synthetic
       data_src_args:
         split: train_synthetic
+        with_references: true
     - name: devel
       data_src_args:
         split: devel
+        with_references: true
     - name: test
       data_src_args:
         split: test
+        with_references: true
 
 model:
   _target_: espnet2.bin.asr_inference.Speech2Text

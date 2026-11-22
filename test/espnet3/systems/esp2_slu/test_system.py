@@ -6,7 +6,7 @@ import pytest
 from omegaconf import OmegaConf
 
 import espnet3.systems.esp2_slu.system as system_module
-from espnet3.systems.esp2_slu.system import ESP2SLUSystem, write_word_token_list
+from espnet3.systems.esp2_slu.system import ESP2SLUSystem, _write_word_token_list
 
 _INTENTS = ["audio_volume_mute", "calendar_query", "news_query"]
 _TEXTS = ["turn off the speakers", "read me the news"]
@@ -245,7 +245,7 @@ def test_a_hook_without_a_func_is_rejected(tmp_path, recipe_dir, hooks):
 
 def test_write_word_token_list_frames_the_vocabulary(tmp_path):
     """The layout `tokenize_text --token_type word` produces."""
-    path = write_word_token_list(tmp_path / "tokens.txt", ["b a", "c a"])
+    path = _write_word_token_list(tmp_path / "tokens.txt", ["b a", "c a"])
 
     assert path.read_text(encoding="utf-8").splitlines() == [
         "<blank>",

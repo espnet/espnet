@@ -33,11 +33,13 @@ dataset:
     - name: test
       data_src_args:
         split: test
+        with_references: true
         with_transcript: true
         transcript_source: ${recipe_dir}/exp/training_conformer/inference_transcripts
     - name: devel
       data_src_args:
         split: devel
+        with_references: true
         with_transcript: true
         transcript_source: ${recipe_dir}/exp/training_conformer/inference_transcripts
 

@@ -41,6 +41,21 @@ def gather_training_text(
     Raises:
         RuntimeError: If the selected splits hold no transcript text, which
             means ``create_dataset`` produced empty manifests.
+
+    Examples:
+        Wired in from a training config::
+
+            tokenizer:
+              text_builder:
+                func: src.tokenizer.gather_training_text
+                recipe_dir: ${recipe_dir}
+                splits: [train, train_synthetic]
+
+        Called directly, it returns the transcripts without their labels::
+
+            >>> gather_training_text(recipe_dir=".",
+            ...                      splits=["devel"])[:1]  # doctest: +SKIP
+            ["what's on my agenda at noon"]
     """
     recipe_root = (
         Path(recipe_dir).resolve() if recipe_dir is not None else Path.cwd().resolve()
@@ -71,6 +86,19 @@ def read_intent_labels(recipe_dir: str | Path) -> List[str]:
         FileNotFoundError: If the list is missing, meaning ``create_dataset``
             has not run yet.
         RuntimeError: If the file exists but is empty.
+
+    Examples:
+        Wired in as the tokenizer's reserved symbols::
+
+            tokenizer:
+              user_defined_symbols_builder:
+                func: src.tokenizer.read_intent_labels
+                recipe_dir: ${recipe_dir}
+
+        The labels are SLURP's ``scenario_action`` pairs::
+
+            >>> read_intent_labels(".")[:2]  # doctest: +SKIP
+            ['alarm_query', 'alarm_remove']
     """
     intents_path = get_intents_path(recipe_dir)
     if not intents_path.is_file():
@@ -124,6 +152,40 @@ def gather_transcript_text(
         FileNotFoundError: If ``transcript_source`` is set but the inference
             stage that fills it has not run for one of ``splits``.
         RuntimeError: If a hypothesis SCP does not line up with its manifest.
+
+    Examples:
+        With no source, the corpus transcripts -- what
+        ``train_slu_bert_conformer_deliberation.yaml`` trains on::
+
+            tokenizer:
+              transcript_token_list:
+                path: ${data_dir}/manifest/transcript_tokens.txt
+                text_builder:
+                  func: src.tokenizer.gather_transcript_text
+                  recipe_dir: ${recipe_dir}
+
+            >>> gather_transcript_text(recipe_dir=".",
+            ...                        splits=["devel"])[:1]  # doctest: +SKIP
+            ["what's on my agenda at noon"]
+
+        With a source, the first pass's own hypotheses -- what
+        ``..._deliberation_asr.yaml`` trains on, errors and all::
+
+            tokenizer:
+              transcript_token_list:
+                path: ${data_dir}/manifest/transcript_tokens.txt
+                text_builder:
+                  func: src.tokenizer.gather_transcript_text
+                  recipe_dir: ${recipe_dir}
+                  transcript_source:
+                    ${recipe_dir}/exp/training_conformer/inference_transcripts
+
+            >>> gather_transcript_text(
+            ...     recipe_dir=".",
+            ...     splits=["devel"],
+            ...     transcript_source="exp/training_conformer/inference_transcripts",
+            ... )[:1]  # doctest: +SKIP
+            ["what's on my agenda at noon"]
     """
     recipe_root = (
         Path(recipe_dir).resolve() if recipe_dir is not None else Path.cwd().resolve()

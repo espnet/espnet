@@ -44,7 +44,7 @@ def _call_hook(hook_config, what: str) -> List[str]:
     return values
 
 
-def write_word_token_list(token_list_path: str | Path, texts: Iterable[str]) -> Path:
+def _write_word_token_list(token_list_path: str | Path, texts: Iterable[str]) -> Path:
     """Write the word vocabulary of ``texts``, framed by the special symbols.
 
     The layout ``espnet2.bin.tokenize_text --token_type word`` produces, which
@@ -229,7 +229,7 @@ class ESP2SLUSystem(ASRSystem):
             "training_config.tokenizer.transcript_token_list.text_builder",
         )
         logger.info("Building transcript token list at %s", output_path)
-        return write_word_token_list(output_path, texts)
+        return _write_word_token_list(output_path, texts)
 
     def _resolve_train_text_path(self, save_path: Path) -> Path:
         """Return where the tokenizer training text goes, as the base stage does."""
