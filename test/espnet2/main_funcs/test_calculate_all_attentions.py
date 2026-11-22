@@ -8,6 +8,10 @@ from espnet2.asr.decoder.rnn_decoder import RNNDecoder
 from espnet2.legacy.nets.pytorch_backend.rnn.attentions import AttAdd
 from espnet2.legacy.nets.pytorch_backend.transformer.attention import (
     MultiHeadedAttention,
+    RelPositionMultiHeadedAttention,
+)
+from espnet2.legacy.nets.pytorch_backend.transformer.embedding import (
+    RelPositionalEncoding,
 )
 from espnet2.main_funcs.calculate_all_attentions import calculate_all_attentions
 from espnet2.train.abs_espnet_model import AbsESPnetModel
@@ -92,3 +96,67 @@ def test_calculate_all_attentions(atype):
                 att = att[None]
             for a in att:
                 assert a.shape == (batch["y_lengths"][i], batch["x_lengths"][i])
+
+
+class DummySDPA(AbsESPnetModel):
+    """Self-attention with SDPA, plain and relative-position, and its explicit copy."""
+
+    def __init__(self):
+        super().__init__()
+        self.att = MultiHeadedAttention(2, 10, 0.0, use_sdpa=True)
+        self.rel = RelPositionMultiHeadedAttention(2, 10, 0.0, use_sdpa=True)
+        self.pos = RelPositionalEncoding(10, 0.0)
+
+    def forward(self, x, x_lengths):
+        self.att(x, x, x, None)
+        x, pos = self.pos(x)
+        self.rel(x, x, x, pos, None)
+
+    def collect_feats(self, **batch: torch.Tensor):
+        return {}
+
+
+class NoWeights(MultiHeadedAttention):
+    """An attention layer whose forward never sets the weights."""
+
+    def forward(self, query, key, value, mask):
+        return query
+
+
+class DummyNoWeights(AbsESPnetModel):
+    def __init__(self):
+        super().__init__()
+        self.att = NoWeights(2, 10, 0.0)
+
+    def forward(self, x, x_lengths):
+        self.att(x, x, x, None)
+
+    def collect_feats(self, **batch: torch.Tensor):
+        return {}
+
+
+def test_calculate_all_attentions_sdpa_plots_the_explicit_weights():
+    torch.manual_seed(0)
+    model = DummySDPA().eval()
+    batch = {"x": torch.randn(2, 5, 10), "x_lengths": torch.tensor([5, 3])}
+    t = calculate_all_attentions(model, batch)
+    # the same layers on the explicit path give the plotted weights
+    for name in ("att", "rel"):
+        layer = getattr(model, name)
+        assert layer.use_sdpa and layer.attn is None  # restored
+        layer.use_sdpa = False
+        for i, n in enumerate(batch["x_lengths"]):
+            x = batch["x"][i : i + 1, :n]
+            if name == "att":
+                layer(x, x, x, None)
+            else:
+                xp, pos = model.pos(x)
+                layer(xp, xp, xp, pos, None)
+            assert torch.allclose(t[name][i], layer.attn[0])
+        layer.use_sdpa = True
+
+
+def test_calculate_all_attentions_skips_layers_without_weights():
+    model = DummyNoWeights()
+    batch = {"x": torch.randn(2, 5, 10), "x_lengths": torch.tensor([5, 3])}
+    assert calculate_all_attentions(model, batch) == {}
