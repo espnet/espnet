@@ -174,7 +174,7 @@ def prepare_manual_optimization(module):
     module.lr_schedulers = lambda: [
         scheduler_map[name] for name in module._multi_optimizer_names
     ]
-    module.manual_backward = lambda loss: loss.backward()
+    module.manual_backward = lambda loss, **kwargs: loss.backward(**kwargs)
     module._trainer = type("_Trainer", (), {"current_epoch": 0})()
 
     logged = {}

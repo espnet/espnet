@@ -234,6 +234,16 @@ class GANTTSLightningModule(ESPnetLightningModule):
         step = OptimizationStep(loss=output["loss"], name=name)
         return step, output["stats"], output.get("weight")
 
+    @staticmethod
+    def _trainable_parameters(optimizer) -> List[torch.nn.Parameter]:
+        """Return the parameters ``optimizer`` updates that require gradients."""
+        return [
+            parameter
+            for group in optimizer.param_groups
+            for parameter in group["params"]
+            if parameter.requires_grad
+        ]
+
     def _run_gan_optimizer_update(
         self,
         step: OptimizationStep,
@@ -243,7 +253,12 @@ class GANTTSLightningModule(ESPnetLightningModule):
         turn_name: str,
         forward_time: float,
     ) -> None:
-        """Backward, clip, step and log one turn against its named optimizer."""
+        """Backward, clip, step and log one turn against its named optimizer.
+
+        The backward is restricted to the parameters of the turn's own
+        optimizer, so a loss that also reaches the other network leaves that
+        network's accumulated gradients untouched.
+        """
         named_optimizers = self._get_named_optimizers()
         spec_by_name = {spec.name: spec for spec in self._optimizer_specs}
         name_to_idx = {
@@ -270,7 +285,16 @@ class GANTTSLightningModule(ESPnetLightningModule):
             optimizer.zero_grad()
 
         backward_start = time.perf_counter()
-        self.manual_backward(step.loss / spec.accum_grad_steps)
+        # Differentiate this turn's loss only with respect to the parameters
+        # its own optimizer updates. The generator loss reaches the
+        # discriminator through D(G(x)), so a plain backward would also add to
+        # the discriminator's gradients; with ``accum_grad_steps`` or
+        # ``step_every_n_iters`` above 1 those are still being accumulated
+        # and would be stepped with the other turn's loss mixed in.
+        self.manual_backward(
+            step.loss / spec.accum_grad_steps,
+            inputs=self._trainable_parameters(optimizer),
+        )
         extra_stats[f"{turn_name}_backward_time"] = time.perf_counter() - backward_start
         state.accum_counter += 1
 

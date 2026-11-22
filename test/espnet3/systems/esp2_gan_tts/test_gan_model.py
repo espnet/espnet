@@ -11,7 +11,9 @@ from types import SimpleNamespace
 
 import pytest
 import torch
+import torch.nn as nn
 
+from espnet2.train.abs_gan_espnet_model import AbsGANESPnetModel
 from espnet3.components.modeling.optimization_spec import OptimizationStep
 from espnet3.systems.esp2_gan_tts.src import gan_model
 from espnet3.systems.esp2_gan_tts.src.gan_model import (
@@ -443,6 +445,77 @@ def test_update_accumulates_before_stepping():
     assert module._optimizer_states["generator"].accum_counter == 0
     assert module._optimizer_states["generator"].update_step == 1
     assert logged["train/generator/update_step"] == 1.0
+
+
+class _CoupledGANModel(AbsGANESPnetModel):
+    """A GAN whose generator loss runs through the discriminator.
+
+    The generator turn backpropagates ``D(G(x))`` through both modules, as an
+    adversarial loss does; the discriminator turn scores ``x`` alone, so the
+    gradient it should step with does not depend on the generator.
+    """
+
+    def __init__(self):
+        """Create the two linear modules."""
+        super().__init__()
+        self.generator = nn.Linear(2, 2)
+        self.discriminator = nn.Linear(2, 1)
+
+    def forward(self, forward_generator: bool = True, **batch):
+        """Run one turn and return the GAN output dict."""
+        x = batch["x"]
+        if forward_generator:
+            loss = self.discriminator(self.generator(x)).sum()
+            optim_idx = 0
+        else:
+            loss = self.discriminator(x).sum()
+            optim_idx = 1
+        return {
+            "loss": loss,
+            "stats": {"loss": loss.detach()},
+            "weight": torch.tensor(float(x.shape[0])),
+            "optim_idx": optim_idx,
+        }
+
+    def collect_feats(self, **batch):
+        """Return no features; ``collect_stats`` is not exercised here."""
+        return {}
+
+
+@pytest.mark.parametrize("generator_first", [True, False])
+def test_accumulating_discriminator_holds_only_its_own_loss(generator_first):
+    """The generator turns between two discriminator backwards leave no trace.
+
+    Both optimizers accumulate over two batches. Every generator turn
+    backpropagates ``D(G(x))`` through the discriminator, and none of that may
+    reach the gradient the discriminator steps with, whichever turn runs first.
+    """
+    model = _CoupledGANModel()
+    module = make_module(
+        model, accum_grad_steps=2, gan={"generator_first": generator_first}
+    )
+    optimizer_map, _, _, _ = prepare_manual_optimization(module)
+    batches = [
+        (["u1", "u2"], {"x": torch.tensor([[0.1, 0.2], [0.5, 0.6]])}),
+        (["u3", "u4"], {"x": torch.tensor([[0.3, -0.4], [0.7, 0.1]])}),
+    ]
+    captured = []
+    original_step = optimizer_map["discriminator"].step
+
+    def step(*args, **kwargs):
+        """Snapshot the discriminator gradient, then step."""
+        captured.append(model.discriminator.weight.grad.detach().clone())
+        return original_step(*args, **kwargs)
+
+    optimizer_map["discriminator"].step = step
+
+    for batch_idx, batch in enumerate(batches):
+        module._step(batch, batch_idx, "train")
+
+    # d(sum(W x + b))/dW = sum of the rows of x, halved by the accumulation.
+    expected = sum(batch[1]["x"].sum(dim=0) for batch in batches) / 2
+    assert len(captured) == 1
+    assert torch.allclose(captured[0], expected.unsqueeze(0))
 
 
 def test_update_applies_gradient_clipping():
