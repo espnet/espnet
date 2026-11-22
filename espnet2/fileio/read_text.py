@@ -109,11 +109,13 @@ def load_num_sequence_text(
         >>> d = load_num_sequence_text('text')
         >>> np.testing.assert_array_equal(d["key1"], np.array([1, 2, 3]))
     """
+    # text_* values are separated by any whitespace (tabs, repeated spaces),
+    # like the "key value" split in read_2columns_text
     if loader_type == "text_int":
-        delimiter = " "
+        delimiter = None
         dtype = int
     elif loader_type == "text_float":
-        delimiter = " "
+        delimiter = None
         dtype = float
     elif loader_type == "csv_int":
         delimiter = ","
@@ -135,8 +137,9 @@ def load_num_sequence_text(
     retval = {}
     for k, v in d.items():
         try:
-            retval[k] = [dtype(i) for i in v.split(delimiter)]
-        except TypeError:
+            # "or [v]" keeps a key without values an error, as with csv_*
+            retval[k] = [dtype(i) for i in v.split(delimiter) or [v]]
+        except (TypeError, ValueError):
             logging.error(f'Error happened with path="{path}", id="{k}", value="{v}"')
             raise
     return retval
