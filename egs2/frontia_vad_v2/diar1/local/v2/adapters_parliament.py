@@ -15,6 +15,7 @@ import collections
 import csv
 import gzip
 import json
+import logging
 import re
 import tarfile
 from pathlib import Path
@@ -39,6 +40,18 @@ def _cut(x: np.ndarray, rate: int, start: float, end: float) -> np.ndarray:
     a = max(0, int(round(start * rate)))
     b = min(len(x), int(round(end * rate)))
     return x[a:b]
+
+
+MIN_CUT = 0.1  # seconds: a shorter cut (segment times past the recording) is skipped
+
+
+def _add_cut(writer, rec_id, x, rate, start, end, text, lang_sym, source, lang, mic):
+    """Add start..end (s) of x as a transcribed recording; skip a cut under MIN_CUT."""
+    y = _cut(x, rate, start, end)
+    if len(y) < MIN_CUT * rate:
+        writer.skip(source, f"segment outside the recording ({len(x) / rate:.2f} s)")
+        return False
+    return _add_text(writer, rec_id, y, rate, text, lang_sym, source, lang, mic=mic)
 
 
 def _open_tar(path: Path) -> tarfile.TarFile:
@@ -73,16 +86,25 @@ def voxpopuli_en(root, writers, shard: int, nshards: int, keep: float = 1.0):
     transcribed segments of each session; ARCHIVES/audios/en_<year>.tar holds
     the session audio as en/<year>/<session_id>_en.ogg. A segment is cut from
     its session; its text is original_text, else normed_text. Splits train and
-    dev are read; test and invalid are left out. Sessions are the shard units.
+    dev are read; test and invalid are left out; a segment id listed twice is
+    read once. Sessions are the shard units.
     """
     base = Path(root) / "ARCHIVES"
     segs: Dict[str, List[dict]] = collections.defaultdict(list)
+    seen, duplicates = set(), 0
     with gzip.open(
         base / "annotations" / "asr" / "asr_en.tsv.gz", "rt", encoding="utf-8"
     ) as f:
         for row in csv.DictReader(f, delimiter="|", quoting=csv.QUOTE_NONE):
-            if row["split"] in ("train", "dev"):
-                segs[row["session_id"]].append(row)
+            if row["split"] not in ("train", "dev"):
+                continue
+            if row["id_"] in seen:  # the tsv lists some segments twice
+                duplicates += 1
+                continue
+            seen.add(row["id_"])
+            segs[row["session_id"]].append(row)
+    if duplicates:
+        logging.info("voxpopuli_en: %d repeated segment ids left out", duplicates)
     by_year: Dict[str, List[str]] = collections.defaultdict(list)
     for s in sorted(segs):
         if mine_key(s, shard, nshards) and _keep(s, keep):
@@ -105,11 +127,13 @@ def voxpopuli_en(root, writers, shard: int, nshards: int, keep: float = 1.0):
                     if not text or text == "None":
                         text = r["normed_text"]
                     start, end = float(r["start_time"]), float(r["end_time"])
-                    _add_text(
+                    _add_cut(
                         w,
                         r["id_"],
-                        _cut(x, rate, start, end),
+                        x,
                         rate,
+                        start,
+                        end,
                         text,
                         "<eng>",
                         f"{source}@{start:.2f}-{end:.2f}",
@@ -258,11 +282,13 @@ def parczech4speech(root, writers, shard: int, nshards: int, keep: float = 1.0):
                     continue
                 for r in rows[fp]:
                     start, end = float(r["start"]), float(r["end"])
-                    _add_text(
+                    _add_cut(
                         writers[r["split"]],
                         f"{Path(fp).stem}_{start:.2f}",
-                        _cut(x, rate, start, end),
+                        x,
                         rate,
+                        start,
+                        end,
                         r["true_text"],
                         "<ces>",
                         f"{source}@{start:.2f}-{end:.2f}",
@@ -539,11 +565,13 @@ def harpervalleybank_a(root, writers, shard: int, nshards: int, pad: float = 0.2
             if x is None:
                 continue
             for start, end, text in _hvb_clips(segs, role, pad):
-                _add_text(
+                _add_cut(
                     w,
                     f"{sid}_{role}_{int(start * 1000):07d}",
-                    _cut(x, rate, start, end),
+                    x,
                     rate,
+                    start,
+                    end,
                     text,
                     "<eng>",
                     f"{source}@{start:.2f}-{end:.2f}",

@@ -371,3 +371,51 @@ def test_keep_is_a_fixed_share():
     assert 0.08 < len(kept) / len(keys) < 0.12
     assert kept == [k for k in keys if ap._keep(k, 0.1)]
     assert all(ap._keep(k, 1.0) for k in keys[:10])
+
+
+def test_voxpopuli_reads_a_repeated_segment_id_once(tmp_path):
+    base = tmp_path / "ARCHIVES"
+    (base / "annotations" / "asr").mkdir(parents=True)
+    (base / "audios").mkdir()
+    head = (
+        "id_|paragraph_id|session_id|speaker_id|original_text|normed_text|"
+        "decoded|start_time|end_time|cer|wer|vad|split|gender\n"
+    )
+    with gzip.open(base / "annotations" / "asr" / "asr_en.tsv.gz", "wt") as f:
+        f.write(head)
+        for _ in range(2):
+            f.write(
+                "s_1|p|20130114-0900-PLENARY-1|None|Once.|once||1.0|2.0|0|0|0|train|m\n"
+            )
+    with tarfile.open(base / "audios" / "en_2013.tar", "w") as t:
+        add_member(t, "en/2013/20130114-0900-PLENARY-1_en.ogg", audio(3, "OGG"))
+    w = run("voxpopuli_en", tmp_path)
+    assert [a["rec_id"] for a in w.added()] == ["s_1"]
+
+
+def test_a_segment_past_the_recording_is_skipped(tmp_path):
+    sid = "abc"
+    (tmp_path / "data" / "transcript").mkdir(parents=True)
+    segs = [
+        dict(
+            speaker_role="agent",
+            start_ms=500,
+            duration_ms=1000,
+            human_transcript="hello",
+        ),
+        dict(
+            speaker_role="agent",
+            start_ms=9000,
+            duration_ms=1000,
+            human_transcript="late",
+        ),
+    ]
+    (tmp_path / "data" / "transcript" / f"{sid}.json").write_text(json.dumps(segs))
+    for role in ("agent", "caller"):
+        d = tmp_path / "data" / "audio" / role
+        d.mkdir(parents=True)
+        (d / f"{sid}.wav").write_bytes(audio(3, rate=8000))
+    w = run("harpervalleybank_a", tmp_path)
+    assert [a["text"] for a in w.added()] == ["hello"]
+    reasons = [r for wr in w.values() for _, r in wr.skipped]
+    assert any("outside the recording" in r for r in reasons)
