@@ -308,11 +308,6 @@ class LibriTTSBuilder(DatasetBuilder):
             ```
         """
         dataset_root = Path(recipe_dir).resolve() / _CFG["dataset_path"]
-
-        if self.is_source_prepared(recipe_dir=recipe_dir):
-            logger.info("LibriTTS source data is already prepared, skipping download.")
-            return
-
         dataset_root.mkdir(parents=True, exist_ok=True)
         for subset in _required_subsets():
             _download_subset(dataset_root, subset, remove_archive=remove_archive)
