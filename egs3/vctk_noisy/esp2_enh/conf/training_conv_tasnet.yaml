@@ -2,9 +2,12 @@
 #               VCTK-NOISY TRAINING OVERRIDES            #
 ##########################################################
 # Quick usage:
-#   python run.py --stages create_dataset --training_config conf/training.yaml
-#   python run.py --stages collect_stats  --training_config conf/training.yaml
-#   python run.py --stages train          --training_config conf/training.yaml
+#   python run.py --stages create_dataset \
+#       --training_config conf/training_conv_tasnet.yaml
+#   python run.py --stages collect_stats \
+#       --training_config conf/training_conv_tasnet.yaml
+#   python run.py --stages train \
+#       --training_config conf/training_conv_tasnet.yaml
 #
 # Export VCTK_DEMAND with your VCTK-DEMAND root before running (see README.md).
 
@@ -76,9 +79,9 @@ model:
 #                OTHER TRAINING SETTING                  #
 ##########################################################
 best_model_criterion:
-  - - valid/si_snr
+  - - valid/si_snr_loss
     - 1
-    - max
+    - min
   - - valid/loss
     - 1
     - min

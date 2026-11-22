@@ -3,7 +3,7 @@
 ##########################################################
 # Common usage:
 #   python run.py --stages measure \
-#       --training_config conf/training.yaml \
+#       --training_config conf/training_conv_tasnet.yaml \
 #       --inference_config conf/inference.yaml \
 #       --metrics_config conf/metrics.yaml
 #

@@ -49,8 +49,8 @@ def resolve_dataset_dir(dataset_dir: str | Path | None = None) -> Path:
     raise ValueError(
         "VCTK-DEMAND root is not set. Either export "
         f"{_SOURCE_ENV_VAR}=/path/to/vctk_noisy or set dataset_dir in "
-        "conf/training.yaml (and conf/inference.yaml). It must point at the "
-        "directory that contains: " + ", ".join(_REQUIRED_DIRS) + "."
+        "conf/training_conv_tasnet.yaml (and conf/inference.yaml). It must point "
+        "at the directory that contains: " + ", ".join(_REQUIRED_DIRS) + "."
     )
 
 
