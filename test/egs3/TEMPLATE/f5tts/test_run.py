@@ -54,14 +54,32 @@ def test_parser_accepts_the_stage_names_and_config_options() -> None:
 
 
 def test_training_scaffold_names_the_keys_and_sets_no_model() -> None:
-    """The template only names the keys; a recipe's training config is complete."""
+    """The template names the keys and the F5-TTS schedule; a recipe adds the rest."""
     config = load_default_config("training.yaml", PACKAGE)
 
     # No ESPnet2 task bridge: an F5-TTS recipe instantiates `model._target_`.
     assert config.task is None
-    for key in ("model", "optimizer", "scheduler", "dataloader"):
+    for key in ("model", "dataloader"):
         assert key in config
         assert config[key] is None
+    # The optimizer and the schedule are the F5-TTS defaults, shared by every
+    # recipe; the decay spans the recipe's own `trainer.max_steps`.
+    plain = OmegaConf.to_container(config, resolve=False)
+    assert plain["optimizer"] == {
+        "_target_": "torch.optim.AdamW",
+        "lr": 7.5e-5,
+        "betas": [0.9, 0.999],
+        "weight_decay": 0.01,
+    }
+    assert plain["scheduler"] == {
+        "_target_": (
+            "espnet3.components.schedulers.linear_warmup_decay.LinearWarmupDecayLR"
+        ),
+        "warmup_steps": 20000,
+        "total_steps": "${trainer.max_steps}",
+    }
+    assert plain["scheduler_interval"] == "step"
+    assert "max_steps" not in plain["trainer"]
     # The dataset scaffold hands DataOrganizer its preprocessor as a config, so
     # it can pass `train=` itself; a recipe fills in the splits.
     dataset = config.dataset

@@ -107,18 +107,10 @@ model:
 ##########################################################
 #                OPTIMIZER / SCHEDULER SETTING           #
 ##########################################################
-optimizer:
-  _target_: torch.optim.AdamW
-  lr: 7.5e-5
-  betas: [0.9, 0.999]
-  weight_decay: 0.01
-
+# The optimizer and the schedule are the template's F5-TTS defaults; only the
+# warmup is cut down to the two steps this fixture runs.
 scheduler:
-  _target_: espnet3.components.schedulers.linear_warmup_decay.LinearWarmupDecayLR
   warmup_steps: 1
-  total_steps: ${trainer.max_steps}
-
-scheduler_interval: step
 
 ##########################################################
 #                OTHER TRAINING SETTING                  #

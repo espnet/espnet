@@ -13,9 +13,10 @@
 #
 # Merged over `egs3/TEMPLATE/f5tts/conf/training.yaml`, which holds the path
 # scaffold (`recipe_dir`, `data_dir`, `exp_tag`, `exp_dir`, `stats_dir`), the
-# `DataOrganizer` block, `parallel` and the Lightning trainer defaults. Only
-# what this recipe sets differently is here; `train` writes the merged config
-# to `${exp_dir}/config.yaml` for inference and the packed model.
+# `DataOrganizer` block, the F5-TTS optimizer and schedule, `parallel` and the
+# Lightning trainer defaults. Only what this recipe sets differently is here;
+# `train` writes the merged config to `${exp_dir}/config.yaml` for inference
+# and the packed model.
 num_device: 4
 
 # Mel / audio front-end settings shared by feats_extract and the model.
@@ -111,17 +112,8 @@ model:
   # No mel block here: the flow-matching wrapper derives its mel from
   # feats_extract_config, so the two front ends cannot drift apart.
 
-optimizer:
-  _target_: torch.optim.AdamW
-  lr: 7.5e-5
-  betas: [0.9, 0.999]      # F5-TTS uses AdamW defaults
-  weight_decay: 0.01
-
-scheduler:
-  _target_: espnet3.components.schedulers.linear_warmup_decay.LinearWarmupDecayLR
-  warmup_steps: 20000
-  total_steps: ${trainer.max_steps}
-scheduler_interval: step
+# The optimizer and the schedule are the template's F5-TTS defaults (AdamW at
+# 7.5e-5, 20,000 warmup steps, linear decay over `trainer.max_steps` below).
 
 best_model_criterion:
   - - valid/loss
