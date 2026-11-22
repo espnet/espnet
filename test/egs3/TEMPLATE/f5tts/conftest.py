@@ -182,7 +182,7 @@ TRAINING_CONFIG = {
     "fit": {},
 }
 
-# The template names the Inference and rebuilds it from `${exp_dir}/config.yaml`;
+# The template names F5TTSInference and rebuilds it from `${exp_dir}/config.yaml`;
 # a recipe adds the sampling settings.
 INFERENCE_CONFIG = {
     "model": {

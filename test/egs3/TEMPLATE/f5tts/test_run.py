@@ -1,5 +1,6 @@
 """Tests for the egs3/TEMPLATE/f5tts scaffold configs and the recipe's launch."""
 
+import inspect
 from pathlib import Path
 
 import pytest
@@ -92,10 +93,11 @@ def test_training_scaffold_names_the_keys_and_sets_no_model() -> None:
 
 
 def test_inference_scaffold_rebuilds_the_model_from_the_trained_config() -> None:
-    """Template inference builds ``Inference`` from ``${exp_dir}/config.yaml``."""
+    """Template inference builds the engine from ``${exp_dir}/config.yaml``."""
     config = load_default_config("inference.yaml", PACKAGE)
 
-    assert config.model._target_ == "espnet3.systems.f5tts.src.inference.Inference"
+    # The engine is named directly; the shared runner needs no wrapper.
+    assert config.model._target_ == "espnet3.systems.f5tts.src.inference.F5TTSInference"
     model = OmegaConf.to_container(config.model, resolve=False)
     # `train` writes config.yaml beside the checkpoint; no training file is named.
     assert model["train_config"] == "${exp_dir}/config.yaml"
@@ -118,23 +120,27 @@ def test_inference_scaffold_rebuilds_the_model_from_the_trained_config() -> None
     )
 
 
-def test_inference_scaffold_declares_the_contract_the_inference_class_has() -> None:
-    """The YAML contract and ``Inference``'s own fields describe one interface.
+def test_inference_scaffold_declares_the_contract_the_engine_is_called_with() -> None:
+    """The YAML contract names the arguments ``F5TTSInference`` is called with.
 
-    The runner checks the YAML; the class attributes document the class. The
-    two must not drift apart.
+    The runner checks the YAML and calls the engine with the declared inputs
+    by name, so the two must not drift apart.
     """
     config = load_default_config("inference.yaml", PACKAGE)
-    inference_class = get_class(config.model._target_)
+    engine_class = get_class(config.model._target_)
 
     contract = load_inference_contract(OmegaConf.to_container(config.contract))
     assert [(f.name, f.kind, f.optional, f.label) for f in contract.inputs] == [
-        (f.name, f.kind, f.optional, f.label) for f in inference_class.inputs
+        ("text", "text", False, "Text to synthesize"),
+        ("reference_speech", "audio", False, "Reference speech (voice to clone)"),
+        ("reference_text", "text", False, "Reference transcript"),
     ]
     assert [(f.name, f.kind, f.label) for f in contract.outputs] == [
-        (f.name, f.kind, f.label) for f in inference_class.outputs
+        ("wav", "audio", "Synthesized speech")
     ]
     contract.validate_input_keys(list(config.input_key))  # raises on mismatch
+    call_arguments = inspect.signature(engine_class.__call__).parameters
+    assert all(field.name in call_arguments for field in contract.inputs)
 
     # The reference reaches the model at the vocoder's rate, first channel
     # only (a stereo recording is reduced, not rejected); the waveform comes
@@ -181,7 +187,7 @@ def test_metrics_scaffold_is_the_f5tts_protocol() -> None:
 
 
 def test_metrics_scaffold_binds_the_inference_declaration() -> None:
-    """``wav`` is the Inference's audio output; the references are dataset columns."""
+    """``wav`` is the model's audio output; the references are dataset columns."""
     from hydra.utils import instantiate
 
     from espnet3.contract.metrics import check_metric_inputs
@@ -191,11 +197,12 @@ def test_metrics_scaffold_binds_the_inference_declaration() -> None:
     (entry,) = metrics_config.metrics
     metric = instantiate(entry.metric)
 
-    # The metric's `wav` input is the field the Inference returns and the
-    # infer stage writes; the metrics config binds it to that SCP stem.
-    assert [f.name for f in get_class(inference_config.model._target_).outputs] == [
-        "wav"
-    ]
+    # The metric's `wav` input is the field the model returns and the infer
+    # stage writes; the metrics config binds it to that SCP stem.
+    contract = load_inference_contract(
+        OmegaConf.to_container(inference_config.contract)
+    )
+    assert [f.name for f in contract.outputs] == ["wav"]
     assert check_metric_inputs(metric, entry.inputs) == {
         "wav": "wav",
         "ref": "dataset:ref_wav_path",

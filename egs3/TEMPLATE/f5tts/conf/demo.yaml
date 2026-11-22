@@ -18,7 +18,8 @@ recipe_dir: .
 # (resolved relative to the packed demo directory at runtime) or a Hugging
 # Face model tag, loaded through `espnet3.publication.InferenceModel`. The
 # packed inference config names only
-# `espnet3.systems.f5tts.src.inference.Inference` and declares its contract
+# `espnet3.systems.f5tts.src.inference.F5TTSInference` and declares its
+# contract
 # inline, so the bundle's own code is never imported and `trust_user_code`
 # stays false. The model takes no call-time arguments; sampling settings live
 # in the packed `conf/inference.yaml`.

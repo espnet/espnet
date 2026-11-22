@@ -29,7 +29,7 @@ data_dir: ${recipe_dir}/data
 # (`${exp_dir}/last.ckpt` and `${exp_dir}/config.yaml`, both copied with
 # `${exp_dir}`), and the token list that config points at, which the recipe
 # names in `include` (`[${data_dir}/<token list dir>]`). No recipe code is
-# shipped: the packed inference config names only the system's `Inference`
+# shipped: the packed inference config names only the system's `F5TTSInference`
 # and declares its contract inline, so the bundle loads with
 # `trust_user_code=False`; `src/app.py` is read from the recipe by
 # `pack_demo`, not from the bundle, and the `dataset/` package is not needed

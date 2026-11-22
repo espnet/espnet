@@ -70,7 +70,7 @@
 # the speaker similarity is generated-vs-prompt (the SIM-o definition) by
 # construction, and `text`, the target transcript the WER scores against.
 # An eval dataset for this template therefore serves `text`,
-# `reference_speech`, `reference_text` (the Inference's inputs), `utt_id`
+# `reference_speech`, `reference_text` (the model's inputs), `utt_id`
 # and `ref_wav_path`.
 
 recipe_dir: .

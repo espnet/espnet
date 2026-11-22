@@ -31,8 +31,8 @@ parallel:
   # another run may still be writing to the same output directory.
   allow_overwrite_lock: false
 
-# The model is the system's `Inference`: it builds the F5-TTS engine from the
-# arguments below and synthesizes the target text in the voice of the
+# The model is the system's `F5TTSInference`, named directly: it is built from
+# the arguments below and synthesizes the target text in the voice of the
 # reference. The runner reads `input_key` out of each test item by name and
 # checks the inputs and the returned `wav` against `contract` below, which
 # `InferenceModel` and the demo apply too; the checked waveform is written as
@@ -43,20 +43,20 @@ parallel:
 # The model is rebuilt from `${exp_dir}/config.yaml`, the training config
 # `train` wrote beside the checkpoint, so whatever `--training_config` trained
 # `exp_dir` is the one inference loads; a recipe never names a training file
-# here. A recipe adds the sampling arguments of
-# `espnet3.systems.f5tts.src.inference.F5TTSInference` (`ode_solver_steps`,
-# `guidance_strength`, `sway_sampling_coefficient`, `speed`, `seed`, ...).
+# here. A recipe adds the sampling arguments of `F5TTSInference`
+# (`ode_solver_steps`, `guidance_strength`, `sway_sampling_coefficient`,
+# `speed`, `seed`, ...).
 model:
-  _target_: espnet3.systems.f5tts.src.inference.Inference
+  _target_: espnet3.systems.f5tts.src.inference.F5TTSInference
   train_config: ${exp_dir}/config.yaml
   checkpoint_path: ${exp_dir}/last.ckpt
   use_ema: true
 
-# The three inputs of `Inference`, picked out of each test item by name; they
+# The three inputs of the model, picked out of each test item by name; they
 # must be exactly the names `contract.inputs` declares.
 input_key: [text, reference_speech, reference_text]
 
-# One utterance per model call (`null`); `Inference` also takes lists.
+# One utterance per model call (`null`); the model also takes lists.
 batch_size:
 
 # What the model takes and returns, checked around every call: the `infer`

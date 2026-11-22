@@ -21,7 +21,6 @@ from espnet3.systems.base.inference_runner import InferenceRunner
 from espnet3.systems.f5tts.src.f5tts import F5TTS
 from espnet3.systems.f5tts.src.inference import (
     F5TTSInference,
-    Inference,
     _chunk_text,
     _cross_fade,
 )
@@ -684,156 +683,41 @@ def test_a_chunk_that_generates_no_frames_is_dropped(engine, monkeypatch):
     np.testing.assert_array_equal(wav, np.zeros(1, dtype=np.float32))
 
 
-# --------------------------------------------------------------- Inference
-
-
-class _RecordingEngine:
-    """Stands in for F5TTSInference: remembers what ``infer_one`` was given."""
-
-    target_sample_rate = 24000
-
-    def __init__(self):
-        """Start with no recorded calls."""
-        self.calls = []
-
-    def infer_one(self, target_text, reference_audio, reference_text):
-        """Record the arguments and return a short constant waveform."""
-        self.calls.append((target_text, reference_audio, reference_text))
-        return np.full(480, 0.25, dtype=np.float32)
-
-
-def test_inference_declares_the_f5tts_fields():
-    """``Inference`` declares three required inputs and one audio output."""
-    assert [field.name for field in Inference.inputs] == [
-        "text",
-        "reference_speech",
-        "reference_text",
-    ]
-    # All required: a missing transcript is refused, not guessed.
-    assert [field.optional for field in Inference.inputs] == [False, False, False]
-    assert [(field.name, field.kind) for field in Inference.outputs] == [
-        ("wav", "audio")
-    ]
-
-
-def test_inference_returns_the_waveform_at_the_vocoder_rate():
-    """The output is the engine's float32 waveform, as an Audio at its rate."""
-    backend = _RecordingEngine()
-    model = Inference(backend)
-
-    output = model("hello", np.zeros(2400, dtype=np.float32), "a prompt")
-
-    assert model.sample_rate == 24000
-    assert isinstance(output["wav"], Audio)
-    assert output["wav"].rate == 24000
-    assert output["wav"].array.dtype == np.float32
-    assert output["wav"].array.shape == (480,)
-    text, reference_audio, reference_text = backend.calls[0]
-    assert (text, reference_text) == ("hello", "a prompt")
-    assert reference_audio.shape == (2400,)
-
-
-def test_inference_resamples_what_gradio_hands_over():
-    """A ``(rate, int16 samples)`` pair reaches the engine as float at 24 kHz."""
-    backend = _RecordingEngine()
-    model = Inference(backend)
-    one_second_at_48k = (48000, np.full(48000, 16384, dtype=np.int16))
-
-    model(text="hello", reference_speech=one_second_at_48k, reference_text="hi")
-
-    _, reference_audio, reference_text = backend.calls[0]
-    assert reference_audio.dtype == np.float32
-    assert abs(len(reference_audio) - 24000) <= 1
-    assert abs(float(np.median(reference_audio)) - 0.5) < 0.01
-    assert reference_text == "hi"
-
-
-def test_inference_reads_a_reference_file(tmp_path):
-    """A path is read and resampled to the engine's rate."""
-    import soundfile as sf
-
-    path = tmp_path / "prompt.wav"
-    sf.write(path, np.zeros(16000, dtype=np.float32), 16000)
-    backend = _RecordingEngine()
-
-    Inference(backend)("hello", str(path), "a prompt")
-
-    assert abs(len(backend.calls[0][1]) - 24000) <= 1
-
-
-def test_inference_downmixes_a_stereo_reference():
-    """A stereo ``(rate, samples)`` reference reaches the engine as mono."""
-    backend = _RecordingEngine()
-    stereo = np.zeros((2400, 2), dtype=np.float32)
-
-    Inference(backend)("hello", (24000, stereo), "a prompt")
-
-    assert backend.calls[0][1].ndim == 1
-
-
-def test_inference_requires_text_a_reference_and_its_transcript():
-    """Each missing input is refused by name, an empty transcript included."""
-    model = Inference(_RecordingEngine())
-    audio = np.zeros(2400, dtype=np.float32)
-
-    with pytest.raises(TypeError, match="reference_speech"):
-        model("hello", reference_text="a prompt")
-    with pytest.raises(TypeError, match="text"):
-        model(reference_speech=audio, reference_text="a prompt")
-    with pytest.raises(TypeError, match="reference_text"):
-        model("hello", audio)
-    # An empty box in the demo arrives as None, which counts as not given.
-    with pytest.raises(TypeError, match="reference_text"):
-        model("hello", audio, None)
-    with pytest.raises(TypeError, match="reference_speech"):
-        model("hello", 42, "a prompt")
-
-
-def test_inference_runs_a_batch_item_by_item():
-    """Lists run the engine once per item, in order, and give one dict each."""
-    backend = _RecordingEngine()
-    model = Inference(backend)
-    reference = np.zeros(2400, dtype=np.float32)
-
-    outputs = model(["first", "second"], [reference, reference], ["a", "b"])
-
-    assert [output["wav"].array.shape for output in outputs] == [(480,), (480,)]
-    assert [call[0] for call in backend.calls] == ["first", "second"]
-    assert [call[2] for call in backend.calls] == ["a", "b"]
-    with pytest.raises(TypeError, match="length"):
-        model(["first", "second"], [reference], ["a", "b"])
-
-
-def test_inference_builds_the_engine_from_its_own_arguments(
-    train_config, checkpoint_path, stub_vocoder
-):
-    """What ``inference.yaml`` does: the class takes the engine's arguments."""
-    model = Inference(
-        train_config=str(train_config),
-        checkpoint_path=str(checkpoint_path),
-        device="cpu",
-        ode_solver_steps=2,
-        cross_fade_duration=0.0,
-        seed=0,
-    )
-
-    assert isinstance(model.backend, F5TTSInference)
-    output = model("abc", np.random.RandomState(0).randn(4800).astype(np.float32), "ab")
-    assert output["wav"].array.dtype == np.float32
-    assert output["wav"].array.ndim == 1
-    with pytest.raises(TypeError, match="not both"):
-        Inference(model.backend, device="cpu")
-    with pytest.raises(TypeError, match="needs an engine"):
-        Inference()
+# ------------------------------------------------- through the infer runner
+#
+# The template names the engine directly as the runner's model: the contract
+# shapes the inputs, the engine synthesizes, the contract checks the output.
 
 
 def _template_contract():
-    """The contract ``egs3/TEMPLATE/f5tts/conf/inference.yaml`` declares."""
+    """Return the contract ``egs3/TEMPLATE/f5tts/conf/inference.yaml`` declares."""
     config = load_default_config("inference.yaml", "egs3.TEMPLATE.f5tts")
     return load_inference_contract(OmegaConf.to_container(config.contract))
 
 
-def test_inference_serves_the_infer_stage_runner(engine):
+def _runner_item(utt_id, reference):
+    """One test item as an F5-TTS eval dataset serves it."""
+    return {
+        "utt_id": utt_id,
+        "text": "abc",
+        "reference_speech": reference,
+        "reference_text": "ab",
+        "speaker": "ignored",
+    }
+
+
+def _forward(idx, dataset, engine):
+    """Run the shared runner on ``idx`` with the template's contract."""
+    return InferenceRunner.forward(
+        idx,
+        dataset=dataset,
+        model=engine,
+        input_key=["text", "reference_speech", "reference_text"],
+        inference_contract=_template_contract(),
+    )
+
+
+def test_the_engine_serves_the_infer_stage_runner(engine):
     """The runner reads ``input_key``, checks the contract and stamps the ``utt_id``.
 
     What the template inference config says: the three inputs are picked out
@@ -841,25 +725,9 @@ def test_inference_serves_the_infer_stage_runner(engine):
     back as an Audio at the contract's rate, and undeclared columns are
     ignored.
     """
-    model = Inference(engine)
     reference = np.random.RandomState(0).randn(4800).astype(np.float32)
-    dataset = {
-        0: {
-            "utt_id": "u0",
-            "text": "abc",
-            "reference_speech": reference,
-            "reference_text": "ab",
-            "speaker": "ignored",
-        }
-    }
 
-    output = InferenceRunner.forward(
-        0,
-        dataset=dataset,
-        model=model,
-        input_key=["text", "reference_speech", "reference_text"],
-        inference_contract=_template_contract(),
-    )
+    output = _forward(0, {0: _runner_item("u0", reference)}, engine)
 
     assert output["utt_id"] == "u0"
     assert isinstance(output["wav"], Audio) and output["wav"].rate == 24000
@@ -867,36 +735,72 @@ def test_inference_serves_the_infer_stage_runner(engine):
     assert "speaker" not in output
 
 
-def test_the_contract_shapes_the_reference_before_the_model_sees_it():
+def test_the_runner_maps_a_batch_over_the_engine(engine):
+    """A batch of indices gives one checked record per item, in order."""
+    reference = np.random.RandomState(0).randn(4800).astype(np.float32)
+    dataset = {i: _runner_item(f"u{i}", reference) for i in range(2)}
+
+    outputs = _forward([0, 1], dataset, engine)
+
+    assert [output["utt_id"] for output in outputs] == ["u0", "u1"]
+    for output in outputs:
+        assert isinstance(output["wav"], Audio) and output["wav"].rate == 24000
+        assert output["wav"].array.ndim == 1 and output["wav"].array.size > 0
+
+
+def test_the_contract_shapes_the_reference_before_the_engine_sees_it(
+    engine, monkeypatch
+):
     """A stereo 48 kHz Gradio pair reaches the engine mono at 24 kHz."""
-    backend = _RecordingEngine()
+    seen = []
+    infer_one = engine.infer_one
+
+    def recording_infer_one(target_text, reference_audio, reference_text):
+        """Remember the reference the runner handed over, then synthesize."""
+        seen.append(reference_audio)
+        return infer_one(target_text, reference_audio, reference_text)
+
+    monkeypatch.setattr(engine, "infer_one", recording_infer_one)
     stereo_at_48k = (48000, np.zeros((48000, 2), dtype=np.int16))
-    dataset = {
-        "u1": {
-            "text": "hello",
-            "reference_speech": stereo_at_48k,
-            "reference_text": "hi",
-        }
-    }
 
-    output = InferenceRunner.forward(
-        "u1",
-        dataset=dataset,
-        model=Inference(backend),
-        input_key=["text", "reference_speech", "reference_text"],
-        inference_contract=_template_contract(),
-    )
+    output = _forward("u1", {"u1": _runner_item("u1", stereo_at_48k)}, engine)
 
-    _, reference_audio, _ = backend.calls[0]
-    assert reference_audio.ndim == 1
-    assert abs(len(reference_audio) - 24000) <= 1
+    (reference_audio,) = seen
+    assert isinstance(reference_audio, Audio) and reference_audio.rate == 24000
+    assert reference_audio.array.ndim == 1
+    assert abs(len(reference_audio.array) - 24000) <= 1
     assert output["utt_id"] == "u1"
     # A missing input is refused by the contract before the model runs.
+    incomplete = _runner_item("u2", stereo_at_48k)
+    del incomplete["reference_text"]
     with pytest.raises(KeyError, match="reference_text"):
-        InferenceRunner.forward(
-            "u2",
-            dataset={"u2": {"text": "hello", "reference_speech": stereo_at_48k}},
-            model=Inference(backend),
-            input_key=["text", "reference_speech", "reference_text"],
-            inference_contract=_template_contract(),
-        )
+        _forward("u2", {"u2": incomplete}, engine)
+    assert len(seen) == 1
+
+
+def test_a_reference_file_is_read_by_the_contract(engine, tmp_path):
+    """A path is read and resampled by the contract, not by the engine."""
+    import soundfile
+
+    path = tmp_path / "prompt.wav"
+    soundfile.write(path, np.zeros(8000, dtype=np.float32), 16000)
+
+    output = _forward(0, {0: _runner_item("u0", str(path))}, engine)
+
+    assert isinstance(output["wav"], Audio) and output["wav"].rate == 24000
+
+
+def test_an_audio_reference_is_taken_at_its_own_rate(engine):
+    """The engine accepts an ``Audio`` and refuses one at another rate."""
+    samples = np.random.RandomState(0).randn(4800).astype(np.float32)
+
+    wav = engine.infer_one("abc", Audio(samples, 24000), "ab")
+    assert wav.dtype == np.float32 and wav.ndim == 1
+
+    with pytest.raises(ValueError, match="16000 Hz but the model takes 24000 Hz"):
+        engine.infer_one("abc", Audio(samples, 16000), "ab")
+
+
+def test_sample_rate_is_the_rate_the_contract_defaults_to(engine):
+    """``sample_rate`` exposes the engine's rate to a contract that names none."""
+    assert engine.sample_rate == engine.target_sample_rate == 24000

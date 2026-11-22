@@ -85,7 +85,7 @@ def test_demo_scaffold_leaves_the_widgets_to_the_inference_contract() -> None:
     assert config.ui.get("inputs") is None
     assert config.ui.get("outputs") is None
     assert config.ui.app_script == "src/app.py"
-    # The packed inference config names only the system's Inference and
+    # The packed inference config names only the system's F5TTSInference and
     # declares its contract inline, so the bundle's own code is never imported.
     assert config.model.trust_user_code is False
     assert "call_args" not in config.model
@@ -144,7 +144,7 @@ def test_packed_model_loads_and_synthesizes_after_moving(
 
     model = InferenceModel.from_packed(moved)
 
-    assert type(model.model).__name__ == "Inference"
+    assert type(model.model).__name__ == "F5TTSInference"
     assert model.model.sample_rate == 24000
     output = model(_item())
     assert isinstance(output["wav"], Audio)
@@ -154,7 +154,7 @@ def test_packed_model_loads_and_synthesizes_after_moving(
 
 
 def test_packed_model_needs_no_bundled_code(recipe_dir, stub_vocoder):
-    """The packed config names only the system's Inference and its contract.
+    """The packed config names only the system's F5TTSInference and its contract.
 
     Nothing in the bundle itself is imported, so it loads untrusted; the
     contract travels in the config, not in code.
@@ -164,7 +164,8 @@ def test_packed_model_needs_no_bundled_code(recipe_dir, stub_vocoder):
 
     packed = yaml.safe_load((bundle / "conf" / "inference.yaml").read_text())
     assert (
-        packed["model"]["_target_"] == "espnet3.systems.f5tts.src.inference.Inference"
+        packed["model"]["_target_"]
+        == "espnet3.systems.f5tts.src.inference.F5TTSInference"
     )
     assert packed["input_key"] == ["text", "reference_speech", "reference_text"]
     assert "output_fn" not in packed
