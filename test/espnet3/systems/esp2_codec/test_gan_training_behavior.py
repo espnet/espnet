@@ -39,16 +39,19 @@ class CoupledGANModel(AbsGANESPnetModel):
     outputs are cached between the turns the way espnet2's codecs do
     (``cache_generator_outputs`` / ``_cache``): a turn that finds the cache
     reuses and clears it, otherwise it runs the generator and, in training,
-    stores the result. ``calls`` records each turn with a snapshot of the
-    other module's weight, so a test can tell what each turn saw.
+    stores the result. ``detach_generator_outputs=False`` leaves the
+    discriminator loss attached to the generator as well, so both losses reach
+    both modules. ``calls`` records each turn with a snapshot of the other
+    module's weight, so a test can tell what each turn saw.
     """
 
-    def __init__(self, cache_generator_outputs=True):
+    def __init__(self, cache_generator_outputs=True, detach_generator_outputs=True):
         """Create the two linear modules and the empty cache."""
         super().__init__()
         self.generator = nn.Linear(2, 2)
         self.discriminator = nn.Linear(2, 1)
         self.cache_generator_outputs = cache_generator_outputs
+        self.detach_generator_outputs = detach_generator_outputs
         self._cache = None
         self.generator_runs = 0
         self.calls = []
@@ -75,7 +78,9 @@ class CoupledGANModel(AbsGANESPnetModel):
             optim_idx = 0
         else:
             self.calls.append(("discriminator", self.generator.weight.detach().clone()))
-            loss = self.discriminator(x).sum() - self.discriminator(fake.detach()).sum()
+            if self.detach_generator_outputs:
+                fake = fake.detach()
+            loss = self.discriminator(x).sum() - self.discriminator(fake).sum()
             optim_idx = 1
         return {
             "loss": loss,
@@ -266,6 +271,88 @@ def test_accumulated_gradient_equals_the_micro_batch_mean(tmp_path, accum):
     assert torch.allclose(d_grads[0], expected)
     assert module._optimizer_states["generator"].update_step == 1
     assert module._optimizer_states["discriminator"].update_step == 1
+
+
+@pytest.mark.parametrize("generator_first", [True, False])
+@pytest.mark.parametrize("cache_generator_outputs", [True, False])
+def test_accumulating_discriminator_holds_only_its_own_loss(
+    tmp_path, generator_first, cache_generator_outputs
+):
+    """The generator turns between two discriminator backwards leave no trace.
+
+    The discriminator accumulates over two batches while the generator steps
+    on each one. Its generator turns backpropagate ``D(G(x))`` through the
+    discriminator, and none of that may reach the gradient the discriminator
+    steps with, whichever turn runs first and with or without the cache.
+    """
+    model = CoupledGANModel(cache_generator_outputs=cache_generator_outputs)
+    # A generator learning rate of 0 keeps G fixed, so the expected gradient
+    # is the discriminator loss of the two batches on the initial weights.
+    module, (optimizers, _, _, _) = make_module(
+        tmp_path,
+        model=model,
+        gan={"generator_first": generator_first},
+        optimizers=make_optimizers(
+            generator={"optimizer": {"_target_": "torch.optim.SGD", "lr": 0.0}},
+            discriminator={"accum_grad_steps": 2},
+        ),
+    )
+    reference = copy.deepcopy(model)
+    batches = [
+        make_batch([[0.1, 0.2], [0.5, 0.6]]),
+        make_batch([[0.3, -0.4], [0.7, 0.1]]),
+    ]
+    captured = spy_grad_at_step(optimizers["discriminator"], model.discriminator.weight)
+
+    for idx, batch in enumerate(batches):
+        module._step(batch, idx, "train")
+
+    reference.zero_grad()
+    for _, data in batches:
+        x = data["x"]
+        fake = reference.generator(x).detach()
+        loss = reference.discriminator(x).sum() - reference.discriminator(fake).sum()
+        (loss / 2).backward()
+    assert len(captured) == 1
+    assert torch.allclose(captured[0], reference.discriminator.weight.grad)
+
+
+@pytest.mark.parametrize("generator_first", [True, False])
+def test_accumulating_generator_holds_only_its_own_loss(tmp_path, generator_first):
+    """A discriminator loss attached to the generator stays out of G's update.
+
+    The mirror case: the generator accumulates over two batches and the
+    discriminator loss is not detached from the generator's output, so every
+    discriminator turn backpropagates into the generator too.
+    """
+    model = CoupledGANModel(
+        cache_generator_outputs=False, detach_generator_outputs=False
+    )
+    module, (optimizers, _, _, _) = make_module(
+        tmp_path,
+        model=model,
+        gan={"generator_first": generator_first},
+        optimizers=make_optimizers(
+            generator={"accum_grad_steps": 2},
+            discriminator={"optimizer": {"_target_": "torch.optim.SGD", "lr": 0.0}},
+        ),
+    )
+    reference = copy.deepcopy(model)
+    batches = [
+        make_batch([[0.1, 0.2], [0.5, 0.6]]),
+        make_batch([[0.3, -0.4], [0.7, 0.1]]),
+    ]
+    captured = spy_grad_at_step(optimizers["generator"], model.generator.weight)
+
+    for idx, batch in enumerate(batches):
+        module._step(batch, idx, "train")
+
+    reference.zero_grad()
+    for _, data in batches:
+        loss = reference.discriminator(reference.generator(data["x"])).sum()
+        (loss / 2).backward()
+    assert len(captured) == 1
+    assert torch.allclose(captured[0], reference.generator.weight.grad)
 
 
 def test_different_accumulation_intervals_per_optimizer(tmp_path):

@@ -140,7 +140,7 @@ def prepare_manual_optimization(module, configured):
         spec.name: scheduler
         for spec, scheduler in zip(module._scheduler_specs, configured[1])
     }
-    module.manual_backward = lambda loss: loss.backward()
+    module.manual_backward = lambda loss, **kwargs: loss.backward(**kwargs)
     module.optimizers = lambda use_pl_optimizer=True: [
         optimizer_map[name] for name in module._multi_optimizer_names
     ]
