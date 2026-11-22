@@ -13,7 +13,15 @@ from espnet3.publication.demo.packing import pack_demo, upload_demo
 from espnet3.utils.config_utils import load_and_merge_config
 
 
+@pytest.fixture
+def app_script(tmp_path):
+    path = tmp_path / "standalone.py"
+    path.write_text("print('standalone demo')\n", encoding="utf-8")
+    return path
+
+
 def test_pack_demo_writes_assets(
+    app_script: Path,
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -29,7 +37,7 @@ def test_pack_demo_writes_assets(
                 "dir_or_tag": str(model_pack_dir),
             },
             "ui": {
-                "app_script": "egs3/TEMPLATE/asr/src/app.py",
+                "app_script": str(app_script),
                 "description": "README.md",
             },
             "pack": {
@@ -49,7 +57,9 @@ def test_pack_demo_writes_assets(
     assert out_dir == demo_dir
     assert (demo_dir / "demo.yaml").exists()
     assert (demo_dir / extra_src.name).read_text(encoding="utf-8") == "hello\n"
-    assert (demo_dir / "app.py").exists()
+    assert (demo_dir / "app.py").read_text(encoding="utf-8") == app_script.read_text(
+        encoding="utf-8"
+    )
     assert (demo_dir / "README.md").read_text(encoding="utf-8") == "# Demo\n"
     # Local model dir is symlinked into the bundle as model_pack.
     assert (demo_dir / "model_pack").is_symlink()
@@ -58,6 +68,7 @@ def test_pack_demo_writes_assets(
 
 
 def test_pack_demo_writes_requirements_txt(
+    app_script: Path,
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -68,7 +79,7 @@ def test_pack_demo_writes_requirements_txt(
     demo_cfg = OmegaConf.create(
         {
             "model": {"dir_or_tag": "espnet/some-model"},
-            "ui": {"app_script": "egs3/TEMPLATE/asr/src/app.py"},
+            "ui": {"app_script": str(app_script)},
             "pack": {
                 "out_dir": str(demo_dir),
                 "requirements": [
@@ -91,6 +102,7 @@ def test_pack_demo_writes_requirements_txt(
 
 
 def test_pack_demo_skips_requirements_txt_when_not_configured(
+    app_script: Path,
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -99,7 +111,7 @@ def test_pack_demo_skips_requirements_txt_when_not_configured(
     demo_cfg = OmegaConf.create(
         {
             "model": {"dir_or_tag": "espnet/some-model"},
-            "ui": {"app_script": "egs3/TEMPLATE/asr/src/app.py"},
+            "ui": {"app_script": str(app_script)},
             "pack": {"out_dir": str(demo_dir)},
         }
     )
@@ -114,6 +126,7 @@ def test_pack_demo_skips_requirements_txt_when_not_configured(
 
 
 def test_pack_demo_skips_description_copy_when_ui_description_is_missing(
+    app_script: Path,
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -127,7 +140,7 @@ def test_pack_demo_skips_description_copy_when_ui_description_is_missing(
                 "dir_or_tag": str(model_pack_dir),
             },
             "ui": {
-                "app_script": "egs3/TEMPLATE/asr/src/app.py",
+                "app_script": str(app_script),
             },
             "pack": {
                 "out_dir": str(demo_dir),
@@ -148,6 +161,7 @@ def test_pack_demo_skips_description_copy_when_ui_description_is_missing(
 
 
 def test_pack_demo_supports_exclude_patterns_for_included_dirs(
+    app_script: Path,
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -170,7 +184,7 @@ def test_pack_demo_supports_exclude_patterns_for_included_dirs(
                 "dir_or_tag": str(model_pack_dir),
             },
             "ui": {
-                "app_script": "egs3/TEMPLATE/asr/src/app.py",
+                "app_script": str(app_script),
             },
             "pack": {
                 "out_dir": str(demo_dir),
@@ -194,6 +208,7 @@ def test_pack_demo_supports_exclude_patterns_for_included_dirs(
 
 
 def test_pack_demo_expands_globbed_include_paths(
+    app_script: Path,
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -211,7 +226,7 @@ def test_pack_demo_expands_globbed_include_paths(
                 "dir_or_tag": str(model_pack_dir),
             },
             "ui": {
-                "app_script": "egs3/TEMPLATE/asr/src/app.py",
+                "app_script": str(app_script),
             },
             "pack": {
                 "out_dir": str(demo_dir),
@@ -269,6 +284,7 @@ def test_pack_demo_renders_space_readme(
         },
         "ui": {
             "title": "Ignored by readme_context",
+            "app_script": str(app_script),
         },
         "pack": {
             "out_dir": str(demo_dir),
@@ -286,7 +302,7 @@ def test_pack_demo_renders_space_readme(
     demo_cfg = load_and_merge_config(
         demo_config_path,
         config_name="demo.yaml",
-        default_package="egs3.TEMPLATE.asr",
+        default_package="egs3.TEMPLATE.esp2_asr",
         resolve=False,
     )
 
@@ -346,7 +362,7 @@ def _make_demo_system(tmp_path: Path, upload_overrides: dict) -> object:
     demo_cfg = load_and_merge_config(
         user_cfg_path,
         config_name="demo.yaml",
-        default_package="egs3.TEMPLATE.asr",
+        default_package="egs3.TEMPLATE.esp2_asr",
         resolve=False,
     )
 
@@ -443,3 +459,18 @@ def test_upload_demo_empty_delete_patterns_passes_none_to_upload_folder(
     upload_demo(system)
 
     assert upload_calls[0]["delete_patterns"] is None
+
+
+def test_pack_demo_requires_recipe_application(tmp_path):
+    class System:
+        exp_dir = None
+        demo_config = OmegaConf.create(
+            {
+                "model": {"dir_or_tag": "owner/model"},
+                "ui": {},
+                "pack": {"out_dir": str(tmp_path / "demo")},
+            }
+        )
+
+    with pytest.raises(ValueError, match="ui.app_script is required"):
+        pack_demo(System())

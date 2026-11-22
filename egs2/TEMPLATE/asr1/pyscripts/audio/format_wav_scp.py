@@ -13,14 +13,16 @@ try:
 except ImportError:
     resampy = None
 import soundfile
+from omniio import kaldi as kaldi_io
 from tqdm import tqdm
 from typeguard import typechecked
 
+from espnet2.fileio.omniio_audio import OmniIOAudioWriter
 from espnet2.fileio.read_text import read_2columns_text
+from espnet2.fileio.segments import seconds_to_sample
 from espnet2.fileio.sound_scp import SoundScpWriter, soundfile_read
 from espnet2.fileio.vad_scp import VADScpReader
 from espnet2.legacy.utils.cli_utils import get_commandline_args
-from espnet2.utils.kaldiio_utils import import_kaldiio
 from espnet2.utils.types import str2bool
 
 
@@ -118,7 +120,7 @@ class SegmentsExtractor:
                             "Not supporting multi_columns wav.scp for inputs by pipe"
                         )
                     # Streaming input e.g. cat a.wav |
-                    with import_kaldiio().open_like_kaldi(wavpath, "rb") as f:
+                    with kaldi_io.open_like_kaldi(wavpath, "rb") as f:
                         with BytesIO(f.read()) as g:
                             array, rate = soundfile.read(g)
 
@@ -141,10 +143,12 @@ class SegmentsExtractor:
                 cached.pop(recodeid)
             # Convert starting time of the segment to corresponding sample number.
             # If end time is -1 then use the whole file starting from start time.
+            # (seconds_to_sample: the same cut as reading the segment from an
+            # Omni-IO archive at load time, robust to float error)
             if et != -1:
-                array = array[int(st * rate) : int(et * rate)]
+                array = array[seconds_to_sample(st, rate) : seconds_to_sample(et, rate)]
             else:
-                array = array[int(st * rate) :]
+                array = array[seconds_to_sample(st, rate) :]
 
             yield utt, (array, rate), None, None
 
@@ -172,7 +176,12 @@ def main():
         default=None,
         help="If the sampling rate specified, Change the sampling rate.",
     )
-    parser.add_argument("--audio-format", default="wav")
+    parser.add_argument(
+        "--audio-format",
+        default="wav",
+        help="wav, flac, ... (one file per utterance), wav.ark, flac.ark "
+        "(Kaldi ark), or omniio (FLAC packed into an Omni-IO archive)",
+    )
     parser.add_argument("--vad_based_trim", type=str, default=None)
     group = parser.add_mutually_exclusive_group()
     group.add_argument("--ref-channels", default=None, type=str2int_tuple)
@@ -225,8 +234,12 @@ def main():
     else:
         utt2ref_channels = None
 
-    if args.audio_format.endswith("ark") and args.multi_columns_output:
-        raise RuntimeError("Multi columns wav.scp is not supported for ark type")
+    omniio = args.audio_format == "omniio"
+    packed = omniio or args.audio_format.endswith("ark")
+    if packed and args.multi_columns_output:
+        raise RuntimeError(
+            f"Multi columns wav.scp is not supported for {args.audio_format}"
+        )
 
     Path(args.outdir).mkdir(parents=True, exist_ok=True)
     out_wavscp = Path(args.outdir) / f"{args.name}.scp"
@@ -235,6 +248,17 @@ def main():
         fark = open(Path(args.outdir) / f"data_{args.name}.ark", "wb")
         fscp_out = out_wavscp.open("w")
         writer = None
+    elif omniio:
+        subtype = args.audio_subtype or "PCM_16"
+        if not subtype.startswith("PCM_"):
+            raise RuntimeError(f"omniio needs a PCM_* subtype, got {subtype}")
+        writer = OmniIOAudioWriter(
+            Path(args.outdir) / args.name,
+            out_wavscp,
+            format="flac",
+            bit_depth=int(subtype[len("PCM_") :]),
+        )
+        fscp_out = None
     else:
         writer = SoundScpWriter(
             args.outdir,
@@ -260,6 +284,9 @@ def main():
             with Path(args.scp).open("r") as fscp:
                 for line in tqdm(fscp):
                     uttid, wavpath = line.strip().split(None, 1)
+                    if wavpath == "None":
+                        yield uttid, (None, None), None, None
+                        continue
 
                     # B.a. Without segments and using pipe inputs
                     if wavpath.endswith("|"):
@@ -269,7 +296,7 @@ def main():
                                 " pipe"
                             )
                         # Streaming input e.g. cat a.wav |
-                        with import_kaldiio().open_like_kaldi(wavpath, "rb") as f:
+                        with kaldi_io.open_like_kaldi(wavpath, "rb") as f:
                             with BytesIO(f.read()) as g:
                                 wave, rate = soundfile.read(g)
                         subtypes = None
@@ -293,6 +320,11 @@ def main():
 
     with out_num_samples.open("w") as fnum_samples:
         for uttid, (wave, rate), wavpath, subtypes in tqdm(generator()):
+            if wave is None:
+                scp_writer = fscp_out if fscp_out is not None else writer.fscp
+                scp_writer.write(f"{uttid} None\n")
+                fnum_samples.write(f"{uttid} 0\n")
+                continue
             save_asis = True
             if args.fs is not None and args.fs != rate:
                 # FIXME(kamo): To use sox?
@@ -318,7 +350,7 @@ def main():
             if args.segments is not None:
                 save_asis = False
 
-            if args.audio_format.endswith("ark"):
+            if packed:
                 save_asis = False
 
             if args.multi_columns_input:
@@ -348,7 +380,7 @@ def main():
             if wavpath is not None and Path(wavpath).suffix != "." + args.audio_format:
                 save_asis = False
 
-            if not args.audio_format.endswith("ark") and subtypes is not None:
+            if not packed and subtypes is not None:
                 if args.audio_subtype is None:
                     subtype2 = soundfile.default_subtype(args.audio_format)
                 else:
@@ -371,7 +403,7 @@ def main():
 
                 # NOTE(kamo): Using extended ark format style here.
                 # This format is incompatible with Kaldi
-                import_kaldiio().save_ark(
+                kaldi_io.save_ark(
                     fark,
                     {uttid: (wave, rate)},
                     scp=fscp_out,
@@ -383,6 +415,10 @@ def main():
             else:
                 writer[uttid] = rate, wave
             fnum_samples.write(f"{uttid} {len(wave)}\n")
+
+    if omniio:
+        # writes metadata.parquet, without which the archive is not complete
+        writer.close()
 
 
 if __name__ == "__main__":

@@ -2,8 +2,11 @@
 
 import logging
 import os
+import sys
+import threading
 from abc import ABC
-from typing import Any, Callable, Dict
+from contextlib import contextmanager
+from typing import Any, Callable, Dict, Iterator
 
 import torch
 from hydra.utils import instantiate
@@ -14,17 +17,15 @@ from espnet3.utils.logging_utils import log_instance_dict
 
 logger = logging.getLogger(__name__)
 _LOGGED_ENV = False
+_MODEL_BUILD_LOCK = threading.RLock()
 
 
 def _convert_relative_paths_to_absolute(obj: Any, seen: set | None = None) -> None:
-    """Recursively rewrite relative file-path strings in an object graph to absolute.
+    """Resolve existing relative file paths held by a constructed model.
 
-    Must be called while ``os.getcwd()`` is the bundle root so that
-    ``os.path.isfile`` correctly identifies bundle assets.  This prevents
-    lazy-initialized components (e.g. ``SentencePieceTokenizer``) from
-    failing once ``os.chdir`` restores the original working directory.
-    Only string attributes that resolve to an existing file are rewritten;
-    all others are left unchanged.
+    Model components can open tokenizer and configuration files lazily, after
+    the bundle-root working directory has been restored. Bind those paths while
+    the model is still being constructed from its packed configuration.
     """
     if seen is None:
         seen = set()
@@ -45,13 +46,34 @@ def _convert_relative_paths_to_absolute(obj: Any, seen: set | None = None) -> No
                     except (AttributeError, TypeError):
                         pass
         elif isinstance(val, dict):
-            for v in val.values():
-                _convert_relative_paths_to_absolute(v, seen)
+            for value in val.values():
+                _convert_relative_paths_to_absolute(value, seen)
         elif isinstance(val, (list, tuple)):
-            for v in val:
-                _convert_relative_paths_to_absolute(v, seen)
+            for value in val:
+                _convert_relative_paths_to_absolute(value, seen)
         elif not isinstance(val, (int, float, bool, bytes, type(None))):
             _convert_relative_paths_to_absolute(val, seen)
+
+
+@contextmanager
+def _chdir_without_relative_imports(directory: str) -> Iterator[None]:
+    """Change into ``directory`` without making it importable.
+
+    ``sys.path`` entries such as ``""`` or ``"."`` resolve against the working
+    directory, so moving into a published bundle would let its files shadow
+    installed modules while the model is built. Relative entries are taken out
+    of ``sys.path`` for the duration and put back afterwards.
+    """
+    cwd = os.getcwd()
+    relative = [(i, p) for i, p in enumerate(sys.path) if not os.path.isabs(p)]
+    sys.path[:] = [p for p in sys.path if os.path.isabs(p)]
+    os.chdir(directory)
+    try:
+        yield
+    finally:
+        os.chdir(cwd)
+        for index, entry in relative:
+            sys.path.insert(min(index, len(sys.path)), entry)
 
 
 class InferenceProvider(EnvironmentProvider, ABC):
@@ -206,7 +228,6 @@ class InferenceProvider(EnvironmentProvider, ABC):
         """
         if isinstance(config, dict):
             config = OmegaConf.create(config)
-            organizer = instantiate(config.dataset)
 
         if isinstance(config, DictConfig):
             organizer = instantiate(config.dataset)
@@ -217,60 +238,42 @@ class InferenceProvider(EnvironmentProvider, ABC):
 
     @staticmethod
     def build_model(config: DictConfig):
-        """Construct and return the model instance.
-
-        Implemented by subclasses to build a model from ``config``.
-        During parallel or distributed execution, the ``config`` object passed here
-        is the configuration that the user passed when instantiating the class.
+        """Build ``config.model`` directly on this worker's logical device.
 
         Args:
-            config (DictConfig): Configuration.
+            config: Inference config with a ``model`` entry. A ``recipe_dir``
+                entry makes the model build inside that directory, so relative
+                paths in ``model`` resolve against it.
 
         Returns:
-            Any: Model object (type defined by subclass).
+            The instantiated model.
 
-        Raises:
-            NotImplementedError: Always in the base class; implement in subclass.
-
-        Example:
-            >>> # Minimal sketch; actual keys depend on your subclass
+        Examples:
             >>> from omegaconf import OmegaConf
-            >>> config = OmegaConf.create({
-            >>>     "model": {"checkpoint": "exp/model.pth", "device": "cpu"}
-            >>> })
-            >>> model = MyInferenceProvider.build_model(config)  # doctest: +SKIP
-
-        Notes:
-            - This method should handle **loading weights** and placing the
-              model on the appropriate device.
-            - Do not perform training/optimization here, this is for inference
-              setup only.
+            >>> config = OmegaConf.create(
+            ...     {"device": "cpu", "model": {"_target_": "torch.nn.Identity"}}
+            ... )
+            >>> InferenceProvider.build_model(config)
+            Identity()
         """
         if isinstance(config, dict):
             config = OmegaConf.create(config)
-
         device = InferenceProvider._resolve_device(config)
-        logger.info(
-            "Instantiating model %s on %s (CUDA_VISIBLE_DEVICES=%s, visible_gpus=%s)",
-            getattr(config.model, "_target_", None),
-            device,
+        logger.debug(
+            "CUDA_VISIBLE_DEVICES=%s, visible_gpus=%s",
             os.getenv("CUDA_VISIBLE_DEVICES"),
             torch.cuda.device_count() if torch.cuda.is_available() else 0,
         )
-        # Match ESPnet2 packaged-model loading, where bare relative paths in
-        # copied training configs resolve from the bundle root.
         recipe_dir = getattr(config, "recipe_dir", None)
-        if recipe_dir:
-            cwd = os.getcwd()
-            os.chdir(str(recipe_dir))
-            try:
+        # A build without recipe_dir must also wait while another build has
+        # temporarily changed the process-wide working directory.
+        with _MODEL_BUILD_LOCK:
+            if not recipe_dir:
+                return instantiate(config.model, device=device)
+            with _chdir_without_relative_imports(str(recipe_dir)):
                 model = instantiate(config.model, device=device)
                 _convert_relative_paths_to_absolute(model)
                 return model
-            finally:
-                os.chdir(cwd)
-        else:
-            return instantiate(config.model, device=device)
 
     @staticmethod
     def _resolve_device(config: DictConfig) -> str:

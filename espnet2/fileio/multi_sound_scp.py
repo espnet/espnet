@@ -92,7 +92,7 @@ class MultiSoundScpReader(collections.abc.Mapping):
         return self.data[key]
 
     def __contains__(self, item):
-        return item
+        return item in self.data
 
     def __len__(self):
         return len(self.data)

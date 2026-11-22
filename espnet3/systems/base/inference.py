@@ -7,6 +7,7 @@ from pathlib import Path
 from hydra.utils import instantiate
 from omegaconf import DictConfig, OmegaConf
 
+from espnet3.contract.inference import load_inference_contract
 from espnet3.parallel.parallel import set_parallel
 from espnet3.systems.base.inference_runner import _load_output_fn
 
@@ -38,8 +39,7 @@ def infer(config: DictConfig):
 
         ${inference_dir}/<test_name>/split.<rank>/
 
-    Example return value from ``output_fn`` or directly from the inference
-    model:
+    Example result after the runner attaches its sample identifier:
 
     .. code-block:: python
 
@@ -70,7 +70,7 @@ def infer(config: DictConfig):
             type: wav
             sample_rate: 16000
 
-    Example return value from ``output_fn``:
+    Example audio result:
 
     .. code-block:: python
 
@@ -80,13 +80,26 @@ def infer(config: DictConfig):
     field must be a single value. If you need structured content, return a
     ``dict`` and let it be serialized as JSON.
 
+    ``input_key`` selects the dataset columns passed to the native backend.
+    An inference contract validates and normalizes inputs and named backend
+    outputs. The runner attaches the sample identifier. Legacy configs can
+    still use ``output_fn``. A reference for scoring is read from the dataset (bind
+    ``ref`` to ``dataset:text`` in the metrics config's ``inputs:``).
+
     Args:
         config: Hydra/OmegaConf configuration containing the dataset,
             inference directory, provider/runner definitions, and optional
             ``output_artifacts`` writer settings.
+
+    Returns:
+        None.
+
+    Examples:
+        >>> infer(config)  # doctest: +SKIP
     """
     start = time.perf_counter()
     set_parallel(getattr(config, "parallel", None))
+    inference_contract = load_inference_contract(getattr(config, "contract", None))
 
     test_sets = []
     for index, test_set in enumerate(config.dataset.test):
@@ -111,15 +124,18 @@ def infer(config: DictConfig):
         config.test_set = test_name
 
         output_fn_path = getattr(config, "output_fn", None)
+        if inference_contract is not None and output_fn_path:
+            raise ValueError("output_fn cannot be combined with an inference contract")
         if output_fn_path:
             _load_output_fn(output_fn_path)
 
         input_key = getattr(config, "input_key", None)
         if input_key is None:
             raise RuntimeError("inference_config.input_key must be set.")
-
-        if isinstance(input_key, (list, tuple)) and not input_key:
+        elif isinstance(input_key, (list, tuple)) and not input_key:
             raise RuntimeError("inference_config.input_key must not be empty.")
+        if inference_contract is not None:
+            inference_contract.validate_input_keys(input_key)
 
         output_keys = getattr(config, "output_keys", None)
         if output_keys is not None:
@@ -147,6 +163,14 @@ def infer(config: DictConfig):
         provider_params["input_key"] = input_key
         provider_params["idx_key"] = idx_key
         provider_params["output_keys"] = output_keys
+        if inference_contract is not None:
+            provider_params["inference_contract"] = OmegaConf.to_container(
+                config.contract, resolve=True
+            )
+            if inference_contract.imports:
+                provider_params["inference_contract_root"] = str(
+                    Path(getattr(config, "recipe_dir", ".")).resolve()
+                )
         if output_fn_path:
             provider_params["output_fn_path"] = output_fn_path
         artifact_configs = getattr(config, "output_artifacts", {}) or {}

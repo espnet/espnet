@@ -324,6 +324,7 @@ class BranchformerEncoder(AbsEncoder):
         stochastic_depth_rate: Union[float, List[float]] = 0.0,
         qk_norm: bool = False,
         use_flash_attn: bool = True,
+        use_sdpa: bool = False,
     ):
         super().__init__()
         self._output_size = output_size
@@ -437,6 +438,7 @@ class BranchformerEncoder(AbsEncoder):
                 use_flash_attn,
                 False,
                 False,
+                use_sdpa,
             )
         elif attention_layer_type == "legacy_rel_selfattn":
             assert pos_enc_layer_type == "legacy_rel_pos"
@@ -445,6 +447,8 @@ class BranchformerEncoder(AbsEncoder):
                 attention_heads,
                 output_size,
                 attention_dropout_rate,
+                False,  # zero_triu
+                use_sdpa,
             )
             logging.warning(
                 "Using legacy_rel_selfattn and it will be deprecated in the future."
@@ -457,6 +461,7 @@ class BranchformerEncoder(AbsEncoder):
                 output_size,
                 attention_dropout_rate,
                 zero_triu,
+                use_sdpa,
             )
         elif attention_layer_type == "fast_selfattn":
             assert pos_enc_layer_type in ["abs_pos", "scaled_abs_pos"]

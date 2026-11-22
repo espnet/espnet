@@ -1,1 +1,0 @@
-"""CLS metric tests."""

@@ -83,23 +83,23 @@ class GlobalMVN(AbsNormalize, InversibleInterface):
             ilens = x.new_full([x.size(0)], x.size(1))
         norm_means = self.norm_means
         norm_vars = self.norm_vars
-        self.mean = self.mean.to(x.device, x.dtype)
-        self.std = self.std.to(x.device, x.dtype)
+        mean = self.mean.to(x.device, x.dtype)
+        std = self.std.to(x.device, x.dtype)
         mask = make_pad_mask(ilens, x, 1)
 
         # feat: (B, T, D)
         if norm_means:
             if x.requires_grad:
-                x = x - self.mean
+                x = x - mean
             else:
-                x -= self.mean
+                x -= mean
         if x.requires_grad:
             x = x.masked_fill(mask, 0.0)
         else:
             x.masked_fill_(mask, 0.0)
 
         if norm_vars:
-            x /= self.std
+            x /= std
 
         return x, ilens
 
@@ -110,8 +110,8 @@ class GlobalMVN(AbsNormalize, InversibleInterface):
             ilens = x.new_full([x.size(0)], x.size(1))
         norm_means = self.norm_means
         norm_vars = self.norm_vars
-        self.mean = self.mean.to(x.device, x.dtype)
-        self.std = self.std.to(x.device, x.dtype)
+        mean = self.mean.to(x.device, x.dtype)
+        std = self.std.to(x.device, x.dtype)
         mask = make_pad_mask(ilens, x, 1)
 
         if x.requires_grad:
@@ -120,10 +120,10 @@ class GlobalMVN(AbsNormalize, InversibleInterface):
             x.masked_fill_(mask, 0.0)
 
         if norm_vars:
-            x *= self.std
+            x *= std
 
         # feat: (B, T, D)
         if norm_means:
-            x += self.mean
+            x += mean
             x.masked_fill_(make_pad_mask(ilens, x, 1), 0.0)
         return x, ilens

@@ -177,3 +177,70 @@ def test_encoder_invalid_stochastic_depth_rate():
             num_blocks=2,
             stochastic_depth_rate=[0.1, 0.1, 0.1],
         )
+
+
+@pytest.mark.parametrize("arch", ["sum", "weighted_sum", "concat", "concat_fusion"])
+def test_multiconvformer_output_does_not_depend_on_batch_neighbours(arch):
+    """Padded frames are masked before every kernel and the fusion convolution."""
+    from test.espnet2.asr.encoder.padding_invariance import (
+        COMMON,
+        D_IN,
+        assert_alone_equals_batched,
+    )
+
+    torch.manual_seed(0)
+    assert_alone_equals_batched(
+        MultiConvConformerEncoder(
+            D_IN,
+            cgmlp_linear_units=64,
+            multicgmlp_type=arch,
+            multicgmlp_kernel_sizes="3,7",
+            multicgmlp_merge_conv_kernel=7,
+            rel_pos_type="latest",
+            **COMMON,
+        )
+    )
+
+
+@pytest.mark.parametrize(
+    "rel_pos_type, pos_enc_layer_type, selfattention_layer_type",
+    [
+        ("legacy", "abs_pos", "selfattn"),
+        ("latest", "rel_pos", "rel_selfattn"),
+        ("legacy", "rel_pos", "rel_selfattn"),
+    ],
+)
+def test_use_sdpa_reaches_the_attention_and_matches_the_default(
+    rel_pos_type, pos_enc_layer_type, selfattention_layer_type
+):
+    x = torch.randn(2, 10, 8)
+    x_lens = torch.LongTensor([10, 8])
+
+    def build(**kwargs):
+        torch.manual_seed(0)
+        return MultiConvConformerEncoder(
+            8,
+            output_size=8,
+            attention_heads=2,
+            linear_units=16,
+            num_blocks=2,
+            input_layer="linear",
+            rel_pos_type=rel_pos_type,
+            pos_enc_layer_type=pos_enc_layer_type,
+            selfattention_layer_type=selfattention_layer_type,
+            cgmlp_linear_units=16,
+            multicgmlp_kernel_sizes="3,5",
+            multicgmlp_merge_conv_kernel=3,
+            **kwargs,
+        )
+
+    # eval() so dropout does not make the two passes draw different masks.
+    sdpa_encoder = build(use_sdpa=True).eval()
+    attentions = [m for m in sdpa_encoder.modules() if hasattr(m, "use_sdpa")]
+    assert attentions and all(m.use_sdpa for m in attentions)
+
+    with torch.no_grad():
+        default_out, _, _ = build().eval()(x, x_lens)
+        sdpa_out, _, _ = sdpa_encoder(x, x_lens)
+    assert default_out.shape == sdpa_out.shape
+    assert torch.allclose(default_out, sdpa_out, atol=1e-5)

@@ -1,6 +1,6 @@
 """MultiBlocks for encoder architecture."""
 
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Tuple
 
 import torch
 
@@ -53,7 +53,7 @@ class MultiBlocks(torch.nn.Module):
         pos_enc: torch.Tensor,
         mask: torch.Tensor,
         chunk_mask: Optional[torch.Tensor] = None,
-    ) -> torch.Tensor:
+    ) -> Tuple[torch.Tensor, torch.Tensor]:
         """Forward each block of the encoder architecture.
 
         Args:
@@ -63,7 +63,8 @@ class MultiBlocks(torch.nn.Module):
             chunk_mask: Chunk mask. (T_2, T_2)
 
         Returns:
-            x: Output sequences. (B, T, D_block_N)
+            x: Output sequences. (B, T_out, D_block_N)
+            mask: Output sequences mask. (B, T_out)
 
         """
         self.keep_probs[:-1].uniform_()
@@ -77,7 +78,7 @@ class MultiBlocks(torch.nn.Module):
 
         x = self.norm_blocks(x)
 
-        return x
+        return x, mask
 
     def chunk_forward(
         self,

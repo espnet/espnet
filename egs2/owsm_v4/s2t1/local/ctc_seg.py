@@ -16,7 +16,7 @@ import torch
 from espnet_model_zoo.downloader import ModelDownloader
 from tqdm import tqdm
 
-from espnet2.bin.s2t_ctc_align import CTCSegmentation
+from espnet2.bin.s2t_align import CTCSegmentation
 from utils import TO_ISO_LANGUAGE_CODE
 
 owsm_langs = [

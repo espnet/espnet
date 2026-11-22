@@ -1,7 +1,7 @@
 import h5py
-import kaldiio
 import numpy as np
 import pytest
+from omniio import kaldi as kaldi_io
 
 from espnet2.fileio.npy_scp import NpyScpWriter
 from espnet2.fileio.sound_scp import SoundScpWriter
@@ -52,7 +52,7 @@ def test_ESPnetDataset_sound_scp(sound_scp):
 def feats_scp(tmp_path):
     p = tmp_path / "feats.scp"
     p2 = tmp_path / "feats.ark"
-    with kaldiio.WriteHelper(f"ark,scp:{p2},{p}") as w:
+    with kaldi_io.WriteHelper(f"ark,scp:{p2},{p}") as w:
         w["a"] = np.random.randn(100, 80)
         w["b"] = np.random.randn(150, 80)
     return str(p)

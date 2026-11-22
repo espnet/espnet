@@ -1,0 +1,19 @@
+builder:
+  dataset_path: download
+  source_env_var: LIBRISPEECH
+  # Each required split is fetched as <download_url>/<split>.tar.gz.
+  download_url: https://www.openslr.org/resources/12
+  required_splits:
+    - train-clean-100
+    - dev-clean
+    - dev-other
+    - test-clean
+    - test-other
+
+dataset:
+  supported_splits:
+    - train-clean-100
+    - dev-clean
+    - dev-other
+    - test-clean
+    - test-other

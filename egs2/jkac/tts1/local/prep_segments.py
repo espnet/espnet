@@ -106,7 +106,7 @@ def list_labels(root_path):
 
 def read_label(path):
     with open(path.label_path, "r") as f:
-        label_dict = yaml.load(f, Loader=yaml.Loader)
+        label_dict = yaml.safe_load(f)
         return parse_label(label_dict, path)
 
 

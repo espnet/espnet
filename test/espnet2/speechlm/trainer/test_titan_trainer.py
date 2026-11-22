@@ -1,16 +1,17 @@
 """Tests for espnet2/speechlm/trainer/titan_trainer.py.
 
 CPU-only coverage of module-level helpers and TitanTrainer methods that do
-not require a live CUDA device or process group. Heavy paths (the real
-__init__, _save_checkpoint, _load_checkpoint, train, valid) are not
-exercised here — they need distributed init and FSDP2.
+not require a live CUDA device or process group, including checkpoint loading
+into unsharded models. Distributed training paths need separate FSDP2 coverage.
 """
 
 from unittest.mock import patch
 
 import pytest
 import torch
+import torch.distributed.checkpoint as dcp
 import torch.nn as nn
+from torch.distributed.checkpoint.state_dict import get_optimizer_state_dict
 
 from espnet2.speechlm.trainer.titan_trainer import TitanTrainer, reinit_model
 
@@ -34,6 +35,110 @@ def _make_bare_trainer(**attrs):
     for k, v in attrs.items():
         setattr(t, k, v)
     return t
+
+
+class TestNativeInitialization:
+    @pytest.mark.parametrize("wrapped", [False, True])
+    def test_loads_weights_and_preserves_fresh_optimizer(self, tmp_path, wrapped):
+        source = _SimpleModel()
+        target = _SimpleModel()
+        checkpoint = tmp_path / "model.pt"
+        state = source.state_dict()
+        torch.save({"module": state} if wrapped else state, checkpoint)
+        optimizer = torch.optim.AdamW(target.parameters())
+        trainer = _make_bare_trainer(
+            model=target, output_dir=tmp_path, optimizer=optimizer, global_step=0
+        )
+        trainer._load_checkpoint(checkpoint)
+        for name, value in target.state_dict().items():
+            torch.testing.assert_close(value, source.state_dict()[name])
+        assert trainer.global_step == 0
+        assert not optimizer.state
+
+    def test_missing_explicit_checkpoint_is_an_error(self, tmp_path):
+        trainer = _make_bare_trainer(output_dir=tmp_path)
+        with pytest.raises(FileNotFoundError, match="does not exist"):
+            trainer._load_checkpoint(tmp_path / "missing.pt")
+
+    def test_missing_native_parameters_are_an_error(self, tmp_path):
+        checkpoint = tmp_path / "model.pt"
+        torch.save({"module": {}}, checkpoint)
+        trainer = _make_bare_trainer(model=_SimpleModel(), output_dir=tmp_path)
+        with pytest.raises(ValueError, match="nonempty state dict"):
+            trainer._load_checkpoint(checkpoint)
+
+    def test_partial_native_weights_are_an_error(self, tmp_path):
+        checkpoint = tmp_path / "model.pt"
+        model = _SimpleModel()
+        torch.save({"module": {"linear.weight": model.linear.weight}}, checkpoint)
+        trainer = _make_bare_trainer(model=model, output_dir=tmp_path)
+        with pytest.raises(RuntimeError, match="Missing key"):
+            trainer._load_checkpoint(checkpoint)
+
+
+def test_resume_latest_complete_checkpoint(tmp_path):
+    source = _SimpleModel()
+    source_optimizer = torch.optim.AdamW(source.parameters())
+    source_scheduler = torch.optim.lr_scheduler.LambdaLR(
+        source_optimizer, lambda step: 1.0 / (step + 1)
+    )
+    target = _SimpleModel()
+    optimizer = torch.optim.AdamW(target.parameters())
+    trainer = _make_bare_trainer(
+        model=target,
+        output_dir=tmp_path,
+        optimizer=optimizer,
+        lr_scheduler=torch.optim.lr_scheduler.LambdaLR(
+            optimizer, lambda step: 1.0 / (step + 1)
+        ),
+        global_step=0,
+    )
+    trainer._load_checkpoint(None)
+    assert trainer.global_step == 0
+
+    for step in (2, 10):
+        while source_scheduler.last_epoch < step:
+            source_optimizer.zero_grad()
+            sum(p.square().sum() for p in source.parameters()).backward()
+            source_optimizer.step()
+            source_scheduler.step()
+        dcp.save(
+            {
+                "model": source.state_dict(),
+                "optimizer": get_optimizer_state_dict(source, source_optimizer),
+                "lr_scheduler": source_scheduler.state_dict(),
+                "global_step": step,
+            },
+            checkpoint_id=tmp_path / "checkpoints" / f"step_{step}",
+            no_dist=True,
+        )
+    for name in ("step_11", "step_old"):
+        path = tmp_path / "checkpoints" / name
+        path.mkdir()
+        if name == "step_old":
+            (path / ".metadata").touch()
+
+    trainer._load_checkpoint(None)
+    assert trainer.global_step == 10
+    assert trainer.lr_scheduler.state_dict() == source_scheduler.state_dict()
+    expected = get_optimizer_state_dict(source, source_optimizer)
+    actual = get_optimizer_state_dict(target, optimizer)
+    assert actual["param_groups"] == expected["param_groups"]
+    for name, moments in expected["state"].items():
+        for key, value in moments.items():
+            torch.testing.assert_close(actual["state"][name][key], value)
+    for name, value in target.state_dict().items():
+        torch.testing.assert_close(value, source.state_dict()[name])
+    for model, current_optimizer, scheduler in (
+        (source, source_optimizer, source_scheduler),
+        (target, optimizer, trainer.lr_scheduler),
+    ):
+        current_optimizer.zero_grad()
+        sum(p.square().sum() for p in model.parameters()).backward()
+        current_optimizer.step()
+        scheduler.step()
+    for name, value in target.state_dict().items():
+        torch.testing.assert_close(value, source.state_dict()[name])
 
 
 # ---------------------------------------------------------------------------

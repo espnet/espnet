@@ -1,12 +1,15 @@
 import argparse
+import logging
 
 import configargparse
 import pytest
 import torch
 import yaml
 
+from espnet2.tasks import abs_task
 from espnet2.tasks.abs_task import AbsTask
 from espnet2.torch_utils.device_funcs import force_gatherable
+from espnet2.torch_utils.initialize import initialize
 from espnet2.train.abs_espnet_model import AbsESPnetModel
 from espnet2.train.collate_fn import CommonCollateFn
 
@@ -74,9 +77,51 @@ class TestTask(AbsTask):
         return optimizers
 
 
+class InitTask(TestTask):
+    """A task that initializes what it builds, as the real ones do."""
+
+    @classmethod
+    def build_model(cls, args):
+        model = DummyModel()
+        if getattr(args, "init", None) is not None:
+            initialize(model, args.init)
+        return model
+
+
 @pytest.mark.parametrize("parser", [configargparse.ArgumentParser(), None])
 def test_add_arguments(parser):
     AbsTask.get_parser()
+
+
+def test_add_augmentation_arguments_defaults():
+    parser = argparse.ArgumentParser()
+    AbsTask.add_augmentation_arguments(parser)
+    args = parser.parse_args([])
+    assert vars(args) == dict(
+        rir_scp=None,
+        rir_apply_prob=1.0,
+        noise_scp=None,
+        noise_apply_prob=1.0,
+        noise_db_range="13_15",
+        short_noise_thres=0.5,
+    )
+
+
+def test_add_augmentation_arguments_parses_values():
+    parser = argparse.ArgumentParser()
+    AbsTask.add_augmentation_arguments(parser)
+    args = parser.parse_args(
+        ["--rir_scp", "rir.scp", "--noise_scp", "none", "--noise_apply_prob", "0.3"]
+    )
+    assert args.rir_scp == "rir.scp"
+    assert args.noise_scp is None
+    assert args.noise_apply_prob == 0.3
+
+
+def test_add_augmentation_arguments_without_short_noise_thres():
+    parser = argparse.ArgumentParser()
+    AbsTask.add_augmentation_arguments(parser, short_noise_thres=False)
+    assert "short_noise_thres" not in vars(parser.parse_args([]))
 
 
 def test_add_arguments_help():
@@ -162,3 +207,62 @@ def test_main(tmp_path):
             "1",
         ]
     )
+
+
+def test_an_init_this_version_removed_does_not_stop_a_model_loading(tmp_path, caplog):
+    """A checkpoint says how it was initialised; this version may not know it.
+
+    `init: chainer` was one of six choices until it was removed in June 2025,
+    and espnet_model_zoo's daily run found it still published: jv_openslr35,
+    trained on espnet 0.9.7, failed with `Unknown initialization: chainer`.
+    The setting cannot matter when loading - the weights come from the file -
+    so it is ignored, with a line saying so.
+    """
+    config_file = tmp_path / "config.yaml"
+    model_file = tmp_path / "model.pth"
+    with config_file.open("w", encoding="utf-8") as f:
+        yaml.safe_dump({"init": "chainer"}, f)
+    torch.save(DummyModel().state_dict(), model_file)
+
+    with caplog.at_level(logging.WARNING):
+        _, args = TestTask.build_model_from_file(
+            config_file=config_file, model_file=model_file, device="cpu"
+        )
+
+    assert args.init is None
+    assert "init=chainer" in caplog.text
+
+
+def test_without_a_checkpoint_an_unknown_init_is_still_an_error(tmp_path):
+    """Nothing overwrites the parameters then, so the setting is all there is.
+
+    Building from a config alone - no model file - leaves the model with
+    whatever the initialization gives it. Quietly using the default instead
+    of the one the config asked for would be a different model with no sign
+    of it.
+    """
+    config_file = tmp_path / "config.yaml"
+    with config_file.open("w", encoding="utf-8") as f:
+        yaml.safe_dump({"init": "chainer"}, f)
+
+    with pytest.raises(ValueError, match="Unknown initialization: chainer"):
+        InitTask.build_model_from_file(config_file=config_file, device="cpu")
+
+
+def test_an_init_this_version_has_is_left_alone(tmp_path):
+    """Not a blanket "ignore init when loading": it still applies.
+
+    load_state_dict here is not strict, so a parameter the checkpoint does
+    not carry keeps whatever the initialization gave it.
+    """
+    args = argparse.Namespace(init="xavier_uniform")
+
+    abs_task._drop_init_this_version_removed(args)
+
+    assert args.init == "xavier_uniform"
+
+
+def test_a_misspelled_init_is_still_reported_when_training():
+    """Ignoring is for loading a checkpoint; building one still refuses."""
+    with pytest.raises(ValueError, match="Unknown initialization: xavier"):
+        initialize(DummyModel(), "xavier")

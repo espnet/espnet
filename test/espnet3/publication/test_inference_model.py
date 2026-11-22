@@ -1,12 +1,15 @@
 from __future__ import annotations
 
+import importlib
 import sys
 from pathlib import Path
 from unittest.mock import patch
 
+import numpy as np
 import pytest
 import yaml
 
+from espnet3.contract.kinds.audio import Audio
 from espnet3.publication import InferenceModel
 from espnet3.systems.base.inference_provider import InferenceProvider
 from espnet3.systems.base.inference_runner import InferenceRunner
@@ -40,7 +43,9 @@ class BatchEchoModel:
 def _make_pack_dir(
     tmp_path: Path,
     *,
-    model_target: str = "builtins.object",
+    # A real bundle points to an ESPnet class. The trust gate resolves this
+    # target even when model construction is mocked.
+    model_target: str = "espnet2.spk.encoder.identity_encoder.IdentityEncoder",
     input_key: str | list = "speech",
     output_fn: str | None = None,
     with_src_module: bool = False,
@@ -122,6 +127,19 @@ def _make_pack_dir(
             encoding="utf-8",
         )
     return bundle_root
+
+
+@pytest.fixture(autouse=True)
+def _forget_bundled_src_modules():
+    """Each test ships its own ``src``; none may see another test's import."""
+
+    def forget():
+        for name in [m for m in sys.modules if m == "src" or m.startswith("src.")]:
+            del sys.modules[name]
+
+    forget()
+    yield
+    forget()
 
 
 @pytest.fixture
@@ -287,6 +305,280 @@ def test_from_packed_with_trust_user_code(tmp_path, monkeypatch):
     assert session({"speech": "hello"}) == "cfg:hello"
 
 
+def test_contract_imports_require_trust_before_loading_custom_kind(
+    tmp_path, monkeypatch, mock_build_model
+):
+    bundle_root = _make_pack_dir(tmp_path)
+    module_name = "publication_contract_plugin"
+    (bundle_root / f"{module_name}.py").write_text(
+        "from espnet3.contract import Kind, register_kind\n"
+        "class PluginText(Kind):\n"
+        "    def check(self, value, field, model, *, output):\n"
+        "        if not isinstance(value, str):\n"
+        "            raise TypeError('expected text')\n"
+        "        return value\n"
+        "register_kind('publication_plugin_text', PluginText())\n",
+        encoding="utf-8",
+    )
+    with (bundle_root / "conf" / "inference.yaml").open(
+        "a", encoding="utf-8"
+    ) as stream:
+        stream.write(
+            "\ncontract:\n"
+            f"  imports: [{module_name}]\n"
+            "  inputs:\n"
+            "    speech: {kind: publication_plugin_text}\n"
+            "  outputs:\n"
+            "    text: {kind: text}\n"
+        )
+    monkeypatch.setattr(sys, "path", list(sys.path))
+
+    with pytest.raises(ValueError, match="contract.imports requires"):
+        InferenceModel.from_packed(bundle_root, trust_user_code=False)
+    assert module_name not in sys.modules
+
+    model = InferenceModel.from_packed(bundle_root, trust_user_code=True)
+    assert model.contract.inputs[0].kind == "publication_plugin_text"
+
+
+@pytest.mark.parametrize("batched", [False, True])
+def test_packed_contract_normalizes_inputs_and_outputs(tmp_path, monkeypatch, batched):
+    """Published calls apply built-in and bundled recipe normalizers in order."""
+    from espnet3.contract.normalizers import NORMALIZERS
+
+    bundle = _make_pack_dir(tmp_path)
+    module_name = "publication_normalizer_plugin"
+    normalizer_name = "publication_remove_punctuation"
+    monkeypatch.setattr(sys, "path", list(sys.path))
+    # Restore the registry and module cache after importing bundled code.
+    monkeypatch.setitem(NORMALIZERS, normalizer_name, None)
+    monkeypatch.setitem(sys.modules, module_name, None)
+    del sys.modules[module_name]
+    (bundle / f"{module_name}.py").write_text(
+        "import re\n"
+        "from espnet3.contract import register_normalizer\n"
+        "def remove_punctuation(text):\n"
+        "    return re.sub(r'[.,!?]', '', text)\n"
+        f"register_normalizer('{normalizer_name}', remove_punctuation, replace=True)\n",
+        encoding="utf-8",
+    )
+    config_path = bundle / "conf" / "inference.yaml"
+    config = yaml.safe_load(config_path.read_text())
+    config["contract"] = {
+        "imports": [module_name],
+        "inputs": {"speech": {"kind": "text", "normalize": ["strip", "to_lower"]}},
+        "outputs": {
+            "text": {
+                "kind": "text",
+                "normalize": ["strip", "to_lower", normalizer_name],
+            }
+        },
+    }
+    config_path.write_text(yaml.safe_dump(config))
+    seen = []
+
+    def backend(speech):
+        seen.append(speech)
+        if isinstance(speech, list):
+            return [{"text": "  HELLO, WORLD!  "} for _ in speech]
+        return {"text": "  HELLO, WORLD!  "}
+
+    monkeypatch.setattr(
+        InferenceProvider, "build_model", staticmethod(lambda _: backend)
+    )
+    model = InferenceModel.from_packed(bundle, trust_user_code=True)
+    if batched:
+        result = model.forward_batch(["  INPUT!  ", "  SECOND  "], indices=["a", "b"])
+        assert seen == [["input!", "second"]]
+        assert result == [
+            {"text": "hello world", "utt_id": "a"},
+            {"text": "hello world", "utt_id": "b"},
+        ]
+    else:
+        assert model("  INPUT!  ", idx="a") == {"text": "hello world", "utt_id": "a"}
+        assert seen == ["input!"]
+
+
+@pytest.mark.parametrize("batched", [False, True])
+@pytest.mark.parametrize("invalid_sample", [{}, {"speech": 123}])
+def test_packed_contract_rejects_invalid_input_before_model(
+    tmp_path, monkeypatch, batched, invalid_sample
+):
+    """Missing and incorrectly typed inputs never reach the published backend."""
+    bundle = _make_pack_dir(tmp_path)
+    config_path = bundle / "conf" / "inference.yaml"
+    config = yaml.safe_load(config_path.read_text())
+    config["contract"] = {
+        "inputs": {"speech": {"kind": "text"}},
+        "outputs": {"text": {"kind": "text"}},
+    }
+    config_path.write_text(yaml.safe_dump(config))
+    calls = []
+
+    def backend(speech):
+        calls.append(speech)
+        return {"text": "unexpected"}
+
+    monkeypatch.setattr(
+        InferenceProvider, "build_model", staticmethod(lambda _: backend)
+    )
+    model = InferenceModel.from_packed(bundle)
+    error = TypeError if "speech" in invalid_sample else KeyError
+    with pytest.raises(error, match="speech"):
+        if batched:
+            model.forward_batch([{"speech": "valid"}, invalid_sample])
+        else:
+            model(invalid_sample)
+    assert calls == []
+
+
+@pytest.mark.parametrize("batched", [False, True])
+@pytest.mark.parametrize("policy", ["reject", "resample"])
+def test_packed_contract_enforces_audio_sample_rate(
+    tmp_path, monkeypatch, batched, policy
+):
+    """Publication rejects mismatched audio or resamples before model invocation."""
+    bundle = _make_pack_dir(tmp_path)
+    config_path = bundle / "conf" / "inference.yaml"
+    config = yaml.safe_load(config_path.read_text())
+    config["contract"] = {
+        "inputs": {
+            "speech": {"kind": "audio", "sample_rate": 16000, "rate_policy": policy}
+        },
+        "outputs": {"text": {"kind": "text"}},
+    }
+    config_path.write_text(yaml.safe_dump(config))
+    seen = []
+
+    def backend(speech):
+        seen.append(speech)
+        if isinstance(speech, list):
+            return [{"text": "ok"} for _ in speech]
+        return {"text": "ok"}
+
+    monkeypatch.setattr(
+        InferenceProvider, "build_model", staticmethod(lambda _: backend)
+    )
+    model = InferenceModel.from_packed(bundle)
+    sample = {"speech": (44100, np.ones(441, dtype=np.float32))}
+    if policy == "reject":
+        with pytest.raises(ValueError, match="sample rate 44100; expected 16000"):
+            model.forward_batch([sample]) if batched else model(sample)
+        assert seen == []
+    else:
+        result = model.forward_batch([sample]) if batched else model(sample)
+        waveform = seen[0][0] if batched else seen[0]
+        assert isinstance(waveform, Audio)
+        assert waveform.rate == 16000
+        assert waveform.array.dtype == np.float32
+        assert waveform.array.shape == (160,)
+        assert result == (
+            [{"text": "ok", "utt_id": "0"}]
+            if batched
+            else {"text": "ok", "utt_id": "0"}
+        )
+
+
+@pytest.mark.parametrize("batched", [False, True])
+@pytest.mark.parametrize(
+    ("shape", "normalize", "channels"),
+    [
+        ((441,), [], 1),
+        ((441, 2), ["mean_channels"], 1),
+    ],
+)
+def test_packed_contract_normalizes_gradio_audio(
+    tmp_path, monkeypatch, batched, shape, normalize, channels
+):
+    """Gradio audio (``(rate, int16)``) reaches the model as 16 kHz float32.
+
+    The demo launchers hand Gradio values to ``InferenceModel`` unchanged, so
+    the contract has to do the PCM-to-float conversion, the resampling and any
+    stereo-to-mono reduction (review of #6917).
+    """
+    bundle = _make_pack_dir(tmp_path)
+    config_path = bundle / "conf" / "inference.yaml"
+    config = yaml.safe_load(config_path.read_text())
+    config["contract"] = {
+        "inputs": {
+            "speech": {
+                "kind": "audio",
+                "sample_rate": 16000,
+                "rate_policy": "resample",
+                "channels": channels,
+                "normalize": normalize,
+            }
+        },
+        "outputs": {"text": {"kind": "text"}},
+    }
+    config_path.write_text(yaml.safe_dump(config))
+    seen = []
+
+    def backend(speech):
+        seen.append(speech)
+        if isinstance(speech, list):
+            return [{"text": "ok"} for _ in speech]
+        return {"text": "ok"}
+
+    monkeypatch.setattr(
+        InferenceProvider, "build_model", staticmethod(lambda _: backend)
+    )
+    model = InferenceModel.from_packed(bundle)
+    sample = {"speech": (44100, np.full(shape, 16384, dtype=np.int16))}
+    model.forward_batch([sample]) if batched else model(sample)
+
+    waveform = seen[0][0] if batched else seen[0]
+    assert isinstance(waveform, Audio)
+    assert waveform.rate == 16000
+    assert waveform.array.dtype == np.float32
+    assert waveform.array.shape == (160,)
+    assert np.abs(waveform.array).max() <= 1.0
+    np.testing.assert_allclose(waveform.array.mean(), 0.5, atol=0.05)
+
+
+def test_from_packed_rejects_bundled_module_already_imported_elsewhere(
+    tmp_path, monkeypatch
+):
+    """A bundled ``src`` must not silently resolve to another ``src``."""
+    bundle_root = _make_pack_dir(
+        tmp_path,
+        model_target="src.custom_code.CustomModel",
+        with_src_module=True,
+    )
+    other = tmp_path / "other" / "src"
+    other.mkdir(parents=True)
+    (other / "__init__.py").write_text("")
+    monkeypatch.setattr(sys, "path", list(sys.path))
+    monkeypatch.syspath_prepend(str(other.parent))
+    monkeypatch.delitem(sys.modules, "src", raising=False)
+    importlib.import_module("src")
+    monkeypatch.setitem(sys.modules, "src", sys.modules["src"])
+
+    with pytest.raises(ValueError, match=r"src \(already imported from"):
+        InferenceModel.from_packed(bundle_root, trust_user_code=True)
+
+
+def test_from_packed_accepts_bundled_module_already_imported_from_bundle(
+    tmp_path, monkeypatch
+):
+    """Loading the same bundle twice is not a conflict."""
+    bundle_root = _make_pack_dir(
+        tmp_path,
+        model_target="src.custom_code.CustomModel",
+        with_src_module=True,
+    )
+    monkeypatch.setattr(sys, "path", list(sys.path))
+    monkeypatch.delitem(sys.modules, "src", raising=False)
+    monkeypatch.delitem(sys.modules, "src.custom_code", raising=False)
+
+    first = InferenceModel.from_packed(bundle_root, trust_user_code=True)
+    second = InferenceModel.from_packed(bundle_root, trust_user_code=True)
+
+    assert first({"speech": "a"}) == second({"speech": "a"}) == "cfg:a"
+    monkeypatch.delitem(sys.modules, "src", raising=False)
+    monkeypatch.delitem(sys.modules, "src.custom_code", raising=False)
+
+
 def test_from_packed_uses_configured_provider_and_runner_targets(tmp_path, monkeypatch):
     bundle_root = _make_pack_dir(
         tmp_path,
@@ -349,6 +641,27 @@ def test_from_pretrained_loads_via_from_packed(tmp_path, monkeypatch, mock_build
     session = InferenceModel.from_pretrained("dummy/tag")
 
     assert session("ok") == "cfg:ok@cpu"
+
+
+def test_from_packed_device_override_reaches_provider(tmp_path, monkeypatch):
+    """A demo or caller device choice changes backend construction."""
+    bundle_root = _make_pack_dir(tmp_path)
+    (bundle_root / "conf" / "inference.yaml").write_text(
+        (bundle_root / "conf" / "inference.yaml").read_text(encoding="utf-8")
+        + "\ndevice: cuda:0\n",
+        encoding="utf-8",
+    )
+    devices = []
+
+    def capture_build(config):
+        devices.append(getattr(config, "device", None))
+        return EchoModel(device=devices[-1] or "auto", prefix=config.model.prefix)
+
+    monkeypatch.setattr(InferenceProvider, "build_model", staticmethod(capture_build))
+
+    assert InferenceModel.from_packed(bundle_root, device="cpu")("x") == "cfg:x@cpu"
+    assert InferenceModel.from_packed(bundle_root, device="auto")("x") == "cfg:x@auto"
+    assert devices == ["cpu", None]
 
 
 # ---------------------------------------------------------------------------
@@ -441,11 +754,18 @@ def test_forward_applies_output_fn(tmp_path, mock_build_model, monkeypatch):
         "espnet3.publication.inference_model._load_output_fn", fake_load
     )
 
-    session = InferenceModel.from_packed(bundle_root)
+    session = InferenceModel.from_packed(bundle_root, trust_user_code=True)
     result = session("hello", idx=42)
 
     assert result["hyp"] == "cfg:hello@cpu"
     assert result["idx"] == 42
+
+
+def test_from_packed_rejects_output_fn_without_trust(tmp_path, mock_build_model):
+    """An output_fn is user code, so it needs trust_user_code like bundled modules."""
+    bundle_root = _make_pack_dir(tmp_path, output_fn="os.path.join")
+    with pytest.raises(ValueError, match="output_fn"):
+        InferenceModel.from_packed(bundle_root)
 
 
 def test_forward_without_output_fn_returns_raw_model_output(tmp_path, mock_build_model):
@@ -468,7 +788,7 @@ def test_forward_passes_idx_to_output_fn(tmp_path, mock_build_model, monkeypatch
         "espnet3.publication.inference_model._load_output_fn", fake_load
     )
 
-    session = InferenceModel.from_packed(bundle_root)
+    session = InferenceModel.from_packed(bundle_root, trust_user_code=True)
     session("x", idx="utt-99")
 
     assert captured == ["utt-99"]
@@ -479,10 +799,12 @@ def test_forward_passes_idx_to_output_fn(tmp_path, mock_build_model, monkeypatch
 # ---------------------------------------------------------------------------
 
 
-def test_forward_batch_returns_one_result_per_sample(tmp_path, mock_build_model):
+def test_forward_batch_rejects_single_result_for_multiple_samples(
+    tmp_path, mock_build_model
+):
     session = InferenceModel.from_packed(_make_pack_dir(tmp_path))
-    results = session.forward_batch(["a", "b", "c"])
-    assert results == ["cfg:a@cpu", "cfg:b@cpu", "cfg:c@cpu"]
+    with pytest.raises(ValueError, match="one result per input sample"):
+        session.forward_batch(["a", "b", "c"])
 
 
 def test_forward_batch_empty_input_returns_empty_list(tmp_path, mock_build_model):
@@ -511,10 +833,10 @@ def test_forward_batch_uses_custom_indices(tmp_path, mock_build_model, monkeypat
         "espnet3.publication.inference_model._load_output_fn", fake_load
     )
 
-    session = InferenceModel.from_packed(bundle_root)
-    session.forward_batch(["a", "b"], indices=[10, 20])
-
-    assert captured == [[10, 20], 10, 20]
+    session = InferenceModel.from_packed(bundle_root, trust_user_code=True)
+    with pytest.raises(ValueError, match="one result per input sample"):
+        session.forward_batch(["a", "b"], indices=[10, 20])
+    assert captured == [[10, 20]]
 
 
 def test_forward_batch_defaults_indices_to_range(
@@ -534,10 +856,10 @@ def test_forward_batch_defaults_indices_to_range(
         "espnet3.publication.inference_model._load_output_fn", fake_load
     )
 
-    session = InferenceModel.from_packed(bundle_root)
-    session.forward_batch(["a", "b", "c"])
-
-    assert captured == [[0, 1, 2], 0, 1, 2]
+    session = InferenceModel.from_packed(bundle_root, trust_user_code=True)
+    with pytest.raises(ValueError, match="one result per input sample"):
+        session.forward_batch(["a", "b", "c"])
+    assert captured == [[0, 1, 2]]
 
 
 def test_forward_batch_uses_runner_batched_path_when_supported(
@@ -563,24 +885,17 @@ def _make_raising_runner(exc_factory):
     return staticmethod(patched)
 
 
-def test_forward_batch_falls_back_on_type_error(
-    tmp_path, mock_build_model, monkeypatch
-):
+def test_forward_batch_propagates_type_error(tmp_path, mock_build_model, monkeypatch):
     monkeypatch.setattr(
         InferenceRunner, "forward", _make_raising_runner(lambda: TypeError("no batch"))
     )
     session = InferenceModel.from_packed(_make_pack_dir(tmp_path))
 
-    with patch("espnet3.publication.inference_model.logger") as mock_logger:
-        results = session.forward_batch(["a", "b"])
-
-    mock_logger.debug.assert_called_once()
-    _, kwargs = mock_logger.debug.call_args
-    assert kwargs.get("exc_info") is True
-    assert results == ["cfg:a@cpu", "cfg:b@cpu"]
+    with pytest.raises(TypeError, match="no batch"):
+        session.forward_batch(["a", "b"])
 
 
-def test_forward_batch_falls_back_on_not_implemented_error(
+def test_forward_batch_propagates_not_implemented_error(
     tmp_path, mock_build_model, monkeypatch
 ):
     monkeypatch.setattr(
@@ -590,16 +905,11 @@ def test_forward_batch_falls_back_on_not_implemented_error(
     )
     session = InferenceModel.from_packed(_make_pack_dir(tmp_path))
 
-    with patch("espnet3.publication.inference_model.logger") as mock_logger:
-        results = session.forward_batch(["a", "b"])
-
-    mock_logger.debug.assert_called_once()
-    _, kwargs = mock_logger.debug.call_args
-    assert kwargs.get("exc_info") is True
-    assert results == ["cfg:a@cpu", "cfg:b@cpu"]
+    with pytest.raises(NotImplementedError, match="no batch"):
+        session.forward_batch(["a", "b"])
 
 
-def test_forward_batch_falls_back_on_runtime_error(
+def test_forward_batch_propagates_runtime_error(
     tmp_path, mock_build_model, monkeypatch
 ):
     monkeypatch.setattr(
@@ -609,10 +919,142 @@ def test_forward_batch_falls_back_on_runtime_error(
     )
     session = InferenceModel.from_packed(_make_pack_dir(tmp_path))
 
-    with patch("espnet3.publication.inference_model.logger") as mock_logger:
-        results = session.forward_batch(["a", "b"])
+    with pytest.raises(RuntimeError, match="CUDA OOM"):
+        session.forward_batch(["a", "b"])
 
-    mock_logger.warning.assert_called_once()
-    args, _ = mock_logger.warning.call_args
-    assert "CUDA OOM" in str(args[1])
-    assert results == ["cfg:a@cpu", "cfg:b@cpu"]
+
+@pytest.mark.parametrize(
+    "model_target",
+    ["builtins.dict", "os.system", "pathlib.Path", "torch.load"],
+)
+def test_from_packed_refuses_installed_callable_targets(tmp_path, model_target):
+    bundle_root = _make_pack_dir(tmp_path, model_target=model_target)
+    with pytest.raises(ValueError, match="outside the "):
+        InferenceModel.from_packed(bundle_root, trust_user_code=False)
+
+
+def test_from_packed_refuses_nested_target(tmp_path):
+    bundle_root = _make_pack_dir(tmp_path)
+    probe = tmp_path / "gate_probe"
+    config_path = bundle_root / "conf" / "inference.yaml"
+    config_path.write_text(
+        "\n".join(
+            [
+                "recipe_dir: .",
+                "input_key: speech",
+                "model:",
+                "  _target_: espnet2.bin.asr_inference.Speech2Text",
+                "  nested:",
+                "    _target_: pathlib.Path.write_text",
+                "    self:",
+                "      _target_: pathlib.Path",
+                f"      _args_: ['{probe}']",
+                "    data: written",
+            ]
+        ),
+        encoding="utf-8",
+    )
+    assert not probe.exists()
+
+    with pytest.raises(ValueError, match="pathlib.Path"):
+        InferenceModel.from_packed(bundle_root, trust_user_code=False)
+
+    assert not probe.exists()
+
+
+def test_from_packed_allows_espnet_targets(tmp_path, mock_build_model):
+    bundle_root = _make_pack_dir(
+        tmp_path,
+        model_target="espnet2.spk.encoder.identity_encoder.IdentityEncoder",
+    )
+    assert InferenceModel.from_packed(bundle_root, trust_user_code=False) is not None
+
+
+def test_from_packed_allows_disallowed_target_with_trust(tmp_path, mock_build_model):
+    bundle_root = _make_pack_dir(tmp_path, model_target="builtins.dict")
+    assert InferenceModel.from_packed(bundle_root, trust_user_code=True) is not None
+
+
+def test_from_packed_refuses_alias_through_allowed_module(tmp_path):
+    bundle_root = _make_pack_dir(
+        tmp_path,
+        model_target="espnet3.systems.base.inference_provider.os.system",
+    )
+    with pytest.raises(ValueError, match="resolves to"):
+        InferenceModel.from_packed(bundle_root, trust_user_code=False)
+
+
+def test_from_packed_refuses_function_in_allowed_namespace(tmp_path):
+    bundle_root = _make_pack_dir(tmp_path, model_target="espnet2.bin.launch.main")
+    with pytest.raises(ValueError, match="not a class"):
+        InferenceModel.from_packed(bundle_root, trust_user_code=False)
+
+
+@pytest.mark.parametrize("batched", [False, True])
+def test_publication_rejects_unknown_input_even_with_optional_fields(
+    tmp_path, monkeypatch, batched
+):
+    """A misspelled optional input cannot silently disappear."""
+    bundle = _make_pack_dir(tmp_path, input_key=["speech", "prompt"])
+    path = bundle / "conf" / "inference.yaml"
+    config = yaml.safe_load(path.read_text())
+    config["contract"] = {
+        "inputs": {
+            "speech": {"kind": "text"},
+            "prompt": {"kind": "text", "optional": True},
+        },
+        "outputs": {"text": {"kind": "text"}},
+    }
+    path.write_text(yaml.safe_dump(config))
+    seen = []
+
+    def backend(speech, prompt=None):
+        seen.append(speech)
+        return {"text": "ok"}
+
+    monkeypatch.setattr(
+        InferenceProvider, "build_model", staticmethod(lambda _: backend)
+    )
+    model = InferenceModel.from_packed(bundle)
+    sample = {"speech": "input", "promtp": "typo"}
+    with pytest.raises(TypeError, match="promtp"):
+        model.forward_batch([sample]) if batched else model(sample)
+    assert seen == []
+    assert model({"speech": "input", "utt_id": "u1"}) == {"text": "ok", "utt_id": "u1"}
+
+
+@pytest.mark.parametrize("remote", [False, True])
+def test_model_constructor_overrides_reach_instantiation(tmp_path, monkeypatch, remote):
+    """Local and downloaded bundles apply constructor overrides in memory."""
+    bundle = _make_pack_dir(tmp_path, model_target="builtins.dict")
+
+    class Downloader:
+        def download_and_unpack(self, tag):
+            return {"inference_config": str(bundle / "conf" / "inference.yaml")}
+
+    monkeypatch.setattr(
+        "espnet3.publication.inference_model.ModelDownloader", Downloader
+    )
+    loader = InferenceModel.from_pretrained if remote else InferenceModel.from_packed
+    model = loader(
+        "org/model" if remote else bundle,
+        trust_user_code=True,
+        prefix="updated",
+        beam_size=5,
+    )
+    assert model.model["prefix"] == "updated"
+    assert model.model["beam_size"] == 5
+    original = yaml.safe_load((bundle / "conf" / "inference.yaml").read_text())
+    assert original["model"]["prefix"] == "cfg:"
+    assert "beam_size" not in original["model"]
+
+
+def test_constructor_overrides_cannot_bypass_trust_validation(
+    tmp_path, mock_build_model
+):
+    """New nested targets are checked before backend construction."""
+    bundle = _make_pack_dir(tmp_path)
+    with pytest.raises(ValueError, match="pathlib.Path"):
+        InferenceModel.from_packed(bundle, argument={"_target_": "pathlib.Path"})
+    with pytest.raises(ValueError, match="control keys"):
+        InferenceModel.from_packed(bundle, _target_="os.system")

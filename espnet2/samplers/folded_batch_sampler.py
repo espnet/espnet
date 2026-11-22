@@ -80,7 +80,7 @@ class FoldedBatchSampler(AbsSampler):
                 bs = max(min_batch_size, int(batch_size / (1 + factor)))
                 if self.drop_last and start + bs > len(category_keys):
                     # This if-block avoids 0-batches
-                    if len(self.batch_list) > 0:
+                    if len(batch_sizes) > 0:
                         break
 
                 bs = min(len(category_keys) - start, bs)
@@ -97,7 +97,7 @@ class FoldedBatchSampler(AbsSampler):
             # the samples are redistributed to the other mini-batches
             if len(batch_sizes) > 1 and batch_sizes[-1] < min_batch_size:
                 for i in range(batch_sizes.pop(-1)):
-                    batch_sizes[-(i % len(batch_sizes)) - 2] += 1
+                    batch_sizes[-(i % len(batch_sizes)) - 1] += 1
 
             if not self.drop_last:
                 # Bug check

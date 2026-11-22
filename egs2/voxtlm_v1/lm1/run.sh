@@ -11,7 +11,7 @@ test_sets="test"
 
 nbpe=10000
 km_dir="" #Add pretrained km_directory path
-lm_config=conf/train_transformer_size768_e12.yaml
+lm_config=conf/train.yaml
 lm_inference_asr_config=conf/decode_lm_asr.yaml
 lm_inference_tts_config=conf/decode_lm_tts.yaml
 

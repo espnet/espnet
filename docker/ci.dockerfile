@@ -18,7 +18,7 @@ ARG PYTHON_VERSION=3.12
 FROM python:${PYTHON_VERSION}-bookworm AS builder
 
 ARG PYTHON_VERSION
-ARG TH_VERSION=2.9.1
+ARG TH_VERSION=2.11.0
 
 RUN apt-get update -qq \
     && apt-get install -qq -y --no-install-recommends \
@@ -48,12 +48,12 @@ RUN ./ci/install.sh \
 # The verification is not decoration. A silent failure here would put a licence
 # violation into every pull of this image, so it fails the build instead.
 #
-# `python -m pip`, not `venv/bin/pip`. On python 3.13 the pip script is not there:
-# setup_venv.sh pins pip==25.2, then tools/Makefile runs `ensurepip --upgrade`,
-# and 3.13 bundles a pip newer than 25.2 - so unlike 3.12, that upgrade actually
-# runs and leaves no bin/pip behind. This was the only place in the repository
-# calling the script rather than the module; the other 36 call sites use
-# `python -m pip`, which is why nothing else noticed.
+# `python -m pip`, not `venv/bin/pip`. On python 3.13 the pip script was not
+# there: setup_venv.sh pins pip==25.2, then tools/Makefile ran `ensurepip
+# --upgrade`, and 3.13 bundles a pip newer than 25.2 - so unlike 3.12, that
+# upgrade actually ran and left no bin/pip behind. tools/Makefile now passes
+# --default-pip; the module form stays because it cannot pick the wrong
+# interpreter.
 RUN names=$(sed -e 's/#.*//' -e 's/[<>=!~;[].*//' -e 's/[[:space:]]//g' -e '/^$/d' ci/no_redistribute.txt) \
     && if [ -n "$names" ]; then \
          /espnet/tools/venv/bin/python -m pip uninstall -y $names \
@@ -74,7 +74,7 @@ RUN /espnet/tools/venv/bin/python ci/report_unlicensed.py
 # ------------------------------------------------------------------ final ----
 FROM python:${PYTHON_VERSION}-bookworm
 
-ARG TH_VERSION=2.9.1
+ARG TH_VERSION=2.11.0
 LABEL org.opencontainers.image.source="https://github.com/espnet/espnet"
 LABEL org.opencontainers.image.description="Prebuilt ESPnet CI environment (torch ${TH_VERSION})"
 

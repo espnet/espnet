@@ -142,3 +142,13 @@ def test_write_artifact_rejects_custom_writer_missing_output(tmp_path: Path):
                 }
             },
         )
+
+
+def test_write_artifact_keeps_dots_in_the_name(tmp_path: Path):
+    # Utterance ids can hold dots (e.g. speed-perturbed "sp0.9-utt1"); each one
+    # must get its own file.
+    first = write_artifact(np.zeros(3), tmp_path / "sp0.9-utt1")
+    second = write_artifact(np.ones(3), tmp_path / "sp0.9-utt2")
+    assert first.name == "sp0.9-utt1.npy"
+    assert second.name == "sp0.9-utt2.npy"
+    assert np.load(first).sum() == 0 and np.load(second).sum() == 3

@@ -1,5 +1,12 @@
 ## Docker
 
+This page covers the development images, which exist to run recipes and to
+train. Running a *published* model on an audio file needs none of that: the
+`espnet/espnet:inference-cpu-latest` and `espnet/espnet:inference-gpu-latest`
+images are one `docker run` and no checkout. The
+three images, and what each is for, are listed in
+[docker/README.md](https://github.com/espnet/espnet/tree/master/docker/README.md).
+
 ### Execute in docker
 To work inside a docker container, execute `run.sh` located inside the docker directory.
 It will download the requested image and build a container to execute the main program specified by the following GPU, ASR example, and outside directory information, as follows:

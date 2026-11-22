@@ -1,5 +1,3 @@
-import sys
-
 import pytest
 import torch
 
@@ -18,13 +16,8 @@ from espnet2.layers.houlsby_adapter_layer import (
 )
 
 pytest.importorskip("transformers")
-is_python_3_8_plus = sys.version_info >= (3, 8)
 
 
-@pytest.mark.skipif(
-    not is_python_3_8_plus,
-    reason="Not supported",
-)
 def test_transformers_availability_false():
     if not is_s3prl_available:
         assert (
@@ -32,7 +25,6 @@ def test_transformers_availability_false():
         ), HoulsbyTransformerSentenceEncoderLayer
 
 
-@pytest.mark.skipif(not is_python_3_8_plus, reason="Not supported")
 def test_Houlsby_Adapter_init():
 
     adapter = Houlsby_Adapter(
@@ -44,7 +36,6 @@ def test_Houlsby_Adapter_init():
     assert adapter.houlsby_adapter[2].out_features == 64
 
 
-@pytest.mark.skipif(not is_python_3_8_plus, reason="Not supported")
 def test_Houlsby_Adapter_forward():
 
     adapter = Houlsby_Adapter(
@@ -56,10 +47,6 @@ def test_Houlsby_Adapter_forward():
     assert output.shape == (1, 2, 64)
 
 
-@pytest.mark.skipif(
-    not is_python_3_8_plus,
-    reason="Not supported",
-)
 def test_HoulsbyTransformerSentenceEncoderLayer_init():
     embedding_dim = 768
     ffn_embedding_dim = 3072
@@ -93,10 +80,6 @@ def test_HoulsbyTransformerSentenceEncoderLayer_init():
     assert layer_norm_first == adapter_added_layer.layer_norm_first
 
 
-@pytest.mark.skipif(
-    not is_python_3_8_plus,
-    reason="Not supported",
-)
 def test_HoulsbyTransformerSentenceEncoderLayer_forward():
     embedding_dim = 768
     ffn_embedding_dim = 3072

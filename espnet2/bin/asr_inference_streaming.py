@@ -4,7 +4,7 @@ import logging
 import math
 import sys
 from pathlib import Path
-from typing import List, Optional, Sequence, Tuple, Union
+from typing import Any, List, Optional, Sequence, Tuple, Union
 
 import numpy as np
 import torch
@@ -31,6 +31,7 @@ from espnet2.text.token_id_converter import TokenIDConverter
 from espnet2.torch_utils.device_funcs import to_device
 from espnet2.torch_utils.set_all_random_seed import set_all_random_seed
 from espnet2.utils import config_argparse
+from espnet2.utils.pretrained import download_pretrained
 from espnet2.utils.types import str2bool, str2triple_str, str_or_none
 
 
@@ -52,7 +53,7 @@ class Speech2TextStreaming:
     @typechecked
     def __init__(
         self,
-        asr_train_config: Union[Path, str],
+        asr_train_config: Union[Path, str, None] = None,
         asr_model_file: Union[Path, str, None] = None,
         lm_train_config: Union[Path, str, None] = None,
         lm_file: Union[Path, str, None] = None,
@@ -72,13 +73,30 @@ class Speech2TextStreaming:
         disable_repetition_detection=False,
         decoder_text_length_limit=0,
         encoded_feat_length_limit=0,
+        asr_model=None,
+        asr_train_args=None,
     ):
+        """Build the online decoder from the model's files, or over a built model.
 
-        # 1. Build ASR model
+        ``asr_model`` and ``asr_train_args`` together take the place of
+        ``asr_train_config`` and ``asr_model_file``: what ``Speech2Text``
+        already holds, so a model loaded once can decode online too without
+        being read from disk again. A supplied model is moved to ``device``
+        and ``dtype`` in place, as a model read from its files is, so pass
+        the ones it already lives on. The language model, if any, is read
+        from its files either way.
+        """
+        if asr_model is None:
+            if asr_train_config is None:
+                raise ValueError(
+                    "pass asr_train_config, or asr_model with asr_train_args"
+                )
+            asr_model, asr_train_args = ASRTask.build_model_from_file(
+                asr_train_config, asr_model_file, device
+            )
+        elif asr_train_args is None:
+            raise ValueError("asr_model needs its asr_train_args")
         scorers = {}
-        asr_model, asr_train_args = ASRTask.build_model_from_file(
-            asr_train_config, asr_model_file, device
-        )
         asr_model.to(dtype=getattr(torch, dtype)).eval()
 
         assert isinstance(
@@ -356,6 +374,26 @@ class Speech2TextStreaming:
             results.append((text, token, token_int, hyp))
 
         return results
+
+    @staticmethod
+    def from_pretrained(
+        model_tag: Optional[str] = None,
+        **kwargs: Optional[Any],
+    ):
+        """Build Speech2TextStreaming instance from the pretrained model.
+
+        Args:
+            model_tag (Optional[str]): Model tag of the pretrained models.
+                Currently, the tags of espnet_model_zoo are supported.
+
+        Returns:
+            Speech2TextStreaming: Speech2TextStreaming instance.
+
+        """
+        if model_tag is not None:
+            kwargs.update(download_pretrained(model_tag))
+
+        return Speech2TextStreaming(**kwargs)
 
 
 @typechecked

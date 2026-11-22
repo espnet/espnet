@@ -39,7 +39,7 @@ def main():
         indict = {}
     else:
         with open(args.inyaml, "r") as f:
-            indict = yaml.load(f, Loader=yaml.Loader)
+            indict = yaml.safe_load(f)
         if indict is None:
             indict = {}
 
@@ -82,7 +82,7 @@ def main():
         if "=" in arg:
             key, value = arg.split("=")
             if not value.strip() == "":
-                value = yaml.load(value, Loader=yaml.Loader)
+                value = yaml.safe_load(value)
         else:
             key = arg
             value = None

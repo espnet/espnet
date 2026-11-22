@@ -3,7 +3,7 @@
 # Check pixi
 if ! command -v pixi >/dev/null 2>&1; then
     echo "pixi not found. Installing pixi..."
-    curl -fsSL https://pixi.sh/install.sh | bash
+    curl -fsSL --retry 3 https://pixi.sh/install.sh | bash
 else
     echo "pixi is already installed"
 fi
@@ -11,7 +11,7 @@ fi
 # Check uv
 if ! command -v uv >/dev/null 2>&1; then
     echo "uv not found. Installing uv..."
-    curl -fsSL https://astral.sh/uv/install.sh | bash
+    curl -fsSL --retry 3 https://astral.sh/uv/install.sh | bash
 else
     echo "uv is already installed"
 fi
@@ -23,7 +23,7 @@ fi
 # If .venv doesn't exist, create it
 if [ ! -d ".venv" ]; then
     echo "Creating .venv..."
-    uv venv -p 3.11
+    uv venv -p 3.12
 else
     echo ".venv already exists"
 fi
@@ -33,8 +33,8 @@ echo "Activating .venv..."
 . .venv/bin/activate
 
 
-uv pip install torch==2.6.0 torchaudio==2.6.0
-uv pip install -e ../
+uv pip install torch==2.11.0 torchaudio==2.11.0
+uv pip install -e "..[train]"  # the tools env is for recipes, which train
 
 # create activate_python.sh
 echo "Creating activate_python.sh..."

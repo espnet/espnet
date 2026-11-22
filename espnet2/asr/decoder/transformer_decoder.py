@@ -427,6 +427,7 @@ class TransformerDecoder(BaseTransformerDecoder):
         qk_norm: bool = False,
         use_flash_attn: bool = True,
         gradient_checkpoint_layers: List[int] = [],
+        use_sdpa: bool = False,
     ):
         super().__init__(
             vocab_size=vocab_size,
@@ -464,6 +465,7 @@ class TransformerDecoder(BaseTransformerDecoder):
                     use_flash_attn,
                     True,
                     False,
+                    use_sdpa,
                 ),
                 MultiHeadedAttention(
                     attention_heads,

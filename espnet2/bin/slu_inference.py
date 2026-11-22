@@ -31,8 +31,10 @@ from espnet2.tasks.slu import SLUTask
 from espnet2.text.build_tokenizer import build_tokenizer
 from espnet2.text.token_id_converter import TokenIDConverter
 from espnet2.torch_utils.device_funcs import to_device
+from espnet2.torch_utils.quantization import quantize_dynamic
 from espnet2.torch_utils.set_all_random_seed import set_all_random_seed
 from espnet2.utils import config_argparse
+from espnet2.utils.pretrained import download_pretrained
 from espnet2.utils.types import str2bool, str2triple_str, str_or_none
 
 
@@ -97,7 +99,7 @@ class Speech2Understand:
         if quantize_asr_model:
             logging.info("Use quantized asr model for decoding.")
 
-            asr_model = torch.quantization.quantize_dynamic(
+            asr_model = quantize_dynamic(
                 asr_model, qconfig_spec=qconfig_spec, dtype=quantize_dtype
             )
 
@@ -120,7 +122,7 @@ class Speech2Understand:
             if quantize_lm:
                 logging.info("Use quantized lm for decoding.")
 
-                lm = torch.quantization.quantize_dynamic(
+                lm = quantize_dynamic(
                     lm, qconfig_spec=qconfig_spec, dtype=quantize_dtype
                 )
 
@@ -405,17 +407,7 @@ class Speech2Understand:
 
         """
         if model_tag is not None:
-            try:
-                from espnet_model_zoo.downloader import ModelDownloader
-
-            except ImportError:
-                logging.error(
-                    "`espnet_model_zoo` is not installed. "
-                    "Please install via `pip install -U espnet_model_zoo`."
-                )
-                raise
-            d = ModelDownloader()
-            kwargs.update(**d.download_and_unpack(model_tag))
+            kwargs.update(download_pretrained(model_tag))
 
         return Speech2Understand(**kwargs)
 

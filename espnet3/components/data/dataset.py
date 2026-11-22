@@ -413,7 +413,6 @@ class CombinedDataset:
             f"{self.__class__.__name__}("
             f"total_len={len(self)}, "
             f"use_espnet_preprocessor={self.use_espnet_preprocessor}, "
-            f"multiple_iterator={self.multiple_iterator}, "
             f"datasets=[{datasets_desc}]"
             f")"
         )
@@ -505,7 +504,7 @@ class DatasetWithTransform:
         )
 
 
-class ShardedDataset(ABC, Dataset):
+class ShardedDataset(Dataset, ABC):
     """Abstract base class for datasets that support sharding.
 
     This interface is used when datasets are split into shards for parallel or

@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
+# shellcheck source=tools/installers/download_with_retry.sh
+. "$(dirname "$0")"/download_with_retry.sh
 
 SPH2PIPE_VERSION=2.5
 
@@ -16,8 +18,9 @@ if [[ ${unames} =~ MINGW || ${unames} =~ MSYS ]]; then
 fi
 
 if [ ! -e sph2pipe-${SPH2PIPE_VERSION}.tar.gz ]; then
-    wget -nv -T 10 -t 3 -O sph2pipe-${SPH2PIPE_VERSION}.tar.gz \
-	    https://github.com/burrmill/sph2pipe/archive/${SPH2PIPE_VERSION}.tar.gz
+    download_with_retry \
+        https://github.com/burrmill/sph2pipe/archive/${SPH2PIPE_VERSION}.tar.gz \
+        sph2pipe-${SPH2PIPE_VERSION}.tar.gz -nv -T 10
 fi
 
 if [ ! -e sph2pipe-${SPH2PIPE_VERSION} ]; then
@@ -25,4 +28,9 @@ if [ ! -e sph2pipe-${SPH2PIPE_VERSION} ]; then
     rm -rf sph2pipe && ln -s  sph2pipe-${SPH2PIPE_VERSION} sph2pipe
 fi
 
-make -C sph2pipe
+# sph2pipe 2.5 is K&R C: "ulong word_get()" declares no prototype and strdup
+# is used without <string.h>. The GCC of the ubuntu-26.04 CI image compiles it
+# under C23 rules, where "()" means "no arguments" (word_get(fpin) is an error),
+# and recent clang rejects the implicit strdup declaration. Compile it as the C
+# it was written in.
+make -C sph2pipe CCFLAGS="${CCFLAGS:-} -std=gnu89"

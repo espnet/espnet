@@ -13,6 +13,11 @@ from sklearn.metrics.pairwise import cosine_similarity
 from transformers import AutoModel, AutoModelForCausalLM, AutoTokenizer
 
 
+def _device() -> torch.device:
+    """Where the scoring models go: the GPU when there is one, else the CPU."""
+    return torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+
 def perplexity(LLM_Output: str, model_id: str = "gpt2") -> str:
     """
     Compute the perplexity of the given text using a specified model from the
@@ -145,10 +150,11 @@ def bert_score(
         # Tokenize and encode both context and response
         context_inputs = tokenizer(context, return_tensors="pt", truncation=True)
         response_inputs = tokenizer(response, return_tensors="pt", truncation=True)
+        device = next(model.parameters()).device
         for k in context_inputs:
-            context_inputs[k] = context_inputs[k].cuda()
+            context_inputs[k] = context_inputs[k].to(device)
         for k in response_inputs:
-            response_inputs[k] = response_inputs[k].cuda()
+            response_inputs[k] = response_inputs[k].to(device)
 
         # Get embeddings from the model
         with torch.no_grad():
@@ -161,7 +167,7 @@ def bert_score(
         )
         return similarity[0][0]
 
-    bert_model = AutoModel.from_pretrained(bert_model_name).cuda()
+    bert_model = AutoModel.from_pretrained(bert_model_name).to(_device())
     bert_tokenizer = AutoTokenizer.from_pretrained(bert_model_name)
     similarity = cosine_similarity_context_response(
         " ".join(total_response_arr[:-1]),
@@ -222,13 +228,14 @@ def DialoGPT_perplexity(
         # Combine context and response as input
         input_text = context + tokenizer.eos_token + response + tokenizer.eos_token
         inputs = tokenizer(input_text, return_tensors="pt", truncation=True)
-        inputs["input_ids"] = inputs["input_ids"].cuda()
-        inputs["attention_mask"] = inputs["attention_mask"].cuda()
+        device = next(model.parameters()).device
+        inputs["input_ids"] = inputs["input_ids"].to(device)
+        inputs["attention_mask"] = inputs["attention_mask"].to(device)
         # import pdb;pdb.set_trace()
 
         # Compute model outputs and loss
         with torch.no_grad():
-            outputs = model(**inputs, labels=inputs["input_ids"].cuda())
+            outputs = model(**inputs, labels=inputs["input_ids"])
             loss = outputs.loss
 
         # Calculate perplexity
@@ -237,7 +244,7 @@ def DialoGPT_perplexity(
 
     # Load DialoGPT model and tokenizer
     model_name = dialog_model_name
-    model = AutoModelForCausalLM.from_pretrained(model_name).cuda()
+    model = AutoModelForCausalLM.from_pretrained(model_name).to(_device())
     tokenizer = AutoTokenizer.from_pretrained(model_name)
     perplexity = evaluate_response_with_dialoGPT(
         user_utterance, response, model, tokenizer

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import copy
 import logging
 import time
 from pathlib import Path
@@ -10,7 +11,7 @@ from typing import Any, Dict
 import lightning as L
 import torch
 from hydra.utils import instantiate
-from omegaconf import DictConfig, OmegaConf
+from omegaconf import DictConfig, OmegaConf, open_dict
 
 from espnet3.components.modeling.lightning_module import ESPnetLightningModule
 from espnet3.components.trainers.trainer import ESPnet3LightningTrainer
@@ -21,20 +22,53 @@ logger = logging.getLogger(__name__)
 
 
 def _instantiate_model(config: DictConfig) -> Any:
+    model_config = OmegaConf.create(config.model)
+    # ``freeze_param`` belongs to ESPnet3's Lightning wrapper.  It is applied
+    # after model construction and must not be forwarded to a model constructor
+    # or an ESPnet2 task's build_model arguments.
+    model_config.pop("freeze_param", None)
     task = config.get("task")
     if task:
-        model_config = OmegaConf.to_container(config.model, resolve=True)
-        return get_espnet_model(task, model_config)
-    return instantiate(config.model)
+        return get_espnet_model(
+            task, OmegaConf.to_container(model_config, resolve=True)
+        )
+    return instantiate(model_config)
+
+
+def _resolve_trainer_config(config: DictConfig) -> DictConfig:
+    """Return the trainer config with top-level ``init`` folded into it.
+
+    ``init`` may be written at the top level (the ESPnet2 layout) or under
+    ``trainer``. The original config is left unchanged.
+
+    Raises:
+        ValueError: If both locations set different non-null values.
+    """
+    trainer_config = config.trainer
+    init = config.get("init")
+    if init is None:
+        return trainer_config
+
+    trainer_init = trainer_config.get("init")
+    if trainer_init is not None and trainer_init != init:
+        raise ValueError(
+            f"Conflicting initialization: init={init!r} and "
+            f"trainer.init={trainer_init!r}. Set only one of them."
+        )
+    trainer_config = copy.deepcopy(trainer_config)
+    with open_dict(trainer_config):
+        trainer_config.init = init
+    return trainer_config
 
 
 def _build_trainer(config: DictConfig) -> ESPnet3LightningTrainer:
+    trainer_config = _resolve_trainer_config(config)
     model = _instantiate_model(config)
     lit_model = ESPnetLightningModule(model, config)
     trainer = ESPnet3LightningTrainer(
         model=lit_model,
         exp_dir=config.exp_dir,
-        config=config.trainer,
+        config=trainer_config,
         best_model_criterion=config.best_model_criterion,
     )
     return trainer

@@ -11,9 +11,9 @@ import librosa
 import numpy
 import torch
 import torchaudio.compliance.kaldi as ta_kaldi
+from omniio import kaldi as kaldi_io
 
 from espnet2.legacy.utils.cli_utils import get_commandline_args
-from espnet2.utils.kaldiio_utils import import_kaldiio
 from espnet2.utils.types import int_or_none
 
 
@@ -154,7 +154,7 @@ def main():
     sqsums = 0
     count = 0
     with (
-        import_kaldiio().ReadHelper(args.rspecifier, segments=args.segments) as reader,
+        kaldi_io.ReadHelper(args.rspecifier, segments=args.segments) as reader,
         file_writer_helper(
             args.wspecifier,
             filetype=args.filetype,

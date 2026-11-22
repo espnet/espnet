@@ -7,11 +7,16 @@ import torch
 from espnet2.enh.loss.criterions.abs_loss import AbsEnhLoss
 from espnet2.layers.stft import Stft
 
+# One try per package: bundled, whichever is absent disables both losses, and
+# the message then names the extra rather than the package that is missing.
 try:
     import ci_sdr
-    import fast_bss_eval
 except ImportError:
     ci_sdr = None
+
+try:
+    import fast_bss_eval
+except ImportError:
     fast_bss_eval = None
 
 
@@ -95,7 +100,7 @@ class CISDRLoss(TimeDomainLoss):
             is_dereverb_loss=is_dereverb_loss,
         )
         if ci_sdr is None:
-            raise RuntimeError("Please install espnet with `pip install espnet[enh]`")
+            raise RuntimeError("ci_sdr is not installed: pip install espnet[enh]")
 
         self.filter_length = filter_length
 
@@ -185,7 +190,9 @@ class SDRLoss(TimeDomainLoss):
             is_dereverb_loss=is_dereverb_loss,
         )
         if fast_bss_eval is None:
-            raise RuntimeError("Please install espnet with `pip install espnet[enh]`")
+            raise RuntimeError(
+                "fast_bss_eval is not installed: pip install espnet[enh]"
+            )
 
         self.filter_length = filter_length
         self.use_cg_iter = use_cg_iter
@@ -253,7 +260,9 @@ class SISNRLoss(TimeDomainLoss):
             is_dereverb_loss=is_dereverb_loss,
         )
         if fast_bss_eval is None:
-            raise RuntimeError("Please install espnet with `pip install espnet[enh]`")
+            raise RuntimeError(
+                "fast_bss_eval is not installed: pip install espnet[enh]"
+            )
 
         self.clamp_db = clamp_db
         self.zero_mean = zero_mean

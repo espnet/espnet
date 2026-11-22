@@ -43,16 +43,29 @@ class SpeechLMJobTemplate(AbsJobTemplate):
     configurations for speech language modeling tasks.
     """
 
-    def __init__(self, config: Dict[str, Any], is_train: bool = False):
+    def __init__(
+        self,
+        config: Dict[str, Any],
+        is_train: bool = False,
+        load_pretrained: bool = True,
+    ):
         """Initialize the SpeechLM job template.
 
         Args:
             config: Dictionary containing job configuration parameters.
+            is_train: Whether the job is for training (True) or inference.
+            load_pretrained: Load the pretrained weights of the frozen audio
+                encoder and of the base LM. False builds both from their
+                configs alone, leaving the LM weights uninitialised, for a
+                caller that loads a checkpoint strictly over the whole model
+                right after - as both inference entry points do. Nothing
+                else may pass False.
         """
         super().__init__(config, is_train)
 
         # (1) keep other configs
         self.config = config
+        self.load_pretrained = load_pretrained
 
         # (2) build tokenizers and vocabulary
         io_config = config["multimodal_io"]
@@ -60,6 +73,11 @@ class SpeechLMJobTemplate(AbsJobTemplate):
         for io_name, io_kwargs in io_config.items():
             multimodal_io_class = _multimodal_ios[io_name]
             assert issubclass(multimodal_io_class, AbsIO)
+            if issubclass(multimodal_io_class, ContinuousAudioIO):
+                # Fetching the encoder's weights means all of an omni model
+                # of which the encoder is 1.8%; a strict checkpoint load
+                # would overwrite them before they are used.
+                io_kwargs = {**io_kwargs, "load_pretrained": load_pretrained}
             self.multimodal_io[io_name] = multimodal_io_class(**io_kwargs)
 
         self._build_vocabulary()
@@ -134,6 +152,8 @@ class SpeechLMJobTemplate(AbsJobTemplate):
                 f"multimodal range [{mm_start}, {mm_end})"
             )
 
+        self._check_recorded_layout(vocab_intervals)
+
         self.vocab_meta = {
             "vocab": vocab,
             "vocab_intervals": vocab_intervals,
@@ -145,6 +165,52 @@ class SpeechLMJobTemplate(AbsJobTemplate):
             "text_end": text_end,
             "num_stream": num_stream,
         }
+
+    def _check_recorded_layout(self, intervals: Dict[str, Any]) -> None:
+        """Compare the rebuilt token layout against the one the config records.
+
+        Token ids are handed out in the order `multimodal_io` appears in the
+        training config, so a config re-saved with its keys sorted moves every
+        id while the checkpoint still loads cleanly and strictly: the model
+        then decodes nothing recognisable, and nothing says why. A config
+        written by this trainer records the layout it was built with, which
+        turns that into a message here.
+
+        A config without the record is accepted unchanged, so configs written
+        before this existed - the published checkpoints' among them - load as
+        they did.
+        """
+        recorded = self.config.get("vocab_intervals")
+        if recorded is None:
+            return
+
+        def comparable(layout):
+            return {
+                name: [[int(start), int(end)] for start, end in pairs]
+                for name, pairs in layout.items()
+            }
+
+        recorded, rebuilt = comparable(recorded), comparable(intervals)
+        if recorded == rebuilt:
+            return
+
+        differences = [
+            f"  {name}: the config says {recorded.get(name)}, "
+            f"this build gives {rebuilt.get(name)}"
+            for name in sorted(set(recorded) | set(rebuilt))
+            if recorded.get(name) != rebuilt.get(name)
+        ]
+        raise ValueError(
+            "The token layout this config records is not the one it builds:\n"
+            + "\n".join(differences)
+            + "\n\nToken ids follow the order of `multimodal_io`, so this is "
+            "usually a config that was re-saved with its keys sorted. Put the "
+            "original order back first - dumping a sorted config with "
+            "`yaml.safe_dump(config, sort_keys=False)` only keeps it sorted - "
+            "and pass that argument from then on. Loading this config as it "
+            "stands would decode nothing recognisable from a checkpoint that "
+            "otherwise loads."
+        )
 
     def build_preprocessor(self) -> Callable:
         """Build the data collation function for SpeechLM.
@@ -203,6 +269,9 @@ class SpeechLMJobTemplate(AbsJobTemplate):
             model_hf_tag=model_config["model_hf_tag"],
             multimodal_io=self.multimodal_io,
             vocab_meta=self.vocab_meta,
+            # the Flash Attention requirement is training's; see parallel.py
+            is_train=self.is_train,
+            load_pretrained=self.load_pretrained,
             **model_config["model_conf"],
         )
         if not pp_enabled:

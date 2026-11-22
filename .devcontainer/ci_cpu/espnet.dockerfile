@@ -49,7 +49,7 @@ RUN apt-get update && \
         zlib1g-dev \
         pandoc ffmpeg nodejs npm \
         && \
-    curl -s https://packagecloud.io/install/repositories/github/git-lfs/script.deb.sh | bash && \
+    curl -sf --retry 3 https://packagecloud.io/install/repositories/github/git-lfs/script.deb.sh | bash && \
     apt-get -y install --no-install-recommends \
         git-lfs \
         && \
@@ -58,7 +58,7 @@ RUN apt-get update && \
 
 # Latest version of git
 ENV TZ=Etc/UTC
-ENV TH_VERSION=2.7.1
+ENV TH_VERSION=2.11.0
 ENV ESPNET_PYTHON_VERSION=3.12
 ENV USE_CONDA=true
 ENV CHAINER_VERSION=6.0.0

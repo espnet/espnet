@@ -147,3 +147,96 @@ def test_encoder_invalid_stochastic_depth_rate():
             num_blocks=2,
             stochastic_depth_rate=[0.1, 0.1, 0.1],
         )
+
+
+@pytest.mark.parametrize(
+    "rel_pos_type, pos_enc_layer_type, selfattention_layer_type",
+    [("latest", "rel_pos", "rel_selfattn"), ("legacy", "abs_pos", "selfattn")],
+)
+def test_conformer_output_does_not_depend_on_batch_neighbours(
+    rel_pos_type, pos_enc_layer_type, selfattention_layer_type
+):
+    """Padded frames are masked before the convolution module's depthwise conv."""
+    from test.espnet2.asr.encoder.padding_invariance import (
+        COMMON,
+        D_IN,
+        assert_alone_equals_batched,
+    )
+
+    torch.manual_seed(0)
+    assert_alone_equals_batched(
+        ConformerEncoder(
+            D_IN,
+            pos_enc_layer_type=pos_enc_layer_type,
+            selfattention_layer_type=selfattention_layer_type,
+            rel_pos_type=rel_pos_type,
+            cnn_module_kernel=7,
+            **COMMON,
+        )
+    )
+
+
+def test_conformer_legacy_rel_pos_is_documented_as_not_invariant():
+    """The legacy relative shift indexes positions by the padded length.
+
+    This is a property of those models, not a bug the masking can fix; the
+    test pins the fact so that nobody mistakes it for a regression.
+    """
+    from test.espnet2.asr.encoder.padding_invariance import (
+        COMMON,
+        D_IN,
+        alone_vs_batched,
+    )
+
+    torch.manual_seed(0)
+    batched, alone, _ = alone_vs_batched(
+        ConformerEncoder(
+            D_IN,
+            pos_enc_layer_type="rel_pos",
+            selfattention_layer_type="rel_selfattn",
+            rel_pos_type="legacy",
+            cnn_module_kernel=7,
+            **COMMON,
+        )
+    )
+    assert (batched - alone).abs().max() > 1e-3
+
+
+@pytest.mark.parametrize(
+    "attn, pos_enc",
+    [("selfattn", "abs_pos"), ("rel_selfattn", "rel_pos")],
+)
+def test_use_sdpa_reaches_the_attention_and_matches_the_default(attn, pos_enc):
+    """`use_sdpa` has to be forwarded, and must not change the output.
+
+    Both attention types, because they take different constructor signatures
+    and the relative one reaches scaled_dot_product_attention by a different
+    route -- it folds the relative-position term into the additive mask.
+    """
+    x = torch.randn(2, 120, 80)
+    lengths = torch.tensor([120, 95])
+
+    def build(**kwargs):
+        torch.manual_seed(0)
+        return ConformerEncoder(
+            80,
+            output_size=32,
+            attention_heads=2,
+            linear_units=32,
+            num_blocks=2,
+            selfattention_layer_type=attn,
+            pos_enc_layer_type=pos_enc,
+            use_flash_attn=False,
+            **kwargs,
+        )
+
+    # eval() so dropout does not make the two forward passes draw different
+    # masks: the point of the comparison is the attention implementation.
+    sdpa_encoder = build(use_sdpa=True).eval()
+    assert sdpa_encoder.encoders[0].self_attn.use_sdpa
+
+    with torch.no_grad():
+        default_out, _, _ = build().eval()(x, lengths)
+        sdpa_out, _, _ = sdpa_encoder(x, lengths)
+    assert default_out.shape == sdpa_out.shape
+    assert torch.allclose(default_out, sdpa_out, atol=1e-5)

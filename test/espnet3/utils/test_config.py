@@ -4,21 +4,23 @@ from unittest.mock import mock_open, patch
 
 import pytest
 from omegaconf import OmegaConf
+from omegaconf.errors import InterpolationResolutionError
 from yaml.parser import ParserError
 
 from espnet3.utils.config_utils import (
     _build_config_path,
     _ensure_target_convert_all,
+    _normalize_relative_resolver_paths,
+    _resolve_cloned_recipe_name,
     _resolve_egs3_path,
     _rewrite_relative_resolver_paths,
-)
-from espnet3.utils.config_utils import config_path as config_path_resolver
-from espnet3.utils.config_utils import (
+    convert_to_dict,
     load_and_merge_config,
     load_config_with_defaults,
     load_default_config,
     load_line,
 )
+from espnet3.utils.config_utils import config_path as config_path_resolver
 
 # ===============================================================
 # Test Case Summary for Config Utilities
@@ -317,7 +319,7 @@ defaults:
 
 
 def test_load_default_config_train():
-    cfg = load_default_config("training.yaml", "egs3.TEMPLATE.asr")
+    cfg = load_default_config("training.yaml", "egs3.TEMPLATE.esp2_asr")
     assert "dataset" in cfg
     assert "exp_dir" in cfg
 
@@ -515,15 +517,15 @@ exp_dir: ./exp/from_user
 
 def test_load_and_merge_publication_config_inherits_template_readme_path() -> None:
     cfg = load_and_merge_config(
-        Path("egs3/mini_an4/asr/conf/publication.yaml"),
+        Path("egs3/mini_an4/esp2_asr/conf/publication.yaml"),
         "publication.yaml",
-        default_package="egs3.TEMPLATE.asr",
+        default_package="egs3.TEMPLATE.esp2_asr",
         resolve=False,
     )
 
     readme = cfg.pack_model.readme
     assert Path(readme).is_absolute()
-    assert readme.endswith("egs3/TEMPLATE/asr/src/hf_model_readme.md")
+    assert readme.endswith("egs3/TEMPLATE/esp2_asr/src/hf_model_readme.md")
     assert list(cfg.pack_model.include) == [
         "./src",
         "./dataset",
@@ -576,8 +578,8 @@ def test_infer_default_package_returns_none_when_conf_too_shallow(tmp_path):
 
 
 def test_infer_default_package_infers_valid_task(tmp_path):
-    path = tmp_path / "egs3" / "mini_an4" / "asr" / "conf" / "train.yaml"
-    assert _resolve_egs3_path(path, as_package=True) == "egs3.TEMPLATE.asr"
+    path = tmp_path / "egs3" / "mini_an4" / "esp2_asr" / "conf" / "train.yaml"
+    assert _resolve_egs3_path(path, as_package=True) == "egs3.TEMPLATE.esp2_asr"
 
 
 def test_rewrite_preserves_absolute_resolver_path(tmp_path):
@@ -773,7 +775,7 @@ def test_rewrite_config_path_absolute_unchanged(tmp_path):
 
 
 def test_config_path_end_to_end_with_real_template(tmp_path):
-    """Load a real-world demo.yaml against egs3.TEMPLATE.asr.
+    """Load a real-world demo.yaml against egs3.TEMPLATE.esp2_asr.
 
     Verifies that pack.readme resolves to the TEMPLATE's actual
     hf_demo_readme.md file. This is the core regression test for the removal
@@ -794,7 +796,7 @@ def test_config_path_end_to_end_with_real_template(tmp_path):
     cfg = load_and_merge_config(
         user_demo,
         "demo.yaml",
-        default_package="egs3.TEMPLATE.asr",
+        default_package="egs3.TEMPLATE.esp2_asr",
         resolve=False,
     )
 
@@ -803,6 +805,92 @@ def test_config_path_end_to_end_with_real_template(tmp_path):
         readme
     ).is_absolute(), f"pack.readme must be an absolute path, got: {readme}"
     assert readme.endswith(
-        "egs3/TEMPLATE/asr/src/hf_demo_readme.md"
+        "egs3/TEMPLATE/esp2_asr/src/hf_demo_readme.md"
     ), f"pack.readme must point to the TEMPLATE file, got: {readme}"
     assert Path(readme).exists(), f"pack.readme path must exist on disk: {readme}"
+
+
+# ===============================================================
+# Tests for `convert_to_dict(value)`
+# ===============================================================
+
+
+def test_convert_to_dict_turns_a_dictconfig_into_a_plain_dict():
+    result = convert_to_dict(OmegaConf.create({"depth": 18}))
+
+    assert result == {"depth": 18}
+    assert type(result) is dict
+
+
+def test_convert_to_dict_turns_a_listconfig_into_a_plain_list():
+    """A ListConfig is converted into a real list.
+
+    A config list such as `mask_fraction_range: [0.7, 1.0]` must arrive as a
+    real list so the component signature can coerce it.
+    """
+    result = convert_to_dict(OmegaConf.create([0.7, 1.0]))
+
+    assert result == [0.7, 1.0]
+    assert type(result) is list
+
+
+def test_convert_to_dict_converts_nested_containers_too():
+    """Nested containers are converted too.
+
+    The point of the helper is that no OmegaConf node survives into a stored
+    attribute or into checkpointed hparams.
+    """
+    cfg = OmegaConf.create({"mel": {"n_mels": 100, "range": [0.0, 1.0]}})
+
+    result = convert_to_dict(cfg)
+
+    assert type(result["mel"]) is dict
+    assert type(result["mel"]["range"]) is list
+
+
+def test_convert_to_dict_resolves_interpolations():
+    cfg = OmegaConf.create({"fs": 24000, "sample_rate": "${fs}"})
+
+    assert convert_to_dict(cfg) == {"fs": 24000, "sample_rate": 24000}
+
+
+def test_convert_to_dict_returns_a_plain_dict_unchanged():
+    """Direct Python calls pass the value straight through."""
+    value = {"depth": 18}
+
+    assert convert_to_dict(value) is value
+
+
+@pytest.mark.parametrize("value", ["tokens.txt", None, 18, ["a", "b"]])
+def test_convert_to_dict_passes_non_omegaconf_values_through(value):
+    """`token_list` reaches the helper as a path string or a plain list."""
+    assert convert_to_dict(value) is value
+
+
+def test_resolve_cloned_recipe_name_uses_recipe_directory(tmp_path):
+    assert _resolve_cloned_recipe_name(tmp_path / "my_asr" / "conf") == "my_asr"
+
+
+@pytest.mark.parametrize("name", ("my_asr", "config"))
+def test_resolve_cloned_recipe_name_requires_conf_directory(tmp_path, name):
+    assert _resolve_cloned_recipe_name(tmp_path / "my_asr" / name) is None
+
+
+def test_resolve_cloned_recipe_name_rejects_root_conf():
+    assert _resolve_cloned_recipe_name(Path("/conf")) is None
+
+
+def test_set_corpus_and_system_resolves_for_recipe_outside_egs3(tmp_path):
+    conf = tmp_path / "my_asr" / "conf"
+    conf.mkdir(parents=True)
+    cfg = OmegaConf.create({"repo": "espnet/${set_corpus_and_system:}_x"})
+    _normalize_relative_resolver_paths(cfg, conf, "publication")
+    OmegaConf.resolve(cfg)
+    assert cfg.repo == "espnet/my_asr_x"
+
+
+def test_set_corpus_and_system_still_fails_without_recipe_layout(tmp_path):
+    cfg = OmegaConf.create({"repo": "espnet/${set_corpus_and_system:}_x"})
+    _normalize_relative_resolver_paths(cfg, tmp_path, "publication")
+    with pytest.raises(InterpolationResolutionError):
+        OmegaConf.resolve(cfg)

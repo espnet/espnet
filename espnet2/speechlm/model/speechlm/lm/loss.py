@@ -8,9 +8,46 @@ for typical configurations (32k tokens × 150k vocab).
 from typing import Dict, Optional, Tuple
 
 import torch
+import torch.nn.functional as F
 from liger_kernel.ops.fused_linear_cross_entropy import (
     LigerFusedLinearCrossEntropyFunction,
 )
+from torch.distributed.tensor import Partial
+
+
+def memory_efficient_load_balancing_loss(
+    gate_logits,
+    num_experts=None,
+    top_k=2,
+):
+    """Compute the router loss without allocating token-by-expert one-hot masks."""
+    if (
+        gate_logits is None
+        or not isinstance(gate_logits, tuple)
+        or len(gate_logits) == 0
+    ):
+        return torch.tensor(0.0)
+
+    device = gate_logits[0].device
+    total_tokens = 0
+    expert_counts = torch.zeros(num_experts, device=device)
+    router_prob_sum = torch.zeros(num_experts, device=device)
+
+    for layer_gate in gate_logits:
+        total_tokens += layer_gate.shape[0]
+        routing_weights = F.softmax(layer_gate, dim=-1, dtype=torch.float)
+        _, selected_experts = torch.topk(routing_weights, top_k, dim=-1)
+        expert_counts = (
+            expert_counts
+            + torch.bincount(
+                selected_experts.reshape(-1), minlength=num_experts
+            ).float()
+        )
+        router_prob_sum = router_prob_sum + routing_weights.sum(dim=0)
+
+    tokens_per_expert = expert_counts / total_tokens
+    router_prob_per_expert = router_prob_sum / total_tokens
+    return torch.dot(tokens_per_expert, router_prob_per_expert) * num_experts
 
 
 def fused_cross_entropy_loss(
@@ -27,7 +64,7 @@ def fused_cross_entropy_loss(
     """Compute cross-entropy loss using Liger's fused linear + CE kernel.
 
     Uses reduction="sum" with pre-masked targets to work around Liger's
-    reduction="none" backward bug. Two Liger calls: one for stream 0
+    reduction="none" backward behavior. Two Liger calls: one for stream 0
     (full vocab) and one for streams 1+ (multimodal vocab subset).
 
     Args:
@@ -45,9 +82,16 @@ def fused_cross_entropy_loss(
         ce_sum and stats['z_loss'] are raw sums (not divided by count).
         The caller is responsible for normalization.
     """
-    # Convert DTensor to regular tensor if needed (e.g. FSDP2)
+    # The fused loss uses the weight without calling lm_head.forward(), so
+    # FSDP does not reduce its gradient. Each rank contributes a different
+    # local loss: average those contributions over every DP mesh dimension
+    # (both replication and sharding for HSDP), matching FSDP's normalization.
+    # This backward communicates the full head on every microbatch, even when
+    # the trainer defers FSDP all-reduce with set_requires_all_reduce(False).
     if hasattr(lm_head_weight, "full_tensor"):
-        lm_head_weight = lm_head_weight.full_tensor()
+        lm_head_weight = lm_head_weight.full_tensor(
+            grad_placements=[Partial("avg")] * lm_head_weight.device_mesh.ndim
+        )
     # The consolidated weight stays in storage dtype (fp32) after full_tensor(),
     # so cast it back to the compute dtype manually. In Liger, using
     # accum_dtype=torch.float32 would improve grad accumulation precision here,
@@ -70,6 +114,7 @@ def fused_cross_entropy_loss(
     # Pre-mask: set ignored positions to ignore_index=0 (pad token)
     s0_targets[s0_mask == 0] = 0
 
+    # Newer Liger versions also return predicted tokens as a fourth output.
     s0_loss, s0_z_loss, s0_acc = LigerFusedLinearCrossEntropyFunction.apply(
         s0_hidden,  # _input: [B*T, H]
         lm_head_weight,  # weight: [V, H]
@@ -85,7 +130,7 @@ def fused_cross_entropy_loss(
         torch.float32,  # accum_dtype
         False,  # use_token_scaling
         True,  # return_token_accuracy
-    )
+    )[:3]
 
     # ---- Streams 1+: multimodal vocab subset (single call) ----
     mm_loss = torch.tensor(0.0, device=hidden_states.device)
@@ -127,7 +172,7 @@ def fused_cross_entropy_loss(
             torch.float32,  # accum_dtype
             False,  # use_token_scaling
             True,  # return_token_accuracy
-        )
+        )[:3]
 
     # ---- Combine ----
     count = (loss_mask[:, :, 0] != 0).float().sum()
@@ -135,9 +180,14 @@ def fused_cross_entropy_loss(
 
     # ---- Accuracy stats ----
     stats["z_loss"] = s0_z_loss.float()
-    stats["z_loss_s0"] = s0_z_loss.float() / z_loss_weight
+    stats["z_loss_s0"] = (
+        s0_z_loss.float() / z_loss_weight if z_loss_weight else s0_z_loss.float()
+    )
     if num_stream > 1 and multimodal_vocab_range is not None:
-        stats["z_loss_mm"] = mm_z_loss.float() / z_loss_weight
+        stats["z_loss"] = stats["z_loss"] + mm_z_loss.float()
+        stats["z_loss_mm"] = (
+            mm_z_loss.float() / z_loss_weight if z_loss_weight else mm_z_loss.float()
+        )
     if s0_acc is not None:
         stats["acc_layer0"] = s0_acc * count
 

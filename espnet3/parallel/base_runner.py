@@ -48,11 +48,11 @@ class BaseRunner(ABC):
     This class handles:
         - Switching among local, parallel, and asynchronous (distributed) modes.
         - Injecting per-worker environments supplied by an :class:`EnvironmentProvider`.
-        - Keeping ``forward`` as a ``@staticmethod`` for pickle-safety.
+        - Calling ``forward`` without capturing a runner instance.
 
     Subclass contract:
-        - Implement ``@staticmethod forward(idx, dataset, model, **env) -> Any``
-          without capturing ``self``. ``idx`` may be a single index or a batch
+        - Implement ``forward(idx, dataset, model, **env) -> Any`` as a static
+          or class method without capturing ``self``. ``idx`` may be an index or a batch
           of indices depending on ``batch_size``.
         - Provide an :class:`EnvironmentProvider` that builds the required env
           (e.g., dataset/model) for local and worker executions.
@@ -95,8 +95,7 @@ class BaseRunner(ABC):
     def forward(idx: int | Iterable[int], dataset, model, **env) -> Any:
         """Compute items for the given index or batch (to be implemented by subclasses).
 
-        Keep this as a ``@staticmethod`` so that it is pickle-safe for Dask
-        and does not capture ``self``.
+        Use a static or class method so Dask does not capture ``self``.
 
         Args:
             idx (int | Iterable[int]): The input index or batch of indices to process.
@@ -110,7 +109,7 @@ class BaseRunner(ABC):
         Raises:
             NotImplementedError: Always in the base class; implement in subclass.
 
-        Example:
+        Examples:
             >>> class MyRunner(BaseRunner):
             ...     @staticmethod
             ...     def forward(idx, dataset, model, **env):
@@ -283,10 +282,9 @@ class BaseRunner(ABC):
     def _plan_shards(self, items: Sequence[Any]) -> List[Dict[str, Any]]:
         """Divide items into per-shard specs per the active parallel config."""
         par_config = get_parallel_config()
-        env = getattr(par_config, "env", "local") if par_config is not None else "local"
-        num_shards = 1
-        if par_config is not None and env not in ("local",):
-            num_shards = int(getattr(par_config, "n_workers", 1))
+        num_shards = (
+            int(getattr(par_config, "n_workers", 1)) if par_config is not None else 1
+        )
         n_chunks = max(1, num_shards)
         items_list = list(items)
         quotient, remainder = divmod(len(items_list), n_chunks)
@@ -336,17 +334,31 @@ class BaseRunner(ABC):
     def _filter_pending_shards(
         self, shards: Sequence[Dict[str, Any]]
     ) -> List[Dict[str, Any]]:
-        """Return locked shards; skips done-marked ones when resume=True."""
+        """Return locked shards; skips done-marked ones when resume=True.
+
+        Set ``parallel.allow_overwrite_lock: true`` to replace an existing
+        shard lock. This is intended for a stale lock left by an interrupted
+        run; it must not be enabled while another run may still be active.
+        """
         pending = []
+        parallel_config = get_parallel_config()
+        allow_overwrite_lock = bool(
+            getattr(parallel_config, "allow_overwrite_lock", False)
+        )
         for shard in shards:
             shard_dir = self._resolve_shard_dir(
                 str(self.output_dir), self.shard_subdir, int(shard["shard_id"])
             )
             if self.resume and self.is_shard_done(shard_dir):
                 continue
-            if not self._try_lock_shard(shard_dir):
+            locked = self._try_lock_shard(shard_dir)
+            if not locked:
                 if self.resume and self.is_shard_done(shard_dir):
                     continue
+                if allow_overwrite_lock:
+                    self._get_lock_path(shard_dir).unlink(missing_ok=True)
+                    locked = self._try_lock_shard(shard_dir)
+            if not locked:
                 raise RuntimeError(
                     "Shard is already locked by another runner: " f"{shard_dir}"
                 )
@@ -472,7 +484,7 @@ class BaseRunner(ABC):
 
         par_config = get_parallel_config()
         if pending:
-            if par_config is None or getattr(par_config, "env", "local") == "local":
+            if par_config is None:
                 self._run_local(pending)
             else:
                 self._run_parallel_dask(pending)

@@ -37,6 +37,7 @@ from espnet2.speechlm.model.speechlm.parallel_utils import (
 )
 from espnet2.speechlm.utils.data import to_device
 from espnet2.speechlm.utils.model_summary import model_summary
+from espnet2.torch_utils.safe_torch_load import safe_torch_load
 
 logger = logging.getLogger(__name__)
 
@@ -366,29 +367,73 @@ class TitanTrainer:
             logger.info(f"Saved checkpoint to {checkpoint_dir}")
 
     def _load_checkpoint(self, resume_path: Optional[Path]) -> None:
-        """Load checkpoint from DCP, resuming model, optimizer, and LR state.
+        """Initialize weights from native/DCP checkpoints or resume an output DCP.
 
         Args:
-            resume_path: Optional path to checkpoint directory
+            resume_path: Optional native weight file or DCP directory.
         """
         checkpoint_dir = None
         is_resume = False
 
-        if resume_path and resume_path.exists():
+        if resume_path is not None:
+            resume_path = Path(resume_path)
+            if not resume_path.exists():
+                raise FileNotFoundError(f"Checkpoint does not exist: {resume_path}")
+            if resume_path.is_file():
+                if isinstance(self.model, nn.ModuleList):
+                    raise ValueError(
+                        "Native weight files currently support FSDP without pipeline "
+                        "parallelism. Use a DCP checkpoint for pipeline parallelism."
+                    )
+                state_dict = {}
+                if not dist.is_initialized() or dist.get_rank() == 0:
+                    checkpoint = safe_torch_load(resume_path, map_location="cpu")
+                    state_dict = (
+                        checkpoint.get("module", checkpoint)
+                        if isinstance(checkpoint, dict)
+                        else checkpoint
+                    )
+                    if (
+                        not isinstance(state_dict, dict)
+                        or not state_dict
+                        or not all(
+                            isinstance(value, torch.Tensor)
+                            for value in state_dict.values()
+                        )
+                    ):
+                        raise ValueError(
+                            "Expected a nonempty state dict or a checkpoint with model "
+                            "tensors under 'module'."
+                        )
+                if dist.is_initialized():
+                    set_model_state_dict(
+                        self.model,
+                        state_dict,
+                        options=StateDictOptions(
+                            full_state_dict=True,
+                            broadcast_from_rank0=True,
+                            strict=True,
+                        ),
+                    )
+                else:
+                    self.model.load_state_dict(state_dict, strict=True)
+                logger.info(
+                    "Loaded native model weights from %s; optimizer, scheduler, "
+                    "and step start fresh",
+                    resume_path,
+                )
+                return
+            if not (resume_path / ".metadata").is_file():
+                raise ValueError(f"Not a DCP checkpoint directory: {resume_path}")
             checkpoint_dir = resume_path
-        elif (self.output_dir / "checkpoints").exists():
-            ckpt_base = self.output_dir / "checkpoints"
-            checkpoints = [
-                d
-                for d in ckpt_base.iterdir()
-                if d.is_dir() and d.name.startswith("step_")
-            ]
-            if checkpoints:
-                checkpoint_dir = sorted(
-                    checkpoints,
-                    key=lambda x: int(x.name.split("step_")[-1]),
-                    reverse=True,
-                )[0]
+        else:
+            candidates = []
+            for path in (self.output_dir / "checkpoints").glob("step_*"):
+                step = path.name.removeprefix("step_")
+                if step.isdigit() and (path / ".metadata").is_file():
+                    candidates.append((int(step), path))
+            if candidates:
+                checkpoint_dir = max(candidates)[1]
                 is_resume = True
 
         if checkpoint_dir and checkpoint_dir.is_dir():
@@ -501,25 +546,27 @@ class TitanTrainer:
         logger.info("Training completed!")
 
     def train(self) -> None:
-        """Execute one training epoch (save_interval optimizer steps).
+        """Execute up to save_interval optimizer steps.
 
         With gradient accumulation, each optimizer step consumes
         ``gradient_accumulation_steps`` micro-batches. The iterator is
-        sized so that ``save_interval`` optimizer steps are performed.
+        sized to stop at ``max_step``, including a partial final interval.
         """
         self.model.train()
         grad_accum = self.gradient_accumulation_steps
+        num_steps = min(self.save_interval, self.max_step - self.global_step)
+        if num_steps <= 0:
+            return
 
-        # Request enough micro-batches for save_interval optimizer steps.
-        # Use global_step directly as batch offset (not multiplied by
-        # grad_accum) so checkpoint resume is independent of grad_accum.
+        # The iterator offset counts micro-batches, not optimizer steps.
+        # Keep gradient_accumulation_steps unchanged when resuming a run.
         iterator = self.train_data_factory.build_iter(
-            global_step=self.global_step,
-            length=self.save_interval * grad_accum,
+            global_step=self.global_step * grad_accum,
+            length=num_steps * grad_accum,
         )
         data_iter = iter(iterator)
 
-        for _ in range(self.save_interval):
+        for _ in range(num_steps):
 
             iter_start = time.time()
             self.optimizer.zero_grad(set_to_none=True)
@@ -539,8 +586,10 @@ class TitanTrainer:
 
                 try:
                     batch = next(data_iter)
-                except StopIteration:
-                    break
+                except StopIteration as error:
+                    raise RuntimeError(
+                        "Training iterator ended before the requested micro-batches"
+                    ) from error
                 batch = to_device(
                     batch, self.device, dtype=self.dtype, non_blocking=True
                 )
@@ -562,7 +611,6 @@ class TitanTrainer:
                 self.model.parameters(),
                 self.max_norm,
                 foreach=True,
-                ep_enabled=self.parallel_dims.ep_enabled,
             )
 
             # Optimizer step

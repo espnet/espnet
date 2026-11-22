@@ -578,7 +578,7 @@ if __name__ == "__main__":
     parser.add_argument("--config", "-c", help="YAML config file.", required=True)
     args = parser.parse_args()
 
-    config = yaml.load(open(args.config), Loader=yaml.Loader)
+    config = yaml.safe_load(open(args.config))
 
     mapper = FrPolyphonePrepper(
         datadir=config.get("datadir", "data"),
