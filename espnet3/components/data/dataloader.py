@@ -13,7 +13,11 @@ import torch
 from hydra.utils import instantiate
 from omegaconf import DictConfig, OmegaConf
 
-from espnet2.samplers.build_batch_sampler import build_batch_sampler
+from espnet2.samplers.build_batch_sampler import (
+    CATEGORY_BATCH_TYPES,
+    build_batch_sampler,
+    build_category_batch_sampler,
+)
 from espnet3.components.data.epoch_sync_iterator import EpochSyncIterator
 from espnet3.utils.logging_utils import _dump_attrs, build_qualified_name
 
@@ -383,6 +387,10 @@ class DataLoaderBuilder:
         if dataset is None:
             dataset = self.dataset
 
+        # espnet2 iter factories count epochs from 1 (their RNGs seed with
+        # epoch - 1), while self.epoch is Lightning's 0-based current_epoch;
+        # _maybe_shard_dataset keeps the 0-based convention.
+        espnet2_epoch = self.epoch + 1
         sampler_config = factory_config.pop("batches")
         # Batch by the dataset's own item lengths (e.g. omniio metadata)
         # instead of collect_stats shape files: no statistics pass is needed,
@@ -397,13 +405,25 @@ class DataLoaderBuilder:
         if batch_distribution == "global" and torch.distributed.is_initialized():
             # Match ESPnet2: every shared batch must be splittable across ranks.
             sampler_config["min_batch_size"] = torch.distributed.get_world_size()
+        num_batches = None
         if lengths_from_dataset:
+            if sampler_config.get("type") in CATEGORY_BATCH_TYPES:
+                raise ValueError(
+                    "batches.lengths_from_dataset cannot be used with the "
+                    f"category batch type '{sampler_config['type']}'."
+                )
             with _write_lengths_as_shape_file(dataset) as shape_file:
                 if shape_file is None:
                     batches = []
                 else:
                     sampler_config["shape_files"] = [shape_file]
                     batches = list(build_batch_sampler(**sampler_config))
+        elif sampler_config.get("type") in CATEGORY_BATCH_TYPES:
+            sampler_config.setdefault("epoch", espnet2_epoch)
+            batches, _ = build_category_batch_sampler(**sampler_config)
+            # The category samplers ignore num_batches. It is applied after
+            # rank sharding below, so every rank keeps num_batches batches.
+            num_batches = sampler_config.get("num_batches")
         else:
             batches = build_batch_sampler(**sampler_config)
 
@@ -494,6 +514,9 @@ class DataLoaderBuilder:
                 )
                 _LOGGED_DISTRIBUTED_BATCHES.add(mode)
 
+        if num_batches is not None:
+            batches = list(batches)[:num_batches]
+
         log_key = f"{mode}/{batch_distribution}"
         if log_key not in _LOGGED_DISTRIBUTED_BATCHES:
             if batch_distribution != "global":
@@ -511,10 +534,6 @@ class DataLoaderBuilder:
             _LOGGED_DISTRIBUTED_BATCHES.add(log_key)
 
         iter_factory = instantiate(factory_config, dataset, batches=batches)
-        # espnet2 iter factories count epochs from 1 (their RNGs seed with
-        # epoch - 1), while self.epoch is Lightning's 0-based current_epoch;
-        # _maybe_shard_dataset keeps the 0-based convention.
-        espnet2_epoch = self.epoch + 1
         loader = EpochSyncIterator(partial(iter_factory.build_iter, espnet2_epoch))
         log_dataloader(
             logger,

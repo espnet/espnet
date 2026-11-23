@@ -461,6 +461,65 @@ dataloader:
     assert "audio_lengths" in batch[1]
 
 
+@pytest.mark.parametrize("batch_type", ["catbel", "catpow", "catpow_balance_dataset"])
+@pytest.mark.parametrize(
+    "epoch,sampler_epoch,expected_epoch",
+    [(0, None, 1), (3, None, 4), (0, 0, 0), (3, 17, 17)],
+)
+def test_iter_factory_dispatches_category_sampler(
+    monkeypatch, batch_type, epoch, sampler_epoch, expected_epoch
+):
+    import espnet3.components.data.dataloader as dl
+
+    captured = {}
+
+    def _fake_build_category_batch_sampler(**kwargs):
+        captured.update(kwargs)
+        return [["0", "1"], ["2", "3"]], kwargs
+
+    monkeypatch.setattr(
+        dl, "build_category_batch_sampler", _fake_build_category_batch_sampler
+    )
+
+    batch_config = {"type": batch_type, "num_batches": 1}
+    if sampler_epoch is not None:
+        batch_config["epoch"] = sampler_epoch
+    config = OmegaConf.create(
+        {
+            "dataloader": {
+                "train": {
+                    "iter_factory": {
+                        "_target_": (
+                            "test.espnet3.components.data."
+                            "test_dataloader_builder.DummyIterFactory"
+                        ),
+                        "batches": batch_config,
+                    }
+                }
+            }
+        }
+    )
+    organizer = build_organizer(DUMMY_DATASET_TARGET)
+    builder = DataLoaderBuilder(
+        dataset=organizer.train,
+        config=config,
+        collate_fn=None,
+        num_device=1,
+        epoch=epoch,
+    )
+
+    assert list(builder.build("train")) == [["0", "1"]]
+    assert captured == {
+        "type": batch_type,
+        "num_batches": 1,
+        "epoch": expected_epoch,
+    }
+    assert builder.epoch == epoch
+    assert OmegaConf.to_container(config.dataloader.train.iter_factory.batches) == (
+        batch_config
+    )
+
+
 @pytest.mark.parametrize("flag", [True, False])
 def test_multiple_iterator_is_rejected(flag):
     organizer = build_organizer(DUMMY_DATASET_TARGET)
@@ -509,6 +568,44 @@ def test_iter_factory_drops_tail_batches_for_ddp(monkeypatch, rank):
 
     assert len(iterator) == 2
     assert all(batch[0] != 8 for batch in iterator)
+
+
+@pytest.mark.parametrize("rank", [0, 1])
+def test_category_num_batches_applies_per_rank_after_sharding(monkeypatch, rank):
+    import espnet3.components.data.dataloader as dl
+
+    # 4 batches -> 2 per rank; num_batches=1 keeps one batch on every rank
+    def _fake_build_category_batch_sampler(**kwargs):
+        return [["0", "1"], ["2", "3"], ["4", "5"], ["6", "7"]], kwargs
+
+    monkeypatch.setattr(
+        dl, "build_category_batch_sampler", _fake_build_category_batch_sampler
+    )
+    monkeypatch.setattr(dl.torch.distributed, "get_world_size", lambda: 2)
+    monkeypatch.setattr(dl.torch.distributed, "get_rank", lambda: rank)
+
+    config = OmegaConf.create(
+        {
+            "dataloader": {
+                "train": {
+                    "iter_factory": {
+                        "_target_": (
+                            "test.espnet3.components.data."
+                            "test_dataloader_builder.DummyIterFactory"
+                        ),
+                        "batches": {"type": "catbel", "num_batches": 1},
+                    }
+                }
+            }
+        }
+    )
+
+    organizer = build_organizer(DUMMY_DATASET_TARGET)
+    builder = DataLoaderBuilder(
+        dataset=organizer.train, config=config, collate_fn=None, num_device=2, epoch=0
+    )
+
+    assert list(builder.build("train")) == [[["0", "1"], ["2", "3"]][rank]]
 
 
 # --- Multiple Iterator Mode (Sharded Dataset) ---
@@ -1336,3 +1433,20 @@ def test_one_device_per_node_strides_batches(monkeypatch, rank):
     assert builder._get_world_info() == (rank, 2)
     uids = [int(u) for batch in builder.build("train") for u in batch]
     assert len(uids) == 3 and all(u % 2 == rank for u in uids)
+
+
+def test_lengths_from_dataset_rejects_category_batches():
+    """lengths_from_dataset cannot be combined with a category batch type."""
+    from espnet3.components.data.dataloader import CATEGORY_BATCH_TYPES
+
+    config = _lengths_iter_config(100)
+    config.dataloader.train.iter_factory.batches.type = sorted(CATEGORY_BATCH_TYPES)[0]
+    builder = build_builder(
+        _length_combined(LengthDataset([1, 2])),
+        config,
+        collate_fn=None,
+        num_device=1,
+        epoch=0,
+    )
+    with pytest.raises(ValueError, match="category batch type"):
+        builder.build("train")
