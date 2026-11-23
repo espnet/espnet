@@ -39,19 +39,26 @@ python run.py --stages measure \
     --metrics_config conf/metrics.yaml
 python run.py --stages pack_model \
     --training_config conf/training_conv_tasnet.yaml \
-    --inference_config conf/inference_publication.yaml \
+    --inference_config conf/inference.yaml \
     --metrics_config conf/metrics.yaml \
     --publication_config conf/publication.yaml
 ```
+
+To publish your own trained model, first set `model.model_file` in
+`conf/inference.yaml` to the checkpoint you want to publish, then run `infer`,
+`measure`, and `pack_model` with that config. Select a retained checkpoint:
+the publication template excludes `last.ckpt` and `**/step*.ckpt`.
 
 ## Results
 
 ### Conv-TasNet
 
 - Training config: `conf/training_conv_tasnet.yaml` (SI-SNR loss)
-- Inference config: `conf/inference_publication.yaml`
-- Checkpoint: `epoch27_step37800_valid.si_snr_loss.ckpt` (best validation
-  SI-SNR)
-- Test (824 utterances): SI-SNR 19.61 dB, PESQ 2.58, STOI 0.940
-- Noisy baseline: SI-SNR 8.45 dB, PESQ 1.968, STOI 0.921
-- Pretrained model: not yet available
+- Test set: 824 utterances
+
+| Model | SI-SNR (dB) | PESQ | STOI |
+| --- | ---: | ---: | ---: |
+| Conv-TasNet | 19.61 | 2.58 | 0.940 |
+| Noisy baseline | 8.45 | 1.968 | 0.921 |
+
+Pretrained model: [espnet/vctk_noisy_esp2_enh_training_conv_tasnet](https://huggingface.co/espnet/vctk_noisy_esp2_enh_training_conv_tasnet)
