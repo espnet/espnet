@@ -36,8 +36,10 @@ Training (and validation: `data/train`, `data/dev`):
 | NOTSOFAR-1 (240825.1) | `NOTSOFAR1` | CC BY 4.0 | close-talk, every channel of the 7-channel arrays, single-channel devices | train / dev / eval |
 | ICSI | `ICSI` | CC BY 4.0 | every chan*.sph and Mix-Headset | lhotse partition (`local/icsi_split_*.txt`) |
 
-CHiME-6 is released under CC BY-SA 4.0 (`LICENSE.txt` of the corpus). The
-ShareAlike (SA) term of this licence is planned to be removed.
+CHiME-6 was used as released on OpenSLR (SLR150), under CC BY-SA 4.0
+(`LICENSE.txt` of the corpus). It has since been re-released under CC BY 4.0 on
+Hugging Face (`chimechallenge/chime6`), but the v1 models were trained on the
+CC BY-SA release.
 
 Noise for on-the-fly augmentation (`data/noise.scp`, SNR -5 to 20 dB):
 
@@ -68,9 +70,21 @@ packed: `local/data.sh` extracts only the members it needs into `downloads/`.
 The training audio was augmented by adding recorded noise to it. That noise
 audio is not distributed with the models trained by this recipe; it was used
 only as additive background noise during training. All of MUSAN `music/` was
-used, and some of those tracks are licensed CC BY-SA. The next release
-restricts the music to MUSAN tracks without vocals that are CC0, CC BY or
-public domain.
+used, and some of those tracks are licensed CC BY-SA.
+
+### ShareAlike material and the model licence
+
+The v1 training data therefore include material under CC BY-SA 4.0: CHiME-6 as
+released on OpenSLR, and some MUSAN `music/` tracks. Whether trained weights
+inherit the ShareAlike term is unsettled, so the v1 models
+(`espnet/frontia_vad_v1_online`, `espnet/frontia_vad_v1_offline`) are released
+under CC BY-SA 4.0, and that cannot change without retraining.
+
+The v2 series (`egs2/frontia_vad_v2`) removes the ShareAlike material. It uses
+the CC BY 4.0 release of CHiME-6. Its noise and music lists are filtered per
+file to CC0, CC BY or public domain, without vocals. The final training lists
+are counted per licence before training. Models from v2.2 (clean lists) on are
+released under CC BY 4.0, e.g. `espnet/frontia_vad_v2_3`.
 
 ## Running
 
