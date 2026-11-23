@@ -13,13 +13,18 @@ import numpy as np
 import pytest
 import torch
 import yaml
+from omegaconf import OmegaConf
 
-from espnet3.systems.f5tts.inference import (
+from espnet3.contract.inference import load_inference_contract
+from espnet3.contract.kinds.audio import Audio
+from espnet3.systems.base.inference_runner import InferenceRunner
+from espnet3.systems.f5tts.src.f5tts import F5TTS
+from espnet3.systems.f5tts.src.inference import (
     F5TTSInference,
     _chunk_text,
     _cross_fade,
 )
-from espnet3.systems.f5tts.src.f5tts import F5TTS
+from espnet3.utils.config_utils import load_default_config
 
 TOKENS = ["<blank>", "<unk>", "a", "b", "c", " ", "<sos/eos>"]
 MODEL_CONF = dict(
@@ -45,6 +50,7 @@ class _StubVocos:
     """Stands in for Vocos: exposes ``decode``, upsamples by the hop length."""
 
     def decode(self, mel):
+        """Return silence one hop length long per mel frame."""
         return torch.zeros(1, mel.shape[-1] * 256)
 
 
@@ -52,10 +58,12 @@ class _StubVocos:
 
 
 def test_chunk_text_keeps_short_text_whole():
+    """Text under the budget stays one chunk."""
     assert _chunk_text("Hello there.", max_chars=100) == ["Hello there."]
 
 
 def test_chunk_text_splits_on_sentence_boundaries():
+    """Longer text is cut between sentences, each chunk within the budget."""
     chunks = _chunk_text("One. Two. Three.", max_chars=9)
 
     assert chunks == ["One. Two.", "Three."]
@@ -68,6 +76,7 @@ def test_chunk_text_splits_full_width_punctuation():
 
 
 def test_chunk_text_of_empty_text_is_empty():
+    """Empty text gives no chunks."""
     assert _chunk_text("", max_chars=10) == []
 
 
@@ -75,16 +84,19 @@ def test_chunk_text_of_empty_text_is_empty():
 
 
 def test_cross_fade_of_no_waves_returns_silence():
+    """No waveforms give a single silent sample."""
     assert _cross_fade([], 0.1, 24000).shape == (1,)
 
 
 def test_cross_fade_of_a_single_wave_is_a_passthrough():
+    """A single waveform is returned as is."""
     wave = np.arange(10, dtype=np.float32)
 
     assert _cross_fade([wave], 0.1, 24000) is wave
 
 
 def test_zero_duration_cross_fade_is_plain_concatenation():
+    """A zero-length cross-fade concatenates the waveforms."""
     a = np.ones(4, dtype=np.float32)
     b = np.zeros(4, dtype=np.float32)
 
@@ -94,6 +106,7 @@ def test_zero_duration_cross_fade_is_plain_concatenation():
 
 
 def test_cross_fade_overlaps_and_shortens_the_result():
+    """The overlap is shared, so the result is shorter and the level is kept."""
     a = np.ones(10, dtype=np.float32)
     b = np.ones(10, dtype=np.float32)
     n = 4  # 4 samples at sr=1000 is 0.004 s
@@ -107,6 +120,7 @@ def test_cross_fade_overlaps_and_shortens_the_result():
 
 
 def test_cross_fade_falls_back_to_concatenation_when_a_wave_is_too_short():
+    """An overlap that rounds to zero samples concatenates instead."""
     a = np.ones(3, dtype=np.float32)
     b = np.ones(3, dtype=np.float32)
 
@@ -209,6 +223,7 @@ def reference_model(train_config):
 
 @pytest.fixture
 def checkpoint_path(tmp_path, reference_model):
+    """Save the reference model's weights as a Lightning-style checkpoint."""
     path = tmp_path / "last.ckpt"
     torch.save({"state_dict": reference_model.state_dict()}, path)
     return path
@@ -216,6 +231,7 @@ def checkpoint_path(tmp_path, reference_model):
 
 @pytest.fixture
 def stub_vocoder(monkeypatch):
+    """Replace the Vocos download with :class:`_StubVocos`."""
     monkeypatch.setattr(
         F5TTSInference, "_load_vocoder", lambda self, path: _StubVocos()
     )
@@ -223,6 +239,7 @@ def stub_vocoder(monkeypatch):
 
 @pytest.fixture
 def engine(train_config, checkpoint_path, stub_vocoder):
+    """Build an engine on the tiny model with a stub vocoder and fixed seed."""
     return F5TTSInference(
         train_config=str(train_config),
         checkpoint_path=str(checkpoint_path),
@@ -241,6 +258,46 @@ def test_construction_wires_up_the_model_parts(engine):
     assert engine.feats_extract is engine.model.feats_extract
     # hop_length is read from the config rather than assumed.
     assert engine.hop_length == 256
+
+
+def test_sample_rate_defaults_to_the_models(engine):
+    """Unset, the rate is the one the mel front end was configured with."""
+    assert engine.target_sample_rate == FEATS_CONF["fs"]
+
+
+def test_a_sample_rate_other_than_the_models_is_refused(
+    train_config, checkpoint_path, stub_vocoder
+):
+    """A 16 kHz rate on a 24 kHz model would resample and mislabel the audio."""
+    with pytest.raises(ValueError, match="target_sample_rate=16000"):
+        F5TTSInference(
+            train_config=str(train_config),
+            checkpoint_path=str(checkpoint_path),
+            target_sample_rate=16000,
+        )
+    # The model's own rate, given explicitly as older configs do, is accepted.
+    engine = F5TTSInference(
+        train_config=str(train_config),
+        checkpoint_path=str(checkpoint_path),
+        target_sample_rate=FEATS_CONF["fs"],
+    )
+    assert engine.target_sample_rate == FEATS_CONF["fs"]
+
+
+def test_a_vocoder_at_another_rate_is_refused(
+    monkeypatch, train_config, checkpoint_path
+):
+    """Vocos reports its training rate on its mel feature extractor."""
+    vocoder = _StubVocos()
+    vocoder.feature_extractor = types.SimpleNamespace(
+        mel_spec=types.SimpleNamespace(sample_rate=22050)
+    )
+    monkeypatch.setattr(F5TTSInference, "_load_vocoder", lambda self, path: vocoder)
+
+    with pytest.raises(ValueError, match="vocoder produces 22050 Hz"):
+        F5TTSInference(
+            train_config=str(train_config), checkpoint_path=str(checkpoint_path)
+        )
 
 
 def test_checkpoint_weights_are_actually_loaded(engine, reference_model):
@@ -274,6 +331,7 @@ def test_ema_weights_are_preferred_when_present(
 def test_ema_is_skipped_when_use_ema_is_off(
     tmp_path, train_config, reference_model, stub_vocoder
 ):
+    """With ``use_ema=False`` the raw weights are loaded, not the EMA ones."""
     ema = {
         "ema_model." + k: torch.zeros_like(v)
         for k, v in reference_model.state_dict().items()
@@ -293,6 +351,7 @@ def test_ema_is_skipped_when_use_ema_is_off(
 
 
 def test_a_config_without_a_model_target_is_rejected(tmp_path, checkpoint_path):
+    """A training config without ``model._target_`` is refused."""
     path = tmp_path / "bad.yaml"
     path.write_text(yaml.safe_dump({"model": {"hidden_size": 32}}), encoding="utf-8")
 
@@ -303,6 +362,7 @@ def test_a_config_without_a_model_target_is_rejected(tmp_path, checkpoint_path):
 def test_a_config_without_a_token_list_is_rejected(
     tmp_path, train_config, checkpoint_path, stub_vocoder
 ):
+    """A training config without a token list is refused."""
     cfg = yaml.safe_load(train_config.read_text(encoding="utf-8"))
     del cfg["dataset"]["preprocessor"]["token_list"]
     path = tmp_path / "no_tokens.yaml"
@@ -338,6 +398,7 @@ def test_a_vocab_file_selects_the_pinyin_tokenizer(
 
 
 def test_infer_one_returns_a_waveform(engine):
+    """``infer_one`` returns a non-empty mono float32 waveform."""
     wav = engine.infer_one(
         "abc", np.zeros(24000 // 2, dtype=np.float32), reference_text="ab"
     )
@@ -346,14 +407,17 @@ def test_infer_one_returns_a_waveform(engine):
     assert len(wav) > 1
 
 
-def test_ref_text_defaults_to_the_target_text(engine):
-    """Self-reference: no transcript given, so the target doubles as one."""
-    wav = engine.infer_one("abc", np.zeros(24000 // 2, dtype=np.float32))
-
-    assert wav.ndim == 1
+def test_infer_one_requires_the_reference_transcript(engine):
+    """A missing transcript is refused, not replaced by the target text."""
+    with pytest.raises(TypeError):
+        engine.infer_one("abc", np.zeros(24000 // 2, dtype=np.float32))
+    for empty in ("", "   "):
+        with pytest.raises(ValueError, match="reference_text is required"):
+            engine.infer_one("abc", np.zeros(24000 // 2, dtype=np.float32), empty)
 
 
 def test_a_stereo_reference_is_downmixed(engine):
+    """A two-channel reference is averaged to mono."""
     wav = engine.infer_one(
         "abc", np.zeros((2, 24000 // 2), dtype=np.float32), reference_text="ab"
     )
@@ -362,13 +426,17 @@ def test_a_stereo_reference_is_downmixed(engine):
 
 
 def test_call_returns_a_wav_entry_for_a_single_sample(engine):
-    out = engine(text="abc", speech=np.zeros(24000 // 2, dtype=np.float32))
+    """Calling the engine on one sample returns only a ``wav`` array."""
+    out = engine(
+        text="abc", speech=np.zeros(24000 // 2, dtype=np.float32), reference_text="ab"
+    )
 
     assert set(out) == {"wav"}
     assert isinstance(out["wav"], np.ndarray)
 
 
 def test_call_maps_over_a_batch(engine):
+    """Lists of inputs give one waveform per item."""
     audio = [np.zeros(24000 // 2, dtype=np.float32)] * 2
 
     out = engine(
@@ -379,8 +447,18 @@ def test_call_maps_over_a_batch(engine):
 
 
 def test_call_without_a_reference_is_refused(engine):
+    """A call without reference audio is refused."""
     with pytest.raises(ValueError, match="No reference audio"):
-        engine(text="abc")
+        engine(text="abc", reference_text="ab")
+
+
+def test_call_without_a_reference_transcript_is_refused(engine):
+    """A call without the reference transcript is refused, single or batched."""
+    audio = np.zeros(24000 // 2, dtype=np.float32)
+    with pytest.raises(ValueError, match="No reference transcript"):
+        engine(text="abc", reference_speech=audio)
+    with pytest.raises(ValueError, match="No reference transcript"):
+        engine(text=["abc", "ba"], reference_speech=[audio, audio])
 
 
 # ------------------------------------------------------- vocoder construction
@@ -391,30 +469,41 @@ def test_call_without_a_reference_is_refused(engine):
 
 
 class _FakeVocosModel:
+    """Stands in for a loaded Vocos model: records the weights it is given."""
+
     def __init__(self):
+        """Start with no weights loaded."""
         self.loaded_state = None
 
     def load_state_dict(self, state):
+        """Remember the state dict it was given."""
         self.loaded_state = state
 
     def to(self, device):
+        """Return itself, as a device move would."""
         return self
 
     def eval(self):
+        """Return itself, as switching to eval mode would."""
         return self
 
 
 def _install_fake_vocos(monkeypatch, created):
+    """Put a fake ``vocos`` module in ``sys.modules`` that records its calls."""
     module = types.ModuleType("vocos")
 
     class Vocos:
+        """Stands in for ``vocos.Vocos``: records how it was built."""
+
         @staticmethod
         def from_pretrained(repo):
+            """Record the repository and return a fake model."""
             created["repo"] = repo
             return _FakeVocosModel()
 
         @staticmethod
         def from_hparams(config_path):
+            """Record the config path and return a fake model."""
             created["config_path"] = config_path
             return _FakeVocosModel()
 
@@ -425,6 +514,7 @@ def _install_fake_vocos(monkeypatch, created):
 def test_vocos_is_fetched_from_the_default_repo(
     monkeypatch, train_config, checkpoint_path
 ):
+    """Without ``vocoder_path`` the default Vocos repository is used."""
     created = {}
     _install_fake_vocos(monkeypatch, created)
 
@@ -528,6 +618,7 @@ def test_the_prompt_is_measured_with_the_mel_cfm_uses(engine):
     real_sample = engine.cfm.sample
 
     def spy(cond, text, duration, **kwargs):
+        """Record the requested duration and prompt length, then return silence."""
         captured["duration"] = duration
         captured["prompt_frames"] = engine.cfm.mel_spec(cond).shape[-1]
         return torch.zeros(1, duration, 100), None
@@ -579,6 +670,7 @@ def test_a_chunk_that_generates_no_frames_is_dropped(engine, monkeypatch):
 
     def prompt_only(cond, text, duration, **kwargs):
         # Return exactly the reference length, so the generated span is empty.
+        """Return exactly the prompt's length, so nothing new is generated."""
         ref_len = cond.shape[-1] // engine.hop_length
         return torch.zeros(1, ref_len, 100), None
 
@@ -589,3 +681,126 @@ def test_a_chunk_that_generates_no_frames_is_dropped(engine, monkeypatch):
     )
 
     np.testing.assert_array_equal(wav, np.zeros(1, dtype=np.float32))
+
+
+# ------------------------------------------------- through the infer runner
+#
+# The template names the engine directly as the runner's model: the contract
+# shapes the inputs, the engine synthesizes, the contract checks the output.
+
+
+def _template_contract():
+    """Return the contract ``egs3/TEMPLATE/f5tts/conf/inference.yaml`` declares."""
+    config = load_default_config("inference.yaml", "egs3.TEMPLATE.f5tts")
+    return load_inference_contract(OmegaConf.to_container(config.contract))
+
+
+def _runner_item(utt_id, reference):
+    """One test item as an F5-TTS eval dataset serves it."""
+    return {
+        "utt_id": utt_id,
+        "text": "abc",
+        "reference_speech": reference,
+        "reference_text": "ab",
+        "speaker": "ignored",
+    }
+
+
+def _forward(idx, dataset, engine):
+    """Run the shared runner on ``idx`` with the template's contract."""
+    return InferenceRunner.forward(
+        idx,
+        dataset=dataset,
+        model=engine,
+        input_key=["text", "reference_speech", "reference_text"],
+        inference_contract=_template_contract(),
+    )
+
+
+def test_the_engine_serves_the_infer_stage_runner(engine):
+    """The runner reads ``input_key``, checks the contract and stamps the ``utt_id``.
+
+    What the template inference config says: the three inputs are picked out
+    of the item by name, the record gets the item's id, the waveform comes
+    back as an Audio at the contract's rate, and undeclared columns are
+    ignored.
+    """
+    reference = np.random.RandomState(0).randn(4800).astype(np.float32)
+
+    output = _forward(0, {0: _runner_item("u0", reference)}, engine)
+
+    assert output["utt_id"] == "u0"
+    assert isinstance(output["wav"], Audio) and output["wav"].rate == 24000
+    assert output["wav"].array.dtype == np.float32 and output["wav"].array.ndim == 1
+    assert "speaker" not in output
+
+
+def test_the_runner_maps_a_batch_over_the_engine(engine):
+    """A batch of indices gives one checked record per item, in order."""
+    reference = np.random.RandomState(0).randn(4800).astype(np.float32)
+    dataset = {i: _runner_item(f"u{i}", reference) for i in range(2)}
+
+    outputs = _forward([0, 1], dataset, engine)
+
+    assert [output["utt_id"] for output in outputs] == ["u0", "u1"]
+    for output in outputs:
+        assert isinstance(output["wav"], Audio) and output["wav"].rate == 24000
+        assert output["wav"].array.ndim == 1 and output["wav"].array.size > 0
+
+
+def test_the_contract_shapes_the_reference_before_the_engine_sees_it(
+    engine, monkeypatch
+):
+    """A stereo 48 kHz Gradio pair reaches the engine mono at 24 kHz."""
+    seen = []
+    infer_one = engine.infer_one
+
+    def recording_infer_one(target_text, reference_audio, reference_text):
+        """Remember the reference the runner handed over, then synthesize."""
+        seen.append(reference_audio)
+        return infer_one(target_text, reference_audio, reference_text)
+
+    monkeypatch.setattr(engine, "infer_one", recording_infer_one)
+    stereo_at_48k = (48000, np.zeros((48000, 2), dtype=np.int16))
+
+    output = _forward("u1", {"u1": _runner_item("u1", stereo_at_48k)}, engine)
+
+    (reference_audio,) = seen
+    assert isinstance(reference_audio, Audio) and reference_audio.rate == 24000
+    assert reference_audio.array.ndim == 1
+    assert abs(len(reference_audio.array) - 24000) <= 1
+    assert output["utt_id"] == "u1"
+    # A missing input is refused by the contract before the model runs.
+    incomplete = _runner_item("u2", stereo_at_48k)
+    del incomplete["reference_text"]
+    with pytest.raises(KeyError, match="reference_text"):
+        _forward("u2", {"u2": incomplete}, engine)
+    assert len(seen) == 1
+
+
+def test_a_reference_file_is_read_by_the_contract(engine, tmp_path):
+    """A path is read and resampled by the contract, not by the engine."""
+    import soundfile
+
+    path = tmp_path / "prompt.wav"
+    soundfile.write(path, np.zeros(8000, dtype=np.float32), 16000)
+
+    output = _forward(0, {0: _runner_item("u0", str(path))}, engine)
+
+    assert isinstance(output["wav"], Audio) and output["wav"].rate == 24000
+
+
+def test_an_audio_reference_is_taken_at_its_own_rate(engine):
+    """The engine accepts an ``Audio`` and refuses one at another rate."""
+    samples = np.random.RandomState(0).randn(4800).astype(np.float32)
+
+    wav = engine.infer_one("abc", Audio(samples, 24000), "ab")
+    assert wav.dtype == np.float32 and wav.ndim == 1
+
+    with pytest.raises(ValueError, match="16000 Hz but the model takes 24000 Hz"):
+        engine.infer_one("abc", Audio(samples, 16000), "ab")
+
+
+def test_sample_rate_is_the_rate_the_contract_defaults_to(engine):
+    """``sample_rate`` exposes the engine's rate to a contract that names none."""
+    assert engine.sample_rate == engine.target_sample_rate == 24000
