@@ -38,7 +38,7 @@ def _detector(level, median=1, threshold=0.5):
         frame_shift=HOP / FS,
         threshold=threshold,
         median=median,
-        stream=lambda: _Stream(level),
+        stream=lambda keep_probabilities=True: _Stream(level),
     )
 
 
@@ -168,14 +168,16 @@ def test_tiny_model_end_to_end(tmp_path):
     )
     vad = FrontiaVADModel.from_detector(detector)
     vad.warmup()
-    audio = (np.random.default_rng(0).normal(size=FS) * 0.1).astype(np.float32)
-    for i in range(0, FS, 320):
+    audio = (np.random.default_rng(0).normal(size=10 * FS) * 0.1).astype(np.float32)
+    for i in range(0, len(audio), 320):
         vad.forward(audio[i : i + 320], FS)
-    probs = vad.stream.all_probabilities()
-    # The stream scores every complete frame, as the whole recording does.
-    assert len(probs) == (FS - N_FFT) // HOP + 1
-    whole = detector.probabilities(audio, FS)
-    np.testing.assert_allclose(probs, whole, atol=1e-5)
+    # The stream the wrapper runs keeps no probability history and only the
+    # samples of the next frame, however long it runs.
+    assert vad.stream.cached is not None
+    assert vad.stream.probs == []
+    assert len(vad.stream.buffer) < N_FFT + 320
+    with pytest.raises(ValueError, match="keeps no probabilities"):
+        vad.stream.all_probabilities()
 
 
 def test_forward_copies_the_chunk():
@@ -237,3 +239,12 @@ def test_int16_then_float_chunks_keep_their_scale():
     out = vad.forward(np.zeros(2 * FS, dtype=np.float32), FS)
     assert out is not None
     assert np.abs(out).max() == pytest.approx(0.5, abs=0.01)
+
+
+def test_refuses_a_stream_that_keeps_all_audio():
+    detector = _detector(lambda i: 0.1)
+    detector.stream = lambda keep_probabilities=True: SimpleNamespace(
+        cached=None, context=None
+    )
+    with pytest.raises(ValueError, match="bounded audio"):
+        FrontiaVADModel.from_detector(detector)

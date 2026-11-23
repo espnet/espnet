@@ -378,3 +378,16 @@ def test_a_dual_mode_model_reads_ahead_offline_and_streams_online(tmp_path):
         vad.probabilities(speech[:20000], FS, vad.offline_look_ahead),
         atol=1e-5,
     )
+
+
+def test_stream_without_probability_history(tmp_path):
+    vad = _model(tmp_path)
+    kept, bare = vad.stream(), vad.stream(keep_probabilities=False)
+    speech = _speech(2.0)
+    for i in range(0, len(speech), 1000):
+        np.testing.assert_allclose(
+            bare.accept(speech[i : i + 1000]), kept.accept(speech[i : i + 1000])
+        )
+    assert bare.probs == [] and len(kept.all_probabilities()) > 0
+    with pytest.raises(ValueError, match="keeps no probabilities"):
+        bare.segments()

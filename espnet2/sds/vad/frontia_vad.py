@@ -115,7 +115,19 @@ class FrontiaVADModel(AbsVAD):
 
     def reset(self):
         """Forget all audio and start a new stream."""
-        self.stream = self.detector.stream()
+        # This class keeps the probabilities it needs itself, so the stream
+        # keeps none.
+        self.stream = self.detector.stream(keep_probabilities=False)
+        if (
+            getattr(self.stream, "cached", True) is None
+            and getattr(self.stream, "context", 0) is None
+        ):
+            # An encoder without forward_streaming or a receptive field makes
+            # StreamingVAD rerun, and so keep, the whole audio of the stream.
+            raise ValueError(
+                "FrontiaVADModel needs an encoder with forward_streaming or a "
+                "receptive_field, so that the stream keeps bounded audio"
+            )
         self.sample_rate: Optional[int] = None
         # The audio kept, as given (raw) and as float in [-1, 1] (audio), with
         # the stream's sample index of their first sample.
