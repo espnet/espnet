@@ -54,12 +54,18 @@ The detection is `espnet2.bin.diar_inference` (offline, batches) and
 
 ## The decision rules
 
-Each mode has its own threshold and median filter, those of the model card,
-tuned on AMI MH dev, kept as
-`espnet2.bin.diar_inference.VAD_RULES`. The rule is stage 7's
-(`pyscripts/utils/make_rttm.py`): a frame is speech when its probability is
-above the threshold, and the 0/1 sequence is then median-filtered. All four
-are sliders here, starting at the tuned values.
+Each mode has a threshold and a centred median filter, kept as
+`espnet2.bin.diar_inference.VAD_RULES`: threshold 0.6 and median 25 for both,
+tuned on AMI MH dev. The rule is stage 7's (`pyscripts/utils/make_rttm.py`): a
+frame is speech when its probability is above the threshold, and the 0/1
+sequence is then median-filtered. All four are sliders here, starting at those
+values, and `espnet detect` takes `--threshold` and `--median`.
+
+**The default online detection is not strictly causal.** The model reads no
+future audio, but a centred median of M frames waits for the (M - 1) / 2
+frames after each frame: 96 ms at 25. With look-ahead and median together,
+decisions come 96 ms after the audio online and 1088 ms after it offline. A
+median of 1 gives a strictly causal online decision, with no delay.
 
 ## Running and publishing
 

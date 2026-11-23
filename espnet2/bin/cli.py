@@ -853,8 +853,11 @@ def build_parser() -> argparse.ArgumentParser:
         "--median",
         type=int,
         default=None,
-        help="median filter over this many frames, odd; 1 for none (default: "
-        "the model's, tuned with the threshold)",
+        help="centred median filter over this many frames, odd; 1 for none "
+        "(default: 25 in both modes). A median of M frames delays every "
+        "decision by (M - 1) / 2 frames of 8 ms, 96 ms at 25, so the default "
+        "--online, --stream and --live detection is not strictly causal; "
+        "--median 1 makes it so",
     )
     p.add_argument(
         "--batch-size",

@@ -90,9 +90,13 @@ and runs in two modes.
 **Online** runs with no look-ahead: it reads no future audio, so it runs on a
 live stream. **Offline** reads up to about a second ahead, and places the
 boundaries better for it when the whole recording is there. A frame is speech
-when its probability is above the threshold, and a median filter then removes
-blips shorter than half its length; each mode has its own, tuned on AMI MH
-dev.
+when its probability is above the threshold, and a centred median filter then
+removes blips shorter than half its length.
+
+The median filter reads ahead: one of M frames delays each decision by
+(M - 1) / 2 frames of 8 ms, 96 ms at the default 25. So the default online
+detection is **not strictly causal**, although the model reads no future
+audio. Set the median to 1 for a strictly causal decision.
 """
 ARTICLE = """Source of this Space:
 [`egs2/frontia_vad_v1/diar1/demo`](https://github.com/espnet/espnet/tree/master/egs2/frontia_vad_v1/diar1/demo).
@@ -336,6 +340,8 @@ def _rule(mode):
         value=tuned_median,
         step=2,
         label=f"{mode.capitalize()} median filter (frames of 8 ms)",
+        info="centred: delays each decision by (median - 1) / 2 frames, "
+        "96 ms at 25; 1 for a strictly causal decision",
     )
     return threshold, median
 

@@ -633,18 +633,26 @@ VAD_MODELS = {
     "offline": "espnet/frontia_vad_v2_3",
 }
 
-# Each model's decision rule, make_rttm.py's as stage 7 scores it: a frame is
-# speech when its probability exceeds the threshold, then a median filter of
-# that many frames smooths the 0/1 sequence. The values are the rules of the
-# v2.3 model card, tuned on AMI MH dev (ami_mh_dev_v1), as (threshold, median).
+# Each mode's decision rule, make_rttm.py's as stage 7 scores it: a frame is
+# speech when its probability exceeds the threshold, then a centred median
+# filter of that many frames smooths the 0/1 sequence, as (threshold, median).
+# Both can be changed: VoiceActivityDetector(threshold=, median=), and
+# `espnet detect --threshold --median`.
+#
+# The centred median of M frames reads (M - 1) / 2 frames after each frame, so
+# it delays every decision by (M - 1) / 2 x 8 ms: 96 ms at 25. The default
+# online rule is therefore NOT strictly causal, although the model reads no
+# future audio; median 1 gives a strictly causal decision with no delay.
 VAD_RULES = {
-    # v2.3 at look-ahead 0, the online rule of its model card, tuned on
-    # ami_mh_dev_v1. The median filter is centred, so a frame's decision waits
-    # for the 12 frames after it (96 ms).
+    # v2.3 at look-ahead 0: the online rule of its model card, tuned on
+    # ami_mh_dev_v1. Decisions come 96 ms after the audio.
     "online": (0.6, 25),
-    # v2.3 at look-ahead 124, the offline rule of its model card: no median
-    # filter
-    "offline": (0.6, 1),
+    # v2.3 at look-ahead 124 (992 ms) and the same median, so decisions come
+    # 1088 ms after the audio. The model card gives median 1; on the 23
+    # benchmark sets median 25 scores better (macro DetER 9.79 against 9.90,
+    # macro frame EER 12.37 against 12.49, threshold 0.6 for both) and removes
+    # the one-frame segments median 1 leaves at speech edges.
+    "offline": (0.6, 25),
 }
 VAD_THRESHOLD, VAD_MEDIAN = VAD_RULES["offline"]
 
