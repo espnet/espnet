@@ -1,7 +1,7 @@
 """Tests for the normalizer resolver in espnet3/systems/esp2_s2t/src/sot/text_norm.py.
 
 The CHiME-8 normalizer it can return is an optional dependency, so the tests
-that need it skip when it is absent. Everything else runs anywhere.
+that need it skip when it is absent. The other tests run in any environment.
 """
 
 import pytest
@@ -10,7 +10,10 @@ import espnet3.systems.esp2_s2t.src.sot.text_norm as tn  # noqa: E402
 
 
 def test_none_means_no_normalizer_at_all():
-    """None rather than an identity function, so a caller can skip the call."""
+    """get_text_norm returns None for None and for "none".
+
+    It does not return an identity function, so a caller can skip the call.
+    """
     assert tn.get_text_norm(None) is None
     assert tn.get_text_norm("none") is None
 
@@ -21,11 +24,11 @@ def test_an_unknown_name_is_rejected_by_name():
 
 
 def test_the_missing_dependency_is_named_with_its_install_command():
-    """chime-utils is not on PyPI, so pip's own error would not help.
+    """The error message gives the pip command that installs chime-utils.
 
-    It cannot be an espnet extra either -- pip rejects a URL dependency in a
-    published package's metadata -- so the message has to give the pip command
-    with the repository URL.
+    chime-utils is not on PyPI, and PyPI does not accept a package that lists
+    a URL dependency, so espnet cannot install it through an extra. The
+    message therefore gives the pip command with the repository URL.
     """
     try:
         import chime_utils  # noqa: F401
@@ -39,11 +42,12 @@ def test_the_missing_dependency_is_named_with_its_install_command():
 
 
 def test_the_chime8_normalizer_keeps_fillers_and_expands_contractions():
-    """What the published checkpoint's targets were written with.
+    """chime8_keep_fillers keeps fillers and expands contractions.
 
-    Fillers are the point of the name: chime_utils' own
-    get_txt_norm("chime8") takes no arguments and deletes them, which would
-    strip most of AMI's backchannels out of the targets.
+    The published checkpoint's targets were written with this normalizer. As its
+    name says, it keeps fillers. chime_utils' own get_txt_norm("chime8") takes no
+    arguments and deletes fillers, which would remove most of AMI's backchannels
+    from the targets.
     """
     pytest.importorskip("chime_utils")
     norm = tn.get_text_norm("chime8_keep_fillers")

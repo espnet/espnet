@@ -1,9 +1,9 @@
-"""The timestamp options refused on a CTC-only checkpoint.
+"""Tests for the timestamp options on a CTC-only checkpoint.
 
-Both need a decoder to ride on, and a CTC-only checkpoint has none. The
-fixtures here build such a checkpoint, which is why this lives beside
-``test_s2t_inference.py`` rather than in it: that file's fixtures of the same
-name build a checkpoint that does have a decoder.
+Both options need a decoder, and a CTC-only checkpoint has none. The fixtures
+here build such a checkpoint, so these tests are in a separate file next to
+``test_s2t_inference.py``. The fixtures with the same names in that file build a
+checkpoint that has a decoder.
 """
 
 from pathlib import Path
@@ -75,14 +75,14 @@ def s2t_config_file(tmp_path: Path, token_list):
 def test_the_base_class_refuses_timestamp_options_on_a_ctc_only_checkpoint(
     s2t_config_file, option
 ):
-    """Both options need a decoder, and a CTC-only checkpoint has none.
+    """Speech2Text raises ValueError for both options on a CTC-only checkpoint.
 
-    Without the guard the request is not refused but lost. The filter is
-    built and then dropped, because the CTC-only branch gives it no weight
-    and BeamSearch keeps only the scorers that have one, so a user who asked
-    for a speaker change symbol would get an unconstrained decode and no
-    warning. adaptive_timestamp does not even get that far: it reads a
-    decoder that is not there.
+    Both options need a decoder, and a CTC-only checkpoint has none. Without this
+    check, the speaker-change filter would be built and then dropped. The CTC-only
+    branch gives it no weight, and BeamSearch keeps only the scorers that have a
+    weight. A user who set a speaker change symbol would get an unconstrained
+    decode and no warning. adaptive_timestamp would fail earlier, because it reads
+    a decoder that does not exist.
     """
     with pytest.raises(ValueError, match="CTC-only"):
         Speech2Text(s2t_train_config=s2t_config_file, beam_size=1, **option)

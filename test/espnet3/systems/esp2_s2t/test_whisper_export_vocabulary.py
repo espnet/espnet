@@ -1,9 +1,9 @@
 """Tests for espnet3/systems/esp2_s2t/src/sot/whisper_export_vocabulary.py.
 
-The module is a copy of the espnet2 exporter; these cover what the copy
-changes: a speaker-change symbol the vocabulary already holds is not appended
-twice, and an added-token file does not follow the shared, cached tokenizer
-into the next caller.
+The module is a copy of the espnet2 exporter. These tests cover two changes in
+the copy. A speaker-change symbol that is already in the vocabulary is not
+appended again. An added-token file does not change the shared, cached tokenizer
+for the next caller.
 """
 
 import pytest
@@ -17,8 +17,8 @@ pytest.importorskip("whisper")
 def test_sot_asr_does_not_append_a_symbol_the_vocabulary_already_has(tmp_path):
     """A symbol already in the vocabulary is not appended again.
 
-    "????" is Whisper BPE id 25629; appending it a second time would
-    duplicate the row.
+    "????" is Whisper BPE id 25629. Appending it a second time would duplicate
+    the row.
     """
     out = tmp_path / "tokens.txt"
     export_vocabulary(
@@ -52,13 +52,13 @@ def test_sot_asr_still_appends_a_symbol_the_vocabulary_lacks(tmp_path):
 
 @pytest.mark.execution_timeout(30)
 def test_an_added_token_file_does_not_follow_the_next_caller(tmp_path):
-    """add_token_file_name must not reach the shared tokenizer.
+    """add_token_file_name does not change the shared tokenizer.
 
-    whisper.tokenizer.get_tokenizer is lru_cached, so one HuggingFace
-    tokenizer is shared by everything in the process. Adding to it in place
-    made the exported length depend on who ran first: the padding loop reads
-    the tokenizer's size, so every leaked token cost one timestamp at the
-    end of the list.
+    whisper.tokenizer.get_tokenizer is lru_cached, so all code in the process
+    shares one HuggingFace tokenizer. When tokens were added to it in place, the
+    exported length depended on which caller ran first. The padding loop reads the
+    tokenizer's size, so each token added by an earlier caller removed one
+    timestamp from the end of the list.
     """
     add = tmp_path / "add.txt"
     add.write_text("command:yes\n", encoding="utf-8")

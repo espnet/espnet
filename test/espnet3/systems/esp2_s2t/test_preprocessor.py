@@ -13,10 +13,10 @@ _TOKENS = None
 
 
 def _token_list(extra=()):
-    """The Whisper vocabulary, plus any symbol the test appends to it.
+    """Return the Whisper vocabulary plus any symbols that the test adds.
 
-    A symbol the vocabulary lacks is registered by the preprocessor at the next free id,
-    which is one past this list unless the test extends it.
+    The preprocessor gives a symbol that the vocabulary does not have the next free
+    id. Unless the test extends the list, this id is one past the end of the list.
     """
     global _TOKENS
     if _TOKENS is None:
@@ -35,10 +35,10 @@ def _token_list(extra=()):
 
 
 def _build(token_list=None, **kwargs):
-    """Build the preprocessor, defaulting to the released checkpoint's symbol.
+    """Build the preprocessor with the released checkpoint's symbol by default.
 
-    The class takes no default for it -- the symbol belongs to a checkpoint --
-    so the tests name the one the token list above is built with.
+    The class has no default symbol, because the symbol depends on the checkpoint.
+    So the tests pass the symbol that the token list above was built with.
     """
     options = dict(
         train=False,
@@ -75,7 +75,10 @@ def _run(preprocessor, text=_LINE):
 
 @pytest.mark.execution_timeout(120)
 def test_the_target_begins_with_the_language_and_task_symbols():
-    """Training must produce the prefix decoding primes with."""
+    """The training target starts with the <|en|> and <|transcribe|> symbols.
+
+    Decoding starts with this prefix, so training must produce the same prefix.
+    """
     tokens = _token_list()
     out = _run(_build())
     assert [tokens[i] for i in out["text"][:2]] == ["<|en|>", "<|transcribe|>"]
@@ -83,32 +86,40 @@ def test_the_target_begins_with_the_language_and_task_symbols():
 
 @pytest.mark.execution_timeout(120)
 def test_the_separator_survives_as_one_token():
-    """Without sot=True the BPE splits "????" into two ordinary tokens."""
+    """The separator "????" is encoded as one token, id 25629.
+
+    Without sot=True, the BPE splits "????" into two ordinary tokens.
+    """
     assert 25629 in _run(_build())["text"].tolist()
 
 
 @pytest.mark.execution_timeout(120)
 def test_no_notimestamps_is_injected_when_the_line_has_timestamps():
-    """The base class prepends one; a target cannot say both."""
+    """The target has no <|notimestamps|> token when the text has timestamps.
+
+    The base class adds this token at the start. A target cannot have both
+    timestamps and <|notimestamps|>.
+    """
     assert 50363 not in _run(_build())["text"].tolist()
 
 
 @pytest.mark.execution_timeout(120)
 def test_speech_leaves_one_dimensional():
-    """Speech leaves one dimensional.
+    """The preprocessor returns the speech as a one-dimensional array.
 
-    A frontend-less Whisper encoder hands the raw tensor to torch.stft, which rejects a
-    trailing channel axis.
+    A Whisper encoder without a frontend passes the raw tensor to torch.stft, which
+    rejects a trailing channel axis.
     """
     assert _run(_build())["speech"].ndim == 1
 
 
 @pytest.mark.execution_timeout(120)
 def test_the_utterance_id_never_reaches_the_model():
-    """A dataset item carries utt_id for inference; training has no use for it.
+    """The preprocessor removes utt_id from its output and keeps the input unchanged.
 
-    Left in, it would reach the collate function and the model's forward as a
-    keyword the model does not take.
+    A dataset item has utt_id for inference, and training does not use it. If it
+    stayed in, it would be passed to the collate function and to the model's
+    forward as a keyword that the model does not take.
     """
     preprocessor = _build()
     sample = {
@@ -135,13 +146,13 @@ def test_a_configured_separator_other_than_the_default_is_honoured():
 
 @pytest.mark.execution_timeout(120)
 def test_a_separator_the_token_list_disagrees_about_is_rejected():
-    """A separator the token list disagrees about is rejected.
+    """The preprocessor raises ValueError when the token list lacks the separator.
 
-    A corpus and a vocabulary built with different separators is the silent failure this
-    whole recipe is shaped around.
+    A corpus and a vocabulary built with different separators raise no error. The
+    whole recipe is designed around this problem.
 
-    sot=True makes any string tokenize to one id, so "is it one token" cannot catch it;
-    only checking the token list can.
+    sot=True makes any string tokenize to one id, so a check for a single token
+    cannot find the problem. Only a check of the token list can find it.
     """
     with pytest.raises(ValueError, match="token list holds"):
         # The list has no "@@" row, so the sot tokenizer puts it one past the end.
@@ -150,10 +161,11 @@ def test_a_separator_the_token_list_disagrees_about_is_rejected():
 
 @pytest.mark.execution_timeout(600)
 def test_a_target_from_this_preprocessor_gives_the_model_a_finite_loss():
-    """The cheapest proof that the pieces fit: preprocessor -> model -> loss.
+    """A target from this preprocessor gives the model a finite loss.
 
-    Everything else in this suite checks one component. This one catches a mismatch
-    between them, which is where the expensive surprises live.
+    This is the cheapest check that the preprocessor, the model and the loss work
+    together. The other tests here check one component each. This test catches a
+    mismatch between components, and such mismatches cause expensive problems.
     """
     import torch
 
@@ -217,13 +229,13 @@ def test_a_target_from_this_preprocessor_gives_the_model_a_finite_loss():
 
 @pytest.mark.execution_timeout(900)
 def test_a_separator_the_vocabulary_lacks_grows_the_model_by_one_trainable_row():
-    """The other half of the separator story, and the one with no loud failure.
+    """A separator that Whisper lacks adds one trainable row to the model.
 
-    A symbol Whisper already has costs nothing. One it lacks is appended to the token
-    list, so the model is sized one row wider than the pretrained embedding. With
-    load_origin_token_embedding left at its default False that mismatch silently
-    discards all 51865 pretrained rows; with it true the rows must survive and the
-    appended one must still learn.
+    A symbol that Whisper already has needs no new row. A symbol that it lacks is
+    appended to the token list, so the model has one more row than the pretrained
+    embedding. With load_origin_token_embedding at its default False, this size
+    difference discards all 51865 pretrained rows without an error. With it True,
+    the pretrained rows must stay unchanged, and the appended row must still learn.
     """
     import torch
     import whisper
@@ -276,7 +288,7 @@ def test_a_separator_the_vocabulary_lacks_grows_the_model_by_one_trainable_row()
     assert torch.equal(
         embedding.weight[:51865].float().cpu(), pretrained.weight.float().cpu()
     )
-    # The appended row must not shadow a symbol the model resolves by index.
+    # The id of the appended row must not be one of the special symbol ids.
     assert 51865 not in (model.blank_id, model.sos, model.eos, model.sop, model.na)
 
     batch = [sample, sample]

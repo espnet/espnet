@@ -34,7 +34,10 @@ def test_relocate_remaps_a_recording_whose_stored_path_is_gone(tmp_path):
 
 
 def test_relocate_leaves_a_recording_that_still_resolves(tmp_path):
-    """A corpus prepared on this machine must keep working untouched."""
+    """_relocate_recording keeps a source path whose file still exists.
+
+    A corpus prepared on this machine must keep working without changes.
+    """
     present = tmp_path / "here.wav"
     present.write_bytes(b"")
     source = SimpleNamespace(type="file", source=str(present))
@@ -51,7 +54,7 @@ def test_relocate_ignores_non_file_sources(tmp_path):
 
 
 def _tiny_cutset(tmp_path, cut_id="MEET-0.0-2.0"):
-    """Write a one-cut CutSet over a real two-second wav."""
+    """Write a CutSet with one cut of a real two-second wav file."""
     import numpy as np
     import soundfile as sf
     from lhotse import CutSet, MonoCut, Recording, SupervisionSegment
@@ -94,7 +97,7 @@ def _tiny_cutset(tmp_path, cut_id="MEET-0.0-2.0"):
 
 
 def _single_split_config(tmp_path, monkeypatch, **sot):
-    """Point the module config at a one-split corpus under tmp_path."""
+    """Set the module config to a corpus with one split under tmp_path."""
     options = {
         "cutset": "tiny.jsonl.gz",
         "ordering": "start_time",
@@ -102,10 +105,11 @@ def _single_split_config(tmp_path, monkeypatch, **sot):
         "max_timestamp_pause": 2.0,
     }
     options.update(sot)
-    # The three location keys interpolate ${oc.env:...} lazily, so they are set
-    # through the environment. Assigning over such a node freezes it: monkeypatch
-    # restores the resolved string rather than the interpolation, and every later
-    # test in the process would then read whatever root this one used.
+    # The three location keys interpolate ${oc.env:...} lazily, so this function
+    # sets them through the environment. Assigning a value to such a node would
+    # freeze it.
+    # monkeypatch would then restore the resolved string, and the interpolation
+    # would be lost. Every later test in the process would read this test's root.
     monkeypatch.setenv("AMI_SOT_DATA_ROOT", str(tmp_path))
     monkeypatch.setenv("AMI_SOT_CUTSET_DIR", "cutsets")
     monkeypatch.setenv("AMI_AUDIO_ROOT", "audio")
@@ -127,10 +131,10 @@ def _built_cuts(tmp_path, split="test"):
 
 @pytest.mark.execution_timeout(30)
 def test_build_writes_one_cutset_carrying_the_group_ids(tmp_path, monkeypatch):
-    """A built split is one file, and every cut in it carries its own text.
+    """A built split is one cuts file, and every cut in it has its own text.
 
-    Ids and text cannot drift apart the way separate files could, so what is left
-    to pin is that both are there.
+    The ids and the text are stored in the same file, so they cannot get out of
+    sync. The test only checks that both are present.
     """
     _tiny_cutset(tmp_path)
     _single_split_config(tmp_path, monkeypatch)
@@ -144,14 +148,14 @@ def test_build_writes_one_cutset_carrying_the_group_ids(tmp_path, monkeypatch):
 
 @pytest.mark.execution_timeout(30)
 def test_build_serializes_with_the_splits_configured_ordering(tmp_path, monkeypatch):
-    """The ordering option must reach the text, not just the config."""
+    """build() orders the speakers in the text by the split's ordering option."""
     _tiny_cutset(tmp_path)
     _single_split_config(tmp_path, monkeypatch, ordering="longest_first")
 
     bl.AmiSotBuilder().build()
 
     text = _built_cuts(tmp_path)[0].custom[bl._SOT_TEXT_FIELD]
-    # "A" speaks later but has the longer block, so longest_first leads on it.
+    # "A" speaks later but has the longer block, so longest_first puts it first.
     assert text.startswith(
         "<|en|><|transcribe|><|1.00|> a much longer turn<|1.50|> ????"
     )
@@ -160,10 +164,11 @@ def test_build_serializes_with_the_splits_configured_ordering(tmp_path, monkeypa
 
 @pytest.mark.execution_timeout(30)
 def test_build_leaves_the_group_audio_in_the_meeting_recording(tmp_path, monkeypatch):
-    """No per-group wav is written, and the cut still yields the group's audio.
+    """build() writes no wav file per group, and the cut still loads its audio.
 
-    Writing one file per group cost 8.6 GB across the three splits. The cut names
-    the offset and duration instead, so the samples have to come out the same.
+    One wav file per group used 8.6 GB for the three splits. The cut now stores the
+    offset and the duration in the meeting recording, so loading the cut must give
+    the same samples.
     """
     _tiny_cutset(tmp_path)
     _single_split_config(tmp_path, monkeypatch)
@@ -189,11 +194,11 @@ def test_is_built_becomes_true_only_after_building(tmp_path, monkeypatch):
 
 @pytest.mark.execution_timeout(30)
 def test_asking_whether_the_source_is_prepared_downloads_nothing(tmp_path, monkeypatch):
-    """A question about disk must be answered from disk.
+    """is_source_prepared only looks at the disk and downloads nothing.
 
-    BaseSystem.create_dataset asks this of roots that hold nothing. Answering by
-    fetching turns the question into a multi-hundred-gigabyte AMI download, which
-    is slow enough to look like a hang and fills the caller's disk before it fails.
+    BaseSystem.create_dataset calls it on empty roots. A download there would fetch
+    several hundred gigabytes of AMI audio. The download is slow enough to look like
+    a hang, and it fills the caller's disk before it fails.
     """
     import lhotse.recipes.ami as ami
 
@@ -203,7 +208,7 @@ def test_asking_whether_the_source_is_prepared_downloads_nothing(tmp_path, monke
     monkeypatch.setattr(ami, "download_audio", _refuse)
     _tiny_cutset(tmp_path)
     _single_split_config(tmp_path, monkeypatch)
-    # Cutsets present, audio absent: the branch the download sits behind.
+    # The cutsets exist and the audio does not. The download code is in this branch.
     monkeypatch.setenv("AMI_AUDIO_ROOT", "no_audio_here")
 
     assert bl.AmiSotBuilder().is_source_prepared() is False
@@ -211,7 +216,7 @@ def test_asking_whether_the_source_is_prepared_downloads_nothing(tmp_path, monke
 
 @pytest.mark.execution_timeout(30)
 def test_rebuilding_a_split_produces_the_same_cuts(tmp_path, monkeypatch):
-    """Re-running the stage over a built split must not change what it holds."""
+    """Running build() again on a built split writes the same cuts and text."""
     _tiny_cutset(tmp_path)
     _single_split_config(tmp_path, monkeypatch)
     bl.AmiSotBuilder().build()
@@ -227,10 +232,11 @@ def test_rebuilding_a_split_produces_the_same_cuts(tmp_path, monkeypatch):
 # --------------------------------------------------------------------------
 # Regression guards for the serialization options.
 #
-# These values reproduce previously prepared serialized text from the
-# cutsets byte for byte: train 52972/52972, dev 3746/3746, test 6127/6127.
-# Editing one silently changes every reference the recipe scores against, so
-# the committed values are asserted directly.
+# With these values, the cutsets give the previously prepared serialized text
+# byte for byte. The counts are train 52972/52972, dev 3746/3746 and test
+# 6127/6127. A change to one value changes every reference that the recipe
+# scores against, and no error is raised. So the tests check the committed
+# values directly.
 # --------------------------------------------------------------------------
 
 _VERIFIED_OPTIONS = {
@@ -251,27 +257,27 @@ def test_committed_sot_options_are_the_verified_ones(split):
 
 
 def test_no_split_carries_its_own_separator():
-    """No split carries its own separator.
+    """No split config sets its own separator.
 
-    A token list cannot follow a per-split separator, and a model trained on one symbol
-    cannot be scored against another.
+    All splits share one token list, so a separator set per split would not match
+    it. A model trained with one symbol cannot be scored with another symbol.
     """
     for options in bl._CONFIG["sot"].values():
         assert "separator" not in options
 
 
-# Needs both halves: the cutsets to rebuild from and the recorded transcript
-# to rebuild against.
+# This test needs the cutsets to rebuild the text from, and the recorded
+# transcript to compare the rebuilt text with.
 @pytest.mark.execution_timeout(600)
 @ami_sot_paths.needs_cutsets
 @ami_sot_paths.needs_reference_text
 def test_test_split_transcripts_still_match_the_reference_content():
-    """The text is S2T-shaped now, so compare what did not change.
+    """The rebuilt test transcripts match the recorded reference transcripts.
 
-    Stripping the prompt and rewriting the separator spelling must give back the
-    prepared reference minus its end token, byte for byte. That keeps the guarantee on
-    the part that matters -- the transcript and its timestamps -- while allowing the
-    shape to change.
+    The text now has the S2T format. After the prompt is removed and the separator
+    spelling is changed, the text must equal the prepared reference without its end
+    token, byte for byte. So the transcript and its timestamps must stay the same,
+    and the format around them may change.
     """
     from lhotse import CutSet
 
@@ -279,9 +285,9 @@ def test_test_split_transcripts_still_match_the_reference_content():
     try:
         normalizer = bl.get_text_norm(options.get("text_norm"))
     except ImportError as exc:
-        # The configured normalizer is an optional dependency. Without it the
-        # builder cannot produce the prepared text at all, so there is nothing
-        # this test could compare.
+        # The configured normalizer is an optional dependency. Without it, the
+        # builder cannot produce the prepared text, so this test has nothing to
+        # compare.
         pytest.skip(str(exc).splitlines()[0])
     cuts = {
         c.id: c
@@ -307,8 +313,8 @@ def test_test_split_transcripts_still_match_the_reference_content():
         assert built.startswith(prompt), utt_id
 
         def normalise(text):
-            # Compare transcripts, not spellings: either side may carry the
-            # prompt, and the separator has two spellings in circulation.
+            # Either side may contain the prompt, and the separator has two
+            # spellings in use. This removes both differences before comparing.
             text = text.removeprefix(prompt).removesuffix(" <|endoftext|>")
             return text.replace(" ???? ", " <sc> ")
 
@@ -319,14 +325,14 @@ def test_test_split_transcripts_still_match_the_reference_content():
 
 
 def test_data_config_reaches_the_builder_through_the_create_dataset_stage():
-    """Data config reaches the builder through the create dataset stage.
+    """The create_dataset stage reaches AmiSotBuilder through conf/training.yaml.
 
-    conf/training.yaml is the only CLI route to the builder, so it must resolve, and it
-    must name all three splits.
+    conf/training.yaml is the only CLI route to the builder. So it must resolve, and
+    it must list all three splits.
 
-    The create_dataset stage is gated on --training_config, so one config drives every
-    stage, as it does in the other egs3 recipes. Training reads train and valid; the
-    builder prepares test as well, and the inference stage assumes it was prepared.
+    The create_dataset stage runs only with --training_config, so one config is used
+    for every stage, as in the other egs3 recipes. Training reads train and valid.
+    The builder also prepares test, and the inference stage expects test to exist.
     """
     from espnet3.components.data.dataset_module import (
         load_dataset_module,
@@ -338,11 +344,11 @@ def test_data_config_reaches_the_builder_through_the_create_dataset_stage():
         str(ami_sot_paths.RECIPE / "conf" / "training.yaml"), resolve=True
     )
     assert {"train", "valid", "test"} <= set(config["dataset"])
-    # The same block carries the preprocessor the train stage instantiates.
+    # The same block also has the preprocessor that the train stage creates.
     assert "preprocessor" in config["dataset"]
 
-    # One shared data_src, so create_dataset prepares it once and build()
-    # loops over the splits itself.
+    # All splits share one data_src. So create_dataset prepares it once, and
+    # build() loops over the splits itself.
     sources = {
         parse_dataset_reference_config(dict(config["dataset"][split][0]))[0]
         for split in ("train", "valid", "test")
@@ -358,14 +364,13 @@ def test_data_config_reaches_the_builder_through_the_create_dataset_stage():
 @ami_sot_paths.needs_reference_text
 @pytest.mark.execution_timeout(600)
 def test_test_split_selects_exactly_the_reference_utterances():
-    """The builder must emit the reference's ROW SET, not just matching text.
+    """The builder selects the same test utterances as the recorded reference.
 
-    Its sibling regression looks each reference line up in the cutset by id and compares
-    the text, which says nothing about WHICH cuts the builder would write. The manifest
-    holds 6137 cuts and the recorded reference holds 6127: ten utterance groups overran
-    Whisper's 30 s window, were truncated to exactly 30.00 s, and are excluded. Without
-    the max_cut_duration filter the builder emits all 6137 and every downstream count is
-    wrong.
+    The test above compares the text for each reference id. It does not check which
+    cuts the builder writes. The manifest has 6137 cuts, and the reference has 6127.
+    Ten utterance groups were longer than Whisper's 30 s window. They were truncated
+    to exactly 30.00 s and are excluded. Without the max_cut_duration filter, the
+    builder writes all 6137 cuts, and all later counts are wrong.
     """
     from lhotse import CutSet
 
@@ -385,10 +390,11 @@ def test_test_split_selects_exactly_the_reference_utterances():
 
 @pytest.mark.execution_timeout(30)
 def test_build_refuses_a_corpus_it_did_not_create(tmp_path, monkeypatch):
-    """The shared AMI corpus is writable and build() rewrites what it finds.
+    """build() refuses to write into a split directory that it did not create.
 
-    Anything that flips is_built() to False -- a partially copied tree, a missing file
-    -- would otherwise have create_dataset overwrite a corpus the recipe did not
+    The shared AMI corpus is writable, and build() rewrites the files it finds. A
+    partially copied tree or a missing file makes is_built() return False. Without
+    this check, create_dataset would then overwrite a corpus that the recipe did not
     produce.
     """
     _tiny_cutset(tmp_path)
@@ -406,10 +412,11 @@ def test_build_refuses_a_corpus_it_did_not_create(tmp_path, monkeypatch):
 
 @pytest.mark.execution_timeout(30)
 def test_prepare_source_refuses_a_corpus_it_did_not_create(tmp_path, monkeypatch):
-    """create_dataset calls prepare_source itself, and before is_built.
+    """prepare_source refuses a corpus root that the builder did not create.
 
-    Guarding build() alone would still let an AMI download start inside a corpus root
-    that is not ours.
+    create_dataset calls prepare_source itself, before is_built. If only build() had
+    this check, an AMI download could start inside a corpus root that this builder
+    did not create.
     """
     _tiny_cutset(tmp_path)
     _single_split_config(tmp_path, monkeypatch)
@@ -435,10 +442,10 @@ def test_build_proceeds_on_an_empty_root_and_leaves_its_marker(tmp_path, monkeyp
 
 @pytest.mark.execution_timeout(30)
 def test_an_interrupted_build_can_be_resumed(tmp_path, monkeypatch):
-    """An interrupted build can be resumed.
+    """build() can resume an interrupted build.
 
-    The marker claims the directory up front, so a crash partway does not lock the
-    builder out of its own half-written corpus.
+    The builder writes its marker before anything else. After a crash, the marker is
+    still there, so build() can overwrite its own half-written corpus.
     """
     _tiny_cutset(tmp_path)
     _single_split_config(tmp_path, monkeypatch)
@@ -456,10 +463,10 @@ def test_an_interrupted_build_can_be_resumed(tmp_path, monkeypatch):
 
 @pytest.mark.execution_timeout(300)
 def test_build_writes_a_token_list_the_separator_resolves_in(tmp_path, monkeypatch):
-    """Build writes a token list the separator resolves in.
+    """build() writes a token list that contains the separator exactly once.
 
-    S2TTask sizes the model from len(token_list); the separator must be in it exactly
-    once, at the id the tokenizer emits.
+    S2TTask uses len(token_list) to size the model. The separator must be in the list
+    exactly once, at the id that the tokenizer outputs.
     """
     _tiny_cutset(tmp_path)
     _single_split_config(tmp_path, monkeypatch)
@@ -476,11 +483,11 @@ def test_build_writes_a_token_list_the_separator_resolves_in(tmp_path, monkeypat
 def test_a_corpus_keeps_reporting_itself_built_without_a_token_list(
     tmp_path, monkeypatch
 ):
-    """The opposite of the obvious design, and deliberate.
+    """is_built() returns True for a built corpus that has no tokens.txt.
 
-    Requiring the vocabulary here would make every corpus prepared before this recipe
-    report itself unbuilt, which sends create_dataset into build() and straight into the
-    guard. The owner of such a corpus needs one file added, not a refusal.
+    If is_built() required the token list, every corpus prepared before this recipe
+    would report that it is not built. create_dataset would then call build(), and
+    the guard would refuse the corpus. The owner only needs to add one file.
     """
     _tiny_cutset(tmp_path)
     _single_split_config(tmp_path, monkeypatch)
@@ -493,7 +500,11 @@ def test_a_corpus_keeps_reporting_itself_built_without_a_token_list(
 
 @pytest.mark.execution_timeout(300)
 def test_write_token_list_adds_the_vocabulary_without_rebuilding(tmp_path, monkeypatch):
-    """The supported route for a corpus that predates this recipe."""
+    """write_token_list adds tokens.txt and does not change the built cuts.
+
+    This is the supported way to add the token list to a corpus that was prepared
+    before this recipe.
+    """
     _tiny_cutset(tmp_path)
     _single_split_config(tmp_path, monkeypatch)
     bl.AmiSotBuilder().build()

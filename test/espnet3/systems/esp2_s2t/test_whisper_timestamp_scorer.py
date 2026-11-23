@@ -1,11 +1,11 @@
 """Tests for WhisperTimestampFilter.
 
-The filter returns an additive 0.0 / -inf mask over the vocabulary, so a value
-of 0.0 means "allowed" and -inf means "forbidden".
+The filter returns an additive 0.0 / -inf mask over the vocabulary. A value of
+0.0 means "allowed", and -inf means "forbidden".
 
-Synthetic Whisper-style layout used throughout (text below eos, a contiguous
-timestamp range at the top), matching the real layout measured from
-OpenAIWhisperTokenIDConverter:
+All tests use a small vocabulary with the Whisper layout. Text comes before eos,
+and a contiguous timestamp range is at the end. This layout matches the real
+layout measured from OpenAIWhisperTokenIDConverter. This table shows the ids.
 
     ids  0..9   normal text  (SEP = 5, like "????" = 25629 in whisper vocab)
     id   10     eos
@@ -34,7 +34,7 @@ LAST_T = 29
 SEP = 5
 SAMPLE_BEGIN = 3  # prompt length, e.g. <|sot|><|en|><|transcribe|>
 
-PROMPT = [100, 101, 102]  # opaque prompt ids; only its length matters
+PROMPT = [100, 101, 102]  # placeholder ids. The filter uses only the length.
 
 
 def build(speaker_change=None, max_initial_timestamp_index=None):
@@ -66,13 +66,13 @@ TEXT = set(range(0, EOS))
 
 
 def test_a_timestamp_range_below_eos_is_rejected():
-    """The mask arithmetic assumes the Whisper layout; __init__ must check it.
+    """The constructor raises ValueError when the timestamps come before eos.
 
-    "A segment is closed, so text must not come next" is implemented as
-    ``mask[:eos] = -inf``. That blocks exactly the text tokens only when the
-    timestamps sit ABOVE eos. Given a layout where they sit below, the same
-    slice would blank the timestamps too and the decode would quietly go
-    wrong, so the constructor rejects it instead.
+    The mask arithmetic assumes the Whisper layout. The rule "a segment is closed,
+    so text must not come next" is implemented as ``mask[:eos] = -inf``. This
+    slice blocks only the text tokens when the timestamps are above eos. With the
+    timestamps below eos, it would also block the timestamps, and the decode would
+    be wrong without an error.
     """
     with pytest.raises(ValueError, match="eos") as excinfo:
         WhisperTimestampFilter(
@@ -87,13 +87,14 @@ def test_a_timestamp_range_below_eos_is_rejected():
 
 
 def test_the_real_whisper_layout_is_accepted():
-    """The ids the recipe actually passes must survive the new check.
+    """The constructor accepts the ids that the recipe passes.
 
-    Measured from the released checkpoint's token list: eos 50257, first
-    timestamp 50364, last timestamp 51864, vocabulary 51865.
+    The ids come from the released checkpoint's token list. eos is 50257, the
+    first timestamp is 50364, the last timestamp is 51864, and the vocabulary size
+    is 51865.
     """
-    # Constructing without raising is the assertion: __init__ rejects any
-    # layout whose eos sits inside or above the timestamp range.
+    # The test passes if the constructor does not raise. __init__ rejects any
+    # layout whose eos is inside or above the timestamp range.
     WhisperTimestampFilter(
         first_time=50364,
         last_time=51864,
@@ -109,7 +110,7 @@ def test_notimestamps_is_always_forbidden():
 
 
 def test_first_position_forces_a_timestamp():
-    # Nothing generated yet: only timestamps may be emitted.
+    # Nothing has been generated yet, so only timestamps are allowed.
     assert allowed(mask_of(build(), [])) == TIMESTAMPS
 
 
@@ -119,15 +120,15 @@ def test_max_initial_timestamp_bounds_the_first_timestamp():
 
 
 def test_after_two_consecutive_timestamps_text_must_follow():
-    # last and penultimate are timestamps -> every timestamp is forbidden.
+    # The last two tokens are timestamps, so every timestamp is forbidden.
     m = mask_of(build(), [FIRST_T, 20])
     assert allowed(m).isdisjoint(TIMESTAMPS)
-    assert 3 in allowed(m)  # text is available
+    assert 3 in allowed(m)  # text is allowed
 
 
 def test_after_single_closing_timestamp_text_is_forbidden():
-    # ts, text, ts -> a segment just closed: no text, but eos and later
-    # timestamps are allowed.
+    # ts, text, ts means that a segment has just closed. Text is forbidden, and
+    # eos and later timestamps are allowed.
     m = mask_of(build(), [FIRST_T, 3, 20])
     a = allowed(m)
     assert a.isdisjoint(TEXT)
@@ -136,19 +137,19 @@ def test_after_single_closing_timestamp_text_is_forbidden():
 
 
 def test_timestamps_are_monotonic():
-    # The open segment started at timestamp 20, so nothing below it may close
-    # it, and 20 itself may not either: a segment must have a nonzero length.
+    # The open segment started at timestamp 20, so no timestamp below 20 may close
+    # it. 20 may not close it either, because a segment must have a nonzero length.
     a = allowed(mask_of(build(), [FIRST_T, 3, 20, 4]))
     assert a.isdisjoint(set(range(FIRST_T, 21)))
     assert 21 in a
 
 
 def test_a_closing_timestamp_may_reopen_the_one_that_closed_a_segment():
-    """The nonzero length rule must not block the next segment.
+    """After a segment closes at timestamp 20, 20 is allowed again.
 
-    A segment that has just closed at timestamp 20 leaves 20 available again,
-    so the next segment can start where the previous one ended. Forbidding it
-    here as well would push every segment one step apart.
+    The nonzero length rule must not block the next segment, which can start where
+    the previous one ended. If 20 were forbidden here too, every segment would
+    start one step after the end of the previous one.
     """
     assert 20 in allowed(mask_of(build(), [FIRST_T, 3, 20]))
 
@@ -165,49 +166,50 @@ def test_separator_is_allowed_after_a_closing_timestamp():
 
 
 def test_separator_forbidden_when_text_must_follow():
-    # two consecutive timestamps -> text must follow, so no separator.
+    # After two timestamps in a row, text must follow, so no separator is allowed.
     assert SEP not in allowed(mask_of(build(speaker_change=SEP), [FIRST_T, 20]))
 
 
 def test_separator_forbidden_while_a_segment_is_open():
-    """A speaker cannot change in the middle of a segment.
+    """The separator is forbidden while a segment is open.
 
-    The timestamp that opened the segment would reach the segment parser
-    with nothing to pair it with. Only the two cases whose last token is a
-    timestamp used to be handled, which left this one permitted.
+    A speaker cannot change in the middle of a segment. The timestamp that opened
+    the segment would reach the segment parser without a closing timestamp. Earlier
+    code handled only the two cases where the last token is a timestamp, so it
+    allowed this case.
     """
     filt = build(speaker_change=SEP)
     assert SEP not in allowed(mask_of(filt, [FIRST_T, 3]))  # ts, text
     assert SEP not in allowed(mask_of(filt, [FIRST_T, 3, 4]))  # ts, text, text
-    # and the block-scoped form of the same state, after a speaker change
+    # The same case inside a new speaker block, after a speaker change.
     assert SEP not in allowed(mask_of(filt, [FIRST_T, 3, 20, SEP, 16, 4]))
 
 
 def test_just_after_separator_forces_a_timestamp():
     filt = build(speaker_change=SEP)
     a = allowed(mask_of(filt, [FIRST_T, 3, 20, SEP]))
-    assert a == TIMESTAMPS | {EOS}  # timestamp (or finish), nothing else
+    assert a == TIMESTAMPS | {EOS}  # only a timestamp or eos
     assert SEP not in a  # no consecutive separators
 
 
 def test_monotonicity_resets_after_the_speaker_change_token():
-    # First speaker's block closed at timestamp 25. A new speaker must be able
+    # The first speaker's block closed at timestamp 25. A new speaker must be able
     # to start near the beginning of the window again.
     sampled = [FIRST_T, 3, 25, SEP]
 
-    # Global rules (no SOT scoping) forbid every timestamp below 25, so the
-    # next speaker could not start early. This is the real blocker.
+    # Without speaker blocks, the global rules forbid every timestamp below 25, so
+    # the next speaker could not start early. Speaker blocks fix this problem.
     assert 15 not in allowed(mask_of(build(), sampled))
 
-    # With SOT scoping the new block may start anywhere.
+    # With speaker blocks, the new block may start at any timestamp.
     assert 15 in allowed(mask_of(build(speaker_change=SEP), sampled))
 
 
 def test_pairing_is_scoped_to_the_current_speaker_block():
-    # A new speaker block has just opened with its start timestamp (16), so
-    # text must be able to follow. Judged globally the preceding token is the
-    # separator, which looks like "a segment just closed" and wrongly forbids
-    # text and demands another timestamp.
+    # A new speaker block has just started with its start timestamp (16), so text
+    # must be allowed next. The global rules see the separator before 16 and treat
+    # 16 as the end of a segment. So they forbid text and require another
+    # timestamp, which is wrong.
     sampled = [FIRST_T, 3, 25, SEP, 16]
 
     a_sot = allowed(mask_of(build(speaker_change=SEP), sampled))
@@ -219,7 +221,7 @@ def test_pairing_is_scoped_to_the_current_speaker_block():
 
 
 # ---------------------------------------------------------------------------
-# Consistency and parity
+# score and batch_score agree
 # ---------------------------------------------------------------------------
 
 
@@ -236,25 +238,26 @@ def test_score_and_batch_score_agree(sampled):
 
 
 # ---------------------------------------------------------------------------
-# The reference whisper applies
+# The reference rules from whisper
 # ---------------------------------------------------------------------------
 
 
 class _WhisperCurrentRules:
-    """whisper's ApplyTimestampRules as openai/whisper main writes it.
+    """A copy of whisper's ApplyTimestampRules as written on openai/whisper main.
 
-    Transcribed rather than imported because nothing in this repo pins
-    openai-whisper. Release 20230308 forbids only the timestamps below the
-    last one; every later release also forbids the last one itself, except
-    where that timestamp closed a segment, so that a segment cannot have zero
-    length. The filter follows the later rule, so a test that compared against
-    whatever release happens to be installed would pass or fail by accident.
+    The code is copied here because nothing in this repo pins openai-whisper.
+    Release 20230308 forbids only the timestamps below the last one. Every later
+    release also forbids the last one itself, except where that timestamp closed a
+    segment, so that a segment cannot have zero length. The filter follows the
+    later rule. A test against whatever release is installed would pass or fail by
+    chance.
 
-    ``_current_rules`` below hands back the installed class when it already
-    carries the rule, so a modern environment still checks the real package.
-    The order matters and is why this is a transcription and not a patch
-    applied afterwards: the adaptive rule at the end reads the masked logits,
-    so forbidding one more timestamp can decide whether it fires.
+    ``_current_rules`` below returns the installed class when it already has the
+    rule, so a modern environment still checks the real package. The order of the
+    rules is important. The adaptive rule at the end reads the masked logits, so
+    forbidding one more timestamp can decide whether it fires. For this reason the
+    class copies all the rules. A patch applied after whisper's ``apply`` would run
+    after the adaptive rule, so its result could differ.
     """
 
     def __init__(self, tokenizer, sample_begin, max_initial_timestamp_index):
@@ -302,27 +305,27 @@ class _WhisperCurrentRules:
                 logits[k, : tok.timestamp_begin] = neg
 
 
-class _Tok:  # minimal stand-in for whisper's Tokenizer
+class _Tok:  # minimal stub of whisper's Tokenizer
     no_timestamps = NOTS
     timestamp_begin = FIRST_T
     eot = EOS
 
 
 def _installed_forces_nonzero_segments() -> bool:
-    """True when the installed whisper already carries the nonzero segment rule."""
+    """Return True when the installed whisper already has the nonzero segment rule."""
     from whisper.decoding import ApplyTimestampRules
 
     ref = ApplyTimestampRules(_Tok(), SAMPLE_BEGIN, None)
-    # An open segment that started at timestamp 20, with text after it. Under
-    # the current rule 20 may not close it; under 20230308 it may.
+    # An open segment started at timestamp 20, and text follows it. Under the
+    # current rule, 20 may not close it. Under 20230308, it may.
     logits = torch.full((1, VOCAB), -10.0)
-    logits[0, 3] = 10.0  # dominant text token, to keep the adaptive rule quiet
+    logits[0, 3] = 10.0  # a dominant text token, so the adaptive rule does not fire
     ref.apply(logits, torch.tensor([PROMPT + [FIRST_T, 3, 20, 4]], dtype=torch.long))
     return bool(torch.isinf(logits[0, 20]))
 
 
 def _current_rules(max_initial_timestamp_index=None):
-    """whisper's rules as they stand today, from the package where possible."""
+    """Return whisper's current rules, from the installed package when possible."""
     from whisper.decoding import ApplyTimestampRules
 
     cls = (
@@ -333,17 +336,16 @@ def _current_rules(max_initial_timestamp_index=None):
     return cls(_Tok(), SAMPLE_BEGIN, max_initial_timestamp_index)
 
 
-@pytest.mark.execution_timeout(30.0)  # importing whisper dominates
+@pytest.mark.execution_timeout(30.0)  # importing whisper takes most of the time
 def test_matches_whisper_apply_timestamp_rules():
-    """Without a separator the filter must reproduce whisper's own rules.
+    """Without a separator, the filter gives the same mask as whisper's rules.
 
-    whisper's ApplyTimestampRules ends with a distribution dependent rule
-    ("if the total probability over timestamps exceeds the best text token,
-    force a timestamp"). That rule is not part of this filter, so the logits
-    below are built with one dominant text token to keep it from firing, and
-    the prefix that closes a segment is excluded: there whisper masks all text,
-    which makes the adaptive rule fire unconditionally and additionally forbid
-    eos.
+    whisper's ApplyTimestampRules ends with a rule that depends on the
+    distribution ("if the total probability over timestamps exceeds the best text
+    token, force a timestamp"). This filter does not have that rule. So the logits
+    below have one dominant text token, which keeps the rule from firing. The
+    prefix that closes a segment is left out. After that prefix, whisper masks all
+    text, so the adaptive rule always fires and also forbids eos.
     """
     pytest.importorskip("whisper")
 
@@ -363,13 +365,13 @@ def test_set_sample_begin_moves_the_prompt_boundary():
     filt = build()
     longer = PROMPT + [FIRST_T]  # one token past the original prompt
 
-    # With the original boundary this token counts as generated, so a
-    # timestamp has already been emitted and text must follow.
+    # With the original boundary, this token counts as generated. So a timestamp
+    # has already been emitted, and text must follow.
     y = torch.tensor(longer, dtype=torch.long)
     assert allowed(filt.score(y, None, torch.zeros(1))[0]).isdisjoint(TIMESTAMPS)
 
-    # Treating it as part of the prompt puts us back at the first position,
-    # where only a timestamp may be emitted.
+    # When the token is part of the prompt, decoding is at the first position
+    # again. Only a timestamp may be emitted there.
     filt.set_sample_begin(len(longer))
     assert allowed(filt.score(y, None, torch.zeros(1))[0]) == TIMESTAMPS
 
@@ -378,12 +380,12 @@ def test_set_sample_begin_moves_the_prompt_boundary():
 
 
 # ---------------------------------------------------------------------------
-# Integration: the mask must actually constrain ESPnet's beam search
+# Integration with ESPnet's beam search. The mask must constrain the search.
 # ---------------------------------------------------------------------------
 
 
 class _DummyDecoder(BatchScorerInterface):
-    """Deterministic pseudo-random log-prob distribution over the vocabulary."""
+    """A decoder scorer with a deterministic pseudo-random log-prob distribution."""
 
     def __init__(self, n_vocab: int):
         self.n_vocab = n_vocab
@@ -443,8 +445,8 @@ def test_beam_search_output_obeys_sot_grammar():
         if tok != SEP:
             continue
         if i + 1 == len(seq):
-            # The filter permits a separator followed by eos. Decoding here
-            # simply ran into maxlen.
+            # The filter allows eos after a separator. Here decoding reached
+            # maxlen.
             continue
         nxt = seq[i + 1]
         assert (
@@ -482,12 +484,12 @@ def _wrap(logits, speaker_change=None):
 
 
 def test_adaptive_rule_forces_a_timestamp_when_timestamp_mass_dominates():
-    # Spread mass across many timestamps and keep every text token small, so
-    # the summed timestamp probability beats the best single text token.
+    # The probability mass is spread over many timestamps, and every text token is
+    # small. So the summed timestamp probability is larger than the best text token.
     logits = torch.full((VOCAB,), -5.0)
     logits[FIRST_T : LAST_T + 1] = 1.0
     dec = _wrap(logits)
-    # last token is text, so the base rules leave text available
+    # The last token is text, so the base rules allow text.
     y = torch.tensor(PROMPT + [FIRST_T, 3, 20, 4], dtype=torch.long)
     out, _ = dec.score(y, None, torch.zeros(1))
     assert torch.isinf(out[:FIRST_T]).all(), "all non-timestamps must be forbidden"
@@ -504,8 +506,8 @@ def test_adaptive_rule_stays_out_of_the_way_when_text_dominates():
 
 
 def test_adaptive_rule_uses_the_masked_distribution():
-    # A huge text logit that the base rules forbid must not keep the adaptive
-    # rule from firing, because whisper compares after masking.
+    # A huge text logit that the base rules forbid must not stop the adaptive rule
+    # from firing, because whisper compares the values after masking.
     logits = torch.full((VOCAB,), -5.0)
     logits[3] = 50.0  # text, but forbidden after a closing timestamp
     logits[FIRST_T : LAST_T + 1] = 1.0
@@ -534,8 +536,9 @@ def test_wrapper_delegates_state_handling():
 
     stateful = WhisperTimestampDecoder(_StatefulDecoder(torch.zeros(VOCAB)), build())
     x = torch.zeros(2, 2)
-    # ScorerInterface.init_state returns None for any input, so asserting None
-    # would pass without delegation; sentinel values prove the forwarding.
+    # ScorerInterface.init_state returns None for any input, so a check for None
+    # would pass without delegation. The sentinel values show that the wrapper
+    # passes the calls on.
     assert stateful.init_state(x) == ("INIT", (2, 2))
     assert stateful.select_state("s", 1) == ("SEL", "s", 1)
 
@@ -549,12 +552,12 @@ def test_wrapper_delegates_state_handling():
 
 @pytest.mark.execution_timeout(30.0)
 def test_wrapper_matches_whisper_apply_timestamp_rules_including_adaptive():
-    """Full parity with whisper, adaptive rule included.
+    """The wrapper forbids the same tokens as whisper, with the adaptive rule.
 
     ESPnet's Whisper decoder already returns ``log_softmax(logits)``, which
-    differs from ``logits`` by a scalar, and ``log_softmax`` is invariant to a
-    constant shift. The masked distributions are therefore identical, so the
-    forbidden positions must match exactly.
+    differs from ``logits`` by a scalar, and ``log_softmax`` does not change under
+    a constant shift. So the masked distributions are the same, and the forbidden
+    positions must match exactly.
     """
     pytest.importorskip("whisper")
 
@@ -580,10 +583,10 @@ def test_wrapper_matches_whisper_apply_timestamp_rules_including_adaptive():
             ), f"mismatch for {sampled}"
 
 
-# A vocabulary whose timestamps do not end it, unlike Whisper's. OWSM is
-# shaped this way: <notimestamps> and the timestamps sit low, and text plus
-# <sc> sit above them. The adaptive rule has to treat both sides of the
-# timestamp range as "not a timestamp".
+# In this vocabulary, more tokens follow the timestamps. Whisper's vocabulary ends
+# with the timestamps, but OWSM's has this layout. <notimestamps> and the
+# timestamps have low ids, and text and <sc> have higher ids. The adaptive rule
+# must treat both sides of the timestamp range as "not a timestamp".
 TAIL_VOCAB = 40
 
 
@@ -607,14 +610,14 @@ def test_adaptive_rule_forbids_tokens_above_the_timestamp_range():
     out, _ = dec.score(y, None, torch.zeros(1))
     assert torch.isinf(out[:FIRST_T]).all()
     assert torch.isinf(out[LAST_T + 1 :]).all(), "the tail must be forbidden too"
-    # 20 opened the segment that is still open, so the first timestamp that
-    # may close it is 21.
+    # Timestamp 20 opened the segment that is still open, so the first timestamp
+    # that may close it is 21.
     assert not torch.isinf(out[21 : LAST_T + 1]).any()
 
 
 def test_adaptive_rule_compares_against_tokens_above_the_timestamp_range():
-    # One overwhelming token above the timestamps. Comparing only against the
-    # tokens below them would fire the rule and throw the winner away.
+    # One very large token is above the timestamps. A comparison with only the
+    # tokens below them would fire the rule and remove the best token.
     logits = torch.full((TAIL_VOCAB,), -20.0)
     logits[TAIL_VOCAB - 1] = 20.0
     dec = WhisperTimestampDecoder(_FixedDecoder(logits), build_with_tail())
@@ -626,20 +629,20 @@ def test_adaptive_rule_compares_against_tokens_above_the_timestamp_range():
 
 @pytest.mark.execution_timeout(30.0)
 def test_wrapper_matches_whisper_over_many_prefixes():
-    """Randomized parity: without a separator, nothing may differ.
+    """Without a separator, the wrapper matches whisper on many random prefixes.
 
-    The hand-written parity tests above cover a few chosen prefixes. This one
-    sweeps every prefix up to length two plus a seeded sample of longer ones,
-    against whisper's own class, so a regression in any single rule shows up
-    even when the chosen prefixes miss it. The wrapper is compared, not the
-    bare filter, because whisper's ``apply`` ends with the adaptive rule.
+    The tests above compare with whisper on a few chosen prefixes. This test
+    checks every prefix up to length two and a seeded sample of longer prefixes
+    against whisper's own class. So a regression in any single rule is found even
+    when the chosen prefixes miss it. The test uses the wrapper, because whisper's
+    ``apply`` ends with the adaptive rule, which the bare filter does not have.
     """
     pytest.importorskip("whisper")
     import itertools
     import random
 
-    # whisper puts the timestamps at the very top of the vocabulary, and the
-    # adaptive rule relies on it, so the synthetic layout must match.
+    # whisper puts the timestamps at the end of the vocabulary, and the adaptive
+    # rule depends on this. So the synthetic layout must match.
     assert LAST_T + 1 == VOCAB
 
     ref = _current_rules()
@@ -698,17 +701,18 @@ def test_without_a_notimestamps_id_that_row_is_not_blocked():
         sample_begin=SAMPLE_BEGIN,
         notimestamps=None,
     )
-    # After a closed pair, text must follow; the id NOTS names is ordinary
-    # then, and only an explicit notimestamps id may blank it.
+    # After two timestamps, text must follow. Without a notimestamps id, the id
+    # NOTS is an ordinary token. Only an explicit notimestamps id may block it.
     assert NOTS in allowed(mask_of(filt, [FIRST_T, FIRST_T]))
     assert NOTS not in allowed(mask_of(build(), [FIRST_T, FIRST_T]))
 
 
 def test_the_wrapper_advertises_the_interface_its_decoder_has():
-    """Speech2Text picks batch beam search by isinstance on the scorers.
+    """The wrapper has the batch interface only when its decoder has it.
 
-    A wrapper that always claimed the batch interface would send a decoder
-    without batch_score into batch beam search, where it dies on the first
+    Speech2Text chooses batch beam search with isinstance checks on the scorers. A
+    wrapper that always had the batch interface would send a decoder without
+    batch_score into batch beam search. That decoder would fail on the first
     batch_init_state call.
     """
     from espnet2.legacy.nets.scorer_interface import ScorerInterface

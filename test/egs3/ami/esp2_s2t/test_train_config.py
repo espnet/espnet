@@ -1,7 +1,7 @@
 """Tests for egs3/ami/esp2_s2t/conf/training.yaml.
 
-These build the objects the config describes. Asserting the config's literals back at it
-would pass whatever those literals said.
+These tests build the objects that the config describes. A test that only compared
+the config's literal values with themselves would pass for any values.
 """
 
 import argparse
@@ -15,10 +15,10 @@ pytest.importorskip("whisper")
 def _config():
     """Load the config the way run.py does.
 
-    conf/training.yaml is a partial overlay: the dataloader's iter_factory target,
+    conf/training.yaml is a partial overlay. The dataloader's iter_factory target,
     collate_fn and batch_bins all come from the shared template.
-    load_config_with_defaults performs only Hydra `defaults:` composition, so a test
-    using it would assert against an object the run stage never sees.
+    load_config_with_defaults only does Hydra `defaults:` composition. A test that
+    used it would check an object that the run stage never sees.
     """
     from espnet3.utils.config_utils import load_and_merge_config
 
@@ -31,13 +31,13 @@ def _config():
 
 
 def test_the_create_dataset_stage_can_read_this_config():
-    """The stage's own expression, because a null here raises before the builder.
+    """The create_dataset stage can read this config's create_dataset block.
 
-    espnet3/systems/base/system.py reads the block as
-    ``dict(getattr(config, "create_dataset", OmegaConf.create({})))``. That
-    default applies only when the key is absent; a key present and null reaches
-    ``dict`` and raises TypeError, and the stage never gets as far as the
-    recipe's DatasetBuilder.
+    The test uses the expression from espnet3/systems/base/system.py,
+    ``dict(getattr(config, "create_dataset", OmegaConf.create({})))``. The default
+    is used only when the key is absent. A key that is present and null is passed
+    to ``dict``, which raises TypeError before the stage reaches the recipe's
+    DatasetBuilder.
     """
     from omegaconf import OmegaConf
 
@@ -48,10 +48,10 @@ def test_the_create_dataset_stage_can_read_this_config():
 
 @pytest.mark.execution_timeout(120)
 def test_the_preprocessor_the_config_names_actually_builds(tmp_path):
-    """The preprocessor the config names actually builds.
+    """The preprocessor in the config can be built with a Whisper token list.
 
-    The three timestamp symbols default to OWSM's spellings and raise KeyError against a
-    Whisper vocabulary.
+    The three timestamp symbols default to OWSM's spellings, which raise KeyError
+    with a Whisper vocabulary.
     """
     import sys
 
@@ -59,13 +59,13 @@ def test_the_preprocessor_the_config_names_actually_builds(tmp_path):
 
     sys.path.insert(0, str(ami_sot_paths.RECIPE))
     options = dict(_config()["dataset"]["preprocessor"])
-    # A path, not a list: Whisper BPE id 16259 is the literal string "???",
-    # which OmegaConf reads as its MISSING marker, so a token list handed to
-    # Hydra as a Python list raises MissingMandatoryValue. Production passes
-    # ${token_list_path} for the same reason.
+    # The token list is passed as a file path. Whisper BPE id 16259 is the literal
+    # string "???", which OmegaConf reads as its MISSING marker. A token list given
+    # to Hydra as a Python list therefore raises MissingMandatoryValue. Production
+    # passes ${token_list_path} for the same reason.
     options["token_list"] = str(_token_list_file(tmp_path))
-    # DataOrganizer injects this at runtime, so the config omits it and a
-    # direct instantiate has to supply it.
+    # DataOrganizer adds this value at runtime, so the config does not have it. A
+    # direct instantiate call must pass it.
     options["train"] = False
     preprocessor = instantiate(options, _convert_="all")
     assert preprocessor.speaker_change_id == 25629
@@ -92,10 +92,10 @@ def _whisper_token_list():
 
 @pytest.mark.execution_timeout(600)
 def test_the_model_the_config_names_resolves_all_five_special_symbols():
-    """The model the config names resolves all five special symbols.
+    """The configured model gets a distinct id for all five special symbols.
 
-    A Whisper vocabulary has none of <blank>/<sos>/<eos>/<sop>/<na>, and ESPnetS2TModel
-    resolves all five by token_list.index.
+    A Whisper vocabulary has none of <blank>/<sos>/<eos>/<sop>/<na>, and
+    ESPnetS2TModel looks up all five with token_list.index.
     """
     from espnet2.tasks.s2t import S2TTask
 
@@ -103,7 +103,8 @@ def test_the_model_the_config_names_resolves_all_five_special_symbols():
     args = S2TTask.get_default_config()
     model_config = dict(config["model"])
     model_config.pop("token_list", None)
-    # tiny keeps this inside the test budget; the symbols do not depend on size.
+    # The tiny model keeps this test inside its time budget. The symbols do not
+    # depend on the model size.
     model_config["encoder_conf"] = {"whisper_model": "tiny", "dropout_rate": 0.0}
     model_config["decoder_conf"] = {"whisper_model": "tiny"}
     args.update(token_list=_whisper_token_list(), **model_config)
@@ -115,12 +116,12 @@ def test_the_model_the_config_names_resolves_all_five_special_symbols():
 
 
 def test_the_separator_the_preprocessor_uses_is_the_one_the_corpus_was_built_with():
-    """The most dangerous drift in this recipe.
+    """The preprocessor uses the separator that the corpus was built with.
 
-    A token-list path mismatch fails loudly on a missing file. A separator mismatch
-    trains silently against a symbol the corpus does not contain, and the two values
-    live in different files: builder.separator in dataset/config.yaml,
-    speaker_change_symbol in conf/training.yaml.
+    A wrong token-list path raises an error for the missing file. A wrong separator
+    raises no error, and the model trains with a symbol that the corpus does not
+    contain. The two values are in different files. builder.separator is in
+    dataset/config.yaml, and speaker_change_symbol is in conf/training.yaml.
     """
     import importlib.util
 
@@ -138,11 +139,12 @@ def test_the_separator_the_preprocessor_uses_is_the_one_the_corpus_was_built_wit
 
 
 def test_the_token_list_the_config_reads_is_the_one_the_builder_writes(monkeypatch):
-    """These are separate expressions in separate files and drifted once.
+    """The config reads the token list from the path that the builder writes to.
 
-    The variable has to be set for this to mean anything: with it unset both expressions
-    collapse to the current directory and the test would pass against the very mismatch
-    it exists to catch.
+    The two paths are separate expressions in separate files, and they once
+    differed. The test sets AMI_SOT_DATA_ROOT. If it were unset, both expressions
+    would resolve to the current directory, and the test would pass even with the
+    mismatch that it is meant to catch.
     """
     monkeypatch.setenv("AMI_SOT_DATA_ROOT", "/nonexistent-root-for-this-test")
     import importlib.util
@@ -162,7 +164,7 @@ def test_the_token_list_the_config_reads_is_the_one_the_builder_writes(monkeypat
     assert written == read
 
 
-# Every key espnet2/bin/s2t_inference.py indexes out of preprocessor_conf.
+# Every key that espnet2/bin/s2t_inference.py reads from preprocessor_conf.
 _READ_BY_INFERENCE = (
     "notime_symbol",
     "first_time_symbol",
@@ -175,12 +177,13 @@ _READ_BY_INFERENCE = (
 
 @pytest.mark.parametrize("key", _READ_BY_INFERENCE)
 def test_the_checkpoint_hands_inference_the_symbols_the_recipe_trained_with(key):
-    """The saved config is the only channel between train and infer.
+    """model.preprocessor_conf has the same symbols as dataset.preprocessor.
 
-    save_espnet_config writes the model block to the root of <exp_dir>/config.yaml, and
-    Speech2Text indexes the root-level preprocessor_conf directly, with no default.
-    Leave it to S2TTask's defaults and decoding dies on OWSM's '<notimestamps>', which
-    is not in a Whisper token list.
+    The saved config is the only link between train and infer. save_espnet_config
+    writes the model block to the root of <exp_dir>/config.yaml. Speech2Text reads
+    the root-level preprocessor_conf directly, with no default. With S2TTask's
+    defaults, decoding fails on OWSM's '<notimestamps>', which is not in a Whisper
+    token list.
     """
     config = _config()
     assert config["model"]["preprocessor_conf"][key] == (
@@ -189,12 +192,11 @@ def test_the_checkpoint_hands_inference_the_symbols_the_recipe_trained_with(key)
 
 
 def test_the_recipe_carries_no_second_source_for_those_symbols():
-    """They are interpolated, not copied.
+    """The preprocessor_conf values are interpolated from dataset.preprocessor.
 
-    Two literal copies of the same symbol in one file is the drift this recipe keeps
-    running into; the test above would still pass while the two said different things
-    only if someone replaced the interpolation with a literal, so check the file text as
-    well.
+    This recipe has had two literal copies of one symbol in the same file more than
+    once. If someone replaced the interpolation with a literal copy, the test above
+    would pass until the two copies differ. So this test also checks the file text.
     """
     text = (ami_sot_paths.RECIPE / "conf" / "training.yaml").read_text()
     body = text.split("preprocessor_conf:", 1)[1].split("\n\n", 1)[0]
@@ -203,10 +205,11 @@ def test_the_recipe_carries_no_second_source_for_those_symbols():
 
 
 def test_one_variable_sets_the_separator_everywhere(monkeypatch):
-    """The corpus, training, inference and metrics must agree on one symbol.
+    """AMI_SOT_SPEAKER_CHANGE_SYMBOL sets the symbol in every config.
 
-    Setting AMI_SOT_SPEAKER_CHANGE_SYMBOL alone has to move all of them, or the
-    serialized data, the token list and the decoder disagree without an error.
+    The corpus, training, inference and metrics configs must use the same
+    symbol. If one of them used another symbol, the data, the token list and
+    the decoder would not match, and no error would be raised.
     """
     from espnet3.utils.config_utils import (
         load_and_merge_config,

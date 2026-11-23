@@ -1,27 +1,27 @@
-"""Shared corpus locations for the AMI SOT recipe tests.
+"""Shared corpus paths for the AMI SOT recipe tests.
 
-Imported as ``import ami_sot_paths``: pytest prepends this directory to sys.path, and
-the name is unique in the repo, so it cannot collide the way a second ``conftest``
-would.
+The tests import this module as ``import ami_sot_paths``. pytest adds this directory
+to sys.path, and no other module in the repo has this name. So the import cannot
+clash with another module. A second ``conftest`` module could clash with the first.
 
-Every path these tests need comes from an environment variable, so the suite carries no
-location belonging to one machine. An unset variable leaves its path ``None`` and the
-tests that need it skip, which is what upstream CI does: it has neither the AMI corpus
-nor a trained checkpoint.
+Every path that these tests need is read from an environment variable, so the tests
+contain no path from one machine. When a variable is unset, its path is ``None`` and
+the tests that need it are skipped. This happens in upstream CI, which has neither
+the AMI corpus nor a trained checkpoint.
 
-The variable names are the ones the recipe itself reads, so pointing a run at a corpus
-configures the recipe and its tests together:
+The recipe reads the first two variables too, so one setting configures both the
+recipe and its tests.
 
-``AMI_SOT_DATA_ROOT`` Root the prepared split directories live under, as in
-``dataset/config.yaml``. ``AMI_SOT_CUTSET_DIR`` Directory holding the Lhotse CutSet
-manifests, as in ``dataset/config.yaml``. ``AMI_SOT_REFERENCE_DECODE``
-Directory holding a recorded ``1best_recog`` decode (``text`` and ``text_sot``).
-``AMI_SOT_REFERENCE_TEXT`` A recorded reference transcript in ``utt_id text`` form.
+``AMI_SOT_DATA_ROOT`` is the root directory of the prepared split directories, as in
+``dataset/config.yaml``. ``AMI_SOT_CUTSET_DIR`` is the directory with the Lhotse
+CutSet manifests, as in ``dataset/config.yaml``. ``AMI_SOT_REFERENCE_DECODE`` is the
+directory of a recorded ``1best_recog`` decode (``text`` and ``text_sot``).
+``AMI_SOT_REFERENCE_TEXT`` is a recorded reference transcript in ``utt_id text``
+form.
 
-The last two have no recipe-side counterpart because nothing but a test consumes
-them. They are recordings of what the reference run produced, so comparing the
-recipe's own output against them says something a comparison against the recipe's
-own corpus could not.
+The recipe has no setting for the last two, because only the tests use them. They
+contain outputs recorded from the reference run. A comparison with these recordings
+can find problems that a comparison with the recipe's own corpus cannot find.
 """
 
 import functools
@@ -33,9 +33,10 @@ import pytest
 REPO = Path(__file__).resolve().parents[4]
 RECIPE = REPO / "egs3" / "ami" / "esp2_s2t"
 
-# The package whose conf/ the recipe's configs are merged over. run.py reaches
-# it through egs3.TEMPLATE.esp2_s2t.run.main, which passes its own package;
-# naming it once here keeps the tests from drifting off what run.py does.
+# The recipe's configs are merged over the conf/ directory of this package. run.py
+# calls launch(ESP2S2TSystem), and default_conf_package in launch.py derives this
+# package name from the system module. The tests use this one constant, so they
+# load the same defaults as run.py.
 TEMPLATE_PACKAGE = "egs3.TEMPLATE.esp2_s2t"
 
 
@@ -50,7 +51,7 @@ CUTSET_DIR = _env_path("AMI_SOT_CUTSET_DIR")
 REFERENCE_DECODE = _env_path("AMI_SOT_REFERENCE_DECODE")
 REFERENCE_TEXT = _env_path("AMI_SOT_REFERENCE_TEXT")
 
-# The prepared test split's cuts, the one file a prepared split consists of.
+# The cuts file of the prepared test split. A prepared split has only this file.
 TEST_CUTS = (DATA_ROOT / "data" / "test" / "cuts.jsonl.gz") if DATA_ROOT else None
 
 
@@ -68,8 +69,8 @@ needs_corpus = pytest.mark.skipif(
 def dataset_module():
     """Load the recipe's dataset module by file path.
 
-    Loading it by path rather than by dotted name is what every test here does, so
-    the helpers below read the same constants the tests assert against.
+    Every test here loads the module by its file path. The helpers below load it
+    the same way, so they read the same constants that the tests check.
     """
     import importlib.util
 
@@ -84,10 +85,10 @@ def dataset_module():
 def write_test_reference(path) -> None:
     """Write the prepared test split as ``utt_id text`` lines to ``path``.
 
-    The regressions that compare a whole-test-set score against a recorded decode
-    need the reference in the same two-column shape as the decode. A prepared split
-    is a CutSet, so the text comes from the recipe's own reader rather than from a
-    file the recipe no longer writes.
+    Some regression tests compare a score on the whole test set with a recorded
+    decode. They need the reference in the same two-column format as the decode. A
+    prepared split is a CutSet, so this function reads the text with the recipe's
+    own reader. The recipe no longer writes a separate text file.
 
     Args:
         path: File to write.
@@ -100,10 +101,10 @@ def write_test_reference(path) -> None:
 
 
 def write_cuts(split_dir, ids) -> None:
-    """Write a split of ``ids`` under ``split_dir`` whose audio no test reads.
+    """Write a split of ``ids`` to ``split_dir`` with audio that no test reads.
 
-    Building the recordings by hand rather than from real files keeps a test that
-    only needs a split to exist down to the manifest.
+    The recordings are built by hand, and their audio files do not exist. A test
+    that only needs a split to exist then needs only the manifest.
 
     Args:
         split_dir: Directory to write the split into.
@@ -132,10 +133,10 @@ def write_cuts(split_dir, ids) -> None:
 
 
 def _have_cutsets() -> bool:
-    """Report whether the manifests the recipe names are all present.
+    """Return True when every manifest listed in the recipe config exists.
 
-    Gating on the directory alone turns a directory holding other filenames
-    into a hard error inside the test rather than a clean skip.
+    If only the directory were checked, a directory with other file names would make
+    the test fail with an error. This check makes the test skip in that case.
     """
     if not _have(CUTSET_DIR):
         return False

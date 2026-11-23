@@ -1,7 +1,7 @@
 """Recipe-level tests for the utterance-group cpWER metric.
 
-The scorer itself lives in espnet3/systems/esp2_s2t/metrics/cpwer.py;
-what these pin is the score it gives on this recipe's corpus.
+The scorer is in espnet3/systems/esp2_s2t/metrics/cpwer.py. These tests check
+the scores that it gives on this recipe's corpus.
 """
 
 import json
@@ -17,7 +17,10 @@ SEP = "????"
 
 
 def test_count_group_errors_finds_the_best_speaker_permutation():
-    """Speaker blocks arrive in an arbitrary order, so the match is optimal."""
+    """_count_group_errors matches the speaker blocks with the best permutation.
+
+    The speaker blocks can come in any order, so swapped blocks give zero errors.
+    """
     ref = ["the cat sat", "a dog barked"]
     swapped = ["a dog barked", "the cat sat"]
     acc = cp._count_group_errors(ref, swapped)
@@ -61,12 +64,12 @@ def test_metric_writes_a_by_speaker_count_side_file(tmp_path):
 
 
 def test_metric_raises_when_every_reference_is_empty(tmp_path):
-    """A run whose references all came out empty must fail loudly.
+    """The metric raises ValueError when every reference is empty.
 
     The summed ref_len would be 0, and get_percentage() returns 0.0 for a zero
-    denominator, so an unguarded aggregate would misreport a perfect 0.00%
-    instead. The realistic way in is a ``ref`` input bound to a column that
-    holds no reference text.
+    denominator. Without this check, the total would be a perfect 0.00%. In
+    practice this happens when the ``ref`` input points to a column with no
+    reference text.
     """
     ref = tmp_path / "ref.scp"
     hyp = tmp_path / "hyp.scp"
@@ -80,12 +83,12 @@ def test_metric_raises_when_every_reference_is_empty(tmp_path):
 def test_by_speaker_count_file_reports_null_not_zero_for_empty_references(
     tmp_path,
 ):
-    """cpwer_by_num_speakers.json must agree with cpwer_per_utt.json.
+    """cpwer_by_num_speakers.json agrees with cpwer_per_utt.json.
 
-    Both describe the same zero-reference-speaker groups, and cpwer_per_utt.json already
-    reports ``null`` for one (via get_utt_cpwer). The by-speaker-count file must not
-    independently call the unguarded ``get_percentage`` and report a
-    contradictory 0.0 for the same group.
+    Both files describe the groups with zero reference speakers. cpwer_per_utt.json
+    reports ``null`` for such a group (via get_utt_cpwer). If the by-speaker-count
+    file called the unguarded ``get_percentage`` itself, it would report 0.0 for the
+    same group.
     """
     ref = tmp_path / "ref.scp"
     hyp = tmp_path / "hyp.scp"
@@ -104,8 +107,8 @@ def test_by_speaker_count_file_reports_null_not_zero_for_empty_references(
     assert per_utt["u1"]["cpwer"] is None
 
 
-# needs_reference_decode only checks that the decode directory is there; the
-# cpWER regression reads the word-level "text" inside it.
+# needs_reference_decode only checks that the decode directory exists. The
+# cpWER regression test reads the word-level "text" file in that directory.
 _RECORDED_TEXT = (
     (ami_sot_paths.REFERENCE_DECODE / "text")
     if ami_sot_paths.REFERENCE_DECODE
@@ -121,13 +124,13 @@ _RECORDED_TEXT = (
 @ami_sot_paths.needs_reference_decode
 @pytest.mark.execution_timeout(60.0)
 def test_cpwer_reproduces_the_recorded_full_test_set_score(tmp_path):
-    """The port must agree with the number the native run already produced."""
+    """The ported cpWER metric gives the native run's full test set score, 27.65."""
     ref = tmp_path / "ref.scp"
     hyp = tmp_path / "hyp.scp"
 
     # The recorded decode came from the older decode.py path and spells the
-    # separator "<sc>". The metric splits on the checkpoint's own symbol, so
-    # convert here rather than teach it a spelling this recipe never writes.
+    # separator "<sc>". The metric splits on the checkpoint's own symbol. This
+    # recipe never writes "<sc>", so the test converts the spelling here.
     ami_sot_paths.write_test_reference(ref)
     hyp.write_text(
         _RECORDED_TEXT.read_text(encoding="utf-8").replace("<sc>", SEP),
@@ -140,9 +143,9 @@ def test_cpwer_reproduces_the_recorded_full_test_set_score(tmp_path):
 
 
 def test_split_speakers_follows_the_symbol_it_is_given():
-    """split_speakers must use its argument, not a literal.
+    """split_speakers splits the text on the symbol passed to it.
 
-    Without it, "@@" is not recognized as a separator and the whole text
-    stays one block.
+    If it used a fixed symbol, "@@" would not be a separator, and the whole text
+    would stay one block.
     """
     assert cp.split_speakers("a b @@ c d", None, "@@") == ["a b", "c d"]

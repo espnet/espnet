@@ -25,7 +25,10 @@ ds_mod = _load_dataset_module()
 
 @ami_sot_paths.needs_corpus
 def test_a_sample_carries_its_own_cut_id():
-    """Inference writes every output under this id, so it is the cut's own."""
+    """Each sample has the id of its own cut, and the 6127 test ids are unique.
+
+    Inference writes every output under this id.
+    """
     cuts = ds_mod.load_cuts("test")
     ids = [c.id for c in cuts]
     assert len(ids) == 6127
@@ -37,11 +40,11 @@ def test_a_sample_carries_its_own_cut_id():
 
 @ami_sot_paths.needs_corpus
 def test_sample_carries_the_four_model_fields_and_its_id():
-    """Exactly these five, no more.
+    """A sample has exactly five fields, the four model inputs and utt_id.
 
     ESPnetS2TModel.forward takes text_prev and text_ctc as required positional
-    arguments. utt_id is the one field the model does not take; the
-    preprocessor drops it before training.
+    arguments. The model does not take utt_id, and the preprocessor drops it
+    before training.
     """
     dataset = ds_mod.AmiSotDataset(split="test")
     sample = dataset[0]
@@ -55,10 +58,10 @@ def test_sample_carries_the_four_model_fields_and_its_id():
 
 @ami_sot_paths.needs_corpus
 def test_a_sample_reports_no_previous_text_and_no_ctc_target():
-    """Both text fields carry the not-available symbol.
+    """text_prev and text_ctc both contain the not-available symbol.
 
-    This recipe conditions on no previous text and trains with ctc_weight 0.0, so
-    neither field ever carries content; a sample that grew one would change what the
+    This recipe does not condition on previous text and trains with ctc_weight 0.0,
+    so neither field has content. Content in either field would change what the
     model is trained on.
     """
     dataset = ds_mod.AmiSotDataset(split="test")
@@ -68,21 +71,20 @@ def test_a_sample_reports_no_previous_text_and_no_ctc_target():
 
 
 def test_every_sample_reports_no_previous_text_and_no_ctc_target(monkeypatch):
-    """The two fields the model takes but this recipe never fills.
+    """Every sample has the not-available symbol in text_prev and text_ctc.
 
-    ESPnetS2TModel.forward takes text_prev and text_ctc as required positional
-    arguments. This recipe conditions on no previous text and trains with
-    ctc_weight 0.0, so both carry the not-available symbol on every sample; one
-    that grew content would change what the model is trained on. Its sibling
-    above reads the real corpus, which most machines do not have, so this one
-    runs off fake cuts and covers every sample rather than the first.
+    ESPnetS2TModel.forward takes both fields as required positional arguments. This
+    recipe does not condition on previous text and trains with ctc_weight 0.0, so
+    content in either field would change what the model is trained on. The test
+    above checks the first sample of the real corpus, which most machines do not
+    have. This test uses fake cuts and checks every sample.
     """
     _seed_synthetic_split(monkeypatch, ["x", "y", "z"])
     dataset = ds_mod.AmiSotDataset(split="test")
 
     na = ds_mod._CONFIG["na_symbol"]
     assert len(dataset) == 3
-    # The first item is also checked against AmiSotDataset.fields here.
+    # BaseDataset also checks the first item against AmiSotDataset.fields.
     for idx in range(len(dataset)):
         sample = dataset[idx]
         assert set(sample) == {"utt_id", "speech", "text", "text_prev", "text_ctc"}
@@ -92,16 +94,18 @@ def test_every_sample_reports_no_previous_text_and_no_ctc_target(monkeypatch):
 
 
 def test_reading_an_unbuilt_split_names_the_file_to_produce(tmp_path, monkeypatch):
-    """The error has to name the missing file and the stage that writes it.
+    """load_cuts raises FileNotFoundError for a split that is not built.
 
-    A split is one file now, so this is the only way reading one can fail, and the
-    message is all a user has to go on.
+    The message gives the missing file and create_dataset, the stage that writes
+    it. A split is now one file, so this is the only way that reading a split can
+    fail. The message is the only help that the user gets.
     """
-    # setenv, not setitem: data_root interpolates ${oc.env:AMI_SOT_DATA_ROOT}
-    # lazily, and assigning over it freezes the node at its current value for
-    # the rest of the session -- monkeypatch's undo restores the resolved
-    # string, not the interpolation, so every later test in this process would
-    # read whatever root this one happened to use.
+    # The test sets the environment variable with setenv. data_root interpolates
+    # ${oc.env:AMI_SOT_DATA_ROOT} lazily, so assigning a value with setitem would
+    # freeze the node at its current value for the rest of the session.
+    # monkeypatch's undo would restore the resolved string and lose the
+    # interpolation. Every later test in this process would then read this test's
+    # root.
     monkeypatch.setenv("AMI_SOT_DATA_ROOT", str(tmp_path))
     with pytest.raises(FileNotFoundError, match="create_dataset"):
         ds_mod.load_cuts("test")
@@ -109,7 +113,10 @@ def test_reading_an_unbuilt_split_names_the_file_to_produce(tmp_path, monkeypatc
 
 @ami_sot_paths.needs_corpus
 def test_a_sample_is_its_cut_id_and_its_cut_text():
-    """The id and the reference come from the same cut, so they cannot drift."""
+    """A sample's utt_id and text come from the same cut.
+
+    So the id and the reference text cannot get out of sync.
+    """
     cuts = ds_mod.load_cuts("test")
     dataset = ds_mod.AmiSotDataset(split="test")
     for idx in (0, 1, len(dataset) - 1):
@@ -119,7 +126,10 @@ def test_a_sample_is_its_cut_id_and_its_cut_text():
 
 
 class _FakeCut:
-    """The part of a cut this module reads, over one second of silence."""
+    """A fake cut with only the parts of a cut that this module reads.
+
+    Its audio is one second of silence.
+    """
 
     def __init__(self, cut_id, sampling_rate=16000, channels=1):
         self.id = cut_id
@@ -132,16 +142,17 @@ class _FakeCut:
 
 
 def _seed_synthetic_split(monkeypatch, ids, **cut_args):
-    """Serve every split from fake cuts, so no test here needs the corpus."""
+    """Make load_cuts return fake cuts for every split, so no test needs the corpus."""
     cuts = [_FakeCut(utt, **cut_args) for utt in ids]
     monkeypatch.setattr(ds_mod, "load_cuts", lambda split: cuts)
 
 
 def test_building_another_split_leaves_the_first_ones_ids_alone(monkeypatch):
-    """Each dataset keeps its own cuts, so its ids are its own.
+    """Building a second split does not change the ids of the first split.
 
-    infer builds every test set in one process, and measure builds them again
-    to read the references; a later split must not rename an earlier one.
+    infer builds every test set in one process, and measure builds them again to
+    read the references. Each dataset keeps its own cuts, so a later split cannot
+    rename the samples of an earlier one.
     """
     splits = {"valid": [_FakeCut("v-0"), _FakeCut("v-1")], "test": [_FakeCut("t-0")]}
     monkeypatch.setattr(ds_mod, "load_cuts", lambda split: splits[split])
@@ -154,11 +165,12 @@ def test_building_another_split_leaves_the_first_ones_ids_alone(monkeypatch):
 
 @pytest.mark.parametrize("cut_args", [{"sampling_rate": 8000}, {"channels": 2}])
 def test_audio_that_is_not_16k_mono_is_refused(monkeypatch, cut_args):
-    """A bare array cannot say its rate, so the dataset says it for it.
+    """The dataset raises ValueError for audio that is not 16 kHz mono.
 
-    The training preprocessor and the inference contract both read the array as
-    16 kHz mono; anything else would be decoded at the wrong speed or with a
-    channel silently dropped.
+    A plain array has no sampling rate, so the dataset checks the rate itself. The
+    training preprocessor and the inference contract both read the array as 16 kHz
+    mono. Other audio would be decoded at the wrong speed, or a channel would be
+    dropped without an error.
     """
     _seed_synthetic_split(monkeypatch, ["x"], **cut_args)
     with pytest.raises(ValueError, match="16 kHz mono"):
@@ -177,10 +189,10 @@ def _load_builder_module():
 
 @ami_sot_paths.needs_corpus
 def test_builder_reports_a_prepared_corpus_as_built():
-    """Builder reports a prepared corpus as built.
+    """AmiSotBuilder.is_built() returns True for a prepared corpus.
 
-    is_built inspects the split directories, not the build inputs, so a corpus prepared
-    by any means counts as built.
+    is_built only checks the split directories and ignores the build inputs. So a
+    corpus prepared in any way counts as built.
     """
     builder = _load_builder_module().AmiSotBuilder()
     assert builder.is_built() is True
@@ -197,15 +209,15 @@ def test_builder_reports_an_empty_root_as_neither_built_nor_prepared(
 
 
 def test_dataset_package_exports_the_names_the_framework_looks_up():
-    """Dataset package exports the names the framework looks up.
+    """The dataset package exports Dataset and DatasetBuilder for the framework.
 
-    BaseSystem resolves Dataset/DatasetBuilder via getattr(module, name) on
-    dataset/__init__.py (loaded by literal module name), not by loading dataset.py or
-    builder.py directly.
+    BaseSystem finds Dataset and DatasetBuilder with getattr(module, name) on
+    dataset/__init__.py, which it loads by its literal module name. It does not load
+    dataset.py or builder.py directly.
 
-    Every other test in this file loads those two files by path and bypasses __init__.py
-    entirely, so renaming AmiSotDataset or AmiSotBuilder without updating the re-export
-    would break the infer stage while the rest of this suite kept passing.
+    Every other test in this file loads those two files by path and skips
+    __init__.py. If AmiSotDataset or AmiSotBuilder were renamed without an update to
+    the re-export, the infer stage would break, and the other tests would still pass.
     """
     import importlib
 

@@ -16,14 +16,17 @@ CONTRACT = {
 
 
 def _result(*tokens):
-    """Speech2Text's n-best shape, for a converter that keeps special tokens."""
+    """Return a result in Speech2Text's n-best format, with special tokens kept."""
     tokens = PROMPT + list(tokens)
     return [("".join(tokens), tokens, list(range(len(tokens))), None, None)]
 
 
 @pytest.mark.parametrize("separator", ["????", "<sc>"])
 def test_the_hypothesis_keeps_its_timestamps_and_separator(separator):
-    """DER reads the timestamps and both metrics split on the separator."""
+    """format_output keeps the timestamps and the separator in the hypothesis.
+
+    DER reads the timestamps, and both metrics split the text on the separator.
+    """
     result = _result(
         "<|0.00|>", " hi", "<|1.20|>", f" {separator} ", "<|0.50|>", " yes", "<|0.90|>"
     )
@@ -33,9 +36,11 @@ def test_the_hypothesis_keeps_its_timestamps_and_separator(separator):
 
 
 def test_a_hypothesis_rendered_without_special_tokens_is_refused():
-    """A converter that drops special tokens loses the prompt and timestamps.
+    """format_output raises ValueError for a hypothesis without special tokens.
 
-    Scoring such a text would read every group as no speech, so it fails here.
+    A converter that drops special tokens loses the prompt and the timestamps.
+    Scoring such a text would treat every group as no speech, so the runner raises
+    an error here.
     """
     text_only = [(" hi yes", [" hi", " yes"], [1, 2], " hi yes", None)]
     with pytest.raises(ValueError, match="prompt"):
@@ -47,13 +52,20 @@ def test_no_hypothesis_is_an_empty_hyp():
 
 
 def test_a_batch_is_refused():
-    """The timestamp rules track one prompt length for the whole beam."""
+    """format_output raises ValueError for batched output.
+
+    The timestamp rules use one prompt length for the whole beam.
+    """
     with pytest.raises(ValueError, match="batch_size: null"):
         ESP2S2TInferenceRunner.format_output([_result()], batched=True)
 
 
 def test_forward_resamples_to_the_contract_rate_and_keeps_the_items_id():
-    """One call through the shared runner: contract in, render, contract out."""
+    """The forward call resamples the speech to the contract rate and keeps the id.
+
+    The call goes through the shared runner. It applies the input contract, renders
+    the hypothesis and applies the output contract.
+    """
     seen = {}
 
     def model(speech):

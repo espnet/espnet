@@ -1,9 +1,9 @@
 """Tests for espnet3/systems/esp2_s2t/src/sot/whisper_token_id_converter.py.
 
-The module is a copy of the espnet2 converter; these cover what the copy adds:
-a ``token2id`` mapping that resolves the prompt and timestamp symbols, and
-``keep_special_tokens``, which is what preserves the timestamps the serialized
-output is scored on.
+The module is a copy of the espnet2 converter. These tests cover what the copy
+adds. It has a ``token2id`` mapping that gives the ids of the prompt and timestamp
+symbols. It also has ``keep_special_tokens``, which keeps the timestamps that the
+serialized output is scored on.
 """
 
 import pytest
@@ -21,18 +21,19 @@ def whisper_token_id_converter(request):
 
 
 def test_an_added_token_file_does_not_follow_the_next_caller(tmp_path):
-    """Adding tokens here must not grow the tokenizer everything else shares.
+    """Adding tokens in this converter does not change the shared tokenizer.
 
-    ``whisper.tokenizer.get_tokenizer`` is lru_cached, so one HuggingFace
-    tokenizer is shared by every caller in the process. Adding to it in place
-    made the vocabulary size depend on run order: another caller's
-    ``get_num_vocabulary_size()`` read 51866 or 51867 rather than 51865, and
-    the exporter, which pads with timestamps up to a fixed total, dropped one
-    timestamp per leaked token.
+    ``whisper.tokenizer.get_tokenizer`` is lru_cached, so every caller in the
+    process shares one HuggingFace tokenizer. When tokens were added to it in
+    place, the vocabulary size depended on the run order. Another caller's
+    ``get_num_vocabulary_size()`` returned 51866 or 51867 where 51865 was
+    expected. The exporter pads with timestamps up to a fixed total, so it dropped
+    one timestamp for each extra token.
 
-    The copy this module takes before it adds anything is what stops that. It
-    does not make this module immune to a leak someone else caused: a copy of
-    an already-grown tokenizer is still grown. It stops the leak at its source.
+    This module copies the tokenizer before it adds tokens. The copy does not help
+    when another caller has already added tokens, because a copy of a grown
+    tokenizer is still grown. It only stops this module from growing the shared
+    tokenizer.
     """
     import whisper.tokenizer
 
@@ -73,11 +74,11 @@ def test_token2id_speaker_change_symbol(sym):
         "whisper_multilingual", sot=True, speaker_change_symbol=sym
     )
     if sym == "????":
-        # Already a single Whisper BPE token: sot must reuse that row, not
-        # mint a new id past the vocabulary.
+        # "????" is already a single Whisper BPE token, so sot must reuse that
+        # row. It must not add a new id after the end of the vocabulary.
         assert converter.token2id[sym] == 25629
     else:
-        # A symbol Whisper lacks lands above the last timestamp row (51864).
+        # A symbol that Whisper lacks gets an id above the last timestamp row (51864).
         assert converter.token2id[sym] > 51864
 
 

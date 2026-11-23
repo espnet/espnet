@@ -16,11 +16,11 @@ def _config():
 
 
 def test_the_packed_bundle_carries_the_dataset_and_no_recipe_code():
-    """The bundle needs the dataset module, and no recipe-local code.
+    """The pack_model include list has dataset/ and no recipe src/ directory.
 
-    dataset/ supplies the builder the publication smoke check runs. The model,
+    dataset/ contains the builder that the publication smoke check runs. The model,
     runner and preprocessor are installed with espnet under
-    espnet3.systems.esp2_s2t, so a recipe src/ would be dead weight.
+    espnet3.systems.esp2_s2t, so a recipe src/ directory would be unused.
     """
     include = [str(p) for p in _config()["pack_model"]["include"]]
     assert any(
@@ -30,20 +30,21 @@ def test_the_packed_bundle_carries_the_dataset_and_no_recipe_code():
 
 
 def test_the_checkpoint_config_is_not_a_yaml_files_entry():
-    """pack_model would write ${recipe_dir} into it, which espnet2 cannot read.
+    """The pack_model section has no yaml_files entry.
 
-    espnet2 loads a checkpoint's config.yaml with yaml.safe_load, so an
-    OmegaConf reference there stays a literal path. ESP2S2TSystem.pack_model
-    writes the token list into the bundled copy instead.
+    pack_model would write ${recipe_dir} into the checkpoint config, and espnet2
+    cannot read it. espnet2 loads a checkpoint's config.yaml with yaml.safe_load,
+    so an OmegaConf reference there stays a literal path. ESP2S2TSystem.pack_model
+    writes the token list into the bundled copy itself.
     """
     assert not _config()["pack_model"].get("yaml_files")
 
 
 def test_the_bundle_decodes_the_checkpoint_it_carries(monkeypatch):
-    """By default infer reads the train stage's own output, which is bundled.
+    """By default, infer reads the train stage's output, which is in the bundle.
 
-    A default pointing anywhere else would leave a packed model unable to find
-    its weights once copied to another machine.
+    With any other default path, a packed model that is copied to another machine
+    could not find its weights.
     """
     from espnet3.utils.config_utils import load_and_merge_config
 

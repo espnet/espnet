@@ -47,13 +47,13 @@ def test_collect_stats_delegates_to_the_trainer(tmp_path, monkeypatch):
 
 
 def test_collect_stats_preserves_a_null_normalize(tmp_path, monkeypatch):
-    """`model.normalize: null` has to reach the task builder intact.
+    """collect_stats passes `model.normalize: null` to the task builder unchanged.
 
-    espnet2.tasks.s2t declares normalize with default "utterance_mvn", so
-    dropping the key does not mean "no normalizer" -- it restores that default.
-    A recipe fine-tuning Whisper disables normalization on purpose, because the
-    encoder already expects its own log-mel scaling, and a normalizer added
-    behind its back changes the input distribution without failing.
+    espnet2.tasks.s2t declares normalize with the default "utterance_mvn". If the
+    key were dropped, that default would be used, and the model would get a
+    normalizer. A recipe that fine-tunes Whisper disables normalization, because
+    the encoder already expects its own log-mel scaling. An added normalizer would
+    change the input distribution without any error.
     """
     system, _, seen = _collect_stats_system(tmp_path, monkeypatch)
     system.collect_stats()
