@@ -17,7 +17,7 @@ tags:
   - diarization
 models:
   - espnet/frontia_vad_v1_offline
-  - espnet/frontia_vad_v1_online
+  - espnet/frontia_vad_v2_3
 ---
 
 # Voice activity detection
@@ -30,8 +30,8 @@ speaking; a threshold and a median filter turn those into speech segments.
 
 | | model | reads ahead | used for |
 |---|---|---|---|
-| online | causal TCN (v1) | nothing | live streams, the microphone |
-| offline | dual-mode TCN, at its largest look-ahead | 124 frames (0.99 s) | whole files, cleaning a corpus |
+| online | dual-mode TCN of v2.3, at look-ahead 0 | nothing | live streams, the microphone |
+| offline | dual-mode TCN of v1, at its largest look-ahead | 124 frames (0.99 s) | whole files, cleaning a corpus |
 
 Their tags are `espnet2.bin.diar_inference.VAD_MODELS`, repeated in `app.py` and in the card
 above because a Space is one directory (`test_demo_apps.py` checks that the
@@ -55,7 +55,7 @@ The detection is `espnet2.bin.diar_inference` (offline, batches) and
 ## The decision rules
 
 Each model has its own threshold and median filter: the setting with the
-lowest detection error on AMI MH dev (`../local/show_vad_result.py`), kept as
+lowest detection error on AMI MH dev, kept as
 `espnet2.bin.diar_inference.VAD_RULES`. The rule is stage 7's
 (`pyscripts/utils/make_rttm.py`): a frame is speech when its probability is
 above the threshold, and the 0/1 sequence is then median-filtered. All four

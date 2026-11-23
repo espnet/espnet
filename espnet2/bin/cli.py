@@ -840,7 +840,7 @@ def build_parser() -> argparse.ArgumentParser:
         "--online-model",
         default=None,
         help="tag or packed .zip of the online model, for --online, --stream "
-        "and --live (default: espnet/frontia_vad_v1_online)",
+        "and --live (default: espnet/frontia_vad_v2_3)",
     )
     p.add_argument(
         "--threshold",
