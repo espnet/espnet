@@ -36,6 +36,7 @@ def test_tools_are_listed_with_their_docs():
         "align",
         "synthesize",
         "enhance",
+        "detect",
         "describe",
         "render",
     }
@@ -398,3 +399,56 @@ def test_a_server_that_is_not_running_is_reported_as_such(monkeypatch):
 
     assert "docker run" in str(raised.value) or "README" in str(raised.value)
     mcp_server._bagpiper.cache_clear()
+
+
+class FakeVAD:
+    """A VoiceActivityDetector stand-in: 10 ms frames, speech in the middle."""
+
+    fs = 16000
+    frame_shift = 0.01
+    offline_look_ahead = 6
+    threshold, median = 0.5, 1
+
+    def __init__(self):
+        self.look_aheads = []
+
+    def probabilities(self, speech, fs, look_ahead=0):
+        self.look_aheads.append(look_ahead)
+        return np.array([0.1, 0.6, 0.9, 0.2, 0.7, 0.1])
+
+
+def test_detect_lists_the_segments(monkeypatch, wav):
+    vad = FakeVAD()
+    modes = []
+    monkeypatch.setattr(mcp_server, "_vad", lambda mode: modes.append(mode) or vad)
+    server = mcp_server.build_server()
+
+    assert call(server, "detect", audio_path=str(wav)) == ("0.01\t0.03\n0.04\t0.05")
+    # a median of 3 fills the one-frame gap and drops the lone frame after it
+    assert call(server, "detect", audio_path=str(wav), median=3) == ("0.01\t0.04")
+    # a call's rule does not carry over to the next call
+    assert call(server, "detect", audio_path=str(wav)) == ("0.01\t0.03\n0.04\t0.05")
+    assert call(server, "detect", audio_path=str(wav), threshold=0.8) == ("0.02\t0.03")
+    call(server, "detect", audio_path=str(wav), mode="online")
+    assert vad.look_aheads == [6, 6, 6, 6, 0]
+    # each mode loads its own model
+    assert modes == ["offline"] * 4 + ["online"]
+
+
+@pytest.mark.parametrize(
+    "arguments, message",
+    [
+        ({"mode": "fast"}, "offline"),
+        ({"median": 2}, "odd"),
+    ],
+)
+def test_detect_refuses_what_it_cannot_do(monkeypatch, wav, arguments, message):
+    monkeypatch.setattr(mcp_server, "_vad", lambda mode: FakeVAD())
+    with pytest.raises(ToolError, match=message):
+        mcp_server.detect(str(wav), **arguments)
+
+
+def test_detect_refuses_a_missing_file(monkeypatch):
+    monkeypatch.setattr(mcp_server, "_vad", lambda mode: FakeVAD())
+    with pytest.raises(ToolError, match="No such audio file"):
+        mcp_server.detect("/no/such.wav")
