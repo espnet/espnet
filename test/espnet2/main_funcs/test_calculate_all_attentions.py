@@ -5,6 +5,7 @@ import pytest
 import torch
 
 from espnet2.asr.decoder.rnn_decoder import RNNDecoder
+from espnet2.asr.decoder.transformer_decoder import TransformerDecoder
 from espnet2.legacy.nets.pytorch_backend.rnn.attentions import AttAdd
 from espnet2.legacy.nets.pytorch_backend.transformer.attention import (
     MultiHeadedAttention,
@@ -160,3 +161,44 @@ def test_calculate_all_attentions_skips_layers_without_weights():
     model = DummyNoWeights()
     batch = {"x": torch.randn(2, 5, 10), "x_lengths": torch.tensor([5, 3])}
     assert calculate_all_attentions(model, batch) == {}
+
+
+class DummyCausalDecoder(AbsESPnetModel):
+    """A transformer decoder: its self-attention is built with causal=True."""
+
+    def __init__(self):
+        super().__init__()
+        self.decoder = TransformerDecoder(
+            7, 10, attention_heads=2, linear_units=16, num_blocks=1, use_flash_attn=True
+        )
+        # the decoder keeps use_flash_attn only where flash_attn is installed; set
+        # it as on such a machine (the plotting turns it off, so flash never runs)
+        self.decoder.decoders[0].self_attn.use_flash_attn = True
+
+    def forward(self, x, x_lengths, y, y_lengths):
+        self.decoder(x, x_lengths, y, y_lengths)
+
+    def collect_feats(self, **batch: torch.Tensor):
+        return {}
+
+
+def test_calculate_all_attentions_causal_flash_decoder_plots_causal_weights():
+    torch.manual_seed(0)
+    model = DummyCausalDecoder().eval()
+    layer = model.decoder.decoders[0].self_attn
+    assert layer.use_flash_attn and layer.causal
+    batch = {
+        "x": torch.randn(2, 5, 10),
+        "x_lengths": torch.tensor([5, 3]),
+        "y": torch.randint(0, 7, (2, 4)),
+        "y_lengths": torch.tensor([4, 2]),
+    }
+    t = calculate_all_attentions(model, batch)
+    assert layer.use_flash_attn and layer.attn is None  # restored
+    # the explicit path gets the causal constraint from the decoder's mask
+    # (padding & subsequent_mask), as flash attention gets it from causal=True
+    for i, n in enumerate(batch["y_lengths"]):
+        for a in t["decoder.decoders.0.self_attn"][i]:
+            assert a.shape == (n, n)
+            assert torch.all(torch.triu(a, diagonal=1) == 0)
+            assert torch.allclose(a.sum(-1), torch.ones(n))
