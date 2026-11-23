@@ -4,19 +4,19 @@
 # Quick usage:
 #   python run.py --stages infer --inference_config conf/inference.yaml
 #
-# Outputs one `${inference_dir}/<test_name>/<field>.scp` per inference field,
-# each holding `utt_id value` pairs.
+# Writes one `${inference_dir}/<test_name>/<field>.scp` file for each inference
+# field, with one `utt_id value` pair per line.
 #
-# The shared default merged under every esp2_s2t recipe's inference config,
-# kept to generic path and plumbing scaffolding.
+# Default settings for the inference config of every esp2_s2t recipe. It only
+# sets generic paths and runner settings.
 
 ##########################################################
 #                    PATHS AND INPUTS                    #
 ##########################################################
 recipe_dir: .
-# Leave `exp_tag` empty in a recipe and pass `--training_config` as well:
-# `run.py` copies the training config's `exp_tag` and `exp_dir` here, so decode
-# output lands beside the run it came from.
+# Leave `exp_tag` empty in a recipe and also pass `--training_config`. `run.py`
+# then copies `exp_tag` and `exp_dir` from the training config, so the decoding
+# output goes to the experiment directory of that training run.
 exp_tag:
 exp_dir: ${recipe_dir}/exp/${exp_tag}
 data_dir: ${recipe_dir}/data
@@ -25,8 +25,8 @@ inference_dir: ${exp_dir}/${self_name:}
 ##########################################################
 #                    DATASET DEFINITION                  #
 ##########################################################
-# `dataset.test` is required. Each entry's `name` becomes the output
-# subdirectory under `${inference_dir}`; omitting `data_src` loads
+# `dataset.test` is required. The `name` of each entry is the output
+# subdirectory under `${inference_dir}`. An entry without `data_src` loads
 # `${recipe_dir}/dataset/__init__.py`.
 dataset:
   _target_: espnet3.components.data.data_organizer.DataOrganizer
@@ -55,12 +55,12 @@ model:
 # Sample field passed to the model.
 input_key: speech
 
-# One utterance group per model call: the timestamp rules track one prompt
-# length for the whole beam, and the runner refuses a batch.
+# The model decodes one utterance group per call, because the timestamp rules
+# use one prompt length for the whole beam. The runner rejects batched input.
 batch_size: null
 
-# The runner renders the best hypothesis into `hyp`, timestamps and
-# speaker-change symbols intact, and the contract checks it.
+# The runner writes the best hypothesis to `hyp` with its timestamps and
+# speaker-change symbols, and the contract checks the output.
 contract:
   inputs:
     speech:

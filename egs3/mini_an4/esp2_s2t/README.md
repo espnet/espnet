@@ -1,30 +1,31 @@
 # mini_an4 esp2_s2t recipe
 
-A CI fixture for the ESPnet3 serialized output training (SOT) pipeline, not a
-result-producing recipe. It runs every stage the `esp2_s2t` system has, end to
-end, with Whisper `tiny` trained for one step. For the full recipe, see
+This recipe is a small CI test for the ESPnet3 serialized output training (SOT)
+pipeline. It runs every stage of the `esp2_s2t` system with Whisper `tiny`,
+which is trained for one step. For the full recipe, see
 [AMI](../../ami/esp2_s2t/README.md).
 
 ## Data Preparation
 
-The recipe uses the bundled AN4 archive, `downloads.tar.gz`; no separate
-download is needed. AN4 is single-speaker, so `create_dataset` makes
-multi-talker groups: it concatenates utterances from different speakers into
-one recording and writes a Lhotse cut over it with one supervision per
-utterance, the shape an AMI utterance group has. The serialized reference goes
-on the cut as `sot_text`, and the Whisper token list is written beside the
-splits.
+The recipe uses the AN4 archive `downloads.tar.gz` in this directory, so no
+download is needed. Each AN4 utterance has only one speaker, so
+`create_dataset` joins two AN4 utterances into one recording and writes a
+Lhotse cut for it, with one supervision for each utterance. This matches the
+format of an AMI utterance group. The two utterances can come from the same
+speaker, so not every group has two speakers. The serialized reference is
+stored in the cut as `sot_text`, and the Whisper token list is written next to
+the data splits.
 
-| Variable | Meaning | Default |
+| Variable | Description | Default |
 | --- | --- | --- |
-| `MINI_AN4_SOT_DATA_ROOT` | Root the built splits and the token list go under | the recipe directory |
-| `MINI_AN4_SOT_SPEAKER_CHANGE_SYMBOL` | Speaker-change symbol for the corpus, training, inference and metrics | `????` |
+| `MINI_AN4_SOT_DATA_ROOT` | Directory where the archive is extracted and the data splits and the token list are written. It must contain `downloads.tar.gz`. | The recipe directory |
+| `MINI_AN4_SOT_SPEAKER_CHANGE_SYMBOL` | Speaker-change symbol used by data preparation, training, inference and the metrics | `????` |
 
 ## Commands
 
-Run from this directory. The commands build the corpus, train for one step,
-decode the test groups, and score them with cpWER, DER, speaker-counting
-accuracy and WER:
+Run the following commands from this directory. They build the data, train the
+model for one step, decode the test groups, and compute cpWER, DER,
+speaker-counting accuracy and WER.
 
 ```bash
 source path.sh
@@ -36,6 +37,7 @@ python run.py --stages train infer measure \
   --metrics_config conf/metrics.yaml
 ```
 
-`ci/test_integration_espnet3.sh` runs the same stages in one invocation. The
-one-step model only checks the stage and metric wiring: its scores are not
-meaningful, and no pretrained model is provided.
+`ci/test_integration_espnet3.sh` runs the same stages in one command. Because
+the model is trained for only one step, the test only checks that the stages
+and the metrics run. The scores are not meaningful, and no pretrained model is
+provided.

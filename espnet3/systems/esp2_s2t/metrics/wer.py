@@ -1,10 +1,11 @@
 """Utterance-group WER on the serialized transcript.
 
-Plain WER with no speaker permutation, next to cpWER so the error that speaker
-order adds can be read off. The reference blocks are put in FIFO order, by
-the first timestamp in each block, which is when that speaker starts; the
-hypothesis keeps the order the model emitted its blocks in. Each side's blocks
-are joined and compared word by word, and the errors are summed over groups.
+This is plain WER without a speaker mapping. Reported next to cpWER, it shows
+how much error comes from the speaker order. The reference blocks are sorted
+by the first timestamp in each block, which is the start time of that
+speaker. The hypothesis blocks stay in the order that the model produced
+them. The blocks of each side are joined and compared word by word, and the
+errors are summed over all groups.
 """
 
 import math
@@ -27,7 +28,8 @@ _TIMESTAMP_RE = re.compile(r"<\|(\d+(?:\.\d+)?)\|>")
 def _fifo_blocks(text: str, cleaner, speaker_change_symbol: str) -> List[str]:
     """Return the cleaned speaker blocks of ``text``, earliest speaker first.
 
-    A block without a timestamp goes last; ties keep their serialized order.
+    A block without a timestamp goes last. Blocks with the same start time keep
+    their order in the text.
     """
     keyed = []
     for raw in text.split(speaker_change_symbol):

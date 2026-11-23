@@ -1,8 +1,9 @@
 """Utterance-group speaker-counting accuracy.
 
-The share of utterance groups whose hypothesis has as many speaker blocks as
-the reference. Blocks are counted after the cleaning cpWER applies, so a block
-that cleans to nothing does not count as a speaker.
+This is the percentage of utterance groups in which the hypothesis has as
+many speaker blocks as the reference. The blocks are counted after the same
+text cleaning that cpWER uses, so a block that becomes empty after cleaning
+does not count as a speaker.
 """
 
 import json

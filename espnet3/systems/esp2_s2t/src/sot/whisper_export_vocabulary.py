@@ -1,10 +1,9 @@
 #!/usr/bin/env python3
 """Export a Whisper vocabulary as a token list.
 
-Note: This file is a copy of ``espnet2/bin/whisper_export_vocabulary.py``. It
-differs in two places: the cached tokenizer is copied before anything is added
-to it, and a speaker-change symbol the vocabulary already holds is not appended
-a second time.
+Note: This file is a copy of ``espnet2/bin/whisper_export_vocabulary.py`` with
+two changes. The cached tokenizer is copied before tokens are added to it, and
+a speaker-change symbol that is already in the vocabulary is not added again.
 """
 
 import argparse
@@ -48,7 +47,7 @@ def export_vocabulary(
         log_level: Logging level.
         add_token_file_name: File of extra tokens to add, or ``"none"``.
         sot_asr: Append the speaker-change symbol for serialized output
-            training, unless the vocabulary already holds it.
+            training, unless the vocabulary already contains it.
         speaker_change_symbol: The symbol to append when ``sot_asr`` is set.
     """
     try:
@@ -117,24 +116,24 @@ def export_vocabulary(
         fout.write(f"<|{i * 0.02:.2f}|>" + "\n")
 
     if sot_asr:
-        # Append only a symbol the vocabulary does not already have. A symbol
+        # Only a symbol that is not in the vocabulary is appended. A symbol
         # that is already one BPE token, such as "????" (id 25629), would
-        # otherwise appear twice: token_list.index and the tokenizer both
-        # resolve the first, leaving the appended row unreachable and the
-        # model one row wider than the alphabet it can emit.
+        # otherwise appear twice. token_list.index and the tokenizer both
+        # return the first id, so the appended row would never be used, and
+        # the model would have one output row that it never predicts.
         existing = tokenizer.tokenizer.convert_tokens_to_ids(speaker_change_symbol)
         if existing is None or existing == tokenizer.tokenizer.unk_token_id:
-            # An unknown symbol maps to the unk id, which for Whisper is
-            # <|endoftext|>; a symbol literally spelled that way is not a
-            # sensible separator and is treated as absent.
+            # An unknown symbol maps to the unk id, which is <|endoftext|> for
+            # Whisper. A separator spelled <|endoftext|> makes no sense, so
+            # this case is treated as a missing symbol.
             fout.write(speaker_change_symbol + "\n")
             logging.info("Appended %s to the vocabulary", speaker_change_symbol)
         else:
             logging.warning(
-                "%s is already token id %d; not appending. The exported list "
-                "is one row shorter than the same command produced before "
-                "this guard, so a checkpoint trained against the older list "
-                "will not load against it.",
+                "%s is already token id %d, so it is not appended. The "
+                "exported list is one row shorter than the list from "
+                "espnet2/bin/whisper_export_vocabulary.py, so a checkpoint "
+                "trained with that list does not load with this one.",
                 speaker_change_symbol,
                 existing,
             )

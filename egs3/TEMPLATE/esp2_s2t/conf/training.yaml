@@ -5,14 +5,13 @@
 #   python run.py --stages create_dataset --training_config conf/training.yaml
 #   python run.py --stages train          --training_config conf/training.yaml
 #
-# This is the shared default merged under every esp2_s2t recipe's training
-# config (see `load_and_merge_config` in `run.py`). Kept as empty as possible
-# so it never conflicts with a concrete recipe config -- one recipe directory
-# may host several mutually incompatible model configs -- so only generic
-# path and system scaffolding lives here.
+# This file has the default settings for the training config of every esp2_s2t
+# recipe. `load_and_merge_config` in `run.py` merges the recipe config on top
+# of it. It only sets generic paths and system settings, because one recipe
+# directory can have several model configs that do not fit together.
 #
-# There is no tokenizer block and no `train_tokenizer` stage: an S2T model is
-# trained against the vocabulary that ships with its pretrained checkpoint.
+# There is no tokenizer block and no `train_tokenizer` stage, because an S2T
+# model uses the vocabulary of its pretrained checkpoint.
 
 ##########################################################
 #                  SYSTEM AND PATH SETTING               #
@@ -20,9 +19,9 @@
 num_device: 1
 num_nodes: 1
 
-# ESPnet task class path used by `get_espnet_model(...)`. Every recipe under
-# this template trains an ESPnetS2TModel, so unlike the generic templates this
-# one names the task rather than leaving it to each recipe.
+# ESPnet task class used by `get_espnet_model(...)`. Every recipe of this
+# template trains an ESPnetS2TModel, so the task is set here and not in each
+# recipe.
 task: espnet3.systems.esp2_s2t.task.S2TTask
 
 # Path scaffold relative to the recipe root.
@@ -32,29 +31,29 @@ exp_tag: ${self_name:}
 exp_dir: ${recipe_dir}/exp/${exp_tag}
 stats_dir: ${recipe_dir}/exp/stats
 
-# Where a recipe keeps its prepared manifests. A recipe whose corpus lives
-# outside the tree overrides this.
+# Directory of the prepared data of a recipe. A recipe with its corpus in
+# another directory overrides this.
 dataset_dir: ${recipe_dir}/data
 
 ##########################################################
 #                 DATASET CREATION SETTING               #
 ##########################################################
-# Empty, not null. The `create_dataset` stage prefers the `DatasetBuilder` a
-# recipe exports from `dataset/__init__.py`, and passes this block to it as
-# keyword arguments; a recipe that has no builder puts its own hook here.
-# `espnet3/systems/base/system.py` reads it as
-# `dict(getattr(config, "create_dataset", OmegaConf.create({})))`, and that
-# default only applies when the key is absent, so a null here reaches `dict`
-# and raises before any builder method runs.
+# Keep this an empty mapping. The `create_dataset` stage uses the
+# `DatasetBuilder` that a recipe exports from `dataset/__init__.py`, and passes
+# this block to it as keyword arguments. A recipe without a builder sets its
+# own function here. `espnet3/systems/base/system.py` reads this key with
+# `dict(getattr(config, "create_dataset", OmegaConf.create({})))`. The default
+# is used only when the key is missing, so a null value is passed to `dict`,
+# which raises an error before the builder runs.
 create_dataset: {}
 
 ##########################################################
 #                    DATASET DEFINITION                  #
 ##########################################################
-# The organizer used by collect_stats/train/infer/measure. A recipe fills
-# `train`, `valid` and optionally `test` with dataset reference entries, and
-# `preprocessor` with the transform its model expects. Omitting `data_src` in an
-# entry loads `${recipe_dir}/dataset/__init__.py`.
+# The data organizer used by collect_stats, train, infer and measure. A recipe
+# sets `train`, `valid` and optionally `test` to its dataset entries, and
+# `preprocessor` to the preprocessor that its model needs. An entry without
+# `data_src` loads `${recipe_dir}/dataset/__init__.py`.
 dataset:
   _target_: espnet3.components.data.data_organizer.DataOrganizer
   _recursive_: false
@@ -67,8 +66,8 @@ dataset:
 ##########################################################
 #                      MODEL SETTING                     #
 ##########################################################
-# Passed to `get_espnet_model(task, model_conf)`, so an ESPnet2 S2T config can
-# be reused here as written.
+# Passed to `get_espnet_model(task, model_conf)`, so the model part of an
+# ESPnet2 S2T config can be used here without changes.
 model:
 
 ##########################################################
@@ -113,8 +112,9 @@ dataloader:
     _target_: espnet2.train.collate_fn.CommonCollateFn
     int_pad_value: -1
   train:
-    # `total_shards` is the number of dataset shards; keep `dist_world_size`
-    # equal to the runtime world size, which is what rotates the shards.
+    # `total_shards` is the total number of dataset shards.
+    # `dist_world_size` is the distributed world size used to rotate shards.
+    # Keep `dist_world_size` equal to the runtime world size.
     total_shards: 1
     dist_world_size: 1
     iter_factory:

@@ -14,9 +14,9 @@ class ESP2S2TInferenceRunner(InferenceRunner):
         """Pass ESPnet2 the samples of the checked mono ``Audio``.
 
         Args:
-            inputs: The backend's keyword arguments; ``speech`` holds an
-                ``Audio`` the contract has already resampled and checked to
-                be one channel.
+            inputs: Keyword arguments for the backend. ``speech`` is an
+                ``Audio`` object that the contract has already resampled and
+                checked to have one channel.
 
         Returns:
             A copy of ``inputs`` whose ``speech`` is a 1-D array.
@@ -41,13 +41,15 @@ class ESP2S2TInferenceRunner(InferenceRunner):
             result: The n-best list of ``Speech2Text``.
             batched: Whether the call was a batch.
 
-        The text comes from the decoder's own converter, which this system's
-        ``Speech2Text`` builds to keep special tokens, so a separator the
-        checkpoint added to its vocabulary stays in the text. Only the prompt
-        is removed: the language and task symbols the decoder starts from.
+        The text comes from the converter of the decoder. The ``Speech2Text``
+        of this system builds that converter so that it keeps special tokens.
+        A separator that the checkpoint added to its vocabulary therefore stays
+        in the text. Only the prompt is removed, which is the language symbol
+        and the task symbol at the start.
 
         Returns:
-            ``{"hyp": ...}``; ``""`` when the decoder returned no hypothesis.
+            ``{"hyp": ...}``. The value is ``""`` when the decoder returned no
+            hypothesis.
 
         Raises:
             ValueError: If the call was a batch. The timestamp rules track
@@ -64,8 +66,8 @@ class ESP2S2TInferenceRunner(InferenceRunner):
         """
         if batched:
             raise ValueError(
-                "SOT decoding takes one utterance group at a time; "
-                "set batch_size: null in the inference config"
+                "SOT decoding takes one utterance group at a time. "
+                "Set batch_size: null in the inference config."
             )
         if not result:
             return {"hyp": ""}
@@ -75,8 +77,8 @@ class ESP2S2TInferenceRunner(InferenceRunner):
         special = [t for t in tokens[:2] if t.startswith("<|") and t.endswith("|>")]
         if len(special) != 2 or not text.startswith(prompt):
             raise ValueError(
-                f"hypothesis {text!r} does not start with its prompt {prompt!r}; "
-                "decode with espnet3.systems.esp2_s2t.src.sot.s2t_inference."
-                "Speech2Text and speaker_change_symbol or adaptive_timestamp set"
+                f"hypothesis {text!r} does not start with its prompt {prompt!r}. "
+                "Decode with espnet3.systems.esp2_s2t.src.sot.s2t_inference."
+                "Speech2Text, and set speaker_change_symbol or adaptive_timestamp."
             )
         return {"hyp": text[len(prompt) :]}

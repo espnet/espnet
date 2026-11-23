@@ -1,12 +1,13 @@
-"""S2T inference with the serialized-output-training timestamp rules.
+"""S2T inference with the timestamp rules for serialized output training.
 
-A subclass of ``espnet2.bin.s2t_inference.Speech2Text`` rather than a copy, so
-the decoder keeps every espnet2 fix. It adds two options. ``speaker_change_symbol``
-scopes Whisper's timestamp rules to the current speaker block, and
-``adaptive_timestamp`` adds Whisper's last rule, which needs the decoder's
-probabilities and so wraps the decoder scorer. Both are installed on the beam
-search after the parent has built it. With either one on, a hypothesis' text
-keeps its timestamps and separator, which is what it is scored on.
+This module subclasses ``espnet2.bin.s2t_inference.Speech2Text`` instead of
+copying it, so fixes in espnet2 also apply here. It adds two options.
+``speaker_change_symbol`` applies the Whisper timestamp rules to the current
+speaker block only. ``adaptive_timestamp`` adds the last Whisper rule, which
+needs the probabilities of the decoder, so it wraps the decoder scorer. Both
+are added to the beam search after the parent class builds it. With either
+option on, the hypothesis text keeps its timestamps and separators, which the
+metrics need.
 """
 
 from __future__ import annotations
@@ -34,9 +35,9 @@ from espnet3.systems.esp2_s2t.src.sot.whisper_token_id_converter import (
 def _primer_length(primer) -> int:
     """Return the number of prompt tokens for a timestamp filter.
 
-    ``hyp_primer`` is one sequence for the full batch, or one sequence for
-    each utterance. Beam search moves all hypotheses together. All sequences
-    must therefore have the same length.
+    ``hyp_primer`` is one sequence for the whole batch, or one sequence for
+    each utterance. Beam search advances all hypotheses together, so all
+    sequences must have the same length.
     """
     if (
         primer is not None
@@ -55,10 +56,10 @@ def _primer_length(primer) -> int:
 
 
 def _set_hyp_primer_and_sample_begin(beam_search, timestamp_filter, primer):
-    # Every decoding path sets its prompt through set_hyp_primer, so the
-    # filter learns where generated tokens start whenever the prompt changes.
-    # A module-level function under functools.partial, not a closure, so the
-    # beam search stays picklable.
+    # Every decoding path sets its prompt with set_hyp_primer, so the filter
+    # knows where the generated tokens start whenever the prompt changes. This
+    # is a module-level function used through functools.partial instead of a
+    # closure, so the beam search can still be pickled.
     type(beam_search).set_hyp_primer(beam_search, primer)
     if primer is not None:
         timestamp_filter.set_sample_begin(_primer_length(primer))
@@ -106,13 +107,14 @@ class Speech2Text(_Speech2Text):
                 "tokens, and this checkpoint is CTC-only"
             )
         if adaptive_timestamp and "decoder" not in self.beam_search.full_scorers:
-            # The adaptive rule rides on the decoder score, whose weight is
-            # 1 - ctc_weight; at zero BeamSearch drops the scorer, and the
-            # timestamp rules with it. speaker_change_symbol alone is not
-            # affected: it replaces scorefilter, at a fixed weight.
+            # The adaptive rule is applied through the decoder score, whose
+            # weight is 1 - ctc_weight. At weight zero, BeamSearch drops the
+            # decoder scorer and the timestamp rules with it.
+            # speaker_change_symbol alone is not affected, because it replaces
+            # scorefilter, which has a fixed weight.
             raise ValueError(
-                "adaptive_timestamp carries the timestamp rules on the "
-                "decoder score, which ctc_weight=1.0 gives no weight"
+                "adaptive_timestamp applies the timestamp rules through the "
+                "decoder score, and ctc_weight=1.0 gives the decoder no weight"
             )
 
         token_list = self.s2t_model.token_list
@@ -144,9 +146,9 @@ class Speech2Text(_Speech2Text):
         beam_search = self.beam_search
         if adaptive_timestamp:
             # The wrapper applies the filter itself, so the filter is not
-            # registered twice. The mask now rides on the decoder score,
-            # weighted by 1 - ctc_weight; -inf survives any positive weight,
-            # and the guard in __init__ refuses a zero one.
+            # registered a second time. The mask is now part of the decoder
+            # score, which is weighted by 1 - ctc_weight. A score of -inf stays
+            # -inf under any positive weight, and __init__ rejects weight zero.
             decoder = wrap_timestamp_decoder(
                 self.s2t_model.decoder, self.timestamp_filter
             )
@@ -161,8 +163,8 @@ class Speech2Text(_Speech2Text):
             beam_search.scorers["scorefilter"] = self.timestamp_filter
             beam_search.full_scorers["scorefilter"] = self.timestamp_filter
             if "scorefilter" in beam_search.nn_dict:
-                # The filter is not a module; leaving the parent's would keep
-                # an unused ScoreFilter on the device.
+                # The filter is not a module. The ScoreFilter of the parent
+                # would otherwise stay on the device without being used.
                 del beam_search.nn_dict["scorefilter"]
 
         if isinstance(beam_search, BatchBeamSearch):

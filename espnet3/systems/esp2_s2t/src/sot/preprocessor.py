@@ -1,27 +1,30 @@
-"""The preprocessor serialized-output-training recipes train through.
+"""The preprocessor that serialized output training (SOT) recipes use.
 
-``S2TPreprocessor`` is written for OWSM's SentencePiece vocabulary, and no
-upstream S2T recipe uses a Whisper one, so three things need correcting here.
-All three are properties of the Whisper combination rather than of
-``S2TPreprocessor``, which is why they live in this system.
+``S2TPreprocessor`` was written for the SentencePiece vocabulary of OWSM, and
+no other S2T recipe uses a Whisper vocabulary with it. This subclass changes
+three things so that it works with Whisper. The changes are needed for any
+Whisper model trained with ``S2TPreprocessor``, so they belong to this system
+and not to a recipe.
 
-``OpenAIWhisperTokenIDConverter.tokens2ids`` prepends the decoder prompt
-unconditionally, and the base class then drops the first id. S2T text carries
-its own ``<language><task>``, so that surgery deletes ``<|en|>`` and leaves a
-``<|notimestamps|>`` standing in front of real timestamps.
+First, ``OpenAIWhisperTokenIDConverter.tokens2ids`` always adds the decoder
+prompt in front of the tokens, and ``S2TPreprocessor`` then drops the first
+id. The SOT text already starts with its own language and task symbols, so
+this would remove ``<|en|>`` and leave ``<|notimestamps|>`` in front of the
+timestamps. The subclass adds one placeholder id instead, which is the id that
+``S2TPreprocessor`` drops.
 
-The speaker-change symbol has to survive tokenization. ``????`` is Whisper BPE
-id 25629, but ``Ġ????`` -- the form BPE sees, because the separator always
-follows a space -- is not in the vocabulary, so it is split unless the
-tokenizer is told to keep it whole.
+Second, the speaker-change symbol must stay one token after tokenization.
+``????`` is id 25629 in the Whisper BPE vocabulary. BPE sees it after a space,
+as ``Ġ????``, which is not in the vocabulary. The tokenizer therefore splits it
+unless it is told to keep the symbol whole.
 
-The base class pads speech to ``(samples, 1)``. A full-Whisper encoder has no
-frontend, so that tensor reaches ``torch.stft``, which rejects the trailing
-axis.
+Third, ``S2TPreprocessor`` returns speech with the shape ``(samples, 1)``. A
+Whisper encoder without a frontend passes that tensor to ``torch.stft``, which
+does not accept the last axis. The subclass returns 1-D speech.
 
-``CommonPreprocessor_multi`` is no alternative: its Whisper converter puts
-``<|notimestamps|>`` in every prompt, so a timestamped target would start with
-``<|en|><|transcribe|><|notimestamps|><|0.00|>``.
+``CommonPreprocessor_multi`` cannot be used either. Its Whisper converter puts
+``<|notimestamps|>`` in every prompt, so a target with timestamps would start
+with ``<|en|><|transcribe|><|notimestamps|><|0.00|>``.
 """
 
 from __future__ import annotations
@@ -37,11 +40,11 @@ from espnet3.systems.esp2_s2t.src.sot.whisper_tokenizer import OpenAIWhisperToke
 
 
 def build_tokens2ids(convert, placeholder: int):
-    """Return a ``tokens2ids`` that stands ``placeholder`` in the dropped slot.
+    """Return a ``tokens2ids`` that adds ``placeholder`` as the first id.
 
-    ``S2TPreprocessor`` drops index 0 of the converted ids, expecting a prompt
-    id there. This recipe's text supplies its own ``<language><task>``, so a
-    placeholder goes in that slot instead of letting a real symbol be eaten.
+    ``S2TPreprocessor`` drops the first converted id, where it expects a prompt
+    id. The SOT text already starts with ``<language><task>``, so a placeholder
+    goes into that slot, and no real symbol is lost.
 
     Args:
         convert: The tokenizer's own tokens-to-ids callable.
@@ -123,17 +126,18 @@ class SotS2TPreprocessor(S2TPreprocessor):
         converter.tokens2ids = build_tokens2ids(convert, placeholder)
         self.token_id_converter = converter
 
-        # The id the model must emit. Asking the sot=True tokenizer whether the
-        # symbol is "one token" proves nothing: registering it as an added
-        # special token makes ANY string one token. What matters is that this
-        # id names this symbol in the token list the model is sized from.
+        # The id that the model must output. The sot=True tokenizer registers
+        # the symbol as an added special token, which makes any string one
+        # token, so asking the tokenizer proves nothing. The id must point to
+        # this symbol in the token list from which the model size is set.
         self.speaker_change_symbol = speaker_change_symbol
         self.speaker_change_id = convert(
             self.tokenizer.text2tokens(speaker_change_symbol)
         )[0]
-        # The base class does not keep token_list: OpenAIWhisperTokenIDConverter
-        # builds its vocabulary from the tokenizer and has no such attribute.
-        # Read it here, because it is the list S2TTask sizes the model from.
+        # The base class does not keep token_list, because
+        # OpenAIWhisperTokenIDConverter builds its vocabulary from the
+        # tokenizer. It is read here, because S2TTask sets the model size from
+        # this list.
         listed = _read_token_list(token_list)
         if self.speaker_change_id >= len(listed) or (
             listed[self.speaker_change_id] != speaker_change_symbol
@@ -156,8 +160,8 @@ class SotS2TPreprocessor(S2TPreprocessor):
         Args:
             uid: Utterance id.
             data: Sample with ``speech`` and the S2T text fields. A
-                ``utt_id`` field is dropped: it is metadata for inference and
-                scoring, and the model takes no such argument.
+                ``utt_id`` field is removed, because the model does not take
+                it. Inference and scoring use it.
 
         Returns:
             The processed sample: ``speech`` as a 1-D float32 waveform, and
@@ -178,6 +182,7 @@ class SotS2TPreprocessor(S2TPreprocessor):
         data = super().__call__(uid, data)
         speech = data.get("speech")
         if speech is not None and speech.ndim == 2 and speech.shape[1] == 1:
-            # A full-Whisper encoder has no frontend; torch.stft takes (T,).
+            # The Whisper encoder computes its features with torch.stft, which
+            # needs 1-D speech.
             data["speech"] = speech[:, 0]
         return data

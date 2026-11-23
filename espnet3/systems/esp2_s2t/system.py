@@ -18,10 +18,10 @@ logger = logging.getLogger(__name__)
 class ESP2S2TSystem(BaseSystem):
     """ESPnet2 S2T training and evaluation with a fixed vocabulary.
 
-    The stages are :class:`BaseSystem`'s. One of them differs:
-    ``collect_stats`` keeps a configured ``model.normalize`` instead of
-    dropping it. There is no tokenizer stage, because an S2T vocabulary ships
-    with the pretrained checkpoint.
+    The system uses the stages of :class:`BaseSystem` and changes one of them.
+    ``collect_stats`` keeps the ``model.normalize`` setting of the config,
+    while the base stage removes it. There is no tokenizer stage, because the
+    S2T vocabulary comes with the pretrained checkpoint.
     """
 
     def collect_stats(self, *args, **kwargs):
@@ -35,22 +35,22 @@ class ESP2S2TSystem(BaseSystem):
             TypeError: If any stage argument is passed.
 
         Notes:
-            Do not replace this with ``espnet3.systems.base.training``'s
-            ``collect_stats``. That one pops ``normalize`` and
-            ``normalize_conf`` out of ``config.model``, and
-            ``espnet2.tasks.s2t`` declares ``normalize`` with
-            ``default="utterance_mvn"``. Dropping the key therefore does not
-            mean "no normalizer": it restores that default.
+            Do not replace this method with ``collect_stats`` from
+            ``espnet3.systems.base.training``. That function removes
+            ``normalize`` and ``normalize_conf`` from ``config.model``, and
+            ``espnet2.tasks.s2t`` sets ``default="utterance_mvn"`` for
+            ``normalize``. Removing the key therefore adds the default
+            normalizer.
 
-            A recipe fine-tuning Whisper sets ``normalize: null`` on purpose,
-            because the encoder already expects its own log-mel scaling. A
-            normalizer added behind its back changes the input distribution
-            and trains quietly on the wrong features. The pop is also
-            in place, so it would reach a ``train`` stage run in the same
-            process.
+            A recipe that fine-tunes Whisper sets ``normalize: null``,
+            because the Whisper encoder expects its own log-mel scaling. An
+            extra normalizer changes the input features, and training then
+            runs on the wrong features without an error. The keys are also
+            removed in place, so the change would reach a ``train`` stage
+            that runs in the same process.
 
-            The base ``train`` does not pop these keys, which is why it is
-            inherited while this stage is not.
+            The base ``train`` stage does not remove these keys, so this
+            system uses it unchanged.
         """
         self._reject_stage_args("collect_stats", args, kwargs)
         start = time.perf_counter()
@@ -65,7 +65,7 @@ class ESP2S2TSystem(BaseSystem):
 
         torch.set_float32_matmul_precision("high")
 
-        # Deliberately no normalize/normalize_conf pop. See the Notes above.
+        # normalize and normalize_conf are kept. See the Notes above.
         trainer = _build_trainer(config)
         trainer.collect_stats()
         logger.info(

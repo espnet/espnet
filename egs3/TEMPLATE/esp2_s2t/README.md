@@ -2,19 +2,21 @@
 
 ## Overview
 
-This template uses `espnet3.systems.esp2_s2t.system.ESP2S2TSystem` for an
-ESPnet2 S2T task with a fixed Whisper vocabulary. The current recipes train
-and decode serialized output training (SOT) for multi-talker speech: one
-utterance group becomes one sequence, with the speakers separated by a
-speaker-change symbol and inline Whisper timestamps. Corpus recipes provide
-the dataset implementation and the checkpoint-specific settings.
+This template provides the default configuration for recipes that use
+`espnet3.systems.esp2_s2t.system.ESP2S2TSystem`. The system trains and decodes
+ESPnet2 S2T models with the Whisper vocabulary. The current recipes use it for
+multi-talker ASR with serialized output training (SOT). In SOT, the model
+transcribes each utterance group as one sequence, with a speaker-change symbol
+between speakers and Whisper timestamps in the text. Each corpus recipe
+provides its own dataset implementation and checkpoint settings.
 
 ## Data
 
-Each item carries its id, speech, the serialized target (`text`), and the
-two S2T auxiliary texts (`text_prev`, `text_ctc`). A recipe's dataset class
-(`dataset/dataset.py`, a `BaseDataset` subclass) declares the fields as a
-class attribute; both the AMI and mini_an4 recipes use:
+Each item contains an utterance ID, the speech, the serialized target text
+(`text`), and the two auxiliary texts of the S2T task (`text_prev` and
+`text_ctc`). The dataset class of a recipe (`dataset/dataset.py`, a subclass of
+`BaseDataset`) declares these fields as a class attribute. The AMI and mini_an4
+recipes both use the following fields.
 
 ```python
 from espnet3.contract import Field
@@ -29,28 +31,30 @@ fields = (
 ```
 
 `text` starts with the language and task symbols, for example
-`<|en|><|transcribe|><|0.00|> hello<|1.20|> ???? <|0.80|> hi<|1.50|>`.
-The SOT preprocessor drops `utt_id` before training. The inference contract
-accepts 16 kHz mono speech and produces `hyp`, the serialized hypothesis with
-its timestamps and speaker-change symbols.
+`<|en|><|transcribe|><|0.00|> hello<|1.20|> ???? <|0.80|> hi<|1.50|>`. The SOT
+preprocessor removes `utt_id` before training. At inference time, the input is
+16 kHz mono speech, and the output `hyp` is the serialized hypothesis with its
+timestamps and speaker-change symbols.
 
 ## System Features
 
-There is no `train_tokenizer` stage: the vocabulary is Whisper's, and a
-recipe's `create_dataset` writes the token list. `collect_stats` keeps a
-configured `model.normalize: null`, which the base stage would replace with
-the S2T task's default. Inference uses
-`espnet3.systems.esp2_s2t.src.sot.s2t_inference.Speech2Text`, which scopes
-Whisper's timestamp rules to the current speaker block. SOT decoding runs one
-utterance group at a time (`batch_size: null`). The system also provides
-training, measurement, and model packaging.
+The system has no `train_tokenizer` stage because it uses the Whisper
+vocabulary. The `create_dataset` stage of each recipe writes the token list.
+The `collect_stats` stage keeps the setting `model.normalize: null`. The base
+stage removes this setting, so the S2T task would add its default normalizer.
+Inference uses `espnet3.systems.esp2_s2t.src.sot.s2t_inference.Speech2Text`,
+which applies the Whisper timestamp rules within each speaker block. SOT
+decoding processes one utterance group at a time, so the inference config sets
+`batch_size: null`. All other stages come from `BaseSystem` unchanged.
 
 ## Metrics
 
-The system provides four utterance-group metrics: cpWER, DER, speaker-counting
-accuracy, and WER of the serialized transcript. Each needs the speaker-change
-symbol the checkpoint was trained with and has no default for it. Bind the
-reference to the dataset's serialized text and the hypothesis to `hyp`:
+The system provides four metrics, and each of them is computed per utterance
+group: cpWER, DER, speaker-counting accuracy, and WER of the serialized
+transcript. Each metric needs the speaker-change symbol that the checkpoint was
+trained with, and none of them has a default value. Bind the reference to the
+serialized text of the dataset and the hypothesis to `hyp`, as in the following
+example.
 
 ```yaml
 metrics:
@@ -65,9 +69,9 @@ metrics:
 
 ## Commands
 
-Run from a corpus recipe directory after configuring the data source and the
-checkpoint. Its `run.py` calls `launch()` to combine template defaults with
-recipe-specific settings.
+Run these commands from a corpus recipe directory after you set the data source
+and the checkpoint. The `run.py` of the recipe calls `launch()`, which combines
+the defaults of this template with the settings of the recipe.
 
 ```bash
 python run.py --stages create_dataset collect_stats \
@@ -81,4 +85,4 @@ python run.py --stages infer measure \
 ```
 
 See [mini_an4](../../mini_an4/esp2_s2t/README.md) for a small runnable example
-and [AMI](../../ami/esp2_s2t/README.md) for a corpus recipe.
+and [AMI](../../ami/esp2_s2t/README.md) for a full corpus recipe.

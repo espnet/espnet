@@ -1,12 +1,13 @@
-"""AMI serialized-output-training dataset for the ESPnet3 S2T recipe.
+"""AMI SOT dataset for the ESPnet3 S2T recipe.
 
-One split is one Lhotse CutSet. Each cut is an utterance group: it names the
-recording, channel, offset and duration its audio comes from, so the audio is
-read through the cut rather than from a copy written out per group. The
-serialized reference for every speaker in the group, separated by the
-speaker-change symbol and carrying Whisper timestamp tokens, rides on the cut
-as ``sot_text``. Each item carries its cut's id as ``utt_id``, which inference
-writes its outputs under; the preprocessor drops it before training.
+Each split is one Lhotse CutSet, and each cut is one utterance group. A cut
+stores the recording, channel, start time and duration of its audio, so the
+dataset reads the audio through the cut. The serialized reference is stored
+in the cut as ``sot_text``. It has the text of every speaker in the group,
+with the speaker-change symbol between speakers and Whisper timestamp tokens
+around each segment. Each item has the cut id as ``utt_id``, which inference
+uses to name its outputs. The preprocessor removes ``utt_id`` before
+training.
 """
 
 from __future__ import annotations
@@ -20,11 +21,12 @@ from espnet3.components.data.base_dataset import BaseDataset
 from espnet3.contract import Field
 from espnet3.utils.config_utils import load_config_with_defaults
 
-# Both must match dataset/builder.py.
+# Both values must be the same as in dataset/builder.py.
 _CUTS_FILENAME = "cuts.jsonl.gz"
 _SOT_TEXT_FIELD = "sot_text"
-# The only rate Whisper takes. An item's speech is a bare array, which the
-# training preprocessor and the inference contract both read at this rate.
+# Whisper only accepts 16 kHz audio. The speech of an item is a plain array,
+# and both the training preprocessor and the inference contract assume this
+# rate.
 _SAMPLE_RATE = 16000
 
 
@@ -37,7 +39,7 @@ _CONFIG = _load_builder_config()
 
 
 def _split_dir(split: str) -> Path:
-    """Return the directory holding one split's cuts.
+    """Return the directory of one split.
 
     Args:
         split: Key of ``builder.split_dirs``.
@@ -51,20 +53,20 @@ def _split_dir(split: str) -> Path:
     split_dirs = _CONFIG["split_dirs"]
     if split not in split_dirs:
         raise KeyError(
-            f"Unknown split {split!r}; expected one of {sorted(split_dirs)}."
+            f"Unknown split {split!r}. Expected one of {sorted(split_dirs)}."
         )
     return Path(_CONFIG["data_root"]) / split_dirs[split]
 
 
-# Keyed by (path, mtime, size), not by split, so a corpus rebuilt in the same
-# process is re-read rather than served stale. Parsing a split is not free --
-# the train CutSet holds 53k cuts -- and every dataset built over a split
-# would otherwise pay for it separately.
+# The cache key is (path, mtime, size), so a corpus that is rebuilt in the
+# same process is read again. Reading a split takes time, because the train
+# CutSet has 53k cuts, and without the cache every dataset of the same split
+# would read it again.
 _CUTS_CACHE: Dict[tuple, Any] = {}
 
 
 def load_cuts(split: str):
-    """Return one split's CutSet, eagerly.
+    """Return the CutSet of one split, loaded into memory.
 
     Args:
         split: Split name.
@@ -133,24 +135,26 @@ class AmiSotDataset(BaseDataset):
             ``text_ctc``.
 
         Raises:
-            ValueError: If the cut is not 16 kHz mono audio, which a bare
-                array could not say.
+            ValueError: If the audio of the cut is not 16 kHz mono. The
+                returned array does not include the sampling rate, so it is
+                checked here.
         """
         cut = self._cuts[int(idx)]
-        # The cut carries its own offset, duration and channel, so this is
-        # exactly the group's audio, without a per-group file on disk.
+        # The cut stores its start time, duration and channel, so this loads
+        # only the audio of the group.
         array = cut.load_audio()
         if cut.sampling_rate != _SAMPLE_RATE or array.shape[0] != 1:
             raise ValueError(
-                f"cut {cut.id} is {array.shape[0]}-channel audio at "
-                f"{cut.sampling_rate} Hz; this recipe reads 16 kHz mono"
+                f"cut {cut.id} has {array.shape[0]}-channel audio at "
+                f"{cut.sampling_rate} Hz, but this recipe needs 16 kHz mono "
+                "audio"
             )
         return {
             "utt_id": cut.id,
             "speech": np.asarray(array[0], dtype=np.float32),
             "text": (cut.custom or {}).get(_SOT_TEXT_FIELD, ""),
-            # This recipe conditions on no previous text and trains with
-            # ctc_weight 0.0, so both are the not-available symbol.
+            # This recipe uses no previous text and trains with ctc_weight
+            # 0.0, so both fields are the not-available symbol.
             "text_prev": self._na,
             "text_ctc": self._na,
         }

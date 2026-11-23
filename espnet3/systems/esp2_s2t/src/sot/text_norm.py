@@ -1,11 +1,11 @@
-"""Transcript normalizers the serialization may apply to segment text.
+"""Text normalizers that the serialization can apply to segment text.
 
-Shared by every esp2_s2t recipe: which normalizer a corpus was built with
-belongs to the corpus, and the lookup that resolves a name to one does not.
+All esp2_s2t recipes share this lookup. Each corpus chooses its normalizer in
+its own config, and this module finds the normalizer by name.
 
 ``chime8_keep_fillers`` is the CHiME-8 DASR English normalizer with filler
-removal switched off. It comes from chime-utils, which is not on PyPI, so it
-is an optional dependency; ``none`` needs nothing.
+removal turned off. It comes from chime-utils, which is not on PyPI, so it is
+an optional dependency. ``none`` needs no package.
 """
 
 from __future__ import annotations
@@ -32,22 +32,22 @@ def get_text_norm(name: Optional[str]) -> Optional[Callable[[str], str]]:
         name: A key of :data:`NORMALIZERS`, or None, which means ``"none"``.
 
     Returns:
-        A callable mapping one segment's text to its normalized form, or None
-        when no normalization is asked for. None rather than the identity
-        function, so a caller can tell the two apart and skip the call.
+        A function that maps the text of one segment to its normalized form,
+        or None when no normalization is set. None is returned instead of an
+        identity function, so that a caller can skip the call.
 
     Raises:
         ValueError: When ``name`` is not a known normalizer.
         ImportError: When the normalizer needs chime-utils and it is missing.
-            The message carries the install command, because the package is
-            not on PyPI and pip's own error would not say where to find it.
+            The message gives the install command, because the package is not
+            on PyPI, and the pip error would not say where to find it.
     """
     if name is None or name == "none":
         return None
 
     if name not in NORMALIZERS:
         raise ValueError(
-            f"Unknown text_norm {name!r}; expected one of {sorted(NORMALIZERS)}."
+            f"Unknown text_norm {name!r}. Expected one of {sorted(NORMALIZERS)}."
         )
 
     try:

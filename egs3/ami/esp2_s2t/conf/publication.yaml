@@ -19,9 +19,9 @@ recipe_dir: .
 pack_model:
   include:
     - ${recipe_dir}/dataset
-  # No token list here: the checkpoint's config.yaml names it by a path into
-  # the corpus, and ESP2S2TSystem.pack_model writes the list itself into the
-  # bundled copy instead.
+  # The token list is not included separately. The training stage writes the
+  # full list into the config.yaml of the checkpoint, and that file is part of
+  # the bundle.
 
   exclude:
     - inference

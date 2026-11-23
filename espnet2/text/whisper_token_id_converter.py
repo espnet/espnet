@@ -85,16 +85,17 @@ class OpenAIWhisperTokenIDConverter:
     def token2id(self) -> Dict[str, int]:
         """Return the mapping from token symbol to token id.
 
-        ``TokenIDConverter`` exposes the same attribute, and callers such as
-        ``espnet2.bin.s2t_inference`` use it to resolve prompt symbols such as
-        ``<|en|>`` or ``<|notimestamps|>``. It is built on first use because
-        the vocabulary has tens of thousands of entries.
+        ``TokenIDConverter`` has the same attribute, and callers such as
+        ``espnet2.bin.s2t_inference`` use it to look up the ids of prompt
+        symbols such as ``<|en|>`` or ``<|notimestamps|>``. The mapping is
+        built on first use, because the vocabulary has tens of thousands of
+        entries.
 
         Note:
-            Resolve timestamp ids through this mapping rather than through
+            Look up timestamp ids with this mapping, and not with
             ``whisper.tokenizer.Tokenizer.timestamp_begin``, which no longer
-            matches the vocabulary once the extra special tokens above have
-            been added.
+            matches the vocabulary after the extra special tokens above are
+            added.
 
         """
         if self._token2id is None:

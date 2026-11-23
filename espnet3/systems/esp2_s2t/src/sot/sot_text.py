@@ -1,32 +1,31 @@
-"""Serialize a cut's supervisions into a single SOT training/reference string.
+"""Serialize the supervisions of a cut into one SOT text.
 
-Serialized Output Training flattens a multi-speaker recording into one
-sequence: each speaker's words are gathered into a block, and the blocks are
-concatenated with a speaker-change symbol between them. Three choices decide
-the string, and the AMI splits do not agree on them, so all three are
-arguments rather than constants:
+Serialized output training (SOT) turns a multi-speaker recording into one
+sequence. The words of each speaker form a block, and the blocks are joined
+with a speaker-change symbol between them. The AMI splits do not use the same
+settings for the options below, so all of them are arguments.
 
 ``ordering``
-    Which block comes first. ``start_time`` leads with the earliest onset.
-    ``longest_first`` leads with the longest block, measured as the CHARACTER
-    length of the rendered text INCLUDING its timestamp markup, not word count
-    and not seconds. The sort is stable, so equal-length blocks keep the
-    alphabetical speaker order they were built in.
+    Which block comes first. ``start_time`` puts the earliest speaker first.
+    ``longest_first`` puts the longest block first. The length is the number
+    of characters in the block text, including the timestamp tokens, and not
+    the number of words or seconds. The sort is stable, so blocks of the same
+    length keep the alphabetical speaker order in which they were built.
 ``separator``
-    The speaker-change symbol. Whisper tokenizes ``????`` as a single id
-    (25629); ``<sc>`` is id 51865 and is only safe in a reference file that is
-    split on rather than tokenized.
+    The speaker-change symbol. Whisper tokenizes ``????`` as one id (25629).
+    ``<sc>`` gets id 51865 and is only safe in a reference file that is split
+    on the symbol and never tokenized.
 ``text_norm``
-    Applied to each segment's text before the timestamps wrap it, so the
-    separator and the markup never reach it. See text_norm.py in this package.
-
+    Applied to the text of each segment before the timestamps are added, so
+    the normalizer never sees the separator or the timestamps. See
+    text_norm.py in this package.
 ``lowercase``
-    Whether to case-fold. AMI's dev split keeps its original case and
-    punctuation; train and test do not.
+    Whether to lowercase the text. In the AMI manifests, the dev split has the
+    original case and punctuation, and the train and test splits do not.
 
-The functions take a sequence of supervisions, not a lhotse cut, so they can
-be exercised without building a manifest. Anything with ``speaker``, ``start``,
-``duration`` and ``text`` attributes works.
+The functions take a sequence of supervisions instead of a lhotse cut, so
+they can be tested without a manifest. Any object with ``speaker``,
+``start``, ``duration`` and ``text`` attributes works.
 """
 
 from __future__ import annotations
@@ -41,8 +40,8 @@ TIMESTAMP_RESOLUTION = 0.02
 # (alphabetical by speaker).
 _ORDERINGS = {
     "start_time": lambda block: block["start"],
-    # Negating the length rather than passing reverse=True keeps ties in
-    # alphabetical order under the same stable sort.
+    # The length is negated instead of passing reverse=True, so ties stay in
+    # alphabetical order with the same stable sort.
     "longest_first": lambda block: -len(block["text"]),
 }
 
@@ -73,9 +72,9 @@ def merge_supervisions(
             "text": sup.text,
         }
         if merged and (sup.start - merged[-1]["end"]) <= max_timestamp_pause:
-            # A short supervision can sit wholly inside a longer one. Taking
-            # the later end keeps the merge from truncating the segment and
-            # dropping reference speech.
+            # A short supervision can be completely inside a longer one.
+            # Taking the later end keeps the merged segment from being cut
+            # short, which would drop reference speech.
             merged[-1]["end"] = max(merged[-1]["end"], segment["end"])
             merged[-1]["text"] = merged[-1]["text"] + " " + segment["text"]
         else:
@@ -124,9 +123,9 @@ def build_speaker_blocks(
         for segment in segments:
             text = segment["text"].strip()
             if text_norm is not None:
-                # Emptiness is judged after normalizing, not before: a segment
-                # that holds only symbols normalizes away, and an empty
-                # segment must not leave a bare timestamp pair behind.
+                # Empty segments are detected after normalization. A segment
+                # with only symbols becomes empty, and an empty segment must
+                # not leave a timestamp pair without text.
                 text = text_norm(text)
             elif lowercase:
                 text = text.lower()
@@ -168,7 +167,7 @@ def build_sot_text(
     Args:
         supervisions: Every supervision in the cut.
         max_timestamp_pause: Passed to :func:`merge_supervisions`.
-        ordering: Key name from ``_ORDERINGS``; see the module docstring.
+        ordering: A key of ``_ORDERINGS``. See the module docstring.
         separator: Speaker-change symbol placed between blocks.
         lowercase: Case-fold the transcript text.
         use_timestamps: Wrap each segment in ``<|start|> text<|end|>``.
@@ -187,7 +186,7 @@ def build_sot_text(
     """
     if ordering not in _ORDERINGS:
         raise ValueError(
-            f"Unknown ordering {ordering!r}; expected one of " f"{sorted(_ORDERINGS)}."
+            f"Unknown ordering {ordering!r}. Expected one of " f"{sorted(_ORDERINGS)}."
         )
 
     blocks = build_speaker_blocks(

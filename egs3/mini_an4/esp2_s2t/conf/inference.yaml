@@ -1,9 +1,8 @@
 ##########################################################
 #                   INFERENCE SETTING                    #
 ##########################################################
-# Decodes the checkpoint the train stage above just wrote, so the arm is self
-# contained. exp_tag is empty and inherited from the training config, which
-# run.py copies across.
+# Decodes the checkpoint that the train stage wrote, so the test needs no other
+# model. exp_tag is left empty, and run.py copies it from the training config.
 recipe_dir: .
 exp_tag:
 
@@ -16,9 +15,9 @@ dataset:
 ##########################################################
 #                    MODEL AND OUTPUT                    #
 ##########################################################
-# speaker_change_symbol and adaptive_timestamp select the SOT timestamp
-# constraints in espnet3/systems/esp2_s2t/src/sot/whisper_timestamp_scorer.py, which is
-# the part of the system this arm exists to exercise.
+# speaker_change_symbol and adaptive_timestamp turn on the SOT timestamp rules
+# in espnet3/systems/esp2_s2t/src/sot/whisper_timestamp_scorer.py, which this
+# test must run.
 model:
   s2t_train_config: ${exp_dir}/config.yaml
   s2t_model_file: ${exp_dir}/epoch0_step1_valid.loss.ckpt

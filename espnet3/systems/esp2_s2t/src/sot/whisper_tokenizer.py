@@ -1,9 +1,9 @@
 """Whisper tokenizer for this system.
 
-Note: This file is a copy of ``espnet2/text/whisper_tokenizer.py``. It differs
-in one place: the tokenizer is copied before the extra tokens are added, so a
-vocabulary built here cannot follow ``whisper.tokenizer.get_tokenizer``'s cache
-into another caller's tokenizer.
+Note: This file is a copy of ``espnet2/text/whisper_tokenizer.py`` with one
+change. The tokenizer is copied before the extra tokens are added, so the
+tokens added here do not change the cached tokenizer that
+``whisper.tokenizer.get_tokenizer`` returns to other callers.
 """
 
 import copy
@@ -85,10 +85,10 @@ class OpenAIWhisperTokenizer(AbsTokenizer):
         else:
             raise ValueError("tokenizer unsupported:", model_type)
 
-        # Copy before anything is added. whisper.tokenizer.get_tokenizer is
-        # lru_cached, so the object above is shared with every other caller
-        # in the process; add_tokens on it would follow them all, and the
-        # vocabulary size would then depend on who ran first.
+        # Copy the tokenizer before adding tokens. get_tokenizer uses
+        # lru_cache, so every caller in the process gets the same object.
+        # Adding tokens to it would change the tokenizer of all callers, and
+        # the vocabulary size would depend on which caller ran first.
         self.tokenizer = copy.deepcopy(self.tokenizer)
 
         if model_type == "whisper_multilingual" and added_tokens_txt is not None:

@@ -146,8 +146,8 @@ cd ./egs3/mini_an4/esp2_s2t || exit
 gen_dummy_coverage
 echo "==== [ESPnet3] S2T ===="
 source path.sh
-# No train_tokenizer: an S2T vocabulary ships with the pretrained checkpoint,
-# so ESP2S2TSystem declares no such stage.
+# No train_tokenizer: ESP2S2TSystem uses the vocabulary of the pretrained
+# checkpoint.
 ${python} run.py \
     --stages create_dataset collect_stats train infer measure \
     --training_config conf/training.yaml \

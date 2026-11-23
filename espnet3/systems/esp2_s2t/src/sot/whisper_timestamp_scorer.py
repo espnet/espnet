@@ -36,28 +36,27 @@ class WhisperTimestampFilter(BatchScorerInterface):
 
     Set ``speaker_change`` to decode Serialized Output Training (SOT) data.
     The scorer then applies the pair rule and the order rule to the current
-    speaker block only. A speaker block holds the tokens after the last
-    speaker-change token. A new speaker can therefore start again near the
-    start of the window. The speaker-change token is permitted only right
-    after the timestamp that closes a segment, before the next segment opens.
-    A timestamp or the end token must come after it. It must not occur two
-    times in sequence.
+    speaker block only. A speaker block is the tokens after the last
+    speaker-change token, so a new speaker can start again near the start of
+    the window. The speaker-change token is allowed only right after the
+    timestamp that closes a segment. A timestamp or the end token must follow
+    it, and it must not appear twice in a row.
 
-    If you do not set ``speaker_change``, the rules apply to the full
-    sequence. The rules then block each timestamp that is lower than the last
-    timestamp of the previous speaker. SOT decoding is not possible.
+    Without ``speaker_change``, the rules apply to the whole sequence and
+    block every timestamp that is lower than the last timestamp of the
+    previous speaker, so SOT decoding does not work.
 
-    Give ``speaker_change`` as a token id, not as a symbol. Each separator
-    with one token is usable. Two examples are ``<sc>`` and ``????``. In the
-    multilingual Whisper vocabulary, ``????`` is one BPE token.
+    ``speaker_change`` is a token id. Any separator that is a single token
+    works, for example ``<sc>`` or ``????``. In the multilingual Whisper
+    vocabulary, ``????`` is one BPE token.
 
     Note:
         The scorer needs the Whisper token layout. The text tokens are below
         ``eos``. The timestamps make one continuous range from ``first_time``
-        to ``last_time``, above ``eos``. ``__init__`` rejects a layout that
-        breaks the second part, because the rule "a segment is closed, so no
-        text" is the slice ``mask[:eos]`` and would otherwise blank the
-        timestamps with no error raised.
+        to ``last_time``, above ``eos``. ``__init__`` rejects a layout in which
+        the timestamps are not above ``eos``. The rule that blocks text right
+        after a segment ends uses the slice ``mask[:eos]``, which would
+        otherwise also block the timestamps without an error.
 
         Find the ids with a symbol lookup. ``OpenAIWhisperTokenIDConverter``
         adds more special tokens. After this, do not read ``timestamp_begin``
@@ -111,15 +110,15 @@ class WhisperTimestampFilter(BatchScorerInterface):
                 f"speaker_change ({speaker_change}) must not be a timestamp token"
             )
         if not eos < first_time:
-            # The rules block text with the slice mask[:eos], which is the set
-            # of text tokens only when the timestamps sit above eos. Reject
-            # any other layout here rather than let that slice silently blank
-            # the timestamps at decode time.
+            # The rules block text with the slice mask[:eos], which covers
+            # only the text tokens when the timestamps are above eos. Any other
+            # layout is rejected here, because the slice would otherwise block
+            # the timestamps during decoding without an error.
             raise ValueError(
                 f"eos ({eos}) must be below the timestamp range, which starts "
-                f"at first_time ({first_time}); the rules assume the Whisper "
+                f"at first_time ({first_time}). The rules assume the Whisper "
                 "layout, with the text tokens below eos and the timestamps "
-                "above it"
+                "above it."
             )
         if max_initial_timestamp_index is not None and max_initial_timestamp_index < 0:
             raise ValueError(
@@ -138,11 +137,11 @@ class WhisperTimestampFilter(BatchScorerInterface):
     def set_sample_begin(self, sample_begin: int) -> None:
         """Set the number of tokens in the decoder prompt.
 
-        The decoding options change the length of the prompt. Two examples are
-        the timestamp option and the previous-text option. The caller must
-        therefore set this value again after each change of the beam search
-        primer. Beam search moves all hypotheses of a batch together. One
-        value is thus correct for the full batch.
+        The length of the prompt depends on the decoding options, for example
+        the timestamp option and the previous-text option. The caller must set
+        this value again whenever the beam search primer changes. Beam search
+        advances all hypotheses of a batch together, so one value is correct
+        for the whole batch.
 
         Args:
             sample_begin (int): Number of tokens in the prompt.
@@ -217,13 +216,13 @@ class WhisperTimestampFilter(BatchScorerInterface):
             mask[self.first_time : times[-1] + (0 if reopen else 1)] = neg
 
         if sep is not None:
-            # A speaker can change only at the end of a segment: right after
-            # the timestamp that closed one, and nowhere else. The closed
-            # case has to be reopened explicitly, because the branch above
-            # masked everything below eos, and the separator sits there.
-            # Leaving the remaining cases alone would permit a separator
-            # while a segment is still open, and its opening timestamp would
-            # then reach the segment parser with nothing to pair it with.
+            # A speaker can change only right after the timestamp that closes
+            # a segment. In that case the separator must be allowed again,
+            # because the branch above blocked every token below eos,
+            # including the separator. In every other case the separator is
+            # blocked. Otherwise a separator could come while a segment is
+            # still open, and the segment parser would get an opening
+            # timestamp without its closing timestamp.
             mask[sep] = 0.0 if (last_is_time and not penult_is_time) else neg
 
         return mask
@@ -269,35 +268,33 @@ class WhisperTimestampFilter(BatchScorerInterface):
 class WhisperTimestampDecoder(ScorerInterface, torch.nn.Module):
     """Add the last Whisper timestamp rule to a decoder scorer.
 
-    ``WhisperTimestampFilter`` holds each rule that needs only the tokens. The
-    last Whisper rule needs more. The rule adds the probabilities of all
-    timestamps. It compares this total with the best single text token. If the
-    total is larger, the rule makes a timestamp necessary:
+    ``WhisperTimestampFilter`` has every rule that needs only the tokens. The
+    last Whisper rule also needs the model probabilities. It compares the
+    total probability of all timestamps with the probability of the best text
+    token. If the total is larger, the next token must be a timestamp:
 
     .. code-block:: python
 
         if logprobs[timestamp_begin:].logsumexp(-1) > logprobs[:timestamp_begin].max():
             logits[:timestamp_begin] = -inf
 
-    The rule needs the model probabilities. This class therefore holds the
-    decoder scorer and does the same steps as Whisper. First it scores the
-    tokens. Then it applies the mask from the filter. Then it makes the
-    probabilities sum to one again. Then it applies the last rule.
+    This class therefore wraps the decoder scorer and follows the same steps
+    as Whisper. It scores the tokens, applies the mask of the filter,
+    normalizes the probabilities again, and then applies the last rule.
 
-    Whisper compares the probabilities after the mask. The new sum is thus
-    necessary. The Whisper decoder of ESPnet gives ``log_softmax(logits)``.
-    This result and the raw logits are different by one constant value.
-    ``log_softmax`` gives the same result after a constant shift. The new sum
-    of the masked values is therefore equal to the Whisper values.
+    Whisper compares the probabilities after the mask, so the normalization
+    is needed. The ESPnet Whisper decoder returns ``log_softmax(logits)``,
+    which differs from the raw logits by a constant. ``log_softmax`` does not
+    change under a constant shift, so the normalized masked values are the
+    same as in Whisper.
 
-    Register this class in place of the decoder scorer. Do not also register
-    the filter, because this class applies the filter.
+    Register this class instead of the decoder scorer. Do not register the
+    filter as well, because this class already applies it.
 
     Note:
-        The rule blocks each token that is not a timestamp. It also blocks
-        ``eos``. Whisper does the same. If you remove the rule, the number of
-        timestamps changes. The position of the end of the output can also
-        change.
+        The rule blocks every token that is not a timestamp, including
+        ``eos``, as Whisper does. Without the rule, the number of timestamps
+        changes, and the output can end at a different position.
 
     """
 
@@ -319,7 +316,7 @@ class WhisperTimestampDecoder(ScorerInterface, torch.nn.Module):
         self.decoder = decoder
         self.filter = timestamp_filter
 
-    # -- state handling is delegated to the wrapped decoder -----------------
+    # The wrapped decoder handles the scorer state.
 
     def init_state(self, x: torch.Tensor) -> Any:
         """Get an initial state by delegating to the decoder."""
@@ -332,8 +329,6 @@ class WhisperTimestampDecoder(ScorerInterface, torch.nn.Module):
     def final_score(self, state: Any) -> float:
         """Score the end of sequence by delegating to the decoder."""
         return self.decoder.final_score(state)
-
-    # -- scoring ------------------------------------------------------------
 
     def _constrain(self, logp: torch.Tensor, y: torch.Tensor) -> torch.Tensor:
         """Apply the mask, make the sum one again, then apply the last rule.
@@ -386,12 +381,11 @@ class WhisperTimestampDecoder(ScorerInterface, torch.nn.Module):
 class BatchWhisperTimestampDecoder(WhisperTimestampDecoder, BatchScorerInterface):
     """``WhisperTimestampDecoder`` for a decoder that scores a batch.
 
-    The wrapper must advertise the same interface as the decoder it holds.
+    The wrapper must have the same interface as the decoder that it wraps.
     ``Speech2Text`` chooses between beam search and batch beam search with
-    ``isinstance(scorer, BatchScorerInterface)``, so a wrapper that always
-    claimed the batch interface would send a decoder without ``batch_score``
-    into batch beam search. Build the pair with :func:`wrap_timestamp_decoder`
-    rather than choosing the class by hand.
+    ``isinstance(scorer, BatchScorerInterface)``. A wrapper that always had
+    the batch interface would send a decoder without ``batch_score`` to batch
+    beam search. Use :func:`wrap_timestamp_decoder` to choose the class.
     """
 
     def batch_init_state(self, x: torch.Tensor) -> Any:

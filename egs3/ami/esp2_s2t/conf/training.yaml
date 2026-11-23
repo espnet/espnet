@@ -1,11 +1,11 @@
 ##########################################################
 #                   TRAINING SETTING                     #
 ##########################################################
-# Drives create_dataset, collect_stats and train.
+# Used by the create_dataset, collect_stats and train stages.
 #
-# A partial overlay on egs3/TEMPLATE/esp2_s2t/conf/training.yaml, which supplies
-# the task and the dataloader's iter_factory target and collate_fn. Not valid
-# on its own.
+# This file overrides parts of egs3/TEMPLATE/esp2_s2t/conf/training.yaml, which
+# sets the task and the iter_factory and collate_fn of the dataloader. It
+# cannot be used alone.
 recipe_dir: .
 exp_tag: whisper_sot_train
 exp_dir: ${recipe_dir}/exp/${exp_tag}
@@ -21,15 +21,14 @@ token_list_path: ${oc.env:AMI_SOT_DATA_ROOT,${recipe_dir}}/data/tokens.txt
 #                    DATASET DEFINITION                  #
 ##########################################################
 # data_src is omitted, so ESPnet3 loads ${recipe_dir}/dataset/__init__.py and
-# instantiates the exported DatasetBuilder. All three splits name the same
-# builder, which prepares each one once.
+# creates the DatasetBuilder that it exports. All three splits use the same
+# builder, which prepares each split once.
 #
-# What create_dataset does, per split, is in dataset/builder.py: fetch the
-# Lhotse CutSet manifests, download AMI SDM audio with
-# lhotse.recipes.ami.download_audio, relocate recordings whose stored absolute
-# path is gone, attach each utterance group's serialized text to its cut, and
-# write one CutSet per split. Serialization options live in
-# dataset/config.yaml under builder.sot.
+# dataset/builder.py implements create_dataset. It downloads the Lhotse CutSet
+# manifests and the AMI SDM audio. For each split, it points the recordings to
+# the downloaded audio, adds the serialized text of each utterance group to its
+# cut, and writes one CutSet. The serialization options are under builder.sot
+# in dataset/config.yaml.
 dataset:
   train:
     - name: train
@@ -39,40 +38,43 @@ dataset:
     - name: valid
       data_src_args:
         split: valid
-  # Training reads train and valid only. All three entries share one builder
-  # (create_dataset dedupes them into a single call), and the builder prepares
-  # every split in dataset/config.yaml's split_dirs, test included, which the
-  # inference stage assumes was done.
+  # Training reads only train and valid. All three entries use one builder, and
+  # create_dataset calls it once. The builder prepares every split in
+  # split_dirs of dataset/config.yaml, including test, which the inference
+  # stage reads.
   test:
     - name: test
       data_src_args:
         split: test
-  # See espnet3/systems/esp2_s2t/src/sot/preprocessor.py for why the shared
-  # S2TPreprocessor cannot be used unchanged with a Whisper vocabulary.
-  # DataOrganizer sets `train` itself, so it is not given here.
+  # espnet3/systems/esp2_s2t/src/sot/preprocessor.py explains why
+  # S2TPreprocessor needs changes for a Whisper vocabulary. DataOrganizer sets
+  # `train` itself, so it is not set here.
   preprocessor:
     _target_: espnet3.systems.esp2_s2t.src.sot.preprocessor.SotS2TPreprocessor
     token_type: whisper_multilingual
     bpemodel: whisper_multilingual
-    # The Whisper vocabulary the tokenizer and the id converter are built from.
+    # Whisper vocabulary for the tokenizer and the token id converter.
     whisper_model_type: whisper_multilingual
     token_list: ${token_list_path}
-    # The separator dataset/config.yaml serialized the corpus with; inference
-    # and metrics read the same variable.
+    # The same separator that dataset/config.yaml uses to serialize the
+    # corpus. Inference and metrics read the same variable.
     speaker_change_symbol: ${oc.env:AMI_SOT_SPEAKER_CHANGE_SYMBOL,????}
-    # OWSM's spellings are the defaults and raise KeyError here.
+    # The default symbols are from OWSM. They are not in the Whisper vocabulary
+    # and raise KeyError.
     notime_symbol: "<|notimestamps|>"
     first_time_symbol: "<|0.00|>"
     last_time_symbol: "<|30.00|>"
-    # The default 0.5 strips every timestamp from about half the samples.
+    # With the default 0.5, about half of the samples lose all their
+    # timestamps.
     time_apply_prob: 1.0
-    # The default "<na>" is not a Whisper token: it BPE-splits, so the model's
-    # `if self.na in y_prev` test misses and the decoder is conditioned on the
-    # literal characters.
+    # The default "<na>" is not a Whisper token. BPE splits it into several
+    # tokens, so the check `if self.na in y_prev` in the model fails, and the
+    # decoder is conditioned on those characters.
     na_symbol: "<|nospeech|>"
-    # The preprocessor substitutes na_symbol when uniform() > this, so 0.0
-    # means ALWAYS substitute. That is what we want: text_prev is NA on every
-    # sample anyway, and randomising it would only add a code path nothing tests.
+    # The preprocessor replaces text_prev with na_symbol when uniform() is
+    # larger than this value, so 0.0 always replaces it. The dataset already
+    # sets text_prev to na_symbol for every sample, so the result is the same
+    # either way, and no random choice is made.
     text_prev_apply_prob: 0.0
     speech_length: 30
     speech_resolution: 0.02
@@ -84,12 +86,11 @@ dataset:
 model:
   token_list: ${token_list_path}
 
-  # Not part of the model definition: S2TTask.build_model ignores it, and
-  # training preprocesses with the dataset.preprocessor block above. It is
-  # here only so that it reaches exp/<tag>/config.yaml, which is what the
-  # inference stage rebuilds Speech2Text's preprocessor from. Interpolated
-  # from that same block, so the trained and the decoded preprocessor cannot
-  # drift apart.
+  # S2TTask.build_model ignores this block, and training uses the
+  # dataset.preprocessor block above. The block is here so that it is saved in
+  # exp/<tag>/config.yaml, from which the inference stage builds the
+  # preprocessor of Speech2Text. It is interpolated from dataset.preprocessor,
+  # so training and decoding use the same preprocessor settings.
   preprocessor_conf:
     notime_symbol: ${dataset.preprocessor.notime_symbol}
     first_time_symbol: ${dataset.preprocessor.first_time_symbol}
@@ -114,18 +115,19 @@ model:
   decoder: whisper
   decoder_conf:
     whisper_model: small
-    # Required when the token list is longer than Whisper's own, which it is
-    # whenever builder.separator is a symbol the vocabulary lacks: it keeps the
-    # pretrained embedding rows instead of reinitialising all of them. It also
-    # changes the state_dict keys, so any config that later loads this
-    # checkpoint must set it the same way.
+    # This is needed when the token list is longer than the Whisper vocabulary,
+    # which happens when builder.separator is not in the vocabulary. It keeps
+    # the pretrained embedding rows, which would otherwise all be initialized
+    # again. It also changes the state_dict keys, so every config that loads
+    # this checkpoint later must use the same value.
     load_origin_token_embedding: true
 
   model_conf:
     ctc_weight: 0.0
-    # ESPnetS2TModel resolves all five by token_list.index, and a Whisper
-    # vocabulary has none of the usual spellings. <|translate|> stands in for
-    # the blank, which is unused at ctc_weight 0.0.
+    # ESPnetS2TModel looks up these five symbols with token_list.index, and the
+    # Whisper vocabulary does not contain the default symbols. <|translate|>
+    # takes the place of the CTC blank, which is never used with ctc_weight
+    # 0.0.
     sym_blank: "<|translate|>"
     sym_sos: "<|startoftranscript|>"
     sym_eos: "<|endoftext|>"
@@ -141,12 +143,13 @@ optimizer:
   betas: [0.9, 0.999]
   eps: 1.0e-8
   weight_decay: 0.01
-  # Not fused: a fused optimizer unscales gradients inside its own step, so
-  # Lightning's precision plugin refuses trainer.gradient_clip_val alongside
-  # it, and the clipping is the part that shapes training.
+  # fused is false because a fused optimizer unscales the gradients inside its
+  # own step. Lightning's precision plugin then refuses
+  # trainer.gradient_clip_val, and this recipe uses gradient clipping.
 
-# Linear warmup then a single cosine decay: first_cycle_steps equals
-# trainer.max_steps, so the cycle never restarts. warmup_steps is 4 % of it.
+# Linear warmup followed by one cosine decay. first_cycle_steps equals
+# trainer.max_steps, so the cycle does not restart. warmup_steps is 4% of
+# max_steps.
 scheduler:
   _target_: espnet2.schedulers.cosine_anneal_warmup_restart.CosineAnnealingWarmupRestarts
   first_cycle_steps: 50000
@@ -162,14 +165,15 @@ best_model_criterion:
     - 1
     - min
 
-# Batches are unsorted because there is nothing to sort on: the preprocessor
-# pads every utterance to speech_length * fs, so feats_shape serves only as the
-# key list. shape_files come from collect_stats, which must run first.
+# The batches are not sorted, because the preprocessor pads every utterance to
+# speech_length * fs, so all inputs have the same length. feats_shape is used
+# only as the list of keys. shape_files come from collect_stats, which must run
+# first.
 #
-# batch_size 16 with accumulate_grad_batches 2 gives an effective batch of 32.
-# Per-device 32 does not fit: the decoder target drives peak memory and its
-# length is heavily skewed, so an unsorted batch of long targets overflows a
-# 95 GiB device inside the label-smoothing loss.
+# batch_size 16 with accumulate_grad_batches 2 gives an effective batch size of
+# 32. A batch size of 32 per device does not fit in memory. Peak memory depends
+# on the length of the decoder target, which varies a lot, so a batch of long
+# targets runs out of the 95 GiB of GPU memory in the label-smoothing loss.
 dataloader:
   train:
     iter_factory:
