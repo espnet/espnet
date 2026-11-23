@@ -81,20 +81,29 @@ class HuggingFaceLLM(AbsLLM):
         self.forward(dummy_chat)
 
     def _encode(self, chat_messages: List[dict]) -> Dict[str, Any]:
-        """Render the chat with the model's chat template and tokenize it."""
-        prompt = self.tokenizer.apply_chat_template(
+        """Render the chat with the model's chat template and tokenize it.
+
+        apply_chat_template tokenizes the rendered text itself. Tokenizing that
+        text with the tokenizer instead would add the BOS token a second time on
+        a model whose template already writes it, such as Llama 3.
+        """
+        return self.tokenizer.apply_chat_template(
             chat_messages,
-            tokenize=False,
+            tokenize=True,
             add_generation_prompt=True,
+            return_dict=True,
+            return_tensors="pt",
             **self.chat_template_kwargs,
-        )
-        return self.tokenizer(prompt, return_tensors="pt").to(self.device)
+        ).to(self.device)
 
     def stream(self, chat_messages: List[dict]) -> Iterator[str]:
         """Yield the reply piece by piece while the model generates it.
 
         A caller that times the first non-empty piece gets the time to the
-        first token, which forward() cannot report.
+        first text of the reply, which forward() cannot report. A piece is
+        decoded text, not one token: TextIteratorStreamer holds the text back
+        until it ends a word, so the first piece can come a few tokens after
+        the first token.
 
         Args:
             chat_messages (List[dict]):
