@@ -295,3 +295,23 @@ def test_TransformerDecoder_partially_AR(decoder_class):
             tgt_lengths,
             enc,
         )
+
+
+def test_TransformerDecoder_use_sdpa_covers_source_attention():
+    torch.manual_seed(0)
+    kwargs = dict(attention_heads=4, linear_units=64, num_blocks=2)
+    matmul = TransformerDecoder(50, 32, use_sdpa=False, **kwargs).eval()
+    sdpa = TransformerDecoder(50, 32, use_sdpa=True, **kwargs).eval()
+    sdpa.load_state_dict(matmul.state_dict())
+    assert all(layer.self_attn.use_sdpa for layer in sdpa.decoders)
+    assert all(layer.src_attn.use_sdpa for layer in sdpa.decoders)
+
+    hs = torch.randn(3, 40, 32)
+    hlens = torch.tensor([40, 31, 7])
+    ys = torch.randint(0, 50, (3, 9))
+    ylens = torch.tensor([9, 5, 2])
+    with torch.no_grad():
+        expected, _ = matmul(hs, hlens, ys, ylens)
+        actual, _ = sdpa(hs, hlens, ys, ylens)
+    for i, length in enumerate(ylens):
+        torch.testing.assert_close(actual[i, :length], expected[i, :length])
