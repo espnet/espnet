@@ -28,29 +28,37 @@ from espnet2.text.cleaner import TextCleaner
 from espnet3.components.metrics.base_metric import BaseMetric
 from espnet3.contract import Field
 
-# The speaker-change symbol belongs to the checkpoint, so it is a constructor
-# argument rather than a constant: a metric cannot know which symbol a model
-# was trained with. Text written with a different spelling has to be converted
-# before it is scored here.
-_SEP = "▁SPKCHANGE▁"  # internal marker unlikely to occur in text
 _SPECIAL_RE = re.compile(r"<\|[^|]*\|>")  # Whisper special tokens, e.g. <|1.20|>
 
 
-def strip_special_tokens(text: str) -> str:
+def _strip_special_tokens(text: str) -> str:
     """Remove Whisper special tokens (timestamps, <|endoftext|>, ...)."""
     return re.sub(r"\s+", " ", _SPECIAL_RE.sub(" ", text)).strip()
 
 
 def split_speakers(text: str, cleaner, speaker_change_symbol: str) -> List[str]:
-    """Split SOT text into per-speaker word lists.
+    """Split SOT text into per-speaker text blocks.
 
-    The text is split on ``speaker_change_symbol``, Whisper special tokens
-    are stripped, the normalizer is applied, and empty blocks are dropped.
+    The text is split on ``speaker_change_symbol``, the symbol the checkpoint
+    was trained with. Whisper special tokens are stripped, the cleaner is
+    applied, and empty blocks are dropped.
+
+    Args:
+        text: Serialized SOT text, with or without timestamps.
+        cleaner: A ``TextCleaner`` (or any ``str -> str`` callable), or None.
+        speaker_change_symbol: The separator between speaker blocks.
+
+    Returns:
+        One text block per speaker, in serialized order.
+
+    Examples:
+        >>> text = "<|0.00|> hi<|0.40|> ???? <|0.20|> yes<|0.60|>"
+        >>> split_speakers(text, None, "????")
+        ['hi', 'yes']
     """
-    text = text.replace(speaker_change_symbol, _SEP)
     blocks = []
-    for chunk in text.split(_SEP):
-        chunk = strip_special_tokens(chunk)
+    for chunk in text.split(speaker_change_symbol):
+        chunk = _strip_special_tokens(chunk)
         if cleaner is not None:
             chunk = cleaner(chunk).strip()
         if chunk:
@@ -58,7 +66,7 @@ def split_speakers(text: str, cleaner, speaker_change_symbol: str) -> List[str]:
     return blocks
 
 
-def count_group_errors(ref_blocks: List[str], hyp_blocks: List[str]) -> Dict[str, int]:
+def _count_group_errors(ref_blocks: List[str], hyp_blocks: List[str]) -> Dict[str, int]:
     """Return optimal-permutation error counts for a single utterance group.
 
     meeteval finds the assignment of hypothesis speaker blocks to reference
@@ -104,21 +112,21 @@ def count_group_errors(ref_blocks: List[str], hyp_blocks: List[str]) -> Dict[str
     }
 
 
-def get_percentage(numerator: float, denominator: float) -> float:
+def _get_percentage(numerator: float, denominator: float) -> float:
     """Return a percentage, or 0.0 when there is nothing to divide by."""
     return 100.0 * numerator / denominator if denominator else 0.0
 
 
-def get_utt_cpwer(errors: int, ref_len: int):
+def _get_utt_cpwer(errors: int, ref_len: int):
     """Per-utterance cpWER, or ``None`` when the reference is empty.
 
-    ``get_percentage`` returns 0.0 for a zero denominator, which would report
+    ``_get_percentage`` returns 0.0 for a zero denominator, which would report
     a group whose reference is empty and whose hypothesis is not as a perfect
     score.
     Those insertions are still counted in the aggregate; only this
     per-utterance figure is undefined, so it is reported as ``null``.
     """
-    return get_percentage(errors, ref_len) if ref_len else None
+    return _get_percentage(errors, ref_len) if ref_len else None
 
 
 # The order of a per-group row in the report state.
@@ -204,7 +212,7 @@ class UtteranceGroupCpWER(BaseMetric):
             hyp_blocks = split_speakers(
                 hypothesis, self.cleaner, self.speaker_change_symbol
             )
-            counts = count_group_errors(ref_blocks, hyp_blocks)
+            counts = _count_group_errors(ref_blocks, hyp_blocks)
             self.errors += counts["sub"] + counts["del"] + counts["ins"]
             self.ref_len += counts["ref_len"]
             if self.collect_artifacts:
@@ -226,7 +234,7 @@ class UtteranceGroupCpWER(BaseMetric):
                 "ref_len is 0). Check that the ref input is bound to the "
                 "reference text, for example dataset:text."
             )
-        return {"ug_cpWER": round(get_percentage(self.errors, self.ref_len), 2)}
+        return {"ug_cpWER": round(_get_percentage(self.errors, self.ref_len), 2)}
 
     def write_artifacts(self, test_dir: Path) -> None:
         """Write the per-group and by-speaker-count reports.
@@ -247,7 +255,7 @@ class UtteranceGroupCpWER(BaseMetric):
             group = dict(zip(_ROW, row))
             errors = group["sub"] + group["del"] + group["ins"]
             per_utt[utt_id] = {
-                "cpwer": get_utt_cpwer(errors, group["ref_len"]),
+                "cpwer": _get_utt_cpwer(errors, group["ref_len"]),
                 "errors": errors,
                 "ref_len": group["ref_len"],
                 "num_ref_speakers": group["num_ref_speakers"],
@@ -263,7 +271,7 @@ class UtteranceGroupCpWER(BaseMetric):
                 {
                     str(n): {
                         **counts,
-                        "cpwer": get_utt_cpwer(
+                        "cpwer": _get_utt_cpwer(
                             counts["sub"] + counts["del"] + counts["ins"],
                             counts["ref_len"],
                         ),

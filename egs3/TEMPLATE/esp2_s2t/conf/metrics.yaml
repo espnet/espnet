@@ -49,3 +49,17 @@ metrics:
     inputs:
       ref: dataset:text   # DER reads the timestamps both keep
       hyp: hyp
+
+  - metric:
+      _target_: espnet3.systems.esp2_s2t.metrics.speaker_count.UtteranceGroupSpeakerCountAccuracy
+      clean_types:
+    inputs:
+      ref: dataset:text   # blocks are counted after cleaning
+      hyp: hyp
+
+  - metric:
+      _target_: espnet3.systems.esp2_s2t.metrics.wer.UtteranceGroupWER
+      clean_types:
+    inputs:
+      ref: dataset:text   # blocks put in FIFO order by their first timestamp
+      hyp: hyp            # blocks kept in the order the model emitted them

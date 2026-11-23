@@ -18,6 +18,10 @@ tokenizer is told to keep it whole.
 The base class pads speech to ``(samples, 1)``. A full-Whisper encoder has no
 frontend, so that tensor reaches ``torch.stft``, which rejects the trailing
 axis.
+
+``CommonPreprocessor_multi`` is no alternative: its Whisper converter puts
+``<|notimestamps|>`` in every prompt, so a timestamped target would start with
+``<|en|><|transcribe|><|notimestamps|><|0.00|>``.
 """
 
 from __future__ import annotations
@@ -26,10 +30,10 @@ from pathlib import Path
 from typing import Any, Dict
 
 from espnet2.train.preprocessor import S2TPreprocessor
-from espnet3.systems.esp2_s2t.src.whisper_token_id_converter import (
+from espnet3.systems.esp2_s2t.src.sot.whisper_token_id_converter import (
     OpenAIWhisperTokenIDConverter,
 )
-from espnet3.systems.esp2_s2t.src.whisper_tokenizer import OpenAIWhisperTokenizer
+from espnet3.systems.esp2_s2t.src.sot.whisper_tokenizer import OpenAIWhisperTokenizer
 
 
 def build_tokens2ids(convert, placeholder: int):

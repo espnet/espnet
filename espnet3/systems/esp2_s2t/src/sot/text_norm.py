@@ -12,10 +12,9 @@ from __future__ import annotations
 
 from typing import Callable, Optional
 
-# An installer rather than a pip line: chime-utils is not on PyPI, and pip
-# rejects a URL dependency in a published package's metadata, so it cannot be
-# an espnet extra.
-_INSTALL_HINT = "cd tools && make chime_utils.done"
+# chime-utils is not on PyPI, and pip rejects a URL dependency in a published
+# package's metadata, so it cannot be an espnet extra.
+_INSTALL_HINT = "pip install git+https://github.com/chimechallenge/chime-utils"
 
 # Name -> one-line description, for the error message and the readme.
 NORMALIZERS = {

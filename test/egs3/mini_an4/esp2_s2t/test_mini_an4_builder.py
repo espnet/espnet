@@ -85,3 +85,30 @@ def test_the_token_list_holds_the_separator_it_serialized_with(tmp_path, monkeyp
     separator = bl._CONFIG["separator"]
     assert tokens.count(separator) == 1
     assert tokens.index(separator) == 25629
+
+
+def test_one_variable_sets_the_separator_everywhere(monkeypatch):
+    """The corpus, training, inference and metrics must agree on one symbol."""
+    from espnet3.utils.config_utils import (
+        load_and_merge_config,
+        load_config_with_defaults,
+    )
+
+    monkeypatch.setenv("MINI_AN4_SOT_SPEAKER_CHANGE_SYMBOL", "<sc>")
+
+    def load(name):
+        return load_and_merge_config(
+            _RECIPE / "conf" / name,
+            config_name=name,
+            default_package="egs3.TEMPLATE.esp2_s2t",
+            resolve=True,
+        )
+
+    dataset = load_config_with_defaults(str(_RECIPE / "dataset" / "config.yaml"))
+    found = [
+        dataset["builder"]["separator"],
+        load("training.yaml").dataset.preprocessor.speaker_change_symbol,
+        load("inference.yaml").model.speaker_change_symbol,
+        *[entry.metric.speaker_change_symbol for entry in load("metrics.yaml").metrics],
+    ]
+    assert found == ["<sc>"] * len(found)

@@ -20,19 +20,19 @@ def test_count_group_errors_finds_the_best_speaker_permutation():
     """Speaker blocks arrive in an arbitrary order, so the match is optimal."""
     ref = ["the cat sat", "a dog barked"]
     swapped = ["a dog barked", "the cat sat"]
-    acc = cp.count_group_errors(ref, swapped)
+    acc = cp._count_group_errors(ref, swapped)
     assert acc["sub"] == 0 and acc["del"] == 0 and acc["ins"] == 0
     assert acc["ref_len"] == 6
 
 
 def test_count_group_errors_pads_a_missing_hypothesis_speaker_as_deletions():
-    acc = cp.count_group_errors(["the cat sat", "a dog barked"], ["the cat sat"])
+    acc = cp._count_group_errors(["the cat sat", "a dog barked"], ["the cat sat"])
     assert acc["del"] == 3
     assert acc["ref_len"] == 6
 
 
 def test_count_group_errors_counts_an_empty_reference_as_insertions():
-    acc = cp.count_group_errors([], ["x y"])
+    acc = cp._count_group_errors([], ["x y"])
     assert acc["ins"] == 2
     assert acc["ref_len"] == 0
 

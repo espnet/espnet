@@ -35,13 +35,13 @@ dataset:
       data_src_args:
         split: test
   preprocessor:
-    _target_: espnet3.systems.esp2_s2t.src.preprocessor.SotS2TPreprocessor
+    _target_: espnet3.systems.esp2_s2t.src.sot.preprocessor.SotS2TPreprocessor
     token_type: whisper_multilingual
     bpemodel: whisper_multilingual
     whisper_model_type: whisper_multilingual
     token_list: ${token_list_path}
     # Required: the symbol belongs to the checkpoint, so there is no default.
-    speaker_change_symbol: "????"
+    speaker_change_symbol: ${oc.env:MINI_AN4_SOT_SPEAKER_CHANGE_SYMBOL,????}
     # OWSM's spellings are the defaults and raise KeyError here.
     notime_symbol: "<|notimestamps|>"
     first_time_symbol: "<|0.00|>"

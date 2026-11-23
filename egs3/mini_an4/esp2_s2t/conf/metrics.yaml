@@ -6,22 +6,34 @@
 recipe_dir: .
 exp_tag:
 
-# Both metrics read the test set's SOT reference and the decoded hyp. cpWER
-# strips the timestamps before comparing words; DER reads speaker activity
-# from them.
+# Every metric reads the test set's SOT reference and the decoded hyp. cpWER,
+# speaker counting and WER strip the timestamps before comparing words; DER
+# reads speaker activity from them.
 #
-# Both are utterance-group metrics: every group is scored on its own, so the
-# reported ug_cpWER and ug_DER are not comparable with session-level numbers.
+# All are utterance-group metrics: every group is scored on its own, so the
+# reported numbers are not comparable with session-level ones.
 metrics:
   - metric:
       _target_: espnet3.systems.esp2_s2t.metrics.cpwer.UtteranceGroupCpWER
-      speaker_change_symbol: "????"
+      speaker_change_symbol: ${oc.env:MINI_AN4_SOT_SPEAKER_CHANGE_SYMBOL,????}
     inputs:
       ref: dataset:text
       hyp: hyp
   - metric:
       _target_: espnet3.systems.esp2_s2t.metrics.der.UtteranceGroupDER
-      speaker_change_symbol: "????"
+      speaker_change_symbol: ${oc.env:MINI_AN4_SOT_SPEAKER_CHANGE_SYMBOL,????}
+    inputs:
+      ref: dataset:text
+      hyp: hyp
+  - metric:
+      _target_: espnet3.systems.esp2_s2t.metrics.speaker_count.UtteranceGroupSpeakerCountAccuracy
+      speaker_change_symbol: ${oc.env:MINI_AN4_SOT_SPEAKER_CHANGE_SYMBOL,????}
+    inputs:
+      ref: dataset:text
+      hyp: hyp
+  - metric:
+      _target_: espnet3.systems.esp2_s2t.metrics.wer.UtteranceGroupWER
+      speaker_change_symbol: ${oc.env:MINI_AN4_SOT_SPEAKER_CHANGE_SYMBOL,????}
     inputs:
       ref: dataset:text
       hyp: hyp

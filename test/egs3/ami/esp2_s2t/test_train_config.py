@@ -200,3 +200,36 @@ def test_the_recipe_carries_no_second_source_for_those_symbols():
     body = text.split("preprocessor_conf:", 1)[1].split("\n\n", 1)[0]
     for key in _READ_BY_INFERENCE:
         assert f"{key}: ${{dataset.preprocessor.{key}}}" in body, key
+
+
+def test_one_variable_sets_the_separator_everywhere(monkeypatch):
+    """The corpus, training, inference and metrics must agree on one symbol.
+
+    Setting AMI_SOT_SPEAKER_CHANGE_SYMBOL alone has to move all of them, or the
+    serialized data, the token list and the decoder disagree without an error.
+    """
+    from espnet3.utils.config_utils import (
+        load_and_merge_config,
+        load_config_with_defaults,
+    )
+
+    monkeypatch.setenv("AMI_SOT_SPEAKER_CHANGE_SYMBOL", "<sc>")
+
+    def load(name):
+        return load_and_merge_config(
+            ami_sot_paths.RECIPE / "conf" / name,
+            config_name=name,
+            default_package=ami_sot_paths.TEMPLATE_PACKAGE,
+            resolve=True,
+        )
+
+    dataset = load_config_with_defaults(
+        str(ami_sot_paths.RECIPE / "dataset" / "config.yaml")
+    )
+    found = [
+        dataset["builder"]["separator"],
+        load("training.yaml").dataset.preprocessor.speaker_change_symbol,
+        load("inference.yaml").model.speaker_change_symbol,
+        *[entry.metric.speaker_change_symbol for entry in load("metrics.yaml").metrics],
+    ]
+    assert found == ["<sc>"] * len(found)

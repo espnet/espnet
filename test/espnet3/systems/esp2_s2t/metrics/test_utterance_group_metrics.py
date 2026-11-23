@@ -18,7 +18,7 @@ from espnet3.systems.esp2_s2t.metrics.cpwer import (  # noqa: E402
 )
 from espnet3.systems.esp2_s2t.metrics.der import (  # noqa: E402
     UtteranceGroupDER,
-    parse_sot_segments,
+    _parse_sot_segments,
 )
 
 
@@ -39,7 +39,7 @@ def test_split_speakers_does_not_split_on_a_symbol_it_was_not_given():
 @pytest.mark.parametrize("symbol", ["????", "<sc>", "@@"])
 def test_segments_from_sot_uses_the_symbol_it_is_given(symbol):
     text = f"<|0.00|> a<|1.20|> {symbol} <|2.00|> b<|3.50|>"
-    assert parse_sot_segments(text, symbol) == [(0, 0.0, 1.2), (1, 2.0, 3.5)]
+    assert _parse_sot_segments(text, symbol) == [(0, 0.0, 1.2), (1, 2.0, 3.5)]
 
 
 def test_cpwer_reports_the_utterance_group_key(tmp_path):
@@ -145,13 +145,22 @@ _GROUPS = [
 ]
 
 
-@pytest.mark.parametrize(
-    "make",
-    [
+def _all_metrics():
+    from espnet3.systems.esp2_s2t.metrics.speaker_count import (
+        UtteranceGroupSpeakerCountAccuracy,
+    )
+    from espnet3.systems.esp2_s2t.metrics.wer import UtteranceGroupWER
+
+    return [
         lambda: UtteranceGroupCpWER("????"),
         lambda: UtteranceGroupDER("????", collar=0.0),
-    ],
-    ids=["cpWER", "DER"],
+        lambda: UtteranceGroupSpeakerCountAccuracy("????"),
+        lambda: UtteranceGroupWER("????"),
+    ]
+
+
+@pytest.mark.parametrize(
+    "make", _all_metrics(), ids=["cpWER", "DER", "speaker_count", "WER"]
 )
 def test_one_batch_chunks_and_merged_ranks_agree(make):
     """The score sums counts, so how the groups are split cannot change it.
@@ -193,3 +202,37 @@ def test_the_cpwer_report_is_keyed_by_utterance_id(tmp_path):
     per_utt = json.loads((tmp_path / "test" / "cpwer_per_utt.json").read_text())
     assert list(per_utt) == ["g0", "g1", "g2"]
     assert per_utt["g2"]["errors"] == 3
+
+
+def test_speaker_counting_counts_cleaned_blocks():
+    """A block that cleans to nothing is not a speaker, as in ESPnet2."""
+    from espnet3.systems.esp2_s2t.metrics.speaker_count import (
+        UtteranceGroupSpeakerCountAccuracy,
+    )
+
+    metric = UtteranceGroupSpeakerCountAccuracy("????")
+    metric.update(
+        ref=["<|0.00|> a<|1.00|> ???? <|1.00|> b<|2.00|>", "<|0.00|> c<|1.00|>"],
+        hyp=["<|0.00|> a b<|2.00|>", "<|0.00|> c<|1.00|> ???? <|1.00|><|2.00|>"],
+    )
+    assert metric.compute() == {"ug_spk_count_acc": 50.0}
+
+
+def test_wer_puts_the_reference_in_fifo_order_and_keeps_the_hypothesis_order():
+    """The reference is reordered by start time; the hypothesis is not.
+
+    A test reference serialized longest-first must not count as an order
+    error, but a hypothesis that emits speakers out of order must.
+    """
+    from espnet3.systems.esp2_s2t.metrics.wer import UtteranceGroupWER
+
+    longest_first = "<|1.00|> b c d<|2.00|> ???? <|0.00|> a<|1.00|>"
+    in_order = "<|0.00|> a<|1.00|> ???? <|1.00|> b c d<|2.00|>"
+    swapped = longest_first
+
+    metric = UtteranceGroupWER("????")
+    metric.update(ref=[longest_first], hyp=[in_order])
+    assert metric.compute() == {"ug_WER": 0.0}
+    metric.reset()
+    metric.update(ref=[longest_first], hyp=[swapped])
+    assert metric.compute()["ug_WER"] > 0

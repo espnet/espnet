@@ -82,13 +82,16 @@ def test_the_training_default_carries_the_dataloader_plumbing():
     assert cfg.dataloader.train.total_shards == 1
 
 
-def test_the_metric_defaults_are_the_utterance_group_pair():
+def test_the_metric_defaults_are_the_utterance_group_metrics():
     """The system's own metrics, and no symbol to score the wrong model with."""
     cfg = load_default_config("metrics.yaml", PACKAGE)
     targets = [entry.metric._target_ for entry in cfg.metrics]
     assert targets == [
         "espnet3.systems.esp2_s2t.metrics.cpwer.UtteranceGroupCpWER",
         "espnet3.systems.esp2_s2t.metrics.der.UtteranceGroupDER",
+        "espnet3.systems.esp2_s2t.metrics.speaker_count."
+        "UtteranceGroupSpeakerCountAccuracy",
+        "espnet3.systems.esp2_s2t.metrics.wer.UtteranceGroupWER",
     ]
     for entry in cfg.metrics:
         assert "speaker_change_symbol" not in entry.metric
@@ -99,7 +102,7 @@ def test_the_inference_default_is_the_sot_runner_and_contract():
     """Both recipes inherit these, so they are stated once here."""
     cfg = load_default_config("inference.yaml", PACKAGE)
     assert cfg.model._target_ == (
-        "espnet3.systems.esp2_s2t.src.s2t_inference.Speech2Text"
+        "espnet3.systems.esp2_s2t.src.sot.s2t_inference.Speech2Text"
     )
     assert cfg.runner._target_ == (
         "espnet3.systems.esp2_s2t.src.inference_runner.ESP2S2TInferenceRunner"

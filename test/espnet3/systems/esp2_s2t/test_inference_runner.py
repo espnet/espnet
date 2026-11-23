@@ -6,7 +6,6 @@ import pytest
 from espnet3.contract.inference import load_inference_contract
 from espnet3.contract.kinds.audio import Audio
 from espnet3.systems.esp2_s2t.src.inference_runner import ESP2S2TInferenceRunner
-from espnet3.systems.esp2_s2t.src.sot_output import render_sot
 
 PROMPT = ["<|en|>", "<|transcribe|>"]
 # The contract of egs3/TEMPLATE/esp2_s2t/conf/inference.yaml.
@@ -40,7 +39,7 @@ def test_a_hypothesis_rendered_without_special_tokens_is_refused():
     """
     text_only = [(" hi yes", [" hi", " yes"], [1, 2], " hi yes", None)]
     with pytest.raises(ValueError, match="prompt"):
-        render_sot(text_only)
+        ESP2S2TInferenceRunner.format_output(text_only, batched=False)
 
 
 def test_no_hypothesis_is_an_empty_hyp():

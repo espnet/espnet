@@ -17,7 +17,7 @@ dataset:
 #                    MODEL AND OUTPUT                    #
 ##########################################################
 # speaker_change_symbol and adaptive_timestamp select the SOT timestamp
-# constraints in espnet3/systems/esp2_s2t/src/whisper_timestamp_scorer.py, which is
+# constraints in espnet3/systems/esp2_s2t/src/sot/whisper_timestamp_scorer.py, which is
 # the part of the system this arm exists to exercise.
 model:
   s2t_train_config: ${exp_dir}/config.yaml
@@ -29,7 +29,7 @@ model:
   lang_sym: "<|en|>"
   task_sym: "<|transcribe|>"
   predict_time: true
-  speaker_change_symbol: "????"
+  speaker_change_symbol: ${oc.env:MINI_AN4_SOT_SPEAKER_CHANGE_SYMBOL,????}
   adaptive_timestamp: true
 
 # input_key, batch_size, the contract and the runner come from

@@ -1,4 +1,4 @@
-"""Tests for the SOT preprocessor in espnet3/systems/esp2_s2t/src/preprocessor.py."""
+"""Tests for the SOT preprocessor in espnet3/systems/esp2_s2t/src/sot/."""
 
 import argparse
 
@@ -7,7 +7,7 @@ import pytest
 
 pytest.importorskip("whisper")
 
-from espnet3.systems.esp2_s2t.src import preprocessor as pp  # noqa: E402
+from espnet3.systems.esp2_s2t.src.sot import preprocessor as pp  # noqa: E402
 
 _TOKENS = None
 

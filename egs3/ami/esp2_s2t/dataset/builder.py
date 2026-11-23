@@ -23,8 +23,8 @@ from pathlib import Path
 
 from egs3.ami.esp2_s2t.dataset.dataset import _CONFIG, _split_dir
 from espnet3.components.data.dataset_builder import DatasetBuilder
-from espnet3.systems.esp2_s2t.src import sot_text
-from espnet3.systems.esp2_s2t.src.text_norm import get_text_norm
+from espnet3.systems.esp2_s2t.src.sot import sot_text
+from espnet3.systems.esp2_s2t.src.sot.text_norm import get_text_norm
 
 logger = logging.getLogger(__name__)
 
@@ -184,27 +184,22 @@ class AmiSotBuilder(DatasetBuilder):
             self.prepare_source()
         for split in _CONFIG["split_dirs"]:
             self._build_split(split)
-        self._write_token_list()
+        self.write_token_list()
 
     def write_token_list(self, **kwargs) -> None:
-        """Export the vocabulary into an existing corpus root.
-
-        Separate from ``build`` and unguarded, because it only ever adds a
-        file and skips when one is present. It is what an already-prepared
-        corpus needs in order to satisfy the training config, which reads the
-        token list ``is_built`` deliberately does not require.
-        """
-        self._write_token_list()
-
-    def _write_token_list(self) -> None:
         """Export the Whisper vocabulary this corpus is serialized against.
+
+        ``build`` calls this last. It is also public and unguarded, because it
+        only ever adds a file: an already-prepared corpus needs it to satisfy
+        the training config, which reads the token list ``is_built``
+        deliberately does not require.
 
         The separator is appended only when the vocabulary lacks it, which the
         exporter decides, so one call serves a symbol that is already a Whisper
         token and one that is not. Skipped when the file is already there: a
         full export takes seconds and every builder test calls ``build``.
         """
-        from espnet3.systems.esp2_s2t.src.whisper_export_vocabulary import (
+        from espnet3.systems.esp2_s2t.src.sot.whisper_export_vocabulary import (
             export_vocabulary,
         )
 

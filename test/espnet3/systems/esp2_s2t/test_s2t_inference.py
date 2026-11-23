@@ -1,4 +1,4 @@
-"""Tests for espnet3/systems/esp2_s2t/src/s2t_inference.py.
+"""Tests for espnet3/systems/esp2_s2t/src/sot/s2t_inference.py.
 
 The module subclasses espnet2's S2T inference; these cover what the subclass
 adds: a speaker-change symbol the beam search is told about, and the Whisper
@@ -14,7 +14,7 @@ import pytest
 from espnet2.bin.s2t_inference import ScoreFilter
 from espnet2.legacy.nets.beam_search import Hypothesis
 from espnet2.tasks.s2t import S2TTask
-from espnet3.systems.esp2_s2t.src.s2t_inference import Speech2Text
+from espnet3.systems.esp2_s2t.src.sot.s2t_inference import Speech2Text
 
 pytest.importorskip("whisper")
 
@@ -208,7 +208,7 @@ def test_Speech2Text_speaker_change_symbol_installs_filter(s2t_config_file_sot):
 def test_Speech2Text_adaptive_timestamp_installs_the_decoder_wrapper(
     s2t_config_file_sot,
 ):
-    from espnet3.systems.esp2_s2t.src.whisper_timestamp_scorer import (
+    from espnet3.systems.esp2_s2t.src.sot.whisper_timestamp_scorer import (
         WhisperTimestampDecoder,
     )
 

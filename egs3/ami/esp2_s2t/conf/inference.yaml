@@ -28,7 +28,7 @@ dataset:
 #                    MODEL AND OUTPUT                    #
 ##########################################################
 # speaker_change_symbol and adaptive_timestamp select the SOT timestamp
-# constraints in espnet3/systems/esp2_s2t/src/whisper_timestamp_scorer.py.
+# constraints in espnet3/systems/esp2_s2t/src/sot/whisper_timestamp_scorer.py.
 model:
   # The checkpoint the train stage wrote, which pack_model also bundles. To
   # decode another one, such as the released checkpoint, point

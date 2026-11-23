@@ -227,10 +227,10 @@ def test_rebuilding_a_split_produces_the_same_cuts(tmp_path, monkeypatch):
 # --------------------------------------------------------------------------
 # Regression guards for the serialization options.
 #
-# These values were recovered by reproducing egs2/ami/sot_asr1/data/*/text
-# from the cutsets: train 52972/52972, dev 3746/3746, test 6127/6127, byte
-# for byte. Editing one silently changes every reference the recipe scores
-# against, so the committed values are asserted directly.
+# These values reproduce previously prepared serialized text from the
+# cutsets byte for byte: train 52972/52972, dev 3746/3746, test 6127/6127.
+# Editing one silently changes every reference the recipe scores against, so
+# the committed values are asserted directly.
 # --------------------------------------------------------------------------
 
 _VERIFIED_OPTIONS = {

@@ -40,7 +40,9 @@ builder:
   # under Whisper tokenization; one the vocabulary lacks is appended to
   # tokens.txt, which then runs one row longer than Whisper's own and needs
   # decoder_conf.load_origin_token_embedding true in the training config.
-  separator: "????"
+  # Training, inference and metrics read the same variable, so the corpus,
+  # the token list and the decoder always use one symbol.
+  separator: ${oc.env:AMI_SOT_SPEAKER_CHANGE_SYMBOL,????}
 
   # Prepended to every line. The S2T data format is
   # <language><task><starttime> utt<endtime>...; <sos> and <eos> are added
@@ -54,9 +56,10 @@ builder:
 
   # Per-split serialization; see dataset/sot_text.py for what each option does.
   #
-  # text_norm names a normalizer from dataset/text_norm.py, applied to each
-  # segment before the timestamps wrap it. "chime8_keep_fillers" needs
-  # chime-utils; "none" builds without it.
+  # text_norm names a normalizer from
+  # espnet3/systems/esp2_s2t/src/sot/text_norm.py, applied to each segment
+  # before the timestamps wrap it. "chime8_keep_fillers" needs chime-utils;
+  # "none" builds without it.
   sot:
     train:
       cutset: ami-sdm_cutset_train_utt_group_max_30s.jsonl.gz

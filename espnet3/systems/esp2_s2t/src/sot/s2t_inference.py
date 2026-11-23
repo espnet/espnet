@@ -12,27 +12,23 @@ keeps its timestamps and separator, which is what it is scored on.
 from __future__ import annotations
 
 import functools
-import inspect
 from typing import Optional
 
 import torch
 
 from espnet2.bin.s2t_inference import Speech2Text as _Speech2Text
-from espnet2.bin.s2t_inference import _is_ctc_only
 from espnet2.legacy.nets.batch_beam_search import BatchBeamSearch
 from espnet2.legacy.nets.scorer_interface import BatchScorerInterface
 from espnet2.text.whisper_token_id_converter import (
     OpenAIWhisperTokenIDConverter as _DroppingConverter,
 )
-from espnet3.systems.esp2_s2t.src.whisper_timestamp_scorer import (
+from espnet3.systems.esp2_s2t.src.sot.whisper_timestamp_scorer import (
     WhisperTimestampFilter,
     wrap_timestamp_decoder,
 )
-from espnet3.systems.esp2_s2t.src.whisper_token_id_converter import (
+from espnet3.systems.esp2_s2t.src.sot.whisper_token_id_converter import (
     OpenAIWhisperTokenIDConverter,
 )
-
-_PARENT_SIGNATURE = inspect.signature(_Speech2Text.__init__)
 
 
 def _primer_length(primer) -> int:
@@ -90,8 +86,9 @@ class Speech2Text(_Speech2Text):
         **kwargs,
     ):
         """Build the parent decoder, then install the timestamp rules."""
-        given = _PARENT_SIGNATURE.bind(self, *args, **kwargs)
-        given.apply_defaults()
+        super().__init__(*args, **kwargs)
+
+        self.timestamp_filter = None
         requested = [
             name
             for name, on in (
@@ -100,29 +97,23 @@ class Speech2Text(_Speech2Text):
             )
             if on
         ]
-        if requested and _is_ctc_only(given.arguments["s2t_train_config"]):
-            # Refused before the model is built: building the filter reads
-            # timestamp symbols a CTC-only preprocessor_conf need not carry,
-            # and a CTC-only beam search would drop the filter without a word.
+        if not requested:
+            return
+        if self.ctc_only:
+            # A CTC-only model has no decoder for the timestamp rules to act on.
             raise ValueError(
                 f"{' and '.join(requested)} needs a decoder with timestamp "
                 "tokens, and this checkpoint is CTC-only"
             )
-        if adaptive_timestamp and given.arguments["ctc_weight"] == 1.0:
+        if adaptive_timestamp and "decoder" not in self.beam_search.full_scorers:
             # The adaptive rule rides on the decoder score, whose weight is
-            # 1 - ctc_weight. At zero BeamSearch drops the scorer and the
-            # timestamp rules with it. speaker_change_symbol on its own is
-            # unaffected: it replaces scorefilter, at a fixed weight.
+            # 1 - ctc_weight; at zero BeamSearch drops the scorer, and the
+            # timestamp rules with it. speaker_change_symbol alone is not
+            # affected: it replaces scorefilter, at a fixed weight.
             raise ValueError(
                 "adaptive_timestamp carries the timestamp rules on the "
                 "decoder score, which ctc_weight=1.0 gives no weight"
             )
-
-        super().__init__(*args, **kwargs)
-
-        self.timestamp_filter = None
-        if not requested:
-            return
 
         token_list = self.s2t_model.token_list
         conf = self.s2t_train_args.preprocessor_conf

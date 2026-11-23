@@ -49,14 +49,10 @@ from espnet3.systems.esp2_s2t.metrics.cpwer import split_speakers
 
 logger = logging.getLogger(__name__)
 
-# The speaker-change symbol belongs to the checkpoint, so it is a constructor
-# argument rather than a constant: a metric cannot know which symbol a model
-# was trained with.
-_SEP = "▁SPKCHANGE▁"  # internal marker unlikely to occur in text
 _TS_RE = re.compile(r"<\|(\d+(?:\.\d+)?)\|>")
 
 
-def parse_sot_segments(
+def _parse_sot_segments(
     text: str, speaker_change_symbol: str
 ) -> List[Tuple[int, float, float]]:
     """Parse SOT text into ``(speaker_index, start, end)`` segments.
@@ -69,9 +65,8 @@ def parse_sot_segments(
     limit before closing it. That tolerance is aimed at hypotheses, not
     references, which a prepared corpus does not produce.
     """
-    text = text.replace(speaker_change_symbol, _SEP)
     segments = []
-    for idx, block in enumerate(text.split(_SEP)):
+    for idx, block in enumerate(text.split(speaker_change_symbol)):
         timestamps = [float(x) for x in _TS_RE.findall(block)]
         for k in range(0, len(timestamps) - 1, 2):
             start, end = timestamps[k], timestamps[k + 1]
@@ -80,12 +75,12 @@ def parse_sot_segments(
     return segments
 
 
-def build_annotation(segments: List[Tuple[int, float, float]]) -> "Annotation":
+def _build_annotation(segments: List[Tuple[int, float, float]]) -> "Annotation":
     """Turn one group's segments into a pyannote Annotation.
 
     Args:
         segments: ``(speaker_index, start, end)`` triples, as
-            :func:`parse_sot_segments` returns them.
+            :func:`_parse_sot_segments` returns them.
 
     Returns:
         An Annotation labelled ``spk<index>``. Zero-length segments are
@@ -175,16 +170,16 @@ class UtteranceGroupDER(BaseMetric):
         self._ensure_pyannote()
         scorer = DiarizationErrorRate(collar=2 * self.collar)
         for reference_text, hypothesis_text in zip(ref, hyp):
-            ref_segments = parse_sot_segments(
+            ref_segments = _parse_sot_segments(
                 reference_text, self.speaker_change_symbol
             )
             if not ref_segments:
                 # md-eval needs reference speech for a file to be scored.
                 self.num_dropped += 1
                 continue
-            reference = build_annotation(ref_segments)
-            hypothesis = build_annotation(
-                parse_sot_segments(hypothesis_text, self.speaker_change_symbol)
+            reference = _build_annotation(ref_segments)
+            hypothesis = _build_annotation(
+                _parse_sot_segments(hypothesis_text, self.speaker_change_symbol)
             )
             # md-eval scores each file from 0 to the end of its reference.
             # pyannote would otherwise widen the region to cover hypothesis

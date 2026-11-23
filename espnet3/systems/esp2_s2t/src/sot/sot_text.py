@@ -18,7 +18,7 @@ arguments rather than constants:
     split on rather than tokenized.
 ``text_norm``
     Applied to each segment's text before the timestamps wrap it, so the
-    separator and the markup never reach it. See dataset/text_norm.py.
+    separator and the markup never reach it. See text_norm.py in this package.
 
 ``lowercase``
     Whether to case-fold. AMI's dev split keeps its original case and

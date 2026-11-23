@@ -50,7 +50,7 @@ parallel:
 ##########################################################
 # A recipe sets the checkpoint and its decoding options under `model`.
 model:
-  _target_: espnet3.systems.esp2_s2t.src.s2t_inference.Speech2Text
+  _target_: espnet3.systems.esp2_s2t.src.sot.s2t_inference.Speech2Text
 
 # Sample field passed to the model.
 input_key: speech

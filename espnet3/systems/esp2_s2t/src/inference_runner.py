@@ -4,7 +4,6 @@ from __future__ import annotations
 
 from espnet3.contract.kinds.audio import Audio
 from espnet3.systems.base.inference_runner import InferenceRunner
-from espnet3.systems.esp2_s2t.src.sot_output import render_sot
 
 
 class ESP2S2TInferenceRunner(InferenceRunner):
@@ -42,13 +41,20 @@ class ESP2S2TInferenceRunner(InferenceRunner):
             result: The n-best list of ``Speech2Text``.
             batched: Whether the call was a batch.
 
+        The text comes from the decoder's own converter, which this system's
+        ``Speech2Text`` builds to keep special tokens, so a separator the
+        checkpoint added to its vocabulary stays in the text. Only the prompt
+        is removed: the language and task symbols the decoder starts from.
+
         Returns:
-            ``{"hyp": ...}``.
+            ``{"hyp": ...}``; ``""`` when the decoder returned no hypothesis.
 
         Raises:
             ValueError: If the call was a batch. The timestamp rules track
                 one prompt length for the whole beam, so SOT decoding takes
                 one utterance group at a time (``batch_size: null``).
+            ValueError: If the text does not start with the two prompt
+                tokens, which means a converter dropped special tokens.
 
         Examples:
             >>> tokens = ["<|en|>", "<|transcribe|>", "<|0.00|>", " hi", "<|0.40|>"]
@@ -61,4 +67,16 @@ class ESP2S2TInferenceRunner(InferenceRunner):
                 "SOT decoding takes one utterance group at a time; "
                 "set batch_size: null in the inference config"
             )
-        return {"hyp": render_sot(result)}
+        if not result:
+            return {"hyp": ""}
+        text, tokens, *_ = result[0]
+        prompt = "".join(tokens[:2])
+        # A converter that drops special tokens leaves words in these two slots.
+        special = [t for t in tokens[:2] if t.startswith("<|") and t.endswith("|>")]
+        if len(special) != 2 or not text.startswith(prompt):
+            raise ValueError(
+                f"hypothesis {text!r} does not start with its prompt {prompt!r}; "
+                "decode with espnet3.systems.esp2_s2t.src.sot.s2t_inference."
+                "Speech2Text and speaker_change_symbol or adaptive_timestamp set"
+            )
+        return {"hyp": text[len(prompt) :]}
