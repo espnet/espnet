@@ -74,20 +74,9 @@ def setup_instructions(recipe_dir: str | Path) -> str:
 
 
 def _resolve_tgt_lang(tgt_lang: str | None) -> str:
-    """Return the target language, warning when the config default is taken.
-
-    The default is ``all``, which indexes every installed ``en-<tgt>`` pair --
-    14 of them for MuST-C v1.2, so dev becomes 17,740 examples instead of
-    en-de's 1,423. That is a surprising thing to get by omission, hence the
-    warning; pass ``tgt_lang="de"`` to reproduce egs2.
-    """
+    """Return the target language, or ``dataset/config.yaml``'s default."""
     if tgt_lang:
         return str(tgt_lang)
-    logger.warning(
-        "tgt_lang was not given; using the dataset/config.yaml default %r. "
-        "Pass tgt_lang='de' to reproduce egs2/must_c/st1.",
-        TGT_LANG,
-    )
     return TGT_LANG
 
 
@@ -151,11 +140,13 @@ def resolve_source_root(
         if lang_pair_root is not None:
             return lang_pair_root
 
+    installed = available_target_languages(recipe_root, source_dir)
     raise FileNotFoundError(
         f"MuST-C {VERSION} language pair '{SRC_LANG}-{tgt_lang}' not found. "
         "Checked these locations:\n"
         + "\n".join(f"  - {path}/{SRC_LANG}-{tgt_lang}" for path in checked)
         + "\n"
+        + (f"Installed pairs: {', '.join(installed)}.\n" if installed else "")
         + setup_instructions(recipe_root)
     )
 
@@ -197,16 +188,8 @@ class MustCSTBuilder(DatasetBuilder):
         recipe_root = Path(recipe_dir).resolve()
         try:
             selected = _resolve_tgt_lang(tgt_lang)
-            targets = (
-                available_target_languages(recipe_root, source_dir)
-                if selected == "all"
-                else [selected]
-            )
-            return bool(targets) and all(
-                not missing_required_splits(
-                    resolve_source_root(recipe_root, source_dir, item), item
-                )
-                for item in targets
+            return not missing_required_splits(
+                resolve_source_root(recipe_root, source_dir, selected), selected
             )
         except FileNotFoundError:
             return False
@@ -226,7 +209,7 @@ class MustCSTBuilder(DatasetBuilder):
         Args:
             recipe_dir: Recipe root directory.
             source_dir: Optional override pointing at the raw corpus root.
-            tgt_lang: Target language, or ``all`` for every installed pair.
+            tgt_lang: Target language of the pair to validate.
             **_kwargs: Unused extra options for API compatibility.
 
         Raises:
@@ -236,39 +219,40 @@ class MustCSTBuilder(DatasetBuilder):
         """
         recipe_root = Path(recipe_dir).resolve()
         selected = _resolve_tgt_lang(tgt_lang)
-        targets = (
-            available_target_languages(recipe_root, source_dir)
-            if selected == "all"
-            else [selected]
-        )
-        if not targets:
-            raise FileNotFoundError(
-                f"No complete MuST-C {SRC_LANG}-<target> pairs found.\n"
-                + setup_instructions(recipe_root)
-            )
         # Validate the pinned target too: without this, prepare_source could
         # return while is_source_prepared stayed False.
-        for target in targets:
-            lang_pair_root = resolve_source_root(recipe_root, source_dir, target)
-            missing = missing_required_splits(lang_pair_root, target)
-            if missing:
-                raise FileNotFoundError(
-                    f"MuST-C {SRC_LANG}-{target} is missing required splits "
-                    f"{missing} under {lang_pair_root}.\n"
-                    + setup_instructions(recipe_root)
-                )
+        lang_pair_root = resolve_source_root(recipe_root, source_dir, selected)
+        missing = missing_required_splits(lang_pair_root, selected)
+        if missing:
+            raise FileNotFoundError(
+                f"MuST-C {SRC_LANG}-{selected} is missing required splits "
+                f"{missing} under {lang_pair_root}.\n" + setup_instructions(recipe_root)
+            )
 
     def is_built(self, recipe_dir, cache=None, **kwargs):
         """Whether the HF cache exists with the columns the Dataset reads.
 
-        A cheap filesystem check, as ``DatasetBuilder`` asks for: source
-        readiness is ``is_source_prepared``'s job, and the framework runs
+        Source readiness is ``is_source_prepared``'s job; the framework runs
         ``prepare_source`` before it ever calls ``build``.
+
+        Raises:
+            ValueError: If the cache holds a different language pair. Returning
+                False instead would rebuild over it.
         """
         cache_root = _hf_cache_root(recipe_dir, cache)
         if cache_root is None:
             return False
-        return all(_cache_has_columns(cache_root / split) for split in _HF_CACHE_SPLITS)
+        if not all(
+            _cache_has_columns(cache_root / split) for split in _HF_CACHE_SPLITS
+        ):
+            return False
+        # Raise rather than return False: a rebuild would overwrite the cache
+        # that is there, which belongs to whoever built that other pair.
+        selected = _resolve_tgt_lang(kwargs.get("tgt_lang"))
+        found = _cache_language(cache_root)
+        if found is not None and found != selected:
+            raise cache_language_error(found, selected, cache.get("cache_dir"))
+        return True
 
     def build(self, recipe_dir, cache=None, **kwargs):
         """Write one HF cache split per required split."""
@@ -290,6 +274,35 @@ _HF_CACHE_REQUIRED_COLUMNS = {
     "offset",
     "duration",
 }
+
+
+def cache_language_error(found, requested, where) -> ValueError:
+    """The error the builder and the reader both raise on a pair mismatch."""
+    return ValueError(
+        f"The HF cache under {str(where)!r} holds en-{found}, but "
+        f"tgt_lang={str(requested)!r} was requested. Point cache.cache_dir at "
+        f"the en-{requested} cache, or build it with `--stages create_dataset`."
+    )
+
+
+# Smallest first: load_from_disk over train's 229,703 rows takes 14 s against
+# 0.3 s for tst-HE, and any split records the same pair.
+_LANGUAGE_PROBE_SPLITS = ("tst-HE", "dev", "test", "train")
+
+
+def _cache_language(cache_root):
+    """Return the target language a built cache holds, or None if unrecorded."""
+    from datasets import load_from_disk
+
+    for split in _LANGUAGE_PROBE_SPLITS:
+        path = cache_root / split
+        if not _cache_has_columns(path):
+            continue
+        cached = load_from_disk(str(path))
+        if len(cached) == 0 or "tgt_lang" not in cached.column_names:
+            return None
+        return str(cached[0]["tgt_lang"])
+    return None
 
 
 def _cache_has_columns(path):

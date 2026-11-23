@@ -464,12 +464,11 @@ fit:
 | `seed`                 | Optional random seed for `collect_stats`/`train` |
 | `best_model_criterion` | Criteria used to compare model performance |
 
-`init` is forwarded to ESPnet's `initialize()` helper (e.g. `xavier_uniform`) by
-`ESPnet3LightningTrainer`, which only receives `training_config.trainer` as its
-config object. As shipped, `init` is written at the top level (a sibling of
-`trainer:`), so it is currently **not** applied — verify against
-[`trainer.py`](https://github.com/espnet/espnet/blob/master/espnet3/components/trainers/trainer.py)
-before relying on it for reproducing a specific initialization.
+`init` is passed to ESPnet's `initialize()` helper (e.g. `xavier_uniform`)
+after the model is built. It can be written at the top level, as in ESPnet2
+configs, or as `trainer.init`; it is never forwarded to `lightning.Trainer`.
+Setting both to different non-null values raises an error. Leave it empty
+(`null`) to keep each module's default initialization.
 
 ### Example
 ```yaml

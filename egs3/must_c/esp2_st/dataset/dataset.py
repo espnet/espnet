@@ -32,6 +32,7 @@ from egs3.must_c.esp2_st.dataset.builder import (
     TGT_LANG,
     VERSION,
     MustCSTBuilder,
+    cache_language_error,
     read_segment,
 )
 from espnet3.components.data.base_dataset import BaseDataset
@@ -250,8 +251,7 @@ def gather_training_text(
             ``st.sh`` builds (``src_nbpe``/``tgt_nbpe``). ``"joint"`` (default)
             concatenates both, for a single shared vocabulary.
         tgt_lang: Target language of the pair to read. Only used when no HF
-            cache is configured; the module default is ``all``, which is not a
-            directory on disk.
+            cache is configured; it defaults to the module's ``de``.
         case: Case convention to apply, one of ``tc``, ``lc``, ``lc.rm``. When
             omitted it follows ``egs2/must_c/st1/run.sh``: ``lc.rm`` for the
             source side and ``tc`` for the target. A ``"joint"`` gather applies
@@ -302,6 +302,7 @@ def _require_hf_cache(cache, recipe_dir, split, source_dir=None, tgt_lang=None):
     """
     cached = _load_hf_cache(cache, recipe_dir, split, missing_ok=True)
     if cached is not None:
+        _assert_cache_language(cached, tgt_lang, cache)
         return cached
     if not cache or not cache.get("enabled", False):
         raise RuntimeError(
@@ -314,6 +315,29 @@ def _require_hf_cache(cache, recipe_dir, split, source_dir=None, tgt_lang=None):
         recipe_dir=recipe_dir, cache=cache, source_dir=source_dir, tgt_lang=tgt_lang
     )
     return _load_hf_cache(cache, recipe_dir, split)
+
+
+def _assert_cache_language(cached, tgt_lang, cache):
+    """Raise when a cache holds a different language pair than was asked for.
+
+    Nothing about the cache layout records the pair -- it is implied by the
+    `cache_dir` the caller chose -- so changing only `tgt_lang` reads the old
+    pair and scores it against the new references.
+    """
+    if not tgt_lang or len(cached) == 0:
+        return
+    if "tgt_lang" not in cached.column_names:
+        return
+    found = str(cached[0]["tgt_lang"])
+    if found != str(tgt_lang):
+        # `cache` is None when _load_hf_cache resolved the directory from
+        # EGS3_HF_CACHE_DIR, so the name is recovered the same way.
+        import os
+
+        where = (cache or {}).get("cache_dir") or os.environ.get(
+            "EGS3_HF_CACHE_DIR", "<unknown>"
+        )
+        raise cache_language_error(found, tgt_lang, where)
 
 
 def _load_hf_cache(cache, recipe_dir, split, missing_ok: bool = False):
