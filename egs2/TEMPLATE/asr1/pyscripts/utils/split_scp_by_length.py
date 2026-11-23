@@ -36,15 +36,22 @@ def assign(keys: List[str], lengths: Dict[str, float], num_parts: int) -> List[i
 
     Keys missing from `lengths` count as the median of the known lengths (1 if
     none is known). Ties go to the lower part index, so the result is
-    deterministic. With at least `num_parts` keys, every part gets a key.
+    deterministic. The `num_parts` longest keys go one to each part before the
+    rest is assigned, so with at least `num_parts` keys every part gets a key,
+    also when lengths are zero.
     """
     known = [lengths[k] for k in keys if k in lengths]
     fallback = statistics.median(known) if known else 1.0
     size = [lengths.get(k, fallback) for k in keys]
     order = sorted(range(len(keys)), key=lambda i: (-size[i], i))
-    heap = [(0.0, part) for part in range(num_parts)]
     parts = [0] * len(keys)
-    for i in order:
+    heap = []
+    for part, i in enumerate(order[:num_parts]):
+        parts[i] = part
+        heap.append((size[i], part))
+    heap.extend((0.0, part) for part in range(len(heap), num_parts))
+    heapq.heapify(heap)
+    for i in order[num_parts:]:
         total, part = heapq.heappop(heap)
         parts[i] = part
         heapq.heappush(heap, (total + size[i], part))

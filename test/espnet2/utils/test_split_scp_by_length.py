@@ -52,9 +52,27 @@ def test_balance_bound_and_every_part_used(module):
 
 
 def test_missing_lengths_count_as_median(module):
-    keys = ["x", "y", "z", "w"]
-    parts = module.assign(keys, {"x": 1.0, "y": 3.0}, 2)
-    assert sorted(set(parts)) == [0, 1]
+    # known 4, 6, 8: "m" counts as 6 and goes with "b"; as 1 (the fallback when
+    # nothing is known) it would go to part 0 with "c"
+    keys = ["a", "b", "c", "m"]
+    parts = module.assign(keys, {"a": 4.0, "b": 6.0, "c": 8.0}, 2)
+    assert parts == [0, 1, 0, 1]
+
+
+def test_no_known_lengths_count_as_one(module):
+    parts = module.assign(["a", "b", "c"], {}, 3)
+    assert sorted(parts) == [0, 1, 2]
+
+
+def test_zero_lengths_use_every_part(module):
+    keys = [f"k{i}" for i in range(10)]
+    parts = module.assign(keys, {k: 0.0 for k in keys}, 4)
+    assert sorted(set(parts)) == [0, 1, 2, 3]
+    # a few long keys and many empty ones: still one key in every part
+    lengths = {k: 0.0 for k in keys}
+    lengths.update({"k0": 5.0, "k1": 3.0})
+    parts = module.assign(keys, lengths, 4)
+    assert sorted(set(parts)) == [0, 1, 2, 3]
 
 
 def test_deterministic(module):
