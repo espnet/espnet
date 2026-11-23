@@ -15,7 +15,7 @@ class OWSMCTCModel(AbsASR):
         self,
         tag: str = "pyf98/owsm_ctc_v3.1_1B",
         device: str = "cuda",
-        dtype: str = "float16",
+        dtype: str = "float32",
     ):
         """Initializer method.
 
@@ -29,13 +29,14 @@ class OWSMCTCModel(AbsASR):
             Defaults to "cuda".
             Common options include "cuda" or "cpu".
         dtype (str, optional):
-            The floating-point precision to use.
-            Defaults to "float16".
+            The floating-point precision the model runs in.
+            Defaults to "float32".
         """
         super().__init__()
         self.s2t = Speech2Text.from_pretrained(
             tag,
             device=device,
+            dtype=dtype,
             generate_interctc_outputs=False,
             lang_sym="<eng>",
             task_sym="<asr>",
@@ -81,5 +82,8 @@ class OWSMCTCModel(AbsASR):
             # best_path, not __call__: this is the fast CTC route the
             # class this replaced always took, and a dialogue turn cannot
             # wait for a beam search
-            prompt = " ".join(self.s2t.best_path(array)[0][0].split()[1:])
-            return prompt
+            # Return text_nospecial, the transcript without the language,
+            # task and timestamp symbols. The CTC path writes none of those
+            # symbols, so dropping the first space-separated item removed
+            # the first word of the transcript.
+            return self.s2t.best_path(array)[0][3]
