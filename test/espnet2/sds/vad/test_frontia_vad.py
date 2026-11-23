@@ -171,8 +171,69 @@ def test_tiny_model_end_to_end(tmp_path):
     audio = (np.random.default_rng(0).normal(size=FS) * 0.1).astype(np.float32)
     for i in range(0, FS, 320):
         vad.forward(audio[i : i + 320], FS)
-    probs = np.concatenate(vad.probs)
+    probs = vad.stream.all_probabilities()
     # The stream scores every complete frame, as the whole recording does.
     assert len(probs) == (FS - N_FFT) // HOP + 1
     whole = detector.probabilities(audio, FS)
     np.testing.assert_allclose(probs, whole, atol=1e-5)
+
+
+def test_forward_copies_the_chunk():
+    """Overwriting the caller's buffer after forward() leaves the turn intact."""
+    vad = FrontiaVADModel.from_detector(_detector(_speech_between(50, 150)))
+    # Chunk n holds the value 1000 + n % 7, written into the same buffer.
+    buf = np.empty(320, dtype=np.int16)
+    for n in range(3 * FS // 320):
+        buf[:] = 1000 + n % 7
+        turn = vad.forward(buf, FS, binary=True)
+        if turn is not None:
+            break
+    assert turn is not None
+    # Each 320-sample chunk keeps its own value; a kept view would show the
+    # last value everywhere.
+    assert len(np.unique(turn)) == 7
+
+
+def test_buffers_stay_bounded_in_silence():
+    vad = FrontiaVADModel.from_detector(_detector(lambda i: 0.1, median=25))
+    chunk = np.zeros(FS // 10, dtype=np.int16)
+    for _ in range(600):  # one minute
+        assert vad.forward(chunk, FS) is None
+    # pad_start_ms of audio and the median and hold-back frames, not a minute
+    assert len(vad.audio) <= 0.3 * FS + FS // 10 + 2 * 25 * HOP
+    assert len(vad.probs) <= 2 * 25 + FS // 10 // HOP + 2
+
+
+def test_two_turns_in_one_chunk():
+    # speech in frames 50..150 and 250..350, both ended within a 5 s chunk
+    level = lambda i: 0.9 if 50 <= i < 150 or 250 <= i < 350 else 0.1  # noqa: E731
+    vad = FrontiaVADModel.from_detector(_detector(level))
+    first = vad.forward(np.zeros(5 * FS, dtype=np.int16), FS, binary=True)
+    assert first is not None
+    assert vad.last_turn["speech_start_s"] == pytest.approx(50 * HOP / FS)
+    second = vad.forward(np.zeros(0, dtype=np.int16), FS, binary=True)
+    assert second is not None
+    assert vad.last_turn["speech_start_s"] == pytest.approx(250 * HOP / FS)
+    assert vad.last_turn["endpoint_s"] == pytest.approx(350 * HOP / FS)
+    assert vad.forward(np.zeros(0, dtype=np.int16), FS) is None
+
+
+def test_turn_after_a_short_one_in_the_same_chunk():
+    # 80 ms of speech (dropped), then a real turn, in one chunk
+    level = lambda i: 0.9 if 50 <= i < 60 or 150 <= i < 250 else 0.1  # noqa: E731
+    vad = FrontiaVADModel.from_detector(_detector(level))
+    turn = vad.forward(np.zeros(4 * FS, dtype=np.int16), FS)
+    assert turn is not None
+    assert vad.last_turn["speech_start_s"] == pytest.approx(150 * HOP / FS)
+
+
+def test_int16_then_float_chunks_keep_their_scale():
+    vad = FrontiaVADModel.from_detector(
+        _detector(_speech_between(50, 150)), target_sr=FS
+    )
+    # int16 speech at half scale, then float silence
+    out = vad.forward(np.full(FS, 16384, dtype=np.int16), FS)
+    assert out is None
+    out = vad.forward(np.zeros(2 * FS, dtype=np.float32), FS)
+    assert out is not None
+    assert np.abs(out).max() == pytest.approx(0.5, abs=0.01)
