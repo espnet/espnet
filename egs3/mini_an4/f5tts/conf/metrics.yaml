@@ -1,0 +1,26 @@
+##########################################################
+#                 METRIC SCORING SETTING                 #
+##########################################################
+# Merged over egs3/TEMPLATE/f5tts/conf/metrics.yaml. Only the signal metrics
+# are scored here, against the voice prompt: the template's WER, speaker
+# similarity and pseudo-MOS metrics download their models, which the
+# integration test avoids. The numbers only show that `measure` runs.
+dataset:
+  test:
+    - name: test
+
+metrics:
+  - metric:
+      _target_: espnet3.components.metrics.versa.VersaMetric
+      score_config:
+        - name: signal_metric
+      outputs:
+        - sdr
+        - si_snr
+        - ci_sdr
+      wav_key: wav
+      ref_key: ref
+      use_gpu: false
+    inputs:
+      wav: wav
+      ref: dataset:ref_wav_path
