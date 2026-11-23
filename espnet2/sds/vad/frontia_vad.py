@@ -14,6 +14,11 @@ class FrontiaVADModel(AbsVAD):
     The model scores each frame causally through StreamingVAD
     (espnet2.bin.diar_inference_streaming), so forward() takes the audio
     chunk by chunk, as WebrtcVADModel does.
+
+    The decision is not strictly causal by default: the centred median filter
+    (median=25) waits 96 ms after each frame. A turn ends endpoint_delay_s
+    after its speech, the median's delay plus hangover_ms. Pass median=1 for a
+    decision that reads no future frame.
     """
 
     @typechecked
@@ -42,7 +47,11 @@ class FrontiaVADModel(AbsVAD):
             median (int, optional):
                 The length in frames of the centred median filter applied to
                 the 0/1 decisions. Defaults to 25, the online rule on the
-                model card.
+                model card. The filter reads (median - 1) / 2 frames after
+                each frame, so with the default every decision comes 96 ms
+                after the audio and the detection is not strictly causal,
+                although the model reads no future audio. 1 makes it strictly
+                causal. algorithmic_delay_s reports the delay.
             hangover_ms (float, optional):
                 The silence after speech that ends the user's turn.
                 Defaults to 500 ms.
