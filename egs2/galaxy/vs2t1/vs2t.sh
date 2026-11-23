@@ -109,6 +109,7 @@ num_inf=    # Number of inferences output by the model
 
 # Upload model related
 hf_repo=
+hf_license=
 
 # Decoding related
 use_streaming=false # Whether to use streaming decoding
@@ -165,6 +166,8 @@ Options:
     --skip_eval      # Skip decoding and evaluation stages (default="${skip_eval}").
     --skip_upload    # Skip packing and uploading stages (default="${skip_upload}").
     --skip_upload_hf    # Skip packing and uploading stages (default="${skip_upload_hf}").
+    --hf_repo           # Hugging Face repository for upload (default="${hf_repo}").
+    --hf_license        # Hugging Face license identifier for the model card (default="${hf_license}").
     --eval_valid_set # Run decoding for the validation set (default="${eval_valid_set}").
     --ngpu           # The number of gpus ("0" uses cpu, otherwise use gpu, default="${ngpu}").
     --num_nodes      # The number of nodes (default="${num_nodes}").
@@ -1806,6 +1809,9 @@ fi
 if [ ${stage} -le 16 ] && [ ${stop_stage} -ge 16 ] && ! [[ " ${skip_stages} " =~ [[:space:]]16[[:space:]] ]]; then
     [ -z "${hf_repo}" ] && \
         log "ERROR: You need to setup the variable hf_repo with the name of the repository located at HuggingFace, follow the following steps described here https://github.com/espnet/espnet/blob/master/CONTRIBUTING.md#133-publishing-models" && \
+    exit 1
+    [ -z "${hf_license}" ] && \
+        log "ERROR: You need to setup the variable hf_license with the Hugging Face license identifier for the model card (for example apache-2.0, mit, cc-by-4.0, or other)" && \
     exit 1
     log "Stage 16: Upload model to HuggingFace: ${hf_repo}"
 

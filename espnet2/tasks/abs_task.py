@@ -24,6 +24,7 @@ from torch.utils.data import DataLoader
 from typeguard import typechecked
 
 from espnet2 import __version__
+from espnet2.fileio.read_text import read_2columns_text
 from espnet2.iterators.abs_iter_factory import AbsIterFactory
 from espnet2.iterators.category_chunk_iter_factory import CategoryChunkIterFactory
 from espnet2.iterators.category_iter_factory import CategoryIterFactory
@@ -52,6 +53,7 @@ from espnet2.schedulers.tristage_lr import TristageLR
 from espnet2.schedulers.warmup_lr import WarmupLR
 from espnet2.schedulers.warmup_reducelronplateau import WarmupReduceLROnPlateau
 from espnet2.schedulers.warmup_step_lr import WarmupStepLR
+from espnet2.torch_utils.compile_modules import compile_modules
 from espnet2.torch_utils.initialize import INITIALIZATIONS
 from espnet2.torch_utils.load_pretrained_model import load_pretrained_model
 from espnet2.torch_utils.model_summary import model_summary
@@ -253,6 +255,65 @@ class AbsTask(ABC):
     @abstractmethod
     def add_task_arguments(cls, parser: argparse.ArgumentParser):
         pass
+
+    @classmethod
+    def add_augmentation_arguments(
+        cls,
+        parser: argparse.ArgumentParser,
+        short_noise_thres: bool = True,
+    ):
+        """Add the on-the-fly RIR and noise augmentation options.
+
+        Adds --rir_scp, --rir_apply_prob, --noise_scp, --noise_apply_prob,
+        --noise_db_range and, if short_noise_thres is True, --short_noise_thres
+        to the "Data augmentation related" group. A task calls this from its
+        add_task_arguments and passes the values to its preprocessor in
+        build_preprocess_fn.
+
+        Args:
+            parser: The parser of the task.
+            short_noise_thres: Whether to add --short_noise_thres.
+        """
+        group = parser.add_argument_group("Data augmentation related")
+        group.add_argument(
+            "--rir_scp",
+            type=str_or_none,
+            default=None,
+            help="The file path of rir scp file.",
+        )
+        group.add_argument(
+            "--rir_apply_prob",
+            type=float,
+            default=1.0,
+            help="The probability for applying RIR convolution.",
+        )
+        group.add_argument(
+            "--noise_scp",
+            type=str_or_none,
+            default=None,
+            help="The file path of noise scp file.",
+        )
+        group.add_argument(
+            "--noise_apply_prob",
+            type=float,
+            default=1.0,
+            help="The probability for adding noise.",
+        )
+        group.add_argument(
+            "--noise_db_range",
+            type=str,
+            default="13_15",
+            help="The range of signal-to-noise ratio (SNR) in decibels, "
+            "e.g. 13_15 samples the SNR uniformly from [13, 15].",
+        )
+        if short_noise_thres:
+            group.add_argument(
+                "--short_noise_thres",
+                type=float,
+                default=0.5,
+                help="If len(noise) / len(speech) is smaller than this threshold "
+                "during dynamic mixing, a warning will be displayed.",
+            )
 
     @classmethod
     @abstractmethod
@@ -662,6 +723,22 @@ class AbsTask(ABC):
             help="Enable Automatic Mixed Precision. This feature requires pytorch>=1.6",
         )
         group.add_argument(
+            "--torch_compile_modules",
+            type=str,
+            nargs="*",
+            default=[],
+            help="Submodules of the model to compile with torch.compile for "
+            "training, as dotted paths, e.g. 'frontend encoder decoder'. Each one "
+            "is compiled in place, so the state dict does not change.",
+        )
+        group.add_argument(
+            "--torch_compile_conf",
+            action=NestedDictAction,
+            default=dict(),
+            help="Keyword arguments of torch.compile for --torch_compile_modules, "
+            "e.g. mode=max-autotune.",
+        )
+        group.add_argument(
             "--log_interval",
             type=int_or_none,
             default=None,
@@ -994,6 +1071,39 @@ class AbsTask(ABC):
             help="Maximum number of samples per chunk for all sampling rates",
         )
         group.add_argument(
+            "--chunk_left_context",
+            type=int,
+            default=0,
+            help="Number of samples (at --chunk_default_fs if given) that the "
+            "chunks of --chunk_left_context_keys get in front of the chunk, with "
+            "zeros before the start of the sequence; the other keys (e.g. the "
+            "labels) keep the chunk. For a model that removes them after using "
+            "them as history (e.g. the context of --wav_augment_conf). 0: none.",
+        )
+        group.add_argument(
+            "--chunk_left_context_keys",
+            type=str,
+            nargs="+",
+            default=["speech"],
+            help="Keys whose chunks get --chunk_left_context.",
+        )
+        group.add_argument(
+            "--chunk_random_access",
+            type=str2bool,
+            default=False,
+            help="With --iterator_type chunk: read each chunk on its own from the "
+            "data instead of splitting whole loaded sequences. A sequence of L "
+            "samples (first shape file) gives the chunks [i*S, i*S+W), W = "
+            "--chunk_length (a single length), S = int(W * --chunk_shift_ratio), "
+            "for i = 0 .. (L - W) // S. Loaders with read_span (Omni-IO, RTTM) "
+            "read only the chunk. The chunks, ordered by sequence id, form "
+            "mini-batches as --batch_type unsorted does, and the mini-batches are "
+            "shuffled each epoch as the sequence iterator shuffles them. "
+            "--chunk_left_context C: the chunks of --chunk_left_context_keys are "
+            "read as [i*S - C, i*S + W), zeros before the start of the sequence. "
+            "Chunks have one fixed length, so --chunk_default_fs is not supported.",
+        )
+        group.add_argument(
             "--chunk_discard_short_samples",
             type=str2bool,
             default=True,
@@ -1052,8 +1162,8 @@ class AbsTask(ABC):
             type=int,
             default=32,
             help="The maximum number of file descriptors to be kept "
-            "as opened for ark files. "
-            "This feature is only valid when data type is 'kaldi_ark'.",
+            "as opened for ark files or Omni-IO bin files. "
+            "This feature is only valid when data type is 'kaldi_ark' or 'omniio'.",
         )
         group.add_argument(
             "--allow_multi_rates",
@@ -1462,6 +1572,12 @@ class AbsTask(ABC):
             # Use adapter to finetune the large pre-trained foundation models
             if getattr(args, "use_adapter", False):
                 create_adapter(model, args.adapter, args.adapter_conf)
+
+            # Compile the chosen submodules for training (not for collect_stats)
+            if getattr(args, "torch_compile_modules", None) and not args.collect_stats:
+                compile_modules(
+                    model, args.torch_compile_modules, args.torch_compile_conf
+                )
 
             # 3. Build optimizer
             optimizers = cls.build_optimizers(args, model=model)
@@ -2132,12 +2248,110 @@ class AbsTask(ABC):
 
     @classmethod
     @typechecked
+    def build_random_access_chunk_iter_factory(
+        cls,
+        args: argparse.Namespace,
+        iter_options: IteratorOptions,
+        mode: str,
+    ) -> AbsIterFactory:
+        """Chunks read on their own from the data (--chunk_random_access).
+
+        See the help of --chunk_random_access. Each chunk is the dataset item
+        (sequence id, start, end), so only the chunk is read from loaders with
+        read_span; the mini-batches are those of UnsortedBatchSampler over the
+        chunks, and the sequence iterator shuffles them each epoch.
+        """
+        if len(iter_options.shape_files) == 0:
+            raise RuntimeError("--chunk_random_access needs a shape file (lengths)")
+        try:
+            W = int(args.chunk_length)
+        except ValueError:
+            raise ValueError(
+                f"--chunk_random_access needs one --chunk_length: {args.chunk_length}"
+            )
+        S = int(W * args.chunk_shift_ratio)
+        if W <= 0 or S <= 0:
+            raise ValueError(f"chunk length {W} and shift {S} must be positive")
+        if args.chunk_default_fs is not None:
+            raise ValueError(
+                "--chunk_random_access reads chunks of one fixed length: "
+                "--chunk_default_fs is not supported"
+            )
+        C = getattr(args, "chunk_left_context", 0)
+        if C < 0:
+            raise ValueError(f"--chunk_left_context must be >= 0: {C}")
+        lengths = {
+            k: int(v.split(",")[0])
+            for k, v in read_2columns_text(iter_options.shape_files[0]).items()
+        }
+        chunks = [
+            (uid, start, start + W)
+            for uid in sorted(lengths)
+            for start in range(0, lengths[uid] - W + 1, S)
+        ]
+        if len(chunks) == 0:
+            raise RuntimeError(f"no sequence is {W} samples or longer: {mode}")
+        # the split of UnsortedBatchSampler (drop_last=False)
+        N = max(len(chunks) // iter_options.batch_size, 1)
+        batches = [
+            chunks[i * len(chunks) // N : (i + 1) * len(chunks) // N] for i in range(N)
+        ]
+        if iter_options.num_batches is not None:
+            batches = batches[: iter_options.num_batches]
+        logging.info(
+            f"[{mode}] {len(chunks)} chunks of {W} samples (shift {S}) from "
+            f"{len(lengths)} sequences, {len(batches)} mini-batches"
+        )
+        if iter_options.distributed:
+            world_size = torch.distributed.get_world_size()
+            rank = torch.distributed.get_rank()
+            for batch in batches:
+                if len(batch) < world_size:
+                    raise RuntimeError(
+                        f"The batch-size must be equal or more than world_size: "
+                        f"{len(batch)} < {world_size}"
+                    )
+            batches = [batch[rank::world_size] for batch in batches]
+
+        dataset = ESPnetDataset(
+            iter_options.data_path_and_name_and_type,
+            float_dtype=args.train_dtype,
+            preprocess=iter_options.preprocess_fn,
+            max_cache_size=iter_options.max_cache_size,
+            max_cache_fd=iter_options.max_cache_fd,
+            allow_multi_rates=iter_options.allow_multi_rates,
+        )
+        cls.check_task_requirements(
+            dataset, args.allow_variable_data_keys, train=iter_options.train
+        )
+        if C > 0:
+            dataset.span_left_context = C
+            dataset.span_left_context_keys = set(
+                getattr(args, "chunk_left_context_keys", ["speech"])
+            )
+        logging.info(f"[{mode}] dataset:\n{dataset}")
+        return SequenceIterFactory(
+            dataset=dataset,
+            batches=batches,
+            seed=args.seed,
+            num_iters_per_epoch=iter_options.num_iters_per_epoch,
+            shuffle=iter_options.train,
+            shuffle_within_batch=args.shuffle_within_batch,
+            num_workers=args.num_workers,
+            collate_fn=iter_options.collate_fn,
+            pin_memory=args.ngpu > 0,
+        )
+
+    @classmethod
+    @typechecked
     def build_chunk_iter_factory(
         cls,
         args: argparse.Namespace,
         iter_options: IteratorOptions,
         mode: str,
     ) -> AbsIterFactory:
+        if getattr(args, "chunk_random_access", False):
+            return cls.build_random_access_chunk_iter_factory(args, iter_options, mode)
 
         dataset = ESPnetDataset(
             iter_options.data_path_and_name_and_type,
@@ -2205,6 +2419,8 @@ class AbsTask(ABC):
             default_fs=args.chunk_default_fs,
             chunk_max_abs_length=args.chunk_max_abs_length,
             discard_short_samples=args.chunk_discard_short_samples,
+            left_context=getattr(args, "chunk_left_context", 0),
+            left_context_keys=getattr(args, "chunk_left_context_keys", ["speech"]),
         )
 
     @classmethod

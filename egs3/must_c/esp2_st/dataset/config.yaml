@@ -8,8 +8,8 @@ builder:
   download_url: https://mt.fbk.eu/must-c-release-v1-0/
   version: v1
   src_lang: en
-  # Aggregate all installed English-to-target language pairs.
-  tgt_lang: all
+  # en-de, the pair egs2/must_c/st1 builds. Pass tgt_lang to read another.
+  tgt_lang: de
   required_splits:
     - train
     - dev

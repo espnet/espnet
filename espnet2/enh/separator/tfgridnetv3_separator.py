@@ -47,14 +47,11 @@ class TFGridNetV3(AbsSeparator):
     Args:
         input_dim: placeholder, not used
         n_srcs: number of output sources/speakers.
-        n_fft: stft window size.
-        stride: stft stride.
-        window: stft window type choose between 'hamming', 'hanning' or None.
         n_imics: number of microphones channels (only fixed-array geometry supported).
         n_layers: number of TFGridNetV3 blocks.
         lstm_hidden_units: number of hidden units in LSTM.
         attn_n_head: number of heads in self-attention
-        attn_attn_qk_output_channel: output channels of point-wise conv2d for getting
+        attn_qk_output_channel: output channels of point-wise conv2d for getting
             key and query
         emb_dim: embedding dimension
         emb_ks: kernel size for unfolding and deconv1D
@@ -62,7 +59,6 @@ class TFGridNetV3(AbsSeparator):
         activation: activation function to use in the whole TFGridNetV3 model,
             you can use any torch supported activation e.g. 'relu' or 'elu'.
         eps: small epsilon for normalization layers.
-        use_builtin_complex: whether to use builtin complex type or not.
     """
 
     def __init__(
