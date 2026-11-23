@@ -61,7 +61,16 @@ class StreamingVAD:
       does not state its receptive field).
     """
 
-    def __init__(self, vad: VoiceActivityDetector):
+    def __init__(self, vad: VoiceActivityDetector, keep_probabilities: bool = True):
+        """Start a stream on a detector.
+
+        Args:
+            vad: The detector whose model and rule the stream uses.
+            keep_probabilities: Keep every frame's probability for
+                all_probabilities() and segments(). A caller that reads only
+                what accept() returns can pass False, so that a long stream
+                keeps no history.
+        """
         if vad.center:
             raise ValueError(
                 "streaming needs a model whose STFT does not centre its frames "
@@ -94,6 +103,7 @@ class StreamingVAD:
         self.emitted = 0  # frames returned so far
         rf = vad.receptive_field
         self.context = None if rf is None else int(rf) - 1
+        self.keep_probabilities = keep_probabilities
         self.probs: List[np.ndarray] = []
         self.resampler = None  # soxr.ResampleStream for input at another rate
         self.resampler_rate = None
@@ -169,7 +179,8 @@ class StreamingVAD:
         else:
             out = self._accept_recomputed(available, new)
         self.emitted = available
-        self.probs.append(out)
+        if self.keep_probabilities:
+            self.probs.append(out)
         return out
 
     def _accept_cached(self, new: int) -> np.ndarray:
@@ -208,6 +219,10 @@ class StreamingVAD:
 
     def all_probabilities(self) -> np.ndarray:
         """The probabilities of every frame returned so far."""
+        if not self.keep_probabilities:
+            raise ValueError(
+                "this stream keeps no probabilities (keep_probabilities=False)"
+            )
         if not self.probs:
             return np.zeros(0, dtype=np.float32)
         return np.concatenate(self.probs)
