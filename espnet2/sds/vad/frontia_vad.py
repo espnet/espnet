@@ -1,4 +1,5 @@
-from typing import List, Optional
+from collections import deque
+from typing import Deque, Optional, Tuple
 
 import librosa
 import numpy as np
@@ -113,11 +114,23 @@ class FrontiaVADModel(AbsVAD):
         self.reset()
 
     def reset(self):
-        """Forget the current turn and start a new stream."""
+        """Forget all audio and start a new stream."""
         self.stream = self.detector.stream()
-        self.chunks: List[np.ndarray] = []
         self.sample_rate: Optional[int] = None
-        self.probs: List[np.ndarray] = []
+        # The audio kept, as given (raw) and as float in [-1, 1] (audio), with
+        # the stream's sample index of their first sample.
+        self.raw: Optional[np.ndarray] = None
+        self.audio = np.zeros(0, dtype=np.float32)
+        self.audio_start = 0
+        # The frame probabilities kept, with the stream's frame index of the
+        # first one.
+        self.probs = np.zeros(0, dtype=np.float32)
+        self.probs_start = 0
+        # Frames before this one belong to a returned or dropped turn, or are
+        # silence before any speech.
+        self.consumed = 0
+        self.pending: Deque[Tuple[np.ndarray, np.ndarray]] = deque()
+        self.pending_info: Deque[dict] = deque()
 
     def warmup(self):
         """Run one second of silence through the model, then reset."""
@@ -182,13 +195,20 @@ class FrontiaVADModel(AbsVAD):
         sample_rate: int,
         binary: bool = False,
     ) -> Optional[np.ndarray]:
-        """Add a chunk of audio; return the user's turn when it has ended.
+        """Add a chunk of audio; return a user's turn once one has ended.
+
+        One stream runs across turns, so audio after a turn's endpoint starts
+        the next turn. When a chunk ends more than one turn, this call returns
+        the first and the following calls return the others in order, before
+        any later turn; a call with an empty chunk returns the next one.
 
         Args:
             speech (np.ndarray):
-                The next chunk of audio, int16 PCM or float in [-1, 1].
+                The next chunk of audio, int16 PCM or float in [-1, 1]. It is
+                copied, so the caller may reuse its buffer.
             sample_rate (int):
-                The sampling rate of the chunk.
+                The sampling rate of the chunk. It must not change until
+                reset().
             binary (bool, optional):
                 If True, return the turn as the chunks were given, at
                 sample_rate. Otherwise return float audio at target_sr.
@@ -197,46 +217,98 @@ class FrontiaVADModel(AbsVAD):
         Returns:
             Optional[np.ndarray]:
                 The turn, from pad_start_ms before the first speech frame to
-                pad_end_ms after the endpoint, or None while the turn goes on.
+                pad_end_ms after the endpoint, or None while no turn has ended.
         """
         from espnet2.bin.diar_inference import as_mono_float
 
         if self.sample_rate is not None and sample_rate != self.sample_rate:
             raise ValueError(
-                f"the sample rate changed within a turn: "
-                f"{self.sample_rate} then {sample_rate}"
+                f"the sample rate changed from {self.sample_rate} to "
+                f"{sample_rate}; call reset() first"
             )
         self.sample_rate = sample_rate
-        speech = np.asarray(speech)
-        self.chunks.append(speech)
-        self.probs.append(self.stream.accept(as_mono_float(speech), sample_rate))
-        probs = np.concatenate(self.probs)
-        decisions = self.decisions(probs)
-        end = self.find_endpoint(decisions, self.hangover_frames)
-        if end is None:
-            return None
-
-        shift = self.detector.frame_shift
-        start = int(np.flatnonzero(decisions)[0])
-        if (end - start) * shift < self.min_speech_s:
-            self.reset()
-            return None
-        audio = np.concatenate(self.chunks)
-        start_s = max(0.0, start * shift - self.pad_start_s)
-        end_s = min(len(audio) / sample_rate, end * shift + self.pad_end_s)
-        self.last_turn = dict(
-            probs=probs,
-            decisions=decisions,
-            frame_shift=shift,
-            speech_start_s=start * shift,
-            endpoint_s=end * shift,
-            start_s=start_s,
-            end_s=end_s,
+        # Copy the chunk: a caller may overwrite its buffer after this call.
+        raw = np.array(speech, copy=True)
+        audio = as_mono_float(raw)
+        raw = raw.reshape(-1)
+        self.raw = raw if self.raw is None else np.concatenate([self.raw, raw])
+        # Normalize each chunk before joining: joining int16 and float chunks
+        # first would turn the PCM values into floats that as_mono_float no
+        # longer scales.
+        self.audio = np.concatenate([self.audio, audio])
+        self.probs = np.concatenate(
+            [self.probs, self.stream.accept(audio, sample_rate)]
         )
-        turn = audio[int(start_s * sample_rate) : int(end_s * sample_rate)]
-        self.reset()
+        self._find_turns()
+        self._trim()
+        if not self.pending:
+            return None
+        self.last_turn = self.pending_info.popleft()
+        raw_turn, turn = self.pending.popleft()
         if binary:
-            return turn
-        return librosa.resample(
-            as_mono_float(turn), orig_sr=sample_rate, target_sr=self.target_sr
+            return raw_turn
+        return librosa.resample(turn, orig_sr=sample_rate, target_sr=self.target_sr)
+
+    def _find_turns(self):
+        """Queue every turn that has ended in the frames received so far."""
+        shift = self.detector.frame_shift
+        rate = self.sample_rate
+        while True:
+            decisions = self.decisions(self.probs)
+            first = self.consumed - self.probs_start
+            end = self.find_endpoint(decisions[first:], self.hangover_frames)
+            if end is None:
+                return
+            start = first + int(np.flatnonzero(decisions[first:])[0])
+            end += first
+            # stream frame indices of the first speech frame and the endpoint
+            start_f, end_f = self.probs_start + start, self.probs_start + end
+            self.consumed = end_f
+            if (end_f - start_f) * shift < self.min_speech_s:
+                continue
+            last_s = (self.audio_start + len(self.audio)) / rate
+            start_s = max(self.audio_start / rate, start_f * shift - self.pad_start_s)
+            end_s = min(last_s, end_f * shift + self.pad_end_s)
+            a = int(round(start_s * rate)) - self.audio_start
+            b = int(round(end_s * rate)) - self.audio_start
+            self.pending.append((self.raw[a:b].copy(), self.audio[a:b].copy()))
+            self.pending_info.append(
+                dict(
+                    probs=self.probs[: end + self.hangover_frames].copy(),
+                    decisions=decisions[: end + self.hangover_frames].copy(),
+                    probs_start_s=self.probs_start * shift,
+                    frame_shift=shift,
+                    speech_start_s=start_f * shift,
+                    endpoint_s=end_f * shift,
+                    start_s=start_s,
+                    end_s=end_s,
+                )
+            )
+
+    def _trim(self):
+        """Drop the audio and frames that no later turn can use.
+
+        Without this, the buffers grow for as long as the stream runs while
+        nobody speaks. A later turn needs the frames from consumed on, the
+        median // 2 frames before them for its median filter, and
+        pad_start_ms of audio before its first speech frame.
+        """
+        shift = self.detector.frame_shift
+        rate = self.sample_rate
+        d = self.decisions(self.probs)
+        # Silence after the last turn cannot start one: move past it, up to the
+        # first speech frame or the last decided frame.
+        speech = np.flatnonzero(d[self.consumed - self.probs_start :])
+        if len(speech):
+            self.consumed += int(speech[0])
+        else:
+            self.consumed = self.probs_start + len(d)
+        keep_f = max(self.probs_start, self.consumed - self.detector.median // 2)
+        self.probs = self.probs[keep_f - self.probs_start :]
+        self.probs_start = keep_f
+        keep_s = max(
+            self.audio_start, int((self.consumed * shift - self.pad_start_s) * rate)
         )
+        self.raw = self.raw[keep_s - self.audio_start :]
+        self.audio = self.audio[keep_s - self.audio_start :]
+        self.audio_start = keep_s
