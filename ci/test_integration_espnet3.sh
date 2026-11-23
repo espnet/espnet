@@ -124,6 +124,20 @@ rm -rf exp data
 
 cd "${cwd}" || exit
 
+cd ./egs3/mini_an4/esp2_lid || exit
+gen_dummy_coverage
+echo "==== [ESPnet3] LID ===="
+source path.sh
+
+${python} run.py \
+    --stages create_dataset collect_stats train infer measure \
+    --training_config conf/training.yaml \
+    --inference_config conf/inference.yaml \
+    --metrics_config conf/metrics.yaml
+    rm -rf exp data downloads
+
+cd "${cwd}" || exit
+
 python3 -m pip install -e '.[enh]'
 
 cd ./egs3/mini_an4/esp2_enh || exit
@@ -131,11 +145,13 @@ gen_dummy_coverage
 echo "==== [ESPnet3] ENH ===="
 source path.sh
 # No train_tokenizer: ESP2EnhSystem does not implement it.
+
 ${python} run.py \
     --stages create_dataset collect_stats train infer measure \
     --training_config conf/training.yaml \
     --inference_config conf/inference.yaml \
     --metrics_config conf/metrics.yaml
+
 rm -rf exp data
 
 cd "${cwd}" || exit
