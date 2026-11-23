@@ -105,3 +105,19 @@ def test_stream_raises_the_generate_error(tiny_model_dir, monkeypatch):
     monkeypatch.setattr(llm.model, "generate", fail)
     with pytest.raises(RuntimeError, match="generate failed"):
         list(llm.stream(CHAT))
+
+
+@pytest.mark.parametrize(
+    "dtype, expected", [("float16", torch.float16), ("auto", None)]
+)
+def test_dtype_names_and_auto(tiny_model_dir, dtype, expected):
+    llm = HuggingFaceLLM(tag=tiny_model_dir, device="cpu", dtype=dtype)
+    # "auto" keeps the dtype the checkpoint was saved in, float32 here.
+    assert llm.model.dtype == (expected or torch.float32)
+
+
+def test_forward_with_return_dict_in_generate(tiny_model_dir):
+    llm = _llm(tiny_model_dir, max_new_tokens=4)
+    expected = llm.forward(CHAT)
+    llm.model.generation_config.return_dict_in_generate = True
+    assert llm.forward(CHAT) == expected

@@ -34,7 +34,8 @@ class HuggingFaceLLM(AbsLLM):
             device (str, optional):
                 The device to run the inference on. Defaults to "cuda".
             dtype (str, optional):
-                The data type for model computation. Defaults to "float16".
+                The data type for model computation, a torch dtype name or
+                "auto" for the checkpoint's own. Defaults to "float16".
             max_new_tokens (int, optional):
                 The maximum number of tokens in one reply. Defaults to 64.
             chat_template_kwargs (dict, optional):
@@ -64,9 +65,7 @@ class HuggingFaceLLM(AbsLLM):
         self.chat_template_kwargs = chat_template_kwargs
         self.tokenizer = AutoTokenizer.from_pretrained(tag, token=access_token)
         self.model = (
-            AutoModelForCausalLM.from_pretrained(
-                tag, dtype=getattr(torch, dtype), token=access_token
-            )
+            AutoModelForCausalLM.from_pretrained(tag, dtype=dtype, token=access_token)
             .to(device)
             .eval()
         )
@@ -159,8 +158,13 @@ class HuggingFaceLLM(AbsLLM):
         """
         inputs = self._encode(chat_messages)
         with torch.no_grad():
+            # Ask for a tensor: a checkpoint whose generation config sets
+            # return_dict_in_generate would otherwise return a ModelOutput.
             output = self.model.generate(
-                **inputs, max_new_tokens=self.max_new_tokens, do_sample=False
+                **inputs,
+                max_new_tokens=self.max_new_tokens,
+                do_sample=False,
+                return_dict_in_generate=False,
             )
         n_prompt = inputs["input_ids"].size(1)
         return self.tokenizer.decode(
