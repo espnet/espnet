@@ -1,0 +1,174 @@
+##########################################################
+#                    TRAINING SETTING                    #
+##########################################################
+# One-batch F5-TTS run on the AN4 sample for `ci/test_integration_espnet3.sh`.
+# Merged over egs3/TEMPLATE/f5tts/conf/training.yaml, which supplies the path
+# scaffold and the trainer defaults; everything else follows
+# egs3/libritts/f5tts/conf/training.yaml with a model small enough to train
+# one batch on a CPU in seconds.
+
+##########################################################
+#                    MEL FRONT-END SETTING               #
+##########################################################
+# The Vocos vocoder used by `infer` expects these values.
+sample_rate: 24000
+n_mel_channels: 100
+hop_length: 256
+win_length: 1024
+n_fft: 1024
+
+create_dataset:
+  recipe_dir: ${recipe_dir}
+
+##########################################################
+#                    DATASET DEFINITION                  #
+##########################################################
+# `data_src` is omitted, so the recipe's own `dataset/__init__.py` is loaded.
+# Train and valid read the manifests `remove_long_short` wrote.
+dataset:
+  train:
+    - data_src_args:
+        split: train
+        manifest_path: ${remove_long_short.save_path}/train.tsv
+        fs: ${sample_rate}
+  valid:
+    - data_src_args:
+        split: valid
+        manifest_path: ${remove_long_short.save_path}/valid.tsv
+        fs: ${sample_rate}
+  preprocessor:
+    _target_: espnet2.train.preprocessor.CommonPreprocessor
+    token_type: ${create_token_list.token_type}
+    token_list: ${token_list}
+    text_cleaner: ${create_token_list.cleaner}
+    g2p_type: ${create_token_list.g2p}
+
+##########################################################
+#                 DATA FILTERING SETTING                 #
+##########################################################
+remove_long_short:
+  min_wav_duration: 0.1
+  max_wav_duration: 20.0
+  splits: [train, valid]
+  manifest_paths:
+    train: ${data_dir}/manifest/train.tsv
+    valid: ${data_dir}/manifest/valid.tsv
+  save_path: ${data_dir}/manifests_filtered
+
+##########################################################
+#                    TOKEN LIST SETTING                  #
+##########################################################
+create_token_list:
+  manifest_path: ${data_dir}/manifests_filtered/train.tsv
+  save_path: ${data_dir}/tokens
+  filename: char_tokens.txt
+  token_type: char
+  cleaner: tacotron
+  g2p: null
+  non_linguistic_symbols: null
+  bpemodel: null
+  space_symbol: "<space>"
+  add_symbol:
+    - "<blank>:0"
+    - "<unk>:1"
+    - "<sos/eos>:-1"
+  vocabulary_size: -1
+  cutoff: 0
+
+token_list: ${create_token_list.save_path}/${create_token_list.filename}
+
+##########################################################
+#                    F5-TTS MODEL SETTING                #
+##########################################################
+model:
+  _target_: espnet3.systems.f5tts.src.f5tts.F5TTS
+  token_list: ${token_list}
+  feats_extract_config:
+    fs: ${sample_rate}
+    n_fft: ${n_fft}
+    hop_length: ${hop_length}
+    win_length: ${win_length}
+    n_mels: ${n_mel_channels}
+  hidden_size: 32
+  depth: 1
+  attention_heads: 2
+  attention_head_size: 16
+  feed_forward_multiplier: 2
+  text_embedding_size: 16
+  text_mask_padding: false
+  rotary_attention_heads: 1
+  convolution_layers: 1
+  sigma: 0.0
+  audio_drop_probability: 0.3
+  condition_drop_probability: 0.2
+  mask_fraction_range: [0.7, 1.0]
+  ode_solver_method: euler
+
+##########################################################
+#                OPTIMIZER / SCHEDULER SETTING           #
+##########################################################
+# The optimizer and the schedule are the template's F5-TTS defaults; only the
+# warmup is cut down to the two steps this fixture runs.
+scheduler:
+  warmup_steps: 1
+
+##########################################################
+#                OTHER TRAINING SETTING                  #
+##########################################################
+best_model_criterion:
+  - - valid/loss
+    - 1
+    - min
+
+##########################################################
+#                    DATALOADER SETTING                  #
+##########################################################
+dataloader:
+  collate_fn:
+    _target_: espnet2.train.collate_fn.CommonCollateFn
+    int_pad_value: 0
+    float_pad_value: 0.0
+  train:
+    num_shards: 1
+    num_workers: 0
+    iter_factory:
+      _target_: espnet2.iterators.sequence_iter_factory.SequenceIterFactory
+      shuffle: true
+      collate_fn: ${dataloader.collate_fn}
+      batches:
+        type: numel
+        batch_size: 1
+        min_batch_size: 1
+        shape_files:
+          - ${stats_dir}/train/feats_shape
+        batch_bins: 960000
+  valid:
+    num_shards: 1
+    num_workers: 0
+    iter_factory:
+      _target_: espnet2.iterators.sequence_iter_factory.SequenceIterFactory
+      shuffle: false
+      collate_fn: ${dataloader.collate_fn}
+      batches:
+        type: ${dataloader.train.iter_factory.batches.type}
+        batch_size: 1
+        min_batch_size: 1
+        shape_files:
+          - ${stats_dir}/valid/feats_shape
+        batch_bins: ${dataloader.train.iter_factory.batches.batch_bins}
+
+##########################################################
+#                    TRAINER SETTING                     #
+##########################################################
+trainer:
+  accumulate_grad_batches: 1
+  log_every_n_steps: 1
+  # One batch is trained (`limit_train_batches`); `max_steps` is 2 only
+  # because the scheduler needs `total_steps` above `warmup_steps`.
+  max_steps: 2
+  max_epochs: 1
+  limit_train_batches: 1
+  limit_val_batches: 1
+  callbacks:
+    - _target_: espnet3.components.callbacks.ema.EMACallback
+      decay: 0.9999
