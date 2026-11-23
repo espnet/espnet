@@ -391,3 +391,23 @@ def test_stream_without_probability_history(tmp_path):
     assert bare.probs == [] and len(kept.all_probabilities()) > 0
     with pytest.raises(ValueError, match="keeps no probabilities"):
         bare.segments()
+
+
+@pytest.mark.execution_timeout(60)
+@pytest.mark.parametrize("keep", [False, True])
+def test_stream_memory_over_ten_minutes(tmp_path, keep):
+    """Ten minutes in 1 s chunks: bounded without the probability history."""
+    from test.memory_growth import assert_memory_bounded
+
+    stream = _model(tmp_path).stream(keep_probabilities=keep)
+    chunk = _speech(1.0)
+
+    def run():
+        assert_memory_bounded(stream, lambda: stream.accept(chunk), steps=600)
+
+    if keep:
+        # The history grows by design; the check must see it.
+        with pytest.raises(AssertionError, match="grows with the stream"):
+            run()
+    else:
+        run()

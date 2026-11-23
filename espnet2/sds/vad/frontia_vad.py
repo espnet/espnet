@@ -26,6 +26,7 @@ class FrontiaVADModel(AbsVAD):
         pad_start_ms: float = 300.0,
         pad_end_ms: float = 300.0,
         min_speech_ms: float = 200.0,
+        max_speech_ms: float = 30000.0,
         target_sr: int = 16000,
         device: str = "cpu",
     ):
@@ -55,6 +56,12 @@ class FrontiaVADModel(AbsVAD):
             min_speech_ms (float, optional):
                 A turn with less speech than this is dropped.
                 Defaults to 200 ms.
+            max_speech_ms (float, optional):
+                A turn whose speech reaches this length ends there, whatever
+                follows. Without the cap, speech or noise that never pauses for
+                hangover_ms would keep one turn, and its audio, growing for as
+                long as the stream runs. Defaults to 30000 ms, the window OWSM
+                recognizes at once.
             target_sr (int, optional):
                 The sampling rate of the float audio forward() returns.
                 Defaults to 16000 Hz.
@@ -72,6 +79,7 @@ class FrontiaVADModel(AbsVAD):
             pad_start_ms,
             pad_end_ms,
             min_speech_ms,
+            max_speech_ms,
             target_sr,
         )
 
@@ -83,18 +91,37 @@ class FrontiaVADModel(AbsVAD):
         pad_start_ms: float = 300.0,
         pad_end_ms: float = 300.0,
         min_speech_ms: float = 200.0,
+        max_speech_ms: float = 30000.0,
         target_sr: int = 16000,
     ) -> "FrontiaVADModel":
         """Wrap a loaded VoiceActivityDetector instead of loading a tag."""
         self = cls.__new__(cls)
         self._setup(
-            detector, hangover_ms, pad_start_ms, pad_end_ms, min_speech_ms, target_sr
+            detector,
+            hangover_ms,
+            pad_start_ms,
+            pad_end_ms,
+            min_speech_ms,
+            max_speech_ms,
+            target_sr,
         )
         return self
 
     def _setup(
-        self, detector, hangover_ms, pad_start_ms, pad_end_ms, min_speech_ms, target_sr
+        self,
+        detector,
+        hangover_ms,
+        pad_start_ms,
+        pad_end_ms,
+        min_speech_ms,
+        max_speech_ms,
+        target_sr,
     ):
+        if max_speech_ms < min_speech_ms:
+            raise ValueError(
+                f"max_speech_ms ({max_speech_ms}) is below min_speech_ms "
+                f"({min_speech_ms})"
+            )
         if pad_end_ms > hangover_ms:
             raise ValueError(
                 f"pad_end_ms ({pad_end_ms}) must not exceed hangover_ms "
@@ -108,6 +135,9 @@ class FrontiaVADModel(AbsVAD):
         self.pad_start_s = pad_start_ms / 1000
         self.pad_end_s = pad_end_ms / 1000
         self.min_speech_s = min_speech_ms / 1000
+        self.max_speech_frames = max(
+            1, round(max_speech_ms / 1000 / detector.frame_shift)
+        )
         self.target_sr = target_sr
         # Hold the last turn's frame scores, for a caller that plots them.
         self.last_turn: Optional[dict] = None
@@ -268,10 +298,21 @@ class FrontiaVADModel(AbsVAD):
         while True:
             decisions = self.decisions(self.probs)
             first = self.consumed - self.probs_start
-            end = self.find_endpoint(decisions[first:], self.hangover_frames)
-            if end is None:
+            d = decisions[first:]
+            speech = np.flatnonzero(d)
+            if len(speech) == 0:
                 return
-            start = first + int(np.flatnonzero(decisions[first:])[0])
+            start = int(speech[0])
+            end = self.find_endpoint(d, self.hangover_frames)
+            # A turn that reaches max_speech_ms of speech ends there.
+            forced = (end is None or end - start > self.max_speech_frames) and (
+                len(d) - start >= self.max_speech_frames
+            )
+            if forced:
+                end = start + self.max_speech_frames
+            elif end is None:
+                return
+            start += first
             end += first
             # stream frame indices of the first speech frame and the endpoint
             start_f, end_f = self.probs_start + start, self.probs_start + end
@@ -292,6 +333,8 @@ class FrontiaVADModel(AbsVAD):
                     frame_shift=shift,
                     speech_start_s=start_f * shift,
                     endpoint_s=end_f * shift,
+                    # True when max_speech_ms, not a silence, ended the turn
+                    forced=forced,
                     start_s=start_s,
                     end_s=end_s,
                 )

@@ -248,3 +248,123 @@ def test_refuses_a_stream_that_keeps_all_audio():
     )
     with pytest.raises(ValueError, match="bounded audio"):
         FrontiaVADModel.from_detector(detector)
+
+
+def _tiny_detector(tmp_path, threshold=0.5):
+    import torch
+
+    from espnet2.bin.diar_inference import DiarizeSpeech, VoiceActivityDetector
+    from espnet2.tasks.diar import DiarizationTask
+
+    DiarizationTask.main(
+        cmd=[
+            "--dry_run",
+            "true",
+            "--output_dir",
+            str(tmp_path),
+            "--num_spk",
+            "1",
+            "--frontend_conf",
+            f"fs={FS}",
+            "--frontend_conf",
+            f"n_fft={N_FFT}",
+            "--frontend_conf",
+            f"hop_length={HOP}",
+            "--frontend_conf",
+            "center=false",
+            "--normalize",
+            "none",
+            "--encoder",
+            "tcn",
+            "--encoder_conf",
+            "causal=true",
+            "--encoder_conf",
+            "num_blocks=2",
+            "--encoder_conf",
+            "num_repeats=1",
+            "--encoder_conf",
+            "output_size=8",
+        ]
+    )
+    torch.manual_seed(0)
+    return VoiceActivityDetector(
+        DiarizeSpeech(train_config=tmp_path / "config.yaml", num_spk=1),
+        threshold=threshold,
+        median=5,
+    )
+
+
+@pytest.mark.execution_timeout(60)
+@pytest.mark.parametrize("stream_keeps_history", [False, True])
+def test_idle_memory_bounded(tmp_path, stream_keeps_history):
+    """Ten minutes of audio with no speech: what is held must not grow at all.
+
+    With no turn under way the buffers hold a fixed amount, so this finds a
+    slow leak that the size of a turn in progress would hide. The case with
+    the stream keeping its probability history (the defect CodeRabbit found
+    on #7039) shows the check finds it.
+    """
+    from test.memory_growth import assert_memory_bounded
+
+    # threshold 1.0: no frame is speech
+    vad = FrontiaVADModel.from_detector(_tiny_detector(tmp_path, threshold=1.0))
+    if stream_keeps_history:
+        vad.stream = vad.detector.stream(keep_probabilities=True)
+    chunk = (np.random.default_rng(0).normal(size=FS) * 3000).astype(np.int16)
+
+    def run():
+        assert_memory_bounded(vad, lambda: vad.forward(chunk, FS), steps=600)
+
+    if stream_keeps_history:
+        with pytest.raises(AssertionError, match=r"grown most: stream"):
+            run()
+    else:
+        run()
+
+
+@pytest.mark.execution_timeout(60)
+def test_memory_bounded_over_ten_minutes_of_audio(tmp_path):
+    """Ten minutes through a real StreamingVAD in 1 s chunks keep bounded memory.
+
+    The model is random, so its decisions are whatever they are; memory must
+    not grow either way.
+    """
+    from test.memory_growth import assert_memory_bounded
+
+    vad = FrontiaVADModel.from_detector(_tiny_detector(tmp_path))
+    rng = np.random.default_rng(0)
+    chunk = (rng.normal(size=FS) * 3000).astype(np.int16)
+    assert_memory_bounded(vad, lambda: vad.forward(chunk, FS), steps=600)
+
+
+def test_memory_bounded_over_many_turns():
+    """A turn every 2 s for 20 minutes: buffers and queue stay bounded."""
+    from test.memory_growth import assert_memory_bounded
+
+    period = 2 * FS // HOP  # frames per 2 s
+    vad = FrontiaVADModel.from_detector(
+        _detector(lambda i: 0.9 if i % period < period // 2 else 0.1)
+    )
+    chunk = np.zeros(FS // 2, dtype=np.int16)
+    assert_memory_bounded(vad, lambda: vad.forward(chunk, FS), steps=2400)
+
+
+def test_max_speech_ends_a_turn_that_never_pauses():
+    # speech without a pause; turns end every 2 s of speech
+    vad = FrontiaVADModel.from_detector(_detector(lambda i: 0.9), max_speech_ms=2000)
+    turns = []
+    for _ in range(14):  # 7 s in 0.5 s chunks
+        out = vad.forward(np.zeros(FS // 2, dtype=np.int16), FS, binary=True)
+        if out is not None:
+            turns.append(dict(vad.last_turn))
+    assert len(turns) == 3
+    assert all(t["forced"] for t in turns)
+    starts = [t["speech_start_s"] for t in turns]
+    assert np.diff(starts) == pytest.approx([2.0, 2.0])
+
+
+def test_max_speech_below_min_speech_is_refused():
+    with pytest.raises(ValueError, match="max_speech_ms"):
+        FrontiaVADModel.from_detector(
+            _detector(lambda i: 0.1), min_speech_ms=300, max_speech_ms=200
+        )
