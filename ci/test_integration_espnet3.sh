@@ -151,7 +151,7 @@ ${python} run.py \
     --training_config conf/training.yaml \
     --inference_config conf/inference.yaml \
     --metrics_config conf/metrics.yaml
-    
+
 rm -rf exp data
 
 cd "${cwd}" || exit
