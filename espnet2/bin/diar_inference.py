@@ -621,31 +621,30 @@ class DiarizeSpeech:
 #     for seg in vad.detect_file("meeting.wav"):
 #         print(f"{seg.start:.2f}\t{seg.end:.2f}")
 
-# The two published models, one place to edit when they are named:
-# - online: the dual-mode TCN of v2.3, run with look-ahead 0, so it reads no
-#   future frame and streams;
-# - offline: the v1 dual-mode TCN, run with its largest look-ahead (124 frames,
-#   0.99 s), which places the boundaries better when the whole file is there.
+# The published model of each mode, one place to edit when they are named.
+# Both modes use the dual-mode TCN of v2.3:
+# - online: run with look-ahead 0, so it reads no future frame and streams;
+# - offline: run with its largest look-ahead (124 frames, 0.99 s), which places
+#   the boundaries better when the whole file is there.
 # Each of `espnet detect`, the MCP tool, the Space and the notebook takes these
 # as defaults and lets a local .zip from stage 8 stand in for either.
 VAD_MODELS = {
     "online": "espnet/frontia_vad_v2_3",
-    "offline": "espnet/frontia_vad_v1_offline",
+    "offline": "espnet/frontia_vad_v2_3",
 }
 
 # Each model's decision rule, make_rttm.py's as stage 7 scores it: a frame is
 # speech when its probability exceeds the threshold, then a median filter of
-# that many frames smooths the 0/1 sequence. The values are each model's
-# setting with the lowest detection error on AMI MH dev, as (threshold, median).
+# that many frames smooths the 0/1 sequence. The values are the rules of the
+# v2.3 model card, tuned on AMI MH dev (ami_mh_dev_v1), as (threshold, median).
 VAD_RULES = {
     # v2.3 at look-ahead 0, the online rule of its model card, tuned on
     # ami_mh_dev_v1. The median filter is centred, so a frame's decision waits
     # for the 12 frames after it (96 ms).
     "online": (0.6, 25),
-    # the v1 dual-mode model at look-ahead 124, tuned with
-    # egs2/frontia_vad_v1/diar1/local/show_vad_result.py and scored on 21 sets
-    # with a UEM: RESULTS_vad.md of the recipe's run
-    "offline": (0.8, 11),
+    # v2.3 at look-ahead 124, the offline rule of its model card: no median
+    # filter
+    "offline": (0.6, 1),
 }
 VAD_THRESHOLD, VAD_MEDIAN = VAD_RULES["offline"]
 

@@ -1,9 +1,9 @@
-"""Voice activity detection with two TCNs, an online one and an offline one.
+"""Voice activity detection with one dual-mode TCN, run online and offline.
 
 The source of a Hugging Face Space, kept in espnet at
-egs2/frontia_vad_v1/diar1/demo. The recipe in the directory above this one
-trained the offline checkpoint; the online one, frontia_vad_v2_3, comes from
-the v2 recipe (frontia_vad_v2/diar1). The detection itself is
+egs2/frontia_vad_v1/diar1/demo. Both modes use espnet/frontia_vad_v2_3, from
+the v2 recipe (frontia_vad_v2/diar1), the successor of the recipe in the
+directory above this one. The detection itself is
 espnet2.bin.diar_inference (VoiceActivityDetector) and diar_inference_streaming
 (StreamingVAD), which `espnet detect` and the MCP tool `detect` call too, so
 the Space, the command line and the agent give the same segments for the same
@@ -56,7 +56,7 @@ GPU_SECONDS = 120
 # The offline model and the online one: diar_inference.VAD_MODELS, repeated here
 # because a Space is one directory (test_demo_apps.py checks they agree). Each
 # takes a packed .zip from stage 8 as well as a tag.
-MODEL_TAG = os.environ.get("VAD_MODEL_TAG", "espnet/frontia_vad_v1_offline")
+MODEL_TAG = os.environ.get("VAD_MODEL_TAG", "espnet/frontia_vad_v2_3")
 ONLINE_MODEL_TAG = os.environ.get("VAD_ONLINE_MODEL_TAG", "espnet/frontia_vad_v2_3")
 # ZeroGPU attaches the GPU only while a @spaces.GPU function runs, so
 # torch.cuda.is_available() is False here and asking it would pin the models to
@@ -79,20 +79,19 @@ EXAMPLE_WAV = (
 TITLE = "Voice activity detection"
 DESCRIPTION = """# Voice activity detection
 
-Two small temporal convolutional networks mark, frame by frame (8 ms), where
-someone is speaking. Both were trained with
-[ESPnet](https://github.com/espnet/espnet) as one-speaker diarization: the
-offline one by the recipe at
-[`egs2/frontia_vad_v1/diar1`](https://github.com/espnet/espnet/tree/master/egs2/frontia_vad_v1/diar1),
-the online one,
+A small temporal convolutional network,
 [`espnet/frontia_vad_v2_3`](https://huggingface.co/espnet/frontia_vad_v2_3),
-by its v2 successor.
+marks frame by frame (8 ms) where someone is speaking. It was trained with
+[ESPnet](https://github.com/espnet/espnet) as one-speaker diarization, by the
+successor of the recipe at
+[`egs2/frontia_vad_v1/diar1`](https://github.com/espnet/espnet/tree/master/egs2/frontia_vad_v1/diar1),
+and runs in two modes.
 
 **Online** runs with no look-ahead: it reads no future audio, so it runs on a
 live stream. **Offline** reads up to about a second ahead, and places the
 boundaries better for it when the whole recording is there. A frame is speech
 when its probability is above the threshold, and a median filter then removes
-blips shorter than half its length; each model has its own, tuned on AMI MH
+blips shorter than half its length; each mode has its own, tuned on AMI MH
 dev.
 """
 ARTICLE = """Source of this Space:

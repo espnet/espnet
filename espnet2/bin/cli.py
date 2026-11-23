@@ -63,11 +63,11 @@ DEFAULT_MODELS = {
     "translate": "espnet/owsm_ctc_v4_1B",
     "synthesize": "espnet/kan-bayashi_ljspeech_vits",
     "enhance": "espnet/Wangyou_Zhang_universal_train_enh_uses_refch0_2mem_raw",
-    # the offline VAD model (egs2/frontia_vad_v1/diar1); --online, --stream and
+    # the offline VAD model (v2.3 at look-ahead 124); --online, --stream and
     # --live load the online one, --online-model. Both are
     # espnet2.bin.diar_inference.VAD_MODELS, which test_cli.py holds this to;
     # either takes a packed .zip from stage 8.
-    "detect": "espnet/frontia_vad_v1_offline",
+    "detect": "espnet/frontia_vad_v2_3",
     # Bagpiper, which answers about audio and renders it. The general SFT
     # checkpoint does both directions; --model espnet/bagpiper-tts-sft is the
     # speech-focused one. Either is an 8B model: --server is the other way.
