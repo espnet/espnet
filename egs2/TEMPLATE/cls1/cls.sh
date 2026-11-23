@@ -71,6 +71,7 @@ inference_tag=    # Suffix to the inference dir for cls model inference
 output_all_probabilities=true
 
 hf_repo=        # Huggingface repo name
+hf_license=    # Huggingface license identifier for the model card
 
 # [Task dependent] Set the datadir name created by local/data.sh
 train_set=       # Name of training set.
@@ -124,6 +125,7 @@ Options:
     --output_all_probabilities # Output all probabilities in the inference stage (default="${output_all_probabilities}").
     # Huggingface related
     --hf_repo        # Huggingface repo name (default="${hf_repo}").
+    --hf_license     # Hugging Face license identifier for the model card (default="${hf_license}").
     # [Task dependent] Set the datadir name created by local/data.sh
     --train_set               # Name of training set (required).
     --valid_set               # Name of development set (required).
@@ -580,6 +582,9 @@ if ! "${skip_upload}"; then
         log "Stage 10: Upload to huggingface"
         [ -z "${hf_repo}" ] && \
             log "ERROR: You need to setup the variable hf_repo with the name of the repository located at HuggingFace, follow the following steps described here https://github.com/espnet/espnet/blob/master/CONTRIBUTING.md#133-publishing-models" && \
+        exit 1
+        [ -z "${hf_license}" ] && \
+            log "ERROR: You need to setup the variable hf_license with the Hugging Face license identifier for the model card (for example apache-2.0, mit, cc-by-4.0, or other)" && \
         exit 1
         if [ ! -f "${packed_model}" ]; then
             log "ERROR: ${packed_model} does not exist. Please run previous stage first."

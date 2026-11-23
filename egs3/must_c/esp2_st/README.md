@@ -1,14 +1,16 @@
-# must_c st data recipe
+# MuST-C speech translation recipe
+
+## Data Preparation
 
 This egs3 data module reads the **raw MuST-C v1** corpus release directly —
 no Kaldi data preparation (`egs2/must_c/st1/local/data.sh`) is required.
 
-- Language pair: the training config pins **en-de** (English speech, German
-  translation), matching `src_lang`/`tgt_lang` in `egs2/must_c/st1/run.sh`.
-  The builder itself defaults to `tgt_lang: all` (`dataset/config.yaml`) and
-  will index every `en-<tgt>` pair present under the corpus root, so pass
-  `tgt_lang="de"` — as `conf/tuning/train_st_conformer.yaml` does — to
-  reproduce egs2 exactly.
+- Language pair: **en-de** (English speech, German translation), matching
+  `src_lang`/`tgt_lang` in `egs2/must_c/st1/run.sh`. It is the builder's
+  default (`dataset/config.yaml`) and is named explicitly in
+  `conf/tuning/train_st_conformer.yaml`. One cache holds one pair; pass
+  `tgt_lang` to read another, and point `cache.cache_dir` at that pair's
+  cache.
 - Corpus version: **v1** (`MUSTC_v1.0_en-de.tar.gz` from
   https://mt.fbk.eu/must-c-release-v1-0/), matching the `"v1"` argument
   `egs2/must_c/st1/local/data.sh` passes to `local/data_prep.sh`.
@@ -81,7 +83,32 @@ no Kaldi data preparation (`egs2/must_c/st1/local/data.sh`) is required.
 
 - Scope: this module reproduces the **egs2 ST recipe** (`egs2/must_c/st1`).
 
+## Commands
+
+### Conformer ST
+
+Run these commands from `egs3/must_c/esp2_st/` after preparing the corpus:
+
+```bash
+python run.py --stages create_dataset train_tokenizer collect_stats \
+    --training_config conf/tuning/train_st_conformer.yaml
+
+python run.py --stages train \
+    --training_config conf/tuning/train_st_conformer.yaml
+
+python run.py --stages infer measure \
+    --training_config conf/tuning/train_st_conformer.yaml \
+    --inference_config conf/inference.yaml \
+    --metrics_config conf/metrics.yaml
+```
+
 ## Results
+
+### Conformer ST
+
+- Training config: `conf/tuning/train_st_conformer.yaml`
+- Inference config: `conf/inference.yaml`
+- Metrics config: `conf/metrics.yaml`
 
 MuST-C en-de, conformer ST (`conf/tuning/train_st_conformer.yaml`), trained on
 the **v1** release (`dataset/config.yaml: version: v1`), decoded with
@@ -107,7 +134,7 @@ python run.py --stages infer measure \
     --metrics_config conf/metrics.yaml
 ```
 
-### Pretrained model
+#### Pretrained model
 
 The converged model is published at
 **<https://huggingface.co/espnet/must_c_esp2_st_train_st_conformer>**, packed with
@@ -131,7 +158,7 @@ this recipe's own dataset modules; the bundle carries them alongside the
 checkpoint.
 
 
-### Comparison
+#### Comparison
 
 `egs2/must_c/st1` publishes no results, so there is no like-for-like reference.
 The nearest published number is `egs2/must_c_v2/st1`'s `decode_st_conformer`
@@ -141,7 +168,7 @@ at **25.7** BLEU on tst-COMMON, against **24.22** here. That row is MuST-C
 a like-for-like deficit -- treat it as indicative rather than a target.
 
 
-## Usage
+## Dataset usage
 
 ```python
 from egs3.must_c.esp2_st.dataset import Dataset, DatasetBuilder
@@ -154,9 +181,8 @@ builder = DatasetBuilder()
 if not builder.is_built(recipe_dir=".", cache=cache):
     builder.build(recipe_dir=".", cache=cache, tgt_lang="de")
 
-# tgt_lang="de" reproduces egs2. Omitting it takes the builder default
-# `all`, which aggregates every installed pair -- dev is then 17,740
-# examples over 14 pairs instead of en-de's 1,423.
+# tgt_lang="de" reproduces egs2 and is the builder default, so it may be
+# omitted; it is spelled out because the pair decides which cache is written.
 #
 # Lengths are post-filter: the cache holds the corpus as released (229,703
 # train segments) and the Dataset drops the ones st.sh stage 4 would.

@@ -1,3 +1,4 @@
+import logging
 from pathlib import Path
 
 import numpy as np
@@ -74,6 +75,33 @@ def test_load_num_sequence_text(loader_type: str, tmp_path: Path):
         target = load_num_sequence_text(p, loader_type=loader_type)
     for k in desired:
         np.testing.assert_array_equal(target[k], desired[k])
+
+
+@pytest.mark.parametrize("loader_type", ["text_int", "text_float"])
+def test_load_num_sequence_text_any_whitespace(loader_type: str, tmp_path: Path):
+    p = tmp_path / "dummy.txt"
+    with p.open("w") as f:
+        f.write("abc 0\t1  2\n")
+    target = load_num_sequence_text(p, loader_type=loader_type)
+    np.testing.assert_array_equal(target["abc"], np.array([0, 1, 2]))
+
+
+@pytest.mark.parametrize("loader_type", ["text_int", "csv_int"])
+def test_load_num_sequence_text_key_without_values(loader_type: str, tmp_path: Path):
+    p = tmp_path / "dummy.txt"
+    with p.open("w") as f:
+        f.write("abc\n")
+    with pytest.raises(ValueError):
+        load_num_sequence_text(p, loader_type=loader_type)
+
+
+def test_load_num_sequence_text_invalid_logs_key(tmp_path: Path, caplog):
+    p = tmp_path / "dummy.txt"
+    with p.open("w") as f:
+        f.write("abc 1,x\n")
+    with caplog.at_level(logging.ERROR), pytest.raises(ValueError):
+        load_num_sequence_text(p)
+    assert 'id="abc"' in caplog.text
 
 
 def test_load_num_sequence_text_invalid(tmp_path: Path):

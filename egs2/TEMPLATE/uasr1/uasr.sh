@@ -141,6 +141,7 @@ remove_silence=true # Remove silence token in hyp
 
 # Upload model related
 hf_repo=        # Specify a Huggingface directory.
+hf_license=    # Hugging Face license identifier for the model card.
 
 # [Task dependent] Set the datadir name created by local/data.sh
 train_set=       # Name of training set.
@@ -272,6 +273,7 @@ Options:
 
     # Model uploading related
     --hf_repo             # Specify a Huggingface directory (default="${hf_repo}")
+    --hf_license          # Hugging Face license identifier for the model card (default="${hf_license}")
 
     # [Task dependent] Set the datadir name created by local/data.sh
     --train_set     # Name of training set (required).
@@ -1793,6 +1795,9 @@ if ! "${skip_upload_hf}"; then
     if [ ${stage} -le 20 ] && [ ${stop_stage} -ge 20 ]; then
         [ -z "${hf_repo}" ] && \
             log "ERROR: You need to setup the variable hf_repo with the name of the repository located at HuggingFace, follow the following steps described here https://github.com/espnet/espnet/blob/master/CONTRIBUTING.md#133-publishing-models" && \
+            exit 1
+        [ -z "${hf_license}" ] && \
+            log "ERROR: You need to setup the variable hf_license with the Hugging Face license identifier for the model card (for example apache-2.0, mit, cc-by-4.0, or other)" && \
             exit 1
         log "Stage 20: Upload model to HuggingFace: ${hf_repo}"
 

@@ -27,7 +27,6 @@ class MEGA(torch.nn.Module):
         num_heads: Number of EMA heads.
         qk_size: Shared query and key size for attention module.
         v_size: Value size for attention module.
-        qk_v_size: (QK, V) sizes for attention module.
         activation: Activation function type.
         normalization: Normalization module.
         rel_pos_bias_type: Type of relative position bias in attention module.
