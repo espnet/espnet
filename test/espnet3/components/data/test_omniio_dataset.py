@@ -1,22 +1,17 @@
-"""Tests for espnet3.components.data.omniio_dataset and its dataloader hooks."""
+"""Tests for espnet3.components.data.omniio_dataset."""
+
+import pickle
 
 import numpy as np
 import pytest
 import soundfile as sf
-from omegaconf import OmegaConf
 
 pytest.importorskip("omniio")
 pytest.importorskip("duckdb")
 
-from espnet3.components.data.dataloader import (  # noqa: E402
-    DataLoaderBuilder,
-    _write_lengths_as_shape_file,
-)
-from espnet3.components.data.dataset import (  # noqa: E402
-    CombinedDataset,
-    ShardedDataset,
-)
+from espnet3.components.data.dataset import ShardedDataset  # noqa: E402
 from espnet3.components.data.omniio_dataset import (  # noqa: E402
+    DUMP_COMPLETE_FILE,
     DUMP_ROOT_ENV,
     OmniIODataset,
     ShardedOmniIODataset,
@@ -299,99 +294,6 @@ def test_errors(dump):
         dump_blob(root / "a", "text", ["a"], ["1", "2"])
 
 
-# ---------------------------------------------------------------------- #
-# DataLoaderBuilder: lengths_from_dataset and rank-local shards
-# ---------------------------------------------------------------------- #
-
-
-def _combined(ds):
-    combined = CombinedDataset([ds], [(None, None)], use_espnet_preprocessor=False)
-    combined.use_espnet_collator = True  # items come as (uid, item)
-    return combined
-
-
-def collate_texts(batch):
-    """Collate a batch of ``(uid, item)`` pairs to its transcripts."""
-    return [item["text"] for _, item in batch]
-
-
-def test_dataset_shape_file(dump):
-    """The temporary shape file lists every item's length by index."""
-    root, _, _ = dump
-    combined = _combined(_paired(root))
-    with _write_lengths_as_shape_file(combined) as path:
-        lines = open(path).read().splitlines()
-    expected = combined.datasets[0].get_item_lengths()
-    assert lines == [f"{i} {n}" for i, n in enumerate(expected)]
-
-
-def _iter_config(batch_bins):
-    """Return a dataloader config batching by lengths_from_dataset."""
-    return OmegaConf.create(
-        {
-            "dataloader": {
-                "train": {
-                    "iter_factory": {
-                        "_target_": (
-                            "espnet2.iterators.sequence_iter_factory."
-                            "SequenceIterFactory"
-                        ),
-                        "shuffle": False,
-                        "collate_fn": {
-                            "_target_": (
-                                "test.espnet3.components.data."
-                                "test_omniio_dataset.collate_texts"
-                            ),
-                            "_partial_": True,
-                        },
-                        "batches": {
-                            "type": "numel",
-                            "lengths_from_dataset": True,
-                            "shape_files": [],
-                            "batch_size": 1,
-                            "batch_bins": batch_bins,
-                        },
-                    }
-                }
-            }
-        }
-    )
-
-
-@pytest.mark.parametrize("rank", [0, 1])
-def test_builder_rank_shards_are_not_strided(monkeypatch, dump, rank):
-    """Each rank batches only its own shard and matches batch counts."""
-    import espnet3.components.data.dataloader as dl
-
-    root, _, _ = dump
-    monkeypatch.setattr(dl.torch.distributed, "get_world_size", lambda: 2)
-    monkeypatch.setattr(dl.torch.distributed, "get_rank", lambda: rank)
-    monkeypatch.setattr(dl.torch.distributed, "is_initialized", lambda: True)
-    monkeypatch.setattr(dl.torch.distributed, "get_backend", lambda: "gloo")
-    # The other rank has 2 batches: this rank must keep exactly 2.
-    monkeypatch.setattr(
-        dl.torch.distributed,
-        "all_reduce",
-        lambda t, op=None: t.fill_(min(int(t.item()), 2)),
-    )
-    sharded = _paired(root, total_shards=2, dist_world_size=2)
-    combined = _combined(sharded)
-    builder = DataLoaderBuilder(
-        dataset=combined,
-        config=_iter_config(1),  # one utterance per batch
-        collate_fn=None,
-        num_device=2,
-        epoch=0,
-    )
-    loader = builder.build("train")
-    assert builder._rank_sharded
-    batches = list(loader)
-    assert len(batches) == 2
-    shard_texts = {f"TEXT {uid}" for uid in sharded.shard(rank).keys()}
-    emitted = [text for batch in batches for text in batch]
-    assert len(emitted) == 2 and set(emitted) <= shard_texts
-
-
 def test_query_trailing_semicolon(dump):
     """A trailing semicolon in the query is accepted."""
     root, _, _ = dump
@@ -473,3 +375,103 @@ def test_duplicate_ids_rejected_by_id_lookup(dump):
     assert len(ds) == N_AUDIO  # integer access still works
     with pytest.raises(ValueError, match="duplicate IDs"):
         ds.get_by_id("dup")
+
+
+class RecipeDataset(OmniIODataset):
+    """A module-level recipe subclass, so pickle can find it by name."""
+
+    def __init__(self, root, total_shards=None):
+        """Select the paired toy data."""
+        super().__init__(
+            query=PAIRED.format(where=""),
+            fields={"speech": "audio", "text": "text"},
+            params={"split": "train"},
+            dump_root=root,
+            total_shards=total_shards,
+        )
+
+
+def test_sharded_datasets_pickle(dump):
+    """Sharded datasets and their shards survive pickling (spawn workers)."""
+    root, _, _ = dump
+    for ds in (RecipeDataset(root, total_shards=2), _paired(root, total_shards=2)):
+        for obj in (ds, ds.shard(1)):
+            copy = pickle.loads(pickle.dumps(obj))
+            assert type(copy) is type(obj)
+            assert isinstance(copy, ShardedDataset)
+            assert copy.keys() == obj.keys()
+            assert copy[0]["text"] == obj[0]["text"]
+    assert type(pickle.loads(pickle.dumps(RecipeDataset(root)))) is RecipeDataset
+
+
+def test_resolve_dump_root_default(monkeypatch, tmp_path):
+    """The default applies only when neither argument nor environment is set."""
+    monkeypatch.delenv(DUMP_ROOT_ENV, raising=False)
+    assert resolve_dump_root(None, default=tmp_path) == tmp_path
+    monkeypatch.setenv(DUMP_ROOT_ENV, "/env")
+    assert resolve_dump_root(None, default=tmp_path) == resolve_dump_root("/env")
+
+
+def test_partial_dump_is_not_complete(tmp_path):
+    """A failed append leaves metadata.parquet but no completion marker."""
+    path = tmp_path / "text"
+    files = []
+    for i in range(4):
+        files.append(tmp_path / f"t{i}.txt")
+        files[-1].write_text(f"text {i}")
+    files[2] = tmp_path / "missing.txt"
+    ids = [f"t{i}" for i in range(4)]
+    with pytest.raises(Exception):
+        dump_blob(
+            path,
+            "text",
+            [str(f) for f in files],
+            ids,
+            is_path=True,
+            compression_level=3,
+        )
+    assert not is_blob_dumped(path)
+    files[2] = tmp_path / "t2.txt"
+    files[2].write_text("text 2")
+    dump_blob(
+        path, "text", [str(f) for f in files], ids, is_path=True, compression_level=3
+    )
+    assert is_blob_dumped(path) and (path / DUMP_COMPLETE_FILE).is_file()
+
+
+def test_moved_dump_names_missing_blob(dump, tmp_path):
+    """A moved dump fails with an error naming the stale blob path."""
+    import shutil
+
+    root, _, _ = dump
+    moved = tmp_path / "moved"
+    shutil.copytree(root, moved)
+    shutil.rmtree(root)
+    ds = _paired(moved)
+    with pytest.raises(FileNotFoundError, match="absolute blob paths"):
+        ds[0]
+    with pytest.raises(FileNotFoundError, match="absolute blob paths"):
+        ds.keys()
+
+
+def test_null_length_rejected():
+    """NULL lengths (e.g. after a LEFT JOIN) give an actionable error."""
+    ds = OmniIODataset(
+        query=(
+            "SELECT * FROM (VALUES ('a', 'x', 1), ('b', 'y', NULL)) "
+            "t(id, text, length)"
+        ),
+        fields={"text": "text"},
+    )
+    with pytest.raises(ValueError, match="NULL for 1 rows"):
+        ds.get_item_lengths()
+
+
+def test_dump_root_with_comma_rejected(tmp_path):
+    """Commas in the dump root are refused: file_search_path splits on them."""
+    with pytest.raises(ValueError, match="comma"):
+        OmniIODataset(
+            query="SELECT 'a' AS id, 'x' AS text",
+            fields={"text": "text"},
+            dump_root=tmp_path / "a,b",
+        )

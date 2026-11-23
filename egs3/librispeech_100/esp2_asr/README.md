@@ -43,9 +43,18 @@ downloads) the corpus as above, then writes each split with omniio's
 
 Both blobs use the LibriSpeech utterance ID (`103-1240-0000`) as `id`, so an
 utterance and its transcript are the rows with the same ID. `<dump_root>` is
-`create_dataset.dump_root`, else `$OMNIIO_DUMP_ROOT`, else `dump/omniio/` in
-this directory. Finished splits are skipped, and when the whole dump already
-exists (for example one shared by another user) the raw corpus is not needed.
+the configs' `omniio_dump_root`: `$OMNIIO_DUMP_ROOT`, else `dump/omniio/` in
+this directory. `create_dataset`, every dataset entry and the tokenizer text
+builder all read it, so the dump is configured in one place.
+
+A blob counts as finished once `create_dataset` has written all of its items
+and marked it with a `.dump_complete` file; an interrupted or failed dump is
+completed on the next run. When every split is finished the raw corpus is not
+needed, so a dump made by another user on the same file system can be used
+directly. omniio records absolute blob paths in `metadata.parquet`, though, so
+a dump that is moved or copied to another location must have the `path`
+column of each `metadata.parquet` rewritten; reading such a dump otherwise
+fails with an error naming the missing blob file.
 
 Each dataset entry reads one split through `default_query` in
 [`dataset/omniio/config.yaml`](dataset/omniio/config.yaml), a DuckDB query
@@ -82,8 +91,11 @@ training rows are split into `total_shards` shards by `hash(id)`, and each GPU
 loads only its own shard. `dataloader.train.dist_world_size` must equal the
 total number of GPUs (`num_device * num_nodes`), and `total_shards` must be a
 positive multiple of it; with more shards than GPUs, ranks rotate through the
-shards from epoch to epoch. Ranks keep the same number of batches each epoch,
-dropping a few at random when shards differ in size.
+shards from epoch to epoch. Ranks keep the same number of batches each epoch:
+every rank keeps as many as the smallest shard gives and drops the rest at
+random, different ones each epoch. With 8 shards by `id` this drops about 3%
+of the batches per epoch; sharding by a coarse column such as speaker
+(`shard_by`) drops far more, and a warning is logged above 10%.
 
 ## Commands
 

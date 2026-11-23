@@ -19,8 +19,9 @@ builder:
   dump:
     # Blob.append worker processes
     num_workers: 8
-    # LibriSpeech is already 16-bit FLAC, so it is stored as-is (no re-encode).
-    audio: {}
+    # omniio writer options per modality. LibriSpeech is already 16-bit FLAC,
+    # so the audio is stored as-is: no options (e.g. target_format) are given.
+    audio:
     text:
       is_path: false
       compression_level: 3

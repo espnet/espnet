@@ -1136,7 +1136,7 @@ def _length_combined(dataset):
     return combined
 
 
-def _lengths_iter_config(batch_bins):
+def _lengths_iter_config(batch_bins, collate="collate_uids"):
     """Return a numel iter_factory config with lengths_from_dataset."""
     return OmegaConf.create(
         {
@@ -1151,7 +1151,7 @@ def _lengths_iter_config(batch_bins):
                         "collate_fn": {
                             "_target_": (
                                 "test.espnet3.components.data."
-                                "test_dataloader_builder.collate_uids"
+                                f"test_dataloader_builder.{collate}"
                             ),
                             "_partial_": True,
                         },
@@ -1218,3 +1218,147 @@ def test_builder_empty_dataset_has_no_batches():
         combined, _lengths_iter_config(100), collate_fn=None, num_device=1, epoch=0
     )
     assert list(builder.build("train")) == []
+
+
+def test_dataset_shape_file_lists_lengths_by_index():
+    """The temporary shape file lists each item's length by combined index."""
+    from espnet3.components.data.dataloader import _write_lengths_as_shape_file
+
+    combined = _length_combined(LengthDataset([4, 2, 9]))
+    with _write_lengths_as_shape_file(combined) as path:
+        assert open(path).read().splitlines() == ["0 4", "1 2", "2 9"]
+
+
+def test_lengths_from_dataset_rejects_shape_files():
+    """shape_files cannot be combined with lengths_from_dataset."""
+    config = _lengths_iter_config(100)
+    config.dataloader.train.iter_factory.batches.shape_files = ["feats_shape"]
+    builder = build_builder(
+        _length_combined(LengthDataset([1, 2])),
+        config,
+        collate_fn=None,
+        num_device=1,
+        epoch=0,
+    )
+    with pytest.raises(ValueError, match="shape_files must be empty"):
+        builder.build("train")
+
+
+class LengthShardedDataset(ShardedDataset):
+    """Items with lengths and texts, sharded by index modulo total_shards."""
+
+    def __init__(self, lengths, names=None, total_shards=2, dist_world_size=2):
+        """Store one length and one text per item."""
+        self.lengths = list(lengths)
+        self.names = names or [f"item{i}" for i in range(len(self.lengths))]
+        self.total_shards = total_shards
+        self.dist_world_size = dist_world_size
+
+    def __len__(self):
+        """Return the number of items."""
+        return len(self.lengths)
+
+    def __getitem__(self, idx):
+        """Return a zero waveform and the item's text."""
+        if not 0 <= int(idx) < len(self.lengths):
+            raise IndexError(idx)
+        return {
+            "audio": np.zeros(int(self.lengths[idx]), dtype=np.float32),
+            "text": self.names[idx],
+        }
+
+    def get_item_lengths(self):
+        """Return every item's length."""
+        return np.asarray(self.lengths)
+
+    def shard(self, idx):
+        """Return the items whose index is ``idx`` modulo ``total_shards``."""
+        keep = range(idx, len(self.lengths), self.total_shards)
+        return LengthShardedDataset(
+            [self.lengths[i] for i in keep],
+            [self.names[i] for i in keep],
+            self.total_shards,
+            self.dist_world_size,
+        )
+
+
+def collate_texts(batch):
+    """Collate ``(uid, item)`` pairs to the items' texts."""
+    return [item["text"] for _, item in batch]
+
+
+def _fake_world(monkeypatch, rank, world_size=2, other_count=None):
+    """Pretend to run as ``rank`` of ``world_size``; other ranks have N batches."""
+    import espnet3.components.data.dataloader as dl
+
+    monkeypatch.setattr(dl.torch.distributed, "is_initialized", lambda: True)
+    monkeypatch.setattr(dl.torch.distributed, "get_world_size", lambda: world_size)
+    monkeypatch.setattr(dl.torch.distributed, "get_rank", lambda: rank)
+    monkeypatch.setattr(dl.torch.distributed, "get_backend", lambda: "gloo")
+
+    def all_reduce(tensor, op=None):
+        # Batch-count equalization reduces [count, -count]: take the MIN
+        # with another rank's [n, -n]. Other reductions (e.g. the epoch
+        # iterator's step count) see every rank agree.
+        if other_count is None or tensor.numel() != 2:
+            return
+        tensor[0] = min(int(tensor[0]), other_count)
+        tensor[1] = min(int(tensor[1]), -other_count)
+
+    monkeypatch.setattr(dl.torch.distributed, "all_reduce", all_reduce)
+
+
+def _build_sharded(rank, num_device=2):
+    """Build the train loader of six items sharded two ways, one per batch."""
+    builder = build_builder(
+        _length_combined(LengthShardedDataset([5] * 6)),
+        _lengths_iter_config(1, collate="collate_texts"),
+        collate_fn=None,
+        num_device=num_device,
+        epoch=0,
+    )
+    return builder, list(builder.build("train"))
+
+
+@pytest.mark.parametrize("rank", [0, 1])
+def test_rank_shards_are_not_strided(monkeypatch, rank):
+    """Each rank batches its own shard and keeps the other ranks' count."""
+    _fake_world(monkeypatch, rank, other_count=2)
+    builder, batches = _build_sharded(rank)
+    assert builder._rank_sharded
+    texts = [text for batch in batches for text in batch]
+    # The shard has 3 one-item batches; 2 are kept, all from this shard.
+    assert len(batches) == 2
+    assert set(texts) <= {f"item{i}" for i in range(rank, 6, 2)}
+
+
+def test_rank_shards_warn_when_many_batches_dropped(monkeypatch, caplog):
+    """Dropping more than 10% of a rank's batches is logged as a warning."""
+    _fake_world(monkeypatch, 0, other_count=1)
+    with caplog.at_level("WARNING"):
+        _, batches = _build_sharded(0)
+    assert len(batches) == 1
+    assert "66.7% dropped" in caplog.text
+
+
+def test_rank_shards_empty_rank_raises(monkeypatch):
+    """A rank with no batches while others have some fails on every rank."""
+    _fake_world(monkeypatch, 0, other_count=0)
+    with pytest.raises(RuntimeError, match="a rank has no batches"):
+        _build_sharded(0)
+
+
+@pytest.mark.parametrize("rank", [0, 1])
+def test_one_device_per_node_strides_batches(monkeypatch, rank):
+    """num_device: 1 on several nodes still splits batches across ranks."""
+    _fake_world(monkeypatch, rank)
+    builder = build_builder(
+        _length_combined(LengthDataset([5] * 6)),
+        _lengths_iter_config(1),
+        collate_fn=None,
+        num_device=1,
+        epoch=0,
+    )
+    assert builder._get_world_info() == (rank, 2)
+    uids = [int(u) for batch in builder.build("train") for u in batch]
+    assert len(uids) == 3 and all(u % 2 == rank for u in uids)

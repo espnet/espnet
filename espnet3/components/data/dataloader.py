@@ -171,8 +171,9 @@ class DataLoaderBuilder:
         """Return ``(rank, world_size)`` of the initialized process group.
 
         Uses the process group when ``num_device > 1`` or one is initialized,
-        so ``num_device: 1`` across several nodes (one GPU per node) still
-        selects shards by the real world size; ``(0, 1)`` otherwise.
+        so with ``num_device: 1`` across several nodes (one GPU per node)
+        shard selection and per-GPU batch striding both see the real world
+        size; ``(0, 1)`` otherwise.
         """
         if self.num_device > 1 or (
             torch.distributed.is_available() and torch.distributed.is_initialized()
@@ -241,20 +242,40 @@ class DataLoaderBuilder:
 
         Used when every rank batches its own shard of the data: shards differ
         in size, and DDP hangs when ranks run different numbers of steps. The
-        dropped batches change every epoch, so no item is always left out.
+        dropped batches change every epoch, so no item is always left out,
+        but each epoch covers less data the more the shards differ: sharding
+        by a coarse column (e.g. speaker) drops far more than sharding by ID.
+        A warning is logged when a rank drops more than 10% of its batches.
+
+        Raises:
+            RuntimeError: On every rank, if some rank has no batches while
+                others do; training would otherwise run no steps silently.
         """
         if not torch.distributed.is_initialized():
             return batches
-        count = torch.tensor(len(batches), device=self._get_collective_device())
-        torch.distributed.all_reduce(count, op=torch.distributed.ReduceOp.MIN)
-        keep = int(count.item())
+        # One all_reduce gives the min and (negated) max batch count.
+        counts = torch.tensor(
+            [len(batches), -len(batches)], device=self._get_collective_device()
+        )
+        torch.distributed.all_reduce(counts, op=torch.distributed.ReduceOp.MIN)
+        keep, most = int(counts[0].item()), -int(counts[1].item())
+        if keep == 0 and most > 0:
+            raise RuntimeError(
+                f"[{mode}] a rank has no batches in its shard while another has "
+                f"{most}, so every rank would run no steps. Use fewer shards "
+                "or GPUs, or shard by a finer column (shard_by)."
+            )
         if keep == len(batches):
             return batches
-        logger.info(
-            "[%s] rank-local batches: keeping %d of %d to match other ranks",
+        dropped = 1 - keep / len(batches)
+        log = logger.warning if dropped > 0.1 else logger.info
+        log(
+            "[%s] rank-local batches: keeping %d of %d (%.1f%% dropped) to "
+            "match other ranks",
             mode,
             keep,
             len(batches),
+            100 * dropped,
         )
         rng = np.random.default_rng(
             [self.epoch, torch.distributed.get_rank(), len(batches)]
@@ -432,6 +453,12 @@ class DataLoaderBuilder:
         # instead of collect_stats shape files: no statistics pass is needed,
         # and a rank-sharded dataset plans batches over its own shard only.
         lengths_from_dataset = sampler_config.pop("lengths_from_dataset", False)
+        if lengths_from_dataset and sampler_config.get("shape_files"):
+            raise ValueError(
+                "batches.lengths_from_dataset takes the lengths from the "
+                "dataset, so batches.shape_files must be empty; set "
+                "`shape_files: []` to override the TEMPLATE default."
+            )
         if batch_distribution == "global" and torch.distributed.is_initialized():
             # Match ESPnet2: every shared batch must be splittable across ranks.
             sampler_config["min_batch_size"] = torch.distributed.get_world_size()
@@ -488,10 +515,9 @@ class DataLoaderBuilder:
                         "adjust the sampler's minimum batch size or use per_gpu."
                     )
             batches = [batch[rank::world_size] for batch in batches]
-        elif self.num_device > 1:
+        elif self._get_world_info()[1] > 1:
             batches = list(batches)
-            world_size = torch.distributed.get_world_size()
-            rank = torch.distributed.get_rank()
+            rank, world_size = self._get_world_info()
             total_batches = len(batches)
             remainder = total_batches % world_size
             if remainder != 0:

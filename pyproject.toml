@@ -151,8 +151,10 @@ train = [
   "datasets",
   "dask[distributed]",
   "dask_jobqueue",
-  # SQL index over omniio dumps (espnet3/components/data/omniio_dataset.py)
-  "duckdb",
+  # SQL index over omniio dumps (espnet3/components/data/omniio_dataset.py).
+  # 1.1 is the floor: earlier versions ignore file_search_path, which resolves
+  # the queries' relative paths against the dump root.
+  "duckdb>=1.1",
 ]
 # Two of the packages below are ESPnet-maintained forks of projects whose
 # upstream releases do not work here, published to PyPI under their own names:

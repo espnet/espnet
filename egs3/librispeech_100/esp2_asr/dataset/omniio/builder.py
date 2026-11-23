@@ -17,7 +17,6 @@ is not needed at all.
 from __future__ import annotations
 
 import logging
-import os
 from importlib import resources
 from pathlib import Path
 
@@ -26,10 +25,10 @@ from egs3.librispeech_100.esp2_asr.dataset.builder import (
     resolve_source_root,
 )
 from espnet3.components.data.omniio_dataset import (
-    DUMP_ROOT_ENV,
     dump_blob,
     get_blob_dir,
     is_blob_dumped,
+    resolve_dump_root,
 )
 from espnet3.utils.config_utils import load_config_with_defaults
 
@@ -50,24 +49,23 @@ SPLITS = [str(split) for split in _CFG["splits"]]
 _DEFAULT_RECIPE_ROOT = Path(__file__).resolve().parents[2]
 
 
-def resolve_dump_root(
+def resolve_recipe_dump_root(
     recipe_dir: str | Path | None = None,
     dump_root: str | Path | None = None,
 ) -> Path:
-    """Return the omniio dump root.
+    """Return the omniio dump root of this recipe.
 
     ``dump_root`` is the argument, else ``$OMNIIO_DUMP_ROOT``, else
-    ``<recipe_dir>/dump/omniio``.
+    ``<recipe_dir>/dump/omniio`` (the recipe's own directory when
+    ``recipe_dir`` is not given).
 
     Examples:
-        >>> resolve_dump_root(dump_root="/data/omniio_dump")
+        >>> resolve_recipe_dump_root(dump_root="/data/omniio_dump")
         PosixPath('/data/omniio_dump')
     """
-    root = dump_root or os.environ.get(DUMP_ROOT_ENV) or None
-    if root is None:
-        recipe_root = Path(recipe_dir).resolve() if recipe_dir else _DEFAULT_RECIPE_ROOT
-        root = recipe_root / str(_CFG["local_dump_dir"])
-    return Path(root)
+    recipe_root = Path(recipe_dir).resolve() if recipe_dir else _DEFAULT_RECIPE_ROOT
+    default = recipe_root / str(_CFG["local_dump_dir"])
+    return resolve_dump_root(dump_root, default=default)
 
 
 def scan_split(split_dir: Path) -> list[tuple[str, Path, str]]:
@@ -137,7 +135,7 @@ class LibriSpeech100OmniIOBuilder(LibriSpeech100Builder):
         **_kwargs,
     ) -> bool:
         """Return whether every split has finished audio and text blobs."""
-        root = resolve_dump_root(recipe_dir, dump_root)
+        root = resolve_recipe_dump_root(recipe_dir, dump_root)
         return all(
             is_blob_dumped(get_blob_dir(root, modality, CORPUS, split))
             for split in SPLITS
@@ -160,7 +158,7 @@ class LibriSpeech100OmniIOBuilder(LibriSpeech100Builder):
         Raises:
             FileNotFoundError: If the raw corpus is needed but not found.
         """
-        root = resolve_dump_root(recipe_dir, dump_root)
+        root = resolve_recipe_dump_root(recipe_dir, dump_root)
         dump_config = _CFG["dump"]
         workers = int(
             dump_config["num_workers"] if num_workers is None else num_workers
@@ -180,7 +178,7 @@ class LibriSpeech100OmniIOBuilder(LibriSpeech100Builder):
                 [str(flac) for _, flac, _ in examples],
                 ids,
                 num_workers=workers,
-                **dict(dump_config["audio"]),
+                **dict(dump_config["audio"] or {}),
             )
             dump_blob(
                 text_dir,
@@ -188,5 +186,5 @@ class LibriSpeech100OmniIOBuilder(LibriSpeech100Builder):
                 [text for _, _, text in examples],
                 ids,
                 num_workers=workers,
-                **dict(dump_config["text"]),
+                **dict(dump_config["text"] or {}),
             )

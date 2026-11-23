@@ -6,7 +6,9 @@ from importlib import resources
 from pathlib import Path
 from typing import Any, Mapping
 
-from egs3.librispeech_100.esp2_asr.dataset.omniio.builder import resolve_dump_root
+from egs3.librispeech_100.esp2_asr.dataset.omniio.builder import (
+    resolve_recipe_dump_root,
+)
 from espnet3.components.data.omniio_dataset import OmniIODataset
 from espnet3.utils.config_utils import load_config_with_defaults
 
@@ -64,7 +66,7 @@ class LibriSpeech100OmniIODataset(OmniIODataset):
             query=query or DEFAULT_QUERY,
             fields={"speech": "audio", "text": "text"},
             params=params,
-            dump_root=resolve_dump_root(recipe_dir, dump_root),
+            dump_root=resolve_recipe_dump_root(recipe_dir, dump_root),
             total_shards=total_shards,
             dist_world_size=dist_world_size,
             shard_by=shard_by,

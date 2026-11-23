@@ -5,8 +5,15 @@
 # of the raw LibriSpeech tree. Model and optimization settings are the same.
 #
 # Quick usage:
-#   python run.py --stages create_dataset train_tokenizer collect_stats train \
+#   python run.py --stages create_dataset train_tokenizer \
 #       --training_config conf/tuning/training_e_branchformer_omniio.yaml
+#   python run.py --stages collect_stats \
+#       --training_config conf/tuning/training_e_branchformer_omniio.yaml
+#   python run.py --stages train \
+#       --training_config conf/tuning/training_e_branchformer_omniio.yaml
+# Run collect_stats and train as separate commands: collect_stats removes
+# `model.normalize` from the config it was given, so a train stage in the
+# same command would train without global mean/variance normalization.
 #
 # Note:
 # This configuration inherits `num_device: 1` from the TEMPLATE config; it is
@@ -21,6 +28,10 @@
 # `recipe_dir`, `data_dir`, `exp_tag`, `exp_dir`, and `stats_dir` are inherited
 # from the TEMPLATE config. In particular, `exp_tag` follows `${self_name:}`.
 task: espnet3.systems.esp2_asr.task.ASRTask
+
+# The omniio dump, used by create_dataset, every dataset entry and the
+# tokenizer text builder: $OMNIIO_DUMP_ROOT, else ${recipe_dir}/dump/omniio.
+omniio_dump_root: ${oc.env:OMNIIO_DUMP_ROOT,${recipe_dir}/dump/omniio}
 
 ##########################################################
 #                    DATASET DEFINITION                  #
@@ -38,15 +49,18 @@ dataset:
     - data_src: egs3.librispeech_100.esp2_asr.dataset.omniio
       data_src_args:
         split: train-clean-100
+        dump_root: ${omniio_dump_root}
         total_shards: ${dataloader.train.total_shards}
         dist_world_size: ${dataloader.train.dist_world_size}
   valid:
     - data_src: egs3.librispeech_100.esp2_asr.dataset.omniio
       data_src_args:
         split: dev-clean
+        dump_root: ${omniio_dump_root}
     - data_src: egs3.librispeech_100.esp2_asr.dataset.omniio
       data_src_args:
         split: dev-other
+        dump_root: ${omniio_dump_root}
   preprocessor:
     _target_: espnet2.train.preprocessor.CommonPreprocessor
     train: true
@@ -62,17 +76,12 @@ dataset:
 
 # create_dataset locates raw LibriSpeech (`source_dir`, else $LIBRISPEECH,
 # else ${recipe_dir}/download, downloading missing splits there) and dumps it
-# with omniio's Blob.append to `dump_root`, else $OMNIIO_DUMP_ROOT, else
-# ${recipe_dir}/dump/omniio. A finished dump is reused as-is.
-#
-# These options apply to create_dataset only. Training and tokenizer training
-# find the dump through $OMNIIO_DUMP_ROOT, else ${recipe_dir}/dump/omniio, so
-# if you set `dump_root` here, export OMNIIO_DUMP_ROOT to the same path or pass
-# `dump_root` to each dataset entry and to `tokenizer.text_builder` as well.
+# with omniio's Blob.append to `omniio_dump_root`. A finished dump is reused
+# as-is, and then the raw corpus is not needed.
 create_dataset:
   recipe_dir: ${recipe_dir}
+  dump_root: ${omniio_dump_root}
   # source_dir: /path/to/LibriSpeech
-  # dump_root: /path/to/omniio_dump
   # num_workers: 8      # Blob.append worker processes
 
 ##########################################################
@@ -86,6 +95,7 @@ tokenizer:
   text_builder:
     func: egs3.librispeech_100.esp2_asr.dataset.omniio.tokenizer.gather_training_text
     recipe_dir: ${recipe_dir}
+    dump_root: ${omniio_dump_root}
     split: train-clean-100
 
 ##########################################################
@@ -193,7 +203,10 @@ dataloader:
   train:
     # One index shard per GPU (see DATASET DEFINITION). dist_world_size must
     # equal the total number of GPUs (num_device * num_nodes for multi-node);
-    # total_shards must be a positive multiple of it.
+    # total_shards must be a positive multiple of it. Shards differ a little
+    # in size and every rank keeps as many batches as the smallest shard
+    # gives, so each epoch drops some batches (about 3% with 8 shards by id
+    # here); sharding by a coarse column such as speaker drops far more.
     total_shards: ${num_device}
     dist_world_size: ${num_device}
     iter_factory:

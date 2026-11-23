@@ -41,6 +41,7 @@ GPU holds the index of its own shard and never the full one.
 from __future__ import annotations
 
 import copy
+import functools
 import logging
 import os
 from contextlib import contextmanager
@@ -57,6 +58,10 @@ logger = logging.getLogger(__name__)
 
 DUMP_ROOT_ENV = "OMNIIO_DUMP_ROOT"
 METADATA_FILE = "metadata.parquet"
+# Written by dump_blob once every item is in the blob. omniio writes
+# metadata.parquet even when an append fails partway, so that file alone does
+# not mark a finished dump.
+DUMP_COMPLETE_FILE = ".dump_complete"
 BLOB_SUFFIXES = ("_path", "_start", "_size")
 
 
@@ -85,23 +90,27 @@ _READERS: dict[str, Callable[[str, int, int], Any]] = {
 }
 
 
-def resolve_dump_root(dump_root: str | Path | None = None) -> Path:
-    """Return the omniio dump root: ``dump_root``, else ``$OMNIIO_DUMP_ROOT``.
+def resolve_dump_root(
+    dump_root: str | Path | None = None,
+    default: str | Path | None = None,
+) -> Path:
+    """Return ``dump_root``, else ``$OMNIIO_DUMP_ROOT``, else ``default``.
 
     Raises:
-        ValueError: If neither ``dump_root`` nor ``$OMNIIO_DUMP_ROOT`` is set.
+        ValueError: If none of the three is set.
 
     Examples:
         >>> resolve_dump_root("/data/omniio_dump")
         PosixPath('/data/omniio_dump')
+        >>> resolve_dump_root(None, default="dump/omniio")  # doctest: +SKIP
+        PosixPath('dump/omniio')
     """
-    if dump_root is None:
-        dump_root = os.environ.get(DUMP_ROOT_ENV) or None
-    if dump_root is None:
+    root = dump_root or os.environ.get(DUMP_ROOT_ENV) or default
+    if not root:
         raise ValueError(
             f"No omniio dump root: pass dump_root or set ${DUMP_ROOT_ENV}."
         )
-    return Path(dump_root)
+    return Path(root)
 
 
 def get_blob_dir(
@@ -121,16 +130,17 @@ def get_blob_dir(
 
 
 def is_blob_dumped(path: str | Path) -> bool:
-    """Return whether ``path`` holds a finished blob.
+    """Return whether ``path`` holds a blob finished by :func:`dump_blob`.
 
-    ``Blob.append`` writes ``metadata.parquet`` only after every worker shard
-    has been merged, so its presence marks a completed append.
+    ``Blob.append`` writes ``metadata.parquet`` even when it fails partway, so
+    completion is marked separately, by the ``.dump_complete`` file
+    :func:`dump_blob` writes once every requested item is in the blob.
 
     Examples:
         >>> is_blob_dumped("/nonexistent/audio/librispeech/dev-clean")
         False
     """
-    return (Path(path) / METADATA_FILE).is_file()
+    return (Path(path) / DUMP_COMPLETE_FILE).is_file()
 
 
 def dump_blob(
@@ -145,7 +155,9 @@ def dump_blob(
 
     IDs already in the blob are skipped, so an interrupted dump can be re-run
     and only writes what is missing. Any item omniio fails to encode aborts
-    the dump: a silently incomplete blob would break joins on ``id``.
+    the dump: a silently incomplete blob would break joins on ``id``. The
+    blob is marked complete (see :func:`is_blob_dumped`) only once every ID
+    in ``ids`` is in it.
 
     Args:
         path: Blob directory, normally from :func:`get_blob_dir`.
@@ -160,6 +172,7 @@ def dump_blob(
 
     Raises:
         ValueError: If ``items`` and ``ids`` differ in length.
+        RuntimeError: If the append finished without every ID in the blob.
 
     Examples:
         >>> dump_blob(
@@ -168,6 +181,7 @@ def dump_blob(
         ...     ["MISTER QUILTER IS THE APOSTLE"],
         ...     ["1272-128104-0000"],
         ...     is_path=False,
+        ...     compression_level=3,
         ... )  # doctest: +SKIP
     """
     from omniio.blob.blob import Blob
@@ -175,6 +189,7 @@ def dump_blob(
     if len(items) != len(ids):
         raise ValueError(f"{len(items)} items but {len(ids)} ids for {path}")
     blob = Blob(archive_dir=str(path), modality=modality)
+    marker = Path(path) / DUMP_COMPLETE_FILE
     # Drop IDs already in the blob here: Blob.append would skip them too, but
     # with one warning per ID.
     existing = set(blob.get_metadata().column("id").to_pylist()) if len(blob) else set()
@@ -186,14 +201,23 @@ def dump_blob(
         path,
         len(items) - len(todo),
     )
-    if not todo:
-        return
-    blob.append(
-        items=[item for item, _ in todo],
-        ids=[uid for _, uid in todo],
-        num_workers=num_workers,
-        **modality_kwargs,
-    )
+    if todo:
+        marker.unlink(missing_ok=True)
+        blob.append(
+            items=[item for item, _ in todo],
+            ids=[uid for _, uid in todo],
+            num_workers=num_workers,
+            **modality_kwargs,
+        )
+        blob = Blob(archive_dir=str(path), modality=modality)
+        existing = set(blob.get_metadata().column("id").to_pylist())
+    missing = [uid for uid in ids if uid not in existing]
+    if missing:
+        raise RuntimeError(
+            f"{len(missing)} of {len(ids)} items are not in {path} after the "
+            f"append, e.g. {missing[:3]}; it is left marked incomplete."
+        )
+    marker.touch()
 
 
 def _quote_identifier(name: str) -> str:
@@ -229,6 +253,27 @@ def _get_query_parameters(query: str) -> set[str]:
     return set(statements[0].named_parameters)
 
 
+def _check_blob_paths(paths: Iterable[str]) -> None:
+    """Raise if a local blob path recorded in the metadata does not exist.
+
+    omniio records absolute blob paths in ``metadata.parquet``; the dump root
+    only locates the metadata files. A dump that was moved or copied therefore
+    still points at its old location. URLs are read remotely and not checked.
+
+    Raises:
+        FileNotFoundError: If a local blob path does not exist.
+    """
+    for path in paths:
+        if "://" not in path and not os.path.exists(path):
+            raise FileNotFoundError(
+                f"Blob file {path}, recorded in the dump's metadata.parquet, "
+                "does not exist. omniio records absolute blob paths, so a "
+                "dump that was moved or copied still points at its old "
+                "location: rewrite the `path` column of each metadata.parquet "
+                "to the new location, or use the dump where it was written."
+            )
+
+
 def _fetch_table(relation):
     """Run a DuckDB relation and return its rows as a pyarrow Table."""
     # DuckDB 2.0 has to_arrow_table(); 1.x relations have arrow().
@@ -250,9 +295,11 @@ class OmniIODataset(BaseDataset):
         params: Values for the query's ``$name`` parameters. Entries the
             query does not use are ignored; ``$dump_root`` is filled from
             ``dump_root`` when not given.
-        dump_root: omniio dump root that relative paths resolve against;
-            defaults to ``$OMNIIO_DUMP_ROOT``. Without either, relative paths
-            resolve against the working directory.
+        dump_root: omniio dump root that the query's relative paths
+            resolve against; defaults to ``$OMNIIO_DUMP_ROOT``. Without
+            either, relative paths resolve against the working directory.
+            The blob paths inside the metadata are absolute and are read as
+            recorded.
         total_shards: Number of shards the rows are split into, normally the
             distributed world size. ``None`` or 1 keeps one unsharded index.
         dist_world_size: Distributed world size the shards rotate over; see
@@ -265,6 +312,10 @@ class OmniIODataset(BaseDataset):
             value.
 
     Notes:
+        End the query with ``ORDER BY``: the row order sets item indices,
+        shards and the first-item probe, and DuckDB does not guarantee an
+        order otherwise (after a join in particular).
+
         The full index is built only when it is needed (``__getitem__`` past
         the first item, :meth:`get_item_lengths`, ...). A sharded dataset is
         normally only asked for its length and first item before
@@ -274,7 +325,8 @@ class OmniIODataset(BaseDataset):
     Raises:
         ValueError: If ``fields`` is empty or names a modality that cannot be
             decoded, the query is not one statement, a ``$name`` parameter
-            has no value, or the query lacks a required column.
+            has no value, the dump root contains a comma, or the query lacks
+            a required column.
 
     Examples:
         Select one split of a dump and read an item:
@@ -336,8 +388,15 @@ class OmniIODataset(BaseDataset):
             Field(name, modality) for name, modality in self.modalities.items()
         )
         self.query = query
-        root = dump_root or os.environ.get(DUMP_ROOT_ENV) or None
-        self.dump_root = Path(root) if root is not None else None
+        try:
+            self.dump_root: Path | None = resolve_dump_root(dump_root)
+        except ValueError:
+            self.dump_root = None
+        if self.dump_root is not None and "," in str(self.dump_root):
+            # DuckDB's file_search_path is a comma-separated list.
+            raise ValueError(
+                f"The omniio dump root may not contain a comma: {self.dump_root}"
+            )
         self.params = self._bind_parameters(dict(params or {}))
         # None (not 1) when unsharded: DataLoaderBuilder shards any dataset
         # whose total_shards is set.
@@ -423,7 +482,17 @@ class OmniIODataset(BaseDataset):
         return layout
 
     def _build_index(self, table) -> dict[str, Any]:
-        """Turn the fetched rows into compact NumPy columns."""
+        """Turn the fetched rows into compact NumPy and Arrow columns.
+
+        Inline values stay in Arrow arrays rather than lists of Python
+        objects, so forked dataloader workers do not copy them as reference
+        counts change.
+
+        Raises:
+            ValueError: If the length column has NULL values.
+            FileNotFoundError: If a blob file recorded in the metadata is
+                missing.
+        """
         import pyarrow as pa
 
         index: dict[str, Any] = {
@@ -431,18 +500,26 @@ class OmniIODataset(BaseDataset):
         }
         for name, kind in self._layout.items():
             if kind == "inline":
-                index[name] = np.asarray(table.column(name).to_pylist(), dtype=object)
+                index[name] = table.column(name).combine_chunks()
                 continue
             paths = table.column(f"{name}_path").combine_chunks()
             if not pa.types.is_dictionary(paths.type):
                 paths = paths.dictionary_encode()
             index[f"{name}_bins"] = np.asarray(paths.dictionary.to_pylist())
+            _check_blob_paths(index[f"{name}_bins"].tolist())
             index[f"{name}_code"] = paths.indices.to_numpy().astype(np.int32)
             for part in ("start", "size"):
                 col = table.column(f"{name}_{part}").to_numpy()
                 index[f"{name}_{part}"] = col.astype(np.int64)
         if self.length_column in table.column_names:
-            index["length"] = table.column(self.length_column).to_numpy()
+            lengths = table.column(self.length_column)
+            if lengths.null_count:
+                raise ValueError(
+                    f"The '{self.length_column}' column is NULL for "
+                    f"{lengths.null_count} rows (e.g. after a LEFT JOIN); "
+                    "filter them out or give every row a length."
+                )
+            index["length"] = lengths.to_numpy()
         return index
 
     def _ensure_index(self) -> dict[str, Any]:
@@ -537,7 +614,7 @@ class OmniIODataset(BaseDataset):
         index = self._ensure_index()
         idx = int(idx)
         if self._layout[name] == "inline":
-            row = {name: index[name][idx]}
+            row = {name: index[name][idx].as_py()}
         else:
             row = {
                 "path": str(index[f"{name}_bins"][index[f"{name}_code"][idx]]),
@@ -558,6 +635,11 @@ class OmniIODataset(BaseDataset):
             if row.num_rows == 0:
                 raise IndexError("The query returned no rows.")
             row = row.to_pylist()[0]
+            _check_blob_paths(
+                row[f"{name}_path"]
+                for name, kind in self._layout.items()
+                if kind == "blob"
+            )
             self._head = {
                 name: (
                     {name: row[name]}
@@ -627,8 +709,13 @@ class OmniIODataset(BaseDataset):
 class ShardedOmniIODataset(OmniIODataset):
     """An :class:`OmniIODataset` split into ``total_shards`` by row hash.
 
-    Created by ``OmniIODataset(..., total_shards=N)`` with ``N > 1``.
+    Created by ``OmniIODataset(..., total_shards=N)`` with ``N > 1``; a
+    subclass ``Cls`` of ``OmniIODataset`` becomes ``ShardedCls``, a subclass
+    of both. ``CombinedDataset`` requires ``total_shards`` on every
+    ``ShardedDataset``, so only sharded instances take this class.
     :meth:`shard` returns a dataset whose index holds only that shard's rows.
+    Instances pickle by naming the importable unsharded class, so they work
+    with ``spawn``/``forkserver`` dataloader workers.
 
     Examples:
         >>> ds = OmniIODataset(
@@ -641,6 +728,12 @@ class ShardedOmniIODataset(OmniIODataset):
         >>> len(ds.shard(0)) + len(ds.shard(1)) == len(ds) == 10
         True
     """
+
+    _unsharded_cls: type = OmniIODataset
+
+    def __reduce__(self):
+        """Pickle by the unsharded class; the sharded variant is rebuilt."""
+        return (_rebuild_sharded, (self._unsharded_cls, self.__dict__.copy()))
 
     def shard(self, idx: int) -> OmniIODataset:
         """Return shard ``idx``: the rows with ``hash(shard_by) % N == idx``.
@@ -665,14 +758,26 @@ class ShardedOmniIODataset(OmniIODataset):
 
 
 ShardedDataset.register(ShardedOmniIODataset)
-_SHARDED_VARIANTS: dict[type, type] = {OmniIODataset: ShardedOmniIODataset}
 
 
+@functools.cache
 def _get_sharded_variant(cls: type) -> type:
-    """Return a subclass of ``cls`` that is also a :class:`ShardedOmniIODataset`."""
-    if cls not in _SHARDED_VARIANTS:
-        variant = type(f"Sharded{cls.__name__}", (cls, ShardedOmniIODataset), {})
-        variant.__module__ = cls.__module__
-        ShardedDataset.register(variant)
-        _SHARDED_VARIANTS[cls] = variant
-    return _SHARDED_VARIANTS[cls]
+    """Return a subclass of ``cls`` that is also a :class:`ShardedOmniIODataset`.
+
+    Cached so each class has one variant per process; variants are never
+    pickled by name (see :meth:`ShardedOmniIODataset.__reduce__`).
+    """
+    if cls is OmniIODataset:
+        return ShardedOmniIODataset
+    return type(
+        f"Sharded{cls.__name__}",
+        (cls, ShardedOmniIODataset),
+        {"__module__": cls.__module__, "_unsharded_cls": cls},
+    )
+
+
+def _rebuild_sharded(cls: type, state: dict[str, Any]) -> ShardedOmniIODataset:
+    """Recreate a pickled sharded dataset of unsharded class ``cls``."""
+    dataset = object.__new__(_get_sharded_variant(cls))
+    dataset.__dict__.update(state)
+    return dataset

@@ -3,9 +3,10 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import List
 
-from egs3.librispeech_100.esp2_asr.dataset.omniio.builder import resolve_dump_root
+from egs3.librispeech_100.esp2_asr.dataset.omniio.builder import (
+    resolve_recipe_dump_root,
+)
 from egs3.librispeech_100.esp2_asr.dataset.omniio.dataset import TEXT_QUERY
 from espnet3.components.data.omniio_dataset import OmniIODataset
 
@@ -15,7 +16,7 @@ def gather_training_text(
     dump_root: Path | None = None,
     split: str = "train-clean-100",
     query: str | None = None,
-) -> List[str]:
+) -> list[str]:
     """Collect transcripts for tokenizer training from the omniio dump.
 
     Args:
@@ -40,6 +41,6 @@ def gather_training_text(
         query=query or TEXT_QUERY,
         fields={"text": "text"},
         params={"split": split},
-        dump_root=resolve_dump_root(recipe_dir, dump_root),
+        dump_root=resolve_recipe_dump_root(recipe_dir, dump_root),
     )
     return list(texts.iter_field("text"))
