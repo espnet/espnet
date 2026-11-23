@@ -230,7 +230,9 @@ s2t = [
   # egs3 recipes read their splits as Lhotse CutSets.
   "lhotse",
   # espnet3/systems/esp2_s2t/metrics: cpWER over speaker permutations, and DER.
-  "meeteval",
+  # meeteval is published only as source code, and its C++ extension does not
+  # compile with MSVC, so it is not installed on Windows.
+  "meeteval; sys_platform != 'win32'",
   "pyannote.metrics",
 ]
 
