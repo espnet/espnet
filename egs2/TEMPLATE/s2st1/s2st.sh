@@ -114,6 +114,7 @@ write_collected_feats=false  # Whether to dump feature in stats collection (for 
 
 # Upload model related
 hf_repo= # Huggingface repositary for model uploading
+hf_license= # Hugging Face license identifier for the model card
 
 # Decoding related
 batch_size=1      # decoding batch size
@@ -247,6 +248,7 @@ Options:
 
     # Upload model related
     --hf_repo          # Huggingface repositary for model uploading (default="${hf_repo}")
+    --hf_license       # Hugging Face license identifier for the model card (default="${hf_license}")
 
     # Decoding related
     --inference_tag       # Suffix to the result dir for decoding (default="${inference_tag}").
@@ -1597,6 +1599,9 @@ if ! "${skip_upload_hf}"; then
     if [ ${stage} -le 11 ] && [ ${stop_stage} -ge 11 ]; then
         [ -z "${hf_repo}" ] && \
             log "ERROR: You need to setup the variable hf_repo with the name of the repository located at HuggingFace" && \
+            exit 1
+        [ -z "${hf_license}" ] && \
+            log "ERROR: You need to setup the variable hf_license with the Hugging Face license identifier for the model card (for example apache-2.0, mit, cc-by-4.0, or other)" && \
             exit 1
         log "Stage 11: Upload model to HuggingFace: ${hf_repo}"
 

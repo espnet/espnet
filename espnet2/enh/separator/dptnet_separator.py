@@ -44,7 +44,7 @@ class DPTNetSeparator(AbsSeparator):
                 intra-chunk Transformer block.
             nonlinear: the nonlinear function for mask estimation,
                        select from 'relu', 'tanh', 'sigmoid'
-            layer: int, number of stacked RNN layers. Default is 3.
+            layer: int, number of stacked RNN layers. Default is 6.
             segment_size: dual-path segment size
         """
         super().__init__()

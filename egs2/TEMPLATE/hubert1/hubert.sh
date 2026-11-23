@@ -81,6 +81,7 @@ alignment_phoneme_dir=  # Phoneme alignment directory with tsv file (utt_id, pho
 
 # Upload model related
 hf_repo=
+hf_license=
 inference_ssl_model=valid.loss.best.pth # SSL model path from previous iteration and uploading
 download_model= # Download a model from Model Zoo and use it for decoding.
 
@@ -110,6 +111,7 @@ Options:
     --expdir         # Directory to save experiments (default="${expdir}").
     --python         # Specify python to execute espnet commands (default="${python}").
     --hf_repo        # Hugging face repository name (default="${hf_repo}").
+    --hf_license     # Hugging Face license identifier for the model card (default="${hf_license}").
 
     # Data preparation related
     --local_data_opts # The options given to local/data.sh (default="${local_data_opts}").
@@ -667,6 +669,9 @@ if ! "${skip_upload_hf}"; then
     if [ ${stage} -le 9 ] && [ ${stop_stage} -ge 9 ]; then
         [ -z "${hf_repo}" ] && \
             log "ERROR: You need to setup the variable hf_repo with the name of the repository located at HuggingFace, follow the following steps described here https://github.com/espnet/espnet/blob/master/CONTRIBUTING.md#133-publishing-models" && \
+        exit 1
+        [ -z "${hf_license}" ] && \
+            log "ERROR: You need to setup the variable hf_license with the Hugging Face license identifier for the model card (for example apache-2.0, mit, cc-by-4.0, or other)" && \
         exit 1
         log "Stage 9: Upload model to HuggingFace: ${hf_repo}"
 
