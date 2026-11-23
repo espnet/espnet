@@ -19,6 +19,7 @@ from espnet3.utils import logging_utils as elog
 # | test_configure_logging_rotates_existing_file          | Rotates pre-existing log file before new logging               | # noqa: E501
 # | test_set_stage_log_handler_returns_none_for_no_log_dir | No-op (returns None) when log_dir is None                     | # noqa: E501
 # | test_set_stage_log_handler_rotates_existing_file      | Rotates a pre-existing stage log file before attaching         | # noqa: E501
+# | test_set_stage_log_handler_tolerates_concurrent_rotation | Another process rotating first is not an error               | # noqa: E501
 # | test_set_stage_log_handler_replaces_prior_stage_handler | Replaces the prior _espnet3_stage_log handler, keeps others  | # noqa: E501
 # | test_set_log_format_updates_globals_and_handlers      | Updates global log/date formats and handler formatter          | # noqa: E501
 # | test_log_run_metadata_logs_command_and_git            | Logs argv, config paths, and git metadata                      | # noqa: E501
@@ -132,6 +133,43 @@ def test_set_stage_log_handler_rotates_existing_file(tmp_path: Path):
         rotated = tmp_path / "train1.log"
         assert rotated.exists()
         assert rotated.read_text(encoding="utf-8") == "old stage log\n"
+    finally:
+        for handler in root.handlers:
+            if getattr(handler, "_espnet3_stage_log", False):
+                handler.close()
+        _reset_logger(root, old_handlers, old_level, old_propagate)
+
+
+def test_set_stage_log_handler_tolerates_concurrent_rotation(
+    tmp_path: Path, monkeypatch
+):
+    # Two ranks can both see the old log and race to rotate it; the loser's
+    # `os.replace` finds the file already gone and must not fail the stage.
+    root = py_logging.getLogger()
+    old_handlers = list(root.handlers)
+    old_level = root.level
+    old_propagate = root.propagate
+    try:
+        root.handlers = []
+        root.propagate = False
+
+        log_path = tmp_path / "create_dataset.log"
+        log_path.write_text("old stage log\n", encoding="utf-8")
+        real_replace = elog.os.replace
+
+        def rotated_by_another_rank(src, dst):
+            real_replace(src, dst)
+            raise FileNotFoundError(src)
+
+        monkeypatch.setattr(elog.os, "replace", rotated_by_another_rank)
+        target = elog.set_stage_log_handler(
+            log_dir=tmp_path, filename="create_dataset.log"
+        )
+
+        assert target == log_path.resolve()
+        assert (tmp_path / "create_dataset1.log").read_text(
+            encoding="utf-8"
+        ) == "old stage log\n"
     finally:
         for handler in root.handlers:
             if getattr(handler, "_espnet3_stage_log", False):

@@ -1,0 +1,42 @@
+##########################################################
+#                   Inference SETTING                    #
+##########################################################
+# Common usage:
+#   python run.py --stages infer \
+#       --training_config conf/tuning/training_rawnet3.yaml \
+#       --inference_config conf/inference.yaml
+#
+##########################################################
+#                    PATHS AND INPUTS                    #
+##########################################################
+# This recipe omits `exp_tag`, `exp_dir`, and `inference_dir` on purpose.
+# `run.py` copies `training_config.exp_tag` and `training_config.exp_dir` here
+# before resolving `${exp_dir}`, so `conf/inference.yaml` writes its results to
+# `${exp_dir}/inference`.
+
+##########################################################
+#                    DATASET DEFINITION                  #
+##########################################################
+# Unlike validation, scoring runs once, so the full Vox1-O list is used.
+dataset:
+  test:
+    - name: vox1_o
+      data_src_args:
+        data_dir: ${data_dir}
+        split: voxceleb1_test
+        trials: vox1_o
+
+##########################################################
+#                    MODEL AND OUTPUT                    #
+##########################################################
+model:
+  # ESPnet2's published RawNet3 result (0.739% EER) scores the last epoch
+  # (`40epoch.pth`) with 4 evenly spaced 8-second crops per utterance, so this
+  # does the same. `last.pth` is written by `SaveFinalWeights` at the end of
+  # training. The `valid.eer.ave_3best.pth` average is worse here: the
+  # 10k-trial validation subset is too noisy to rank late epochs, and it mixes
+  # checkpoints from different learning-rate cycles (0.888% with 3 s x 10 crops
+  # against 0.755% for the last epoch with 8 s x 4).
+  model_file: ${exp_dir}/last.pth
+  target_duration: 8.0
+  num_eval: 4
