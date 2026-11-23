@@ -140,10 +140,13 @@ which one speaker mapping covers a whole meeting.
   of its reference.
 - Speaker-counting accuracy is the percentage of utterance groups in which the
   hypothesis has the same number of non-empty speaker blocks as the reference.
-- WER compares the reference with the hypothesis without a speaker mapping.
-  The reference speakers are ordered by start time, and the hypothesis
-  speakers stay in the order that the model produced them. WER does not count
-  words assigned to the wrong speaker, so it can be lower than cpWER.
+- WER compares the reference with the hypothesis without a speaker mapping. The
+  reference speakers are ordered by start time, and the hypothesis speakers
+  stay in the order that the model produced them. WER is not a standard metric
+  for multi-talker ASR, and cpWER is the main metric of this recipe. WER is
+  reported next to cpWER because it also counts errors in the speaker order. It
+  does not count words assigned to the wrong speaker, so it can be lower than
+  cpWER.
 
 #### Pretrained model
 
