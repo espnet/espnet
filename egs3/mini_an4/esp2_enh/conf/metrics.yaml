@@ -1,0 +1,5 @@
+##########################################################
+#              MINI_AN4 ENH METRIC OVERRIDES             #
+##########################################################
+# Runs every metric in espnet3/systems/esp2_enh/metrics (SI-SNR, PESQ, STOI),
+# all inherited from TEMPLATE/esp2_enh/conf/metrics.yaml.
