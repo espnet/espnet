@@ -5,9 +5,9 @@
 #   python run.py --stages train --training_config conf/training.yaml
 #
 # This is the shared default merged under every F5-TTS recipe's training
-# config (see `load_and_merge_config` in `run.py`). Only path/system
-# scaffolding lives here; the dataset, model, optimizer and dataloader blocks
-# are left null for the recipe config to fill in.
+# config (see `load_and_merge_config` in `run.py`). It holds the path/system
+# scaffolding and the F5-TTS optimizer and schedule; the dataset, model and
+# dataloader blocks are left null for the recipe config to fill in.
 
 ##########################################################
 #                  SYSTEM AND PATH SETTING               #
@@ -27,9 +27,31 @@ stats_dir: ${exp_dir}/stats
 inference_dir: ${exp_dir}/inference
 
 ##########################################################
+#                 DATASET CREATION SETTING               #
+##########################################################
+# Arguments of the `create_dataset` stage, passed to the recipe's
+# `dataset.DatasetBuilder` (`prepare_source` then `build`). An F5-TTS recipe
+# typically sets `recipe_dir: ${recipe_dir}` so the builder writes its
+# manifests under the recipe's `data/`. Left empty, the builder is called
+# with no arguments.
+create_dataset: {}
+
+##########################################################
 #                    DATASET DEFINITION                  #
 ##########################################################
+# `_recursive_: false` hands `DataOrganizer` the split entries and the
+# `preprocessor` block as configs: it instantiates the preprocessor itself,
+# with `train=True` for the training split and `False` for valid/test. Without
+# it Hydra would build the preprocessor first, and ESPnet2's
+# `CommonPreprocessor` needs that `train` argument.
 dataset:
+  _target_: espnet3.components.data.data_organizer.DataOrganizer
+  _recursive_: false
+  recipe_dir: ${recipe_dir}
+  train:
+  valid:
+  test:
+  preprocessor:
 
 ##########################################################
 #                      MODEL SETTING                     #
@@ -39,10 +61,22 @@ model:
 ##########################################################
 #            OPTIMIZER & SCHEDULER SETTING               #
 ##########################################################
-# Single optimizer path:
+# The F5-TTS defaults (arXiv 2410.06885 Sec. 4), the same in the official
+# F5TTS_Base, F5TTS_Small and F5TTS_v1_Base configs: AdamW at 7.5e-5 with a
+# 20,000-step linear warmup, then a linear decay to zero.
+# `total_steps` follows `trainer.max_steps`, which the template does not set:
+# every recipe names its own number of training steps there.
 optimizer:
+  _target_: torch.optim.AdamW
+  lr: 7.5e-5
+  betas: [0.9, 0.999]
+  weight_decay: 0.01
+
 scheduler:
-scheduler_interval:
+  _target_: espnet3.components.schedulers.linear_warmup_decay.LinearWarmupDecayLR
+  warmup_steps: 20000
+  total_steps: ${trainer.max_steps}
+scheduler_interval: step
 scheduler_monitor:
 
 # Multiple-loss / multiple-optimizer path (e.g. GAN-based TTS):
@@ -85,11 +119,24 @@ dataloader:
 #                    TRAINER SETTING                     #
 ##########################################################
 # These settings map to `lightning.Trainer(...)`.
+# Lightning `Trainer` arguments, as `egs3/TEMPLATE/esp2_asr` defaults them.
+# `log_every_n_steps` is read by espnet3's trainer for its own progress
+# logging, so it must be set. A recipe adds `max_steps` (the scheduler above
+# reads it), its callbacks (an F5-TTS recipe trains with `EMACallback`) and
+# anything else.
 trainer:
   accelerator: auto
   devices: ${num_device}
   num_nodes: ${num_nodes}
   strategy: auto
+  accumulate_grad_batches: 1
+  check_val_every_n_epoch: 1
+  gradient_clip_val: 1.0
+  log_every_n_steps: 100
+  logger:
+    - _target_: lightning.pytorch.loggers.TensorBoardLogger
+      save_dir: ${exp_dir}/tensorboard
+      name: tb_logger
 
 ##########################################################
 #                      FIT SETTING                       #
