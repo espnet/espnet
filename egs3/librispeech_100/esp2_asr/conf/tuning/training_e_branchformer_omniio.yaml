@@ -20,7 +20,8 @@
 # configured for single-GPU training with gradient accumulation of 4. To
 # reduce gradient accumulation while keeping the effective batch size
 # comparable, increase `batch_bins` by the same factor when GPU memory
-# permits, as training_e_branchformer_omniio_8gpu.yaml does.
+# permits. For example, with `num_device: 8`, use `batch_bins: 3800000` and
+# `accumulate_grad_batches: 1`.
 
 ##########################################################
 #                  SYSTEM AND PATH SETTING               #
@@ -94,7 +95,6 @@ tokenizer:
   save_path: ${data_dir}/${tokenizer.model_type}_${tokenizer.vocab_size}
   text_builder:
     func: egs3.librispeech_100.esp2_asr.dataset.omniio.tokenizer.gather_training_text
-    recipe_dir: ${recipe_dir}
     dump_root: ${omniio_dump_root}
     split: train-clean-100
 

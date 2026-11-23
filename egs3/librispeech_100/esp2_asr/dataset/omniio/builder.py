@@ -20,10 +20,12 @@ import logging
 from importlib import resources
 from pathlib import Path
 
+from egs3.librispeech_100.esp2_asr.dataset.builder import _CFG as _SOURCE_CFG
 from egs3.librispeech_100.esp2_asr.dataset.builder import (
     LibriSpeech100Builder,
     resolve_source_root,
 )
+from egs3.librispeech_100.esp2_asr.dataset.dataset import _scan_split
 from espnet3.components.data.omniio_dataset import (
     dump_blob,
     get_blob_dir,
@@ -44,67 +46,16 @@ def _load_builder_config() -> dict:
 
 _CFG = _load_builder_config()
 CORPUS = str(_CFG["corpus"])
-SPLITS = [str(split) for split in _CFG["splits"]]
-
-_DEFAULT_RECIPE_ROOT = Path(__file__).resolve().parents[2]
-
-
-def resolve_recipe_dump_root(
-    recipe_dir: str | Path | None = None,
-    dump_root: str | Path | None = None,
-) -> Path:
-    """Return the omniio dump root of this recipe.
-
-    ``dump_root`` is the argument, else ``$OMNIIO_DUMP_ROOT``, else
-    ``<recipe_dir>/dump/omniio`` (the recipe's own directory when
-    ``recipe_dir`` is not given).
-
-    Examples:
-        >>> resolve_recipe_dump_root(dump_root="/data/omniio_dump")
-        PosixPath('/data/omniio_dump')
-    """
-    recipe_root = Path(recipe_dir).resolve() if recipe_dir else _DEFAULT_RECIPE_ROOT
-    default = recipe_root / str(_CFG["local_dump_dir"])
-    return resolve_dump_root(dump_root, default=default)
-
-
-def scan_split(split_dir: Path) -> list[tuple[str, Path, str]]:
-    """Return ``(utt_id, flac_path, transcript)`` for one raw split, by ID.
-
-    Blank transcript lines are skipped.
-
-    Raises:
-        FileNotFoundError: If a transcript lists an utterance with no FLAC.
-        RuntimeError: If the split holds no transcript/audio pairs.
-
-    Examples:
-        >>> scan_split(Path("download/LibriSpeech/dev-clean"))[0]  # doctest: +SKIP
-        ('1272-128104-0000', PosixPath('.../1272-128104-0000.flac'), 'MISTER ...')
-    """
-    examples = []
-    for trans in sorted(split_dir.rglob("*.trans.txt")):
-        for line in trans.read_text(encoding="utf-8").splitlines():
-            fields = line.split()
-            if not fields:
-                continue
-            utt_id, *words = fields
-            if not words:
-                continue
-            flac = trans.parent / f"{utt_id}.flac"
-            if not flac.is_file():
-                raise FileNotFoundError(f"{trans} lists {utt_id} but {flac} is missing")
-            examples.append((utt_id, flac, " ".join(words)))
-    if not examples:
-        raise RuntimeError(f"No transcript/audio pairs found under {split_dir}")
-    return sorted(examples)
+# The splits the raw-LibriSpeech builder prepares (dataset/config.yaml)
+SPLITS = [str(split) for split in _SOURCE_CFG["required_splits"]]
 
 
 class LibriSpeech100OmniIOBuilder(LibriSpeech100Builder):
     """Locate or download raw LibriSpeech, then dump it to omniio blobs.
 
     Every method accepts the ``create_dataset`` options of the training
-    config: ``recipe_dir``, ``source_dir``, ``dump_root`` and
-    ``num_workers``.
+    config: ``recipe_dir``, ``source_dir``, ``dump_root`` (else
+    ``$OMNIIO_DUMP_ROOT``) and ``num_workers``.
 
     Examples:
         >>> builder = LibriSpeech100OmniIOBuilder()
@@ -135,7 +86,7 @@ class LibriSpeech100OmniIOBuilder(LibriSpeech100Builder):
         **_kwargs,
     ) -> bool:
         """Return whether every split has finished audio and text blobs."""
-        root = resolve_recipe_dump_root(recipe_dir, dump_root)
+        root = resolve_dump_root(dump_root)
         return all(
             is_blob_dumped(get_blob_dir(root, modality, CORPUS, split))
             for split in SPLITS
@@ -158,7 +109,7 @@ class LibriSpeech100OmniIOBuilder(LibriSpeech100Builder):
         Raises:
             FileNotFoundError: If the raw corpus is needed but not found.
         """
-        root = resolve_recipe_dump_root(recipe_dir, dump_root)
+        root = resolve_dump_root(dump_root)
         dump_config = _CFG["dump"]
         workers = int(
             dump_config["num_workers"] if num_workers is None else num_workers
@@ -170,12 +121,13 @@ class LibriSpeech100OmniIOBuilder(LibriSpeech100Builder):
                 logger.info("omniio dump of %s already exists; skipping", split)
                 continue
             source = resolve_source_root(Path(recipe_dir).resolve(), source_dir)
-            examples = scan_split(source / split)
-            ids = [utt_id for utt_id, _, _ in examples]
+            # The raw-LibriSpeech dataset's transcript scan, sorted by ID.
+            examples = _scan_split(source / split)
+            ids = [example.utt_id for example in examples]
             dump_blob(
                 audio_dir,
                 "audio",
-                [str(flac) for _, flac, _ in examples],
+                [str(example.audio_path) for example in examples],
                 ids,
                 num_workers=workers,
                 **dict(dump_config["audio"] or {}),
@@ -183,7 +135,7 @@ class LibriSpeech100OmniIOBuilder(LibriSpeech100Builder):
             dump_blob(
                 text_dir,
                 "text",
-                [text for _, _, text in examples],
+                [example.text for example in examples],
                 ids,
                 num_workers=workers,
                 **dict(dump_config["text"] or {}),

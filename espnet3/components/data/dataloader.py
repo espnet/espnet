@@ -25,28 +25,21 @@ _LOGGED_DISTRIBUTED_BATCHES: set[str] = set()
 def _write_lengths_as_shape_file(dataset):
     """Yield a temporary shape file holding the dataset's own item lengths.
 
-    This is not a statistics pass: the lengths come straight from the
-    dataset (an omniio dump records them in its metadata). ESPnet2's batch
-    samplers only take lengths as shape-file paths, so they are handed over
-    through a temporary file that is deleted once the sampler has read it.
-
-    Each dataset wrapped by the ``CombinedDataset`` must provide
-    ``get_item_lengths()``; the uids are the combined integer indices, as in
-    ``CombinedDataset``'s integer-index mode.
-
-    Yields ``None`` when the dataset has no items, e.g. an empty rank-local
-    shard: the caller then plans no batches, and
-    ``DataLoaderBuilder._equalize_rank_batches`` matches the other ranks to it.
+    Not a statistics pass: each wrapped dataset returns its lengths from
+    ``get_item_lengths()`` (an omniio dump records them in its metadata).
+    ESPnet2's batch samplers only read lengths from shape files, so they are
+    handed over through a temporary file, keyed by ``CombinedDataset``'s
+    integer indices. Yields ``None`` for an empty dataset (e.g. an empty
+    rank-local shard), which has nothing to batch.
 
     Raises:
-        RuntimeError: If a non-empty dataset is string-keyed, a wrapped
-            dataset has no ``get_item_lengths()``, returns a different number of
-            lengths than it has items, or returns non-integer lengths.
+        RuntimeError: If the dataset is string-keyed, or a wrapped dataset
+            has no ``get_item_lengths()``, returns a
+            different number of lengths than it has items, or returns
+            non-integer lengths.
     """
-    datasets = getattr(dataset, "datasets", [dataset])
     if len(dataset) == 0:
-        # An empty dataset cannot answer dataset[0], which is what puts
-        # CombinedDataset in string-index mode; there is nothing to batch.
+        logger.warning("lengths_from_dataset: the dataset is empty; no batches.")
         yield None
         return
     if getattr(dataset, "_string_index_mode", False):
@@ -54,31 +47,27 @@ def _write_lengths_as_shape_file(dataset):
             "lengths_from_dataset needs integer-indexed datasets; "
             "string-keyed datasets must use shape_files."
         )
-    missing = [type(d).__name__ for d in datasets if not hasattr(d, "get_item_lengths")]
-    if missing:
-        raise RuntimeError(
-            "lengths_from_dataset is set but these datasets have no "
-            f"get_item_lengths(): {missing}"
-        )
-    per_dataset = []
-    for d in datasets:
+    lengths = []
+    for d in getattr(dataset, "datasets", [dataset]):
+        if not hasattr(d, "get_item_lengths"):
+            raise RuntimeError(
+                f"lengths_from_dataset is set but {type(d).__name__} has no "
+                "get_item_lengths()."
+            )
         d_lengths = np.asarray(d.get_item_lengths())
         if d_lengths.shape != (len(d),):
             raise RuntimeError(
                 f"{type(d).__name__}.get_item_lengths() returned {d_lengths.size} "
                 f"lengths for {len(d)} items."
             )
-        per_dataset.append(d_lengths)
-    lengths = np.concatenate(per_dataset)
-    # The numel sampler counts lengths in integer units (samples, frames, ...);
-    # truncating seconds or other fractions with int() would mis-batch.
-    integral = lengths.dtype.kind in "iu" or (
-        lengths.dtype.kind == "f" and bool(np.all(np.mod(lengths, 1) == 0))
-    )
-    if not integral:
+        lengths.append(d_lengths)
+    lengths = np.concatenate(lengths)
+    # The numel sampler counts integer units (samples, frames, ...);
+    # int() would silently truncate seconds or other fractions.
+    if lengths.dtype.kind not in "iu" and not np.all(np.mod(lengths, 1) == 0):
         raise RuntimeError(
             "lengths_from_dataset needs integer item lengths (e.g. samples or "
-            f"frames), got dtype {lengths.dtype}; return an integer length."
+            f"frames), got dtype {lengths.dtype}."
         )
     fd, path = tempfile.mkstemp(prefix="espnet3_shape_", suffix=".txt")
     try:
@@ -236,60 +225,6 @@ class DataLoaderBuilder:
         shard_idx = ((self.epoch * runtime_world_size) + rank) % total_shards
         self._rank_sharded = True
         return dataset.shard(shard_idx)
-
-    def _equalize_rank_batches(self, batches, mode):
-        """Keep the same number of batches on every rank, dropping at random.
-
-        Used when every rank batches its own shard of the data: shards differ
-        in size, and DDP hangs when ranks run different numbers of steps. The
-        dropped batches change every epoch, so no item is always left out,
-        but each epoch covers less data the more the shards differ: sharding
-        by a coarse column (e.g. speaker) drops far more than sharding by ID.
-        A warning is logged when a rank drops more than 10% of its batches.
-
-        Raises:
-            RuntimeError: On every rank, if some rank has no batches while
-                others do; training would otherwise run no steps silently.
-        """
-        if not torch.distributed.is_initialized():
-            return batches
-        # One all_reduce gives the min and (negated) max batch count.
-        counts = torch.tensor(
-            [len(batches), -len(batches)], device=self._get_collective_device()
-        )
-        torch.distributed.all_reduce(counts, op=torch.distributed.ReduceOp.MIN)
-        keep, most = int(counts[0].item()), -int(counts[1].item())
-        if keep == 0 and most > 0:
-            raise RuntimeError(
-                f"[{mode}] a rank has no batches in its shard while another has "
-                f"{most}, so every rank would run no steps. Use fewer shards "
-                "or GPUs, or shard by a finer column (shard_by)."
-            )
-        if keep == len(batches):
-            return batches
-        dropped = 1 - keep / len(batches)
-        log = logger.warning if dropped > 0.1 else logger.info
-        log(
-            "[%s] rank-local batches: keeping %d of %d (%.1f%% dropped) to "
-            "match other ranks",
-            mode,
-            keep,
-            len(batches),
-            100 * dropped,
-        )
-        rng = np.random.default_rng(
-            [self.epoch, torch.distributed.get_rank(), len(batches)]
-        )
-        kept = np.sort(rng.choice(len(batches), size=keep, replace=False))
-        return [batches[i] for i in kept]
-
-    @staticmethod
-    def _get_collective_device():
-        """Return the device collectives must use for the current backend."""
-        backend = torch.distributed.get_backend()
-        if backend == "nccl" and torch.cuda.is_available():
-            return torch.device("cuda", torch.cuda.current_device())
-        return torch.device("cpu")
 
     def build(self, mode: str):
         """Build and return a DataLoader for the specified mode ("train" or "valid").
@@ -474,8 +409,10 @@ class DataLoaderBuilder:
 
         if lengths_from_dataset and self._rank_sharded:
             # Each rank already holds a disjoint shard, so its batches are its
-            # own: do not stride them across ranks, only match their count.
-            batches = self._equalize_rank_batches(list(batches), mode)
+            # own: do not stride them across ranks. Ranks may get different
+            # batch counts; EpochSyncIterator ends the epoch on every rank at
+            # the shortest rank's count.
+            pass
         elif batch_distribution == "global":
             rank, world_size = (
                 (torch.distributed.get_rank(), torch.distributed.get_world_size())

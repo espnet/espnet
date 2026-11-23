@@ -4,15 +4,11 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from egs3.librispeech_100.esp2_asr.dataset.omniio.builder import (
-    resolve_recipe_dump_root,
-)
 from egs3.librispeech_100.esp2_asr.dataset.omniio.dataset import TEXT_QUERY
 from espnet3.components.data.omniio_dataset import OmniIODataset
 
 
 def gather_training_text(
-    recipe_dir: Path | None = None,
     dump_root: Path | None = None,
     split: str = "train-clean-100",
     query: str | None = None,
@@ -20,9 +16,7 @@ def gather_training_text(
     """Collect transcripts for tokenizer training from the omniio dump.
 
     Args:
-        recipe_dir: Recipe root, used to find the dump when neither
-            ``dump_root`` nor ``$OMNIIO_DUMP_ROOT`` is set.
-        dump_root: omniio dump root.
+        dump_root: omniio dump root; defaults to ``$OMNIIO_DUMP_ROOT``.
         split: LibriSpeech split, bound to ``$split``.
         query: DuckDB query returning ``id`` and ``text_path``/``text_start``/
             ``text_size`` (or an inline ``text`` column); defaults to
@@ -41,6 +35,6 @@ def gather_training_text(
         query=query or TEXT_QUERY,
         fields={"text": "text"},
         params={"split": split},
-        dump_root=resolve_recipe_dump_root(recipe_dir, dump_root),
+        dump_root=dump_root,
     )
     return list(texts.iter_field("text"))

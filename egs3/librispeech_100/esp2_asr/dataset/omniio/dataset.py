@@ -6,9 +6,6 @@ from importlib import resources
 from pathlib import Path
 from typing import Any, Mapping
 
-from egs3.librispeech_100.esp2_asr.dataset.omniio.builder import (
-    resolve_recipe_dump_root,
-)
 from espnet3.components.data.omniio_dataset import OmniIODataset
 from espnet3.utils.config_utils import load_config_with_defaults
 
@@ -32,8 +29,7 @@ class LibriSpeech100OmniIODataset(OmniIODataset):
         params: Values for the query's ``$name`` parameters, e.g.
             ``{"split": "dev-clean"}``.
         dump_root: omniio dump root the query's paths are relative to;
-            defaults to ``$OMNIIO_DUMP_ROOT``, then ``<recipe_dir>/dump/omniio``.
-        recipe_dir: Recipe root, used only for that last fallback.
+            defaults to ``$OMNIIO_DUMP_ROOT``.
         total_shards: Shards the rows are split into (normally the world
             size); each GPU then loads only its shard's index.
         dist_world_size: Distributed world size; defaults to ``total_shards``.
@@ -53,7 +49,6 @@ class LibriSpeech100OmniIODataset(OmniIODataset):
         split: str | None = None,
         params: Mapping[str, Any] | None = None,
         dump_root: str | Path | None = None,
-        recipe_dir: str | Path | None = None,
         total_shards: int | None = None,
         dist_world_size: int | None = None,
         shard_by: str = "id",
@@ -66,7 +61,7 @@ class LibriSpeech100OmniIODataset(OmniIODataset):
             query=query or DEFAULT_QUERY,
             fields={"speech": "audio", "text": "text"},
             params=params,
-            dump_root=resolve_recipe_dump_root(recipe_dir, dump_root),
+            dump_root=dump_root,
             total_shards=total_shards,
             dist_world_size=dist_world_size,
             shard_by=shard_by,

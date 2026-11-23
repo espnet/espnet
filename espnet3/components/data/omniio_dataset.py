@@ -46,7 +46,7 @@ import logging
 import os
 from contextlib import contextmanager
 from pathlib import Path
-from typing import Any, Callable, Iterable, Iterator, Mapping, Sequence
+from typing import Any, Iterable, Iterator, Mapping, Sequence
 
 import numpy as np
 
@@ -65,29 +65,12 @@ DUMP_COMPLETE_FILE = ".dump_complete"
 BLOB_SUFFIXES = ("_path", "_start", "_size")
 
 
-def _read_audio(path: str, start: int, size: int) -> np.ndarray:
-    """Decode an omniio audio entry; mono audio comes back one-dimensional."""
-    from omniio.interface import audio_read
-
-    array = audio_read(path, start, size).array
-    return array[:, 0] if array.shape[1] == 1 else array
-
-
-def _read_text(path: str, start: int, size: int) -> str:
-    """Decode an omniio text entry."""
-    from omniio.interface import text_read
-
-    return text_read(path, start, size).text
-
-
-# omniio modality -> reader. Each name is also the ESPnet3 field kind of the
-# decoded value. omniio can also read image, video and MIDI entries, but
-# ESPnet3 has no field kinds for them yet; add a reader here together with the
-# kind in espnet3.contract when a task needs one.
-_READERS: dict[str, Callable[[str, int, int], Any]] = {
-    "audio": _read_audio,
-    "text": _read_text,
-}
+# The omniio modalities this module decodes; each name is also the ESPnet3
+# field kind of the decoded value. omniio can also read image, video and MIDI
+# entries, but ESPnet3 has no field kinds for them yet: add one here (and in
+# OmniIODataset._read_blob) together with the kind in espnet3.contract when a
+# task needs it.
+SUPPORTED_MODALITIES = ("audio", "text")
 
 
 def resolve_dump_root(
@@ -293,8 +276,7 @@ class OmniIODataset(BaseDataset):
         fields: Field name -> omniio modality (``audio`` or ``text``). The
             modality is also the field's ESPnet3 kind.
         params: Values for the query's ``$name`` parameters. Entries the
-            query does not use are ignored; ``$dump_root`` is filled from
-            ``dump_root`` when not given.
+            query does not use are ignored.
         dump_root: omniio dump root that the query's relative paths
             resolve against; defaults to ``$OMNIIO_DUMP_ROOT``. Without
             either, relative paths resolve against the working directory.
@@ -306,10 +288,6 @@ class OmniIODataset(BaseDataset):
             ``DataLoaderBuilder``. Defaults to ``total_shards``.
         shard_by: Column whose hash assigns a row to a shard. Rows with the
             same value stay in the same shard (e.g. one speaker).
-        length_column: Column with each item's length, used for batching
-            by :meth:`get_item_lengths`; it may be absent.
-        transforms: Optional field name -> callable applied to the decoded
-            value.
 
     Notes:
         End the query with ``ORDER BY``: the row order sets item indices,
@@ -342,7 +320,7 @@ class OmniIODataset(BaseDataset):
         ...     params={"split": "dev-clean"},
         ...     dump_root="/data/omniio_dump",
         ... )  # doctest: +SKIP
-        >>> ds.get_by_id("1272-128104-0000")["text"][:6]  # doctest: +SKIP
+        >>> ds[0]["text"][:6]  # doctest: +SKIP
         'MISTER'
 
         Inline columns need no dump at all:
@@ -371,18 +349,16 @@ class OmniIODataset(BaseDataset):
         total_shards: int | None = None,
         dist_world_size: int | None = None,
         shard_by: str = "id",
-        length_column: str = "length",
-        transforms: Mapping[str, Callable[[Any], Any]] | None = None,
     ) -> None:
         """Validate the query's columns; the rows are fetched lazily."""
         if not fields:
             raise ValueError("OmniIODataset needs at least one field.")
         self.modalities = dict(fields)
         for name, modality in self.modalities.items():
-            if modality not in _READERS:
+            if modality not in SUPPORTED_MODALITIES:
                 raise ValueError(
                     f"Field '{name}': cannot decode modality '{modality}'; "
-                    f"supported: {sorted(_READERS)}"
+                    f"supported: {list(SUPPORTED_MODALITIES)}"
                 )
         self.fields = tuple(
             Field(name, modality) for name, modality in self.modalities.items()
@@ -404,14 +380,12 @@ class OmniIODataset(BaseDataset):
         self.total_shards = int(total_shards) if sharded else None
         self.dist_world_size = int(dist_world_size or total_shards) if sharded else None
         self.shard_by = shard_by
-        self.length_column = length_column
-        self.transforms = dict(transforms or {})
         self.shard_idx: int | None = None
 
         self._index: dict[str, Any] | None = None
         self._len: int | None = None
         self._head: dict[str, Any] | None = None
-        self._id_to_index: dict[str, int] | None = None
+        self._audio_reader = None
         self._last_shard: tuple[int, OmniIODataset] | None = None
         with self._select_rows() as rows:
             self._layout = self._check_columns(rows.columns)
@@ -427,8 +401,6 @@ class OmniIODataset(BaseDataset):
             ValueError: If a parameter the query uses has no value.
         """
         names = _get_query_parameters(self.query)
-        if "dump_root" in names and "dump_root" not in params:
-            params["dump_root"] = str(resolve_dump_root(self.dump_root))
         missing = sorted(names - set(params))
         if missing:
             raise ValueError(
@@ -511,11 +483,11 @@ class OmniIODataset(BaseDataset):
             for part in ("start", "size"):
                 col = table.column(f"{name}_{part}").to_numpy()
                 index[f"{name}_{part}"] = col.astype(np.int64)
-        if self.length_column in table.column_names:
-            lengths = table.column(self.length_column)
+        if "length" in table.column_names:
+            lengths = table.column("length")
             if lengths.null_count:
                 raise ValueError(
-                    f"The '{self.length_column}' column is NULL for "
+                    f"The 'length' column is NULL for "
                     f"{lengths.null_count} rows (e.g. after a LEFT JOIN); "
                     "filter them out or give every row a length."
                 )
@@ -582,24 +554,37 @@ class OmniIODataset(BaseDataset):
         """
         index = self._ensure_index()
         if "length" not in index:
-            raise KeyError(
-                f"The query returns no '{self.length_column}' column to batch by."
-            )
+            raise KeyError("The query returns no 'length' column to batch by.")
         return index["length"]
 
     # ------------------------------------------------------------------ #
     # Items
     # ------------------------------------------------------------------ #
 
+    def _read_blob(self, modality: str, path: str, start: int, size: int) -> Any:
+        """Decode the ``size`` bytes at ``start`` of the blob file ``path``.
+
+        Audio goes through espnet2's ``OmniIOEntryReader``, which keeps the
+        blob files open across reads (per process) instead of reopening one
+        for every item; mono audio comes back one-dimensional.
+        """
+        if modality == "audio":
+            if self._audio_reader is None:
+                from espnet2.fileio.omniio_audio import OmniIOEntryReader
+
+                self._audio_reader = OmniIOEntryReader()
+            return self._audio_reader(f"{path}:{start}:{start + size}")[1]
+        from omniio.interface import text_read
+
+        return text_read(path, start, size).text
+
     def _decode(self, name: str, row: Mapping[str, Any]) -> Any:
         """Decode field ``name`` from its inline value or blob byte range."""
         if self._layout[name] == "inline":
-            value = row[name]
-        else:
-            read = _READERS[self.modalities[name]]
-            value = read(row["path"], int(row["start"]), int(row["size"]))
-        transform = self.transforms.get(name)
-        return transform(value) if transform is not None else value
+            return row[name]
+        return self._read_blob(
+            self.modalities[name], row["path"], int(row["start"]), int(row["size"])
+        )
 
     def read_field(self, name: str, idx: int) -> Any:
         """Decode field ``name`` of the item at ``idx``.
@@ -626,7 +611,7 @@ class OmniIODataset(BaseDataset):
     def _read_first_item(self) -> dict[str, Any]:
         """Return item 0 from a ``LIMIT 1`` query, without building the index.
 
-        Only the raw row is cached; it is decoded (and transformed) on every
+        Only the raw row is cached; it is decoded on every
         call, like any other item.
         """
         if self._head is None:
@@ -654,36 +639,8 @@ class OmniIODataset(BaseDataset):
             }
         return {name: self._decode(name, raw) for name, raw in self._head.items()}
 
-    def get_by_id(self, item_id: str) -> dict[str, Any]:
-        """Return the item whose ID is ``item_id``.
-
-        Raises:
-            ValueError: If the query returns the same ID more than once.
-            KeyError: If no row has ID ``item_id``.
-
-        Examples:
-            >>> OmniIODataset(
-            ...     query="SELECT * FROM (VALUES ('a', 'x'), ('b', 'y')) t(id, text)",
-            ...     fields={"text": "text"},
-            ... ).get_by_id("b")
-            {'text': 'y'}
-        """
-        if self._id_to_index is None:
-            keys = self.keys()
-            id_to_index = {uid: i for i, uid in enumerate(keys)}
-            if len(id_to_index) != len(keys):
-                ids, counts = np.unique(keys, return_counts=True)
-                raise ValueError(
-                    "The query returns duplicate IDs, so items cannot be "
-                    f"looked up by ID: {ids[counts > 1][:5].tolist()}"
-                )
-            self._id_to_index = id_to_index
-        return self[self._id_to_index[item_id]]
-
-    def __getitem__(self, idx: int | str) -> dict[str, Any]:
-        """Return the item at integer index ``idx``, or with ID ``idx``."""
-        if isinstance(idx, str):
-            return self.get_by_id(idx)
+    def __getitem__(self, idx: int) -> dict[str, Any]:
+        """Return the item at integer index ``idx``."""
         if self._index is None and int(idx) == 0:
             # CombinedDataset probes item 0 of every dataset; answer it
             # without fetching every row of an unsharded training query.
@@ -751,7 +708,7 @@ class ShardedOmniIODataset(OmniIODataset):
         shard = copy.copy(self)
         shard.shard_idx = idx
         shard._index = shard._len = shard._head = None
-        shard._id_to_index = shard._last_shard = None
+        shard._last_shard = None
         shard._ensure_index()
         self._last_shard = (idx, shard)
         return shard

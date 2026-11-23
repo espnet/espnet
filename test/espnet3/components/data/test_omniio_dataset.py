@@ -123,20 +123,6 @@ def test_query_parameters(dump):
         )
 
 
-def test_dump_root_parameter(dump):
-    """$dump_root is filled from dump_root when params do not give it."""
-    root, _, _ = dump
-    ds = OmniIODataset(
-        query=(
-            "SELECT id, id AS text FROM "
-            "read_parquet($dump_root || '/audio/toy/train/metadata.parquet')"
-        ),
-        fields={"text": "text"},
-        dump_root=root,
-    )
-    assert len(ds) == N_AUDIO
-
-
 def test_query_must_be_one_statement():
     """Several statements are rejected with a clear error."""
     with pytest.raises(ValueError, match="one SQL statement"):
@@ -158,7 +144,6 @@ def test_join_returns_paired_items(dump):
     np.testing.assert_array_equal(
         ds.get_item_lengths(), [len(audio[uid]) for uid in paired]
     )
-    assert ds["u04"]["text"] == "TEXT u04"
 
 
 def test_filter_in_query(dump):
@@ -169,17 +154,16 @@ def test_filter_in_query(dump):
 
 
 def test_inline_column(dump):
-    """Inline columns are used as-is, with transforms applied."""
+    """Inline columns are used as-is."""
     root, _, _ = dump
     ds = OmniIODataset(
         query=(
-            "SELECT id, upper(id) AS text, 1 AS length FROM "
+            "SELECT id, id AS text, 1 AS length FROM "
             "read_parquet('audio/toy/train/metadata.parquet') "
             "ORDER BY id"
         ),
         fields={"text": "text"},
         dump_root=root,
-        transforms={"text": str.lower},
     )
     assert ds[3]["text"] == "u03"
     assert list(ds.iter_field("text"))[:2] == ["u00", "u01"]
@@ -341,40 +325,6 @@ def test_shard_by_column_with_quote(dump):
         shard_by='g"x',
     )
     assert len(ds.shard(0)) + len(ds.shard(1)) == len(ds)
-
-
-def test_first_item_transform_runs_every_time(dump):
-    """The cached first row is decoded and transformed on every read."""
-    root, _, _ = dump
-    calls = []
-    ds = OmniIODataset(
-        query=(
-            "SELECT id, id AS text FROM "
-            "read_parquet('audio/toy/train/metadata.parquet') "
-            "ORDER BY id"
-        ),
-        fields={"text": "text"},
-        dump_root=root,
-        transforms={"text": lambda t: calls.append(t) or t.upper()},
-    )
-    assert ds[0]["text"] == "U00" and ds[0]["text"] == "U00"
-    assert ds._index is None and calls == ["u00", "u00"]
-
-
-def test_duplicate_ids_rejected_by_id_lookup(dump):
-    """Looking up by ID fails clearly when IDs are duplicated."""
-    root, _, _ = dump
-    ds = OmniIODataset(
-        query=(
-            "SELECT 'dup' AS id, id AS text FROM "
-            "read_parquet('audio/toy/train/metadata.parquet')"
-        ),
-        fields={"text": "text"},
-        dump_root=root,
-    )
-    assert len(ds) == N_AUDIO  # integer access still works
-    with pytest.raises(ValueError, match="duplicate IDs"):
-        ds.get_by_id("dup")
 
 
 class RecipeDataset(OmniIODataset):

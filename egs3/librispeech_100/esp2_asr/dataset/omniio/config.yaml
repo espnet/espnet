@@ -3,19 +3,6 @@ builder:
   #   <dump_root>/audio/librispeech/<split>, <dump_root>/text/librispeech/<split>
   corpus: librispeech
 
-  # omniio dump root: the `dump_root` create_dataset option, else
-  # $OMNIIO_DUMP_ROOT, else <recipe_dir>/<local_dump_dir>. The raw corpus is
-  # located or downloaded as in dataset/config.yaml.
-  local_dump_dir: dump/omniio
-
-  # Splits dumped by create_dataset
-  splits:
-    - train-clean-100
-    - dev-clean
-    - dev-other
-    - test-clean
-    - test-other
-
   dump:
     # Blob.append worker processes
     num_workers: 8

@@ -33,35 +33,29 @@ The `*_omniio.yaml` configs read the data from an
 LibriSpeech tree, through the dataset/builder in
 [`dataset/omniio/`](dataset/omniio). Their `create_dataset` locates (or
 downloads) the corpus as above, then writes each split with omniio's
-`Blob.append`, one blob per modality:
+`Blob.append`, one blob per modality, both keyed by the utterance ID:
 
 ```
-<dump_root>/
+<omniio_dump_root>/
   audio/librispeech/<split>/{blob_*.bin, metadata.parquet}   # FLAC, as-is
   text/librispeech/<split>/{blob_*.bin, metadata.parquet}    # zstd transcripts
 ```
 
-Both blobs use the LibriSpeech utterance ID (`103-1240-0000`) as `id`, so an
-utterance and its transcript are the rows with the same ID. `<dump_root>` is
-the configs' `omniio_dump_root`: `$OMNIIO_DUMP_ROOT`, else `dump/omniio/` in
-this directory. `create_dataset`, every dataset entry and the tokenizer text
-builder all read it, so the dump is configured in one place.
-
-A blob counts as finished once `create_dataset` has written all of its items
-and marked it with a `.dump_complete` file; an interrupted or failed dump is
-completed on the next run. When every split is finished the raw corpus is not
-needed, so a dump made by another user on the same file system can be used
-directly. omniio records absolute blob paths in `metadata.parquet`, though, so
-a dump that is moved or copied to another location must have the `path`
-column of each `metadata.parquet` rewritten; reading such a dump otherwise
-fails with an error naming the missing blob file.
+`omniio_dump_root` in the configs is `$OMNIIO_DUMP_ROOT`, else `dump/omniio/`
+in this directory; `create_dataset`, the dataset entries and the tokenizer all
+use it. A blob is finished once it holds every item and carries a
+`.dump_complete` marker, and an interrupted dump is completed on the next run.
+Once every split is finished the raw corpus is no longer needed, so a dump made
+by another user on the same file system can be used as-is. omniio records
+absolute blob paths, so a dump copied elsewhere needs the `path` column of its
+`metadata.parquet` files rewritten.
 
 Each dataset entry reads one split through `default_query` in
-[`dataset/omniio/config.yaml`](dataset/omniio/config.yaml), a DuckDB query
-over the dump's `metadata.parquet` files. An entry can give its own `query`
-instead, to filter, join or combine data when the job starts rather than when
-it is dumped. Paths in the query are relative to the dump root, and `$name`
-parameters are bound from the entry's `params` (`split` fills `$split`):
+[`dataset/omniio/config.yaml`](dataset/omniio/config.yaml), a DuckDB query over
+the dump's `metadata.parquet` files. An entry may give its own `query` to
+filter, join or combine data when the job starts; paths are relative to the
+dump root and `$split` is the entry's `split`. For example, to keep only
+utterances of 0.5-20 s:
 
 ```yaml
 - data_src: egs3.librispeech_100.esp2_asr.dataset.omniio
@@ -80,22 +74,16 @@ parameters are bound from the entry's `params` (`split` fills `$split`):
       ORDER BY a.id
 ```
 
-The query returns one row per item: `id`; for `speech` and `text`, either
-`<field>_path`/`<field>_start`/`<field>_size` (a byte range in an omniio blob)
-or an inline `<field>` column; and `length`, used for batching.
-
-Batches are planned from `length` (omniio's sample count) with
-`batches.lengths_from_dataset: true`, so no shape files are needed;
+Batches are planned from the query's `length` column (omniio's sample count)
+with `batches.lengths_from_dataset: true`, so no shape files are needed;
 `collect_stats` still runs for the global mean/variance statistics. The
-training rows are split into `total_shards` shards by `hash(id)`, and each GPU
-loads only its own shard. `dataloader.train.dist_world_size` must equal the
-total number of GPUs (`num_device * num_nodes`), and `total_shards` must be a
-positive multiple of it; with more shards than GPUs, ranks rotate through the
-shards from epoch to epoch. Ranks keep the same number of batches each epoch:
-every rank keeps as many as the smallest shard gives and drops the rest at
-random, different ones each epoch. With 8 shards by `id` this drops about 3%
-of the batches per epoch; sharding by a coarse column such as speaker
-(`shard_by`) drops far more, and a warning is logged above 10%.
+training rows are split into `total_shards` shards by `hash(id)` and each GPU
+loads only its own shard. `dist_world_size` must equal the total number of
+GPUs and `total_shards` must be a multiple of it. As with any iterator whose
+ranks get different batch counts, every rank ends the epoch at the shortest
+rank's count, which drops about 3% of the batches with 8 shards by `id`. To
+train on more GPUs, set `num_device` (the shard counts follow it) and divide
+`accumulate_grad_batches` or `batch_bins` to keep the effective batch size.
 
 ## Commands
 
@@ -221,9 +209,7 @@ These are deliberate; each is marked `[DEVIATION]` in the training config.
 
 ### E-Branchformer, data from omniio
 
-- Training config: `conf/tuning/training_e_branchformer_omniio.yaml` (1 GPU)
-  or `conf/tuning/training_e_branchformer_omniio_8gpu.yaml` (8 GPUs on one
-  node, same effective batch)
+- Training config: `conf/tuning/training_e_branchformer_omniio.yaml`
 - Inference config: `conf/inference_omniio.yaml`
 - Metrics config: `conf/metrics.yaml`
 

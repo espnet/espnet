@@ -16,7 +16,6 @@ from egs3.librispeech_100.esp2_asr.dataset.omniio import (  # noqa: E402
 )
 from egs3.librispeech_100.esp2_asr.dataset.omniio.builder import (  # noqa: E402
     SPLITS,
-    scan_split,
 )
 from egs3.librispeech_100.esp2_asr.dataset.omniio.tokenizer import (  # noqa: E402
     gather_training_text,
@@ -52,21 +51,6 @@ def corpus(tmp_path, monkeypatch):
     recipe_dir = tmp_path / "recipe"
     recipe_dir.mkdir()
     return recipe_dir, source, tmp_path / "dump"
-
-
-def test_scan_split_skips_blank_lines(corpus):
-    """Blank transcript lines are skipped; every utterance is found."""
-    _, source, _ = corpus
-    utt_ids = [utt_id for utt_id, _, _ in scan_split(source / "dev-clean")]
-    assert utt_ids == ["19-198-0000", "19-198-0001"]
-
-
-def test_scan_split_missing_audio(corpus):
-    """A transcript line without its FLAC file is an error."""
-    _, source, _ = corpus
-    (source / "dev-clean" / "19" / "198" / "19-198-0001.flac").unlink()
-    with pytest.raises(FileNotFoundError, match="19-198-0001"):
-        scan_split(source / "dev-clean")
 
 
 def test_build_and_read_dump(corpus):
