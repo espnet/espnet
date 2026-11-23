@@ -7,18 +7,22 @@ An omniio dump keeps each modality of a corpus in its own omniio ``Blob``
 
 for example ``<dump_root>/audio/librispeech/train-clean-100`` and
 ``<dump_root>/text/librispeech/train-clean-100``. Items that belong together
-share an ``id`` across modalities.
+share an ``id`` across modalities, and omniio's metadata already records each
+item's size (``samples`` for audio), so no separate pass is needed to find
+item lengths.
 
 :class:`OmniIODataset` takes a DuckDB query over those ``metadata.parquet``
-files, so a recipe config selects, joins and filters its data on the fly::
+files, so a recipe config selects, joins and filters its data on the fly.
+Relative paths resolve against the dump root, and ``$name`` parameters come
+from ``params``::
 
     SELECT a.id,
            a.path AS speech_path, a.start_byte AS speech_start,
            a.end_byte - a.start_byte AS speech_size, a.samples AS length,
            t.path AS text_path, t.start_byte AS text_start,
            t.end_byte - t.start_byte AS text_size
-    FROM read_parquet('{dump_root}/audio/librispeech/{split}/metadata.parquet') a
-    JOIN read_parquet('{dump_root}/text/librispeech/{split}/metadata.parquet') t
+    FROM read_parquet('audio/librispeech/' || $split || '/metadata.parquet') a
+    JOIN read_parquet('text/librispeech/' || $split || '/metadata.parquet') t
       USING (id)
     WHERE a.samples <= 20 * 16000
     ORDER BY id
@@ -30,8 +34,8 @@ either ``<f>_path``, ``<f>_start`` and ``<f>_size``, a byte range decoded with
 column gives the per-item length used for batching.
 
 With ``total_shards > 1`` the rows are split by ``hash(<shard_by>)`` and
-:meth:`OmniIODataset.shard` runs the query for one shard only, so each GPU
-holds the index of its own shard and never the full one.
+:meth:`ShardedOmniIODataset.shard` runs the query for one shard only, so each
+GPU holds the index of its own shard and never the full one.
 """
 
 from __future__ import annotations
@@ -39,9 +43,9 @@ from __future__ import annotations
 import copy
 import logging
 import os
-import re
+from contextlib import contextmanager
 from pathlib import Path
-from typing import Any, Callable, Iterable, Mapping, Sequence
+from typing import Any, Callable, Iterable, Iterator, Mapping, Sequence
 
 import numpy as np
 
@@ -55,9 +59,30 @@ DUMP_ROOT_ENV = "OMNIIO_DUMP_ROOT"
 METADATA_FILE = "metadata.parquet"
 BLOB_SUFFIXES = ("_path", "_start", "_size")
 
-# The omniio modalities this module can decode, mapped to the ESPnet3 field kind.
-_FIELD_KIND = {"audio": "audio", "text": "text"}
-_PLACEHOLDER = re.compile(r"\{([A-Za-z_][A-Za-z0-9_]*)\}")
+
+def _read_audio(path: str, start: int, size: int) -> np.ndarray:
+    """Decode an omniio audio entry; mono audio comes back one-dimensional."""
+    from omniio.interface import audio_read
+
+    array = audio_read(path, start, size).array
+    return array[:, 0] if array.shape[1] == 1 else array
+
+
+def _read_text(path: str, start: int, size: int) -> str:
+    """Decode an omniio text entry."""
+    from omniio.interface import text_read
+
+    return text_read(path, start, size).text
+
+
+# omniio modality -> reader. Each name is also the ESPnet3 field kind of the
+# decoded value. omniio can also read image, video and MIDI entries, but
+# ESPnet3 has no field kinds for them yet; add a reader here together with the
+# kind in espnet3.contract when a task needs one.
+_READERS: dict[str, Callable[[str, int, int], Any]] = {
+    "audio": _read_audio,
+    "text": _read_text,
+}
 
 
 def resolve_dump_root(dump_root: str | Path | None = None) -> Path:
@@ -79,7 +104,7 @@ def resolve_dump_root(dump_root: str | Path | None = None) -> Path:
     return Path(dump_root)
 
 
-def blob_dir(
+def get_blob_dir(
     dump_root: str | Path | None,
     modality: str,
     corpus: str,
@@ -88,7 +113,7 @@ def blob_dir(
     """Return ``<dump_root>/<modality>/<corpus>[/<subset>]``.
 
     Examples:
-        >>> blob_dir("/d", "audio", "librispeech", "dev-clean")
+        >>> get_blob_dir("/d", "audio", "librispeech", "dev-clean")
         PosixPath('/d/audio/librispeech/dev-clean')
     """
     path = resolve_dump_root(dump_root) / modality / corpus
@@ -100,6 +125,10 @@ def is_blob_dumped(path: str | Path) -> bool:
 
     ``Blob.append`` writes ``metadata.parquet`` only after every worker shard
     has been merged, so its presence marks a completed append.
+
+    Examples:
+        >>> is_blob_dumped("/nonexistent/audio/librispeech/dev-clean")
+        False
     """
     return (Path(path) / METADATA_FILE).is_file()
 
@@ -119,7 +148,7 @@ def dump_blob(
     the dump: a silently incomplete blob would break joins on ``id``.
 
     Args:
-        path: Blob directory, normally from :func:`blob_dir`.
+        path: Blob directory, normally from :func:`get_blob_dir`.
         modality: omniio modality (``"audio"``, ``"text"``, ...).
         items: Items accepted by that modality's omniio writer, e.g. audio
             file paths, or strings with ``is_path=False`` for text.
@@ -131,6 +160,15 @@ def dump_blob(
 
     Raises:
         ValueError: If ``items`` and ``ids`` differ in length.
+
+    Examples:
+        >>> dump_blob(
+        ...     get_blob_dir("/data/omniio_dump", "text", "librispeech", "dev-clean"),
+        ...     "text",
+        ...     ["MISTER QUILTER IS THE APOSTLE"],
+        ...     ["1272-128104-0000"],
+        ...     is_path=False,
+        ... )  # doctest: +SKIP
     """
     from omniio.blob.blob import Blob
 
@@ -158,92 +196,63 @@ def dump_blob(
     )
 
 
-def render_query(query: str, params: Mapping[str, Any]) -> str:
-    """Substitute ``{name}`` placeholders in ``query`` with ``params[name]``.
-
-    Only ``{identifier}`` tokens are placeholders, so SQL such as DuckDB
-    struct literals (``{'a': 1}``) is left alone.
-
-    Raises:
-        KeyError: If the query names a placeholder missing from ``params``.
-
-    Examples:
-        >>> render_query("SELECT * FROM '{root}/x.parquet'", {"root": "/d"})
-        "SELECT * FROM '/d/x.parquet'"
-    """
-
-    def _sub(match: re.Match) -> str:
-        name = match.group(1)
-        if name not in params:
-            raise KeyError(
-                f"Query placeholder {{{name}}} has no value; "
-                f"pass it in params (have: {sorted(params)})"
-            )
-        return str(params[name])
-
-    return _PLACEHOLDER.sub(_sub, query)
-
-
-def _sql_string(value: Any) -> str:
-    """Escape ``value`` for use inside a single-quoted SQL string literal.
-
-    Examples:
-        >>> _sql_string("/data/it's")
-        "/data/it''s"
-    """
-    return str(value).replace("'", "''")
-
-
-def _sql_identifier(name: str) -> str:
+def _quote_identifier(name: str) -> str:
     """Return ``name`` as a double-quoted SQL identifier.
 
+    DuckDB binds values as parameters but has no parameter form for column
+    names, so the ``shard_by`` column is quoted here.
+
     Examples:
-        >>> _sql_identifier('a"b')
+        >>> _quote_identifier('a"b')
         '"a""b"'
     """
     return '"' + name.replace('"', '""') + '"'
 
 
-def _strip_trailing_semicolon(query: str) -> str:
-    """Drop one trailing ``;`` (and whitespace) so the query can be nested.
+def _get_query_parameters(query: str) -> set[str]:
+    """Return the ``$name`` parameters ``query`` uses.
+
+    Raises:
+        ValueError: If ``query`` is not exactly one SQL statement.
 
     Examples:
-        >>> _strip_trailing_semicolon("SELECT 1 ;  ")
-        'SELECT 1'
+        >>> sorted(_get_query_parameters("SELECT $b AS x, $a AS y;"))
+        ['a', 'b']
     """
-    query = query.rstrip()
-    if query.endswith(";"):
-        query = query[:-1].rstrip()
-    return query
-
-
-def _run(sql: str):
-    """Run ``sql`` on a private DuckDB connection; return a pyarrow Table."""
     import duckdb
 
-    con = duckdb.connect()
-    try:
-        relation = con.sql(sql)
-        # DuckDB 2.0 has to_arrow_table(); 1.x relations have arrow().
-        fetch = getattr(relation, "to_arrow_table", None) or relation.arrow
-        return fetch()
-    finally:
-        con.close()
+    statements = duckdb.extract_statements(query)
+    if len(statements) != 1:
+        raise ValueError(
+            f"The query must be one SQL statement, got {len(statements)}: {query}"
+        )
+    return set(statements[0].named_parameters)
+
+
+def _fetch_table(relation):
+    """Run a DuckDB relation and return its rows as a pyarrow Table."""
+    # DuckDB 2.0 has to_arrow_table(); 1.x relations have arrow().
+    fetch = getattr(relation, "to_arrow_table", None) or relation.arrow
+    return fetch()
 
 
 class OmniIODataset(BaseDataset):
     """Items selected by a SQL query over omniio dumps, decoded on access.
 
     Args:
-        query: DuckDB query returning one row per item: an ``id`` column, and
-            for each field either ``<f>_path``/``<f>_start``/``<f>_size``
-            (read from an omniio blob) or an inline ``<f>`` column. It may
-            use ``{name}`` placeholders, filled from ``params``.
-        fields: Field name -> omniio modality (``audio`` or ``text``).
-        params: Placeholder values. ``{dump_root}`` defaults to
-            ``dump_root``.
-        dump_root: omniio dump root for ``{dump_root}``; defaults to
-            ``$OMNIIO_DUMP_ROOT``.
+        query: One DuckDB statement returning one row per item: an ``id``
+            column, and for each field either ``<f>_path``/``<f>_start``/
+            ``<f>_size`` (read from an omniio blob) or an inline ``<f>``
+            column. Relative file paths resolve against the dump root, and
+            ``$name`` parameters are bound from ``params``.
+        fields: Field name -> omniio modality (``audio`` or ``text``). The
+            modality is also the field's ESPnet3 kind.
+        params: Values for the query's ``$name`` parameters. Entries the
+            query does not use are ignored; ``$dump_root`` is filled from
+            ``dump_root`` when not given.
+        dump_root: omniio dump root that relative paths resolve against;
+            defaults to ``$OMNIIO_DUMP_ROOT``. Without either, relative paths
+            resolve against the working directory.
         total_shards: Number of shards the rows are split into, normally the
             distributed world size. ``None`` or 1 keeps one unsharded index.
         dist_world_size: Distributed world size the shards rotate over; see
@@ -251,37 +260,54 @@ class OmniIODataset(BaseDataset):
         shard_by: Column whose hash assigns a row to a shard. Rows with the
             same value stay in the same shard (e.g. one speaker).
         length_column: Column with each item's length, used for batching
-            by :meth:`item_lengths`; it may be absent.
+            by :meth:`get_item_lengths`; it may be absent.
         transforms: Optional field name -> callable applied to the decoded
             value.
 
     Notes:
         The full index is built only when it is needed (``__getitem__`` past
-        the first item, :meth:`item_lengths`, ...). A sharded dataset is
+        the first item, :meth:`get_item_lengths`, ...). A sharded dataset is
         normally only asked for its length and first item before
         ``DataLoaderBuilder`` calls :meth:`shard`, so a training rank holds
         just its own shard.
 
+    Raises:
+        ValueError: If ``fields`` is empty or names a modality that cannot be
+            decoded, the query is not one statement, a ``$name`` parameter
+            has no value, or the query lacks a required column.
+
     Examples:
+        Select one split of a dump and read an item:
+
         >>> ds = OmniIODataset(
         ...     query=(
         ...         "SELECT id, path AS text_path, start_byte AS text_start, "
-        ...         "end_byte - start_byte AS text_size FROM "
-        ...         "read_parquet('{dump_root}/text/librispeech/dev-clean/"
-        ...         "metadata.parquet') ORDER BY id"
+        ...         "end_byte - start_byte AS text_size FROM read_parquet("
+        ...         "'text/librispeech/' || $split || '/metadata.parquet') "
+        ...         "ORDER BY id"
         ...     ),
         ...     fields={"text": "text"},
+        ...     params={"split": "dev-clean"},
         ...     dump_root="/data/omniio_dump",
         ... )  # doctest: +SKIP
         >>> ds.get_by_id("1272-128104-0000")["text"][:6]  # doctest: +SKIP
         'MISTER'
+
+        Inline columns need no dump at all:
+
+        >>> ds = OmniIODataset(
+        ...     query="SELECT * FROM (VALUES ('a', 'hi', 2)) t(id, text, length)",
+        ...     fields={"text": "text"},
+        ... )
+        >>> len(ds), ds[0]
+        (1, {'text': 'hi'})
     """
 
     def __new__(cls, *args, total_shards: int | None = None, **kwargs):
         """Return a :class:`ShardedOmniIODataset` when ``total_shards > 1``."""
         if total_shards is not None and int(total_shards) > 1:
             if not issubclass(cls, ShardedOmniIODataset):
-                cls = _sharded_variant(cls)
+                cls = _get_sharded_variant(cls)
         return super().__new__(cls)
 
     def __init__(
@@ -301,21 +327,18 @@ class OmniIODataset(BaseDataset):
             raise ValueError("OmniIODataset needs at least one field.")
         self.modalities = dict(fields)
         for name, modality in self.modalities.items():
-            if modality not in _FIELD_KIND:
+            if modality not in _READERS:
                 raise ValueError(
                     f"Field '{name}': cannot decode modality '{modality}'; "
-                    f"supported: {sorted(_FIELD_KIND)}"
+                    f"supported: {sorted(_READERS)}"
                 )
         self.fields = tuple(
-            Field(name, _FIELD_KIND[modality])
-            for name, modality in self.modalities.items()
+            Field(name, modality) for name, modality in self.modalities.items()
         )
-        params = dict(params or {})
-        if "{dump_root}" in query and "dump_root" not in params:
-            # {dump_root} sits inside SQL string literals ('{dump_root}/...'),
-            # so quote any apostrophe in the path. Other params are raw SQL.
-            params["dump_root"] = _sql_string(resolve_dump_root(dump_root))
-        self.query = _strip_trailing_semicolon(render_query(query, params))
+        self.query = query
+        root = dump_root or os.environ.get(DUMP_ROOT_ENV) or None
+        self.dump_root = Path(root) if root is not None else None
+        self.params = self._bind_parameters(dict(params or {}))
         # None (not 1) when unsharded: DataLoaderBuilder shards any dataset
         # whose total_shards is set.
         sharded = total_shards is not None and int(total_shards) > 1
@@ -331,13 +354,52 @@ class OmniIODataset(BaseDataset):
         self._head: dict[str, Any] | None = None
         self._id_to_index: dict[str, int] | None = None
         self._last_shard: tuple[int, OmniIODataset] | None = None
-        self._layout = self._check_columns(
-            _run(f"SELECT * FROM ({self.query}) AS q LIMIT 0").column_names
-        )
+        with self._select_rows() as rows:
+            self._layout = self._check_columns(rows.columns)
 
     # ------------------------------------------------------------------ #
     # Index
     # ------------------------------------------------------------------ #
+
+    def _bind_parameters(self, params: dict[str, Any]) -> dict[str, Any]:
+        """Return the values of the query's ``$name`` parameters.
+
+        Raises:
+            ValueError: If a parameter the query uses has no value.
+        """
+        names = _get_query_parameters(self.query)
+        if "dump_root" in names and "dump_root" not in params:
+            params["dump_root"] = str(resolve_dump_root(self.dump_root))
+        missing = sorted(names - set(params))
+        if missing:
+            raise ValueError(
+                f"The query uses parameters {missing} but params only has "
+                f"{sorted(params)}."
+            )
+        return {name: params[name] for name in names}
+
+    @contextmanager
+    def _select_rows(self) -> Iterator[Any]:
+        """Yield a DuckDB relation over this dataset's rows: all, or a shard's.
+
+        Each call uses its own connection, so dataloader worker processes
+        never share one.
+        """
+        import duckdb
+
+        con = duckdb.connect()
+        try:
+            if self.dump_root is not None:
+                con.execute("SET file_search_path = ?", [str(self.dump_root)])
+            rows = con.sql(self.query, params=self.params)
+            if self.shard_idx is not None:
+                rows = rows.filter(
+                    f"hash({_quote_identifier(self.shard_by)}) "
+                    f"% {self.total_shards} = {self.shard_idx}"
+                )
+            yield rows
+        finally:
+            con.close()
 
     def _check_columns(self, columns: Sequence[str]) -> dict[str, str]:
         """Map each field to ``blob`` or ``inline`` from the query's columns."""
@@ -360,17 +422,7 @@ class OmniIODataset(BaseDataset):
                 )
         return layout
 
-    def _rows_sql(self) -> str:
-        """Return the query for this dataset's rows: all, or one shard's."""
-        if self.shard_idx is None:
-            return self.query
-        return (
-            f"SELECT * FROM ({self.query}) AS q "
-            f"WHERE hash(q.{_sql_identifier(self.shard_by)}) "
-            f"% {self.total_shards} = {self.shard_idx}"
-        )
-
-    def _columns(self, table) -> dict[str, Any]:
+    def _build_index(self, table) -> dict[str, Any]:
         """Turn the fetched rows into compact NumPy columns."""
         import pyarrow as pa
 
@@ -396,8 +448,9 @@ class OmniIODataset(BaseDataset):
     def _ensure_index(self) -> dict[str, Any]:
         """Fetch the rows into the in-memory index once; return the index."""
         if self._index is None:
-            table = _run(self._rows_sql())
-            self._index = self._columns(table)
+            with self._select_rows() as rows:
+                table = _fetch_table(rows)
+            self._index = self._build_index(table)
             self._len = len(self._index["id"])
             logger.info(
                 "OmniIODataset: %d rows%s",
@@ -413,26 +466,42 @@ class OmniIODataset(BaseDataset):
     def __len__(self) -> int:
         """Return the number of rows (a COUNT query until the index is built)."""
         if self._len is None:
-            self._len = int(
-                _run(f"SELECT count(*) AS n FROM ({self._rows_sql()}) AS c")
-                .column("n")[0]
-                .as_py()
-            )
+            with self._select_rows() as rows:
+                self._len = int(rows.aggregate("count(*)").fetchall()[0][0])
         return self._len
 
     def keys(self) -> list[str]:
-        """Return the item IDs in row order."""
+        """Return the item IDs in row order.
+
+        ``CombinedDataset`` uses this to look items up by ID.
+
+        Examples:
+            >>> OmniIODataset(
+            ...     query="SELECT * FROM (VALUES ('b', 'x'), ('a', 'y')) t(id, text)",
+            ...     fields={"text": "text"},
+            ... ).keys()
+            ['b', 'a']
+        """
         return self._ensure_index()["id"].tolist()
 
-    def item_id(self, idx: int) -> str:
-        """Return the ID of the item at integer index ``idx``."""
-        return str(self._ensure_index()["id"][int(idx)])
-
-    def item_lengths(self) -> np.ndarray:
+    def get_item_lengths(self) -> np.ndarray:
         """Return every item's ``length`` column value, in row order.
+
+        ``DataLoaderBuilder`` batches by these when
+        ``batches.lengths_from_dataset`` is set.
 
         Raises:
             KeyError: If the query has no length column.
+
+        Examples:
+            >>> OmniIODataset(
+            ...     query=(
+            ...         "SELECT * FROM (VALUES ('a', 'x', 3), ('b', 'y', 5)) "
+            ...         "t(id, text, length)"
+            ...     ),
+            ...     fields={"text": "text"},
+            ... ).get_item_lengths().tolist()
+            [3, 5]
         """
         index = self._ensure_index()
         if "length" not in index:
@@ -447,22 +516,24 @@ class OmniIODataset(BaseDataset):
 
     def _decode(self, name: str, row: Mapping[str, Any]) -> Any:
         """Decode field ``name`` from its inline value or blob byte range."""
-        from omniio.interface import audio_read, text_read
-
         if self._layout[name] == "inline":
             value = row[name]
         else:
-            args = (row["path"], int(row["start"]), int(row["size"]))
-            if self.modalities[name] == "audio":
-                array = audio_read(*args).array
-                value = array[:, 0] if array.shape[1] == 1 else array
-            else:
-                value = text_read(*args).text
+            read = _READERS[self.modalities[name]]
+            value = read(row["path"], int(row["start"]), int(row["size"]))
         transform = self.transforms.get(name)
         return transform(value) if transform is not None else value
 
     def read_field(self, name: str, idx: int) -> Any:
-        """Decode field ``name`` of the item at ``idx``."""
+        """Decode field ``name`` of the item at ``idx``.
+
+        Examples:
+            >>> OmniIODataset(
+            ...     query="SELECT * FROM (VALUES ('a', 'hi')) t(id, text)",
+            ...     fields={"text": "text"},
+            ... ).read_field("text", 0)
+            'hi'
+        """
         index = self._ensure_index()
         idx = int(idx)
         if self._layout[name] == "inline":
@@ -475,14 +546,15 @@ class OmniIODataset(BaseDataset):
             }
         return self._decode(name, row)
 
-    def _first_item(self) -> dict[str, Any]:
+    def _read_first_item(self) -> dict[str, Any]:
         """Return item 0 from a ``LIMIT 1`` query, without building the index.
 
         Only the raw row is cached; it is decoded (and transformed) on every
         call, like any other item.
         """
         if self._head is None:
-            row = _run(f"SELECT * FROM ({self._rows_sql()}) AS q LIMIT 1")
+            with self._select_rows() as rows:
+                row = _fetch_table(rows.limit(1))
             if row.num_rows == 0:
                 raise IndexError("The query returned no rows.")
             row = row.to_pylist()[0]
@@ -506,6 +578,13 @@ class OmniIODataset(BaseDataset):
         Raises:
             ValueError: If the query returns the same ID more than once.
             KeyError: If no row has ID ``item_id``.
+
+        Examples:
+            >>> OmniIODataset(
+            ...     query="SELECT * FROM (VALUES ('a', 'x'), ('b', 'y')) t(id, text)",
+            ...     fields={"text": "text"},
+            ... ).get_by_id("b")
+            {'text': 'y'}
         """
         if self._id_to_index is None:
             keys = self.keys()
@@ -526,13 +605,21 @@ class OmniIODataset(BaseDataset):
         if self._index is None and int(idx) == 0:
             # CombinedDataset probes item 0 of every dataset; answer it
             # without fetching every row of an unsharded training query.
-            return self._first_item()
+            return self._read_first_item()
         if not 0 <= int(idx) < len(self):
             raise IndexError(f"index {idx} out of range for {len(self)} items")
         return {name: self.read_field(name, idx) for name in self.modalities}
 
     def iter_field(self, name: str) -> Iterable[Any]:
-        """Yield one field for every item, e.g. all transcripts."""
+        """Yield one field for every item, e.g. all transcripts.
+
+        Examples:
+            >>> list(OmniIODataset(
+            ...     query="SELECT * FROM (VALUES ('a', 'x'), ('b', 'y')) t(id, text)",
+            ...     fields={"text": "text"},
+            ... ).iter_field("text"))
+            ['x', 'y']
+        """
         for idx in range(len(self)):
             yield self.read_field(name, idx)
 
@@ -542,10 +629,25 @@ class ShardedOmniIODataset(OmniIODataset):
 
     Created by ``OmniIODataset(..., total_shards=N)`` with ``N > 1``.
     :meth:`shard` returns a dataset whose index holds only that shard's rows.
+
+    Examples:
+        >>> ds = OmniIODataset(
+        ...     query="SELECT range::VARCHAR AS id, 'x' AS text FROM range(10)",
+        ...     fields={"text": "text"},
+        ...     total_shards=2,
+        ... )
+        >>> isinstance(ds, ShardedOmniIODataset)
+        True
+        >>> len(ds.shard(0)) + len(ds.shard(1)) == len(ds) == 10
+        True
     """
 
     def shard(self, idx: int) -> OmniIODataset:
-        """Return shard ``idx``: the rows with ``hash(shard_by) % N == idx``."""
+        """Return shard ``idx``: the rows with ``hash(shard_by) % N == idx``.
+
+        Raises:
+            IndexError: If ``idx`` is not in ``[0, total_shards)``.
+        """
         idx = int(idx)
         if not 0 <= idx < self.total_shards:
             raise IndexError(f"shard {idx} out of range for {self.total_shards}")
@@ -566,7 +668,7 @@ ShardedDataset.register(ShardedOmniIODataset)
 _SHARDED_VARIANTS: dict[type, type] = {OmniIODataset: ShardedOmniIODataset}
 
 
-def _sharded_variant(cls: type) -> type:
+def _get_sharded_variant(cls: type) -> type:
     """Return a subclass of ``cls`` that is also a :class:`ShardedOmniIODataset`."""
     if cls not in _SHARDED_VARIANTS:
         variant = type(f"Sharded{cls.__name__}", (cls, ShardedOmniIODataset), {})

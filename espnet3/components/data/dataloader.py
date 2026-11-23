@@ -22,13 +22,17 @@ _LOGGED_DISTRIBUTED_BATCHES: set[str] = set()
 
 
 @contextmanager
-def _dataset_shape_file(dataset):
-    """Yield a temporary shape file built from the dataset's item lengths.
+def _write_lengths_as_shape_file(dataset):
+    """Yield a temporary shape file holding the dataset's own item lengths.
+
+    This is not a statistics pass: the lengths come straight from the
+    dataset (an omniio dump records them in its metadata). ESPnet2's batch
+    samplers only take lengths as shape-file paths, so they are handed over
+    through a temporary file that is deleted once the sampler has read it.
 
     Each dataset wrapped by the ``CombinedDataset`` must provide
-    ``item_lengths()``; the uids are the combined integer indices, as in
-    ``CombinedDataset``'s integer-index mode. The file exists only while the
-    batch sampler reads it.
+    ``get_item_lengths()``; the uids are the combined integer indices, as in
+    ``CombinedDataset``'s integer-index mode.
 
     Yields ``None`` when the dataset has no items, e.g. an empty rank-local
     shard: the caller then plans no batches, and
@@ -36,7 +40,7 @@ def _dataset_shape_file(dataset):
 
     Raises:
         RuntimeError: If a non-empty dataset is string-keyed, a wrapped
-            dataset has no ``item_lengths()``, returns a different number of
+            dataset has no ``get_item_lengths()``, returns a different number of
             lengths than it has items, or returns non-integer lengths.
     """
     datasets = getattr(dataset, "datasets", [dataset])
@@ -50,18 +54,18 @@ def _dataset_shape_file(dataset):
             "lengths_from_dataset needs integer-indexed datasets; "
             "string-keyed datasets must use shape_files."
         )
-    missing = [type(d).__name__ for d in datasets if not hasattr(d, "item_lengths")]
+    missing = [type(d).__name__ for d in datasets if not hasattr(d, "get_item_lengths")]
     if missing:
         raise RuntimeError(
             "lengths_from_dataset is set but these datasets have no "
-            f"item_lengths(): {missing}"
+            f"get_item_lengths(): {missing}"
         )
     per_dataset = []
     for d in datasets:
-        d_lengths = np.asarray(d.item_lengths())
+        d_lengths = np.asarray(d.get_item_lengths())
         if d_lengths.shape != (len(d),):
             raise RuntimeError(
-                f"{type(d).__name__}.item_lengths() returned {d_lengths.size} "
+                f"{type(d).__name__}.get_item_lengths() returned {d_lengths.size} "
                 f"lengths for {len(d)} items."
             )
         per_dataset.append(d_lengths)
@@ -241,7 +245,7 @@ class DataLoaderBuilder:
         """
         if not torch.distributed.is_initialized():
             return batches
-        count = torch.tensor(len(batches), device=self._collective_device())
+        count = torch.tensor(len(batches), device=self._get_collective_device())
         torch.distributed.all_reduce(count, op=torch.distributed.ReduceOp.MIN)
         keep = int(count.item())
         if keep == len(batches):
@@ -259,7 +263,7 @@ class DataLoaderBuilder:
         return [batches[i] for i in kept]
 
     @staticmethod
-    def _collective_device():
+    def _get_collective_device():
         """Return the device collectives must use for the current backend."""
         backend = torch.distributed.get_backend()
         if backend == "nccl" and torch.cuda.is_available():
@@ -424,15 +428,15 @@ class DataLoaderBuilder:
             dataset = self.dataset
 
         sampler_config = factory_config.pop("batches")
-        # Batch by the dataset's own item lengths instead of collect_stats
-        # shape files. With a rank-sharded dataset this is what lets each rank
-        # plan batches over its shard only.
+        # Batch by the dataset's own item lengths (e.g. omniio metadata)
+        # instead of collect_stats shape files: no statistics pass is needed,
+        # and a rank-sharded dataset plans batches over its own shard only.
         lengths_from_dataset = sampler_config.pop("lengths_from_dataset", False)
         if batch_distribution == "global" and torch.distributed.is_initialized():
             # Match ESPnet2: every shared batch must be splittable across ranks.
             sampler_config["min_batch_size"] = torch.distributed.get_world_size()
         if lengths_from_dataset:
-            with _dataset_shape_file(dataset) as shape_file:
+            with _write_lengths_as_shape_file(dataset) as shape_file:
                 if shape_file is None:
                     batches = []
                 else:

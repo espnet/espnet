@@ -1117,7 +1117,7 @@ class LengthDataset:
             raise IndexError(idx)
         return {"audio": np.zeros(int(self.lengths[idx]), dtype=np.float32)}
 
-    def item_lengths(self):
+    def get_item_lengths(self):
         """Return every item's length."""
         return np.asarray(self.lengths)
 
@@ -1170,7 +1170,7 @@ def _lengths_iter_config(batch_bins):
 
 
 def test_builder_batches_from_lengths():
-    """Batches are planned from item_lengths() without shape files."""
+    """Batches are planned from get_item_lengths() without shape files."""
     lengths = [2000 * (i + 1) for i in range(0, 12, 2)]  # 2000 ... 22000
     builder = build_builder(
         _length_combined(LengthDataset(lengths)),
@@ -1189,24 +1189,24 @@ def test_builder_batches_from_lengths():
     "lengths, match",
     [([1.5, 2.0, 3.0], "integer item lengths"), (None, "returned 2 lengths")],
 )
-def test_dataset_shape_file_rejects_bad_lengths(lengths, match):
+def test_write_lengths_as_shape_file_rejects_bad_lengths(lengths, match):
     """Fractional lengths, or a count that differs from len(), are errors."""
-    from espnet3.components.data.dataloader import _dataset_shape_file
+    from espnet3.components.data.dataloader import _write_lengths_as_shape_file
 
     dataset = LengthDataset(lengths or [1, 2, 3])
     if lengths is None:
-        dataset.item_lengths = lambda: np.asarray([1, 2])
+        dataset.get_item_lengths = lambda: np.asarray([1, 2])
     with pytest.raises(RuntimeError, match=match):
-        with _dataset_shape_file(_length_combined(dataset)):
+        with _write_lengths_as_shape_file(_length_combined(dataset)):
             pass
 
 
-def test_dataset_shape_file_accepts_integral_floats():
+def test_write_lengths_as_shape_file_accepts_integral_floats():
     """Float lengths with integer values (e.g. from SQL) are kept as is."""
-    from espnet3.components.data.dataloader import _dataset_shape_file
+    from espnet3.components.data.dataloader import _write_lengths_as_shape_file
 
     combined = _length_combined(LengthDataset([1.0, 20.0]))
-    with _dataset_shape_file(combined) as path:
+    with _write_lengths_as_shape_file(combined) as path:
         assert open(path).read().splitlines() == ["0 1", "1 20"]
 
 

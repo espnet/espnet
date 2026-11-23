@@ -10,7 +10,7 @@ pytest.importorskip("duckdb")
 
 from espnet3.components.data.dataloader import (  # noqa: E402
     DataLoaderBuilder,
-    _dataset_shape_file,
+    _write_lengths_as_shape_file,
 )
 from espnet3.components.data.dataset import (  # noqa: E402
     CombinedDataset,
@@ -20,10 +20,9 @@ from espnet3.components.data.omniio_dataset import (  # noqa: E402
     DUMP_ROOT_ENV,
     OmniIODataset,
     ShardedOmniIODataset,
-    blob_dir,
     dump_blob,
+    get_blob_dir,
     is_blob_dumped,
-    render_query,
     resolve_dump_root,
 )
 
@@ -36,8 +35,8 @@ SELECT a.id,
        a.end_byte - a.start_byte AS speech_size, a.samples AS length,
        t.path AS text_path, t.start_byte AS text_start,
        t.end_byte - t.start_byte AS text_size
-FROM read_parquet('{dump_root}/audio/toy/{split}/metadata.parquet') AS a
-JOIN read_parquet('{dump_root}/text/toy/{split}/metadata.parquet') AS t USING (id)
+FROM read_parquet('audio/toy/' || $split || '/metadata.parquet') AS a
+JOIN read_parquet('text/toy/' || $split || '/metadata.parquet') AS t USING (id)
 {where}
 ORDER BY a.id
 """
@@ -56,7 +55,7 @@ def dump(tmp_path):
         sf.write(path, wave, SR, subtype="PCM_16")
         audio[uid] = sf.read(path, dtype="float32")[0]
     dump_blob(
-        blob_dir(root, "audio", "toy", "train"),
+        get_blob_dir(root, "audio", "toy", "train"),
         "audio",
         [str(tmp_path / f"{uid}.flac") for uid in audio],
         list(audio),
@@ -65,7 +64,7 @@ def dump(tmp_path):
     texts = {uid: f"TEXT {uid}" for uid in list(audio)[::2]}
     texts["orphan"] = "NO AUDIO"
     dump_blob(
-        blob_dir(root, "text", "toy", "train"),
+        get_blob_dir(root, "text", "toy", "train"),
         "text",
         list(texts.values()),
         list(texts),
@@ -78,9 +77,9 @@ def dump(tmp_path):
 def _paired(root, where="", **kwargs):
     """Return the audio/text dataset joined on ID, optionally filtered."""
     return OmniIODataset(
-        query=PAIRED,
+        query=PAIRED.format(where=where),
         fields={"speech": "audio", "text": "text"},
-        params={"split": "train", "where": where},
+        params={"split": "train"},
         dump_root=root,
         **kwargs,
     )
@@ -98,19 +97,55 @@ def test_resolve_dump_root(monkeypatch, tmp_path):
 def test_blob_layout(dump):
     """Blob dirs follow <root>/<modality>/<corpus>/<split>."""
     root, _, _ = dump
-    assert blob_dir(root, "audio", "toy", "train") == root / "audio" / "toy" / "train"
+    assert (
+        get_blob_dir(root, "audio", "toy", "train") == root / "audio" / "toy" / "train"
+    )
     assert is_blob_dumped(root / "audio" / "toy" / "train")
     assert not is_blob_dumped(root / "audio" / "toy" / "missing")
 
 
-def test_render_query():
-    """Only {identifier} placeholders are substituted."""
-    sql = "SELECT {'a': 1} FROM '{root}/{split}.parquet'"
-    assert render_query(sql, {"root": "/d", "split": "x"}) == (
-        "SELECT {'a': 1} FROM '/d/x.parquet'"
+def test_query_parameters(dump):
+    """$name parameters are bound from params; unused params are ignored."""
+    root, _, _ = dump
+    query = (
+        "SELECT id, id AS text FROM "
+        "read_parquet('audio/toy/' || $split || '/metadata.parquet') "
+        "WHERE id <= $last ORDER BY id"
     )
-    with pytest.raises(KeyError, match="split"):
-        render_query(sql, {"root": "/d"})
+    ds = OmniIODataset(
+        query=query,
+        fields={"text": "text"},
+        params={"split": "train", "last": "u02", "unused": 1},
+        dump_root=root,
+    )
+    assert ds.keys() == ["u00", "u01", "u02"]
+    with pytest.raises(ValueError, match=r"parameters \['last'\]"):
+        OmniIODataset(
+            query=query,
+            fields={"text": "text"},
+            params={"split": "train"},
+            dump_root=root,
+        )
+
+
+def test_dump_root_parameter(dump):
+    """$dump_root is filled from dump_root when params do not give it."""
+    root, _, _ = dump
+    ds = OmniIODataset(
+        query=(
+            "SELECT id, id AS text FROM "
+            "read_parquet($dump_root || '/audio/toy/train/metadata.parquet')"
+        ),
+        fields={"text": "text"},
+        dump_root=root,
+    )
+    assert len(ds) == N_AUDIO
+
+
+def test_query_must_be_one_statement():
+    """Several statements are rejected with a clear error."""
+    with pytest.raises(ValueError, match="one SQL statement"):
+        OmniIODataset(query="SELECT 'a' AS id; SELECT 1", fields={"text": "text"})
 
 
 def test_join_returns_paired_items(dump):
@@ -126,7 +161,7 @@ def test_join_returns_paired_items(dump):
         assert item["speech"].dtype == np.float32 and item["speech"].ndim == 1
         np.testing.assert_array_equal(item["speech"], audio[uid])
     np.testing.assert_array_equal(
-        ds.item_lengths(), [len(audio[uid]) for uid in paired]
+        ds.get_item_lengths(), [len(audio[uid]) for uid in paired]
     )
     assert ds["u04"]["text"] == "TEXT u04"
 
@@ -144,7 +179,7 @@ def test_inline_column(dump):
     ds = OmniIODataset(
         query=(
             "SELECT id, upper(id) AS text, 1 AS length FROM "
-            "read_parquet('{dump_root}/audio/toy/train/metadata.parquet') "
+            "read_parquet('audio/toy/train/metadata.parquet') "
             "ORDER BY id"
         ),
         fields={"text": "text"},
@@ -197,24 +232,28 @@ def test_shards_partition_rows(dump):
 def test_shard_by_other_column(dump):
     """Rows go to shard hash(shard_by) % total_shards."""
     root, _, _ = dump
-    query = PAIRED.replace(
+    query = PAIRED.format(where="").replace(
         "SELECT a.id,", "SELECT a.id, CAST(substr(a.id, 2) AS INT) % 3 AS grp,"
     )
     ds = OmniIODataset(
         query=query,
         fields={"speech": "audio", "text": "text"},
-        params={"split": "train", "where": ""},
+        params={"split": "train"},
         dump_root=root,
         total_shards=2,
         shard_by="grp",
     )
     import duckdb
 
-    full = duckdb.sql(ds.query).fetchall()
-    grp = dict(duckdb.sql(f"SELECT id, grp FROM ({ds.query})").fetchall())
-    expected = dict(
-        duckdb.sql(f"SELECT id, hash(grp) % 2 FROM ({ds.query})").fetchall()
-    )
+    con = duckdb.connect()
+    con.execute("SET file_search_path = ?", [str(root)])
+
+    def run(sql):
+        return con.sql(sql, params={"split": "train"}).fetchall()
+
+    full = run(query)
+    grp = dict(run(f"SELECT id, grp FROM ({query})"))
+    expected = dict(run(f"SELECT id, hash(grp) % 2 FROM ({query})"))
     assert len(set(grp.values())) == 3  # several group values occur
     shard_of = {}
     for i in range(2):
@@ -232,9 +271,9 @@ def test_recipe_subclass_shards(dump):
     class Recipe(OmniIODataset):
         def __init__(self, split, total_shards=None):
             super().__init__(
-                query=PAIRED,
+                query=PAIRED.format(where=""),
                 fields={"speech": "audio", "text": "text"},
-                params={"split": split, "where": ""},
+                params={"split": split},
                 dump_root=root,
                 total_shards=total_shards,
             )
@@ -252,8 +291,10 @@ def test_errors(dump):
         OmniIODataset(query="SELECT 1 AS x", fields={"text": "text"})
     with pytest.raises(ValueError, match="neither"):
         OmniIODataset(query="SELECT 'a' AS id", fields={"text": "text"})
-    with pytest.raises(ValueError, match="modality"):
+    with pytest.raises(ValueError, match="cannot decode modality 'video'"):
         OmniIODataset(query="SELECT 'a' AS id", fields={"v": "video"})
+    with pytest.raises(ValueError, match="at least one field"):
+        OmniIODataset(query="SELECT 'a' AS id", fields={})
     with pytest.raises(ValueError):
         dump_blob(root / "a", "text", ["a"], ["1", "2"])
 
@@ -278,9 +319,9 @@ def test_dataset_shape_file(dump):
     """The temporary shape file lists every item's length by index."""
     root, _, _ = dump
     combined = _combined(_paired(root))
-    with _dataset_shape_file(combined) as path:
+    with _write_lengths_as_shape_file(combined) as path:
         lines = open(path).read().splitlines()
-    expected = combined.datasets[0].item_lengths()
+    expected = combined.datasets[0].get_item_lengths()
     assert lines == [f"{i} {n}" for i, n in enumerate(expected)]
 
 
@@ -357,7 +398,7 @@ def test_query_trailing_semicolon(dump):
     ds = OmniIODataset(
         query=(
             "SELECT id, id AS text FROM "
-            "read_parquet('{dump_root}/audio/toy/train/metadata.parquet') "
+            "read_parquet('audio/toy/train/metadata.parquet') "
             "ORDER BY id ;  \n"
         ),
         fields={"text": "text"},
@@ -375,7 +416,7 @@ def test_dump_root_with_apostrophe(dump, tmp_path):
     ds = OmniIODataset(
         query=(
             "SELECT id, id AS text FROM "
-            "read_parquet('{dump_root}/audio/toy/train/metadata.parquet')"
+            "read_parquet('audio/toy/train/metadata.parquet')"
         ),
         fields={"text": "text"},
         dump_root=quoted,
@@ -386,11 +427,13 @@ def test_dump_root_with_apostrophe(dump, tmp_path):
 def test_shard_by_column_with_quote(dump):
     """A shard_by name with a double quote is quoted as an identifier."""
     root, _, _ = dump
-    query = PAIRED.replace("SELECT a.id,", 'SELECT a.id, a.id AS "g""x",')
+    query = PAIRED.format(where="").replace(
+        "SELECT a.id,", 'SELECT a.id, a.id AS "g""x",'
+    )
     ds = OmniIODataset(
         query=query,
         fields={"speech": "audio", "text": "text"},
-        params={"split": "train", "where": ""},
+        params={"split": "train"},
         dump_root=root,
         total_shards=2,
         shard_by='g"x',
@@ -405,7 +448,7 @@ def test_first_item_transform_runs_every_time(dump):
     ds = OmniIODataset(
         query=(
             "SELECT id, id AS text FROM "
-            "read_parquet('{dump_root}/audio/toy/train/metadata.parquet') "
+            "read_parquet('audio/toy/train/metadata.parquet') "
             "ORDER BY id"
         ),
         fields={"text": "text"},
@@ -422,7 +465,7 @@ def test_duplicate_ids_rejected_by_id_lookup(dump):
     ds = OmniIODataset(
         query=(
             "SELECT 'dup' AS id, id AS text FROM "
-            "read_parquet('{dump_root}/audio/toy/train/metadata.parquet')"
+            "read_parquet('audio/toy/train/metadata.parquet')"
         ),
         fields={"text": "text"},
         dump_root=root,

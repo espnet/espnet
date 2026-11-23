@@ -14,6 +14,7 @@ _CONFIG_RESOURCE = resources.files(__package__).joinpath("config.yaml")
 with resources.as_file(_CONFIG_RESOURCE) as _CONFIG_PATH:
     _CONFIG = load_config_with_defaults(str(_CONFIG_PATH), resolve=False)
 DEFAULT_QUERY = str(_CONFIG["dataset"]["default_query"])
+TEXT_QUERY = str(_CONFIG["dataset"]["text_query"])
 
 
 class LibriSpeech100OmniIODataset(OmniIODataset):
@@ -26,10 +27,10 @@ class LibriSpeech100OmniIODataset(OmniIODataset):
             ``dataset/omniio/config.yaml``, one split joined on utterance ID.
         split: Shorthand for ``params={"split": split}``, so entries read
             like those of the raw-LibriSpeech dataset.
-        params: Values for the query's ``{name}`` placeholders, e.g.
+        params: Values for the query's ``$name`` parameters, e.g.
             ``{"split": "dev-clean"}``.
-        dump_root: omniio dump root for ``{dump_root}``; defaults to
-            ``$OMNIIO_DUMP_ROOT``, then ``<recipe_dir>/dump/omniio``.
+        dump_root: omniio dump root the query's paths are relative to;
+            defaults to ``$OMNIIO_DUMP_ROOT``, then ``<recipe_dir>/dump/omniio``.
         recipe_dir: Recipe root, used only for that last fallback.
         total_shards: Shards the rows are split into (normally the world
             size); each GPU then loads only its shard's index.
@@ -55,7 +56,7 @@ class LibriSpeech100OmniIODataset(OmniIODataset):
         dist_world_size: int | None = None,
         shard_by: str = "id",
     ) -> None:
-        """Run ``query`` (or the default one) against the dump."""
+        """Check ``query`` (or the default one) against the dump."""
         params = dict(params or {})
         if split is not None:
             params.setdefault("split", split)

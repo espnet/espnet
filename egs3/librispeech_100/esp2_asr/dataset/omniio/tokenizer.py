@@ -6,14 +6,8 @@ from pathlib import Path
 from typing import List
 
 from egs3.librispeech_100.esp2_asr.dataset.omniio.builder import resolve_dump_root
+from egs3.librispeech_100.esp2_asr.dataset.omniio.dataset import TEXT_QUERY
 from espnet3.components.data.omniio_dataset import OmniIODataset
-
-TEXT_QUERY = """
-SELECT id, path AS text_path, start_byte AS text_start,
-       end_byte - start_byte AS text_size
-FROM read_parquet('{dump_root}/text/librispeech/{split}/metadata.parquet')
-ORDER BY id
-"""
 
 
 def gather_training_text(
@@ -28,13 +22,19 @@ def gather_training_text(
         recipe_dir: Recipe root, used to find the dump when neither
             ``dump_root`` nor ``$OMNIIO_DUMP_ROOT`` is set.
         dump_root: omniio dump root.
-        split: LibriSpeech split, filled into ``{split}``.
+        split: LibriSpeech split, bound to ``$split``.
         query: DuckDB query returning ``id`` and ``text_path``/``text_start``/
-            ``text_size`` (or an inline ``text`` column); defaults to every
-            transcript of ``split``.
+            ``text_size`` (or an inline ``text`` column); defaults to
+            ``text_query`` in ``dataset/omniio/config.yaml``, every transcript
+            of ``split``.
 
     Returns:
         Transcript strings for tokenizer training.
+
+    Examples:
+        >>> texts = gather_training_text(split="dev-clean")  # doctest: +SKIP
+        >>> texts[0][:6]  # doctest: +SKIP
+        'MISTER'
     """
     texts = OmniIODataset(
         query=query or TEXT_QUERY,
