@@ -9,43 +9,22 @@ import shutil
 import subprocess
 import uuid
 from dataclasses import replace
-from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any
 
 from omegaconf import DictConfig, OmegaConf
 
+from espnet3.bin.atlas.agents.providers import PROVIDERS, create_provider
 from espnet3.bin.atlas.agents.structured_output import decode_response_object
 from espnet3.bin.atlas.core.models import AgentRequest, AgentResponse
 from espnet3.bin.atlas.resources import load_agent_defaults, load_prompt
-
-
-def _toml_value(value: Any) -> str:
-    """Serialize a value accepted by Codex's ``-c key=value`` option."""
-    if value is None:
-        raise ValueError("Codex config overrides cannot contain null values")
-    if isinstance(value, bool):
-        return "true" if value else "false"
-    if isinstance(value, (int, float)):
-        return str(value)
-    if isinstance(value, str):
-        return json.dumps(value, ensure_ascii=False)
-    if isinstance(value, list):
-        return "[" + ", ".join(_toml_value(item) for item in value) + "]"
-    if isinstance(value, dict):
-        fields = ", ".join(
-            f"{key} = {_toml_value(item)}" for key, item in value.items()
-        )
-        return "{" + fields + "}"
-    raise TypeError(f"Unsupported Codex config value: {type(value).__name__}")
 
 
 def build_agent_config(config) -> DictConfig:
     """Merge ``atlas.agent`` settings over the packaged defaults and validate them.
 
     Args:
-        config: Mapping or OmegaConf node with at least ``provider``
-            (``"codex"`` or ``"claude"``, case-insensitive).
+        config: Mapping or OmegaConf node with at least ``provider`` (one of
+            :data:`PROVIDERS`, case-insensitive).
 
     Returns:
         DictConfig: The complete agent settings; see
@@ -61,8 +40,9 @@ def build_agent_config(config) -> DictConfig:
     """
     merged = OmegaConf.merge(load_agent_defaults(), config or {})
     provider = str(merged.provider or "").lower()
-    if provider not in {"codex", "claude"}:
-        raise ValueError("atlas.agent.provider must be 'codex' or 'claude'")
+    if provider not in PROVIDERS:
+        names = ", ".join(repr(name) for name in PROVIDERS)
+        raise ValueError(f"atlas.agent.provider must be one of {names}")
     merged.provider = provider
     retries = merged.structured_output_retries
     if isinstance(retries, bool) or not isinstance(retries, int) or retries < 0:
@@ -70,19 +50,51 @@ def build_agent_config(config) -> DictConfig:
     return merged
 
 
-class CliAgent:
-    """Invoke the Codex or Claude Code CLI as a subprocess and parse its response.
+def render_prompt(request: AgentRequest) -> str:
+    """Render an ``AgentRequest`` into the plain-text prompt sent to the agent.
 
-    Exposes ``run(request, artifact_dir)``. Builds the provider-specific
-    command and prompt from an ``AgentRequest``, runs it, parses its
-    JSON-lines (Codex) or streaming-JSON (Claude) stdout into an
-    ``AgentResponse``, and — on structured output — retries with a
-    response-only repair request up to ``config.structured_output_retries``
-    times before giving up.
+    Includes a strict JSON-only response contract when ``request.output_schema``
+    is non-empty.
+
+    Args:
+        request: The task to describe.
+
+    Returns:
+        str: The prompt text, from ``resources/prompts/agent_request.md``.
+    """
+
+    def dump(value) -> str:
+        return json.dumps(value, ensure_ascii=False, indent=2)
+
+    contract = load_prompt("final_response_contract") + "\n"
+    return load_prompt(
+        "agent_request",
+        task=request.task,
+        contract=contract if request.output_schema else "",
+        objective=request.objective.strip(),
+        knowledge=request.knowledge.strip(),
+        repo_context=request.repo_context.strip(),
+        trial_history_csv=request.trial_history_csv.strip(),
+        latest_metrics=dump(request.latest_metrics),
+        context_files=dump(request.context_files),
+        inflight_patches=dump(request.inflight_patches),
+        allowed_actions=", ".join(request.allowed_actions),
+        output_schema=dump(request.output_schema),
+    )
+
+
+class CliAgent:
+    """Run a coding-agent CLI as a subprocess and read its reply.
+
+    Exposes ``run(request, artifact_dir)``. Renders the prompt, lets the
+    configured provider (see ``agents/providers``) build the command and read the
+    output, keeps the artifacts of every call, and, when a JSON reply is
+    expected, retries with a response-only repair request up to
+    ``config.structured_output_retries`` times before giving up.
     """
 
     def __init__(self, config, recipe_dir: Path) -> None:
-        """Configure the Codex/Claude Code CLI wrapper.
+        """Configure the agent CLI wrapper.
 
         Args:
             config: Mapping or OmegaConf node of ``atlas.agent``, merged over
@@ -95,203 +107,10 @@ class CliAgent:
                 invalid.
         """
         self.config = build_agent_config(config)
+        self.provider = create_provider(self.config)
         self.env = {str(key): str(value) for key, value in self.config.env.items()}
         self.recipe_dir = Path(recipe_dir).resolve()
         self.cwd = Path(self.config.cwd or self.recipe_dir).resolve()
-
-    def _build_prompt(self, request: AgentRequest) -> str:
-        """Render an ``AgentRequest`` into the plain-text prompt sent to Codex/Claude.
-
-        Includes a strict JSON-only response contract section when
-        ``request.output_schema`` is non-empty.
-        """
-        parts = [
-            f"Task: {request.task}",
-            "",
-            "Follow the requested output shape exactly.",
-            "",
-            "Objective:",
-            request.objective.strip(),
-            "",
-            "Knowledge:",
-            request.knowledge.strip(),
-            "",
-            "Repo Context:",
-            request.repo_context.strip(),
-            "",
-            "Trial History CSV:",
-            request.trial_history_csv.strip(),
-            "",
-            "Latest Metrics:",
-            json.dumps(request.latest_metrics, ensure_ascii=False, indent=2),
-            "",
-            "Additional Context (including log paths when relevant):",
-            json.dumps(request.context_files, ensure_ascii=False, indent=2),
-            "",
-            "Currently Inflight Patches (do NOT propose any of these exactly):",
-            json.dumps(request.inflight_patches, ensure_ascii=False, indent=2),
-            "",
-            "Allowed Actions:",
-            ", ".join(request.allowed_actions),
-            "",
-            "Output JSON Schema:",
-            json.dumps(request.output_schema, ensure_ascii=False, indent=2),
-        ]
-        if request.output_schema:
-            parts.insert(2, load_prompt("final_response_contract"))
-        return "\n".join(parts)
-
-    def _codex_env(self) -> dict[str, str]:
-        """Give Codex a workspace-local home while retaining user credentials."""
-        codex_home = self.recipe_dir / ".codex"
-        xdg_config_home = codex_home / ".config"
-        xdg_cache_home = codex_home / ".cache"
-        home_dir = codex_home / ".home"
-        for path in (codex_home, xdg_config_home, xdg_cache_home, home_dir):
-            path.mkdir(parents=True, exist_ok=True)
-
-        user_codex_home = Path(os.environ.get("CODEX_HOME", Path.home() / ".codex"))
-        for name in ("auth.json", "config.toml", "installation_id", "version.json"):
-            source = user_codex_home / name
-            destination = codex_home / name
-            if source.is_file() and not destination.exists():
-                shutil.copyfile(source, destination)
-        return {
-            "CODEX_HOME": str(codex_home),
-            "HOME": str(home_dir),
-            "XDG_CONFIG_HOME": str(xdg_config_home),
-            "XDG_CACHE_HOME": str(xdg_cache_home),
-        }
-
-    def _build_codex_command(
-        self, request: AgentRequest, output_path: Path
-    ) -> list[str]:
-        """Build the ``codex exec`` argv for one request.
-
-        Uses ``codex exec resume <thread_id>`` when ``request.resume_thread_id``
-        is set, otherwise a fresh ``codex exec`` in ``self.cwd``; applies
-        the configured sandbox/model/config overrides and writes the final
-        message to ``output_path``.
-        """
-        options = self.config.codex
-        if request.resume_thread_id:
-            command = [
-                options.executable,
-                "exec",
-                "resume",
-                request.resume_thread_id,
-                "--json",
-            ]
-        else:
-            command = [options.executable, "exec", "--json", "-C", str(self.cwd)]
-        if options.skip_git_repo_check:
-            command.append("--skip-git-repo-check")
-        if options.sandbox:
-            if request.resume_thread_id:
-                if options.sandbox == "danger-full-access":
-                    command.append("--dangerously-bypass-approvals-and-sandbox")
-                else:
-                    command.extend(
-                        ["-c", f"sandbox_mode={_toml_value(options.sandbox)}"]
-                    )
-            else:
-                command.extend(["--sandbox", options.sandbox])
-        if options.model:
-            command.extend(["--model", options.model])
-        for key, value in OmegaConf.to_container(options.config).items():
-            command.extend(["-c", f"{key}={_toml_value(value)}"])
-        command.extend(str(arg) for arg in options.args)
-        command.extend(["--output-last-message", str(output_path)])
-        command.append("-")
-        return command
-
-    def _build_claude_command(self, request: AgentRequest) -> list[str]:
-        """Build the ``claude --print`` argv for one request.
-
-        Applies the configured model/effort/turn-limit/tool options, resumes
-        ``request.resume_thread_id`` when set, and disables tools/MCP entirely
-        when the request only allows ``"respond_only"``.
-        """
-        options = self.config.claude
-        command = [
-            options.executable,
-            "--print",
-            "--output-format",
-            "stream-json",
-            "--verbose",
-            "--permission-mode",
-            options.permission_mode,
-        ]
-        if options.model:
-            command.extend(["--model", options.model])
-        if options.effort:
-            command.extend(["--effort", options.effort])
-        if options.max_turns is not None:
-            command.extend(["--max-turns", str(options.max_turns)])
-        if options.allowed_tools:
-            command.extend(["--allowedTools", *map(str, options.allowed_tools)])
-        if options.disallowed_tools:
-            command.extend(["--disallowedTools", *map(str, options.disallowed_tools)])
-        command.extend(str(arg) for arg in options.args)
-        if request.output_schema:
-            command.extend(["--json-schema", json.dumps(request.output_schema)])
-        if request.resume_thread_id:
-            command.extend(["--resume", request.resume_thread_id])
-        if request.allowed_actions == ["respond_only"]:
-            command.extend(
-                [
-                    "--tools",
-                    "",
-                    "--strict-mcp-config",
-                    "--mcp-config",
-                    '{"mcpServers":{}}',
-                ]
-            )
-        return command
-
-    @staticmethod
-    def _events(stdout: str) -> list[dict[str, Any]]:
-        """Parse Codex/Claude's JSON-lines stdout into a list of event dicts, skipping non-JSON lines."""
-        events = []
-        for line in stdout.splitlines():
-            try:
-                event = json.loads(line)
-            except json.JSONDecodeError:
-                continue
-            if isinstance(event, dict):
-                events.append(event)
-        return events
-
-    @staticmethod
-    def _extract_codex_content(events: list[dict[str, Any]]) -> str:
-        """Return the text of the last Codex ``agent_message`` item, or "" if none."""
-        for event in reversed(events):
-            if event.get("type") == "item.completed":
-                item = event.get("item", {})
-                if item.get("type") == "agent_message":
-                    return str(item.get("text", "")).strip()
-        return ""
-
-    @staticmethod
-    def _extract_claude_content(events: list[dict[str, Any]]) -> str:
-        """Read the final result, including Claude's native structured output."""
-        for event in reversed(events):
-            if event.get("type") == "result":
-                value = event.get("structured_output")
-                if value is None:
-                    value = event.get("result", "")
-                if isinstance(value, (dict, list)):
-                    return json.dumps(value, ensure_ascii=False)
-                return str(value).strip() if value is not None else ""
-        text = []
-        for event in events:
-            if event.get("type") != "assistant":
-                continue
-            message = event.get("message", {})
-            for item in message.get("content", []):
-                if item.get("type") == "text":
-                    text.append(str(item.get("text", "")))
-        return "\n".join(text).strip()
 
     def run(self, request: AgentRequest, artifact_dir=None) -> AgentResponse:
         """Run an agent, asking for bounded response-only repairs of invalid JSON.
@@ -395,7 +214,7 @@ class CliAgent:
             path.write_text(value, encoding="utf-8")
             (invocation_dir / path.name).write_text(value, encoding="utf-8")
 
-        prompt = self._build_prompt(request)
+        prompt = render_prompt(request)
         prompt_path = artifact_dir / "agent_prompt.txt"
         output_path = artifact_dir / "agent_output.txt"
         stdout_path = artifact_dir / "agent_stdout.log"
@@ -413,20 +232,23 @@ class CliAgent:
             "invocation": str(invocation_dir),
         }
 
-        if self.config.provider == "codex":
-            command = self._build_codex_command(request, output_path)
-            extra_env = self._codex_env()
-        else:
-            command = self._build_claude_command(request)
-            extra_env = {}
+        invocation = self.provider.build_command(
+            request, prompt, cwd=self.cwd, output_path=output_path
+        )
+        command = invocation.argv
+        stdin = (
+            {"input": invocation.stdin}
+            if invocation.stdin is not None
+            else {"stdin": subprocess.DEVNULL}
+        )
         try:
             proc = subprocess.run(
                 command,
-                input=prompt,
+                **stdin,
                 text=True,
                 capture_output=True,
                 cwd=self.cwd,
-                env={**os.environ, **extra_env, **self.env},
+                env={**os.environ, **self.provider.env(self.recipe_dir), **self.env},
                 timeout=self.config.timeout_sec,
                 check=False,
             )
@@ -452,18 +274,9 @@ class CliAgent:
         _write_artifact(stdout_path, proc.stdout)
         _write_artifact(stderr_path, proc.stderr)
         _write_artifact(events_path, proc.stdout)
-        events = self._events(proc.stdout)
-        if self.config.provider == "codex":
-            self._write_codex_usage(artifact_dir, request, command, events)
-        thread_id = next(
-            (
-                str(event[key])
-                for event in events
-                for key in ("thread_id", "session_id")
-                if event.get(key)
-            ),
-            None,
-        )
+        self.provider.record_usage(artifact_dir, request, command, proc.stdout)
+        parsed = self.provider.parse(proc.stdout, output_path)
+        content, thread_id = parsed.content, parsed.thread_id
         if proc.returncode != 0:
             return AgentResponse(
                 status="failure",
@@ -476,30 +289,15 @@ class CliAgent:
                 artifacts=artifacts,
             )
 
-        if self.config.provider == "codex":
-            content = output_path.read_text(encoding="utf-8").strip()
-            if not content:
-                content = self._extract_codex_content(events)
-        else:
-            content = self._extract_claude_content(events)
         _write_artifact(output_path, content)
-        if self.config.provider == "claude":
-            result_event = next(
-                (event for event in reversed(events) if event.get("type") == "result"),
-                None,
+        if parsed.error:
+            return AgentResponse(
+                status="failure",
+                message=parsed.error,
+                content=content,
+                thread_id=thread_id,
+                artifacts=artifacts,
             )
-            if result_event is None or result_event.get("is_error"):
-                return AgentResponse(
-                    status="failure",
-                    message=(
-                        "Claude stream has no final result event."
-                        if result_event is None
-                        else f"Claude reported an error result: {result_event.get('subtype')}"
-                    ),
-                    content=content,
-                    thread_id=thread_id,
-                    artifacts=artifacts,
-                )
         try:
             structured = decode_response_object(content)
             self._validate_output(structured, request.output_schema)
@@ -542,88 +340,3 @@ class CliAgent:
             error = errors[0]
             where = ".".join(str(part) for part in error.path) or "root"
             raise ValueError(f"{where}: {error.message}")
-
-    @staticmethod
-    def _parse_structured_output(content: str) -> dict[str, Any]:
-        """Parse complete JSON output, returning an empty mapping for invalid replies.
-
-        Args:
-            content: Agent response text.
-
-        Returns:
-            dict[str, Any]: Parsed JSON object, or an empty mapping on invalid output.
-
-        Example:
-            >>> CliAgent._parse_structured_output('{"status": "ok"}')
-            {'status': 'ok'}
-        """
-        try:
-            return decode_response_object(content)
-        except ValueError:
-            return {}
-
-    @staticmethod
-    def _find_usage_objects(value) -> list[dict[str, Any]]:
-        """Recursively collect token-usage dicts from a nested Codex event structure.
-
-        Finds any ``"usage"`` sub-dict and any dict directly carrying token
-        count fields (``input_tokens``, ``output_tokens``, etc.), at any
-        nesting depth within ``value``.
-        """
-        found = []
-        if isinstance(value, dict):
-            usage = value.get("usage")
-            if isinstance(usage, dict):
-                found.append(usage)
-            token_keys = {
-                "input_tokens",
-                "output_tokens",
-                "total_tokens",
-                "cached_input_tokens",
-                "reasoning_tokens",
-                "reasoning_output_tokens",
-            }
-            if any(key in value for key in token_keys):
-                found.append(
-                    {
-                        key: value[key]
-                        for key in token_keys
-                        if isinstance(value.get(key), (int, float))
-                    }
-                )
-            for nested in value.values():
-                found.extend(CliAgent._find_usage_objects(nested))
-        elif isinstance(value, list):
-            for item in value:
-                found.extend(CliAgent._find_usage_objects(item))
-        return found
-
-    @staticmethod
-    def _write_codex_usage(
-        artifact_dir: Path,
-        request: AgentRequest,
-        command: list[str],
-        events: list[dict[str, Any]],
-    ) -> None:
-        """Write a Codex call's token-usage summary to ``agent_usage.json`` and append to ``agent_usage_history.jsonl``."""
-        usage_records = [
-            usage
-            for event in events
-            for usage in CliAgent._find_usage_objects(event)
-            if usage
-        ]
-        summary = {
-            "task": request.task,
-            "timestamp": datetime.now(timezone.utc).replace(microsecond=0).isoformat(),
-            "command": command,
-            "usage_records": usage_records,
-            "last_usage": usage_records[-1] if usage_records else {},
-            "event_count": len(events),
-        }
-        (artifact_dir / "agent_usage.json").write_text(
-            json.dumps(summary, ensure_ascii=False, indent=2), encoding="utf-8"
-        )
-        with (artifact_dir / "agent_usage_history.jsonl").open(
-            "a", encoding="utf-8"
-        ) as handle:
-            handle.write(json.dumps(summary, ensure_ascii=False) + "\n")

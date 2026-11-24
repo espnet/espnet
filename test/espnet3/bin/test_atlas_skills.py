@@ -71,7 +71,7 @@ def test_agent_config_selects_provider_and_preserves_cli_options():
 @pytest.mark.parametrize("provider", ["", "openai"])
 def test_agent_config_rejects_unsupported_provider(provider):
     """Reject missing or unsupported agent selections with a clear error."""
-    with pytest.raises(ValueError, match="provider must be 'codex' or 'claude'"):
+    with pytest.raises(ValueError, match="provider must be one of 'codex', 'claude', 'command'"):
         build_agent_config({"provider": provider})
 
 

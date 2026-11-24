@@ -3,10 +3,12 @@
 from __future__ import annotations
 
 import json
+from pathlib import Path
 
 import pytest
 
 from espnet3.bin.atlas.agents.cli import CliAgent, build_agent_config
+from espnet3.bin.atlas.agents.providers import create_provider
 from espnet3.bin.atlas.core.models import AgentRequest
 from espnet3.bin.atlas.resources import load_schema
 
@@ -25,21 +27,23 @@ def _request(schema):
     )
 
 
+def _argv(provider_config, request):
+    provider = create_provider(build_agent_config(provider_config))
+    return provider.build_command(
+        request, "PROMPT", cwd=Path("."), output_path=Path("out.txt")
+    ).argv
+
+
 def test_claude_command_passes_the_schema_natively():
-    agent = object.__new__(CliAgent)
-    agent.config = build_agent_config({"provider": "claude"})
     schema = load_schema("early_stop")
 
-    command = agent._build_claude_command(_request(schema))
+    command = _argv({"provider": "claude"}, _request(schema))
 
     assert json.loads(command[command.index("--json-schema") + 1]) == schema
 
 
 def test_claude_command_without_schema_has_no_schema_flag():
-    agent = object.__new__(CliAgent)
-    agent.config = build_agent_config({"provider": "claude"})
-
-    assert "--json-schema" not in agent._build_claude_command(_request({}))
+    assert "--json-schema" not in _argv({"provider": "claude"}, _request({}))
 
 
 def test_validate_output_accepts_a_conforming_reply():
@@ -103,16 +107,13 @@ def test_build_agent_config_rejects_invalid_retry_counts(retries):
 
 
 def test_codex_command_passes_nested_config_overrides_as_toml():
-    agent = object.__new__(CliAgent)
-    agent.config = build_agent_config(
+    command = _argv(
         {
             "provider": "codex",
             "codex": {"config": {"model_provider": "vllm", "retries": [1, 2]}},
-        }
+        },
+        _request({}),
     )
-    agent.cwd = "."
-
-    command = agent._build_codex_command(_request({}), "out.txt")
 
     assert 'model_provider="vllm"' in command
     assert "retries=[1, 2]" in command
