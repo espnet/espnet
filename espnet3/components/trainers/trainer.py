@@ -95,14 +95,10 @@ class ESPnet3LightningTrainer:
         plugins = _get_or_initialize(self.config, "plugins")
 
         # Callbacks
-        log_sanity_validation = bool(
-            getattr(self.config, "log_sanity_validation", False)
-        )
         callbacks = get_default_callbacks(
             exp_dir,
             self.config.log_every_n_steps,
             OmegaConf.to_container(best_model_criterion),
-            log_sanity_validation=log_sanity_validation,
         )
         if getattr(self.config, "callbacks", None):
             assert isinstance(
@@ -152,7 +148,6 @@ class ESPnet3LightningTrainer:
             "profiler",
             "plugins",
             "callbacks",
-            "log_sanity_validation",
         ):
             self._del_config_key_on(trainer_config, key)
 

@@ -316,14 +316,9 @@ class MetricsLogger(Callback):
         `epoch_summary:20epoch:valid: valid_time=1.42, acc=0.91, loss=0.83`
     """
 
-    def __init__(
-        self,
-        log_every_n_steps: int = 500,
-        log_sanity_validation: bool = False,
-    ):
+    def __init__(self, log_every_n_steps: int = 500):
         """Initialize the logger with a reporting interval."""
         self.log_every_n_steps = int(log_every_n_steps)
-        self.log_sanity_validation = bool(log_sanity_validation)
         self._sum = defaultdict(float)
         self._count = 0
         self._start_batch = None
@@ -471,14 +466,13 @@ class MetricsLogger(Callback):
 
     def on_validation_epoch_start(self, trainer, pl_module):
         """Start wall-clock timing for one validation epoch."""
-        if getattr(trainer, "sanity_checking", False) and not self.log_sanity_validation:
+        if getattr(trainer, "sanity_checking", False):
             return
         self._validation_start_time = time.perf_counter()
 
     def on_validation_epoch_end(self, trainer, pl_module):
         """Emit one log line with aggregated validation metrics."""
-        is_sanity_check = bool(getattr(trainer, "sanity_checking", False))
-        if is_sanity_check and not self.log_sanity_validation:
+        if getattr(trainer, "sanity_checking", False):
             return
 
         metrics = {}
@@ -496,12 +490,12 @@ class MetricsLogger(Callback):
         if not metrics:
             return
 
-        prefix = (
-            "pretrain_validation"
-            if is_sanity_check
-            else f"epoch_summary:{trainer.current_epoch + 1}epoch:valid"
+        epoch = trainer.current_epoch + 1
+        logging.info(
+            "epoch_summary:%depoch:valid: %s",
+            epoch,
+            _format_metrics(metrics, ("valid_time",)),
         )
-        logging.info("%s: %s", prefix, _format_metrics(metrics, ("valid_time",)))
 
 
 @typechecked
@@ -511,7 +505,6 @@ def get_default_callbacks(
     best_model_criterion: Union[List[Tuple[str, int, str]], List[List]] = [
         ("valid/loss", 3, "min")
     ],
-    log_sanity_validation: bool = False,
 ) -> List[Callback]:
     """Return a list of callbacks tailored for most training workflows.
 
@@ -596,10 +589,7 @@ def get_default_callbacks(
         ave_ckpt_callback,
         best_link_callback,
         lr_callback,
-        MetricsLogger(
-            log_every_n_steps=log_interval,
-            log_sanity_validation=log_sanity_validation,
-        ),
+        MetricsLogger(log_every_n_steps=log_interval),
         progress_bar_callback,
     ]
     global _LOGGED_CALLBACKS

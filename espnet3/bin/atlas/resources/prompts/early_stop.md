@@ -10,6 +10,6 @@ Read current evidence with tools as needed; do not ask for pasted copies:
 - Study objective: ${study_dir}/program.md
 
 Should this trial be early stopped?
-Use the `pretrain_validation` entry in train.log as this trial's zero-shot baseline. At an epoch keypoint, stop if the current fixed-dev valid/loss is worse than that baseline; report both values in key_metrics.
-Also stop if the trajectory is clearly inferior to other trials unlikely to recover.
+Stop if the trajectory is clearly inferior to other trials and unlikely to recover.
+Report the metrics behind your decision in key_metrics.
 Be conservative — prefer to continue unless the evidence is strong.
