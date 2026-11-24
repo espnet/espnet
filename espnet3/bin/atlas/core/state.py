@@ -451,7 +451,7 @@ class StateStore:
             None.
 
         Example:
-            >>> store.create_node_run("run_1", "my_study", "init_study")
+            >>> store.create_node_run("run_1", "my_study", "research_context")
         """
         self._upsert(
             "node_runs",
@@ -561,7 +561,7 @@ class StateStore:
 
         Example:
             >>> store.get_node_run("run_1")["node_name"]
-            'init_study'
+            'research_context'
         """
         rows = self._read_table_rows("node_runs")
         return next((r for r in rows if r["run_id"] == run_id), None)

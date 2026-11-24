@@ -1,15 +1,8 @@
 name: architecture_search
 version: 1
-start: init_study
+start: research_context
 
 nodes:
-  init_study:
-    target: espnet3.bin.atlas.stages.init_study.InitStudyStage
-    execution: local
-    "on":
-      success: research_context
-      failure: analyze
-
   research_context:
     target: espnet3.bin.atlas.stages.skill.SkillStage
     execution: local

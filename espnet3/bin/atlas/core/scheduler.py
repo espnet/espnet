@@ -169,32 +169,20 @@ class AtlasGraphRuntime:
     def get_bootstrap_node_name(self) -> str:
         """Pick the first node to run for a study with no node runs yet.
 
-        Skips ``research_context``/``propose_trial`` setup work that is
-        already done: if the knowledge pack already exists, starts at
-        ``propose_trial``; else if the study's own files already exist,
-        starts at ``research_context``; otherwise falls back to the graph's
+        A study whose knowledge pack already exists skips the setup node and
+        starts at ``propose_trial``; any other study starts at the graph's
         declared ``start`` node.
-
-        Args:
-            None.
 
         Returns:
             str: The node name to create the first node run for.
 
         Example:
             >>> runtime.get_bootstrap_node_name()
-            'init_study'
+            'research_context'
         """
-        knowledge_dir = self.study_dir / "knowledge"
-        knowledge_ready = (knowledge_dir / "knowledge_pack.md").is_file()
-        if knowledge_ready and "propose_trial" in self.graph.nodes:
+        knowledge_pack = self.study_dir / "knowledge" / "knowledge_pack.md"
+        if knowledge_pack.is_file() and "propose_trial" in self.graph.nodes:
             return "propose_trial"
-        study_ready = all(
-            (self.study_dir / name).exists()
-            for name in ("atlas.yaml", "graph.yaml", "state.sqlite")
-        )
-        if study_ready and "research_context" in self.graph.nodes:
-            return "research_context"
         return self.graph.start
 
     def _build_job_name(
@@ -251,7 +239,7 @@ class AtlasGraphRuntime:
             StageResult: The stage's result.
 
         Example:
-            >>> result = runtime.run_node("init_study", run_id="run_1")
+            >>> result = runtime.run_node("propose_trial", run_id="run_1")
             >>> result.status
             'success'
         """

@@ -78,9 +78,10 @@ def handle_init(args) -> int:
     """Initialize a study: write its config/graph/program and bootstrap its state.
 
     Implements ``espnet3 atlas init``. Loads ``args.config`` merged with its
-    TEMPLATE defaults, creates ``config.atlas.study_dir``, writes the
-    resolved config to ``atlas.yaml``, copies the configured (or packaged
-    default) graph to ``graph.yaml``, copies or creates ``program.md``, and
+    TEMPLATE defaults, creates ``config.atlas.study_dir`` with its ``knowledge``,
+    ``trials`` and ``node_runs`` subdirectories, writes the resolved config to
+    ``atlas.yaml``, copies the graph named by ``atlas.application`` to
+    ``graph.yaml``, copies or creates ``program.md``, and
     registers the study and its first (bootstrap) node run in state — unless
     a node run already exists for this study, in which case initialization
     is a no-op beyond refreshing the written files.
@@ -100,7 +101,8 @@ def handle_init(args) -> int:
     config_path = Path(args.config).resolve()
     config = load_atlas_config(config_path)
     study_dir = _resolve_study_dir(recipe_dir, config.atlas.study_dir)
-    study_dir.mkdir(parents=True, exist_ok=True)
+    for name in ("knowledge", "trials", "node_runs"):
+        (study_dir / name).mkdir(parents=True, exist_ok=True)
     application = str(getattr(config.atlas, "application", "") or "")
     graphs_dir = resources.files("espnet3.bin.atlas").joinpath("graphs")
     packaged_graph = graphs_dir.joinpath(f"{application}.yaml")

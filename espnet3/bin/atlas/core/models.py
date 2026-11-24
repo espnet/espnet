@@ -544,7 +544,7 @@ class StageContext:
         logger: Logger scoped to this run.
         scheduler: The owning ``AtlasGraphRuntime``.
         current_trial: The trial this node run operates on, or ``None`` for
-            study-level nodes (e.g. ``init_study``).
+            study-level nodes (e.g. ``research_context``).
         gpu_self_controller: Whether this node run is executing inside a GPU
             job acting as its own controller (affects some stages'
             behavior, e.g. whether to submit a follow-up job).

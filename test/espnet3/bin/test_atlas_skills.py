@@ -526,5 +526,9 @@ def test_init_copies_the_packaged_graph_named_by_application(tmp_path):
     recipe, args = _init_args(tmp_path, "  application: hyperparameter_search\n")
 
     assert handle_init(args) == 0
-    copied = recipe / "exp" / "atlas" / "s" / "graph.yaml"
-    assert copied.read_bytes() == _graph_path("hyperparameter_search").read_bytes()
+    study = recipe / "exp" / "atlas" / "s"
+    assert (study / "graph.yaml").read_bytes() == (
+        _graph_path("hyperparameter_search").read_bytes()
+    )
+    assert (study / "program.md").is_file() and (study / "atlas.yaml").is_file()
+    assert all((study / name).is_dir() for name in ("knowledge", "trials", "node_runs"))

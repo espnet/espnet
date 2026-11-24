@@ -61,7 +61,7 @@ def load_graph(path: Path, recipe_dir: Path | None = None) -> ResearchGraph:
     Example:
         >>> graph = load_graph(Path("graph.yaml"))
         >>> graph.start
-        'init_study'
+        'research_context'
     """
     raw = load_yaml(path)
     if not isinstance(raw, dict):
