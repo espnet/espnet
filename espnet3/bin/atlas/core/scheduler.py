@@ -15,10 +15,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from espnet3.bin.atlas.agents.session import StudySessionAgentClient
-from espnet3.bin.atlas.core.errors import (
-    ConfigValidationError,
-    InvalidAgentResponseError,
-)
+from espnet3.bin.atlas.core import AtlasError, InvalidAgentResponseError
 from espnet3.bin.atlas.core.graph import Resources, load_stage_class
 from espnet3.bin.atlas.core.models import AgentRequest, StageContext, StageResult
 from espnet3.bin.atlas.core.serialization import (
@@ -29,8 +26,8 @@ from espnet3.bin.atlas.core.serialization import (
     loads_json,
     utc_now,
 )
-from espnet3.bin.atlas.resources import load_prompt, load_schema
 from espnet3.bin.atlas.core.state import JobRecord
+from espnet3.bin.atlas.resources import load_prompt, load_schema
 
 
 class _SkillAgent:
@@ -132,7 +129,7 @@ class AtlasGraphRuntime:
                 int(getattr(early_stop_cfg, "elapsed_time_interval_sec", 0) or 0) > 0
             )
         except (TypeError, ValueError) as exc:
-            raise ConfigValidationError(
+            raise AtlasError(
                 "early_stopping intervals must be null or integer seconds/iterations."
             ) from exc
 
@@ -146,7 +143,7 @@ class AtlasGraphRuntime:
             if is_enabled
         ]
         if len(enabled) > 1:
-            raise ConfigValidationError(
+            raise AtlasError(
                 "early_stopping accepts only one trigger, but multiple are enabled: "
                 f"{', '.join(enabled)}. Set unused intervals to 0. "
                 "In particular, set epoch_interval: 0 when using iteration_interval "

@@ -6,6 +6,7 @@ import csv
 import json
 
 from espnet3.bin.atlas import command
+from espnet3.bin.atlas.core import InvalidAgentResponseError
 from espnet3.bin.atlas.core.models import AgentResponse
 from espnet3.bin.atlas.core.state import StateStore
 from espnet3.bin.main import main as run_cli
@@ -33,8 +34,8 @@ class _DummyCodingAgent:
         )
 
 
-def test_cli_runs_skill_graph_to_completion_with_dummy_agent(tmp_path, monkeypatch):
-    """Run init and run commands through a skill graph without external agents."""
+def _write_skill_study(tmp_path):
+    """Write a one-node skill graph recipe and return its directory and config."""
     # Config discovery infers the TEMPLATE defaults from the egs3/<corpus>/<system> layout.
     recipe_dir = tmp_path / "egs3" / "integration" / "esp2_asr"
     recipe_dir.mkdir(parents=True)
@@ -78,6 +79,12 @@ def test_cli_runs_skill_graph_to_completion_with_dummy_agent(tmp_path, monkeypat
         "    terminal: true\n",
         encoding="utf-8",
     )
+    return recipe_dir, config_path
+
+
+def test_cli_runs_skill_graph_to_completion_with_dummy_agent(tmp_path, monkeypatch):
+    """Run init and run commands through a skill graph without external agents."""
+    recipe_dir, config_path = _write_skill_study(tmp_path)
 
     dummy_agent = _DummyCodingAgent()
     monkeypatch.setattr(command, "_build_agent", lambda _config, _recipe: dummy_agent)
@@ -142,3 +149,47 @@ def test_cli_runs_skill_graph_to_completion_with_dummy_agent(tmp_path, monkeypat
         "study_completed",
     ]
     assert json.loads(json.loads(events[-1]["payload_json"]))["status"] == "terminal"
+
+
+class _InvalidReplyAgent:
+    """Fail the way CliAgent does once JSON repair is exhausted."""
+
+    def run(self, request, artifact_dir=None):
+        raise InvalidAgentResponseError("agent reply was not valid JSON")
+
+
+def test_invalid_agent_response_is_recorded_as_a_failed_node_run(
+    tmp_path, monkeypatch
+):
+    recipe_dir, config_path = _write_skill_study(tmp_path)
+    monkeypatch.setattr(
+        command, "_build_agent", lambda _config, _recipe: _InvalidReplyAgent()
+    )
+    monkeypatch.setattr(
+        "sys.argv",
+        [
+            "espnet3",
+            "atlas",
+            "init",
+            "--recipe-dir",
+            str(recipe_dir),
+            "--config",
+            str(config_path),
+        ],
+    )
+    run_cli()
+    study_dir = recipe_dir / "exp/atlas/integration-study"
+
+    # One tick, not `atlas run`: a failed node run schedules nothing further, so
+    # the run loop would wait for work that never comes.
+    command._load_runtime(study_dir, recipe_dir).tick()
+
+    study_dir = recipe_dir / "exp/atlas/integration-study"
+    state = StateStore(study_dir)
+    (node_run,) = state.list_node_runs("integration-study")
+    assert node_run["result_status"] == "failure"
+    result = json.loads(node_run["result_payload_json"])
+    assert result["payload"]["invalid_agent_response"] is True
+    assert "not valid JSON" in result["message"]
+    failure_file = study_dir / "node_runs" / node_run["run_id"] / ".stage_failure.json"
+    assert json.loads(failure_file.read_text(encoding="utf-8"))["status"] == "failure"

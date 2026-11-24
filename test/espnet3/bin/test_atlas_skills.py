@@ -9,7 +9,7 @@ from types import SimpleNamespace
 import pytest
 from omegaconf import OmegaConf
 
-from espnet3.bin.atlas.core.errors import ConfigValidationError
+from espnet3.bin.atlas.core import AtlasError
 from espnet3.bin.atlas.core.graph import load_graph
 from espnet3.bin.atlas.core.models import (
     AgentConfig,
@@ -115,7 +115,7 @@ def test_load_graph_requires_target_or_skill(tmp_path):
     graph_path = tmp_path / "graph.yaml"
     graph_path.write_text("start: empty\nnodes:\n  empty:\n    terminal: true\n")
 
-    with pytest.raises(ConfigValidationError, match="needs either `target` or `skill`"):
+    with pytest.raises(AtlasError, match="needs either `target` or `skill`"):
         load_graph(graph_path)
 
 

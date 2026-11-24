@@ -6,11 +6,7 @@ import importlib
 import sys
 from pathlib import Path
 
-from espnet3.bin.atlas.core.errors import (
-    ConfigValidationError,
-    GraphRoutingError,
-    StageLoadError,
-)
+from espnet3.bin.atlas.core import AtlasError
 from espnet3.bin.atlas.core.models import NodeConfig, ResearchGraph, Resources
 from espnet3.bin.atlas.core.serialization import load_yaml
 
@@ -43,12 +39,12 @@ def load_stage_class(target: str, recipe_dir: Path | None = None) -> type:
             if recipe_dir is not None
             else ""
         )
-        raise StageLoadError(
+        raise AtlasError(
             f"Cannot import module '{module_path}' for stage target '{target}'."
             f"{hint}\nOriginal error: {exc}"
         ) from exc
     if not hasattr(module, class_name):
-        raise StageLoadError(f"Module '{module_path}' has no class '{class_name}'.")
+        raise AtlasError(f"Module '{module_path}' has no class '{class_name}'.")
     return getattr(module, class_name)
 
 
@@ -69,10 +65,10 @@ def load_graph(path: Path, recipe_dir: Path | None = None) -> ResearchGraph:
     """
     raw = load_yaml(path)
     if not isinstance(raw, dict):
-        raise ConfigValidationError(f"Graph YAML must be a mapping: {path}")
+        raise AtlasError(f"Graph YAML must be a mapping: {path}")
     nodes_raw = raw.get("nodes")
     if not nodes_raw:
-        raise ConfigValidationError("Graph must define non-empty `nodes`.")
+        raise AtlasError("Graph must define non-empty `nodes`.")
     nodes: dict[str, NodeConfig] = {}
     for name, cfg in nodes_raw.items():
         skill = str(cfg["skill"]) if cfg.get("skill") else None
@@ -81,13 +77,13 @@ def load_graph(path: Path, recipe_dir: Path | None = None) -> ResearchGraph:
             or ("espnet3.bin.atlas.core.stage.SkillStage" if skill else "")
         )
         if not target:
-            raise ConfigValidationError(
+            raise AtlasError(
                 f"Node '{name}' needs either `target` or `skill`."
             )
         load_stage_class(target, recipe_dir=recipe_dir)
         execution = str(cfg.get("execution", "local"))
         if execution not in {"local", "submission"}:
-            raise ConfigValidationError(
+            raise AtlasError(
                 f"Node '{name}' execution must be 'local' or 'submission', "
                 f"got {execution!r}."
             )
@@ -119,7 +115,7 @@ def load_graph(path: Path, recipe_dir: Path | None = None) -> ResearchGraph:
         )
     start = raw.get("start")
     if start not in nodes:
-        raise ConfigValidationError(f"Graph start node '{start}' is not defined.")
+        raise AtlasError(f"Graph start node '{start}' is not defined.")
     graph_name = str(raw.get("name", path.stem))
     version = int(raw.get("version", 1))
     return ResearchGraph(name=graph_name, version=version, start=start, nodes=nodes)

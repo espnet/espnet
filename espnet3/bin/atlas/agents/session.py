@@ -8,7 +8,7 @@ from pathlib import Path
 
 from espnet3.bin.atlas.core.models import AgentRequest, AgentResponse
 from espnet3.bin.atlas.resources import load_prompt
-from espnet3.bin.atlas.core.errors import InvalidAgentResponseError
+from espnet3.bin.atlas.core import InvalidAgentResponseError
 from espnet3.bin.atlas.core.serialization import atomic_write_text, file_lock
 
 

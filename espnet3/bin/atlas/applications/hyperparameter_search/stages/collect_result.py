@@ -6,7 +6,7 @@ import json
 from pathlib import Path
 from typing import Any
 
-from espnet3.bin.atlas.core.errors import MetricNotFoundError
+from espnet3.bin.atlas.core import AtlasError
 from espnet3.bin.atlas.core.models import StageResult
 from espnet3.bin.atlas.core.serialization import pattern_to_regex
 from espnet3.bin.atlas.core.stage import AtlasStage
@@ -22,7 +22,7 @@ def _extract_from_json(path: Path, key: str) -> Any:
     each dot as a nesting level).
 
     Raises:
-        MetricNotFoundError: If no matching path through ``key`` is found.
+        AtlasError: If no matching path through ``key`` is found.
     """
     data = json.loads(path.read_text(encoding="utf-8"))
     current: Any = data
@@ -32,7 +32,7 @@ def _extract_from_json(path: Path, key: str) -> Any:
     index = 0
     while index < len(parts):
         if not isinstance(current, dict):
-            raise MetricNotFoundError(f"Missing JSON key '{key}' in {path}")
+            raise AtlasError(f"Missing JSON key '{key}' in {path}")
         for end in range(len(parts), index, -1):
             candidate = ".".join(parts[index:end])
             if candidate in current:
@@ -40,7 +40,7 @@ def _extract_from_json(path: Path, key: str) -> Any:
                 index = end
                 break
         else:
-            raise MetricNotFoundError(f"Missing JSON key '{key}' in {path}")
+            raise AtlasError(f"Missing JSON key '{key}' in {path}")
     return current
 
 
@@ -48,13 +48,13 @@ def _extract_from_pattern(path: Path, pattern: str) -> float:
     """Extract the first numeric ``{value}`` match of ``pattern`` from a text file.
 
     Raises:
-        MetricNotFoundError: If ``pattern`` does not match anywhere in the
+        AtlasError: If ``pattern`` does not match anywhere in the
             file.
     """
     regex = pattern_to_regex(pattern)
     match = regex.search(path.read_text(encoding="utf-8", errors="replace"))
     if match is None:
-        raise MetricNotFoundError(f"Pattern '{pattern}' not found in {path}")
+        raise AtlasError(f"Pattern '{pattern}' not found in {path}")
     return float(match.group("value"))
 
 
@@ -91,7 +91,7 @@ def _extract_metrics(trial_dir: Path, extraction_rules) -> dict[str, Any]:
             if aggregate == "mean":
                 sub_key = getattr(rule, "sub_key", None) or rule.get("sub_key") or "WER"
                 if not isinstance(value, dict):
-                    raise MetricNotFoundError(
+                    raise AtlasError(
                         f"aggregate:mean requires a dict value at key '{json_key}'"
                     )
                 values = [
@@ -100,7 +100,7 @@ def _extract_metrics(trial_dir: Path, extraction_rules) -> dict[str, Any]:
                     if isinstance(item, dict) and sub_key in item
                 ]
                 if not values:
-                    raise MetricNotFoundError(
+                    raise AtlasError(
                         f"No '{sub_key}' sub-values found under '{json_key}'"
                     )
                 value = sum(values) / len(values)
@@ -116,10 +116,10 @@ def _resolve_primary_score(metrics: dict[str, Any], score_name: str) -> float:
     """Return ``metrics[score_name]`` as a float.
 
     Raises:
-        MetricNotFoundError: If ``score_name`` was not extracted.
+        AtlasError: If ``score_name`` was not extracted.
     """
     if score_name not in metrics:
-        raise MetricNotFoundError(f"Score metric '{score_name}' was not extracted.")
+        raise AtlasError(f"Score metric '{score_name}' was not extracted.")
     return float(metrics[score_name])
 
 

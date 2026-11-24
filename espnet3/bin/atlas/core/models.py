@@ -9,7 +9,7 @@ from typing import TYPE_CHECKING, Any, Literal
 
 from omegaconf import DictConfig
 
-from espnet3.bin.atlas.core.errors import GraphRoutingError
+from espnet3.bin.atlas.core import AtlasError
 from espnet3.bin.atlas.core.serialization import dumps_json, loads_json
 
 if TYPE_CHECKING:
@@ -267,7 +267,7 @@ class ResearchGraph:
             mapping, or ``None`` if the node is ``terminal``.
 
         Raises:
-            GraphRoutingError: If the node is not terminal and ``status``
+            AtlasError: If the node is not terminal and ``status``
                 has no entry in its ``on`` mapping.
 
         Example:
@@ -279,7 +279,7 @@ class ResearchGraph:
             return None
         next_node = node.on.get(status)
         if next_node is None:
-            raise GraphRoutingError(
+            raise AtlasError(
                 f"Node '{node_name}' has no routing for status '{status}'. "
                 f"Defined: {sorted(node.on.keys())}"
             )

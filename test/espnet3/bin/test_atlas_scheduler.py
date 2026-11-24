@@ -8,7 +8,7 @@ from types import SimpleNamespace
 import pytest
 
 from espnet3.bin.atlas.agents.session import StudySessionAgentClient
-from espnet3.bin.atlas.core.errors import ConfigValidationError
+from espnet3.bin.atlas.core import AtlasError
 from espnet3.bin.atlas.core.models import AgentRequest, AgentResponse, Trial
 from espnet3.bin.atlas.core.scheduler import AtlasGraphRuntime
 from espnet3.bin.atlas.core.state import StateStore
@@ -56,7 +56,7 @@ def test_early_stopping_rejects_multiple_progress_triggers():
         )
     )
 
-    with pytest.raises(ConfigValidationError, match="only one trigger"):
+    with pytest.raises(AtlasError, match="only one trigger"):
         runtime._validate_early_stopping_config()
 
 
