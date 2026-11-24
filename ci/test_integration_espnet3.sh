@@ -116,9 +116,6 @@ echo "==== [ESPnet3] ATLAS init ===="
 # state without touching the agent. The agent-driven graph execution (via a
 # deterministic dummy agent) is covered by
 # test/espnet3/bin/test_atlas_integration.py.
-# Run in-place inside egs3/, not a clone: the atlas config merge infers its
-# TEMPLATE defaults from an `egs3/<corpus>/<system>/conf/` path, which a
-# cloned recipe no longer has.
 cd ./egs3/mini_an4/esp2_asr || exit
 gen_dummy_coverage
 ${python} -m espnet3.bin.main atlas init \

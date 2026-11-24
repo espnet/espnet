@@ -32,6 +32,7 @@ atlas:
     max_gpu_hours: 96
 
   submission:
+    environment: slurm
     instructions: |
       Submit jobs with Slurm: write the script to the supplied script_path, map
       resource limits to #SBATCH options, and submit it with sbatch. Use squeue
@@ -42,10 +43,12 @@ atlas:
     resources:
       gpus: 2
       cpus: 16
+      mem: 32G
       time: "48:00:00"
       ntasks-per-node: 2
       # Set to a partition that provides multi-GPU nodes on your cluster.
       partition: YOUR_MULTI_GPU_PARTITION
+      account: YOUR_SLURM_ACCOUNT
 
   early_stopping:
     enabled: true

@@ -57,3 +57,68 @@ def test_keys_are_matched_as_strings_and_values_are_untouched():
     )
 
     assert kept == {"7": {"nested": [1, 2]}} and removed == []
+
+
+def _write(tmp_path, text):
+    path = tmp_path / "anywhere" / "study.yaml"
+    path.parent.mkdir(parents=True)
+    path.write_text(text, encoding="utf-8")
+    return path
+
+
+def test_study_config_is_merged_over_the_atlas_defaults_wherever_it_lives(tmp_path):
+    from espnet3.bin.atlas.core.config import load_atlas_config
+
+    config = load_atlas_config(
+        _write(
+            tmp_path,
+            "atlas:\n  study_name: s\n  budget: {max_trials: 3}\n"
+            "  submission: {environment: local}\n",
+        )
+    )
+
+    assert config.atlas.study_name == "s"
+    assert config.atlas.budget.max_trials == 3
+    assert config.atlas.budget.max_parallel_trials == 1  # from the defaults
+    assert config.atlas.tick_interval_sec_trial_active == 600
+    assert config.atlas.agent.provider == "codex"
+
+
+def test_a_study_config_overrides_the_defaults(tmp_path):
+    from espnet3.bin.atlas.core.config import load_atlas_config
+
+    config = load_atlas_config(
+        _write(
+            tmp_path,
+            "atlas:\n  tick_interval_sec_idle: 5\n  agent: {provider: claude}\n"
+            "  submission: {environment: local}\n",
+        )
+    )
+
+    assert config.atlas.tick_interval_sec_idle == 5
+    assert config.atlas.agent.provider == "claude"
+
+
+def test_submission_has_no_default(tmp_path):
+    import pytest
+
+    from espnet3.bin.atlas.core.config import load_atlas_config
+
+    texts = (
+        "atlas: {study_name: s}\n",
+        "atlas: {submission: {resources: {cpus: 1}}}\n",
+    )
+    for index, text in enumerate(texts):
+        with pytest.raises(ValueError, match="submission.environment is required"):
+            load_atlas_config(_write(tmp_path / str(index), text))
+
+
+def test_a_scheduler_environment_needs_submission_instructions(tmp_path):
+    import pytest
+
+    from espnet3.bin.atlas.core.config import load_atlas_config
+
+    with pytest.raises(ValueError, match="instructions is required.*'slurm'"):
+        load_atlas_config(
+            _write(tmp_path, "atlas: {submission: {environment: slurm}}\n")
+        )

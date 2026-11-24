@@ -96,6 +96,20 @@ def convert_shape_to_schema(shape: dict[str, Any]) -> dict[str, Any]:
     return schema
 
 
+def load_atlas_defaults() -> DictConfig:
+    """Read ``resources/atlas_defaults.yaml``, the defaults of a study config.
+
+    Returns:
+        DictConfig: The default study settings, under the ``atlas`` key.
+
+    Example:
+        >>> load_atlas_defaults().atlas.tick_interval_sec_idle
+        60
+    """
+    text = _ROOT.joinpath("atlas_defaults.yaml").read_text(encoding="utf-8")
+    return OmegaConf.create(text)
+
+
 def load_agent_defaults() -> DictConfig:
     """Read ``resources/agent_defaults.yaml``, the defaults of ``atlas.agent``.
 

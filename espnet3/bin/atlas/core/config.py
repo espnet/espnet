@@ -8,29 +8,48 @@ from pathlib import Path
 from omegaconf import OmegaConf
 
 from espnet3.bin.atlas.core.serialization import save_yaml
+from espnet3.bin.atlas.resources import load_atlas_defaults
 from espnet3.utils.config_utils import load_and_merge_config
 
 
 def load_atlas_config(config_path: Path):
-    """Load a recipe's ``atlas.yaml``, merged with its TEMPLATE defaults.
+    """Load a study config (a recipe's ``conf/atlas*.yaml``) over the Atlas defaults.
 
-    The default package (``egs3.TEMPLATE.<system>``) is inferred from
-    ``config_path`` living under ``egs3/<corpus>/<system>/conf/``, the same
-    way other recipe configs (``training.yaml``, etc.) are merged.
+    The defaults are ``resources/atlas_defaults.yaml``; they do not depend on the
+    recipe's system or location. ``atlas.submission`` has no default, since how
+    jobs are submitted depends on the cluster, and must be given.
 
     Args:
-        config_path: Path to the recipe's ``atlas.yaml``.
+        config_path: Path to the study config.
 
     Returns:
         DictConfig: The merged, resolved config, with the study's settings
         under its ``atlas`` key.
+
+    Raises:
+        ValueError: If ``atlas.submission.environment`` is missing, or a
+            scheduler environment gives no ``atlas.submission.instructions``.
 
     Example:
         >>> config = load_atlas_config(Path("egs3/mini_an4/esp2_asr/conf/atlas.yaml"))
         >>> config.atlas.study_name
         'mini_an4_ci_check'
     """
-    return load_and_merge_config(config_path, config_name="atlas.yaml", resolve=True)
+    config = OmegaConf.merge(load_atlas_defaults(), OmegaConf.load(config_path))
+    OmegaConf.resolve(config)
+    submission = config.atlas.get("submission")
+    environment = submission.get("environment") if submission else None
+    if not environment:
+        raise ValueError(
+            "atlas.submission.environment is required: use 'local' to run jobs as "
+            "local processes, or name your scheduler and give "
+            "atlas.submission.instructions and atlas.submission.resources"
+        )
+    if environment != "local" and not submission.get("instructions"):
+        raise ValueError(
+            f"atlas.submission.instructions is required for environment {environment!r}"
+        )
+    return config
 
 
 def load_recipe_stage_config(

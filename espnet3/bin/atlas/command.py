@@ -77,14 +77,15 @@ def _load_runtime(study_dir: Path, recipe_dir: Path):
 def handle_init(args) -> int:
     """Initialize a study: write its config/graph/program and bootstrap its state.
 
-    Implements ``espnet3 atlas init``. Loads ``args.config`` merged with its
-    TEMPLATE defaults, creates ``config.atlas.study_dir`` with its ``knowledge``,
-    ``trials`` and ``node_runs`` subdirectories, writes the resolved config to
+    Implements ``espnet3 atlas init``. Loads ``args.config`` over the Atlas
+    defaults (``resources/atlas_defaults.yaml``), creates
+    ``config.atlas.study_dir`` with its ``knowledge``, ``trials`` and
+    ``node_runs`` subdirectories, writes the resolved config to
     ``atlas.yaml``, copies the graph named by ``atlas.application`` to
-    ``graph.yaml``, copies or creates ``program.md``, and
-    registers the study and its first (bootstrap) node run in state — unless
-    a node run already exists for this study, in which case initialization
-    is a no-op beyond refreshing the written files.
+    ``graph.yaml``, copies or creates ``program.md``, and registers the study
+    and its first (bootstrap) node run in state. If a node run already exists
+    for this study, the state is left as it is and only the written files are
+    refreshed.
 
     Args:
         args: Parsed CLI args with ``recipe_dir`` and ``config`` (path to the
@@ -94,6 +95,24 @@ def handle_init(args) -> int:
         int: Always ``0``.
 
     Example:
+        Running it for a config whose ``study_dir`` is ``exp/atlas/my_study``
+        creates this tree (``program.md`` is the file named by
+        ``atlas.objective_file``, or a short template if there is none)::
+
+            <recipe_dir>/exp/atlas/my_study/
+            |-- atlas.yaml            resolved study config (defaults merged in)
+            |-- graph.yaml            copy of the graph named by atlas.application
+            |-- program.md            the study's objective, edited by the user
+            |-- state_studies.csv     the study record
+            |-- state_node_runs.csv   one pending run of the first graph node
+            |-- .state.lock           lock file for the state tables
+            |-- knowledge/            knowledge pack, written by research_context
+            |-- trials/               one directory per trial, filled as trials run
+            `-- node_runs/            per-run artifacts of the graph nodes
+
+        Trial records (``state_trials.csv``), job records (``state_jobs.csv``),
+        ``state_events.csv`` and ``trials.csv`` appear once a study is run.
+
         >>> handle_init(argparse.Namespace(recipe_dir=".", config="conf/atlas.yaml"))
         0
     """

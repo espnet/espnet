@@ -128,7 +128,7 @@ egs3 = ["egs3/TEMPLATE/**/*.yaml"]
 "espnet3.bin.atlas.resources" = [
   "prompts/*.md",
   "schemas/*.json",
-  "agent_defaults.yaml",
+  "*.yaml",
 ]
 # splet/egs/ is deliberately not shipped: it holds one example config to copy
 # out of the repository, nothing loads it through importlib.resources, and it
