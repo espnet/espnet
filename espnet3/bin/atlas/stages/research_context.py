@@ -6,7 +6,7 @@ from pathlib import Path
 
 from espnet3.bin.atlas.core.models import StageResult
 from espnet3.bin.atlas.core.serialization import atomic_write_text
-from espnet3.bin.atlas.core.stage import AtlasStage
+from espnet3.bin.atlas.stages.base import AtlasStage
 
 
 class ResearchContextStage(AtlasStage):

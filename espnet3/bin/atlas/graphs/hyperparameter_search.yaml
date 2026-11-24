@@ -29,7 +29,7 @@ nodes:
       failure: summarize
 
   implement_code:
-    target: espnet3.bin.atlas.core.stage.SkillStage
+    target: espnet3.bin.atlas.stages.skill.SkillStage
     execution: local
     skill: hyperparameter_search_implement_code
     allowed_actions: [file_write, terminal]
@@ -82,7 +82,7 @@ nodes:
       failure: reflect
 
   reflect:
-    target: espnet3.bin.atlas.core.stage.SkillStage
+    target: espnet3.bin.atlas.stages.skill.SkillStage
     execution: local
     skill: hyperparameter_search_reflect
     allowed_actions: [read_only, terminal, file_write]
@@ -119,7 +119,7 @@ nodes:
       terminal: analyze
 
   analyze:
-    target: espnet3.bin.atlas.core.stage.SkillStage
+    target: espnet3.bin.atlas.stages.skill.SkillStage
     execution: local
     skill: hyperparameter_search_analyze
     allowed_actions: [read_only, terminal, file_write]

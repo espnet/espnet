@@ -9,7 +9,7 @@ from typing import Any
 from espnet3.bin.atlas.core import AtlasError
 from espnet3.bin.atlas.core.models import StageResult
 from espnet3.bin.atlas.core.serialization import pattern_to_regex
-from espnet3.bin.atlas.core.stage import AtlasStage
+from espnet3.bin.atlas.stages.base import AtlasStage
 
 
 def _extract_from_json(path: Path, key: str) -> Any:

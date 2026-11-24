@@ -8,7 +8,7 @@ from pathlib import Path
 
 from espnet3.bin.atlas.core.models import StageResult
 from espnet3.bin.atlas.core.serialization import save_yaml, utc_now
-from espnet3.bin.atlas.core.stage import AtlasStage
+from espnet3.bin.atlas.stages.base import AtlasStage
 
 
 def _next_run_dir(trial_dir: Path) -> tuple[Path, int]:

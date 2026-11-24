@@ -21,7 +21,7 @@ from espnet3.bin.atlas.core.models import (
     Trial,
 )
 from espnet3.bin.atlas.core.scheduler import _find_skill_path, _SkillAgent
-from espnet3.bin.atlas.core.stage import SkillStage
+from espnet3.bin.atlas.stages.skill import SkillStage
 
 
 def _make_trial():
@@ -101,14 +101,14 @@ def test_load_graph_loads_an_explicit_skill_stage(tmp_path):
     graph_path = tmp_path / "graph.yaml"
     graph_path.write_text(
         "name: skills\nstart: analyze\nnodes:\n  analyze:\n"
-        "    target: espnet3.bin.atlas.core.stage.SkillStage\n"
+        "    target: espnet3.bin.atlas.stages.skill.SkillStage\n"
         "    skill: hyperparameter_search_analyze\n    terminal: true\n",
         encoding="utf-8",
     )
 
     graph = load_graph(graph_path)
 
-    assert graph.nodes["analyze"].target.endswith("core.stage.SkillStage")
+    assert graph.nodes["analyze"].target.endswith("stages.skill.SkillStage")
     assert graph.nodes["analyze"].skill == "hyperparameter_search_analyze"
 
 
@@ -238,7 +238,7 @@ def test_skill_stage_writes_output_and_only_updates_allowed_trial_fields(tmp_pat
 
     node = NodeConfig(
         name="analyze",
-        target="espnet3.bin.atlas.core.stage.SkillStage",
+        target="espnet3.bin.atlas.stages.skill.SkillStage",
         execution="local",
         resources=None,
         skill="hyperparameter_search_analyze",
@@ -278,7 +278,7 @@ def test_skill_stage_rejects_output_path_escape_before_agent_call(tmp_path):
 
     node = NodeConfig(
         name="analyze",
-        target="espnet3.bin.atlas.core.stage.SkillStage",
+        target="espnet3.bin.atlas.stages.skill.SkillStage",
         execution="local",
         resources=None,
         skill="analysis",
@@ -304,7 +304,7 @@ def test_skill_stage_reports_missing_required_output_and_supports_fallback(tmp_p
 
     base = dict(
         name="analyze",
-        target="espnet3.bin.atlas.core.stage.SkillStage",
+        target="espnet3.bin.atlas.stages.skill.SkillStage",
         execution="local",
         resources=None,
         skill="analysis",

@@ -17,8 +17,8 @@ from espnet3.bin.atlas.core.serialization import (
     save_yaml,
     utc_now,
 )
-from espnet3.bin.atlas.core.stage import AtlasStage
 from espnet3.bin.atlas.resources import load_schema
+from espnet3.bin.atlas.stages.base import AtlasStage
 
 
 def _glob_match(patterns, key: str) -> bool:

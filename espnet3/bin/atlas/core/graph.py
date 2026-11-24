@@ -22,8 +22,8 @@ def load_stage_class(target: str, recipe_dir: Path | None = None) -> type:
         type: Imported stage class.
 
     Example:
-        >>> load_stage_class("espnet3.bin.atlas.core.stage.SkillStage")
-        <class 'espnet3.bin.atlas.core.stage.SkillStage'>
+        >>> load_stage_class("espnet3.bin.atlas.stages.skill.SkillStage")
+        <class 'espnet3.bin.atlas.stages.skill.SkillStage'>
     """
     if recipe_dir is not None:
         recipe_dir_str = str(recipe_dir.resolve())

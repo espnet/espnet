@@ -15,8 +15,8 @@ from espnet3.bin.atlas.core.serialization import (
     apply_dotted_patch,
     save_yaml,
 )
-from espnet3.bin.atlas.core.stage import AtlasStage
 from espnet3.bin.atlas.resources import load_schema
+from espnet3.bin.atlas.stages.base import AtlasStage
 from espnet3.bin.atlas.stages.stage_status import (
     _invalidate_stages,
     _read_stage_status,

@@ -8,7 +8,7 @@ from pathlib import Path
 
 from espnet3.bin.atlas.core.models import AgentRequest, StageResult
 from espnet3.bin.atlas.core.serialization import save_yaml, utc_now
-from espnet3.bin.atlas.core.stage import AtlasStage
+from espnet3.bin.atlas.stages.base import AtlasStage
 
 _FILE_BLOCK_RE = re.compile(
     r'<file\s+path="(?P<path>[^"]+)">\n?(?P<content>.*?)\n?</file>',

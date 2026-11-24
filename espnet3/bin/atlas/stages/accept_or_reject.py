@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from espnet3.bin.atlas.core.models import StageResult
-from espnet3.bin.atlas.core.stage import AtlasStage
+from espnet3.bin.atlas.stages.base import AtlasStage
 
 
 class AcceptOrRejectStage(AtlasStage):

@@ -14,7 +14,7 @@ from omegaconf import OmegaConf
 
 from espnet3.bin.atlas.core.models import StageResult
 from espnet3.bin.atlas.core.serialization import save_yaml
-from espnet3.bin.atlas.core.stage import AtlasStage
+from espnet3.bin.atlas.stages.base import AtlasStage
 from espnet3.bin.atlas.stages.stage_status import (
     _ensure_stage_statuses,
     _set_stage_status,
