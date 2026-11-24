@@ -193,3 +193,70 @@ def test_iteration_and_elapsed_keypoints_share_one_agent_check(tmp_path):
         "epoch": [],
         "iteration": [10],
     }
+
+
+def _tick_job(job_id, status):
+    return SimpleNamespace(
+        job_id=job_id,
+        job_type="tick",
+        status=status,
+        external_id=f"ext_{job_id}",
+        backend="pbs",
+        command_json="{}",
+        resources_json=None,
+        workdir=None,
+        stdout_path=None,
+        stderr_path=None,
+    )
+
+
+def _tick_runtime(jobs, agent_jobs):
+    updates, events = [], []
+    runtime = object.__new__(AtlasGraphRuntime)
+    runtime.study_id = "study"
+    runtime.logger = logging.getLogger(__name__)
+    runtime.state = SimpleNamespace(
+        list_active_jobs=lambda _sid: jobs,
+        update_job_status=lambda job_id, status, external_id=None: updates.append(
+            (job_id, status)
+        ),
+        append_event=lambda sid, kind, payload: events.append((kind, payload)),
+    )
+    asked = []
+
+    def action(operation, context):
+        asked.append((operation, [j["job_id"] for j in context["jobs"]]))
+        if agent_jobs is None:
+            raise RuntimeError("agent down")
+        return {"jobs": agent_jobs}
+
+    runtime._submission_action = action
+    return runtime, updates, events, asked
+
+
+def test_reconcile_tick_jobs_asks_agent_and_records_dead_tick():
+    jobs = [_tick_job("tick_dead", "running"), _tick_job("tick_self", "running")]
+    runtime, updates, events, asked = _tick_runtime(
+        jobs, [{"job_id": "tick_dead", "status": "failed"}]
+    )
+
+    runtime.reconcile_tick_jobs(exclude_job_id="tick_self")
+
+    assert asked == [("status", ["tick_dead"])]
+    assert updates == [("tick_dead", "failed")]
+    assert events[0][0] == "tick_job_state_reconciled"
+    assert events[0][1]["source"] == "agent"
+    assert events[0][1]["previous_status"] == "running"
+
+
+def test_reconcile_tick_jobs_keeps_record_on_unknown_or_agent_failure():
+    jobs = [_tick_job("tick_a", "running")]
+    runtime, updates, events, _ = _tick_runtime(
+        jobs, [{"job_id": "tick_a", "status": "bogus"}]
+    )
+    runtime.reconcile_tick_jobs()
+    assert updates == [] and events == []
+
+    runtime, updates, events, _ = _tick_runtime(jobs, None)
+    runtime.reconcile_tick_jobs()
+    assert updates == [] and events == []

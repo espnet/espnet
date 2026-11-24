@@ -7,7 +7,6 @@ import asyncio
 import logging
 import os
 import shutil
-import subprocess
 import sys
 import time
 import uuid
@@ -148,103 +147,9 @@ def cmd_init(args) -> int:
     return 0
 
 
-def _get_slurm_job_status(external_id: str) -> str | None:
-    """Read a Slurm job's current or terminal state without using the agent."""
-    status_map = {
-        "PENDING": "pending",
-        "RUNNING": "running",
-        "CONFIGURING": "pending",
-        "COMPLETING": "running",
-        "SUSPENDED": "running",
-        "RESIZING": "running",
-        "REQUEUED": "pending",
-        "REQUEUE_FED": "pending",
-        "REQUEUE_HOLD": "pending",
-        "COMPLETED": "completed",
-        "CANCELLED": "cancelled",
-        "TIMEOUT": "timeout",
-        "FAILED": "failed",
-        "OUT_OF_MEMORY": "failed",
-        "NODE_FAIL": "failed",
-        "PREEMPTED": "failed",
-        "BOOT_FAIL": "failed",
-        "DEADLINE": "failed",
-        "REVOKED": "failed",
-        "SPECIAL_EXIT": "failed",
-    }
-
-    try:
-        result = subprocess.run(
-            [
-                "sacct",
-                "--noheader",
-                "--parsable2",
-                "--jobs",
-                external_id,
-                "--format=JobIDRaw,State,ExitCode",
-            ],
-            check=False,
-            capture_output=True,
-            text=True,
-            timeout=20,
-        )
-    except (OSError, subprocess.TimeoutExpired):
-        result = None
-    if result is not None and result.returncode == 0:
-        for line in result.stdout.splitlines():
-            fields = line.split("|")
-            if len(fields) < 3 or fields[0].strip() != external_id:
-                continue
-            raw_state = fields[1].strip().split()[0].rstrip("+").upper()
-            mapped = status_map.get(raw_state)
-            if mapped == "completed" and fields[2].strip() not in {"", "0:0"}:
-                return "failed"
-            if mapped is not None:
-                return mapped
-
-    # Accounting can lag behind a newly submitted job; consult the live queue.
-    try:
-        result = subprocess.run(
-            ["squeue", "--noheader", "--jobs", external_id, "--format=%T"],
-            check=False,
-            capture_output=True,
-            text=True,
-            timeout=20,
-        )
-    except (OSError, subprocess.TimeoutExpired):
-        return None
-    if result.returncode != 0:
-        return None
-    for line in result.stdout.splitlines():
-        fields = line.strip().split()
-        if not fields:
-            continue
-        mapped = status_map.get(fields[0].upper())
-        if mapped is not None:
-            return mapped
-    return None
-
-
-def _reconcile_tick_jobs(runtime) -> None:
-    """Repair recorded tick statuses from Slurm's authoritative job state."""
-    for job in runtime.state.list_jobs(runtime.study_id, job_type="tick"):
-        if job.backend != "slurm" or not job.external_id:
-            continue
-        actual_status = _get_slurm_job_status(job.external_id)
-        if actual_status is None or actual_status == job.status:
-            continue
-        runtime.state.update_job_status(job.job_id, actual_status, job.external_id)
-        runtime.state.append_event(
-            runtime.study_id,
-            "tick_job_state_reconciled",
-            {
-                "job_id": job.job_id,
-                "external_id": job.external_id,
-                "previous_status": job.status,
-                "status": actual_status,
-                "source": "slurm",
-            },
-        )
+def _reconcile_tick_jobs(runtime, exclude_job_id: str | None = None) -> None:
+    """Repair recorded tick statuses using the submission agent."""
+    runtime.reconcile_tick_jobs(exclude_job_id=exclude_job_id)
 
 
 def _ensure_tick_job(
@@ -252,7 +157,7 @@ def _ensure_tick_job(
 ) -> str | None:
     """Reconcile controller state and ensure exactly one tick job is active."""
     with file_lock(runtime.study_dir / ".lock_study_controller"):
-        _reconcile_tick_jobs(runtime)
+        _reconcile_tick_jobs(runtime, exclude_job_id=exclude_job_id)
         if (runtime.study_dir / "STOP").exists():
             runtime.logger.info("Study STOP file exists; no controller tick submitted.")
             return None

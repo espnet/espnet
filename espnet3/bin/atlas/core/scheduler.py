@@ -649,6 +649,33 @@ class AtlasGraphRuntime:
         ]
         if not jobs:
             return
+        statuses = self._query_job_statuses(jobs)
+        if statuses is None:
+            return
+        for job in jobs:
+            status = statuses.get(job.job_id, "unknown")
+            self.state.update_job_status(
+                job.job_id, status, external_id=job.external_id
+            )
+            if status in {"completed", "failed", "cancelled", "timeout"}:
+                self._reconcile_terminal_job(job, status)
+
+    def _query_job_statuses(self, jobs) -> dict[str, str] | None:
+        """Ask the submission agent for the current status of ``jobs``.
+
+        Backend-agnostic: the agent follows ``submission.instructions`` to
+        inspect each job with whatever scheduler the study uses.
+
+        Args:
+            jobs: ``JobRecord`` objects to inspect.
+
+        Returns:
+            dict[str, str] | None: ``job_id`` -> normalized status (one of
+            ``submitted``, ``pending``, ``running``, ``completed``, ``failed``,
+            ``cancelled``, ``timeout``, ``unknown``; anything else, or a job the
+            agent did not report, becomes ``unknown``). ``None`` if the agent
+            call failed.
+        """
         payload = [
             {
                 "job_id": job.job_id,
@@ -669,8 +696,8 @@ class AtlasGraphRuntime:
             result = self._submission_action("status", {"jobs": payload})
         except Exception as exc:
             self.logger.warning("Job status agent failed: %s", exc)
-            return
-        statuses = {
+            return None
+        reported = {
             str(item.get("job_id")): str(item.get("status", "unknown"))
             for item in result.get("jobs", [])
             if isinstance(item, dict)
@@ -685,15 +712,59 @@ class AtlasGraphRuntime:
             "timeout",
             "unknown",
         }
-        for job in jobs:
+        return {
+            job.job_id: (
+                reported.get(job.job_id, "unknown")
+                if reported.get(job.job_id, "unknown") in valid_statuses
+                else "unknown"
+            )
+            for job in jobs
+        }
+
+    def reconcile_tick_jobs(self, exclude_job_id: str | None = None) -> None:
+        """Repair recorded controller-tick job statuses via the submission agent.
+
+        A tick job that died (crash, walltime, cancellation) can stay recorded
+        as active, which would stop a replacement controller from being
+        submitted. This asks the agent for the real state of every active tick
+        job and updates the record. Unlike trial jobs, a tick job reaching a
+        terminal state triggers no trial reconciliation. ``unknown`` answers and
+        agent failures leave the record unchanged.
+
+        Args:
+            exclude_job_id: A tick job to skip, normally the caller's own job,
+                which is running by definition.
+        """
+        ticks = [
+            job
+            for job in self.state.list_active_jobs(self.study_id)
+            if job.job_type == "tick"
+            and job.job_id != exclude_job_id
+            and job.external_id
+        ]
+        if not ticks:
+            return
+        statuses = self._query_job_statuses(ticks)
+        if statuses is None:
+            return
+        for job in ticks:
             status = statuses.get(job.job_id, "unknown")
-            if status not in valid_statuses:
-                status = "unknown"
+            if status in {"unknown", job.status}:
+                continue
             self.state.update_job_status(
                 job.job_id, status, external_id=job.external_id
             )
-            if status in {"completed", "failed", "cancelled", "timeout"}:
-                self._reconcile_terminal_job(job, status)
+            self.state.append_event(
+                self.study_id,
+                "tick_job_state_reconciled",
+                {
+                    "job_id": job.job_id,
+                    "external_id": job.external_id,
+                    "previous_status": job.status,
+                    "status": status,
+                    "source": "agent",
+                },
+            )
 
     def _submission_action(self, operation: str, context: dict) -> dict:
         """Ask the configured coding agent to submit, inspect, or cancel jobs."""
