@@ -259,6 +259,17 @@ def test_mfa_e_branchformer_embedding_ignores_padding():
     torch.testing.assert_close(alone, batch, atol=1e-5, rtol=1e-5)
 
 
+def test_mfa_e_branchformer_precomputed_features_keep_their_lengths():
+    # Without a frontend, the speech lengths are the feature lengths.
+    model = _mfa_e_branchformer_model().eval()
+    model.frontend = None
+    feats = torch.randn(1, 37, 20)
+    alone, _ = model(feats, torch.tensor([37]), extract_embd=True)
+    padded = torch.cat([feats, torch.randn(1, 24, 20) * 5], dim=1)
+    batch, _ = model(padded, torch.tensor([37]), extract_embd=True)
+    torch.testing.assert_close(alone, batch, atol=1e-5, rtol=1e-5)
+
+
 def test_mfa_e_branchformer_encode_frame_returns_the_frames():
     model = _mfa_e_branchformer_model().eval()
     feats = torch.randn(2, 37, 20)

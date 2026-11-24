@@ -5,6 +5,7 @@ from typing import Optional, Tuple
 import torch
 
 from espnet2.asr.encoder.e_branchformer_encoder import EBranchformerEncoder
+from espnet2.legacy.nets.pytorch_backend.nets_utils import make_pad_mask
 
 
 class MfaEBranchformerEncoder(EBranchformerEncoder):
@@ -22,7 +23,9 @@ class MfaEBranchformerEncoder(EBranchformerEncoder):
 
     The keyword arguments are passed to ``EBranchformerEncoder``.
     ``layer_drop_rate`` must be 0, since every block contributes its channels.
-    The final ``after_norm`` of ``EBranchformerEncoder`` is not used.
+    The final ``after_norm`` of ``EBranchformerEncoder`` is not used; it is
+    frozen so that DDP does not wait for its gradients, and it stays in the
+    checkpoint keys.
 
     Example:
         >>> encoder = MfaEBranchformerEncoder(80, output_size=256, num_blocks=6)
@@ -44,6 +47,7 @@ class MfaEBranchformerEncoder(EBranchformerEncoder):
         if kwargs.get("layer_drop_rate", 0.0) > 0:
             raise ValueError("MFA needs every block: layer_drop_rate must be 0")
         super().__init__(input_size, **kwargs)
+        self.after_norm.requires_grad_(False)
         self._mfa_size = self._output_size * len(self.encoders)
         self.mfa_norm = torch.nn.LayerNorm(self._mfa_size)
 
@@ -71,6 +75,10 @@ class MfaEBranchformerEncoder(EBranchformerEncoder):
             ilens = torch.full(
                 (x.size(0),), x.size(1), dtype=torch.long, device=x.device
             )
-        (_, hidden), olens, _ = super().forward(x, ilens, return_all_hs=True)
+        # The mask spans the input width, which may exceed the longest length.
+        is_padded = make_pad_mask(ilens, maxlen=x.size(1)).to(x.device)
+        (_, hidden), olens, _ = super().forward(
+            x, ilens, masks=is_padded, return_all_hs=True
+        )
         out = self.mfa_norm(torch.cat(hidden, dim=-1))
         return out.transpose(1, 2), olens

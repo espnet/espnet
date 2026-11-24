@@ -73,6 +73,32 @@ def test_output_is_the_normalized_concatenation_of_every_block():
     )
 
 
+def test_every_trainable_parameter_gets_a_gradient():
+    # DDP with find_unused_parameters=False needs this; after_norm is frozen.
+    encoder = _encoder().train()
+    out, _ = encoder(torch.randn(2, 41, 20), torch.tensor([41, 25]))
+    out.sum().backward()
+    assert not any(p.requires_grad for p in encoder.after_norm.parameters())
+    missing = [
+        name
+        for name, p in encoder.named_parameters()
+        if p.requires_grad and p.grad is None
+    ]
+    assert missing == []
+    assert "after_norm.weight" in encoder.state_dict()
+
+
+def test_input_wider_than_the_longest_length():
+    # Without subsampling, the mask must still span the whole input width.
+    encoder = _encoder(input_layer="linear")
+    x = torch.randn(1, 61, 20)
+    wide, wide_lens = encoder(x, torch.tensor([37]))
+    exact, exact_lens = encoder(x[:, :37], torch.tensor([37]))
+    assert wide.shape == (1, 96, 61)
+    assert wide_lens.tolist() == exact_lens.tolist() == [37]
+    torch.testing.assert_close(wide[..., :37], exact, atol=1e-5, rtol=1e-5)
+
+
 def test_layer_drop_is_rejected():
     with pytest.raises(ValueError, match="layer_drop_rate"):
         _encoder(layer_drop_rate=0.1)

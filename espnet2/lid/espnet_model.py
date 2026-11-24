@@ -318,6 +318,9 @@ class ESPnetLIDModel(AbsESPnetModel):
         try:
             if self.frontend is not None:
                 feats, feat_lengths = self.frontend(speech, speech_lengths)
+            elif getattr(self.encoder, "returns_lengths", False):
+                # Precomputed features: length-aware encoders mask the padding.
+                feats, feat_lengths = speech, speech_lengths
             else:
                 feats, feat_lengths = speech, None
             intermediate_lang2vec_preds = tuple(
