@@ -191,3 +191,68 @@ def test_file_lock_retries_after_contention(monkeypatch, tmp_path):
     with file_lock(tmp_path / "state.lock"):
         pass
     assert waits == [1]
+
+
+def test_cmd_status_reports_progress_jobs_and_stop_file(tmp_path, capsys):
+    """Summarise a study from recorded state without asking any scheduler."""
+    import argparse
+
+    from omegaconf import OmegaConf
+
+    from espnet3.bin.atlas.command import cmd_status
+
+    OmegaConf.save(
+        OmegaConf.create(
+            {
+                "atlas": {
+                    "study_name": "study",
+                    "metric": {"name": "wer", "mode": "min"},
+                    "tick_interval_sec_trial_active": 600,
+                }
+            }
+        ),
+        tmp_path / "atlas.yaml",
+    )
+    store = StateStore(tmp_path)
+    store.create_or_load_study("study", tmp_path)
+    trial = _trial()
+    trial.status = "running"
+    store.create_trial(trial)
+    store.create_job(
+        JobRecord(
+            job_id="job-1",
+            study_id="study",
+            trial_id=trial.trial_id,
+            node_run_id=None,
+            backend="pbs",
+            external_id="123.pbs",
+            status="running",
+            command_json="{}",
+            resources_json=None,
+            workdir=None,
+            stdout_path=None,
+            stderr_path=None,
+            job_type="trial",
+            created_at=trial.created_at,
+            updated_at=trial.created_at,
+        )
+    )
+    trial_dir = tmp_path / "trials" / trial.trial_id
+    metrics = trial_dir / "exp" / "csv_logs" / "version_0" / "metrics.csv"
+    metrics.parent.mkdir(parents=True)
+    metrics.write_text("epoch,step\n0,10\n7,900\n", encoding="utf-8")
+    (trial_dir / "resolved_training_config.yaml").write_text(
+        "trainer:\n  max_epochs: 35\n", encoding="utf-8"
+    )
+    (tmp_path / "STOP").touch()
+
+    assert cmd_status(argparse.Namespace(study_dir=str(tmp_path))) == 0
+
+    out = capsys.readouterr().out
+    assert "trials: 1" in out
+    assert "trial_status: running=1" in out
+    assert "stop_file: yes" in out
+    assert "tick interval: 600 s" in out
+    assert "active_jobs: 1" in out
+    assert "trial running id=123.pbs" in out
+    assert f"{trial.trial_id}: epoch 7/35" in out

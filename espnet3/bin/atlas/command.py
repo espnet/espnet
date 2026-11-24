@@ -10,6 +10,7 @@ import shutil
 import sys
 import time
 import uuid
+from datetime import datetime, timezone
 from importlib import resources
 from pathlib import Path
 
@@ -346,10 +347,51 @@ async def _run_controller_worker(runtime, job_id, controller_resources, handoff_
         await asyncio.sleep(max(1, interval))
 
 
-def cmd_status(args) -> int:
-    """Print a study's trial count and current best trial.
+def _trial_progress(study_dir: Path, trial_id: str) -> str:
+    """Return ``epoch X/Y`` (or ``no metrics yet``) for a trial from its CSV logs."""
+    trial_dir = study_dir / "trials" / trial_id
+    epochs = [
+        AtlasGraphRuntime._parse_training_progress(path, ("epoch", "Epoch"))
+        for path in sorted(trial_dir.glob("exp/csv_logs/**/metrics.csv"))
+    ]
+    epochs = [epoch for epoch in epochs if epoch is not None]
+    if not epochs:
+        return "no metrics yet"
+    text = f"epoch {max(epochs)}"
+    resolved = trial_dir / "resolved_training_config.yaml"
+    try:
+        max_epochs = OmegaConf.load(resolved).trainer.max_epochs
+        text += f"/{int(max_epochs)}"
+    except Exception:
+        pass
+    return text
 
-    Implements ``espnet3 atlas status``.
+
+def _age(timestamp: str | None) -> str:
+    """Return how long ago an ISO-8601 timestamp was, e.g. ``12 min ago``."""
+    if not timestamp:
+        return "unknown"
+    try:
+        moment = datetime.fromisoformat(str(timestamp).strip('"'))
+        if moment.tzinfo is None:
+            moment = moment.replace(tzinfo=timezone.utc)
+        seconds = max(0, int((datetime.now(timezone.utc) - moment).total_seconds()))
+    except ValueError:
+        return "unknown"
+    if seconds < 120:
+        return f"{seconds} s ago"
+    if seconds < 7200:
+        return f"{seconds // 60} min ago"
+    return f"{seconds / 3600:.1f} h ago"
+
+
+def cmd_status(args) -> int:
+    """Print a study's state: trials, best trial, controller activity, and jobs.
+
+    Implements ``espnet3 atlas status``. The first three lines (``study_dir``,
+    ``trials``, ``best``) are stable; the rest is a scheduler-independent summary
+    read only from the study's recorded state and trial logs. It does not query
+    the job scheduler, so a job's recorded status can lag behind reality.
 
     Args:
         args: Parsed CLI args with ``study_dir``.
@@ -362,6 +404,13 @@ def cmd_status(args) -> int:
         study_dir: exp/atlas/my_study
         trials: 3
         best: trial_002 score=0.12
+        trial_status: running=2 accepted=1
+        stop_file: no
+        controller_last_state_update: 4 min ago (tick interval: 600 s while trials run)
+        active_jobs: 2
+          trial_000003 trial running id=3046983.pbs1
+        running_trial_progress:
+          trial_000003: epoch 12/35
         0
     """
     study_dir = Path(args.study_dir).resolve()
@@ -379,6 +428,29 @@ def cmd_status(args) -> int:
         )
         if best is not None:
             print(f"best: {best.trial_id} score={best.score}")
+    counts: dict[str, int] = {}
+    for trial in trials:
+        counts[trial.status] = counts.get(trial.status, 0) + 1
+    if counts:
+        print("trial_status: " + " ".join(f"{k}={v}" for k, v in sorted(counts.items())))
+    print(f"stop_file: {'yes' if (study_dir / 'STOP').exists() else 'no'}")
+    study = state.get_study(study_id)
+    interval = getattr(config.atlas, "tick_interval_sec_trial_active", None)
+    print(
+        f"controller_last_state_update: {_age(study.updated_at)}"
+        + (f" (tick interval: {interval} s while trials run)" if interval else "")
+    )
+    active = state.list_active_jobs(study_id)
+    print(f"active_jobs: {len(active)}")
+    for job in active:
+        print(
+            f"  {job.trial_id or '-'} {job.job_type} {job.status} id={job.external_id}"
+        )
+    running = [trial for trial in trials if trial.status == "running"]
+    if running:
+        print("running_trial_progress:")
+        for trial in running:
+            print(f"  {trial.trial_id}: {_trial_progress(study_dir, trial.trial_id)}")
     return 0
 
 
