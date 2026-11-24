@@ -1,5 +1,5 @@
 ---
-name: hyperparameter_search_reflect
+name: atlas_hyperparameter_search_reflect
 description: Reflect on a completed hyperparameter trial and suggest the next experiment.
 ---
 

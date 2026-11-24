@@ -6,7 +6,7 @@ nodes:
   research_context:
     target: espnet3.bin.atlas.stages.skill.SkillStage
     execution: local
-    skill: hyperparameter_search_research_context
+    skill: atlas_hyperparameter_search_research_context
     output_file: knowledge/knowledge_pack.md
     output_key: pack
     fallback_output: "# Knowledge Pack\n\nThe research context could not be generated. Read program.md and atlas.yaml in the study directory directly.\n"
@@ -20,7 +20,7 @@ nodes:
   propose_trial:
     target: espnet3.bin.atlas.stages.propose_trial.ProposeTrialStage
     execution: local
-    skill: hyperparameter_search_propose_trial
+    skill: atlas_hyperparameter_search_propose_trial
     "on":
       success: run_trial
       duplicate: propose_trial
@@ -31,7 +31,7 @@ nodes:
   implement_code:
     target: espnet3.bin.atlas.stages.skill.SkillStage
     execution: local
-    skill: hyperparameter_search_implement_code
+    skill: atlas_hyperparameter_search_implement_code
     allowed_actions: [file_write, terminal]
     output_schema:
       files_created:
@@ -63,7 +63,7 @@ nodes:
   debug_trial:
     target: espnet3.bin.atlas.stages.debug_trial.DebugTrialStage
     execution: local
-    skill: hyperparameter_search_debug_trial
+    skill: atlas_hyperparameter_search_debug_trial
     "on":
       success: run_trial
       continue: reflect
@@ -87,7 +87,7 @@ nodes:
   reflect:
     target: espnet3.bin.atlas.stages.skill.SkillStage
     execution: local
-    skill: hyperparameter_search_reflect
+    skill: atlas_hyperparameter_search_reflect
     allowed_actions: [read_only, terminal, file_write]
     trial_update_keys: [reflection, next_suggestion]
     output_file: trials/{trial_id}/reflection.md
@@ -103,7 +103,7 @@ nodes:
   update_knowledge:
     target: espnet3.bin.atlas.stages.skill.SkillStage
     execution: local
-    skill: hyperparameter_search_update_knowledge
+    skill: atlas_hyperparameter_search_update_knowledge
     output_file: knowledge/knowledge_pack.md
     output_key: entry
     output_append: true
@@ -130,7 +130,7 @@ nodes:
   analyze:
     target: espnet3.bin.atlas.stages.skill.SkillStage
     execution: local
-    skill: hyperparameter_search_analyze
+    skill: atlas_hyperparameter_search_analyze
     allowed_actions: [read_only, terminal, file_write]
     output_file: summary.md
     output_key: summary_markdown

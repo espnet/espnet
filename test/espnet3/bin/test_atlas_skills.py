@@ -112,14 +112,14 @@ def test_load_graph_loads_an_explicit_skill_stage(tmp_path):
     graph_path.write_text(
         "name: skills\nstart: analyze\nnodes:\n  analyze:\n"
         "    target: espnet3.bin.atlas.stages.skill.SkillStage\n"
-        "    skill: hyperparameter_search_analyze\n    terminal: true\n",
+        "    skill: atlas_hyperparameter_search_analyze\n    terminal: true\n",
         encoding="utf-8",
     )
 
     graph = load_graph(graph_path)
 
     assert graph.nodes["analyze"].target.endswith("stages.skill.SkillStage")
-    assert graph.nodes["analyze"].skill == "hyperparameter_search_analyze"
+    assert graph.nodes["analyze"].skill == "atlas_hyperparameter_search_analyze"
 
 
 def test_load_graph_requires_a_target_even_for_a_skill_node(tmp_path):
@@ -127,7 +127,7 @@ def test_load_graph_requires_a_target_even_for_a_skill_node(tmp_path):
     graph_path = tmp_path / "graph.yaml"
     graph_path.write_text(
         "name: skills\nstart: analyze\nnodes:\n  analyze:\n"
-        "    skill: hyperparameter_search_analyze\n    terminal: true\n",
+        "    skill: atlas_hyperparameter_search_analyze\n    terminal: true\n",
         encoding="utf-8",
     )
 
@@ -253,7 +253,7 @@ def test_skill_stage_writes_output_and_only_updates_allowed_trial_fields(tmp_pat
         target="espnet3.bin.atlas.stages.skill.SkillStage",
         execution="local",
         resources=None,
-        skill="hyperparameter_search_analyze",
+        skill="atlas_hyperparameter_search_analyze",
         output_file="reports/{trial_id}.md",
         output_key="report",
         trial_update_keys=["score", "trial_id"],
@@ -376,7 +376,7 @@ def test_skill_stage_appends_instead_of_replacing_when_asked(tmp_path):
         target="espnet3.bin.atlas.stages.skill.SkillStage",
         execution="local",
         resources=None,
-        skill="hyperparameter_search_update_knowledge",
+        skill="atlas_hyperparameter_search_update_knowledge",
         output_file="knowledge/knowledge_pack.md",
         output_key="entry",
         output_append=True,
@@ -416,7 +416,7 @@ def test_update_knowledge_is_a_skill_followed_by_the_budget_check():
     for application in ("hyperparameter_search", "architecture_search"):
         nodes = load_graph(_graph_path(application)).nodes
         assert nodes["update_knowledge"].skill == (
-            "hyperparameter_search_update_knowledge"
+            "atlas_hyperparameter_search_update_knowledge"
         )
         assert nodes["update_knowledge"].output_append is True
         assert nodes["update_knowledge"].on == {
@@ -434,7 +434,7 @@ def test_research_context_is_a_skill_that_writes_the_first_pack_with_a_fallback(
         graph = load_graph(_graph_path(application))
         node = graph.nodes["research_context"]
 
-        assert node.skill == "hyperparameter_search_research_context"
+        assert node.skill == "atlas_hyperparameter_search_research_context"
         assert node.output_file == "knowledge/knowledge_pack.md"
         assert node.output_key == "pack" and not node.output_append
         assert node.fallback_output.startswith("# Knowledge Pack")

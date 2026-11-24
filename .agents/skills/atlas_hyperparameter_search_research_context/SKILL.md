@@ -1,5 +1,5 @@
 ---
-name: hyperparameter_search_research_context
+name: atlas_hyperparameter_search_research_context
 description: Write the first version of a hyperparameter search study's knowledge pack.
 ---
 

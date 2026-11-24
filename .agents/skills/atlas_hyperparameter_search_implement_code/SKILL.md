@@ -1,5 +1,5 @@
 ---
-name: hyperparameter_search_implement_code
+name: atlas_hyperparameter_search_implement_code
 description: Implement source changes required by a proposed hyperparameter search trial.
 ---
 

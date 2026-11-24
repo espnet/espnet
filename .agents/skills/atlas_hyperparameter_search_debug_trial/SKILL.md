@@ -1,5 +1,5 @@
 ---
-name: hyperparameter_search_debug_trial
+name: atlas_hyperparameter_search_debug_trial
 description: Diagnose a failed hyperparameter search trial and propose a minimal retry fix.
 ---
 

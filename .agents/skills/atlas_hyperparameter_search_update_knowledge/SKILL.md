@@ -1,5 +1,5 @@
 ---
-name: hyperparameter_search_update_knowledge
+name: atlas_hyperparameter_search_update_knowledge
 description: Write the knowledge-pack entry for one finished hyperparameter search trial.
 ---
 

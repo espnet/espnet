@@ -1,5 +1,5 @@
 ---
-name: hyperparameter_search_analyze
+name: atlas_hyperparameter_search_analyze
 description: Summarize and analyze a completed hyperparameter search and write the final study summary.
 ---
 

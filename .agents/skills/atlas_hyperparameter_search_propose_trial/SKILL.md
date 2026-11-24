@@ -1,5 +1,5 @@
 ---
-name: hyperparameter_search_propose_trial
+name: atlas_hyperparameter_search_propose_trial
 description: Propose a new hyperparameter search trial using the study context and constraints.
 ---
 

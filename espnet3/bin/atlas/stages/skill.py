@@ -72,7 +72,7 @@ class SkillStage(BaseStage):
         trial_dir = context.get_trial_dir() if trial else context.get_artifact_dir()
         allowed_actions = list(node.allowed_actions or ["read_only"])
         code_edit_config = getattr(context.config.atlas, "code_edit", None)
-        if node.skill == "hyperparameter_search_implement_code" and not bool(
+        if node.skill == "atlas_hyperparameter_search_implement_code" and not bool(
             getattr(code_edit_config, "allow_pixi", False)
         ):
             allowed_actions = [
