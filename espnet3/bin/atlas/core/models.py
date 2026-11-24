@@ -215,6 +215,8 @@ class NodeConfig:
             ``output_key`` result is written to, or ``None``.
         output_key: Key read from the skill's structured response and
             written to ``output_file``, or ``None``.
+        output_append: Whether ``output_key``'s text is appended to
+            ``output_file`` instead of replacing it.
         fallback_output: Text written to ``output_file`` if the skill's
             agent call fails or omits ``output_key``, or ``None`` to fail
             instead.
@@ -233,6 +235,7 @@ class NodeConfig:
     trial_update_keys: list[str] = field(default_factory=list)
     output_file: str | None = None
     output_key: str | None = None
+    output_append: bool = False
     fallback_output: str | None = None
     on: dict[str, str] = field(default_factory=dict)
     terminal: bool = False

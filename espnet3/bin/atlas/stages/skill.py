@@ -168,7 +168,11 @@ class SkillStage(AtlasStage):
             )
         if node.output_file and output_key and result.get(output_key) is not None:
             assert output_path is not None
-            atomic_write_text(output_path, str(result.pop(output_key)))
+            text = str(result.pop(output_key))
+            if node.output_append and output_path.is_file():
+                existing = output_path.read_text(encoding="utf-8").rstrip("\n")
+                text = f"{existing}\n\n{text.strip(chr(10))}\n"
+            atomic_write_text(output_path, text)
             artifacts[output_key] = str(output_path)
         artifacts.update(
             {str(k): str(v) for k, v in dict(result.pop("artifacts", {}) or {}).items()}

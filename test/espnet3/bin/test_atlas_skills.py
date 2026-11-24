@@ -322,3 +322,73 @@ def test_skill_stage_reports_missing_required_output_and_supports_fallback(tmp_p
     assert (
         tmp_path / "study" / "reports" / "result.md"
     ).read_text() == "Fallback report\n"
+
+
+def test_skill_stage_appends_instead_of_replacing_when_asked(tmp_path):
+    """Keep the existing pack and add the agent's entry after a blank line."""
+
+    class EntryAgent:
+        def run(self, request, artifact_dir=None):
+            return AgentResponse(
+                status="success",
+                message="",
+                content="",
+                structured={"status": "success", "entry": "## Trial 2\n- ok\n"},
+            )
+
+    node = NodeConfig(
+        name="update_knowledge",
+        target="espnet3.bin.atlas.stages.skill.SkillStage",
+        execution="local",
+        resources=None,
+        skill="hyperparameter_search_update_knowledge",
+        output_file="knowledge/knowledge_pack.md",
+        output_key="entry",
+        output_append=True,
+    )
+    context = _stage_context(tmp_path, node=node, agent=EntryAgent())
+    pack = tmp_path / "study" / "knowledge" / "knowledge_pack.md"
+    pack.parent.mkdir(parents=True)
+    pack.write_text("# Pack\n\n## Trial 1\n- first\n", encoding="utf-8")
+
+    result = SkillStage().run(context)
+
+    assert result.status == "success"
+    assert pack.read_text(encoding="utf-8") == (
+        "# Pack\n\n## Trial 1\n- first\n\n## Trial 2\n- ok\n"
+    )
+
+
+def test_check_budget_routes_done_only_when_the_budget_is_spent():
+    from espnet3.bin.atlas.stages.check_budget import CheckBudgetStage
+
+    for spent, expected in ((False, "continue"), (True, "done")):
+        context = SimpleNamespace(scheduler=SimpleNamespace(should_stop=lambda: spent))
+        assert CheckBudgetStage().run(context).status == expected
+
+
+def test_every_skill_named_by_a_packaged_graph_exists():
+    """A graph must not name a skill that has no SKILL.md to run."""
+    repo_root = Path(__file__).resolve().parents[3]
+    for application in ("hyperparameter_search", "architecture_search"):
+        graph = load_graph(_default_graph_path(application))
+        for node in graph.nodes.values():
+            if node.skill:
+                assert _find_skill_path(repo_root, node.skill).is_file(), node.skill
+
+
+def test_update_knowledge_is_a_skill_followed_by_the_budget_check():
+    for application in ("hyperparameter_search", "architecture_search"):
+        nodes = load_graph(_default_graph_path(application)).nodes
+        assert nodes["update_knowledge"].skill == (
+            "hyperparameter_search_update_knowledge"
+        )
+        assert nodes["update_knowledge"].output_append is True
+        assert nodes["update_knowledge"].on == {
+            "success": "check_budget",
+            "failure": "check_budget",
+        }
+        assert nodes["check_budget"].on == {
+            "continue": "propose_trial",
+            "done": "select_best",
+        }

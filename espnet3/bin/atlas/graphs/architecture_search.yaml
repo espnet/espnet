@@ -100,7 +100,20 @@ nodes:
       failure: update_knowledge
 
   update_knowledge:
-    target: espnet3.bin.atlas.stages.update_knowledge.UpdateKnowledgeStage
+    target: espnet3.bin.atlas.stages.skill.SkillStage
+    execution: local
+    skill: hyperparameter_search_update_knowledge
+    output_file: knowledge/knowledge_pack.md
+    output_key: entry
+    output_append: true
+    output_schema:
+      entry: Markdown entry for this trial, appended to the knowledge pack
+    "on":
+      success: check_budget
+      failure: check_budget
+
+  check_budget:
+    target: espnet3.bin.atlas.stages.check_budget.CheckBudgetStage
     execution: local
     "on":
       continue: propose_trial

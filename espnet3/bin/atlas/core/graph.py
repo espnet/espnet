@@ -102,6 +102,7 @@ def load_graph(path: Path, recipe_dir: Path | None = None) -> ResearchGraph:
             ],
             output_file=str(cfg["output_file"]) if cfg.get("output_file") else None,
             output_key=str(cfg["output_key"]) if cfg.get("output_key") else None,
+            output_append=bool(cfg.get("output_append", False)),
             fallback_output=(
                 str(cfg["fallback_output"]) if cfg.get("fallback_output") else None
             ),
