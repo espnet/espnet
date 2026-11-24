@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 import asyncio
+import logging
 import os
 import shutil
 import subprocess
@@ -24,6 +25,22 @@ from espnet3.bin.atlas.core.graph import Resources, load_graph
 from espnet3.bin.atlas.core.scheduler import AtlasGraphRuntime
 from espnet3.bin.atlas.core.serialization import file_lock
 from espnet3.bin.atlas.core.state import StateStore
+
+
+def _configure_logging() -> None:
+    """Show ``info``-level Atlas logs on stderr.
+
+    Without this only warnings reach the console, so a controller (login node
+    or submitted tick job) looks silent while it is healthy. Only the Atlas
+    logger is raised to ``INFO``; other libraries keep their own levels. A
+    stderr handler is added only if the root logger has none (importing
+    ``espnet3`` usually installs one already).
+    """
+    if not logging.getLogger().handlers:
+        logging.basicConfig(
+            format="%(asctime)s %(levelname)s %(name)s: %(message)s",
+        )
+    logging.getLogger("espnet3.bin.atlas").setLevel(logging.INFO)
 
 
 def _build_agent(config, recipe_dir: Path):
@@ -348,6 +365,7 @@ def cmd_run(args) -> int:
     """
     study_dir = Path(args.study_dir).resolve()
     recipe_dir = Path(args.recipe_dir).resolve()
+    _configure_logging()
     config = OmegaConf.load(study_dir / "atlas.yaml")
     submission_cfg = config.atlas.submission
     environment = str(getattr(submission_cfg, "environment", "local"))
@@ -398,6 +416,12 @@ async def _run_controller_worker(runtime, job_id, controller_resources, handoff_
         if (runtime.study_dir / "STOP").exists():
             return
         runtime.tick()
+        runtime.logger.info(
+            "tick done: study=%s running_trials=%d pending_node_runs=%d",
+            runtime.study_id,
+            len(runtime.state.list_trials(runtime.study_id, status="running")),
+            len(runtime.state.get_pending_node_runs(runtime.study_id)),
+        )
         if (runtime.study_dir / "STOP").exists():
             return
         if runtime.should_stop():
