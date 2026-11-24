@@ -115,7 +115,7 @@ echo "==== [ESPnet3] ATLAS init ===="
 # writes atlas.yaml/graph.yaml/program.md, and creates the study/node-run
 # state without touching the agent. The agent-driven graph execution (via a
 # deterministic dummy agent) is covered by
-# test/espnet3/bin/test_atlas_integration.py.
+# test/espnet3/bin/atlas/test_integration.py.
 cd ./egs3/mini_an4/esp2_asr || exit
 gen_dummy_coverage
 ${python} -m espnet3.bin.main atlas init \

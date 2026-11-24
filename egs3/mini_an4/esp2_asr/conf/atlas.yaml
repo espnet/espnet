@@ -6,7 +6,7 @@
 # real recipe without Slurm or a coding-agent backend (`init` never invokes
 # the agent; only `run` does). It is not meant to be run end to end: the
 # agent-driven graph execution is covered separately by
-# test/espnet3/bin/test_atlas_integration.py with a dummy agent.
+# test/espnet3/bin/atlas/test_integration.py with a dummy agent.
 
 atlas:
   study_name: mini_an4_ci_check

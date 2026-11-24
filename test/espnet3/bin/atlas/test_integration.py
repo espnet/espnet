@@ -36,7 +36,8 @@ class _DummyCodingAgent:
 
 def _write_skill_study(tmp_path):
     """Write a one-node skill graph recipe and return its directory and config."""
-    # Config discovery infers the TEMPLATE defaults from the egs3/<corpus>/<system> layout.
+    # Config discovery infers the TEMPLATE defaults from the egs3/<corpus>/<system>
+    # layout.
     recipe_dir = tmp_path / "egs3" / "integration" / "esp2_asr"
     recipe_dir.mkdir(parents=True)
     skill_file = recipe_dir / ".agents/skills/dummy_analysis/SKILL.md"
