@@ -1,7 +1,6 @@
 atlas:
   study_name: chime4_hp_search
   study_dir: exp/atlas/chime4_hp_search
-  graph:
   application: hyperparameter_search
   objective_file: program.md
 

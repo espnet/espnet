@@ -11,7 +11,6 @@
 atlas:
   study_name: mini_an4_ci_check
   study_dir: exp/atlas/mini_an4_ci_check
-  graph:
   application: hyperparameter_search
   objective_file: program.md
 

@@ -48,18 +48,6 @@ def _build_agent(config, recipe_dir: Path):
     return CliAgent(config.atlas.agent, recipe_dir=recipe_dir)
 
 
-def _get_default_graph_path(application: str = "hyperparameter_search") -> Path:
-    """Return the packaged default graph YAML for the selected application."""
-    name = (
-        "architecture_search"
-        if application == "architecture_search"
-        else "hyperparameter_search"
-    )
-    resource = resources.files("espnet3.bin.atlas").joinpath("graphs", f"{name}.yaml")
-    with resources.as_file(resource) as path:
-        return Path(path)
-
-
 def _resolve_study_dir(recipe_dir: Path, configured: str | Path) -> Path:
     """Resolve a study's configured ``study_dir`` relative to the recipe root."""
     path = Path(configured)
@@ -113,13 +101,24 @@ def handle_init(args) -> int:
     config = load_atlas_config(config_path)
     study_dir = _resolve_study_dir(recipe_dir, config.atlas.study_dir)
     study_dir.mkdir(parents=True, exist_ok=True)
-    graph_src = (
-        (recipe_dir / str(config.atlas.graph)).resolve()
-        if getattr(config.atlas, "graph", None)
-        else _get_default_graph_path(
-            str(getattr(config.atlas, "application", "hyperparameter_search"))
+    application = str(getattr(config.atlas, "application", "") or "")
+    graphs_dir = resources.files("espnet3.bin.atlas").joinpath("graphs")
+    packaged_graph = graphs_dir.joinpath(f"{application}.yaml")
+    if application and (recipe_dir / application).is_file():
+        graph_src = (recipe_dir / application).resolve()
+    elif application and packaged_graph.is_file():
+        with resources.as_file(packaged_graph) as path:
+            graph_src = Path(path)
+    else:
+        names = sorted(
+            path.name[: -len(".yaml")]
+            for path in graphs_dir.iterdir()
+            if path.name.endswith(".yaml")
         )
-    )
+        raise ValueError(
+            f"atlas.application must name a packaged graph ({', '.join(names)}) "
+            f"or a graph YAML file in the recipe, got {application!r}"
+        )
     write_resolved_config(study_dir / "atlas.yaml", config)
     shutil.copyfile(graph_src, study_dir / "graph.yaml")
     state = StateStore(study_dir)

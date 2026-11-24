@@ -49,7 +49,7 @@ def _write_skill_study(tmp_path):
         "atlas:\n"
         "  study_name: integration-study\n"
         "  study_dir: exp/atlas/integration-study\n"
-        "  graph: graph.yaml\n"
+        "  application: graph.yaml\n"
         "  objective_file: program.md\n"
         "  metric:\n"
         "    name: score\n"

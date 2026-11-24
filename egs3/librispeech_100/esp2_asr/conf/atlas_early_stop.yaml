@@ -1,7 +1,6 @@
 atlas:
   study_name: ls100_early_stop
   study_dir: exp/atlas/ls100_early_stop
-  graph:
   application: hyperparameter_search
   objective_file: program.md
 

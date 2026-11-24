@@ -10,7 +10,6 @@ import pytest
 from omegaconf import OmegaConf
 
 from espnet3.bin.atlas.agents.cli import build_agent_config
-from espnet3.bin.atlas.command import _get_default_graph_path
 from espnet3.bin.atlas.core import AtlasError
 from espnet3.bin.atlas.core.graph import load_graph
 from espnet3.bin.atlas.core.models import (
@@ -96,6 +95,17 @@ def test_agent_config_accepts_claude_options():
     assert build_agent_config({"provider": "Claude"}).provider == "claude"
 
 
+def _graph_path(application):
+    """Return the path of a packaged graph YAML."""
+    from importlib import resources
+
+    resource = resources.files("espnet3.bin.atlas").joinpath(
+        "graphs", f"{application}.yaml"
+    )
+    with resources.as_file(resource) as path:
+        return Path(path)
+
+
 def test_load_graph_loads_an_explicit_skill_stage(tmp_path):
     """Keep ``skill`` as node config while ``target`` names ``SkillStage``."""
     graph_path = tmp_path / "graph.yaml"
@@ -137,7 +147,7 @@ def test_load_graph_requires_a_target_for_a_node_without_one(tmp_path):
 def test_packaged_graphs_name_a_target_on_every_node():
     """Every shipped graph loads, so none relies on an implicit ``SkillStage``."""
     for application in ("hyperparameter_search", "architecture_search"):
-        graph = load_graph(_get_default_graph_path(application))
+        graph = load_graph(_graph_path(application))
         assert graph.nodes
         assert all(node.target for node in graph.nodes.values())
 
@@ -371,7 +381,7 @@ def test_every_skill_named_by_a_packaged_graph_exists():
     """A graph must not name a skill that has no SKILL.md to run."""
     repo_root = Path(__file__).resolve().parents[3]
     for application in ("hyperparameter_search", "architecture_search"):
-        graph = load_graph(_get_default_graph_path(application))
+        graph = load_graph(_graph_path(application))
         for node in graph.nodes.values():
             if node.skill:
                 assert _find_skill_path(repo_root, node.skill).is_file(), node.skill
@@ -379,7 +389,7 @@ def test_every_skill_named_by_a_packaged_graph_exists():
 
 def test_update_knowledge_is_a_skill_followed_by_the_budget_check():
     for application in ("hyperparameter_search", "architecture_search"):
-        nodes = load_graph(_get_default_graph_path(application)).nodes
+        nodes = load_graph(_graph_path(application)).nodes
         assert nodes["update_knowledge"].skill == (
             "hyperparameter_search_update_knowledge"
         )
@@ -396,7 +406,7 @@ def test_update_knowledge_is_a_skill_followed_by_the_budget_check():
 
 def test_research_context_is_a_skill_that_writes_the_first_pack_with_a_fallback():
     for application in ("hyperparameter_search", "architecture_search"):
-        graph = load_graph(_get_default_graph_path(application))
+        graph = load_graph(_graph_path(application))
         node = graph.nodes["research_context"]
 
         assert node.skill == "hyperparameter_search_research_context"
@@ -416,7 +426,7 @@ def test_research_context_failure_still_leaves_a_knowledge_pack(tmp_path):
         def run(self, request, artifact_dir=None):
             return AgentResponse(status="failure", message="agent down", content="")
 
-    node = load_graph(_get_default_graph_path("hyperparameter_search")).nodes[
+    node = load_graph(_graph_path("hyperparameter_search")).nodes[
         "research_context"
     ]
     context = _stage_context(tmp_path, node=node, agent=DownAgent())
@@ -430,7 +440,7 @@ def test_research_context_failure_still_leaves_a_knowledge_pack(tmp_path):
 
 def test_packaged_graphs_route_only_to_defined_nodes_and_end_in_analyze():
     for application in ("hyperparameter_search", "architecture_search"):
-        graph = load_graph(_get_default_graph_path(application))
+        graph = load_graph(_graph_path(application))
 
         assert "summarize" not in graph.nodes
         for node in graph.nodes.values():
@@ -462,6 +472,7 @@ def test_propose_trial_fails_and_cancels_the_trial_when_the_agent_fails(tmp_path
         config=OmegaConf.create(
             {
                 "atlas": {
+                    "application": "hyperparameter_search",
                     "metric": {"name": "valid_acc", "mode": "max"},
                     "recipe": {},
                     "search_space": {"allowed_keys": ["optimizer.*"]},
@@ -479,3 +490,41 @@ def test_propose_trial_fails_and_cancels_the_trial_when_the_agent_fails(tmp_path
     assert result.status == "failure"
     assert "agent down" in result.message
     assert state.get_trial("trial_000001").status == "cancelled"
+
+
+def _init_args(tmp_path, application_line):
+    import argparse
+
+    recipe = tmp_path / "egs3" / "corpus" / "esp2_asr"
+    (recipe / "conf").mkdir(parents=True)
+    (recipe / "conf" / "atlas.yaml").write_text(
+        "atlas:\n  study_name: s\n  study_dir: exp/atlas/s\n"
+        + application_line
+        + "  metric: {name: m, mode: min}\n",
+        encoding="utf-8",
+    )
+    return recipe, argparse.Namespace(
+        recipe_dir=str(recipe), config=str(recipe / "conf" / "atlas.yaml")
+    )
+
+
+def test_init_requires_a_known_application(tmp_path):
+    from espnet3.bin.atlas.command import handle_init
+
+    cases = (("a", "", "''"), ("b", "  application: nope\n", "'nope'"))
+    for name, line, bad in cases:
+        _, args = _init_args(tmp_path / name, line)
+        with pytest.raises(ValueError) as error:
+            handle_init(args)
+        assert "architecture_search, hyperparameter_search" in str(error.value)
+        assert bad in str(error.value)
+
+
+def test_init_copies_the_packaged_graph_named_by_application(tmp_path):
+    from espnet3.bin.atlas.command import handle_init
+
+    recipe, args = _init_args(tmp_path, "  application: hyperparameter_search\n")
+
+    assert handle_init(args) == 0
+    copied = recipe / "exp" / "atlas" / "s" / "graph.yaml"
+    assert copied.read_bytes() == _graph_path("hyperparameter_search").read_bytes()

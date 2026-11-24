@@ -243,9 +243,7 @@ class ProposeTrialStage(BaseStage):
 
         repo_context = base_configs_context
 
-        application = str(
-            getattr(context.config.atlas, "application", "hyperparameter_search")
-        )
+        application = str(context.config.atlas.application)
         allowed_actions = ALLOWED_ACTIONS_BY_APPLICATION.get(
             application, ["config_patch_only"]
         )

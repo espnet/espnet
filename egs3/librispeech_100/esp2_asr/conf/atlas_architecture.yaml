@@ -1,7 +1,6 @@
 atlas:
   study_name: ls100_arch_search
   study_dir: exp/atlas/ls100_arch_search
-  graph:
   application: architecture_search
   objective_file: program.md
 
