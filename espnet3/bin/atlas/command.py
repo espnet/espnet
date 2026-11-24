@@ -119,9 +119,14 @@ def handle_init(args) -> int:
     recipe_dir = Path(args.recipe_dir).resolve()
     config_path = Path(args.config).resolve()
     config = load_atlas_config(config_path)
+    study_id = str(config.atlas.study_name)
+
+    # 1. The study directory and the subdirectories every study has.
     study_dir = _resolve_study_dir(recipe_dir, config.atlas.study_dir)
     for name in ("knowledge", "trials", "node_runs"):
         (study_dir / name).mkdir(parents=True, exist_ok=True)
+
+    # 2. The graph: a graph YAML in the recipe, else a packaged graph by name.
     application = str(getattr(config.atlas, "application", "") or "")
     graphs_dir = resources.files("espnet3.bin.atlas").joinpath("graphs")
     packaged_graph = graphs_dir.joinpath(f"{application}.yaml")
@@ -140,13 +145,24 @@ def handle_init(args) -> int:
             f"atlas.application must name a packaged graph ({', '.join(names)}) "
             f"or a graph YAML file in the recipe, got {application!r}"
         )
+
+    # 3. Freeze the study's config and graph inside the study directory. Later
+    #    commands (run, status, the trial jobs) read these copies, not the recipe.
     write_resolved_config(study_dir / "atlas.yaml", config)
     shutil.copyfile(graph_src, study_dir / "graph.yaml")
+
+    # 4. Register the study in the state tables.
     state = StateStore(study_dir)
-    state.create_or_load_study(str(config.atlas.study_name), study_dir)
+    state.create_or_load_study(study_id, study_dir)
+
+    # 5. The objective (program.md), unless the study already has one: the file
+    #    named by atlas.objective_file, next to the config or in the recipe,
+    #    else a short template for the user to fill in.
     program_path = study_dir / "program.md"
     if not program_path.exists():
-        objective_file = Path(str(getattr(config.atlas, "objective_file", "program.md")))
+        objective_file = Path(
+            str(getattr(config.atlas, "objective_file", "program.md"))
+        )
         sources = (config_path.parent / objective_file, recipe_dir / objective_file)
         source = next((path for path in sources if path.is_file()), None)
         if source is not None:
@@ -156,7 +172,9 @@ def handle_init(args) -> int:
                 "# Atlas Objective\n\nDescribe the search goal here.\n",
                 encoding="utf-8",
             )
-    study_id = str(config.atlas.study_name)
+
+    # 6. Queue the first node run, once. Running init again on a study that
+    #    already has node runs only refreshes the files above.
     if not state.list_node_runs(study_id):
         runtime = _load_runtime(study_dir, recipe_dir)
         state.create_node_run(
@@ -167,17 +185,29 @@ def handle_init(args) -> int:
     return 0
 
 
-def _reconcile_tick_jobs(runtime, exclude_job_id: str | None = None) -> None:
-    """Repair recorded tick statuses using the submission agent."""
-    runtime.reconcile_tick_jobs(exclude_job_id=exclude_job_id)
-
-
 def _ensure_tick_job(
     runtime, resources: Resources, exclude_job_id: str | None = None
 ) -> str | None:
-    """Reconcile controller state and ensure exactly one tick job is active."""
+    """Keep exactly one tick job alive: reuse the live one or submit a new one.
+
+    The tick job is the controller running as a scheduler job. It is started by
+    ``handle_run`` and replaced by ``_run_controller_worker`` before its walltime
+    runs out ("handoff"). Under the controller lock this first corrects the
+    recorded status of tick jobs that died, does nothing if a ``STOP`` file
+    exists, and submits a new one only if no other tick job is active
+    (``exclude_job_id`` is the caller's own job)::
+
+        time ───────────────────────────────►
+        trial jobs  [─ trial 1 ─][─ trial 3 ─] ...   (independent)
+        tick job A  [tick·tick·tick]··✕      ✕ = walltime
+                                   ▲ handoff: A submits B, exits
+        tick job B                   [tick·tick·tick]··✕
+                                                    ▲ handoff: B submits C, ...
+    """
     with lock_file(runtime.study_dir / ".lock_study_controller"):
-        _reconcile_tick_jobs(runtime, exclude_job_id=exclude_job_id)
+        # Correct the recorded status of tick jobs that died, so that a dead
+        # controller is not mistaken for a live one below.
+        runtime.reconcile_tick_jobs(exclude_job_id=exclude_job_id)
         if (runtime.study_dir / "STOP").exists():
             runtime.logger.info("Study STOP file exists; no controller tick submitted.")
             return None
@@ -195,7 +225,12 @@ def _ensure_tick_job(
 
 
 def _register_tick_job(runtime, resources: Resources):
-    """Create and submit one controller tick job."""
+    """Submit the tick job, which runs ``atlas run --worker --job-id <id>``.
+
+    Its logs and ``job.yaml`` go to ``<study_dir>/ticks/tick_<id>/``. A failed
+    submission is written to ``submission_error.txt``, recorded as a
+    ``tick_job_submission_failed`` event, and raised again.
+    """
     study_dir = runtime.study_dir
     recipe_dir = runtime.recipe_dir
     tick_dir = study_dir / "ticks" / f"tick_{uuid.uuid4().hex}"
@@ -259,19 +294,18 @@ def _register_tick_job(runtime, resources: Resources):
 
 
 def handle_run(args) -> int:
-    """Run a study's controller loop, dispatching to the configured environment.
+    """Run a study's controller: the process that ticks the scheduler.
 
-    Implements ``espnet3 atlas run``. Three modes, chosen by ``args`` and the
-    study's ``submission.environment``:
+    Implements ``espnet3 atlas run``. A tick runs the local graph nodes, submits
+    trial jobs, notices dead jobs and checks the budget. Trial jobs start the
+    next trial themselves when they finish, but only a controller notices a job
+    that died. Where it runs depends on ``args`` and ``submission.environment``:
 
-    - ``args.worker`` is set: this process *is* a submitted controller tick
-      job; run :func:`_run_controller_worker` until the study stops, a
-      handoff interval elapses, or it is interrupted, then record this job's
-      final status.
-    - ``environment == "local"``: run the scheduler's own
-      ``runtime.run_forever`` loop in this process (no job submission).
-    - otherwise: submit (or reuse) one controller tick job via
-      :func:`_ensure_tick_job` and return immediately.
+    * ``--worker``: this process is the controller, started by hand (for example
+      in tmux) or by a tick job, and runs ``_run_controller_worker``.
+    * ``local`` environment: ``run_forever`` in this process; nothing is submitted.
+    * any other environment: submit the controller as a tick job through
+      ``_ensure_tick_job`` and return; the job runs this command with ``--worker``.
 
     Args:
         args: Parsed CLI args with ``study_dir``, ``recipe_dir``,
@@ -327,15 +361,14 @@ def handle_run(args) -> int:
 
 
 async def _run_controller_worker(runtime, job_id, controller_resources, handoff_after, started):
-    """Tick the scheduler in a loop until the study stops or hands off to a new tick job.
+    """The body of a tick job: tick, log, sleep, repeat.
 
-    Called from ``handle_run`` when this process is a submitted controller tick
-    job (``args.worker``). Each iteration calls ``runtime.tick()``, then
-    returns if a ``STOP`` file appears, if the study has no more pending
-    node runs or active (non-tick) jobs, or if ``handoff_after`` seconds have
-    elapsed (in which case it submits a replacement tick job before
-    returning). Otherwise it sleeps for the idle or trial-active tick
-    interval and loops.
+    Returns when a ``STOP`` file exists, when the study has finished (budget
+    spent, nothing pending, no trial job active), or after ``handoff_after``
+    seconds, having submitted a successor first (see ``_ensure_tick_job``).
+    ``handoff_after=None``, as for a controller started by hand, never hands off.
+    The sleep is ``tick_interval_sec_trial_active`` while trials run, else
+    ``tick_interval_sec_idle``.
     """
     while True:
         if (runtime.study_dir / "STOP").exists():
