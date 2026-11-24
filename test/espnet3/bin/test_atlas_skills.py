@@ -440,3 +440,41 @@ def test_packaged_graphs_route_only_to_defined_nodes_and_end_in_analyze():
             "failure": "analyze",
         }
         assert graph.nodes["analyze"].terminal is True
+
+
+def test_propose_trial_fails_and_cancels_the_trial_when_the_agent_fails(tmp_path):
+    from espnet3.bin.atlas.core.state import StateStore
+    from espnet3.bin.atlas.stages.propose_trial import ProposeTrialStage
+
+    class DownAgent:
+        def run(self, request, artifact_dir=None):
+            return AgentResponse(status="failure", message="agent down", content="")
+
+    study_dir = tmp_path / "study"
+    study_dir.mkdir()
+    (study_dir / "program.md").write_text("Maximize valid_acc.", encoding="utf-8")
+    state = StateStore(study_dir)
+    state.create_or_load_study("study", study_dir)
+    context = SimpleNamespace(
+        study_dir=study_dir,
+        recipe_dir=tmp_path / "recipe",
+        config=OmegaConf.create(
+            {
+                "atlas": {
+                    "metric": {"name": "valid_acc", "mode": "max"},
+                    "recipe": {},
+                    "search_space": {"allowed_keys": ["optimizer.*"]},
+                }
+            }
+        ),
+        scheduler=SimpleNamespace(should_stop=lambda: False, study_id="study"),
+        state=state,
+        agent=DownAgent(),
+        current_trial=None,
+    )
+
+    result = ProposeTrialStage().run(context)
+
+    assert result.status == "failure"
+    assert "agent down" in result.message
+    assert state.get_trial("trial_000001").status == "cancelled"

@@ -49,7 +49,7 @@ def _config_signature(config, trial_dir: Path) -> str:
 
 
 class ProposeTrialStage(AtlasStage):
-    """Create a new Trial from agent output or fallback candidates."""
+    """Create a new Trial from the agent's proposed config patch."""
 
     study_lock_name = "study_controller"
 
@@ -88,22 +88,6 @@ class ProposeTrialStage(AtlasStage):
         )
         return trial
 
-    def _fallback_candidate(self, context, used_patches: list[dict]) -> dict | None:
-        """Return the first configured ``search_space.candidates`` patch not yet tried."""
-        candidates = list(
-            getattr(
-                getattr(context.config.atlas, "search_space", None),
-                "candidates",
-                [],
-            )
-            or []
-        )
-        for candidate in candidates:
-            plain = dict(candidate)
-            if plain not in used_patches:
-                return plain
-        return None
-
     def _should_reuse_current_trial(self, context, current_trial: Trial | None) -> bool:
         """Whether a ``"proposing"`` trial with no resolved config yet should be reused.
 
@@ -131,12 +115,10 @@ class ProposeTrialStage(AtlasStage):
         }
 
     def run(self, context) -> StageResult:
-        """Ask the agent for a new config patch (or reuse a fallback candidate), resolve it, and save it as a trial.
+        """Ask the agent for a new config patch, resolve it, and save it as a trial.
 
         Reserves (or reuses) a provisional trial, asks the agent to propose
-        a training config patch (falling back to a configured
-        ``search_space.candidate`` if the agent fails), sanitizes the patch
-        against the search space, rejects it as ``"duplicate"`` if an
+        a training config patch, sanitizes the patch against the search space, rejects it as ``"duplicate"`` if an
         in-progress or past trial already has the same hyperparameter patch
         or resolves to the same effective training config, then writes the
         trial's resolved training/inference/metrics configs and metadata.
@@ -149,8 +131,8 @@ class ProposeTrialStage(AtlasStage):
             ``"implement_code"`` for an architecture-search trial needing
             extra stages first) once a trial is proposed;
             ``status="no_budget"`` if the study's budget is exhausted;
-            ``status="cancelled"``/``"duplicate"``/``"failure"`` if no valid
-            proposal could be produced.
+            ``status="duplicate"``/``"failure"`` if no valid proposal could
+            be produced (including when the agent call itself fails).
 
         Example:
             >>> result = ProposeTrialStage().run(stage_context)
@@ -161,7 +143,6 @@ class ProposeTrialStage(AtlasStage):
             return StageResult(status="no_budget", message="Budget exhausted")
 
         trials = context.state.list_trials(context.scheduler.study_id)
-        used_patches = [t.config_patch for t in trials]
         latest_trial = trials[-1] if trials else None
         current_trial = context.current_trial
 
@@ -299,87 +280,78 @@ class ProposeTrialStage(AtlasStage):
         response = context.agent.run(request, artifact_dir=artifact_dir)
 
         if response.status != "success":
-            # Try fallback candidate
-            fallback = self._fallback_candidate(context, used_patches)
-            if fallback is None:
-                trial.status = "cancelled"
-                context.state.update_trial(trial)
-                return StageResult(
-                    status="cancelled",
-                    message="No remaining candidates",
-                    payload={"trial_id": trial_id},
-                )
-            patch = fallback
-            rationale = "Fallback candidate from configured search_space."
-            expected_effect = "Explore configured candidate."
-            risk = "May not improve the current best."
-            extra_stages: list[str] = []
-            removed: list[str] = []
-        else:
-            structured = dict(response.structured or {})
-            if not {"config_patches", "config_patch"}.intersection(structured):
-                trial.status = "cancelled"
-                context.state.update_trial(trial)
-                return StageResult(
-                    status="failure",
-                    message=(
-                        "Agent output has no structured config patch; refusing to "
-                        "interpret an unreadable proposal as an empty configuration."
-                    ),
-                    payload={"trial_id": trial_id},
-                )
-            # Support both new multi-config format and legacy single config_patch
-            config_patches = dict(structured.get("config_patches", {}) or {})
-            patch = dict(
-                config_patches.get("training", {})
-                or structured.get("config_patch", {})
-                or {}
+            trial.status = "cancelled"
+            context.state.update_trial(trial)
+            return StageResult(
+                status="failure",
+                message=f"Proposal agent failed: {response.message}",
+                payload={"trial_id": trial_id},
             )
-            rationale = str(structured.get("rationale", response.content or ""))
-            expected_effect = str(structured.get("expected_effect", ""))
-            risk = str(structured.get("risk", ""))
-            _known_stages = {
-                "create_dataset",
-                "train_tokenizer",
-                "collect_stats",
-                "implement_code",
-                "write_files",
+
+        structured = dict(response.structured or {})
+        if not {"config_patches", "config_patch"}.intersection(structured):
+            trial.status = "cancelled"
+            context.state.update_trial(trial)
+            return StageResult(
+                status="failure",
+                message=(
+                    "Agent output has no structured config patch; refusing to "
+                    "interpret an unreadable proposal as an empty configuration."
+                ),
+                payload={"trial_id": trial_id},
+            )
+        # Support both new multi-config format and legacy single config_patch
+        config_patches = dict(structured.get("config_patches", {}) or {})
+        patch = dict(
+            config_patches.get("training", {})
+            or structured.get("config_patch", {})
+            or {}
+        )
+        rationale = str(structured.get("rationale", response.content or ""))
+        expected_effect = str(structured.get("expected_effect", ""))
+        risk = str(structured.get("risk", ""))
+        _known_stages = {
+            "create_dataset",
+            "train_tokenizer",
+            "collect_stats",
+            "implement_code",
+            "write_files",
+        }
+        extra_stages = [
+            str(s)
+            for s in (structured.get("extra_stages") or [])
+            if str(s) in _known_stages
+        ]
+
+        patch, removed = split_patch_by_search_space(
+            patch, context.config.atlas.search_space
+        )
+        if not patch and removed:
+            trial.status = "cancelled"
+            context.state.update_trial(trial)
+            return StageResult(
+                status="failure",
+                message=f"Patch became empty after validation. removed={removed}",
+                payload={"trial_id": trial_id},
+            )
+
+        # Deduplicate
+        hp_patch = {k: v for k, v in patch.items() if k not in _runtime_keys}
+        for existing in trials:
+            existing_hp = {
+                k: v
+                for k, v in existing.config_patch.items()
+                if k not in _runtime_keys
             }
-            extra_stages = [
-                str(s)
-                for s in (structured.get("extra_stages") or [])
-                if str(s) in _known_stages
-            ]
-
-            patch, removed = split_patch_by_search_space(
-                patch, context.config.atlas.search_space
-            )
-            if not patch and removed:
+            if existing_hp == hp_patch and existing.trial_id != trial_id:
+                dup_id = existing.trial_id
                 trial.status = "cancelled"
                 context.state.update_trial(trial)
                 return StageResult(
-                    status="failure",
-                    message=f"Patch became empty after validation. removed={removed}",
+                    status="duplicate",
+                    message=f"Duplicate patch: same as {dup_id}",
                     payload={"trial_id": trial_id},
                 )
-
-            # Deduplicate
-            hp_patch = {k: v for k, v in patch.items() if k not in _runtime_keys}
-            for existing in trials:
-                existing_hp = {
-                    k: v
-                    for k, v in existing.config_patch.items()
-                    if k not in _runtime_keys
-                }
-                if existing_hp == hp_patch and existing.trial_id != trial_id:
-                    dup_id = existing.trial_id
-                    trial.status = "cancelled"
-                    context.state.update_trial(trial)
-                    return StageResult(
-                        status="duplicate",
-                        message=f"Duplicate patch: same as {dup_id}",
-                        payload={"trial_id": trial_id},
-                    )
 
         # Build runtime path patch and merge
         runtime_patch = self._build_runtime_path_patch(context, trial_dir, trial_id)
