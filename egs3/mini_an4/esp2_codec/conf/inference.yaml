@@ -1,0 +1,24 @@
+##########################################################
+#                   Inference SETTING                    #
+##########################################################
+# Merged over egs3/TEMPLATE/esp2_codec/conf/inference.yaml. AN4 is 16 kHz, so
+# the contract and the WAV writer run at that rate instead of the 24 kHz
+# default; the model reads `${exp_dir}/last.ckpt` as the template says.
+dataset:
+  test:
+    - name: test
+      data_src_args:
+        split: test
+        inference: true
+
+contract:
+  inputs:
+    speech:
+      sample_rate: 16000
+  outputs:
+    wav:
+      sample_rate: 16000
+
+output_artifacts:
+  wav:
+    sample_rate: 16000

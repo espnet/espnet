@@ -1,0 +1,23 @@
+##########################################################
+#                  PUBLICATION SETTING                   #
+##########################################################
+# Quick usage:
+#   python run.py --stages pack_model \
+#       --training_config conf/training_encodec.yaml \
+#       --inference_config conf/inference.yaml \
+#       --metrics_config conf/metrics.yaml \
+#       --publication_config conf/publication.yaml
+#   python run.py --stages upload_model \
+#       --training_config conf/training_encodec.yaml \
+#       --publication_config conf/publication.yaml
+#
+# Merged over egs3/TEMPLATE/esp2_codec/conf/publication.yaml, which supplies the
+# path scaffold, the README template, the packed checkpoint (`last.ckpt`), the
+# exclude list and the upload settings. `exp_tag`/`exp_dir` are copied in from
+# the training config by `launch()`, so only recipe-specific keys live here.
+
+pack_model:
+  # Nothing in the bundle imports recipe code: inference runs through the
+  # installed `espnet3.systems.esp2_codec` runner, so neither `src` nor
+  # `dataset` is packed.
+  include: []
