@@ -8,7 +8,7 @@ nodes:
     execution: local
     "on":
       success: research_context
-      failure: summarize
+      failure: analyze
 
   research_context:
     target: espnet3.bin.atlas.stages.skill.SkillStage
@@ -31,7 +31,7 @@ nodes:
       success: run_trial       # config-only change, no code modification needed
       implement_code: implement_code  # agent requested code changes
       no_budget: select_best
-      failure: summarize
+      failure: analyze
 
   implement_code:
     target: espnet3.bin.atlas.stages.write_files.WriteFilesStage
@@ -130,24 +130,18 @@ nodes:
     target: espnet3.bin.atlas.stages.select_best.SelectBestStage
     execution: local
     "on":
-      success: summarize
-      failure: summarize
-
-  summarize:
-    target: espnet3.bin.atlas.stages.summarize.SummarizeStage
-    execution: local
-    "on":
-      terminal: analyze
+      success: analyze
+      failure: analyze
 
   analyze:
     target: espnet3.bin.atlas.stages.skill.SkillStage
     execution: local
     skill: hyperparameter_search_analyze
     allowed_actions: [read_only, terminal, file_write]
-    output_file: analysis.md
-    output_key: analysis_markdown
-    fallback_output: "# Study Analysis\n\nAgent analysis was unavailable. See trials.csv for recorded results.\n"
+    output_file: summary.md
+    output_key: summary_markdown
+    fallback_output: "# Study Summary\n\nThe agent summary was unavailable. See trials.csv for recorded results.\n"
     output_schema:
       status: terminal
-      analysis_markdown: final study report in Markdown
+      summary_markdown: final study summary in Markdown
     terminal: true

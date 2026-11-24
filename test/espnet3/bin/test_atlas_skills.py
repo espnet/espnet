@@ -425,3 +425,18 @@ def test_research_context_failure_still_leaves_a_knowledge_pack(tmp_path):
     pack = tmp_path / "study" / "knowledge" / "knowledge_pack.md"
     assert result.status == "terminal"
     assert pack.read_text(encoding="utf-8").startswith("# Knowledge Pack")
+
+
+def test_packaged_graphs_route_only_to_defined_nodes_and_end_in_analyze():
+    for application in ("hyperparameter_search", "architecture_search"):
+        graph = load_graph(_default_graph_path(application))
+
+        assert "summarize" not in graph.nodes
+        for node in graph.nodes.values():
+            for target in node.on.values():
+                assert target in graph.nodes, (application, node.name, target)
+        assert graph.nodes["select_best"].on == {
+            "success": "analyze",
+            "failure": "analyze",
+        }
+        assert graph.nodes["analyze"].terminal is True
