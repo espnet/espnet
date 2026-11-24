@@ -76,6 +76,9 @@ def _write_skill_study(tmp_path):
         "    skill: dummy_analysis\n"
         "    output_file: reports/analysis.md\n"
         "    output_key: report\n"
+        "    output_schema:\n"
+        "      report: {type: string}\n"
+        "      summary: {type: string}\n"
         "    terminal: true\n",
         encoding="utf-8",
     )
@@ -152,10 +155,10 @@ def test_cli_runs_skill_graph_to_completion_with_dummy_agent(tmp_path, monkeypat
 
 
 class _InvalidReplyAgent:
-    """Fail the way CliAgent does once JSON repair is exhausted."""
+    """Fail the way the session does when a reply violates its schema."""
 
     def run(self, request, artifact_dir=None):
-        raise InvalidAgentResponseError("agent reply was not valid JSON")
+        raise InvalidAgentResponseError("agent reply violated its schema")
 
 
 def test_invalid_agent_response_is_recorded_as_a_failed_node_run(
@@ -190,6 +193,6 @@ def test_invalid_agent_response_is_recorded_as_a_failed_node_run(
     assert node_run["result_status"] == "failure"
     result = json.loads(node_run["result_payload_json"])
     assert result["payload"]["invalid_agent_response"] is True
-    assert "not valid JSON" in result["message"]
+    assert "violated its schema" in result["message"]
     failure_file = study_dir / "node_runs" / node_run["run_id"] / ".stage_failure.json"
     assert json.loads(failure_file.read_text(encoding="utf-8"))["status"] == "failure"

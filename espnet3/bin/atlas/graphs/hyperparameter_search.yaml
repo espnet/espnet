@@ -11,7 +11,7 @@ nodes:
     output_key: pack
     fallback_output: "# Knowledge Pack\n\nThe research context could not be generated. Read program.md and atlas.yaml in the study directory directly.\n"
     output_schema:
-      pack: Markdown text of the first knowledge pack
+      pack: {type: string, description: "Markdown text of the first knowledge pack"}
     "on":
       success: propose_trial
       failure: propose_trial
@@ -34,10 +34,13 @@ nodes:
     skill: hyperparameter_search_implement_code
     allowed_actions: [file_write, terminal]
     output_schema:
-      files_created: [list of relative paths created]
-      files_modified: [list of relative paths modified]
-      packages_added: [list of packages added]
-      summary: one-line implementation summary
+      files_created:
+        {type: array, items: {type: string}, description: "relative paths created"}
+      files_modified:
+        {type: array, items: {type: string}, description: "relative paths modified"}
+      packages_added:
+        {type: array, items: {type: string}, description: "packages added"}
+      summary: {type: string, description: "one-line implementation summary"}
     "on":
       success: run_trial
       failure: reflect
@@ -90,9 +93,8 @@ nodes:
     output_file: trials/{trial_id}/reflection.md
     output_key: reflection
     output_schema:
-      status: continue or done
-      reflection: summary of the trial result
-      next_suggestion: recommended next experiment
+      reflection: {type: string, description: "summary of the trial result"}
+      next_suggestion: {type: string, description: "recommended next experiment"}
     "on":
       continue: update_knowledge
       done: update_knowledge
@@ -106,7 +108,7 @@ nodes:
     output_key: entry
     output_append: true
     output_schema:
-      entry: Markdown entry for this trial, appended to the knowledge pack
+      entry: {type: string, description: "Markdown entry for this trial, appended to the knowledge pack"}
     "on":
       success: check_budget
       failure: check_budget
@@ -134,6 +136,5 @@ nodes:
     output_key: summary_markdown
     fallback_output: "# Study Summary\n\nThe agent summary was unavailable. See trials.csv for recorded results.\n"
     output_schema:
-      status: terminal
-      summary_markdown: final study summary in Markdown
+      summary_markdown: {type: string, description: "final study summary in Markdown"}
     terminal: true

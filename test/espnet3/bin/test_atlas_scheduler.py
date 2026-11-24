@@ -61,7 +61,7 @@ def test_early_stopping_rejects_multiple_progress_triggers():
 
 
 def test_study_session_is_reused_by_a_new_agent_process(tmp_path):
-    state = StateStore(tmp_path / "state.sqlite")
+    state = StateStore(tmp_path)
     state.create_or_load_study("study", tmp_path)
     requests = []
 

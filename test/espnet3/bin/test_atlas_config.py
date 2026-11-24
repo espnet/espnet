@@ -127,3 +127,16 @@ def test_the_controller_runs_in_local_or_queue(tmp_path):
                 "atlas: {submission: {controller: {run_in: queue}}}\n",
             )
         )
+
+
+def test_pairs_become_a_dict_and_a_repeated_key_keeps_the_last_value():
+    from espnet3.bin.atlas.core.config import convert_pairs_to_dict
+
+    pairs = [
+        {"key": "optimizer.lr", "value": 0.1},
+        {"key": "model.dims", "value": [1, 2]},
+        {"key": "optimizer.lr", "value": 0.2},
+    ]
+
+    assert convert_pairs_to_dict(pairs) == {"optimizer.lr": 0.2, "model.dims": [1, 2]}
+    assert convert_pairs_to_dict([]) == {}

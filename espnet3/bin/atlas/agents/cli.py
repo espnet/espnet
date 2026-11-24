@@ -7,13 +7,11 @@ import os
 import shlex
 import subprocess
 import uuid
-from dataclasses import replace
 from pathlib import Path
 
 from omegaconf import DictConfig, OmegaConf
 
 from espnet3.bin.atlas.agents.providers import PROVIDERS, create_provider
-from espnet3.bin.atlas.agents.structured_output import decode_response_object
 from espnet3.bin.atlas.core.models import AgentRequest, AgentResponse
 from espnet3.bin.atlas.resources import load_agent_defaults, load_prompt
 
@@ -30,8 +28,7 @@ def build_agent_config(config) -> DictConfig:
         ``resources/agent_defaults.yaml`` for every key.
 
     Raises:
-        ValueError: If ``provider`` is missing or unsupported, or
-            ``structured_output_retries`` is not a nonnegative integer.
+        ValueError: If ``provider`` is missing or unsupported.
 
     Example:
         >>> build_agent_config({"provider": "Claude"}).claude.permission_mode
@@ -43,17 +40,14 @@ def build_agent_config(config) -> DictConfig:
         names = ", ".join(repr(name) for name in PROVIDERS)
         raise ValueError(f"atlas.agent.provider must be one of {names}")
     merged.provider = provider
-    retries = merged.structured_output_retries
-    if isinstance(retries, bool) or not isinstance(retries, int) or retries < 0:
-        raise ValueError("structured_output_retries must be a nonnegative integer")
     return merged
 
 
 def render_prompt(request: AgentRequest) -> str:
     """Render an ``AgentRequest`` into the plain-text prompt sent to the agent.
 
-    Includes a strict JSON-only response contract when ``request.output_schema``
-    is non-empty.
+    The JSON Schema of the reply is shown for its field descriptions; the
+    provider's CLI enforces it.
 
     Args:
         request: The task to describe.
@@ -65,11 +59,9 @@ def render_prompt(request: AgentRequest) -> str:
     def dump(value) -> str:
         return json.dumps(value, ensure_ascii=False, indent=2)
 
-    contract = load_prompt("final_response_contract") + "\n"
     return load_prompt(
         "agent_request",
         task=request.task,
-        contract=contract if request.output_schema else "",
         objective=request.objective.strip(),
         knowledge=request.knowledge.strip(),
         repo_context=request.repo_context.strip(),
@@ -87,9 +79,9 @@ class CliAgent:
 
     Exposes ``run(request, artifact_dir)``. Renders the prompt, lets the
     configured provider (see ``agents/providers``) build the command and read the
-    output, keeps the artifacts of every call, and, when a JSON reply is
-    expected, retries with a response-only repair request up to
-    ``config.structured_output_retries`` times before giving up.
+    output, and keeps the artifacts of every call. A request with an
+    ``output_schema`` is run with the CLI's schema-constrained final reply, and
+    the reply is checked against the schema once more before it is returned.
     """
 
     def __init__(self, config, recipe_dir: Path) -> None:
@@ -102,8 +94,7 @@ class CliAgent:
                 when ``config.cwd`` is unset.
 
         Raises:
-            ValueError: If ``provider`` or ``structured_output_retries`` is
-                invalid.
+            ValueError: If ``provider`` is invalid.
         """
         self.config = build_agent_config(config)
         self.provider = create_provider(self.config)
@@ -112,77 +103,6 @@ class CliAgent:
         self.cwd = Path(self.config.cwd or self.recipe_dir).resolve()
 
     def run(self, request: AgentRequest, artifact_dir=None) -> AgentResponse:
-        """Run an agent, asking for bounded response-only repairs of invalid JSON.
-
-        Args:
-            request: Task and expected final output fields. Empty output_schema
-                permits free-form text and does not trigger JSON repair.
-            artifact_dir: Directory for latest artifacts and immutable call history.
-
-        Returns:
-            AgentResponse: The valid response or an explicit failure after the
-            configured repair limit. Every attempt is retained in the manifest.
-
-        Example:
-            >>> # response = agent.run(request, artifact_dir=trial_dir)
-            >>> # assert response.status in {"success", "failure"}
-        """
-        if artifact_dir is None:
-            raise ValueError("artifact_dir is required for CliAgent")
-        request_dir = (
-            Path(artifact_dir) / "agent_requests" / f"request_{uuid.uuid4().hex}"
-        )
-        request_dir.mkdir(parents=True)
-        manifest_path = request_dir / "attempts.json"
-        attempts = []
-        current = request
-        for number in range(self.config.structured_output_retries + 1):
-            response = self._run_once(current, artifact_dir)
-            attempts.append(
-                {
-                    "attempt": number + 1,
-                    "status": response.status,
-                    "message": response.message,
-                    "invocation": response.artifacts.get("invocation"),
-                }
-            )
-            manifest_path.write_text(json.dumps(attempts, indent=2), encoding="utf-8")
-            response.artifacts["attempts"] = str(manifest_path)
-            if (
-                response.status == "success"
-                or "parse_error" not in response.artifacts
-                or number == self.config.structured_output_retries
-            ):
-                if (
-                    response.artifacts.get("parse_error")
-                    and number == self.config.structured_output_retries
-                ):
-                    response.message += (
-                        f" (JSON repair limit reached after {number + 1} attempts.)"
-                    )
-                return response
-            instruction = load_prompt("json_repair", error=response.message)
-            if not (response.thread_id or current.resume_thread_id):
-                instruction += load_prompt(
-                    "json_repair_context",
-                    objective=request.objective,
-                    content=response.content,
-                )
-            current = replace(
-                request,
-                objective=instruction,
-                knowledge="",
-                repo_context="",
-                trial_history_csv="",
-                latest_metrics={},
-                context_files={},
-                inflight_patches=[],
-                allowed_actions=["respond_only"],
-                resume_thread_id=response.thread_id or current.resume_thread_id,
-            )
-        raise AssertionError("Unreachable structured response retry state")
-
-    def _run_once(self, request: AgentRequest, artifact_dir) -> AgentResponse:
         """Execute one CLI invocation and validate its final structured response.
 
         Every agent call is kept on disk so a study's agent history can be
@@ -190,25 +110,22 @@ class CliAgent:
         dir, or the study dir for study-level skills) and ends up like this::
 
             <artifact_dir>/
-            ├── agent_requests/
-            │   └── request_<uuid>/         one per ``run()``
-            │       └── attempts.json       one entry per attempt (status, message,
-            │                               invocation dir); more than one entry
-            │                               means JSON repair was needed
             ├── agent_calls/
-            │   └── call_<uuid>/            one per ``_run_once()``, never overwritten
+            │   └── call_<uuid>/            one per ``run()``, never overwritten
             │       ├── agent_prompt.txt    prompt sent to the CLI
+            │       ├── agent_schema.json   JSON Schema the reply is constrained to
             │       ├── agent_output.txt    final reply the response is parsed from
             │       ├── agent_stdout.log    raw CLI stdout
             │       ├── agent_stderr.log    raw CLI stderr
             │       ├── agent_events.jsonl  same as stdout (JSON events, if any)
             │       └── agent_parse_error.json   only if the reply was invalid
             ├── agent_prompt.txt            latest call: the same files as in
-            ├── agent_output.txt            ``call_<uuid>/``, overwritten by the
-            ├── agent_stdout.log            next call. The returned
-            ├── agent_stderr.log            ``AgentResponse.artifacts`` points
-            ├── agent_events.jsonl          here, plus ``invocation`` for the
-            ├── agent_parse_error.json      ``call_<uuid>`` dir.
+            ├── agent_schema.json           ``call_<uuid>/``, overwritten by the
+            ├── agent_output.txt            next call. The returned
+            ├── agent_stdout.log            ``AgentResponse.artifacts`` points
+            ├── agent_stderr.log            here, plus ``invocation`` for the
+            ├── agent_events.jsonl          ``call_<uuid>`` dir.
+            ├── agent_parse_error.json
             ├── agent_usage.json            latest call's token usage (codex)
             └── agent_usage_history.jsonl   usage of every call, appended (codex)
 
@@ -234,7 +151,10 @@ class CliAgent:
         stdout_path = artifact_dir / "agent_stdout.log"
         stderr_path = artifact_dir / "agent_stderr.log"
         events_path = artifact_dir / "agent_events.jsonl"
+        schema_path = artifact_dir / "agent_schema.json"
         _write_artifact(prompt_path, prompt)
+        if request.output_schema:
+            _write_artifact(schema_path, json.dumps(request.output_schema, indent=2))
         for path in (output_path, stdout_path, stderr_path, events_path):
             _write_artifact(path, "")
         artifacts = {
@@ -247,7 +167,11 @@ class CliAgent:
         }
 
         invocation = self.provider.build_command(
-            request, prompt, cwd=self.cwd, output_path=output_path
+            request,
+            prompt,
+            cwd=self.cwd,
+            output_path=output_path,
+            schema_path=schema_path,
         )
         command = invocation.argv
         stdin = (
@@ -316,11 +240,14 @@ class CliAgent:
                 thread_id=thread_id,
                 artifacts=artifacts,
             )
-        try:
-            structured = decode_response_object(content)
-            self._validate_output(structured, request.output_schema)
-        except ValueError as exc:
-            if request.output_schema:
+        structured = {}
+        if request.output_schema:
+            try:
+                structured = json.loads(content)
+                if not isinstance(structured, dict):
+                    raise ValueError(f"expected a JSON object, got {content[:80]!r}")
+                self._validate_output(structured, request.output_schema)
+            except ValueError as exc:
                 error_path = artifact_dir / "agent_parse_error.json"
                 _write_artifact(
                     error_path,
@@ -334,7 +261,6 @@ class CliAgent:
                     thread_id=thread_id,
                     artifacts=artifacts,
                 )
-            structured = {}
         return AgentResponse(
             status="success",
             message="Agent CLI completed.",

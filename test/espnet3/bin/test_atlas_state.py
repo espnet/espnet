@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import csv
 import json
-import sqlite3
 from datetime import datetime, timedelta, timezone
 
 from espnet3.bin.atlas.core.models import JobRecord, Trial
@@ -139,36 +138,6 @@ def test_events_csv_preserves_json_payload(tmp_path):
         "message": 'a,b "c"',
         "count": 2,
     }
-
-
-def test_existing_sqlite_study_is_migrated_without_deleting_source(tmp_path):
-    """Import an existing SQLite study into CSV without removing its source."""
-    db_path = tmp_path / "state.sqlite"
-    with sqlite3.connect(db_path) as conn:
-        conn.execute(
-            "CREATE TABLE studies (study_id TEXT, study_dir TEXT, status TEXT, "
-            "created_at TEXT, updated_at TEXT, current_best_trial_id TEXT, "
-            "agent_session_id TEXT, is_agent_context_initialized INTEGER)"
-        )
-        conn.execute(
-            "INSERT INTO studies VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
-            (
-                "legacy",
-                str(tmp_path),
-                "running",
-                "created",
-                "updated",
-                None,
-                "thread",
-                1,
-            ),
-        )
-
-    store = StateStore(db_path)
-    assert store.get_study("legacy").status == "running"
-    assert store.get_agent_session_id("legacy") == "thread"
-    assert (tmp_path / "state_studies.csv").is_file()
-    assert db_path.is_file()
 
 
 def test_file_lock_retries_after_contention(monkeypatch, tmp_path):

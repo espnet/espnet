@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import asyncio
 import csv
 import json
 import logging
@@ -16,6 +15,7 @@ from pathlib import Path
 
 from espnet3.bin.atlas.agents.session import StudySessionAgentClient
 from espnet3.bin.atlas.core import AtlasError, InvalidAgentResponseError
+from espnet3.bin.atlas.core.config import convert_pairs_to_dict
 from espnet3.bin.atlas.core.graph import Resources, load_stage_class
 from espnet3.bin.atlas.core.models import AgentRequest, StageContext, StageResult
 from espnet3.bin.atlas.core.serialization import (
@@ -1131,20 +1131,14 @@ class AtlasGraphRuntime:
             resume_thread_id=getattr(trial, "codex_thread_id", None),
         )
         response = self.agent.run(request, artifact_dir=artifact_dir)
-        result = response.structured
-        if (
-            response.status != "success"
-            or not isinstance(result, dict)
-            or type(result.get("should_stop")) is not bool
-            or not isinstance(result.get("reason"), str)
-            or not result["reason"].strip()
-            or not isinstance(result.get("key_metrics"), dict)
-        ):
+        if response.status != "success":
             self.logger.warning(
                 "Invalid early-stop decision for %s; leaving keypoint unchecked.",
                 trial.trial_id,
             )
             return None
+        result = dict(response.structured)
+        result["key_metrics"] = convert_pairs_to_dict(result["key_metrics"])
         (artifact_dir / "decision.json").write_text(
             dumps_json(result), encoding="utf-8"
         )

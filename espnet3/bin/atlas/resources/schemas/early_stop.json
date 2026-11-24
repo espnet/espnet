@@ -1,5 +1,6 @@
 {
   "type": "object",
+  "additionalProperties": false,
   "properties": {
     "should_stop": {
       "type": "boolean"
@@ -10,7 +11,53 @@
       "description": "evidence supporting the decision"
     },
     "key_metrics": {
-      "type": "object"
+      "type": "array",
+      "description": "metrics behind the decision, one {key: name, value} each",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "key": {
+            "type": "string"
+          },
+          "value": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "number"
+              },
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              },
+              {
+                "type": "array",
+                "items": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "number"
+                    },
+                    {
+                      "type": "boolean"
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        },
+        "required": [
+          "key",
+          "value"
+        ]
+      }
     }
   },
   "required": [

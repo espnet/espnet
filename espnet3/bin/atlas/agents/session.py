@@ -19,7 +19,7 @@ class StudySessionAgentClient:
     (objective, knowledge pack, trial history, config) rather than trust
     resumed-session memory, and persists the session id to state (via a
     file lock, so concurrent node runs across CPU/GPU jobs do not race). If
-    the agent's structured-output JSON repair is exhausted, this writes a
+    the agent's reply violates its output schema, this writes a
     ``STOP`` file, marks the study ``"stopped"``, and raises
     :class:`InvalidAgentResponseError` rather than letting a corrupted
     response silently continue.
@@ -101,8 +101,8 @@ class StudySessionAgentClient:
         told to read those files itself instead). After the delegate call,
         persists a newly created session id, and raises
         :class:`InvalidAgentResponseError` (after writing ``STOP`` and
-        marking the study stopped) if the response reports a JSON
-        parse-repair failure.
+        marking the study stopped) if the response reports an invalid
+        structured reply.
 
         Args:
             request: The task to run; its session/objective/context fields
@@ -114,8 +114,8 @@ class StudySessionAgentClient:
             AgentResponse: The delegate's response.
 
         Raises:
-            InvalidAgentResponseError: If the agent's structured-output JSON
-                repair was exhausted for this request.
+            InvalidAgentResponseError: If the agent's reply violated the
+                request's output schema.
 
         Example:
             >>> response = client.run(request)
@@ -157,13 +157,13 @@ class StudySessionAgentClient:
                 self._state.set_agent_session_id(self._study_id, self.session_id)
             if response.status != "success" and response.artifacts.get("parse_error"):
                 reason = (
-                    f"Agent JSON repair failed for {request.task}: {response.message}"
+                    f"Agent reply violated its schema for {request.task}: {response.message}"
                 )
                 write_text_atomically(self._study_dir / "STOP", reason + "\n")
                 self._state.update_study_status(self._study_id, "stopped")
                 self._state.append_event(
                     self._study_id,
-                    "agent_json_repair_exhausted",
+                    "agent_invalid_response",
                     {
                         "task": request.task,
                         "message": reason,

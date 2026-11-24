@@ -80,14 +80,21 @@ class CodexProvider(Provider):
     """Call ``codex exec`` and read its JSON-lines output."""
 
     def build_command(
-        self, request: AgentRequest, prompt: str, *, cwd: Path, output_path: Path
+        self,
+        request: AgentRequest,
+        prompt: str,
+        *,
+        cwd: Path,
+        output_path: Path,
+        schema_path: Path,
     ) -> Invocation:
         """Build the ``codex exec`` argv for one request.
 
         Uses ``codex exec resume <thread_id>`` when ``request.resume_thread_id``
         is set, otherwise a fresh ``codex exec`` in ``cwd``; applies the
         configured sandbox/model/config overrides and writes the final message
-        to ``output_path``. The prompt goes to stdin.
+        to ``output_path``. A request's schema is passed as ``--output-schema``,
+        so the final message is constrained to it. The prompt goes to stdin.
         """
         options = self.config.codex
         command = [options.executable, "exec"]
@@ -113,6 +120,8 @@ class CodexProvider(Provider):
         for key, value in OmegaConf.to_container(options.config).items():
             command.extend(["-c", f"{key}={_format_toml_value(value)}"])
         command.extend(str(arg) for arg in options.args)
+        if request.output_schema:
+            command.extend(["--output-schema", str(schema_path)])
         command.extend(["--output-last-message", str(output_path)])
         command.append("-")
         return Invocation(command, stdin=prompt)

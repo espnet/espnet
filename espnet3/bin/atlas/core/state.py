@@ -5,7 +5,6 @@ from __future__ import annotations
 import csv
 import io
 import json
-import sqlite3
 from dataclasses import asdict
 from datetime import datetime, timezone
 from pathlib import Path
@@ -33,20 +32,14 @@ class StateStore:
     """
 
     def __init__(self, path: Path):
-        """Open (or create) a study's CSV state store, migrating a legacy DB if present.
+        """Open (or create) a study's CSV state store.
 
         Args:
-            path: The study directory, or a legacy ``state.sqlite`` path
-                (its parent directory is used as the study directory either
-                way).
+            path: The study directory.
         """
-        path = Path(path)
-        self.study_dir = path.parent if path.suffix == ".sqlite" else path
+        self.study_dir = Path(path)
         self.study_dir.mkdir(parents=True, exist_ok=True)
         self.lock_path = self.study_dir / ".state.lock"
-        self._migrate_legacy(
-            path if path.suffix == ".sqlite" else self.study_dir / "state.sqlite"
-        )
 
     def _get_table_path(self, table: str) -> Path:
         """Return ``study_dir/state_<table>.csv`` for one of the known tables."""
@@ -94,25 +87,6 @@ class StateStore:
             rows = [r for r in rows if str(r.get(key_field)) != key]
             rows.append(dict(value))
             self._write_unlocked(table, rows)
-
-    def _migrate_legacy(self, db_path: Path) -> None:
-        """One-time import of a legacy SQLite ``state.sqlite`` into the CSV tables.
-
-        No-ops if ``db_path`` does not exist, or if any CSV table already
-        exists (migration already happened).
-        """
-        if not db_path.exists() or any(self._get_table_path(t).exists() for t in TABLES):
-            return
-        with sqlite3.connect(db_path) as conn, lock_file(self.lock_path):
-            conn.row_factory = sqlite3.Row
-            for table in TABLES:
-                try:
-                    rows = [dict(row) for row in conn.execute(f"SELECT * FROM {table}")]
-                except sqlite3.OperationalError:
-                    rows = []
-                if table == "events":
-                    rows = [{"id": row.pop("id"), **row} for row in rows]
-                self._write_unlocked(table, rows)
 
     def create_or_load_study(self, study_id: str, study_dir: Path) -> Study:
         """Return the existing study record, or create one if none exists yet.

@@ -11,13 +11,33 @@ from espnet3.bin.atlas.core.serialization import (
     to_plain_data,
     write_text_atomically,
 )
-from espnet3.bin.atlas.resources import convert_shape_to_schema
 from espnet3.bin.atlas.stages.base import BaseStage
 
 
 def read_optional(path: Path) -> str:
     """Read a text file, or return an empty string if it does not exist."""
     return path.read_text(encoding="utf-8") if path.is_file() else ""
+
+
+def build_reply_schema(node) -> dict:
+    """Build the JSON Schema of a skill node's reply.
+
+    The reply always has a ``status`` (one of the node's ``on`` keys, or
+    ``terminal`` for a node with none) and a ``message``, plus the fields the
+    graph declares under the node's ``output_schema``. Every field is required
+    and no other field is allowed, as constrained decoding needs.
+    """
+    properties = {
+        "status": {"type": "string", "enum": list(node.on) or ["terminal"]},
+        "message": {"type": "string", "description": "short result description"},
+        **node.output_schema,
+    }
+    return {
+        "type": "object",
+        "additionalProperties": False,
+        "properties": properties,
+        "required": list(properties),
+    }
 
 
 class SkillStage(BaseStage):
@@ -85,15 +105,7 @@ class SkillStage(BaseStage):
                 "stop_after_trial": str(context.scheduler.should_stop()).lower(),
             },
             allowed_actions=allowed_actions,
-            output_schema=convert_shape_to_schema(
-                {
-                    "status": "graph result status",
-                    "message": "short result description",
-                    "payload": {},
-                    "trial_updates": {},
-                    **node.output_schema,
-                }
-            ),
+            output_schema=build_reply_schema(node),
             resume_thread_id=trial.codex_thread_id if trial else None,
         )
         artifact_dir = trial_dir / node.skill if trial else trial_dir
@@ -121,15 +133,9 @@ class SkillStage(BaseStage):
             )
 
         result = dict(response.structured or {})
-        status = str(result.pop("status", "success"))
-        message = str(
-            result.pop("message", result.get("summary", response.content or node.skill))
-        )
-        payload = dict(result.pop("payload", {}) or {})
-        trial_updates = dict(result.pop("trial_updates", {}) or {})
-        trial_updates.update(
-            {key: result[key] for key in node.trial_update_keys if key in result}
-        )
+        status = result.pop("status")
+        message = result.pop("message")
+        trial_updates = {key: result[key] for key in node.trial_update_keys}
         if trial is not None:
             if response.thread_id:
                 trial_updates["codex_thread_id"] = response.thread_id
@@ -149,22 +155,7 @@ class SkillStage(BaseStage):
 
         artifacts: dict[str, str] = {}
         output_key = node.output_key
-        if node.output_file and output_key and result.get(output_key) is None:
-            if node.fallback_output and output_path:
-                write_text_atomically(output_path, node.fallback_output)
-                return StageResult(
-                    status="terminal",
-                    message=f"Wrote fallback because skill omitted '{output_key}'",
-                    artifacts={"output": str(output_path)},
-                )
-            return StageResult(
-                status="failure",
-                message=(
-                    f"Skill '{node.skill}' did not return required field "
-                    f"'{output_key}'"
-                ),
-            )
-        if node.output_file and output_key and result.get(output_key) is not None:
+        if node.output_file and output_key:
             assert output_path is not None
             text = str(result.pop(output_key))
             if node.output_append and output_path.is_file():
@@ -172,14 +163,6 @@ class SkillStage(BaseStage):
                 text = f"{existing}\n\n{text.strip(chr(10))}\n"
             write_text_atomically(output_path, text)
             artifacts[output_key] = str(output_path)
-        artifacts.update(
-            {str(k): str(v) for k, v in dict(result.pop("artifacts", {}) or {}).items()}
-        )
-        payload.update(result)
         return StageResult(
-            status=status,
-            message=message,
-            next_node=result.pop("next_node", None),
-            payload=payload,
-            artifacts=artifacts,
+            status=status, message=message, payload=result, artifacts=artifacts
         )

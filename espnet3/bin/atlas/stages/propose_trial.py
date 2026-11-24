@@ -8,6 +8,7 @@ from pathlib import Path
 from omegaconf import OmegaConf
 
 from espnet3.bin.atlas.core.config import (
+    convert_pairs_to_dict,
     load_recipe_stage_config,
     split_patch_by_search_space,
     write_resolved_config,
@@ -288,24 +289,7 @@ class ProposeTrialStage(BaseStage):
             )
 
         structured = dict(response.structured or {})
-        if not {"config_patches", "config_patch"}.intersection(structured):
-            trial.status = "cancelled"
-            context.state.update_trial(trial)
-            return StageResult(
-                status="failure",
-                message=(
-                    "Agent output has no structured config patch; refusing to "
-                    "interpret an unreadable proposal as an empty configuration."
-                ),
-                payload={"trial_id": trial_id},
-            )
-        # Support both new multi-config format and legacy single config_patch
-        config_patches = dict(structured.get("config_patches", {}) or {})
-        patch = dict(
-            config_patches.get("training", {})
-            or structured.get("config_patch", {})
-            or {}
-        )
+        patch = convert_pairs_to_dict(structured["config_patches"]["training"])
         rationale = str(structured.get("rationale", response.content or ""))
         expected_effect = str(structured.get("expected_effect", ""))
         risk = str(structured.get("risk", ""))

@@ -30,7 +30,11 @@ def _request(schema):
 def _argv(provider_config, request):
     provider = create_provider(build_agent_config(provider_config))
     return provider.build_command(
-        request, "PROMPT", cwd=Path("."), output_path=Path("out.txt")
+        request,
+        "PROMPT",
+        cwd=Path("."),
+        output_path=Path("out.txt"),
+        schema_path=Path("schema.json"),
     ).argv
 
 
@@ -48,7 +52,7 @@ def test_claude_command_without_schema_has_no_schema_flag():
 
 def test_validate_output_accepts_a_conforming_reply():
     CliAgent._validate_output(
-        {"should_stop": False, "reason": "still improving", "key_metrics": {}},
+        {"should_stop": False, "reason": "still improving", "key_metrics": []},
         load_schema("early_stop"),
     )
 
@@ -56,8 +60,8 @@ def test_validate_output_accepts_a_conforming_reply():
 @pytest.mark.parametrize(
     "reply, fragment",
     [
-        ({"should_stop": "no", "reason": "r", "key_metrics": {}}, "should_stop"),
-        ({"should_stop": True, "reason": "", "key_metrics": {}}, "reason"),
+        ({"should_stop": "no", "reason": "r", "key_metrics": []}, "should_stop"),
+        ({"should_stop": True, "reason": "", "key_metrics": []}, "reason"),
         ({"should_stop": True, "reason": "r"}, "key_metrics"),
     ],
 )
@@ -71,11 +75,11 @@ def test_propose_schema_has_no_top_level_combinators():
     schema = load_schema("propose")
 
     assert not {"oneOf", "allOf", "anyOf"} & set(schema)
-    with pytest.raises(ValueError, match="config_patches"):
+    with pytest.raises(ValueError, match="config_patch"):
         CliAgent._validate_output(
             {
                 "rationale": "r",
-                "config_patch": {"optimizer.lr": 0.1},
+                "config_patch": [{"key": "optimizer.lr", "value": 0.1}],
                 "expected_effect": "e",
                 "risk": "k",
                 "extra_stages": [],
@@ -97,13 +101,7 @@ def test_build_agent_config_fills_defaults_and_keeps_overrides():
     assert config.codex.sandbox == "workspace-write"
     assert config.codex.args == ["--full-auto"]
     assert config.claude.permission_mode == "bypassPermissions"
-    assert config.structured_output_retries == 2
 
-
-@pytest.mark.parametrize("retries", [-1, True, "2", 1.5])
-def test_build_agent_config_rejects_invalid_retry_counts(retries):
-    with pytest.raises(ValueError, match="structured_output_retries"):
-        build_agent_config({"provider": "claude", "structured_output_retries": retries})
 
 
 def test_codex_command_passes_nested_config_overrides_as_toml():
@@ -117,3 +115,10 @@ def test_codex_command_passes_nested_config_overrides_as_toml():
 
     assert 'model_provider="vllm"' in command
     assert "retries=[1, 2]" in command
+
+
+def test_codex_command_constrains_the_final_reply_to_the_schema():
+    command = _argv({"provider": "codex"}, _request(load_schema("early_stop")))
+
+    assert command[command.index("--output-schema") + 1] == "schema.json"
+    assert "--output-schema" not in _argv({"provider": "codex"}, _request({}))

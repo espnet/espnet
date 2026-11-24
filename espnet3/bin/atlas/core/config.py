@@ -111,6 +111,20 @@ def write_resolved_config(path: Path, config) -> None:
     save_yaml(path, OmegaConf.to_container(config, resolve=True))
 
 
+def convert_pairs_to_dict(pairs: list[dict]) -> dict:
+    """Turn an agent's ``[{"key": k, "value": v}, ...]`` list into ``{k: v}``.
+
+    Agent replies are schema-constrained, which forbids free-form objects, so
+    dotted-key patches and metric maps arrive as lists of key/value pairs. A
+    repeated key keeps its last value.
+
+    Example:
+        >>> convert_pairs_to_dict([{"key": "optimizer.lr", "value": 0.001}])
+        {'optimizer.lr': 0.001}
+    """
+    return {pair["key"]: pair["value"] for pair in pairs}
+
+
 def split_patch_by_search_space(
     patch: dict, search_space
 ) -> tuple[dict, list[str]]:

@@ -32,7 +32,7 @@ def load_prompt(name: str, **values: Any) -> str:
         FileNotFoundError: There is no template with this name.
 
     Example:
-        >>> load_prompt("json_repair", error="missing field").startswith("Your")
+        >>> load_prompt("job_operate", instructions="qsub").startswith("Operate")
         True
     """
     text = _ROOT.joinpath("prompts", f"{name}.md").read_text(encoding="utf-8")
@@ -56,44 +56,6 @@ def load_schema(name: str) -> dict[str, Any]:
     """
     text = _ROOT.joinpath("schemas", f"{name}.json").read_text(encoding="utf-8")
     return json.loads(text)
-
-
-def convert_shape_to_schema(shape: dict[str, Any]) -> dict[str, Any]:
-    """Turn a graph node's ``output_schema`` example shape into a JSON Schema.
-
-    Recipe graphs describe a skill node's extra reply fields as an example
-    object whose scalar values are only descriptions, e.g.
-    ``{"status": "continue or done", "payload": {}}``. Every root field is
-    required, a ``{}`` or ``[]`` value requires a JSON object or array, and
-    scalar values are described but not type-checked.
-
-    Args:
-        shape: The example object.
-
-    Returns:
-        dict[str, Any]: The equivalent JSON Schema.
-
-    Example:
-        >>> convert_shape_to_schema({"summary": "one line", "files": []})["required"]
-        ['summary', 'files']
-    """
-
-    def convert(value: Any) -> dict[str, Any]:
-        if isinstance(value, dict):
-            return {
-                "type": "object",
-                "properties": {key: convert(item) for key, item in value.items()},
-                "required": [
-                    key for key, item in value.items() if isinstance(item, (dict, list))
-                ],
-            }
-        if isinstance(value, list):
-            return {"type": "array"}
-        return {"description": str(value)}
-
-    schema = convert(shape)
-    schema["required"] = list(shape)
-    return schema
 
 
 def load_atlas_defaults() -> DictConfig:

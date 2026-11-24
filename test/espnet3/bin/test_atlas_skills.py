@@ -70,7 +70,7 @@ def test_agent_config_selects_provider_and_preserves_cli_options():
 @pytest.mark.parametrize("provider", ["", "openai"])
 def test_agent_config_rejects_unsupported_provider(provider):
     """Reject missing or unsupported agent selections with a clear error."""
-    with pytest.raises(ValueError, match="provider must be one of 'codex', 'claude', 'command'"):
+    with pytest.raises(ValueError, match="provider must be one of 'codex', 'claude'"):
         build_agent_config({"provider": provider})
 
 
@@ -241,8 +241,10 @@ def test_skill_stage_writes_output_and_only_updates_allowed_trial_fields(tmp_pat
                 thread_id="thread-1",
                 structured={
                     "status": "success",
+                    "message": "done",
                     "report": "# Result\n",
-                    "trial_updates": {"score": 0.2, "trial_id": "tampered"},
+                    "score": 0.2,
+                    "trial_id": "tampered",
                 },
             )
 
@@ -254,6 +256,7 @@ def test_skill_stage_writes_output_and_only_updates_allowed_trial_fields(tmp_pat
         skill="hyperparameter_search_analyze",
         output_file="reports/{trial_id}.md",
         output_key="report",
+        trial_update_keys=["score", "trial_id"],
     )
     trial = _make_trial()
     updates = []
@@ -301,16 +304,12 @@ def test_skill_stage_rejects_output_path_escape_before_agent_call(tmp_path):
     assert "stay in study_dir" in result.message
 
 
-def test_skill_stage_reports_missing_required_output_and_supports_fallback(tmp_path):
-    """Fail missing required output or write its configured fallback."""
+def test_skill_stage_writes_its_fallback_when_the_agent_fails(tmp_path):
+    """Fail the node, or write the configured fallback, after an agent failure."""
 
-    class EmptyAgent:
-        """Return success without the required output field."""
-
+    class FailingAgent:
         def run(self, request, artifact_dir=None):
-            return AgentResponse(
-                status="success", message="", content="", structured={"summary": "done"}
-            )
+            return AgentResponse(status="failure", message="boom", content="")
 
     base = dict(
         name="analyze",
@@ -322,16 +321,38 @@ def test_skill_stage_reports_missing_required_output_and_supports_fallback(tmp_p
         output_key="report",
     )
     node = NodeConfig(**base)
-    missing = SkillStage().run(_stage_context(tmp_path, node=node, agent=EmptyAgent()))
-    assert missing.status == "failure"
-    assert "did not return required field 'report'" in missing.message
+    failed = SkillStage().run(_stage_context(tmp_path, node=node, agent=FailingAgent()))
+    assert failed.status == "failure"
 
     node.fallback_output = "Fallback report\n"
-    fallback = SkillStage().run(_stage_context(tmp_path, node=node, agent=EmptyAgent()))
+    fallback = SkillStage().run(
+        _stage_context(tmp_path, node=node, agent=FailingAgent())
+    )
     assert fallback.status == "terminal"
     assert (
         tmp_path / "study" / "reports" / "result.md"
     ).read_text() == "Fallback report\n"
+
+
+def test_reply_schema_is_closed_and_takes_its_status_from_the_node_routes():
+    from espnet3.bin.atlas.stages.skill import build_reply_schema
+
+    node = NodeConfig(
+        name="reflect",
+        target="espnet3.bin.atlas.stages.skill.SkillStage",
+        execution="local",
+        resources=None,
+        output_schema={"reflection": {"type": "string"}},
+        on={"continue": "a", "done": "b", "failure": "a"},
+    )
+
+    schema = build_reply_schema(node)
+
+    assert schema["additionalProperties"] is False
+    assert schema["required"] == ["status", "message", "reflection"]
+    assert schema["properties"]["status"]["enum"] == ["continue", "done", "failure"]
+    node.on = {}
+    assert build_reply_schema(node)["properties"]["status"]["enum"] == ["terminal"]
 
 
 def test_skill_stage_appends_instead_of_replacing_when_asked(tmp_path):
@@ -343,7 +364,11 @@ def test_skill_stage_appends_instead_of_replacing_when_asked(tmp_path):
                 status="success",
                 message="",
                 content="",
-                structured={"status": "success", "entry": "## Trial 2\n- ok\n"},
+                structured={
+                    "status": "success",
+                    "message": "",
+                    "entry": "## Trial 2\n- ok\n",
+                },
             )
 
     node = NodeConfig(
@@ -532,3 +557,29 @@ def test_init_copies_the_packaged_graph_named_by_application(tmp_path):
     )
     assert (study / "program.md").is_file() and (study / "atlas.yaml").is_file()
     assert all((study / name).is_dir() for name in ("knowledge", "trials", "node_runs"))
+
+
+@pytest.mark.parametrize(
+    "node_yaml, message",
+    [
+        ("output_schema: {pack: Markdown text}", "must be a JSON Schema"),
+        ("output_key: pack", "does not declare it in output_schema"),
+        ("trial_update_keys: [score]", "does not declare it in output_schema"),
+        ("output_schema: {status: {type: string}}", "must not declare status"),
+    ],
+)
+def test_graph_rejects_a_skill_node_with_an_unusable_output_schema(
+    tmp_path, node_yaml, message
+):
+    from espnet3.bin.atlas.core import AtlasError
+    from espnet3.bin.atlas.core.graph import load_graph
+
+    path = tmp_path / "graph.yaml"
+    path.write_text(
+        "start: a\nnodes:\n  a:\n    target: espnet3.bin.atlas.stages.skill.SkillStage\n"
+        f"    {node_yaml}\n",
+        encoding="utf-8",
+    )
+
+    with pytest.raises(AtlasError, match=message):
+        load_graph(path, recipe_dir=tmp_path)

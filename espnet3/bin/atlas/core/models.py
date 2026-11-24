@@ -205,8 +205,9 @@ class NodeConfig:
             or ``None`` for a non-skill stage target.
         skill_context: Extra key/value context merged into the skill's
             ``AgentRequest.context_files``.
-        output_schema: Extra fields merged into the skill's requested
-            ``AgentRequest.output_schema``.
+        output_schema: JSON Schema (with a ``type``) of each extra reply field
+            of a skill node, by field name. ``status`` and ``message`` are
+            added for every skill node.
         allowed_actions: Agent action set allowed for this node (e.g.
             ``["read_only"]`` or including ``"terminal"``).
         trial_update_keys: Agent response keys that are copied onto the
@@ -218,8 +219,7 @@ class NodeConfig:
         output_append: Whether ``output_key``'s text is appended to
             ``output_file`` instead of replacing it.
         fallback_output: Text written to ``output_file`` if the skill's
-            agent call fails or omits ``output_key``, or ``None`` to fail
-            instead.
+            agent call fails, or ``None`` to fail instead.
         on: Mapping from a stage result status to the next node's name.
         terminal: Whether this node ends the graph (no further routing).
     """

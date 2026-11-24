@@ -1,7 +1,9 @@
 {
   "type": "object",
+  "additionalProperties": false,
   "properties": {
     "status": {
+      "type": "string",
       "enum": [
         "submitted",
         "failed"

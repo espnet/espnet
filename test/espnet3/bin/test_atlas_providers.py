@@ -1,11 +1,10 @@
-"""Tests for the coding-agent providers and the generic ``command`` provider."""
+"""Tests for the coding-agent providers and how CliAgent runs them."""
 
 from __future__ import annotations
 
 import json
 import stat
 import sys
-from pathlib import Path
 
 import pytest
 
@@ -111,64 +110,36 @@ def test_unknown_provider_is_rejected():
         build_agent_config({"provider": "vibe"})
 
 
-def test_render_prompt_adds_the_json_contract_only_with_a_schema():
-    plain = render_prompt(_request())
-    with_schema = render_prompt(_request(output_schema={"type": "object"}))
+def test_render_prompt_shows_the_schema():
+    prompt = render_prompt(_request(output_schema={"type": "object"}))
 
-    assert "FINAL RESPONSE CONTRACT" not in plain
-    assert "FINAL RESPONSE CONTRACT" in with_schema
-    assert plain.startswith("Task: t\n\nFollow the requested output shape exactly.")
+    assert prompt.startswith("Task: t\n\nFollow the requested output shape exactly.")
+    assert '"type": "object"' in prompt
 
 
-def test_command_provider_sends_the_prompt_on_stdin_by_default():
-    invocation = _provider(
-        {"provider": "command", "command": {"argv": ["my-agent", "--quiet"]}}
-    ).build_command(_request(), "PROMPT", cwd=Path("."), output_path=Path("o"))
-
-    assert invocation.argv == ["my-agent", "--quiet"]
-    assert invocation.stdin == "PROMPT"
-
-
-def test_command_provider_can_put_the_prompt_in_an_argument():
-    invocation = _provider(
-        {
-            "provider": "command",
-            "command": {"argv": ["my-agent", "--prompt={prompt}"], "prompt_via": "arg"},
-        }
-    ).build_command(_request(), "PROMPT", cwd=Path("."), output_path=Path("o"))
-
-    assert invocation.argv == ["my-agent", "--prompt=PROMPT"]
-    assert invocation.stdin is None
-
-
-@pytest.mark.parametrize(
-    "command, message",
-    [
-        ({"argv": []}, "argv must name the program"),
-        ({"argv": ["x"], "prompt_via": "file"}, "prompt_via must be"),
-        ({"argv": ["x"], "prompt_via": "arg"}, "needs a {prompt} argument"),
-    ],
-)
-def test_command_provider_rejects_incomplete_settings(command, message):
-    provider = _provider({"provider": "command", "command": command})
-
-    with pytest.raises(ValueError, match=message):
-        provider.build_command(_request(), "P", cwd=Path("."), output_path=Path("o"))
-
-
-def test_cli_agent_runs_any_command_that_prints_json(tmp_path):
-    script = tmp_path / "fake_agent.py"
+def _fake_claude(tmp_path, reply):
+    """A stand-in ``claude`` that prints a result event carrying ``reply``."""
+    script = tmp_path / "fake_claude.py"
     script.write_text(
-        "import sys\n"
+        "#!" + sys.executable + "\n"
+        "import json, sys\n"
         "prompt = sys.stdin.read()\n"
         "assert 'do it' in prompt\n"
-        "print('{\"should_stop\": false, \"reason\": \"ok\", \"key_metrics\": {}}')\n"
+        "assert '--json-schema' in sys.argv\n"
+        "print(json.dumps({'type': 'result', 'session_id': 's1', 'structured_output': "
+        + repr(reply)
+        + "}))\n"
     )
     script.chmod(script.stat().st_mode | stat.S_IEXEC)
+    return script
+
+
+def test_cli_agent_returns_the_schema_constrained_reply(tmp_path):
     from espnet3.bin.atlas.resources import load_schema
 
+    reply = {"should_stop": False, "reason": "ok", "key_metrics": []}
     agent = CliAgent(
-        {"provider": "command", "command": {"argv": [sys.executable, str(script)]}},
+        {"provider": "claude", "claude": {"executable": str(_fake_claude(tmp_path, reply))}},
         recipe_dir=tmp_path,
     )
 
@@ -178,13 +149,33 @@ def test_cli_agent_runs_any_command_that_prints_json(tmp_path):
     )
 
     assert response.status == "success"
-    assert response.structured["should_stop"] is False
-    assert response.thread_id is None
+    assert response.structured == reply
+    assert response.thread_id == "s1"
+    assert (tmp_path / "artifacts" / "agent_schema.json").is_file()
+
+
+def test_cli_agent_fails_a_reply_that_violates_the_schema(tmp_path):
+    from espnet3.bin.atlas.resources import load_schema
+
+    reply = {"should_stop": "maybe", "reason": "ok", "key_metrics": []}
+    agent = CliAgent(
+        {"provider": "claude", "claude": {"executable": str(_fake_claude(tmp_path, reply))}},
+        recipe_dir=tmp_path,
+    )
+
+    response = agent.run(
+        _request(output_schema=load_schema("early_stop")),
+        artifact_dir=tmp_path / "artifacts",
+    )
+
+    assert response.status == "failure"
+    assert "should_stop" in response.message
+    assert "parse_error" in response.artifacts
 
 
 def test_cli_agent_reports_a_missing_executable(tmp_path):
     agent = CliAgent(
-        {"provider": "command", "command": {"argv": ["no-such-agent-cli"]}},
+        {"provider": "claude", "claude": {"executable": "no-such-agent-cli"}},
         recipe_dir=tmp_path,
     )
 

@@ -1,9 +1,6 @@
 Keypoint check for ${trial_id}: ${labels}.
 Current progress: ${progress}.
 
-Return exactly one JSON object with no markdown fences:
-{"should_stop": bool, "reason": "...", "key_metrics": {...}}
-
 Read current evidence with tools as needed; do not ask for pasted copies:
 - Trial directory: ${trial_dir}
 - Training log: ${trial_dir}/train.log

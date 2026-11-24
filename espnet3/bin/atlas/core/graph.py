@@ -86,6 +86,23 @@ def load_graph(path: Path, recipe_dir: Path | None = None) -> ResearchGraph:
         resources = Resources.from_config(resources_cfg) if resources_cfg else None
         on = cfg.get("on", {})
         terminal = bool(cfg.get("terminal", False))
+        output_schema = dict(cfg.get("output_schema", {}) or {})
+        for field_name, field_schema in output_schema.items():
+            if not isinstance(field_schema, dict) or "type" not in field_schema:
+                raise AtlasError(
+                    f"Node '{name}' output_schema.{field_name} must be a JSON Schema "
+                    "with a `type`, e.g. {type: string, description: ...}."
+                )
+        for key in (cfg.get("output_key"), *(cfg.get("trial_update_keys") or [])):
+            if key and key not in output_schema:
+                raise AtlasError(
+                    f"Node '{name}' uses '{key}' but does not declare it in output_schema."
+                )
+        if "status" in output_schema or "message" in output_schema:
+            raise AtlasError(
+                f"Node '{name}' output_schema must not declare status or message; "
+                "they are added for every skill node."
+            )
         nodes[name] = NodeConfig(
             name=name,
             target=target,
@@ -93,7 +110,7 @@ def load_graph(path: Path, recipe_dir: Path | None = None) -> ResearchGraph:
             resources=resources,
             skill=skill,
             skill_context=dict(cfg.get("skill_context", {}) or {}),
-            output_schema=dict(cfg.get("output_schema", {}) or {}),
+            output_schema=output_schema,
             allowed_actions=[
                 str(action) for action in cfg.get("allowed_actions", []) or []
             ],

@@ -7,6 +7,7 @@ from pathlib import Path
 from omegaconf import OmegaConf
 
 from espnet3.bin.atlas.core.config import (
+    convert_pairs_to_dict,
     load_recipe_stage_config,
     split_patch_by_search_space,
     write_resolved_config,
@@ -193,17 +194,13 @@ class DebugTrialStage(BaseStage):
             )
 
         structured = dict(response.structured or {})
-        config_patches = dict(structured.get("config_patches", {}) or {})
-        patch = dict(
-            config_patches.get("training", {})
-            or structured.get("config_patch", {})
-            or {}
-        )
+        config_patches = structured["config_patches"]
+        patch = convert_pairs_to_dict(config_patches["training"])
         patch, removed = split_patch_by_search_space(
             patch, context.config.atlas.search_space
         )
         inference_patch, removed_inference = self._sanitize_inference_patch(
-            dict(config_patches.get("inference", {}) or {})
+            convert_pairs_to_dict(config_patches["inference"])
         )
         files_modified = list(structured.get("files_modified", []) or [])
         should_retry = bool(

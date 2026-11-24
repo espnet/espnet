@@ -1,10 +1,11 @@
 """Coding-agent CLI providers: how to call one CLI and how to read its reply.
 
-``CliAgent`` runs the subprocess, keeps the artifacts and repairs invalid JSON;
-a provider only knows one CLI's command line, environment and output format.
+``CliAgent`` runs the subprocess and keeps the artifacts; a provider only knows
+one CLI's command line, environment and output format. A provider must make
+its CLI constrain the final reply to the request's JSON Schema (Atlas does not
+parse free-form text), so a CLI without such an option cannot be added.
 Add a provider by subclassing :class:`Provider` and listing it in
-:data:`PROVIDERS` and :func:`create_provider`. A CLI that takes a prompt and
-prints its answer needs no code at all: configure ``provider: command``.
+:data:`PROVIDERS` and :func:`create_provider`.
 """
 
 from __future__ import annotations
@@ -18,7 +19,7 @@ from omegaconf import DictConfig
 
 from espnet3.bin.atlas.core.models import AgentRequest
 
-PROVIDERS = ("codex", "claude", "command")
+PROVIDERS = ("codex", "claude")
 
 
 @dataclass
@@ -111,7 +112,13 @@ class Provider:
         self.config = config
 
     def build_command(
-        self, request: AgentRequest, prompt: str, *, cwd: Path, output_path: Path
+        self,
+        request: AgentRequest,
+        prompt: str,
+        *,
+        cwd: Path,
+        output_path: Path,
+        schema_path: Path,
     ) -> Invocation:
         """Build the subprocess call for one request.
 
@@ -120,6 +127,8 @@ class Provider:
             prompt: The rendered prompt text.
             cwd: Working directory the process runs in.
             output_path: File a CLI may write its final message to.
+            schema_path: File holding ``request.output_schema`` as JSON (written
+                only when the request has a schema).
 
         Returns:
             Invocation: Arguments and stdin text.
@@ -179,18 +188,13 @@ def create_provider(config: DictConfig) -> Provider:
         ValueError: If the name is not in :data:`PROVIDERS`.
 
     Example:
-        >>> create_provider(OmegaConf.create({"provider": "command"}))  # doctest: +SKIP
-        <...CommandProvider object at ...>
+        >>> create_provider(OmegaConf.create({"provider": "codex"}))  # doctest: +SKIP
+        <...CodexProvider object at ...>
     """
     from espnet3.bin.atlas.agents.providers.claude import ClaudeProvider
     from espnet3.bin.atlas.agents.providers.codex import CodexProvider
-    from espnet3.bin.atlas.agents.providers.command import CommandProvider
 
-    classes = {
-        "codex": CodexProvider,
-        "claude": ClaudeProvider,
-        "command": CommandProvider,
-    }
+    classes = {"codex": CodexProvider, "claude": ClaudeProvider}
     if config.provider not in classes:
         raise ValueError(f"Unknown agent provider: {config.provider!r}")
     return classes[config.provider](config)

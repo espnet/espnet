@@ -1,15 +1,62 @@
 {
   "type": "object",
+  "additionalProperties": false,
   "properties": {
     "rationale": {
       "type": "string"
     },
     "config_patches": {
       "type": "object",
+      "additionalProperties": false,
       "properties": {
         "training": {
-          "type": "object",
-          "description": "dotted.key -> value (required: hyperparameter changes go here)"
+          "type": "array",
+          "description": "hyperparameter changes: one {key: dotted.key, value} per change (required)",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "key": {
+                "type": "string"
+              },
+              "value": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "number"
+                  },
+                  {
+                    "type": "boolean"
+                  },
+                  {
+                    "type": "null"
+                  },
+                  {
+                    "type": "array",
+                    "items": {
+                      "anyOf": [
+                        {
+                          "type": "string"
+                        },
+                        {
+                          "type": "number"
+                        },
+                        {
+                          "type": "boolean"
+                        }
+                      ]
+                    }
+                  }
+                ]
+              }
+            },
+            "required": [
+              "key",
+              "value"
+            ]
+          }
         }
       },
       "required": [

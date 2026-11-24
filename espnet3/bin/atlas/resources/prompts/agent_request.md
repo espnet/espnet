@@ -1,6 +1,6 @@
 Task: ${task}
 
-${contract}Follow the requested output shape exactly.
+Follow the requested output shape exactly.
 
 Objective:
 ${objective}

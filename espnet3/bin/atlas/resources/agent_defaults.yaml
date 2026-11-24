@@ -1,10 +1,9 @@
 # Defaults for `atlas.agent` (the coding-agent CLI). `provider` has no default:
-# it must be set to "codex", "claude" or "command" in the study config.
+# it must be set to "codex" or "claude" in the study config.
 provider: ""
 cwd: null            # working directory; null means the recipe directory
 env: {}              # extra environment variables for the agent process
 timeout_sec: null    # null means no timeout
-structured_output_retries: 2
 
 codex:
   executable: codex
@@ -23,8 +22,3 @@ claude:
   disallowed_tools: []
   max_turns: null
   args: []           # extra raw CLI arguments
-
-# provider: command runs any CLI that takes a prompt and prints its answer.
-command:
-  argv: []           # program and arguments; "{prompt}" is replaced for prompt_via: arg
-  prompt_via: stdin  # stdin or arg

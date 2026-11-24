@@ -20,7 +20,13 @@ class ClaudeProvider(Provider):
     """Call ``claude --print`` and read its streaming-JSON output."""
 
     def build_command(
-        self, request: AgentRequest, prompt: str, *, cwd: Path, output_path: Path
+        self,
+        request: AgentRequest,
+        prompt: str,
+        *,
+        cwd: Path,
+        output_path: Path,
+        schema_path: Path,
     ) -> Invocation:
         """Build the ``claude --print`` argv for one request.
 
