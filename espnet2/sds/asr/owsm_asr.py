@@ -15,7 +15,7 @@ class OWSMModel(AbsASR):
         self,
         tag: str = "espnet/owsm_v3.1_ebf",
         device: str = "cuda",
-        dtype: str = "float16",
+        dtype: str = "float32",
     ):
         """Initializer method.
 
@@ -29,13 +29,14 @@ class OWSMModel(AbsASR):
             Defaults to "cuda".
             Common options include "cuda" or "cpu".
         dtype (str, optional):
-            The floating-point precision to use.
-            Defaults to "float16".
+            The floating-point precision the model runs in.
+            Defaults to "float32".
         """
         super().__init__()
         self.s2t = Speech2Text.from_pretrained(
             model_tag=tag,
             device=device,
+            dtype=dtype,
             task_sym="<asr>",
             beam_size=1,
             predict_time=False,
@@ -78,5 +79,6 @@ class OWSMModel(AbsASR):
         """
         with torch.no_grad():
             array = librosa.util.fix_length(array, size=(16000 * 30))
-            prompt = " ".join(self.s2t(array)[0][0].split()[1:])
-            return prompt
+            # Return text_nospecial, the transcript without the language,
+            # task and timestamp symbols.
+            return self.s2t(array)[0][3]
