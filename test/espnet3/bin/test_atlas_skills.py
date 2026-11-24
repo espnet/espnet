@@ -10,6 +10,7 @@ import pytest
 from omegaconf import OmegaConf
 
 from espnet3.bin.atlas.agents.cli import build_agent_config
+from espnet3.bin.atlas.command import _default_graph_path
 from espnet3.bin.atlas.core import AtlasError
 from espnet3.bin.atlas.core.graph import load_graph
 from espnet3.bin.atlas.core.models import (
@@ -95,15 +96,6 @@ def test_agent_config_accepts_claude_options():
     assert build_agent_config({"provider": "Claude"}).provider == "claude"
 
 
-def _find_packaged_graph(application, graph_name):
-    """Return the path of a graph YAML shipped with an Atlas application."""
-    from importlib import resources
-
-    package = f"espnet3.bin.atlas.applications.{application}"
-    with resources.as_file(resources.files(package).joinpath(graph_name)) as path:
-        return Path(path)
-
-
 def test_load_graph_loads_an_explicit_skill_stage(tmp_path):
     """Keep ``skill`` as node config while ``target`` names ``SkillStage``."""
     graph_path = tmp_path / "graph.yaml"
@@ -144,12 +136,8 @@ def test_load_graph_requires_a_target_for_a_node_without_one(tmp_path):
 
 def test_packaged_graphs_name_a_target_on_every_node():
     """Every shipped graph loads, so none relies on an implicit ``SkillStage``."""
-    for application, graph_name in (
-        ("hyperparameter_search", "default_graph.yaml"),
-        ("architecture_search", "graph.yaml"),
-    ):
-        path = _find_packaged_graph(application, graph_name)
-        graph = load_graph(path)
+    for application in ("hyperparameter_search", "architecture_search"):
+        graph = load_graph(_default_graph_path(application))
         assert graph.nodes
         assert all(node.target for node in graph.nodes.values())
 

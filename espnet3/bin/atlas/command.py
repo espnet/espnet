@@ -17,7 +17,7 @@ from pathlib import Path
 from omegaconf import OmegaConf
 
 from espnet3.bin.atlas.agents.cli import CliAgent
-from espnet3.bin.atlas.applications.hyperparameter_search.config_schema import (
+from espnet3.bin.atlas.core.config import (
     load_atlas_config,
     write_resolved_config,
 )
@@ -50,13 +50,12 @@ def _build_agent(config, recipe_dir: Path):
 
 def _default_graph_path(application: str = "hyperparameter_search") -> Path:
     """Return the packaged default graph YAML for the selected application."""
-    if application == "architecture_search":
-        package = "espnet3.bin.atlas.applications.architecture_search"
-        graph_name = "graph.yaml"
-    else:
-        package = "espnet3.bin.atlas.applications.hyperparameter_search"
-        graph_name = "default_graph.yaml"
-    resource = resources.files(package).joinpath(graph_name)
+    name = (
+        "architecture_search"
+        if application == "architecture_search"
+        else "hyperparameter_search"
+    )
+    resource = resources.files("espnet3.bin.atlas").joinpath("graphs", f"{name}.yaml")
     with resources.as_file(resource) as path:
         return Path(path)
 

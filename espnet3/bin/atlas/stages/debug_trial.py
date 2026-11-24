@@ -6,13 +6,9 @@ from pathlib import Path
 
 from omegaconf import OmegaConf
 
-from espnet3.bin.atlas.applications.hyperparameter_search.config_schema import (
+from espnet3.bin.atlas.core.config import (
     load_recipe_stage_config,
     write_resolved_config,
-)
-from espnet3.bin.atlas.applications.hyperparameter_search.stage_status import (
-    _invalidate_stages,
-    _read_stage_status,
 )
 from espnet3.bin.atlas.core.models import AgentRequest, StageResult
 from espnet3.bin.atlas.core.serialization import (
@@ -21,6 +17,10 @@ from espnet3.bin.atlas.core.serialization import (
 )
 from espnet3.bin.atlas.core.stage import AtlasStage
 from espnet3.bin.atlas.resources import load_schema
+from espnet3.bin.atlas.stages.stage_status import (
+    _invalidate_stages,
+    _read_stage_status,
+)
 
 
 def _glob_match(patterns, key: str) -> bool:
@@ -109,7 +109,7 @@ class DebugTrialStage(AtlasStage):
         def _load_base(config_path_key: str, config_name: str) -> str:
             """Return the recipe's base stage config as YAML, or "(unavailable)" on error."""
             try:
-                from espnet3.bin.atlas.applications.hyperparameter_search.config_schema import (
+                from espnet3.bin.atlas.core.config import (
                     load_recipe_stage_config,
                 )
                 cfg = load_recipe_stage_config(

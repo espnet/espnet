@@ -124,6 +124,7 @@ include = ["espnet*", "egs3*", "splet*"]
 
 [tool.setuptools.package-data]
 egs3 = ["egs3/TEMPLATE/**/*.yaml"]
+"espnet3.bin.atlas" = ["graphs/*.yaml"]
 "espnet3.bin.atlas.resources" = [
   "prompts/*.md",
   "schemas/*.json",

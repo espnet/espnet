@@ -7,7 +7,7 @@ from pathlib import Path
 
 from omegaconf import OmegaConf
 
-from espnet3.bin.atlas.applications.hyperparameter_search.config_schema import (
+from espnet3.bin.atlas.core.config import (
     load_recipe_stage_config,
     write_resolved_config,
 )
