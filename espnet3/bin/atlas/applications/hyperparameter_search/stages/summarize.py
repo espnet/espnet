@@ -3,8 +3,8 @@
 from __future__ import annotations
 
 from espnet3.bin.atlas.core.models import StageResult
+from espnet3.bin.atlas.core.reports import write_summary
 from espnet3.bin.atlas.core.stage import AtlasStage
-from espnet3.bin.atlas.reports.summary import write_summary
 
 
 class SummarizeStage(AtlasStage):

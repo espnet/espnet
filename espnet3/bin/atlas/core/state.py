@@ -11,6 +11,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from espnet3.bin.atlas.core.models import JobRecord, StageResult, Study, Trial
+from espnet3.bin.atlas.core.reports import sync_trials_csv
 from espnet3.bin.atlas.core.serialization import (
     atomic_write_text,
     dumps_json,
@@ -18,7 +19,6 @@ from espnet3.bin.atlas.core.serialization import (
     loads_json,
     utc_now,
 )
-from espnet3.bin.atlas.reports.csv_writer import sync_trials_csv
 
 TABLES = ("studies", "trials", "node_runs", "jobs", "events")
 
