@@ -41,6 +41,7 @@ gpu_inference=false  # Whether to perform gpu decoding.
 dumpdir=dump         # Directory to dump features.
 expdir=exp           # Directory to save experiments.
 python=python3       # Specify python to execute espnet commands.
+split_by_length=true # Split collect-stats and inference jobs by total utt2num_samples, not line count.
 
 # Data preparation related
 local_data_opts="" # Options to be passed to local/data.sh.
@@ -118,6 +119,7 @@ Common options (all configuration variables above can be set with --name value):
     --local_data_opts            Arguments for local/data.sh
     --dumpdir / --expdir         Data/experiment roots (${dumpdir}/${expdir})
     --python                    Python interpreter (${python})
+    --split_by_length           Split collect-stats and inference jobs by length (${split_by_length})
     --ngpu / --num_nodes         Training GPUs/nodes (${ngpu}/${num_nodes})
     --nj / --inference_nj        Statistics/inference jobs (${nj}/${inference_nj})
     --gpu_inference              Use a GPU for inference (${gpu_inference})
@@ -477,7 +479,8 @@ if ! "${skip_train}"; then
             split_scps+=" ${_logdir}/train.${n}.scp"
         done
         # shellcheck disable=SC2086
-        utils/split_scp.pl "${key_file}" ${split_scps}
+        scripts/utils/split_by_length.sh --split_by_length "${split_by_length}" --python "${python}" \
+            "${key_file}" "$(dirname "${key_file}")/utt2num_samples" ${split_scps}
 
         key_file="${_valid_dir}/${_scp}"
         split_scps=""
@@ -485,7 +488,8 @@ if ! "${skip_train}"; then
             split_scps+=" ${_logdir}/valid.${n}.scp"
         done
         # shellcheck disable=SC2086
-        utils/split_scp.pl "${key_file}" ${split_scps}
+        scripts/utils/split_by_length.sh --split_by_length "${split_by_length}" --python "${python}" \
+            "${key_file}" "$(dirname "${key_file}")/utt2num_samples" ${split_scps}
 
         log "Generate '${aqa_stats_dir}/run.sh'. You can resume the process from stage 6 using this script"
         mkdir -p "${aqa_stats_dir}"; echo "${run_args} --stage 6 \"\$@\"; exit \$?" > "${aqa_stats_dir}/run.sh"; chmod +x "${aqa_stats_dir}/run.sh"
@@ -678,7 +682,8 @@ if ! "${skip_eval}"; then
                 split_scps+=" ${_logdir}/keys.${n}.scp"
             done
             # shellcheck disable=SC2086
-            utils/split_scp.pl "${key_file}" ${split_scps}
+            scripts/utils/split_by_length.sh --split_by_length "${split_by_length}" --python "${python}" \
+                "${key_file}" "$(dirname "${key_file}")/utt2num_samples" ${split_scps}
 
             log "Decoding started... log: '${_logdir}/aqa_inference.*.log'"
 
@@ -704,7 +709,7 @@ if ! "${skip_eval}"; then
             # shellcheck disable=SC2068
             for n in $(seq "${_nj}"); do
                 cat "${_logdir}"/output.${n}/metric.scp || exit 1
-            done > "${_dir}/metric.scp"
+            done | LC_ALL=C sort -k1 > "${_dir}/metric.scp"
         done
     fi
 

@@ -22,21 +22,12 @@ min() {
 }
 # split_key_file KEY_FILE OUT...: split KEY_FILE into the OUT files.
 # With --split_by_length true, the parts have about equal total length
-# (utt2num_samples next to KEY_FILE); otherwise equal line counts.
+# (utt2num_samples next to KEY_FILE); without that file, equal line counts.
 split_key_file() {
     local key_file=$1
     shift
-    if "${split_by_length}"; then
-        local lengths
-        lengths="$(dirname "${key_file}")/utt2num_samples"
-        if [ ! -f "${lengths}" ]; then
-            log "Error: --split_by_length true needs ${lengths}"
-            exit 1
-        fi
-        ${python} pyscripts/utils/split_scp_by_length.py --lengths "${lengths}" "${key_file}" "$@"
-    else
-        utils/split_scp.pl "${key_file}" "$@"
-    fi
+    scripts/utils/split_by_length.sh --split_by_length "${split_by_length}" --python "${python}" \
+        "${key_file}" "$(dirname "${key_file}")/utt2num_samples" "$@"
 }
 SECONDS=0
 
@@ -54,7 +45,7 @@ num_nodes=1             # The number of nodes
 nj=32                   # The number of parallel jobs.
 dumpdir=dump            # Directory to dump features.
 inference_nj=32         # The number of parallel jobs in decoding.
-split_by_length=false   # Split stage 4 and inference jobs by total utt2num_samples instead of line count.
+split_by_length=true    # Split stage 4 and inference jobs by total utt2num_samples instead of line count.
 gpu_inference=false     # Whether to perform gpu decoding.
 inference_max_jobs_run= # Stage 6: most inference jobs at once (--max-jobs-run; run.pl allows one per GPU with --gpu; pbs.pl ignores it).
 expdir=exp              # Directory to save experiments.
@@ -126,7 +117,8 @@ Options:
     --nj                 # The number of parallel jobs (default="${nj}").
     --inference_nj       # The number of parallel jobs in inference (default="${inference_nj}").
     --split_by_length    # Give each stage 4 and inference job about the same total audio length
-                         # (utt2num_samples), not the same number of lines (default="${split_by_length}").
+                         # (utt2num_samples), not the same number of lines; without utt2num_samples,
+                         # the same number of lines (default="${split_by_length}").
     --gpu_inference      # Whether to use gpu for inference (default="${gpu_inference}").
     --inference_max_jobs_run # Stage 6: most inference jobs at once; passed as --max-jobs-run to run.pl,
                          # queue.pl and slurm.pl, ignored by pbs.pl (default="${inference_max_jobs_run}").
