@@ -121,6 +121,7 @@ singing_fold_length=800  # fold_length for singing data.
 
 # Upload model related
 hf_repo=
+hf_license=
 
 help_message=$(
     cat <<EOF
@@ -135,6 +136,8 @@ Options:
     --skip_eval          # Skip decoding and evaluation stages (default="${skip_eval}").
     --skip_packing       # Skip the packing stage (default="${skip_packing}").
     --skip_upload_hf     # Skip uploading to huggingface stage (default="${skip_upload_hf}").
+    --hf_repo            # Hugging Face repository for upload (default="${hf_repo}").
+    --hf_license         # Hugging Face license identifier for the model card (default="${hf_license}").
     --ngpu               # The number of gpus ("0" uses cpu, otherwise use gpu, default="${ngpu}").
     --num_nodes          # The number of nodes (default="${num_nodes}").
     --nj                 # The number of parallel jobs (default="${nj}").
@@ -1247,6 +1250,9 @@ if ! "${skip_upload_hf}"; then
     if [ ${stage} -le 10 ] && [ ${stop_stage} -ge 10 ]; then
         [ -z "${hf_repo}" ] && \
             log "ERROR: You need to setup the variable hf_repo with the name of the repository located at HuggingFace" && \
+            exit 1
+        [ -z "${hf_license}" ] && \
+            log "ERROR: You need to setup the variable hf_license with the Hugging Face license identifier for the model card (for example apache-2.0, mit, cc-by-4.0, or other)" && \
             exit 1
         log "Stage 10: Upload model to HuggingFace: ${hf_repo}"
 

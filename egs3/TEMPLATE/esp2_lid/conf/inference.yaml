@@ -1,0 +1,42 @@
+# Default LID inference settings.
+recipe_dir: .
+exp_tag: null
+exp_dir: ${recipe_dir}/exp/${exp_tag}
+data_dir: ${recipe_dir}/data
+inference_dir: ${exp_dir}/${self_name:}
+dataset:
+  _target_: espnet3.components.data.data_organizer.DataOrganizer
+  _recursive_: false
+  recipe_dir: ${recipe_dir}
+  test: null
+  preprocessor: null
+parallel:
+  env: local
+  n_workers: 1
+  # Replace a stale shard lock left by an interrupted run. Do not enable while
+  # another run may still be writing to the same output directory.
+  allow_overwrite_lock: false
+# `Speech2Language` predicts a language from the `speech` field. The
+# contract checks the input (mono 16 kHz audio; `sample_rate` must equal the
+# training `frontend_conf.fs`) and the `language` output, which the runner
+# writes to `<test_name>/language.scp`. Recipes set the checkpoint arguments.
+model:
+  _target_: espnet3.systems.esp2_lid.src.speech2language.Speech2Language
+input_key: speech
+batch_size: 4
+contract:
+  inputs:
+    speech:
+      kind: audio
+      sample_rate: 16000
+      channels: 1
+      normalize:
+        - first_channel
+  outputs:
+    language:
+      kind: text
+provider:
+  _target_: espnet3.systems.base.inference_provider.InferenceProvider
+runner:
+  _target_: espnet3.systems.esp2_lid.src.inference_runner.ESP2LIDInferenceRunner
+stats_dir: ${recipe_dir}/exp/stats

@@ -114,6 +114,7 @@ use_src_lang=true          # Incorporate ASR loss (use src texts) or not
 
 # Upload model related
 hf_repo=
+hf_license=
 
 # Decoding related
 use_k2=false      # Whether to use k2 based decoder
@@ -263,6 +264,10 @@ Options:
     --st_speech_fold_length # fold_length for speech data during ST training (default="${st_speech_fold_length}").
     --st_text_fold_length   # fold_length for text data during ST training (default="${st_text_fold_length}").
     --lm_fold_length         # fold_length for LM training (default="${lm_fold_length}").
+
+    # Upload model related
+    --hf_repo            # Hugging Face repository for upload (default="${hf_repo}").
+    --hf_license         # Hugging Face license identifier for the model card (default="${hf_license}").
 EOF
 )
 
@@ -1765,6 +1770,9 @@ if ! "${skip_upload_hf}"; then
 
         [ -z "${hf_repo}" ] && \
             log "ERROR: You need to setup the variable hf_repo with the name of the repository located at HuggingFace" && \
+            exit 1
+        [ -z "${hf_license}" ] && \
+            log "ERROR: You need to setup the variable hf_license with the Hugging Face license identifier for the model card (for example apache-2.0, mit, cc-by-4.0, or other)" && \
             exit 1
         log "Stage 16: Upload model to HuggingFace: ${hf_repo}"
 

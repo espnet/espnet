@@ -1,0 +1,17 @@
+##########################################################
+#                 METRIC SCORING SETTING                 #
+##########################################################
+# Quick usage:
+#   python run.py --stages measure \
+#       --training_config conf/training.yaml \
+#       --inference_config conf/inference.yaml \
+#       --metrics_config conf/metrics.yaml
+#
+# Merged over `egs3/TEMPLATE/f5tts/conf/metrics.yaml`, which holds the F5-TTS
+# protocol (VERSA faster-whisper WER, speaker similarity, UTMOS) and documents
+# where it deviates from the official scorer. This recipe only names its test
+# set; `dataset/librispeech_pc.py` serves every column the template reads
+# (`ref_wav_path` is the pinned prompt, so SIM is SIM-o by construction).
+dataset:
+  test:
+    - name: librispeech_pc

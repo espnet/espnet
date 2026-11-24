@@ -36,8 +36,8 @@ dataset:
       data_src_args: &infer_args
         split: test
         cache: ${cache}
-        # Dataset defaults tgt_lang to None, which falls back to
-        # dataset/config.yaml's `all` (14 pairs), not en-de.
+        # Matches dataset/config.yaml's default; spelled out because the
+        # pair decides which cache this reads.
         tgt_lang: de
         return_utt_id: true
     - name: tst-HE

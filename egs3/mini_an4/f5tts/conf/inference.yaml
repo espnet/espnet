@@ -1,0 +1,21 @@
+##########################################################
+#                   Inference SETTING                    #
+##########################################################
+# Merged over egs3/TEMPLATE/f5tts/conf/inference.yaml, which supplies the
+# model class, the contract and the runner. In `inference` mode every test
+# item carries a voice prompt, already resampled to the model's 24 kHz. Two
+# ODE steps keep the run short; the default Vocos vocoder is downloaded.
+dataset:
+  test:
+    - name: test
+      data_src_args:
+        split: test
+        inference: true
+        fs: 24000
+
+model:
+  ode_solver_steps: 2
+  guidance_strength: 2.0
+  sway_sampling_coefficient: -1.0
+  speed: 1.0
+  seed: 0

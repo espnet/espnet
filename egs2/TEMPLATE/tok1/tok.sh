@@ -510,6 +510,12 @@ if [ "${stage}" -le 7 ] && [ "${stop_stage}" -ge 7 ] \
 
         # Only dump the training features and learn K-means. Pseudo-labels are
         # unnecessary because the differentiable quantizer reads this model.
+        kmeans_cuda_cmd="${cuda_cmd}"
+        if "${kmeans_use_gpu}" && [ "${cmd_backend:-}" = local ]; then
+            # run.pl limits concurrency by GPU count but does not assign a
+            # different device to each job, so run local GPU jobs sequentially.
+            kmeans_cuda_cmd+=" --max-jobs-run 1"
+        fi
         # shellcheck disable=SC2086
         "${kmeans_script}" \
             --stage 1 \
@@ -533,7 +539,7 @@ if [ "${stage}" -le 7 ] && [ "${stop_stage}" -ge 7 ] \
             --nj "${nj}" \
             --python "${python}" \
             --cpu_cmd "${train_cmd}" \
-            --cuda_cmd "${cuda_cmd}" \
+            --cuda_cmd "${kmeans_cuda_cmd}" \
             ${kmeans_opts}
 
         if [ ! -f "${resolved_centroid_path}" ]; then

@@ -49,7 +49,7 @@ model:
 ui:
   app_script: ${config_path:../src/app.py}
   title: ${set_corpus_and_system:} demo
-  description: README.md
+  description: Upload speech or record with the microphone to translate it.
 
 ##########################################################
 #                    PACKING SETTING                     #
