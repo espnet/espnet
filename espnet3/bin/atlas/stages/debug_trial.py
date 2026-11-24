@@ -8,6 +8,7 @@ from omegaconf import OmegaConf
 
 from espnet3.bin.atlas.core.config import (
     load_recipe_stage_config,
+    split_patch_by_search_space,
     write_resolved_config,
 )
 from espnet3.bin.atlas.core.models import AgentRequest, StageResult
@@ -23,37 +24,12 @@ from espnet3.bin.atlas.stages.stage_status import (
 )
 
 
-def _glob_match(patterns, key: str) -> bool:
-    """Return whether a key matches any configured glob pattern."""
-    import fnmatch
-
-    return any(fnmatch.fnmatch(key, pattern) for pattern in patterns)
-
-
 class DebugTrialStage(AtlasStage):
     """Inspect failure logs and ask an agent for a patch-only retry fix."""
 
     _INFERENCE_RUNTIME_KEYS = frozenset(
         {"exp_dir", "stats_dir", "recipe_dir", "data_dir", "exp_tag", "inference_dir"}
     )
-
-    def _sanitize_patch(self, context, patch: dict) -> tuple[dict, list[str]]:
-        """Keep only training config keys allowed by the study search space."""
-        search_space = context.config.atlas.search_space
-        allowed = list(getattr(search_space, "allowed_keys", []) or [])
-        denied = list(getattr(search_space, "denied_keys", []) or [])
-        sanitized = {}
-        removed = []
-        for key, value in patch.items():
-            key = str(key)
-            if denied and _glob_match(denied, key):
-                removed.append(key)
-                continue
-            if allowed and not _glob_match(allowed, key):
-                removed.append(key)
-                continue
-            sanitized[key] = value
-        return sanitized, removed
 
     def _sanitize_inference_patch(self, patch: dict) -> tuple[dict, list[str]]:
         """Remove inference patch keys that could redirect trial-owned outputs."""
@@ -231,7 +207,9 @@ class DebugTrialStage(AtlasStage):
             or structured.get("config_patch", {})
             or {}
         )
-        patch, removed = self._sanitize_patch(context, patch)
+        patch, removed = split_patch_by_search_space(
+            patch, context.config.atlas.search_space
+        )
         inference_patch, removed_inference = self._sanitize_inference_patch(
             dict(config_patches.get("inference", {}) or {})
         )

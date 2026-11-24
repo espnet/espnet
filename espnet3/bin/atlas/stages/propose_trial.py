@@ -9,6 +9,7 @@ from omegaconf import OmegaConf
 
 from espnet3.bin.atlas.core.config import (
     load_recipe_stage_config,
+    split_patch_by_search_space,
     write_resolved_config,
 )
 from espnet3.bin.atlas.core.models import AgentRequest, StageResult, Trial
@@ -19,13 +20,6 @@ from espnet3.bin.atlas.core.serialization import (
 )
 from espnet3.bin.atlas.resources import load_schema
 from espnet3.bin.atlas.stages.base import AtlasStage
-
-
-def _glob_match(patterns, key: str) -> bool:
-    """Return whether ``key`` matches any of the given fnmatch-style glob patterns."""
-    import fnmatch
-
-    return any(fnmatch.fnmatch(key, pattern) for pattern in patterns)
 
 
 def _normalize_trial_config(value, trial_dir: Path):
@@ -93,27 +87,6 @@ class ProposeTrialStage(AtlasStage):
             {"trial_id": trial_id, "status": trial.status, "pending_agent": None},
         )
         return trial
-
-    def _sanitize_patch(self, context, patch: dict) -> tuple[dict, list[str]]:
-        """Drop patch keys denied, or not allowed, by the study's search space.
-
-        Returns ``(sanitized_patch, removed_keys)``.
-        """
-        search_space = context.config.atlas.search_space
-        allowed = list(getattr(search_space, "allowed_keys", []) or [])
-        denied = list(getattr(search_space, "denied_keys", []) or [])
-        sanitized: dict = {}
-        removed: list[str] = []
-        for key, value in patch.items():
-            key = str(key)
-            if denied and _glob_match(denied, key):
-                removed.append(key)
-                continue
-            if allowed and not _glob_match(allowed, key):
-                removed.append(key)
-                continue
-            sanitized[key] = value
-        return sanitized, removed
 
     def _fallback_candidate(self, context, used_patches: list[dict]) -> dict | None:
         """Return the first configured ``search_space.candidates`` patch not yet tried."""
@@ -378,7 +351,9 @@ class ProposeTrialStage(AtlasStage):
                 if str(s) in _known_stages
             ]
 
-            patch, removed = self._sanitize_patch(context, patch)
+            patch, removed = split_patch_by_search_space(
+                patch, context.config.atlas.search_space
+            )
             if not patch and removed:
                 trial.status = "cancelled"
                 context.state.update_trial(trial)

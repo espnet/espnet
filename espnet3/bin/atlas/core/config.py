@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from fnmatch import fnmatch
 from pathlib import Path
 
 from omegaconf import OmegaConf
@@ -82,3 +83,40 @@ def write_resolved_config(path: Path, config) -> None:
         >>> write_resolved_config(Path("exp/atlas/my_study/atlas.yaml"), config)
     """
     save_yaml(path, OmegaConf.to_container(config, resolve=True))
+
+
+def split_patch_by_search_space(
+    patch: dict, search_space
+) -> tuple[dict, list[str]]:
+    """Split a config patch into allowed keys and keys the search space rules out.
+
+    A key is dropped when it matches any ``denied_keys`` pattern, or when
+    ``allowed_keys`` is set and it matches none of its patterns. Patterns are
+    ``fnmatch`` globs over the dotted key, for example ``optimizer.*``.
+
+    Args:
+        patch: Dotted config keys mapped to new values.
+        search_space: The ``atlas.search_space`` config node (``allowed_keys`` and
+            ``denied_keys`` are both optional).
+
+    Returns:
+        tuple[dict, list[str]]: The allowed part of ``patch`` and the removed keys.
+
+    Example:
+        >>> space = {"allowed_keys": ["optimizer.*"], "denied_keys": []}
+        >>> split_patch_by_search_space({"optimizer.lr": 1, "trainer.x": 2}, space)
+        ({'optimizer.lr': 1}, ['trainer.x'])
+    """
+    allowed = list(getattr(search_space, "allowed_keys", []) or [])
+    denied = list(getattr(search_space, "denied_keys", []) or [])
+    kept: dict = {}
+    removed: list[str] = []
+    for key, value in patch.items():
+        key = str(key)
+        if any(fnmatch(key, p) for p in denied) or (
+            allowed and not any(fnmatch(key, p) for p in allowed)
+        ):
+            removed.append(key)
+        else:
+            kept[key] = value
+    return kept, removed
