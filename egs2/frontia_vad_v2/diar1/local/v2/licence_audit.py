@@ -54,6 +54,10 @@ CORPUS_CLASS = {
     "slakh2100": ("CC BY 4.0 (Zenodo 4599666)", "BY"),
     "openyap": ("OpenYAP DUA (training OK)", "DUA"),
     "synth_lownoise": ("generated", "generated"),
+    # The labels come from the timed units of the NXT annotation archive v2.1,
+    # released under CC BY-NC-SA (re-released 2026-11-19 as v2.2, CC BY-SA); the
+    # page-wide CC BY 4.0 covers the audio only.
+    "maptask": ("labels from HCRC Map Task annotations v2.1, CC BY-NC-SA", "NC"),
 }
 PERMISSIVE_RE = re.compile(r"apache|\bmit\b|\bbsd\b|odc-by|cdla-permissive", re.I)
 # WAXAL folders of the University of Ghana parts, CC BY 4.0 (dataset card: ASR

@@ -215,3 +215,12 @@ def test_most_restrictive_line_of_a_block_wins(tmp_path):
         assert table[s][1].startswith("https://www.jamendo.com/"), s
         assert not ok[s], s
     assert ok["music-jamendo-0100"]
+
+
+def test_maptask_labels_fail_the_audit():
+    """Map Task labels come from CC BY-NC-SA annotations, so its clips fail."""
+    import licence_audit as la
+
+    out = la.clip_licences(None, "maptask", "", "CC BY 4.0", ["q1ec1.mix.wav"])
+    assert [c for _, _, c in out] == ["NC"]
+    assert "NC" not in la.OK

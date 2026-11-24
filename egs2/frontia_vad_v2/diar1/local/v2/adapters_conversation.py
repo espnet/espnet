@@ -495,7 +495,13 @@ def maptask_speech(data: bytes) -> list:
     return out
 
 
-@corpus("maptask", "maptask", "conversation", "H", "CC BY 4.0")
+@corpus(
+    "maptask",
+    "maptask",
+    "conversation",
+    "H",
+    "audio CC BY 4.0; labels from annotations v2.1 CC BY-NC-SA",
+)
 def maptask(root, writers, shard: int, nshards: int):
     """HCRC Map Task (NXT release): giver and follower in a stereo mix.
 
