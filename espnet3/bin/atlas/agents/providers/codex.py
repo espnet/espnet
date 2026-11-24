@@ -90,16 +90,12 @@ class CodexProvider(Provider):
         to ``output_path``. The prompt goes to stdin.
         """
         options = self.config.codex
+        command = [options.executable, "exec"]
         if request.resume_thread_id:
-            command = [
-                options.executable,
-                "exec",
-                "resume",
-                request.resume_thread_id,
-                "--json",
-            ]
+            command.extend(["resume", request.resume_thread_id])
         else:
-            command = [options.executable, "exec", "--json", "-C", str(cwd)]
+            command.extend(["-C", str(cwd)])
+        command.append("--json")
         if options.skip_git_repo_check:
             command.append("--skip-git-repo-check")
         if options.sandbox:
@@ -124,10 +120,13 @@ class CodexProvider(Provider):
     def env(self, recipe_dir: Path) -> dict[str, str]:
         """Give Codex a workspace-local home while retaining user credentials."""
         codex_home = recipe_dir / ".codex"
-        xdg_config_home = codex_home / ".config"
-        xdg_cache_home = codex_home / ".cache"
-        home_dir = codex_home / ".home"
-        for path in (codex_home, xdg_config_home, xdg_cache_home, home_dir):
+        paths = {
+            "CODEX_HOME": codex_home,
+            "HOME": codex_home / ".home",
+            "XDG_CONFIG_HOME": codex_home / ".config",
+            "XDG_CACHE_HOME": codex_home / ".cache",
+        }
+        for path in paths.values():
             path.mkdir(parents=True, exist_ok=True)
 
         user_codex_home = Path(os.environ.get("CODEX_HOME", Path.home() / ".codex"))
@@ -136,12 +135,7 @@ class CodexProvider(Provider):
             destination = codex_home / name
             if source.is_file() and not destination.exists():
                 shutil.copyfile(source, destination)
-        return {
-            "CODEX_HOME": str(codex_home),
-            "HOME": str(home_dir),
-            "XDG_CONFIG_HOME": str(xdg_config_home),
-            "XDG_CACHE_HOME": str(xdg_cache_home),
-        }
+        return {name: str(path) for name, path in paths.items()}
 
     def parse(self, stdout: str, output_path: Path) -> ParsedOutput:
         """Read the final message file, else the last ``agent_message`` event."""
