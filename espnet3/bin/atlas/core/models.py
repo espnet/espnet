@@ -196,8 +196,7 @@ class NodeConfig:
     Args:
         name: Node's key in the graph's ``nodes`` mapping.
         target: Dotted ``module.Class`` path of the ``AtlasStage``
-            subclass to run; defaults to ``SkillStage`` when ``skill`` is
-            set and ``target`` is omitted.
+            subclass to run. Required; a skill node names ``SkillStage``.
         execution: ``"local"`` to run in the current process, or
             ``"submission"`` to be dispatched as a separate submitted job.
         resources: Resource limits to request when ``execution ==

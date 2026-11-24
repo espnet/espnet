@@ -72,14 +72,9 @@ def load_graph(path: Path, recipe_dir: Path | None = None) -> ResearchGraph:
     nodes: dict[str, NodeConfig] = {}
     for name, cfg in nodes_raw.items():
         skill = str(cfg["skill"]) if cfg.get("skill") else None
-        target = str(
-            cfg.get("target")
-            or ("espnet3.bin.atlas.core.stage.SkillStage" if skill else "")
-        )
+        target = str(cfg.get("target") or "")
         if not target:
-            raise AtlasError(
-                f"Node '{name}' needs either `target` or `skill`."
-            )
+            raise AtlasError(f"Node '{name}' needs a `target` stage class.")
         load_stage_class(target, recipe_dir=recipe_dir)
         execution = str(cfg.get("execution", "local"))
         if execution not in {"local", "submission"}:

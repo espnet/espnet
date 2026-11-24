@@ -95,11 +95,21 @@ def test_agent_config_accepts_claude_options():
     assert build_agent_config({"provider": "Claude"}).provider == "claude"
 
 
-def test_load_graph_infers_generic_skill_stage(tmp_path):
-    """Allow a graph skill to select the built-in generic stage implicitly."""
+def _find_packaged_graph(application, graph_name):
+    """Return the path of a graph YAML shipped with an Atlas application."""
+    from importlib import resources
+
+    package = f"espnet3.bin.atlas.applications.{application}"
+    with resources.as_file(resources.files(package).joinpath(graph_name)) as path:
+        return Path(path)
+
+
+def test_load_graph_loads_an_explicit_skill_stage(tmp_path):
+    """Keep ``skill`` as node config while ``target`` names ``SkillStage``."""
     graph_path = tmp_path / "graph.yaml"
     graph_path.write_text(
         "name: skills\nstart: analyze\nnodes:\n  analyze:\n"
+        "    target: espnet3.bin.atlas.core.stage.SkillStage\n"
         "    skill: hyperparameter_search_analyze\n    terminal: true\n",
         encoding="utf-8",
     )
@@ -110,13 +120,38 @@ def test_load_graph_infers_generic_skill_stage(tmp_path):
     assert graph.nodes["analyze"].skill == "hyperparameter_search_analyze"
 
 
-def test_load_graph_requires_target_or_skill(tmp_path):
+def test_load_graph_requires_a_target_even_for_a_skill_node(tmp_path):
+    """A ``skill`` alone no longer selects ``SkillStage``."""
+    graph_path = tmp_path / "graph.yaml"
+    graph_path.write_text(
+        "name: skills\nstart: analyze\nnodes:\n  analyze:\n"
+        "    skill: hyperparameter_search_analyze\n    terminal: true\n",
+        encoding="utf-8",
+    )
+
+    with pytest.raises(AtlasError, match="Node 'analyze' needs a `target`"):
+        load_graph(graph_path)
+
+
+def test_load_graph_requires_a_target_for_a_node_without_one(tmp_path):
     """Reject a node that does not identify an implementation."""
     graph_path = tmp_path / "graph.yaml"
     graph_path.write_text("start: empty\nnodes:\n  empty:\n    terminal: true\n")
 
-    with pytest.raises(AtlasError, match="needs either `target` or `skill`"):
+    with pytest.raises(AtlasError, match="Node 'empty' needs a `target`"):
         load_graph(graph_path)
+
+
+def test_packaged_graphs_name_a_target_on_every_node():
+    """Every shipped graph loads, so none relies on an implicit ``SkillStage``."""
+    for application, graph_name in (
+        ("hyperparameter_search", "default_graph.yaml"),
+        ("architecture_search", "graph.yaml"),
+    ):
+        path = _find_packaged_graph(application, graph_name)
+        graph = load_graph(path)
+        assert graph.nodes
+        assert all(node.target for node in graph.nodes.values())
 
 
 def test_find_skill_path_rejects_path_traversal_and_finds_parent_skill(tmp_path):

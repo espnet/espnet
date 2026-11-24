@@ -72,6 +72,7 @@ def _write_skill_study(tmp_path):
         "start: analyze\n"
         "nodes:\n"
         "  analyze:\n"
+        "    target: espnet3.bin.atlas.core.stage.SkillStage\n"
         "    execution: local\n"
         "    skill: dummy_analysis\n"
         "    output_file: reports/analysis.md\n"
