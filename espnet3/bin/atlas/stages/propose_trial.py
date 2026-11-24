@@ -22,6 +22,12 @@ from espnet3.bin.atlas.resources import load_schema
 from espnet3.bin.atlas.stages.base import AtlasStage
 
 
+ALLOWED_ACTIONS_BY_APPLICATION = {
+    "hyperparameter_search": ["config_patch_only"],
+    "architecture_search": ["config_patch", "implement_code", "pixi_add"],
+}
+
+
 def _normalize_trial_config(value, trial_dir: Path):
     """Remove trial-specific paths before comparing effective configs."""
     if isinstance(value, dict):
@@ -238,14 +244,10 @@ class ProposeTrialStage(AtlasStage):
 
         repo_context = base_configs_context
 
-        _ALLOWED_ACTIONS_BY_APPLICATION = {
-            "hyperparameter_search": ["config_patch_only"],
-            "architecture_search": ["config_patch", "implement_code", "pixi_add"],
-        }
         application = str(
             getattr(context.config.atlas, "application", "hyperparameter_search")
         )
-        allowed_actions = _ALLOWED_ACTIONS_BY_APPLICATION.get(
+        allowed_actions = ALLOWED_ACTIONS_BY_APPLICATION.get(
             application, ["config_patch_only"]
         )
 
