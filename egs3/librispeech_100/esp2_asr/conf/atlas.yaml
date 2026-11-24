@@ -31,8 +31,6 @@ atlas:
     # Zero disables the study-wide elapsed-time limit.
     max_wallclock_hours: 0
 
-  gpu_self_controller:
-    enabled: true
 
   submission:
     resources:

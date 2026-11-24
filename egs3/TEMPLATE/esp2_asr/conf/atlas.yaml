@@ -12,9 +12,6 @@ atlas:
   tick_interval_sec_idle: 60
   tick_interval_sec_trial_active: 600
 
-  gpu_self_controller:
-    monitor_cpus: 1
-    monitor_interval_sec: 600
 
   submission:
     environment: slurm

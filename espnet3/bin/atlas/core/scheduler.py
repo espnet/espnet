@@ -150,37 +150,11 @@ class AtlasGraphRuntime:
                 "or elapsed_time_interval_sec."
             )
 
-    def gpu_self_controller_enabled(self) -> bool:
-        """Whether a trial's GPU job acts as its own controller after finishing.
-
-        Reads ``atlas.gpu_self_controller`` (a plain bool, or a mapping with
-        an ``enabled`` key) rather than requiring a separate CPU controller
-        job to observe and advance the trial.
-
-        Args:
-            None.
-
-        Returns:
-            bool: ``True`` if GPU self-controller mode is enabled.
-
-        Example:
-            >>> runtime.gpu_self_controller_enabled()
-            False
-        """
-        value = getattr(self.config.atlas, "gpu_self_controller", False)
-        if isinstance(value, bool):
-            return value
-        return bool(getattr(value, "enabled", False))
-
     def gpu_self_monitor_interval_sec(self) -> int:
-        """Return the self-controller's monitor poll interval, in seconds.
+        """Return how often a GPU job's self-controller polls its trial, in seconds.
 
-        Uses ``atlas.gpu_self_controller.monitor_interval_sec`` when set, or
-        falls back to ``atlas.tick_interval_sec_trial_active`` (default 600),
-        with a floor of 1 second either way.
-
-        Args:
-            None.
+        This is ``atlas.tick_interval_sec_trial_active`` (default 600), with a
+        floor of 1 second.
 
         Returns:
             int: Poll interval in seconds, at least 1.
@@ -189,17 +163,8 @@ class AtlasGraphRuntime:
             >>> runtime.gpu_self_monitor_interval_sec()
             600
         """
-        value = getattr(self.config.atlas, "gpu_self_controller", None)
-        configured = getattr(value, "monitor_interval_sec", None)
-        if configured is not None:
-            return max(1, int(configured))
-        return max(
-            1,
-            int(
-                getattr(self.config.atlas, "tick_interval_sec_trial_active", 600)
-                or 600
-            ),
-        )
+        configured = getattr(self.config.atlas, "tick_interval_sec_trial_active", 600)
+        return max(1, int(configured or 600))
 
     def bootstrap_node_name(self) -> str:
         """Pick the first node to run for a study with no node runs yet.
@@ -764,7 +729,7 @@ class AtlasGraphRuntime:
             )
 
     def _submission_action(self, operation: str, context: dict) -> dict:
-        """Ask the configured coding agent to submit, inspect, or cancel jobs."""
+        """Ask the configured coding agent to submit or inspect jobs."""
         submission = self.config.atlas.submission
         environment = str(getattr(submission, "environment", "local"))
         instructions = str(getattr(submission, "instructions", "") or "")
@@ -850,7 +815,7 @@ class AtlasGraphRuntime:
             context_files={"submission_request": dumps_json(request_context)},
             allowed_actions=[
                 "inspect the supplied study and job context",
-                "submit, query, or cancel only the supplied job(s)",
+                "submit or query only the supplied job(s)",
             ],
             output_schema=load_schema(f"job_{operation}"),
         )
@@ -1208,10 +1173,8 @@ class AtlasGraphRuntime:
         trial,
         trial_dir: Path,
         decision: dict,
-        *,
-        gpu_self_controller: bool = False,
     ) -> None:
-        """Cancel GPU job, write EARLY_STOPPED.md, update trial status."""
+        """Write EARLY_STOPPED.md, mark the trial, and ask its GPU job to stop."""
         reason = str(decision.get("reason", "No reason provided"))
         key_metrics = decision.get("key_metrics", {})
         marker = (
@@ -1225,43 +1188,11 @@ class AtlasGraphRuntime:
         self.state.update_trial(trial)
         self.logger.info(f"Early stopping {trial.trial_id}: {reason[:120]}")
 
-        if gpu_self_controller:
-            # The GPU worker's parent supervisor observes this state and stops
-            # its training child without cancelling the controller itself.
-            (trial_dir / "EARLY_STOP_REQUESTED").write_text(reason, encoding="utf-8")
-            return
+        # The GPU job's in-process monitor sees this file and stops its training
+        # child without ending the job, which then carries on as the controller.
+        (trial_dir / "EARLY_STOP_REQUESTED").write_text(reason, encoding="utf-8")
 
-        for job in self.state.list_active_jobs(self.study_id):
-            if job.trial_id == trial.trial_id and job.job_type == "trial":
-                try:
-                    result = self._submission_action(
-                        "cancel",
-                        {
-                            "job": {
-                                "job_id": job.job_id,
-                                "backend": job.backend,
-                                "external_id": job.external_id,
-                                "command": loads_json(job.command_json).get(
-                                    "command", []
-                                ),
-                                "metadata": loads_json(job.command_json).get(
-                                    "metadata", {}
-                                ),
-                                "resources": loads_json(job.resources_json or "{}"),
-                                "workdir": job.workdir,
-                            }
-                        },
-                    )
-                    if result.get("cancelled"):
-                        self.state.update_job_status(
-                            job.job_id, "cancelled", external_id=job.external_id
-                        )
-                except Exception as exc:
-                    self.logger.warning("Job cancellation agent failed: %s", exc)
-
-    def _maybe_check_keypoints(
-        self, trial_id: str, *, gpu_self_controller: bool = False
-    ) -> None:
+    def _maybe_check_keypoints(self, trial_id: str) -> None:
         """Ask the agent at configured epoch, iteration, or elapsed-time keypoints."""
         # Respect config flag
         early_stop_cfg = getattr(self.config.atlas, "early_stopping", None)
@@ -1413,12 +1344,7 @@ class AtlasGraphRuntime:
             kp_file.write_text(dumps_json(checked), encoding="utf-8")
 
         if result and result.get("should_stop"):
-            self._early_stop_trial(
-                trial,
-                trial_dir,
-                result,
-                gpu_self_controller=gpu_self_controller,
-            )
+            self._early_stop_trial(trial, trial_dir, result)
 
     def _maybe_schedule_parallel_proposals(self) -> None:
         """Create enough new ``propose_trial`` node runs to fill open parallel slots.
@@ -1588,13 +1514,6 @@ class AtlasGraphRuntime:
             )
             metadata = {"marker_dir": str(marker_dir)}
             resources = self.trial_resources_default.merged_with(node_cfg.resources)
-            if self.gpu_self_controller_enabled():
-                controller_cfg = getattr(
-                    self.config.atlas, "gpu_self_controller", None
-                )
-                resources.cpus += max(
-                    0, int(getattr(controller_cfg, "monitor_cpus", 0) or 0)
-                )
             env = {
                 "PYTHONPATH": os.pathsep.join(
                     path
@@ -1685,21 +1604,19 @@ class AtlasGraphRuntime:
             await asyncio.sleep(max(1, interval))
 
     def tick(self, trial_id: str | None = None) -> None:
-        """Run one scheduler cycle: bootstrap, reconcile jobs, check keypoints, advance.
+        """Run one scheduler cycle: bootstrap, reconcile jobs, advance.
 
         Bootstraps the study's first node run if none exist yet, refreshes
-        active job statuses (reconciling any that finished), runs early-stop
-        keypoint checks for the running trial(s), schedules new parallel
+        active job statuses (reconciling any that finished), schedules new parallel
         proposals and submits pending submission-execution nodes (only for a
         whole-study tick, i.e. ``trial_id is None``), and advances any
         pending local-execution nodes. No-ops entirely if the study's
         ``STOP`` file exists.
 
         Args:
-            trial_id: If given, scope the refresh/keypoint-check/local-node
-                work to this trial only (used by a GPU self-controller
-                acting for just its own trial); ``None`` runs the full
-                study-wide tick.
+            trial_id: If given, scope the refresh/local-node work to this
+                trial only (used by a GPU self-controller acting for just its
+                own trial); ``None`` runs the full study-wide tick.
 
         Returns:
             None.
@@ -1723,21 +1640,6 @@ class AtlasGraphRuntime:
             # mode.
             include_trial_jobs=True,
         )
-        trial_ids = (
-            [trial_id]
-            if trial_id is not None
-            else [
-                trial.trial_id
-                for trial in self.state.list_trials(self.study_id, status="running")
-            ]
-        )
-        for active_trial_id in trial_ids:
-            try:
-                self._maybe_check_keypoints(active_trial_id)
-            except Exception as exc:
-                self.logger.warning(
-                    f"Keypoint check failed for {active_trial_id}: {exc}"
-                )
         if trial_id is None:
             self._maybe_schedule_parallel_proposals()
         self._submit_pending_trial_nodes()

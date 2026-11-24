@@ -14,8 +14,7 @@ def main() -> int:
     This is the command Slurm/local job submission runs: it parses the
     ``--study-dir``/``--node``/``--run-id`` (and related) arguments, rebuilds
     the study runtime, and executes either the node's GPU self-controller
-    loop (when enabled and the node is ``execution: submission``) or the
-    node itself.
+    loop (when the node is ``execution: submission``) or the node itself.
 
     Args:
         None (arguments are read from ``sys.argv`` via ``argparse``).
@@ -37,7 +36,7 @@ def main() -> int:
     parser.add_argument("--attempt-id", default="attempt_000000")
     args = parser.parse_args()
     runtime = _load_runtime(Path(args.study_dir).resolve(), Path(args.recipe_dir).resolve())
-    if runtime.gpu_self_controller_enabled() and runtime.graph.nodes[args.node].execution == "submission":
+    if runtime.graph.nodes[args.node].execution == "submission":
         result = runtime.run_gpu_self_controller(
             node_name=args.node,
             run_id=args.run_id,

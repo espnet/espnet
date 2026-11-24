@@ -28,10 +28,6 @@ atlas:
     max_trials: 50
     max_wallclock_hours: 72
 
-  # Run collect/debug/reflect/propose and next-trial submission at the end of
-  # each GPU job. This avoids dependence on separate CPU controller jobs.
-  gpu_self_controller:
-    enabled: false
 
   submission:
     resources:

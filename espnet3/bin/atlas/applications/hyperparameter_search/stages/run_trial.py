@@ -82,8 +82,7 @@ class RunTrialStage(AtlasStage):
                 if now >= next_check:
                     try:
                         context.scheduler._maybe_check_keypoints(
-                            context.current_trial.trial_id,
-                            gpu_self_controller=True,
+                            context.current_trial.trial_id
                         )
                     except Exception as exc:  # noqa: BLE001
                         context.logger.warning(f"In-job early-stop check failed: {exc}")

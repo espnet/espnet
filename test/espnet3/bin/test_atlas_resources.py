@@ -54,7 +54,7 @@ def test_every_packaged_schema_is_a_valid_json_schema():
         .iterdir()
         if path.name.endswith(".json")
     ]
-    assert {"job_submit", "job_status", "job_cancel", "early_stop"} <= set(names)
+    assert {"job_submit", "job_status", "early_stop"} <= set(names)
     for name in names:
         Draft202012Validator.check_schema(load_schema(name))
 

@@ -260,3 +260,37 @@ def test_reconcile_tick_jobs_keeps_record_on_unknown_or_agent_failure():
     runtime, updates, events, _ = _tick_runtime(jobs, None)
     runtime.reconcile_tick_jobs()
     assert updates == [] and events == []
+
+
+def test_tick_leaves_early_stop_checks_to_the_gpu_job(tmp_path):
+    runtime = object.__new__(AtlasGraphRuntime)
+    runtime.study_dir = tmp_path
+    runtime.study_id = "study"
+    runtime.state = SimpleNamespace(list_node_runs=lambda _sid: ["run"])
+    calls = []
+    runtime._refresh_active_jobs = lambda **kwargs: calls.append("refresh")
+    runtime._maybe_check_keypoints = lambda *_: pytest.fail("tick checked keypoints")
+    runtime._maybe_schedule_parallel_proposals = lambda: calls.append("proposals")
+    runtime._submit_pending_trial_nodes = lambda: calls.append("submit")
+    runtime._advance_local_ready_nodes = lambda **kwargs: calls.append("advance")
+
+    runtime.tick()
+
+    assert calls == ["refresh", "proposals", "submit", "advance", "submit"]
+
+
+def test_early_stop_marks_the_trial_and_asks_the_gpu_job_to_stop(tmp_path):
+    runtime = object.__new__(AtlasGraphRuntime)
+    runtime.logger = logging.getLogger(__name__)
+    updated = []
+    runtime.state = SimpleNamespace(update_trial=updated.append)
+    runtime._submission_action = lambda *args: pytest.fail("no job is cancelled")
+    trial = SimpleNamespace(trial_id="trial_000001", status="running")
+
+    runtime._early_stop_trial(
+        trial, tmp_path, {"reason": "worse than baseline", "key_metrics": {"loss": 1}}
+    )
+
+    assert trial.status == "early_stopped" and updated == [trial]
+    assert (tmp_path / "EARLY_STOP_REQUESTED").read_text() == "worse than baseline"
+    assert "worse than baseline" in (tmp_path / "EARLY_STOPPED.md").read_text()
