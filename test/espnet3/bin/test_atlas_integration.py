@@ -6,7 +6,7 @@ import csv
 import json
 
 from espnet3.bin.atlas import command
-from espnet3.bin.atlas.agents.interface import AgentResponse
+from espnet3.bin.atlas.core.models import AgentResponse
 from espnet3.bin.atlas.core.state import StateStore
 from espnet3.bin.main import main as run_cli
 

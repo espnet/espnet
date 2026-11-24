@@ -14,14 +14,13 @@ from dataclasses import replace
 from datetime import datetime, timezone
 from pathlib import Path
 
-from espnet3.bin.atlas.agents.interface import AgentRequest
 from espnet3.bin.atlas.agents.session import StudySessionAgentClient
 from espnet3.bin.atlas.core.errors import (
     ConfigValidationError,
     InvalidAgentResponseError,
 )
 from espnet3.bin.atlas.core.graph import Resources, load_stage_class
-from espnet3.bin.atlas.core.models import StageContext, StageResult
+from espnet3.bin.atlas.core.models import AgentRequest, StageContext, StageResult
 from espnet3.bin.atlas.core.serialization import (
     atomic_write_text,
     dumps_json,
@@ -30,6 +29,7 @@ from espnet3.bin.atlas.core.serialization import (
     loads_json,
     utc_now,
 )
+from espnet3.bin.atlas.resources import load_prompt, load_schema
 from espnet3.bin.atlas.core.state import JobRecord
 
 
@@ -839,41 +839,8 @@ class AtlasGraphRuntime:
             "budget": budget_context,
             **context,
         }
-        schemas = {
-            "submit": {
-                "status": "submitted|failed",
-                "backend": "environment identifier",
-                "external_id": "scheduler job id or local process id",
-                "message": "submission result",
-            },
-            "status": {
-                "jobs": [
-                    {
-                        "job_id": "id",
-                        "status": (
-                            "submitted|pending|running|completed|failed|cancelled|"
-                            "timeout|unknown"
-                        ),
-                    }
-                ]
-            },
-            "cancel": {"cancelled": True, "message": "result"},
-        }
-        prompt = (
-            "Operate jobs for the current Atlas study. Follow the configured "
-            "environment instructions and resource limits. On local submit operations, "
-            "start the command detached, redirect the supplied stdout/stderr paths, "
-            "apply the supplied working directory and environment, and return its PID. "
-            "For local "
-            "status/cancel operations, inspect or signal only the exact supplied PID. "
-            "For other environments, use their configured submit, status, and "
-            "cancellation commands. Do not edit recipe source, search settings, or "
-            "study configuration. The scheduler owns trial and parallel budgets; "
-            "submit exactly "
-            "the supplied job and create "
-            "no extra work. Remaining trial slots apply to trial jobs, not controller "
-            "ticks. Return exactly the requested JSON object.\n\n"
-            f"Configured instructions:\n{instructions or '(none)'}"
+        prompt = load_prompt(
+            "job_operate", instructions=instructions or "(none)"
         )
         request_context["agent_task_instructions"] = prompt
         request = AgentRequest(
@@ -888,7 +855,7 @@ class AtlasGraphRuntime:
                 "inspect the supplied study and job context",
                 "submit, query, or cancel only the supplied job(s)",
             ],
-            output_schema=schemas[operation],
+            output_schema=load_schema(f"job_{operation}"),
         )
         artifact_dir = (
             self.study_dir / "agent" / "submission" / f"{operation}_{uuid.uuid4().hex}"
@@ -1216,11 +1183,7 @@ class AtlasGraphRuntime:
             latest_metrics={},
             context_files={"early_stop_instructions": prompt},
             allowed_actions=["read_only"],
-            output_schema={
-                "should_stop": False,
-                "reason": "evidence supporting the decision",
-                "key_metrics": {},
-            },
+            output_schema=load_schema("early_stop"),
             resume_thread_id=getattr(trial, "codex_thread_id", None),
         )
         response = self.agent.run(request, artifact_dir=artifact_dir)
@@ -1412,34 +1375,14 @@ class AtlasGraphRuntime:
                     else "elapsed_gpu_runtime_sec=unknown"
                 ),
             ]
-            prompt = "\n".join(
-                [
-                    f"Keypoint check for {trial_id}: "
-                    f"{', '.join(label for _, _, label in unchecked)}.",
-                    f"Current progress: {', '.join(progress)}.",
-                    "",
-                    "Return exactly one JSON object with no markdown fences:",
-                    '{"should_stop": bool, "reason": "...", "key_metrics": {...}}',
-                    "",
-                    "Read current evidence with tools as needed; do not ask for "
-                    "pasted copies:",
-                    f"- Trial directory: {trial_dir}",
-                    f"- Training log: {trial_dir / 'train.log'}",
-                    f"- Evaluation log: {trial_dir / 'eval.log'}",
-                    f"- Live training metrics: {metrics_csv}",
-                    f"- Trial history and scores: {self.study_dir / 'trials.csv'}",
-                    f"- Study objective: {self.study_dir / 'program.md'}",
-                    "",
-                    "Should this trial be early stopped?",
-                    "Use the `pretrain_validation` entry in train.log as this trial's "
-                    "zero-shot baseline. At an epoch keypoint, stop if the current "
-                    "fixed-dev valid/loss is "
-                    "worse than that baseline; report both values in key_metrics.",
-                    "Also stop if the trajectory is clearly inferior to other trials "
-                    "unlikely to recover.",
-                    "Be conservative — prefer to continue unless the evidence is "
-                    "strong.",
-                ]
+            prompt = load_prompt(
+                "early_stop",
+                trial_id=trial_id,
+                labels=", ".join(label for _, _, label in unchecked),
+                progress=", ".join(progress),
+                trial_dir=trial_dir,
+                metrics_csv=metrics_csv,
+                study_dir=self.study_dir,
             )
 
             primary_kind, primary_target, _ = unchecked[0]

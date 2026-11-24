@@ -6,8 +6,7 @@ from abc import ABC, abstractmethod
 from dataclasses import fields
 from pathlib import Path
 
-from espnet3.bin.atlas.agents.interface import AgentRequest
-from espnet3.bin.atlas.core.models import StageResult, Trial
+from espnet3.bin.atlas.core.models import AgentRequest, StageResult, Trial
 from espnet3.bin.atlas.core.serialization import (
     atomic_write_text,
     dumps_json,
@@ -15,6 +14,7 @@ from espnet3.bin.atlas.core.serialization import (
     to_plain_data,
     utc_now,
 )
+from espnet3.bin.atlas.resources import shape_to_schema
 
 
 class AtlasStage(ABC):
@@ -166,13 +166,15 @@ class SkillStage(AtlasStage):
                 "stop_after_trial": str(context.scheduler.should_stop()).lower(),
             },
             allowed_actions=allowed_actions,
-            output_schema={
-                "status": "graph result status",
-                "message": "short result description",
-                "payload": {},
-                "trial_updates": {},
-                **node.output_schema,
-            },
+            output_schema=shape_to_schema(
+                {
+                    "status": "graph result status",
+                    "message": "short result description",
+                    "payload": {},
+                    "trial_updates": {},
+                    **node.output_schema,
+                }
+            ),
             resume_thread_id=trial.codex_thread_id if trial else None,
         )
         artifact_dir = trial_dir / node.skill if trial else trial_dir

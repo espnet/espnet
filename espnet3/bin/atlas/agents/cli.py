@@ -13,9 +13,15 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
-from espnet3.bin.atlas.agents.interface import AgentRequest, AgentResponse
 from espnet3.bin.atlas.agents.structured_output import decode_response_object
-from espnet3.bin.atlas.core.models import AgentConfig, ClaudeConfig, CodexConfig
+from espnet3.bin.atlas.core.models import (
+    AgentConfig,
+    AgentRequest,
+    AgentResponse,
+    ClaudeConfig,
+    CodexConfig,
+)
+from espnet3.bin.atlas.resources import load_prompt
 
 
 def _toml_value(value: Any) -> str:
@@ -41,7 +47,7 @@ def _toml_value(value: Any) -> str:
 class CliAgent:
     """Invoke the Codex or Claude Code CLI as a subprocess and parse its response.
 
-    Implements the ``AgentClient`` protocol. Builds the provider-specific
+    Exposes ``run(request, artifact_dir)``. Builds the provider-specific
     command and prompt from an ``AgentRequest``, runs it, parses its
     JSON-lines (Codex) or streaming-JSON (Claude) stdout into an
     ``AgentResponse``, and — on structured output — retries with a
@@ -107,21 +113,11 @@ class CliAgent:
             "Allowed Actions:",
             ", ".join(request.allowed_actions),
             "",
-            "Output Shape:",
+            "Output JSON Schema:",
             json.dumps(request.output_schema, ensure_ascii=False, indent=2),
         ]
         if request.output_schema:
-            parts.insert(
-                2,
-                "FINAL RESPONSE CONTRACT: Return exactly one complete JSON object. "
-                "No Markdown fences, commentary, or text outside that object. "
-                "Use double-quoted keys/strings and JSON true/false/null. "
-                "Escape newlines, tabs, quotes and backslashes inside strings. "
-                "Close every object/array; do not use trailing commas, duplicate "
-                "keys, NaN or Infinity. Preserve the nesting of Output Shape: "
-                "root fields stay at the root rather than inside another field. "
-                "Tool progress may be prose; these rules govern the FINAL response.",
-            )
+            parts.insert(2, load_prompt("final_response_contract"))
         return "\n".join(parts)
 
     def _codex_env(self) -> dict[str, str]:
@@ -216,6 +212,8 @@ class CliAgent:
         if options.disallowed_tools:
             command.extend(["--disallowedTools", *options.disallowed_tools])
         command.extend(options.args)
+        if request.output_schema:
+            command.extend(["--json-schema", json.dumps(request.output_schema)])
         if request.resume_thread_id:
             command.extend(["--resume", request.resume_thread_id])
         if request.allowed_actions == ["respond_only"]:
@@ -324,21 +322,12 @@ class CliAgent:
                         f" (JSON repair limit reached after {number + 1} attempts.)"
                     )
                 return response
-            instruction = (
-                "Your previous final response was rejected by the JSON reader.\n"
-                f"Validation error: {response.message}\n"
-                "Regenerate ONLY the final JSON object for the SAME request, "
-                "preserving its intended values and nesting. Do not redo the task, "
-                "run tools, submit/cancel jobs, or edit files. If an operation "
-                "already happened, report its existing result; never repeat it. "
-                "Use the original Output Shape below and escape string content."
-            )
+            instruction = load_prompt("json_repair", error=response.message)
             if not (response.thread_id or current.resume_thread_id):
-                instruction += (
-                    "\nOriginal task context:\n"
-                    + request.objective
-                    + "\nPrevious final response:\n"
-                    + response.content
+                instruction += load_prompt(
+                    "json_repair_context",
+                    objective=request.objective,
+                    content=response.content,
                 )
             current = replace(
                 request,
@@ -492,7 +481,7 @@ class CliAgent:
                 )
         try:
             structured = decode_response_object(content)
-            self._validate_output_shape(structured, request.output_schema)
+            self._validate_output(structured, request.output_schema)
         except ValueError as exc:
             if request.output_schema:
                 error_path = artifact_dir / "agent_parse_error.json"
@@ -519,34 +508,19 @@ class CliAgent:
         )
 
     @staticmethod
-    def _validate_output_shape(value: dict, shape: dict) -> None:
-        """Validate root fields and declared containers, not description strings."""
-        missing = set(shape) - set(value)
-        if "config_patches" in missing and "config_patch" in value:
-            missing.remove("config_patches")  # Supported legacy patch format.
-        if missing:
-            raise ValueError(
-                f"Missing required root fields: {', '.join(sorted(missing))}"
-            )
+    def _validate_output(value: dict, schema: dict) -> None:
+        """Raise ``ValueError`` when ``value`` does not satisfy the JSON Schema."""
+        if not schema:
+            return
+        from jsonschema import Draft202012Validator
 
-        def _check_containers(actual: dict, expected: dict, prefix: str) -> None:
-            """Check nested container names while allowing arbitrary patch keys."""
-            for key, template in expected.items():
-                if not isinstance(template, (dict, list)):
-                    continue
-                if (
-                    key == "config_patches"
-                    and key not in actual
-                    and "config_patch" in actual
-                ):
-                    continue
-                path = f"{prefix}.{key}" if prefix else key
-                if key not in actual or not isinstance(actual[key], type(template)):
-                    raise ValueError(f"{path} must be a JSON {type(template).__name__}")
-                if isinstance(template, dict):
-                    _check_containers(actual[key], template, path)
-
-        _check_containers(value, shape, "")
+        errors = sorted(
+            Draft202012Validator(schema).iter_errors(value), key=lambda e: list(e.path)
+        )
+        if errors:
+            error = errors[0]
+            where = ".".join(str(part) for part in error.path) or "root"
+            raise ValueError(f"{where}: {error.message}")
 
     @staticmethod
     def _parse_structured_output(content: str) -> dict[str, Any]:

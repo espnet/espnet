@@ -7,10 +7,9 @@ from types import SimpleNamespace
 
 import pytest
 
-from espnet3.bin.atlas.agents.interface import AgentRequest, AgentResponse
 from espnet3.bin.atlas.agents.session import StudySessionAgentClient
 from espnet3.bin.atlas.core.errors import ConfigValidationError
-from espnet3.bin.atlas.core.models import Trial
+from espnet3.bin.atlas.core.models import AgentRequest, AgentResponse, Trial
 from espnet3.bin.atlas.core.scheduler import AtlasGraphRuntime
 from espnet3.bin.atlas.core.state import StateStore
 

@@ -304,8 +304,8 @@ class AgentRequest:
             dir, trial dir, serialized current trial, etc.).
         allowed_actions: Action set the agent may use (e.g. whether it may
             edit files or only read).
-        output_schema: JSON-shape hint for the structured response the
-            agent must return.
+        output_schema: JSON Schema of the structured response the agent
+            must return; empty for a free-form reply.
         inflight_patches: Config patches from trials still running, so the
             agent avoids proposing the same change twice.
         resume_thread_id: Prior Codex/Claude thread id to resume, or

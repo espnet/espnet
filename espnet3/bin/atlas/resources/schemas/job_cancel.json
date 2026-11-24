@@ -1,0 +1,16 @@
+{
+  "type": "object",
+  "properties": {
+    "cancelled": {
+      "type": "boolean"
+    },
+    "message": {
+      "type": "string",
+      "description": "result"
+    }
+  },
+  "required": [
+    "cancelled",
+    "message"
+  ]
+}

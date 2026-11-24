@@ -1,0 +1,21 @@
+{
+  "type": "object",
+  "properties": {
+    "should_stop": {
+      "type": "boolean"
+    },
+    "reason": {
+      "type": "string",
+      "minLength": 1,
+      "description": "evidence supporting the decision"
+    },
+    "key_metrics": {
+      "type": "object"
+    }
+  },
+  "required": [
+    "should_stop",
+    "reason",
+    "key_metrics"
+  ]
+}

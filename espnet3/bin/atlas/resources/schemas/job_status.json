@@ -1,0 +1,35 @@
+{
+  "type": "object",
+  "properties": {
+    "jobs": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "job_id": {
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "submitted",
+              "pending",
+              "running",
+              "completed",
+              "failed",
+              "cancelled",
+              "timeout",
+              "unknown"
+            ]
+          }
+        },
+        "required": [
+          "job_id",
+          "status"
+        ]
+      }
+    }
+  },
+  "required": [
+    "jobs"
+  ]
+}

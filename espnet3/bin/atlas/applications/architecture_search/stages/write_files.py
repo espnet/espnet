@@ -6,8 +6,7 @@ import re
 import shutil
 from pathlib import Path
 
-from espnet3.bin.atlas.agents.interface import AgentRequest
-from espnet3.bin.atlas.core.models import StageResult
+from espnet3.bin.atlas.core.models import AgentRequest, StageResult
 from espnet3.bin.atlas.core.serialization import save_yaml, utc_now
 from espnet3.bin.atlas.core.stage import AtlasStage
 

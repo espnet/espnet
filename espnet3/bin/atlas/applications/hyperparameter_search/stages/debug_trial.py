@@ -6,7 +6,6 @@ from pathlib import Path
 
 from omegaconf import OmegaConf
 
-from espnet3.bin.atlas.agents.interface import AgentRequest
 from espnet3.bin.atlas.applications.hyperparameter_search.config_schema import (
     load_recipe_stage_config,
     write_resolved_config,
@@ -15,12 +14,13 @@ from espnet3.bin.atlas.applications.hyperparameter_search.stage_status import (
     _invalidate_stages,
     _read_stage_status,
 )
-from espnet3.bin.atlas.core.models import StageResult
+from espnet3.bin.atlas.core.models import AgentRequest, StageResult
 from espnet3.bin.atlas.core.serialization import (
     apply_dotted_patch,
     save_yaml,
 )
 from espnet3.bin.atlas.core.stage import AtlasStage
+from espnet3.bin.atlas.resources import load_schema
 
 
 def _glob_match(patterns, key: str) -> bool:
@@ -174,16 +174,7 @@ class DebugTrialStage(AtlasStage):
             latest_metrics=trial.metrics,
             context_files=logs,
             allowed_actions=allowed_actions,
-            output_schema={
-                "root_cause": "string",
-                "fix_strategy": "string",
-                "files_modified": ["list of src/ files edited (empty if none)"],
-                "config_patches": {
-                    "training": {"dotted.key": "value (or empty dict)"},
-                    "inference": {"dotted.key": "value (or empty dict)"},
-                },
-                "should_retry": True,
-            },
+            output_schema=load_schema("debug"),
         )
 
     def run(self, context) -> StageResult:

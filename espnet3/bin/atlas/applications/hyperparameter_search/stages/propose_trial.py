@@ -7,18 +7,18 @@ from pathlib import Path
 
 from omegaconf import OmegaConf
 
-from espnet3.bin.atlas.agents.interface import AgentRequest
 from espnet3.bin.atlas.applications.hyperparameter_search.config_schema import (
     load_recipe_stage_config,
     write_resolved_config,
 )
-from espnet3.bin.atlas.core.models import StageResult, Trial
+from espnet3.bin.atlas.core.models import AgentRequest, StageResult, Trial
 from espnet3.bin.atlas.core.serialization import (
     apply_dotted_patch,
     save_yaml,
     utc_now,
 )
 from espnet3.bin.atlas.core.stage import AtlasStage
+from espnet3.bin.atlas.resources import load_schema
 
 
 def _glob_match(patterns, key: str) -> bool:
@@ -312,6 +312,9 @@ class ProposeTrialStage(AtlasStage):
                 "optional list of stage names to run before train, e.g. train_tokenizer"
             )
 
+        output_schema = load_schema("propose")
+        output_schema["properties"]["extra_stages"]["description"] = extra_stages_hint
+
         request = AgentRequest(
             task="propose",
             objective=(context.study_dir / "program.md").read_text(encoding="utf-8"),
@@ -322,15 +325,7 @@ class ProposeTrialStage(AtlasStage):
             context_files=context_files,
             inflight_patches=inflight_patches,
             allowed_actions=allowed_actions,
-            output_schema={
-                "rationale": "string",
-                "config_patches": {
-                    "training": {"dotted.key": "value (required — HP changes go here)"},
-                },
-                "expected_effect": "string",
-                "risk": "string",
-                "extra_stages": [extra_stages_hint],
-            },
+            output_schema=output_schema,
         )
         artifact_dir = trial_dir
         response = context.agent.run(request, artifact_dir=artifact_dir)

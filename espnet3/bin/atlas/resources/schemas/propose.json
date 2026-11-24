@@ -1,0 +1,40 @@
+{
+  "type": "object",
+  "properties": {
+    "rationale": {
+      "type": "string"
+    },
+    "config_patches": {
+      "type": "object",
+      "properties": {
+        "training": {
+          "type": "object",
+          "description": "dotted.key -> value (required: hyperparameter changes go here)"
+        }
+      },
+      "required": [
+        "training"
+      ]
+    },
+    "expected_effect": {
+      "type": "string"
+    },
+    "risk": {
+      "type": "string"
+    },
+    "extra_stages": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "optional list of stage names to run before train, e.g. train_tokenizer"
+    }
+  },
+  "required": [
+    "rationale",
+    "config_patches",
+    "expected_effect",
+    "risk",
+    "extra_stages"
+  ]
+}

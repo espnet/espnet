@@ -1,0 +1,45 @@
+{
+  "type": "object",
+  "properties": {
+    "root_cause": {
+      "type": "string"
+    },
+    "fix_strategy": {
+      "type": "string"
+    },
+    "files_modified": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "list of src/ files edited (empty if none)"
+    },
+    "config_patches": {
+      "type": "object",
+      "properties": {
+        "training": {
+          "type": "object",
+          "description": "dotted.key -> value (or empty object)"
+        },
+        "inference": {
+          "type": "object",
+          "description": "dotted.key -> value (or empty object)"
+        }
+      },
+      "required": [
+        "training",
+        "inference"
+      ]
+    },
+    "should_retry": {
+      "type": "boolean"
+    }
+  },
+  "required": [
+    "root_cause",
+    "fix_strategy",
+    "files_modified",
+    "config_patches",
+    "should_retry"
+  ]
+}

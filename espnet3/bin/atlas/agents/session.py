@@ -6,13 +6,14 @@ import contextlib
 from dataclasses import replace
 from pathlib import Path
 
-from espnet3.bin.atlas.agents.interface import AgentRequest, AgentResponse
+from espnet3.bin.atlas.core.models import AgentRequest, AgentResponse
+from espnet3.bin.atlas.resources import load_prompt
 from espnet3.bin.atlas.core.errors import InvalidAgentResponseError
 from espnet3.bin.atlas.core.serialization import atomic_write_text, file_lock
 
 
 class StudySessionAgentClient:
-    """Wrap an ``AgentClient`` to reuse one resumable agent session per study.
+    """Wrap an agent client to reuse one resumable agent session per study.
 
     Every call injects instructions to re-read the study's mutable files
     (objective, knowledge pack, trial history, config) rather than trust
@@ -36,7 +37,7 @@ class StudySessionAgentClient:
         """Wrap ``delegate`` with study-scoped session reuse.
 
         Args:
-            delegate: The underlying ``AgentClient`` (e.g. ``CliAgent``)
+            delegate: The underlying agent client (e.g. ``CliAgent``)
                 that actually invokes Codex/Claude Code.
             state: The study's ``StateStore``, used to persist the shared
                 session id.
@@ -134,29 +135,17 @@ class StudySessionAgentClient:
                         if request.task.startswith("job_") and request.objective.strip()
                         else ""
                     )
-                    + "Read study context with tools as needed; do not ask for pasted copies.\n"
-                    f"- Objective: {self._study_dir / 'program.md'}\n"
-                    f"- Knowledge pack: {self._study_dir / 'knowledge' / 'knowledge_pack.md'}\n"
-                    f"- Trial history: {self._study_dir / 'trials.csv'}\n"
-                    f"- Resolved Atlas config: {self._study_dir / 'atlas.yaml'}\n"
-                    f"- Graph: {self._study_dir / 'graph.yaml'}\n"
-                    f"- Recipe directory: {self._recipe_dir}\n"
-                    "For every propose request, use Read in this agent call on Objective "
-                    "(program.md), Resolved Atlas config, Trial history, and Knowledge "
-                    "pack before reasoning. Read current trial status and scores from those "
-                    "files; do not describe a pending job as already training. These "
-                    "files are mutable and supersede any resumed-session/cache memory. Then "
-                    "read the recipe config paths named by atlas.yaml before proposing "
-                    "or modifying a trial. Do not propose a patch outside the currently read "
-                    "search_space.\n\n"
-                    "Recipe-isolation rule: this is an independent experiment. Read and use "
-                    "only the listed study paths, files inside the current recipe directory, "
-                    "and ESPnet framework code only when needed to understand an API. Do not "
-                    "list, search, read, compare against, or reuse information from any other "
-                    "recipe under egs3/, including sibling or parent-reachable recipe paths. "
-                    "If you accidentally access another recipe, do not use that information; "
-                    "report the scope violation and return a failure rather than proposing, "
-                    "editing, or accepting an experiment."
+                    + load_prompt(
+                        "study_context",
+                        objective=self._study_dir / "program.md",
+                        knowledge_pack=(
+                            self._study_dir / "knowledge" / "knowledge_pack.md"
+                        ),
+                        trial_history=self._study_dir / "trials.csv",
+                        atlas_config=self._study_dir / "atlas.yaml",
+                        graph=self._study_dir / "graph.yaml",
+                        recipe_dir=self._recipe_dir,
+                    )
                 ),
                 knowledge="",
                 repo_context="",
