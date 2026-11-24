@@ -294,3 +294,16 @@ def test_early_stop_marks_the_trial_and_asks_the_gpu_job_to_stop(tmp_path):
     assert trial.status == "early_stopped" and updated == [trial]
     assert (tmp_path / "EARLY_STOP_REQUESTED").read_text() == "worse than baseline"
     assert "worse than baseline" in (tmp_path / "EARLY_STOPPED.md").read_text()
+
+
+def test_a_study_with_a_knowledge_pack_starts_at_propose_trial(tmp_path):
+    runtime = object.__new__(AtlasGraphRuntime)
+    runtime.study_dir = tmp_path
+    runtime.graph = SimpleNamespace(
+        start="init_study", nodes={"propose_trial": 1, "research_context": 1}
+    )
+
+    assert runtime.bootstrap_node_name() == "init_study"
+    (tmp_path / "knowledge").mkdir()
+    (tmp_path / "knowledge" / "knowledge_pack.md").write_text("# Knowledge Pack\n")
+    assert runtime.bootstrap_node_name() == "propose_trial"

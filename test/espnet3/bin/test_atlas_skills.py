@@ -392,3 +392,36 @@ def test_update_knowledge_is_a_skill_followed_by_the_budget_check():
             "continue": "propose_trial",
             "done": "select_best",
         }
+
+
+def test_research_context_is_a_skill_that_writes_the_first_pack_with_a_fallback():
+    for application in ("hyperparameter_search", "architecture_search"):
+        node = load_graph(_default_graph_path(application)).nodes["research_context"]
+
+        assert node.skill == "hyperparameter_search_research_context"
+        assert node.output_file == "knowledge/knowledge_pack.md"
+        assert node.output_key == "pack" and not node.output_append
+        assert node.fallback_output.startswith("# Knowledge Pack")
+        # A fallback write returns status "terminal"; it must still route on.
+        assert node.on == {
+            "success": "propose_trial",
+            "failure": "propose_trial",
+            "terminal": "propose_trial",
+        }
+
+
+def test_research_context_failure_still_leaves_a_knowledge_pack(tmp_path):
+    class DownAgent:
+        def run(self, request, artifact_dir=None):
+            return AgentResponse(status="failure", message="agent down", content="")
+
+    node = load_graph(_default_graph_path("hyperparameter_search")).nodes[
+        "research_context"
+    ]
+    context = _stage_context(tmp_path, node=node, agent=DownAgent())
+
+    result = SkillStage().run(context)
+
+    pack = tmp_path / "study" / "knowledge" / "knowledge_pack.md"
+    assert result.status == "terminal"
+    assert pack.read_text(encoding="utf-8").startswith("# Knowledge Pack")

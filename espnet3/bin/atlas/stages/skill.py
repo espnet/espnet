@@ -70,9 +70,7 @@ class SkillStage(AtlasStage):
             knowledge=read_optional(
                 context.study_dir / "knowledge" / "knowledge_pack.md"
             ),
-            repo_context=read_optional(
-                context.study_dir / "knowledge" / "repo_context.md"
-            ),
+            repo_context="",
             trial_history_csv=read_optional(trials_csv),
             latest_metrics=trial.metrics if trial else {},
             context_files={

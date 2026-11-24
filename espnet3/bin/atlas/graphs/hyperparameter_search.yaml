@@ -11,11 +11,18 @@ nodes:
       failure: summarize
 
   research_context:
-    target: espnet3.bin.atlas.stages.research_context.ResearchContextStage
+    target: espnet3.bin.atlas.stages.skill.SkillStage
     execution: local
+    skill: hyperparameter_search_research_context
+    output_file: knowledge/knowledge_pack.md
+    output_key: pack
+    fallback_output: "# Knowledge Pack\n\nThe research context could not be generated. Read program.md and atlas.yaml in the study directory directly.\n"
+    output_schema:
+      pack: Markdown text of the first knowledge pack
     "on":
       success: propose_trial
       failure: propose_trial
+      terminal: propose_trial
 
   propose_trial:
     target: espnet3.bin.atlas.stages.propose_trial.ProposeTrialStage

@@ -186,10 +186,7 @@ class AtlasGraphRuntime:
             'init_study'
         """
         knowledge_dir = self.study_dir / "knowledge"
-        knowledge_ready = all(
-            (knowledge_dir / name).is_file()
-            for name in ("repo_context.md", "knowledge_pack.md")
-        )
+        knowledge_ready = (knowledge_dir / "knowledge_pack.md").is_file()
         if knowledge_ready and "propose_trial" in self.graph.nodes:
             return "propose_trial"
         study_ready = all(

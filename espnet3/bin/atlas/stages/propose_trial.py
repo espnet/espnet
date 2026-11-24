@@ -282,12 +282,7 @@ class ProposeTrialStage(AtlasStage):
             ]
         )
 
-        repo_context_parts = []
-        repo_context_path = context.study_dir / "repo_context.md"
-        if repo_context_path.exists():
-            repo_context_parts.append(repo_context_path.read_text(encoding="utf-8"))
-        repo_context_parts.append(base_configs_context)
-        repo_context = "\n\n".join(repo_context_parts)
+        repo_context = base_configs_context
 
         _ALLOWED_ACTIONS_BY_APPLICATION = {
             "hyperparameter_search": ["config_patch_only"],
