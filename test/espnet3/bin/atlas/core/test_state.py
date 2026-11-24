@@ -209,7 +209,8 @@ def test_best_trial_can_leave_one_trial_out(tmp_path):
     )
     assert before.trial_id == "trial_000001"
     assert (
-        store.get_best_trial("study", "wer", "min", exclude_trial_id="trial_000001")
-        .trial_id
+        store.get_best_trial(
+            "study", "wer", "min", exclude_trial_id="trial_000001"
+        ).trial_id
         == "trial_000002"
     )
