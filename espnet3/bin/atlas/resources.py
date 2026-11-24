@@ -7,6 +7,8 @@ from importlib import resources
 from string import Template
 from typing import Any
 
+from omegaconf import DictConfig, OmegaConf
+
 _ROOT = resources.files("espnet3.bin.atlas").joinpath("resources")
 
 
@@ -92,3 +94,17 @@ def shape_to_schema(shape: dict[str, Any]) -> dict[str, Any]:
     schema = convert(shape)
     schema["required"] = list(shape)
     return schema
+
+
+def load_agent_defaults() -> DictConfig:
+    """Read ``resources/agent_defaults.yaml``, the defaults of ``atlas.agent``.
+
+    Returns:
+        DictConfig: The default coding-agent settings.
+
+    Example:
+        >>> load_agent_defaults().codex.sandbox
+        'workspace-write'
+    """
+    text = _ROOT.joinpath("agent_defaults.yaml").read_text(encoding="utf-8")
+    return OmegaConf.create(text)

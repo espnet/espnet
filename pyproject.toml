@@ -124,7 +124,11 @@ include = ["espnet*", "egs3*", "splet*"]
 
 [tool.setuptools.package-data]
 egs3 = ["egs3/TEMPLATE/**/*.yaml"]
-"espnet3.bin.atlas" = ["resources/**/*.md", "resources/**/*.json"]
+"espnet3.bin.atlas" = [
+  "resources/**/*.md",
+  "resources/**/*.json",
+  "resources/**/*.yaml",
+]
 # splet/egs/ is deliberately not shipped: it holds one example config to copy
 # out of the repository, nothing loads it through importlib.resources, and it
 # is not a package (no __init__.py).

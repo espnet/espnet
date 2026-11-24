@@ -13,15 +13,11 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
+from omegaconf import DictConfig, OmegaConf
+
 from espnet3.bin.atlas.agents.structured_output import decode_response_object
-from espnet3.bin.atlas.core.models import (
-    AgentConfig,
-    AgentRequest,
-    AgentResponse,
-    ClaudeConfig,
-    CodexConfig,
-)
-from espnet3.bin.atlas.resources import load_prompt
+from espnet3.bin.atlas.core.models import AgentRequest, AgentResponse
+from espnet3.bin.atlas.resources import load_agent_defaults, load_prompt
 
 
 def _toml_value(value: Any) -> str:
@@ -44,6 +40,36 @@ def _toml_value(value: Any) -> str:
     raise TypeError(f"Unsupported Codex config value: {type(value).__name__}")
 
 
+def build_agent_config(config) -> DictConfig:
+    """Merge ``atlas.agent`` settings over the packaged defaults and validate them.
+
+    Args:
+        config: Mapping or OmegaConf node with at least ``provider``
+            (``"codex"`` or ``"claude"``, case-insensitive).
+
+    Returns:
+        DictConfig: The complete agent settings; see
+        ``resources/agent_defaults.yaml`` for every key.
+
+    Raises:
+        ValueError: If ``provider`` is missing or unsupported, or
+            ``structured_output_retries`` is not a nonnegative integer.
+
+    Example:
+        >>> build_agent_config({"provider": "Claude"}).claude.permission_mode
+        'bypassPermissions'
+    """
+    merged = OmegaConf.merge(load_agent_defaults(), config or {})
+    provider = str(merged.provider or "").lower()
+    if provider not in {"codex", "claude"}:
+        raise ValueError("atlas.agent.provider must be 'codex' or 'claude'")
+    merged.provider = provider
+    retries = merged.structured_output_retries
+    if isinstance(retries, bool) or not isinstance(retries, int) or retries < 0:
+        raise ValueError("structured_output_retries must be a nonnegative integer")
+    return merged
+
+
 class CliAgent:
     """Invoke the Codex or Claude Code CLI as a subprocess and parse its response.
 
@@ -59,24 +85,19 @@ class CliAgent:
         """Configure the Codex/Claude Code CLI wrapper.
 
         Args:
-            config: An ``AgentConfig``, or a mapping/OmegaConf node parsed
-                via ``AgentConfig.from_config``.
+            config: Mapping or OmegaConf node of ``atlas.agent``, merged over
+                the defaults by :func:`build_agent_config`.
             recipe_dir: Recipe root; used as the default working directory
                 when ``config.cwd`` is unset.
 
         Raises:
-            ValueError: If ``structured_output_retries`` is not a
-                nonnegative integer.
+            ValueError: If ``provider`` or ``structured_output_retries`` is
+                invalid.
         """
-        if isinstance(config, AgentConfig):
-            self.config = config
-        else:
-            self.config = AgentConfig.from_config(config)
+        self.config = build_agent_config(config)
+        self.env = {str(key): str(value) for key, value in self.config.env.items()}
         self.recipe_dir = Path(recipe_dir).resolve()
         self.cwd = Path(self.config.cwd or self.recipe_dir).resolve()
-        retries = self.config.structured_output_retries
-        if isinstance(retries, bool) or not isinstance(retries, int) or retries < 0:
-            raise ValueError("structured_output_retries must be a nonnegative integer")
 
     def _build_prompt(self, request: AgentRequest) -> str:
         """Render an ``AgentRequest`` into the plain-text prompt sent to Codex/Claude.
@@ -177,9 +198,9 @@ class CliAgent:
                 command.extend(["--sandbox", options.sandbox])
         if options.model:
             command.extend(["--model", options.model])
-        for key, value in options.config.items():
+        for key, value in OmegaConf.to_container(options.config).items():
             command.extend(["-c", f"{key}={_toml_value(value)}"])
-        command.extend(options.args)
+        command.extend(str(arg) for arg in options.args)
         command.extend(["--output-last-message", str(output_path)])
         command.append("-")
         return command
@@ -208,10 +229,10 @@ class CliAgent:
         if options.max_turns is not None:
             command.extend(["--max-turns", str(options.max_turns)])
         if options.allowed_tools:
-            command.extend(["--allowedTools", *options.allowed_tools])
+            command.extend(["--allowedTools", *map(str, options.allowed_tools)])
         if options.disallowed_tools:
-            command.extend(["--disallowedTools", *options.disallowed_tools])
-        command.extend(options.args)
+            command.extend(["--disallowedTools", *map(str, options.disallowed_tools)])
+        command.extend(str(arg) for arg in options.args)
         if request.output_schema:
             command.extend(["--json-schema", json.dumps(request.output_schema)])
         if request.resume_thread_id:
@@ -405,7 +426,7 @@ class CliAgent:
                 text=True,
                 capture_output=True,
                 cwd=self.cwd,
-                env={**os.environ, **extra_env, **self.config.env},
+                env={**os.environ, **extra_env, **self.env},
                 timeout=self.config.timeout_sec,
                 check=False,
             )

@@ -9,10 +9,10 @@ from types import SimpleNamespace
 import pytest
 from omegaconf import OmegaConf
 
+from espnet3.bin.atlas.agents.cli import build_agent_config
 from espnet3.bin.atlas.core import AtlasError
 from espnet3.bin.atlas.core.graph import load_graph
 from espnet3.bin.atlas.core.models import (
-    AgentConfig,
     AgentRequest,
     AgentResponse,
     NodeConfig,
@@ -47,7 +47,7 @@ def _make_trial():
 
 def test_agent_config_selects_provider_and_preserves_cli_options():
     """Parse provider-specific CLI settings without losing local-model options."""
-    config = AgentConfig.from_config(
+    config = build_agent_config(
         {
             "provider": "codex",
             "codex": {
@@ -71,12 +71,12 @@ def test_agent_config_selects_provider_and_preserves_cli_options():
 def test_agent_config_rejects_unsupported_provider(provider):
     """Reject missing or unsupported agent selections with a clear error."""
     with pytest.raises(ValueError, match="provider must be 'codex' or 'claude'"):
-        AgentConfig.from_config({"provider": provider})
+        build_agent_config({"provider": provider})
 
 
 def test_agent_config_accepts_claude_options():
     """Parse Claude-specific options and normalize list values."""
-    config = AgentConfig.from_config(
+    config = build_agent_config(
         OmegaConf.create(
             {
                 "provider": "claude",
@@ -92,7 +92,7 @@ def test_agent_config_accepts_claude_options():
     assert config.claude.model == "sonnet"
     assert config.claude.allowed_tools == ["Read", "Bash"]
     assert config.claude.max_turns == 5
-    assert AgentConfig.from_config({"provider": "Claude"}).provider == "claude"
+    assert build_agent_config({"provider": "Claude"}).provider == "claude"
 
 
 def test_load_graph_infers_generic_skill_stage(tmp_path):
