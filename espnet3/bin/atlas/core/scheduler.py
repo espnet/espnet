@@ -13,20 +13,19 @@ from dataclasses import replace
 from datetime import datetime, timezone
 from pathlib import Path
 
+from filelock import FileLock
+from omegaconf import OmegaConf
+
 from espnet3.bin.atlas.agents.session import StudySessionAgentClient
 from espnet3.bin.atlas.core import AtlasError, InvalidAgentResponseError
-from espnet3.bin.atlas.core.config import convert_pairs_to_dict
 from espnet3.bin.atlas.core.graph import Resources, load_stage_class
 from espnet3.bin.atlas.core.models import AgentRequest, StageContext, StageResult
-from espnet3.bin.atlas.core.serialization import (
-    dumps_json,
+from espnet3.bin.atlas.core.state import JobRecord
+from espnet3.bin.atlas.core.utils import (
+    convert_pairs_to_dict,
     get_utc_now,
-    load_yaml,
-    loads_json,
-    lock_file,
     write_text_atomically,
 )
-from espnet3.bin.atlas.core.state import JobRecord
 from espnet3.bin.atlas.resources import load_prompt, load_schema
 
 
@@ -632,9 +631,9 @@ class AtlasGraphRuntime:
                 "external_id": job.external_id,
                 "status": job.status,
                 "job_type": job.job_type,
-                "command": loads_json(job.command_json).get("command", []),
-                "metadata": loads_json(job.command_json).get("metadata", {}),
-                "resources": loads_json(job.resources_json or "{}"),
+                "command": json.loads(job.command_json).get("command", []),
+                "metadata": json.loads(job.command_json).get("metadata", {}),
+                "resources": json.loads(job.resources_json or "{}"),
                 "workdir": job.workdir,
                 "stdout": job.stdout_path,
                 "stderr": job.stderr_path,
@@ -797,7 +796,11 @@ class AtlasGraphRuntime:
             repo_context="",
             trial_history_csv="",
             latest_metrics={},
-            context_files={"submission_request": dumps_json(request_context)},
+            context_files={
+                "submission_request": json.dumps(
+                    request_context, ensure_ascii=False, indent=2, default=str
+                )
+            },
             allowed_actions=[
                 "inspect the supplied study and job context",
                 "submit or query only the supplied job(s)",
@@ -910,10 +913,12 @@ class AtlasGraphRuntime:
             backend=backend,
             external_id=str(result["external_id"]),
             status="submitted",
-            command_json=dumps_json(
-                {"command": command, "metadata": job_metadata}, indent=None
+            command_json=json.dumps(
+                {"command": command, "metadata": job_metadata},
+                ensure_ascii=False,
+                default=str,
             ),
-            resources_json=dumps_json(resources.__dict__, indent=None),
+            resources_json=json.dumps(resources.__dict__, ensure_ascii=False),
             workdir=str(workdir),
             stdout_path=str(stdout),
             stderr_path=str(stderr),
@@ -1140,7 +1145,7 @@ class AtlasGraphRuntime:
         result = dict(response.structured)
         result["key_metrics"] = convert_pairs_to_dict(result["key_metrics"])
         (artifact_dir / "decision.json").write_text(
-            dumps_json(result), encoding="utf-8"
+            json.dumps(result, ensure_ascii=False, indent=2), encoding="utf-8"
         )
         return result
 
@@ -1252,7 +1257,7 @@ class AtlasGraphRuntime:
             return
 
         kp_file = trial_dir / "keypoints_checked.json"
-        with lock_file(trial_dir / ".lock_keypoints"):
+        with FileLock(trial_dir / ".lock_keypoints"):
             checked = self._load_checked_keypoints(kp_file)
             unchecked = [
                 keypoint
@@ -1293,7 +1298,7 @@ class AtlasGraphRuntime:
             kp_dir = trial_dir / "keypoints" / f"{primary_kind}_{primary_target:06d}"
             kp_dir.mkdir(parents=True, exist_ok=True)
             (kp_dir / "triggers.json").write_text(
-                dumps_json(
+                json.dumps(
                     {
                         "triggers": [
                             {"kind": kind, "target": target, "label": label}
@@ -1302,7 +1307,9 @@ class AtlasGraphRuntime:
                         "current_epoch": current_epoch,
                         "current_iteration": current_iteration,
                         "elapsed_gpu_runtime_sec": elapsed_seconds,
-                    }
+                    },
+                    ensure_ascii=False,
+                    indent=2,
                 ),
                 encoding="utf-8",
             )
@@ -1317,7 +1324,9 @@ class AtlasGraphRuntime:
 
             for kind, target, _ in unchecked:
                 checked[kind].append(target)
-            kp_file.write_text(dumps_json(checked), encoding="utf-8")
+            kp_file.write_text(
+                json.dumps(checked, ensure_ascii=False, indent=2), encoding="utf-8"
+            )
 
         if result and result.get("should_stop"):
             self._stop_trial_early(trial, trial_dir, result)
@@ -1342,7 +1351,7 @@ class AtlasGraphRuntime:
         budget = self.config.atlas.budget
         max_parallel = int(getattr(budget, "max_parallel_trials", 1) or 1)
         max_trials = int(getattr(budget, "max_trials", 0) or 0)
-        with lock_file(self.study_dir / ".lock_proposal_scheduler"):
+        with FileLock(self.study_dir / ".lock_proposal_scheduler"):
             trials = self.state.list_trials(self.study_id)
             node_runs = self.state.list_node_runs(self.study_id)
             active_trial_jobs = sum(
@@ -1401,7 +1410,7 @@ class AtlasGraphRuntime:
         if not path.is_file():
             return False
         try:
-            status = load_yaml(path)
+            status = OmegaConf.to_container(OmegaConf.load(path), resolve=True)
             return status["stages"]["train"]["status"] == "completed"
         except (KeyError, TypeError, ValueError):
             return False
@@ -1441,7 +1450,7 @@ class AtlasGraphRuntime:
         """Submit pending trial nodes under one study-wide scheduler lock."""
         if (self.study_dir / "STOP").exists():
             return
-        with lock_file(self.study_dir / ".lock_trial_submit"):
+        with FileLock(self.study_dir / ".lock_trial_submit"):
             self._submit_pending_trial_nodes_locked()
 
     def _submit_pending_trial_nodes_locked(self) -> None:

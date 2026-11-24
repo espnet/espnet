@@ -6,7 +6,7 @@ import csv
 import io
 from pathlib import Path
 
-from espnet3.bin.atlas.core.serialization import flatten_dict, write_text_atomically
+from espnet3.bin.atlas.core.utils import flatten_dict, write_text_atomically
 
 
 def sync_trials_csv(state, study_dir: Path, study_id: str) -> None:

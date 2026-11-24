@@ -9,15 +9,11 @@ from dataclasses import asdict
 from datetime import datetime, timezone
 from pathlib import Path
 
+from filelock import FileLock
+
 from espnet3.bin.atlas.core.models import JobRecord, StageResult, Study, Trial
 from espnet3.bin.atlas.core.reports import sync_trials_csv
-from espnet3.bin.atlas.core.serialization import (
-    dumps_json,
-    get_utc_now,
-    loads_json,
-    lock_file,
-    write_text_atomically,
-)
+from espnet3.bin.atlas.core.utils import get_utc_now, write_text_atomically
 
 TABLES = ("studies", "trials", "node_runs", "jobs", "events")
 
@@ -52,7 +48,7 @@ class StateStore:
             return []
         with path.open(newline="", encoding="utf-8") as f:
             return [
-                {key: loads_json(value) for key, value in row.items() if value != ""}
+                {key: json.loads(value) for key, value in row.items() if value != ""}
                 for row in csv.DictReader(f)
             ]
 
@@ -64,18 +60,21 @@ class StateStore:
         writer.writeheader()
         for row in rows:
             writer.writerow(
-                {key: dumps_json(value, indent=None) for key, value in row.items()}
+                {
+                    key: json.dumps(value, ensure_ascii=False)
+                    for key, value in row.items()
+                }
             )
         write_text_atomically(self._get_table_path(table), buffer.getvalue())
 
     def _read_table_rows(self, table: str) -> list[dict]:
         """Read a table's rows while holding the study's state lock."""
-        with lock_file(self.lock_path):
+        with FileLock(self.lock_path):
             return self._read_unlocked(table)
 
     def _upsert(self, table: str, key: str, value: dict) -> None:
         """Replace the record matching this table's primary key."""
-        with lock_file(self.lock_path):
+        with FileLock(self.lock_path):
             rows = self._read_unlocked(table)
             key_field = {
                 "studies": "study_id",
@@ -102,7 +101,7 @@ class StateStore:
             >>> store.create_or_load_study("my_study", Path("exp/atlas/my_study")).status
             'initialized'
         """
-        with lock_file(self.lock_path):
+        with FileLock(self.lock_path):
             rows = self._read_unlocked("studies")
             for row in rows:
                 if row["study_id"] == study_id:
@@ -137,7 +136,7 @@ class StateStore:
 
     def _update_study(self, study_id: str, **changes) -> None:
         """Merge ``changes`` into a study's row and bump its ``updated_at``."""
-        with lock_file(self.lock_path):
+        with FileLock(self.lock_path):
             rows = self._read_unlocked("studies")
             for row in rows:
                 if row["study_id"] == study_id:
@@ -243,7 +242,7 @@ class StateStore:
             trial_id=data["trial_id"],
             study_id=data["study_id"],
             status=data["status"],
-            config_patch=loads_json(data.get("config_patch_json") or "{}"),
+            config_patch=json.loads(data.get("config_patch_json") or "{}"),
             resolved_config_path=(
                 Path(data["resolved_config_path"])
                 if data.get("resolved_config_path")
@@ -260,11 +259,11 @@ class StateStore:
             created_at=data["created_at"],
             updated_at=data["updated_at"],
             recovery_active=bool(data.get("recovery_active", False)),
-            metrics=loads_json(data.get("metrics_json") or "{}"),
+            metrics=json.loads(data.get("metrics_json") or "{}"),
             reflection=data.get("reflection") or "",
             next_suggestion=data.get("next_suggestion") or "",
             codex_thread_id=data.get("codex_thread_id"),
-            extra_stages=loads_json(data.get("extra_stages_json") or "[]"),
+            extra_stages=json.loads(data.get("extra_stages_json") or "[]"),
         )
 
     @staticmethod
@@ -275,14 +274,14 @@ class StateStore:
             "study_id": trial.study_id,
             "status": trial.status,
             "parent_trial_id": trial.parent_trial_id,
-            "config_patch_json": dumps_json(trial.config_patch, None),
+            "config_patch_json": json.dumps(trial.config_patch, ensure_ascii=False),
             "resolved_config_path": (
                 str(trial.resolved_config_path) if trial.resolved_config_path else None
             ),
             "rationale": trial.rationale,
             "expected_effect": trial.expected_effect,
             "risk": trial.risk,
-            "metrics_json": dumps_json(trial.metrics, None),
+            "metrics_json": json.dumps(trial.metrics, ensure_ascii=False),
             "score": trial.score,
             "score_name": trial.score_name,
             "decision": trial.decision,
@@ -293,7 +292,7 @@ class StateStore:
             "created_at": trial.created_at,
             "updated_at": trial.updated_at,
             "codex_thread_id": trial.codex_thread_id,
-            "extra_stages_json": dumps_json(trial.extra_stages, None),
+            "extra_stages_json": json.dumps(trial.extra_stages, ensure_ascii=False),
         }
 
     def create_trial(self, trial: Trial) -> Trial:
@@ -448,7 +447,7 @@ class StateStore:
 
     def _update_node_run(self, run_id: str, **changes) -> None:
         """Merge ``changes`` into one node run's row, by ``run_id``."""
-        with lock_file(self.lock_path):
+        with FileLock(self.lock_path):
             rows = self._read_unlocked("node_runs")
             for row in rows:
                 if row["run_id"] == run_id:
@@ -590,7 +589,7 @@ class StateStore:
         Example:
             >>> store.update_job_status("job_1", "completed")
         """
-        with lock_file(self.lock_path):
+        with FileLock(self.lock_path):
             rows = self._read_unlocked("jobs")
             for row in rows:
                 if row["job_id"] == job_id:
@@ -725,7 +724,7 @@ class StateStore:
         Example:
             >>> store.append_event("my_study", "node_started", {"run_id": "run_1"})
         """
-        with lock_file(self.lock_path):
+        with FileLock(self.lock_path):
             rows = self._read_unlocked("events")
             rows.append(
                 {
@@ -733,7 +732,9 @@ class StateStore:
                     "study_id": study_id,
                     "timestamp": get_utc_now(),
                     "event_type": event_type,
-                    "payload_json": dumps_json(payload, None),
+                    "payload_json": json.dumps(
+                        payload, ensure_ascii=False, default=str
+                    ),
                 }
             )
             self._write_unlocked("events", rows)

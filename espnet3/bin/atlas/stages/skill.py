@@ -2,21 +2,17 @@
 
 from __future__ import annotations
 
-from dataclasses import fields
+import json
+from dataclasses import asdict, fields
 from pathlib import Path
 
 from espnet3.bin.atlas.core.models import AgentRequest, StageResult, Trial
-from espnet3.bin.atlas.core.serialization import (
-    dumps_json,
+from espnet3.bin.atlas.core.utils import (
+    read_optional,
     to_plain_data,
     write_text_atomically,
 )
 from espnet3.bin.atlas.stages.base import BaseStage
-
-
-def read_optional(path: Path) -> str:
-    """Read a text file, or return an empty string if it does not exist."""
-    return path.read_text(encoding="utf-8") if path.is_file() else ""
 
 
 def build_reply_schema(node) -> dict:
@@ -97,10 +93,11 @@ class SkillStage(BaseStage):
                 "study_dir": str(context.study_dir),
                 "recipe_dir": str(context.recipe_dir),
                 "trial_dir": str(trial_dir),
-                "current_trial": dumps_json(to_plain_data(trial)) if trial else "",
-                "skill_context": dumps_json(to_plain_data(node.skill_context)),
-                "code_edit_config": dumps_json(
-                    to_plain_data(getattr(context.config.atlas, "code_edit", {}))
+                "current_trial": json.dumps(asdict(trial), indent=2) if trial else "",
+                "skill_context": json.dumps(node.skill_context, indent=2),
+                "code_edit_config": json.dumps(
+                    to_plain_data(getattr(context.config.atlas, "code_edit", {})),
+                    indent=2,
                 ),
                 "stop_after_trial": str(context.scheduler.should_stop()).lower(),
             },

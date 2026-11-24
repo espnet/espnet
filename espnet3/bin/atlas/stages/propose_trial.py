@@ -7,20 +7,17 @@ from pathlib import Path
 
 from omegaconf import OmegaConf
 
-from espnet3.bin.atlas.core.config import (
-    convert_pairs_to_dict,
-    load_recipe_stage_config,
-    split_patch_by_search_space,
-    write_resolved_config,
-)
 from espnet3.bin.atlas.core.models import AgentRequest, StageResult, Trial
-from espnet3.bin.atlas.core.serialization import (
+from espnet3.bin.atlas.core.utils import (
     apply_dotted_patch,
+    convert_pairs_to_dict,
     get_utc_now,
     save_yaml,
+    split_patch_by_search_space,
 )
 from espnet3.bin.atlas.resources import load_schema
 from espnet3.bin.atlas.stages.base import BaseStage
+from espnet3.utils.config_utils import load_and_merge_config
 
 ALLOWED_ACTIONS_BY_APPLICATION = {
     "hyperparameter_search": ["config_patch_only"],
@@ -210,10 +207,10 @@ class ProposeTrialStage(BaseStage):
         def _load_base_config_text(config_path_key: str, config_name: str) -> str:
             """Return the recipe's base stage config as YAML, or "(unavailable)" on error."""
             try:
-                cfg = load_recipe_stage_config(
-                    context.recipe_dir,
-                    Path(getattr(context.config.atlas.recipe, config_path_key)),
-                    config_name,
+                cfg = load_and_merge_config(
+                    context.recipe_dir
+                    / getattr(context.config.atlas.recipe, config_path_key),
+                    config_name=config_name,
                     resolve=False,
                 )
                 return OmegaConf.to_yaml(cfg)
@@ -344,16 +341,13 @@ class ProposeTrialStage(BaseStage):
         # (e.g. model.vocab_size: ${tokenizer.vocab_size}) remain as strings.
         # Applying the patch before resolution ensures dependent fields propagate
         # correctly when tokenizer settings change.
-        train_cfg = load_recipe_stage_config(
-            context.recipe_dir,
-            Path(context.config.atlas.recipe.training_config),
-            "training.yaml",
+        train_cfg = load_and_merge_config(
+            context.recipe_dir / context.config.atlas.recipe.training_config,
+            config_name="training.yaml",
             resolve=False,
         )
-        train_unresolved = OmegaConf.to_container(train_cfg, resolve=False)
-        train_unresolved = apply_dotted_patch(train_unresolved, effective_patch)
         train_plain = OmegaConf.to_container(
-            OmegaConf.create(train_unresolved), resolve=True
+            apply_dotted_patch(train_cfg, effective_patch), resolve=True
         )
         # Sparse patches can differ while resolving to the same effective
         # training configuration (for example, omitting a key at its default
@@ -385,7 +379,7 @@ class ProposeTrialStage(BaseStage):
                 )
 
         training_out = trial_dir / "resolved_training_config.yaml"
-        write_resolved_config(training_out, OmegaConf.create(train_plain))
+        save_yaml(training_out, train_plain)
 
         # Evaluation is a study invariant.  Never apply either training HPs or
         # agent-provided config_patches.inference/metrics to these configs; only
@@ -398,16 +392,16 @@ class ProposeTrialStage(BaseStage):
             ("inference_config", "inference.yaml", "resolved_inference_config.yaml"),
             ("metrics_config", "metrics.yaml", "resolved_metrics_config.yaml"),
         ]:
-            cfg = load_recipe_stage_config(
-                context.recipe_dir,
-                Path(getattr(context.config.atlas.recipe, config_key)),
-                config_name,
+            cfg = load_and_merge_config(
+                context.recipe_dir
+                / getattr(context.config.atlas.recipe, config_key),
+                config_name=config_name,
                 resolve=False,
             )
-            unresolved = OmegaConf.to_container(cfg, resolve=False)
-            unresolved = apply_dotted_patch(unresolved, runtime_inference_paths)
-            plain = OmegaConf.to_container(OmegaConf.create(unresolved), resolve=True)
-            write_resolved_config(trial_dir / out_name, OmegaConf.create(plain))
+            plain = OmegaConf.to_container(
+                apply_dotted_patch(cfg, runtime_inference_paths), resolve=True
+            )
+            save_yaml(trial_dir / out_name, plain)
 
         inference_out = trial_dir / "resolved_inference_config.yaml"
         metrics_out = trial_dir / "resolved_metrics_config.yaml"

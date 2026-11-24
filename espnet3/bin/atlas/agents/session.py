@@ -6,9 +6,11 @@ import contextlib
 from dataclasses import replace
 from pathlib import Path
 
+from filelock import FileLock
+
 from espnet3.bin.atlas.core import InvalidAgentResponseError
 from espnet3.bin.atlas.core.models import AgentRequest, AgentResponse
-from espnet3.bin.atlas.core.serialization import lock_file, write_text_atomically
+from espnet3.bin.atlas.core.utils import write_text_atomically
 from espnet3.bin.atlas.resources import load_prompt
 
 
@@ -82,7 +84,7 @@ class StudySessionAgentClient:
             >>> with client.lock_session() as session_id:
             ...     pass
         """
-        with lock_file(self._lock_path):
+        with FileLock(self._lock_path):
             persisted = self._state.get_agent_session_id(self._study_id)
             self.session_id = self._configured_session_id or persisted
             if self._configured_session_id and self._configured_session_id != persisted:

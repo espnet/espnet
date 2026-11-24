@@ -5,7 +5,6 @@ import json
 from datetime import datetime, timedelta, timezone
 
 from espnet3.bin.atlas.core.models import JobRecord, Trial
-from espnet3.bin.atlas.core.serialization import lock_file
 from espnet3.bin.atlas.core.state import StateStore
 
 
@@ -138,28 +137,6 @@ def test_events_csv_preserves_json_payload(tmp_path):
         "message": 'a,b "c"',
         "count": 2,
     }
-
-
-def test_file_lock_retries_after_contention(monkeypatch, tmp_path):
-    """Retry advisory lock acquisition after a one-second contention wait."""
-    import espnet3.bin.atlas.core.serialization as serialization
-
-    original_flock = serialization.fcntl.flock
-    attempts = 0
-    waits = []
-
-    def flaky_flock(fd, operation):
-        nonlocal attempts
-        if operation & serialization.fcntl.LOCK_NB and attempts == 0:
-            attempts += 1
-            raise BlockingIOError
-        return original_flock(fd, operation)
-
-    monkeypatch.setattr(serialization.fcntl, "flock", flaky_flock)
-    monkeypatch.setattr(serialization.time, "sleep", waits.append)
-    with lock_file(tmp_path / "state.lock"):
-        pass
-    assert waits == [1]
 
 
 def test_cmd_status_reports_jobs_and_stop_file(tmp_path, capsys):

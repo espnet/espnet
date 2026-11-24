@@ -5,7 +5,7 @@ from __future__ import annotations
 import csv
 
 from espnet3.bin.atlas.core.models import StageResult
-from espnet3.bin.atlas.core.serialization import save_yaml
+from espnet3.bin.atlas.core.utils import save_yaml
 from espnet3.bin.atlas.stages.base import BaseStage
 
 

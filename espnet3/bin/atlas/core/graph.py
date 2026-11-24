@@ -6,9 +6,10 @@ import importlib
 import sys
 from pathlib import Path
 
+from omegaconf import OmegaConf
+
 from espnet3.bin.atlas.core import AtlasError
 from espnet3.bin.atlas.core.models import NodeConfig, ResearchGraph, Resources
-from espnet3.bin.atlas.core.serialization import load_yaml
 
 
 def load_stage_class(target: str, recipe_dir: Path | None = None) -> type:
@@ -63,7 +64,7 @@ def load_graph(path: Path, recipe_dir: Path | None = None) -> ResearchGraph:
         >>> graph.start
         'research_context'
     """
-    raw = load_yaml(path)
+    raw = OmegaConf.to_container(OmegaConf.load(path), resolve=True)
     if not isinstance(raw, dict):
         raise AtlasError(f"Graph YAML must be a mapping: {path}")
     nodes_raw = raw.get("nodes")

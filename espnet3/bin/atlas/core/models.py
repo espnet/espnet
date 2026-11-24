@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 import logging
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -10,7 +11,6 @@ from typing import TYPE_CHECKING, Any, Literal
 from omegaconf import DictConfig
 
 from espnet3.bin.atlas.core import AtlasError
-from espnet3.bin.atlas.core.serialization import dumps_json, loads_json
 
 if TYPE_CHECKING:
     from espnet3.bin.atlas.core.graph import ResearchGraph
@@ -498,14 +498,14 @@ class StageResult:
             None.
 
         Returns:
-            str: JSON text, as produced by :func:`dumps_json` on
+            str: JSON text, as produced by :func:`json.dumps` on
             :meth:`to_dict`.
 
         Example:
             >>> StageResult(status="success").to_json()
             '{\\n  "status": "success",\\n  ...\\n}'
         """
-        return dumps_json(self.to_dict())
+        return json.dumps(self.to_dict(), ensure_ascii=False, indent=2, default=str)
 
     @classmethod
     def from_json(cls, text: str) -> "StageResult":
@@ -521,7 +521,7 @@ class StageResult:
             >>> StageResult.from_json('{"status": "success"}').status
             'success'
         """
-        return cls(**loads_json(text))
+        return cls(**json.loads(text))
 
 
 @dataclass

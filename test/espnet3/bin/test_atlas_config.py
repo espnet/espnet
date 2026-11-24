@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from omegaconf import OmegaConf
 
-from espnet3.bin.atlas.core.config import split_patch_by_search_space
+from espnet3.bin.atlas.core.utils import split_patch_by_search_space
 
 
 def _space(allowed=None, denied=None):
@@ -130,7 +130,7 @@ def test_the_controller_runs_in_local_or_queue(tmp_path):
 
 
 def test_pairs_become_a_dict_and_a_repeated_key_keeps_the_last_value():
-    from espnet3.bin.atlas.core.config import convert_pairs_to_dict
+    from espnet3.bin.atlas.core.utils import convert_pairs_to_dict
 
     pairs = [
         {"key": "optimizer.lr", "value": 0.1},
@@ -140,3 +140,37 @@ def test_pairs_become_a_dict_and_a_repeated_key_keeps_the_last_value():
 
     assert convert_pairs_to_dict(pairs) == {"optimizer.lr": 0.2, "model.dims": [1, 2]}
     assert convert_pairs_to_dict([]) == {}
+
+
+def test_dotted_patch_sets_nested_keys_and_indexes_into_lists():
+    import pytest
+    from omegaconf import OmegaConf
+
+    from espnet3.bin.atlas.core.utils import apply_dotted_patch
+
+    cfg = OmegaConf.create(
+        {
+            "trainer": {"lr": 0.1, "alias": "${trainer.lr}"},
+            "dataset": {"train": [{"t": {"p": [1, 2]}}, {"u": 1}]},
+            "d": {"a": 1, "b": 2},
+        }
+    )
+
+    apply_dotted_patch(
+        cfg,
+        {
+            "trainer.lr": 0.2,
+            "new.deep.key": 5,
+            "dataset.train.1.u": 7,
+            "dataset.train.0.t.p": [3],
+            "d": {"c": 3},
+        },
+    )
+
+    plain = OmegaConf.to_container(cfg, resolve=False)
+    assert plain["trainer"] == {"lr": 0.2, "alias": "${trainer.lr}"}
+    assert plain["new"] == {"deep": {"key": 5}}
+    assert plain["dataset"]["train"] == [{"t": {"p": [3]}}, {"u": 7}]
+    assert plain["d"] == {"c": 3}  # replaced, not merged
+    with pytest.raises(Exception, match="out of range"):
+        apply_dotted_patch(cfg, {"dataset.train.5.u": 1})

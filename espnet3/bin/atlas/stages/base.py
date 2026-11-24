@@ -4,12 +4,10 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 
+from filelock import FileLock
+
 from espnet3.bin.atlas.core.models import StageResult
-from espnet3.bin.atlas.core.serialization import (
-    get_utc_now,
-    lock_file,
-    write_text_atomically,
-)
+from espnet3.bin.atlas.core.utils import get_utc_now, write_text_atomically
 
 
 class BaseStage(ABC):
@@ -53,7 +51,7 @@ class BaseStage(ABC):
         if self.study_lock_name is None:
             result = self.run(context)
         else:
-            with lock_file(context.study_dir / f".lock_{self.study_lock_name}"):
+            with FileLock(context.study_dir / f".lock_{self.study_lock_name}"):
                 result = self.run(context)
         target = success_path
         if result.status in {"failure", "timeout", "retry"}:

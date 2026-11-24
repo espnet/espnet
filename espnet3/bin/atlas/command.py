@@ -13,17 +13,15 @@ import uuid
 from importlib import resources
 from pathlib import Path
 
+from filelock import FileLock
 from omegaconf import OmegaConf
 
 from espnet3.bin.atlas.agents.cli import CliAgent
-from espnet3.bin.atlas.core.config import (
-    load_atlas_config,
-    write_resolved_config,
-)
+from espnet3.bin.atlas.core.config import load_atlas_config
 from espnet3.bin.atlas.core.graph import Resources, load_graph
 from espnet3.bin.atlas.core.scheduler import AtlasGraphRuntime
-from espnet3.bin.atlas.core.serialization import lock_file
 from espnet3.bin.atlas.core.state import StateStore
+from espnet3.bin.atlas.core.utils import save_yaml
 
 
 def _configure_logging() -> None:
@@ -147,7 +145,7 @@ def handle_init(args) -> int:
 
     # 3. Freeze the study's config and graph inside the study directory. Later
     #    commands (run, status, the trial jobs) read these copies, not the recipe.
-    write_resolved_config(study_dir / "atlas.yaml", config)
+    save_yaml(study_dir / "atlas.yaml", config)
     shutil.copyfile(graph_src, study_dir / "graph.yaml")
 
     # 4. Register the study in the state tables.
@@ -203,7 +201,7 @@ def _ensure_tick_job(
         tick job B                   [tick·tick·tick]··✕
                                                     ▲ handoff: B submits C, ...
     """
-    with lock_file(runtime.study_dir / ".lock_study_controller"):
+    with FileLock(runtime.study_dir / ".lock_study_controller"):
         # Correct the recorded status of tick jobs that died, so that a dead
         # controller is not mistaken for a live one below.
         runtime.reconcile_tick_jobs(exclude_job_id=exclude_job_id)

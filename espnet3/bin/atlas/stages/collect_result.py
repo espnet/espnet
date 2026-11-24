@@ -3,12 +3,12 @@
 from __future__ import annotations
 
 import json
+import re
 from pathlib import Path
 from typing import Any
 
 from espnet3.bin.atlas.core import AtlasError
 from espnet3.bin.atlas.core.models import StageResult
-from espnet3.bin.atlas.core.serialization import convert_pattern_to_regex
 from espnet3.bin.atlas.stages.base import BaseStage
 
 
@@ -51,7 +51,9 @@ def _extract_from_pattern(path: Path, pattern: str) -> float:
         AtlasError: If ``pattern`` does not match anywhere in the
             file.
     """
-    regex = convert_pattern_to_regex(pattern)
+    regex = re.compile(
+        re.escape(pattern).replace(r"\{value\}", r"(?P<value>[-+]?\d*\.?\d+)")
+    )
     match = regex.search(path.read_text(encoding="utf-8", errors="replace"))
     if match is None:
         raise AtlasError(f"Pattern '{pattern}' not found in {path}")

@@ -5,7 +5,9 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any
 
-from espnet3.bin.atlas.core.serialization import get_utc_now, load_yaml, save_yaml
+from omegaconf import OmegaConf
+
+from espnet3.bin.atlas.core.utils import get_utc_now, save_yaml
 
 _STATUS_FILENAME = "stage_status.yaml"
 
@@ -15,7 +17,7 @@ def _read_stage_status(trial_dir: Path) -> dict[str, Any]:
     path = trial_dir / _STATUS_FILENAME
     if not path.is_file():
         return {"version": 1, "stages": {}}
-    data = load_yaml(path)
+    data = OmegaConf.to_container(OmegaConf.load(path), resolve=True)
     if not isinstance(data, dict) or not isinstance(data.get("stages"), dict):
         raise ValueError(f"Invalid stage status file: {path}")
     return data

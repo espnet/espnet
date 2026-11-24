@@ -2,20 +2,14 @@
 
 from __future__ import annotations
 
-from pathlib import Path
-
 from omegaconf import OmegaConf
 
-from espnet3.bin.atlas.core.config import (
-    convert_pairs_to_dict,
-    load_recipe_stage_config,
-    split_patch_by_search_space,
-    write_resolved_config,
-)
 from espnet3.bin.atlas.core.models import AgentRequest, StageResult
-from espnet3.bin.atlas.core.serialization import (
+from espnet3.bin.atlas.core.utils import (
     apply_dotted_patch,
+    convert_pairs_to_dict,
     save_yaml,
+    split_patch_by_search_space,
 )
 from espnet3.bin.atlas.resources import load_prompt, load_schema
 from espnet3.bin.atlas.stages.base import BaseStage
@@ -23,6 +17,7 @@ from espnet3.bin.atlas.stages.stage_status import (
     _invalidate_stages,
     _read_stage_status,
 )
+from espnet3.utils.config_utils import load_and_merge_config
 
 
 class DebugTrialStage(BaseStage):
@@ -86,13 +81,10 @@ class DebugTrialStage(BaseStage):
         def _load_base(config_path_key: str, config_name: str) -> str:
             """Return the recipe's base stage config as YAML, or "(unavailable)" on error."""
             try:
-                from espnet3.bin.atlas.core.config import (
-                    load_recipe_stage_config,
-                )
-                cfg = load_recipe_stage_config(
-                    context.recipe_dir,
-                    Path(getattr(context.config.atlas.recipe, config_path_key)),
-                    config_name,
+                cfg = load_and_merge_config(
+                    context.recipe_dir
+                    / getattr(context.config.atlas.recipe, config_path_key),
+                    config_name=config_name,
                     resolve=False,
                 )
                 return OmegaConf.to_yaml(cfg)
@@ -282,19 +274,16 @@ class DebugTrialStage(BaseStage):
             }
             combined_patch = {**combined_hp_patch, **runtime_patch}
 
-            train_cfg = load_recipe_stage_config(
-                context.recipe_dir,
-                Path(context.config.atlas.recipe.training_config),
-                "training.yaml",
+            train_cfg = load_and_merge_config(
+                context.recipe_dir / context.config.atlas.recipe.training_config,
+                config_name="training.yaml",
                 resolve=False,
             )
-            train_unresolved = OmegaConf.to_container(train_cfg, resolve=False)
-            train_unresolved = apply_dotted_patch(train_unresolved, combined_patch)
             merged_training = OmegaConf.to_container(
-                OmegaConf.create(train_unresolved), resolve=True
+                apply_dotted_patch(train_cfg, combined_patch), resolve=True
             )
             training_out = artifact_dir / "resolved_training_config.yaml"
-            write_resolved_config(training_out, OmegaConf.create(merged_training))
+            save_yaml(training_out, merged_training)
 
             # Update trial config_patch and persist
             trial.config_patch = combined_hp_patch
@@ -310,36 +299,29 @@ class DebugTrialStage(BaseStage):
                 "exp_dir": str(artifact_dir / "exp"),
                 "inference_dir": str(artifact_dir / "inference"),
             }
-            cfg = load_recipe_stage_config(
-                context.recipe_dir,
-                Path(context.config.atlas.recipe.inference_config),
-                "inference.yaml",
+            cfg = load_and_merge_config(
+                context.recipe_dir / context.config.atlas.recipe.inference_config,
+                config_name="inference.yaml",
                 resolve=False,
             )
-            unresolved = OmegaConf.to_container(cfg, resolve=False)
-            if combined_inference_patch:
-                unresolved = apply_dotted_patch(unresolved, combined_inference_patch)
-            unresolved = apply_dotted_patch(unresolved, runtime_only_infer)
-            plain = OmegaConf.to_container(OmegaConf.create(unresolved), resolve=True)
-            write_resolved_config(
-                artifact_dir / "resolved_inference_config.yaml",
-                OmegaConf.create(plain),
+            apply_dotted_patch(cfg, combined_inference_patch)
+            plain = OmegaConf.to_container(
+                apply_dotted_patch(cfg, runtime_only_infer), resolve=True
             )
+            save_yaml(artifact_dir / "resolved_inference_config.yaml", plain)
             if combined_inference_patch:
                 save_yaml(
                     inference_patch_file, combined_inference_patch, resolve=False
                 )
 
         if patch:
-            cfg = load_recipe_stage_config(
-                context.recipe_dir,
-                Path(context.config.atlas.recipe.metrics_config),
-                "metrics.yaml",
+            cfg = load_and_merge_config(
+                context.recipe_dir / context.config.atlas.recipe.metrics_config,
+                config_name="metrics.yaml",
                 resolve=False,
             )
-            unresolved = OmegaConf.to_container(cfg, resolve=False)
-            unresolved = apply_dotted_patch(
-                unresolved,
+            apply_dotted_patch(
+                cfg,
                 {
                     "recipe_dir": str(context.recipe_dir),
                     "data_dir": str(context.recipe_dir / "data"),
@@ -348,11 +330,8 @@ class DebugTrialStage(BaseStage):
                     "inference_dir": str(artifact_dir / "inference"),
                 },
             )
-            plain = OmegaConf.to_container(OmegaConf.create(unresolved), resolve=True)
-            write_resolved_config(
-                artifact_dir / "resolved_metrics_config.yaml",
-                OmegaConf.create(plain),
-            )
+            plain = OmegaConf.to_container(cfg, resolve=True)
+            save_yaml(artifact_dir / "resolved_metrics_config.yaml", plain)
 
         if files_modified:
             stage_status = _read_stage_status(artifact_dir)
