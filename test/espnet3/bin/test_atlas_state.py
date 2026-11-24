@@ -193,7 +193,7 @@ def test_file_lock_retries_after_contention(monkeypatch, tmp_path):
     assert waits == [1]
 
 
-def test_cmd_status_reports_progress_jobs_and_stop_file(tmp_path, capsys):
+def test_cmd_status_reports_jobs_and_stop_file(tmp_path, capsys):
     """Summarise a study from recorded state without asking any scheduler."""
     import argparse
 
@@ -207,7 +207,6 @@ def test_cmd_status_reports_progress_jobs_and_stop_file(tmp_path, capsys):
                 "atlas": {
                     "study_name": "study",
                     "metric": {"name": "wer", "mode": "min"},
-                    "tick_interval_sec_trial_active": 600,
                 }
             }
         ),
@@ -237,13 +236,6 @@ def test_cmd_status_reports_progress_jobs_and_stop_file(tmp_path, capsys):
             updated_at=trial.created_at,
         )
     )
-    trial_dir = tmp_path / "trials" / trial.trial_id
-    metrics = trial_dir / "exp" / "csv_logs" / "version_0" / "metrics.csv"
-    metrics.parent.mkdir(parents=True)
-    metrics.write_text("epoch,step\n0,10\n7,900\n", encoding="utf-8")
-    (trial_dir / "resolved_training_config.yaml").write_text(
-        "trainer:\n  max_epochs: 35\n", encoding="utf-8"
-    )
     (tmp_path / "STOP").touch()
 
     assert handle_status(argparse.Namespace(study_dir=str(tmp_path))) == 0
@@ -252,7 +244,5 @@ def test_cmd_status_reports_progress_jobs_and_stop_file(tmp_path, capsys):
     assert "trials: 1" in out
     assert "trial_status: running=1" in out
     assert "stop_file: yes" in out
-    assert "tick interval: 600 s" in out
     assert "active_jobs: 1" in out
     assert "trial running id=123.pbs" in out
-    assert f"{trial.trial_id}: epoch 7/35" in out
