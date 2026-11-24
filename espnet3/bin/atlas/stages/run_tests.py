@@ -7,11 +7,11 @@ import sys
 from pathlib import Path
 
 from espnet3.bin.atlas.core.models import StageResult
-from espnet3.bin.atlas.core.serialization import save_yaml, utc_now
-from espnet3.bin.atlas.stages.base import AtlasStage
+from espnet3.bin.atlas.core.serialization import get_utc_now, save_yaml
+from espnet3.bin.atlas.stages.base import BaseStage
 
 
-def _next_run_dir(trial_dir: Path) -> tuple[Path, int]:
+def _create_next_run_dir(trial_dir: Path) -> tuple[Path, int]:
     """Return (new_run_dir, run_index_1based) under trial_dir/test_runs/."""
     base = trial_dir / "test_runs"
     base.mkdir(parents=True, exist_ok=True)
@@ -42,7 +42,7 @@ def _find_test_dirs(recipe_dir: Path, allowed_dirs: list[str]) -> list[Path]:
     return candidates if candidates else [recipe_dir / rel for rel in allowed_dirs]
 
 
-class RunTestsStage(AtlasStage):
+class RunTestsStage(BaseStage):
     """Execute pytest over test files written by ``write_files``.
 
     On success routes to ``run_trial``.
@@ -80,8 +80,8 @@ class RunTestsStage(AtlasStage):
         )
         max_retries: int = int(getattr(code_edit_cfg, "max_test_retries", 5))
 
-        trial_dir = context.trial_dir()
-        run_dir, run_index = _next_run_dir(trial_dir)
+        trial_dir = context.get_trial_dir()
+        run_dir, run_index = _create_next_run_dir(trial_dir)
 
         if run_index > max_retries:
             return StageResult(
@@ -125,7 +125,7 @@ class RunTestsStage(AtlasStage):
                 "run_index": run_index,
                 "returncode": proc.returncode,
                 "cmd": cmd,
-                "timestamp": utc_now(),
+                "timestamp": get_utc_now(),
             },
         )
 

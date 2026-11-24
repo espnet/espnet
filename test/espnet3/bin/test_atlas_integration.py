@@ -141,7 +141,7 @@ def test_cli_runs_skill_graph_to_completion_with_dummy_agent(tmp_path, monkeypat
     assert node_runs[0]["status"] == "completed"
     assert node_runs[0]["result_status"] == "terminal"
     assert state.get_agent_session_id("integration-study") == "dummy-session"
-    assert state.agent_context_initialized("integration-study") is True
+    assert state.is_agent_context_initialized("integration-study") is True
     with (study_dir / "state_events.csv").open(newline="", encoding="utf-8") as handle:
         events = list(csv.DictReader(handle))
     assert [json.loads(event["event_type"]) for event in events] == [

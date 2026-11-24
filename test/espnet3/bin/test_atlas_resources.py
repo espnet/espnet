@@ -60,9 +60,9 @@ def test_every_packaged_schema_is_a_valid_json_schema():
 
 
 def test_shape_to_schema_requires_root_fields_and_declared_containers():
-    from espnet3.bin.atlas.resources import shape_to_schema
+    from espnet3.bin.atlas.resources import convert_shape_to_schema
 
-    schema = shape_to_schema(
+    schema = convert_shape_to_schema(
         {"status": "continue or done", "payload": {}, "files": ["relative paths"]}
     )
 

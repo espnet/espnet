@@ -5,10 +5,14 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 
 from espnet3.bin.atlas.core.models import StageResult
-from espnet3.bin.atlas.core.serialization import atomic_write_text, file_lock, utc_now
+from espnet3.bin.atlas.core.serialization import (
+    get_utc_now,
+    lock_file,
+    write_text_atomically,
+)
 
 
-class AtlasStage(ABC):
+class BaseStage(ABC):
     """Base class implementing idempotent, optionally lock-guarded stage execution.
 
     Subclasses implement :meth:`run`. :meth:`execute` wraps it with
@@ -38,23 +42,23 @@ class AtlasStage(ABC):
             >>> result.status
             'success'
         """
-        marker_dir = context.artifact_dir()
+        marker_dir = context.get_artifact_dir()
         marker_dir.mkdir(parents=True, exist_ok=True)
         success_path = marker_dir / ".stage_success.json"
         failure_path = marker_dir / ".stage_failure.json"
         started_path = marker_dir / ".stage_started.json"
         if success_path.exists() and not bool(context.config.get("force", False)):
             return StageResult.from_json(success_path.read_text(encoding="utf-8"))
-        atomic_write_text(started_path, f'{{"started_at": "{utc_now()}"}}')
+        write_text_atomically(started_path, f'{{"started_at": "{get_utc_now()}"}}')
         if self.study_lock_name is None:
             result = self.run(context)
         else:
-            with file_lock(context.study_dir / f".lock_{self.study_lock_name}"):
+            with lock_file(context.study_dir / f".lock_{self.study_lock_name}"):
                 result = self.run(context)
         target = success_path
         if result.status in {"failure", "timeout", "retry"}:
             target = failure_path
-        atomic_write_text(target, result.to_json())
+        write_text_atomically(target, result.to_json())
         return result
 
     @abstractmethod

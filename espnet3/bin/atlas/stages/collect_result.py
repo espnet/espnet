@@ -8,8 +8,8 @@ from typing import Any
 
 from espnet3.bin.atlas.core import AtlasError
 from espnet3.bin.atlas.core.models import StageResult
-from espnet3.bin.atlas.core.serialization import pattern_to_regex
-from espnet3.bin.atlas.stages.base import AtlasStage
+from espnet3.bin.atlas.core.serialization import convert_pattern_to_regex
+from espnet3.bin.atlas.stages.base import BaseStage
 
 
 def _extract_from_json(path: Path, key: str) -> Any:
@@ -51,7 +51,7 @@ def _extract_from_pattern(path: Path, pattern: str) -> float:
         AtlasError: If ``pattern`` does not match anywhere in the
             file.
     """
-    regex = pattern_to_regex(pattern)
+    regex = convert_pattern_to_regex(pattern)
     match = regex.search(path.read_text(encoding="utf-8", errors="replace"))
     if match is None:
         raise AtlasError(f"Pattern '{pattern}' not found in {path}")
@@ -123,7 +123,7 @@ def _resolve_primary_score(metrics: dict[str, Any], score_name: str) -> float:
     return float(metrics[score_name])
 
 
-class CollectResultStage(AtlasStage):
+class CollectResultStage(BaseStage):
     """Read metric files and update persistent trial state."""
 
     study_lock_name = "study_controller"
@@ -153,7 +153,7 @@ class CollectResultStage(AtlasStage):
         metric_cfg = context.config.atlas.metric
         try:
             metrics = _extract_metrics(
-                context.trial_dir(),
+                context.get_trial_dir(),
                 metric_cfg.extraction,
             )
             score = _resolve_primary_score(metrics, str(metric_cfg.name))

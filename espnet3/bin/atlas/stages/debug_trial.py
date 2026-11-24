@@ -17,14 +17,14 @@ from espnet3.bin.atlas.core.serialization import (
     save_yaml,
 )
 from espnet3.bin.atlas.resources import load_prompt, load_schema
-from espnet3.bin.atlas.stages.base import AtlasStage
+from espnet3.bin.atlas.stages.base import BaseStage
 from espnet3.bin.atlas.stages.stage_status import (
     _invalidate_stages,
     _read_stage_status,
 )
 
 
-class DebugTrialStage(AtlasStage):
+class DebugTrialStage(BaseStage):
     """Inspect failure logs and ask an agent for a patch-only retry fix."""
 
     _INFERENCE_RUNTIME_KEYS = frozenset(
@@ -53,7 +53,7 @@ class DebugTrialStage(AtlasStage):
         ``AgentRequest`` asking for a root cause, fix strategy, any files
         modified, and config patches.
         """
-        trial_dir = context.trial_dir()
+        trial_dir = context.get_trial_dir()
         logs = {
             "trial_dir": str(trial_dir),
             "training_log": str(trial_dir / "train.log"),
@@ -177,7 +177,7 @@ class DebugTrialStage(AtlasStage):
         retry_available = max_attempts <= 0 or trial.attempt_count < max_attempts
 
         request = self._build_request(context, trial)
-        artifact_dir = context.trial_dir()
+        artifact_dir = context.get_trial_dir()
         response = context.agent.run(request, artifact_dir=artifact_dir)
 
         if response.status != "success":

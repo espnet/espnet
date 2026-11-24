@@ -15,12 +15,11 @@ from espnet3.bin.atlas.core.config import (
 from espnet3.bin.atlas.core.models import AgentRequest, StageResult, Trial
 from espnet3.bin.atlas.core.serialization import (
     apply_dotted_patch,
+    get_utc_now,
     save_yaml,
-    utc_now,
 )
 from espnet3.bin.atlas.resources import load_schema
-from espnet3.bin.atlas.stages.base import AtlasStage
-
+from espnet3.bin.atlas.stages.base import BaseStage
 
 ALLOWED_ACTIONS_BY_APPLICATION = {
     "hyperparameter_search": ["config_patch_only"],
@@ -43,7 +42,7 @@ def _normalize_trial_config(value, trial_dir: Path):
     return value
 
 
-def _config_signature(config, trial_dir: Path) -> str:
+def _compute_config_signature(config, trial_dir: Path) -> str:
     """Create a stable signature for a resolved training config."""
     plain = OmegaConf.to_container(OmegaConf.create(config), resolve=True)
     normalized = _normalize_trial_config(plain, trial_dir)
@@ -54,12 +53,12 @@ def _config_signature(config, trial_dir: Path) -> str:
     return json.dumps(normalized, sort_keys=True, ensure_ascii=False, default=str)
 
 
-class ProposeTrialStage(AtlasStage):
+class ProposeTrialStage(BaseStage):
     """Create a new Trial from the agent's proposed config patch."""
 
     study_lock_name = "study_controller"
 
-    def _next_trial_id(self, trials) -> str:
+    def _compute_next_trial_id(self, trials) -> str:
         """Return the next sequential ``trial_NNNNNN`` id after ``trials``."""
         return f"trial_{len(trials) + 1:06d}"
 
@@ -67,7 +66,7 @@ class ProposeTrialStage(AtlasStage):
         """Reserve a trial, retaining its ID when JSON generation needs repair."""
         if self._should_reuse_current_trial(context, latest_trial):
             return latest_trial
-        trial_id = self._next_trial_id(trials)
+        trial_id = self._compute_next_trial_id(trials)
         trial_dir = context.study_dir / "trials" / trial_id
         trial_dir.mkdir(parents=True, exist_ok=True)
         trial = Trial(
@@ -84,8 +83,8 @@ class ProposeTrialStage(AtlasStage):
             decision=None,
             parent_trial_id=latest_trial.trial_id if latest_trial else None,
             attempt_count=0,
-            created_at=utc_now(),
-            updated_at=utc_now(),
+            created_at=get_utc_now(),
+            updated_at=get_utc_now(),
         )
         context.state.create_trial(trial)
         save_yaml(
@@ -377,7 +376,7 @@ class ProposeTrialStage(AtlasStage):
         # Sparse patches can differ while resolving to the same effective
         # training configuration (for example, omitting a key at its default
         # value). Compare resolved configs too, ignoring generated trial paths.
-        candidate_signature = _config_signature(train_plain, trial_dir)
+        candidate_signature = _compute_config_signature(train_plain, trial_dir)
         for existing in trials:
             existing_path = existing.resolved_config_path
             if (
@@ -388,7 +387,10 @@ class ProposeTrialStage(AtlasStage):
                 continue
             existing_config = OmegaConf.load(existing_path)
             existing_dir = context.study_dir / "trials" / existing.trial_id
-            if _config_signature(existing_config, existing_dir) == candidate_signature:
+            existing_signature = _compute_config_signature(
+                existing_config, existing_dir
+            )
+            if existing_signature == candidate_signature:
                 trial.status = "cancelled"
                 context.state.update_trial(trial)
                 return StageResult(
@@ -442,7 +444,7 @@ class ProposeTrialStage(AtlasStage):
         trial.rationale = rationale
         trial.expected_effect = expected_effect
         trial.risk = risk
-        trial.updated_at = utc_now()
+        trial.updated_at = get_utc_now()
         if response.status == "success" and getattr(response, "thread_id", None):
             trial.codex_thread_id = response.thread_id
         trial.extra_stages = extra_stages

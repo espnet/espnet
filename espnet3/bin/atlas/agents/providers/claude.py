@@ -10,8 +10,8 @@ from espnet3.bin.atlas.agents.providers import (
     Invocation,
     ParsedOutput,
     Provider,
-    json_events,
-    thread_id_of,
+    find_thread_id,
+    parse_json_events,
 )
 from espnet3.bin.atlas.core.models import AgentRequest
 
@@ -68,7 +68,7 @@ class ClaudeProvider(Provider):
 
     def parse(self, stdout: str, output_path: Path) -> ParsedOutput:
         """Read the final ``result`` event, including native structured output."""
-        events = json_events(stdout)
+        events = parse_json_events(stdout)
         result = next(
             (event for event in reversed(events) if event.get("type") == "result"),
             None,
@@ -78,10 +78,10 @@ class ClaudeProvider(Provider):
             error = "Claude stream has no final result event."
         elif result.get("is_error"):
             error = f"Claude reported an error result: {result.get('subtype')}"
-        return ParsedOutput(_content(events), thread_id_of(events), error)
+        return ParsedOutput(_extract_content(events), find_thread_id(events), error)
 
 
-def _content(events: list[dict[str, Any]]) -> str:
+def _extract_content(events: list[dict[str, Any]]) -> str:
     """Return the final result text, or the assistant's text if there is none."""
     for event in reversed(events):
         if event.get("type") == "result":

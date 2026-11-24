@@ -23,7 +23,7 @@ from espnet3.bin.atlas.core.config import (
 )
 from espnet3.bin.atlas.core.graph import Resources, load_graph
 from espnet3.bin.atlas.core.scheduler import AtlasGraphRuntime
-from espnet3.bin.atlas.core.serialization import file_lock
+from espnet3.bin.atlas.core.serialization import lock_file
 from espnet3.bin.atlas.core.state import StateStore
 
 
@@ -48,7 +48,7 @@ def _build_agent(config, recipe_dir: Path):
     return CliAgent(config.atlas.agent, recipe_dir=recipe_dir)
 
 
-def _default_graph_path(application: str = "hyperparameter_search") -> Path:
+def _get_default_graph_path(application: str = "hyperparameter_search") -> Path:
     """Return the packaged default graph YAML for the selected application."""
     name = (
         "architecture_search"
@@ -86,7 +86,7 @@ def _load_runtime(study_dir: Path, recipe_dir: Path):
     )
 
 
-def cmd_init(args) -> int:
+def handle_init(args) -> int:
     """Initialize a study: write its config/graph/program and bootstrap its state.
 
     Implements ``espnet3 atlas init``. Loads ``args.config`` merged with its
@@ -105,7 +105,7 @@ def cmd_init(args) -> int:
         int: Always ``0``.
 
     Example:
-        >>> cmd_init(argparse.Namespace(recipe_dir=".", config="conf/atlas.yaml"))
+        >>> handle_init(argparse.Namespace(recipe_dir=".", config="conf/atlas.yaml"))
         0
     """
     recipe_dir = Path(args.recipe_dir).resolve()
@@ -116,7 +116,7 @@ def cmd_init(args) -> int:
     graph_src = (
         (recipe_dir / str(config.atlas.graph)).resolve()
         if getattr(config.atlas, "graph", None)
-        else _default_graph_path(
+        else _get_default_graph_path(
             str(getattr(config.atlas, "application", "hyperparameter_search"))
         )
     )
@@ -142,7 +142,7 @@ def cmd_init(args) -> int:
         state.create_node_run(
             run_id=f"run_{uuid.uuid4().hex}",
             study_id=study_id,
-            node_name=runtime.bootstrap_node_name(),
+            node_name=runtime.get_bootstrap_node_name(),
         )
     return 0
 
@@ -156,7 +156,7 @@ def _ensure_tick_job(
     runtime, resources: Resources, exclude_job_id: str | None = None
 ) -> str | None:
     """Reconcile controller state and ensure exactly one tick job is active."""
-    with file_lock(runtime.study_dir / ".lock_study_controller"):
+    with lock_file(runtime.study_dir / ".lock_study_controller"):
         _reconcile_tick_jobs(runtime, exclude_job_id=exclude_job_id)
         if (runtime.study_dir / "STOP").exists():
             runtime.logger.info("Study STOP file exists; no controller tick submitted.")
@@ -238,7 +238,7 @@ def _register_tick_job(runtime, resources: Resources):
     return job_id
 
 
-def cmd_run(args) -> int:
+def handle_run(args) -> int:
     """Run a study's controller loop, dispatching to the configured environment.
 
     Implements ``espnet3 atlas run``. Three modes, chosen by ``args`` and the
@@ -262,7 +262,7 @@ def cmd_run(args) -> int:
         path propagate after marking the job ``"failed"``.
 
     Example:
-        >>> cmd_run(argparse.Namespace(
+        >>> handle_run(argparse.Namespace(
         ...     study_dir="exp/atlas/s", recipe_dir=".", poll_interval=None,
         ...     worker=False, job_id=None,
         ... ))
@@ -309,7 +309,7 @@ def cmd_run(args) -> int:
 async def _run_controller_worker(runtime, job_id, controller_resources, handoff_after, started):
     """Tick the scheduler in a loop until the study stops or hands off to a new tick job.
 
-    Called from ``cmd_run`` when this process is a submitted controller tick
+    Called from ``handle_run`` when this process is a submitted controller tick
     job (``args.worker``). Each iteration calls ``runtime.tick()``, then
     returns if a ``STOP`` file appears, if the study has no more pending
     node runs or active (non-tick) jobs, or if ``handoff_after`` seconds have
@@ -346,7 +346,7 @@ async def _run_controller_worker(runtime, job_id, controller_resources, handoff_
         await asyncio.sleep(max(1, interval))
 
 
-def _trial_progress(study_dir: Path, trial_id: str) -> str:
+def _read_trial_progress(study_dir: Path, trial_id: str) -> str:
     """Return ``epoch X/Y`` (or ``no metrics yet``) for a trial from its CSV logs."""
     trial_dir = study_dir / "trials" / trial_id
     epochs = [
@@ -366,7 +366,7 @@ def _trial_progress(study_dir: Path, trial_id: str) -> str:
     return text
 
 
-def _age(timestamp: str | None) -> str:
+def _format_age(timestamp: str | None) -> str:
     """Return how long ago an ISO-8601 timestamp was, e.g. ``12 min ago``."""
     if not timestamp:
         return "unknown"
@@ -384,7 +384,7 @@ def _age(timestamp: str | None) -> str:
     return f"{seconds / 3600:.1f} h ago"
 
 
-def cmd_status(args) -> int:
+def handle_status(args) -> int:
     """Print a study's state: trials, best trial, controller activity, and jobs.
 
     Implements ``espnet3 atlas status``. The first three lines (``study_dir``,
@@ -399,7 +399,7 @@ def cmd_status(args) -> int:
         int: Always ``0``.
 
     Example:
-        >>> cmd_status(argparse.Namespace(study_dir="exp/atlas/my_study"))
+        >>> handle_status(argparse.Namespace(study_dir="exp/atlas/my_study"))
         study_dir: exp/atlas/my_study
         trials: 3
         best: trial_002 score=0.12
@@ -436,7 +436,7 @@ def cmd_status(args) -> int:
     study = state.get_study(study_id)
     interval = getattr(config.atlas, "tick_interval_sec_trial_active", None)
     print(
-        f"controller_last_state_update: {_age(study.updated_at)}"
+        f"controller_last_state_update: {_format_age(study.updated_at)}"
         + (f" (tick interval: {interval} s while trials run)" if interval else "")
     )
     active = state.list_active_jobs(study_id)
@@ -449,11 +449,12 @@ def cmd_status(args) -> int:
     if running:
         print("running_trial_progress:")
         for trial in running:
-            print(f"  {trial.trial_id}: {_trial_progress(study_dir, trial.trial_id)}")
+            progress = _read_trial_progress(study_dir, trial.trial_id)
+            print(f"  {trial.trial_id}: {progress}")
     return 0
 
 
-def cmd_stop(args) -> int:
+def handle_stop(args) -> int:
     """Request a study stop and mark it ``stopped`` in state.
 
     Implements ``espnet3 atlas stop``. Writes a ``STOP`` sentinel file the
@@ -470,7 +471,7 @@ def cmd_stop(args) -> int:
         int: Always ``0``.
 
     Example:
-        >>> cmd_stop(argparse.Namespace(study_dir="exp/atlas/my_study"))
+        >>> handle_stop(argparse.Namespace(study_dir="exp/atlas/my_study"))
         0
     """
     study_dir = Path(args.study_dir).resolve()
@@ -488,7 +489,7 @@ def cmd_stop(args) -> int:
 def run_from_recipe_config(recipe_dir: Path, config_path: Path, mode: str = "run") -> int:
     """Initialize and run a study from Python, without going through the CLI parser.
 
-    Calls :func:`cmd_init` then :func:`cmd_run` (in local/foreground mode,
+    Calls :func:`handle_init` then :func:`handle_run` (in local/foreground mode,
     not as a worker) for the study described by ``config_path``. Intended
     for a recipe's own code (for example a ``run.py`` stage) to kick off an
     Atlas study directly.
@@ -499,17 +500,17 @@ def run_from_recipe_config(recipe_dir: Path, config_path: Path, mode: str = "run
         mode: Reserved for a future non-``"run"`` mode; currently unused.
 
     Returns:
-        int: The exit code from :func:`cmd_run` (always ``0`` today).
+        int: The exit code from :func:`handle_run` (always ``0`` today).
 
     Example:
         >>> run_from_recipe_config(Path("."), Path("conf/atlas.yaml"))
         0
     """
     recipe_dir, config_path = Path(recipe_dir).resolve(), Path(config_path).resolve()
-    cmd_init(argparse.Namespace(recipe_dir=str(recipe_dir), config=str(config_path)))
+    handle_init(argparse.Namespace(recipe_dir=str(recipe_dir), config=str(config_path)))
     config = load_atlas_config(config_path)
     study_dir = _resolve_study_dir(recipe_dir, config.atlas.study_dir)
-    return cmd_run(argparse.Namespace(
+    return handle_run(argparse.Namespace(
         study_dir=str(study_dir), recipe_dir=str(recipe_dir), poll_interval=None, worker=False
     ))
 
@@ -535,17 +536,17 @@ def add_arguments(subparsers) -> None:
     init = commands.add_parser("init", help="Initialize a study from a recipe config.")
     init.add_argument("--recipe-dir", required=True)
     init.add_argument("--config", required=True)
-    init.set_defaults(func=cmd_init)
+    init.set_defaults(func=handle_init)
     run = commands.add_parser("run", help="Run the study using its configured submission environment.")
     run.add_argument("--study-dir", required=True)
     run.add_argument("--recipe-dir", required=True)
     run.add_argument("--poll-interval", type=float, default=None)
     run.add_argument("--worker", action="store_true", help=argparse.SUPPRESS)
     run.add_argument("--job-id", default=None, help=argparse.SUPPRESS)
-    run.set_defaults(func=cmd_run)
+    run.set_defaults(func=handle_run)
     status = commands.add_parser("status", help="Show study status and best trial.")
     status.add_argument("--study-dir", required=True)
-    status.set_defaults(func=cmd_status)
+    status.set_defaults(func=handle_status)
     stop = commands.add_parser("stop", help="Stop a running study.")
     stop.add_argument("--study-dir", required=True)
-    stop.set_defaults(func=cmd_stop)
+    stop.set_defaults(func=handle_stop)

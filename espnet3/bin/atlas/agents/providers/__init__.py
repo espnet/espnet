@@ -50,7 +50,7 @@ class ParsedOutput:
     error: str | None = None
 
 
-def json_events(stdout: str) -> list[dict[str, Any]]:
+def parse_json_events(stdout: str) -> list[dict[str, Any]]:
     """Parse JSON-lines standard output into event dicts, skipping other lines.
 
     Args:
@@ -61,7 +61,7 @@ def json_events(stdout: str) -> list[dict[str, Any]]:
         list[dict[str, Any]]: The JSON objects, in order.
 
     Example:
-        >>> json_events('{"type": "a"}\\nnot json\\n')
+        >>> parse_json_events('{"type": "a"}\\nnot json\\n')
         [{'type': 'a'}]
     """
     events = []
@@ -75,7 +75,7 @@ def json_events(stdout: str) -> list[dict[str, Any]]:
     return events
 
 
-def thread_id_of(events: list[dict[str, Any]]) -> str | None:
+def find_thread_id(events: list[dict[str, Any]]) -> str | None:
     """Return the first ``thread_id`` or ``session_id`` found in ``events``.
 
     Args:
@@ -85,7 +85,7 @@ def thread_id_of(events: list[dict[str, Any]]) -> str | None:
         str | None: The conversation id, or ``None`` if no event carries one.
 
     Example:
-        >>> thread_id_of([{"type": "x"}, {"session_id": "s1"}])
+        >>> find_thread_id([{"type": "x"}, {"session_id": "s1"}])
         's1'
     """
     return next(
@@ -126,7 +126,7 @@ class Provider:
         """
         raise NotImplementedError
 
-    def env(self, recipe_dir: Path) -> dict[str, str]:
+    def build_env(self, recipe_dir: Path) -> dict[str, str]:
         """Return extra environment variables for the process.
 
         Args:

@@ -6,10 +6,10 @@ import csv
 
 from espnet3.bin.atlas.core.models import StageResult
 from espnet3.bin.atlas.core.serialization import save_yaml
-from espnet3.bin.atlas.stages.base import AtlasStage
+from espnet3.bin.atlas.stages.base import BaseStage
 
 
-class SelectBestStage(AtlasStage):
+class SelectBestStage(BaseStage):
     """Write best-trial artifacts and a sorted leaderboard."""
 
     study_lock_name = "study_controller"

@@ -38,7 +38,7 @@ def test_load_checked_keypoints_migrates_epoch_only_format(tmp_path):
 
 def test_elapsed_trial_seconds_uses_utc_start_time():
     started = (datetime.now(timezone.utc) - timedelta(seconds=75)).isoformat()
-    elapsed = AtlasGraphRuntime._elapsed_trial_seconds(started)
+    elapsed = AtlasGraphRuntime._compute_elapsed_trial_seconds(started)
 
     assert elapsed is not None
     assert 74 <= elapsed <= 76
@@ -230,7 +230,7 @@ def _tick_runtime(jobs, agent_jobs):
             raise RuntimeError("agent down")
         return {"jobs": agent_jobs}
 
-    runtime._submission_action = action
+    runtime._run_submission_action = action
     return runtime, updates, events, asked
 
 
@@ -284,10 +284,10 @@ def test_early_stop_marks_the_trial_and_asks_the_gpu_job_to_stop(tmp_path):
     runtime.logger = logging.getLogger(__name__)
     updated = []
     runtime.state = SimpleNamespace(update_trial=updated.append)
-    runtime._submission_action = lambda *args: pytest.fail("no job is cancelled")
+    runtime._run_submission_action = lambda *args: pytest.fail("no job is cancelled")
     trial = SimpleNamespace(trial_id="trial_000001", status="running")
 
-    runtime._early_stop_trial(
+    runtime._stop_trial_early(
         trial, tmp_path, {"reason": "worse than baseline", "key_metrics": {"loss": 1}}
     )
 
@@ -303,7 +303,7 @@ def test_a_study_with_a_knowledge_pack_starts_at_propose_trial(tmp_path):
         start="init_study", nodes={"propose_trial": 1, "research_context": 1}
     )
 
-    assert runtime.bootstrap_node_name() == "init_study"
+    assert runtime.get_bootstrap_node_name() == "init_study"
     (tmp_path / "knowledge").mkdir()
     (tmp_path / "knowledge" / "knowledge_pack.md").write_text("# Knowledge Pack\n")
-    assert runtime.bootstrap_node_name() == "propose_trial"
+    assert runtime.get_bootstrap_node_name() == "propose_trial"

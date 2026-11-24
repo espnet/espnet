@@ -6,7 +6,7 @@ import sqlite3
 from datetime import datetime, timedelta, timezone
 
 from espnet3.bin.atlas.core.models import JobRecord, Trial
-from espnet3.bin.atlas.core.serialization import file_lock
+from espnet3.bin.atlas.core.serialization import lock_file
 from espnet3.bin.atlas.core.state import StateStore
 
 
@@ -45,7 +45,7 @@ def test_csv_state_round_trips_study_trial_and_nested_values(tmp_path):
     reopened = StateStore(tmp_path)
     assert reopened.get_study("study").study_id == study.study_id
     assert reopened.get_study("study").agent_session_id == "thread-1"
-    assert reopened.agent_context_initialized("study") is True
+    assert reopened.is_agent_context_initialized("study") is True
     assert reopened.get_study("study").current_best_trial_id == "trial_000001"
     loaded = reopened.get_trial("trial_000001")
     assert loaded.config_patch == trial.config_patch
@@ -148,7 +148,7 @@ def test_existing_sqlite_study_is_migrated_without_deleting_source(tmp_path):
         conn.execute(
             "CREATE TABLE studies (study_id TEXT, study_dir TEXT, status TEXT, "
             "created_at TEXT, updated_at TEXT, current_best_trial_id TEXT, "
-            "agent_session_id TEXT, agent_context_initialized INTEGER)"
+            "agent_session_id TEXT, is_agent_context_initialized INTEGER)"
         )
         conn.execute(
             "INSERT INTO studies VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
@@ -188,7 +188,7 @@ def test_file_lock_retries_after_contention(monkeypatch, tmp_path):
 
     monkeypatch.setattr(serialization.fcntl, "flock", flaky_flock)
     monkeypatch.setattr(serialization.time, "sleep", waits.append)
-    with file_lock(tmp_path / "state.lock"):
+    with lock_file(tmp_path / "state.lock"):
         pass
     assert waits == [1]
 
@@ -199,7 +199,7 @@ def test_cmd_status_reports_progress_jobs_and_stop_file(tmp_path, capsys):
 
     from omegaconf import OmegaConf
 
-    from espnet3.bin.atlas.command import cmd_status
+    from espnet3.bin.atlas.command import handle_status
 
     OmegaConf.save(
         OmegaConf.create(
@@ -246,7 +246,7 @@ def test_cmd_status_reports_progress_jobs_and_stop_file(tmp_path, capsys):
     )
     (tmp_path / "STOP").touch()
 
-    assert cmd_status(argparse.Namespace(study_dir=str(tmp_path))) == 0
+    assert handle_status(argparse.Namespace(study_dir=str(tmp_path))) == 0
 
     out = capsys.readouterr().out
     assert "trials: 1" in out

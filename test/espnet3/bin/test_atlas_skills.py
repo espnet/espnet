@@ -10,7 +10,7 @@ import pytest
 from omegaconf import OmegaConf
 
 from espnet3.bin.atlas.agents.cli import build_agent_config
-from espnet3.bin.atlas.command import _default_graph_path
+from espnet3.bin.atlas.command import _get_default_graph_path
 from espnet3.bin.atlas.core import AtlasError
 from espnet3.bin.atlas.core.graph import load_graph
 from espnet3.bin.atlas.core.models import (
@@ -137,7 +137,7 @@ def test_load_graph_requires_a_target_for_a_node_without_one(tmp_path):
 def test_packaged_graphs_name_a_target_on_every_node():
     """Every shipped graph loads, so none relies on an implicit ``SkillStage``."""
     for application in ("hyperparameter_search", "architecture_search"):
-        graph = load_graph(_default_graph_path(application))
+        graph = load_graph(_get_default_graph_path(application))
         assert graph.nodes
         assert all(node.target for node in graph.nodes.values())
 
@@ -211,8 +211,8 @@ def _stage_context(tmp_path, *, node, agent, trial=None, state=None):
         scheduler=SimpleNamespace(should_stop=lambda: False),
         agent=agent,
         state=state or SimpleNamespace(update_trial=lambda _: None),
-        trial_dir=lambda: study_dir / "trials" / trial.trial_id,
-        artifact_dir=lambda: study_dir / "node_runs" / "run",
+        get_trial_dir=lambda: study_dir / "trials" / trial.trial_id,
+        get_artifact_dir=lambda: study_dir / "node_runs" / "run",
     )
 
 
@@ -371,7 +371,7 @@ def test_every_skill_named_by_a_packaged_graph_exists():
     """A graph must not name a skill that has no SKILL.md to run."""
     repo_root = Path(__file__).resolve().parents[3]
     for application in ("hyperparameter_search", "architecture_search"):
-        graph = load_graph(_default_graph_path(application))
+        graph = load_graph(_get_default_graph_path(application))
         for node in graph.nodes.values():
             if node.skill:
                 assert _find_skill_path(repo_root, node.skill).is_file(), node.skill
@@ -379,7 +379,7 @@ def test_every_skill_named_by_a_packaged_graph_exists():
 
 def test_update_knowledge_is_a_skill_followed_by_the_budget_check():
     for application in ("hyperparameter_search", "architecture_search"):
-        nodes = load_graph(_default_graph_path(application)).nodes
+        nodes = load_graph(_get_default_graph_path(application)).nodes
         assert nodes["update_knowledge"].skill == (
             "hyperparameter_search_update_knowledge"
         )
@@ -396,7 +396,8 @@ def test_update_knowledge_is_a_skill_followed_by_the_budget_check():
 
 def test_research_context_is_a_skill_that_writes_the_first_pack_with_a_fallback():
     for application in ("hyperparameter_search", "architecture_search"):
-        node = load_graph(_default_graph_path(application)).nodes["research_context"]
+        graph = load_graph(_get_default_graph_path(application))
+        node = graph.nodes["research_context"]
 
         assert node.skill == "hyperparameter_search_research_context"
         assert node.output_file == "knowledge/knowledge_pack.md"
@@ -415,7 +416,7 @@ def test_research_context_failure_still_leaves_a_knowledge_pack(tmp_path):
         def run(self, request, artifact_dir=None):
             return AgentResponse(status="failure", message="agent down", content="")
 
-    node = load_graph(_default_graph_path("hyperparameter_search")).nodes[
+    node = load_graph(_get_default_graph_path("hyperparameter_search")).nodes[
         "research_context"
     ]
     context = _stage_context(tmp_path, node=node, agent=DownAgent())
@@ -429,7 +430,7 @@ def test_research_context_failure_still_leaves_a_knowledge_pack(tmp_path):
 
 def test_packaged_graphs_route_only_to_defined_nodes_and_end_in_analyze():
     for application in ("hyperparameter_search", "architecture_search"):
-        graph = load_graph(_default_graph_path(application))
+        graph = load_graph(_get_default_graph_path(application))
 
         assert "summarize" not in graph.nodes
         for node in graph.nodes.values():

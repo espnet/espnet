@@ -3,10 +3,10 @@
 from __future__ import annotations
 
 from espnet3.bin.atlas.core.models import StageResult
-from espnet3.bin.atlas.stages.base import AtlasStage
+from espnet3.bin.atlas.stages.base import BaseStage
 
 
-class CheckBudgetStage(AtlasStage):
+class CheckBudgetStage(BaseStage):
     """Route to ``done`` when the study's budget is spent, else ``continue``."""
 
     def run(self, context) -> StageResult:

@@ -248,7 +248,11 @@ class CliAgent:
                 text=True,
                 capture_output=True,
                 cwd=self.cwd,
-                env={**os.environ, **self.provider.env(self.recipe_dir), **self.env},
+                env={
+                    **os.environ,
+                    **self.provider.build_env(self.recipe_dir),
+                    **self.env,
+                },
                 timeout=self.config.timeout_sec,
                 check=False,
             )

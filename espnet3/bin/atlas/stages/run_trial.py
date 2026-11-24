@@ -14,14 +14,14 @@ from omegaconf import OmegaConf
 
 from espnet3.bin.atlas.core.models import StageResult
 from espnet3.bin.atlas.core.serialization import save_yaml
-from espnet3.bin.atlas.stages.base import AtlasStage
+from espnet3.bin.atlas.stages.base import BaseStage
 from espnet3.bin.atlas.stages.stage_status import (
     _ensure_stage_statuses,
     _set_stage_status,
 )
 
 
-class RunTrialStage(AtlasStage):
+class RunTrialStage(BaseStage):
     """Execute training, inference, and measurement for one trial."""
 
     def _copy_training_curve_csv(self, trial_dir: Path, attempt_dir: Path) -> None:
@@ -61,7 +61,7 @@ class RunTrialStage(AtlasStage):
 
     def _run_with_gpu_monitor(self, context, command, log_path, env, timeout):
         """Run training while the GPU worker performs cooperative early-stop checks."""
-        interval = context.scheduler.gpu_self_monitor_interval_sec()
+        interval = context.scheduler.get_gpu_monitor_interval_sec()
         started = time.monotonic()
         next_check = started + interval
         with open(log_path, "a", encoding="utf-8") as handle:
@@ -109,7 +109,7 @@ class RunTrialStage(AtlasStage):
     # recorded in Trial.extra_stages for routing, but are not run.py stages.
     _GRAPH_ONLY_EXTRA_STAGES = frozenset({"implement_code", "write_files"})
 
-    def _stage_command(
+    def _build_stage_command(
         self,
         stage: str,
         training_cfg: Path,
@@ -144,10 +144,10 @@ class RunTrialStage(AtlasStage):
         """Build the default ``run.py`` commands: any extra stages, then train/infer/measure."""
         cmds: list[list[str]] = []
         for stage in (extra_stages or []):
-            cmds.append(self._stage_command(stage, training_cfg, inference_cfg, metrics_cfg))
-        cmds.append(self._stage_command("train", training_cfg, inference_cfg, metrics_cfg))
-        cmds.append(self._stage_command("infer", training_cfg, inference_cfg, metrics_cfg))
-        cmds.append(self._stage_command("measure", training_cfg, inference_cfg, metrics_cfg))
+            cmds.append(self._build_stage_command(stage, training_cfg, inference_cfg, metrics_cfg))
+        cmds.append(self._build_stage_command("train", training_cfg, inference_cfg, metrics_cfg))
+        cmds.append(self._build_stage_command("infer", training_cfg, inference_cfg, metrics_cfg))
+        cmds.append(self._build_stage_command("measure", training_cfg, inference_cfg, metrics_cfg))
         return cmds
 
     def _build_commands(self, context, trial_dir: Path, attempt_dir: Path) -> list[list[str]]:
@@ -181,7 +181,7 @@ class RunTrialStage(AtlasStage):
         )
 
     @staticmethod
-    def _command_stage(command: list[str]) -> str:
+    def _get_command_stage(command: list[str]) -> str:
         """Return the recipe stage named by a command, or its custom-workload name."""
         try:
             return command[command.index("--stages") + 1]
@@ -243,7 +243,7 @@ class RunTrialStage(AtlasStage):
         """
         trial = context.current_trial
         assert trial is not None
-        trial_dir = context.trial_dir()
+        trial_dir = context.get_trial_dir()
         attempt_dir = trial_dir / "attempts" / context.attempt_id
         attempt_dir.mkdir(parents=True, exist_ok=True)
         training_cfg = trial_dir / "resolved_training_config.yaml"
@@ -252,7 +252,7 @@ class RunTrialStage(AtlasStage):
         train_log = trial_dir / "train.log"
         eval_log = trial_dir / "eval.log"
         commands = self._build_commands(context, trial_dir, attempt_dir)
-        stage_names = [self._command_stage(command) for command in commands]
+        stage_names = [self._get_command_stage(command) for command in commands]
         stage_status = _ensure_stage_statuses(trial_dir, stage_names)
         previous_stage_states = {
             name: entry.get("previous_status") or entry.get("status")
@@ -266,7 +266,7 @@ class RunTrialStage(AtlasStage):
         commands = [
             command
             for command in commands
-            if self._command_stage(command) not in completed_stages
+            if self._get_command_stage(command) not in completed_stages
         ]
         if len(commands) < len(stage_names):
             context.logger.info(
@@ -321,7 +321,7 @@ class RunTrialStage(AtlasStage):
         try:
             proc = None
             for command in commands:
-                current_stage = self._command_stage(command)
+                current_stage = self._get_command_stage(command)
                 if (
                     current_stage == "infer"
                     and previous_stage_states.get(current_stage) in {"failed", "timeout"}

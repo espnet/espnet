@@ -18,7 +18,7 @@ from omegaconf import DictConfig, OmegaConf
 
 
 @contextlib.contextmanager
-def file_lock(path: Path):
+def lock_file(path: Path):
     """Acquire an advisory file lock, retrying every second while busy.
 
     Args:
@@ -28,7 +28,7 @@ def file_lock(path: Path):
         Iterator[None]: Context manager that releases the lock on exit.
 
     Example:
-        >>> with file_lock(Path("state.lock")):
+        >>> with lock_file(Path("state.lock")):
         ...     pass
     """
     path = Path(path)
@@ -46,7 +46,7 @@ def file_lock(path: Path):
             fcntl.flock(handle.fileno(), fcntl.LOCK_UN)
 
 
-def utc_now() -> str:
+def get_utc_now() -> str:
     """Return the current UTC time as a second-precision ISO-8601 string.
 
     Args:
@@ -56,7 +56,7 @@ def utc_now() -> str:
         str: Current UTC time, e.g. ``"2026-01-02T03:04:05+00:00"``.
 
     Example:
-        >>> len(utc_now())
+        >>> len(get_utc_now())
         25
     """
     return datetime.now(timezone.utc).replace(microsecond=0).isoformat()
@@ -166,10 +166,10 @@ def save_yaml(path: Path, data: Any, resolve: bool = True) -> None:
     plain = to_plain_data(data)
     cfg = OmegaConf.create(plain)
     yaml_text = OmegaConf.to_yaml(cfg, resolve=resolve)
-    atomic_write_text(path, yaml_text)
+    write_text_atomically(path, yaml_text)
 
 
-def atomic_write_text(path: Path, text: str) -> None:
+def write_text_atomically(path: Path, text: str) -> None:
     """Write text to a file atomically via a sibling temp file and rename.
 
     Writes to a ``.tmp_*`` file in the same directory, then ``os.replace``s
@@ -185,7 +185,7 @@ def atomic_write_text(path: Path, text: str) -> None:
         None.
 
     Example:
-        >>> atomic_write_text(Path("study/program.md"), "# Goal\\n")
+        >>> write_text_atomically(Path("study/program.md"), "# Goal\\n")
     """
     path = Path(path)
     path.parent.mkdir(parents=True, exist_ok=True)
@@ -205,7 +205,7 @@ def atomic_write_text(path: Path, text: str) -> None:
 def append_text(path: Path, text: str) -> None:
     """Append text to a file, serialized against concurrent writers.
 
-    Holds a :func:`file_lock` on a ``.lock`` sibling of ``path`` for the
+    Holds a :func:`lock_file` on a ``.lock`` sibling of ``path`` for the
     duration of the append, so concurrent node runs (for example several
     workers appending to the same ``trials.csv``) do not interleave writes.
 
@@ -221,7 +221,7 @@ def append_text(path: Path, text: str) -> None:
     """
     path = Path(path)
     path.parent.mkdir(parents=True, exist_ok=True)
-    with file_lock(path.with_suffix(path.suffix + ".lock")):
+    with lock_file(path.with_suffix(path.suffix + ".lock")):
         with path.open("a", encoding="utf-8") as handle:
             handle.write(text)
 
@@ -330,7 +330,7 @@ def apply_dotted_patch(base: dict[str, Any], patch: dict[str, Any]) -> dict[str,
     return merged
 
 
-def pattern_to_regex(pattern: str) -> re.Pattern[str]:
+def convert_pattern_to_regex(pattern: str) -> re.Pattern[str]:
     """Convert a ``{value}`` placeholder pattern into a matching regex.
 
     Used to parse a numeric metric out of a line of text, e.g. a metric
@@ -345,7 +345,7 @@ def pattern_to_regex(pattern: str) -> re.Pattern[str]:
         that matches an integer or decimal number where ``{value}`` was.
 
     Example:
-        >>> pattern_to_regex("WER: {value}").search("WER: 12.3").group("value")
+        >>> convert_pattern_to_regex("WER: {value}").search("WER: 12.3").group("value")
         '12.3'
     """
     escaped = re.escape(pattern).replace(r"\{value\}", r"(?P<value>[-+]?\d*\.?\d+)")

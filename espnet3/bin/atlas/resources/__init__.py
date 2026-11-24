@@ -58,7 +58,7 @@ def load_schema(name: str) -> dict[str, Any]:
     return json.loads(text)
 
 
-def shape_to_schema(shape: dict[str, Any]) -> dict[str, Any]:
+def convert_shape_to_schema(shape: dict[str, Any]) -> dict[str, Any]:
     """Turn a graph node's ``output_schema`` example shape into a JSON Schema.
 
     Recipe graphs describe a skill node's extra reply fields as an example
@@ -74,7 +74,7 @@ def shape_to_schema(shape: dict[str, Any]) -> dict[str, Any]:
         dict[str, Any]: The equivalent JSON Schema.
 
     Example:
-        >>> shape_to_schema({"summary": "one line", "files": []})["required"]
+        >>> convert_shape_to_schema({"summary": "one line", "files": []})["required"]
         ['summary', 'files']
     """
 

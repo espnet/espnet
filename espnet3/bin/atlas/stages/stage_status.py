@@ -5,8 +5,7 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any
 
-from espnet3.bin.atlas.core.serialization import load_yaml, save_yaml, utc_now
-
+from espnet3.bin.atlas.core.serialization import get_utc_now, load_yaml, save_yaml
 
 _STATUS_FILENAME = "stage_status.yaml"
 
@@ -24,7 +23,7 @@ def _read_stage_status(trial_dir: Path) -> dict[str, Any]:
 
 def _write_stage_status(trial_dir: Path, data: dict[str, Any]) -> None:
     """Atomically write the per-trial stage status file."""
-    data["updated_at"] = utc_now()
+    data["updated_at"] = get_utc_now()
     save_yaml(trial_dir / _STATUS_FILENAME, data)
 
 
@@ -35,7 +34,7 @@ def _ensure_stage_statuses(trial_dir: Path, stage_names: list[str]) -> dict[str,
     changed = False
     for stage_name in stage_names:
         if stage_name not in stages:
-            now = utc_now()
+            now = get_utc_now()
             stages[stage_name] = {
                 "status": "pending",
                 "updated_at": now,
@@ -58,7 +57,7 @@ def _set_stage_status(
     data = _read_stage_status(trial_dir)
     stages = data.setdefault("stages", {})
     entry = stages.setdefault(stage_name, {"history": []})
-    now = utc_now()
+    now = get_utc_now()
     event: dict[str, Any] = {
         "status": status,
         "attempt_id": attempt_id,
@@ -80,7 +79,7 @@ def _invalidate_stages(
     data = _read_stage_status(trial_dir)
     stages = data.setdefault("stages", {})
     for stage_name in stage_names:
-        now = utc_now()
+        now = get_utc_now()
         entry = stages.setdefault(stage_name, {"history": []})
         event = {
             "status": "pending",

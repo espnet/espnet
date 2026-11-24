@@ -7,12 +7,12 @@ from pathlib import Path
 
 from espnet3.bin.atlas.core.models import AgentRequest, StageResult, Trial
 from espnet3.bin.atlas.core.serialization import (
-    atomic_write_text,
     dumps_json,
     to_plain_data,
+    write_text_atomically,
 )
-from espnet3.bin.atlas.resources import shape_to_schema
-from espnet3.bin.atlas.stages.base import AtlasStage
+from espnet3.bin.atlas.resources import convert_shape_to_schema
+from espnet3.bin.atlas.stages.base import BaseStage
 
 
 def read_optional(path: Path) -> str:
@@ -20,7 +20,7 @@ def read_optional(path: Path) -> str:
     return path.read_text(encoding="utf-8") if path.is_file() else ""
 
 
-class SkillStage(AtlasStage):
+class SkillStage(BaseStage):
     """Run a graph node's selected skill through the configured coding agent.
 
     Builds an ``AgentRequest`` from the study's objective, knowledge pack,
@@ -53,7 +53,7 @@ class SkillStage(AtlasStage):
             )
 
         trial = context.current_trial
-        trial_dir = context.trial_dir() if trial else context.artifact_dir()
+        trial_dir = context.get_trial_dir() if trial else context.get_artifact_dir()
         allowed_actions = list(node.allowed_actions or ["read_only"])
         code_edit_config = getattr(context.config.atlas, "code_edit", None)
         if node.skill == "hyperparameter_search_implement_code" and not bool(
@@ -85,7 +85,7 @@ class SkillStage(AtlasStage):
                 "stop_after_trial": str(context.scheduler.should_stop()).lower(),
             },
             allowed_actions=allowed_actions,
-            output_schema=shape_to_schema(
+            output_schema=convert_shape_to_schema(
                 {
                     "status": "graph result status",
                     "message": "short result description",
@@ -110,7 +110,7 @@ class SkillStage(AtlasStage):
         response = context.agent.run(request, artifact_dir=artifact_dir)
         if response.status != "success":
             if output_path and node.fallback_output:
-                atomic_write_text(output_path, node.fallback_output)
+                write_text_atomically(output_path, node.fallback_output)
                 return StageResult(
                     status="terminal",
                     message="Wrote fallback output after skill agent failure",
@@ -151,7 +151,7 @@ class SkillStage(AtlasStage):
         output_key = node.output_key
         if node.output_file and output_key and result.get(output_key) is None:
             if node.fallback_output and output_path:
-                atomic_write_text(output_path, node.fallback_output)
+                write_text_atomically(output_path, node.fallback_output)
                 return StageResult(
                     status="terminal",
                     message=f"Wrote fallback because skill omitted '{output_key}'",
@@ -170,7 +170,7 @@ class SkillStage(AtlasStage):
             if node.output_append and output_path.is_file():
                 existing = output_path.read_text(encoding="utf-8").rstrip("\n")
                 text = f"{existing}\n\n{text.strip(chr(10))}\n"
-            atomic_write_text(output_path, text)
+            write_text_atomically(output_path, text)
             artifacts[output_key] = str(output_path)
         artifacts.update(
             {str(k): str(v) for k, v in dict(result.pop("artifacts", {}) or {}).items()}

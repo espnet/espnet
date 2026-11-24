@@ -15,13 +15,13 @@ from espnet3.bin.atlas.agents.providers import (
     Invocation,
     ParsedOutput,
     Provider,
-    json_events,
-    thread_id_of,
+    find_thread_id,
+    parse_json_events,
 )
 from espnet3.bin.atlas.core.models import AgentRequest
 
 
-def _toml_value(value: Any) -> str:
+def _format_toml_value(value: Any) -> str:
     """Serialize a value accepted by Codex's ``-c key=value`` option."""
     if value is None:
         raise ValueError("Codex config overrides cannot contain null values")
@@ -32,16 +32,16 @@ def _toml_value(value: Any) -> str:
     if isinstance(value, str):
         return json.dumps(value, ensure_ascii=False)
     if isinstance(value, list):
-        return "[" + ", ".join(_toml_value(item) for item in value) + "]"
+        return "[" + ", ".join(_format_toml_value(item) for item in value) + "]"
     if isinstance(value, dict):
         fields = ", ".join(
-            f"{key} = {_toml_value(item)}" for key, item in value.items()
+            f"{key} = {_format_toml_value(item)}" for key, item in value.items()
         )
         return "{" + fields + "}"
     raise TypeError(f"Unsupported Codex config value: {type(value).__name__}")
 
 
-def _usage_objects(value: Any) -> list[dict[str, Any]]:
+def _collect_usage_objects(value: Any) -> list[dict[str, Any]]:
     """Recursively collect token-usage dicts from a nested Codex event.
 
     Finds any ``"usage"`` sub-dict and any dict directly carrying token count
@@ -69,10 +69,10 @@ def _usage_objects(value: Any) -> list[dict[str, Any]]:
                 }
             )
         for nested in value.values():
-            found.extend(_usage_objects(nested))
+            found.extend(_collect_usage_objects(nested))
     elif isinstance(value, list):
         for item in value:
-            found.extend(_usage_objects(item))
+            found.extend(_collect_usage_objects(item))
     return found
 
 
@@ -104,20 +104,20 @@ class CodexProvider(Provider):
                     command.append("--dangerously-bypass-approvals-and-sandbox")
                 else:
                     command.extend(
-                        ["-c", f"sandbox_mode={_toml_value(options.sandbox)}"]
+                        ["-c", f"sandbox_mode={_format_toml_value(options.sandbox)}"]
                     )
             else:
                 command.extend(["--sandbox", options.sandbox])
         if options.model:
             command.extend(["--model", options.model])
         for key, value in OmegaConf.to_container(options.config).items():
-            command.extend(["-c", f"{key}={_toml_value(value)}"])
+            command.extend(["-c", f"{key}={_format_toml_value(value)}"])
         command.extend(str(arg) for arg in options.args)
         command.extend(["--output-last-message", str(output_path)])
         command.append("-")
         return Invocation(command, stdin=prompt)
 
-    def env(self, recipe_dir: Path) -> dict[str, str]:
+    def build_env(self, recipe_dir: Path) -> dict[str, str]:
         """Give Codex a workspace-local home while retaining user credentials."""
         codex_home = recipe_dir / ".codex"
         paths = {
@@ -139,7 +139,7 @@ class CodexProvider(Provider):
 
     def parse(self, stdout: str, output_path: Path) -> ParsedOutput:
         """Read the final message file, else the last ``agent_message`` event."""
-        events = json_events(stdout)
+        events = parse_json_events(stdout)
         content = ""
         if output_path.is_file():
             content = output_path.read_text(encoding="utf-8").strip()
@@ -151,7 +151,7 @@ class CodexProvider(Provider):
                 ):
                     content = str(item.get("text", "")).strip()
                     break
-        return ParsedOutput(content, thread_id_of(events))
+        return ParsedOutput(content, find_thread_id(events))
 
     def record_usage(
         self,
@@ -161,9 +161,12 @@ class CodexProvider(Provider):
         stdout: str,
     ) -> None:
         """Write the call's token usage to ``agent_usage.json`` and its history."""
-        events = json_events(stdout)
+        events = parse_json_events(stdout)
         usage_records = [
-            usage for event in events for usage in _usage_objects(event) if usage
+            usage
+            for event in events
+            for usage in _collect_usage_objects(event)
+            if usage
         ]
         summary = {
             "task": request.task,

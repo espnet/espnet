@@ -7,8 +7,8 @@ import shutil
 from pathlib import Path
 
 from espnet3.bin.atlas.core.models import AgentRequest, StageResult
-from espnet3.bin.atlas.core.serialization import save_yaml, utc_now
-from espnet3.bin.atlas.stages.base import AtlasStage
+from espnet3.bin.atlas.core.serialization import get_utc_now, save_yaml
+from espnet3.bin.atlas.stages.base import BaseStage
 
 _FILE_BLOCK_RE = re.compile(
     r'<file\s+path="(?P<path>[^"]+)">\n?(?P<content>.*?)\n?</file>',
@@ -116,7 +116,7 @@ def _read_training_config(trial_dir: Path) -> str:
     return cfg_path.read_text(encoding="utf-8")
 
 
-def _latest_test_failure(trial_dir: Path) -> str | None:
+def _find_latest_test_failure(trial_dir: Path) -> str | None:
     """Return the most recent ``run_tests`` error log, or ``None`` if none failed yet."""
     test_runs_dir = trial_dir / "test_runs"
     if not test_runs_dir.exists():
@@ -128,7 +128,7 @@ def _latest_test_failure(trial_dir: Path) -> str | None:
     return None
 
 
-def _next_iteration_dir(trial_dir: Path) -> Path:
+def _create_next_iteration_dir(trial_dir: Path) -> Path:
     """Create and return the next numbered ``write_files_iterations/iter_NNN`` dir."""
     base = trial_dir / "write_files_iterations"
     base.mkdir(parents=True, exist_ok=True)
@@ -240,7 +240,7 @@ def _build_prompt(
     return "\n".join(sections)
 
 
-class WriteFilesStage(AtlasStage):
+class WriteFilesStage(BaseStage):
     """Ask the agent to generate implementation + unit tests via <file path=""> blocks.
 
     Reads ``code_edit.reference_files`` (local paths) and fetches
@@ -292,11 +292,11 @@ class WriteFilesStage(AtlasStage):
                 payload={"trial_id": trial.trial_id},
             )
 
-        trial_dir = context.trial_dir()
-        iter_dir = _next_iteration_dir(trial_dir)
+        trial_dir = context.get_trial_dir()
+        iter_dir = _create_next_iteration_dir(trial_dir)
         doc_cache_dir = context.study_dir / ".doc_cache"
 
-        prev_error = _latest_test_failure(trial_dir)
+        prev_error = _find_latest_test_failure(trial_dir)
         reference_files_text = _read_reference_files(reference_files) if reference_files else ""
         doc_text = _fetch_doc_urls(doc_urls, doc_cache_dir) if doc_urls else ""
         training_config_text = _read_training_config(trial_dir)
@@ -374,7 +374,7 @@ class WriteFilesStage(AtlasStage):
                 "is_fix_attempt": prev_error is not None,
                 "doc_urls_fetched": doc_urls,
                 "reference_files_used": reference_files,
-                "timestamp": utc_now(),
+                "timestamp": get_utc_now(),
             },
         )
 

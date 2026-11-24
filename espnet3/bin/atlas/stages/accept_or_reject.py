@@ -3,10 +3,10 @@
 from __future__ import annotations
 
 from espnet3.bin.atlas.core.models import StageResult
-from espnet3.bin.atlas.stages.base import AtlasStage
+from espnet3.bin.atlas.stages.base import BaseStage
 
 
-class AcceptOrRejectStage(AtlasStage):
+class AcceptOrRejectStage(BaseStage):
     """Compare the latest score with the best known score."""
 
     study_lock_name = "study_controller"
@@ -47,7 +47,7 @@ class AcceptOrRejectStage(AtlasStage):
         else:
             accepted = float(trial.score) > float(best.score)
 
-        decision_path = context.trial_dir() / "decision.md"
+        decision_path = context.get_trial_dir() / "decision.md"
         if accepted:
             trial.status = "accepted"
             trial.decision = "accepted"

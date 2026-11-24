@@ -6,7 +6,7 @@ import csv
 import io
 from pathlib import Path
 
-from espnet3.bin.atlas.core.serialization import atomic_write_text, flatten_dict
+from espnet3.bin.atlas.core.serialization import flatten_dict, write_text_atomically
 
 
 def sync_trials_csv(state, study_dir: Path, study_id: str) -> None:
@@ -85,4 +85,4 @@ def sync_trials_csv(state, study_dir: Path, study_id: str) -> None:
     writer.writeheader()
     for row in rows:
         writer.writerow(row)
-    atomic_write_text(path, buffer.getvalue())
+    write_text_atomically(path, buffer.getvalue())

@@ -5,7 +5,7 @@ from __future__ import annotations
 from pathlib import Path
 
 from espnet3.bin.atlas.core.models import StageResult
-from espnet3.bin.atlas.stages.base import AtlasStage
+from espnet3.bin.atlas.stages.base import BaseStage
 
 PROGRAM_TEMPLATE = """# Atlas Objective
 
@@ -17,14 +17,14 @@ Describe:
 """
 
 
-class InitStudyStage(AtlasStage):
+class InitStudyStage(BaseStage):
     """Create the stable study directory scaffold."""
 
     def run(self, context) -> StageResult:
         """Create the study's ``knowledge``/``trials``/``node_runs`` directories.
 
         Writes a default ``program.md`` if one is not already present, and
-        verifies ``atlas.yaml``/``graph.yaml`` (written by ``cmd_init``)
+        verifies ``atlas.yaml``/``graph.yaml`` (written by ``handle_init``)
         exist.
 
         Args:

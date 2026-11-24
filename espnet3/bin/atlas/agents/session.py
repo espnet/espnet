@@ -6,10 +6,10 @@ import contextlib
 from dataclasses import replace
 from pathlib import Path
 
-from espnet3.bin.atlas.core.models import AgentRequest, AgentResponse
-from espnet3.bin.atlas.resources import load_prompt
 from espnet3.bin.atlas.core import InvalidAgentResponseError
-from espnet3.bin.atlas.core.serialization import atomic_write_text, file_lock
+from espnet3.bin.atlas.core.models import AgentRequest, AgentResponse
+from espnet3.bin.atlas.core.serialization import lock_file, write_text_atomically
+from espnet3.bin.atlas.resources import load_prompt
 
 
 class StudySessionAgentClient:
@@ -62,7 +62,7 @@ class StudySessionAgentClient:
         )
 
     @contextlib.contextmanager
-    def session_lock(self):
+    def lock_session(self):
         """Hold the study's agent-session lock and refresh ``self.session_id``.
 
         Serializes access to the shared agent session across concurrent CPU
@@ -79,10 +79,10 @@ class StudySessionAgentClient:
             (possibly just-refreshed) session id.
 
         Example:
-            >>> with client.session_lock() as session_id:
+            >>> with client.lock_session() as session_id:
             ...     pass
         """
-        with file_lock(self._lock_path):
+        with lock_file(self._lock_path):
             persisted = self._state.get_agent_session_id(self._study_id)
             self.session_id = self._configured_session_id or persisted
             if self._configured_session_id and self._configured_session_id != persisted:
@@ -122,7 +122,7 @@ class StudySessionAgentClient:
             >>> response.status
             'success'
         """
-        with self.session_lock():
+        with self.lock_session():
             # A study session deliberately overrides trial-local sessions so every
             # proposal, reflection, and debug action shares one conversation.
             if self.session_id:
@@ -159,7 +159,7 @@ class StudySessionAgentClient:
                 reason = (
                     f"Agent JSON repair failed for {request.task}: {response.message}"
                 )
-                atomic_write_text(self._study_dir / "STOP", reason + "\n")
+                write_text_atomically(self._study_dir / "STOP", reason + "\n")
                 self._state.update_study_status(self._study_id, "stopped")
                 self._state.append_event(
                     self._study_id,

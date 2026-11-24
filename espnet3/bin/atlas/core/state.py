@@ -13,11 +13,11 @@ from pathlib import Path
 from espnet3.bin.atlas.core.models import JobRecord, StageResult, Study, Trial
 from espnet3.bin.atlas.core.reports import sync_trials_csv
 from espnet3.bin.atlas.core.serialization import (
-    atomic_write_text,
     dumps_json,
-    file_lock,
+    get_utc_now,
     loads_json,
-    utc_now,
+    lock_file,
+    write_text_atomically,
 )
 
 TABLES = ("studies", "trials", "node_runs", "jobs", "events")
@@ -48,13 +48,13 @@ class StateStore:
             path if path.suffix == ".sqlite" else self.study_dir / "state.sqlite"
         )
 
-    def _path(self, table: str) -> Path:
+    def _get_table_path(self, table: str) -> Path:
         """Return ``study_dir/state_<table>.csv`` for one of the known tables."""
         return self.study_dir / f"state_{table}.csv"
 
     def _read_unlocked(self, table: str) -> list[dict]:
         """Read and JSON-decode every row of a table's CSV, without locking."""
-        path = self._path(table)
+        path = self._get_table_path(table)
         if not path.exists():
             return []
         with path.open(newline="", encoding="utf-8") as f:
@@ -73,16 +73,16 @@ class StateStore:
             writer.writerow(
                 {key: dumps_json(value, indent=None) for key, value in row.items()}
             )
-        atomic_write_text(self._path(table), buffer.getvalue())
+        write_text_atomically(self._get_table_path(table), buffer.getvalue())
 
-    def _rows(self, table: str) -> list[dict]:
+    def _read_table_rows(self, table: str) -> list[dict]:
         """Read a table's rows while holding the study's state lock."""
-        with file_lock(self.lock_path):
+        with lock_file(self.lock_path):
             return self._read_unlocked(table)
 
     def _upsert(self, table: str, key: str, value: dict) -> None:
         """Replace the record matching this table's primary key."""
-        with file_lock(self.lock_path):
+        with lock_file(self.lock_path):
             rows = self._read_unlocked(table)
             key_field = {
                 "studies": "study_id",
@@ -101,9 +101,9 @@ class StateStore:
         No-ops if ``db_path`` does not exist, or if any CSV table already
         exists (migration already happened).
         """
-        if not db_path.exists() or any(self._path(t).exists() for t in TABLES):
+        if not db_path.exists() or any(self._get_table_path(t).exists() for t in TABLES):
             return
-        with sqlite3.connect(db_path) as conn, file_lock(self.lock_path):
+        with sqlite3.connect(db_path) as conn, lock_file(self.lock_path):
             conn.row_factory = sqlite3.Row
             for table in TABLES:
                 try:
@@ -128,13 +128,13 @@ class StateStore:
             >>> store.create_or_load_study("my_study", Path("exp/atlas/my_study")).status
             'initialized'
         """
-        with file_lock(self.lock_path):
+        with lock_file(self.lock_path):
             rows = self._read_unlocked("studies")
             for row in rows:
                 if row["study_id"] == study_id:
                     row.pop("id", None)
                     return Study(**row)
-            now = utc_now()
+            now = get_utc_now()
             study = Study(study_id, str(study_dir), "initialized", now, now)
             rows.append(asdict(study))
             self._write_unlocked("studies", rows)
@@ -156,17 +156,18 @@ class StateStore:
             >>> store.get_study("my_study").status
             'running'
         """
-        row = next(r for r in self._rows("studies") if r["study_id"] == study_id)
+        rows = self._read_table_rows("studies")
+        row = next(r for r in rows if r["study_id"] == study_id)
         row.pop("id", None)
         return Study(**row)
 
     def _update_study(self, study_id: str, **changes) -> None:
         """Merge ``changes`` into a study's row and bump its ``updated_at``."""
-        with file_lock(self.lock_path):
+        with lock_file(self.lock_path):
             rows = self._read_unlocked("studies")
             for row in rows:
                 if row["study_id"] == study_id:
-                    row.update(changes, updated_at=utc_now())
+                    row.update(changes, updated_at=get_utc_now())
                     break
             self._write_unlocked("studies", rows)
 
@@ -217,7 +218,7 @@ class StateStore:
         """
         self._update_study(study_id, agent_session_id=session_id)
 
-    def agent_context_initialized(self, study_id: str) -> bool:
+    def is_agent_context_initialized(self, study_id: str) -> bool:
         """Whether the agent has already been given this study's full context.
 
         Args:
@@ -227,10 +228,10 @@ class StateStore:
             bool: ``True`` once a successful response has set this flag.
 
         Example:
-            >>> store.agent_context_initialized("my_study")
+            >>> store.is_agent_context_initialized("my_study")
             False
         """
-        return self.get_study(study_id).agent_context_initialized
+        return self.get_study(study_id).is_agent_context_initialized
 
     def mark_agent_context_initialized(self, study_id: str) -> None:
         """Record that the agent has now seen this study's full context.
@@ -244,7 +245,7 @@ class StateStore:
         Example:
             >>> store.mark_agent_context_initialized("my_study")
         """
-        self._update_study(study_id, agent_context_initialized=True)
+        self._update_study(study_id, is_agent_context_initialized=True)
 
     def set_best_trial(self, study_id: str, trial_id: str) -> None:
         """Record a study's current best trial id.
@@ -262,7 +263,7 @@ class StateStore:
         self._update_study(study_id, current_best_trial_id=trial_id)
 
     @staticmethod
-    def _row_to_trial(data: dict) -> Trial:
+    def _convert_row_to_trial(data: dict) -> Trial:
         """Decode one ``trials`` CSV row (with JSON sub-fields) into a ``Trial``."""
         return Trial(
             trial_id=data["trial_id"],
@@ -293,7 +294,7 @@ class StateStore:
         )
 
     @staticmethod
-    def _trial_row(trial: Trial) -> dict:
+    def _convert_trial_to_row(trial: Trial) -> dict:
         """Encode a ``Trial`` into a ``trials`` CSV row dict (with JSON sub-fields)."""
         return {
             "trial_id": trial.trial_id,
@@ -334,7 +335,7 @@ class StateStore:
             >>> store.create_trial(trial).trial_id
             'trial_001'
         """
-        self._upsert("trials", trial.trial_id, self._trial_row(trial))
+        self._upsert("trials", trial.trial_id, self._convert_trial_to_row(trial))
         sync_trials_csv(self, self.study_dir, trial.study_id)
         return trial
 
@@ -352,8 +353,8 @@ class StateStore:
             >>> trial.status = "accepted"
             >>> store.update_trial(trial)
         """
-        trial.updated_at = utc_now()
-        self._upsert("trials", trial.trial_id, self._trial_row(trial))
+        trial.updated_at = get_utc_now()
+        self._upsert("trials", trial.trial_id, self._convert_trial_to_row(trial))
         sync_trials_csv(self, self.study_dir, trial.study_id)
 
     def get_trial(self, trial_id: str) -> Trial:
@@ -372,8 +373,8 @@ class StateStore:
             >>> store.get_trial("trial_001").status
             'running'
         """
-        return self._row_to_trial(
-            next(r for r in self._rows("trials") if r["trial_id"] == trial_id)
+        return self._convert_row_to_trial(
+            next(r for r in self._read_table_rows("trials") if r["trial_id"] == trial_id)
         )
 
     def list_trials(self, study_id: str, status: str | None = None) -> list[Trial]:
@@ -393,11 +394,11 @@ class StateStore:
         """
         rows = [
             r
-            for r in self._rows("trials")
+            for r in self._read_table_rows("trials")
             if r["study_id"] == study_id and (status is None or r["status"] == status)
         ]
         return [
-            self._row_to_trial(r)
+            self._convert_row_to_trial(r)
             for r in sorted(rows, key=lambda r: (r["created_at"], r["trial_id"]))
         ]
 
@@ -473,7 +474,7 @@ class StateStore:
 
     def _update_node_run(self, run_id: str, **changes) -> None:
         """Merge ``changes`` into one node run's row, by ``run_id``."""
-        with file_lock(self.lock_path):
+        with lock_file(self.lock_path):
             rows = self._read_unlocked("node_runs")
             for row in rows:
                 if row["run_id"] == run_id:
@@ -496,7 +497,7 @@ class StateStore:
             >>> store.begin_node_run("run_1")
         """
         self._update_node_run(
-            run_id, status="running", started_at=utc_now(), local_pid=pid
+            run_id, status="running", started_at=get_utc_now(), local_pid=pid
         )
 
     def finish_node_run(self, run_id: str, result: StageResult) -> None:
@@ -522,7 +523,7 @@ class StateStore:
         self._update_node_run(
             run_id,
             status=status,
-            finished_at=utc_now(),
+            finished_at=get_utc_now(),
             result_status=result.status,
             result_payload_json=result.to_json(),
         )
@@ -543,7 +544,7 @@ class StateStore:
         return sorted(
             [
                 r
-                for r in self._rows("node_runs")
+                for r in self._read_table_rows("node_runs")
                 if r["study_id"] == study_id and r["status"] == "pending"
             ],
             key=lambda r: r["run_id"],
@@ -562,7 +563,8 @@ class StateStore:
             >>> store.get_node_run("run_1")["node_name"]
             'init_study'
         """
-        return next((r for r in self._rows("node_runs") if r["run_id"] == run_id), None)
+        rows = self._read_table_rows("node_runs")
+        return next((r for r in rows if r["run_id"] == run_id), None)
 
     def list_node_runs(self, study_id: str) -> list[dict]:
         """List all of a study's node runs, ordered by run id.
@@ -578,7 +580,7 @@ class StateStore:
             3
         """
         return sorted(
-            [r for r in self._rows("node_runs") if r["study_id"] == study_id],
+            [r for r in self._read_table_rows("node_runs") if r["study_id"] == study_id],
             key=lambda r: r["run_id"],
         )
 
@@ -614,13 +616,13 @@ class StateStore:
         Example:
             >>> store.update_job_status("job_1", "completed")
         """
-        with file_lock(self.lock_path):
+        with lock_file(self.lock_path):
             rows = self._read_unlocked("jobs")
             for row in rows:
                 if row["job_id"] == job_id:
                     row["status"] = status
                     row["external_id"] = external_id or row.get("external_id")
-                    row["updated_at"] = utc_now()
+                    row["updated_at"] = get_utc_now()
             self._write_unlocked("jobs", rows)
 
     def list_active_jobs(self, study_id: str) -> list[JobRecord]:
@@ -640,7 +642,7 @@ class StateStore:
         active = {"submitted", "pending", "running", "unknown"}
         return [
             JobRecord(**{k: v for k, v in row.items() if k != "id"})
-            for row in self._rows("jobs")
+            for row in self._read_table_rows("jobs")
             if row["study_id"] == study_id and row["status"] in active
         ]
 
@@ -662,7 +664,7 @@ class StateStore:
         """
         rows = [
             row
-            for row in self._rows("jobs")
+            for row in self._read_table_rows("jobs")
             if row["study_id"] == study_id
             and (job_type is None or row["job_type"] == job_type)
         ]
@@ -690,7 +692,7 @@ class StateStore:
         """
         now = datetime.now(timezone.utc)
         total = 0.0
-        for row in self._rows("node_runs"):
+        for row in self._read_table_rows("node_runs"):
             if (
                 row["study_id"] != study_id
                 or row.get("trial_id") is None
@@ -724,7 +726,11 @@ class StateStore:
             >>> store.find_job_by_node_run("run_1").status
             'running'
         """
-        rows = [r for r in self._rows("jobs") if r.get("node_run_id") == node_run_id]
+        rows = [
+            r
+            for r in self._read_table_rows("jobs")
+            if r.get("node_run_id") == node_run_id
+        ]
         if not rows:
             return None
         row = max(rows, key=lambda r: r["created_at"])
@@ -745,13 +751,13 @@ class StateStore:
         Example:
             >>> store.append_event("my_study", "node_started", {"run_id": "run_1"})
         """
-        with file_lock(self.lock_path):
+        with lock_file(self.lock_path):
             rows = self._read_unlocked("events")
             rows.append(
                 {
                     "id": len(rows) + 1,
                     "study_id": study_id,
-                    "timestamp": utc_now(),
+                    "timestamp": get_utc_now(),
                     "event_type": event_type,
                     "payload_json": dumps_json(payload, None),
                 }

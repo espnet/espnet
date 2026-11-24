@@ -33,7 +33,7 @@ class Study:
             ``None`` if none has been accepted yet.
         agent_session_id: The coding agent's resumable session/thread id for
             this study, or ``None`` before the first agent call.
-        agent_context_initialized: Whether the agent has already been given
+        is_agent_context_initialized: Whether the agent has already been given
             the study's full context (objective, knowledge, repo context) in
             this session.
     """
@@ -45,7 +45,7 @@ class Study:
     updated_at: str
     current_best_trial_id: str | None = None
     agent_session_id: str | None = None
-    agent_context_initialized: bool = False
+    is_agent_context_initialized: bool = False
 
 
 @dataclass
@@ -154,7 +154,7 @@ class Resources:
             extra=extra,
         )
 
-    def merged_with(self, override: "Resources | None") -> "Resources":
+    def merge_with(self, override: "Resources | None") -> "Resources":
         """Layer a node-level resource override onto this (study-level) default.
 
         ``cpus``/``nodes`` are only taken from ``override`` when they differ
@@ -172,7 +172,7 @@ class Resources:
             Resources: The merged resource limits.
 
         Example:
-            >>> Resources(gpus=1).merged_with(Resources(gpus=2))
+            >>> Resources(gpus=1).merge_with(Resources(gpus=2))
             Resources(gpus=2, cpus=1, nodes=1, mem=None, time=None, extra={})
         """
         if override is None:
@@ -195,7 +195,7 @@ class NodeConfig:
 
     Args:
         name: Node's key in the graph's ``nodes`` mapping.
-        target: Dotted ``module.Class`` path of the ``AtlasStage``
+        target: Dotted ``module.Class`` path of the ``BaseStage``
             subclass to run. Required; a skill node names ``SkillStage``.
         execution: ``"local"`` to run in the current process, or
             ``"submission"`` to be dispatched as a separate submitted job.
@@ -447,9 +447,9 @@ StageStatus = Literal[
 
 @dataclass
 class StageResult:
-    """The outcome of one ``AtlasStage.run`` call, used to route the graph.
+    """The outcome of one ``BaseStage.run`` call, used to route the graph.
 
-    Persisted by ``AtlasStage.execute`` as the node run's success/failure
+    Persisted by ``BaseStage.execute`` as the node run's success/failure
     marker, and read back on a re-dispatched run via :meth:`from_json`.
 
     Args:
@@ -526,7 +526,7 @@ class StageResult:
 
 @dataclass
 class StageContext:
-    """Everything one node run of ``AtlasStage.run`` needs to do its work.
+    """Everything one node run of ``BaseStage.run`` needs to do its work.
 
     Built fresh for each node run by the scheduler and passed to
     ``stage.execute(context)``.
@@ -564,7 +564,7 @@ class StageContext:
     current_trial: Trial | None = None
     gpu_self_controller: bool = False
 
-    def trial_dir(self) -> Path:
+    def get_trial_dir(self) -> Path:
         """Return this run's trial directory: ``study_dir/trials/<trial_id>``.
 
         Args:
@@ -577,13 +577,13 @@ class StageContext:
             AssertionError: If called when ``current_trial`` is ``None``.
 
         Example:
-            >>> context.trial_dir()
+            >>> context.get_trial_dir()
             PosixPath('exp/atlas/my_study/trials/trial_001')
         """
         assert self.current_trial is not None
         return self.study_dir / "trials" / self.current_trial.trial_id
 
-    def artifact_dir(self, *parts: str) -> Path:
+    def get_artifact_dir(self, *parts: str) -> Path:
         """Return this node run's artifact directory, optionally with subparts.
 
         Args:
@@ -594,7 +594,7 @@ class StageContext:
             Path: ``study_dir/node_runs/<run_id>[/parts...]``.
 
         Example:
-            >>> context.artifact_dir("skill_name")
+            >>> context.get_artifact_dir("skill_name")
             PosixPath('exp/atlas/my_study/node_runs/run_abc123/skill_name')
         """
         return self.study_dir / "node_runs" / self.run_id / Path(*parts)

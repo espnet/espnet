@@ -19,12 +19,12 @@ from espnet3.bin.atlas.core import AtlasError, InvalidAgentResponseError
 from espnet3.bin.atlas.core.graph import Resources, load_stage_class
 from espnet3.bin.atlas.core.models import AgentRequest, StageContext, StageResult
 from espnet3.bin.atlas.core.serialization import (
-    atomic_write_text,
     dumps_json,
-    file_lock,
+    get_utc_now,
     load_yaml,
     loads_json,
-    utc_now,
+    lock_file,
+    write_text_atomically,
 )
 from espnet3.bin.atlas.core.state import JobRecord
 from espnet3.bin.atlas.resources import load_prompt, load_schema
@@ -150,7 +150,7 @@ class AtlasGraphRuntime:
                 "or elapsed_time_interval_sec."
             )
 
-    def gpu_self_monitor_interval_sec(self) -> int:
+    def get_gpu_monitor_interval_sec(self) -> int:
         """Return how often a GPU job's self-controller polls its trial, in seconds.
 
         This is ``atlas.tick_interval_sec_trial_active`` (default 600), with a
@@ -160,13 +160,13 @@ class AtlasGraphRuntime:
             int: Poll interval in seconds, at least 1.
 
         Example:
-            >>> runtime.gpu_self_monitor_interval_sec()
+            >>> runtime.get_gpu_monitor_interval_sec()
             600
         """
         configured = getattr(self.config.atlas, "tick_interval_sec_trial_active", 600)
         return max(1, int(configured or 600))
 
-    def bootstrap_node_name(self) -> str:
+    def get_bootstrap_node_name(self) -> str:
         """Pick the first node to run for a study with no node runs yet.
 
         Skips ``research_context``/``propose_trial`` setup work that is
@@ -182,7 +182,7 @@ class AtlasGraphRuntime:
             str: The node name to create the first node run for.
 
         Example:
-            >>> runtime.bootstrap_node_name()
+            >>> runtime.get_bootstrap_node_name()
             'init_study'
         """
         knowledge_dir = self.study_dir / "knowledge"
@@ -197,7 +197,9 @@ class AtlasGraphRuntime:
             return "research_context"
         return self.graph.start
 
-    def _job_name(self, node_name: str, trial_id: str | None, attempt_id: str) -> str:
+    def _build_job_name(
+        self, node_name: str, trial_id: str | None, attempt_id: str
+    ) -> str:
         """Build a short, backend-friendly job name from the study/trial/node."""
         study = self.study_dir.name.replace("_", "-")
         if trial_id:
@@ -294,8 +296,8 @@ class AtlasGraphRuntime:
                 message=str(exc),
                 payload={"invalid_agent_response": True},
             )
-            atomic_write_text(
-                context.artifact_dir() / ".stage_failure.json", result.to_json()
+            write_text_atomically(
+                context.get_artifact_dir() / ".stage_failure.json", result.to_json()
             )
         self.state.finish_node_run(run_id, result)
         self.state.append_event(
@@ -652,7 +654,7 @@ class AtlasGraphRuntime:
             for job in jobs
         ]
         try:
-            result = self._submission_action("status", {"jobs": payload})
+            result = self._run_submission_action("status", {"jobs": payload})
         except Exception as exc:
             self.logger.warning("Job status agent failed: %s", exc)
             return None
@@ -725,7 +727,7 @@ class AtlasGraphRuntime:
                 },
             )
 
-    def _submission_action(self, operation: str, context: dict) -> dict:
+    def _run_submission_action(self, operation: str, context: dict) -> dict:
         """Ask the configured coding agent to submit or inspect jobs."""
         submission = self.config.atlas.submission
         environment = str(getattr(submission, "environment", "local"))
@@ -908,7 +910,7 @@ class AtlasGraphRuntime:
                 "metadata": job_metadata,
             }
         }
-        result = self._submission_action("submit", context)
+        result = self._run_submission_action("submit", context)
         if result.get("status") != "submitted" or not result.get("external_id"):
             raise RuntimeError(
                 f"Job submission failed: {result.get('message', result)}"
@@ -933,8 +935,8 @@ class AtlasGraphRuntime:
             stdout_path=str(stdout),
             stderr_path=str(stderr),
             job_type=job_type,
-            created_at=utc_now(),
-            updated_at=utc_now(),
+            created_at=get_utc_now(),
+            updated_at=get_utc_now(),
         )
         self.state.create_job(record)
         return record
@@ -1067,7 +1069,7 @@ class AtlasGraphRuntime:
         )
 
     @staticmethod
-    def _elapsed_trial_seconds(started_at: str) -> int | None:
+    def _compute_elapsed_trial_seconds(started_at: str) -> int | None:
         """Return elapsed seconds since the trial worker entered the running state."""
         try:
             started = datetime.fromisoformat(started_at.replace("Z", "+00:00"))
@@ -1165,7 +1167,7 @@ class AtlasGraphRuntime:
         )
         return result
 
-    def _early_stop_trial(
+    def _stop_trial_early(
         self,
         trial,
         trial_dir: Path,
@@ -1243,7 +1245,7 @@ class AtlasGraphRuntime:
 
         current_epoch = self._parse_training_epoch(metrics_csv)
         current_iteration = self._parse_training_iteration(metrics_csv)
-        elapsed_seconds = self._elapsed_trial_seconds(trial.updated_at)
+        elapsed_seconds = self._compute_elapsed_trial_seconds(trial.updated_at)
 
         due_keypoints: list[tuple[str, int, str]] = []
         if (
@@ -1273,7 +1275,7 @@ class AtlasGraphRuntime:
             return
 
         kp_file = trial_dir / "keypoints_checked.json"
-        with file_lock(trial_dir / ".lock_keypoints"):
+        with lock_file(trial_dir / ".lock_keypoints"):
             checked = self._load_checked_keypoints(kp_file)
             unchecked = [
                 keypoint
@@ -1341,7 +1343,7 @@ class AtlasGraphRuntime:
             kp_file.write_text(dumps_json(checked), encoding="utf-8")
 
         if result and result.get("should_stop"):
-            self._early_stop_trial(trial, trial_dir, result)
+            self._stop_trial_early(trial, trial_dir, result)
 
     def _maybe_schedule_parallel_proposals(self) -> None:
         """Create enough new ``propose_trial`` node runs to fill open parallel slots.
@@ -1356,14 +1358,14 @@ class AtlasGraphRuntime:
         """
         if "propose_trial" not in self.graph.nodes:
             return
-        if self.bootstrap_node_name() != "propose_trial":
+        if self.get_bootstrap_node_name() != "propose_trial":
             return
         if self.should_stop():
             return
         budget = self.config.atlas.budget
         max_parallel = int(getattr(budget, "max_parallel_trials", 1) or 1)
         max_trials = int(getattr(budget, "max_trials", 0) or 0)
-        with file_lock(self.study_dir / ".lock_proposal_scheduler"):
+        with lock_file(self.study_dir / ".lock_proposal_scheduler"):
             trials = self.state.list_trials(self.study_id)
             node_runs = self.state.list_node_runs(self.study_id)
             active_trial_jobs = sum(
@@ -1427,7 +1429,7 @@ class AtlasGraphRuntime:
         except (KeyError, TypeError, ValueError):
             return False
 
-    def _inflight_retry_trial_ids(
+    def _find_inflight_retry_trial_ids(
         self, node_runs: list[dict] | None = None
     ) -> set[str]:
         """Return trials currently in debug, repair, or retry execution."""
@@ -1462,7 +1464,7 @@ class AtlasGraphRuntime:
         """Submit pending trial nodes under one study-wide scheduler lock."""
         if (self.study_dir / "STOP").exists():
             return
-        with file_lock(self.study_dir / ".lock_trial_submit"):
+        with lock_file(self.study_dir / ".lock_trial_submit"):
             self._submit_pending_trial_nodes_locked()
 
     def _submit_pending_trial_nodes_locked(self) -> None:
@@ -1510,7 +1512,7 @@ class AtlasGraphRuntime:
                 attempt_id=attempt_id,
             )
             metadata = {"marker_dir": str(marker_dir)}
-            resources = self.trial_resources_default.merged_with(node_cfg.resources)
+            resources = self.trial_resources_default.merge_with(node_cfg.resources)
             env = {
                 "PYTHONPATH": os.pathsep.join(
                     path
@@ -1525,7 +1527,7 @@ class AtlasGraphRuntime:
             job = self.submit_job(
                 job_id=job_id,
                 job_type="trial",
-                name=self._job_name(
+                name=self._build_job_name(
                     node_name=node_run["node_name"],
                     trial_id=trial_id,
                     attempt_id=attempt_id,
@@ -1627,7 +1629,7 @@ class AtlasGraphRuntime:
             self.state.create_node_run(
                 run_id=f"run_{uuid.uuid4().hex}",
                 study_id=self.study_id,
-                node_name=self.bootstrap_node_name(),
+                node_name=self.get_bootstrap_node_name(),
             )
         self._refresh_active_jobs(
             trial_id=trial_id,
