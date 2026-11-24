@@ -493,35 +493,6 @@ def handle_stop(args) -> int:
     return 0
 
 
-def run_from_recipe_config(recipe_dir: Path, config_path: Path, mode: str = "run") -> int:
-    """Initialize and run a study from Python, without going through the CLI parser.
-
-    Calls :func:`handle_init` then :func:`handle_run` (in local/foreground mode,
-    not as a worker) for the study described by ``config_path``. Intended
-    for a recipe's own code (for example a ``run.py`` stage) to kick off an
-    Atlas study directly.
-
-    Args:
-        recipe_dir: Recipe root.
-        config_path: Path to the recipe's ``atlas.yaml``.
-        mode: Reserved for a future non-``"run"`` mode; currently unused.
-
-    Returns:
-        int: The exit code from :func:`handle_run` (always ``0`` today).
-
-    Example:
-        >>> run_from_recipe_config(Path("."), Path("conf/atlas.yaml"))
-        0
-    """
-    recipe_dir, config_path = Path(recipe_dir).resolve(), Path(config_path).resolve()
-    handle_init(argparse.Namespace(recipe_dir=str(recipe_dir), config=str(config_path)))
-    config = load_atlas_config(config_path)
-    study_dir = _resolve_study_dir(recipe_dir, config.atlas.study_dir)
-    return handle_run(argparse.Namespace(
-        study_dir=str(study_dir), recipe_dir=str(recipe_dir), poll_interval=None
-    ))
-
-
 def add_arguments(subparsers) -> None:
     """Register the ``atlas`` subcommand (``init``/``run``/``status``/``stop``).
 
