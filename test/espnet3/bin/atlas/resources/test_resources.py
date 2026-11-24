@@ -67,8 +67,8 @@ def test_every_packaged_schema_is_strict():
             for index, value in enumerate(node):
                 check(value, f"{where}[{index}]")
 
-    for path in resources.files("espnet3.bin.atlas").joinpath(
-        "resources", "schemas"
-    ).iterdir():
+    for path in (
+        resources.files("espnet3.bin.atlas").joinpath("resources", "schemas").iterdir()
+    ):
         if path.name.endswith(".json"):
             check(load_schema(path.name[:-5]), path.name)

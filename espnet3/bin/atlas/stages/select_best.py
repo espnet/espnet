@@ -15,7 +15,7 @@ class SelectBestStage(BaseStage):
     study_lock_name = "study_controller"
 
     def run(self, context) -> StageResult:
-        """Write ``leaderboard.csv`` and, if any trial has a score, ``best_trial.yaml``/``best_config.yaml``.
+        """Write ``leaderboard.csv`` and, if a trial has a score, the best-trial files.
 
         Args:
             context: The node run's ``StageContext``.
@@ -46,7 +46,14 @@ class SelectBestStage(BaseStage):
         with open(leaderboard, "w", encoding="utf-8", newline="") as handle:
             writer = csv.DictWriter(
                 handle,
-                fieldnames=["rank", "trial_id", "score", "score_name", "status", "decision"],
+                fieldnames=[
+                    "rank",
+                    "trial_id",
+                    "score",
+                    "score_name",
+                    "status",
+                    "decision",
+                ],
             )
             writer.writeheader()
             for rank, trial in enumerate(trials, start=1):
@@ -70,7 +77,10 @@ class SelectBestStage(BaseStage):
                     "config_patch": best.config_patch,
                 },
             )
-            if best.resolved_config_path is not None and best.resolved_config_path.exists():
+            if (
+                best.resolved_config_path is not None
+                and best.resolved_config_path.exists()
+            ):
                 (context.study_dir / "best_config.yaml").write_text(
                     best.resolved_config_path.read_text(encoding="utf-8"),
                     encoding="utf-8",

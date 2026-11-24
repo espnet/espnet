@@ -234,9 +234,7 @@ def test_debug_trial_reflects_after_a_successful_reply_at_the_attempt_limit(env)
 
 def test_debug_trial_retries_unchanged_when_there_is_no_fix(env):
     """Retry the same trial when the agent declines to change anything."""
-    context = _proposed_context(
-        env, _FakeAgent(_debug_reply(should_retry=False))
-    )
+    context = _proposed_context(env, _FakeAgent(_debug_reply(should_retry=False)))
 
     result = DebugTrialStage().run(context)
 
@@ -298,9 +296,10 @@ def test_debug_trial_applies_an_inference_patch_and_strips_runtime_keys(env):
     assert stages["train"]["status"] == "completed"
     assert stages["infer"]["status"] == "pending"
     assert stages["measure"]["status"] == "pending"
-    assert "removed_inference_keys: ['inference_dir', '']" in (
-        trial_dir / "debug.md"
-    ).read_text()
+    assert (
+        "removed_inference_keys: ['inference_dir', '']"
+        in (trial_dir / "debug.md").read_text()
+    )
 
 
 def test_debug_trial_invalidates_every_stage_after_a_code_fix(env):
@@ -357,5 +356,5 @@ def test_debug_trial_filters_training_patch_by_search_space(env):
     result = DebugTrialStage().run(context)
 
     assert result.next_node == "run_trial"
-    assert "Debug finished without a fix" in result.message
+    assert "Debug found no fix" in result.message
     assert env.state.get_trial("trial_000001").config_patch["optimizer.lr"] == 0.001

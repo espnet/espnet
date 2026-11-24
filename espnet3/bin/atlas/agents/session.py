@@ -159,7 +159,8 @@ class StudySessionAgentClient:
                 self._state.set_agent_session_id(self._study_id, self.session_id)
             if response.status != "success" and response.artifacts.get("parse_error"):
                 reason = (
-                    f"Agent reply violated its schema for {request.task}: {response.message}"
+                    f"Agent reply violated its schema for {request.task}: "
+                    f"{response.message}"
                 )
                 write_text_atomically(self._study_dir / "STOP", reason + "\n")
                 self._state.update_study_status(self._study_id, "stopped")

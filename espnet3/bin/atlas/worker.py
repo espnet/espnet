@@ -35,7 +35,9 @@ def main() -> int:
     parser.add_argument("--trial-id")
     parser.add_argument("--attempt-id", default="attempt_000000")
     args = parser.parse_args()
-    runtime = _load_runtime(Path(args.study_dir).resolve(), Path(args.recipe_dir).resolve())
+    runtime = _load_runtime(
+        Path(args.study_dir).resolve(), Path(args.recipe_dir).resolve()
+    )
     if runtime.graph.nodes[args.node].execution == "submission":
         result = runtime.run_gpu_self_controller(
             node_name=args.node,

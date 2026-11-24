@@ -13,7 +13,6 @@ from omegaconf import DictConfig
 from espnet3.bin.atlas.core import AtlasError
 
 if TYPE_CHECKING:
-    from espnet3.bin.atlas.core.graph import ResearchGraph
     from espnet3.bin.atlas.core.scheduler import AtlasGraphRuntime
     from espnet3.bin.atlas.core.state import StateStore
 
@@ -130,7 +129,8 @@ class Resources:
 
         Example:
             >>> Resources.from_config({"gpus": 2, "partition": "gpuA100x4"})
-            Resources(gpus=2, cpus=1, nodes=1, mem=None, time=None, extra={'partition': 'gpuA100x4'})
+            Resources(gpus=2, cpus=1, nodes=1, mem=None, time=None,
+                      extra={'partition': 'gpuA100x4'})
         """
         if config is None:
             return cls()

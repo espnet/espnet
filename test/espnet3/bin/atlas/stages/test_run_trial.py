@@ -280,9 +280,7 @@ def test_run_trial_reports_timeout_when_a_command_times_out(env, monkeypatch):
     assert env.state.get_trial("trial_000001").status == "timeout"
 
 
-def test_run_trial_skips_completed_stages_and_resumes_from_checkpoint(
-    env, monkeypatch
-):
+def test_run_trial_skips_completed_stages_and_resumes_from_checkpoint(env, monkeypatch):
     """Skip finished stages, and resume training from ``exp/last.ckpt``."""
     context, runner = _trial_context(env, monkeypatch)
     trial_dir = env.study_dir / "trials" / "trial_000001"
@@ -296,16 +294,14 @@ def test_run_trial_skips_completed_stages_and_resumes_from_checkpoint(
 
     assert result.status == "success"
     assert [call[0] for call in runner.calls] == ["train"]
-    resume_cfg = trial_dir / "attempts" / "attempt_000001" / (
-        "resolved_training_config.yaml"
+    resume_cfg = (
+        trial_dir / "attempts" / "attempt_000001" / ("resolved_training_config.yaml")
     )
     assert str(resume_cfg) in runner.calls[0][1]
     assert "ckpt_path" in resume_cfg.read_text()
 
 
-def test_run_trial_clears_stale_inference_locks_before_retrying_infer(
-    env, monkeypatch
-):
+def test_run_trial_clears_stale_inference_locks_before_retrying_infer(env, monkeypatch):
     """Remove leftover shard locks when infer previously failed."""
     context, runner = _trial_context(env, monkeypatch)
     trial_dir = env.study_dir / "trials" / "trial_000001"
@@ -367,18 +363,6 @@ def test_run_trial_helpers_classify_commands(tmp_path):
     )
     stage._copy_training_curve_csv(tmp_path, tmp_path)
     assert not (tmp_path / "training_metrics.csv").exists()
-
-
-def test_run_trial_run_cmd_appends_output_to_the_log(tmp_path):
-    """Capture a subprocess's output in the given log file."""
-    log = tmp_path / "out.log"
-
-    proc = RunTrialStage()._run_cmd(
-        ["python3", "-c", "print('hello')"], tmp_path, log, 30
-    )
-
-    assert proc.returncode == 0
-    assert "hello" in log.read_text()
 
 
 class _FakePopen:
@@ -509,9 +493,7 @@ def test_run_trial_gpu_monitor_times_out_a_long_training(env, monkeypatch):
     assert _read_stage_status(trial_dir)["stages"]["train"]["status"] == "timeout"
 
 
-def test_run_trial_gpu_monitor_kills_a_process_that_ignores_terminate(
-    env, monkeypatch
-):
+def test_run_trial_gpu_monitor_kills_a_process_that_ignores_terminate(env, monkeypatch):
     """Kill the process if it does not exit after terminate on early stop."""
     _patch_popen(monkeypatch, polls=100)
 

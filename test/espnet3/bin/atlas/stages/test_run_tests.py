@@ -113,9 +113,7 @@ def test_find_test_dirs_falls_back_to_the_allowed_dirs(tmp_path):
 
 def test_run_tests_succeeds_and_logs_the_pytest_run(tmp_path, monkeypatch):
     calls = _fake_pytest(monkeypatch, 0, stdout="2 passed")
-    context = _context(
-        tmp_path, trial=_trial(), atlas=_code_edit(allowed_dirs=["src"])
-    )
+    context = _context(tmp_path, trial=_trial(), atlas=_code_edit(allowed_dirs=["src"]))
     (context.recipe_dir / "src" / "tests").mkdir(parents=True)
 
     result = RunTestsStage().run(context)
@@ -134,9 +132,7 @@ def test_run_tests_succeeds_and_logs_the_pytest_run(tmp_path, monkeypatch):
 
 def test_run_tests_failure_writes_error_log_including_stderr(tmp_path, monkeypatch):
     _fake_pytest(monkeypatch, 1, stdout="1 failed", stderr="boom")
-    context = _context(
-        tmp_path, trial=_trial(), atlas=_code_edit(allowed_dirs=["src"])
-    )
+    context = _context(tmp_path, trial=_trial(), atlas=_code_edit(allowed_dirs=["src"]))
 
     result = RunTestsStage().run(context)
 

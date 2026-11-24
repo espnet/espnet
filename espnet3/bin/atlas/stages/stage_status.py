@@ -74,9 +74,7 @@ def _set_stage_status(
     _write_stage_status(trial_dir, data)
 
 
-def _invalidate_stages(
-    trial_dir: Path, stage_names: list[str], reason: str
-) -> None:
+def _invalidate_stages(trial_dir: Path, stage_names: list[str], reason: str) -> None:
     """Mark affected stages pending while preserving their prior history."""
     data = _read_stage_status(trial_dir)
     stages = data.setdefault("stages", {})

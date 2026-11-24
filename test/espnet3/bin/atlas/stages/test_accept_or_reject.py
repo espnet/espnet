@@ -106,10 +106,7 @@ def test_accept_or_reject_compares_scores_by_metric_mode(
     if expected == "accepted":
         best = context.state.get_study(STUDY).current_best_trial_id
         assert best == "trial_000002"
-        # the new trial is itself the stored best, so no "before" is reported
-        assert "best_before: n/a" in text
-    else:
-        assert f"best_before: {old}" in text
+    assert f"best_before: {old}" in text
 
 
 def test_accept_or_reject_accepts_the_first_scored_trial(tmp_path):

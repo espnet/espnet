@@ -192,3 +192,24 @@ def test_cmd_status_reports_jobs_and_stop_file(tmp_path, capsys):
     assert "stop_file: yes" in out
     assert "active_jobs: 1" in out
     assert "trial running id=123.pbs" in out
+
+
+def test_best_trial_can_leave_one_trial_out(tmp_path):
+    """Ask for the best score as it was before a given trial."""
+    store = StateStore(tmp_path)
+    store.create_or_load_study("study", tmp_path)
+    for trial_id, score in (("trial_000001", 0.5), ("trial_000002", 0.3)):
+        trial = _trial(trial_id=trial_id)
+        trial.score, trial.score_name = score, "wer"
+        store.create_trial(trial)
+
+    assert store.get_best_trial("study", "wer", "min").trial_id == "trial_000002"
+    before = store.get_best_trial(
+        "study", "wer", "min", exclude_trial_id="trial_000002"
+    )
+    assert before.trial_id == "trial_000001"
+    assert (
+        store.get_best_trial("study", "wer", "min", exclude_trial_id="trial_000001")
+        .trial_id
+        == "trial_000002"
+    )

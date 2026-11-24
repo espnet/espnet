@@ -97,7 +97,8 @@ def load_graph(path: Path, recipe_dir: Path | None = None) -> ResearchGraph:
         for key in (cfg.get("output_key"), *(cfg.get("trial_update_keys") or [])):
             if key and key not in output_schema:
                 raise AtlasError(
-                    f"Node '{name}' uses '{key}' but does not declare it in output_schema."
+                    f"Node '{name}' uses '{key}' but does not declare it in "
+                    "output_schema."
                 )
         if "status" in output_schema or "message" in output_schema:
             raise AtlasError(

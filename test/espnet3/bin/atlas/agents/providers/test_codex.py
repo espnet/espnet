@@ -168,9 +168,7 @@ def test_collect_usage_objects_finds_nested_usage_and_token_fields():
     assert _collect_usage_objects("scalar") == []
 
 
-def test_build_env_creates_workspace_home_and_copies_credentials(
-    tmp_path, monkeypatch
-):
+def test_build_env_creates_workspace_home_and_copies_credentials(tmp_path, monkeypatch):
     """Copy auth files once into a recipe-local CODEX_HOME."""
     user_home = tmp_path / "user"
     user_home.mkdir()

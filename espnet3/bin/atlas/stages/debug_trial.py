@@ -60,7 +60,9 @@ class DebugTrialStage(BaseStage):
             ),
         }
         if trial.attempt_count > 0:
-            latest_attempt = trial_dir / "attempts" / f"attempt_{trial.attempt_count:06d}"
+            latest_attempt = (
+                trial_dir / "attempts" / f"attempt_{trial.attempt_count:06d}"
+            )
             logs["attempt_stdout"] = str(latest_attempt / "stdout.log")
             logs["attempt_stderr"] = str(latest_attempt / "stderr.log")
 
@@ -79,7 +81,7 @@ class DebugTrialStage(BaseStage):
         )
 
         def _load_base(config_path_key: str, config_name: str) -> str:
-            """Return the recipe's base stage config as YAML, or "(unavailable)" on error."""
+            """Return the base stage config as YAML, or "(unavailable)" on error."""
             try:
                 cfg = load_and_merge_config(
                     context.recipe_dir
@@ -119,7 +121,6 @@ class DebugTrialStage(BaseStage):
             knowledge = knowledge_path.read_text(encoding="utf-8")
 
         code_edit_cfg = getattr(context.config.atlas, "code_edit", None)
-        allowed_dirs = list(getattr(code_edit_cfg, "allowed_dirs", ["src"]) or ["src"])
         allow_pixi = bool(getattr(code_edit_cfg, "allow_pixi", True))
 
         allowed_actions = ["file_write"]
@@ -229,18 +230,20 @@ class DebugTrialStage(BaseStage):
                 artifacts={"debug": str(artifact_dir / "debug.md")},
             )
 
-        if not should_retry or (not patch and not inference_patch and not files_modified):
+        if not should_retry or (
+            not patch and not inference_patch and not files_modified
+        ):
             trial.reflection = (trial.reflection + "\n\n" + debug_note).strip()
             context.state.update_trial(trial)
             return StageResult(
                 status="success",
-                message="Debug finished without a fix; retrying the same trial unchanged.",
+                message="Debug found no fix; retrying the same trial unchanged.",
                 next_node="run_trial",
                 payload={"trial_id": trial.trial_id},
                 artifacts={"debug": str(artifact_dir / "debug.md")},
             )
 
-        # Both code-only and config-patch fixes retry the same trial as the next attempt.
+        # Code-only and config-patch fixes both retry the same trial.
         _runtime_keys = frozenset(
             {"exp_dir", "stats_dir", "recipe_dir", "data_dir", "exp_tag"}
         )
@@ -310,9 +313,7 @@ class DebugTrialStage(BaseStage):
             )
             save_yaml(artifact_dir / "resolved_inference_config.yaml", plain)
             if combined_inference_patch:
-                save_yaml(
-                    inference_patch_file, combined_inference_patch, resolve=False
-                )
+                save_yaml(inference_patch_file, combined_inference_patch, resolve=False)
 
         if patch:
             cfg = load_and_merge_config(
@@ -359,9 +360,11 @@ class DebugTrialStage(BaseStage):
         return StageResult(
             status="success",
             message=f"Debug fix applied to {trial.trial_id}; retrying as next attempt.",
-            next_node="run_trial"
-            if (patch or inference_patch) and not files_modified
-            else None,
+            next_node=(
+                "run_trial"
+                if (patch or inference_patch) and not files_modified
+                else None
+            ),
             payload={"trial_id": trial.trial_id},
             artifacts={"debug": str(artifact_dir / "debug.md")},
         )

@@ -53,7 +53,7 @@ class StateStore:
             ]
 
     def _write_unlocked(self, table: str, rows: list[dict]) -> None:
-        """Atomically overwrite a table's CSV with JSON-encoded ``rows``, without locking."""
+        """Atomically overwrite a table's CSV with JSON-encoded ``rows`` (no lock)."""
         buffer = io.StringIO(newline="")
         fieldnames = sorted({key for row in rows for key in row})
         writer = csv.DictWriter(buffer, fieldnames=fieldnames)
@@ -98,7 +98,8 @@ class StateStore:
             Study: The existing or newly created study record.
 
         Example:
-            >>> store.create_or_load_study("my_study", Path("exp/atlas/my_study")).status
+            >>> study = store.create_or_load_study("s", Path("exp/atlas/s"))
+            >>> study.status
             'initialized'
         """
         with FileLock(self.lock_path):
@@ -347,7 +348,9 @@ class StateStore:
             'running'
         """
         return self._convert_row_to_trial(
-            next(r for r in self._read_table_rows("trials") if r["trial_id"] == trial_id)
+            next(
+                r for r in self._read_table_rows("trials") if r["trial_id"] == trial_id
+            )
         )
 
     def list_trials(self, study_id: str, status: str | None = None) -> list[Trial]:
@@ -375,7 +378,13 @@ class StateStore:
             for r in sorted(rows, key=lambda r: (r["created_at"], r["trial_id"]))
         ]
 
-    def get_best_trial(self, study_id: str, metric: str, mode: str) -> Trial | None:
+    def get_best_trial(
+        self,
+        study_id: str,
+        metric: str,
+        mode: str,
+        exclude_trial_id: str | None = None,
+    ) -> Trial | None:
         """Return the trial with the best score for a given metric.
 
         Args:
@@ -384,6 +393,8 @@ class StateStore:
                 matches are considered).
             mode: ``"max"`` to pick the highest score, anything else to pick
                 the lowest.
+            exclude_trial_id: Trial to leave out, for example to ask what the
+                best was before that trial.
 
         Returns:
             Trial | None: The best-scoring matching trial, or ``None`` if no
@@ -396,7 +407,9 @@ class StateStore:
         trials = [
             t
             for t in self.list_trials(study_id)
-            if t.score is not None and t.score_name == metric
+            if t.score is not None
+            and t.score_name == metric
+            and t.trial_id != exclude_trial_id
         ]
         if not trials:
             return None
@@ -553,7 +566,11 @@ class StateStore:
             3
         """
         return sorted(
-            [r for r in self._read_table_rows("node_runs") if r["study_id"] == study_id],
+            [
+                r
+                for r in self._read_table_rows("node_runs")
+                if r["study_id"] == study_id
+            ],
             key=lambda r: r["run_id"],
         )
 
@@ -619,9 +636,7 @@ class StateStore:
             if row["study_id"] == study_id and row["status"] in active
         ]
 
-    def list_jobs(
-        self, study_id: str, job_type: str | None = None
-    ) -> list[JobRecord]:
+    def list_jobs(self, study_id: str, job_type: str | None = None) -> list[JobRecord]:
         """List study jobs, optionally filtered by type.
 
         Args:

@@ -109,7 +109,7 @@ class ProposeTrialStage(BaseStage):
     def _build_runtime_path_patch(
         self, context, trial_dir: Path, trial_id: str
     ) -> dict:
-        """Build the runtime-only patch keys (paths, exp_tag) injected into every trial."""
+        """Build the runtime-only patch keys (paths, exp_tag) given to every trial."""
         return {
             "recipe_dir": str(context.recipe_dir),
             "data_dir": str(context.recipe_dir / "data"),
@@ -121,8 +121,9 @@ class ProposeTrialStage(BaseStage):
         """Ask the agent for a new config patch, resolve it, and save it as a trial.
 
         Reserves (or reuses) a provisional trial, asks the agent to propose
-        a training config patch, sanitizes the patch against the search space, rejects it as ``"duplicate"`` if an
-        in-progress or past trial already has the same hyperparameter patch
+        a training config patch, sanitizes the patch against the search space,
+        rejects it as ``"duplicate"`` if an in-progress or past trial already
+        has the same hyperparameter patch
         or resolves to the same effective training config, then writes the
         trial's resolved training/inference/metrics configs and metadata.
 
@@ -205,7 +206,7 @@ class ProposeTrialStage(BaseStage):
 
         # Load all base configs so the agent can see what is patchable
         def _load_base_config_text(config_path_key: str, config_name: str) -> str:
-            """Return the recipe's base stage config as YAML, or "(unavailable)" on error."""
+            """Return the base stage config as YAML, or "(unavailable)" on error."""
             try:
                 cfg = load_and_merge_config(
                     context.recipe_dir
@@ -319,9 +320,7 @@ class ProposeTrialStage(BaseStage):
         hp_patch = {k: v for k, v in patch.items() if k not in _runtime_keys}
         for existing in trials:
             existing_hp = {
-                k: v
-                for k, v in existing.config_patch.items()
-                if k not in _runtime_keys
+                k: v for k, v in existing.config_patch.items() if k not in _runtime_keys
             }
             if existing_hp == hp_patch and existing.trial_id != trial_id:
                 dup_id = existing.trial_id
@@ -393,8 +392,7 @@ class ProposeTrialStage(BaseStage):
             ("metrics_config", "metrics.yaml", "resolved_metrics_config.yaml"),
         ]:
             cfg = load_and_merge_config(
-                context.recipe_dir
-                / getattr(context.config.atlas.recipe, config_key),
+                context.recipe_dir / getattr(context.config.atlas.recipe, config_key),
                 config_name=config_name,
                 resolve=False,
             )

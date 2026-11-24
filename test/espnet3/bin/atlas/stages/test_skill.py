@@ -247,9 +247,7 @@ def test_research_context_failure_still_leaves_a_knowledge_pack(tmp_path):
         def run(self, request, artifact_dir=None):
             return AgentResponse(status="failure", message="agent down", content="")
 
-    node = load_graph(_graph_path("hyperparameter_search")).nodes[
-        "research_context"
-    ]
+    node = load_graph(_graph_path("hyperparameter_search")).nodes["research_context"]
     context = _stage_context(tmp_path, node=node, agent=DownAgent())
 
     result = SkillStage().run(context)

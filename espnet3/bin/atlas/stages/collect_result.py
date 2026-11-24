@@ -13,7 +13,7 @@ from espnet3.bin.atlas.stages.base import BaseStage
 
 
 def _extract_from_json(path: Path, key: str) -> Any:
-    """Look up a (possibly dotted) key in a JSON file, trying longest-prefix matches first.
+    """Look up a (possibly dotted) key in a JSON file, longest prefix first.
 
     Tries ``key`` as a literal top-level key first; otherwise walks the
     dotted path, at each level preferring the longest remaining dotted

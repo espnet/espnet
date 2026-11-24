@@ -256,9 +256,7 @@ def _register_tick_job(runtime, resources: Resources):
     }
     repo_root = Path(__file__).resolve().parents[3]
     pythonpath = os.pathsep.join(
-        path
-        for path in (str(repo_root), os.environ.get("PYTHONPATH", ""))
-        if path
+        path for path in (str(repo_root), os.environ.get("PYTHONPATH", "")) if path
     )
     try:
         job = runtime.submit_job(
@@ -387,7 +385,8 @@ async def _run_controller_worker(
         if runtime.should_stop():
             pending = runtime.state.get_pending_node_runs(runtime.study_id)
             active = [
-                job for job in runtime.state.list_active_jobs(runtime.study_id)
+                job
+                for job in runtime.state.list_active_jobs(runtime.study_id)
                 if job.job_id != job_id and job.job_type != "tick"
             ]
             if not pending and not active:
@@ -396,7 +395,11 @@ async def _run_controller_worker(
             _ensure_tick_job(runtime, controller_resources, exclude_job_id=job_id)
             return
         active_trials = runtime.state.list_trials(runtime.study_id, status="running")
-        interval_key = "tick_interval_sec_trial_active" if active_trials else "tick_interval_sec_idle"
+        interval_key = (
+            "tick_interval_sec_trial_active"
+            if active_trials
+            else "tick_interval_sec_idle"
+        )
         interval = poll_interval or int(
             getattr(runtime.config.atlas, interval_key, 600 if active_trials else 60)
             or 1
@@ -448,7 +451,9 @@ def handle_status(args) -> int:
     for trial in trials:
         counts[trial.status] = counts.get(trial.status, 0) + 1
     if counts:
-        print("trial_status: " + " ".join(f"{k}={v}" for k, v in sorted(counts.items())))
+        print(
+            "trial_status: " + " ".join(f"{k}={v}" for k, v in sorted(counts.items()))
+        )
     print(f"stop_file: {'yes' if (study_dir / 'STOP').exists() else 'no'}")
     active = state.list_active_jobs(study_id)
     print(f"active_jobs: {len(active)}")
@@ -505,7 +510,8 @@ def add_arguments(subparsers) -> None:
         >>> add_arguments(parser.add_subparsers())
     """
     parser = subparsers.add_parser(
-        "atlas", help="Run and manage Atlas studies.",
+        "atlas",
+        help="Run and manage Atlas studies.",
         description="Run and manage ESPnet3 Atlas studies.",
     )
     commands = parser.add_subparsers(dest="atlas_command", required=True)
@@ -513,7 +519,9 @@ def add_arguments(subparsers) -> None:
     init.add_argument("--recipe-dir", required=True)
     init.add_argument("--config", required=True)
     init.set_defaults(func=handle_init)
-    run = commands.add_parser("run", help="Run the study controller (in-process or as a tick job).")
+    run = commands.add_parser(
+        "run", help="Run the study controller (in-process or as a tick job)."
+    )
     run.add_argument("--study-dir", required=True)
     run.add_argument("--recipe-dir", required=True)
     run.add_argument("--poll-interval", type=float, default=None)

@@ -179,9 +179,7 @@ def convert_pairs_to_dict(pairs: list[dict]) -> dict:
     return {pair["key"]: pair["value"] for pair in pairs}
 
 
-def split_patch_by_search_space(
-    patch: dict, search_space
-) -> tuple[dict, list[str]]:
+def split_patch_by_search_space(patch: dict, search_space) -> tuple[dict, list[str]]:
     """Split a config patch into allowed keys and keys the search space rules out.
 
     A key is dropped when it matches any ``denied_keys`` pattern, or when

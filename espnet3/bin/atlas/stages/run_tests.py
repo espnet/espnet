@@ -75,9 +75,7 @@ class RunTestsStage(BaseStage):
         assert trial is not None
 
         code_edit_cfg = getattr(context.config.atlas, "code_edit", None)
-        allowed_dirs: list[str] = list(
-            getattr(code_edit_cfg, "allowed_dirs", []) or []
-        )
+        allowed_dirs: list[str] = list(getattr(code_edit_cfg, "allowed_dirs", []) or [])
         max_retries: int = int(getattr(code_edit_cfg, "max_test_retries", 5))
 
         trial_dir = context.get_trial_dir()
@@ -99,11 +97,14 @@ class RunTestsStage(BaseStage):
             )
 
         cmd = [
-            sys.executable, "-m", "pytest",
+            sys.executable,
+            "-m",
+            "pytest",
             "--tb=short",
-            "-x",           # stop on first failure
+            "-x",  # stop on first failure
             "--no-header",
-            "-o", "addopts=",  # Ignore repo-wide coverage flags; tests need no coverage plugin.
+            "-o",
+            "addopts=",  # Ignore repo-wide coverage flags; no coverage plugin needed.
             "-q",
             *[str(t) for t in test_targets],
         ]

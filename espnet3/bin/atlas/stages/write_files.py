@@ -32,8 +32,7 @@ def parse_file_blocks(text: str) -> list[tuple[str, str]]:
         [('src/a.py', 'x = 1')]
     """
     return [
-        (m.group("path"), m.group("content"))
-        for m in _FILE_BLOCK_RE.finditer(text)
+        (m.group("path"), m.group("content")) for m in _FILE_BLOCK_RE.finditer(text)
     ]
 
 
@@ -117,7 +116,7 @@ def _read_training_config(trial_dir: Path) -> str:
 
 
 def _find_latest_test_failure(trial_dir: Path) -> str | None:
-    """Return the most recent ``run_tests`` error log, or ``None`` if none failed yet."""
+    """Return the latest ``run_tests`` error log, or ``None`` if none failed."""
     test_runs_dir = trial_dir / "test_runs"
     if not test_runs_dir.exists():
         return None
@@ -161,7 +160,8 @@ def _build_prompt(
         "## Task: write_files",
         "",
         "You previously proposed the following architecture change:",
-        f"Rationale: {trial.rationale.splitlines()[0] if trial.rationale else '(none)'}",
+        "Rationale: "
+        f"{trial.rationale.splitlines()[0] if trial.rationale else '(none)'}",
         "",
     ]
 
@@ -195,7 +195,8 @@ def _build_prompt(
 
     if doc_text:
         sections += [
-            "## ESPnet3 documentation (how to wire custom models into the training system)",
+            "## ESPnet3 documentation "
+            "(how to wire custom models into the training system)",
             "",
             doc_text,
             "",
@@ -208,7 +209,8 @@ def _build_prompt(
         "",
         "## Instructions",
         "",
-        "Output BOTH implementation files AND unit tests using <file path=\"...\"> blocks.",
+        "Output BOTH implementation files AND unit tests using "
+        '<file path="..."> blocks.',
         f"Allowed directories (relative to recipe root):\n{allowed_str}",
         "",
         "Format each file as:",
@@ -219,15 +221,18 @@ def _build_prompt(
         "",
         "Requirements for unit tests:",
         "- Use actual torch.Tensor inputs (e.g. torch.randn(...)) — no mocks.",
-        "- Use model dimensions from the training config above (vocab_size, d_model, etc.).",
+        "- Use model dimensions from the training config above "
+        "(vocab_size, d_model, etc.).",
         "- Test forward pass with realistic batch shapes.",
         "- Assert output shapes and dtypes explicitly.",
         "- Tests must run with plain `pytest` — no external fixtures or data files.",
         "",
         "ESPnet3 wiring rules:",
-        "- Set `model._target_: src.model.MyModel` in the config patch (not the task field).",
+        "- Set `model._target_: src.model.MyModel` in the config patch "
+        "(not the task field).",
         "- The model's __init__ args must match the config keys exactly.",
-        "- Keep `task` field unset (ESPnet3 instantiates the model directly via Hydra).",
+        "- Keep `task` field unset "
+        "(ESPnet3 instantiates the model directly via Hydra).",
         "",
         "General rules:",
         "- Output COMPLETE file contents, not diffs.",
@@ -235,7 +240,9 @@ def _build_prompt(
         "- After all <file> blocks, write a one-line summary.",
     ]
     if prev_error:
-        sections.append("- This is a fix attempt — address EVERY error in the failure log above.")
+        sections.append(
+            "- This is a fix attempt — address EVERY error in the failure log above."
+        )
 
     return "\n".join(sections)
 
@@ -282,7 +289,9 @@ class WriteFilesStage(BaseStage):
 
         code_edit_cfg = getattr(context.config.atlas, "code_edit", None)
         allowed_dirs: list[str] = list(getattr(code_edit_cfg, "allowed_dirs", []) or [])
-        reference_files: list[str] = list(getattr(code_edit_cfg, "reference_files", []) or [])
+        reference_files: list[str] = list(
+            getattr(code_edit_cfg, "reference_files", []) or []
+        )
         doc_urls: list[str] = list(getattr(code_edit_cfg, "doc_urls", []) or [])
 
         if not allowed_dirs:
@@ -297,7 +306,9 @@ class WriteFilesStage(BaseStage):
         doc_cache_dir = context.study_dir / ".doc_cache"
 
         prev_error = _find_latest_test_failure(trial_dir)
-        reference_files_text = _read_reference_files(reference_files) if reference_files else ""
+        reference_files_text = (
+            _read_reference_files(reference_files) if reference_files else ""
+        )
         doc_text = _fetch_doc_urls(doc_urls, doc_cache_dir) if doc_urls else ""
         training_config_text = _read_training_config(trial_dir)
 
@@ -313,7 +324,11 @@ class WriteFilesStage(BaseStage):
         (iter_dir / "prompt.txt").write_text(prompt, encoding="utf-8")
 
         knowledge_path = context.study_dir / "knowledge" / "knowledge_pack.md"
-        knowledge = knowledge_path.read_text(encoding="utf-8") if knowledge_path.exists() else ""
+        knowledge = (
+            knowledge_path.read_text(encoding="utf-8")
+            if knowledge_path.exists()
+            else ""
+        )
 
         request = AgentRequest(
             task="write_files",
@@ -379,7 +394,9 @@ class WriteFilesStage(BaseStage):
         )
 
         if skipped:
-            context.logger.warning("write_files: skipped %s (not in allowed_dirs)", skipped)
+            context.logger.warning(
+                "write_files: skipped %s (not in allowed_dirs)", skipped
+            )
 
         return StageResult(
             status="success",

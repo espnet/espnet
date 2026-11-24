@@ -48,7 +48,9 @@ def sync_trials_csv(state, study_dir: Path, study_id: str) -> None:
             "score": trial.score if trial.score is not None else "",
             "score_name": trial.score_name or "",
             "decision": trial.decision or "",
-            "resolved_config_path": str(trial.resolved_config_path) if trial.resolved_config_path else "",
+            "resolved_config_path": (
+                str(trial.resolved_config_path) if trial.resolved_config_path else ""
+            ),
             "rationale": trial.rationale,
             "expected_effect": trial.expected_effect,
             "risk": trial.risk,
@@ -76,7 +78,13 @@ def sync_trials_csv(state, study_dir: Path, study_id: str) -> None:
         + [f"patch.{key}" for key in all_patch_keys]
         + ["rationale", "expected_effect", "risk"]
         + [f"metric.{key}" for key in all_metric_keys]
-        + ["attempt_count", "created_at", "updated_at", "reflection_summary", "next_suggestion"]
+        + [
+            "attempt_count",
+            "created_at",
+            "updated_at",
+            "reflection_summary",
+            "next_suggestion",
+        ]
     )
     path = study_dir / "trials.csv"
     path.parent.mkdir(parents=True, exist_ok=True)

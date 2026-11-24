@@ -162,9 +162,7 @@ class _InvalidReplyAgent:
         raise InvalidAgentResponseError("agent reply violated its schema")
 
 
-def test_invalid_agent_response_is_recorded_as_a_failed_node_run(
-    tmp_path, monkeypatch
-):
+def test_invalid_agent_response_is_recorded_as_a_failed_node_run(tmp_path, monkeypatch):
     recipe_dir, config_path = _write_skill_study(tmp_path)
     monkeypatch.setattr(
         command, "_build_agent", lambda _config, _recipe: _InvalidReplyAgent()

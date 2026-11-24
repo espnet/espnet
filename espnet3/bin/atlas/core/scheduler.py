@@ -49,7 +49,7 @@ class _SkillAgent:
 
 
 def _find_skill_path(recipe_dir: Path, skill: str) -> Path:
-    """Find ``skill``'s ``SKILL.md`` under ``.agents/skills/`` in ``recipe_dir`` or an ancestor."""
+    """Find ``skill``'s ``SKILL.md`` under ``.agents/skills/`` near ``recipe_dir``."""
     if not skill or any(part in skill for part in ("/", "\\", "..")):
         raise ValueError(f"Invalid skill name: {skill!r}")
     for root in (recipe_dir, *recipe_dir.parents):
@@ -105,9 +105,7 @@ class AtlasGraphRuntime:
             self.study_id,
             self.study_dir,
             self.recipe_dir,
-            configured_session_id=getattr(
-                config.atlas.agent, "session_id", None
-            ),
+            configured_session_id=getattr(config.atlas.agent, "session_id", None),
         )
         self.logger = logging.getLogger("espnet3.bin.atlas")
         self._validate_early_stopping_config()
@@ -376,7 +374,7 @@ class AtlasGraphRuntime:
         trial_id: str | None,
         attempt_id: str,
     ) -> list[str]:
-        """Build the ``python -m espnet3.bin.atlas.worker`` argv for a submitted node run."""
+        """Build the ``espnet3.bin.atlas.worker`` argv for a submitted node run."""
         command = [
             sys.executable,
             "-m",
@@ -785,9 +783,7 @@ class AtlasGraphRuntime:
             "budget": budget_context,
             **context,
         }
-        prompt = load_prompt(
-            "job_operate", instructions=instructions or "(none)"
-        )
+        prompt = load_prompt("job_operate", instructions=instructions or "(none)")
         request_context["agent_task_instructions"] = prompt
         request = AgentRequest(
             task=f"job_{operation}",
@@ -1423,7 +1419,6 @@ class AtlasGraphRuntime:
             node_runs = self.state.list_node_runs(self.study_id)
         retry_trial_ids = set()
         active_statuses = {"pending", "running"}
-        repair_nodes = {"debug_trial", "implement_code", "run_tests"}
         for node_run in node_runs:
             trial_id = node_run.get("trial_id")
             if not trial_id or node_run.get("status") not in active_statuses:
@@ -1454,7 +1449,7 @@ class AtlasGraphRuntime:
             self._submit_pending_trial_nodes_locked()
 
     def _submit_pending_trial_nodes_locked(self) -> None:
-        """Submit as many pending ``execution: submission`` node runs as parallel slots allow.
+        """Submit pending ``execution: submission`` node runs, up to the free slots.
 
         Must be called while holding ``.lock_trial_submit`` (see
         :meth:`_submit_pending_trial_nodes`). Iterates pending node runs in

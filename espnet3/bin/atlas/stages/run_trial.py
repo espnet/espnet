@@ -36,23 +36,9 @@ class RunTrialStage(BaseStage):
         shutil.copyfile(latest, trial_dir / "training_metrics.csv")
         shutil.copyfile(latest, attempt_dir / "training_metrics.csv")
 
-    def _run_cmd(self, cmd: list[str], cwd: Path, log_path: Path, timeout: int | None):
-        """Run ``cmd`` synchronously, appending combined stdout/stderr to ``log_path``."""
-        with open(log_path, "a", encoding="utf-8") as handle:
-            proc = subprocess.run(
-                cmd,
-                cwd=str(cwd),
-                stdout=handle,
-                stderr=subprocess.STDOUT,
-                text=True,
-                timeout=timeout,
-                check=False,
-            )
-        return proc
-
     @staticmethod
     def _is_training_command(command: list[str]) -> bool:
-        """Whether ``command``'s ``--stages`` argument is ``"train"`` (or it's a custom template)."""
+        """Whether ``command`` runs the ``train`` stage (or is a custom template)."""
         try:
             return command[command.index("--stages") + 1] == "train"
         except (ValueError, IndexError):
@@ -100,7 +86,9 @@ class RunTrialStage(BaseStage):
         return "completed", proc
 
     # Stages that only need --training_config
-    _TRAIN_ONLY_STAGES = frozenset({"create_dataset", "train_tokenizer", "collect_stats", "train"})
+    _TRAIN_ONLY_STAGES = frozenset(
+        {"create_dataset", "train_tokenizer", "collect_stats", "train"}
+    )
     # Stages that also need --inference_config
     _INFER_STAGES = frozenset({"infer"})
     # Stages that need all three configs
@@ -116,7 +104,7 @@ class RunTrialStage(BaseStage):
         inference_cfg: Path,
         metrics_cfg: Path,
     ) -> list[str]:
-        """Build the ``run.py --stages <stage>`` argv, adding configs the stage needs."""
+        """Build the ``run.py --stages <stage>`` argv with the configs it needs."""
         cmd = [
             sys.executable,
             "run.py",
@@ -129,8 +117,10 @@ class RunTrialStage(BaseStage):
             cmd += ["--inference_config", str(inference_cfg)]
         elif stage in self._MEASURE_STAGES:
             cmd += [
-                "--inference_config", str(inference_cfg),
-                "--metrics_config", str(metrics_cfg),
+                "--inference_config",
+                str(inference_cfg),
+                "--metrics_config",
+                str(metrics_cfg),
             ]
         return cmd
 
@@ -141,17 +131,35 @@ class RunTrialStage(BaseStage):
         metrics_cfg: Path,
         extra_stages: list[str] | None = None,
     ) -> list[list[str]]:
-        """Build the default ``run.py`` commands: any extra stages, then train/infer/measure."""
+        """Build the default ``run.py`` commands (extra stages, train/infer/measure)."""
         cmds: list[list[str]] = []
-        for stage in (extra_stages or []):
-            cmds.append(self._build_stage_command(stage, training_cfg, inference_cfg, metrics_cfg))
-        cmds.append(self._build_stage_command("train", training_cfg, inference_cfg, metrics_cfg))
-        cmds.append(self._build_stage_command("infer", training_cfg, inference_cfg, metrics_cfg))
-        cmds.append(self._build_stage_command("measure", training_cfg, inference_cfg, metrics_cfg))
+        for stage in extra_stages or []:
+            cmds.append(
+                self._build_stage_command(
+                    stage, training_cfg, inference_cfg, metrics_cfg
+                )
+            )
+        cmds.append(
+            self._build_stage_command("train", training_cfg, inference_cfg, metrics_cfg)
+        )
+        cmds.append(
+            self._build_stage_command("infer", training_cfg, inference_cfg, metrics_cfg)
+        )
+        cmds.append(
+            self._build_stage_command(
+                "measure", training_cfg, inference_cfg, metrics_cfg
+            )
+        )
         return cmds
 
-    def _build_commands(self, context, trial_dir: Path, attempt_dir: Path) -> list[list[str]]:
-        """Build this attempt's commands: a configured ``command_template`` if set, else the default train/infer/measure (+ any ``extra_stages``) sequence."""
+    def _build_commands(
+        self, context, trial_dir: Path, attempt_dir: Path
+    ) -> list[list[str]]:
+        """Build this attempt's commands.
+
+        A configured ``command_template`` wins; otherwise the default
+        train/infer/measure sequence (plus any ``extra_stages``).
+        """
         training_cfg = trial_dir / "resolved_training_config.yaml"
         inference_cfg = trial_dir / "resolved_inference_config.yaml"
         metrics_cfg = trial_dir / "resolved_metrics_config.yaml"
@@ -247,8 +255,6 @@ class RunTrialStage(BaseStage):
         attempt_dir = trial_dir / "attempts" / context.attempt_id
         attempt_dir.mkdir(parents=True, exist_ok=True)
         training_cfg = trial_dir / "resolved_training_config.yaml"
-        inference_cfg = trial_dir / "resolved_inference_config.yaml"
-        metrics_cfg = trial_dir / "resolved_metrics_config.yaml"
         train_log = trial_dir / "train.log"
         eval_log = trial_dir / "eval.log"
         commands = self._build_commands(context, trial_dir, attempt_dir)
@@ -297,7 +303,10 @@ class RunTrialStage(BaseStage):
             "#!/usr/bin/env bash",
             "set -eo pipefail",
             f"cd {context.recipe_dir}",
-            *[" ".join(shlex.quote(str(part)) for part in command) for command in commands],
+            *[
+                " ".join(shlex.quote(str(part)) for part in command)
+                for command in commands
+            ],
             "",
         ]
         script_path = trial_dir / "train_eval.sh"
@@ -322,17 +331,17 @@ class RunTrialStage(BaseStage):
             proc = None
             for command in commands:
                 current_stage = self._get_command_stage(command)
-                if (
-                    current_stage == "infer"
-                    and previous_stage_states.get(current_stage) in {"failed", "timeout"}
-                ):
+                if current_stage == "infer" and previous_stage_states.get(
+                    current_stage
+                ) in {"failed", "timeout"}:
                     inference_dir = trial_dir / "inference"
                     stale_locks = list(inference_dir.glob("**/split.*/lock"))
                     for lock_path in stale_locks:
                         lock_path.unlink(missing_ok=True)
                     if stale_locks:
                         context.logger.warning(
-                            "Removed %d stale inference shard lock(s) before retrying %s",
+                            "Removed %d stale inference shard lock(s) before "
+                            "retrying %s",
                             len(stale_locks),
                             trial.trial_id,
                         )
@@ -345,10 +354,7 @@ class RunTrialStage(BaseStage):
                 _set_stage_status(
                     trial_dir, current_stage, "running", context.attempt_id
                 )
-                if (
-                    context.gpu_self_controller
-                    and self._is_training_command(command)
-                ):
+                if context.gpu_self_controller and self._is_training_command(command):
                     monitor_status, proc = self._run_with_gpu_monitor(
                         context, command, log_path, env, timeout
                     )
@@ -359,7 +365,9 @@ class RunTrialStage(BaseStage):
                             "early_stopped",
                             context.attempt_id,
                         )
-                        return StageResult(status="early_stopped", message="Trial early stopped")
+                        return StageResult(
+                            status="early_stopped", message="Trial early stopped"
+                        )
                     if monitor_status == "timeout":
                         _set_stage_status(
                             trial_dir,
@@ -421,7 +429,9 @@ class RunTrialStage(BaseStage):
         metrics_path = trial_dir / "inference" / "metrics.json"
         if metrics_path.exists():
             target_metrics = trial_dir / "metrics.json"
-            target_metrics.write_text(metrics_path.read_text(encoding="utf-8"), encoding="utf-8")
+            target_metrics.write_text(
+                metrics_path.read_text(encoding="utf-8"), encoding="utf-8"
+            )
         return StageResult(
             status="success",
             message="Trial completed",

@@ -308,17 +308,16 @@ def test_propose_trial_ignores_unknown_extra_stages_and_routes_known_ones(env):
     assert env.state.get_trial("trial_000001").extra_stages == ["implement_code"]
     request = agent.requests[0][0]
     assert "implement_code" in request.allowed_actions
-    assert "implement_code" in request.output_schema["properties"]["extra_stages"][
-        "description"
-    ]
+    assert (
+        "implement_code"
+        in request.output_schema["properties"]["extra_stages"]["description"]
+    )
 
 
 def test_propose_trial_prefers_write_files_over_implement_code(env):
     """Route to ``write_files`` first when both extra stages are requested."""
     agent = _FakeAgent(
-        _proposal(
-            {"optimizer.lr": 0.5}, extra_stages=["implement_code", "write_files"]
-        )
+        _proposal({"optimizer.lr": 0.5}, extra_stages=["implement_code", "write_files"])
     )
     context = env.make(agent=agent)
 
