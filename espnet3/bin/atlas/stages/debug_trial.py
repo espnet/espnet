@@ -16,7 +16,7 @@ from espnet3.bin.atlas.core.serialization import (
     apply_dotted_patch,
     save_yaml,
 )
-from espnet3.bin.atlas.resources import load_schema
+from espnet3.bin.atlas.resources import load_prompt, load_schema
 from espnet3.bin.atlas.stages.base import AtlasStage
 from espnet3.bin.atlas.stages.stage_status import (
     _invalidate_stages,
@@ -98,30 +98,22 @@ class DebugTrialStage(AtlasStage):
             except Exception:
                 return "(unavailable)"
 
-        base_configs_context = "\n\n".join([
-            "## Base configs\n"
-            "Runtime keys are injected automatically — do NOT include them.\n",
-            "### training config\n```yaml\n" + _load_base("training_config", "training.yaml") + "```",
-            "### Inference config (patch it only to repair an inference-stage failure)\n```yaml\n" + _load_base("inference_config", "inference.yaml") + "```",
-            "### Fixed metrics config (immutable; do not propose patches)\n```yaml\n" + _load_base("metrics_config", "metrics.yaml") + "```",
-        ])
-
-        repo_context_parts = [
-            f"Trial ID: {trial.trial_id}",
-            f"Trial status: {trial.status}",
-            f"Current patch: {trial.config_patch}",
-            "",
-            "## Resolved training config (what actually ran)",
-            resolved_config_text,
-            "",
-            "## Resolved inference config (what actually ran)",
-            resolved_inference_text,
-            "",
-            "## Per-stage status",
-            stage_status_text,
-            "",
-            base_configs_context,
-        ]
+        base_configs_context = load_prompt(
+            "debug_base_configs",
+            training_config=_load_base("training_config", "training.yaml"),
+            inference_config=_load_base("inference_config", "inference.yaml"),
+            metrics_config=_load_base("metrics_config", "metrics.yaml"),
+        )
+        repo_context = load_prompt(
+            "debug_repo_context",
+            trial_id=trial.trial_id,
+            status=trial.status,
+            patch=trial.config_patch,
+            resolved_training=resolved_config_text,
+            resolved_inference=resolved_inference_text,
+            stage_status=stage_status_text,
+            base_configs=base_configs_context,
+        )
 
         trial_history_csv = ""
         trials_csv = context.study_dir / "trials.csv"
@@ -145,7 +137,7 @@ class DebugTrialStage(AtlasStage):
             task="debug",
             objective=(context.study_dir / "program.md").read_text(encoding="utf-8"),
             knowledge=knowledge,
-            repo_context="\n".join(repo_context_parts),
+            repo_context=repo_context,
             trial_history_csv=trial_history_csv,
             latest_metrics=trial.metrics,
             context_files=logs,
