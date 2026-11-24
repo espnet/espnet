@@ -202,7 +202,7 @@ class FairseqAVHubertEncoder(AbsEncoder):
             elif "audio" in xs_pad:
                 masks = make_pad_mask(ilens, length_dim=2).to(xs_pad["audio"].device)
             else:
-                ValueError("Input should have video or audio")
+                raise ValueError("Input should have video or audio")
 
             ft = self.freeze_finetune_updates <= self.num_updates
 
@@ -623,7 +623,7 @@ class AVHubertModel(nn.Module):
         elif self.modality_fuse == "add":
             self.embed = cfg.encoder_embed_dim
         else:
-            ValueError(f"unknown fusion method: {self.modality_fuse}")
+            raise ValueError(f"unknown fusion method: {self.modality_fuse}")
         self.post_extract_proj = (
             nn.Linear(self.embed, cfg.encoder_embed_dim)
             if self.embed != cfg.encoder_embed_dim
@@ -734,14 +734,14 @@ class AVHubertModel(nn.Module):
                 src_audio, modality="audio"
             )  # features: [B, F, T]
         else:
-            ValueError("Both audio and video is None")
+            raise ValueError("Both audio and video is None")
 
         if self.modality_fuse == "concat":
             features = torch.cat([features_audio, features_video], dim=1)
         elif self.modality_fuse == "add":
             features = features_audio + features_video
         else:
-            ValueError(f"unknown fusion method: {self.modality_fuse}")
+            raise ValueError(f"unknown fusion method: {self.modality_fuse}")
 
         features = features.transpose(1, 2)  # B, 2F, T -> B, T, 2F
         features = self.layer_norm(features)
@@ -800,7 +800,7 @@ class AVHubertModel(nn.Module):
         elif self.modality_fuse == "add":
             features = features_audio + features_video
         else:
-            ValueError(f"unknown fusion method: {self.modality_fuse}")
+            raise ValueError(f"unknown fusion method: {self.modality_fuse}")
 
         return features
 
