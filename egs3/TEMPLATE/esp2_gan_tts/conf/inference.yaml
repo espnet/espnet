@@ -1,0 +1,129 @@
+##########################################################
+#                   INFERENCE SETTING                    #
+##########################################################
+# Quick usage:
+#   python run.py --stages infer \
+#       --training_config conf/training.yaml \
+#       --inference_config conf/inference.yaml
+#
+# Outputs:
+# - `${inference_dir}/<test_name>/wav.scp`
+# - each line is `utt_id path`, the path of one synthesized WAV file
+#
+# Shared default merged under every esp2_gan_tts recipe's inference config.
+# The dataset block mirrors the training template: the filtered manifests
+# and x-vector directories written by the preparation stages. `measure`
+# reads its scoring references from the data (`dataset:<column>` in
+# metrics.yaml), so `infer` writes only what the model produced.
+
+recipe_dir: .
+exp_tag:
+exp_dir: ${recipe_dir}/exp/${exp_tag}
+data_dir: ${recipe_dir}/data
+inference_dir: ${exp_dir}/${self_name:}
+
+##########################################################
+#               SPEAKER EMBEDDING SETTING                #
+##########################################################
+# Must match the `xvector` block of the training config.
+xvector:
+  spk_embed_tag: voxcelebs12_rawnet3
+  save_path: ${data_dir}/x_vectors
+
+##########################################################
+#                   DATASET DEFINITION                   #
+##########################################################
+# `inference: true` makes the recipe dataset also return `utt_id` (which
+# heads every output line), `wav_path` and `raw_text` (the references the
+# `measure` stage scores against). The waveform itself is not loaded:
+# Text2Speech never reads it, and `measure` reads the reference file by path.
+#
+# No preprocessor: the model takes the raw transcript and tokenizes it with
+# the text preprocessing recorded in its own training config
+# (`${exp_dir}/config.yaml`, written by `train`), exactly once. A recipe
+# must leave `preprocessor` unset, or the text would be tokenized twice.
+dataset:
+  _target_: espnet3.components.data.data_organizer.DataOrganizer
+  _recursive_: false
+  recipe_dir: ${recipe_dir}
+  test:
+    - name: valid
+      data_src_args:
+        split: valid
+        manifest_path: ${data_dir}/manifests_filtered/valid.tsv
+        xvector_dir: ${xvector.save_path}/${xvector.spk_embed_tag}_valid
+        load_speech: false
+        inference: true
+    - name: test
+      data_src_args:
+        split: test
+        manifest_path: ${data_dir}/manifests_filtered/test.tsv
+        xvector_dir: ${xvector.save_path}/${xvector.spk_embed_tag}_test
+        load_speech: false
+        inference: true
+  preprocessor:
+
+##########################################################
+#                   PARALLELIZATION SETTING              #
+##########################################################
+parallel:
+  env: local
+  n_workers: 1
+
+##########################################################
+#                     MODEL SETTING                      #
+##########################################################
+# espnet2's Text2Speech rebuilt from the espnet2-style config that `train`
+# writes to `${exp_dir}/config.yaml`; `device` is added by the provider.
+# That config also carries the token list path and the `cleaner` / `g2p`
+# settings Text2Speech tokenizes raw text with (see the training template).
+model:
+  _target_: espnet2.bin.tts_inference.Text2Speech
+  train_config: ${exp_dir}/config.yaml
+  model_file: ${exp_dir}/last.ckpt
+
+##########################################################
+#                 INPUT / OUTPUT SETTING                 #
+##########################################################
+# The dataset fields passed to the model, exactly the names
+# `contract.inputs` declares. A multi-speaker model takes `spembs` next to
+# `text`.
+input_key: [text, spembs]
+
+# Text2Speech synthesizes one utterance per call, so there is no batching.
+batch_size:
+
+# What the model takes and returns, checked around every call: the `infer`
+# stage, `InferenceModel` on a packed bundle, and the demo. `text` is the raw
+# transcript (any `str`). `spembs` is the speaker embedding of the voice to
+# synthesize in: a 1-D vector of finite numbers in any array form; the
+# x-vectors `compute_xvectors` wrote during data preparation, or one the demo
+# extracts from a reference recording. Its size is the model's concern
+# (`spk_embed_dim` in the recipe's model block). The output is the mono
+# waveform at the model's rate, written as a WAV file. A recipe synthesizing
+# at another rate overrides `sample_rate` (keep it equal to `builder.fs` in
+# dataset/config.yaml and `tts_conf.sampling_rate` in the training config).
+contract:
+  inputs:
+    text:
+      kind: text
+      label: Text to synthesize
+    spembs:
+      kind: vector
+      label: Speaker embedding
+  outputs:
+    wav:
+      kind: audio
+      label: Synthesized speech
+      sample_rate: 22050
+      channels: 1
+
+##########################################################
+#               PROVIDER AND RUNNER SETTING              #
+##########################################################
+# The provider builds `model`; `TTSInferenceRunner` keeps Text2Speech's `wav`
+# as the contracted output and refuses batched calls.
+provider:
+  _target_: espnet3.systems.base.inference_provider.InferenceProvider
+runner:
+  _target_: espnet3.systems.esp2_gan_tts.src.inference_runner.TTSInferenceRunner

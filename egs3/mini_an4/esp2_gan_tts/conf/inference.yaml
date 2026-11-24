@@ -1,0 +1,11 @@
+##########################################################
+#                   Inference SETTING                    #
+##########################################################
+# Merged over egs3/TEMPLATE/esp2_gan_tts/conf/inference.yaml, which supplies
+# the `valid` and `test` sets with their speaker embeddings, the model and the
+# runner. The fixture model writes 16 kHz audio, AN4's own rate, where the
+# template's contract names 22.05 kHz.
+contract:
+  outputs:
+    wav:
+      sample_rate: 16000
