@@ -1,15 +1,15 @@
-"""Load the prompt templates and JSON schemas shipped under ``resources/``."""
+"""Prompt templates, JSON schemas and defaults shipped with Atlas, and their loaders."""
 
 from __future__ import annotations
 
 import json
-from importlib import resources
+from importlib.resources import files
 from string import Template
 from typing import Any
 
 from omegaconf import DictConfig, OmegaConf
 
-_ROOT = resources.files("espnet3.bin.atlas").joinpath("resources")
+_ROOT = files(__package__)
 
 
 def load_prompt(name: str, **values: Any) -> str:
