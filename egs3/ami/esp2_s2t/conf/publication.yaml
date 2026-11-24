@@ -30,3 +30,5 @@ pack_model:
     - "**/*.log"
     - "**/tensorboard/**"
     - "**/wandb/**"
+    # Metadata that hf download writes next to the released files.
+    - .cache

@@ -92,9 +92,25 @@ The `infer` stage writes the hypotheses to `exp/<tag>/inference/test/hyp.scp`,
 with one line for each utterance group. Each hypothesis keeps its Whisper
 timestamps and speaker-change symbols. The `measure` stage reads the references
 from the test set (`dataset:text`) and writes `metrics.json` to the same
-directory. To decode the released checkpoint instead of your own model, set
-`AMI_SOT_TRAIN_CONFIG` and `AMI_SOT_MODEL_FILE` to its `config.yaml` and
-`model.pth` before step 4.
+directory. To decode another checkpoint, set `AMI_SOT_TRAIN_CONFIG` and
+`AMI_SOT_MODEL_FILE` to its `config.yaml` and model file before step 4.
+
+### Released checkpoint
+
+The released checkpoint was trained before this recipe existed. The configs
+whose names end in `_whisper_sot` decode it and pack it as an ESPnet3 model.
+Download its files into the experiment directory of these configs, then decode,
+score and pack it:
+
+```bash
+hf download espnet/multi-talker-whisper-small-ami config.yaml model.pth \
+    --local-dir exp/whisper_small_sot
+python run.py --stages infer measure pack_model \
+    --training_config conf/training_whisper_sot.yaml \
+    --inference_config conf/inference_whisper_sot.yaml \
+    --metrics_config conf/metrics.yaml \
+    --publication_config conf/publication_whisper_sot.yaml
+```
 
 ## Results
 

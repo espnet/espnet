@@ -1,0 +1,14 @@
+##########################################################
+#                   Inference SETTING                    #
+##########################################################
+# Decodes the released checkpoint in exp/whisper_small_sot/ with the settings
+# of conf/inference.yaml. That file decodes valid.loss.ave_1best.pth, which the
+# train stage writes, and the released checkpoint is model.pth. Use this file
+# together with conf/training_whisper_sot.yaml.
+defaults:
+  - inference
+  - _self_
+
+model:
+  s2t_train_config: ${exp_dir}/config.yaml
+  s2t_model_file: ${exp_dir}/model.pth

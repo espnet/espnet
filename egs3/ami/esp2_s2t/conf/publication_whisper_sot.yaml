@@ -1,0 +1,19 @@
+##########################################################
+#                  PUBLICATION SETTING                   #
+##########################################################
+# Publication settings for the released checkpoint. Use this file together with
+# conf/training_whisper_sot.yaml and conf/inference_whisper_sot.yaml.
+defaults:
+  - publication
+  - _self_
+
+pack_model:
+  readme_context:
+    # The training config in the README is conf/training.yaml, which did not
+    # produce this checkpoint, so the description says so.
+    description: >-
+      Multi-talker ASR on AMI SDM with serialized output training, fine-tuned
+      from Whisper small. This is the checkpoint of
+      espnet/multi-talker-whisper-small-ami, packed with ESPnet3. It was trained
+      before the ESPnet3 recipe existed, and the training config below is the
+      config of the recipe, which was not used to train this checkpoint.
