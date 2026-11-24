@@ -5,7 +5,6 @@ from __future__ import annotations
 import json
 import os
 import shlex
-import shutil
 import subprocess
 import uuid
 from dataclasses import replace
@@ -184,29 +183,44 @@ class CliAgent:
         raise AssertionError("Unreachable structured response retry state")
 
     def _run_once(self, request: AgentRequest, artifact_dir) -> AgentResponse:
-        """Execute one CLI invocation and validate its final structured response."""
+        """Execute one CLI invocation and validate its final structured response.
+
+        Every agent call is kept on disk so a study's agent history can be
+        audited afterwards. ``artifact_dir`` is the owner's directory (a trial
+        dir, or the study dir for study-level skills) and ends up like this::
+
+            <artifact_dir>/
+            ├── agent_requests/
+            │   └── request_<uuid>/         one per ``run()``
+            │       └── attempts.json       one entry per attempt (status, message,
+            │                               invocation dir); more than one entry
+            │                               means JSON repair was needed
+            ├── agent_calls/
+            │   └── call_<uuid>/            one per ``_run_once()``, never overwritten
+            │       ├── agent_prompt.txt    prompt sent to the CLI
+            │       ├── agent_output.txt    final reply the response is parsed from
+            │       ├── agent_stdout.log    raw CLI stdout
+            │       ├── agent_stderr.log    raw CLI stderr
+            │       ├── agent_events.jsonl  same as stdout (JSON events, if any)
+            │       └── agent_parse_error.json   only if the reply was invalid
+            ├── agent_prompt.txt            latest call: the same files as in
+            ├── agent_output.txt            ``call_<uuid>/``, overwritten by the
+            ├── agent_stdout.log            next call. The returned
+            ├── agent_stderr.log            ``AgentResponse.artifacts`` points
+            ├── agent_events.jsonl          here, plus ``invocation`` for the
+            ├── agent_parse_error.json      ``call_<uuid>`` dir.
+            ├── agent_usage.json            latest call's token usage (codex)
+            └── agent_usage_history.jsonl   usage of every call, appended (codex)
+
+        ``agent_parse_error.json`` at the top is deleted at the start of each call,
+        so it only exists when the latest call's reply was invalid.
+        """
         if artifact_dir is None:
             raise ValueError("artifact_dir is required for CliAgent")
         artifact_dir = Path(artifact_dir)
         artifact_dir.mkdir(parents=True, exist_ok=True)
         invocation_dir = artifact_dir / "agent_calls" / f"call_{uuid.uuid4().hex}"
         invocation_dir.mkdir(parents=True)
-        # Retain legacy flat artifacts before their first overwrite after this
-        # upgrade; subsequent calls already have their own immutable copies.
-        if len(list(invocation_dir.parent.iterdir())) == 1:
-            previous = invocation_dir.parent / "legacy"
-            for name in (
-                "agent_prompt.txt",
-                "agent_output.txt",
-                "agent_stdout.log",
-                "agent_stderr.log",
-                "agent_events.jsonl",
-                "agent_parse_error.json",
-            ):
-                source = artifact_dir / name
-                if source.is_file():
-                    previous.mkdir(exist_ok=True)
-                    shutil.copy2(source, previous / name)
         (artifact_dir / "agent_parse_error.json").unlink(missing_ok=True)
 
         def _write_artifact(path: Path, value: str) -> None:
