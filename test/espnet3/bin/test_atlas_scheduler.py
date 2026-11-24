@@ -130,6 +130,7 @@ def test_gpu_self_controller_releases_its_slot_before_submitting_next_trial():
             "trial_id": "trial_000001",
             "attempt_id": None,
             "controller_mode": True,
+            "gpu_self_controller": True,
         },
     )
     assert calls[1][0] == "update"

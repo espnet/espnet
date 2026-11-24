@@ -35,13 +35,15 @@ class _DummyCodingAgent:
 
 def test_cli_runs_skill_graph_to_completion_with_dummy_agent(tmp_path, monkeypatch):
     """Run init and run commands through a skill graph without external agents."""
-    recipe_dir = tmp_path / "recipe"
-    recipe_dir.mkdir()
+    # Config discovery infers the TEMPLATE defaults from the egs3/<corpus>/<system> layout.
+    recipe_dir = tmp_path / "egs3" / "integration" / "esp2_asr"
+    recipe_dir.mkdir(parents=True)
     skill_file = recipe_dir / ".agents/skills/dummy_analysis/SKILL.md"
     skill_file.parent.mkdir(parents=True)
     skill_file.write_text("Use the provided study context.", encoding="utf-8")
 
-    config_path = recipe_dir / "atlas.yaml"
+    config_path = recipe_dir / "conf" / "atlas.yaml"
+    config_path.parent.mkdir()
     config_path.write_text(
         "atlas:\n"
         "  study_name: integration-study\n"
