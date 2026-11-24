@@ -2,17 +2,30 @@
 
 Train an MMS/ECAPA-TDNN model to identify 107 spoken languages.
 
-## Quick start
+## Data Preparation
+
+`create_dataset` downloads VoxLingua107 (the official zip files) and writes
+the train and dev manifests to `data/voxlingua107`:
+
+```bash
+python run.py --stages create_dataset --training_config conf/training.yaml
+```
+
+To reuse a corpus you already have, set `VOXLINGUA107` to it. Otherwise the
+corpus is read from, or downloaded to, `download/voxlingua107` (relative to
+this directory).
+
+The additional evaluation sets (FLEURS, ML-SUPERB 2.0, VoxPopuli, Babel) are
+prepared with the scripts described in [`prepare_corpora.md`](prepare_corpora.md).
+
+## Commands
 
 Run from `egs3/voxlingua107/esp2_lid` with ESPnet installed.
-Set `VOXLINGUA107` to the corpus destination or an existing extracted corpus.
-Without it, `create_dataset` downloads the corpus to `download/voxlingua107`.
-Model and training settings are in `conf/training.yaml`.
 
 ```bash
 export VOXLINGUA107=/path/to/voxlingua107
 
-# 1) Download and prepare the data, collect statistics, and train
+# 1) Prepare the data, collect statistics, and train
 python run.py --stages create_dataset collect_stats train \
     --training_config conf/training.yaml
 
@@ -28,7 +41,9 @@ python run.py --stages measure \
     --metrics_config conf/metrics.yaml
 ```
 
-## Language embeddings
+To evaluate on a set prepared with `prepare_corpora.md`, set `prepared_name`
+and `prepared_manifest` in `conf/inference_prepared.yaml` and run `infer` and
+`measure` with that inference config.
 
 Extract language embeddings and plot them with t-SNE:
 
@@ -43,8 +58,15 @@ python -m egs3.voxlingua107.esp2_lid.src.embeddings \
 
 ## Results
 
-Accuracy (%) of the MMS-1B + ECAPA-TDNN model trained on VoxLingua107 with
-[`conf/training.yaml`](conf/training.yaml), with FP32 matmul set to `highest`.
+### MMS-1B + ECAPA-TDNN
+
+- Training configuration: [`conf/training.yaml`](conf/training.yaml)
+  (MMS-1B multilayer features, ECAPA-TDNN encoder, AAM-softmax with
+  sub-center and top-k, 30 epochs of 1,000 iterations, bf16 mixed precision).
+  The checkpoint with the best VoxLingua107 dev accuracy is used.
+- Inference configuration: [`conf/inference.yaml`](conf/inference.yaml),
+  with FP32 matmul set to `highest`.
+- Results: accuracy (%).
 
 | Dataset | Split | Evaluated languages | Utterances | Accuracy (%) |
 | --- | --- | ---: | ---: | ---: |
@@ -58,4 +80,5 @@ Evaluation includes all utterances whose reference language is supported by
 the model; prediction candidates remain all 107 training languages.
 VoxLingua107 dev is also used for checkpoint selection.
 
-Model: [shun3232/espnet3_lid_voxlingua107_mms_ecapa](https://huggingface.co/shun3232/espnet3_lid_voxlingua107_mms_ecapa)
+- Published model:
+  [espnet/espnet3_lid_voxlingua107_mms_ecapa](https://huggingface.co/espnet/espnet3_lid_voxlingua107_mms_ecapa)
