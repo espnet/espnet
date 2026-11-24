@@ -27,8 +27,9 @@ def load_atlas_config(config_path: Path):
         under its ``atlas`` key.
 
     Raises:
-        ValueError: If ``atlas.submission.environment`` is missing, or a
-            scheduler environment gives no ``atlas.submission.instructions``.
+        ValueError: If ``atlas.submission`` is missing, ``controller.run_in`` is
+            not ``local`` or ``queue``, or ``queue`` is given without
+            ``atlas.submission.instructions``.
 
     Example:
         >>> config = load_atlas_config(Path("egs3/mini_an4/esp2_asr/conf/atlas.yaml"))
@@ -38,16 +39,22 @@ def load_atlas_config(config_path: Path):
     config = OmegaConf.merge(load_atlas_defaults(), OmegaConf.load(config_path))
     OmegaConf.resolve(config)
     submission = config.atlas.get("submission")
-    environment = submission.get("environment") if submission else None
-    if not environment:
+    if submission is None:
         raise ValueError(
-            "atlas.submission.environment is required: use 'local' to run jobs as "
-            "local processes, or name your scheduler and give "
-            "atlas.submission.instructions and atlas.submission.resources"
+            "atlas.submission is required: give atlas.submission.instructions "
+            "(how to submit jobs) and atlas.submission.resources; leave the "
+            "instructions out to run jobs as local processes"
         )
-    if environment != "local" and not submission.get("instructions"):
+    run_in = submission.get("controller", {}).get("run_in", "local")
+    if run_in not in ("local", "queue"):
         raise ValueError(
-            f"atlas.submission.instructions is required for environment {environment!r}"
+            f"atlas.submission.controller.run_in must be 'local' or 'queue', "
+            f"got {run_in!r}"
+        )
+    if run_in == "queue" and not submission.get("instructions"):
+        raise ValueError(
+            "atlas.submission.instructions is required when "
+            "atlas.submission.controller.run_in is 'queue'"
         )
     return config
 

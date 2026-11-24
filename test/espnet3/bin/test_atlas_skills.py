@@ -500,7 +500,7 @@ def _init_args(tmp_path, application_line):
     (recipe / "conf" / "atlas.yaml").write_text(
         "atlas:\n  study_name: s\n  study_dir: exp/atlas/s\n"
         + application_line
-        + "  metric: {name: m, mode: min}\n  submission: {environment: local}\n",
+        + "  metric: {name: m, mode: min}\n  submission: {resources: {}}\n",
         encoding="utf-8",
     )
     return recipe, argparse.Namespace(

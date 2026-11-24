@@ -32,7 +32,8 @@ atlas:
     max_gpu_hours: 96
 
   submission:
-    environment: slurm
+    controller:
+      run_in: queue  # submit the controller as a tick job
     instructions: |
       Submit jobs with Slurm: write the script to the supplied script_path, map
       resource limits to #SBATCH options, and submit it with sbatch. Use squeue

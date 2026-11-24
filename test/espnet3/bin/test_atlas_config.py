@@ -73,7 +73,7 @@ def test_study_config_is_merged_over_the_atlas_defaults_wherever_it_lives(tmp_pa
         _write(
             tmp_path,
             "atlas:\n  study_name: s\n  budget: {max_trials: 3}\n"
-            "  submission: {environment: local}\n",
+            "  submission: {resources: {}}\n",
         )
     )
 
@@ -91,7 +91,7 @@ def test_a_study_config_overrides_the_defaults(tmp_path):
         _write(
             tmp_path,
             "atlas:\n  tick_interval_sec_idle: 5\n  agent: {provider: claude}\n"
-            "  submission: {environment: local}\n",
+            "  submission: {resources: {}}\n",
         )
     )
 
@@ -104,21 +104,26 @@ def test_submission_has_no_default(tmp_path):
 
     from espnet3.bin.atlas.core.config import load_atlas_config
 
-    texts = (
-        "atlas: {study_name: s}\n",
-        "atlas: {submission: {resources: {cpus: 1}}}\n",
-    )
-    for index, text in enumerate(texts):
-        with pytest.raises(ValueError, match="submission.environment is required"):
-            load_atlas_config(_write(tmp_path / str(index), text))
+    with pytest.raises(ValueError, match="submission is required"):
+        load_atlas_config(_write(tmp_path, "atlas: {study_name: s}\n"))
 
 
-def test_a_scheduler_environment_needs_submission_instructions(tmp_path):
+def test_the_controller_runs_in_local_or_queue(tmp_path):
     import pytest
 
     from espnet3.bin.atlas.core.config import load_atlas_config
 
-    with pytest.raises(ValueError, match="instructions is required.*'slurm'"):
+    with pytest.raises(ValueError, match="run_in must be 'local' or 'queue'"):
         load_atlas_config(
-            _write(tmp_path, "atlas: {submission: {environment: slurm}}\n")
+            _write(
+                tmp_path / "a",
+                "atlas: {submission: {controller: {run_in: slurm}}}\n",
+            )
+        )
+    with pytest.raises(ValueError, match="instructions is required"):
+        load_atlas_config(
+            _write(
+                tmp_path / "b",
+                "atlas: {submission: {controller: {run_in: queue}}}\n",
+            )
         )

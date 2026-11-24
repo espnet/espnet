@@ -59,7 +59,6 @@ def _write_skill_study(tmp_path):
         "    max_failures: 1\n"
         "  tick_interval_sec_idle: 1\n"
         "  submission:\n"
-        "    environment: local\n"
         "    resources: {}\n"
         "  agent:\n"
         "    provider: codex\n",

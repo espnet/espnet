@@ -718,7 +718,6 @@ class AtlasGraphRuntime:
     def _run_submission_action(self, operation: str, context: dict) -> dict:
         """Ask the configured coding agent to submit or inspect jobs."""
         submission = self.config.atlas.submission
-        environment = str(getattr(submission, "environment", "local"))
         instructions = str(getattr(submission, "instructions", "") or "")
         budget = self.config.atlas.budget
         max_wallclock = float(getattr(budget, "max_wallclock_hours", 0) or 0)
@@ -783,7 +782,6 @@ class AtlasGraphRuntime:
             )
         request_context = {
             "operation": operation,
-            "environment": environment,
             "instructions": instructions,
             "budget": budget_context,
             **context,
@@ -903,10 +901,7 @@ class AtlasGraphRuntime:
             raise RuntimeError(
                 f"Job submission failed: {result.get('message', result)}"
             )
-        backend = str(
-            result.get("backend")
-            or getattr(self.config.atlas.submission, "environment", "custom")
-        )
+        backend = str(result.get("backend") or "custom")
         record = JobRecord(
             job_id=job_id,
             study_id=self.study_id,
@@ -1543,52 +1538,6 @@ class AtlasGraphRuntime:
                     "command": " ".join(shlex.quote(part) for part in command),
                 },
             )
-
-    async def run_forever(self, poll_interval: float | None = None) -> None:
-        """Tick the scheduler in a loop until the study has no work left.
-
-        Used for ``submission.environment: local`` studies, where there is
-        no separate controller job — this coroutine itself plays that role
-        in the foreground. Each iteration calls :meth:`tick`, then returns
-        once ``should_stop()`` is true and no pending node runs or active
-        jobs remain; otherwise sleeps for ``poll_interval`` (or the
-        configured idle/trial-active tick interval) and loops.
-
-        Args:
-            poll_interval: Fixed seconds to sleep between ticks, or ``None``
-                to use the study's configured
-                ``tick_interval_sec_idle``/``tick_interval_sec_trial_active``.
-
-        Returns:
-            None.
-
-        Example:
-            >>> asyncio.run(runtime.run_forever(poll_interval=5.0))
-        """
-        while True:
-            self.tick()
-            if self.should_stop():
-                pending = self.state.get_pending_node_runs(self.study_id)
-                active = self.state.list_active_jobs(self.study_id)
-                if not pending and not active:
-                    return
-            if poll_interval is None:
-                has_running_trials = bool(
-                    self.state.list_trials(self.study_id, status="running")
-                )
-                interval_key = (
-                    "tick_interval_sec_trial_active"
-                    if has_running_trials
-                    else "tick_interval_sec_idle"
-                )
-                default_interval = 600 if has_running_trials else 60
-                interval = int(
-                    getattr(self.config.atlas, interval_key, default_interval)
-                    or 1
-                )
-            else:
-                interval = poll_interval
-            await asyncio.sleep(max(1, interval))
 
     def tick(self, trial_id: str | None = None) -> None:
         """Run one scheduler cycle: bootstrap, reconcile jobs, advance.

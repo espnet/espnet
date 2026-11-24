@@ -225,7 +225,7 @@ def _ensure_tick_job(
 
 
 def _register_tick_job(runtime, resources: Resources):
-    """Submit the tick job, which runs ``atlas run --worker --job-id <id>``.
+    """Submit the tick job, which runs ``atlas run --job-id <id>``.
 
     Its logs and ``job.yaml`` go to ``<study_dir>/ticks/tick_<id>/``. A failed
     submission is written to ``submission_error.txt``, recorded as a
@@ -247,7 +247,6 @@ def _register_tick_job(runtime, resources: Resources):
         str(study_dir),
         "--recipe-dir",
         str(recipe_dir),
-        "--worker",
         "--job-id",
         job_id,
     ]
@@ -299,17 +298,17 @@ def handle_run(args) -> int:
     Implements ``espnet3 atlas run``. A tick runs the local graph nodes, submits
     trial jobs, notices dead jobs and checks the budget. Trial jobs start the
     next trial themselves when they finish, but only a controller notices a job
-    that died. Where it runs depends on ``args`` and ``submission.environment``:
+    that died. Where it runs is set by ``atlas.submission.controller.run_in``:
 
-    * ``--worker``: this process is the controller, started by hand (for example
-      in tmux) or by a tick job, and runs ``_run_controller_worker``.
-    * ``local`` environment: ``run_forever`` in this process; nothing is submitted.
-    * any other environment: submit the controller as a tick job through
-      ``_ensure_tick_job`` and return; the job runs this command with ``--worker``.
+    * ``local`` (default): this process is the controller and loops until the
+      study is done (run it in tmux on a login node).
+    * ``queue``: submit the controller as a tick job through ``_ensure_tick_job``
+      and return. The job runs this command with ``--job-id``, which marks the
+      process as that tick job, so it loops instead of submitting again.
 
     Args:
         args: Parsed CLI args with ``study_dir``, ``recipe_dir``,
-            ``poll_interval``, ``worker``, and ``job_id``.
+            ``poll_interval``, and ``job_id`` (set only for a tick job).
 
     Returns:
         int: Always ``0``, except that unhandled exceptions from the worker
@@ -318,7 +317,7 @@ def handle_run(args) -> int:
     Example:
         >>> handle_run(argparse.Namespace(
         ...     study_dir="exp/atlas/s", recipe_dir=".", poll_interval=None,
-        ...     worker=False, job_id=None,
+        ...     job_id=None,
         ... ))
         0
     """
@@ -327,40 +326,46 @@ def handle_run(args) -> int:
     _configure_logging()
     config = OmegaConf.load(study_dir / "atlas.yaml")
     submission_cfg = config.atlas.submission
-    environment = str(getattr(submission_cfg, "environment", "local"))
     state = StateStore(study_dir)
-    study_id = str(config.atlas.study_name)
     runtime = _load_runtime(study_dir, recipe_dir)
     controller_cfg = getattr(submission_cfg, "controller", None)
     controller_resources = Resources.from_config(
         getattr(controller_cfg, "resources", None)
     )
-    if args.worker:
-        job_id = args.job_id
-        handoff_after = int(getattr(controller_cfg, "handoff_after_sec", 0) or 0) or None
-        started = time.monotonic()
-        worker_status = "completed"
-        try:
-            asyncio.run(
-                _run_controller_worker(
-                    runtime, job_id, controller_resources, handoff_after, started
-                )
+    job_id = getattr(args, "job_id", None)
+    run_in = str(getattr(controller_cfg, "run_in", "local"))
+    if run_in == "queue" and not job_id:
+        _ensure_tick_job(runtime, controller_resources)
+        return 0
+    # Only a tick job hands over to a successor; a controller run by hand stays.
+    handoff_after = None
+    if job_id:
+        handoff_after = getattr(controller_cfg, "handoff_after_sec", 0) or None
+    started = time.monotonic()
+    status = "completed"
+    try:
+        asyncio.run(
+            _run_controller_worker(
+                runtime,
+                job_id,
+                controller_resources,
+                handoff_after,
+                started,
+                args.poll_interval,
             )
-        except BaseException:
-            worker_status = "failed"
-            raise
-        finally:
-            if job_id:
-                state.update_job_status(job_id, worker_status)
-        return 0
-    if environment == "local":
-        asyncio.run(runtime.run_forever(poll_interval=args.poll_interval))
-        return 0
-    _ensure_tick_job(runtime, controller_resources)
+        )
+    except BaseException:
+        status = "failed"
+        raise
+    finally:
+        if job_id:
+            state.update_job_status(job_id, status)
     return 0
 
 
-async def _run_controller_worker(runtime, job_id, controller_resources, handoff_after, started):
+async def _run_controller_worker(
+    runtime, job_id, controller_resources, handoff_after, started, poll_interval=None
+):
     """The body of a tick job: tick, log, sleep, repeat.
 
     Returns when a ``STOP`` file exists, when the study has finished (budget
@@ -395,7 +400,10 @@ async def _run_controller_worker(runtime, job_id, controller_resources, handoff_
             return
         active_trials = runtime.state.list_trials(runtime.study_id, status="running")
         interval_key = "tick_interval_sec_trial_active" if active_trials else "tick_interval_sec_idle"
-        interval = int(getattr(runtime.config.atlas, interval_key, 600 if active_trials else 60) or 1)
+        interval = poll_interval or int(
+            getattr(runtime.config.atlas, interval_key, 600 if active_trials else 60)
+            or 1
+        )
         await asyncio.sleep(max(1, interval))
 
 
@@ -564,7 +572,7 @@ def run_from_recipe_config(recipe_dir: Path, config_path: Path, mode: str = "run
     config = load_atlas_config(config_path)
     study_dir = _resolve_study_dir(recipe_dir, config.atlas.study_dir)
     return handle_run(argparse.Namespace(
-        study_dir=str(study_dir), recipe_dir=str(recipe_dir), poll_interval=None, worker=False
+        study_dir=str(study_dir), recipe_dir=str(recipe_dir), poll_interval=None
     ))
 
 
@@ -590,11 +598,10 @@ def add_arguments(subparsers) -> None:
     init.add_argument("--recipe-dir", required=True)
     init.add_argument("--config", required=True)
     init.set_defaults(func=handle_init)
-    run = commands.add_parser("run", help="Run the study using its configured submission environment.")
+    run = commands.add_parser("run", help="Run the study controller (in-process or as a tick job).")
     run.add_argument("--study-dir", required=True)
     run.add_argument("--recipe-dir", required=True)
     run.add_argument("--poll-interval", type=float, default=None)
-    run.add_argument("--worker", action="store_true", help=argparse.SUPPRESS)
     run.add_argument("--job-id", default=None, help=argparse.SUPPRESS)
     run.set_defaults(func=handle_run)
     status = commands.add_parser("status", help="Show study status and best trial.")

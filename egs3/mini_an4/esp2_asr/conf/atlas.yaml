@@ -36,7 +36,6 @@ atlas:
     max_trials: 1
 
   submission:
-    environment: local
     resources: {}
 
   search_space:
