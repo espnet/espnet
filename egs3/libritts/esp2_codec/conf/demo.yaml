@@ -1,0 +1,21 @@
+##########################################################
+#                      DEMO SETTING                      #
+##########################################################
+# Quick usage:
+#   python run.py --stages pack_demo \
+#     --training_config conf/training_encodec.yaml --demo_config conf/demo.yaml
+#   python run.py --stages upload_demo \
+#     --training_config conf/training_encodec.yaml --demo_config conf/demo.yaml
+#
+# Assumptions:
+# - `--training_config` is passed: the inherited `model.dir_or_tag` and
+#   `upload_demo.hf_repo` refer to `${exp_tag}`, which `launch()` copies from
+#   the training config.
+# - `upload_model` has already published the model repo that the inherited
+#   `model.dir_or_tag` names.
+#
+# Merged over egs3/TEMPLATE/esp2_codec/conf/demo.yaml, which supplies the
+# Gradio launcher, the Space README template and the upload target. The
+# input and output widgets come from the packed inference contract (audio in,
+# resynthesized audio out), so nothing is overridden here.
+recipe_dir: .

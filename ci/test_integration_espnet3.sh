@@ -124,6 +124,79 @@ rm -rf exp data
 
 cd "${cwd}" || exit
 
+cd ./egs3/mini_an4/esp2_lid || exit
+gen_dummy_coverage
+echo "==== [ESPnet3] LID ===="
+source path.sh
+
+${python} run.py \
+    --stages create_dataset collect_stats train infer measure \
+    --training_config conf/training.yaml \
+    --inference_config conf/inference.yaml \
+    --metrics_config conf/metrics.yaml
+    rm -rf exp data downloads
+
+cd "${cwd}" || exit
+
+python3 -m pip install -e '.[enh]'
+
+cd ./egs3/mini_an4/esp2_enh || exit
+gen_dummy_coverage
+echo "==== [ESPnet3] ENH ===="
+source path.sh
+# No train_tokenizer: ESP2EnhSystem does not implement it.
+
+${python} run.py \
+    --stages create_dataset collect_stats train infer measure \
+    --training_config conf/training.yaml \
+    --inference_config conf/inference.yaml \
+    --metrics_config conf/metrics.yaml
+
+rm -rf exp data
+
+cd "${cwd}" || exit
+
+python3 -m pip install -e '.[tts]'
+
+cd ./egs3/mini_an4/f5tts || exit
+gen_dummy_coverage
+echo "==== [ESPnet3] F5-TTS ===="
+source path.sh
+# The 3.13 image has no versa (tools/installers/install_versa.sh installs it
+# with bare `pip`, which is not the venv's pip there). Install it here with
+# its dependencies; the signal metrics also need these three.
+python3 -m pip install \
+    "versa-speech-audio-toolkit @ git+https://github.com/wavlab-speech/versa.git@v1.1.0" \
+    ci-sdr fast-bss-eval mir-eval
+${python} run.py \
+    --stages create_dataset remove_long_short create_token_list collect_stats \
+             train infer measure \
+    --training_config conf/training.yaml \
+    --inference_config conf/inference.yaml \
+    --metrics_config conf/metrics.yaml
+rm -rf exp data
+
+cd "${cwd}" || exit
+
+cd ./egs3/mini_an4/esp2_codec || exit
+gen_dummy_coverage
+echo "==== [ESPnet3] Codec ===="
+source path.sh
+# The 3.13 image has no versa (tools/installers/install_versa.sh installs it
+# with bare `pip`, which is not the venv's pip there). Install it here with
+# its dependencies; the signal metrics also need these three.
+python3 -m pip install \
+    "versa-speech-audio-toolkit @ git+https://github.com/wavlab-speech/versa.git@v1.1.0" \
+    ci-sdr fast-bss-eval mir-eval
+${python} run.py \
+    --stages create_dataset collect_stats train infer measure \
+    --training_config conf/training.yaml \
+    --inference_config conf/inference.yaml \
+    --metrics_config conf/metrics.yaml
+rm -rf exp data
+
+cd "${cwd}" || exit
+
 python3 -m pip install -e '.[asr]'
 
 cd ./egs3/mini_an4/esp2_slu || exit
