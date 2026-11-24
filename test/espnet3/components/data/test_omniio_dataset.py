@@ -270,7 +270,7 @@ def test_errors(dump):
         OmniIODataset(query="SELECT 1 AS x", fields={"text": "text"})
     with pytest.raises(ValueError, match="neither"):
         OmniIODataset(query="SELECT 'a' AS id", fields={"text": "text"})
-    with pytest.raises(ValueError, match="cannot decode modality 'video'"):
+    with pytest.raises(ValueError, match="known kinds"):
         OmniIODataset(query="SELECT 'a' AS id", fields={"v": "video"})
     with pytest.raises(ValueError, match="at least one field"):
         OmniIODataset(query="SELECT 'a' AS id", fields={})
@@ -425,3 +425,23 @@ def test_dump_root_with_comma_rejected(tmp_path):
             fields={"text": "text"},
             dump_root=tmp_path / "a,b",
         )
+
+
+def test_any_registered_kind_is_accepted():
+    """Fields are not limited to audio/text: any ESPnet3 kind is accepted."""
+    ds = OmniIODataset(
+        query="SELECT * FROM (VALUES ('a', 'hi', 3)) t(id, text, spk)",
+        fields={"text": "text", "spk": "number"},
+    )
+    assert ds[0] == {"text": "hi", "spk": 3}
+
+
+def test_blob_modality_without_omniio_reader_fails(dump):
+    """A blob field whose modality omniio cannot read raises on access."""
+    root, _, _ = dump
+    ds = OmniIODataset(
+        query="SELECT 'a' AS id, 'x.bin' AS n_path, 0 AS n_start, 1 AS n_size",
+        fields={"n": "number"},
+    )
+    with pytest.raises(ValueError, match="no reader for modality 'number'"):
+        ds._read_blob("number", str(root / "x.bin"), 0, 1)

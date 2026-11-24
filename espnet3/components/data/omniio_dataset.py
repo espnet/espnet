@@ -65,14 +65,6 @@ DUMP_COMPLETE_FILE = ".dump_complete"
 BLOB_SUFFIXES = ("_path", "_start", "_size")
 
 
-# The omniio modalities this module decodes; each name is also the ESPnet3
-# field kind of the decoded value. omniio can also read image, video and MIDI
-# entries, but ESPnet3 has no field kinds for them yet: add one here (and in
-# OmniIODataset._read_blob) together with the kind in espnet3.contract when a
-# task needs it.
-SUPPORTED_MODALITIES = ("audio", "text")
-
-
 def resolve_dump_root(
     dump_root: str | Path | None = None,
     default: str | Path | None = None,
@@ -273,8 +265,9 @@ class OmniIODataset(BaseDataset):
             ``<f>_size`` (read from an omniio blob) or an inline ``<f>``
             column. Relative file paths resolve against the dump root, and
             ``$name`` parameters are bound from ``params``.
-        fields: Field name -> omniio modality (``audio`` or ``text``). The
-            modality is also the field's ESPnet3 kind.
+        fields: Field name -> omniio modality, e.g. ``audio`` or ``text``.
+            The modality is also the field's ESPnet3 kind, so it must be a
+            kind registered in ``espnet3.contract``.
         params: Values for the query's ``$name`` parameters. Entries the
             query does not use are ignored.
         dump_root: omniio dump root that the query's relative paths
@@ -301,8 +294,8 @@ class OmniIODataset(BaseDataset):
         just its own shard.
 
     Raises:
-        ValueError: If ``fields`` is empty or names a modality that cannot be
-            decoded, the query is not one statement, a ``$name`` parameter
+        ValueError: If ``fields`` is empty or names a modality that is not
+            an ESPnet3 kind, the query is not one statement, a ``$name`` parameter
             has no value, the dump root contains a comma, or the query lacks
             a required column.
 
@@ -354,12 +347,6 @@ class OmniIODataset(BaseDataset):
         if not fields:
             raise ValueError("OmniIODataset needs at least one field.")
         self.modalities = dict(fields)
-        for name, modality in self.modalities.items():
-            if modality not in SUPPORTED_MODALITIES:
-                raise ValueError(
-                    f"Field '{name}': cannot decode modality '{modality}'; "
-                    f"supported: {list(SUPPORTED_MODALITIES)}"
-                )
         self.fields = tuple(
             Field(name, modality) for name, modality in self.modalities.items()
         )
@@ -385,7 +372,6 @@ class OmniIODataset(BaseDataset):
         self._index: dict[str, Any] | None = None
         self._len: int | None = None
         self._head: dict[str, Any] | None = None
-        self._audio_reader = None
         self._last_shard: tuple[int, OmniIODataset] | None = None
         with self._select_rows() as rows:
             self._layout = self._check_columns(rows.columns)
@@ -564,19 +550,25 @@ class OmniIODataset(BaseDataset):
     def _read_blob(self, modality: str, path: str, start: int, size: int) -> Any:
         """Decode the ``size`` bytes at ``start`` of the blob file ``path``.
 
-        Audio goes through espnet2's ``OmniIOEntryReader``, which keeps the
-        blob files open across reads (per process) instead of reopening one
-        for every item; mono audio comes back one-dimensional.
+        Every modality is read with omniio's own ``<modality>_read``. Audio
+        comes back as its float32 array, one-dimensional when mono; text as
+        a string; any other modality as omniio's result object.
+
+        Raises:
+            ValueError: If omniio has no reader for ``modality``.
         """
+        from omniio import interface
+
+        read = getattr(interface, f"{modality}_read", None)
+        if read is None:
+            raise ValueError(f"omniio has no reader for modality '{modality}'.")
+        entry = read(path, start, size)
         if modality == "audio":
-            if self._audio_reader is None:
-                from espnet2.fileio.omniio_audio import OmniIOEntryReader
-
-                self._audio_reader = OmniIOEntryReader()
-            return self._audio_reader(f"{path}:{start}:{start + size}")[1]
-        from omniio.interface import text_read
-
-        return text_read(path, start, size).text
+            array = entry.array
+            return array[:, 0] if array.ndim == 2 and array.shape[1] == 1 else array
+        if modality == "text":
+            return entry.text
+        return entry
 
     def _decode(self, name: str, row: Mapping[str, Any]) -> Any:
         """Decode field ``name`` from its inline value or blob byte range."""
