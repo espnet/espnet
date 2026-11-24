@@ -6,15 +6,33 @@ from typing import Dict, Iterable, List, Optional, Tuple, Union
 
 import numpy as np
 import torch
-from torch.nn.parallel import data_parallel
 from torch.utils.data import DataLoader
 from typeguard import typechecked
 
 from espnet2.fileio.datadir_writer import DatadirWriter
 from espnet2.fileio.npy_scp import NpyScpWriter
 from espnet2.torch_utils.device_funcs import to_device
-from espnet2.torch_utils.forward_adaptor import ForwardAdaptor
 from espnet2.train.abs_espnet_model import AbsESPnetModel
+
+
+def _utterance(
+    batch: Dict[str, torch.Tensor], i: int, batch_size: int
+) -> Dict[str, torch.Tensor]:
+    """Utterance i of a padded batch as a batch of one, without the padding.
+
+    A tensor `x` with `x_lengths` in the batch is cut to its length. Other values
+    with the batch size as their first dimension are sliced; the rest (e.g.
+    Mappings) are passed as they are.
+    """
+    out = {}
+    for name, value in batch.items():
+        if isinstance(value, torch.Tensor) and value.dim() > 0:
+            if value.size(0) == batch_size:
+                value = value[i : i + 1]
+                if f"{name}_lengths" in batch:
+                    value = value[:, : int(batch[f"{name}_lengths"][i])]
+        out[name] = value
+    return out
 
 
 @torch.no_grad()
@@ -33,6 +51,10 @@ def collect_stats(
     Running for deriving the shape information from data
     and gathering statistics.
     This method is used before executing train().
+
+    Features are extracted for each utterance on its own (without the padding of
+    its batch) and summed in float64, so the stats do not depend on how the keys
+    are grouped into batches or jobs. With ngpu >= 1, one GPU is used.
 
     """
 
@@ -68,32 +90,24 @@ def collect_stats(
                         )
 
                 if model is not None:
-                    # 2. Extract feats
-                    if ngpu <= 1:
-                        data = model.collect_feats(**batch)
-                    else:
-                        # Note that data_parallel can parallelize only "forward()"
-                        data = data_parallel(
-                            ForwardAdaptor(model, "collect_feats"),
-                            (),
-                            range(ngpu),
-                            module_kwargs=batch,
-                        )
+                    # 2. Extract feats of each utterance on its own, so that the
+                    # features (e.g. STFT frames next to the padding) and the
+                    # stats do not depend on which keys share a batch
+                    for i, uttid in enumerate(keys):
+                        data = model.collect_feats(**_utterance(batch, i, len(keys)))
 
-                    # 3. Calculate sum and square sum
-                    for key, v in data.items():
-                        for i, (uttid, seq) in enumerate(zip(keys, v.cpu().numpy())):
-                            # Truncate zero-padding region
+                        # 3. Accumulate sum and square sum in float64
+                        for key, v in data.items():
+                            seq = v[0].cpu().numpy()
                             if f"{key}_lengths" in data:
-                                length = data[f"{key}_lengths"][i]
                                 # seq: (Length, Dim, ...)
-                                seq = seq[:length]
+                                seq = seq[: int(data[f"{key}_lengths"][0])]
                             else:
                                 # seq: (Dim, ...) -> (1, Dim, ...)
                                 seq = seq[None]
-                            # Accumulate value, its square, and count
-                            sum_dict[key] += seq.sum(0)
-                            sq_dict[key] += (seq**2).sum(0)
+                            seq64 = seq.astype(np.float64)
+                            sum_dict[key] += seq64.sum(0)
+                            sq_dict[key] += (seq64**2).sum(0)
                             count_dict[key] += len(seq)
 
                             # 4. [Option] Write derived features as npy format file.

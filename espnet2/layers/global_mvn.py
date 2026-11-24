@@ -52,12 +52,13 @@ class GlobalMVN(AbsNormalize, InversibleInterface):
             var = sum_square_v / count - mean * mean
         std = np.sqrt(np.maximum(var, eps))
 
+        # float32 buffers also for float64 stats (collect_stats sums in float64)
         if isinstance(mean, np.ndarray):
-            mean = torch.from_numpy(mean)
+            mean = torch.from_numpy(mean).float()
         else:
             mean = torch.tensor(mean).float()
         if isinstance(std, np.ndarray):
-            std = torch.from_numpy(std)
+            std = torch.from_numpy(std).float()
         else:
             std = torch.tensor(std).float()
 

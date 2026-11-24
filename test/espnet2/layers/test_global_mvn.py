@@ -136,3 +136,11 @@ def test_mixed_precision_preserves_statistics(stats_file2, inverse, dtype):
     assert torch.equal(actual_lengths, lengths)
     for key, value in layer.state_dict().items():
         torch.testing.assert_close(value, original[key], rtol=0, atol=0)
+
+
+def test_float64_stats_give_float32_buffers(stats_file2):
+    layer = GlobalMVN(stats_file2)
+    assert layer.mean.dtype == torch.float32
+    assert layer.std.dtype == torch.float32
+    y, _ = layer(torch.randn(2, 5, 80))
+    assert y.dtype == torch.float32
