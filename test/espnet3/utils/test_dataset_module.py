@@ -125,8 +125,8 @@ def test_instantiate_dataset_reference_keeps_explicit_split(monkeypatch):
 
     monkeypatch.setattr(
         dm,
-        "load_dataset_module",
-        lambda data_src=None, recipe_dir=None: DummyModule(),
+        "resolve_data_src",
+        lambda data_src=None, recipe_dir=None: (DummyModule(), None),
     )
     dm.instantiate_dataset_reference(
         {"data_src": "mini_an4/esp2_asr", "data_src_args": {"split": "valid"}},
@@ -225,8 +225,8 @@ def test_instantiate_dataset_reference_passes_only_kwargs_to_dataset(monkeypatch
 
     monkeypatch.setattr(
         dm,
-        "load_dataset_module",
-        lambda data_src=None, recipe_dir=None: DummyModule(),
+        "resolve_data_src",
+        lambda data_src=None, recipe_dir=None: (DummyModule(), None),
     )
     dm.instantiate_dataset_reference(
         {
@@ -320,8 +320,150 @@ def test_instantiate_dataset_reference_rejects_dataset_outside_base(monkeypatch)
 
     monkeypatch.setattr(
         dm,
-        "load_dataset_module",
-        lambda data_src=None, recipe_dir=None: DummyModule(),
+        "resolve_data_src",
+        lambda data_src=None, recipe_dir=None: (DummyModule(), None),
     )
     with pytest.raises(TypeError, match="does not inherit BaseDataset"):
         dm.instantiate_dataset_reference({"data_src_args": {}})
+
+
+# -------- data_src naming a dataset class --------
+
+
+def _create_class_path_module(tmp_path: Path, monkeypatch, module_name: str) -> str:
+    _write(
+        tmp_path / f"{module_name}.py",
+        "\n".join(
+            [
+                _BASE_IMPORT,
+                _FIELD_IMPORT,
+                "class ExplicitDataset(BaseDataset):",
+                '    fields = (Field("text", "text"),)',
+                "    def __init__(self, **kwargs):",
+                "        self.kwargs = kwargs",
+                "    def __getitem__(self, index):",
+                "        return {'text': 'explicit'}",
+                "",
+                "class Dataset(ExplicitDataset):",
+                "    pass",
+                "",
+                "class NotADataset:",
+                "    def __init__(self, **kwargs):",
+                "        raise AssertionError('must not be instantiated')",
+                "",
+                "def make_dataset(**kwargs):",
+                "    raise AssertionError('must not be called')",
+            ]
+        ),
+    )
+    monkeypatch.syspath_prepend(str(tmp_path))
+    return module_name
+
+
+def test_class_path_ref_instantiates_named_class(tmp_path, monkeypatch):
+    module_ref = _create_class_path_module(tmp_path, monkeypatch, "tests_dm_explicit")
+
+    dataset = dm.instantiate_dataset_reference(
+        {
+            "data_src": f"{module_ref}.ExplicitDataset",
+            "data_src_args": {"split": "test", "sample_rate": 24000},
+        }
+    )
+
+    assert type(dataset).__name__ == "ExplicitDataset"
+    assert dataset.kwargs == {"split": "test", "sample_rate": 24000}
+
+
+def test_class_path_ref_loads_defining_module(tmp_path, monkeypatch):
+    module_ref = _create_class_path_module(tmp_path, monkeypatch, "tests_dm_defining")
+
+    module = dm.load_dataset_module(data_src=f"{module_ref}.ExplicitDataset")
+
+    assert module.__name__ == module_ref
+
+
+def test_class_path_ref_resolves_class_in_repository():
+    module, dataset_cls = dm.resolve_data_src("egs3.mini_an4.esp2_asr.dataset.Dataset")
+
+    assert module.__name__ == "egs3.mini_an4.esp2_asr.dataset"
+    assert dataset_cls is module.Dataset
+
+
+def test_module_tag_and_local_refs_still_use_module_dataset(tmp_path, monkeypatch):
+    module_ref = _create_class_path_module(tmp_path, monkeypatch, "tests_dm_module")
+    _create_local_recipe_dataset(tmp_path)
+
+    module_dataset = dm.instantiate_dataset_reference({"data_src": module_ref})
+    tag_module, tag_cls = dm.resolve_data_src("mini_an4/esp2_asr")
+    local_dataset = dm.instantiate_dataset_reference({}, recipe_dir=tmp_path)
+
+    assert type(module_dataset).__name__ == "Dataset"
+    assert tag_module.__name__ == "egs3.mini_an4.esp2_asr.dataset"
+    assert tag_cls is None
+    assert local_dataset[0] == {"text": "hi"}
+
+
+@pytest.mark.parametrize(
+    "attr_name, match",
+    [
+        ("NotADataset", "does not inherit BaseDataset"),
+        ("make_dataset", "is not a class"),
+    ],
+)
+def test_class_path_ref_rejects_invalid_class(tmp_path, monkeypatch, attr_name, match):
+    module_ref = _create_class_path_module(
+        tmp_path, monkeypatch, f"tests_dm_invalid_{attr_name.lower()}"
+    )
+
+    with pytest.raises(TypeError, match=match):
+        dm.instantiate_dataset_reference({"data_src": f"{module_ref}.{attr_name}"})
+
+
+def test_class_path_ref_reports_missing_class_name(tmp_path, monkeypatch):
+    module_ref = _create_class_path_module(tmp_path, monkeypatch, "tests_dm_missing")
+
+    with pytest.raises(
+        ImportError, match="no attribute or submodule 'NoSuchDataset'"
+    ) as info:
+        dm.instantiate_dataset_reference({"data_src": f"{module_ref}.NoSuchDataset"})
+
+    assert type(info.value) is ImportError
+
+
+def test_class_path_ref_reports_missing_module(tmp_path):
+    with pytest.raises(ModuleNotFoundError, match="no module named 'no_such_pkg'"):
+        dm.instantiate_dataset_reference({"data_src": "no_such_pkg.sub.SomeDataset"})
+
+
+@pytest.mark.parametrize("suffix", ["", ".ExplicitDataset"])
+def test_missing_dependency_of_dataset_module_is_not_hidden(
+    tmp_path, monkeypatch, suffix
+):
+    _write(tmp_path / "tests_dm_pkg" / "__init__.py", "")
+    _write(
+        tmp_path / "tests_dm_pkg" / "broken.py",
+        "\n".join(
+            [
+                "import tests_dm_absent_dependency  # noqa: F401",
+                _BASE_IMPORT,
+                "class ExplicitDataset(BaseDataset):",
+                "    pass",
+            ]
+        ),
+    )
+    monkeypatch.syspath_prepend(str(tmp_path))
+
+    with pytest.raises(ModuleNotFoundError) as info:
+        dm.instantiate_dataset_reference({"data_src": f"tests_dm_pkg.broken{suffix}"})
+
+    assert info.value.name == "tests_dm_absent_dependency"
+
+
+def test_import_time_error_of_dataset_module_is_not_wrapped(tmp_path, monkeypatch):
+    _write(tmp_path / "tests_dm_raising.py", "raise RuntimeError('corpus root unset')")
+    monkeypatch.syspath_prepend(str(tmp_path))
+
+    with pytest.raises(RuntimeError, match="corpus root unset"):
+        dm.instantiate_dataset_reference(
+            {"data_src": "tests_dm_raising.ExplicitDataset"}
+        )
