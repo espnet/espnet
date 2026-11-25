@@ -70,12 +70,57 @@ cat << EOF
 |---|---|---|---|---|---|---|---|
 EOF
 
+f0_exclusion_rows=""
 for dset in ${test_sets}; do
     result=${tok_exp}/${inference_tag}/${dset}/score/versa/avg_result.txt
+    utt_result=${tok_exp}/${inference_tag}/${dset}/score/versa/utt_result.txt
+    read -r f0rmse f0rmse_excluded f0corr f0corr_excluded < <(
+        python3 - "${utt_result}" <<'PY'
+import re
+import sys
+
+import numpy as np
+
+
+lines = open(sys.argv[1], encoding="utf-8").readlines()
+
+
+def summarize(metric):
+    pattern = re.compile(rf"'{metric}': ([^,}}]+)")
+    values = np.array([float(pattern.search(line).group(1)) for line in lines])
+    excluded = int(np.isnan(values).sum())
+    mean = "nan" if excluded == len(values) else f"{np.nanmean(values):.2f}"
+    return mean, excluded
+
+
+print(*summarize("f0rmse"), *summarize("f0corr"))
+PY
+    )
     line="|${dset}"
     for metric in mcd f0rmse f0corr spk_similarity utmos whisper_wer whisper_cer; do
-        value=$(awk -v metric="${metric}" '$1 == metric ":" || $1 == metric {print $2}' "${result}")
+        if [[ "${metric}" == f0rmse ]]; then
+            value=${f0rmse}
+        elif [[ "${metric}" == f0corr ]]; then
+            value=${f0corr}
+        else
+            value=$(awk -v metric="${metric}" '
+                $1 == metric ":" || $1 == metric {
+                    scale = metric ~ /^whisper_/ ? 100 : 1
+                    printf "%.2f", $2 * scale
+                }
+            ' "${result}")
+        fi
         line+="|${value}"
     done
     echo "${line}|"
+    f0_exclusion_rows+="|${dset}|${f0rmse_excluded}|${f0corr_excluded}|"$'\n'
 done
+
+cat << EOF
+
+F0 metrics use the mean over non-NaN utterances. Excluded utterance counts:
+
+|dataset|F0 RMSE|F0 correlation|
+|---|---|---|
+${f0_exclusion_rows%$'\n'}
+EOF
