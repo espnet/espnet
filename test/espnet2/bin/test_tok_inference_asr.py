@@ -4,8 +4,8 @@ from types import SimpleNamespace
 import pytest
 import torch
 
-from espnet2.bin import tok_asr_inference
-from espnet2.bin.tok_asr_inference import (
+from espnet2.bin import tok_inference_asr
+from espnet2.bin.tok_inference_asr import (
     build_iterator,
     inference,
     validate_asr_branch_checkpoint,
@@ -74,10 +74,10 @@ def test_inference_writes_asr_hypothesis(tmp_path, monkeypatch):
         ),
     )
     monkeypatch.setattr(
-        tok_asr_inference, "build_beam_search", lambda *args, **kwargs: BeamSearch()
+        tok_inference_asr, "build_beam_search", lambda *args, **kwargs: BeamSearch()
     )
     monkeypatch.setattr(
-        tok_asr_inference, "build_tokenizer", lambda **kwargs: TextTokenizer()
+        tok_inference_asr, "build_tokenizer", lambda **kwargs: TextTokenizer()
     )
     token_file = tmp_path / "tokens"
     token_file.write_text("utt1 1 2 3\n", encoding="utf-8")

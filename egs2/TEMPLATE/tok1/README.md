@@ -13,10 +13,11 @@ speech tokenizer with ASR and speaker-conditioned reconstruction losses.
 6. Extract one speaker embedding per utterance.
 7. Train offline K-means centroids, or validate an external centroid model.
 8. Collect shapes for speech, text, and speaker embeddings.
-9. Train the speech tokenizer jointly with its ASR and vocoder branches.
+9. Train the speech tokenizer jointly with its ASR and reconstruction branches.
 10. Extract discrete token sequences without loading the jointly trained branches.
 11. Run branch-level inference from the hard token IDs written by stage 10: ASR
-   hypotheses from the ASR branch and waveform resynthesis from the vocoder branch.
+   hypotheses from the ASR branch and waveform resynthesis from the reconstruction
+   branch.
 12. Run branch-level evaluation with ASR WER/CER and VERSA resynthesis metrics.
 13. Export and pack a tokenizer-only checkpoint with `RESULTS.md`.
 14. Upload the packed tokenizer artifact to Hugging Face.
@@ -68,5 +69,5 @@ Run joint ASR and GAN reconstruction training:
 ```
 
 Tokenizer-only inference writes `token` and `token_length` files. It does not
-construct the ASR or vocoder branches and does not require speaker
+construct the ASR or reconstruction branches and does not require speaker
 embeddings at inference time.

@@ -222,7 +222,7 @@ class HiFiGANReconstructionLoss(torch.nn.Module):
         spembs: torch.Tensor,
         **batch: torch.Tensor,
     ) -> Tuple[torch.Tensor, Dict[str, torch.Tensor], torch.Tensor]:
-        """Compute the generator-side vocoder loss."""
+        """Compute the generator-side reconstruction loss."""
         speech_hat, speech_real = self._generate_segments(
             tokenizer_output, speech, spembs
         )

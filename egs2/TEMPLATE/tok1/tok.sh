@@ -116,7 +116,7 @@ Stages:
     9: Joint ASR and adversarial reconstruction training
    10: Tokenizer-only inference
    11: Branch-level inference from the hard token IDs written by stage 10
-   12: Branch-level evaluation of ASR and vocoder resynthesis outputs
+   12: Branch-level evaluation of ASR and reconstruction outputs
    13: Pack the tokenizer model
    14: Upload the tokenizer to Hugging Face
 
@@ -729,7 +729,7 @@ fi
 
 if [ "${stage}" -le 11 ] && [ "${stop_stage}" -ge 11 ] \
         && ! [[ " ${skip_stages} " =~ [[:space:]]11[[:space:]] ]]; then
-    log "Stage 11: Run ASR and vocoder branches from stage-10 hard token IDs"
+    log "Stage 11: Run ASR and reconstruction branches from stage-10 hard token IDs"
     if "${gpu_inference}"; then
         inference_cmd=${cuda_cmd}
         inference_ngpu=1
@@ -753,7 +753,7 @@ if [ "${stage}" -le 11 ] && [ "${stop_stage}" -ge 11 ] \
         utils/split_scp.pl "${token_file}" "${branch_splits[@]}"
         ${inference_cmd} --gpu "${inference_ngpu}" JOB=1:"${decode_nj}" \
             "${decode_logdir}/asr.JOB.log" \
-            "${python}" -m espnet2.bin.tok_asr_inference \
+            "${python}" -m espnet2.bin.tok_inference_asr \
                 --token_file "${token_file}" \
                 --key_file "${decode_logdir}/branch_keys.JOB.scp" \
                 --train_config "${tok_exp}/config.yaml" \
@@ -761,8 +761,8 @@ if [ "${stage}" -le 11 ] && [ "${stop_stage}" -ge 11 ] \
                 --ngpu "${inference_ngpu}" \
                 --output_dir "${decode_logdir}/asr.JOB"
         ${inference_cmd} --gpu "${inference_ngpu}" JOB=1:"${decode_nj}" \
-            "${decode_logdir}/vocoder.JOB.log" \
-            "${python}" -m espnet2.bin.tok_vocoder_inference \
+            "${decode_logdir}/reconstruction.JOB.log" \
+            "${python}" -m espnet2.bin.tok_inference_reconstruction \
                 --token_file "${token_file}" \
                 --key_file "${decode_logdir}/branch_keys.JOB.scp" \
                 --spembs_scp "${spembs_scp}" \
@@ -770,22 +770,22 @@ if [ "${stage}" -le 11 ] && [ "${stop_stage}" -ge 11 ] \
                 --model_file "${tok_exp}/${inference_model}" \
                 --ngpu "${inference_ngpu}" \
                 --sample_rate "${fs}" \
-                --output_dir "${decode_logdir}/vocoder.JOB"
-        mkdir -p "${decode_dir}/asr" "${decode_dir}/vocoder"
+                --output_dir "${decode_logdir}/reconstruction.JOB"
+        mkdir -p "${decode_dir}/asr" "${decode_dir}/reconstruction"
         for output_name in text token token_int; do
             for job in $(seq "${decode_nj}"); do
                 cat "${decode_logdir}/asr.${job}/${output_name}"
             done | sort -k1 > "${decode_dir}/asr/${output_name}"
         done
         for job in $(seq "${decode_nj}"); do
-            cat "${decode_logdir}/vocoder.${job}/wav/wav.scp"
-        done | sort -k1 > "${decode_dir}/vocoder/wav.scp"
+            cat "${decode_logdir}/reconstruction.${job}/wav/wav.scp"
+        done | sort -k1 > "${decode_dir}/reconstruction/wav.scp"
     done
 fi
 
 if [ "${stage}" -le 12 ] && [ "${stop_stage}" -ge 12 ] \
         && ! [[ " ${skip_stages} " =~ [[:space:]]12[[:space:]] ]]; then
-    log "Stage 12: Run branch-level evaluation of ASR and vocoder outputs"
+    log "Stage 12: Run branch-level evaluation of ASR and reconstruction outputs"
     "${python}" -c "import versa" || {
         log "Error: VERSA is required; run tools/installers/install_versa.sh"
         exit 1
@@ -824,12 +824,12 @@ if [ "${stage}" -le 12 ] && [ "${stop_stage}" -ge 12 ] \
         done
         versa_dir=${score_dir}/versa
         mkdir -p "${versa_dir}"
-        versa_nj=$(min "${score_nj}" "$(wc -l < "${decode_dir}/vocoder/wav.scp")")
+        versa_nj=$(min "${score_nj}" "$(wc -l < "${decode_dir}/reconstruction/wav.scp")")
         score_splits=()
         for job in $(seq "${versa_nj}"); do
             score_splits+=("${versa_dir}/pred.${job}.scp")
         done
-        utils/split_scp.pl "${decode_dir}/vocoder/wav.scp" "${score_splits[@]}"
+        utils/split_scp.pl "${decode_dir}/reconstruction/wav.scp" "${score_splits[@]}"
         ${cuda_cmd} --gpu 1 JOB=1:"${versa_nj}" "${versa_dir}/versa.JOB.log" \
             "${python}" -m versa.bin.scorer \
                 --pred "${versa_dir}/pred.JOB.scp" \

@@ -5,11 +5,11 @@ import torch
 import yaml
 from omniio import kaldi as kaldi_io
 
-from espnet2.bin.tok_vocoder_inference import (
+from espnet2.bin.tok_inference_reconstruction import (
     build_iterator,
     inference,
-    inference_vocoder,
-    validate_vocoder_branch_checkpoint,
+    inference_reconstruction,
+    validate_reconstruction_branch_checkpoint,
 )
 from espnet2.tasks.gan_tok import GANSpeechTokenizerTask
 
@@ -106,7 +106,7 @@ def test_inference_writes_wav_scp(tmp_path, monkeypatch):
     ("sample_rate", "frontend_conf", "expected_sample_rate"),
     (("16k", {}, 16000), (None, {"fs": 24000}, 24000)),
 )
-def test_inference_vocoder_sample_rate(
+def test_inference_reconstruction_sample_rate(
     tmp_path, sample_rate, frontend_conf, expected_sample_rate
 ):
     class Model:
@@ -129,7 +129,7 @@ def test_inference_vocoder_sample_rate(
         )
     ]
 
-    inference_vocoder(
+    inference_reconstruction(
         Model(), iterator, tmp_path, "cpu", str(train_config), sample_rate
     )
 
@@ -137,33 +137,35 @@ def test_inference_vocoder_sample_rate(
     assert actual_sample_rate == expected_sample_rate
 
 
-def test_inference_vocoder_requires_sample_rate(tmp_path):
+def test_inference_reconstruction_requires_sample_rate(tmp_path):
     train_config = tmp_path / "config.yaml"
     train_config.write_text(yaml.safe_dump({"frontend_conf": {}}), encoding="utf-8")
 
     with pytest.raises(ValueError, match="sample_rate must be provided"):
-        inference_vocoder(None, [], tmp_path, "cpu", str(train_config), None)
+        inference_reconstruction(None, [], tmp_path, "cpu", str(train_config), None)
 
 
 @pytest.mark.parametrize("key", ("/tmp/utt1", "../utt1", "dir/utt1", "", ".", ".."))
-def test_inference_vocoder_rejects_non_filename_key(tmp_path, key):
+def test_inference_reconstruction_rejects_non_filename_key(tmp_path, key):
     with pytest.raises(ValueError, match="Invalid utterance key for WAV output"):
-        inference_vocoder(None, [([key], {})], tmp_path, "cpu", "unused.yaml", 16000)
+        inference_reconstruction(
+            None, [([key], {})], tmp_path, "cpu", "unused.yaml", 16000
+        )
 
 
-def test_validate_vocoder_branch_checkpoint_accepts_branch(tmp_path):
+def test_validate_reconstruction_branch_checkpoint_accepts_branch(tmp_path):
     model_file = tmp_path / "model.pth"
     torch.save(
         {"model": {"module.losses.reconstruction.weight": torch.tensor(1.0)}},
         model_file,
     )
 
-    validate_vocoder_branch_checkpoint(str(model_file))
+    validate_reconstruction_branch_checkpoint(str(model_file))
 
 
-def test_validate_vocoder_branch_checkpoint_rejects_tokenizer_only(tmp_path):
+def test_validate_reconstruction_branch_checkpoint_rejects_tokenizer_only(tmp_path):
     model_file = tmp_path / "tokenizer.pth"
     torch.save({"model": {"tokenizer.weight": torch.tensor(1.0)}}, model_file)
 
-    with pytest.raises(RuntimeError, match="parameters for the vocoder branch"):
-        validate_vocoder_branch_checkpoint(str(model_file))
+    with pytest.raises(RuntimeError, match="parameters for the reconstruction branch"):
+        validate_reconstruction_branch_checkpoint(str(model_file))

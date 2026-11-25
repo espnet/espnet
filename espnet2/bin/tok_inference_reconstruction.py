@@ -4,7 +4,7 @@
 The input is the saved discrete token sequence, not audio or the straight-through
 one-hot assignments used during joint training. This script measures the waveform
 available to a user of the exported hard tokens through the jointly trained
-vocoder branch.
+reconstruction branch.
 """
 
 import argparse
@@ -26,8 +26,8 @@ from espnet2.utils import config_argparse
 TASK_CLASSES = {"gan_tok": GANSpeechTokenizerTask}
 
 
-def validate_vocoder_branch_checkpoint(model_file: str) -> None:
-    """Require trained parameters for the vocoder branch."""
+def validate_reconstruction_branch_checkpoint(model_file: str) -> None:
+    """Require trained parameters for the reconstruction branch."""
     checkpoint = safe_torch_load(model_file, map_location="cpu")
     if isinstance(checkpoint, dict) and "model" in checkpoint:
         checkpoint = checkpoint["model"]
@@ -40,7 +40,7 @@ def validate_vocoder_branch_checkpoint(model_file: str) -> None:
         for name in checkpoint
     ):
         raise RuntimeError(
-            "Checkpoint does not contain parameters for the vocoder branch"
+            "Checkpoint does not contain parameters for the reconstruction branch"
         )
 
 
@@ -71,7 +71,7 @@ def build_iterator(
     )
 
 
-def inference_vocoder(
+def inference_reconstruction(
     model,
     iterator,
     output: Path,
@@ -124,24 +124,26 @@ def inference(
     num_workers: int,
     sample_rate: str | None,
 ) -> None:
-    """Run the trained vocoder branch from saved hard token IDs."""
+    """Run the trained reconstruction branch from saved hard token IDs."""
     if ngpu not in (0, 1):
         raise ValueError("ngpu must be 0 or 1")
     if spembs_scp is None:
-        raise ValueError("spembs_scp is required for vocoder inference")
+        raise ValueError("spembs_scp is required for reconstruction inference")
     device = "cuda" if ngpu else "cpu"
     task_class = TASK_CLASSES[task]
-    validate_vocoder_branch_checkpoint(model_file)
+    validate_reconstruction_branch_checkpoint(model_file)
     model, _ = task_class.build_model_from_file(train_config, model_file, device)
     model.to(dtype=getattr(torch, dtype)).eval()
     if not hasattr(model, "synthesize_from_tokens"):
-        raise ValueError(f"Task {task} does not support vocoder inference from tokens")
+        raise ValueError(
+            f"Task {task} does not support reconstruction inference from tokens"
+        )
     output = Path(output_dir)
     output.mkdir(parents=True, exist_ok=True)
     iterator = build_iterator(
         task_class, token_file, spembs_scp, key_file, dtype, ngpu, num_workers
     )
-    inference_vocoder(model, iterator, output, device, train_config, sample_rate)
+    inference_reconstruction(model, iterator, output, device, train_config, sample_rate)
 
 
 def get_parser() -> argparse.ArgumentParser:
