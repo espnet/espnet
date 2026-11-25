@@ -147,6 +147,17 @@ def tokenize(
             raise RuntimeError(f"Format error: e.g. '<blank>:0': {symbol_and_id}")
         added_symbols.append((symbol.strip(), idx))
     added_symbol_names = {symbol for symbol, idx in added_symbols}
+    if len(added_symbol_names) != len(added_symbols):
+        seen = set()
+        duplicates = []
+        for symbol, idx in added_symbols:
+            if symbol in seen and symbol not in duplicates:
+                duplicates.append(symbol)
+            seen.add(symbol)
+        raise RuntimeError(
+            "The same symbol is given more than once in --add_symbol or "
+            f"--add_nonsplit_symbol: {duplicates}"
+        )
 
     # Sort by the number of occurrences in descending order
     # and filter lower frequency words than cutoff value
@@ -175,7 +186,8 @@ def tokenize(
 
     # Logging
     total_count = sum(counter.values())
-    invocab_count = sum(c for w, c in words_and_counts if c is not None)
+    vocab = {w for w, _ in words_and_counts}
+    invocab_count = sum(c for w, c in counter.items() if w in vocab)
     logging.info(f"OOV rate = {(total_count - invocab_count) / total_count * 100} %")
 
 
