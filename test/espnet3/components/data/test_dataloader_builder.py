@@ -1,3 +1,5 @@
+from pathlib import Path
+
 import numpy as np
 import pytest
 import torch
@@ -68,6 +70,7 @@ DUMMY_MISSING_SHARD_TARGET = (
     "test.espnet3.components.data.test_dataloader_builder." "DummyMissingShardMethod"
 )
 DUMMY_SHARDED_DATA_SRC = "dummy/sharded"
+TEMPLATE_DIR = Path(__file__).resolve().parents[4] / "egs3" / "TEMPLATE"
 
 
 # -------- Dummy components for testing --------
@@ -353,6 +356,46 @@ def test_sampler_and_batch_sampler_conflict():
         AssertionError, match="Cannot specify both sampler and batch_sampler"
     ):
         _ = builder._build_standard_dataloader(config.dataloader.train, mode="train")
+
+
+@pytest.mark.parametrize(
+    "template", ["esp2_asr", "esp2_cls", "esp2_enh", "esp2_lid", "esp2_st"]
+)
+def test_template_dataloader_config_builds_standard_loaders(template, monkeypatch):
+    # Sharding is configured on the dataset; the standard path forwards every
+    # remaining dataloader key to torch.utils.data.DataLoader.
+    template_config = OmegaConf.load(TEMPLATE_DIR / template / "conf/training.yaml")
+    dataloader_config = OmegaConf.to_container(
+        template_config.dataloader, resolve=False
+    )
+    for mode in ("train", "valid"):
+        dataloader_config[mode].update(iter_factory=None, batch_size=2)
+    config = OmegaConf.create({"dataloader": dataloader_config})
+
+    received_kwargs = []
+
+    class RecordingDataLoader(torch.utils.data.DataLoader):
+        def __init__(self, *args, **kwargs):
+            received_kwargs.append(set(kwargs))
+            super().__init__(*args, **kwargs)
+
+    monkeypatch.setattr(torch.utils.data, "DataLoader", RecordingDataLoader)
+    organizer = build_organizer(DUMMY_SAME_LENGTH_DATASET_TARGET)
+
+    for mode in ("train", "valid"):
+        builder = build_builder(
+            getattr(organizer, mode), config, collate_fn=None, num_device=1, epoch=0
+        )
+        loader = builder.build(mode)
+
+        assert isinstance(loader, RecordingDataLoader)
+        batches = list(loader)
+        assert len(batches) == 5
+        assert batches[0]["audio"].shape == (2, 16000)
+
+    assert len(received_kwargs) == 2
+    for kwargs in received_kwargs:
+        assert not kwargs & {"total_shards", "dist_world_size"}
 
 
 # -------- IterFactory Mode & YAML-based Integration --------
