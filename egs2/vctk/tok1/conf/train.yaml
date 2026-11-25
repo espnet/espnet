@@ -28,7 +28,7 @@ tokenizer_conf:
 
 model_conf:
     # L = (1 - alpha) * L_asr + alpha * L_reconstruction
-    reconstruction_weight: 0.4
+    reconstruction_weight: 0.1
 
 # ASR consumes differentiably embedded cluster assignments.  Its own acoustic
 # frontend is disabled by GANSpeechTokenizerTask.

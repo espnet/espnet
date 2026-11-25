@@ -3,12 +3,12 @@
 
 ## Environments
 
-- date: `Wed Nov 18 16:35:16 JST 2026`
+- date: `Wed Nov 25 14:20:23 JST 2026`
 - python version: `3.10.20 (main, Jul 23 2026, 14:44:19) [Clang 22.1.3 ]`
 - espnet2 version: `espnet2 202604`
 - pytorch version: `pytorch 2.6.0+cu124`
-- Git hash: `403c36812b878f63a0b1b9be7a4f9e791393cfd1`
-  - Commit date: `Wed Nov 18 13:57:49 2026 +0900`
+- Git hash: `4d416e8bd05ae0aae68ae496e5240bd14173a9e5`
+  - Commit date: `Wed Nov 25 13:28:51 2026 +0900`
 
 ## Experiment configuration
 
@@ -22,19 +22,26 @@
 
 |dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
 |---|---|---|---|---|---|---|---|---|
-|dev|540|3762|94.6|4.8|0.5|0.3|5.6|28.0|
-|eval1|540|3657|92.5|6.4|1.1|0.7|8.2|32.0|
+|dev|540|3762|95.5|3.9|0.6|0.3|4.8|23.3|
+|eval1|540|3657|93.2|5.6|1.2|0.5|7.3|28.5|
 
 ### CER
 
 |dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
 |---|---|---|---|---|---|---|---|---|
-|dev|540|19824|96.8|1.5|1.7|0.8|4.0|28.0|
-|eval1|540|19386|95.5|2.1|2.5|0.8|5.4|32.0|
+|dev|540|19824|97.2|1.3|1.5|0.7|3.4|23.3|
+|eval1|540|19386|96.1|1.5|2.4|0.6|4.5|28.5|
 
 ## Reconstruction branch
 
 |dataset|MCD|F0 RMSE|F0 correlation|Speaker similarity|UTMOS|Whisper WER|Whisper CER|
 |---|---|---|---|---|---|---|---|
-|dev|7.248062488519375|64.28723591951277|0.627865794387675|0.33032965338012826|2.934453336397807|0.1969222743870631|0.12039260728829487|
-|eval1|7.228184383348501|63.13770845051472|nan|0.33973220924294933|2.956249576365506|0.23463087248322148|0.14796573875802999|
+|dev|7.38|63.84|0.64|0.33|2.84|21.02|13.35|
+|eval1|7.41|63.91|0.63|0.33|2.86|20.97|13.94|
+
+F0 metrics use the mean over non-NaN utterances. Excluded utterance counts:
+
+|dataset|F0 RMSE|F0 correlation|
+|---|---|---|
+|dev|0|0|
+|eval1|0|3|
