@@ -736,7 +736,9 @@ def build_parser() -> argparse.ArgumentParser:
         # share one parser, so the old name keeps working exactly, and the
         # help listing says "transcribe (asr)" - which is where someone
         # looking for the name they remember will look.
-        p = sub.add_parser(name, aliases=[was] if was else [], help=help_text)
+        p = sub.add_parser(
+            name, aliases=[was] if was else [], help=help_text, description=help_text
+        )
         p.add_argument(
             "--model",
             default=DEFAULT_MODELS.get(name),

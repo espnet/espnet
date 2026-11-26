@@ -301,7 +301,9 @@ def test_a_packed_model_loads_and_streams_like_the_whole_recording(tmp_path):
 def test_get_parser_is_the_detect_command():
     from espnet2.bin.diar_inference_streaming import get_parser
 
-    args = get_parser().parse_args(["a.wav", "--online"])
+    parser = get_parser()
+    assert parser.description and parser.description.strip()
+    args = parser.parse_args(["a.wav", "--online"])
     assert args.audio == ["a.wav"] and args.online
 
 
