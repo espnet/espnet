@@ -35,6 +35,7 @@ num_nodes=1
 nj=32
 stats_nj=4
 inference_nj=32
+score_nj=4
 gpu_inference=false
 dumpdir=dump
 expdir=exp
@@ -95,6 +96,8 @@ tok_args=
 inference_model=valid.generator_loss.ave.pth
 inference_tag=  # Output tag. If empty, derived from inference_model.
 inference_batch_size=1
+versa_config=conf/versa.yaml
+hf_repo=
 
 # Task-dependent configuration
 train_set=
@@ -112,12 +115,17 @@ Stages:
     8: Collect speech, text, and speaker-embedding shapes
     9: Joint ASR and adversarial reconstruction training
    10: Tokenizer-only inference
+   11: Branch-level inference from the hard token IDs written by stage 10
+   12: Branch-level evaluation of ASR and reconstruction outputs
+   13: Pack the tokenizer model
+   14: Upload the tokenizer to Hugging Face
 
 Main options:
   --stage INT
   --stop_stage INT
   --skip_stages "INT ..."
   --stats_nj INT
+  --score_nj INT
   --train_set NAME
   --valid_set NAME
   --test_sets "NAME ..."
@@ -717,6 +725,199 @@ if [ "${stage}" -le 10 ] && [ "${stop_stage}" -ge 10 ] \
             done | sort -k1 > "${decode_dir}/${output_name}"
         done
     done
+fi
+
+if [ "${stage}" -le 11 ] && [ "${stop_stage}" -ge 11 ] \
+        && ! [[ " ${skip_stages} " =~ [[:space:]]11[[:space:]] ]]; then
+    log "Stage 11: Run ASR and reconstruction branches from stage-10 hard token IDs"
+    if "${gpu_inference}"; then
+        inference_cmd=${cuda_cmd}
+        inference_ngpu=1
+    else
+        inference_cmd=${decode_cmd}
+        inference_ngpu=0
+    fi
+    for dset in ${test_sets}; do
+        decode_data=${data_feats}/${dset}
+        decode_dir=${tok_exp}/${inference_tag}/${dset}
+        decode_logdir=${decode_dir}/logdir
+        token_file=${decode_dir}/token
+        spembs_scp=${dumpdir}/${spk_embed_tag}/${dset}/${spk_embed_tag}.scp
+        test -s "${token_file}"
+        test -s "${spembs_scp}"
+        decode_nj=$(min "${inference_nj}" "$(wc -l < "${token_file}")")
+        branch_splits=()
+        for job in $(seq "${decode_nj}"); do
+            branch_splits+=("${decode_logdir}/branch_keys.${job}.scp")
+        done
+        utils/split_scp.pl "${token_file}" "${branch_splits[@]}"
+        ${inference_cmd} --gpu "${inference_ngpu}" JOB=1:"${decode_nj}" \
+            "${decode_logdir}/asr.JOB.log" \
+            "${python}" -m espnet2.bin.tok_inference_asr \
+                --token_file "${token_file}" \
+                --key_file "${decode_logdir}/branch_keys.JOB.scp" \
+                --train_config "${tok_exp}/config.yaml" \
+                --model_file "${tok_exp}/${inference_model}" \
+                --ngpu "${inference_ngpu}" \
+                --output_dir "${decode_logdir}/asr.JOB"
+        ${inference_cmd} --gpu "${inference_ngpu}" JOB=1:"${decode_nj}" \
+            "${decode_logdir}/reconstruction.JOB.log" \
+            "${python}" -m espnet2.bin.tok_inference_reconstruction \
+                --token_file "${token_file}" \
+                --key_file "${decode_logdir}/branch_keys.JOB.scp" \
+                --spembs_scp "${spembs_scp}" \
+                --train_config "${tok_exp}/config.yaml" \
+                --model_file "${tok_exp}/${inference_model}" \
+                --ngpu "${inference_ngpu}" \
+                --sample_rate "${fs}" \
+                --output_dir "${decode_logdir}/reconstruction.JOB"
+        mkdir -p "${decode_dir}/asr" "${decode_dir}/reconstruction"
+        for output_name in text token token_int; do
+            for job in $(seq "${decode_nj}"); do
+                cat "${decode_logdir}/asr.${job}/${output_name}"
+            done | sort -k1 > "${decode_dir}/asr/${output_name}"
+        done
+        for job in $(seq "${decode_nj}"); do
+            cat "${decode_logdir}/reconstruction.${job}/wav/wav.scp"
+        done | sort -k1 > "${decode_dir}/reconstruction/wav.scp"
+    done
+fi
+
+if [ "${stage}" -le 12 ] && [ "${stop_stage}" -ge 12 ] \
+        && ! [[ " ${skip_stages} " =~ [[:space:]]12[[:space:]] ]]; then
+    log "Stage 12: Run branch-level evaluation of ASR and reconstruction outputs"
+    "${python}" -c "import versa" || {
+        log "Error: VERSA is required; run tools/installers/install_versa.sh"
+        exit 1
+    }
+    for dset in ${test_sets}; do
+        decode_data=${data_feats}/${dset}
+        decode_dir=${tok_exp}/${inference_tag}/${dset}
+        score_dir=${decode_dir}/score
+        mkdir -p "${score_dir}"
+        for token_level in word char; do
+            if [ "${token_level}" = word ]; then
+                score_type=wer
+            else
+                score_type=cer
+            fi
+            token_opts=(
+                --token_type "${token_level}"
+                --non_linguistic_symbols "${nlsyms_txt}"
+                --remove_non_linguistic_symbols true
+            )
+            paste \
+                <(<"${decode_data}/text" "${python}" -m espnet2.bin.tokenize_text \
+                    -f 2- --input - --output - --cleaner "${cleaner}" \
+                    "${token_opts[@]}") \
+                <(<"${decode_data}/utt2spk" awk '{print "(" $2 "-" $1 ")"}') \
+                > "${score_dir}/ref.trn"
+            paste \
+                <(<"${decode_dir}/asr/text" \
+                    "${python}" -m espnet2.bin.tokenize_text \
+                    -f 2- --input - --output - "${token_opts[@]}") \
+                <(<"${decode_data}/utt2spk" awk '{print "(" $2 "-" $1 ")"}') \
+                > "${score_dir}/hyp.trn"
+            sclite -r "${score_dir}/ref.trn" trn \
+                -h "${score_dir}/hyp.trn" trn -i rm -o all stdout \
+                > "${score_dir}/result_${score_type}.txt"
+        done
+        versa_dir=${score_dir}/versa
+        mkdir -p "${versa_dir}"
+        versa_nj=$(min "${score_nj}" "$(wc -l < "${decode_dir}/reconstruction/wav.scp")")
+        score_splits=()
+        for job in $(seq "${versa_nj}"); do
+            score_splits+=("${versa_dir}/pred.${job}.scp")
+        done
+        utils/split_scp.pl "${decode_dir}/reconstruction/wav.scp" "${score_splits[@]}"
+        ${cuda_cmd} --gpu 1 JOB=1:"${versa_nj}" "${versa_dir}/versa.JOB.log" \
+            "${python}" -m versa.bin.scorer \
+                --pred "${versa_dir}/pred.JOB.scp" \
+                --gt "${decode_data}/wav.scp" \
+                --text "${decode_data}/text" \
+                --score_config "${versa_config}" \
+                --cache_folder "${versa_dir}/cache" \
+                --output_file "${versa_dir}/result.JOB.txt" \
+                --use_gpu \
+                --scoring_mode metric \
+                --io soundfile
+        "${python}" pyscripts/utils/aggregate_eval.py \
+            --logdir "${versa_dir}" --scoredir "${versa_dir}" --nj "${versa_nj}"
+    done
+    scripts/utils/show_tok_result.sh \
+        "${tok_exp}" "${inference_tag}" "${inference_model}" "${test_sets}" \
+        > "${tok_exp}/RESULTS.md"
+    cat "${tok_exp}/RESULTS.md"
+fi
+
+packed_model="${tok_exp}/${tok_exp##*/}_${inference_model%.*}.zip"
+tokenizer_model="${tok_exp}/tokenizer.pth"
+if [ "${stage}" -le 13 ] && [ "${stop_stage}" -ge 13 ] \
+        && ! [[ " ${skip_stages} " =~ [[:space:]]13[[:space:]] ]]; then
+    log "Stage 13: Pack model: ${packed_model}"
+
+    ${python} -m espnet2.bin.tok_export \
+        --model_file "${tok_exp}"/"${inference_model}" \
+        --output_file "${tokenizer_model}"
+    ${python} -m espnet2.bin.pack tok \
+        --train_config "${tok_exp}"/config.yaml \
+        --model_file "${tokenizer_model}" \
+        --option "${tok_exp}"/RESULTS.md \
+        --outpath "${packed_model}"
+fi
+
+if [ "${stage}" -le 14 ] && [ "${stop_stage}" -ge 14 ] \
+        && ! [[ " ${skip_stages} " =~ [[:space:]]14[[:space:]] ]]; then
+    [ -z "${hf_repo}" ] && \
+        log "ERROR: You need to setup the variable hf_repo with the name of the repository located at HuggingFace, follow the following steps described here https://github.com/espnet/espnet/blob/master/CONTRIBUTING.md#133-publishing-models" && \
+    exit 1
+    log "Stage 14: Upload model to HuggingFace: ${hf_repo}"
+
+    if [ ! -f "${packed_model}" ]; then
+        log "ERROR: ${packed_model} does not exist. Please run stage 13 first."
+        exit 1
+    fi
+
+    gitlfs=$(git lfs --version 2> /dev/null || true)
+    [ -z "${gitlfs}" ] && \
+        log "ERROR: You need to install git-lfs first" && \
+        exit 1
+
+    dir_repo=${expdir}/hf_${hf_repo//"/"/"_"}
+    [ ! -d "${dir_repo}" ] && git clone https://huggingface.co/${hf_repo} ${dir_repo}
+
+    if command -v git &> /dev/null; then
+        _creator_name="$(git config user.name)"
+        _checkout="git checkout $(git show -s --format=%H)"
+    else
+        _creator_name="$(whoami)"
+        _checkout=""
+    fi
+    # /some/where/espnet/egs2/foo/tok1/ -> foo/tok1
+    _task="$(pwd | rev | cut -d/ -f2 | rev)"
+    # foo/tok1 -> foo
+    _corpus="${_task%/*}"
+    _model_name="${_creator_name}/${_corpus}_$(basename ${packed_model} .zip)"
+
+    # copy files in ${dir_repo}
+    unzip -o ${packed_model} -d ${dir_repo}
+    # Generate description file
+    # shellcheck disable=SC2034
+    hf_task=feature-extraction
+    # shellcheck disable=SC2034
+    espnet_task="Speech Tokenizer"
+    # shellcheck disable=SC2034
+    task_exp=${tok_exp}
+    eval "echo \"$(cat scripts/utils/TEMPLATE_HF_Readme.md)\"" > "${dir_repo}"/README.md
+
+    this_folder=${PWD}
+    cd ${dir_repo}
+    if [ -n "$(git status --porcelain)" ]; then
+        git add .
+        git commit -m "Update model"
+    fi
+    git push
+    cd ${this_folder}
 fi
 
 log "Finished stages ${stage}-${stop_stage}. Elapsed time: ${SECONDS}s"

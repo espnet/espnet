@@ -6,6 +6,7 @@ import torch
 from typeguard import typechecked
 
 from espnet2.asr.frontend.abs_frontend import AbsFrontend
+from espnet2.legacy.nets.pytorch_backend.nets_utils import make_pad_mask
 from espnet2.legacy.nets.pytorch_backend.transformer.embedding import (
     PositionalEncoding,
 )
@@ -70,8 +71,8 @@ class TokenEmbedding(AbsFrontend):
 
         Args:
             input: Integer token IDs of shape ``(B, T)`` or floating-point
-                token distributions of shape ``(B, T, K)``.  Padded
-                distributions must be all-zero vectors.
+                token distributions of shape ``(B, T, K)``. Padded positions
+                are ignored according to ``input_lengths``.
             input_lengths: Valid lengths of shape ``(B,)``.
 
         Returns:
@@ -88,6 +89,8 @@ class TokenEmbedding(AbsFrontend):
                 "Batch sizes of input and input_lengths differ: "
                 f"{input.size(0)} != {input_lengths.size(0)}"
             )
+
+        valid = ~make_pad_mask(input_lengths, maxlen=input.size(1)).to(input.device)
 
         if torch.is_floating_point(input):
             if input.dim() != 3:
@@ -109,9 +112,13 @@ class TokenEmbedding(AbsFrontend):
                 )
             if input.dtype == torch.bool:
                 raise TypeError("Boolean token IDs are not supported")
-            x = self.embed(input.to(dtype=torch.long))
+            valid_embeddings = self.embed(input[valid].to(dtype=torch.long))
+            x = valid_embeddings.new_zeros(*input.shape, self.embed_dim)
+            x[valid] = valid_embeddings
 
-        return self.pos_enc(x), input_lengths
+        x = self.pos_enc(x)
+        x = x.masked_fill(~valid.unsqueeze(-1), 0.0)
+        return x, input_lengths
 
     def output_size(self) -> int:
         """Return the embedding dimension."""

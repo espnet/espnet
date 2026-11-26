@@ -48,6 +48,12 @@ class DummyASRLoss(torch.nn.Module):
     def encode(self, tokenizer_output):
         return tokenizer_output.assignment, tokenizer_output.lengths
 
+    def encode_from_tokens(self, token_ids, token_lengths):
+        return (
+            torch.nn.functional.one_hot(token_ids, num_classes=2).float(),
+            token_lengths,
+        )
+
 
 class DummyReconstructionLoss(torch.nn.Module):
     def __init__(self):
@@ -71,6 +77,9 @@ class DummyReconstructionLoss(torch.nn.Module):
 
     def synthesize(self, tokenizer_output, spembs):
         return tokenizer_output.assignment[:, :1, :1], tokenizer_output.lengths
+
+    def synthesize_from_tokens(self, token_ids, token_lengths, spembs):
+        return token_ids[:, None, :1].float(), token_lengths
 
 
 def make_model(reconstruction_weight=0.25):
@@ -270,3 +279,20 @@ def test_inference_interfaces_use_deterministic_tokenizer():
     torch.testing.assert_close(waveform_lengths, lengths)
     # Each public inference interface independently calls tokenizer.encode().
     assert model.tokenizer.encode_calls == 3
+
+
+def test_branch_interfaces_use_saved_hard_tokens():
+    model = make_model()
+    token_ids = torch.tensor([[1, 0, 1]])
+    token_lengths = torch.tensor([3])
+
+    encoded, encoded_lengths = model.encode_asr_from_tokens(token_ids, token_lengths)
+    waveform, waveform_lengths = model.synthesize_from_tokens(
+        token_ids, token_lengths, spembs=torch.randn(1, 3)
+    )
+
+    assert encoded.shape == (1, 3, 2)
+    torch.testing.assert_close(encoded_lengths, token_lengths)
+    assert waveform.shape == (1, 1, 1)
+    torch.testing.assert_close(waveform_lengths, token_lengths)
+    assert model.tokenizer.encode_calls == 0
