@@ -208,7 +208,9 @@ def test_buffers_stay_bounded_in_silence():
 
 def test_two_turns_in_one_chunk():
     # speech in frames 50..150 and 250..350, both ended within a 5 s chunk
-    level = lambda i: 0.9 if 50 <= i < 150 or 250 <= i < 350 else 0.1  # noqa: E731
+    def level(i):
+        return 0.9 if 50 <= i < 150 or 250 <= i < 350 else 0.1
+
     vad = FrontiaVADModel.from_detector(_detector(level))
     first = vad.forward(np.zeros(5 * FS, dtype=np.int16), FS, binary=True)
     assert first is not None
@@ -222,7 +224,9 @@ def test_two_turns_in_one_chunk():
 
 def test_turn_after_a_short_one_in_the_same_chunk():
     # 80 ms of speech (dropped), then a real turn, in one chunk
-    level = lambda i: 0.9 if 50 <= i < 60 or 150 <= i < 250 else 0.1  # noqa: E731
+    def level(i):
+        return 0.9 if 50 <= i < 60 or 150 <= i < 250 else 0.1
+
     vad = FrontiaVADModel.from_detector(_detector(level))
     turn = vad.forward(np.zeros(4 * FS, dtype=np.int16), FS)
     assert turn is not None
