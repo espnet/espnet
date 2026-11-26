@@ -1,0 +1,7 @@
+# corpus_dir	relative_path	url	size_bytes	checksum	unpack
+# Zenodo record 7079380 (cc-by-4.0): https://zenodo.org/api/records/7079380
+ssw_soundscapes	ARCHIVES/species.csv	https://zenodo.org/api/records/7079380/files/species.csv/content	3490	md5:ab7dd85025230327deb7cf3eef0282cb
+ssw_soundscapes	ARCHIVES/description.pdf	https://zenodo.org/api/records/7079380/files/description.pdf/content	178018	md5:3d2183edd19325549da1bb08c9a46b23
+ssw_soundscapes	ARCHIVES/recording_location.txt	https://zenodo.org/api/records/7079380/files/recording_location.txt/content	78	md5:9cb263d771a74887bfcb08fcac592ef0
+ssw_soundscapes	ARCHIVES/soundscape_data.zip	https://zenodo.org/api/records/7079380/files/soundscape_data.zip/content	27762497845	md5:4dc5a3e83494a638d80bc7b3d1517137
+ssw_soundscapes	ARCHIVES/annotations.csv	https://zenodo.org/api/records/7079380/files/annotations.csv/content	3179389	md5:517eb9700f88ec9ac054a8aec7c805ec

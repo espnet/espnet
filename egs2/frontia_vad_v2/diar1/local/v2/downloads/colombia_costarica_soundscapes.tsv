@@ -1,0 +1,7 @@
+# corpus_dir	relative_path	url	size_bytes	checksum	unpack
+# Zenodo record 7525349 (cc-by-4.0): https://zenodo.org/api/records/7525349
+colombia_costarica_soundscapes	ARCHIVES/species.csv	https://zenodo.org/api/records/7525349/files/species.csv/content	4320	md5:4e5d1bbf1ae8124a28fbbef69cdd1441
+colombia_costarica_soundscapes	ARCHIVES/description.pdf	https://zenodo.org/api/records/7525349/files/description.pdf/content	130385	md5:ff753e924a649639194b16cb7bbeffa8
+colombia_costarica_soundscapes	ARCHIVES/annotations.csv	https://zenodo.org/api/records/7525349/files/annotations.csv/content	465555	md5:f72be6c60b530fb622ea954627edea47
+colombia_costarica_soundscapes	ARCHIVES/recording_location.txt	https://zenodo.org/api/records/7525349/files/recording_location.txt/content	177	md5:3b62987e3195f717a381971c9f306f05
+colombia_costarica_soundscapes	ARCHIVES/soundscape_data.zip	https://zenodo.org/api/records/7525349/files/soundscape_data.zip/content	3759168325	md5:15a00bb3221e56ec83d38ad04c26ce68

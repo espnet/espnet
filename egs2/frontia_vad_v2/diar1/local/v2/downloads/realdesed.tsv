@@ -1,0 +1,7 @@
+# corpus_dir	relative_path	url	size_bytes	checksum	unpack
+# Zenodo record 20056072 (cc-by-4.0): https://zenodo.org/api/records/20056072
+realdesed	ARCHIVES/train.zip	https://zenodo.org/api/records/20056072/files/train.zip/content	5647895421	md5:8d3f30f04949cd481a7fb14e2e73333a
+realdesed	ARCHIVES/test.zip	https://zenodo.org/api/records/20056072/files/test.zip/content	1508251418	md5:d11e8379ba6f9ddf12e50a3d089ec1c2
+realdesed	ARCHIVES/validation.zip	https://zenodo.org/api/records/20056072/files/validation.zip/content	1586397692	md5:5170442e1c17373ea008e980699a24b6
+realdesed	ARCHIVES/Data_Annotation_Guidelines.pdf	https://zenodo.org/api/records/20056072/files/Data_Annotation_Guidelines.pdf/content	552044	md5:0afe9afdc68dd20eb12cbc16c729095a
+realdesed	ARCHIVES/Data_Collection_Guidelines.pdf	https://zenodo.org/api/records/20056072/files/Data_Collection_Guidelines.pdf/content	154394	md5:25e3cee321b7bc5cd5efb5bbf1e17b32

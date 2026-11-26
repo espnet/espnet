@@ -1,0 +1,8 @@
+# corpus_dir	relative_path	url	size_bytes	checksum	unpack
+althingi	ARCHIVES/license.txt	https://repository.clarin.is/repository/rest/bitstreams/1022/retrieve	1763	md5:942d257691e16516d98b10206daa2bdb
+althingi	ARCHIVES/README.txt	https://repository.clarin.is/repository/rest/bitstreams/1111/retrieve	7407	md5:d093eb58f7e5c8efd4bc2c01aad9a0a8
+althingi	ARCHIVES/althingi_texti.tar.gz	https://repository.clarin.is/repository/rest/bitstreams/727/retrieve	486671014	md5:79f957eec8ac54e6f4c26d38c04dfd5e
+althingi	ARCHIVES/althingi_upptokur.z01	https://repository.clarin.is/repository/rest/bitstreams/1107/retrieve	5242880000	md5:98b6c617e1b756d649e8c1fc50e8d3d3
+althingi	ARCHIVES/althingi_upptokur.z02	https://repository.clarin.is/repository/rest/bitstreams/1109/retrieve	5242880000	md5:44160831b65cfb6a9be210558b7713cd
+althingi	ARCHIVES/althingi_upptokur.z03	https://repository.clarin.is/repository/rest/bitstreams/1110/retrieve	5242880000	md5:13a1a4fb5d905e2a4ab50845257a3400
+althingi	ARCHIVES/althingi_upptokur.zip	https://repository.clarin.is/repository/rest/bitstreams/1108/retrieve	3158989958	md5:7c1837e4bddf4de55d3cbd216069711f

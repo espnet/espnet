@@ -1,0 +1,7 @@
+# corpus_dir	relative_path	url	size_bytes	checksum	unpack
+# Zenodo record 18554693 (cc-by-4.0): https://zenodo.org/api/records/18554693
+insectset459	ARCHIVES/Train_Val_Test_README.txt	https://zenodo.org/api/records/18554693/files/Train_Val_Test_README.txt/content	20478	md5:3b7fbbb4b2e764a5020f76b7ce1ba9ae
+insectset459	ARCHIVES/InsectSet459_Train_Val_Test_Annotation.csv	https://zenodo.org/api/records/18554693/files/InsectSet459_Train_Val_Test_Annotation.csv/content	6860191	md5:f3cb378e2c3b8ba5704f37ee0bb6d8a6
+insectset459	ARCHIVES/Test.zip	https://zenodo.org/api/records/18554693/files/Test.zip/content	16026297171	md5:e2037e90f51b35eb89bb9cea516c0a6d
+insectset459	ARCHIVES/Validation.zip	https://zenodo.org/api/records/18554693/files/Validation.zip/content	16394160113	md5:0027a6ae81bd5b06526339efcfa285d5
+insectset459	ARCHIVES/Train.zip	https://zenodo.org/api/records/18554693/files/Train.zip/content	51236589217	md5:46f535ca43559bcd87b45d6fab189c5f
