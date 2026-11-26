@@ -491,6 +491,7 @@ def _render_readme(template: str, context: dict[str, str]) -> str:
 
     """
     safe = {k: "" if v is None else str(v) for k, v in context.items()}
+    safe.setdefault("usage_repo", safe.get("hf_repo") or "<your-hf-repo>")
     pattern = re.compile(r"\$\{([A-Za-z0-9_]+)\}")
     lines = []
     for line in template.splitlines():

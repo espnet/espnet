@@ -31,7 +31,7 @@ ${model_detail_section}
 ```python
 from espnet3.publication import InferenceModel
 
-model = InferenceModel.from_pretrained("${hf_repo}")
+model = InferenceModel.from_pretrained("${usage_repo}")
 output = model("speech.wav")  # a path, a (rate, samples) pair, or an array
 audio = output["wav"]  # the resynthesized Audio: audio.array (float32) at audio.rate
 ```

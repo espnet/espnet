@@ -28,6 +28,12 @@ System whenever it provides the needed stages; add a recipe-local System only
 for genuinely recipe-specific behavior. Put behavior shared by multiple
 recipes in `espnet3/`, not in one recipe's `src/`.
 
+Every System TEMPLATE that supports publication must provide a model card
+template under `src/` and reference it from `conf/publication.yaml`. Include
+a copyable `InferenceModel.from_pretrained()` example with inputs and outputs
+matching the System's inference contract. Recipe-specific model cards may
+extend it when needed.
+
 Keep the recipe layout recognizable:
 
 ```text
