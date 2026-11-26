@@ -30,6 +30,7 @@ def get_parser():
     )
     parser.add_argument(
         "--max_num_log_files",
+        type=int,
         help="The maximum number of log-files to be kept",
         default=1000,
     )
