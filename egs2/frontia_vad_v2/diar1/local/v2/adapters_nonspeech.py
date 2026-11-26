@@ -1444,10 +1444,22 @@ def dcase_bioacoustic(root, writers, shard: int, nshards: int, exclude=("WMW",))
         _zip_pieces(writers, path, mine_items, 0, 1, (0,), "field")
 
 
+def dcase2025_clip_kept(base: str) -> bool:
+    """Return True for a BioDCASE 2025 Task 3 clip of known provenance.
+
+    Yellowhammer (YH_*) and background clips are the authors' recordings; the
+    bird_* clips of other species have no stated source.
+    """
+    return not base.lower().startswith("bird")
+
+
 @corpus("dcase2025_bioacoustic", "dcase2025_bioacoustic", "animal", "D", "CC BY 4.0")
 def dcase2025_bioacoustic(root, writers, shard: int, nshards: int):
-    """BioDCASE 2025 Task 3 2-s clips: yellowhammer songs, other birds, background.
+    """BioDCASE 2025 Task 3 2-s clips: yellowhammer songs and background.
 
+    The clips of other birds (bird_*) are left out: the dataset does not say
+    where they were recorded or under what licence, while the yellowhammer
+    (YH_*) and background clips are the authors' own CC BY 4.0 recordings.
     Validation_Set is the dev split; the writer packs the short clips.
     """
     path = archive(root, "Development_Set.zip")
@@ -1456,6 +1468,8 @@ def dcase2025_bioacoustic(root, writers, shard: int, nshards: int):
         if is_junk(n) or not n.lower().endswith(".wav"):
             continue
         base = n.rsplit("/", 1)[-1]
+        if not dcase2025_clip_kept(base):
+            continue
         kind = "background" if base.lower().startswith("background") else "bird"
         split = "dev" if "Validation_Set" in n else "train"
         items.append((safe_id(n[:-4]), n, split, kind))

@@ -578,6 +578,19 @@ def locata(root, writers, shard: int, nshards: int):
 
 STARSS23_SPEECH_CLASSES = (0, 1)  # female speech, male speech (13 classes)
 
+# STARSS23 class 8 "music" is pop and background music played from a loudspeaker;
+# the dataset names neither the tracks nor their licences.
+STARSS23_MUSIC_CLASS = 8
+
+
+def starss23_has_music(csv_text: str) -> bool:
+    """Return True if a STARSS23 label CSV has any frame of class 8 (music)."""
+    for row in csv.reader(io.StringIO(csv_text)):
+        if len(row) >= 2 and row[0].strip().isdigit() and row[1].strip().isdigit():
+            if int(row[1]) == STARSS23_MUSIC_CLASS:
+                return True
+    return False
+
 
 @corpus("starss23", "starss23", "farfield", "H", "MIT")
 def starss23(root, writers, shard: int, nshards: int):
@@ -587,8 +600,10 @@ def starss23(root, writers, shard: int, nshards: int):
     format), events annotated at 100 ms frames.
     The speech is the frames of the classes "female speech, woman speaking" and
     "male speech, man speaking"; laughter and the other 10 classes are
-    non-speech. Class 8 "music" can hold singing that is not labelled. The
-    FOA (Ambisonics) version repeats the same scenes and is not read.
+    non-speech. Clips with any class 8 "music" frame are left out: that music is
+    played from a loudspeaker, of unknown origin and licence (and can hold
+    singing that is not labelled). The FOA (Ambisonics) version repeats the
+    same scenes and is not read.
     dev-train-* is train, dev-test-* is dev; the evaluation set (labels
     released) is train. Clips are the shard units.
     """
@@ -624,8 +639,12 @@ def starss23(root, writers, shard: int, nshards: int):
         if meta is None:
             w.skip(source, "no metadata csv")
             continue
+        labels = read_zip_member(meta_zip, meta).decode()
+        if starss23_has_music(labels):
+            w.skip(source, "loudspeaker music (class 8) of unknown licence")
+            continue
         frames = set()
-        for row in csv.reader(io.StringIO(read_zip_member(meta_zip, meta).decode())):
+        for row in csv.reader(io.StringIO(labels)):
             if len(row) >= 2 and row[0].strip().isdigit():
                 if int(row[1]) in STARSS23_SPEECH_CLASSES:
                     frames.add(int(row[0]))
