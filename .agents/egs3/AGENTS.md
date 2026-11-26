@@ -33,6 +33,8 @@ template under `src/` and reference it from `conf/publication.yaml`. Include
 a copyable `InferenceModel.from_pretrained()` example with inputs and outputs
 matching the System's inference contract. Recipe-specific model cards may
 extend it when needed.
+System TEMPLATEs with a demo must also provide a Space README template with
+local launch commands and reference it from `conf/demo.yaml`.
 
 Keep the recipe layout recognizable:
 

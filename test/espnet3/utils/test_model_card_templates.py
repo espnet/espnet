@@ -48,6 +48,19 @@ def test_model_card_usage_matches_inference_contract(system, monkeypatch):
     assert seen == {"repo": "example/model", "inputs": expected_inputs}
 
 
+@pytest.mark.parametrize(
+    "system",
+    sorted(
+        path.parent.parent.name
+        for path in Path("egs3/TEMPLATE").glob("*/conf/demo.yaml")
+    ),
+)
+def test_demo_card_has_local_launch_commands(system):
+    """Each demo card shows how to launch the packed Space locally."""
+    template = (Path("egs3/TEMPLATE") / system / "src/hf_demo_readme.md").read_text()
+    assert "python -m pip install gradio -r requirements.txt" in template
+    assert "python app.py" in template
+
 
 def test_unknown_output_key_is_detected(monkeypatch):
     """A model card cannot access an output absent from the contract."""
@@ -73,6 +86,19 @@ def test_vctk_inherits_enhancement_model_card():
     readme = Path(config.pack_model.readme)
     assert readme.is_file()
     assert readme.as_posix().endswith("egs3/TEMPLATE/esp2_enh/src/hf_model_readme.md")
+
+
+def test_vctk_inherits_enhancement_demo_card():
+    """The VCTK demo overlay uses the enhancement TEMPLATE card."""
+    config = load_and_merge_config(
+        Path("egs3/vctk_noisy/esp2_enh/conf/demo.yaml"),
+        "demo.yaml",
+        default_package="egs3.TEMPLATE.esp2_enh",
+        resolve=False,
+    )
+    readme = Path(config.pack.readme)
+    assert readme.is_file()
+    assert readme.as_posix().endswith("egs3/TEMPLATE/esp2_enh/src/hf_demo_readme.md")
 
 
 @pytest.mark.parametrize(
