@@ -59,14 +59,14 @@ def _feed(vad, seconds, chunk_ms=20, **kwargs):
 
 def test_find_endpoint():
     d = np.array([0, 0, 1, 1, 0, 1, 0, 0, 0])
-    assert FrontiaVADModel.find_endpoint(d, 2) == 6
-    assert FrontiaVADModel.find_endpoint(d, 4) is None
-    assert FrontiaVADModel.find_endpoint(np.zeros(10), 1) is None
+    assert FrontiaVADModel._find_endpoint(d, 2) == 6
+    assert FrontiaVADModel._find_endpoint(d, 4) is None
+    assert FrontiaVADModel._find_endpoint(np.zeros(10), 1) is None
 
 
 def test_decisions_hold_back_the_median_window():
     vad = FrontiaVADModel.from_detector(_detector(lambda i: 0.9, median=5))
-    assert len(vad.decisions(np.full(10, 0.9))) == 8
+    assert len(vad._decisions(np.full(10, 0.9))) == 8
 
 
 def test_forward_returns_the_turn_after_the_hangover():
@@ -355,7 +355,7 @@ def test_memory_bounded_over_many_turns():
 
 def test_max_speech_ends_a_turn_that_never_pauses():
     # speech without a pause; turns end every 2 s of speech
-    vad = FrontiaVADModel.from_detector(_detector(lambda i: 0.9), max_speech_ms=2000)
+    vad = FrontiaVADModel.from_detector(_detector(lambda i: 0.9), max_turn_ms=2000)
     turns = []
     for _ in range(14):  # 7 s in 0.5 s chunks
         out = vad.forward(np.zeros(FS // 2, dtype=np.int16), FS, binary=True)
@@ -368,16 +368,16 @@ def test_max_speech_ends_a_turn_that_never_pauses():
 
 
 def test_max_speech_below_min_speech_is_refused():
-    with pytest.raises(ValueError, match="max_speech_ms"):
+    with pytest.raises(ValueError, match="max_turn_ms"):
         FrontiaVADModel.from_detector(
-            _detector(lambda i: 0.1), min_speech_ms=300, max_speech_ms=200
+            _detector(lambda i: 0.1), min_speech_ms=300, max_turn_ms=200
         )
 
 
 def test_equal_min_and_max_speech_still_return_turns():
     """500 ms both ways rounds to the same 62 frames, so forced turns pass."""
     vad = FrontiaVADModel.from_detector(
-        _detector(lambda i: 0.9), min_speech_ms=500, max_speech_ms=500
+        _detector(lambda i: 0.9), min_speech_ms=500, max_turn_ms=500
     )
     turn, _ = _feed(vad, 2.0, binary=True)
     assert turn is not None and vad.last_turn["forced"]
@@ -385,9 +385,42 @@ def test_equal_min_and_max_speech_still_return_turns():
 
 def test_forced_turn_waits_for_its_end_padding():
     """20 ms chunks: the forced turn still carries all 300 ms of end padding."""
-    vad = FrontiaVADModel.from_detector(_detector(lambda i: 0.9), max_speech_ms=2000)
+    vad = FrontiaVADModel.from_detector(_detector(lambda i: 0.9), max_turn_ms=2000)
     turn, _ = _feed(vad, 4.0, binary=True)
     info = vad.last_turn
     assert turn is not None and info["forced"]
     assert info["end_s"] - info["endpoint_s"] == pytest.approx(0.3)
     assert len(turn) == int(info["end_s"] * FS) - int(info["start_s"] * FS)
+
+
+def _capture_load(monkeypatch):
+    """Make VoiceActivityDetector.load record its arguments and load nothing."""
+    from espnet2.bin import diar_inference
+
+    calls = []
+
+    def load(tag, device, threshold, median):
+        calls.append(dict(tag=tag, device=device, threshold=threshold, median=median))
+        return _detector(lambda i: 0.1, median=median, threshold=threshold)
+
+    monkeypatch.setattr(diar_inference.VoiceActivityDetector, "load", load)
+    return calls
+
+
+def test_defaults_come_from_the_online_vad(monkeypatch):
+    from espnet2.bin.diar_inference import VAD_MODELS, VAD_RULES
+
+    calls = _capture_load(monkeypatch)
+    FrontiaVADModel()
+    threshold, median = VAD_RULES["online"]
+    assert calls == [
+        dict(
+            tag=VAD_MODELS["online"], device="cuda", threshold=threshold, median=median
+        )
+    ]
+
+
+def test_arguments_override_the_online_vad(monkeypatch):
+    calls = _capture_load(monkeypatch)
+    FrontiaVADModel(tag="some/vad", threshold=0.3, median=1, device="cpu")
+    assert calls == [dict(tag="some/vad", device="cpu", threshold=0.3, median=1)]

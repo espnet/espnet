@@ -84,3 +84,39 @@ def test_handle_E2E_selection():
         LLM_radio="HuggingFaceTB/SmolLM2-1.7B-Instruct",
     )
     assert dialogue_model.client is None
+
+
+@pytest.mark.parametrize(
+    "option, tag",
+    [("frontia", None), ("espnet/frontia_vad_v2_3", "espnet/frontia_vad_v2_3")],
+)
+def test_VAD_option_selects_frontia_vad(monkeypatch, option, tag):
+    from espnet2.sds.vad import frontia_vad
+
+    calls = []
+
+    class FakeFrontiaVAD:
+        def __init__(self, tag=None):
+            calls.append(tag)
+
+    monkeypatch.setattr(frontia_vad, "FrontiaVADModel", FakeFrontiaVAD)
+    vad = ESPnetSDSModelInterface.load_VAD(option)
+    assert isinstance(vad, FakeFrontiaVAD)
+    assert calls == [tag]
+
+
+def test_VAD_option_defaults_to_webrtc(monkeypatch):
+    from espnet2.sds import espnet_model
+
+    class FakeWebrtcVAD:
+        pass
+
+    monkeypatch.setattr(espnet_model, "WebrtcVADModel", FakeWebrtcVAD)
+    dialogue_model = ESPnetSDSModelInterface(
+        ASR_option="librispeech_asr",
+        LLM_option="HuggingFaceTB/SmolLM2-1.7B-Instruct",
+        TTS_option="kan-bayashi/ljspeech_vits",
+        type_option="Cascaded",
+        access_token="",
+    )
+    assert isinstance(dialogue_model.vad_model, FakeWebrtcVAD)
