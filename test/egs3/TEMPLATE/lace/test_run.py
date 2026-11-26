@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
+import pytest
 from hydra.utils import get_class
 
 from espnet3.contract.inference import load_inference_contract
@@ -104,6 +105,41 @@ def test_libritts_training_config_resolves():
     for split in ("train", "valid"):
         (entry,) = config.dataset[split]
         assert "data_src" not in entry  # the recipe's own dataset package
+
+
+@pytest.mark.parametrize(
+    "codec, tag",
+    [
+        ("dac", "espnet/libritts_dac_24k"),
+        ("encodec", "espnet/libritts_encodec_24k"),
+        ("soundstream", "espnet/libritts_soundstream24k"),
+    ],
+)
+def test_libritts_codec_configs_describe_the_published_models(codec, tag):
+    """Each per-codec config fine-tunes its zoo codec with the DP segmentation."""
+    config = load_and_merge_config(
+        RECIPE_CONF / f"training_lace_{codec}.yaml",
+        "training.yaml",
+        default_package=PACKAGE,
+    )
+    assert config.exp_tag == codec
+    assert config.model._target_ == "espnet3.systems.lace.src.lace.LACE"
+    assert config.model.pretrained_model_tag == tag
+    compression = config.model.compression_model
+    assert compression.name == "dp_segmentation"
+    assert compression.params == {"max_span": 4}
+    assert (compression.min_rate, compression.max_rate) == (0.25, 1.0)
+    assert compression.random_rate == "per_quantizer"
+    assert config.num_device == 4
+    assert config.trainer.devices == 4
+    assert config.trainer.strategy == "ddp_find_unused_parameters_true"
+    assert config.trainer.max_steps == 30000
+    assert config.dataloader.train.iter_factory.chunk_length == 24000
+    assert config.dataloader.train.iter_factory.batch_size == 16
+    for player in ("generator", "discriminator"):
+        assert config.optimizers[player].optimizer.lr == 1.0e-4
+        assert config.optimizers[player].gradient_clip_val == 1.0
+        assert config.schedulers[player].interval == "step"
 
 
 def test_libritts_inference_config_keeps_the_template_runner_and_contract():
