@@ -21,6 +21,24 @@ def test_get_parser():
     assert isinstance(get_parser(), ArgumentParser)
 
 
+def test_get_parser_hugging_face_decoder_conf():
+    base = [
+        "--output_dir",
+        "out",
+        "--data_path_and_name_and_type",
+        "wav.scp,speech,sound",
+    ]
+    args = get_parser().parse_args(base)
+    assert args.hugging_face_decoder_conf == {}
+
+    args = get_parser().parse_args(
+        base
+        + ["--hugging_face_decoder_conf", "num_beams=4"]
+        + ["--hugging_face_decoder_conf", "max_new_tokens=32"]
+    )
+    assert args.hugging_face_decoder_conf == {"num_beams": 4, "max_new_tokens": 32}
+
+
 def test_main():
     with pytest.raises(SystemExit):
         main()
