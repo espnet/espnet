@@ -1,7 +1,10 @@
-# v2.3.1: train_dualmode_v2_3_lr1e-3.yaml on dump_v2_2_clean3, the v2.3 data without
-# HCRC Map Task (labels from CC BY-NC-SA annotations). Only the dev category file and
-# the rotating-bank log move to the new dump and expdir. Run with --dumpdir
-# dump_v2_2_clean3 --expdir exp_v2_3_1 (diar_stats_16k: exp_v2_2_clean3's).
+# v2.3.1: train_dualmode_v2_3_lr1e-3.yaml on the Tier-1 data of the 2026-11-24 licence
+# audit: dump_v2_2_clean4 (no HCRC Map Task, whose labels are CC BY-NC-SA, and no
+# Clarity Speech, CC BY-SA) and the OpenNoise v0.1 pools without MusicNet,
+# AudioAlpaca, BirdSet, NatureLM and Urban_Sound_Sight (data/opennoise_v01_t1). Only
+# the data paths, the dev category file and the rotating-bank log differ from v2.3.
+# Run with --dumpdir dump_v2_2_clean4 --expdir exp_v2_3_1 (diar_stats_16k:
+# exp_v2_2_clean4's).
 # frontia_vad_v2 v2.3: the v2.2aug clean2 setup
 # (train_dualmode_v2_2aug_clean2_lr1e-3.yaml: dump_v2_2_clean2, labels unchanged, dual-mode
 # model, lr 0.001, 1024 windows per update) with the noise, music and impulse-response banks
@@ -53,11 +56,11 @@ wav_augment_conf:
     # v2.2aug), drawn source by source with the seed (rotate_seed, subset, rank); the next
     # subset loads in the background; each swap is logged with its hours by source and
     # licence (rotate_log)
-    noise_pool: data/opennoise_v01/noise_pool.tsv
+    noise_pool: data/opennoise_v01_t1/noise_pool.tsv
     noise_pool_hours: "noise=300"
     noise_apply_prob: 0.6
     noise_db_range: "-5_20"
-    music_pool: data/opennoise_v01/music_pool.tsv
+    music_pool: data/opennoise_v01_t1/music_pool.tsv
     music_pool_hours: "music=150"
     music_apply_prob: 0.4
     music_db_range: "-10_20"
@@ -69,7 +72,7 @@ wav_augment_conf:
     # wide-band low-pass at 16 kHz (no resampling), Earnings21-style band limits
     lowpass_apply_prob: 0.3          # of the windows outside the telephone channel
     lowpass_cutoff_range: "3400_8000"
-    rir_scp: data/opennoise_v01/rir.scp
+    rir_scp: data/opennoise_v01_t1/rir.scp
     rir_apply_prob: 0.5
     rotate_every_steps: 18660
     rotate_seed: 1
@@ -119,4 +122,4 @@ keep_nbest_models: [2, 5]  # averages of the 2 and 5 best
 model_conf:
     look_aheads: [0, 124]
     # loss and accuracy per domain at each validation (local/v2/domain_dev_stats.py)
-    valid_category_file: dump_v2_2_clean3/raw/dev/utt2category
+    valid_category_file: dump_v2_2_clean4/raw/dev/utt2category
