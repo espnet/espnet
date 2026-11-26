@@ -47,6 +47,7 @@ from typing import List, Optional
 
 # stdlib-only at import time, so the constant costs nothing here
 from espnet2.bin.speechlm_inference import UNDERSTAND_PROMPT
+from espnet2.bin.vad_models import VAD_MODELS, VAD_RULES
 from espnet2.utils.pretrained import ModelTagError, build_pretrained
 
 # One flagship per task, so that `espnet transcribe x.wav` works with no
@@ -63,11 +64,10 @@ DEFAULT_MODELS = {
     "translate": "espnet/owsm_ctc_v4_1B",
     "synthesize": "espnet/kan-bayashi_ljspeech_vits",
     "enhance": "espnet/Wangyou_Zhang_universal_train_enh_uses_refch0_2mem_raw",
-    # the offline VAD model (v2.3 at look-ahead 124); --online, --stream and
-    # --live load the online one, --online-model. Both are
-    # espnet2.bin.diar_inference.VAD_MODELS, which test_cli.py holds this to;
-    # either takes a packed .zip from stage 8.
-    "detect": "espnet/frontia_vad_v2_3",
+    # the offline VAD model; --online, --stream and --live load the online
+    # one, --online-model. Both come from espnet2.bin.vad_models, and either
+    # takes a packed .zip from stage 8.
+    "detect": VAD_MODELS["offline"],
     # Bagpiper, which answers about audio and renders it. The general SFT
     # checkpoint does both directions; --model espnet/bagpiper-tts-sft is the
     # speech-focused one. Either is an 8B model: --server is the other way.
@@ -840,7 +840,7 @@ def build_parser() -> argparse.ArgumentParser:
         "--online-model",
         default=None,
         help="tag or packed .zip of the online model, for --online, --stream "
-        "and --live (default: espnet/frontia_vad_v2_3)",
+        f"and --live (default: {VAD_MODELS['online']})",
     )
     p.add_argument(
         "--threshold",
@@ -854,10 +854,11 @@ def build_parser() -> argparse.ArgumentParser:
         type=int,
         default=None,
         help="centred median filter over this many frames, odd; 1 for none "
-        "(default: 25 in both modes). A median of M frames delays every "
-        "decision by (M - 1) / 2 frames of 8 ms, 96 ms at 25, so the default "
-        "--online, --stream and --live detection is not strictly causal; "
-        "--median 1 makes it so",
+        f"(default: {VAD_RULES['offline'][1]} offline, "
+        f"{VAD_RULES['online'][1]} online). A median of M frames delays every "
+        "decision by (M - 1) / 2 frames of 8 ms, 96 ms at 25, so a default "
+        "above 1 makes --online, --stream and --live detection not strictly "
+        "causal; --median 1 makes it so",
     )
     p.add_argument(
         "--batch-size",
