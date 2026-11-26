@@ -118,6 +118,15 @@ def fetch(row, root: Path) -> str:
     return f"OK {dest}"
 
 
+def safe_fetch(row, root: Path) -> str:
+    """fetch(), with an error (e.g. a corpus directory owned by another user)
+    reported as BAD for that file instead of stopping every download."""
+    try:
+        return fetch(row, root)
+    except Exception as e:  # noqa: BLE001
+        return f"BAD {type(e).__name__}: {e} ({row[0]}/{row[1]})"
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     ap.add_argument("--root", required=True, type=Path, help="corpora root")
@@ -137,7 +146,7 @@ def main():
     log(f"{len(rows)} files, {sum(int(r[3] or 0) for r in rows) / 1e9:.1f} GB")
     bad = 0
     with ThreadPoolExecutor(a.jobs) as ex:
-        for res in ex.map(lambda r: fetch(r, a.root), rows):
+        for res in ex.map(lambda r: safe_fetch(r, a.root), rows):
             log(res)
             bad += res.startswith("BAD")
     log(f"done, {bad} BAD")
