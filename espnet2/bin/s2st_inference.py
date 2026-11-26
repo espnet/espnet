@@ -620,6 +620,7 @@ def inference(
     (output_dir / "att_ws").mkdir(parents=True, exist_ok=True)
     (output_dir / "probs").mkdir(parents=True, exist_ok=True)
     (output_dir / "focus_rates").mkdir(parents=True, exist_ok=True)
+    (output_dir / "st_subtask").mkdir(parents=True, exist_ok=True)
 
     # Lazy load to avoid the backend error
     import matplotlib
