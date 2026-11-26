@@ -15,43 +15,46 @@ class FrontiaVADModel(AbsVAD):
     (espnet2.bin.diar_inference_streaming), so forward() takes the audio
     chunk by chunk, as WebrtcVADModel does.
 
-    The decision is not strictly causal by default: the centred median filter
-    (median=25) waits 96 ms after each frame. A turn ends endpoint_delay_s
-    after its speech, the median's delay plus hangover_ms. Pass median=1 for a
-    decision that reads no future frame.
+    The model, threshold and median default to ESPnet's online VAD,
+    VAD_MODELS["online"] and VAD_RULES["online"] in espnet2.bin.diar_inference.
+    With a median above 1 the decision is not strictly causal: the centred
+    median filter waits median // 2 frames after each frame (96 ms for 25).
+    A turn ends endpoint_delay_s after its speech, the median's delay plus
+    hangover_ms. Pass median=1 for a decision that reads no future frame.
     """
 
     @typechecked
     def __init__(
         self,
-        tag: str = "espnet/frontia_vad_v2_3",
-        threshold: float = 0.6,
-        median: int = 25,
+        tag: Optional[str] = None,
+        threshold: Optional[float] = None,
+        median: Optional[int] = None,
         hangover_ms: float = 500.0,
         pad_start_ms: float = 300.0,
         pad_end_ms: float = 300.0,
         min_speech_ms: float = 200.0,
-        max_speech_ms: float = 30000.0,
+        max_turn_ms: float = 30000.0,
         target_sr: int = 16000,
-        device: str = "cpu",
+        device: str = "cuda",
     ):
         """Load the model and set the end-of-turn rule.
 
         Args:
             tag (str, optional):
                 The model tag on Hugging Face, or a local .zip.
-                Defaults to "espnet/frontia_vad_v2_3".
+                Defaults to VAD_MODELS["online"].
             threshold (float, optional):
                 A frame is speech when its probability exceeds this value.
-                Defaults to 0.6, the online rule on the model card.
+                Defaults to the threshold of VAD_RULES["online"].
             median (int, optional):
                 The length in frames of the centred median filter applied to
-                the 0/1 decisions. Defaults to 25, the online rule on the
-                model card. The filter reads (median - 1) / 2 frames after
-                each frame, so with the default every decision comes 96 ms
-                after the audio and the detection is not strictly causal,
-                although the model reads no future audio. 1 makes it strictly
-                causal. algorithmic_delay_s reports the delay.
+                the 0/1 decisions. Defaults to the median of
+                VAD_RULES["online"]. The filter reads (median - 1) / 2 frames
+                after each frame, so with a median above 1 every decision
+                comes that much after the audio and the detection is not
+                strictly causal, although the model reads no future audio.
+                1 makes it strictly causal. algorithmic_delay_s reports the
+                delay.
             hangover_ms (float, optional):
                 The silence after speech that ends the user's turn.
                 Defaults to 500 ms.
@@ -65,9 +68,11 @@ class FrontiaVADModel(AbsVAD):
             min_speech_ms (float, optional):
                 A turn with less speech than this is dropped.
                 Defaults to 200 ms.
-            max_speech_ms (float, optional):
-                A turn whose speech reaches this length ends there, whatever
-                follows. Without the cap, speech or noise that never pauses for
+            max_turn_ms (float, optional):
+                A turn whose speech reaches this length is split there: it is
+                returned, and the speech that goes on starts the next turn.
+                (WebrtcVADModel's max_speech_ms instead drops a longer
+                segment.) Without the cap, speech or noise that never pauses for
                 hangover_ms would keep one turn, and its audio, growing for as
                 long as the stream runs. Defaults to 30000 ms, the window OWSM
                 recognizes at once.
@@ -75,10 +80,19 @@ class FrontiaVADModel(AbsVAD):
                 The sampling rate of the float audio forward() returns.
                 Defaults to 16000 Hz.
             device (str, optional):
-                The device the model runs on. Defaults to "cpu".
+                The device the model runs on. Defaults to "cuda", as the
+                other SDS modules do.
         """
-        from espnet2.bin.diar_inference import VoiceActivityDetector
+        from espnet2.bin.diar_inference import (
+            VAD_MODELS,
+            VAD_RULES,
+            VoiceActivityDetector,
+        )
 
+        default_threshold, default_median = VAD_RULES["online"]
+        tag = VAD_MODELS["online"] if tag is None else tag
+        threshold = default_threshold if threshold is None else threshold
+        median = default_median if median is None else median
         detector = VoiceActivityDetector.load(
             tag, device=device, threshold=threshold, median=median
         )
@@ -88,7 +102,7 @@ class FrontiaVADModel(AbsVAD):
             pad_start_ms,
             pad_end_ms,
             min_speech_ms,
-            max_speech_ms,
+            max_turn_ms,
             target_sr,
         )
 
@@ -100,7 +114,7 @@ class FrontiaVADModel(AbsVAD):
         pad_start_ms: float = 300.0,
         pad_end_ms: float = 300.0,
         min_speech_ms: float = 200.0,
-        max_speech_ms: float = 30000.0,
+        max_turn_ms: float = 30000.0,
         target_sr: int = 16000,
     ) -> "FrontiaVADModel":
         """Wrap a loaded VoiceActivityDetector instead of loading a tag."""
@@ -111,7 +125,7 @@ class FrontiaVADModel(AbsVAD):
             pad_start_ms,
             pad_end_ms,
             min_speech_ms,
-            max_speech_ms,
+            max_turn_ms,
             target_sr,
         )
         return self
@@ -123,12 +137,12 @@ class FrontiaVADModel(AbsVAD):
         pad_start_ms,
         pad_end_ms,
         min_speech_ms,
-        max_speech_ms,
+        max_turn_ms,
         target_sr,
     ):
-        if max_speech_ms < min_speech_ms:
+        if max_turn_ms < min_speech_ms:
             raise ValueError(
-                f"max_speech_ms ({max_speech_ms}) is below min_speech_ms "
+                f"max_turn_ms ({max_turn_ms}) is below min_speech_ms "
                 f"({min_speech_ms})"
             )
         if pad_end_ms > hangover_ms:
@@ -144,14 +158,12 @@ class FrontiaVADModel(AbsVAD):
         self.pad_start_s = pad_start_ms / 1000
         self.pad_end_s = pad_end_ms / 1000
         # Both bounds in frames, rounded the same way, so that a forced turn of
-        # max_speech_frames always passes the minimum (max_speech_ms >=
+        # max_turn_frames always passes the minimum (max_turn_ms >=
         # min_speech_ms is checked above).
         self.min_speech_frames = max(
             1, round(min_speech_ms / 1000 / detector.frame_shift)
         )
-        self.max_speech_frames = max(
-            1, round(max_speech_ms / 1000 / detector.frame_shift)
-        )
+        self.max_turn_frames = max(1, round(max_turn_ms / 1000 / detector.frame_shift))
         self.target_sr = target_sr
         # Hold the last turn's frame scores, for a caller that plots them.
         self.last_turn: Optional[dict] = None
@@ -211,7 +223,7 @@ class FrontiaVADModel(AbsVAD):
             self.algorithmic_delay_s + self.hangover_frames * self.detector.frame_shift
         )
 
-    def decisions(self, probs: np.ndarray) -> np.ndarray:
+    def _decisions(self, probs: np.ndarray) -> np.ndarray:
         """Return the 0/1 decision of each frame whose median window is complete.
 
         The centred median filter of frame i reads frames up to
@@ -227,7 +239,7 @@ class FrontiaVADModel(AbsVAD):
         return active[: max(0, len(active) - d.median // 2)].astype(np.int64)
 
     @staticmethod
-    def find_endpoint(decisions: np.ndarray, hangover_frames: int) -> Optional[int]:
+    def _find_endpoint(decisions: np.ndarray, hangover_frames: int) -> Optional[int]:
         """Return the first silent frame after speech that starts a long silence.
 
         The silence must last hangover_frames frames. This rule decides from
@@ -310,20 +322,20 @@ class FrontiaVADModel(AbsVAD):
         shift = self.detector.frame_shift
         rate = self.sample_rate
         while True:
-            decisions = self.decisions(self.probs)
+            decisions = self._decisions(self.probs)
             first = self.consumed - self.probs_start
             d = decisions[first:]
             speech = np.flatnonzero(d)
             if len(speech) == 0:
                 return
             start = int(speech[0])
-            end = self.find_endpoint(d, self.hangover_frames)
-            # A turn that reaches max_speech_ms of speech ends there.
-            forced = (end is None or end - start > self.max_speech_frames) and (
-                len(d) - start >= self.max_speech_frames
+            end = self._find_endpoint(d, self.hangover_frames)
+            # A turn that reaches max_turn_ms of speech ends there.
+            forced = (end is None or end - start > self.max_turn_frames) and (
+                len(d) - start >= self.max_turn_frames
             )
             if forced:
-                end = start + self.max_speech_frames
+                end = start + self.max_turn_frames
             elif end is None:
                 return
             start += first
@@ -335,7 +347,7 @@ class FrontiaVADModel(AbsVAD):
                 # A silence ends a turn hangover_ms after the endpoint, so its
                 # end padding is already in; a forced turn ends while speech
                 # goes on. Wait for its padding: the endpoint stays at the
-                # first speech frame plus max_speech_frames.
+                # first speech frame plus max_turn_frames.
                 return
             self.consumed = end_f
             if end_f - start_f < self.min_speech_frames:
@@ -353,7 +365,7 @@ class FrontiaVADModel(AbsVAD):
                     frame_shift=shift,
                     speech_start_s=start_f * shift,
                     endpoint_s=end_f * shift,
-                    # True when max_speech_ms, not a silence, ended the turn
+                    # True when max_turn_ms, not a silence, ended the turn
                     forced=forced,
                     start_s=start_s,
                     end_s=end_s,
@@ -370,7 +382,7 @@ class FrontiaVADModel(AbsVAD):
         """
         shift = self.detector.frame_shift
         rate = self.sample_rate
-        d = self.decisions(self.probs)
+        d = self._decisions(self.probs)
         # Silence after the last turn cannot start one: move past it, up to the
         # first speech frame or the last decided frame.
         speech = np.flatnonzero(d[self.consumed - self.probs_start :])
