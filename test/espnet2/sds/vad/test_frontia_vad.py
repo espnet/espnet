@@ -372,3 +372,22 @@ def test_max_speech_below_min_speech_is_refused():
         FrontiaVADModel.from_detector(
             _detector(lambda i: 0.1), min_speech_ms=300, max_speech_ms=200
         )
+
+
+def test_equal_min_and_max_speech_still_return_turns():
+    """500 ms both ways rounds to the same 62 frames, so forced turns pass."""
+    vad = FrontiaVADModel.from_detector(
+        _detector(lambda i: 0.9), min_speech_ms=500, max_speech_ms=500
+    )
+    turn, _ = _feed(vad, 2.0, binary=True)
+    assert turn is not None and vad.last_turn["forced"]
+
+
+def test_forced_turn_waits_for_its_end_padding():
+    """20 ms chunks: the forced turn still carries all 300 ms of end padding."""
+    vad = FrontiaVADModel.from_detector(_detector(lambda i: 0.9), max_speech_ms=2000)
+    turn, _ = _feed(vad, 4.0, binary=True)
+    info = vad.last_turn
+    assert turn is not None and info["forced"]
+    assert info["end_s"] - info["endpoint_s"] == pytest.approx(0.3)
+    assert len(turn) == int(info["end_s"] * FS) - int(info["start_s"] * FS)

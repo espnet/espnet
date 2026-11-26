@@ -143,7 +143,12 @@ class FrontiaVADModel(AbsVAD):
         self.hangover_frames = max(1, round(hangover_ms / 1000 / detector.frame_shift))
         self.pad_start_s = pad_start_ms / 1000
         self.pad_end_s = pad_end_ms / 1000
-        self.min_speech_s = min_speech_ms / 1000
+        # Both bounds in frames, rounded the same way, so that a forced turn of
+        # max_speech_frames always passes the minimum (max_speech_ms >=
+        # min_speech_ms is checked above).
+        self.min_speech_frames = max(
+            1, round(min_speech_ms / 1000 / detector.frame_shift)
+        )
         self.max_speech_frames = max(
             1, round(max_speech_ms / 1000 / detector.frame_shift)
         )
@@ -325,10 +330,16 @@ class FrontiaVADModel(AbsVAD):
             end += first
             # stream frame indices of the first speech frame and the endpoint
             start_f, end_f = self.probs_start + start, self.probs_start + end
-            self.consumed = end_f
-            if (end_f - start_f) * shift < self.min_speech_s:
-                continue
             last_s = (self.audio_start + len(self.audio)) / rate
+            if forced and last_s < end_f * shift + self.pad_end_s:
+                # A silence ends a turn hangover_ms after the endpoint, so its
+                # end padding is already in; a forced turn ends while speech
+                # goes on. Wait for its padding: the endpoint stays at the
+                # first speech frame plus max_speech_frames.
+                return
+            self.consumed = end_f
+            if end_f - start_f < self.min_speech_frames:
+                continue
             start_s = max(self.audio_start / rate, start_f * shift - self.pad_start_s)
             end_s = min(last_s, end_f * shift + self.pad_end_s)
             a = int(round(start_s * rate)) - self.audio_start
