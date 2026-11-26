@@ -1,0 +1,7 @@
+# corpus_dir	relative_path	url	size_bytes	checksum	unpack
+# Zenodo record 14486235 (cc-by-4.0): https://zenodo.org/api/records/14486235
+bedavin	ARCHIVES/raw_file.zip	https://zenodo.org/api/records/14486235/files/raw_file.zip/content	310243864	md5:f15ddcf03181520a75161641b5f60ac6
+bedavin	ARCHIVES/raw_file.z01	https://zenodo.org/api/records/14486235/files/raw_file.z01/content	2147483648	md5:f54921b67b9e7d02b7e19af95b9ec073
+bedavin	ARCHIVES/metadata.csv	https://zenodo.org/api/records/14486235/files/metadata.csv/content	2288	md5:927716f735fd263880d24ebe4e35cbeb
+bedavin	ARCHIVES/raw_file.z03	https://zenodo.org/api/records/14486235/files/raw_file.z03/content	2147483648	md5:893e986e07502187d1e130c707c523e0
+bedavin	ARCHIVES/raw_file.z02	https://zenodo.org/api/records/14486235/files/raw_file.z02/content	2147483648	md5:6d39567824f1cce95c661048947d1a2f

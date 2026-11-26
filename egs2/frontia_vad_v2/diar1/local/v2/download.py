@@ -127,7 +127,8 @@ def main():
     only = set(filter(None, a.corpora.split(",")))
     rows = []
     for m in sorted(MANIFESTS.glob("*.tsv")):
-        if only and m.stem not in only:
+        # <corpus>.licences.tsv: per-file licences for the list-building gate, not downloads
+        if m.name.endswith(".licences.tsv") or (only and m.stem not in only):
             continue
         for line in m.read_text().splitlines():
             if line.strip() and not line.startswith("#"):
