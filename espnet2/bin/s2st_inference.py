@@ -620,6 +620,7 @@ def inference(
     (output_dir / "att_ws").mkdir(parents=True, exist_ok=True)
     (output_dir / "probs").mkdir(parents=True, exist_ok=True)
     (output_dir / "focus_rates").mkdir(parents=True, exist_ok=True)
+    (output_dir / "st_subtask").mkdir(parents=True, exist_ok=True)
 
     # Lazy load to avoid the backend error
     import matplotlib
@@ -747,7 +748,7 @@ def inference(
                 st_subtask_wrtier["token"][key] = " ".join(
                     output_dict["st_subtask_token"]
                 )
-                st_subtask_wrtier["token_int"][key] == " ".join(
+                st_subtask_wrtier["token_int"][key] = " ".join(
                     map(str, output_dict["st_subtask_token_int"])
                 )
                 if output_dict.get("st_subtask_text") is not None:
@@ -766,8 +767,8 @@ def inference(
         shutil.rmtree(output_dir / "probs")
     if output_dict.get("wav") is None:
         shutil.rmtree(output_dir / "wav")
-    if output_dict.get("st_subtask_token") is not None:
-        shutil.rmtree(output_dict / "st_subtask")
+    if output_dict.get("st_subtask_token") is None:
+        shutil.rmtree(output_dir / "st_subtask")
 
 
 def get_parser():
