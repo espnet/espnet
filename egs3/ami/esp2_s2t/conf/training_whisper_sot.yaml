@@ -1,0 +1,24 @@
+##########################################################
+#                   TRAINING SETTING                     #
+##########################################################
+# Settings for packing the released checkpoint
+# espnet/multi-talker-whisper-small-ami with ESPnet3. That checkpoint was
+# trained before this recipe existed. This file is conf/training.yaml with its
+# own exp_tag, so the released files go into exp/whisper_small_sot/ and
+# pack_model includes them in the package.
+#
+# Download the released files first:
+#   hf download espnet/multi-talker-whisper-small-ami config.yaml model.pth \
+#       --local-dir exp/whisper_small_sot
+#
+# Then decode, score and pack the checkpoint:
+#   python run.py --stages infer measure pack_model \
+#       --training_config conf/training_whisper_sot.yaml \
+#       --inference_config conf/inference_whisper_sot.yaml \
+#       --metrics_config conf/metrics.yaml \
+#       --publication_config conf/publication_whisper_sot.yaml
+defaults:
+  - training
+  - _self_
+
+exp_tag: whisper_small_sot

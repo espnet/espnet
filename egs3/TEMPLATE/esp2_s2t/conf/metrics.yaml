@@ -1,0 +1,65 @@
+##########################################################
+#                 METRIC SCORING SETTING                 #
+##########################################################
+# Quick usage:
+#   python run.py --stages measure \
+#       --training_config conf/training.yaml \
+#       --inference_config conf/inference.yaml \
+#       --metrics_config conf/metrics.yaml
+#
+# Run `infer` first, so that `<test_name>/hyp.scp` exists. Pass all three
+# configs, because exp_tag below is empty. run.py copies exp_tag and
+# inference_dir from the other configs, and without them `measure` cannot find
+# the decoding output. When `dataset.test` is omitted, the test sets are found
+# from `${inference_dir}`.
+
+##########################################################
+#                    PATHS AND INPUTS                    #
+##########################################################
+recipe_dir: .
+# Leave this empty in a recipe and also pass `--inference_config`, so that
+# `measure` reads the directory that `infer` wrote.
+exp_tag:
+exp_dir: ${recipe_dir}/exp/${exp_tag}
+
+##########################################################
+#                    METRIC DEFINITION                   #
+##########################################################
+# The metrics of this system. Each of them scores one utterance group at a
+# time, so the results cannot be compared with session-level cpWER or DER. A
+# group is a short window, and each group gets its own speaker mapping.
+#
+# Each metric needs the separator symbol that the checkpoint was trained with,
+# and none of them has a default. With the wrong symbol, the scores are only
+# bad, and nothing reports a configuration error. The symbol is left out here,
+# so a recipe that does not set it fails when the metric is created. A recipe
+# replaces this whole list and sets `speaker_change_symbol` for each metric.
+metrics:
+  - metric:
+      _target_: espnet3.systems.esp2_s2t.metrics.cpwer.UtteranceGroupCpWER
+      clean_types:        # optional TextCleaner pipeline, e.g. [whisper_en]
+    inputs:
+      ref: dataset:text   # the test set's SOT reference
+      hyp: hyp            # <test_name>/hyp.scp, timestamps removed
+
+  - metric:
+      _target_: espnet3.systems.esp2_s2t.metrics.der.UtteranceGroupDER
+      collar: 0.25        # collar in seconds
+      clean_types:
+    inputs:
+      ref: dataset:text   # DER uses the timestamps in both texts
+      hyp: hyp
+
+  - metric:
+      _target_: espnet3.systems.esp2_s2t.metrics.speaker_count.UtteranceGroupSpeakerCountAccuracy
+      clean_types:
+    inputs:
+      ref: dataset:text   # blocks are counted after cleaning
+      hyp: hyp
+
+  - metric:
+      _target_: espnet3.systems.esp2_s2t.metrics.wer.UtteranceGroupWER
+      clean_types:
+    inputs:
+      ref: dataset:text   # blocks sorted by their first timestamp
+      hyp: hyp            # blocks kept in the order of the model output

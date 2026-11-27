@@ -1,0 +1,35 @@
+##########################################################
+#                   INFERENCE SETTING                    #
+##########################################################
+# Decodes the checkpoint that the train stage wrote, so the test needs no other
+# model. exp_tag is left empty, and run.py copies it from the training config.
+recipe_dir: .
+exp_tag:
+
+dataset:
+  test:
+    - name: test
+      data_src_args:
+        split: test
+
+##########################################################
+#                    MODEL AND OUTPUT                    #
+##########################################################
+# speaker_change_symbol and adaptive_timestamp turn on the SOT timestamp rules
+# in espnet3/systems/esp2_s2t/src/sot/whisper_timestamp_scorer.py, which this
+# test must run.
+model:
+  s2t_train_config: ${exp_dir}/config.yaml
+  s2t_model_file: ${exp_dir}/epoch0_step1_valid.loss.ckpt
+  beam_size: 1
+  ctc_weight: 0.0
+  maxlenratio: -20
+  minlenratio: 0.0
+  lang_sym: "<|en|>"
+  task_sym: "<|transcribe|>"
+  predict_time: true
+  speaker_change_symbol: ${oc.env:MINI_AN4_SOT_SPEAKER_CHANGE_SYMBOL,????}
+  adaptive_timestamp: true
+
+# input_key, batch_size, the contract and the runner come from
+# egs3/TEMPLATE/esp2_s2t/conf/inference.yaml.

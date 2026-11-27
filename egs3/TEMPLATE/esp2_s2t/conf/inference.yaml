@@ -1,0 +1,82 @@
+##########################################################
+#                   INFERENCE SETTING                    #
+##########################################################
+# Quick usage:
+#   python run.py --stages infer --inference_config conf/inference.yaml
+#
+# Writes one `${inference_dir}/<test_name>/<field>.scp` file for each inference
+# field, with one `utt_id value` pair per line.
+#
+# Default settings for the inference config of every esp2_s2t recipe. It only
+# sets generic paths and runner settings.
+
+##########################################################
+#                    PATHS AND INPUTS                    #
+##########################################################
+recipe_dir: .
+# Leave `exp_tag` empty in a recipe and also pass `--training_config`. `run.py`
+# then copies `exp_tag` and `exp_dir` from the training config, so the decoding
+# output goes to the experiment directory of that training run.
+exp_tag:
+exp_dir: ${recipe_dir}/exp/${exp_tag}
+data_dir: ${recipe_dir}/data
+inference_dir: ${exp_dir}/${self_name:}
+
+##########################################################
+#                    DATASET DEFINITION                  #
+##########################################################
+# `dataset.test` is required. The `name` of each entry is the output
+# subdirectory under `${inference_dir}`. An entry without `data_src` loads
+# `${recipe_dir}/dataset/__init__.py`.
+dataset:
+  _target_: espnet3.components.data.data_organizer.DataOrganizer
+  _recursive_: false
+  recipe_dir: ${recipe_dir}
+  test:
+  preprocessor:
+
+##########################################################
+#                  PARALLELIZATION SETTING               #
+##########################################################
+parallel:
+  env: local
+  n_workers: 1
+  # Replace a stale shard lock left by an interrupted run. Do not enable while
+  # another run may still be writing to the same output directory.
+  allow_overwrite_lock: false
+
+##########################################################
+#                    MODEL AND OUTPUT                    #
+##########################################################
+# A recipe sets the checkpoint and its decoding options under `model`.
+model:
+  _target_: espnet3.systems.esp2_s2t.src.sot.s2t_inference.Speech2Text
+
+# Sample field passed to the model.
+input_key: speech
+
+# The model decodes one utterance group per call, because the timestamp rules
+# use one prompt length for the whole beam. The runner rejects batched input.
+batch_size: null
+
+# The runner writes the best hypothesis to `hyp` with its timestamps and
+# speaker-change symbols, and the contract checks the output.
+contract:
+  inputs:
+    speech:
+      kind: audio
+      label: Input Audio
+      sample_rate: 16000
+      channels: 1
+  outputs:
+    hyp:
+      kind: text
+      label: Serialized Transcription
+
+##########################################################
+#               PROVIDER AND RUNNER SETTING              #
+##########################################################
+provider:
+  _target_: espnet3.systems.base.inference_provider.InferenceProvider
+runner:
+  _target_: espnet3.systems.esp2_s2t.src.inference_runner.ESP2S2TInferenceRunner

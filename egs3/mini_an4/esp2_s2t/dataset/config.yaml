@@ -1,0 +1,75 @@
+# Builder and dataset settings, loaded at import time by dataset/__init__.py.
+builder:
+  # Root of the archive, the split directories and the token list. The default
+  # is the recipe directory, where the integration test runs. Another directory
+  # must contain a copy of downloads.tar.gz.
+  data_root: ${oc.env:MINI_AN4_SOT_DATA_ROOT,.}
+
+  split_dirs:
+    train: data/train
+    valid: data/dev
+    test: data/test
+
+  # The AN4 archive and the directory it is extracted to, both relative to
+  # data_root.
+  archive_path: ./downloads.tar.gz
+  downloads_dir: downloads
+
+  # One token per line, written by the builder and read by conf/training.yaml.
+  token_list: data/tokens.txt
+
+  # A split directory that has these files counts as built. See is_built in
+  # dataset/builder.py.
+  required_files:
+    - cuts.jsonl.gz
+
+  # Whisper BPE already has "????" as one token (id 25629), so the token list
+  # does not need an extra row for it. See
+  # espnet3/systems/esp2_s2t/src/sot/whisper_export_vocabulary.py. Training,
+  # inference and the metrics read the same variable.
+  separator: ${oc.env:MINI_AN4_SOT_SPEAKER_CHANGE_SYMBOL,????}
+
+  # Added to the start of every line. The S2T data format is
+  # <language><task><starttime> utt<endtime>... The preprocessor adds <sos> and
+  # <eos>.
+  prompt: "<|en|><|transcribe|>"
+
+  # Every sample uses this symbol as text_prev and text_ctc, and the model
+  # looks it up as sym_na. A Whisper vocabulary has no "<na>", so this must be
+  # a real Whisper token.
+  na_symbol: "<|nospeech|>"
+
+  # Number of AN4 utterances in one group, and the length of the silence
+  # between them.
+  utterances_per_group: 2
+  gap: 0.2
+
+  # Serialization options for each split. See
+  # espnet3/systems/esp2_s2t/src/sot/sot_text.py for what each option does.
+  # text_norm is "none" here because the CHiME-8 normalizer is an optional
+  # dependency, and this CI recipe must run without it.
+  sot:
+    train:
+      source: an4_clstk
+      transcript: an4_train.transcription
+      groups: 2
+      ordering: start_time
+      lowercase: true
+      max_timestamp_pause: 2.0
+      text_norm: none
+    valid:
+      source: an4_clstk
+      transcript: an4_train.transcription
+      groups: 1
+      ordering: start_time
+      lowercase: true
+      max_timestamp_pause: 2.0
+      text_norm: none
+    test:
+      source: an4test_clstk
+      transcript: an4_test.transcription
+      groups: 1
+      ordering: start_time
+      lowercase: true
+      max_timestamp_pause: 2.0
+      text_norm: none

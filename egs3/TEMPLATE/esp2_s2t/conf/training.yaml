@@ -1,0 +1,171 @@
+##########################################################
+#                    TRAINING SETTING                    #
+##########################################################
+# Quick usage:
+#   python run.py --stages create_dataset --training_config conf/training.yaml
+#   python run.py --stages train          --training_config conf/training.yaml
+#
+# This file has the default settings for the training config of every esp2_s2t
+# recipe. `load_and_merge_config` in `run.py` merges the recipe config on top
+# of it. It only sets generic paths and system settings, because one recipe
+# directory can have several model configs that do not fit together.
+#
+# There is no tokenizer block and no `train_tokenizer` stage, because an S2T
+# model uses the vocabulary of its pretrained checkpoint.
+
+##########################################################
+#                  SYSTEM AND PATH SETTING               #
+##########################################################
+num_device: 1
+num_nodes: 1
+
+# ESPnet task class used by `get_espnet_model(...)`. Every recipe of this
+# template trains an ESPnetS2TModel, so the task is set here and not in each
+# recipe.
+task: espnet3.systems.esp2_s2t.task.S2TTask
+
+# Path scaffold relative to the recipe root.
+recipe_dir: .
+data_dir: ${recipe_dir}/data
+exp_tag: ${self_name:}
+exp_dir: ${recipe_dir}/exp/${exp_tag}
+stats_dir: ${recipe_dir}/exp/stats
+
+# Directory of the prepared data of a recipe. A recipe with its corpus in
+# another directory overrides this.
+dataset_dir: ${recipe_dir}/data
+
+##########################################################
+#                 DATASET CREATION SETTING               #
+##########################################################
+# Keep this an empty mapping. The `create_dataset` stage uses the
+# `DatasetBuilder` that a recipe exports from `dataset/__init__.py`, and passes
+# this block to it as keyword arguments. A recipe without a builder sets its
+# own function here. `espnet3/systems/base/system.py` reads this key with
+# `dict(getattr(config, "create_dataset", OmegaConf.create({})))`. The default
+# is used only when the key is missing, so a null value is passed to `dict`,
+# which raises an error before the builder runs.
+create_dataset: {}
+
+##########################################################
+#                    DATASET DEFINITION                  #
+##########################################################
+# The data organizer used by collect_stats, train, infer and measure. A recipe
+# sets `train`, `valid` and optionally `test` to its dataset entries, and
+# `preprocessor` to the preprocessor that its model needs. An entry without
+# `data_src` loads `${recipe_dir}/dataset/__init__.py`.
+dataset:
+  _target_: espnet3.components.data.data_organizer.DataOrganizer
+  _recursive_: false
+  recipe_dir: ${recipe_dir}
+  train:
+  valid:
+  test:
+  preprocessor:
+
+##########################################################
+#                      MODEL SETTING                     #
+##########################################################
+# Passed to `get_espnet_model(task, model_conf)`, so the model part of an
+# ESPnet2 S2T config can be used here without changes.
+model:
+
+##########################################################
+#            OPTIMIZER & SCHEDULER SETTING               #
+##########################################################
+optimizer:
+scheduler:
+scheduler_interval: step   # `step` or `epoch`
+scheduler_monitor:         # e.g. `valid/loss` for monitored epoch schedulers
+
+##########################################################
+#                OTHER TRAINING SETTING                  #
+##########################################################
+best_model_criterion:
+  - - valid/loss
+    - 3
+    - min
+
+# Optional random seed used by collect_stats/train.
+seed:
+
+# Extra model initialization mode forwarded to ESPnet's initializer. A recipe
+# that fine-tunes a pretrained checkpoint leaves this unset.
+init:
+
+##########################################################
+#                   PARALLELIZATION SETTING              #
+##########################################################
+parallel:
+  env: local
+  n_workers: 1
+  # Replace a stale shard lock left by an interrupted run. Do not enable while
+  # another run may still be writing to the same output directory.
+  allow_overwrite_lock: false
+
+##########################################################
+#                   DATALOADER SETTING                   #
+##########################################################
+# A recipe normally overrides only the batch settings under `batches`.
+dataloader:
+  collate_fn:
+    _target_: espnet2.train.collate_fn.CommonCollateFn
+    int_pad_value: -1
+  train:
+    # `total_shards` is the total number of dataset shards.
+    # `dist_world_size` is the distributed world size used to rotate shards.
+    # Keep `dist_world_size` equal to the runtime world size.
+    total_shards: 1
+    dist_world_size: 1
+    iter_factory:
+      _target_: espnet2.iterators.sequence_iter_factory.SequenceIterFactory
+      shuffle: true
+      collate_fn: ${dataloader.collate_fn}
+      batches:
+        type: unsorted
+        shape_files:
+          - ${stats_dir}/train/feats_shape
+        batch_size: 4
+        batch_bins: 4000000
+
+  valid:
+    # Use the same sharding settings as `train`.
+    total_shards: 1
+    dist_world_size: 1
+    iter_factory:
+      _target_: espnet2.iterators.sequence_iter_factory.SequenceIterFactory
+      shuffle: false
+      collate_fn: ${dataloader.collate_fn}
+      batches:
+        type: ${dataloader.train.iter_factory.batches.type}
+        shape_files:
+          - ${stats_dir}/valid/feats_shape
+        batch_size: ${dataloader.train.iter_factory.batches.batch_size}
+        batch_bins: ${dataloader.train.iter_factory.batches.batch_bins}
+
+##########################################################
+#                     TRAINER SETTING                    #
+##########################################################
+# Maps to `lightning.Trainer(...)`.
+trainer:
+  accelerator: auto
+  devices: ${num_device}
+  num_nodes: ${num_nodes}
+  accumulate_grad_batches: 1
+  check_val_every_n_epoch: 1
+  gradient_clip_val: 1.0
+  log_every_n_steps: 100
+  max_epochs: 100
+
+  logger:
+    - _target_: lightning.pytorch.loggers.TensorBoardLogger
+      save_dir: ${exp_dir}/tensorboard
+      name: tb_logger
+
+  strategy: auto
+
+##########################################################
+#                      FIT SETTING                       #
+##########################################################
+# Optional keyword arguments passed directly to `trainer.fit(**fit)`.
+fit: {}

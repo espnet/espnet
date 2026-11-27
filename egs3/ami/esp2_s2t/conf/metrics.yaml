@@ -1,0 +1,59 @@
+##########################################################
+#                    Metrics SETTING                     #
+##########################################################
+# Use this file together with conf/inference.yaml. See the usage example at
+# the top of that file. exp_tag is empty here and comes from the inference
+# config.
+recipe_dir: .
+exp_tag:
+
+# Every metric reads the same two texts, the SOT reference of the test set and
+# the decoded hyp. Both keep their timestamps and speaker-change symbols.
+# cpWER, speaker counting and WER remove the timestamps before they compare
+# words. WER first uses them to sort the reference speakers by start time.
+# DER uses the timestamps to find when each speaker talks.
+#
+# Every metric scores each utterance group separately, so the numbers cannot
+# be compared with session-level results.
+#
+# speaker_change_symbol reads the same variable as conf/inference.yaml, so the
+# model and the metrics always use the same symbol.
+metrics:
+  - metric:
+      _target_: espnet3.systems.esp2_s2t.metrics.cpwer.UtteranceGroupCpWER
+      # TextCleaner pipeline. The class uses no cleaner by default, like the
+      # ASR metrics, so the recipe sets the cleaner that matches its
+      # references.
+      clean_types: [whisper_en]
+      speaker_change_symbol: ${oc.env:AMI_SOT_SPEAKER_CHANGE_SYMBOL,????}
+    inputs:
+      ref: dataset:text
+      hyp: hyp
+  - metric:
+      _target_: espnet3.systems.esp2_s2t.metrics.der.UtteranceGroupDER
+      # Seconds removed on each side of a reference boundary, as in md-eval.
+      # This is also the class default. The collar argument of pyannote is the
+      # total width, so the class doubles this value.
+      collar: 0.25
+      # Used only to count the reference speakers for the results by speaker
+      # count. It must be the same as for cpWER, so that both metrics count the
+      # same groups.
+      clean_types: [whisper_en]
+      speaker_change_symbol: ${oc.env:AMI_SOT_SPEAKER_CHANGE_SYMBOL,????}
+    inputs:
+      ref: dataset:text
+      hyp: hyp
+  - metric:
+      _target_: espnet3.systems.esp2_s2t.metrics.speaker_count.UtteranceGroupSpeakerCountAccuracy
+      clean_types: [whisper_en]
+      speaker_change_symbol: ${oc.env:AMI_SOT_SPEAKER_CHANGE_SYMBOL,????}
+    inputs:
+      ref: dataset:text
+      hyp: hyp
+  - metric:
+      _target_: espnet3.systems.esp2_s2t.metrics.wer.UtteranceGroupWER
+      clean_types: [whisper_en]
+      speaker_change_symbol: ${oc.env:AMI_SOT_SPEAKER_CHANGE_SYMBOL,????}
+    inputs:
+      ref: dataset:text
+      hyp: hyp

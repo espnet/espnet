@@ -1,0 +1,39 @@
+##########################################################
+#                    METRICS SETTING                     #
+##########################################################
+# Used together with conf/inference.yaml. exp_tag is left empty and comes from
+# the inference config.
+recipe_dir: .
+exp_tag:
+
+# Every metric reads the SOT reference of the test set and the decoded hyp.
+# cpWER, speaker counting and WER remove the timestamps before they compare
+# words. DER uses the timestamps to find when each speaker talks.
+#
+# All metrics score each utterance group separately, so the numbers cannot be
+# compared with session-level results.
+metrics:
+  - metric:
+      _target_: espnet3.systems.esp2_s2t.metrics.cpwer.UtteranceGroupCpWER
+      speaker_change_symbol: ${oc.env:MINI_AN4_SOT_SPEAKER_CHANGE_SYMBOL,????}
+    inputs:
+      ref: dataset:text
+      hyp: hyp
+  - metric:
+      _target_: espnet3.systems.esp2_s2t.metrics.der.UtteranceGroupDER
+      speaker_change_symbol: ${oc.env:MINI_AN4_SOT_SPEAKER_CHANGE_SYMBOL,????}
+    inputs:
+      ref: dataset:text
+      hyp: hyp
+  - metric:
+      _target_: espnet3.systems.esp2_s2t.metrics.speaker_count.UtteranceGroupSpeakerCountAccuracy
+      speaker_change_symbol: ${oc.env:MINI_AN4_SOT_SPEAKER_CHANGE_SYMBOL,????}
+    inputs:
+      ref: dataset:text
+      hyp: hyp
+  - metric:
+      _target_: espnet3.systems.esp2_s2t.metrics.wer.UtteranceGroupWER
+      speaker_change_symbol: ${oc.env:MINI_AN4_SOT_SPEAKER_CHANGE_SYMBOL,????}
+    inputs:
+      ref: dataset:text
+      hyp: hyp

@@ -1,0 +1,93 @@
+# Builder and dataset settings, loaded at import time by dataset/__init__.py.
+builder:
+  # Root of the split directories. The default is the recipe directory, so a
+  # default run writes data/{train,dev,test} next to run.py. Set
+  # AMI_SOT_DATA_ROOT to build the corpus in another directory without editing
+  # this file. Downloaded files go under downloads/, as set by cutset_dir and
+  # ami_audio_root below.
+  data_root: ${oc.env:AMI_SOT_DATA_ROOT,.}
+
+  split_dirs:
+    train: data/train
+    valid: data/dev
+    test: data/test
+
+  # The builder writes this file, and conf/training.yaml reads it. It has one
+  # token per line, and S2TTask sets the output size of the model from its
+  # length. It is under data/, so the egs*/*/*/data* rule in .gitignore covers
+  # it when data_root is the recipe directory.
+  token_list: data/tokens.txt
+
+  required_files:
+    - cuts.jsonl.gz
+
+  # Lhotse CutSet manifests with the speaker-attributed supervisions, from
+  # which the SOT text is built. They are downloaded from cutset_repo when
+  # needed.
+  cutset_repo: espnet/multi-talker-whisper-small-ami
+  cutset_dir: ${oc.env:AMI_SOT_CUTSET_DIR,downloads/cutsets}
+
+  # AMI SDM audio, in the <root>/wav_db/<meeting>/audio/<file>.wav layout that
+  # lhotse.recipes.ami.download_audio creates. The manifests store absolute
+  # paths from the machine that built them, so the builder points every
+  # recording to the file with the same name under this root.
+  ami_audio_root: ${oc.env:AMI_AUDIO_ROOT,downloads/ami}
+
+  # Utterance groups of this length or longer are dropped. Their audio was cut
+  # at the 30 s window of Whisper, so it does not contain all the speech in the
+  # transcript.
+  max_cut_duration: 30.0
+
+  # Speaker-change symbol, written between speaker blocks. It must be a single
+  # token under Whisper tokenization. A symbol that is not in the vocabulary is
+  # added to the end of tokens.txt, which then has one more row than the
+  # Whisper vocabulary. conf/training.yaml sets
+  # decoder_conf.load_origin_token_embedding to true for this case. Training,
+  # inference and the metrics read the same variable, so the corpus, the token
+  # list and the decoder use the same symbol.
+  separator: ${oc.env:AMI_SOT_SPEAKER_CHANGE_SYMBOL,????}
+
+  # Added to the start of every line. The S2T data format is
+  # <language><task><starttime> utt<endtime>... The preprocessor adds <sos> and
+  # <eos>.
+  prompt: "<|en|><|transcribe|>"
+
+  # Every sample uses this symbol as text_prev and text_ctc, and the model
+  # looks it up as sym_na.
+  # A Whisper vocabulary has no "<na>", so this must be a real Whisper token.
+  na_symbol: "<|nospeech|>"
+
+  # Serialization options for each split. See
+  # espnet3/systems/esp2_s2t/src/sot/sot_text.py for what each option does.
+  #
+  # text_norm selects a normalizer from
+  # espnet3/systems/esp2_s2t/src/sot/text_norm.py. It is applied to the text of
+  # each segment before the timestamps are added. "chime8_keep_fillers" needs
+  # chime-utils, and "none" builds the corpus without it.
+  sot:
+    train:
+      cutset: ami-sdm_cutset_train_utt_group_max_30s.jsonl.gz
+      ordering: start_time
+      lowercase: true
+      text_norm: chime8_keep_fillers
+      max_timestamp_pause: 2.0
+    valid:
+      cutset: ami-sdm_cutset_dev_utt_group_max_30s.jsonl.gz
+      ordering: start_time
+      lowercase: true
+      text_norm: chime8_keep_fillers
+      max_timestamp_pause: 2.0
+    test:
+      cutset: ami-sdm_cutset_test_utt_group_max_30s.jsonl.gz
+      ordering: longest_first
+      lowercase: true
+      text_norm: chime8_keep_fillers
+      max_timestamp_pause: 2.0
+
+dataset:
+  train:
+    split: train
+  valid:
+    split: valid
+  test:
+    split: test

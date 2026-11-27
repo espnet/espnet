@@ -1,0 +1,57 @@
+##########################################################
+#                   Inference SETTING                    #
+##########################################################
+# Quick usage:
+#   python run.py --stages infer measure \
+#       --training_config conf/training.yaml \
+#       --inference_config conf/inference.yaml \
+#       --metrics_config conf/metrics.yaml
+#
+# exp_tag is left empty. run.py copies it from the training config, so the
+# decoding output goes to the experiment directory of that training run.
+# Without --training_config, exp_tag stays empty and the output path has no
+# experiment tag.
+recipe_dir: .
+exp_tag:
+
+##########################################################
+#                    DATASET DEFINITION                  #
+##########################################################
+# data_src is omitted, so ESPnet3 loads ${recipe_dir}/dataset/__init__.py and
+# instantiates the exported Dataset class with data_src_args.
+dataset:
+  test:
+    - name: test
+      data_src_args:
+        split: test
+
+##########################################################
+#                    MODEL AND OUTPUT                    #
+##########################################################
+# speaker_change_symbol and adaptive_timestamp select the SOT timestamp
+# constraints in espnet3/systems/esp2_s2t/src/sot/whisper_timestamp_scorer.py.
+model:
+  # By default, inference uses the checkpoint written by the train stage,
+  # which pack_model also includes in the bundle. To decode another
+  # checkpoint, such as the released one, set AMI_SOT_TRAIN_CONFIG and
+  # AMI_SOT_MODEL_FILE to its config.yaml and model.pth.
+  s2t_train_config: ${oc.env:AMI_SOT_TRAIN_CONFIG,${exp_dir}/config.yaml}
+  s2t_model_file: ${oc.env:AMI_SOT_MODEL_FILE,${exp_dir}/valid.loss.ave_1best.pth}
+  beam_size: 5
+  ctc_weight: 0.0
+  # A negative maxlenratio sets a fixed limit of 250 output tokens. Every
+  # utterance group is padded to 30 s, so a limit relative to the input length
+  # would be the same for every group anyway.
+  maxlenratio: -250
+  minlenratio: 0.0
+  lang_sym: "<|en|>"
+  task_sym: "<|transcribe|>"
+  predict_time: true
+  # This must be the separator that the checkpoint was trained with, and it
+  # must be in the token list of that checkpoint, because Speech2Text looks up
+  # its id with token_list.index. conf/metrics.yaml reads the same variable.
+  speaker_change_symbol: ${oc.env:AMI_SOT_SPEAKER_CHANGE_SYMBOL,????}
+  adaptive_timestamp: true
+
+# input_key, batch_size, the contract and the runner come from
+# egs3/TEMPLATE/esp2_s2t/conf/inference.yaml.
