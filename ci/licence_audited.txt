@@ -10,7 +10,7 @@
 #
 # Checked 2026-08-30, against the upstream repository for each.
 
-ctc_segmentation  Apache-2.0  github.com/espnet/ctc-segmentation
+ctc_segmentation  Apache-2.0  github.com/lumaku/ctc-segmentation
 sentencepiece     Apache-2.0  github.com/google/sentencepiece
 # The fork tools/installers/install_warp-transducer.sh builds, of
 # HawkAaron/warp-transducer. Both carry Apache-2.0.

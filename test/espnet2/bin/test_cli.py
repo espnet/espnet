@@ -17,6 +17,7 @@ import pytest
 import soundfile
 
 from espnet2.bin import cli
+from espnet2.bin.diar_inference import VAD_MODELS, VAD_RULES
 
 
 def _fake_module(monkeypatch, name, attr, obj):
@@ -27,30 +28,41 @@ def _fake_module(monkeypatch, name, attr, obj):
 
 
 class _FakeModel:
-    """Stands in for an esp2_s2t Inference: records what it was asked."""
+    """Stand in for a native speech-to-text backend and record its calls."""
 
     def __init__(self, result, error=None):
         self.result = result
-        self.error = error  # what the Inference raises before decoding, if anything
+        self.error = error  # what the backend raises before decoding, if anything
         self.tag = self.system = self.device = None
+        self.s2t_model = types.SimpleNamespace(token_list=None)
         self.calls = []
 
-    def __call__(self, audio, **prompt):
+    def decode_long(self, audio, *, lang_sym, task_sym):
+        prompt = {"task": task_sym[1:-1]}
+        if lang_sym != "<nolang>":
+            prompt["language"] = lang_sym[1:-1]
         if self.error is not None:
             raise self.error
         self.calls.append((audio, prompt))
-        return {"text": self.result, "segments": []}
+        return [(0.0, 1.0, self.result)]
+
+    def no_language(self):
+        return "<nolang>"
 
 
 def _fake_load(monkeypatch, model):
-    """Make espnet3.api.inference.load hand out `model`, recording the call."""
-    import espnet3.api.inference as api
+    """Replace the native backend constructor, recording its tag and device."""
 
-    def load(tag, *, system=None, device="auto", **kwargs):
-        model.tag, model.system, model.device = tag, system, device
+    def from_pretrained(model_tag=None, device="auto", **kwargs):
+        model.tag, model.system, model.device = model_tag, "s2t", device
         return model
 
-    monkeypatch.setattr(api, "load", load)
+    _fake_module(
+        monkeypatch,
+        "espnet2.bin.s2t_inference",
+        "Speech2Text",
+        types.SimpleNamespace(from_pretrained=from_pretrained),
+    )
     return model
 
 
@@ -583,7 +595,6 @@ def test_the_help_lists_every_command(capsys):
         "translate",
         "synthesize",
         "enhance",
-        "run",
         "describe",
         "render",
         "demo",
@@ -629,19 +640,17 @@ def test_a_tag_for_another_task_is_explained(monkeypatch, tmp_path, capsys):
     audio = tmp_path / "a.wav"
     audio.write_bytes(b"")
 
-    import espnet3.api.inference as api
     from espnet2.utils.pretrained import ModelTagError
 
     def load(tag, **kwargs):
         raise ModelTagError(f"{tag} was published with tts_train_config")
 
-    monkeypatch.setattr(api, "load", load)
+    monkeypatch.setattr(cli, "_build", lambda loader, args, task: load(args.model))
 
     assert cli.main(["transcribe", str(audio), "--model", "espnet/a-tts-model"]) == 1
 
     err = capsys.readouterr().err
-    assert "does not look like a model for `espnet transcribe`" in err
-    assert "espnet models" in err and "tts_train_config" in err
+    assert "was published with tts_train_config" in err and "tts_train_config" in err
 
 
 def test_the_name_a_release_had_still_works(monkeypatch, tmp_path, capsys):
@@ -775,7 +784,9 @@ def test_an_unknown_device_is_refused_by_the_parser():
     assert "unknown device" in r.stderr
 
 
-@pytest.mark.parametrize("device", ["auto", "cpu", "mps", "cuda", "cuda:1"])
+@pytest.mark.parametrize(
+    "device", ["auto", "cpu", "mps", "cuda", "cuda:1", "npu", "npu:3", "xpu:0"]
+)
 def test_the_devices_torch_understands_are_accepted(device):
     assert cli._device(device) == device
 
@@ -886,6 +897,13 @@ def _fake_demo(monkeypatch, s2t=None, device="cpu", task="s2t"):
 
     monkeypatch.setattr(torch.cuda, "is_available", lambda: device == "cuda")
     monkeypatch.setattr(torch.cuda, "device_count", lambda: 1)
+    # ``auto`` is answered by torch.accelerator, so the machine's accelerator is
+    # what it reports rather than what torch.cuda says.
+    accelerator = types.SimpleNamespace(
+        is_available=lambda: device != "cpu",
+        current_accelerator=lambda: types.SimpleNamespace(type=device),
+    )
+    monkeypatch.setattr(torch, "accelerator", accelerator, raising=False)
     # the task check is one Hub request; the tests answer it themselves
     monkeypatch.setattr(espnet, "_infer_task", lambda tag: task)
     s2t = s2t or _FakeOWSM()
@@ -1035,144 +1053,220 @@ def test_demo_runs_when_the_metadata_says_nothing_about_the_task(monkeypatch):
     assert s2t.tag == "espnet/undocumented"
 
 
-# --- `espnet run`: any model, by its declaration ---
+# --- espnet detect ----------------------------------------------------------
 
 
-class _Declared(_FakeModel):
-    """A fake Inference with a declaration, as `espnet run` reads it."""
+class _FakeVAD:
+    """Stand in for VoiceActivityDetector and record how it was asked."""
 
-    def __init__(self, result):
-        from espnet3.api.inference import Field
+    fs = 16000
+    frame_shift = 0.01
+    threshold = 0.5
+    median = 1
 
-        super().__init__(result)
-        self.inputs = (
-            Field("speech", "audio", "Speech"),
-            Field("language", "text", "Language", optional=True),
+    def __init__(self, segments):
+        from espnet2.bin.diar_inference import Segment
+
+        self.Segment = Segment
+        self.segments_by_file = segments
+        self.calls = []
+
+    def detect_files(self, paths, offline=True, batch_size=8):
+        self.calls.append((list(paths), offline, batch_size))
+        return [
+            [self.Segment(*s) for s in self.segments_by_file[str(p)]] for p in paths
+        ]
+
+    def stream(self):
+        class _Stream:
+            """Reads each block as the probabilities of its frames."""
+
+            emitted = 0
+
+            def accept(self, block, fs):
+                self.emitted += len(block)
+                return np.asarray(block, dtype=np.float32)
+
+            def finish(self):
+                return np.zeros(0, dtype=np.float32)
+
+        return _Stream()
+
+
+def _fake_vad(monkeypatch, vad):
+    asked = {}
+
+    def load(args, mode):
+        asked.update(
+            mode=mode,
+            model=args.online_model if mode == "online" else args.model,
+            threshold=args.threshold,
+            median=args.median,
         )
-        self.outputs = (
-            Field("text", "text", "Transcription"),
-            Field("segments", "segments", "Segments"),
-        )
+        return vad
 
-    def __call__(self, *args, **prompt):
-        self.calls.append(prompt)
-        return self.result
+    monkeypatch.setattr(cli, "_load_vad", load)
+    return asked
 
 
-def _declared_model(monkeypatch, result=None):
-    result = result or {
-        "text": "hello world",
-        "segments": [{"text": "hello world", "start": 0.0, "end": 1.25}],
+def test_vad_prints_the_segments_of_one_file(monkeypatch, tmp_path, capsys):
+    audio = tmp_path / "a.wav"
+    audio.write_bytes(b"")
+    vad = _FakeVAD({str(audio): [(0.5, 1.25), (2.0, 3.0)]})
+    asked = _fake_vad(monkeypatch, vad)
+
+    assert cli.main(["detect", str(audio)]) == 0
+
+    assert capsys.readouterr().out == "0.50\t1.25\n2.00\t3.00\n"
+    # offline by default, the default model and the tuned rule
+    assert vad.calls == [([str(audio)], True, 8)]
+    # the offline model, with its own rule (None: the loader takes the model's)
+    assert asked == {
+        "mode": "offline",
+        "model": VAD_MODELS["offline"],
+        "threshold": None,
+        "median": None,
     }
-    return _fake_load(monkeypatch, _Declared(result))
+    assert cli.DEFAULT_MODELS["detect"] == VAD_MODELS["offline"]
 
 
-def test_run_takes_inputs_by_name_and_prints_each_output(monkeypatch, capsys):
-    model = _declared_model(monkeypatch)
+def test_vad_names_the_file_on_each_line_of_a_batch(monkeypatch, tmp_path, capsys):
+    a, b = tmp_path / "a.wav", tmp_path / "b.wav"
+    a.write_bytes(b"")
+    b.write_bytes(b"")
+    vad = _FakeVAD({str(a): [(0.0, 1.0)], str(b): []})
+    asked = _fake_vad(monkeypatch, vad)
 
-    argv = [
-        "run",
-        "espnet/some_owsm",
-        "--system",
-        "s2t",
-        "speech=a.wav",
-        "language=jpn",
-    ]
-    assert cli.main(argv) == 0
+    argv = ["detect", str(a), str(b), "--online", "--batch-size", "4"]
+    assert cli.main(argv + ["--threshold", "0.3", "--median", "11"]) == 0
 
-    assert (model.tag, model.system) == ("espnet/some_owsm", "s2t")
-    assert model.calls == [{"speech": "a.wav", "language": "jpn"}]
-    assert (
-        capsys.readouterr().out
-        == "== text\nhello world\n== segments\n0.00\t1.25\thello world\n"
-    )
+    assert capsys.readouterr().out == f"{a}\t0.00\t1.00\n"
+    assert vad.calls == [([str(a), str(b)], False, 4)]
+    # --online takes the online model; None is the published one (_load_vad)
+    assert (asked["mode"], asked["model"]) == ("online", None)
+    assert (asked["threshold"], asked["median"]) == (0.3, 11)
 
 
-def test_run_lists_the_declaration(monkeypatch, capsys):
-    _declared_model(monkeypatch)
-
-    assert cli.main(["run", "espnet/some_owsm", "--list"]) == 0
-
-    assert capsys.readouterr().out == (
-        "inputs:\n  speech=<audio>\n  language=<text>  (optional)\n"
-        "outputs:\n  text  (text)\n  segments  (segments)\n"
-    )
+def test_vad_without_audio_says_what_to_give(capsys):
+    assert cli.main(["detect"]) == 1
+    assert "audio files, or --live" in capsys.readouterr().err
 
 
-def test_run_refuses_an_input_the_model_does_not_declare(monkeypatch, capsys):
-    model = _declared_model(monkeypatch)
-
-    assert cli.main(["run", "espnet/some_owsm", "speech=a.wav", "beam=4"]) == 1
-
-    assert (
-        "'beam=4': give inputs as name=value, one of speech, language"
-        in capsys.readouterr().err
-    )
-    assert model.calls == []
+def test_vad_refuses_an_even_median(monkeypatch, tmp_path, capsys):
+    audio = tmp_path / "a.wav"
+    audio.write_bytes(b"")
+    args = cli.build_parser().parse_args(["detect", str(audio), "--median", "4"])
+    with pytest.raises(cli.CLIError, match="odd"):
+        cli._load_vad(args, "offline")
 
 
-def test_run_names_a_required_input_left_out(monkeypatch, capsys):
-    _declared_model(monkeypatch)
-
-    assert cli.main(["run", "espnet/some_owsm", "language=jpn"]) == 1
-
-    err = capsys.readouterr().err
-    assert "missing input(s) ['speech']" in err and "speech=<audio>" in err
-
-
-def test_run_writes_an_audio_output_as_a_wave(monkeypatch, tmp_path, capsys):
-    from espnet3.api.inference import Audio, Field
-
-    model = _declared_model(
-        monkeypatch, {"audio": Audio(np.zeros(800, dtype=np.float32), 8000)}
-    )
-    model.outputs = (Field("audio", "audio", "Rendered"),)
-
-    assert cli.main(["run", "x", "speech=a.wav", "-o", str(tmp_path / "out")]) == 0
-
-    written = tmp_path / "out" / "audio.wav"
-    assert capsys.readouterr().out.strip() == str(written)
-    data, rate = soundfile.read(written)
-    assert rate == 8000 and len(data) == 800
-
-
-def test_run_reports_a_value_the_model_refuses(monkeypatch, capsys):
-    _declared_model(monkeypatch)
-
-    def refuse(self, *args, **prompt):
-        raise ValueError("language 'xx': this model has no <xx>")
-
-    monkeypatch.setattr(_Declared, "__call__", refuse)
-
-    assert cli.main(["run", "x", "speech=a.wav", "language=xx"]) == 1
-    assert "this model has no <xx>" in capsys.readouterr().err
-
-
-def test_run_takes_an_input_after_an_option_and_other_commands_do_not(
-    monkeypatch, capsys
+def test_vad_stream_prints_each_segment_once_it_has_ended(
+    monkeypatch, tmp_path, capsys
 ):
-    model = _declared_model(monkeypatch)
+    audio = tmp_path / "a.wav"
+    audio.write_bytes(b"")
+    # the fake stream reads blocks as frame probabilities, 10 ms a frame
+    blocks = [
+        np.array([0.9] * 5 + [0.0] * 5, dtype=np.float32),
+        np.array([0.9] * 3, dtype=np.float32),
+    ]
+    _stub_live(monkeypatch, blocks, [])
+    _fake_vad(monkeypatch, _FakeVAD({}))
 
-    # an input after an option is left over by argparse on every Python; an
-    # input list that was empty before the option is filled by 3.12.7+ itself
-    argv = ["run", "x", "speech=a.wav", "--system", "s2t", "language=jpn"]
-    assert cli.main(argv) == 0
-    assert model.calls == [{"speech": "a.wav", "language": "jpn"}]
+    assert cli.main(["detect", str(audio), "--stream"]) == 0
 
-    with pytest.raises(SystemExit) as e:
-        cli.main(["models", "speech=a.wav"])
-    assert e.value.code == 2
-    assert "unrecognized arguments: speech=a.wav" in capsys.readouterr().err
+    # the first segment is printed when it has ended; the second, still open
+    # when the audio stops, ends where the audio does
+    assert capsys.readouterr().out == "0.00\t0.05\n0.10\t0.13\n"
 
 
-def test_run_reports_a_tag_load_cannot_serve(monkeypatch, capsys):
-    import espnet3.api.inference as api
-    from espnet2.utils.pretrained import ModelTagError
+def test_vad_live_does_not_also_take_a_file(monkeypatch, tmp_path, capsys):
+    audio = tmp_path / "a.wav"
+    audio.write_bytes(b"")
+    assert cli.main(["detect", str(audio), "--live"]) == 1
+    assert "do not also name a file" in capsys.readouterr().err
 
-    def load(tag, **kwargs):
-        raise ModelTagError(f"{tag} is not a pack_model bundle")
 
-    monkeypatch.setattr(api, "load", load)
+def test_vad_refuses_a_nonpositive_batch_size_before_loading(
+    monkeypatch, tmp_path, capsys
+):
+    audio = tmp_path / "a.wav"
+    audio.write_bytes(b"")
+    asked = _fake_vad(monkeypatch, _FakeVAD({}))
+    assert cli.main(["detect", str(audio), "--batch-size", "0"]) == 1
+    assert "--batch-size must be positive" in capsys.readouterr().err
+    assert asked == {}  # no model was loaded
 
-    assert cli.main(["run", "espnet/nope", "speech=a.wav"]) == 1
-    assert "not a pack_model bundle" in capsys.readouterr().err
+
+@pytest.mark.parametrize("median", [1, 5])
+def test_vad_stream_prints_what_the_whole_recording_gives(
+    monkeypatch, tmp_path, capsys, median
+):
+    """Blocks of any size print the segments of all the frames at once."""
+    from espnet2.bin.diar_inference import frames_to_segments
+
+    audio = tmp_path / "a.wav"
+    audio.write_bytes(b"")
+    rng = np.random.default_rng(median)
+    # speech in runs, with blips and short gaps
+    probs = np.repeat(rng.random(80) > 0.5, rng.integers(1, 12, 80)).astype(np.float32)
+    cuts = np.sort(rng.choice(np.arange(1, len(probs)), 25, replace=False))
+    _stub_live(monkeypatch, np.split(probs, cuts), [])
+    vad = _FakeVAD({})
+    vad.median = median
+    _fake_vad(monkeypatch, vad)
+
+    assert cli.main(["detect", str(audio), "--stream"]) == 0
+
+    expected = frames_to_segments(probs, vad.frame_shift, 0.5, median)
+    assert capsys.readouterr().out == "".join(
+        f"{s.start:.2f}\t{s.end:.2f}\n" for s in expected
+    )
+
+
+def _fake_diarize(monkeypatch):
+    """Replace DiarizeSpeech.from_pretrained; record the tag and the device."""
+    from espnet2.bin import diar_inference
+
+    built = {}
+
+    def from_pretrained(model_tag=None, device="cpu", **kwargs):
+        built.update(tag=model_tag, device=device, **kwargs)
+        return types.SimpleNamespace(
+            diar_train_args=types.SimpleNamespace(
+                frontend_conf={"fs": "16k", "n_fft": 512, "hop_length": 128}
+            ),
+            diar_model=types.SimpleNamespace(encoder=object()),
+        )
+
+    monkeypatch.setattr(
+        diar_inference.DiarizeSpeech, "from_pretrained", staticmethod(from_pretrained)
+    )
+    return built
+
+
+@pytest.mark.parametrize("mode", ["online", "offline"])
+def test_vad_loads_each_mode_with_its_model_and_rule(monkeypatch, mode):
+    built = _fake_diarize(monkeypatch)
+    monkeypatch.setitem(VAD_RULES, mode, (0.35, 7))
+    argv = ["detect", "x.wav", "--model", "off.zip", "--online-model", "on.zip"]
+    args = cli.build_parser().parse_args(argv)
+    args.device = "cpu"
+    vad = cli._load_vad(args, mode)
+    tag = "on.zip" if mode == "online" else "off.zip"
+    assert built == {"tag": tag, "device": "cpu", "num_spk": 1}
+    # the mode's rule, unless --threshold or --median names one
+    assert (vad.threshold, vad.median, vad.fs) == (0.35, 7, 16000)
+    args.threshold, args.median = 0.4, 3
+    vad = cli._load_vad(args, mode)
+    assert (vad.threshold, vad.median) == (0.4, 3)
+
+
+def test_vad_without_models_loads_the_published_ones(monkeypatch):
+    built = _fake_diarize(monkeypatch)
+    args = cli.build_parser().parse_args(["detect", "x.wav"])
+    args.device = "cpu"
+    cli._load_vad(args, "online")
+    assert built["tag"] == VAD_MODELS["online"]
+    cli._load_vad(args, "offline")
+    assert built["tag"] == VAD_MODELS["offline"] == cli.DEFAULT_MODELS["detect"]

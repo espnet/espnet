@@ -1,34 +1,9 @@
 #!/usr/bin/env python3
 
-"""Model Context Protocol server that lets agents call ESPnet as tools.
+"""Model Context Protocol tools using native ESPnet2 inference backends.
 
-Start it with ``espnet-mcp`` (installed by ``pip install "espnet[mcp]"``) and
-register it with the agent, for example in Claude Code, Claude Desktop or
-Cursor::
-
-    {"mcpServers": {"espnet": {"command": "espnet-mcp"}}}
-
-The agent then sees six tools - ``transcribe``, ``translate``, ``phonemize``,
-``align``, ``synthesize`` and ``enhance`` - and calls them itself when a task
-needs one. They are named after the subcommands of ``espnet``, so a person
-reading an agent's transcript and a person at a terminal are talking about
-the same thing. Audio moves as file paths on this machine; nothing is
-uploaded anywhere. Each model is downloaded from the Hugging Face Hub on
-first use and kept loaded for the rest of the session.
-
-The defaults are the checkpoints the tools were written against and can be
-swapped through the environment: ``ESPNET_MCP_ASR_MODEL`` (any OWSM-CTC
-checkpoint), ``ESPNET_MCP_TTS_MODEL`` (any ESPnet text-to-speech model),
-``ESPNET_MCP_ENH_MODEL`` (any single-channel enhancement model, with
-``ESPNET_MCP_ENH_FS`` its sampling rate), ``ESPNET_MCP_PR_MODEL`` (a POWSM
-checkpoint, for the phones) and ``ESPNET_MCP_DEVICE`` (``auto`` by default:
-cuda when torch sees one, else cpu). Alignment uses the recognition model,
-since it is a Viterbi path through that model's CTC head.
-
-The speech-to-text tools run on espnet3's inference API: the model is an
-``esp2_s2t`` ``Inference``, which takes the language and task by name and
-holds what there is to know about the checkpoint; this server only maps
-tool arguments to it and its sentences to ``ToolError``.
+Audio is passed as local file paths; checkpoints are loaded lazily and
+cached for the session. Install espnet[mcp] to run espnet-mcp.
 """
 
 import contextlib
@@ -38,7 +13,7 @@ import re
 import sys
 import warnings
 from pathlib import Path
-from typing import List
+from typing import List, Optional
 
 import numpy as np
 import soundfile
@@ -68,6 +43,11 @@ ENH_MODEL = os.environ.get(
 # POWSM, the phonetic model built on OWSM. The CTC one: it reads a recording
 # of any length, where the encoder-decoder one repeats itself on the padding.
 PR_MODEL = os.environ.get("ESPNET_MCP_PR_MODEL", "espnet/powsm_ctc")
+# The VAD models `espnet detect` loads (diar_inference.VAD_MODELS): the offline one
+# and, for mode="online", the online one. A packed .zip from stage 8 works as
+# well as a tag; unset, each is the published model of its mode.
+VAD_MODEL = os.environ.get("ESPNET_MCP_VAD_MODEL")
+VAD_ONLINE_MODEL = os.environ.get("ESPNET_MCP_VAD_ONLINE_MODEL")
 ENH_FS = int(os.environ.get("ESPNET_MCP_ENH_FS", "16000"))
 if ENH_FS <= 0:
     raise ValueError(f"ESPNET_MCP_ENH_FS must be a positive integer, not {ENH_FS}")
@@ -83,17 +63,24 @@ _quiet_stdout = functools.partial(contextlib.redirect_stdout, sys.stderr)
 
 def _device() -> str:
     """The device, with ``auto`` settled against this machine."""
-    from espnet3.api.inference import resolve_device
+    from espnet2.torch_utils.resolve_device import resolve_device
 
     return resolve_device(DEVICE)
 
 
 def _s2t(tag: str):
-    """A speech-to-text checkpoint behind espnet3's ``esp2_s2t`` Inference."""
-    from espnet3.api.inference import load
+    """Build the native speech-to-text backend."""
+    from espnet2.bin.s2t_inference import Speech2Text
+    from espnet2.utils.pretrained import build_pretrained
 
     with _quiet_stdout():
-        return load(tag, system="s2t", device=_device())
+        return build_pretrained(
+            Speech2Text,
+            tag,
+            _device(),
+            "ESPnet speech-to-text tools",
+            "Select an OWSM or POWSM checkpoint.",
+        )
 
 
 @functools.lru_cache(maxsize=None)
@@ -133,6 +120,15 @@ def _enh():  # pragma: no cover - downloads the checkpoint
 
 
 @functools.lru_cache(maxsize=None)
+def _vad(mode: str):  # pragma: no cover - downloads the checkpoint
+    with _quiet_stdout():
+        from espnet2.bin.diar_inference import VoiceActivityDetector
+
+        tag = VAD_ONLINE_MODEL if mode == "online" else VAD_MODEL
+        return VoiceActivityDetector.for_mode(mode, tag, device=_device())
+
+
+@functools.lru_cache(maxsize=None)
 def _bagpiper():
     """Bagpiper, which is served rather than downloaded.
 
@@ -158,20 +154,23 @@ def _existing_file(path: str) -> Path:
 
 
 def _say(model, audio_path: str, task: str, language: str) -> str:
-    """The model's text for one recording of any length.
-
-    ``task`` and ``language`` are passed by name; ``"auto"`` leaves the
-    language to the model. A name the checkpoint lacks is the model's own
-    sentence about it - which code to use, which targets it has - relayed
-    as a ``ToolError`` for the agent to act on.
-    """
+    """Decode a recording directly with the native speech-to-text backend."""
     path = _existing_file(audio_path)
-    prompt = {"task": task}
-    if language != "auto":
-        prompt["language"] = language
     try:
+        lang_sym = model.no_language() if language == "auto" else f"<{language}>"
+        task_sym = f"<{task}>"
+        tokens = getattr(getattr(model, "s2t_model", None), "token_list", None)
+        if tokens:
+            for symbol in (lang_sym, task_sym):
+                if symbol not in tokens:
+                    raise ValueError(f"this model has no {symbol}")
         with _quiet_stdout():
-            return model(str(path), **prompt)["text"]
+            return " ".join(
+                text
+                for _, _, text in model.decode_long(
+                    str(path), lang_sym=lang_sym, task_sym=task_sym
+                )
+            )
     except ValueError as e:
         raise ToolError(str(e)) from e
 
@@ -342,6 +341,61 @@ def enhance(audio_path: str, output_path: str) -> str:
     return str(out.resolve())
 
 
+def detect(
+    audio_path: str,
+    mode: str = "offline",
+    threshold: Optional[float] = None,
+    median: Optional[int] = None,
+) -> str:
+    """Find where someone is speaking in a recording (voice activity detection).
+
+    Use it to cut a long recording into the parts that hold speech before
+    transcribing them, or to measure how much of a file is speech.
+
+    Args:
+        audio_path: Local audio file. Any common format, sample rate or
+            length; the first channel of a multi-channel file is used.
+        mode: "offline" uses the offline model, which reads up to about a
+            second of future audio and places the boundaries best; "online"
+            uses the causal model, which reads no future audio, as a live
+            stream does.
+        threshold: Speech probability above which a frame is speech. Default:
+            the mode's model's value, tuned on AMI MH dev.
+        median: Median filter over this many frames (odd; 1 for none), which
+            removes short blips. Default: tuned with the threshold.
+
+    Returns:
+        One line a speech segment: start and end in seconds, tab-separated.
+        An empty string means no speech was found.
+    """
+    from espnet2.bin.diar_inference import (
+        format_segments,
+        frames_to_segments,
+        read_audio,
+    )
+
+    if mode not in ("offline", "online"):
+        raise ToolError(f'mode is "offline" or "online", not {mode!r}')
+    if median is not None and (median < 1 or median % 2 == 0):
+        raise ToolError(f"median must be a positive odd number, not {median}")
+    path = _existing_file(audio_path)
+    vad = _vad(mode)
+    threshold = vad.threshold if threshold is None else float(threshold)
+    median = vad.median if median is None else int(median)
+    try:
+        speech = read_audio(path, vad.fs)
+    except (OSError, RuntimeError) as e:
+        raise ToolError(f"Cannot read {audio_path}: {e}") from e
+    look_ahead = vad.offline_look_ahead if mode == "offline" else 0
+    with _quiet_stdout():
+        probs = vad.probabilities(speech, vad.fs, look_ahead)
+    # the rule is applied here rather than set on the cached detector, so a
+    # call's threshold does not carry over to the next call
+    return format_segments(
+        frames_to_segments(probs, vad.frame_shift, threshold, median)
+    )
+
+
 def describe(audio_path: str, prompt: str = "What sound is in this audio?") -> str:
     """Answer a question about what a recording contains, in words.
 
@@ -409,6 +463,7 @@ TOOLS = (
     align,
     synthesize,
     enhance,
+    detect,
     describe,
     render,
 )
@@ -430,7 +485,9 @@ def build_server():
             "phonemize: the phones that were said, as IPA (POWSM). "
             "align: when each utterance was said. "
             "synthesize: text-to-speech to a WAV file. "
-            "enhance: denoise a recording. Audio is passed as file paths on "
+            "enhance: denoise a recording. "
+            "detect: where speech is in a recording (VAD). "
+            "Audio is passed as file paths on "
             "this machine."
         ),
     )

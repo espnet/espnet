@@ -117,3 +117,22 @@ def test_new_style_stats_file(stats_file, stats_file2, norm_vars, norm_means):
     y, _ = layer(x)
     y2, _ = layer2(x)
     np.testing.assert_allclose(y.numpy(), y2.numpy())
+
+
+@pytest.mark.parametrize("inverse", [False, True])
+@pytest.mark.parametrize("dtype", [torch.float16, torch.bfloat16])
+def test_mixed_precision_preserves_statistics(stats_file2, inverse, dtype):
+    layer = GlobalMVN(stats_file2)
+    original = {key: value.clone() for key, value in layer.state_dict().items()}
+    call = layer.inverse if inverse else layer
+    x = torch.randn(2, 3, 80, dtype=torch.float64)
+    lengths = torch.tensor([3, 2])
+    expected, _ = call(x.clone(), lengths)
+
+    call(x.to(dtype), lengths)
+    actual, actual_lengths = call(x.clone(), lengths)
+
+    torch.testing.assert_close(actual, expected, rtol=0, atol=0)
+    assert torch.equal(actual_lengths, lengths)
+    for key, value in layer.state_dict().items():
+        torch.testing.assert_close(value, original[key], rtol=0, atol=0)

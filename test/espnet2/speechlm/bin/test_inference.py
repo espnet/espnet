@@ -97,10 +97,11 @@ def test_worker_writes_complete_text_and_audio(tmp_path, registered):
     )
     job = MagicMock()
     job.build_model.return_value = model
+    template = MagicMock(return_value=job)
     with (
         patch(
             "espnet2.speechlm.bin.inference._all_job_types",
-            {"speechlm": lambda *a, **k: job},
+            {"speechlm": template},
         ),
         patch("espnet2.speechlm.bin.inference.load_checkpoint", return_value=model),
         patch(
@@ -135,6 +136,9 @@ def test_worker_writes_complete_text_and_audio(tmp_path, registered):
         assert factory.call_args.kwargs["unregistered_specifier"] == (
             [] if registered else [specifier]
         )
+    # the checkpoint carries every weight, so the pretrained ones are not
+    # fetched: 82 GB for Bagpiper
+    assert template.call_args.kwargs == {"is_train": False, "load_pretrained": False}
     result = json.loads((tmp_path / "inference_rank0" / "results.json").read_text())
     messages = result["example"]
     assert messages[0][2] == "A complete caption."

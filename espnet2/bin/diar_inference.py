@@ -3,9 +3,19 @@
 import argparse
 import logging
 import sys
+from dataclasses import dataclass
 from itertools import permutations
 from pathlib import Path
-from typing import Any, List, Optional, Sequence, Tuple, Union
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    Iterable,
+    List,
+    Optional,
+    Sequence,
+    Tuple,
+    Union,
+)
 
 import numpy as np
 import torch
@@ -32,6 +42,9 @@ from espnet2.utils.types import (
     str2triple_str,
     str_or_none,
 )
+
+if TYPE_CHECKING:  # pragma: no cover
+    from espnet2.bin.diar_inference_streaming import StreamingVAD
 
 
 class DiarizeSpeech:
@@ -61,6 +74,7 @@ class DiarizeSpeech:
         dtype: str = "float32",
         enh_s2t_task: bool = False,
         multiply_diar_result: bool = False,
+        look_ahead: Optional[int] = None,
     ):
 
         task = DiarizationTask if not enh_s2t_task else EnhS2TTask
@@ -81,6 +95,17 @@ class DiarizeSpeech:
             )
 
         diar_model.to(dtype=getattr(torch, dtype)).eval()
+        # Set the encoder's look-ahead (input frames): 0 for online diarization,
+        # up to its max_look_ahead for offline. None keeps the trained value.
+        if look_ahead is not None:
+            # the diarization model, inside the joint model for enh_s2t
+            target = diar_model.s2t_model if enh_s2t_task else diar_model
+            if not hasattr(target, "set_look_ahead"):
+                raise ValueError(
+                    f"look_ahead needs a diarization model, "
+                    f"not {type(target).__name__}"
+                )
+            target.set_look_ahead(look_ahead)  # raises for other encoders
 
         self.device = device
         self.dtype = dtype
@@ -122,16 +147,144 @@ class DiarizeSpeech:
 
     @torch.no_grad()
     @typechecked
+    def diarize_batch(
+        self,
+        speech: Union[torch.Tensor, np.ndarray],
+        speech_lengths: Optional[Union[torch.Tensor, np.ndarray]] = None,
+        fs: int = 8000,
+    ) -> List[np.ndarray]:
+        """Diarize a zero-padded batch and return the result of each utterance.
+
+        Utterance b gets an array (frames_b, num_spk_b) of speaker activity
+        probabilities: its own frames only, and with EEND-EDA without num_spk,
+        its own number of speakers. Each array equals what __call__ returns for
+        the utterance alone, cut to its frames.
+
+        This function runs the whole batch through the model at once. It runs
+        the utterances one at a time instead with enh_s2t_task, when
+        segment-wise diarization applies to an utterance of the batch, for
+        multi-channel input, and when a centred STFT cannot reflect an
+        utterance (n_fft / 2 samples or fewer).
+
+        Args:
+            speech: zero-padded input speech (Batch, Nsamples [, Channels])
+            speech_lengths: number of samples of each utterance (Batch,);
+                None means that no utterance is padded
+            fs: sample rate
+        Returns:
+            list of (frames_b, num_spk_b) arrays, one per utterance
+        """
+        if isinstance(speech, np.ndarray):
+            speech = torch.as_tensor(speech)
+        assert speech.dim() > 1, speech.size()
+        batch_size = speech.size(0)
+        if speech_lengths is None:
+            lengths = torch.full([batch_size], speech.size(1), dtype=torch.long)
+        else:
+            lengths = torch.as_tensor(speech_lengths).long().cpu()
+
+        segmenting = self.segmenting_diar and bool(
+            (lengths > self.segment_size * fs).any()
+        )
+        stft = getattr(getattr(self.diar_model, "frontend", None), "stft", None)
+        centred = stft is not None and getattr(stft, "center", False)
+        # Run one utterance at a time: with enh_s2t, segment-wise diarization,
+        # multi-channel input (B, T, C), or an utterance that a centred STFT
+        # cannot reflect (no longer than n_fft / 2 samples).
+        if (
+            self.enh_s2t_task
+            or segmenting
+            or speech.dim() != 2
+            or (centred and int(lengths.min()) <= stft.n_fft // 2)
+        ):
+            return [
+                self(speech[b : b + 1, : lengths[b]], fs=fs)[1][0]
+                for b in range(batch_size)
+            ]
+
+        # Sort the utterances by decreasing length: some encoders (RNNEncoder)
+        # pack the batch and require it. The results go back in input order.
+        order = torch.argsort(lengths, descending=True, stable=True)
+        speech, lengths = speech[order], lengths[order]
+        speech = speech.to(getattr(torch, self.dtype))
+        if centred:
+            # Pad each utterance as torch.stft(center=True) pads it alone, and run
+            # the STFT with center=False: the frames and their number are those
+            # of the utterance alone.
+            speech, model_lengths = self._reflect_pad(speech, lengths, stft.n_fft // 2)
+            stft.center = False
+            try:
+                encoder_out, encoder_out_lens = self.encode(
+                    to_device(speech, device=self.device),
+                    to_device(model_lengths, device=self.device),
+                )
+            finally:
+                stft.center = True
+        else:
+            encoder_out, encoder_out_lens = self.encode(
+                to_device(speech, device=self.device),
+                to_device(lengths, device=self.device),
+            )
+        frames = encoder_out_lens.tolist()
+
+        if self.diar_model.attractor is None or self.num_spk is not None:
+            spk_prediction, _ = self.decode(encoder_out, encoder_out_lens)
+            predictions = [spk_prediction[b, : frames[b]] for b in range(batch_size)]
+        else:
+            # EEND-EDA without num_spk: each utterance gets its own number of
+            # speakers, the index of its first attractor with a negative
+            # probability, as decode() finds it for one utterance.
+            max_num_spk = 15
+            attractor, att_prob = self.diar_model.attractor(
+                encoder_out,
+                encoder_out_lens,
+                encoder_out.new_zeros(batch_size, max_num_spk + 1, encoder_out.size(2)),
+            )
+            predictions = []
+            for b in range(batch_size):
+                negative = (att_prob[b, :, 0] < 0).nonzero()
+                num_spk = int(negative[0]) if len(negative) else max_num_spk
+                predictions.append(
+                    encoder_out[b, : frames[b]] @ attractor[b, :num_spk].T
+                )
+        # Apply the same sigmoid as __call__, in numpy, and restore the order.
+        results = [None] * batch_size
+        for i, b in enumerate(order.tolist()):
+            results[b] = 1 / (1 + np.exp(-predictions[i].cpu().numpy()))
+        return results
+
+    @staticmethod
+    def _reflect_pad(speech: torch.Tensor, lengths: torch.Tensor, pad: int):
+        """Pad each utterance at both ends by reflection, as torch.stft does.
+
+        Utterance b of length n becomes x[pad], ..., x[1], x[0], ..., x[n-1],
+        x[n-2], ..., x[n-1-pad] (torch.stft(center=True, pad_mode="reflect")),
+        followed by zeros up to the batch width. Returns the padded batch and
+        the lengths n + 2 * pad.
+        """
+        out = speech.new_zeros(speech.size(0), speech.size(1) + 2 * pad)
+        for b, n in enumerate(lengths.tolist()):
+            x = speech[b, :n]
+            out[b, :pad] = x[1 : pad + 1].flip(0)
+            out[b, pad : pad + n] = x
+            out[b, pad + n : 2 * pad + n] = x[n - 1 - pad : n - 1].flip(0)
+        return out, lengths + 2 * pad
+
+    @torch.no_grad()
+    @typechecked
     def __call__(
         self, speech: Union[torch.Tensor, np.ndarray], fs: int = 8000
-    ) -> Union[List[torch.Tensor], Tuple]:
+    ) -> Tuple[Optional[List[np.ndarray]], np.ndarray]:
         """Inference
 
         Args:
             speech: Input speech data (Batch, Nsamples [, Channels])
             fs: sample rate
         Returns:
-            [speaker_info1, speaker_info2, ...]
+            (waves, spk_prediction): spk_prediction holds the speaker activity
+            probabilities (Batch, Frames, num_spk). waves is the list of separated
+            waveforms, one (Batch, Nsamples) array per speaker, with
+            enh_s2t_task, and None without it.
 
         """
 
@@ -319,7 +472,7 @@ class DiarizeSpeech:
         spk_prediction = spk_prediction.cpu().numpy()
         spk_prediction = 1 / (1 + np.exp(-spk_prediction))
 
-        return waves, spk_prediction if self.enh_s2t_task else spk_prediction
+        return waves, spk_prediction
 
     @torch.no_grad()
     def cal_permumation(self, ref_wavs, enh_wavs, criterion="si_snr"):
@@ -453,6 +606,370 @@ class DiarizeSpeech:
         return spk_prediction, num_spk
 
 
+# --- Voice activity detection --------------------------------------------
+#
+# A VAD is a diar1 model trained with ``num_spk 1`` (egs2/frontia_vad_v1/diar1):
+# each frame gets the probability that someone is speaking.
+# VoiceActivityDetector turns those into speech segments offline (a whole
+# recording, at the encoder's largest look-ahead) and in batches over files
+# (diarize_batch); diar_inference_streaming.StreamingVAD does it online.
+# `espnet detect`, the MCP tool ``detect``, the Space in
+# egs2/frontia_vad_v1/diar1/demo and the notebook Demos/diar_vad_demo.ipynb all
+# call these, so the four give the same segments for the same file.
+#
+#     vad = VoiceActivityDetector.for_mode("offline")  # or a .zip: model_tag=
+#     for seg in vad.detect_file("meeting.wav"):
+#         print(f"{seg.start:.2f}\t{seg.end:.2f}")
+
+# The two published models, one place to edit when they are named:
+# - online: the causal TCN (v1), which reads no future frame and so streams;
+# - offline: the dual-mode TCN, run with its largest look-ahead (124 frames,
+#   0.99 s), which places the boundaries better when the whole file is there.
+# Each of `espnet detect`, the MCP tool, the Space and the notebook takes these
+# as defaults and lets a local .zip from stage 8 stand in for either.
+VAD_MODELS = {
+    "online": "espnet/frontia_vad_v1_online",
+    "offline": "espnet/frontia_vad_v1_offline",
+}
+
+# Each model's decision rule, make_rttm.py's as stage 7 scores it: a frame is
+# speech when its probability exceeds the threshold, then a median filter of
+# that many frames smooths the 0/1 sequence. The values are each model's
+# setting with the lowest detection error on AMI MH dev
+# (egs2/frontia_vad_v1/diar1/local/show_vad_result.py), as (threshold, median).
+VAD_RULES = {
+    # v1, scored on 21 sets with a UEM: RESULTS_vad.md of the recipe's run
+    "online": (0.7, 11),
+    # the dual-mode model at look-ahead 124, scored on the same 21 sets
+    "offline": (0.8, 11),
+}
+VAD_THRESHOLD, VAD_MEDIAN = VAD_RULES["offline"]
+
+
+@dataclass
+class Segment:
+    """A stretch of speech, in seconds from the start of the recording."""
+
+    start: float
+    end: float
+
+    @property
+    def duration(self) -> float:
+        return self.end - self.start
+
+
+def frames_to_segments(
+    probs: np.ndarray,
+    frame_shift: float,
+    threshold: float = VAD_THRESHOLD,
+    median: int = VAD_MEDIAN,
+) -> List[Segment]:
+    """Threshold and median-filter frame probabilities into speech segments.
+
+    This is make_rttm.py's rule: frame i is speech when probs[i] > threshold,
+    the 0/1 sequence is median-filtered over ``median`` frames (odd; 1 turns
+    the filter off), and a run of speech frames s..e-1 becomes the segment
+    [s * frame_shift, e * frame_shift).
+    """
+    probs = np.asarray(probs, dtype=np.float64).reshape(-1)
+    if median < 1 or median % 2 == 0:
+        raise ValueError(f"median must be a positive odd number: {median}")
+    active = (probs > threshold).astype(np.int64)
+    if median > 1 and len(active) > 0:
+        from scipy.signal import medfilt
+
+        active = medfilt(active, median).astype(np.int64)
+    edges = np.flatnonzero(np.diff(np.pad(active, (1, 1))))
+    return [
+        Segment(float(s * frame_shift), float(e * frame_shift))
+        for s, e in zip(edges[::2], edges[1::2])
+    ]
+
+
+def read_audio(
+    path: Union[str, Path], fs: int, max_seconds: Optional[float] = None
+) -> np.ndarray:
+    """Read an audio file as mono float32 at ``fs``.
+
+    The first channel of a multi-channel file is used, as the model was
+    trained on one channel. With ``max_seconds``, only that much of the file
+    is decoded and resampled.
+    """
+    import soundfile
+
+    frames = -1
+    if max_seconds is not None:
+        frames = int(max_seconds * soundfile.info(str(path)).samplerate)
+    speech, rate = soundfile.read(
+        str(path), frames=frames, dtype="float32", always_2d=True
+    )
+    return resample(speech[:, 0], rate, fs)
+
+
+def audio_seconds(path: Union[str, Path]) -> float:
+    """The length of an audio file in seconds, from its header."""
+    import soundfile
+
+    info = soundfile.info(str(path))
+    return info.frames / info.samplerate
+
+
+def as_mono_float(speech) -> np.ndarray:
+    """Return audio as a 1-D float32 array in [-1, 1].
+
+    Integer PCM (int16, int32, ...) is scaled by its largest value; a
+    (samples, 1) array is squeezed. Several channels are refused rather than
+    flattened, which would interleave them into one signal, and so are NaN
+    and infinite values, which would make every frame non-speech.
+    """
+    speech = np.asarray(speech)
+    if speech.ndim == 2 and 1 in speech.shape:
+        speech = speech.reshape(-1)
+    if speech.ndim != 1:
+        raise ValueError(
+            f"audio must be one channel, (samples,), not {speech.shape}; "
+            "read_audio takes the first channel of a file"
+        )
+    if speech.dtype.kind in "iu":
+        info = np.iinfo(speech.dtype)
+        speech = (speech.astype(np.float64) - (info.max + info.min + 1) / 2) / (
+            (info.max - info.min + 1) / 2
+        )
+    speech = speech.astype(np.float32)
+    if not np.isfinite(speech).all():
+        raise ValueError("audio contains NaN or infinite values")
+    return speech
+
+
+def resample(speech: np.ndarray, rate: int, fs: int) -> np.ndarray:
+    """Return ``speech`` (1-D) at ``fs``, as :func:`as_mono_float` reads it."""
+    speech = as_mono_float(speech)
+    if rate <= 0:
+        raise ValueError(f"the sample rate must be positive, not {rate}")
+    if rate == fs:
+        return speech
+    import librosa
+
+    return librosa.resample(speech, orig_sr=rate, target_sr=fs).astype(np.float32)
+
+
+class VoiceActivityDetector:
+    """Speech probabilities and segments from a one-speaker diar1 model.
+
+    Args:
+        diarize: A loaded ``DiarizeSpeech`` with ``num_spk=1``.
+        threshold: Probability above which a frame is speech.
+        median: Median filter length in frames (odd; 1 for none).
+    """
+
+    def __init__(
+        self,
+        diarize,
+        threshold: float = VAD_THRESHOLD,
+        median: int = VAD_MEDIAN,
+    ):
+        import humanfriendly
+
+        self.diarize = diarize
+        self.threshold = threshold
+        self.median = median
+        args = diarize.diar_train_args
+        conf = args.frontend_conf or {}
+        self.fs = int(humanfriendly.parse_size(str(conf.get("fs", 16000))))
+        self.n_fft = int(conf.get("n_fft", 512))
+        self.hop = int(conf.get("hop_length", 128))
+        self.center = bool(conf.get("center", True))
+        encoder = diarize.diar_model.encoder
+        # A dual-mode encoder (AbsLookAheadEncoder) reads up to max_look_ahead
+        # future frames; any other encoder reads what it was built to read.
+        self.max_look_ahead = int(getattr(encoder, "max_look_ahead", 0))
+        # Input frames each output frame depends on; None when the encoder
+        # does not say, and then streaming keeps the whole history.
+        self.receptive_field = getattr(encoder, "receptive_field", None)
+
+    @classmethod
+    def load(
+        cls,
+        model_tag: str,
+        device: str = "cpu",
+        threshold: float = VAD_THRESHOLD,
+        median: int = VAD_MEDIAN,
+    ) -> "VoiceActivityDetector":
+        """Load a packed model: a Hugging Face tag or a local .zip from stage 8.
+
+        DiarizeSpeech.from_pretrained fetches it; this wraps the result.
+        """
+        from espnet2.bin.diar_inference import DiarizeSpeech
+
+        diarize = DiarizeSpeech.from_pretrained(model_tag, device=device, num_spk=1)
+        return cls(diarize, threshold=threshold, median=median)
+
+    @classmethod
+    def for_mode(
+        cls, mode: str, model_tag: Optional[str] = None, device: str = "cpu"
+    ) -> "VoiceActivityDetector":
+        """The published model of a mode ("online" or "offline"), with its rule.
+
+        ``model_tag`` replaces the model (a tag or a local .zip) and keeps the
+        mode's rule.
+        """
+        if mode not in VAD_MODELS:
+            raise ValueError(f'mode is "online" or "offline", not {mode!r}')
+        threshold, median = VAD_RULES[mode]
+        return cls.load(
+            model_tag or VAD_MODELS[mode],
+            device=device,
+            threshold=threshold,
+            median=median,
+        )
+
+    @property
+    def frame_shift(self) -> float:
+        """Seconds between frames."""
+        return self.hop / self.fs
+
+    @property
+    def min_samples(self) -> int:
+        """The shortest input with one frame: n_fft, or n_fft / 2 + 1 centred.
+
+        A centred STFT pads each end by reflection, which needs more than
+        n_fft / 2 samples.
+        """
+        return self.n_fft // 2 + 1 if self.center else self.n_fft
+
+    def num_frames(self, num_samples: int) -> int:
+        """Frames the frontend makes of ``num_samples`` samples."""
+        if num_samples < self.min_samples:
+            return 0
+        if self.center:
+            return num_samples // self.hop + 1
+        return (num_samples - self.n_fft) // self.hop + 1
+
+    def _check_frames(self, probs, num_samples: int):
+        """Refuse an encoder that changes the frame rate.
+
+        Times are frame index * hop / fs, so a subsampling encoder would put
+        every segment at the wrong time.
+        """
+        if len(probs) != self.num_frames(num_samples):
+            raise ValueError(
+                f"{num_samples} samples gave {len(probs)} frames, not the "
+                f"{self.num_frames(num_samples)} of the frontend: an encoder that "
+                "subsamples is not supported"
+            )
+
+    @property
+    def offline_look_ahead(self) -> int:
+        """The look-ahead offline detection uses: the largest the encoder offers."""
+        return self.max_look_ahead
+
+    def _set_look_ahead(self, look_ahead: int):
+        encoder = self.diarize.diar_model.encoder
+        if look_ahead > self.max_look_ahead:
+            raise ValueError(
+                f"look_ahead {look_ahead} exceeds this encoder's largest, "
+                f"{self.max_look_ahead}"
+            )
+        if hasattr(encoder, "set_look_ahead"):
+            encoder.set_look_ahead(look_ahead)
+
+    def segments(self, probs: np.ndarray) -> List[Segment]:
+        """Speech segments of frame probabilities, by this detector's rule."""
+        return frames_to_segments(probs, self.frame_shift, self.threshold, self.median)
+
+    def probabilities(
+        self, speech: np.ndarray, fs: Optional[int] = None, look_ahead: int = 0
+    ) -> np.ndarray:
+        """Speech probability of each frame of one recording (1-D at ``fs``)."""
+        speech = resample(speech, self.fs if fs is None else fs, self.fs)
+        self._set_look_ahead(look_ahead)
+        if len(speech) < self.min_samples:
+            # too short for one frame
+            return np.zeros(0, dtype=np.float32)
+        with torch.no_grad():
+            _, probs = self.diarize(torch.from_numpy(speech)[None], fs=self.fs)
+        probs = np.asarray(probs, dtype=np.float32)[0, :, 0]
+        self._check_frames(probs, len(speech))
+        return probs
+
+    def probabilities_batch(
+        self, speeches: Sequence[np.ndarray], look_ahead: int = 0
+    ) -> List[np.ndarray]:
+        """Frame probabilities of recordings at ``self.fs``, in one batch.
+
+        Each result equals :meth:`probabilities` of that recording alone
+        (DiarizeSpeech.diarize_batch); a recording shorter than one frame gets
+        an empty array.
+        """
+        self._set_look_ahead(look_ahead)
+        speeches = [as_mono_float(s) for s in speeches]
+        results = [np.zeros(0, dtype=np.float32) for _ in speeches]
+        ready = [i for i, s in enumerate(speeches) if len(s) >= self.min_samples]
+        if not ready:
+            return results
+        lengths = [len(speeches[i]) for i in ready]
+        batch = np.zeros((len(ready), max(lengths)), dtype=np.float32)
+        for b, i in enumerate(ready):
+            batch[b, : lengths[b]] = speeches[i]
+        with torch.no_grad():
+            out = self.diarize.diarize_batch(batch, np.asarray(lengths), fs=self.fs)
+        for i, n, p in zip(ready, lengths, out):
+            results[i] = np.asarray(p, dtype=np.float32)[:, 0]
+            self._check_frames(results[i], n)
+        return results
+
+    def detect(
+        self, speech: np.ndarray, fs: Optional[int] = None, offline: bool = True
+    ) -> List[Segment]:
+        """Speech segments of one recording.
+
+        offline=True reads the largest look-ahead the encoder offers; False
+        reads none, as the online stream does.
+        """
+        look_ahead = self.offline_look_ahead if offline else 0
+        return self.segments(self.probabilities(speech, fs, look_ahead))
+
+    def detect_file(self, path: Union[str, Path], offline: bool = True):
+        """Speech segments of an audio file."""
+        return self.detect(read_audio(path, self.fs), self.fs, offline)
+
+    def detect_files(
+        self,
+        paths: Sequence[Union[str, Path]],
+        offline: bool = True,
+        batch_size: int = 8,
+    ) -> List[List[Segment]]:
+        """Speech segments of many files, ``batch_size`` recordings at a time.
+
+        The files are batched in order of length (read from their headers), so
+        a batch holds recordings of similar length and little padding; each
+        batch is decoded when it runs, so only one batch of audio is in memory.
+        The results come back in the order of ``paths``.
+        """
+        if batch_size < 1:
+            raise ValueError(f"batch_size must be positive: {batch_size}")
+        look_ahead = self.offline_look_ahead if offline else 0
+        order = sorted(range(len(paths)), key=lambda i: audio_seconds(paths[i]))
+        results: List[List[Segment]] = [[] for _ in paths]
+        for k in range(0, len(order), batch_size):
+            group = order[k : k + batch_size]
+            speeches = [read_audio(paths[i], self.fs) for i in group]
+            for i, p in zip(group, self.probabilities_batch(speeches, look_ahead)):
+                results[i] = self.segments(p)
+        return results
+
+    def stream(self) -> "StreamingVAD":
+        """Start an online stream: feed chunks, get frame probabilities back."""
+        from espnet2.bin.diar_inference_streaming import StreamingVAD
+
+        return StreamingVAD(self)
+
+
+def format_segments(segments: Iterable[Segment]) -> str:
+    """One line a segment: start and end seconds, tab-separated."""
+    return "\n".join(f"{s.start:.2f}\t{s.end:.2f}" for s in segments)
+
+
 @typechecked
 def inference(
     output_dir: str,
@@ -477,9 +994,10 @@ def inference(
     normalize_output_wav: bool,
     multiply_diar_result: bool,
     enh_s2t_task: bool,
+    look_ahead: Optional[int] = None,
 ):
-    if batch_size > 1:
-        raise NotImplementedError("batch decoding is not implemented")
+    if batch_size > 1 and enh_s2t_task:
+        raise NotImplementedError("batch decoding is not implemented for enh_s2t")
     if ngpu > 1:
         raise NotImplementedError("only single GPU decoding is supported")
 
@@ -510,6 +1028,7 @@ def inference(
         dtype=dtype,
         multiply_diar_result=multiply_diar_result,
         enh_s2t_task=enh_s2t_task,
+        look_ahead=look_ahead,
     )
     diarize_speech = DiarizeSpeech.from_pretrained(
         model_tag=model_tag,
@@ -558,6 +1077,7 @@ def inference(
         assert all(isinstance(s, str) for s in keys), keys
         _bs = len(next(iter(batch.values())))
         assert len(keys) == _bs, f"{len(keys)} != {_bs}"
+        speech_lengths = batch.get("speech_lengths")
         batch = {k: v for k, v in batch.items() if not k.endswith("_lengths")}
 
         if enh_s2t_task:
@@ -567,9 +1087,11 @@ def inference(
                 for spk, w in enumerate(waves):
                     wav_writers[spk][keys[b]] = fs, w[b]
         else:
-            spk_predictions = diarize_speech(**batch)
-            for b in range(batch_size):
-                writer[keys[b]] = spk_predictions[b]
+            spk_predictions = diarize_speech.diarize_batch(
+                batch["speech"], speech_lengths, fs=fs
+            )
+            for key, prediction in zip(keys, spk_predictions):
+                writer[key] = prediction
 
     if enh_s2t_task:
         for w in wav_writers:
@@ -680,6 +1202,14 @@ def get_parser():
         type=int_or_none,
         default=None,
         help="Predetermined number of speakers for inference",
+    )
+    group.add_argument(
+        "--look_ahead",
+        type=int_or_none,
+        default=None,
+        help="Look-ahead of the encoder in input frames: 0 for online "
+        "diarization, up to the encoder's max_look_ahead for offline. "
+        "None keeps the value of the training config",
     )
 
     group = parser.add_argument_group("Enh + Diar related")

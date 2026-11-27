@@ -144,6 +144,23 @@ def test_tcn_separator_output():
             assert specs[n].shape == others["mask_spk{}".format(n + 1)].shape
 
 
+@pytest.mark.parametrize("dtype", [torch.float32, torch.float64, torch.bfloat16])
+def test_tcn_streaming_dtype(dtype):
+    separator = (
+        TCNSeparator(input_dim=5, layer=2, stack=1, bottleneck_dim=5, hidden_dim=5)
+        .to(dtype)
+        .eval()
+    )
+    state = None
+    with torch.no_grad():
+        for _ in range(2):
+            frame = torch.randn(2, 1, 5, dtype=dtype)
+            masked, state, others = separator.forward_streaming(frame, state)
+            assert state.dtype == frame.dtype
+            assert all(output.dtype == frame.dtype for output in masked)
+            assert all(mask.dtype == frame.dtype for mask in others.values())
+
+
 def test_tcn_streaming():
     SEQ_LEN = 100
     num_spk = 2

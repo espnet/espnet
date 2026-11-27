@@ -4,30 +4,12 @@ from pathlib import Path
 import pytest
 from omegaconf import OmegaConf
 
-from espnet3.api.inference import Field, InferenceAPI
 from espnet3.components.metrics.base_metric import BaseMetric
+from espnet3.contract import Field
 from espnet3.systems.base.metric import _resolve_test_sets, measure
 from espnet3.utils.scp_utils import get_class_path
 
-
-class _DummyInference(InferenceAPI):
-    """A model declaration covering every output name this file's metrics use."""
-
-    inputs = (Field("speech", "audio"),)
-    outputs = (
-        Field("ref", "text"),
-        Field("hyp", "text"),
-        Field("text", "text"),
-        Field("hypothesis", "text"),
-    )
-
-    def run(self, speech):
-        raise NotImplementedError
-
-
-_INFERENCE_CFG = OmegaConf.create(
-    {"model": {"_target_": f"{__name__}._DummyInference"}}
-)
+_INFERENCE_CFG = OmegaConf.create({})
 
 
 class DummyMetric(BaseMetric):
@@ -362,29 +344,6 @@ def test_measure_rejects_a_metric_that_skipped_the_init_check(tmp_path):
         measure(cfg, _INFERENCE_CFG)
 
 
-def test_measure_rejects_metric_whose_input_is_not_a_declared_output(tmp_path):
-    inference_dir = tmp_path / "infer"
-    test_name = "test-clean"
-    (inference_dir / test_name).mkdir(parents=True)
-
-    not_declared = OmegaConf.create({"model": {"_target_": "builtins.dict"}})
-    cfg = OmegaConf.create(
-        {
-            "inference_dir": str(inference_dir),
-            "dataset": {"test": [{"name": test_name}]},
-            "metrics": [
-                {
-                    "metric": {"_target_": f"{__name__}.DummyMetric"},
-                    "inputs": {"ref": "ref", "hyp": "hyp"},
-                }
-            ],
-        }
-    )
-
-    with pytest.raises(ValueError, match="declares no outputs"):
-        measure(cfg, not_declared)
-
-
 def test_measure_succeeds_for_declared_metric_with_matching_output(tmp_path):
     inference_dir = tmp_path / "infer"
     test_name = "test-clean"
@@ -520,7 +479,6 @@ def test_measure_succeeds_for_wer_with_dataset_and_scp_inputs(tmp_path):
     inference_cfg = OmegaConf.create(
         {
             "inference_dir": str(inference_dir),
-            "model": {"_target_": f"{__name__}._DummyInference"},
             "provider": {"_target_": f"{__name__}._DatasetTextProvider"},
         }
     )

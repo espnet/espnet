@@ -2,13 +2,13 @@ from pathlib import Path
 
 import pytest
 
-from espnet3.api.inference import Field
 from espnet3.components.data import dataset_module as dm
 from espnet3.components.data.base_dataset import BaseDataset
 from espnet3.components.data.data_organizer import DatasetConfig
+from espnet3.contract import Field
 
-_FIELDS_IMPORT = "from espnet3.api.inference import Field"
 _BASE_IMPORT = "from espnet3.components.data.base_dataset import BaseDataset"
+_FIELD_IMPORT = "from espnet3.contract import Field"
 
 
 def _write(path: Path, text: str) -> None:
@@ -21,8 +21,8 @@ def _create_local_recipe_dataset(tmp_path: Path) -> None:
         tmp_path / "dataset" / "__init__.py",
         "\n".join(
             [
-                _FIELDS_IMPORT,
                 _BASE_IMPORT,
+                _FIELD_IMPORT,
                 "class DatasetBuilder:",
                 "    def is_source_prepared(self, **kwargs):",
                 "        return True",
@@ -37,7 +37,7 @@ def _create_local_recipe_dataset(tmp_path: Path) -> None:
                 "        return None",
                 "",
                 "class Dataset(BaseDataset):",
-                "    fields = (Field('text', 'text'),)",
+                '    fields = (Field("text", "text"),)',
                 "    def __init__(self, **kwargs):",
                 "        self.kwargs = kwargs",
                 "    def __getitem__(self, index):",
@@ -57,8 +57,8 @@ def _create_module_path_dataset(tmp_path: Path) -> str:
         tmp_path / f"{module_name}.py",
         "\n".join(
             [
-                _FIELDS_IMPORT,
                 _BASE_IMPORT,
+                _FIELD_IMPORT,
                 "class DatasetBuilder:",
                 "    def is_source_prepared(self, **kwargs):",
                 "        return True",
@@ -73,7 +73,7 @@ def _create_module_path_dataset(tmp_path: Path) -> str:
                 "        return None",
                 "",
                 "class Dataset(BaseDataset):",
-                "    fields = (Field('text', 'text'),)",
+                '    fields = (Field("text", "text"),)',
                 "    def __init__(self, **kwargs):",
                 "        self.kwargs = kwargs",
                 "    def __getitem__(self, index):",

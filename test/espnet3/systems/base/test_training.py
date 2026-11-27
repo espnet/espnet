@@ -1,7 +1,16 @@
+import lightning
+import pytest
+import torch
 from omegaconf import OmegaConf
 
+import espnet3.components.trainers.trainer as trainer_mod
 import espnet3.systems.base.training as train_mod
+from espnet3.components.data import data_organizer as data_organizer_module
+from espnet3.components.modeling.lightning_module import ESPnetLightningModule
 from espnet3.systems.base.training import _build_trainer, _instantiate_model
+from espnet3.utils.config_utils import load_config_with_defaults
+
+_UNSET = object()
 
 
 class DummyTrainer:
@@ -196,3 +205,170 @@ def test_build_trainer_assembles_components(tmp_path, monkeypatch):
     assert calls["model"] == "dummy_model"
     assert calls["trainer_args"]["model"] == "lit_model"
     assert calls["trainer_args"]["exp_dir"] == str(tmp_path / "exp")
+
+
+class _InitDummyDataset(torch.utils.data.Dataset):
+    def __getitem__(self, idx):
+        return {"x": torch.zeros(3)}
+
+    def __len__(self):
+        return 2
+
+
+class _PretrainedFrontend(torch.nn.Module):
+    def __init__(self, in_features):
+        super().__init__()
+        self.proj = torch.nn.Linear(in_features, in_features)
+        self.pretrained = {k: v.clone() for k, v in self.state_dict().items()}
+
+    def reload_pretrained_parameters(self):
+        self.load_state_dict(self.pretrained)
+
+
+class _PretrainedFrontendModel(torch.nn.Module):
+    """Model whose frontend restores its own weights after ``initialize()``."""
+
+    def __init__(self, in_features, out_features):
+        super().__init__()
+        self.frontend = _PretrainedFrontend(in_features)
+        self.head = torch.nn.Linear(in_features, out_features)
+
+
+_INIT_TRAINING_YAML = """
+exp_dir: {exp_dir}
+model:
+  _target_: {model_target}
+  in_features: 3
+  out_features: 1
+optim:
+  _target_: torch.optim.Adam
+  lr: 0.001
+scheduler:
+  _target_: torch.optim.lr_scheduler.StepLR
+  step_size: 1
+dataset:
+  _target_: espnet3.components.data.data_organizer.DataOrganizer
+  train:
+    - name: train_dummy
+      data_src: dummy
+  valid:
+    - name: valid_dummy
+      data_src: dummy
+dataloader:
+  train:
+    batch_size: 1
+  valid:
+    batch_size: 1
+best_model_criterion:
+  - - valid/loss
+    - 1
+    - min
+trainer:
+  accelerator: cpu
+  devices: 1
+  log_every_n_steps: 1
+  max_epochs: 1
+"""
+
+
+@pytest.fixture
+def load_init_training_config(tmp_path, monkeypatch):
+    """Load a training YAML through the recipe config loader."""
+    monkeypatch.setattr(
+        data_organizer_module,
+        "instantiate_dataset_reference",
+        lambda config, recipe_dir=None: _InitDummyDataset(),
+    )
+
+    def load(top_init=_UNSET, trainer_init=_UNSET, model_target="torch.nn.Linear"):
+        text = _INIT_TRAINING_YAML.format(
+            exp_dir=tmp_path / "exp", model_target=model_target
+        )
+        if trainer_init is not _UNSET:
+            text += f"  init: {trainer_init or 'null'}\n"
+        if top_init is not _UNSET:
+            text += f"init: {top_init or 'null'}\n"
+        path = tmp_path / "training.yaml"
+        path.write_text(text)
+        return load_config_with_defaults(str(path))
+
+    return load
+
+
+@pytest.fixture
+def record_initialize(monkeypatch):
+    calls = []
+    real_initialize = trainer_mod.initialize
+
+    def fake_initialize(model, init):
+        assert not isinstance(model, ESPnetLightningModule)
+        calls.append(init)
+        real_initialize(model, init)
+
+    monkeypatch.setattr(trainer_mod, "initialize", fake_initialize)
+    return calls
+
+
+@pytest.mark.parametrize(
+    "top_init, trainer_init",
+    [
+        (_UNSET, "xavier_uniform"),
+        ("xavier_uniform", _UNSET),
+        ("xavier_uniform", "xavier_uniform"),
+        (None, "xavier_uniform"),
+    ],
+)
+def test_build_trainer_applies_init_without_leaking_to_lightning(
+    top_init, trainer_init, load_init_training_config, record_initialize
+):
+    config = load_init_training_config(top_init=top_init, trainer_init=trainer_init)
+    original = OmegaConf.to_container(config, resolve=False)
+
+    trainer = _build_trainer(config)
+
+    assert record_initialize == ["xavier_uniform"]
+    assert isinstance(trainer.trainer, lightning.Trainer)
+    assert OmegaConf.to_container(config, resolve=False) == original
+
+
+def test_build_trainer_init_keeps_pretrained_frontend_weights(
+    load_init_training_config, record_initialize
+):
+    config = load_init_training_config(
+        top_init="xavier_uniform",
+        model_target=f"{__name__}._PretrainedFrontendModel",
+    )
+
+    trainer = _build_trainer(config)
+
+    frontend = trainer.model.model.frontend
+    assert record_initialize == ["xavier_uniform"]
+    assert torch.equal(frontend.proj.weight, frontend.pretrained["proj.weight"])
+    assert torch.equal(frontend.proj.bias, frontend.pretrained["proj.bias"])
+
+
+@pytest.mark.parametrize(
+    "top_init, trainer_init",
+    [(_UNSET, _UNSET), (None, None), (_UNSET, None), (None, _UNSET)],
+)
+def test_build_trainer_skips_missing_or_null_init(
+    top_init, trainer_init, load_init_training_config, record_initialize
+):
+    config = load_init_training_config(top_init=top_init, trainer_init=trainer_init)
+
+    trainer = _build_trainer(config)
+
+    assert record_initialize == []
+    assert isinstance(trainer.trainer, lightning.Trainer)
+
+
+def test_build_trainer_rejects_conflicting_init(
+    load_init_training_config, record_initialize
+):
+    config = load_init_training_config(
+        top_init="xavier_uniform", trainer_init="kaiming_normal"
+    )
+
+    with pytest.raises(ValueError, match="init='xavier_uniform'.*kaiming_normal"):
+        _build_trainer(config)
+    assert record_initialize == []

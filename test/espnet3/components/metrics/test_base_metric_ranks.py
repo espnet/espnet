@@ -2,8 +2,8 @@
 
 import pytest
 
-from espnet3.api.inference import Field
 from espnet3.components.metrics.base_metric import BaseMetric
+from espnet3.contract import Field
 
 ROWS = [f"r{i}" * (i + 1) for i in range(10)]
 SPLITS = [(5, 5), (9, 1), (10, 0), (0, 10)]

@@ -593,7 +593,9 @@ class Trainer:
 
             batch["utt_id"] = utt_id
 
-            batch = to_device(batch, "cuda" if ngpu > 0 else "cpu")
+            # The data loader pins its batches (pin_memory=ngpu > 0), so the copy
+            # runs asynchronously instead of holding the CPU until it is done.
+            batch = to_device(batch, "cuda" if ngpu > 0 else "cpu", non_blocking=True)
             if no_forward_run:
                 all_steps_are_invalid = False
                 continue
@@ -693,9 +695,9 @@ class Trainer:
                     # automatically normalizes the gradient by world_size.
                     loss *= torch.distributed.get_world_size()
 
-                loss /= accum_grad
-
-            reporter.register(stats, weight)
+                # Not in place: the statistics usually hold loss.detach(), which
+                # shares its storage and would be reported divided by accum_grad.
+                loss = loss / accum_grad
 
             with reporter.measure_time("backward_time"):
                 if scaler is not None:
@@ -708,6 +710,10 @@ class Trainer:
                 else:
                     loss.backward()
             del loss
+
+            # Registered after backward() has been queued: reading tensor stats
+            # waits for the GPU, which would otherwise hold back the backward pass.
+            reporter.register(stats, weight)
 
             if iiter % accum_grad == 0:
                 if scaler is not None:
@@ -848,7 +854,9 @@ class Trainer:
 
             batch["utt_id"] = utt_id
 
-            batch = to_device(batch, "cuda" if ngpu > 0 else "cpu")
+            # The data loader pins its batches (pin_memory=ngpu > 0), so the copy
+            # runs asynchronously instead of holding the CPU until it is done.
+            batch = to_device(batch, "cuda" if ngpu > 0 else "cpu", non_blocking=True)
             if no_forward_run:
                 continue
 

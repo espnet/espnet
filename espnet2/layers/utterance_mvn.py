@@ -81,7 +81,10 @@ def utterance_mvn(
 
         if norm_vars:
             var = x.pow(2).sum(dim=1, keepdim=True) / ilens_
-            std = torch.clamp(var.sqrt(), min=eps)
+            # Avoid sqrt's undefined gradient at zero before applying the floor.
+            zero_var = var == 0
+            std = var.masked_fill(zero_var, 1.0).sqrt()
+            std = torch.clamp(std.masked_fill(zero_var, 0.0), min=eps)
             x = x / std
         return x, ilens
     else:
@@ -89,6 +92,8 @@ def utterance_mvn(
             y = x - mean
             y.masked_fill_(make_pad_mask(ilens, y, 1), 0.0)
             var = y.pow(2).sum(dim=1, keepdim=True) / ilens_
-            std = torch.clamp(var.sqrt(), min=eps)
+            zero_var = var == 0
+            std = var.masked_fill(zero_var, 1.0).sqrt()
+            std = torch.clamp(std.masked_fill(zero_var, 0.0), min=eps)
             x /= std
         return x, ilens

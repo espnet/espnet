@@ -38,7 +38,7 @@ class DPCLSeparator(AbsSeparator):
             num_spk: number of speakers
             nonlinear: the nonlinear function for mask estimation,
                        select from 'relu', 'tanh', 'sigmoid'
-            layer: int, number of stacked RNN layers. Default is 3.
+            layer: int, number of stacked RNN layers. Default is 2.
             unit: int, dimension of the hidden state.
             emb_D: int, dimension of the feature vector for a tf-bin.
             dropout: float, dropout ratio. Default is 0.

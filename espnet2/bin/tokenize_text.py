@@ -136,18 +136,8 @@ def tokenize(
         return
 
     # ======= write_vocabulary mode from here =======
-    # Sort by the number of occurrences in descending order
-    # and filter lower frequency words than cutoff value
-    words_and_counts = list(
-        filter(lambda x: x[1] > cutoff, sorted(counter.items(), key=lambda x: -x[1]))
-    )
-    # Restrict the vocabulary size
-    if vocabulary_size > 0:
-        if vocabulary_size < len(add_symbol):
-            raise RuntimeError(f"vocabulary_size is too small: {vocabulary_size}")
-        words_and_counts = words_and_counts[: vocabulary_size - len(add_symbol)]
-
     # Parse the values of --add_symbol and --add_nonsplit_symbol
+    added_symbols = []
     for symbol_and_id in add_symbol + add_nonsplit_symbol:
         # e.g symbol="<blank>:0"
         try:
@@ -155,8 +145,35 @@ def tokenize(
             idx = int(idx)
         except ValueError:
             raise RuntimeError(f"Format error: e.g. '<blank>:0': {symbol_and_id}")
-        symbol = symbol.strip()
+        added_symbols.append((symbol.strip(), idx))
+    added_symbol_names = {symbol for symbol, idx in added_symbols}
+    if len(added_symbol_names) != len(added_symbols):
+        seen = set()
+        duplicates = []
+        for symbol, idx in added_symbols:
+            if symbol in seen and symbol not in duplicates:
+                duplicates.append(symbol)
+            seen.add(symbol)
+        raise RuntimeError(
+            "The same symbol is given more than once in --add_symbol or "
+            f"--add_nonsplit_symbol: {duplicates}"
+        )
 
+    # Sort by the number of occurrences in descending order
+    # and filter lower frequency words than cutoff value
+    words_and_counts = list(
+        filter(
+            lambda x: x[1] > cutoff and x[0] not in added_symbol_names,
+            sorted(counter.items(), key=lambda x: -x[1]),
+        )
+    )
+    # Restrict the vocabulary size
+    if vocabulary_size > 0:
+        if vocabulary_size < len(added_symbols):
+            raise RuntimeError(f"vocabulary_size is too small: {vocabulary_size}")
+        words_and_counts = words_and_counts[: vocabulary_size - len(added_symbols)]
+
+    for symbol, idx in added_symbols:
         # e.g. idx=0  -> append as the first symbol
         # e.g. idx=-1 -> append as the last symbol
         if idx < 0:
@@ -169,7 +186,8 @@ def tokenize(
 
     # Logging
     total_count = sum(counter.values())
-    invocab_count = sum(c for w, c in words_and_counts if c is not None)
+    vocab = {w for w, _ in words_and_counts}
+    invocab_count = sum(c for w, c in counter.items() if w in vocab)
     logging.info(f"OOV rate = {(total_count - invocab_count) / total_count * 100} %")
 
 

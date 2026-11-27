@@ -8,7 +8,8 @@
     espnet translate audio.wav --to eng
     espnet synthesize "Hello from ESPnet" -o hello.wav
     espnet enhance noisy.wav -o clean.wav
-    espnet run espnet/owsm_v4_base_102M --system s2t speech=audio.wav language=jpn
+    espnet detect meeting.wav
+    espnet detect --live
     espnet describe recording.wav
     espnet render "A bell rings twice in an empty stairwell." -o bell.wav
     espnet describe recording.wav --brief | espnet render - -o again.wav
@@ -29,11 +30,6 @@ to `espnet transcribe` is reported rather than half-loaded.
 `espnet demo` is the same OWSM model in a browser instead: it serves the app
 the Hugging Face Space runs, locally, and prints the URL to open.
 
-`espnet run` is the one command with no task in its name: it loads any
-model espnet3's `load` reads, takes the inputs the model declares by name,
-and prints the outputs it declares - which is what a model card's usage
-says in Python, at a terminal. `--list` shows the declaration.
-
 `describe` and `render` are the two directions of one model, Bagpiper, which
 maps audio to a description of it and a description back to audio. That is
 why they pipe into each other: the third example above asks what a recording
@@ -43,7 +39,6 @@ is, and renders the answer back as sound. They are 8B models, so both take
 
 import argparse
 import importlib.metadata
-import json
 import os
 import re
 import sys
@@ -68,6 +63,11 @@ DEFAULT_MODELS = {
     "translate": "espnet/owsm_ctc_v4_1B",
     "synthesize": "espnet/kan-bayashi_ljspeech_vits",
     "enhance": "espnet/Wangyou_Zhang_universal_train_enh_uses_refch0_2mem_raw",
+    # the offline VAD model (egs2/frontia_vad_v1/diar1); --online, --stream and
+    # --live load the online one, --online-model. Both are
+    # espnet2.bin.diar_inference.VAD_MODELS, which test_cli.py holds this to;
+    # either takes a packed .zip from stage 8.
+    "detect": "espnet/frontia_vad_v1_offline",
     # Bagpiper, which answers about audio and renders it. The general SFT
     # checkpoint does both directions; --model espnet/bagpiper-tts-sft is the
     # speech-focused one. Either is an 8B model: --server is the other way.
@@ -91,26 +91,29 @@ def _version() -> str:
         return "unknown (running from a source tree)"
 
 
+# Device names the parser takes. The accelerators are the ones
+# ``resolve_device`` knows how to check; repeating them here keeps this module
+# free of a torch import, which the argument parser must not need.
+_DEVICE_NAMES = ("auto", "cpu", "mps", "cuda", "xpu", "npu", "mlu", "musa", "hcu")
+
+
 def _device(value: str) -> str:
     """Accept a device name now, so a typo fails before a download.
 
     Whether this machine has the device, and what ``auto`` is on it, is
     settled once the arguments are parsed (:func:`_resolve_device`).
     """
-    if value in ("auto", "cpu", "mps", "cuda") or re.fullmatch(r"cuda:\d+", value):
+    name, _, index = value.partition(":")
+    if name in _DEVICE_NAMES and (not index or index.isdigit()):
         return value
     raise argparse.ArgumentTypeError(
-        f"unknown device {value!r}: use auto, cpu, mps, cuda or cuda:<n>"
+        f"unknown device {value!r}: use auto, cpu, mps or <backend>:<n>"
     )
 
 
 def _resolve_device(value: str) -> str:
-    """Turn ``auto`` into cuda or cpu, and refuse a device this machine lacks.
-
-    ``espnet3.api.inference.resolve_device`` does both; this only makes
-    its sentence the command's own, rather than a traceback.
-    """
-    from espnet3.api.inference import resolve_device
+    """Resolve and validate the requested device for the native backend."""
+    from espnet2.torch_utils.resolve_device import resolve_device
 
     try:
         return resolve_device(value)
@@ -156,11 +159,8 @@ def _write_audio(path: str, wave, rate: int) -> None:
 def _build(loader, args, task: str):
     """Load an ESPnet2 inference class, or say why this tag cannot serve this command.
 
-    For the commands whose model has no espnet3 ``Inference`` yet (speech
-    synthesis, enhancement, alignment, the demo, live transcription). The
-    loading and the "wrong task" message are shared with ``espnet.load``,
-    so that both front ends explain a mismatched tag the same way; only the
-    wording of the fix is this command line's own.
+    Loading and wrong-task errors are shared with espnet.load. Only the
+    wording of the remedy belongs to this command line.
     """
     return build_pretrained(
         loader,
@@ -172,34 +172,29 @@ def _build(loader, args, task: str):
 
 
 def _load_s2t(args, task: str):
-    """Load the speech-to-text model behind ``--model`` through espnet3's API.
+    """Build the native speech-to-text backend for a task command."""
+    from espnet2.bin.s2t_inference import Speech2Text
 
-    ``espnet3.api.inference.load`` hands the tag to the ``esp2_s2t``
-    system, whose ``Inference`` reads any OWSM, OWSM-CTC or POWSM
-    checkpoint and takes the language and task by name; so this command
-    line holds no knowledge of the model's symbols or its window.
-    """
-    from espnet3.api.inference import load
-
-    try:
-        return load(args.model, system="s2t", device=args.device)
-    except ModelTagError as e:
-        raise CLIError(
-            f"{args.model} does not look like a model for `espnet {task}`. Pass "
-            f"--model with a {task} model; `espnet models` names the default. "
-            f"({e})"
-        ) from e
+    return _build(Speech2Text, args, task)
 
 
 def _say(model, audio: str, **prompt) -> str:
-    """Return the model's text for one recording of any length.
-
-    ``prompt`` is the model's language and task by name (``language="jpn"``,
-    ``task="st_eng"``); a name the checkpoint lacks is the model's own
-    sentence about it, which this command line only reports.
-    """
+    """Decode a recording directly with the native backend."""
+    language = prompt.get("language")
+    task = prompt.get("task", "asr")
     try:
-        return model(audio, **prompt)["text"]
+        lang_sym = _language(
+            model, argparse.Namespace(language=language, model="this model")
+        )
+        task_sym = f"<{task}>"
+        if not _in_vocabulary(model, task_sym):
+            raise CLIError(f"this model has no {task_sym}")
+        return " ".join(
+            text
+            for _, _, text in model.decode_long(
+                audio, lang_sym=lang_sym, task_sym=task_sym
+            )
+        )
     except ValueError as e:
         raise CLIError(str(e)) from e
 
@@ -207,86 +202,6 @@ def _say(model, audio: str, **prompt) -> str:
 def _prompt(args) -> dict:
     """The language, when one was given; the model works it out otherwise."""
     return {"language": args.language} if args.language else {}
-
-
-def _declared(model) -> str:
-    """The model's inputs and outputs, one a line, as `--list` prints them."""
-    lines = ["inputs:"]
-    for f in model.inputs:
-        lines.append(f"  {f.name}=<{f.kind}>" + ("  (optional)" if f.optional else ""))
-    lines.append("outputs:")
-    lines += [f"  {f.name}  ({f.kind})" for f in model.outputs]
-    return "\n".join(lines)
-
-
-def _parse_inputs(model, pairs: List[str]) -> dict:
-    """Turn ``name=value`` arguments into the model's inputs, by its declaration.
-
-    An audio value is a path, which the model reads; a text value is the
-    string; anything else is JSON. A name the model does not declare, or a
-    required input left out, is a sentence naming the declaration.
-    """
-    fields = {f.name: f for f in model.inputs}
-    inputs: dict = {}
-    for pair in pairs:
-        name, sep, value = pair.partition("=")
-        if not sep or name not in fields:
-            raise CLIError(
-                f"{pair!r}: give inputs as name=value, one of "
-                f"{', '.join(fields) or 'none'}"
-            )
-        kind = fields[name].kind
-        inputs[name] = value if kind in ("audio", "text") else json.loads(value)
-    missing = [f.name for f in model.inputs if not f.optional and f.name not in inputs]
-    if missing:
-        raise CLIError(
-            f"missing input(s) {missing}; the model declares:\n{_declared(model)}"
-        )
-    return inputs
-
-
-def _write_outputs(model, result: dict, out_dir: Path) -> None:
-    """Print each declared output; audio goes to ``out_dir/<name>.wav``.
-
-    The three kinds a ``Field`` can have: text as is, segments as
-    ``start<TAB>end<TAB>text`` lines, audio written and its path printed.
-    """
-    several = len(model.outputs) > 1
-    for f in model.outputs:
-        value = result[f.name]
-        if several:
-            print(f"== {f.name}")
-        if f.kind == "text":
-            print(value)
-        elif f.kind == "segments":
-            for s in value:
-                print(f"{s['start']:.2f}\t{s['end']:.2f}\t{s['text']}")
-        else:  # audio
-            out_dir.mkdir(parents=True, exist_ok=True)
-            path = out_dir / f"{f.name}.wav"
-            array = value.array.T if value.array.ndim == 2 else value.array
-            _write_audio(str(path), array, value.rate)
-            print(path)
-
-
-def cmd_run(args) -> int:
-    """Run any published model by its declaration: inputs in, outputs out."""
-    from espnet3.api.inference import load
-
-    try:
-        model = load(args.tag, system=args.system, device=args.device)
-    except (ModelTagError, ValueError) as e:
-        raise CLIError(str(e)) from e
-    if args.list:
-        print(_declared(model))
-        return 0
-    inputs = _parse_inputs(model, args.inputs)
-    try:
-        result = model(**inputs)
-    except (TypeError, ValueError) as e:  # a value the model refuses
-        raise CLIError(str(e)) from e
-    _write_outputs(model, result, Path(args.output_dir))
-    return 0
 
 
 def _in_vocabulary(s2t, symbol: str) -> bool:
@@ -418,7 +333,7 @@ def cmd_phonemize(args) -> int:
     model = _load_s2t(args, "phonemize")
     # how a recording is cut up for phones - an encoder-decoder checkpoint
     # one window at a time, a CTC-only one whole - is the model's own
-    # knowledge, in espnet3.systems.esp2_s2t
+    # knowledge is handled by the native backend
     decoded = _say(model, args.audio, task="pr", **_prompt(args))
     print(phones(decoded, spaced=args.spaced))
     return 0
@@ -519,6 +434,142 @@ def cmd_enhance(args) -> int:
         for i, wave in enumerate(waves, start=1):
             speaker = output.with_name(f"{output.stem}.spk{i}{output.suffix}")
             _write_audio(str(speaker), wave[0], rate)
+    return 0
+
+
+def _load_vad(args, mode: str):
+    """The VAD of a mode: --model offline, --online-model online.
+
+    The threshold and the median filter are the mode's tuned rule unless
+    --threshold or --median names its own.
+    """
+    from espnet2.bin.diar_inference import (
+        VAD_MODELS,
+        VAD_RULES,
+        DiarizeSpeech,
+        VoiceActivityDetector,
+    )
+
+    threshold, median = VAD_RULES[mode]
+    threshold = threshold if args.threshold is None else args.threshold
+    median = median if args.median is None else args.median
+    if median < 1 or median % 2 == 0:
+        raise CLIError(f"--median must be a positive odd number, not {median}")
+    tag = (
+        (args.online_model or VAD_MODELS["online"]) if mode == "online" else args.model
+    )
+    diarize = build_pretrained(
+        DiarizeSpeech,
+        tag,
+        args.device,
+        "`espnet detect`",
+        "Pass --model (offline) or --online-model with a one-speaker "
+        "diarization (VAD) model.",
+        num_spk=1,
+    )
+    return VoiceActivityDetector(diarize, threshold=threshold, median=median)
+
+
+def cmd_detect(args) -> int:
+    if args.live or args.stream:
+        return _detect_as_it_arrives(args)
+    if not args.audio:
+        raise CLIError("give one or more audio files, or --live to record")
+    for path in args.audio:
+        _require_file(path)
+    if args.batch_size < 1:
+        raise CLIError(f"--batch-size must be positive, not {args.batch_size}")
+
+    from espnet2.bin.diar_inference import format_segments
+
+    offline = not args.online
+    vad = _load_vad(args, "offline" if offline else "online")
+    try:
+        results = vad.detect_files(
+            args.audio, offline=offline, batch_size=args.batch_size
+        )
+    except (OSError, RuntimeError) as e:
+        raise CLIError(str(e)) from e
+    if len(args.audio) == 1:
+        text = format_segments(results[0])
+        if text:
+            print(text)
+        return 0
+    # one line a segment, the file first, so that `grep` and `cut` take it apart
+    for path, segments in zip(args.audio, results):
+        for seg in segments:
+            print(f"{path}\t{seg.start:.2f}\t{seg.end:.2f}")
+    return 0
+
+
+def _detect_as_it_arrives(args) -> int:
+    """`--live` from the microphone, `--stream` from a file: online detection.
+
+    Each block runs the model on the frames it completes, with no look-ahead,
+    and a segment is printed once it has ended: once the frames after its
+    end are past the median filter's reach. Only the frames since the last
+    printed segment, and the median filter's reach before them, are
+    thresholded and filtered again per block, so the work per block does not
+    grow with the length of the session.
+    """
+    if args.live and args.audio:
+        raise CLIError("--live records from the microphone; do not also name a file")
+    if args.stream and len(args.audio) != 1:
+        raise CLIError("--stream reads one audio file; --live reads the microphone")
+    if args.stream:
+        _require_file(args.audio[0])
+
+    import numpy as np
+
+    from espnet2.bin import live
+    from espnet2.bin.diar_inference import frames_to_segments
+
+    vad = _load_vad(args, "online")
+    stream = vad.stream()
+    window = np.zeros(0, dtype=np.float32)  # the probabilities from frame start
+    start = 0  # frame index of window[0]
+    done = 0  # frame index where the last printed segment ended
+
+    def segments_in_window():
+        """(start frame, end frame) of each segment from frame `done` on."""
+        found = frames_to_segments(window, 1.0, vad.threshold, vad.median)
+        return [
+            (start + int(seg.start), start + int(seg.end))
+            for seg in found
+            if start + int(seg.start) >= done
+        ]
+
+    def show(first, last):
+        shift = vad.frame_shift
+        print(f"{first * shift:.2f}\t{last * shift:.2f}", flush=True)
+
+    try:
+        source = (
+            live.from_microphone(sample_rate=vad.fs)
+            if args.live
+            else live.from_file(args.audio[0], sample_rate=vad.fs)
+        )
+        for block in source:
+            window = np.concatenate([window, stream.accept(block, vad.fs)])
+            # the last segment may still grow, and the median filter can still
+            # change the frames within median // 2 of the end
+            settled = stream.emitted - vad.median // 2
+            for first, last in segments_in_window():
+                if last >= settled:
+                    break
+                show(first, last)
+                done = last
+            # keep the median filter's reach before the first open frame
+            keep = max(start, done - vad.median)
+            window, start = window[keep - start :], keep
+        window = np.concatenate([window, stream.finish()])
+    except live.LiveError as e:
+        raise CLIError(str(e)) from e
+    except KeyboardInterrupt:  # pragma: no cover - interactive
+        pass
+    # what is still open when the audio stops ends where the audio does
+    for first, last in segments_in_window():
+        show(first, last)
     return 0
 
 
@@ -772,42 +823,55 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("audio", help="audio file, any format soundfile reads")
     p.add_argument("-o", "--output", default="enhanced.wav", help="output wav")
 
-    p = sub.add_parser(
-        "run",
-        help="run any published model by what it declares; `--list` shows that",
-    )
+    p = add("detect", "find where speech is in audio files", cmd_detect)
     p.add_argument(
-        "tag", help="a Hub tag or a pack_model directory espnet3's load reads"
-    )
-    p.add_argument(
-        "--system",
-        default=None,
-        help="the system that reads the tag, for a checkpoint published without a "
-        "bundle (s2t for OWSM and POWSM, asr for ESPnet2 ASR models)",
-    )
-    p.add_argument(
-        "--device",
-        default="auto",
-        type=_device,
-        help="auto (cuda when torch sees one, else cpu), cpu, mps, cuda or "
-        "cuda:<n> (default: auto)",
-    )
-    p.add_argument(
-        "inputs",
+        "audio",
         nargs="*",
-        help="the model's inputs as name=value: a path for audio, a string for "
-        "text, JSON otherwise",
+        help="audio files, any format soundfile reads; several are run in "
+        "batches and printed as <file> <start> <end>",
     )
     p.add_argument(
-        "--list", action="store_true", help="print the inputs and outputs and stop"
+        "--online",
+        action="store_true",
+        help="detect with the online model, which reads no future audio, as "
+        "the live stream does (default: the offline model)",
     )
     p.add_argument(
-        "-o",
-        "--output-dir",
-        default=".",
-        help="where an audio output is written, as <name>.wav (default: here)",
+        "--online-model",
+        default=None,
+        help="tag or packed .zip of the online model, for --online, --stream "
+        "and --live (default: espnet/frontia_vad_v1_online)",
     )
-    p.set_defaults(func=cmd_run)
+    p.add_argument(
+        "--threshold",
+        type=float,
+        default=None,
+        help="speech probability above which a frame is speech (default: the "
+        "model's, tuned on AMI MH dev)",
+    )
+    p.add_argument(
+        "--median",
+        type=int,
+        default=None,
+        help="median filter over this many frames, odd; 1 for none (default: "
+        "the model's, tuned with the threshold)",
+    )
+    p.add_argument(
+        "--batch-size",
+        type=int,
+        default=8,
+        help="recordings run through the model at once (default: 8)",
+    )
+    p.add_argument(
+        "--stream",
+        action="store_true",
+        help="read one file block by block and print each segment as it ends",
+    )
+    p.add_argument(
+        "--live",
+        action="store_true",
+        help="detect speech from the microphone until Ctrl-C (needs sounddevice)",
+    )
 
     p = add("describe", "say what is in an audio file", cmd_describe)
     p.add_argument("audio", help="audio file, any format soundfile reads")
@@ -878,13 +942,7 @@ def main(argv: Optional[List[str]] = None) -> int:
     parser = build_parser()
     args, extra = parser.parse_known_args(argv)
     if extra:
-        # `espnet run tag speech=a.wav --system s2t language=jpn`: argparse
-        # binds the positionals it sees before the first option and leaves
-        # the rest, so name=value inputs after an option arrive here
-        if args.command == "run" and all("=" in a and a[0] != "-" for a in extra):
-            args.inputs = [*args.inputs, *extra]
-        else:
-            parser.error(f"unrecognized arguments: {' '.join(extra)}")
+        parser.error(f"unrecognized arguments: {' '.join(extra)}")
     try:
         if hasattr(args, "device"):  # every command that loads a model
             args.device = _resolve_device(args.device)
