@@ -191,3 +191,49 @@ def test_unrestricted_values_do_not_consume_metric_labels():
     )
     # The first value is also a requested label; it must still be emitted as a label.
     assert search(torch.zeros(3, 2))[0].yseq.tolist() == [2, 4, 8, 8, 8]
+
+
+@pytest.mark.parametrize("fixed_order", [False, True])
+def test_constraint_offers_deferred_labels_last(fixed_order):
+    from espnet2.aqa.ar_universa.universa_beam_search import MetricConstraintScorer
+
+    constraint = MetricConstraintScorer(12, [7, 4, 10], {}, fixed_order, [7, 10])
+
+    def allowed(prefix):
+        mask, _ = constraint.score(torch.tensor(prefix), None, torch.zeros(3, 2))
+        return torch.isfinite(mask).nonzero().flatten().tolist()
+
+    assert allowed([2]) == [4]
+    assert allowed([2, 4, 5]) == ([7] if fixed_order else [7, 10])
+    assert allowed([2, 4, 5, 10, 11]) == [7]
+
+
+@pytest.mark.parametrize("beam_size", [1, 20])
+@pytest.mark.parametrize("skip_meta", [False, True])
+@pytest.mark.parametrize("fixed_order", [False, True])
+def test_deferred_label_waits_for_other_labels(beam_size, skip_meta, fixed_order):
+    def build(deferred):
+        return ARUniVERSABeamSearch(
+            scorers={"decoder": Scorer()},  # Favors label 7 over label 4.
+            weights={"decoder": 1.0},
+            beam_size=beam_size,
+            vocab_size=9,
+            sos=2,
+            eos=3,
+            meta_label_for_search=[7, 4],
+            beam_masking={4: (5, 7), 7: (8, 9)},
+            skip_meta_label_score=skip_meta,
+            use_fixed_order=fixed_order,
+            deferred_meta_labels=deferred,
+        )
+
+    hyps = build([7]).forward(torch.zeros(3, 2))
+    assert hyps and all(hyp.yseq.tolist()[1::2] == [4, 7] for hyp in hyps)
+    if fixed_order or (beam_size == 1 and not skip_meta):
+        # Without deferral, the requested order or the scores put label 7 first.
+        assert build(None).forward(torch.zeros(3, 2))[0].yseq.tolist()[1] == 7
+
+
+def test_deferred_label_must_be_requested():
+    with pytest.raises(ValueError, match="Deferred"):
+        ARUniVERSABeamSearch({}, {}, 1, 9, 2, 3, [4], deferred_meta_labels=[7])
