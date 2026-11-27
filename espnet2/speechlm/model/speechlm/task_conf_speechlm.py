@@ -63,4 +63,4 @@ def _validate_task_consistency():
 _validate_task_templates()
 _validate_task_consistency()
 
-__all__ = [SPEECHLM_TASK_CONFIGS]
+__all__ = ["SPEECHLM_TASK_CONFIGS"]
