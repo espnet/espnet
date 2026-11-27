@@ -263,7 +263,8 @@ class TestMainDispatch:
         assert paths == expected_paths
         assert names == [spec.split(":")[1] for spec in registered]
 
-    def test_dispatch_titan_no_pp(self, train_module, tmp_path):
+    @pytest.mark.parametrize("sharded", [False, True])
+    def test_dispatch_titan_no_pp(self, train_module, tmp_path, sharded):
         train_cfg = {
             "trainer": {"type": "titan", "max_step": 1, "titan_config": {}},
             "data_loading": {
@@ -276,6 +277,8 @@ class TestMainDispatch:
         }
         argv = self._make_args(tmp_path, train_cfg, "titan")
         ctxs = self._patches(train_module)
+        factory = MagicMock()
+        ctxs.append(patch.object(train_module, "DataIteratorFactory", factory))
 
         titan_cls = MagicMock()
         titan_cls.return_value.run.return_value = None
@@ -285,9 +288,9 @@ class TestMainDispatch:
         fake_pd = MagicMock()
         fake_pd.pp_enabled = False
         fake_dp_mesh = MagicMock()
-        fake_dp_mesh.get_local_rank.return_value = 0
-        fake_dp_mesh.size.return_value = 1
-        fake_pd.get_mesh.return_value = fake_dp_mesh
+        fake_dp_mesh.get_local_rank.return_value = 1
+        fake_dp_mesh.size.return_value = 2
+        fake_pd.get_optional_mesh.return_value = fake_dp_mesh if sharded else None
         pu_module.init_parallel_dims.return_value = (fake_pd, 0, 0)
 
         with patch.dict(
@@ -303,6 +306,12 @@ class TestMainDispatch:
 
         titan_cls.assert_called_once()
         titan_cls.return_value.run.assert_called_once()
+        fake_pd.get_optional_mesh.assert_called_once_with("batch")
+        assert all(
+            (call.kwargs["rank"], call.kwargs["world_size"])
+            == ((1, 2) if sharded else (0, 1))
+            for call in factory.call_args_list
+        )
 
     def test_dispatch_titan_pp(self, train_module, tmp_path):
         train_cfg = {
@@ -327,7 +336,7 @@ class TestMainDispatch:
         fake_dp_mesh = MagicMock()
         fake_dp_mesh.get_local_rank.return_value = 0
         fake_dp_mesh.size.return_value = 1
-        fake_pd.get_mesh.return_value = fake_dp_mesh
+        fake_pd.get_optional_mesh.return_value = fake_dp_mesh
         pu_module.init_parallel_dims.return_value = (fake_pd, 0, 0)
 
         with patch.dict(

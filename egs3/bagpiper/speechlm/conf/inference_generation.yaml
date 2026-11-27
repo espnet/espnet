@@ -1,0 +1,21 @@
+exp_dir: exp/bagpiper_sft
+inference_dir: ${exp_dir}/generation
+model:
+  mode: generate
+input_key:
+  - prompt
+  - system
+contract:
+  outputs:
+    audio:
+      kind: audio
+output_artifacts:
+  audio:
+    type: wav
+dataset:
+  test:
+    - name: valid
+      data_src: egs3.bagpiper.speechlm.src.requests
+      data_src_args:
+        manifest: ${oc.env:BAGPIPER_PREPARED,data/sft/prepared}/generation/valid.json
+        mode: generate

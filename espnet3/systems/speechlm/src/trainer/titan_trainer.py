@@ -574,15 +574,15 @@ class TitanTrainer:
             self.model.reset_loss_stats()
             stats = dict()
             for _micro in range(grad_accum):
-                is_last_micro = _micro == grad_accum - 1
-
                 # For HSDP with gradient accumulation: defer the all-reduce
                 # to the last micro-batch so that intermediate reduce-scatter
                 # outputs accumulate in float32 (partial_reduce_output) instead
                 # of being cast to bfloat16 and accumulated in sharded param's
                 # grad.  This reduces rounding error accumulation.
-                self.model.set_requires_all_reduce(is_last_micro)
-                self.model.set_is_last_backward(is_last_micro)
+                if self.parallel_dims.fsdp_enabled:
+                    is_last_micro = _micro == grad_accum - 1
+                    self.model.set_requires_all_reduce(is_last_micro)
+                    self.model.set_is_last_backward(is_last_micro)
 
                 try:
                     batch = next(data_iter)
@@ -599,7 +599,7 @@ class TitanTrainer:
                 dist.all_reduce(global_count, op=dist.ReduceOp.SUM, group=self.dp_pg)
                 batch["loss_scale"] = self.dp_size / (global_count * grad_accum)
 
-                loss = self.model(**batch)
+                loss = self._forward_batch(batch)
                 loss.backward()
 
                 # Accumulate raw-sum stats across micro-batches
@@ -644,6 +644,13 @@ class TitanTrainer:
 
             self.global_step += 1
 
+    def _forward_batch(self, batch):
+        """Apply the compute dtype when FSDP is absent on a single device."""
+        if self.parallel_dims.fsdp_enabled or self.dtype == self.storage_dtype:
+            return self.model(**batch)
+        with torch.autocast(self.device.type, dtype=self.dtype):
+            return self.model(**batch)
+
     def valid(self) -> None:
         """Run validation on all validation datasets."""
         self.model.eval()
@@ -667,7 +674,7 @@ class TitanTrainer:
                     batch = to_device(
                         batch, self.device, dtype=self.dtype, non_blocking=True
                     )
-                    self.model(**batch)
+                    self._forward_batch(batch)
 
                     for key, val in batch["data_stats"].items():
                         stats[key] = stats.get(key, 0.0) + val

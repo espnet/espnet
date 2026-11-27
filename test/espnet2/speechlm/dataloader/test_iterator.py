@@ -44,8 +44,9 @@ class TestParseDataSpecifier:
         assert unreg[1] == ("tts", "lj", "b.json", 1.0)
         assert reg[0] == ("stt", "cv", 0.5)
 
-    def test_parse_empty(self):
-        unreg, reg = _parse_data_specifier("", "")
+    @pytest.mark.parametrize("empty", ["", [], None])
+    def test_parse_empty(self, empty):
+        unreg, reg = _parse_data_specifier(empty, empty)
         assert unreg == []
         assert reg == []
 

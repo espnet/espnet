@@ -60,7 +60,10 @@ MODULES = [
 
 # Entry points that need one task extra installed on top of the bare package.
 EXTRA_MODULES = {
-    "speechlm": ["espnet2.speechlm.bin.inference"],
+    "speechlm": [
+        "espnet2.speechlm.bin.inference",
+        "espnet3.systems.speechlm.inference",
+    ],
 }
 
 extras = sys.argv[1:]

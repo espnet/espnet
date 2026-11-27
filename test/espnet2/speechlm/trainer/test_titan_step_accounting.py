@@ -1,5 +1,6 @@
 """Exercise optimizer and batch progress through save intervals and resume."""
 
+from types import SimpleNamespace
 from unittest.mock import patch
 
 import pytest
@@ -16,12 +17,6 @@ class TrainingModel(torch.nn.Module):
 
     def reset_loss_stats(self):
         self._loss_stats = {"loss": torch.tensor(0.0), "count": torch.tensor(0.0)}
-
-    def set_requires_all_reduce(self, enabled):
-        pass
-
-    def set_is_last_backward(self, enabled):
-        pass
 
     def forward(self, value, loss_scale, **kwargs):
         self.seen.append(int(value))
@@ -44,6 +39,7 @@ class Batches:
 def make_trainer(global_step, max_step):
     trainer = TitanTrainer.__new__(TitanTrainer)
     trainer.model = TrainingModel()
+    trainer.parallel_dims = SimpleNamespace(fsdp_enabled=False)
     trainer.train_data_factory = Batches()
     trainer.optimizer = torch.optim.SGD(trainer.model.parameters(), lr=0.01)
     trainer.lr_scheduler = torch.optim.lr_scheduler.LambdaLR(
@@ -55,6 +51,7 @@ def make_trainer(global_step, max_step):
     trainer.gradient_accumulation_steps = 2
     trainer.device = torch.device("cpu")
     trainer.dtype = torch.float32
+    trainer.storage_dtype = torch.float32
     trainer.dp_pg = None
     trainer.dp_size = 1
     trainer.max_norm = 1.0
@@ -92,3 +89,14 @@ def test_exhausted_iterator_does_not_advance_optimizer():
     assert trainer.global_step == 0
     assert trainer.lr_scheduler.last_epoch == 0
     torch.testing.assert_close(trainer.model.weight, original)
+
+
+def test_unsharded_forward_uses_compute_dtype_and_keeps_optimizer_storage():
+    trainer = make_trainer(0, 1)
+    trainer.dtype = torch.bfloat16
+    trainer.model = torch.nn.Linear(4, 1)
+    features = torch.ones(1, 4, dtype=trainer.dtype)
+    loss = trainer._forward_batch({"input": features}).sum()
+    loss.backward()
+    assert loss.dtype == trainer.dtype
+    assert trainer.model.weight.grad.dtype == trainer.storage_dtype

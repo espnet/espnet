@@ -1,0 +1,33 @@
+recipe_dir: .
+exp_dir: ${recipe_dir}/exp/speechlm
+inference_dir: ${exp_dir}/inference
+dataset:
+  _target_: espnet3.components.data.data_organizer.DataOrganizer
+  _recursive_: false
+  recipe_dir: ${recipe_dir}
+  test: []
+parallel:
+  env: local
+  n_workers: 1
+provider:
+  _target_: espnet3.systems.base.inference_provider.InferenceProvider
+runner:
+  _target_: espnet3.systems.base.inference_runner.InferenceRunner
+  # A completed shard only records its indices. The same indices can refer to
+  # new requests, a different checkpoint, or different decoding settings.
+  resume: false
+batch_size: null
+idx_key: utt_id
+model:
+  _target_: espnet3.systems.speechlm.inference.BagpiperInference
+  tag_or_dir: ${oc.env:BAGPIPER_MODEL,espnet/bagpiper-sft}
+contract:
+  inputs:
+    prompt:
+      kind: text
+    system:
+      kind: text
+      optional: true
+  outputs:
+    text:
+      kind: text
