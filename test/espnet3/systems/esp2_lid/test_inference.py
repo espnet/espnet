@@ -1,6 +1,9 @@
+import argparse
+
 import numpy as np
 import pytest
 import torch
+import yaml
 from omegaconf import OmegaConf
 
 import espnet3.parallel.parallel as parallel_module
@@ -13,6 +16,7 @@ from espnet3.systems.base.inference import infer
 from espnet3.systems.base.metric import measure
 from espnet3.systems.esp2_lid.src.inference_runner import ESP2LIDInferenceRunner
 from espnet3.systems.esp2_lid.src.speech2language import Speech2Language
+from espnet3.systems.esp2_lid.task import LIDTask
 from espnet3.utils.config_utils import load_default_config
 
 
@@ -356,3 +360,67 @@ def test_pack_model_bundle_with_the_template_configs_loads(tmp_path, monkeypatch
     assert (pack / "exp" / "stats" / "train" / "lang2utt").is_file()
     model = InferenceModel.from_packed(pack, device="cpu")
     assert model(np.zeros(160, dtype=np.float32))["language"] == "jpn"
+
+
+def test_speech2language_loads_an_mfa_e_branchformer_model(tmp_path):
+    """A config with only the model-building keys loads and predicts."""
+    config = {
+        "model": "espnet",
+        "model_conf": {},
+        "init": None,
+        "input_size": None,
+        "lang_num": 3,
+        "frontend": "default",
+        "frontend_conf": {"n_fft": 128, "hop_length": 32, "n_mels": 20},
+        "specaug": None,
+        "specaug_conf": {},
+        "normalize": "utterance_mvn",
+        "normalize_conf": {"norm_vars": False},
+        "encoder": "mfa_e_branchformer",
+        "encoder_conf": {
+            "output_size": 16,
+            "attention_heads": 2,
+            "linear_units": 32,
+            "cgmlp_linear_units": 32,
+            "num_blocks": 2,
+            "attention_layer_type": "selfattn",
+            "pos_enc_layer_type": "abs_pos",
+            "use_ffn": True,
+            "macaron_ffn": True,
+            "merge_conv_kernel": 3,
+            "cgmlp_conv_kernel": 3,
+            "use_flash_attn": False,
+        },
+        "pooling": "stats",
+        "pooling_conf": {},
+        "projector": "rawnet3",
+        "projector_conf": {"output_size": 8},
+        "loss": "linear_softmax",
+        "loss_conf": {},
+    }
+    torch.manual_seed(0)
+    model = LIDTask.build_model(argparse.Namespace(**config)).eval()
+    (tmp_path / "config.yaml").write_text(yaml.safe_dump(config))
+    torch.save(model.state_dict(), tmp_path / "model.pth")
+    (tmp_path / "lang2utt").write_text("eng\nfra\njpn\n")
+
+    predictor = Speech2Language(
+        tmp_path / "config.yaml", tmp_path / "model.pth", tmp_path / "lang2utt"
+    )
+    speech = [
+        np.random.default_rng(i).standard_normal(n) for i, n in ((0, 4000), (1, 2400))
+    ]
+    languages = ["eng", "fra", "jpn"]
+    waves = [torch.as_tensor(item, dtype=torch.float32) for item in speech]
+    with torch.no_grad():
+        _, alone = model(waves[0][None], torch.tensor([4000]), extract_embd=True)
+        # Batched predictions are those of the padded batch with its lengths.
+        # (They need not equal the single ones: the STFT frontend lets the last
+        # frames of the shorter utterance see the padding.)
+        _, batch = model(
+            torch.nn.utils.rnn.pad_sequence(waves, batch_first=True),
+            torch.tensor([4000, 2400]),
+            extract_embd=True,
+        )
+    assert predictor(speech[0]) == languages[alone.item()]
+    assert predictor(speech) == [languages[i] for i in batch.tolist()]
