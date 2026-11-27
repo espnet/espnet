@@ -1,0 +1,112 @@
+##########################################################
+#                    TRAINING SETTING                    #
+##########################################################
+# The smallest model that still exercises the esp2_slu path: SLUTask with no
+# deliberation encoder and no post-decoder, so nothing is downloaded. The
+# intent is predicted as a reserved symbol prefixed to the transcript, which is
+# what `SLUInferenceRunner` splits back apart and `IntentAccuracy` scores.
+#
+# Only values that differ from `egs3/TEMPLATE/esp2_slu/conf/training.yaml`
+# appear here; `task` is the template's default.
+
+##########################################################
+#                    DATASET DEFINITION                  #
+##########################################################
+dataset:
+  train:
+    - data_src_args:
+        split: train
+  valid:
+    - data_src_args:
+        split: valid
+  preprocessor:
+    _target_: espnet2.train.preprocessor.CommonPreprocessor
+    token_type: bpe
+    token_list: ${tokenizer.save_path}/tokens.txt
+    bpemodel: ${tokenizer.save_path}/bpe.model
+    text_cleaner:
+    fs: 16000
+
+create_dataset:
+  recipe_dir: ${recipe_dir}
+
+##########################################################
+#                   TOKENIZER SETTING                    #
+##########################################################
+# `vocab_size` counts the reserved intent labels, so it must leave room for
+# them on top of the subwords.
+tokenizer:
+  vocab_size: 60
+  character_coverage: 1.0
+  model_type: bpe
+  save_path: ${data_dir}/${tokenizer.model_type}_${tokenizer.vocab_size}
+  text_builder:
+    func: src.tokenizer.gather_training_text
+    recipe_dir: ${recipe_dir}
+  user_defined_symbols_builder:
+    func: src.tokenizer.read_intent_labels
+    recipe_dir: ${recipe_dir}
+
+##########################################################
+#                      MODEL SETTING                     #
+##########################################################
+model:
+  vocab_size: ${tokenizer.vocab_size}
+  token_list: ${tokenizer.save_path}/tokens.txt
+
+  frontend: default
+  frontend_conf:
+    n_fft: 512
+    win_length: 400
+    hop_length: 160
+
+  normalize: utterance_mvn
+  normalize_conf: {}
+
+  encoder: transformer
+  encoder_conf:
+    output_size: 8
+    attention_heads: 2
+    linear_units: 8
+    num_blocks: 1
+    input_layer: conv2d
+
+  decoder: transformer
+  decoder_conf:
+    attention_heads: 2
+    linear_units: 8
+    num_blocks: 1
+
+  model_conf:
+    ctc_weight: 0.3
+    lsm_weight: 0.1
+    length_normalized_loss: false
+
+##########################################################
+#                OTHER TRAINING SETTING                  #
+##########################################################
+optimizer:
+  lr: 0.001
+
+scheduler:
+  warmup_steps: 1
+
+best_model_criterion:
+  - - valid/acc
+    - 1
+    - max
+
+dataloader:
+  train:
+    iter_factory:
+      num_workers: 0
+      batches:
+        type: unsorted
+        batch_size: 2
+  valid:
+    iter_factory:
+      num_workers: 0
+
+trainer:
+  max_epochs: 1
+  accelerator: cpu

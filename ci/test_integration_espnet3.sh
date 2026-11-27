@@ -196,3 +196,21 @@ ${python} run.py \
 rm -rf exp data
 
 cd "${cwd}" || exit
+
+python3 -m pip install -e '.[asr]'
+
+cd ./egs3/mini_an4/esp2_slu || exit
+gen_dummy_coverage
+echo "==== [ESPnet3] SLU ===="
+source path.sh
+# The intent is a reserved symbol prefixed to the transcript, so this covers
+# the tokenizer overrides, `SLUInferenceRunner`'s split and `IntentAccuracy`.
+# The model carries no post-decoder, so nothing is downloaded.
+${python} run.py \
+    --stages create_dataset train_tokenizer collect_stats train infer measure \
+    --training_config conf/training.yaml \
+    --inference_config conf/inference.yaml \
+    --metrics_config conf/metrics.yaml
+rm -rf exp data
+
+cd "${cwd}" || exit
