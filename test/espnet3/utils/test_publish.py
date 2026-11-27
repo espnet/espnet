@@ -688,8 +688,7 @@ def test_pack_model_drops_readme_lines_for_missing_context(
         "get_git_metadata",
         lambda cwd=None: {"short_commit": "abc123", "worktree": "dirty"},
     )
-    # The card credits a git author name, not the local account name; see
-    # test_creator_does_not_fall_back_to_the_account_name.
+    # the card credits a git author name, not the local account name
     monkeypatch.setenv("GIT_AUTHOR_NAME", "tester")
 
     publish.pack_model(
@@ -1452,6 +1451,22 @@ def test_meta_records_a_system_only_when_the_task_path_names_one():
 # ---------------------------------------------------------------------------
 
 
+def _scalars(node, where=""):
+    """Yield every scalar in a loaded config, with where it sits.
+
+    A line-wise check would miss a list entry, whose line holds no `key:` at
+    all, so the assertion has to walk the parsed structure.
+    """
+    if isinstance(node, dict):
+        for key, child in node.items():
+            yield from _scalars(child, f"{where}.{key}" if where else str(key))
+    elif isinstance(node, list):
+        for index, child in enumerate(node):
+            yield from _scalars(child, f"{where}[{index}]")
+    elif node is not None:
+        yield where, node
+
+
 def test_rewrite_drops_an_absolute_path_left_outside_the_bundle(tmp_path, caplog):
     """A path that only resolves on the packer's machine must not be written.
 
@@ -1474,6 +1489,31 @@ def test_rewrite_drops_an_absolute_path_left_outside_the_bundle(tmp_path, caplog
     assert rewritten == {"pack_model": {"readme": None}}
     assert "pack_model.readme" in caplog.text
     assert str(outside) not in OmegaConf.to_yaml(OmegaConf.create(rewritten))
+
+
+def test_rewrite_keeps_a_vocabulary_entry_that_looks_like_a_path(tmp_path):
+    """Only path settings are swept, so a `/` token survives.
+
+    `ASRTask` accepts an inline `token_list`, and `/` is a valid entry. It is
+    absolute and it exists, so a sweep that judged values alone would drop it
+    and corrupt the vocabulary the bundle describes.
+    """
+    outside = tmp_path / "checkout" / "hf_model_readme.md"
+    outside.parent.mkdir(parents=True)
+    outside.write_text("template", encoding="utf-8")
+
+    rewritten = _rewrite_paths_for_bundle(
+        {
+            "model": {"token_list": ["<blank>", "/", "<unk>"]},
+            "pack_model": {"readme": str(outside)},
+        },
+        recipe_root=tmp_path,
+        copied_sources={},
+        out_dir=tmp_path / "model_pack",
+    )
+
+    assert rewritten["model"]["token_list"] == ["<blank>", "/", "<unk>"]
+    assert rewritten["pack_model"]["readme"] is None
 
 
 def test_rewrite_keeps_a_path_copied_into_the_bundle(tmp_path):
@@ -1523,12 +1563,17 @@ def test_packed_config_carries_no_absolute_path(tmp_path, monkeypatch):
     exp_dir = recipe_dir / "exp"
     exp_dir.mkdir(parents=True)
     (exp_dir / "dummy.txt").write_text("hello", encoding="utf-8")
+    extra = recipe_dir / "src"
+    extra.mkdir()
+    (extra / "tokenizer.py").write_text("# hook", encoding="utf-8")
     out_dir = tmp_path / "model_pack"
     publication_config = OmegaConf.create(
         {
             "pack_model": {
                 "out_dir": str(out_dir),
                 "readme": "egs3/TEMPLATE/esp2_asr/src/hf_model_readme.md",
+                # a nested list, so the walk below has one to descend into
+                "include": [str(extra)],
             }
         }
     )
@@ -1543,10 +1588,9 @@ def test_packed_config_carries_no_absolute_path(tmp_path, monkeypatch):
     )
 
     for config in sorted((out_dir / "conf").glob("*.yaml")):
-        text = config.read_text(encoding="utf-8")
-        for line in text.splitlines():
-            key, _, value = line.partition(":")
-            assert not value.strip().startswith("/"), f"{config.name}: {line}"
+        loaded = OmegaConf.to_container(OmegaConf.load(config), resolve=False)
+        for where, value in _scalars(loaded):
+            assert not str(value).startswith("/"), f"{config.name}: {where} = {value}"
 
 
 def test_creator_prefers_the_configured_name(monkeypatch):

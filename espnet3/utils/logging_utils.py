@@ -336,8 +336,6 @@ def get_git_metadata(cwd: Path | None = None) -> dict[str, str]:
         "short_commit": _run_git_command(["git", "rev-parse", "--short", "HEAD"], cwd),
         "branch": _run_git_command(["git", "rev-parse", "--abbrev-ref", "HEAD"], cwd),
         "origin_url": _run_git_command(["git", "remote", "get-url", "origin"], cwd),
-        # The name already attached to every commit from this repository, so
-        # crediting it publishes nothing its owner has not published already.
         "author": _run_git_command(["git", "config", "user.name"], cwd),
     }
     meta["worktree"] = dirty

@@ -146,6 +146,30 @@ def _resolve_readme_template_path(readme_template_path: str) -> Path:
     raise FileNotFoundError(f"README template not found: {readme_template_path}")
 
 
+# Keys whose value is a path; see `_rewrite_paths_for_bundle` for why a value
+# is not judged on its own.
+_PATH_SETTING_RE = re.compile(r"(?:^|_)(?:dir|path|file|scp|readme|bpemodel)$")
+
+
+def _names_a_path(key_path: tuple[str, ...]) -> bool:
+    """Return whether the setting at ``key_path`` holds a path.
+
+    List indices are skipped, so an entry of ``pack_model.include`` is judged
+    by ``include`` rather than by its position.
+
+    Examples:
+        >>> _names_a_path(("pack_model", "readme"))
+        True
+        >>> _names_a_path(("model", "token_list", "3"))
+        False
+    """
+    for key in reversed(key_path):
+        if key.isdigit():
+            continue
+        return bool(_PATH_SETTING_RE.search(key))
+    return False
+
+
 def _rewrite_paths_for_bundle(
     value: Any,
     recipe_root: Path,
@@ -160,24 +184,11 @@ def _rewrite_paths_for_bundle(
     path already copied into the bundle with a ``${recipe_dir}/...`` reference,
     so the packed config works portably without absolute paths.
 
-    An absolute path that was *not* copied into the bundle is dropped rather
-    than written out. It cannot resolve anywhere but the machine that packed
-    the model, and a bundle is published, so the packer's account name and
-    directory layout would travel with it. ``pack_model.readme`` is the usual
-    case: ``${config_path:...}`` resolves it to the template's place in the
-    packer's checkout, and the bundle has no use for it afterwards.
-
-    Args:
-        value: The config node being rewritten.
-        recipe_root: Recipe directory, which relative paths resolve against.
-        copied_sources: Source directory -> its place in the bundle.
-        out_dir: The bundle root.
-        key_path: Where ``value`` sits in the config, for the log message.
-
-    Returns:
-        The rewritten node: a ``${recipe_dir}/...`` reference for a copied
-        path, ``None`` for an absolute path left outside the bundle, and the
-        value unchanged otherwise.
+    A path setting left pointing outside the bundle is dropped instead: a
+    published bundle should not carry a path that resolves only on the
+    machine that packed it. Only keys matching ``_PATH_SETTING_RE`` are
+    swept, since a value cannot be judged on its own -- an inline
+    ``token_list`` can carry ``"/"`` as a vocabulary entry.
     """
     if isinstance(value, (DictConfig, ListConfig)):
         value = OmegaConf.to_container(value, resolve=False)
@@ -209,9 +220,7 @@ def _rewrite_paths_for_bundle(
             continue
         rel = (dst_root / suffix).absolute().relative_to(out_dir.resolve()).as_posix()
         return f"${{recipe_dir}}/{rel}"
-    # `exists()` keeps this to real local references: a string that merely
-    # starts with a slash is left alone.
-    if raw.is_absolute() and candidate.exists():
+    if raw.is_absolute() and candidate.exists() and _names_a_path(key_path):
         logger.warning(
             "pack_model: dropping %s, which points outside the bundle (%s). "
             "An absolute path resolves only on the machine that packed the "
@@ -388,8 +397,6 @@ def _infer_creator(
 
     Examples:
         >>> _infer_creator(OmegaConf.create({"creator": "A. Researcher"}))
-        'A. Researcher'
-        >>> _infer_creator(OmegaConf.create({}), git_author="A. Researcher")
         'A. Researcher'
     """
     configured = getattr(publication_config, "creator", None)
