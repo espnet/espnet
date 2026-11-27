@@ -1,0 +1,41 @@
+##########################################################
+#  WHAM! 16 kHz -- SNOAR self-training from the supervised_fisher_bsrnn seed
+##########################################################
+# One remix view per step (the 2-view run was only ~0.3 dB better on cv for
+# 1.6x the step time). Batch 64 instead of 8 to fill an H200 (BSRNN-64 in
+# bf16), with the schedule rescaled to the same number of examples per
+# generation: 9343 / 8 = 1168 steps, and EMA decay 0.999^8 = 0.992 so the
+# teacher averages over the same number of examples.
+exp_tag: snoar_supervised_fisher_bsrnn
+data_dir: ${oc.env:WHAM_OUTPUT,./data}
+
+dataset:
+  train:
+    - data_src_args:
+        manifest: ${data_dir}/manifest/train.jsonl
+        segment_seconds: 3.0
+  valid:
+    - data_src_args:
+        manifest: ${data_dir}/manifest/valid.jsonl
+        segment_seconds: 3.0
+        deterministic: true
+        with_refs: true
+        num_items: 1000
+
+model:
+  mode: snoar
+  init: ${recipe_dir}/exp/supervised_fisher_bsrnn/export
+  views: 1
+  n_generations: 16
+  steps_per_generation: 1168
+  ema_decay: 0.992
+
+dataloader:
+  train:
+    batch_size: 64
+    num_workers: 15
+  valid:
+    batch_size: 64
+
+trainer:
+  max_steps: 18688

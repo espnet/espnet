@@ -1,0 +1,51 @@
+##########################################################
+#        SNOAR SYSTEM: `espnet snoar` CLI DEFAULTS       #
+##########################################################
+# `espnet snoar adapt|seed` write a training config from these values into
+# the output directory (`<out>/work/`) and run the SNOAR system on it, so a
+# CLI run can be repeated or edited as an ordinary recipe config.
+
+fs: 16000
+
+# The seed `espnet snoar adapt` starts from when --seed is not given:
+# the URGENT 2025 challenge baseline (supervised, 8-48 kHz, 1 output slot).
+seed: kohei0209/tfgridnet_urgent25
+
+# Network trained by `espnet snoar seed dnf|mixit` (the SNOAR paper's
+# TF-GridNet). `n_srcs` is set per mode: 2 for DNF, 3 for MixIT.
+net:
+  separator: tfgridnetv2
+  separator_conf:
+    n_fft: 512
+    stride: 128
+    n_layers: 4
+    lstm_hidden_units: 192
+    attn_n_head: 4
+    emb_dim: 24
+    emb_ks: 4
+    emb_hs: 4
+
+segment_seconds: 3.0
+batch_size: 8
+num_workers: 8
+
+# Optimizer steps of a CLI run. The SNOAR anneal spreads `n_generations`
+# over the steps of an adaptation run.
+adapt_steps: 20000
+seed_steps: 100000
+n_generations: 16
+
+# Recordings held out for validation (monitoring only; no labels are read).
+valid_fraction: 0.05
+valid_max: 200
+
+# External noise corpora (--noise <dir>) are rescaled so that the noise-only
+# signal sits this many dB below the noisy recording. A pool harvested from
+# the recordings themselves (--vad) keeps its native level.
+external_noise_snr:
+  - 0.0
+  - 10.0
+
+harvest:
+  margin: 0.1
+  min_gap: 0.3

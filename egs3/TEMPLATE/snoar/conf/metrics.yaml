@@ -1,0 +1,27 @@
+##########################################################
+#            SNOAR SYSTEM: METRICS DEFAULTS              #
+##########################################################
+# Reference-based scores; they need `speech_ref` in the test manifest.
+recipe_dir: .
+exp_tag:
+exp_dir: ${recipe_dir}/exp/${exp_tag}
+data_dir: ${recipe_dir}/data
+
+dataset:
+
+metrics:
+  - metric:
+      _target_: espnet3.systems.snoar.metrics.sisdr.SISDR
+    inputs:
+      ref: dataset:speech_ref
+      hyp: enhanced
+  - metric:
+      _target_: espnet3.systems.snoar.metrics.pesq.PESQ
+    inputs:
+      ref: dataset:speech_ref
+      hyp: enhanced
+  - metric:
+      _target_: espnet3.systems.snoar.metrics.stoi.STOI
+    inputs:
+      ref: dataset:speech_ref
+      hyp: enhanced

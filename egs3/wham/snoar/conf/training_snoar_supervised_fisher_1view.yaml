@@ -1,0 +1,31 @@
+##########################################################
+#  WHAM! 16 kHz -- SNOAR self-training from the supervised_fisher seed
+##########################################################
+# One remix view per step: drops the cross-view consistency term
+# (reference ablation abl_1view: -0.05 dB, about 1.3x faster).
+# Reads speech_mix only. The seed's readout comes from its snoar.yaml.
+exp_tag: snoar_supervised_fisher_1view
+data_dir: ${oc.env:WHAM_OUTPUT,./data}
+
+dataset:
+  train:
+    - data_src_args:
+        manifest: ${data_dir}/manifest/train.jsonl
+        segment_seconds: 3.0
+  valid:
+    - data_src_args:
+        manifest: ${data_dir}/manifest/valid.jsonl
+        segment_seconds: 3.0
+        deterministic: true
+        with_refs: true
+        num_items: 1000
+
+model:
+  mode: snoar
+  init: ${recipe_dir}/exp/supervised_fisher/export
+  views: 1                     # no second remix view / cross-view term
+  n_generations: 16
+  steps_per_generation: 9343   # reference: 16 x 9343 steps
+
+trainer:
+  max_steps: 149488

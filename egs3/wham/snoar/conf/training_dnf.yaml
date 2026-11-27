@@ -1,0 +1,39 @@
+##########################################################
+#  WHAM! 16 kHz -- DNF seed (label-free)
+##########################################################
+# x1 + n2 -> (x1, n2); n2 = WHAM! noise of the other tr half, native level.
+exp_tag: dnf
+data_dir: ${oc.env:WHAM_OUTPUT,./data}
+
+dataset:
+  train:
+    - data_src_args:
+        manifest: ${data_dir}/manifest/train.jsonl
+        noise_pool: ${data_dir}/manifest/noise_wham.jsonl
+        segment_seconds: 3.0
+  valid:
+    - data_src_args:
+        manifest: ${data_dir}/manifest/valid.jsonl
+        noise_pool: ${data_dir}/manifest/noise_wham.jsonl
+        segment_seconds: 3.0
+        deterministic: true
+        with_refs: true
+        num_items: 1000
+
+model:
+  mode: dnf
+  net:
+    separator: tfgridnetv2
+    separator_conf:
+      n_srcs: 2
+      n_fft: 512
+      stride: 128
+      n_layers: 4
+      lstm_hidden_units: 192
+      attn_n_head: 4
+      emb_dim: 24
+      emb_ks: 4
+      emb_hs: 4
+
+trainer:
+  max_steps: 150000

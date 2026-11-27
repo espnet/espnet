@@ -1,0 +1,55 @@
+##########################################################
+#           SNOAR SYSTEM: INFERENCE DEFAULTS             #
+##########################################################
+recipe_dir: .
+exp_tag:
+exp_dir: ${recipe_dir}/exp/${exp_tag}
+data_dir: ${recipe_dir}/data
+inference_dir: ${exp_dir}/${self_name:}
+fs: 16000
+
+dataset:
+  _target_: espnet3.components.data.data_organizer.DataOrganizer
+  _recursive_: false
+  recipe_dir: ${recipe_dir}
+  test:
+  preprocessor:
+
+parallel:
+  env: local
+  n_workers: 1
+  allow_overwrite_lock: false
+
+# The directory written by the `export` stage of the training config.
+model:
+  _target_: espnet3.systems.snoar.inference.SNOAREnhancer
+  model_dir: ${exp_dir}/export
+  device: cpu
+  chunk_seconds: 20.0
+  fs: ${fs}
+
+input_key: speech
+batch_size:
+
+contract:
+  inputs:
+    speech:
+      kind: audio
+      sample_rate: ${fs}
+      channels: 1
+      normalize:
+        - first_channel
+  outputs:
+    enhanced:
+      kind: audio
+      sample_rate: ${fs}
+
+output_artifacts:
+  enhanced:
+    type: wav
+    sample_rate: ${fs}
+
+provider:
+  _target_: espnet3.systems.base.inference_provider.InferenceProvider
+runner:
+  _target_: espnet3.systems.snoar.inference.SNOARInferenceRunner

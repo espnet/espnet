@@ -1,0 +1,28 @@
+##########################################################
+#  WHAM! 16 kHz -- SNOAR self-training from the supervised_fisher seed
+##########################################################
+# Reads speech_mix only. The seed's readout comes from its snoar.yaml.
+exp_tag: snoar_supervised_fisher
+data_dir: ${oc.env:WHAM_OUTPUT,./data}
+
+dataset:
+  train:
+    - data_src_args:
+        manifest: ${data_dir}/manifest/train.jsonl
+        segment_seconds: 3.0
+  valid:
+    - data_src_args:
+        manifest: ${data_dir}/manifest/valid.jsonl
+        segment_seconds: 3.0
+        deterministic: true
+        with_refs: true
+        num_items: 1000
+
+model:
+  mode: snoar
+  init: ${recipe_dir}/exp/supervised_fisher/export
+  n_generations: 16
+  steps_per_generation: 9343   # reference: 16 x 9343 steps
+
+trainer:
+  max_steps: 149488

@@ -1,0 +1,44 @@
+##########################################################
+#  WHAM! 16 kHz -- DNF seed, noise from the recordings' own gaps
+##########################################################
+# No external noise: the pool is the energy-VAD gaps of the x1 recordings (run harvest_noise).
+exp_tag: dnf_vad
+data_dir: ${oc.env:WHAM_OUTPUT,./data}
+
+harvest_noise:
+  manifest: ${data_dir}/manifest/train.jsonl
+  vad: energy
+  out: ${data_dir}/manifest/noise_vad.jsonl
+
+dataset:
+  train:
+    - data_src_args:
+        manifest: ${data_dir}/manifest/train.jsonl
+        noise_pool: ${data_dir}/manifest/noise_vad.jsonl
+        segment_seconds: 3.0
+  valid:
+    - data_src_args:
+        manifest: ${data_dir}/manifest/valid.jsonl
+        noise_pool: ${data_dir}/manifest/noise_vad.jsonl
+        segment_seconds: 3.0
+        deterministic: true
+        with_refs: true
+        num_items: 1000
+
+model:
+  mode: dnf
+  net:
+    separator: tfgridnetv2
+    separator_conf:
+      n_srcs: 2
+      n_fft: 512
+      stride: 128
+      n_layers: 4
+      lstm_hidden_units: 192
+      attn_n_head: 4
+      emb_dim: 24
+      emb_ks: 4
+      emb_hs: 4
+
+trainer:
+  max_steps: 150000

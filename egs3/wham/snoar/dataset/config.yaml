@@ -1,0 +1,21 @@
+builder:
+  # WHAM! needs the LDC WSJ0 speech, so it cannot be downloaded here. Point
+  # WHAM_ROOT at a generated 16 kHz `min` tree: the WHAMR! scripts write it as
+  # <WHAMR>/wav16k/min, which also holds the anechoic WHAM! files.
+  source_env_var: WHAM_ROOT
+  # Manifests are written here; set WHAM_OUTPUT to keep them outside the recipe.
+  output_env_var: WHAM_OUTPUT
+  output_path: data
+  noisy_subdir: mix_single_anechoic
+  speech_subdir: s1_anechoic
+  noise_subdir: noise
+  splits:
+    train: tr
+    valid: cv
+    test: tt
+  # The tr utterances are split by a stable hash: `x1_fraction` of them are
+  # the noisy training recordings, and the noise files of the rest form the
+  # noise pool DNF and MixIT add (as in the SNOAR reference). Every training
+  # mode uses the same x1 half, so the rows are comparable.
+  x1_fraction: 0.5
+  salt: snoar

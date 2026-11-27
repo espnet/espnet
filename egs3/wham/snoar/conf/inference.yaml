@@ -1,0 +1,19 @@
+##########################################################
+#  WHAM! 16 kHz -- enhance tt (and cv) with an export    #
+##########################################################
+# Pick the model with exp_tag, e.g. snoar_dnf:
+#   python run.py --stages infer measure \
+#     --inference_config conf/inference.yaml --metrics_config conf/metrics.yaml
+exp_tag: snoar_dnf
+data_dir: ${oc.env:WHAM_OUTPUT,./data}
+
+dataset:
+  test:
+    - name: test
+      data_src: espnet3.systems.snoar.src.data.utterances
+      data_src_args:
+        manifest: ${data_dir}/manifest/test.jsonl
+
+model:
+  model_dir: ${exp_dir}/export
+  device: cuda

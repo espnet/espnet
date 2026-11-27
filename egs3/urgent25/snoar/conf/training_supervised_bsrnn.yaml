@@ -1,0 +1,86 @@
+##########################################################
+#  Supervised BSRNN seed on the whole URGENT 2025 pool (denoising only)
+##########################################################
+# All URGENT 2025 speech (CommonVoice, DNS5, EARS, LibriTTS, MLS, VCTK;
+# 2110 h), all noise (DNS5, FSD50K, FMA no-vocal, WHAM!, wind) and the DNS5
+# RIRs, mixed on the fly at 16 kHz. Same model and schedule as
+# training_supervised_commercial_bsrnn.yaml. Some of this data is
+# non-commercial (EARS, WHAM!, NC clips of FSD50K / FMA), so this model is a
+# research reference only.
+exp_tag: supervised_bsrnn
+urgent_root: ${oc.env:URGENT25_ROOT}
+data_dir: ${oc.env:URGENT_OUTPUT,${recipe_dir}/data}
+
+# Builder arguments (dataset/builder.py): the license audit needs the dataset
+# metadata (see README), the dev set the URGENT 2026 store.
+create_dataset:
+  recipe_dir: ${recipe_dir}
+  urgent_root: ${urgent_root}
+  dev_root: ${oc.env:URGENT26_ROOT,null}
+  out_dir: ${data_dir}
+  fsd50k_meta: ${oc.env:FSD50K_META,null}
+  fma_meta: ${oc.env:FMA_META,null}
+  fsdkaggle_meta: ${oc.env:FSDKAGGLE2018_META,null}
+  musan_noise: ${oc.env:MUSAN_NOISE,null}
+
+urgent_data: &urgent_data
+  root: ${urgent_root}
+  segment_seconds: 3.0
+  reverb_prob: 0.5
+  snr_range: [-5.0, 20.0]
+
+dataset:
+  train:
+    - data_src_args:
+        <<: *urgent_data
+        split: train
+        num_items: 320000   # 5000 steps per epoch at batch 64
+  valid:
+    - data_src_args:
+        <<: *urgent_data
+        split: valid
+        num_items: 1000
+        deterministic: true
+
+model:
+  mode: supervised
+  readout: dnf
+  mix_consistency: energy
+  net:
+    # URGENT 2024 BSRNN layout; the 48 kHz STFT is scaled to 16 kHz
+    # (20 ms window, 10 ms hop) and only the bands below 8 kHz are used.
+    encoder: stft
+    encoder_conf:
+      n_fft: 960
+      hop_length: 480
+      use_builtin_complex: true
+      default_fs: 48000
+    decoder: stft
+    decoder_conf:
+      n_fft: 960
+      hop_length: 480
+      default_fs: 48000
+    separator: bsrnn
+    separator_conf:
+      num_spk: 2
+      num_channels: 64
+      num_layers: 6
+      target_fs: 48000
+      causal: false
+
+# bf16 BSRNN saturates an H200 at batch 64 (~840 s of audio/s, 28 GiB).
+# persistent_workers: no re-fork per epoch (the first run hung there);
+# timeout: a stuck worker raises after 10 min instead of holding the GPU.
+dataloader:
+  train:
+    batch_size: 64
+    num_workers: 15
+    persistent_workers: true
+    timeout: 600
+  valid:
+    batch_size: 64
+    persistent_workers: true
+    timeout: 600
+
+trainer:
+  max_steps: 100000   # 6.4 M crops (~5300 h of audio), ~7 h on one H200
