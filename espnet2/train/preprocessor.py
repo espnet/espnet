@@ -2580,6 +2580,78 @@ class LIDPreprocessor(CommonPreprocessor):
         return data
 
 
+class LIDLabelSetPreprocessor(LIDPreprocessor):
+    """Base preprocessor for LID targets given as a set of language labels.
+
+    ``LIDPreprocessor`` maps a single language string to one integer class id.
+    This class keeps the same speech processing path but parses ``lid_labels``
+    as whitespace separated language labels (e.g. ``"eng"`` or ``"ara eng"``)
+    and lets subclasses map the class ids to a float32 target of shape
+    ``(nclasses,)`` in ``_label_set_target``. Data without ``lid_labels``
+    (inference, statistics collection) is passed through unchanged.
+    ``lang2vec_table`` is not supported, since a label set has no single
+    language vector.
+    """
+
+    def __init__(self, *args, lang2vec_table: Optional[str] = None, **kwargs):
+        """Initialize the preprocessor; see ``LIDPreprocessor`` for the args."""
+        if lang2vec_table is not None:
+            raise ValueError(f"{type(self).__name__} does not support lang2vec_table")
+        super().__init__(*args, **kwargs)
+
+    def _label_set_target(self, indices: List[int]) -> np.ndarray:
+        """Convert the class ids of one utterance to a target vector."""
+        raise NotImplementedError
+
+    def _text_process(
+        self, data: Dict[str, Union[str, np.ndarray]]
+    ) -> Dict[str, np.ndarray]:
+        """Convert the language label set of one utterance to a dense target."""
+        if "lid_labels" not in data:
+            return data
+        labels = data["lid_labels"].split()
+        if not labels:
+            raise ValueError("empty LID label set")
+        if len(set(labels)) != len(labels):
+            raise ValueError(f"duplicate LID label: {labels}")
+        unknown = [label for label in labels if label not in self.lang2label]
+        if unknown:
+            raise KeyError(f"unknown LID label: {unknown}")
+
+        indices = [self.lang2label[label] for label in labels]
+        data["lid_labels"] = self._label_set_target(indices)
+        return data
+
+
+class LIDSoftLabelPreprocessor(LIDLabelSetPreprocessor):
+    """Preprocessor for soft LID targets.
+
+    The labels are mapped to a uniform distribution over the listed
+    languages: ``"eng"`` -> 1.0 for eng and ``"ara eng"`` -> 0.5 for ara and
+    0.5 for eng.
+    """
+
+    def _label_set_target(self, indices: List[int]) -> np.ndarray:
+        """Return a uniform distribution over ``indices``."""
+        target = np.zeros(len(self.lang2label), dtype=np.float32)
+        target[indices] = 1.0 / len(indices)
+        return target
+
+
+class LIDMultiLabelPreprocessor(LIDLabelSetPreprocessor):
+    """Preprocessor for multi-hot (sigmoid/BCE) LID targets.
+
+    The labels are mapped to a multi-hot vector: ``"eng"`` gives 1.0 for
+    English, while ``"ara eng"`` gives 1.0 for both Arabic and English.
+    """
+
+    def _label_set_target(self, indices: List[int]) -> np.ndarray:
+        """Return a multi-hot vector over ``indices``."""
+        target = np.zeros(len(self.lang2label), dtype=np.float32)
+        target[indices] = 1.0
+        return target
+
+
 class S2TPreprocessor(CommonPreprocessor):
     def __init__(
         self,
