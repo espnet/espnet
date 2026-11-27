@@ -1,0 +1,109 @@
+# XEUS (https://huggingface.co/espnet/xeus) as a frozen SSL frontend.
+#
+# XEUS is a multilingual ESPnet SSL model (4000+ languages, Swahili included),
+# loaded through frontend: espnet_ssl. path_or_url is resolved by
+# espnet_model_zoo, which downloads and caches the checkpoint (~2.3 GB) once.
+# Only the layer-weighting featurizer, the linear preencoder, the encoder and
+# the decoder are trained; the XEUS upstream is frozen.
+#
+# Adapted from egs2/seoul_corpus/asr1/conf/tuning/train_asr_xeus.yaml.
+# XEUS outputs 1024-dim features at 20 ms, so conv2d2 brings the encoder to
+# the same 40 ms frame rate as conf/train.yaml.
+#
+# Run with --feats_normalize utt_mvn so that asr.sh does not override
+# normalize: null with global MVN statistics of the raw waveform:
+#   ./run.sh --stage 11 --asr_config conf/tuning/train_asr_xeus.yaml \
+#       --feats_normalize utt_mvn
+unused_parameters: true
+freeze_param: [
+"frontend.upstream"
+]
+
+frontend: espnet_ssl
+frontend_conf:
+    frontend_conf:
+        path_or_url: espnet/xeus
+    multilayer_feature: true
+
+# XEUS masks its own input during training (mask_feats defaults to true), so
+# SpecAugment is not used on top of it.
+normalize: null
+specaug: null
+
+preencoder: linear
+preencoder_conf:
+    input_size: 1024            # XEUS encoder output_size
+    output_size: 80
+
+encoder: e_branchformer
+encoder_conf:
+    output_size: 256
+    attention_heads: 4
+    linear_units: 1024
+    num_blocks: 12
+    dropout_rate: 0.1
+    positional_dropout_rate: 0.1
+    attention_dropout_rate: 0.1
+    layer_drop_rate: 0.1
+    input_layer: conv2d2        # 20 ms * 2 = 40 ms
+    macaron_ffn: true
+    pos_enc_layer_type: rel_pos
+    attention_layer_type: rel_selfattn
+    rel_pos_type: latest
+    cgmlp_linear_units: 3072
+    cgmlp_conv_kernel: 31
+    use_linear_after_conv: false
+    gate_activation: identity
+    positionwise_layer_type: linear
+    use_ffn: true
+    merge_conv_kernel: 31
+
+decoder: transformer
+decoder_conf:
+    attention_heads: 4
+    linear_units: 2048
+    num_blocks: 6
+    dropout_rate: 0.1
+    positional_dropout_rate: 0.1
+    self_attention_dropout_rate: 0.1
+    src_attention_dropout_rate: 0.1
+    layer_drop_rate: 0.2
+
+model_conf:
+    ctc_weight: 0.5
+    lsm_weight: 0.1
+    length_normalized_loss: false
+    extract_feats_in_collect_stats: false
+
+seed: 2022
+log_interval: 200
+num_att_plot: 0
+num_workers: 4
+sort_in_batch: descending
+sort_batch: descending
+batch_type: numel
+# Half the batch_bins of conf/train.yaml with accum_grad 2: the same effective
+# batch, with peak memory that fits a 32 GB V100.
+batch_bins: 2000000
+accum_grad: 2
+grad_clip: 5
+max_epoch: 40
+patience: none
+init: none
+best_model_criterion:
+-   - valid
+    - acc
+    - max
+keep_nbest_models: 10
+
+use_amp: true
+cudnn_deterministic: false
+cudnn_benchmark: false
+
+optim: adam
+optim_conf:
+    lr: 0.001
+    weight_decay: 0.000001
+scheduler: warmuplr
+scheduler_conf:
+    warmup_steps: 2500

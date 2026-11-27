@@ -1,0 +1,72 @@
+# Transformer encoder-decoder with hybrid CTC/attention, sized for a small
+# (~9.5h) corpus. Run 1 (no SpecAugment, accum_grad 8) overfit badly and only
+# made ~4.4k optimizer updates, never finishing LR warmup; this version adds
+# SpecAugment, uses larger batches without gradient accumulation, and a
+# shorter warmup.
+
+# encoder related
+encoder: transformer
+encoder_conf:
+    input_layer: "conv2d"
+    num_blocks: 6
+    linear_units: 1024
+    dropout_rate: 0.1
+    output_size: 256  # dimension of attention
+    attention_heads: 4
+    attention_dropout_rate: 0.0
+
+# decoder related
+decoder: transformer
+decoder_conf:
+    input_layer: "embed"
+    num_blocks: 3
+    linear_units: 1024
+    dropout_rate: 0.1
+
+# hybrid CTC/attention
+model_conf:
+    ctc_weight: 0.3
+    lsm_weight: 0.1
+    length_normalized_loss: false
+
+# data augmentation
+specaug: specaug
+specaug_conf:
+    apply_time_warp: true
+    time_warp_window: 5
+    time_warp_mode: bicubic
+    apply_freq_mask: true
+    freq_mask_width_range:
+    - 0
+    - 27
+    num_freq_mask: 2
+    apply_time_mask: true
+    time_mask_width_ratio_range:
+    - 0.
+    - 0.05
+    num_time_mask: 5
+
+# minibatch related
+batch_type: numel
+batch_bins: 4000000
+
+# optimization related
+optim: adam
+accum_grad: 1
+grad_clip: 5
+patience: 15
+max_epoch: 80
+optim_conf:
+    lr: 0.002
+scheduler: warmuplr
+scheduler_conf:
+    warmup_steps: 2500
+
+# others
+best_model_criterion:
+-  - valid
+   - acc
+   - max
+keep_nbest_models: 10
+
+init: normal
