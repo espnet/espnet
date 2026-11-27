@@ -83,7 +83,15 @@ def test_step_without_a_name_is_rejected():
         build_normalizer([{"keep": "'"}])
 
 
-def test_whisper_normalization_refuses_rather_than_approximating():
-    """A wrong normalizer is worse than a missing one: it moves every result."""
-    with pytest.raises(NotImplementedError, match="not implemented"):
+def test_whisper_normalization_says_what_to_install_when_it_cannot_run():
+    """A wrong normalizer is worse than a missing one: it moves every result.
+
+    whisper-normalizer is in the splet extra, which ci/install.sh does not
+    install, so this is the path CI takes.
+    """
+    import splet.normalizers.whisper as module
+
+    if module.EnglishTextNormalizer is not None:
+        pytest.skip("whisper-normalizer is installed here")
+    with pytest.raises(ImportError, match="pip install whisper-normalizer"):
         build_normalizer([{"name": "whisper"}])
