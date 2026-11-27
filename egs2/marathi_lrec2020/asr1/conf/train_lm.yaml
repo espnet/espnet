@@ -1,0 +1,24 @@
+# Char LSTM LM (4 layers, 650 units, tied embeddings).
+lm: seq_rnn
+lm_conf:
+    rnn_type: lstm
+    nlayers: 4
+    unit: 650
+    tie_weights: true
+    dropout_rate: 0.3
+
+batch_type: folded
+batch_size: 256
+max_epoch: 30
+patience: 5
+grad_clip: 5.0
+best_model_criterion:
+-   - valid
+    - loss
+    - min
+keep_nbest_models: 5
+
+optim: adam
+optim_conf:
+    lr: 0.0005
+    weight_decay: 0.000001

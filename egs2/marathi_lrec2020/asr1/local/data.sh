@@ -27,11 +27,16 @@ if [ -z "${MARATHI_LREC2020}" ]; then
     exit 2
 fi
 
+# wav.scp decodes the .3gp recordings with ffmpeg
+if ! command -v ffmpeg &> /dev/null; then
+    log "Please install ffmpeg first"
+    exit 1
+fi
+
 if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     log "Preparing data for Marathi LREC2020"
     python3 local/data_prep.py -d ${MARATHI_LREC2020}
     for x in train dev test; do
-        utils/spk2utt_to_utt2spk.pl data/marathi_${x}/spk2utt > data/marathi_${x}/utt2spk
         utils/fix_data_dir.sh data/marathi_${x}
     done
 fi
