@@ -6,6 +6,7 @@ import numpy as np
 import pytest
 import soundfile
 import torch
+import yaml
 
 from espnet2.bin.diar_inference import (
     VAD_MEDIAN,
@@ -76,6 +77,18 @@ def test_DiarizeSpeech(
     assert spk_prediction.shape[0] == batch_size
     if num_spk is not None:
         assert spk_prediction.shape[2] == num_spk
+
+
+def test_DiarizeSpeech_with_a_missing_valid_category_file(diar_config_file):
+    """A packed model whose valid_category_file is not on this machine loads."""
+    config = yaml.safe_load(diar_config_file.read_text())
+    config["model_conf"]["valid_category_file"] = str(
+        diar_config_file.parent / "missing" / "utt2category"
+    )
+    diar_config_file.write_text(yaml.safe_dump(config))
+    diarize_speech = DiarizeSpeech(train_config=diar_config_file, num_spk=2)
+    _, spk_prediction = diarize_speech(torch.rand(1, 16000), fs=8000)
+    assert spk_prediction.shape[0] == 1 and spk_prediction.shape[2] == 2
 
 
 @pytest.fixture()

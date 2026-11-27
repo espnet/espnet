@@ -30,7 +30,7 @@ from espnet2.layers.utterance_mvn import UtteranceMVN
 from espnet2.tasks.abs_task import AbsTask
 from espnet2.torch_utils.initialize import initialize
 from espnet2.train.class_choices import ClassChoices
-from espnet2.train.collate_fn import CommonCollateFn
+from espnet2.train.collate_fn import CommonCollateFn, DiarCollateFn
 from espnet2.train.preprocessor import CommonPreprocessor
 from espnet2.train.trainer import Trainer
 from espnet2.utils.get_default_kwargs import get_default_kwargs
@@ -219,6 +219,11 @@ class DiarizationTask(AbsTask):
         Tuple[List[str], Dict[str, torch.Tensor]],
     ]:
         # NOTE(kamo): int value = 0 is reserved by CTC-blank symbol
+        if getattr(args, "num_spk", None) and getattr(args, "attractor", None) is None:
+            # fixed num_spk outputs: recordings with fewer speakers (or none, e.g.
+            # non-speech for VAD) get zero label columns. Not with an attractor,
+            # whose loss counts the speakers from the label width.
+            return DiarCollateFn(args.num_spk, float_pad_value=0.0, int_pad_value=-1)
         return CommonCollateFn(float_pad_value=0.0, int_pad_value=-1)
 
     @classmethod
