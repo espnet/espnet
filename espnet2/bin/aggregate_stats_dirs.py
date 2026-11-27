@@ -32,19 +32,20 @@ def aggregate_stats_dirs(
         (output_dir / mode).mkdir(parents=True, exist_ok=True)
 
         for key in batch_keys:
+            # Sort the lines of all input dirs together: the order of the keys
+            # within a dir can change with num_workers>=1, and the dirs need not
+            # hold contiguous ranges of keys (e.g. when the jobs were split by
+            # length). Batch samplers keep the file order for keys of equal
+            # length, so the output must not depend on how keys were split.
+            lines = []
+            for idir in input_dirs:
+                with (idir / mode / f"{key}_shape").open("r", encoding="utf-8") as fin:
+                    lines.extend(fin.readlines())
+            lines.sort(key=lambda x: x.split()[0])
             with (output_dir / mode / f"{key}_shape").open(
                 "w", encoding="utf-8"
             ) as fout:
-                for idir in input_dirs:
-                    with (idir / mode / f"{key}_shape").open(
-                        "r", encoding="utf-8"
-                    ) as fin:
-                        # Read to the last in order to sort keys
-                        # because the order can be changed if num_workers>=1
-                        lines = fin.readlines()
-                        lines = sorted(lines, key=lambda x: x.split()[0])
-                        for line in lines:
-                            fout.write(line)
+                fout.writelines(lines)
 
         for key in stats_keys:
             if not skip_sum_stats:
@@ -64,11 +65,13 @@ def aggregate_stats_dirs(
             scp = input_dirs[0] / p
             if scp.exists():
                 (output_dir / p).parent.mkdir(parents=True, exist_ok=True)
+                lines = []
+                for idir in input_dirs:
+                    with (idir / p).open("r", encoding="utf-8") as fin:
+                        lines.extend(fin.readlines())
+                lines.sort(key=lambda x: x.split()[0])
                 with (output_dir / p).open("w", encoding="utf-8") as fout:
-                    for idir in input_dirs:
-                        with (idir / p).open("r", encoding="utf-8") as fin:
-                            for line in fin:
-                                fout.write(line)
+                    fout.writelines(lines)
 
 
 def get_parser() -> argparse.ArgumentParser:

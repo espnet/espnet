@@ -42,6 +42,7 @@ gpu_inference=false   # Whether to perform gpu decoding.
 dumpdir=dump          # Directory to dump features.
 expdir=exp            # Directory to save experiments.
 python=python3        # Specify python to execute espnet commands.
+split_by_length=true  # Split collect-stats jobs by total utt2num_samples, not line count.
 fold_length=120000    # fold_length for speech data during enhancement training.
 
 # Data preparation related
@@ -109,6 +110,7 @@ Options:
     dumpdir=dump          # Directory to dump features.
     expdir=exp            # Directory to save experiments.
     python=python3        # Specify python to execute espnet commands.
+    split_by_length=true  # Split collect-stats jobs by total utt2num_samples, not line count.
     fold_length=120000     # fold_length for speech data during enhancement training
 
     # Speed perturbation related
@@ -423,14 +425,16 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
     for n in $(seq "${_nj}"); do
         split_scps+=" ${_logdir}/train.${n}.scp"
     done
-    utils/split_scp.pl "${key_file}" ${split_scps}
+    scripts/utils/split_by_length.sh --split_by_length "${split_by_length}" --python "${python}" \
+        "${key_file}" "$(dirname "${key_file}")/utt2num_samples" ${split_scps}
 
     key_file="${_lid_valid_dir}/wav.scp"
     split_scps=""
     for n in $(seq "${_nj}"); do
         split_scps+=" ${_logdir}/valid.${n}.scp"
     done
-    utils/split_scp.pl "${key_file}" ${split_scps}
+    scripts/utils/split_by_length.sh --split_by_length "${split_by_length}" --python "${python}" \
+        "${key_file}" "$(dirname "${key_file}")/utt2num_samples" ${split_scps}
 
     # 2. Generate run.sh
     log "Generate '${lid_stats_dir}/run.sh'. You can resume the process from stage 4 using this script"

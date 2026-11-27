@@ -41,6 +41,7 @@ gpu_inference=false     # Whether to perform gpu decoding.
 dumpdir=dump            # Directory to dump features.
 expdir=exp              # Directory to save experiments.
 python=python3          # Specify python to execute espnet commands.
+split_by_length=true    # Split collect-stats and inference jobs by total utt2num_samples, not line count.
 
 # Data preparation related
 local_data_opts= # The options given to local/data.sh.
@@ -189,6 +190,7 @@ Options:
     --dumpdir            # Directory to dump features (default="${dumpdir}").
     --expdir             # Directory to save experiments (default="${expdir}").
     --python             # Specify python to execute espnet commands (default="${python}").
+    --split_by_length    # Split collect-stats and inference jobs by total utt2num_samples, not line count (default="${split_by_length}").
 
     # Data preparation related
     --local_data_opts # The options given to local/data.sh (default="${local_data_opts}").
@@ -1347,7 +1349,8 @@ if [ ${stage} -le 12 ] && [ ${stop_stage} -ge 12 ] && ! [[ " ${skip_stages} " =~
         split_scps+=" ${_logdir}/train.${n}.scp"
     done
     # shellcheck disable=SC2086
-    utils/split_scp.pl "${key_file}" ${split_scps}
+    scripts/utils/split_by_length.sh --split_by_length "${split_by_length}" --python "${python}" \
+        "${key_file}" "$(dirname "${key_file}")/utt2num_samples" ${split_scps}
 
     key_file="${_asr_valid_dir}/${_scp}"
     split_scps=""
@@ -1355,7 +1358,8 @@ if [ ${stage} -le 12 ] && [ ${stop_stage} -ge 12 ] && ! [[ " ${skip_stages} " =~
         split_scps+=" ${_logdir}/valid.${n}.scp"
     done
     # shellcheck disable=SC2086
-    utils/split_scp.pl "${key_file}" ${split_scps}
+    scripts/utils/split_by_length.sh --split_by_length "${split_by_length}" --python "${python}" \
+        "${key_file}" "$(dirname "${key_file}")/utt2num_samples" ${split_scps}
 
     # 2. Generate run.sh
     log "Generate '${asr_stats_dir}/run.sh'. You can resume the process from stage 12 using this script"
@@ -1596,7 +1600,8 @@ if [ ${stage} -le 14 ] && [ ${stop_stage} -ge 14 ] && ! [[ " ${skip_stages} " =~
             split_scps+=" ${_logdir}/keys.${n}.scp"
         done
         # shellcheck disable=SC2086
-        utils/split_scp.pl "${key_file}" ${split_scps}
+        scripts/utils/split_by_length.sh --split_by_length "${split_by_length}" --python "${python}" \
+            "${key_file}" "$(dirname "${key_file}")/utt2num_samples" ${split_scps}
 
         # 2. Submit decoding jobs
         log "Decoding started... log: '${_logdir}/asr_inference.*.log'"
