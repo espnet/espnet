@@ -31,7 +31,7 @@ ${model_detail_section}
 ```python
 from espnet3.publication import InferenceModel
 
-model = InferenceModel.from_pretrained("${usage_repo}")
+model = InferenceModel.from_pretrained(${usage_model_args})
 result = model({"speech_mix": "speech.wav"})
 audio = result["enhanced"]  # audio.array at audio.rate
 ```

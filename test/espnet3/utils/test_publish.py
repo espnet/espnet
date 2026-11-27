@@ -1062,6 +1062,47 @@ def test_pack_model_readme_recipe_line_uses_renamed_path(tmp_path, monkeypatch):
     assert "egs3/mini_an4/asr" not in readme
 
 
+@pytest.mark.parametrize(
+    ("extra_config", "needs_trust"),
+    [
+        ({}, False),
+        ({"output_fn": "src.output.format_output"}, True),
+        ({"contract": {"imports": ["src.kinds"]}}, True),
+        ({"model": {"_target_": "builtins.dict"}}, True),
+        ({"provider": "src.provider.CustomProvider"}, True),
+    ],
+)
+def test_pack_model_readme_matches_trust_policy(tmp_path, extra_config, needs_trust):
+    """The generated example follows the same policy as InferenceModel."""
+    recipe_dir = tmp_path / "recipe"
+    exp_dir = recipe_dir / "exp"
+    exp_dir.mkdir(parents=True)
+    (recipe_dir / "src").mkdir()
+    (recipe_dir / "src" / "__init__.py").write_text("")
+    publication_config = OmegaConf.create(
+        {
+            "pack_model": {
+                "out_dir": str(tmp_path / "pack"),
+                "include": [str(recipe_dir / "src")],
+                "readme": "egs3/TEMPLATE/esp2_asr/src/hf_model_readme.md",
+                "readme_context": {"hf_repo": "example/model"},
+            }
+        }
+    )
+    training_config = OmegaConf.create(
+        {"recipe_dir": str(recipe_dir), "exp_dir": str(exp_dir)}
+    )
+    inference_config = OmegaConf.create({"recipe_dir": str(recipe_dir), **extra_config})
+    out_dir = publish.pack_model(
+        training_config=training_config,
+        publication_config=publication_config,
+        inference_config=inference_config,
+    )
+    readme = (out_dir / "README.md").read_text(encoding="utf-8")
+    args = '"example/model"' + (", trust_user_code=True" if needs_trust else "")
+    assert f"InferenceModel.from_pretrained({args})" in readme
+
+
 # ---------------------------------------------------------------------------
 # corpus in README
 # ---------------------------------------------------------------------------
