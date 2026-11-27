@@ -1,0 +1,11 @@
+# Inference for the Quechua (quy) model; every setting but the language is
+# shared in conf/inference.yaml.
+#
+#   python run.py --stages infer \
+#       --training_config conf/tuning/training_quy.yaml \
+#       --inference_config conf/tuning/inference_quy.yaml
+defaults:
+  - ../inference
+  - _self_
+
+lang: quy

@@ -1,0 +1,23 @@
+##########################################################
+#                 METRIC SCORING SETTING                 #
+##########################################################
+# Common usage:
+#   python run.py --stages measure \
+#       --training_config conf/tuning/training_<lang>.yaml \
+#       --inference_config conf/tuning/inference_<lang>.yaml \
+#       --metrics_config conf/metrics.yaml
+#
+# The TEMPLATE `metrics:` list already scores WER and CER with no text
+# cleaner, which matches the ESPnet2 recipe (`cleaner=none`, transcripts
+# verbatim): each entry binds `hyp: text` (the model's `text.scp`) and
+# `ref: dataset:text` (the test set's own `text` column), so `measure` needs
+# `--inference_config` for the test-set definition. This file exists so
+# `--metrics_config` can point at a recipe config, and is shared across
+# languages; add overrides below only when this recipe must differ from the
+# TEMPLATE.
+#
+# Recipe-specific option: TER on this recipe's unigram-100 tokens. A
+# `metrics:` list here replaces the TEMPLATE one, so repeat its WER and CER
+# entries, add the TER block from its comment, and point `bpemodel` at the
+# trained model of the language being scored, e.g.
+# `data/bzd_unigram100/unigram.model`.
