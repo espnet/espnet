@@ -1,0 +1,134 @@
+# Port of egs2/esc50/asr1/conf/beats_classification.yaml to CLSTask.
+# One fold per run; ESC50_FOLD picks it. ESPnet2 reports 94.8 over five folds.
+
+task: espnet3.systems.cls.task.CLSTask
+data_dir: ${oc.env:ESC50_OUTPUT,./data}/fold${oc.env:ESC50_FOLD,1}
+exp_tag: train_cls_beats_iter3_fold${oc.env:ESC50_FOLD,1}
+# Per-fold, unlike the TEMPLATE default: each fold has its own 1600-clip train
+# set, so folds running side by side must not share one feats_shape.
+stats_dir: ${recipe_dir}/exp/stats/fold${oc.env:ESC50_FOLD,1}
+
+# Every clip is exactly 5.00 s, so this drops nothing. Kept because ESPnet2
+# runs it (--max_wav_duration 6) and a non-zero drop means a broken corpus.
+# Test is left unfiltered, as in ESPnet2's cls.sh.
+remove_long_short:
+  min_wav_duration: 0.1
+  max_wav_duration: 6
+  splits:
+    - train
+    - valid
+  save_path: ${data_dir}/manifest_filtered
+  manifest_paths:
+    train: ${data_dir}/manifest/train.tsv
+    valid: ${data_dir}/manifest/valid.tsv
+
+# 50 categories plus a trailing <unk>, which must stay last: build_model takes
+# n_classes = len(token_list) - 1 and the metrics drop the final entry.
+prepare_labels:
+  save_path: ${data_dir}
+  filename: token_list
+  manifest_path: ${data_dir}/manifest_filtered/train.tsv
+  add_symbol:
+    - "<unk>:-1"
+
+dataset:
+  train:
+    - data_src_args:
+        split: train
+  valid:
+    - data_src_args:
+        split: valid
+  preprocessor:
+    _target_: espnet2.train.preprocessor.CommonPreprocessor
+    fs: 16000
+    text_name: label
+    token_type: word
+    token_list: ${data_dir}/token_list
+
+model:
+  token_list: ${data_dir}/token_list
+  # BEATs takes the raw waveform and does its own fbank, normalization and
+  # SpecAugment. input_size: 1 is what makes build_model skip the frontend.
+  input_size: 1
+  normalize: null
+  # Must stay inside model:; only config.model reaches build_model. initialize()
+  # also calls encoder.reload_pretrained_parameters(), restoring BEATs weights.
+  init: xavier_normal
+  encoder: beats
+  encoder_conf:
+    beats_ckpt_path: ${oc.env:BEATS_CKPT,/path/to/BEATs_iter3.pt}
+    fbank_mean: 11.72215
+    fbank_std: 10.60431
+    beats_config:
+      layer_wise_gradient_decay_ratio: 0.2
+      encoder_layerdrop: 0.1
+      dropout: 0.0
+    specaug_config:
+      apply_time_warp: true
+      apply_freq_mask: false
+      apply_time_mask: true
+      time_mask_width_ratio_range:
+        - 0
+        - 0.06
+      num_time_mask: 1
+    roll_augment: true
+    roll_interval: 16000
+    use_weighted_representation: false
+  decoder: linear
+  decoder_conf:
+    pooling: mean
+    dropout: 0.1
+  model_conf:
+    classification_type: multi-class
+    lsm_weight: 0.1
+
+optimizer:
+  _target_: torch.optim.AdamW
+  lr: 1.0e-4
+  weight_decay: 1.0e-2
+  betas: [0.9, 0.98]
+
+scheduler:
+  _target_: espnet2.schedulers.cosine_anneal_warmup_restart.CosineAnnealingWarmupRestarts
+  first_cycle_steps: 6000
+  warmup_steps: 300
+  max_lr: 1.0e-4
+  min_lr: 5.0e-6
+
+best_model_criterion:
+  - - valid/acc
+    - 1
+    - max
+
+seed: 0
+
+# feats_shape is 80000 for every clip (5 s at 16 kHz). fold_lengths must stay
+# above it: at exactly 80000 the folding factor becomes 1 and FoldedBatchSampler
+# halves the batch to 64. 100000 is ESPnet2's bound (fold_length 1000 x 100).
+dataloader:
+  train:
+    iter_factory:
+      batches:
+        type: folded
+        batch_size: 128
+        fold_lengths: [100000]
+        sort_in_batch: descending
+        sort_batch: descending
+  valid:
+    iter_factory:
+      batches:
+        fold_lengths: [100000]
+        sort_in_batch: descending
+        sort_batch: descending
+
+# ESPnet2 sets patience: none, so no early stopping. Single GPU: BEATs uses
+# encoder_layerdrop, so multi-device needs ddp_find_unused_parameters_true.
+# 700, not ESPnet2's 1000: 1600 clips at batch 128 is 13 steps/epoch, so the
+# 6000-step cosine cycle bottoms out near epoch 460 and accuracy peaks just
+# after it. The epochs beyond that only climb back up the next cycle.
+trainer:
+  devices: 1
+  max_epochs: 700
+  log_every_n_steps: 10
+
+fit: {}

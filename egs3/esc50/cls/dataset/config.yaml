@@ -1,0 +1,29 @@
+builder:
+  # ESC-50 is read-only input: prepare_source only validates, never downloads
+  # or writes. Everything derived goes under data_path.
+  source_env_var: ESC50
+  dataset_path: downloads
+  metadata_path: meta/esc50.csv
+  audio_subdir: audio
+
+  output_env_var: ESC50_OUTPUT
+  data_path: data
+  wav_subdir: wav
+  sampling_rate: 16000
+
+  # Reproduces egs2/esc50/asr1/local/data_prep_multi_folds.py: the held-out
+  # fold is both valid and test, everything else trains. Set ESC50_FOLD to
+  # pick the fold; run.sh sweeps 1..5 and averages.
+  fold_env_var: ESC50_FOLD
+  default_fold: 1
+
+  manifest_paths:
+    train: manifest/train.tsv
+    valid: manifest/valid.tsv
+    test: manifest/test.tsv
+
+dataset:
+  split_manifest_paths:
+    train: manifest_filtered/train.tsv
+    valid: manifest_filtered/valid.tsv
+    test: manifest/test.tsv

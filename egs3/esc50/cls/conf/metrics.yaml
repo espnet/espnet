@@ -1,0 +1,3 @@
+# The five metrics come from egs3/TEMPLATE/cls/conf/metrics.yaml and read
+# ${data_dir}/token_list. WA is comparable to ESPnet2's reported accuracy.
+data_dir: ${oc.env:ESC50_OUTPUT,./data}/fold${oc.env:ESC50_FOLD,1}
