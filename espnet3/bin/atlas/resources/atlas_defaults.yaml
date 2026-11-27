@@ -1,0 +1,22 @@
+# Defaults for a study config (a recipe's conf/atlas*.yaml). A recipe states what
+# is specific to its study; everything else comes from here. `atlas.submission`
+# is deliberately not defaulted: how to submit jobs depends on the cluster, so
+# every study config has to give it (`instructions` and `resources`; without
+# instructions jobs run as local processes, and `controller.run_in` chooses
+# whether the controller runs in the `atlas run` process (`local`, default) or
+# is submitted as a tick job (`queue`)). The coding agent defaults are in
+# agent_defaults.yaml.
+atlas:
+  tick_interval_sec_idle: 60
+  tick_interval_sec_trial_active: 600
+
+  agent:
+    provider: codex
+
+  trial:
+    timeout_sec: 86400
+
+  budget:
+    max_parallel_trials: 1
+    max_failures: 10
+    no_improve_stop: 10

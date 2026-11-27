@@ -42,6 +42,10 @@ pyproject.toml.tmp
 build/
 logs/
 core
+!espnet3/bin/atlas/core/
+!espnet3/bin/atlas/core/**
+espnet3/bin/atlas/core/**/__pycache__/
+espnet3/bin/atlas/core/**/*.pyc
 
 out/config.yaml
 hub/

@@ -109,6 +109,25 @@ rm -rf exp data downloads
 
 cd "${cwd}" || exit
 
+echo "==== [ESPnet3] ATLAS init ===="
+# ATLAS's `run` stage drives a coding agent (Codex/Claude Code), which CI
+# cannot invoke, so this only exercises `init`: it resolves the study config,
+# writes atlas.yaml/graph.yaml/program.md, and creates the study/node-run
+# state without touching the agent. The agent-driven graph execution (via a
+# deterministic dummy agent) is covered by
+# test/espnet3/bin/atlas/test_integration.py.
+cd ./egs3/mini_an4/esp2_asr || exit
+gen_dummy_coverage
+${python} -m espnet3.bin.main atlas init \
+    --recipe-dir . \
+    --config conf/atlas.yaml
+test -f exp/atlas/mini_an4_ci_check/atlas.yaml
+test -f exp/atlas/mini_an4_ci_check/graph.yaml
+test -f exp/atlas/mini_an4_ci_check/program.md
+rm -rf exp
+
+cd "${cwd}" || exit
+
 python3 -m pip install -e '.[st]'
 
 cd ./egs3/mini_an4/esp2_st || exit

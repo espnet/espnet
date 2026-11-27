@@ -1,0 +1,140 @@
+name: hyperparameter_search
+version: 1
+start: research_context
+
+nodes:
+  research_context:
+    target: espnet3.bin.atlas.stages.skill.SkillStage
+    execution: local
+    skill: atlas_hyperparameter_search_research_context
+    output_file: knowledge/knowledge_pack.md
+    output_key: pack
+    fallback_output: "# Knowledge Pack\n\nThe research context could not be generated. Read program.md and atlas.yaml in the study directory directly.\n"
+    output_schema:
+      pack: {type: string, description: "Markdown text of the first knowledge pack"}
+    "on":
+      success: propose_trial
+      failure: propose_trial
+      terminal: propose_trial
+
+  propose_trial:
+    target: espnet3.bin.atlas.stages.propose_trial.ProposeTrialStage
+    execution: local
+    skill: atlas_hyperparameter_search_propose_trial
+    "on":
+      success: run_trial
+      duplicate: propose_trial
+      implement_code: implement_code
+      no_budget: select_best
+      failure: analyze
+
+  implement_code:
+    target: espnet3.bin.atlas.stages.skill.SkillStage
+    execution: local
+    skill: atlas_hyperparameter_search_implement_code
+    allowed_actions: [file_write, terminal]
+    output_schema:
+      files_created:
+        {type: array, items: {type: string}, description: "relative paths created"}
+      files_modified:
+        {type: array, items: {type: string}, description: "relative paths modified"}
+      packages_added:
+        {type: array, items: {type: string}, description: "packages added"}
+      summary: {type: string, description: "one-line implementation summary"}
+    "on":
+      success: run_trial
+      failure: reflect
+
+  run_trial:
+    target: espnet3.bin.atlas.stages.run_trial.RunTrialStage
+    execution: submission
+    resources:
+      gpus: 0
+      cpus: 2
+      mem: 8G
+      time: "01:00:00"
+    "on":
+      success: collect_result
+      failure: debug_trial
+      timeout: debug_trial
+      waiting_job: run_trial
+      early_stopped: reflect
+
+  debug_trial:
+    target: espnet3.bin.atlas.stages.debug_trial.DebugTrialStage
+    execution: local
+    skill: atlas_hyperparameter_search_debug_trial
+    "on":
+      success: run_trial
+      continue: reflect
+      failure: reflect
+
+  collect_result:
+    target: espnet3.bin.atlas.stages.collect_result.CollectResultStage
+    execution: local
+    "on":
+      success: accept_or_reject
+      failure: reflect
+
+  accept_or_reject:
+    target: espnet3.bin.atlas.stages.accept_or_reject.AcceptOrRejectStage
+    execution: local
+    "on":
+      accepted: reflect
+      rejected: reflect
+      failure: reflect
+
+  reflect:
+    target: espnet3.bin.atlas.stages.skill.SkillStage
+    execution: local
+    skill: atlas_hyperparameter_search_reflect
+    allowed_actions: [read_only, terminal, file_write]
+    trial_update_keys: [reflection, next_suggestion]
+    output_file: trials/{trial_id}/reflection.md
+    output_key: reflection
+    output_schema:
+      reflection: {type: string, description: "summary of the trial result"}
+      next_suggestion: {type: string, description: "recommended next experiment"}
+    "on":
+      continue: update_knowledge
+      done: update_knowledge
+      failure: update_knowledge
+
+  update_knowledge:
+    target: espnet3.bin.atlas.stages.skill.SkillStage
+    execution: local
+    skill: atlas_hyperparameter_search_update_knowledge
+    output_file: knowledge/knowledge_pack.md
+    output_key: entry
+    output_append: true
+    output_schema:
+      entry: {type: string, description: "Markdown entry for this trial, appended to the knowledge pack"}
+    "on":
+      success: check_budget
+      failure: check_budget
+
+  check_budget:
+    target: espnet3.bin.atlas.stages.check_budget.CheckBudgetStage
+    execution: local
+    "on":
+      continue: propose_trial
+      done: select_best
+
+  select_best:
+    target: espnet3.bin.atlas.stages.select_best.SelectBestStage
+    execution: local
+    "on":
+      success: analyze
+      failure: analyze
+
+  analyze:
+    target: espnet3.bin.atlas.stages.skill.SkillStage
+    execution: local
+    skill: atlas_hyperparameter_search_analyze
+    allowed_actions: [read_only, terminal, file_write]
+    output_file: summary.md
+    output_key: summary_markdown
+    fallback_output: "# Study Summary\n\nThe agent summary was unavailable. See trials.csv for recorded results.\n"
+    output_schema:
+      summary_markdown: {type: string, description: "final study summary in Markdown"}
+    terminal: true

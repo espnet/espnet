@@ -1,0 +1,52 @@
+##########################################################
+#                    ATLAS CI SMOKE CONFIG               #
+##########################################################
+# Minimal ATLAS study for the mini_an4 CI recipe. This exists so
+# ci/test_integration_espnet3.sh can exercise `espnet3 atlas init` against a
+# real recipe without Slurm or a coding-agent backend (`init` never invokes
+# the agent; only `run` does). It is not meant to be run end to end: the
+# agent-driven graph execution is covered separately by
+# test/espnet3/bin/atlas/test_integration.py with a dummy agent.
+
+atlas:
+  study_name: mini_an4_ci_check
+  study_dir: exp/atlas/mini_an4_ci_check
+  application: hyperparameter_search
+  objective_file: program.md
+
+  task: ASR
+  dataset: mini_an4
+  model: transformer
+  year: 2026
+
+  recipe:
+    training_config: conf/training_asr_transformer.yaml
+    inference_config: conf/inference.yaml
+    metrics_config: conf/metrics.yaml
+
+  metric:
+    name: wer
+    mode: min
+    extraction:
+      - path: "inference/metrics.json"
+        name: wer
+        key: "espnet3.systems.esp2_asr.metrics.wer.WER.test.WER"
+
+  budget:
+    max_trials: 1
+
+  submission:
+    resources: {}
+
+  search_space:
+    allowed_keys:
+      - trainer.*
+      - optimizer.*
+    denied_keys:
+      - data.*
+      - output_dir
+      - collect_stats_dir
+      - recipe_dir
+      - exp_dir
+      - stats_dir
+      - inference_dir

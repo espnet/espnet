@@ -1,0 +1,24 @@
+# Defaults for `atlas.agent` (the coding-agent CLI). `provider` has no default:
+# it must be set to "codex" or "claude" in the study config.
+provider: ""
+cwd: null            # working directory; null means the recipe directory
+env: {}              # extra environment variables for the agent process
+timeout_sec: null    # null means no timeout
+
+codex:
+  executable: codex
+  model: null
+  sandbox: workspace-write
+  skip_git_repo_check: true
+  config: {}         # extra `-c key=value` overrides for `codex exec`
+  args: []           # extra raw CLI arguments
+
+claude:
+  executable: claude
+  model: null
+  permission_mode: bypassPermissions
+  effort: null
+  allowed_tools: []
+  disallowed_tools: []
+  max_turns: null
+  args: []           # extra raw CLI arguments

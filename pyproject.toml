@@ -124,6 +124,12 @@ include = ["espnet*", "egs3*", "splet*"]
 
 [tool.setuptools.package-data]
 egs3 = ["egs3/TEMPLATE/**/*.yaml"]
+"espnet3.bin.atlas" = ["graphs/*.yaml"]
+"espnet3.bin.atlas.resources" = [
+  "prompts/*.md",
+  "schemas/*.json",
+  "*.yaml",
+]
 # splet/egs/ is deliberately not shipped: it holds one example config to copy
 # out of the repository, nothing loads it through importlib.resources, and it
 # is not a package (no __init__.py).
@@ -324,6 +330,11 @@ mcp = [
   "espnet[enh]",
 ]
 
+# Atlas (espnet3 atlas): JSON Schema validation of coding-agent replies.
+atlas = [
+  "jsonschema>=4.18",
+]
+
 dev = [
   "black",
   "flake8>=3.7.8",
@@ -334,6 +345,7 @@ dev = [
 
 test = [
   "espnet[train]",
+  "jsonschema>=4.18",
   "pytest>=7.0.0,<8.4.0",
   "pytest-timeouts>=1.2.1",
   "pytest-pythonpath>=0.7.3",

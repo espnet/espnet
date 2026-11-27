@@ -1,0 +1,31 @@
+{
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "status": {
+      "type": "string",
+      "enum": [
+        "submitted",
+        "failed"
+      ]
+    },
+    "backend": {
+      "type": "string",
+      "description": "environment identifier"
+    },
+    "external_id": {
+      "type": "string",
+      "description": "scheduler job id or local process id"
+    },
+    "message": {
+      "type": "string",
+      "description": "submission result"
+    }
+  },
+  "required": [
+    "status",
+    "backend",
+    "external_id",
+    "message"
+  ]
+}

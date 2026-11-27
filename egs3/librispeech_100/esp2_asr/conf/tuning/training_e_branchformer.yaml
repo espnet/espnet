@@ -198,3 +198,7 @@ trainer:
     - _target_: lightning.pytorch.loggers.TensorBoardLogger
       save_dir: ${exp_dir}/tensorboard
       name: tb_logger
+    # Atlas reads per-epoch progress from these CSV logs.
+    - _target_: lightning.pytorch.loggers.CSVLogger
+      save_dir: ${exp_dir}/csv_logs
+      name: ""

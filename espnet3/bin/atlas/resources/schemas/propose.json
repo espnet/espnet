@@ -1,0 +1,87 @@
+{
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "rationale": {
+      "type": "string"
+    },
+    "config_patches": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "training": {
+          "type": "array",
+          "description": "hyperparameter changes: one {key: dotted.key, value} per change (required)",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "key": {
+                "type": "string"
+              },
+              "value": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "number"
+                  },
+                  {
+                    "type": "boolean"
+                  },
+                  {
+                    "type": "null"
+                  },
+                  {
+                    "type": "array",
+                    "items": {
+                      "anyOf": [
+                        {
+                          "type": "string"
+                        },
+                        {
+                          "type": "number"
+                        },
+                        {
+                          "type": "boolean"
+                        }
+                      ]
+                    }
+                  }
+                ]
+              }
+            },
+            "required": [
+              "key",
+              "value"
+            ]
+          }
+        }
+      },
+      "required": [
+        "training"
+      ]
+    },
+    "expected_effect": {
+      "type": "string"
+    },
+    "risk": {
+      "type": "string"
+    },
+    "extra_stages": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "optional list of stage names to run before train, e.g. train_tokenizer"
+    }
+  },
+  "required": [
+    "rationale",
+    "config_patches",
+    "expected_effect",
+    "risk",
+    "extra_stages"
+  ]
+}
