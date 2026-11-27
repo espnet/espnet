@@ -45,6 +45,17 @@ def calculate_all_attentions(
         k: v.shape for k, v in batch.items()
     }
 
+    # 0. Fused attention (SDPA, flash_attn) never materialises the weights: run
+    # those layers on the explicit path, the same computation, while plotting
+    fused = {}
+    for modu in model.modules():
+        if isinstance(modu, MultiHeadedAttention):
+            fused[modu] = (
+                getattr(modu, "use_sdpa", False),
+                getattr(modu, "use_flash_attn", False),
+            )
+            modu.use_sdpa, modu.use_flash_attn = False, False
+
     # 1. Register forward_hook fn to save the output from specific layers
     outputs = {}
     handles = {}
@@ -53,8 +64,10 @@ def calculate_all_attentions(
         def hook(module, input, output, name=name):
             if isinstance(module, MultiHeadedAttention):
                 # NOTE(kamo): MultiHeadedAttention doesn't return attention weight
-                # attn: (B, Head, Tout, Tin)
-                outputs[name] = module.attn.detach().cpu()
+                # attn: (B, Head, Tout, Tin); None if this layer's forward does
+                # not compute the weights (nothing to plot)
+                if module.attn is not None:
+                    outputs[name] = module.attn.detach().cpu()
             elif isinstance(module, AttLoc2D):
                 c, w = output
                 # w: previous concate attentions
@@ -165,8 +178,12 @@ def calculate_all_attentions(
             return_dict[name].append(output)
         outputs.clear()
 
-    # 3. Remove all hooks
+    # 3. Remove all hooks and restore the fused attention
     for _, handle in handles.items():
         handle.remove()
+    for modu, (use_sdpa, use_flash_attn) in fused.items():
+        modu.use_sdpa, modu.use_flash_attn = use_sdpa, use_flash_attn
+        if use_sdpa or use_flash_attn:
+            modu.attn = None  # the fused path keeps no weights
 
     return dict(return_dict)

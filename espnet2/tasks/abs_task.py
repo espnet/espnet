@@ -465,6 +465,8 @@ class AbsTask(ABC):
             default=3,
             help="The number images to plot the outputs from attention. "
             "This option makes sense only when attention-based model. "
+            "Layers with fused attention (use_sdpa, use_flash_attn) run the "
+            "explicit attention for the plot. "
             "We can also disable the attention plot by setting it 0",
         )
 
