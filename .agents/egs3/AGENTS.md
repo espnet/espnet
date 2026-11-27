@@ -28,6 +28,23 @@ System whenever it provides the needed stages; add a recipe-local System only
 for genuinely recipe-specific behavior. Put behavior shared by multiple
 recipes in `espnet3/`, not in one recipe's `src/`.
 
+Follow the existing README templates and conventions:
+
+- System documentation: `egs3/TEMPLATE/<system>/README.md`.
+- Recipe documentation: follow the recipe README structure below and the
+  [LibriSpeech 100h example](../../egs3/librispeech_100/esp2_asr/README.md).
+- Published model card: `egs3/TEMPLATE/<system>/src/hf_model_readme.md`.
+- Hugging Face Space README: `egs3/TEMPLATE/<system>/src/hf_demo_readme.md`.
+
+Every System TEMPLATE that supports publication must provide its model card
+template and reference it from `conf/publication.yaml`. Include a copyable
+`InferenceModel.from_pretrained()` example with inputs and outputs matching the
+System's inference contract. Every System TEMPLATE that supports a demo must
+provide its Space README template with local launch commands and reference it
+from `conf/demo.yaml`. Keep these shared templates in `egs3/TEMPLATE/<system>/src/`;
+use a recipe's `src/` for a README template only when the recipe needs its own
+additional content. Do not duplicate the shared templates in each recipe.
+
 Keep the recipe layout recognizable:
 
 ```text

@@ -491,6 +491,8 @@ def _render_readme(template: str, context: dict[str, str]) -> str:
 
     """
     safe = {k: "" if v is None else str(v) for k, v in context.items()}
+    safe.setdefault("usage_repo", safe.get("hf_repo") or "<your-hf-repo>")
+    safe.setdefault("usage_model_args", json.dumps(safe["usage_repo"]))
     pattern = re.compile(r"\$\{([A-Za-z0-9_]+)\}")
     lines = []
     for line in template.splitlines():
@@ -664,6 +666,30 @@ def pack_model(
             results_path=results_path,
         )
         context.update(dict(getattr(pack_cfg, "readme_context", {}) or {}))
+        inference_path = yaml_files.get("inference_config")
+        if inference_path:
+            from espnet3.publication.inference_model import (
+                _get_bundled_module_names,
+                _load_inference_config,
+                _validate_untrusted_config,
+            )
+
+            packed_config = _load_inference_config(out_dir / inference_path, out_dir)
+            try:
+                _validate_untrusted_config(
+                    packed_config, _get_bundled_module_names(out_dir)
+                )
+            except ValueError:
+                repo = context.get("usage_repo") or context.get("hf_repo")
+                context["usage_model_args"] = (
+                    f'{json.dumps(str(repo or "<your-hf-repo>"))}, '
+                    "trust_user_code=True"
+                )
+        else:
+            logger.warning(
+                "Cannot determine whether the README example needs "
+                "trust_user_code: the bundle has no inference config."
+            )
         if not context.get("results_section"):
             logger.warning(
                 "README will not include a rendered results table. "

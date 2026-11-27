@@ -14,6 +14,15 @@ ${tags}
 
 ${description}
 
+## Run locally
+
+In the packed demo directory, install the dependencies and start the app:
+
+```bash
+python -m pip install gradio -r requirements.txt
+python app.py
+```
+
 ## Demo
 
 - Space: `${hf_repo}`

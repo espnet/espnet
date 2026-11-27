@@ -31,7 +31,7 @@ ${model_detail_section}
 ```python
 from espnet3.publication import InferenceModel
 
-model = InferenceModel.from_pretrained("${hf_repo}")
+model = InferenceModel.from_pretrained(${usage_model_args})
 output = model(
     {
         "text": "The text to synthesize.",

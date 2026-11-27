@@ -31,8 +31,9 @@ ${model_detail_section}
 ```python
 from espnet3.publication import InferenceModel
 
-${usage_load_call}
-result = model(sample)
+model = InferenceModel.from_pretrained(${usage_model_args})
+result = model({"speech": "speech.wav"})
+print(result["hyp"])
 ```
 
 ## Packaging

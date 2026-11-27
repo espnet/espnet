@@ -217,6 +217,35 @@ def _disallowed_targets(config: DictConfig) -> list[str]:
     return sorted(disallowed)
 
 
+def _validate_untrusted_config(config: DictConfig, bundled_modules: set[str]) -> None:
+    """Reject inference configurations that require trusting executable code."""
+    contract = getattr(config, "contract", None)
+    if contract and contract.get("imports", []):
+        raise ValueError("contract.imports requires trust_user_code=True")
+    if _uses_bundled_code(config, bundled_modules):
+        raise ValueError(
+            "This inference config references bundled user code. "
+            "Set trust_user_code=True to allow imports from the published bundle."
+        )
+    disallowed = _disallowed_targets(config)
+    if disallowed:
+        raise ValueError(
+            "This inference config instantiates targets outside the "
+            "namespaces a published bundle may build from: "
+            + ", ".join(disallowed)
+            + ". Hydra executes every `_target_`, so loading this "
+            "bundle would run them. Set trust_user_code=True only if "
+            "you trust the publisher of this bundle."
+        )
+    output_fn = getattr(config, "output_fn", None)
+    if output_fn:
+        raise ValueError(
+            f"This inference config sets output_fn={output_fn!r}, which "
+            "is imported and run as user code. Set trust_user_code=True "
+            "only if you trust the publisher of this bundle."
+        )
+
+
 def _apply_model_overrides(config, overrides):
     """Merge constructor overrides before checking all Hydra targets for trust."""
     if overrides:
@@ -427,16 +456,10 @@ class InferenceModel:
         contract_imports = (
             list(contract_config.get("imports", [])) if contract_config else []
         )
-        if contract_imports and not trust_user_code:
-            raise ValueError("contract.imports requires trust_user_code=True")
+        if not trust_user_code:
+            _validate_untrusted_config(inference_config, bundled_modules)
 
         if _uses_bundled_code(inference_config, bundled_modules) or contract_imports:
-            if not trust_user_code:
-                raise ValueError(
-                    "This inference config references bundled user code. "
-                    "Set trust_user_code=True to allow imports from the "
-                    "published bundle."
-                )
             _check_bundled_module_conflicts(bundled_modules, bundle_root)
             bundle_root_str = str(bundle_root)
             if bundle_root_str not in sys.path:
@@ -446,30 +469,6 @@ class InferenceModel:
                 bundle_root=bundle_root,
             )
             _apply_model_overrides(inference_config, model_overrides)
-
-        # Bundled-code checks do not catch a target that names an installed
-        # callable. Hydra would still import and execute that target, including
-        # recursively nested targets in its arguments.
-        if not trust_user_code:
-            disallowed = _disallowed_targets(inference_config)
-            if disallowed:
-                raise ValueError(
-                    "This inference config instantiates targets outside the "
-                    "namespaces a published bundle may build from: "
-                    + ", ".join(disallowed)
-                    + ". Hydra executes every `_target_`, so loading this "
-                    "bundle would run them. Set trust_user_code=True only if "
-                    "you trust the publisher of this bundle."
-                )
-            # ``output_fn`` is imported and called outside Hydra, so the
-            # ``_target_`` check above does not cover it.
-            output_fn = getattr(inference_config, "output_fn", None)
-            if output_fn:
-                raise ValueError(
-                    f"This inference config sets output_fn={output_fn!r}, which "
-                    "is imported and run as user code. Set trust_user_code=True "
-                    "only if you trust the publisher of this bundle."
-                )
 
         if device is not None:
             # Work on a copy: callers may reuse the config, and ``auto`` means

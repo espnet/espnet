@@ -26,11 +26,15 @@ ${description}
 ${model_summary_section}
 ${model_detail_section}
 
-## Inference
+## Usage
 
-Use the original recipe's inference configuration to build its backend and
-run the `infer` stage. This archive contains the checkpoint and configuration
-artifacts; model construction and result formatting are defined by the recipe.
+```python
+from espnet3.publication import InferenceModel
+
+model = InferenceModel.from_pretrained(${usage_model_args})
+result = model({"speech": "speech.wav"})
+print(result["text"])
+```
 
 ## Packaging
 
