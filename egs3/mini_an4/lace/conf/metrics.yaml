@@ -1,0 +1,28 @@
+##########################################################
+#                 METRIC SCORING SETTING                 #
+##########################################################
+# Merged over egs3/TEMPLATE/lace/conf/metrics.yaml. Only the signal metrics
+# are scored here: the pseudo-MOS predictors download their models, which the
+# integration test avoids.
+dataset:
+  test:
+    - name: test
+      data_src_args:
+        split: test
+        inference: true
+
+metrics:
+  - metric:
+      _target_: espnet3.components.metrics.versa.VersaMetric
+      score_config:
+        - name: signal_metric
+      outputs:
+        - sdr
+        - si_snr
+        - ci_sdr
+      wav_key: wav
+      ref_key: ref
+      use_gpu: false
+    inputs:
+      wav: resyn_audio
+      ref: dataset:wav_path
