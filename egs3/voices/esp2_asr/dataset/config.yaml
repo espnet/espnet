@@ -1,0 +1,15 @@
+builder:
+  url: https://lab41openaudiocorpus.s3.amazonaws.com/VOiCES_devkit.tar.gz
+  archive_name: VOiCES_devkit.tar.gz
+  source_name: VOiCES_devkit
+  dev_speakers: 10
+  sample_rate: 16000
+  min_duration: 0.1
+  max_duration: 30.0
+  expected_distant_counts:
+    train: 12800
+    test: 6400
+  full_url: https://lab41openaudiocorpus.s3.amazonaws.com/VOiCES_release.tar.gz
+  full_distant_counts:
+    train: 661248
+    test: 337920
