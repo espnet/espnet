@@ -182,6 +182,7 @@ SLM:
   - changed-files:
       - any-glob-to-any-file:
           - "espnet2/speechlm/**"
+          - "espnet3/systems/speechlm/**"
           - "test/espnet2/speechlm/**"
           - "egs2/*/speechlm1/**"
 

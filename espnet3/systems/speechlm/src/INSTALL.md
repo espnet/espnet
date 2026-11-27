@@ -87,6 +87,6 @@ MODEL_PATH=/path/to/bagpiper-vllm HOST=127.0.0.1 PORT=8000 \
     bash examples/espnet/serve_bagpiper.sh
 ```
 
-See the [Bagpiper](../../egs2/bagpiper/speechlm1/README.md) and
-[Bagpiper-TTS](../../egs2/bagpiper_tts/speechlm1/README.md) recipes for inference,
+See the [Bagpiper](../../../../egs2/bagpiper/speechlm1/README.md) and
+[Bagpiper-TTS](../../../../egs2/bagpiper_tts/speechlm1/README.md) recipes for inference,
 fine-tuning, and checkpoint export instructions.
