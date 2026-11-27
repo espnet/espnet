@@ -146,11 +146,36 @@ def _resolve_readme_template_path(readme_template_path: str) -> Path:
     raise FileNotFoundError(f"README template not found: {readme_template_path}")
 
 
+# Keys whose value is a path; see `_rewrite_paths_for_bundle` for why a value
+# is not judged on its own.
+_PATH_SETTING_RE = re.compile(r"(?:^|_)(?:dir|path|file|scp|readme|bpemodel)$")
+
+
+def _names_a_path(key_path: tuple[str, ...]) -> bool:
+    """Return whether the setting at ``key_path`` holds a path.
+
+    List indices are skipped, so an entry of ``pack_model.include`` is judged
+    by ``include`` rather than by its position.
+
+    Examples:
+        >>> _names_a_path(("pack_model", "readme"))
+        True
+        >>> _names_a_path(("model", "token_list", "3"))
+        False
+    """
+    for key in reversed(key_path):
+        if key.isdigit():
+            continue
+        return bool(_PATH_SETTING_RE.search(key))
+    return False
+
+
 def _rewrite_paths_for_bundle(
     value: Any,
     recipe_root: Path,
     copied_sources: dict[Path, Path],
     out_dir: Path,
+    key_path: tuple[str, ...] = (),
 ) -> Any:
     """Recursively rewrite source paths in a config to bundle-relative paths.
 
@@ -159,26 +184,32 @@ def _rewrite_paths_for_bundle(
     path already copied into the bundle with a ``${recipe_dir}/...`` reference,
     so the packed config works portably without absolute paths.
 
+    A path setting left pointing outside the bundle is dropped instead: a
+    published bundle should not carry a path that resolves only on the
+    machine that packed it. Only keys matching ``_PATH_SETTING_RE`` are
+    swept, since a value cannot be judged on its own -- an inline
+    ``token_list`` can carry ``"/"`` as a vocabulary entry.
     """
     if isinstance(value, (DictConfig, ListConfig)):
         value = OmegaConf.to_container(value, resolve=False)
     if isinstance(value, dict):
         return {
-            k: _rewrite_paths_for_bundle(v, recipe_root, copied_sources, out_dir)
+            k: _rewrite_paths_for_bundle(
+                v, recipe_root, copied_sources, out_dir, key_path + (str(k),)
+            )
             for k, v in value.items()
         }
     if isinstance(value, list):
         return [
-            _rewrite_paths_for_bundle(v, recipe_root, copied_sources, out_dir)
-            for v in value
+            _rewrite_paths_for_bundle(
+                v, recipe_root, copied_sources, out_dir, key_path + (str(i),)
+            )
+            for i, v in enumerate(value)
         ]
     if not isinstance(value, str) or not value or "${" in value:
         return value
-    candidate = Path(value)
-    if not candidate.is_absolute():
-        candidate = (recipe_root / candidate).absolute()
-    else:
-        candidate = candidate.absolute()
+    raw = Path(value)
+    candidate = raw.absolute() if raw.is_absolute() else (recipe_root / raw).absolute()
     for src_root, dst_root in copied_sources.items():
         if candidate == src_root:
             rel = dst_root.absolute().relative_to(out_dir.resolve()).as_posix()
@@ -189,6 +220,15 @@ def _rewrite_paths_for_bundle(
             continue
         rel = (dst_root / suffix).absolute().relative_to(out_dir.resolve()).as_posix()
         return f"${{recipe_dir}}/{rel}"
+    if raw.is_absolute() and candidate.exists() and _names_a_path(key_path):
+        logger.warning(
+            "pack_model: dropping %s, which points outside the bundle (%s). "
+            "An absolute path resolves only on the machine that packed the "
+            "model, and publishing it would publish that machine's layout.",
+            ".".join(key_path) or "a config value",
+            value,
+        )
+        return None
     return value
 
 
@@ -331,14 +371,38 @@ def _infer_recipe_name(recipe_root: Path) -> str:
         return recipe_root.as_posix()
 
 
-def _infer_creator() -> str:
-    """Return a best-effort creator name for README metadata."""
-    return (
-        os.environ.get("GIT_AUTHOR_NAME")
-        or os.environ.get("USER")
-        or os.environ.get("USERNAME")
-        or ""
-    )
+def _infer_creator(
+    publication_config: DictConfig | None = None,
+    git_author: str | None = None,
+) -> str:
+    """Return the creator name for the model card, or an empty string.
+
+    ``publication_config.creator`` wins, then ``GIT_AUTHOR_NAME``, then the
+    repository's configured ``user.name``. There is no fall back to ``USER``:
+    a model card is published, and a local account name is not something its
+    owner chose to publish, whereas a git identity is already attached to
+    every commit they push.
+
+    An empty result drops the card's ``Creator`` line, since
+    :func:`_render_readme` drops a line whose placeholder is empty.
+
+    Args:
+        publication_config: The publication config, for an explicit
+            ``creator``.
+        git_author: ``user.name`` for the recipe's repository, as
+            ``get_git_metadata`` reports it.
+
+    Returns:
+        The name to credit, or ``""`` when none was given.
+
+    Examples:
+        >>> _infer_creator(OmegaConf.create({"creator": "A. Researcher"}))
+        'A. Researcher'
+    """
+    configured = getattr(publication_config, "creator", None)
+    if configured:
+        return str(configured)
+    return os.environ.get("GIT_AUTHOR_NAME") or git_author or ""
 
 
 def _describe_pack_strategy(pack_cfg: DictConfig) -> str:
@@ -455,7 +519,7 @@ def _build_readme_context(
 
     return {
         "corpus": recipe_root.parent.name,
-        "creator": _infer_creator(),
+        "creator": _infer_creator(publication_config, git_meta.get("author")),
         "created_at": datetime.now().isoformat(timespec="seconds"),
         "description": (
             f"Packed model bundle generated from `{_infer_recipe_name(recipe_root)}`."
@@ -718,7 +782,7 @@ def upload_model(system) -> None:
         RuntimeError: If required config values are missing or upload fails.
 
     Examples:
-        >>> upload_model(system)
+        >>> upload_model(system)  # doctest: +SKIP
     """
     publication_cfg = system.publication_config
     upload_cfg = publication_cfg.upload_model

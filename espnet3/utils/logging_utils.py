@@ -320,6 +320,7 @@ def get_git_metadata(cwd: Path | None = None) -> dict[str, str]:
             - "branch": Current branch name.
             - "worktree": "clean", "dirty", or "unknown".
             - "origin_url": URL of the `origin` remote, if set.
+            - "author": `user.name` as configured for this repository.
     """
     cwd = cwd or Path.cwd()
     status = _run_git_command(["git", "status", "--short"], cwd)
@@ -335,6 +336,7 @@ def get_git_metadata(cwd: Path | None = None) -> dict[str, str]:
         "short_commit": _run_git_command(["git", "rev-parse", "--short", "HEAD"], cwd),
         "branch": _run_git_command(["git", "rev-parse", "--abbrev-ref", "HEAD"], cwd),
         "origin_url": _run_git_command(["git", "remote", "get-url", "origin"], cwd),
+        "author": _run_git_command(["git", "config", "user.name"], cwd),
     }
     meta["worktree"] = dirty
     return meta
