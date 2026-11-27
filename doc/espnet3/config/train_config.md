@@ -283,13 +283,11 @@ dataloader:
 
 ### Sharding keys
 
-The TEMPLATE also shows `total_shards` and `dist_world_size` under
-`dataloader.train` / `dataloader.valid`. These are not read from the dataloader
-config — `DataLoaderBuilder._maybe_shard_dataset()` reads `total_shards` /
-`dist_world_size` as attributes of the underlying dataset object instead. Set
-them on the dataset (e.g. via `data_src_args`) as described in
-[Dataset Sharding](../guides/scaling/dataset-sharding.html); leave the
-dataloader-level copies at `1` for a single-shard, non-distributed setup.
+`total_shards` and `dist_world_size` are not `dataloader.train` /
+`dataloader.valid` keys. `DataLoaderBuilder._maybe_shard_dataset()` reads them
+as attributes of the underlying dataset object, so set them on the dataset
+(e.g. via `data_src_args`) as described in
+[Dataset Sharding](../guides/scaling/dataset-sharding.html).
 
 ## `optimizer` / `scheduler`
 

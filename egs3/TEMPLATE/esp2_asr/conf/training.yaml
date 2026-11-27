@@ -249,11 +249,6 @@ dataloader:
     # per_gpu: complete batches per rank (default); global: split each batch.
     # global requires a shared batch plan and at least world_size items per batch.
     batch_distribution: per_gpu
-    # `total_shards` is the total number of dataset shards.
-    # `dist_world_size` is the distributed world size used to rotate shards.
-    # Keep `dist_world_size` equal to the runtime world size.
-    total_shards: 1
-    dist_world_size: 1
     iter_factory:
       _target_: espnet2.iterators.sequence_iter_factory.SequenceIterFactory
       shuffle: true
@@ -271,9 +266,6 @@ dataloader:
   valid:
     # Select validation distribution independently from training.
     batch_distribution: per_gpu
-    # Use the same sharding settings as `train`.
-    total_shards: 1
-    dist_world_size: 1
     iter_factory:
       _target_: espnet2.iterators.sequence_iter_factory.SequenceIterFactory
       shuffle: false

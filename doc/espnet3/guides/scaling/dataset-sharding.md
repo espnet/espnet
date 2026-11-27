@@ -76,9 +76,7 @@ Do not put `total_shards`/`dist_world_size` under `dataloader:`. They are not
 read from there. With the ESPnet iterator path (`iter_factory:` set) they are
 silently ignored; with the standard-DataLoader path (`iter_factory: null`)
 they are forwarded verbatim to `torch.utils.data.DataLoader(...)` and raise
-`TypeError: unexpected keyword argument 'total_shards'`. Some shipped configs
-still carry these keys under `dataloader:` as leftover placeholders — treat
-them as no-ops, not as the activation mechanism.
+`TypeError: unexpected keyword argument 'total_shards'`.
 :::
 
 ### Validation rules

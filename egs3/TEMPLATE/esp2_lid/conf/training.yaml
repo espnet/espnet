@@ -166,11 +166,6 @@ dataloader:
       - lid_labels
   # Training dataloader / iterator settings.
   train:
-    # `total_shards` is the total number of dataset shards.
-    # `dist_world_size` is the distributed world size used to rotate shards.
-    # Keep `dist_world_size` equal to the runtime world size.
-    total_shards: 1
-    dist_world_size: 1
     iter_factory:
       _target_: espnet2.iterators.sequence_iter_factory.SequenceIterFactory
       # Integer seed for the iterator; set `${seed}` when the recipe sets a seed.
@@ -187,9 +182,6 @@ dataloader:
         batch_bins: 2880000
   # Validation dataloader / iterator settings.
   valid:
-    # Use the same sharding settings as `train`.
-    total_shards: 1
-    dist_world_size: 1
     iter_factory:
       _target_: espnet2.iterators.sequence_iter_factory.SequenceIterFactory
       seed: ${dataloader.train.iter_factory.seed}
