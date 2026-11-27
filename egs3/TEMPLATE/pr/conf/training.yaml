@@ -1,0 +1,84 @@
+##########################################################
+#                    TRAINING SETTING                    #
+##########################################################
+# Quick usage:
+#   python run.py --stages create_dataset --training_config conf/training.yaml
+#   python run.py --stages train          --training_config conf/training.yaml
+#
+# Which stage reads what:
+# - `create_dataset`: `create_dataset`, `dataset`
+# - `collect_stats`:  `dataset`, `dataloader`, `model`, `parallel`
+# - `train`:          most fields below
+#
+# There is no tokenizer stage in this family: a phone recognizer's inventory is
+# the phone set, so `token_list` is data, not something to learn.
+
+##########################################################
+#                  SYSTEM AND PATH SETTING               #
+##########################################################
+num_device: 1
+num_nodes: 1
+
+# ESPnet2 task whose `build_model` assembles `model` below. Leave unset to
+# instantiate `model` directly with Hydra.
+task:
+
+recipe_dir: .
+data_dir: ${recipe_dir}/data
+exp_tag: ${self_name:}
+exp_dir: ${recipe_dir}/exp/${exp_tag}
+stats_dir: ${recipe_dir}/exp/stats
+
+##########################################################
+#                 DATASET CREATION SETTING               #
+##########################################################
+# Every field here is passed as a keyword argument to the recipe's
+# DatasetBuilder, whose four methods take `recipe_dir` and an optional
+# `source_dir`. Add `source_dir` to point at a corpus outside the recipe.
+create_dataset:
+  recipe_dir: ${recipe_dir}
+
+##########################################################
+#                    DATASET DEFINITION                  #
+##########################################################
+# Dataset organizer used across collect_stats/train/infer/measure. Fill `train`
+# and `valid`, and `test` when the recipe scores in-place. An entry without a
+# `data_src` resolves to the recipe's own `dataset/` module.
+dataset:
+  _target_: espnet3.components.data.data_organizer.DataOrganizer
+  _recursive_: false
+  recipe_dir: ${recipe_dir}
+  train:
+  valid:
+  test:
+  preprocessor:
+
+##########################################################
+#                      MODEL SETTING                     #
+##########################################################
+# Passed to `get_espnet_model(task, model)` when `task` is set, otherwise
+# instantiated directly.
+model:
+
+##########################################################
+#                   OPTIMIZATION SETTING                 #
+##########################################################
+optimizer:
+scheduler:
+scheduler_interval: step   # `step` or `epoch`
+scheduler_monitor:         # e.g. `valid/loss` for monitored epoch schedulers
+best_model_criterion:
+seed:
+init:
+
+##########################################################
+#                 PARALLEL AND DATALOADER                #
+##########################################################
+parallel:
+dataloader:
+
+##########################################################
+#                     TRAINER SETTING                    #
+##########################################################
+trainer:
+fit: {}
