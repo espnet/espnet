@@ -141,7 +141,7 @@ def test_builder_writes_lists_and_dev_set(sources, tmp_path):
     _write_store(dev, "dev_noisy", ["d0", "d1"], sr=48000)
     _write_store(dev, "dev_clean", ["d0", "d1"], sr=48000)
     out = tmp_path / "data"
-    kwargs = dict(sources, dev_root=dev, out_dir=out)
+    kwargs = dict(sources, dev_root=dev, out_dir=out, commercial_only=True)
     builder = Urgent25Builder()
     assert builder.is_source_prepared(**kwargs)
     assert not builder.is_built(**kwargs)
@@ -151,6 +151,21 @@ def test_builder_writes_lists_and_dev_set(sources, tmp_path):
     assert [r["id"] for r in rows] == ["d0", "d1"]
     info = sf.info(rows[0]["speech_ref"])
     assert info.samplerate == 16000 and info.frames == 8000
+    assert (out / "commercial_allow.txt").is_file()
+
+
+def test_builder_default_pool_needs_no_license_metadata(sources, tmp_path):
+    dev = tmp_path / "urgent2026"
+    _write_store(dev, "dev_noisy", ["d0"], sr=48000)
+    _write_store(dev, "dev_clean", ["d0"], sr=48000)
+    out = tmp_path / "data"
+    kwargs = dict(urgent_root=sources["urgent_root"], dev_root=dev, out_dir=out)
+    builder = Urgent25Builder()
+    builder.build(**kwargs)
+    assert builder.is_built(**kwargs)
+    assert (out / "manifest/dev.jsonl").is_file()
+    assert not (out / "commercial_allow.txt").exists()
+    assert not builder.is_built(**kwargs, commercial_only=True)
 
 
 def test_builder_errors(sources, tmp_path):
@@ -158,8 +173,12 @@ def test_builder_errors(sources, tmp_path):
     assert not builder.is_source_prepared(urgent_root=None, dev_root=None)
     with pytest.raises(FileNotFoundError, match="URGENT stores not found"):
         builder.prepare_source(urgent_root="/x", dev_root=None)
-    with pytest.raises(ValueError, match="fsd50k_meta and fma_meta must be set"):
-        builder.build(urgent_root=sources["urgent_root"], out_dir=tmp_path / "o")
+    with pytest.raises(ValueError, match="commercial_only needs"):
+        builder.build(
+            urgent_root=sources["urgent_root"],
+            out_dir=tmp_path / "o",
+            commercial_only=True,
+        )
     dev = tmp_path / "urgent2026"
     _write_store(dev, "dev_noisy", ["d0", "d1"])
     _write_store(dev, "dev_clean", ["d0"])

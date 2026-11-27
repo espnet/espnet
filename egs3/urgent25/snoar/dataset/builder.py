@@ -1,13 +1,15 @@
 """Task-ready files of the URGENT 2025 SNOAR recipe.
 
 Training mixes are made on the fly from the URGENT 2025 OMNIIO store, so the
-builder writes only two things into ``out_dir``:
+builder writes only these files into ``out_dir``:
 
-- the per-file noise license record and the commercial-use lists
-  (:mod:`egs3.urgent25.snoar.dataset.licenses`), which
-  ``conf/training_supervised_commercial_bsrnn.yaml`` reads;
 - the URGENT 2026 track-1 dev set resampled to 16 kHz (``dev16k/``) and its
-  manifest ``manifest/dev.jsonl``, which ``infer`` and ``measure`` read.
+  manifest ``manifest/dev.jsonl``, which ``infer`` and ``measure`` read;
+- with ``commercial_only``, the per-file noise license record and the
+  commercial-use lists (:mod:`egs3.urgent25.snoar.dataset.licenses`), which
+  ``conf/training_supervised_commercial_bsrnn.yaml`` reads. The default pool
+  (``conf/training_supervised_bsrnn.yaml``) uses every file and needs no
+  license metadata.
 """
 
 from __future__ import annotations
@@ -112,11 +114,12 @@ def write_dev_set(dev_root: Path, out_dir: Path, fs: int = 16000) -> int:
 
 
 class Urgent25Builder(DatasetBuilder):
-    """Write the license lists and the 16 kHz dev set.
+    """Write the 16 kHz dev set and, optionally, the license lists.
 
     Every method takes the ``create_dataset`` section of the training config
-    as keyword arguments: ``urgent_root``, ``dev_root``, ``out_dir``,
-    ``fsd50k_meta``, ``fma_meta`` and optionally ``fsdkaggle_meta`` and
+    as keyword arguments: ``urgent_root``, ``dev_root``, ``out_dir`` and
+    ``commercial_only``. With ``commercial_only`` the license audit also
+    needs ``fsd50k_meta``, ``fma_meta`` and optionally ``fsdkaggle_meta`` and
     ``musan_noise``.
     """
 
@@ -145,12 +148,14 @@ class Urgent25Builder(DatasetBuilder):
             "stores (<subset>/metadata.parquet + blobs)."
         )
 
-    def is_built(self, out_dir: Optional[str] = None, **_) -> bool:
-        """Return whether the license lists and the dev manifest exist."""
+    def is_built(
+        self, out_dir: Optional[str] = None, commercial_only: bool = False, **_
+    ) -> bool:
+        """Return whether the dev manifest (and license lists) exist."""
         if not out_dir:
             return False
-        out = Path(out_dir)
-        return all((out / f).is_file() for f in LICENSE_FILES + (DEV_MANIFEST,))
+        files = (DEV_MANIFEST,) + (LICENSE_FILES if commercial_only else ())
+        return all((Path(out_dir) / f).is_file() for f in files)
 
     def build(
         self,
@@ -161,20 +166,23 @@ class Urgent25Builder(DatasetBuilder):
         fma_meta: Optional[str] = None,
         fsdkaggle_meta: Optional[str] = None,
         musan_noise: Optional[str] = None,
+        commercial_only: bool = False,
         **_,
     ) -> None:
-        """Run the license audit and write the dev set.
+        """Write the dev set and, with ``commercial_only``, run the audit.
 
         Raises:
-            ValueError: If ``out_dir`` or a required metadata path is unset.
+            ValueError: If ``out_dir`` is unset, or ``commercial_only`` is set
+                without ``fsd50k_meta`` and ``fma_meta``.
         """
         if not out_dir:
             raise ValueError("create_dataset.out_dir must be set")
         out = Path(out_dir)
-        if not all((out / f).is_file() for f in LICENSE_FILES):
+        if commercial_only and not all((out / f).is_file() for f in LICENSE_FILES):
             if not (fsd50k_meta and fma_meta):
                 raise ValueError(
-                    "create_dataset.fsd50k_meta and fma_meta must be set: extract "
+                    "commercial_only needs create_dataset.fsd50k_meta and "
+                    "fma_meta: extract "
                     "FSD50K.metadata.zip (https://zenodo.org/records/4060432) and "
                     "fma_metadata.zip (https://github.com/mdeff/fma)"
                 )

@@ -13,12 +13,13 @@ noise estimate, and SNOAR's remixing would then learn from that.
 
 Two training pools:
 
-- `training_supervised_commercial_bsrnn.yaml`: only data whose license allows
-  commercial use and derivatives without share-alike. This is the published
-  model.
-- `training_supervised_bsrnn.yaml`: the whole pool, including non-commercial
-  data (EARS, WHAM! noise, NC clips of FSD50K and FMA). Research reference
-  only.
+- `training_supervised_bsrnn.yaml` (default): the whole URGENT 2025 pool,
+  including non-commercial data (EARS, WHAM! noise, NC clips of FSD50K and
+  FMA). It needs no license metadata.
+- `training_supervised_commercial_bsrnn.yaml` (option): only data whose
+  license allows commercial use and derivatives without share-alike. Its
+  `create_dataset` sets `commercial_only: true`, which runs a per-file
+  license audit. This is the published model.
 
 ## Data Preparation
 
@@ -31,28 +32,30 @@ Prepare the data with the challenge scripts
 Evaluation uses the URGENT 2026 track-1 dev set (`dev_noisy`, `dev_clean`)
 from a store of the same layout.
 
-The commercial-use pool needs the per-file license of every noise clip. It is
-read from the dataset metadata, not from the audio:
+The default pool needs only the two stores. The commercial-use pool also
+needs the per-file license of every noise clip, which is read from the
+dataset metadata, not from the audio:
 
 | Variable | Content |
 |---|---|
 | `URGENT25_ROOT` | URGENT 2025 store |
 | `URGENT26_ROOT` | URGENT 2026 store with `dev_noisy`, `dev_clean` |
 | `URGENT_OUTPUT` | where `create_dataset` writes (default `./data`) |
-| `FSD50K_META` | extracted `FSD50K.metadata.zip` (<https://zenodo.org/records/4060432>) |
-| `FMA_META` | extracted `fma_metadata.zip` (<https://github.com/mdeff/fma>) |
-| `FSDKAGGLE2018_META` | FSDKaggle2018 `meta/` (licenses of the DNS5 Freesound clips not in FSD50K) |
-| `MUSAN_NOISE` | MUSAN `noise/` directory (extra public-domain / CC BY noise) |
+| `FSD50K_META` (commercial only) | extracted `FSD50K.metadata.zip` (<https://zenodo.org/records/4060432>) |
+| `FMA_META` (commercial only) | extracted `fma_metadata.zip` (<https://github.com/mdeff/fma>) |
+| `FSDKAGGLE2018_META` (commercial only) | FSDKaggle2018 `meta/` (licenses of the DNS5 Freesound clips not in FSD50K) |
+| `MUSAN_NOISE` (commercial only) | MUSAN `noise/` directory (extra public-domain / CC BY noise) |
 
-`create_dataset` (`dataset/builder.py`) writes into `URGENT_OUTPUT`:
+`create_dataset` (`dataset/builder.py`) writes into `URGENT_OUTPUT` the dev
+set and, with `commercial_only: true`, the license files:
 
 | File | Content |
 |---|---|
+| `manifest/dev.jsonl`, `dev16k/` | the URGENT 2026 dev set resampled to 16 kHz |
 | `noise_licenses.tsv` | license, author, title and URL of every noise file |
 | `noise_attribution.tsv` | the same for the files used (CC0, CC BY, public domain): the CC BY credit |
 | `commercial_allow.txt` | `<subset>/<id>` of the usable URGENT noise files |
 | `musan_noise_commercial.txt` | the usable MUSAN files |
-| `manifest/dev.jsonl`, `dev16k/` | the URGENT 2026 dev set resampled to 16 kHz |
 
 The audit can also be run alone:
 
@@ -89,9 +92,9 @@ Run from `egs3/urgent25/snoar` after `. ./path.sh`, with the variables above
 set.
 
 ```bash
-C=conf/training_supervised_commercial_bsrnn.yaml   # or training_supervised_bsrnn.yaml
+C=conf/training_supervised_bsrnn.yaml   # commercial-use data only: training_supervised_commercial_bsrnn.yaml
 
-# license lists and 16 kHz dev set
+# 16 kHz dev set (and, for the commercial config, the license lists)
 python run.py --stages create_dataset --training_config $C
 # train (100 k steps, ~7 h on one H200) and export
 python run.py --stages train export --training_config $C

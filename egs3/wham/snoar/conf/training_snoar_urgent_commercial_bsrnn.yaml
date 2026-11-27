@@ -1,0 +1,42 @@
+##########################################################
+#  WHAM! 16 kHz -- SNOAR self-training from the URGENT 2025 commercial-use seed
+##########################################################
+# Seed: the BSRNN-64 denoiser of egs3/urgent25/snoar
+# (training_supervised_commercial_bsrnn.yaml), published as
+# espnet/urgent25_snoar_supervised_commercial_bsrnn. It is out of domain for
+# WHAM!: its training pool has no WHAM! noise. Set SNOAR_SEED to a local
+# export to use another copy. Schedule as
+# training_snoar_supervised_fisher_bsrnn.yaml.
+exp_tag: snoar_urgent_commercial_bsrnn
+data_dir: ${oc.env:WHAM_OUTPUT,./data}
+
+dataset:
+  train:
+    - data_src_args:
+        manifest: ${data_dir}/manifest/train.jsonl
+        segment_seconds: 3.0
+  valid:
+    - data_src_args:
+        manifest: ${data_dir}/manifest/valid.jsonl
+        segment_seconds: 3.0
+        deterministic: true
+        with_refs: true
+        num_items: 1000
+
+model:
+  mode: snoar
+  init: ${oc.env:SNOAR_SEED,espnet/urgent25_snoar_supervised_commercial_bsrnn}
+  views: 1
+  n_generations: 16
+  steps_per_generation: 1168
+  ema_decay: 0.992
+
+dataloader:
+  train:
+    batch_size: 64
+    num_workers: 15
+  valid:
+    batch_size: 64
+
+trainer:
+  max_steps: 18688

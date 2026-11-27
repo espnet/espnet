@@ -1,27 +1,24 @@
 ##########################################################
-#  Supervised BSRNN seed on the whole URGENT 2025 pool (denoising only)
+#  Supervised BSRNN seed on the whole URGENT 2025 pool (default, denoising only)
 ##########################################################
 # All URGENT 2025 speech (CommonVoice, DNS5, EARS, LibriTTS, MLS, VCTK;
 # 2110 h), all noise (DNS5, FSD50K, FMA no-vocal, WHAM!, wind) and the DNS5
-# RIRs, mixed on the fly at 16 kHz. Same model and schedule as
-# training_supervised_commercial_bsrnn.yaml. Some of this data is
-# non-commercial (EARS, WHAM!, NC clips of FSD50K / FMA), so this model is a
-# research reference only.
+# RIRs, mixed on the fly at 16 kHz. This is the default pool of the recipe.
+# Some of this data is non-commercial (EARS, WHAM!, NC clips of FSD50K /
+# FMA); training_supervised_commercial_bsrnn.yaml trains the same model and
+# schedule on the commercial-use subset only.
 exp_tag: supervised_bsrnn
 urgent_root: ${oc.env:URGENT25_ROOT}
 data_dir: ${oc.env:URGENT_OUTPUT,${recipe_dir}/data}
 
-# Builder arguments (dataset/builder.py): the license audit needs the dataset
-# metadata (see README), the dev set the URGENT 2026 store.
+# Builder arguments (dataset/builder.py): only the 16 kHz dev set is written
+# (no license audit, no license metadata needed).
 create_dataset:
   recipe_dir: ${recipe_dir}
   urgent_root: ${urgent_root}
   dev_root: ${oc.env:URGENT26_ROOT,null}
   out_dir: ${data_dir}
-  fsd50k_meta: ${oc.env:FSD50K_META,null}
-  fma_meta: ${oc.env:FMA_META,null}
-  fsdkaggle_meta: ${oc.env:FSDKAGGLE2018_META,null}
-  musan_noise: ${oc.env:MUSAN_NOISE,null}
+  commercial_only: false
 
 urgent_data: &urgent_data
   root: ${urgent_root}

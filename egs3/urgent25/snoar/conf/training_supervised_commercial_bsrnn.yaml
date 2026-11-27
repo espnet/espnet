@@ -19,13 +19,15 @@ exp_tag: supervised_commercial_bsrnn
 urgent_root: ${oc.env:URGENT25_ROOT}
 data_dir: ${oc.env:URGENT_OUTPUT,${recipe_dir}/data}
 
-# Builder arguments (dataset/builder.py): the license audit needs the dataset
-# metadata (see README), the dev set the URGENT 2026 store.
+# Builder arguments (dataset/builder.py): commercial_only runs the per-file
+# license audit, which needs the dataset metadata (see README); the dev set
+# needs the URGENT 2026 store.
 create_dataset:
   recipe_dir: ${recipe_dir}
   urgent_root: ${urgent_root}
   dev_root: ${oc.env:URGENT26_ROOT,null}
   out_dir: ${data_dir}
+  commercial_only: true
   fsd50k_meta: ${oc.env:FSD50K_META,null}
   fma_meta: ${oc.env:FMA_META,null}
   fsdkaggle_meta: ${oc.env:FSDKAGGLE2018_META,null}
