@@ -2533,7 +2533,8 @@ class S2TPreprocessor(CommonPreprocessor):
         text_ctc_name: str = "text_ctc",
         fs: int = 16000,
         na_symbol: str = "<na>",  # text is not available e.g. for prev or ctc
-        speech_length: float = 30,  # pad or trim speech to this value in seconds
+        # pad or trim speech to this value in seconds, or keep its length with None
+        speech_length: Optional[float] = 30,
         speech_resolution: float = 0.02,  # speech time resolution
         speech_init_silence: float = 1.0,  # max silence before speech for data aug
         text_prev_apply_prob: float = 0.5,  # whether to condition on text_prev
@@ -2572,7 +2573,7 @@ class S2TPreprocessor(CommonPreprocessor):
         )
         self.text_prev_name = text_prev_name
         self.text_ctc_name = text_ctc_name
-        self.speech_length = int(speech_length * fs)
+        self.speech_length = None if speech_length is None else int(speech_length * fs)
         self.speech_resolution = int(speech_resolution * fs)
         self.speech_init_silence = int(speech_init_silence * fs)
         self.text_prev_apply_prob = text_prev_apply_prob
@@ -2590,7 +2591,7 @@ class S2TPreprocessor(CommonPreprocessor):
     ) -> Tuple[Dict[str, Union[str, np.ndarray]], int]:
 
         init_pad = 0
-        if self.speech_name in data:
+        if self.speech_name in data and self.speech_length is not None:
             speech = data[self.speech_name]
 
             # speech: (Nmic, Time)

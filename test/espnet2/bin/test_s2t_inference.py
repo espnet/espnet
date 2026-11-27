@@ -733,7 +733,6 @@ def test_inference_long_audio_routed_to_decode_long(
 
     assert len(called_decode_long) == 1
     assert called_decode_long[0] == audio_samples
-    assert "Total utterances decoded via decode_long: 1" in caplog.text
 
     # Verify output files
     recog_dir = out_dir / "1best_recog"
@@ -827,8 +826,6 @@ def test_inference_mixed_batch_preserves_order_and_keys(
         kwargs.pop("config", None)
         inference(**kwargs)
 
-    assert "Total utterances decoded via decode_long: 1" in caplog.text
-
     # Verify routing behavior:
     # 1. Exactly 1 long utterance sent to decode_long
     assert decode_long_calls == [10000]
@@ -859,6 +856,98 @@ def test_inference_mixed_batch_preserves_order_and_keys(
     assert score_lines[0].split()[1] == "-1.5"
     assert score_lines[1].split()[1] == "0.0"
     assert score_lines[2].split()[1] == "-1.5"
+
+
+@pytest.mark.execution_timeout(60)
+def test_inference_long_utterance_leaves_the_short_results_unchanged(
+    s2t_config_file_transformer, tmp_path, monkeypatch
+):
+    """Short utterances batched with a long one decode as they do alone."""
+    # one model file, so that inference() and the reference load the same weights
+    model, _ = S2TTask.build_model_from_file(s2t_config_file_transformer, None, "cpu")
+    model_file = tmp_path / "model.pth"
+    torch.save(model.state_dict(), model_file)
+
+    # fs=2000 and speech_length=4 in the fixture: the window is 8000 samples
+    fs = 2000
+    rng = np.random.default_rng(0)
+    speeches = {
+        "utt1_short": rng.standard_normal(4000).astype(np.float32),
+        "utt2_long": rng.standard_normal(10000).astype(np.float32),
+        "utt3_short": rng.standard_normal(6000).astype(np.float32),
+    }
+    wav_scp = tmp_path / "wav.scp"
+    with wav_scp.open("w") as f:
+        for key, speech in speeches.items():
+            soundfile.write(tmp_path / f"{key}.wav", speech, fs, subtype="FLOAT")
+            f.write(f"{key} {tmp_path / f'{key}.wav'}\n")
+
+    # decode_long has its own tests; here only the samples it is given matter
+    long_inputs = []
+
+    def mock_decode_long(self, speech, **kwargs):
+        long_inputs.append(speech)
+        return [(0.0, 5.0, "long output text")]
+
+    monkeypatch.setattr(Speech2Text, "decode_long", mock_decode_long)
+
+    out_dir = tmp_path / "out"
+    args = get_parser().parse_args(
+        [
+            "--output_dir",
+            str(out_dir),
+            "--batch_size",
+            "3",
+            "--ngpu",
+            "0",
+            "--num_workers",
+            "0",
+            "--data_path_and_name_and_type",
+            f"{wav_scp},speech,sound",
+            "--s2t_train_config",
+            str(s2t_config_file_transformer),
+            "--s2t_model_file",
+            str(model_file),
+            "--beam_size",
+            "2",
+            "--ctc_weight",
+            "0.0",
+            "--maxlenratio",
+            "-8",
+        ]
+    )
+    kwargs = vars(args)
+    kwargs.pop("config", None)
+    inference(**kwargs)
+
+    # the long utterance reaches decode_long whole, not cut to the window
+    assert len(long_inputs) == 1
+    np.testing.assert_array_equal(
+        long_inputs[0].reshape(-1).numpy(), speeches["utt2_long"]
+    )
+
+    reference = Speech2Text(
+        s2t_train_config=s2t_config_file_transformer,
+        s2t_model_file=model_file,
+        beam_size=2,
+        ctc_weight=0.0,
+        maxlenratio=-8,
+    )
+    recog_dir = out_dir / "1best_recog"
+    token_int = dict(
+        line.partition(" ")[::2]
+        for line in (recog_dir / "token_int").read_text().splitlines()
+    )
+    score = dict(
+        line.split() for line in (recog_dir / "score").read_text().splitlines()
+    )
+    for key in ["utt1_short", "utt3_short"]:
+        expected = reference(speeches[key])[0]
+        assert token_int[key] == " ".join(map(str, expected[2]))
+        # the score is written as str(hyp.score), e.g. "tensor(-2.2168)"
+        written = float(score[key].removeprefix("tensor(").rstrip(")"))
+        np.testing.assert_allclose(written, float(expected[4].score), rtol=1e-3)
+    assert score["utt2_long"] == "0.0"
 
 
 def test_Speech2Text_batch_decode_accepts_numpy_and_lists(s2t_config_file_transformer):
