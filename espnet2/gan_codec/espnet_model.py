@@ -34,6 +34,10 @@ class ESPnetGANCodecModel(AbsGANESPnetModel):
         """Return meta information of the codec."""
         return self.codec.meta_info()
 
+    def clear_generator_cache(self) -> None:
+        """Discard generator outputs when the discriminator step is skipped."""
+        self.codec._cache = None
+
     def forward(
         self,
         audio: torch.Tensor,
