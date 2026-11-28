@@ -57,8 +57,8 @@ def test_nxt_words_and_sounds_places_untimed_sounds():
         '<vocalsound nite:id="l" starttime="3.0" endtime="3.8" type="laugh"/>'
         '<nonvocalsound nite:id="n" starttime="4.0" endtime="4.2" type="door"/>'
     )
-    words, sounds = nxt_words_and_sounds(xml)
-    assert words == [(1.0, 1.5), (2.0, 2.4)]
+    words, sounds, loose = nxt_words_and_sounds(xml)
+    assert words == [(1.0, 1.5), (2.0, 2.4)] and loose == []
     assert sounds == [
         (1.5, 2.0, "vocal/breath", ["breath", "untimed"], 1),
         (3.0, 3.8, "vocal/laughter", ["laugh"], 1),
@@ -176,3 +176,13 @@ def test_conversation_sound_events():
         ]
     }
     assert openyap_sounds(t) == [(0.5, 1.0, "vocal/laughter", "event:[laughter]")]
+
+
+def test_untimed_sound_in_a_long_gap_is_only_a_tag():
+    xml = (
+        '<w nite:id="a" starttime="1.0" endtime="1.5">hi</w>'
+        '<vocalsound nite:id="v" starttime="" endtime="" description="laugh"/>'
+        '<w nite:id="b" starttime="9.0" endtime="9.4">there</w>'
+    )
+    words, sounds, loose = nxt_words_and_sounds(xml)
+    assert sounds == [] and loose == [(1.5, 9.0, ["laugh", "untimed"])]
