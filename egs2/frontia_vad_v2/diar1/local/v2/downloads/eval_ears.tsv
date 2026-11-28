@@ -1,26 +1,26 @@
 # corpus_dir	relative_path	url	size_bytes	checksum	unpack
 # EARS, https://github.com/facebookresearch/ears_dataset: speakers p001-p020 of 107 (release 'dataset' has p001-p107, 69 GB)
 # EVALUATION ONLY (decided 2026-11-27): CC BY-NC 4.0; never in a training list. See data_survey/eval_only_catalogue_20261127.md
-eval_ears	ARCHIVES/p001.zip	https://github.com/facebookresearch/ears_dataset/releases/download/dataset/p001.zip	592079092	
-eval_ears	ARCHIVES/p002.zip	https://github.com/facebookresearch/ears_dataset/releases/download/dataset/p002.zip	584324228	
-eval_ears	ARCHIVES/p003.zip	https://github.com/facebookresearch/ears_dataset/releases/download/dataset/p003.zip	651915872	
-eval_ears	ARCHIVES/p004.zip	https://github.com/facebookresearch/ears_dataset/releases/download/dataset/p004.zip	612312528	
-eval_ears	ARCHIVES/p005.zip	https://github.com/facebookresearch/ears_dataset/releases/download/dataset/p005.zip	632091228	
-eval_ears	ARCHIVES/p006.zip	https://github.com/facebookresearch/ears_dataset/releases/download/dataset/p006.zip	695225616	
-eval_ears	ARCHIVES/p007.zip	https://github.com/facebookresearch/ears_dataset/releases/download/dataset/p007.zip	590420616	
-eval_ears	ARCHIVES/p008.zip	https://github.com/facebookresearch/ears_dataset/releases/download/dataset/p008.zip	718307256	
-eval_ears	ARCHIVES/p009.zip	https://github.com/facebookresearch/ears_dataset/releases/download/dataset/p009.zip	632216336	
-eval_ears	ARCHIVES/p010.zip	https://github.com/facebookresearch/ears_dataset/releases/download/dataset/p010.zip	631237396	
-eval_ears	ARCHIVES/p011.zip	https://github.com/facebookresearch/ears_dataset/releases/download/dataset/p011.zip	640761116	
-eval_ears	ARCHIVES/p012.zip	https://github.com/facebookresearch/ears_dataset/releases/download/dataset/p012.zip	689825384	
-eval_ears	ARCHIVES/p013.zip	https://github.com/facebookresearch/ears_dataset/releases/download/dataset/p013.zip	647896304	
-eval_ears	ARCHIVES/p014.zip	https://github.com/facebookresearch/ears_dataset/releases/download/dataset/p014.zip	697474276	
-eval_ears	ARCHIVES/p015.zip	https://github.com/facebookresearch/ears_dataset/releases/download/dataset/p015.zip	804887484	
-eval_ears	ARCHIVES/p016.zip	https://github.com/facebookresearch/ears_dataset/releases/download/dataset/p016.zip	564509328	
-eval_ears	ARCHIVES/p017.zip	https://github.com/facebookresearch/ears_dataset/releases/download/dataset/p017.zip	693634632	
-eval_ears	ARCHIVES/p018.zip	https://github.com/facebookresearch/ears_dataset/releases/download/dataset/p018.zip	686161688	
-eval_ears	ARCHIVES/p019.zip	https://github.com/facebookresearch/ears_dataset/releases/download/dataset/p019.zip	595644724	
-eval_ears	ARCHIVES/p020.zip	https://github.com/facebookresearch/ears_dataset/releases/download/dataset/p020.zip	718072404	
-eval_ears	ARCHIVES/transcripts.json	https://raw.githubusercontent.com/facebookresearch/ears_dataset/613935413a2eac115d191fffc5c74b34ca7cc884/transcripts.json		
-eval_ears	ARCHIVES/speaker_statistics.json	https://raw.githubusercontent.com/facebookresearch/ears_dataset/613935413a2eac115d191fffc5c74b34ca7cc884/speaker_statistics.json		
-eval_ears	ARCHIVES/LICENSE	https://raw.githubusercontent.com/facebookresearch/ears_dataset/613935413a2eac115d191fffc5c74b34ca7cc884/LICENSE		
+eval_ears	ARCHIVES/p001.zip	https://github.com/facebookresearch/ears_dataset/releases/download/dataset/p001.zip	592079092
+eval_ears	ARCHIVES/p002.zip	https://github.com/facebookresearch/ears_dataset/releases/download/dataset/p002.zip	584324228
+eval_ears	ARCHIVES/p003.zip	https://github.com/facebookresearch/ears_dataset/releases/download/dataset/p003.zip	651915872
+eval_ears	ARCHIVES/p004.zip	https://github.com/facebookresearch/ears_dataset/releases/download/dataset/p004.zip	612312528
+eval_ears	ARCHIVES/p005.zip	https://github.com/facebookresearch/ears_dataset/releases/download/dataset/p005.zip	632091228
+eval_ears	ARCHIVES/p006.zip	https://github.com/facebookresearch/ears_dataset/releases/download/dataset/p006.zip	695225616
+eval_ears	ARCHIVES/p007.zip	https://github.com/facebookresearch/ears_dataset/releases/download/dataset/p007.zip	590420616
+eval_ears	ARCHIVES/p008.zip	https://github.com/facebookresearch/ears_dataset/releases/download/dataset/p008.zip	718307256
+eval_ears	ARCHIVES/p009.zip	https://github.com/facebookresearch/ears_dataset/releases/download/dataset/p009.zip	632216336
+eval_ears	ARCHIVES/p010.zip	https://github.com/facebookresearch/ears_dataset/releases/download/dataset/p010.zip	631237396
+eval_ears	ARCHIVES/p011.zip	https://github.com/facebookresearch/ears_dataset/releases/download/dataset/p011.zip	640761116
+eval_ears	ARCHIVES/p012.zip	https://github.com/facebookresearch/ears_dataset/releases/download/dataset/p012.zip	689825384
+eval_ears	ARCHIVES/p013.zip	https://github.com/facebookresearch/ears_dataset/releases/download/dataset/p013.zip	647896304
+eval_ears	ARCHIVES/p014.zip	https://github.com/facebookresearch/ears_dataset/releases/download/dataset/p014.zip	697474276
+eval_ears	ARCHIVES/p015.zip	https://github.com/facebookresearch/ears_dataset/releases/download/dataset/p015.zip	804887484
+eval_ears	ARCHIVES/p016.zip	https://github.com/facebookresearch/ears_dataset/releases/download/dataset/p016.zip	564509328
+eval_ears	ARCHIVES/p017.zip	https://github.com/facebookresearch/ears_dataset/releases/download/dataset/p017.zip	693634632
+eval_ears	ARCHIVES/p018.zip	https://github.com/facebookresearch/ears_dataset/releases/download/dataset/p018.zip	686161688
+eval_ears	ARCHIVES/p019.zip	https://github.com/facebookresearch/ears_dataset/releases/download/dataset/p019.zip	595644724
+eval_ears	ARCHIVES/p020.zip	https://github.com/facebookresearch/ears_dataset/releases/download/dataset/p020.zip	718072404
+eval_ears	ARCHIVES/transcripts.json	https://raw.githubusercontent.com/facebookresearch/ears_dataset/613935413a2eac115d191fffc5c74b34ca7cc884/transcripts.json
+eval_ears	ARCHIVES/speaker_statistics.json	https://raw.githubusercontent.com/facebookresearch/ears_dataset/613935413a2eac115d191fffc5c74b34ca7cc884/speaker_statistics.json
+eval_ears	ARCHIVES/LICENSE	https://raw.githubusercontent.com/facebookresearch/ears_dataset/613935413a2eac115d191fffc5c74b34ca7cc884/LICENSE

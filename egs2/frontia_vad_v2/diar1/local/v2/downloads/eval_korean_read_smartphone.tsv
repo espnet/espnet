@@ -1,4 +1,4 @@
 # corpus_dir	relative_path	url	size_bytes	checksum	unpack
 # Deeply Korean read speech, 3 rooms x 3 distances x 2 phones, OpenSLR 97 (https://www.openslr.org/97/)
 # EVALUATION ONLY (decided 2026-11-27): CC BY-NC-ND 4.0; never in a training list. See data_survey/eval_only_catalogue_20261127.md
-eval_korean_read_smartphone	ARCHIVES/KoreanReadSpeechCorpus.tar.gz	https://openslr.elda.org/resources/97/KoreanReadSpeechCorpus.tar.gz	281297310	
+eval_korean_read_smartphone	ARCHIVES/KoreanReadSpeechCorpus.tar.gz	https://openslr.elda.org/resources/97/KoreanReadSpeechCorpus.tar.gz	281297310
