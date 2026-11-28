@@ -84,3 +84,59 @@ def test_handle_E2E_selection():
         LLM_radio="HuggingFaceTB/SmolLM2-1.7B-Instruct",
     )
     assert dialogue_model.client is None
+
+
+@pytest.mark.parametrize(
+    "option, tag",
+    [
+        ("frontia", (None, 0)),
+        ("frontia_offline", (None, "max")),
+        ("espnet/frontia_vad_v2_3", ("espnet/frontia_vad_v2_3", 0)),
+    ],
+)
+def test_VAD_option_selects_frontia_vad(monkeypatch, option, tag):
+    from espnet2.sds.vad import frontia_vad
+
+    calls = []
+
+    class FakeFrontiaVAD:
+        def __init__(self, tag=None, look_ahead=0):
+            calls.append((tag, look_ahead))
+
+    monkeypatch.setattr(frontia_vad, "FrontiaVADModel", FakeFrontiaVAD)
+    vad = ESPnetSDSModelInterface.load_VAD(option)
+    assert isinstance(vad, FakeFrontiaVAD)
+    assert calls == [tag]
+
+
+def test_VAD_option_defaults_to_webrtc(monkeypatch):
+    from espnet2.sds import espnet_model
+
+    class FakeWebrtcVAD:
+        pass
+
+    monkeypatch.setattr(espnet_model, "WebrtcVADModel", FakeWebrtcVAD)
+    dialogue_model = ESPnetSDSModelInterface(
+        ASR_option="librispeech_asr",
+        LLM_option="HuggingFaceTB/SmolLM2-1.7B-Instruct",
+        TTS_option="kan-bayashi/ljspeech_vits",
+        type_option="Cascaded",
+        access_token="",
+    )
+    assert isinstance(dialogue_model.vad_model, FakeWebrtcVAD)
+
+
+def test_an_AbsVAD_without_reset_still_instantiates():
+    """reset() is not abstract: VADs written before it existed still load."""
+    from espnet2.sds.vad.abs_vad import AbsVAD
+
+    class OldVAD(AbsVAD):
+        def warmup(self):
+            pass
+
+        def forward(self, speech, sample_rate, binary=False):
+            return None
+
+    vad = OldVAD()
+    with pytest.raises(NotImplementedError, match="OldVAD"):
+        vad.reset()

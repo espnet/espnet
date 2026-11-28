@@ -45,12 +45,14 @@ class _CachedEncoder:
 
 
 class StreamingVAD:
-    """Online detection: each frame's probability as soon as its audio is in.
+    """Streaming detection: each frame's probability as soon as its audio is in.
 
-    The model runs with no look-ahead, and frame i of the STFT covers samples
-    [i * hop, i * hop + n_fft), so a frame needs no future samples; this needs
-    an STFT without centring (``frontend_conf: center: false``). The
-    probabilities equal those of the whole recording at once.
+    By default the model runs with no look-ahead (online), and frame i of the
+    STFT covers samples [i * hop, i * hop + n_fft), so a frame needs no future
+    samples; this needs an STFT without centring (``frontend_conf: center:
+    false``). With look_ahead > 0 (a dual-mode encoder) a frame is returned
+    once the look_ahead frames after it are in. Either way the probabilities
+    equal those of the whole recording at once at the same look-ahead.
 
     How each call runs the model:
     - an encoder with ``forward_streaming`` (the TCNEncoder): only the new
@@ -61,7 +63,27 @@ class StreamingVAD:
       does not state its receptive field).
     """
 
-    def __init__(self, vad: VoiceActivityDetector):
+    def __init__(
+        self,
+        vad: VoiceActivityDetector,
+        keep_probabilities: bool = True,
+        look_ahead: int = 0,
+    ):
+        """Start a stream on a detector.
+
+        Args:
+            vad: The detector whose model and rule the stream uses.
+            keep_probabilities: Keep every frame's probability for
+                all_probabilities() and segments(). A caller that reads only
+                what accept() returns can pass False, so that a long stream
+                keeps no history.
+            look_ahead: Frames each frame reads ahead, up to the encoder's
+                max_look_ahead (a dual-mode encoder). A frame's probability
+                is returned once the look_ahead frames after it are in, and
+                equals the whole recording's at that look-ahead. Above 0 the
+                stream reruns the encoder on each new frame's receptive field
+                and look-ahead instead of using forward_streaming.
+        """
         if vad.center:
             raise ValueError(
                 "streaming needs a model whose STFT does not centre its frames "
@@ -88,12 +110,19 @@ class StreamingVAD:
                 f"streaming needs a causal encoder; {type(encoder).__name__} "
                 "does not say it is one"
             )
+        if not 0 <= look_ahead <= vad.max_look_ahead:
+            raise ValueError(
+                f"look_ahead must be in [0, {vad.max_look_ahead}] for this "
+                f"encoder, not {look_ahead}"
+            )
+        self.look_ahead = look_ahead
         self.vad = vad
         self.buffer = np.zeros(0, dtype=np.float32)
         self.offset = 0  # sample index of buffer[0] in the stream
         self.emitted = 0  # frames returned so far
         rf = vad.receptive_field
         self.context = None if rf is None else int(rf) - 1
+        self.keep_probabilities = keep_probabilities
         self.probs: List[np.ndarray] = []
         self.resampler = None  # soxr.ResampleStream for input at another rate
         self.resampler_rate = None
@@ -105,7 +134,12 @@ class StreamingVAD:
         )
         cacheable = _CachedEncoder.supports(encoder)
         vad._set_look_ahead(0)
-        self.cached = _CachedEncoder(encoder) if frame_wise and cacheable else None
+        # forward_streaming runs at look-ahead 0 only
+        self.cached = (
+            _CachedEncoder(encoder)
+            if frame_wise and cacheable and look_ahead == 0
+            else None
+        )
 
     @property
     def num_samples(self) -> int:
@@ -161,15 +195,18 @@ class StreamingVAD:
         if total < vad.n_fft:
             return np.zeros(0, dtype=np.float32)
         available = (total - vad.n_fft) // vad.hop + 1
-        new = available - self.emitted
+        # frames whose look_ahead frames after them are in
+        ready = available - self.look_ahead
+        new = ready - self.emitted
         if new <= 0:
             return np.zeros(0, dtype=np.float32)
         if self.cached is not None:
             out = self._accept_cached(new)
         else:
-            out = self._accept_recomputed(available, new)
-        self.emitted = available
-        self.probs.append(out)
+            out = self._accept_recomputed(available, ready)
+        self.emitted = ready
+        if self.keep_probabilities:
+            self.probs.append(out)
         return out
 
     def _accept_cached(self, new: int) -> np.ndarray:
@@ -193,21 +230,34 @@ class StreamingVAD:
         self.offset += keep
         return torch.sigmoid(logits)[0, :, 0].float().cpu().numpy().astype(np.float32)
 
-    def _accept_recomputed(self, available: int, new: int) -> np.ndarray:
-        """Rerun the new frames with the receptive field before them."""
+    def _accept_recomputed(self, available: int, ready: int) -> np.ndarray:
+        """Rerun the new frames with the receptive field before them.
+
+        Frames emitted..ready-1 are returned. The run covers the
+        receptive_field - 1 frames before them and the frames after them up
+        to the last one in (look_ahead of them), so each returned frame reads
+        exactly what it reads in the whole recording.
+        """
         vad = self.vad
         first = 0 if self.context is None else max(0, self.emitted - self.context)
         start = first * vad.hop - self.offset
         end = (available - 1) * vad.hop + vad.n_fft - self.offset
-        probs = vad.probabilities(self.buffer[start:end], vad.fs, look_ahead=0)
+        probs = vad.probabilities(
+            self.buffer[start:end], vad.fs, look_ahead=self.look_ahead
+        )
         if self.context is not None:
-            keep = max(0, available - self.context) * vad.hop
+            # the next run starts receptive_field - 1 frames before frame ready
+            keep = max(0, ready - self.context) * vad.hop
             self.buffer = self.buffer[keep - self.offset :]
             self.offset = keep
-        return probs[-new:]
+        return probs[self.emitted - first : ready - first]
 
     def all_probabilities(self) -> np.ndarray:
         """The probabilities of every frame returned so far."""
+        if not self.keep_probabilities:
+            raise ValueError(
+                "this stream keeps no probabilities (keep_probabilities=False)"
+            )
         if not self.probs:
             return np.zeros(0, dtype=np.float32)
         return np.concatenate(self.probs)

@@ -1,12 +1,11 @@
+import warnings
 from typing import Optional
 
-import librosa
 import numpy as np
-import torch
 from typeguard import typechecked
 
-from espnet2.sds.utils.utils import int2float
-from espnet2.sds.vad.abs_vad import AbsVAD
+from espnet2.sds.vad.abs_frame_vad import AbsFrameVAD
+from espnet2.sds.vad.turn_detector import TurnDetector
 
 try:
     import webrtcvad
@@ -15,116 +14,150 @@ try:
 except ImportError:
     is_webrtcvad_available = False
 
+# The rates webrtcvad accepts; other audio is resampled to 16 kHz.
+WEBRTC_RATES = (8000, 16000, 32000, 48000)
 
-class WebrtcVADModel(AbsVAD):
-    """Webrtc VAD Model"""
+
+class WebrtcFrameVAD(AbsFrameVAD):
+    """WebRTC VAD frame decisions: 1.0 for speech, 0.0 otherwise."""
+
+    def __init__(self, mode: int = 3, frame_ms: int = 20):
+        """Score frames with webrtcvad.
+
+        Args:
+            mode (int, optional): webrtcvad's aggressiveness, 0 (least) to 3
+                (most aggressive in calling audio non-speech). Defaults to 3.
+            frame_ms (int, optional): The frame length, 10, 20 or 30 ms.
+                Defaults to 20.
+        """
+        if not is_webrtcvad_available:
+            raise ImportError("Error: webrtcvad is not properly installed.")
+        if frame_ms not in (10, 20, 30):
+            raise ValueError(f"frame_ms must be 10, 20 or 30, not {frame_ms}")
+        self.mode = mode
+        self.frame_ms = frame_ms
+        self.reset()
+
+    @property
+    def frame_shift(self) -> float:
+        return self.frame_ms / 1000
+
+    @property
+    def window_s(self) -> float:
+        """Frames do not overlap: a frame's decision needs the frame alone."""
+        return self.frame_ms / 1000
+
+    def reset(self):
+        self.vad = webrtcvad.Vad(self.mode)
+        # int16 samples not yet in a whole frame
+        self.buffer = np.zeros(0, dtype=np.int16)
+        self.resampler = None
+
+    def accept(self, audio: np.ndarray, sample_rate: int) -> np.ndarray:
+        if sample_rate not in WEBRTC_RATES:
+            # One stream resampler across chunks, so that the stream is
+            # resampled as one signal.
+            import soxr
+
+            if self.resampler is None:
+                self.resampler = soxr.ResampleStream(
+                    sample_rate, 16000, 1, dtype="float32"
+                )
+            audio = self.resampler.resample_chunk(audio.astype(np.float32))
+            sample_rate = 16000
+        pcm = np.clip(np.round(audio * 32768), -32768, 32767).astype(np.int16)
+        self.buffer = np.concatenate([self.buffer, pcm])
+        size = sample_rate * self.frame_ms // 1000
+        n = len(self.buffer) // size
+        scores = np.array(
+            [
+                float(
+                    self.vad.is_speech(
+                        self.buffer[i * size : (i + 1) * size].tobytes(), sample_rate
+                    )
+                )
+                for i in range(n)
+            ],
+            dtype=np.float32,
+        )
+        self.buffer = self.buffer[n * size :]
+        return scores
+
+
+class WebrtcVADModel(TurnDetector):
+    """WebRTC VAD behind the SDS VAD interface.
+
+    WebrtcFrameVAD decides each 20 ms frame and TurnDetector finds the turns;
+    see TurnDetector for the rule. The default centred median of 11 frames
+    (220 ms) is a majority vote over the frame and the 5 on each side, so
+    every decision waits 100 ms after its frame.
+    """
 
     @typechecked
     def __init__(
         self,
-        speakup_threshold: int = 12,
-        continue_threshold: int = 10,
-        min_speech_ms: int = 500,
-        max_speech_ms: float = float("inf"),
+        # The five positional parameters of the old per-chunk class, in their
+        # order, so that existing positional calls still mean the same.
+        speakup_threshold: Optional[int] = None,
+        continue_threshold: Optional[int] = None,
+        min_speech_ms: float = 500.0,
+        max_speech_ms: Optional[float] = None,
         target_sr: int = 16000,
+        *,
+        mode: int = 3,
+        median: int = 11,
+        hangover_ms: float = 500.0,
+        pad_start_ms: float = 300.0,
+        pad_end_ms: float = 300.0,
+        max_turn_ms: float = 30000.0,
     ):
-        """This class uses WebRTC VAD to detect speech in an audio stream.
+        """Set up WebRTC VAD and the end-of-turn rule.
+
+        The first five arguments keep the old class's positions; the others
+        are keyword-only.
 
         Args:
-            speakup_threshold (int, optional):
-                The threshold for detecting the start of speech.
-            continue_threshold (int, optional):
-                The threshold for continuing speech detection.
-            min_speech_ms (int, optional):
-                The minimum duration (in milliseconds) for a valid
-                speech segment. Defaults to 500 ms.
-            max_speech_ms (float, optional):
-                The maximum duration (in milliseconds) for a valid
-                speech segment. Defaults to infinity.
-            target_sr (int, optional):
-                The target sampling rate for resampling the input
-                audio. Defaults to 16000 Hz.
+            mode (int, optional): webrtcvad's aggressiveness, 0 to 3.
+                Defaults to 3.
+            median (int, optional): The centred median filter over the 0/1
+                frame decisions, in frames. Defaults to 11 (220 ms).
+            min_speech_ms (float, optional): A turn with less speech than
+                this is dropped. Defaults to 500 ms.
+            speakup_threshold, continue_threshold (int, optional): Ignored,
+                with a warning. They counted speech frames per chunk, so they
+                depended on the chunk length; the median filter replaces
+                them.
+            max_speech_ms (float, optional): Deprecated: passed on as
+                max_turn_ms, with a warning. A turn that reaches it is now
+                split, not dropped.
 
-        Attributes:
-            vad_output (Optional[list]):
-                Stores the speech segments detected as
-                floating-point tensors.
-            vad_bin_output (Optional[list]):
-                Stores the speech segments detected as binary audio.
-
-        Raises:
-            ImportError:
-                If the required `webrtcvad` library is not installed.
+        The other arguments are TurnDetector's.
         """
-        if not is_webrtcvad_available:
-            raise ImportError("Error: webrtcvad is not properly installed.")
-        super().__init__()
-        self.vad_output = None
-        self.vad_bin_output = None
-        self.speakup_threshold = speakup_threshold
-        self.continue_threshold = continue_threshold
-        self.min_speech_ms = min_speech_ms
-        self.max_speech_ms = max_speech_ms
-        self.target_sr = target_sr
-
-    def warmup(self):
-        return
-
-    def forward(
-        self,
-        speech: np.ndarray,
-        sample_rate: int,
-        binary: bool = False,
-    ) -> Optional[np.ndarray]:
-        """Process an audio stream and detect speech using WebRTC VAD.
-
-        Args:
-            speech:
-                The raw audio stream in 16-bit PCM format.
-            sample_rate (int):
-                The sampling rate of the input audio.
-            binary (bool, optional):
-                If True, returns the binary audio output instead of the
-                resampled float array. Defaults to False.
-
-        Returns:
-            Optional[np.ndarray]:
-                The detected speech segment as a NumPy array
-                (float or binary audio), or None if no valid segment is found.
-        """
-        audio_int16 = np.frombuffer(speech, dtype=np.int16)
-        audio_float32 = int2float(audio_int16)
-        audio_float32 = librosa.resample(
-            audio_float32, orig_sr=sample_rate, target_sr=self.target_sr
+        if speakup_threshold is not None or continue_threshold is not None:
+            warnings.warn(
+                "speakup_threshold and continue_threshold are ignored: "
+                "WebrtcVADModel now decides per 20 ms frame with a median "
+                "filter (median=)",
+                DeprecationWarning,
+                stacklevel=2,
+            )
+        if max_speech_ms is not None:
+            warnings.warn(
+                "max_speech_ms is deprecated; use max_turn_ms. A turn that "
+                "reaches it is split, not dropped",
+                DeprecationWarning,
+                stacklevel=2,
+            )
+            if max_speech_ms != float("inf"):
+                max_turn_ms = max_speech_ms
+        super().__init__(
+            WebrtcFrameVAD(mode),
+            threshold=0.5,
+            median=median,
+            hangover_ms=hangover_ms,
+            pad_start_ms=pad_start_ms,
+            pad_end_ms=pad_end_ms,
+            min_speech_ms=min_speech_ms,
+            max_turn_ms=max_turn_ms,
+            target_sr=target_sr,
         )
-        vad_count = 0
-        chunk_size = int(320 * sample_rate / 16000)
-        for i in range(int(len(speech) / chunk_size)):
-            vad = webrtcvad.Vad()
-            vad.set_mode(3)
-            if vad.is_speech(
-                speech[i * chunk_size : (i + 1) * chunk_size].tobytes(), sample_rate
-            ):
-                vad_count += 1
-        if self.vad_output is None and vad_count > self.speakup_threshold:
-            vad_curr = True
-            self.vad_output = [torch.from_numpy(audio_float32)]
-            self.vad_bin_output = [speech]
-        elif self.vad_output is not None and vad_count > self.continue_threshold:
-            vad_curr = True
-            self.vad_output.append(torch.from_numpy(audio_float32))
-            self.vad_bin_output.append(speech)
-        else:
-            vad_curr = False
-        if self.vad_output is not None and vad_curr is False:
-            array = torch.cat(self.vad_output).cpu().numpy()
-            duration_ms = len(array) / self.target_sr * 1000
-            if not (
-                duration_ms < self.min_speech_ms or duration_ms > self.max_speech_ms
-            ):
-                if binary:
-                    array = np.concatenate(self.vad_bin_output)
-                self.vad_output = None
-                self.vad_bin_output = None
-                return array
-        return None

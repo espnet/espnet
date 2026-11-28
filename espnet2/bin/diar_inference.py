@@ -962,11 +962,20 @@ class VoiceActivityDetector:
                 results[i] = self.segments(p)
         return results
 
-    def stream(self) -> "StreamingVAD":
-        """Start an online stream: feed chunks, get frame probabilities back."""
+    def stream(
+        self, keep_probabilities: bool = True, look_ahead: int = 0
+    ) -> "StreamingVAD":
+        """Start a stream: feed chunks, get frame probabilities back.
+
+        keep_probabilities=False keeps no history of the probabilities;
+        look_ahead > 0 (a dual-mode encoder) returns each frame once that many
+        frames after it are in. See StreamingVAD.
+        """
         from espnet2.bin.diar_inference_streaming import StreamingVAD
 
-        return StreamingVAD(self)
+        return StreamingVAD(
+            self, keep_probabilities=keep_probabilities, look_ahead=look_ahead
+        )
 
 
 def format_segments(segments: Iterable[Segment]) -> str:

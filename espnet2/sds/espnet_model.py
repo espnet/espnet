@@ -13,6 +13,7 @@ from espnet2.sds.llm.hugging_face_llm import HuggingFaceLLM
 from espnet2.sds.tts.chat_tts import ChatTTSModel
 from espnet2.sds.tts.espnet_tts import ESPnetTTSModel
 from espnet2.sds.utils.chat import Chat
+from espnet2.sds.vad.abs_vad import AbsVAD
 from espnet2.sds.vad.webrtc_vad import WebrtcVADModel
 from espnet2.train.abs_espnet_model import AbsESPnetModel
 
@@ -42,6 +43,7 @@ class ESPnetSDSModelInterface(AbsESPnetModel):
         TTS_option: str,
         type_option: str,
         access_token: str,
+        VAD_option: str = "webrtc",
     ):
         """Initializer method.
 
@@ -57,6 +59,12 @@ class ESPnetSDSModelInterface(AbsESPnetModel):
                 The type of SDS interaction to perform (e.g., cascaded or E2E).
             access_token (str):
                 The access token for accessing models hosted on Hugging Face.
+            VAD_option (str, optional):
+                The VAD that ends the user's turn: "webrtc" for
+                WebrtcVADModel, "frontia" for FrontiaVADModel with ESPnet's
+                online VAD model, "frontia_offline" for it in its offline
+                mode (look-ahead 0.99 s), or a frontia-vad model tag for
+                FrontiaVADModel with that model. Defaults to "webrtc".
         """
         if not is_gradio_available:
             raise ImportError("Error: Gradio is not properly installed.")
@@ -73,7 +81,8 @@ class ESPnetSDSModelInterface(AbsESPnetModel):
         self.s2t = None
         self.LM_pipe = None
         self.client = None
-        self.vad_model = WebrtcVADModel()
+        self.VAD_option = VAD_option
+        self.vad_model = self.load_VAD(VAD_option)
         self.chat = Chat(2)
         self.chat.init_chat(
             {
@@ -88,6 +97,26 @@ class ESPnetSDSModelInterface(AbsESPnetModel):
             }
         )
         self.user_role = "user"
+
+    @staticmethod
+    def load_VAD(option: str) -> AbsVAD:
+        """Return the VAD that VAD_option names.
+
+        Args:
+            option (str):
+                "webrtc", "frontia", "frontia_offline", or a frontia-vad
+                model tag.
+        """
+        if option == "webrtc":
+            return WebrtcVADModel()
+        # Import here: FrontiaVADModel loads torch and the diarization code.
+        from espnet2.sds.vad.frontia_vad import FrontiaVADModel
+
+        if option == "frontia":
+            return FrontiaVADModel()
+        if option == "frontia_offline":
+            return FrontiaVADModel(look_ahead="max")
+        return FrontiaVADModel(tag=option)
 
     def handle_TTS_selection(self, option: str):
         """Handles the selection and initialization of a Text-to-Speech (TTS) model.
