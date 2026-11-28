@@ -1,0 +1,138 @@
+##########################################################
+#           SNOAR SYSTEM: TRAINING DEFAULTS              #
+##########################################################
+# Defaults for every SNOAR training run. A recipe config sets `model.mode`
+# and the datasets; everything else here is the reference setting of the
+# SNOAR paper (bDNF 2b1e186, arm `bdnf_cyc`, WHAM! table).
+#
+#   mode        input data                              seed
+#   supervised  speech_mix + speech_ref (+ noise_ref)   -
+#   dnf         speech_mix + noise2 (noise-only)        -
+#   mixit       speech_mix + noise2 (noise-only)        -
+#   snoar       speech_mix only                         model.init
+#   remixit     speech_mix only                         model.init
+#
+# Reverberant data: `speech_ref` must be the reverberant speech image, the
+# signal a model regresses when the input speech is reverberant.
+
+num_device: 1
+num_nodes: 1
+recipe_dir: .
+data_dir: ${recipe_dir}/data
+exp_tag: ${self_name:}
+exp_dir: ${recipe_dir}/exp/${exp_tag}
+fs: 16000
+
+create_dataset:
+  recipe_dir: ${recipe_dir}
+
+dataset:
+  _target_: espnet3.components.data.data_organizer.DataOrganizer
+  _recursive_: false
+  recipe_dir: ${recipe_dir}
+  train:
+  valid:
+  preprocessor:
+
+# In-domain noise pool for DNF / MixIT from VAD labels or an energy VAD.
+harvest_noise:
+  manifest: ${data_dir}/manifest/train.jsonl
+  vad: energy   # or the path of a .rttm / Kaldi segments file
+  out: ${data_dir}/manifest/noise_train.jsonl
+  fs: ${fs}
+  margin: 0.1
+  min_gap: 0.3
+
+model:
+  _target_: espnet3.systems.snoar.src.model.SNOARModel
+  mode: snoar
+  fs: ${fs}
+  # A new network (supervised / dnf / mixit) ...
+  net:
+  # ... or a seed: an `export` directory or an ESPnet2 enhancement tag.
+  init:
+  readout:          # dnf | mixit | raw; default: the seed's snoar.yaml
+  mix_consistency:  # none | uniform | global | energy; default: the seed's
+  tau_rel: 1.0e-3
+  # SNOAR: observation adding, cosine-annealed per generation
+  gamma: 0.2
+  gamma_end: 0.05
+  n_generations: 16
+  steps_per_generation: 5000
+  ema_decay: 0.999
+  views: 2
+  cycle_weight: 0.3
+  remix_level: snr   # self-SNR matched donors
+  purify_noise: true
+  snr_jitter: 1.5
+  bank_size: 4000
+  scale_w: 0.0
+
+optimizer:
+  _target_: torch.optim.Adam
+  lr: 1.0e-3
+
+# Cosine decay to 5% of the LR over the whole run, as in the reference.
+scheduler:
+  _target_: torch.optim.lr_scheduler.CosineAnnealingLR
+  T_max: ${trainer.max_steps}
+  eta_min: 5.0e-5
+scheduler_interval: step
+scheduler_monitor:
+
+# Self-training has no label-free selection criterion that the reference
+# trusts: `export` reads last.ckpt. valid/loss is tracked for monitoring only.
+best_model_criterion:
+  - - valid/loss
+    - 1
+    - min
+
+seed: 0
+
+parallel:
+  env: local
+  n_workers: 1
+  allow_overwrite_lock: false
+
+# Fixed-length random crops: a plain torch DataLoader, no shape files.
+dataloader:
+  collate_fn:
+    _target_: espnet2.train.collate_fn.CommonCollateFn
+    float_pad_value: 0.0
+    int_pad_value: -1
+  train:
+    iter_factory:
+    batch_size: 8
+    num_workers: 8
+    shuffle: true
+    drop_last: true
+  valid:
+    iter_factory:
+    batch_size: 8
+    num_workers: 4
+    shuffle: false
+
+trainer:
+  accelerator: auto
+  devices: ${num_device}
+  num_nodes: ${num_nodes}
+  precision: bf16-mixed
+  accumulate_grad_batches: 1
+  gradient_clip_val: 5.0
+  log_every_n_steps: 100
+  max_steps: 80000   # = n_generations * steps_per_generation
+  max_epochs: -1
+  check_val_every_n_epoch: 1
+  logger:
+    - _target_: lightning.pytorch.loggers.TensorBoardLogger
+      save_dir: ${exp_dir}/tensorboard
+      name: tb_logger
+  strategy: auto
+  callbacks:
+    - _target_: espnet3.systems.snoar.src.callbacks.TeacherEMACallback
+
+fit: {}
+
+export:
+  checkpoint: ${exp_dir}/last.ckpt
+  out_dir: ${exp_dir}/export

@@ -1,0 +1,78 @@
+##########################################################
+#  WHAM! 16 kHz -- supervised seed on FastMSS Fisher (out of domain)
+##########################################################
+# BSRNN (64 channels x 6 layers, bf16, batch 64) with two outputs (speech,
+# noise) and energy (per-T-F-bin) mixture consistency, as the reference's 2-output supervised seeds
+# (`supervised_cons`). Crops are 50 % reverberant + noise (target: the
+# reverberant image) and 50 % anechoic + noise (target: the dry speech), at
+# -8..10 dB SNR. Noise is BFND only (noise_bfnd.txt, hash-split train/valid):
+# the FastMSS noise track contains the high_res_wham recordings WHAM! tt noise
+# is cut from. FISHER_CACHE needs the `dry` arrays (LDC data: keep private):
+#   python -m espnet3.systems.snoar.src.data.fisher <shar_dir> $FISHER_CACHE
+#     --kinds speech dry noise
+exp_tag: supervised_fisher_bsrnn
+data_dir: ${oc.env:WHAM_OUTPUT,./data}
+
+dataset:
+  train:
+    - data_src: espnet3.systems.snoar.src.data.fisher
+      data_src_args:
+        cache_dir: ${oc.env:FISHER_CACHE}
+        shards: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
+        segment_seconds: 3.0
+        conditions:
+          reverb: 0.5
+          dry: 0.5
+        noise_list: ${data_dir}/manifest/noise_bfnd.txt
+        noise_split: train
+        snr_range: [-8.0, 10.0]
+        num_items: 320000   # 5000 steps per epoch at batch 64
+  valid:
+    - data_src: espnet3.systems.snoar.src.data.fisher
+      data_src_args:
+        cache_dir: ${oc.env:FISHER_CACHE}
+        shards: [10]
+        segment_seconds: 3.0
+        conditions:
+          reverb: 0.5
+          dry: 0.5
+        noise_list: ${data_dir}/manifest/noise_bfnd.txt
+        noise_split: valid
+        snr_range: [-8.0, 10.0]
+        num_items: 1000
+        deterministic: true
+
+model:
+  mode: supervised
+  readout: dnf
+  mix_consistency: energy
+  net:
+    # URGENT 2024 BSRNN layout; the 48 kHz STFT is scaled to 16 kHz
+    # (20 ms window, 10 ms hop) and only the bands below 8 kHz are used.
+    encoder: stft
+    encoder_conf:
+      n_fft: 960
+      hop_length: 480
+      use_builtin_complex: true
+      default_fs: 48000
+    decoder: stft
+    decoder_conf:
+      n_fft: 960
+      hop_length: 480
+      default_fs: 48000
+    separator: bsrnn
+    separator_conf:
+      num_spk: 2
+      num_channels: 64
+      num_layers: 6
+      target_fs: 48000
+      causal: false
+
+# bf16 BSRNN saturates an H200 at batch 64 (~840 s of audio/s, 28 GiB).
+dataloader:
+  train:
+    batch_size: 64
+    num_workers: 15
+
+trainer:
+  max_steps: 50000   # 3.2 M crops = 2.7x the batch-8 TF-GridNet seed

@@ -15,6 +15,7 @@
     espnet describe recording.wav --brief | espnet render - -o again.wav
     espnet demo
     espnet models
+    espnet snoar adapt recordings/ -o my_enhancer/
 
 Every espnet2.bin.*_inference module already has a command line, but it is
 the one a recipe needs: an scp file, a data type triple and an output
@@ -916,7 +917,25 @@ def build_parser() -> argparse.ArgumentParser:
     sub.add_parser(
         "models", help="show the default model of each command"
     ).set_defaults(func=cmd_models)
+
+    # `espnet snoar ...`: self-adaptation of a speech enhancer, which trains
+    # rather than only loads a model, so it lives with its ESPnet3 system.
+    try:
+        from espnet3.systems.snoar.src.cli import add_snoar_parser
+    except ImportError:  # pragma: no cover - an install without espnet3
+        pass
+    else:
+        add_snoar_parser(sub)
     return parser
+
+
+def _snoar_errors() -> tuple:
+    """The error type of `espnet snoar`, if it is installed."""
+    try:
+        from espnet3.systems.snoar.src.cli import SNOARCLIError
+    except ImportError:  # pragma: no cover - an install without espnet3
+        return ()
+    return (SNOARCLIError,)
 
 
 # What each command was called in a release. Both names work; this is only
@@ -947,7 +966,7 @@ def main(argv: Optional[List[str]] = None) -> int:
         if hasattr(args, "device"):  # every command that loads a model
             args.device = _resolve_device(args.device)
         return args.func(args)
-    except (CLIError, ModelTagError) as e:
+    except (CLIError, ModelTagError) + _snoar_errors() as e:
         print(f"espnet: {e}", file=sys.stderr)
         return 1
     except KeyboardInterrupt:  # pragma: no cover - interactive

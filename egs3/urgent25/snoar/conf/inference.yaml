@@ -1,0 +1,20 @@
+##########################################################
+#  URGENT 2026 track-1 dev at 16 kHz -- enhance with an export
+##########################################################
+# The dev manifest is written by create_dataset. Pass the training config so
+# that exp_tag / exp_dir follow it:
+#   python run.py --stages infer measure \
+#     --training_config conf/training_supervised_commercial_bsrnn.yaml \
+#     --inference_config conf/inference.yaml --metrics_config conf/metrics.yaml
+data_dir: ${oc.env:URGENT_OUTPUT,${recipe_dir}/data}
+
+dataset:
+  test:
+    - name: dev
+      data_src: espnet3.systems.snoar.src.data.utterances
+      data_src_args:
+        manifest: ${data_dir}/manifest/dev.jsonl
+
+model:
+  model_dir: ${exp_dir}/export
+  device: auto

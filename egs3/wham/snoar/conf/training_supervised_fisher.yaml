@@ -1,0 +1,63 @@
+##########################################################
+#  WHAM! 16 kHz -- supervised seed on FastMSS Fisher (out of domain)
+##########################################################
+# Paper TF-GridNet with two outputs (speech, noise) and energy (per-T-F-bin)
+# mixture consistency, as the reference's 2-output supervised seeds
+# (`supervised_cons`). Crops are 50 % reverberant + noise (target: the
+# reverberant image) and 50 % anechoic + noise (target: the dry speech), at
+# -8..10 dB SNR. Noise is BFND only (noise_bfnd.txt, hash-split train/valid):
+# the FastMSS noise track contains the high_res_wham recordings WHAM! tt noise
+# is cut from. FISHER_CACHE needs the `dry` arrays (LDC data: keep private):
+#   python -m espnet3.systems.snoar.src.data.fisher <shar_dir> $FISHER_CACHE
+#     --kinds speech dry noise
+exp_tag: supervised_fisher
+data_dir: ${oc.env:WHAM_OUTPUT,./data}
+
+dataset:
+  train:
+    - data_src: espnet3.systems.snoar.src.data.fisher
+      data_src_args:
+        cache_dir: ${oc.env:FISHER_CACHE}
+        shards: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
+        segment_seconds: 3.0
+        conditions:
+          reverb: 0.5
+          dry: 0.5
+        noise_list: ${data_dir}/manifest/noise_bfnd.txt
+        noise_split: train
+        snr_range: [-8.0, 10.0]
+        num_items: 40000
+  valid:
+    - data_src: espnet3.systems.snoar.src.data.fisher
+      data_src_args:
+        cache_dir: ${oc.env:FISHER_CACHE}
+        shards: [10]
+        segment_seconds: 3.0
+        conditions:
+          reverb: 0.5
+          dry: 0.5
+        noise_list: ${data_dir}/manifest/noise_bfnd.txt
+        noise_split: valid
+        snr_range: [-8.0, 10.0]
+        num_items: 1000
+        deterministic: true
+
+model:
+  mode: supervised
+  readout: dnf
+  mix_consistency: energy
+  net:
+    separator: tfgridnetv2
+    separator_conf:
+      n_srcs: 2
+      n_fft: 512
+      stride: 128
+      n_layers: 4
+      lstm_hidden_units: 192
+      attn_n_head: 4
+      emb_dim: 24
+      emb_ks: 4
+      emb_hs: 4
+
+trainer:
+  max_steps: 150000

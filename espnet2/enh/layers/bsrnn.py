@@ -132,9 +132,10 @@ class BSRNN(nn.Module):
             skip = skip + out
 
         m, r = self.mask_decoder(skip)
-        m = torch.view_as_complex(m)
-        r = torch.view_as_complex(r)
-        x = torch.view_as_complex(x)
+        # complex ops need fp32 (view_as_complex rejects bfloat16 under autocast)
+        m = torch.view_as_complex(m.float().contiguous())
+        r = torch.view_as_complex(r.float().contiguous())
+        x = torch.view_as_complex(x.float().contiguous())
         m = m[..., : x.size(-1)]
         r = r[..., : x.size(-1)]
         ret = torch.view_as_real(m * x.unsqueeze(1) + r)

@@ -1,0 +1,26 @@
+##########################################################
+#  WHAM! 16 kHz -- RemixIT baseline from the DNF seed
+##########################################################
+# Raw teacher targets, one remix, no observation adding or SNR matching.
+exp_tag: remixit_dnf
+data_dir: ${oc.env:WHAM_OUTPUT,./data}
+
+dataset:
+  train:
+    - data_src_args:
+        manifest: ${data_dir}/manifest/train.jsonl
+        segment_seconds: 3.0
+  valid:
+    - data_src_args:
+        manifest: ${data_dir}/manifest/valid.jsonl
+        segment_seconds: 3.0
+        deterministic: true
+        with_refs: true
+        num_items: 1000
+
+model:
+  mode: remixit
+  init: ${recipe_dir}/exp/dnf/export
+
+trainer:
+  max_steps: 149488

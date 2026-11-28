@@ -1,0 +1,37 @@
+##########################################################
+#           SNOAR SYSTEM: PUBLICATION DEFAULTS           #
+##########################################################
+#   python run.py --stages pack_model upload_model \
+#     --training_config conf/<training>.yaml --inference_config conf/inference.yaml \
+#     --metrics_config conf/metrics.yaml --publication_config conf/publication.yaml
+#
+# The bundle holds the `export` directory (config.yaml, model.pth, snoar.yaml)
+# and the configs; training checkpoints, logs and enhanced audio are left out.
+# Run `infer` and `measure` first so that metrics.json goes into the README.
+recipe_dir: .
+exp_tag: ${self_name:}
+exp_dir: exp/${exp_tag}
+inference_dir: ${exp_dir}/inference
+data_dir: ${recipe_dir}/data
+
+pack_model:
+  out_dir: ${exp_dir}/model_pack
+  allow_overwrite: false
+  inference_dir: ${inference_dir}
+  include_model_detail: false
+  readme: ${config_path:../src/hf_model_readme.md}
+  exclude:
+    - inference
+    - inference_*
+    - "*.ckpt"
+    - "*best*.pth"
+    - "**/*.log"
+    - tensorboard
+    - export_*
+
+upload_model:
+  hf_repo: espnet/${set_corpus_and_system:}_${exp_tag}
+  private: false
+  update: false
+  delete_patterns:
+    - "*"

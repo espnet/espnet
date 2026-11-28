@@ -1,0 +1,35 @@
+##########################################################
+#  Publish the commercial-use URGENT 2025 BSRNN seed
+##########################################################
+#   python run.py --stages pack_model upload_model \
+#     --training_config conf/training_supervised_commercial_bsrnn.yaml \
+#     --inference_config conf/inference.yaml --metrics_config conf/metrics.yaml \
+#     --publication_config conf/publication.yaml
+# Only the commercial-use model is meant for release: the model trained on
+# the whole pool (training_supervised_bsrnn.yaml) saw non-commercial data.
+inference_dir: ${exp_dir}/inference
+data_dir: ${oc.env:URGENT_OUTPUT,${recipe_dir}/data}
+
+pack_model:
+  out_dir: ${exp_dir}/model_pack
+  allow_overwrite: true
+  inference_dir: ${inference_dir}
+  readme: ${config_path:../src/hf_model_readme.md}
+  readme_context:
+    license: cc-by-4.0
+  # CC BY credit for every noise file used in training (author, title, URL)
+  files:
+    noise_attribution: ${data_dir}/noise_attribution.tsv
+  exclude:
+    - inference
+    - inference_*
+    - "*.ckpt"
+    - "*best*.pth"
+    - "**/*.log"
+    - tensorboard
+    - export_*
+
+upload_model:
+  hf_repo: espnet/${set_corpus_and_system:}_${exp_tag}
+  private: false
+  update: false
