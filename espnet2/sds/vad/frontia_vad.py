@@ -1,5 +1,4 @@
-from collections import deque
-from typing import Deque, Optional, Tuple
+from typing import List, Optional, Tuple
 
 import librosa
 import numpy as np
@@ -197,8 +196,6 @@ class FrontiaVADModel(AbsVAD):
         # Frames before this one belong to a returned or dropped turn, or are
         # silence before any speech.
         self.consumed = 0
-        self.pending: Deque[Tuple[np.ndarray, np.ndarray]] = deque()
-        self.pending_info: Deque[dict] = deque()
 
     def warmup(self):
         """Run one second of silence through the model, then reset."""
@@ -267,8 +264,11 @@ class FrontiaVADModel(AbsVAD):
 
         One stream runs across turns, so audio after a turn's endpoint starts
         the next turn. When a chunk ends more than one turn, this call returns
-        the first and the following calls return the others in order, before
-        any later turn; a call with an empty chunk returns the next one.
+        them as one: the audio from the first one's start to the last one's
+        end, pauses included, since the dialogue system could answer none of
+        them before this call returns. last_turn["turns"] lists them. So a
+        returned turn can be longer than max_turn_ms when the chunk is; feed
+        long recordings to VoiceActivityDetector.detect() instead.
 
         Args:
             speech (np.ndarray):
@@ -284,8 +284,8 @@ class FrontiaVADModel(AbsVAD):
 
         Returns:
             Optional[np.ndarray]:
-                The turn, from pad_start_ms before the first speech frame to
-                pad_end_ms after the endpoint, or None while no turn has ended.
+                The turn, from pad_start_ms before its first speech frame to
+                pad_end_ms after its endpoint, or None while no turn has ended.
         """
         from espnet2.bin.diar_inference import as_mono_float
 
@@ -307,27 +307,63 @@ class FrontiaVADModel(AbsVAD):
         self.probs = np.concatenate(
             [self.probs, self.stream.accept(audio, sample_rate)]
         )
-        self._find_turns()
+        turns = self._find_turns()
+        result = self._join(turns) if turns else None
+        # Trim after joining: the joined audio starts before consumed.
         self._trim()
-        if not self.pending:
+        if result is None:
             return None
-        self.last_turn = self.pending_info.popleft()
-        raw_turn, turn = self.pending.popleft()
+        raw_turn, turn = result
         if binary:
             return raw_turn
         return librosa.resample(turn, orig_sr=sample_rate, target_sr=self.target_sr)
 
-    def _find_turns(self):
-        """Queue every turn that has ended in the frames received so far."""
+    def _join(self, turns: List[dict]) -> Tuple[np.ndarray, np.ndarray]:
+        """Return the audio of the turns as one turn, and set last_turn.
+
+        The audio runs from the first turn's start to the last one's end,
+        pauses included.
+        """
         shift = self.detector.frame_shift
         rate = self.sample_rate
+        first, last = turns[0], turns[-1]
+        a = int(round(first["start_s"] * rate)) - self.audio_start
+        b = int(round(last["end_s"] * rate)) - self.audio_start
+        # Frame scores up to the last turn's end of hangover, for plotting.
+        upto = last["end"] + self.hangover_frames
+        self.last_turn = dict(
+            probs=self.probs[:upto].copy(),
+            decisions=self._decisions(self.probs)[:upto].copy(),
+            probs_start_s=self.probs_start * shift,
+            frame_shift=shift,
+            speech_start_s=first["speech_start_s"],
+            endpoint_s=last["endpoint_s"],
+            # True when max_turn_ms, not a silence, ended the (last) turn
+            forced=last["forced"],
+            start_s=first["start_s"],
+            end_s=last["end_s"],
+            # each turn that ended in this call, without its frame scores
+            turns=[{k: v for k, v in t.items() if k != "end"} for t in turns],
+        )
+        return self.raw[a:b].copy(), self.audio[a:b].copy()
+
+    def _find_turns(self) -> List[dict]:
+        """Return every turn that has ended in the frames received so far.
+
+        Each turn is a dict of its times in seconds (speech_start_s,
+        endpoint_s, start_s, end_s), forced, and end, the index of its
+        endpoint in self.probs.
+        """
+        shift = self.detector.frame_shift
+        rate = self.sample_rate
+        turns: List[dict] = []
         while True:
             decisions = self._decisions(self.probs)
             first = self.consumed - self.probs_start
             d = decisions[first:]
             speech = np.flatnonzero(d)
             if len(speech) == 0:
-                return
+                return turns
             start = int(speech[0])
             end = self._find_endpoint(d, self.hangover_frames)
             # A turn that reaches max_turn_ms of speech ends there.
@@ -337,7 +373,7 @@ class FrontiaVADModel(AbsVAD):
             if forced:
                 end = start + self.max_turn_frames
             elif end is None:
-                return
+                return turns
             start += first
             end += first
             # stream frame indices of the first speech frame and the endpoint
@@ -348,27 +384,20 @@ class FrontiaVADModel(AbsVAD):
                 # end padding is already in; a forced turn ends while speech
                 # goes on. Wait for its padding: the endpoint stays at the
                 # first speech frame plus max_turn_frames.
-                return
+                return turns
             self.consumed = end_f
             if end_f - start_f < self.min_speech_frames:
                 continue
-            start_s = max(self.audio_start / rate, start_f * shift - self.pad_start_s)
-            end_s = min(last_s, end_f * shift + self.pad_end_s)
-            a = int(round(start_s * rate)) - self.audio_start
-            b = int(round(end_s * rate)) - self.audio_start
-            self.pending.append((self.raw[a:b].copy(), self.audio[a:b].copy()))
-            self.pending_info.append(
+            turns.append(
                 dict(
-                    probs=self.probs[: end + self.hangover_frames].copy(),
-                    decisions=decisions[: end + self.hangover_frames].copy(),
-                    probs_start_s=self.probs_start * shift,
-                    frame_shift=shift,
                     speech_start_s=start_f * shift,
                     endpoint_s=end_f * shift,
-                    # True when max_turn_ms, not a silence, ended the turn
                     forced=forced,
-                    start_s=start_s,
-                    end_s=end_s,
+                    start_s=max(
+                        self.audio_start / rate, start_f * shift - self.pad_start_s
+                    ),
+                    end_s=min(last_s, end_f * shift + self.pad_end_s),
+                    end=end,
                 )
             )
 

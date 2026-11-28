@@ -17,7 +17,15 @@ except ImportError:
 
 
 class WebrtcVADModel(AbsVAD):
-    """Webrtc VAD Model"""
+    """WebRTC VAD behind the SDS VAD interface (AbsVAD).
+
+    Each chunk is one decision: it is speech when more than speakup_threshold
+    of its 20 ms frames are speech (continue_threshold once a turn has
+    started). The turn ends with the first chunk that is not speech, so it
+    ends at most once per call. A turn shorter than min_speech_ms or longer
+    than max_speech_ms is dropped; with max_speech_ms=inf (the default) a
+    turn that never ends keeps growing.
+    """
 
     @typechecked
     def __init__(
@@ -40,7 +48,8 @@ class WebrtcVADModel(AbsVAD):
                 speech segment. Defaults to 500 ms.
             max_speech_ms (float, optional):
                 The maximum duration (in milliseconds) for a valid
-                speech segment. Defaults to infinity.
+                speech segment. A turn that reaches it is dropped at once.
+                Defaults to infinity.
             target_sr (int, optional):
                 The target sampling rate for resampling the input
                 audio. Defaults to 16000 Hz.
@@ -59,16 +68,21 @@ class WebrtcVADModel(AbsVAD):
         if not is_webrtcvad_available:
             raise ImportError("Error: webrtcvad is not properly installed.")
         super().__init__()
-        self.vad_output = None
-        self.vad_bin_output = None
         self.speakup_threshold = speakup_threshold
         self.continue_threshold = continue_threshold
         self.min_speech_ms = min_speech_ms
         self.max_speech_ms = max_speech_ms
         self.target_sr = target_sr
+        self.reset()
+
+    def reset(self):
+        """Forget the turn in progress."""
+        self.vad_output = None
+        self.vad_bin_output = None
 
     def warmup(self):
-        return
+        """WebRTC VAD needs no warmup; reset the stream."""
+        self.reset()
 
     def forward(
         self,
@@ -116,15 +130,21 @@ class WebrtcVADModel(AbsVAD):
             self.vad_bin_output.append(speech)
         else:
             vad_curr = False
-        if self.vad_output is not None and vad_curr is False:
-            array = torch.cat(self.vad_output).cpu().numpy()
-            duration_ms = len(array) / self.target_sr * 1000
-            if not (
-                duration_ms < self.min_speech_ms or duration_ms > self.max_speech_ms
-            ):
-                if binary:
-                    array = np.concatenate(self.vad_bin_output)
-                self.vad_output = None
-                self.vad_bin_output = None
-                return array
-        return None
+        if self.vad_output is None:
+            return None
+        duration_ms = sum(len(x) for x in self.vad_output) / self.target_sr * 1000
+        if duration_ms > self.max_speech_ms:
+            # Too long: drop it now rather than hold it until it ends.
+            self.reset()
+            return None
+        if vad_curr:
+            return None
+        # The turn has ended: return it, or drop it when too short. Either
+        # way forget it, so that the next turn starts empty.
+        array = torch.cat(self.vad_output).cpu().numpy()
+        if binary:
+            array = np.concatenate(self.vad_bin_output)
+        self.reset()
+        if duration_ms < self.min_speech_ms:
+            return None
+        return array
