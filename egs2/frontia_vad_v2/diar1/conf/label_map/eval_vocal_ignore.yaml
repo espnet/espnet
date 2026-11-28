@@ -1,0 +1,8 @@
+# Label map proposed for scoring the category-aware references: vocalisations and blank
+# utterances are left out of scoring (ignore -> UEM), words and utterances are speech.
+map:
+  - "speech/blank": ignore
+  - "speech/*": speech
+  - "vocal/*": ignore
+  - "music/*": nonspeech
+  - "sound/*": nonspeech

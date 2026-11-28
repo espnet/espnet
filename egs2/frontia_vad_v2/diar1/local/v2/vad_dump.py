@@ -10,6 +10,8 @@ The audio goes straight from the corpus archives into an Omni-IO archive at
     utt2category      <rec-id> <domain>, for --chunk_upsampling_factor
     manifest.tsv      one row per recording: corpus, domain, label source,
                       negative type, microphone, language, licence, source
+    pack_members      <pack> <member> <first sample> <end sample> <negative type>
+                      of every pack, for the category labels (categories.py)
     feats_type        raw
     text, utt2lang    (label source "A" only) the transcript and the OWSM
                       language token of each recording, for align.py, which
@@ -133,6 +135,9 @@ class VadDumpWriter:
         # label source A: the transcript clips of each recording, (clip id, first
         # sample, end sample, text); a pack lists its clips at their offsets
         self.clips: Dict[str, List[tuple]] = {}
+        # every pack: its members (member id, first sample, end sample, negative
+        # type), in order, for the category labels (categories.py)
+        self.pack_members: Dict[str, List[tuple]] = {}
 
     def skip(self, source: str, reason: str):
         """Record a source that could not be read (listed in skipped.txt)."""
@@ -244,10 +249,12 @@ class VadDumpWriter:
         if not pack:
             return
         offset, xs, intervals, texts, sources, clips = 0, [], [], [], [], []
+        members = []
         for rid, x, ivs, meta, text in pack:
             t0 = offset / self.fs
             intervals += [(t0 + s, t0 + e) for s, e in ivs]
             xs.append(x)
+            members.append((rid, offset, offset + len(x), meta["negative_type"]))
             if text is not None:
                 texts.append(text)
                 clips.append((rid, offset, offset + len(x), " ".join(text.split())))
@@ -261,6 +268,7 @@ class VadDumpWriter:
         # every group of a pack: splits.py keeps a pack whole in one split
         meta["group"] = ";".join(sorted({p[3]["group"] for p in pack if p[3]["group"]}))
         text = " ".join(texts) if texts else None
+        self.pack_members[f"{first[0]}+{len(pack)}"] = members
         self._write(
             f"{first[0]}+{len(pack)}",
             np.concatenate(xs),
@@ -337,6 +345,14 @@ class VadDumpWriter:
                     for c, s, e, t in self.clips[r]
                 )
             )
+        # <pack id> <member id> <first sample> <end sample> <negative type>
+        (self.dir / "pack_members").write_text(
+            "".join(
+                f"{r}\t{m}\t{a}\t{b}\t{t}\n"
+                for r in ids
+                for m, a, b, t in self.pack_members.get(r, [])
+            )
+        )
         with (self.dir / "manifest.tsv").open("w") as f:
             f.write("\t".join(MANIFEST_FIELDS) + "\n")
             for row in sorted(self.rows, key=lambda r: r["rec_id"]):
