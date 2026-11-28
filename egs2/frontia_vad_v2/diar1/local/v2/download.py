@@ -146,10 +146,15 @@ def safe_fetch(row, root: Path) -> str:
 def main():
     ap = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     ap.add_argument("--root", required=True, type=Path, help="corpora root")
-    ap.add_argument("--corpora", default="", help="comma separated; default all")
+    ap.add_argument("--corpora", default="", help="comma separated corpora to fetch")
+    ap.add_argument(
+        "--all", action="store_true", help="fetch every manifest (incl. eval_*)"
+    )
     ap.add_argument("--jobs", type=int, default=8)
     a = ap.parse_args()
     only = set(filter(None, a.corpora.split(",")))
+    if not only and not a.all:
+        ap.error("no --corpora given; pass --all to fetch every manifest")
     rows = []
     for m in sorted(MANIFESTS.glob("*.tsv")):
         # <corpus>.licences.tsv: per-file licences for the licence gate, not downloads
