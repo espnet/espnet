@@ -475,6 +475,7 @@ class TransformerDecoder(BaseTransformerDecoder):
                     use_flash_attn,
                     False,
                     True,
+                    use_sdpa,
                 ),
                 PositionwiseFeedForward(attention_dim, linear_units, dropout_rate),
                 dropout_rate,

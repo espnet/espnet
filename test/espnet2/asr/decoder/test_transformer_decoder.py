@@ -295,3 +295,54 @@ def test_TransformerDecoder_partially_AR(decoder_class):
             tgt_lengths,
             enc,
         )
+
+
+def test_TransformerDecoder_use_sdpa_covers_source_attention():
+    torch.manual_seed(0)
+    kwargs = dict(attention_heads=4, linear_units=64, num_blocks=2)
+    matmul = TransformerDecoder(50, 32, use_sdpa=False, **kwargs).eval()
+    sdpa = TransformerDecoder(50, 32, use_sdpa=True, **kwargs).eval()
+    sdpa.load_state_dict(matmul.state_dict())
+    assert all(layer.self_attn.use_sdpa for layer in sdpa.decoders)
+    assert all(layer.src_attn.use_sdpa for layer in sdpa.decoders)
+
+    hs = torch.randn(3, 40, 32)
+    hlens = torch.tensor([40, 31, 7])
+    ys = torch.randint(0, 50, (3, 9))
+    ylens = torch.tensor([9, 5, 2])
+    with torch.no_grad():
+        expected, _ = matmul(hs, hlens, ys, ylens)
+        actual, _ = sdpa(hs, hlens, ys, ylens)
+    for i, length in enumerate(ylens):
+        torch.testing.assert_close(actual[i, :length], expected[i, :length])
+
+
+@pytest.mark.parametrize("mask_dtype", [torch.float32, torch.uint8, torch.bool])
+def test_TransformerDecoder_use_sdpa_reads_a_numeric_memory_mask_as_binary(
+    mask_dtype,
+):
+    # The matmul path treats any mask as 1 = attend, 0 = masked (mask.eq(0)).
+    # SDPA would add a float mask to the logits instead, so the SDPA path must
+    # turn the mask into a boolean first.
+    from espnet2.legacy.nets.pytorch_backend.transformer.mask import subsequent_mask
+
+    torch.manual_seed(0)
+    kwargs = dict(attention_heads=4, linear_units=64, num_blocks=2)
+    matmul = TransformerDecoder(50, 32, use_sdpa=False, **kwargs).eval()
+    sdpa = TransformerDecoder(50, 32, use_sdpa=True, **kwargs).eval()
+    sdpa.load_state_dict(matmul.state_dict())
+
+    memory = torch.randn(2, 6, 32)
+    memory_mask = torch.tensor(
+        [[[1, 1, 1, 1, 0, 0]], [[1, 1, 0, 0, 0, 0]]], dtype=mask_dtype
+    )
+    tgt = torch.randint(0, 50, (2, 4))
+    tgt_mask = subsequent_mask(4).unsqueeze(0)
+    with torch.no_grad():
+        expected, _ = matmul.forward_one_step(
+            tgt, tgt_mask, memory, memory_mask=memory_mask
+        )
+        actual, _ = sdpa.forward_one_step(
+            tgt, tgt_mask, memory, memory_mask=memory_mask
+        )
+    torch.testing.assert_close(actual, expected)
