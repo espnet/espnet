@@ -57,9 +57,9 @@ class SpeechLMJobTemplate(AbsJobTemplate):
             load_pretrained: Load the pretrained weights of the frozen audio
                 encoder and of the base LM. False builds both from their
                 configs alone, leaving the LM weights uninitialised, for a
-                caller that loads a checkpoint strictly over the whole model
-                right after - as both inference entry points do. Nothing
-                else may pass False.
+                caller that restores the whole model before its first forward.
+                Length collection also skips these weights because the
+                preprocessor uses only tokenizer and audio metadata.
         """
         super().__init__(config, is_train)
 
@@ -212,8 +212,12 @@ class SpeechLMJobTemplate(AbsJobTemplate):
             "otherwise loads."
         )
 
-    def build_preprocessor(self) -> Callable:
+    def build_preprocessor(self, *, augment: bool = True) -> Callable:
         """Build the data collation function for SpeechLM.
+
+        Args:
+            augment: Apply configured training augmentation. Validation keeps
+                assistant targets and uses the original conditioning dialogue.
 
         Returns:
             A callable function for collating SpeechLM batch data.
@@ -232,7 +236,7 @@ class SpeechLMJobTemplate(AbsJobTemplate):
             audio_output=processor_config["audio_output"],
             loss_region=processor_config["loss_region"],
             batchfy_method=self.config["data_loading"].get("batchfy_method", "bucket"),
-            audio_cfg=processor_config.get("audio_cfg", 0.0),
+            audio_cfg=processor_config.get("audio_cfg", 0.0) if augment else 0.0,
             batch_length=self.config["data_loading"].get("batch_size", -1),
         )
 
@@ -618,7 +622,7 @@ class SpeechLMPreprocessor:
             loss_masks.append(special_mask)
             accum_length += 1
 
-        if random.random() < self.audio_cfg and self.is_train:
+        if self.is_train and self.audio_cfg > 0 and random.random() < self.audio_cfg:
             seq, loss_masks, conti_feats = self._apply_cfg(
                 seq, loss_masks, conti_feats, messages
             )

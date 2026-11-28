@@ -390,6 +390,24 @@ class TestSpecialTokenAndMask:
 # ---------------------------------------------------------------------------
 # _apply_chat_template
 # ---------------------------------------------------------------------------
+def test_validation_scores_assistant_audio_with_the_original_prompt(job_template):
+    job_template.config["preprocessor"]["audio_cfg"] = 1.0
+    train = job_template.build_preprocessor()
+    valid = job_template.build_preprocessor(augment=False)
+    key = ("dialogue", "generation", "example")
+    dialogue = {
+        "dialogue": [
+            ("user", "text", "An ocean wave"),
+            ("assistant", "audio", "wave.wav"),
+        ]
+    }
+    augmented = train.preprocessing(key, dialogue)
+    conditioned = valid.preprocessing(key, dialogue)
+    assert augmented["sequence"][0, 0] == 0
+    assert conditioned["sequence"][0, 0] == valid.vocab.index("<|bos|>")
+    assert conditioned["loss_mask"].sum() > 0
+
+
 class TestApplyChatTemplate:
     def test_chat_template_from_task(self, preprocessor):
         data_dict = {"text1": "hello", "audio1": "/tmp/audio.wav"}

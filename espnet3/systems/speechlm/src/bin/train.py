@@ -11,6 +11,7 @@ import random
 import shutil
 import sys
 from pathlib import Path
+from tempfile import TemporaryDirectory
 
 import numpy as np
 import torch
@@ -19,6 +20,7 @@ import yaml
 
 from espnet2.speechlm.dataloader.iterator import DataIteratorFactory
 from espnet2.speechlm.model import _all_job_types
+from espnet2.speechlm.utils.checkpoint import latest_checkpoint
 
 
 def get_parser() -> argparse.ArgumentParser:
@@ -207,7 +209,14 @@ def main():
     with open(args.train_config, "r") as f:
         train_config = yaml.safe_load(f)
 
-    trainer_type = train_config.get("trainer", {}).get("type", "deepspeed")
+    trainer_config = train_config.get("trainer", {})
+    trainer_type = trainer_config.get("type", "deepspeed")
+    single_stage_titan = (
+        trainer_type == "titan"
+        and trainer_config.get("titan_config", {}).get("pp_degree", 1) == 1
+    )
+    if trainer_config.get("lora") is not None and not single_stage_titan:
+        raise ValueError("SpeechLM LoRA requires the Titan trainer with pp_degree=1")
 
     # (1) Setup distributed training first to get rank info
     # Get local_rank from environment variable (set by torchrun) if not provided via CLI
@@ -266,17 +275,40 @@ def main():
     logger.info(f"Loaded training config from: {args.train_config}")
     logger.info(f"Using trainer type: {trainer_type}")
 
-    # Copy train config to output directory for reproducibility
     config_dest = args.output_dir / "train.yaml"
-    if rank == 0:
-        shutil.copy(args.train_config, config_dest)
-        logger.info(f"Copied training config to: {config_dest}")
-
     job_template_class = _all_job_types[train_config["job_type"]]
-    job_template = job_template_class(train_config, is_train=True)
-
-    if rank == 0:
-        record_token_layout(config_dest, job_template.vocab_meta["vocab_intervals"])
+    # Both paths restore the complete model before the first forward. Avoid
+    # fetching the original Qwen LM and full Omni checkpoint on every rank.
+    # An explicit DCP initializer can be partial and needs pretrained defaults.
+    resume_checkpoint = None
+    if single_stage_titan and args.resume_path is None:
+        selected = [latest_checkpoint(args.output_dir) if rank == 0 else None]
+        torch.distributed.broadcast_object_list(selected, src=0)
+        resume_checkpoint = selected[0]
+    if resume_checkpoint is not None and config_dest.is_file():
+        saved_config = yaml.safe_load(config_dest.read_text())
+        if saved_config["trainer"].get("lora") != trainer_config.get("lora"):
+            raise ValueError(
+                "The LoRA configuration differs from the saved run. "
+                "Use a new output directory."
+            )
+        if "vocab_intervals" in saved_config:
+            recorded = saved_config["vocab_intervals"]
+            if train_config.get("vocab_intervals", recorded) != recorded:
+                raise ValueError(
+                    "The requested token layout differs from the saved run"
+                )
+            train_config["vocab_intervals"] = recorded
+    native_weights = (
+        single_stage_titan
+        and args.resume_path is not None
+        and args.resume_path.is_file()
+    )
+    job_template = job_template_class(
+        train_config,
+        is_train=True,
+        load_pretrained=not (native_weights or resume_checkpoint is not None),
+    )
 
     # (3.5) For titan trainer, build ParallelDims early to get DP rank/world
     # for data loading. With PP, all ranks in the same PP group must see the
@@ -328,7 +360,7 @@ def main():
     valid_iterator_factories = {}
     valid_iterator_args = dict(
         stats_dir=args.stats_dir,
-        collate_fn=preprocessor.collate_fn,
+        collate_fn=job_template.build_preprocessor(augment=False).collate_fn,
         batchfy_method=loading_config["batchfy_method"],
         batch_size=loading_config["batch_size"],
         num_workers=loading_config["num_workers"],
@@ -401,13 +433,25 @@ def main():
         else:
             from espnet2.speechlm.trainer.titan_trainer import TitanTrainer
 
-            trainer = TitanTrainer(**trainer_kwargs)
+            trainer = TitanTrainer(
+                **trainer_kwargs, resume_checkpoint=resume_checkpoint
+            )
     else:
         raise ValueError(
             f"Unknown trainer type: {trainer_type}. "
             f"Supported types: 'deepspeed', 'titan'"
         )
 
+    if rank == 0:
+        # Publish the matching layout only after model/checkpoint validation.
+        # Resuming from exp/train.yaml itself is safe as well.
+        with TemporaryDirectory(dir=args.output_dir) as staging:
+            staged_config = Path(staging) / "train.yaml"
+            shutil.copyfile(args.train_config, staged_config)
+            record_token_layout(
+                staged_config, job_template.vocab_meta["vocab_intervals"]
+            )
+            staged_config.replace(config_dest)
     trainer.run()
     wandb.finish()
 

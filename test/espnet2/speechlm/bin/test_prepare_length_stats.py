@@ -32,7 +32,10 @@ def test_main_collects_real_data_from_literal_arguments(
         )
     )
     config = tmp_path / "config.yaml"
-    config.write_text("job_type: test\n")
+    config.write_text(
+        "job_type: test\nmultimodal_io:\n  continuous_audio:\n"
+        "    attn_implementation: flash_attention_3\n"
+    )
     output = tmp_path / "stats"
     names = ["reader's train", 'back\\slash "train"', "valid"]
     registry = tmp_path / "registry.yaml"
@@ -68,13 +71,21 @@ def test_main_collects_real_data_from_literal_arguments(
     def collect(preprocessor, num_workers, spec_type, specifier):
         return worker(preprocessor, 0, 1, **{f"{spec_type}_spec": specifier})
 
+    build_job = MagicMock(return_value=job)
     with (
-        patch.object(module, "_all_job_types", {"test": lambda *a, **k: job}),
+        patch.object(module, "_all_job_types", {"test": build_job}),
         patch.object(module, "collect_length_stats", side_effect=collect),
     ):
         module.main()
         module.main()
         assert job.build_preprocessor.call_count == 1
+    assert build_job.call_args.kwargs["load_pretrained"] is False
+    assert (
+        build_job.call_args.args[0]["multimodal_io"]["continuous_audio"][
+            "attn_implementation"
+        ]
+        == "eager"
+    )
     assert preprocessor.find_length.call_count == 3
     for name in names:
         assert json.loads((output / f"stats_text_only_{name}.jsonl").read_text()) == {

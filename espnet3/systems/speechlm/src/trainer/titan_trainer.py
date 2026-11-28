@@ -35,6 +35,7 @@ from espnet2.speechlm.model.speechlm.parallel_utils import (
     init_parallel_dims,
     parallel_strategies,
 )
+from espnet2.speechlm.utils.checkpoint import latest_checkpoint
 from espnet2.speechlm.utils.data import to_device
 from espnet2.speechlm.utils.model_summary import model_summary
 from espnet2.torch_utils.safe_torch_load import safe_torch_load
@@ -117,6 +118,7 @@ class TitanTrainer:
         output_dir: Path,
         trainer_args: Dict[str, Any],
         parallel_dims=None,
+        resume_checkpoint: Optional[Path] = None,
     ):
         """Initialize TorchTitan trainer.
 
@@ -142,6 +144,8 @@ class TitanTrainer:
                     - activation_checkpoint: "none", "selective", or "full"
             parallel_dims: Pre-built ParallelDims from train.py (avoids
                 double init_parallel_dims). If None, builds internally.
+            resume_checkpoint: Complete output DCP selected before building
+                the model. Restore its weights, optimizer, scheduler and step.
         """
         if wandb.run is None:
             raise RuntimeError(
@@ -162,19 +166,6 @@ class TitanTrainer:
         self.gradient_accumulation_steps = trainer_args.get(
             "gradient_accumulation_steps", 1
         )
-
-        # Freeze parameters
-        for t in trainer_args.get("freeze_param", []):
-            if isinstance(model, torch.nn.ModuleList):
-                param_iter = itertools.chain.from_iterable(
-                    m.named_parameters() for m in model
-                )
-            else:
-                param_iter = model.named_parameters()
-            for k, p in param_iter:
-                if k.startswith(t + ".") or k == t:
-                    logger.info(f"Setting {k}.requires_grad = False")
-                    p.requires_grad = False
 
         # Initialize distributed environment and ParallelDims
         titan_config = trainer_args.get("titan_config", {})
@@ -206,6 +197,24 @@ class TitanTrainer:
         # Optional random re-initialization to override all parameters
         reinit_model(model, trainer_args)
 
+        if trainer_args.get("lora") is not None:
+            from espnet2.speechlm.model.speechlm.lora import apply_lora
+
+            apply_lora(model, **trainer_args["lora"])
+
+        # Apply explicit freezes before FSDP, including any selected adapters.
+        for t in trainer_args.get("freeze_param", []):
+            if isinstance(model, torch.nn.ModuleList):
+                param_iter = itertools.chain.from_iterable(
+                    m.named_parameters() for m in model
+                )
+            else:
+                param_iter = model.named_parameters()
+            for k, p in param_iter:
+                if k.startswith(t + ".") or k == t:
+                    logger.info(f"Setting {k}.requires_grad = False")
+                    p.requires_grad = False
+
         parallel_strategy = titan_config.get("parallel_strategy", "qwen3")
         parallelize_fn = parallel_strategies[parallel_strategy]
         if isinstance(model, torch.nn.ModuleList):
@@ -222,7 +231,10 @@ class TitanTrainer:
         self._build_optimizer_scheduler()
 
         # Load checkpoint if exists
-        self._load_checkpoint(resume_path)
+        if resume_checkpoint is None:
+            self._load_checkpoint(resume_path)
+        else:
+            self._load_checkpoint(resume_path, resume_checkpoint=resume_checkpoint)
 
         # Disable automatic GC to prevent distributed straggler issues.
         # Random GC pauses on one rank stall all ranks at collectives.
@@ -287,6 +299,10 @@ class TitanTrainer:
             p.numel() for p in no_decay_params
         )
         logger.info(f"Total trainable parameters: {total_params:,}")
+        if not total_params:
+            raise ValueError(
+                "No trainable parameters remain; check trainer.freeze_param"
+            )
 
         weight_decay = opt_config.get("weight_decay", 0.1)
         param_groups = [
@@ -366,16 +382,33 @@ class TitanTrainer:
         if self.global_rank == 0:
             logger.info(f"Saved checkpoint to {checkpoint_dir}")
 
-    def _load_checkpoint(self, resume_path: Optional[Path]) -> None:
+    def _load_checkpoint(
+        self, resume_path: Optional[Path], *, resume_checkpoint: Optional[Path] = None
+    ) -> None:
         """Initialize weights from native/DCP checkpoints or resume an output DCP.
 
         Args:
             resume_path: Optional native weight file or DCP directory.
+            resume_checkpoint: Exact output checkpoint to resume.
         """
         checkpoint_dir = None
         is_resume = False
+        load_lora = self.trainer_args.get("lora") is not None
+        if load_lora:
+            from espnet2.speechlm.model.speechlm.lora import missing_lora_keys
 
-        if resume_path is not None:
+        if resume_checkpoint is not None:
+            if resume_path is not None:
+                raise ValueError(
+                    "Cannot initialize from weights and resume a run together"
+                )
+            if not (resume_checkpoint / ".metadata").is_file():
+                raise FileNotFoundError(
+                    f"Incomplete resume checkpoint: {resume_checkpoint}"
+                )
+            checkpoint_dir = resume_checkpoint
+            is_resume = True
+        elif resume_path is not None:
             resume_path = Path(resume_path)
             if not resume_path.exists():
                 raise FileNotFoundError(f"Checkpoint does not exist: {resume_path}")
@@ -405,6 +438,16 @@ class TitanTrainer:
                             "Expected a nonempty state dict or a checkpoint with model "
                             "tensors under 'module'."
                         )
+                strict = True
+                if load_lora:
+                    # The native release predates the adapters. Keep only those
+                    # freshly initialized tensors; every base key remains mandatory.
+                    keys = [list(state_dict)]
+                    if dist.is_initialized():
+                        dist.broadcast_object_list(keys, src=0)
+                    strict = not missing_lora_keys(
+                        get_model_state_dict(self.model), keys[0]
+                    )
                 if dist.is_initialized():
                     set_model_state_dict(
                         self.model,
@@ -412,11 +455,11 @@ class TitanTrainer:
                         options=StateDictOptions(
                             full_state_dict=True,
                             broadcast_from_rank0=True,
-                            strict=True,
+                            strict=strict,
                         ),
                     )
                 else:
-                    self.model.load_state_dict(state_dict, strict=True)
+                    self.model.load_state_dict(state_dict, strict=strict)
                 logger.info(
                     "Loaded native model weights from %s; optimizer, scheduler, "
                     "and step start fresh",
@@ -427,16 +470,10 @@ class TitanTrainer:
                 raise ValueError(f"Not a DCP checkpoint directory: {resume_path}")
             checkpoint_dir = resume_path
         else:
-            candidates = []
-            for path in (self.output_dir / "checkpoints").glob("step_*"):
-                step = path.name.removeprefix("step_")
-                if step.isdigit() and (path / ".metadata").is_file():
-                    candidates.append((int(step), path))
-            if candidates:
-                checkpoint_dir = max(candidates)[1]
-                is_resume = True
+            checkpoint_dir = latest_checkpoint(self.output_dir)
+            is_resume = checkpoint_dir is not None
 
-        if checkpoint_dir and checkpoint_dir.is_dir():
+        if checkpoint_dir is not None:
             logger.info(
                 f"Loading checkpoint from {checkpoint_dir} "
                 f"(mode={'resume' if is_resume else 'load_pretrained'})"
@@ -445,6 +482,31 @@ class TitanTrainer:
             state = {
                 "model": get_model_state_dict(self.model),
             }
+            metadata = dcp.FileSystemReader(checkpoint_dir).read_metadata()
+            checkpoint_keys = (
+                key.removeprefix("model.")
+                for key in metadata.state_dict_metadata
+                if key.startswith("model.")
+            )
+            missing = set()
+            if load_lora:
+                missing = missing_lora_keys(state["model"], checkpoint_keys)
+                if missing and is_resume:
+                    raise ValueError(
+                        f"Cannot resume LoRA from base-only {checkpoint_dir}"
+                    )
+                for key in missing:
+                    del state["model"][key]
+            elif any(
+                key.rsplit(".", 1)[-1] in ("lora_A", "lora_B", "lora_scale")
+                for key in checkpoint_keys
+            ):
+                raise ValueError(
+                    f"{checkpoint_dir} contains unmerged LoRA adapters. "
+                    "Resume with the saved LoRA config, or use "
+                    "espnet2.speechlm.bin.export_checkpoint to merge the weights "
+                    "and initialize a new dense experiment from the exported file."
+                )
             if is_resume:
                 state["optimizer"] = get_optimizer_state_dict(
                     self.model,
@@ -457,13 +519,17 @@ class TitanTrainer:
             dcp.load(
                 state,
                 checkpoint_id=str(checkpoint_dir),
-                planner=DefaultLoadPlanner(allow_partial_load=not is_resume),
+                planner=DefaultLoadPlanner(
+                    allow_partial_load=not (is_resume or load_lora)
+                ),
             )
 
             set_model_state_dict(
                 self.model,
                 state["model"],
-                options=StateDictOptions(strict=is_resume),
+                options=StateDictOptions(
+                    strict=is_resume or (load_lora and not missing)
+                ),
             )
             if is_resume:
                 set_optimizer_state_dict(

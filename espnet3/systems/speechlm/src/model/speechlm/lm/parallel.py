@@ -255,6 +255,19 @@ def build_parallel_hf_class(model_hf_tag):
 
             return model
 
+        def train(self, mode=True):
+            """Keep tokenizers and frozen feature encoders deterministic during SFT."""
+            super().train(mode)
+            # Later pipeline stages do not own the multimodal input modules.
+            io_modules = getattr(self, "multimodal_io_dict", None)
+            if mode and io_modules is not None:
+                for io in io_modules.values():
+                    if io.is_discrete or not any(
+                        p.requires_grad for p in io.parameters()
+                    ):
+                        io.eval()
+            return self
+
         def forward(self, **kwargs):
             """Forward pass with optional loss computation.
 

@@ -263,8 +263,11 @@ class TestMainDispatch:
         assert paths == expected_paths
         assert names == [spec.split(":")[1] for spec in registered]
 
-    @pytest.mark.parametrize("sharded", [False, True])
-    def test_dispatch_titan_no_pp(self, train_module, tmp_path, sharded):
+    @pytest.mark.parametrize(
+        "sharded,restore",
+        [(False, "none"), (True, "native"), (True, "resume"), (True, "partial")],
+    )
+    def test_dispatch_titan_no_pp(self, train_module, tmp_path, sharded, restore):
         train_cfg = {
             "trainer": {"type": "titan", "max_step": 1, "titan_config": {}},
             "data_loading": {
@@ -276,7 +279,24 @@ class TestMainDispatch:
             "seed": 0,
         }
         argv = self._make_args(tmp_path, train_cfg, "titan")
+        saved = tmp_path / "out/checkpoints/step_3"
+        if restore == "native":
+            weights = tmp_path / "base.pt"
+            weights.touch()
+            argv.extend(["--resume-path", str(weights)])
+        elif restore == "resume":
+            saved.mkdir(parents=True)
+            (saved / ".metadata").touch()
+        elif restore == "partial":
+            partial = tmp_path / "init"
+            partial.mkdir()
+            (partial / ".metadata").touch()
+            argv.extend(["--resume-path", str(partial)])
         ctxs = self._patches(train_module)
+        build_job = MagicMock()
+        ctxs.append(
+            patch.object(train_module, "_all_job_types", {"speechlm": build_job})
+        )
         factory = MagicMock()
         ctxs.append(patch.object(train_module, "DataIteratorFactory", factory))
 
@@ -306,12 +326,44 @@ class TestMainDispatch:
 
         titan_cls.assert_called_once()
         titan_cls.return_value.run.assert_called_once()
+        assert build_job.call_args.kwargs["load_pretrained"] == (
+            restore in {"none", "partial"}
+        )
+        assert titan_cls.call_args.kwargs["resume_checkpoint"] == (
+            saved if restore == "resume" else None
+        )
+        build_job.return_value.build_preprocessor.assert_any_call(augment=False)
         fake_pd.get_optional_mesh.assert_called_once_with("batch")
         assert all(
             (call.kwargs["rank"], call.kwargs["world_size"])
             == ((1, 2) if sharded else (0, 1))
             for call in factory.call_args_list
         )
+
+    @pytest.mark.parametrize("kind,pp", [("deepspeed", 1), ("titan", 2)])
+    def test_lora_requires_single_stage_titan(
+        self, train_module, tmp_path, monkeypatch, kind, pp
+    ):
+        cfg = {"trainer": {"type": kind, "lora": {}, "titan_config": {"pp_degree": pp}}}
+        monkeypatch.setattr(sys, "argv", self._make_args(tmp_path, cfg, kind))
+        with pytest.raises(ValueError, match="LoRA requires the Titan trainer"):
+            train_module.main()
+
+    def test_changed_lora_settings_preserve_saved_config(self, train_module, tmp_path):
+        cfg = {
+            "trainer": {"type": "titan", "lora": {"rank": 8}},
+            "job_type": "speechlm",
+        }
+        argv = self._make_args(tmp_path, cfg, "titan")
+        saved = tmp_path / "out/train.yaml"
+        complete = tmp_path / "out/checkpoints/step_3"
+        complete.mkdir(parents=True)
+        (complete / ".metadata").touch()
+        original = yaml.safe_dump({"trainer": {"type": "titan", "lora": {"rank": 16}}})
+        saved.write_text(original)
+        with pytest.raises(ValueError, match="LoRA configuration differs"):
+            self._run(train_module, argv, self._patches(train_module))
+        assert saved.read_text() == original
 
     def test_dispatch_titan_pp(self, train_module, tmp_path):
         train_cfg = {

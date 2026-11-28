@@ -9,6 +9,7 @@ from typing import ClassVar
 from omegaconf import ListConfig
 
 from espnet2.speechlm.dataloader.task_conf import parse_data_specifier
+from espnet2.speechlm.utils.checkpoint import latest_checkpoint
 from espnet3.contract.stages import StageSpec
 from espnet3.systems.base.system import BaseSystem
 
@@ -113,12 +114,7 @@ class SpeechLMSystem(BaseSystem):
         if require_checkpoint:
             # A complete output checkpoint restores optimizer, scheduler and step.
             # Passing --resume-path would instead reset them, even on a retry.
-            steps = (self.exp_dir / "checkpoints").glob("step_*")
-            if any(
-                step.name.removeprefix("step_").isdigit()
-                and (step / ".metadata").is_file()
-                for step in steps
-            ):
+            if latest_checkpoint(self.exp_dir) is not None:
                 initializer = None
             elif not initializer:
                 raise ValueError(

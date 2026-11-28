@@ -8,7 +8,7 @@ from espnet2.speechlm.model.abs_job import AbsJobTemplate
 class _ConcreteJob(AbsJobTemplate):
     """Minimal concrete subclass for testing."""
 
-    def build_preprocessor(self):
+    def build_preprocessor(self, *, augment=True):
         return lambda x: x
 
     def build_model(self):
@@ -20,7 +20,7 @@ class _ConcreteJob(AbsJobTemplate):
 class _PartialJob(AbsJobTemplate):
     """Subclass that only implements build_preprocessor (still abstract)."""
 
-    def build_preprocessor(self):
+    def build_preprocessor(self, *, augment=True):
         return lambda x: x
 
 

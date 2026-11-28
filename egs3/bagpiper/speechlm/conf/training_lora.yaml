@@ -1,0 +1,7 @@
+defaults:
+  - training
+  - _self_
+
+exp_dir: exp/bagpiper_lora
+speechlm_config: ${oc.env:BAGPIPER_LORA_CONFIG,${config_path:train_lora.yaml}}
+num_device: ${oc.decode:${oc.env:BAGPIPER_LORA_NGPU,1}}

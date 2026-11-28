@@ -1,0 +1,7 @@
+defaults:
+  - training
+  - _self_
+
+exp_dir: exp/bagpiper_full
+speechlm_config: ${oc.env:BAGPIPER_TRAIN_CONFIG,${config_path:train_full.yaml}}
+num_device: ${oc.decode:${oc.env:BAGPIPER_NGPU,8}}

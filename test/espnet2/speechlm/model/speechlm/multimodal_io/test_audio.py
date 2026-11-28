@@ -589,6 +589,101 @@ def _hub_stubs(thinker_config):
     return stack
 
 
+@pytest.mark.parametrize("lora", [False, True], ids=["full", "lora"])
+def test_bagpiper_training_updates_audio_tower_only_for_full_sft(tmp_path, lora):
+    """Train through a tiny native Qwen3 decoder and its actual Omni audio tower."""
+    import transformers
+
+    from espnet2.speechlm.model.speechlm.lm import loss as native_loss
+    from espnet2.speechlm.model.speechlm.lm.parallel import ParallelHFModel
+    from espnet2.speechlm.model.speechlm.lora import apply_lora
+
+    # CPU uses SDPA for this single utterance and the torch version of linear CE.
+    def linear_ce(inputs, weight, targets, bias, ce_weight, ignore, *_):
+        logits = torch.nn.functional.linear(inputs, weight, bias)
+        loss = torch.nn.functional.cross_entropy(
+            logits, targets, weight=ce_weight, ignore_index=ignore, reduction="sum"
+        )
+        return loss, loss.new_zeros(()), None
+
+    torch.manual_seed(53)
+    tag = "Qwen/Qwen3-Omni-30B-A3B-Instruct"
+    thinker = _tiny_thinker_config(tag)
+    # The native SpeechLM length formula uses the release's 100-frame chunks.
+    thinker.audio_config.n_window = 50
+    with _hub_stubs(thinker):
+        io = ContinuousAudioIO(
+            encoder_hf_model_tag=tag,
+            dtype="float32",
+            attn_implementation="sdpa",
+            load_pretrained=False,
+        )
+    config = transformers.Qwen3Config(
+        vocab_size=32,
+        hidden_size=16,
+        intermediate_size=32,
+        num_hidden_layers=1,
+        num_attention_heads=2,
+        num_key_value_heads=1,
+        head_dim=8,
+    )
+    transformers.Qwen3ForCausalLM(config).save_pretrained(tmp_path)
+    # A stateful tokenizer stands in for the frozen discrete frontend.
+    tokenizer = torch.nn.BatchNorm1d(2)
+    tokenizer.is_discrete = True
+    model = ParallelHFModel(
+        str(tmp_path),
+        multimodal_io={"text": tokenizer, "continuous_audio": io},
+        vocab_meta={
+            "vocab_size": 32,
+            "text_start": 0,
+            "text_end": 32,
+            "vocab": list(range(32)),
+            "vocab_intervals": {"text": [(0, 32)]},
+            "mm_start": None,
+            "mm_end": None,
+            "vocab_weight": torch.ones(32),
+            "num_stream": 1,
+        },
+        is_train=False,
+        dtype="float32",
+        attn_implementation="sdpa",
+    )
+    if lora:
+        apply_lora(model, rank=2, alpha=4, target_modules=["v_proj"])
+    model.eval().train()
+    assert not tokenizer.training
+    assert io.model.audio_tower.training is (not lora)
+    counter = tokenizer.num_batches_tracked.clone()
+    tokenizer(torch.randn(2, 2))
+    torch.testing.assert_close(tokenizer.num_batches_tracked, counter)
+
+    encoder = io.model.audio_tower.conv2d1.weight
+    original = encoder.detach().clone()
+    frames = 24
+    length = io.find_length(None, frames)
+    tokens = torch.randint(1, 32, (1, length + 3, 1))
+    model.reset_loss_stats()
+    with patch.object(
+        native_loss.LigerFusedLinearCrossEntropyFunction, "apply", linear_ce
+    ):
+        loss = model(
+            seqs=tokens,
+            loss_masks=torch.ones_like(tokens, dtype=torch.float32),
+            continuous_audio_indices=[(0, 1, length)],
+            continuous_audio_lengths=torch.tensor([frames]),
+            continuous_audio_feats=torch.randn(1, frames, 16),
+        )
+    loss.backward()
+    torch.optim.SGD((p for p in model.parameters() if p.requires_grad), lr=0.1).step()
+    if lora:
+        assert encoder.grad is None
+        torch.testing.assert_close(encoder, original, rtol=0, atol=0)
+    else:
+        assert encoder.grad is not None and encoder.grad.abs().max() > 0
+        assert not torch.equal(encoder, original)
+
+
 class TestContinuousAudioIO:
     def _make_continuous_io(self, model_tag="Qwen/Qwen2.5-Omni-7B"):
         with patch.object(ContinuousAudioIO, "_init_encoder"):

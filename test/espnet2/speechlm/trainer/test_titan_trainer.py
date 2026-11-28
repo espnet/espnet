@@ -32,6 +32,7 @@ class _SimpleModel(nn.Module):
 def _make_bare_trainer(**attrs):
     """Create TitanTrainer without running __init__."""
     t = TitanTrainer.__new__(TitanTrainer)
+    t.trainer_args = {}
     for k, v in attrs.items():
         setattr(t, k, v)
     return t
@@ -76,6 +77,48 @@ class TestNativeInitialization:
             trainer._load_checkpoint(checkpoint)
 
 
+@pytest.mark.parametrize("resume", [False, True], ids=["initialize", "resume"])
+def test_dense_training_rejects_unmerged_lora_dcp(tmp_path, resume):
+    source = _SimpleModel().state_dict()
+    source["linear.lora_A"] = torch.ones(1, 4)
+    source["linear.lora_B"] = torch.ones(4, 1)
+    source["linear.lora_scale"] = torch.tensor(1.0)
+    checkpoint = tmp_path / "checkpoints" / "step_4"
+    dcp.save({"model": source}, checkpoint_id=checkpoint, no_dist=True)
+
+    target = _SimpleModel()
+    original = target.linear.weight.detach().clone()
+    trainer = _make_bare_trainer(model=target, output_dir=tmp_path)
+    with pytest.raises(ValueError, match="unmerged LoRA.*export_checkpoint"):
+        if resume:
+            trainer._load_checkpoint(None, resume_checkpoint=checkpoint)
+        else:
+            trainer._load_checkpoint(checkpoint)
+    torch.testing.assert_close(target.linear.weight, original)
+
+
+def test_dense_initialization_preserves_weights_missing_from_partial_dcp(tmp_path):
+    model = _SimpleModel()
+    bias = model.linear.bias.detach().clone()
+    weight = torch.ones_like(model.linear.weight)
+    checkpoint = tmp_path / "partial"
+    dcp.save(
+        {"model": {"linear.weight": weight}}, checkpoint_id=checkpoint, no_dist=True
+    )
+    optimizer = torch.optim.AdamW(model.parameters())
+    trainer = _make_bare_trainer(
+        model=model,
+        optimizer=optimizer,
+        lr_scheduler=torch.optim.lr_scheduler.LambdaLR(optimizer, lambda _: 1.0),
+        global_step=0,
+    )
+    trainer._load_checkpoint(checkpoint)
+    torch.testing.assert_close(model.linear.weight, weight)
+    torch.testing.assert_close(model.linear.bias, bias)
+    assert not optimizer.state
+    assert trainer.global_step == 0
+
+
 def test_resume_latest_complete_checkpoint(tmp_path):
     source = _SimpleModel()
     source_optimizer = torch.optim.AdamW(source.parameters())
@@ -95,6 +138,8 @@ def test_resume_latest_complete_checkpoint(tmp_path):
     )
     trainer._load_checkpoint(None)
     assert trainer.global_step == 0
+    with pytest.raises(FileNotFoundError, match="Incomplete resume checkpoint"):
+        trainer._load_checkpoint(None, resume_checkpoint=tmp_path / "vanished")
 
     for step in (2, 10):
         while source_scheduler.last_epoch < step:
