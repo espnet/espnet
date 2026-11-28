@@ -1,0 +1,245 @@
+##########################################################
+#           TRAINING SETTING: DATA FROM OMNIIO           #
+##########################################################
+# training_e_branchformer.yaml with its data read from an omniio dump instead
+# of the raw LibriSpeech tree. Model and optimization settings are the same.
+#
+# Quick usage:
+#   python run.py --stages create_dataset train_tokenizer \
+#       --training_config conf/tuning/training_e_branchformer_omniio.yaml
+#   python run.py --stages collect_stats \
+#       --training_config conf/tuning/training_e_branchformer_omniio.yaml
+#   python run.py --stages train \
+#       --training_config conf/tuning/training_e_branchformer_omniio.yaml
+# Run collect_stats and train as separate commands: collect_stats removes
+# `model.normalize` from the config it was given, so a train stage in the
+# same command would train without global mean/variance normalization.
+#
+# Note:
+# This configuration inherits `num_device: 1` from the TEMPLATE config; it is
+# configured for single-GPU training with gradient accumulation of 4. To
+# reduce gradient accumulation while keeping the effective batch size
+# comparable, increase `batch_bins` by the same factor when GPU memory
+# permits. For example, with `num_device: 8`, use `batch_bins: 3800000` and
+# `accumulate_grad_batches: 1`.
+
+##########################################################
+#                  SYSTEM AND PATH SETTING               #
+##########################################################
+# `recipe_dir`, `data_dir`, `exp_tag`, `exp_dir`, and `stats_dir` are inherited
+# from the TEMPLATE config. In particular, `exp_tag` follows `${self_name:}`.
+task: espnet3.systems.esp2_asr.task.ASRTask
+
+# The omniio dump, used by create_dataset, every dataset entry and the
+# tokenizer text builder: $OMNIIO_DUMP_ROOT, else ${recipe_dir}/dump/omniio.
+omniio_dump_root: ${oc.env:OMNIIO_DUMP_ROOT,${recipe_dir}/dump/omniio}
+
+##########################################################
+#                    DATASET DEFINITION                  #
+##########################################################
+# `data_src` selects the omniio dataset/builder in dataset/omniio/. Each entry
+# reads one split of the dump through `default_query` in
+# dataset/omniio/config.yaml (audio and text joined on the utterance ID).
+# To select rows differently, give the entry a DuckDB `query` of its own; see
+# README.md and that file.
+#
+# The training rows are split into `total_shards` shards by hash(id); each GPU
+# loads the rows of its own shard only, so no rank holds the full index.
+dataset:
+  train:
+    - data_src: egs3.librispeech_100.esp2_asr.dataset.omniio
+      data_src_args:
+        split: train-clean-100
+        dump_root: ${omniio_dump_root}
+        # One index shard per GPU. dist_world_size must equal the total
+        # number of GPUs (num_device * num_nodes for multi-node); total_shards
+        # must be a positive multiple of it. Shards differ a little in size
+        # and every rank keeps as many batches as the smallest shard gives,
+        # so each epoch drops some batches (about 3% with 8 shards by id
+        # here); sharding by a coarse column such as speaker drops far more.
+        total_shards: ${num_device}
+        dist_world_size: ${num_device}
+  valid:
+    - data_src: egs3.librispeech_100.esp2_asr.dataset.omniio
+      data_src_args:
+        split: dev-clean
+        dump_root: ${omniio_dump_root}
+    - data_src: egs3.librispeech_100.esp2_asr.dataset.omniio
+      data_src_args:
+        split: dev-other
+        dump_root: ${omniio_dump_root}
+  preprocessor:
+    _target_: espnet2.train.preprocessor.CommonPreprocessor
+    train: true
+    token_type: bpe
+    token_list: ${tokenizer.save_path}/tokens.txt
+    bpemodel: ${tokenizer.save_path}/bpe.model
+    text_cleaner:
+    fs: 16000
+    data_aug_prob: 0.667
+    data_aug_effects:
+      - [0.5, "speed_perturb", {"factor": 0.9}]
+      - [0.5, "speed_perturb", {"factor": 1.1}]
+
+# create_dataset locates raw LibriSpeech (`source_dir`, else $LIBRISPEECH,
+# else ${recipe_dir}/download, downloading missing splits there) and dumps it
+# with omniio's Blob.append to `omniio_dump_root`. A finished dump is reused
+# as-is, and then the raw corpus is not needed.
+create_dataset:
+  recipe_dir: ${recipe_dir}
+  dump_root: ${omniio_dump_root}
+  # source_dir: /path/to/LibriSpeech
+  # num_workers: 8      # Blob.append worker processes
+
+##########################################################
+#                   TOKENIZER SETTING                    #
+##########################################################
+tokenizer:
+  vocab_size: 5000
+  character_coverage: 1.0
+  model_type: bpe
+  save_path: ${data_dir}/${tokenizer.model_type}_${tokenizer.vocab_size}
+  text_builder:
+    func: egs3.librispeech_100.esp2_asr.dataset.omniio.tokenizer.gather_training_text
+    dump_root: ${omniio_dump_root}
+    split: train-clean-100
+
+##########################################################
+#                      MODEL SETTING                     #
+##########################################################
+model:
+  vocab_size: ${tokenizer.vocab_size}
+  token_list: ${tokenizer.save_path}/tokens.txt
+
+  encoder: e_branchformer
+  encoder_conf:
+    output_size: 256
+    attention_heads: 4
+    attention_layer_type: rel_selfattn
+    pos_enc_layer_type: rel_pos
+    rel_pos_type: latest
+    cgmlp_linear_units: 1024
+    cgmlp_conv_kernel: 31
+    use_linear_after_conv: false
+    gate_activation: identity
+    num_blocks: 12
+    dropout_rate: 0.1
+    positional_dropout_rate: 0.1
+    attention_dropout_rate: 0.1
+    input_layer: conv2d
+    layer_drop_rate: 0.0
+    linear_units: 1024
+    positionwise_layer_type: linear
+    use_ffn: true
+    macaron_ffn: true
+    merge_conv_kernel: 31
+
+  decoder: transformer
+  decoder_conf:
+    attention_heads: 4
+    linear_units: 2048
+    num_blocks: 6
+    dropout_rate: 0.1
+    positional_dropout_rate: 0.1
+    self_attention_dropout_rate: 0.1
+    src_attention_dropout_rate: 0.1
+    layer_drop_rate: 0.0
+
+  normalize: global_mvn
+  normalize_conf:
+    stats_file: ${stats_dir}/train/feats_stats.npz
+
+  model_conf:
+    ctc_weight: 0.3
+    lsm_weight: 0.1
+    length_normalized_loss: false
+
+  frontend: default
+  frontend_conf:
+    n_fft: 512
+    win_length: 400
+    hop_length: 160
+
+  specaug: specaug
+  specaug_conf:
+    apply_time_warp: true
+    time_warp_window: 5
+    time_warp_mode: bicubic
+    apply_freq_mask: true
+    freq_mask_width_range: [0, 27]
+    num_freq_mask: 2
+    apply_time_mask: true
+    time_mask_width_ratio_range: [0.0, 0.05]
+    num_time_mask: 5
+
+##########################################################
+#            OPTIMIZER & SCHEDULER SETTING               #
+##########################################################
+optimizer:
+  _target_: torch.optim.Adam
+  lr: 0.002
+  weight_decay: 0.000001
+
+scheduler:
+  _target_: espnet2.schedulers.warmup_lr.WarmupLR
+  warmup_steps: 15000
+
+##########################################################
+#                OTHER TRAINING SETTING                  #
+##########################################################
+best_model_criterion:
+  - - valid/acc
+    - 10
+    - max
+
+# Apply the train preprocessor's random augmentation (data_aug_effects, speed
+# perturbation, ...) while collecting statistics. Off by default, as in
+# ESPnet2: the statistics and shape files are then the same on every run and
+# match the unaugmented input seen at inference. Training augments either way.
+collect_stats_train_mode: false
+
+##########################################################
+#                   DATALOADER SETTING                   #
+##########################################################
+parallel:
+  env: local
+  n_workers: 1
+
+dataloader:
+  train:
+    iter_factory:
+      num_workers: 4
+      batches:
+        type: numel
+        # Batch by the `length` column of the query (omniio's sample counts)
+        # over this rank's shard, instead of collect_stats shape files.
+        # collect_stats is still run, for the GlobalMVN statistics only.
+        lengths_from_dataset: true
+        shape_files: []
+        batch_size: 16
+        # 7.6M samples is about 475 s of 16 kHz audio per minibatch, the
+        # same as the 3.8M feature elements of training_e_branchformer.yaml.
+        # With gradient accumulation of 4, this yields about 1,900 s of audio
+        # per optimizer update.
+        batch_bins: 7600000
+  valid:
+    iter_factory:
+      batches:
+        lengths_from_dataset: true
+        shape_files: []
+
+##########################################################
+#                    TRAINER SETTING                     #
+##########################################################
+trainer:
+  accumulate_grad_batches: 4
+  check_val_every_n_epoch: 1
+  gradient_clip_val: 5.0
+  log_every_n_steps: 100
+  max_epochs: 200
+  precision: bf16-mixed
+
+  logger:
+    - _target_: lightning.pytorch.loggers.TensorBoardLogger
+      save_dir: ${exp_dir}/tensorboard
+      name: tb_logger

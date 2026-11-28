@@ -1,0 +1,38 @@
+builder:
+  # Corpus name shared by every modality in the omniio dump:
+  #   <dump_root>/audio/librispeech/<split>, <dump_root>/text/librispeech/<split>
+  corpus: librispeech
+
+  dump:
+    # Blob.append worker processes
+    num_workers: 8
+    # omniio writer options per modality. LibriSpeech is already 16-bit FLAC,
+    # so the audio is stored as-is: no options (e.g. target_format) are given.
+    audio:
+    text:
+      is_path: false
+      compression_level: 3
+
+dataset:
+  # Query used when a dataset entry gives only `split`. One row per utterance:
+  # the audio and text blobs of one split, joined on the utterance ID. Paths
+  # are relative to the dump root, and `$split` is the entry's `split`.
+  # `length` is omniio's own sample count, the unit `batch_bins` is set in.
+  default_query: |
+    SELECT a.id,
+           a.path AS speech_path, a.start_byte AS speech_start,
+           a.end_byte - a.start_byte AS speech_size,
+           a.samples AS length,
+           t.path AS text_path, t.start_byte AS text_start,
+           t.end_byte - t.start_byte AS text_size
+    FROM read_parquet('audio/librispeech/' || $split || '/metadata.parquet') AS a
+    JOIN read_parquet('text/librispeech/' || $split || '/metadata.parquet') AS t
+      USING (id)
+    ORDER BY a.id
+
+  # Query used by the tokenizer text builder: every transcript of `$split`.
+  text_query: |
+    SELECT id, path AS text_path, start_byte AS text_start,
+           end_byte - start_byte AS text_size
+    FROM read_parquet('text/librispeech/' || $split || '/metadata.parquet')
+    ORDER BY id

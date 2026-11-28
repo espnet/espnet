@@ -1,0 +1,78 @@
+##########################################################
+#                   Inference SETTING                    #
+##########################################################
+# inference.yaml with the test sets read from the omniio dump.
+#
+# Common usage:
+#   python run.py --stages infer \
+#       --training_config conf/tuning/training_e_branchformer_omniio.yaml \
+#       --inference_config conf/inference_omniio.yaml
+#
+##########################################################
+#                    PATHS AND INPUTS                    #
+##########################################################
+# This recipe omits `exp_tag`, `exp_dir`, and `inference_dir` on purpose.
+# `run.py` copies `training_config.exp_tag` and `training_config.exp_dir` here
+# before resolving `${exp_dir}`.
+#
+# The default output directory uses the stem of the file passed to
+# `--inference_config`.
+# If `inference_dir` is omitted, `conf/<name>.yaml` becomes `${exp_dir}/<name>`.
+# Override `inference_dir` only when you want a different output location.
+
+##########################################################
+#                    DATASET DEFINITION                  #
+##########################################################
+# Each test entry is a dataset reference consumed by `DataOrganizer`.
+# - `name` becomes `${inference_dir}/<name>/`
+# - `data_src` selects the omniio dataset in dataset/omniio/
+# - `data_src_args` is passed to `LibriSpeech100OmniIODataset(...)`; with no
+#   `query`, it runs `default_query` from dataset/omniio/config.yaml for
+#   `split`, from the dump at `omniio_dump_root`.
+#
+# Dataset splits:
+#   test:
+#     - split="dev-clean" from the omniio dump
+#     - split="dev-other" from the omniio dump
+#     - split="test-clean" from the omniio dump
+#     - split="test-other" from the omniio dump
+# The omniio dump: $OMNIIO_DUMP_ROOT, else ${recipe_dir}/dump/omniio.
+omniio_dump_root: ${oc.env:OMNIIO_DUMP_ROOT,${recipe_dir}/dump/omniio}
+
+dataset:
+  test:
+    - name: dev-clean
+      data_src: egs3.librispeech_100.esp2_asr.dataset.omniio
+      data_src_args:
+        split: dev-clean
+        dump_root: ${omniio_dump_root}
+    - name: dev-other
+      data_src: egs3.librispeech_100.esp2_asr.dataset.omniio
+      data_src_args:
+        split: dev-other
+        dump_root: ${omniio_dump_root}
+    - name: test-clean
+      data_src: egs3.librispeech_100.esp2_asr.dataset.omniio
+      data_src_args:
+        split: test-clean
+        dump_root: ${omniio_dump_root}
+    - name: test-other
+      data_src: egs3.librispeech_100.esp2_asr.dataset.omniio
+      data_src_args:
+        split: test-other
+        dump_root: ${omniio_dump_root}
+
+##########################################################
+#                    MODEL AND OUTPUT                    #
+##########################################################
+model:
+  _target_: espnet2.bin.asr_inference.Speech2Text
+  asr_train_config: ${exp_dir}/config.yaml
+  # Weight average over the top-10 `valid/acc` checkpoints, written by
+  # `AverageCheckpointsCallback` (espnet3/components/callbacks/default_callbacks.py).
+  asr_model_file: ${exp_dir}/valid.acc.ave_10best.pth
+  beam_size: 20
+  ctc_weight: 0.3
+
+# utterances per beam search; `null` decodes one at a time (see TEMPLATE)
+batch_size: 4

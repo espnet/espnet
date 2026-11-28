@@ -1192,3 +1192,287 @@ def test_build_iter_factory_defaults_to_the_builder_dataset(monkeypatch):
     }
     loader = builder._build_iter_factory(factory_config)  # dataset=None path
     assert list(loader) == [[0], [1]]
+
+
+# -------- lengths_from_dataset --------
+
+
+class LengthDataset:
+    """Integer-indexed dataset that reports its own item lengths."""
+
+    def __init__(self, lengths):
+        """Store one length per item."""
+        self.lengths = list(lengths)
+
+    def __len__(self):
+        """Return the number of items."""
+        return len(self.lengths)
+
+    def __getitem__(self, idx):
+        """Return a zero waveform of the item's length."""
+        if not 0 <= int(idx) < len(self.lengths):
+            raise IndexError(idx)
+        return {"audio": np.zeros(int(self.lengths[idx]), dtype=np.float32)}
+
+    def get_item_lengths(self):
+        """Return every item's length."""
+        return np.asarray(self.lengths)
+
+
+def collate_uids(batch):
+    """Collate ``(uid, item)`` pairs to their uids."""
+    return [uid for uid, _ in batch]
+
+
+def _length_combined(dataset):
+    """Wrap ``dataset`` in a CombinedDataset that yields ``(uid, item)``."""
+    from espnet3.components.data.dataset import CombinedDataset
+
+    combined = CombinedDataset([dataset], [(None, None)], use_espnet_preprocessor=False)
+    combined.use_espnet_collator = True  # items come as (uid, item)
+    return combined
+
+
+def _lengths_iter_config(batch_bins, collate="collate_uids"):
+    """Return a numel iter_factory config with lengths_from_dataset."""
+    return OmegaConf.create(
+        {
+            "dataloader": {
+                "train": {
+                    "iter_factory": {
+                        "_target_": (
+                            "espnet2.iterators.sequence_iter_factory."
+                            "SequenceIterFactory"
+                        ),
+                        "shuffle": False,
+                        "collate_fn": {
+                            "_target_": (
+                                "test.espnet3.components.data."
+                                f"test_dataloader_builder.{collate}"
+                            ),
+                            "_partial_": True,
+                        },
+                        "batches": {
+                            "type": "numel",
+                            "lengths_from_dataset": True,
+                            "shape_files": [],
+                            "batch_size": 1,
+                            "batch_bins": batch_bins,
+                        },
+                    }
+                }
+            }
+        }
+    )
+
+
+def test_builder_batches_from_lengths():
+    """Batches are planned from get_item_lengths() without shape files."""
+    lengths = [2000 * (i + 1) for i in range(0, 12, 2)]  # 2000 ... 22000
+    builder = build_builder(
+        _length_combined(LengthDataset(lengths)),
+        _lengths_iter_config(max(lengths) * 2),
+        collate_fn=None,
+        num_device=1,
+        epoch=0,
+    )
+    batches = list(builder.build("train"))
+    assert [len(batch) for batch in batches] == [4, 2]
+    seen = sorted(int(u) for batch in batches for u in batch)
+    assert seen == list(range(len(lengths)))
+
+
+@pytest.mark.parametrize(
+    "lengths, match",
+    [([1.5, 2.0, 3.0], "integer item lengths"), (None, "returned 2 lengths")],
+)
+def test_write_lengths_as_shape_file_rejects_bad_lengths(lengths, match):
+    """Fractional lengths, or a count that differs from len(), are errors."""
+    from espnet3.components.data.dataloader import _write_lengths_as_shape_file
+
+    dataset = LengthDataset(lengths or [1, 2, 3])
+    if lengths is None:
+        dataset.get_item_lengths = lambda: np.asarray([1, 2])
+    with pytest.raises(RuntimeError, match=match):
+        with _write_lengths_as_shape_file(_length_combined(dataset)):
+            pass
+
+
+def test_write_lengths_as_shape_file_accepts_integral_floats():
+    """Float lengths with integer values (e.g. from SQL) are kept as is."""
+    from espnet3.components.data.dataloader import _write_lengths_as_shape_file
+
+    combined = _length_combined(LengthDataset([1.0, 20.0]))
+    with _write_lengths_as_shape_file(combined) as path:
+        assert open(path).read().splitlines() == ["0 1", "1 20"]
+
+
+def test_builder_empty_dataset_has_no_batches():
+    """An empty (rank-local) dataset plans no batches instead of failing."""
+    combined = _length_combined(LengthDataset([]))
+    assert combined._string_index_mode  # dataset[0] fails on an empty dataset
+    builder = build_builder(
+        combined, _lengths_iter_config(100), collate_fn=None, num_device=1, epoch=0
+    )
+    assert list(builder.build("train")) == []
+
+
+def test_dataset_shape_file_lists_lengths_by_index():
+    """The temporary shape file lists each item's length by combined index."""
+    from espnet3.components.data.dataloader import _write_lengths_as_shape_file
+
+    combined = _length_combined(LengthDataset([4, 2, 9]))
+    with _write_lengths_as_shape_file(combined) as path:
+        assert open(path).read().splitlines() == ["0 4", "1 2", "2 9"]
+
+
+def test_lengths_from_dataset_rejects_shape_files():
+    """shape_files cannot be combined with lengths_from_dataset."""
+    config = _lengths_iter_config(100)
+    config.dataloader.train.iter_factory.batches.shape_files = ["feats_shape"]
+    builder = build_builder(
+        _length_combined(LengthDataset([1, 2])),
+        config,
+        collate_fn=None,
+        num_device=1,
+        epoch=0,
+    )
+    with pytest.raises(ValueError, match="shape_files must be empty"):
+        builder.build("train")
+
+
+class LengthShardedDataset(ShardedDataset):
+    """Items with lengths and texts, sharded by index modulo total_shards."""
+
+    def __init__(self, lengths, names=None, total_shards=2, dist_world_size=2):
+        """Store one length and one text per item."""
+        self.lengths = list(lengths)
+        self.names = names or [f"item{i}" for i in range(len(self.lengths))]
+        self.total_shards = total_shards
+        self.dist_world_size = dist_world_size
+
+    def __len__(self):
+        """Return the number of items."""
+        return len(self.lengths)
+
+    def __getitem__(self, idx):
+        """Return a zero waveform and the item's text."""
+        if not 0 <= int(idx) < len(self.lengths):
+            raise IndexError(idx)
+        return {
+            "audio": np.zeros(int(self.lengths[idx]), dtype=np.float32),
+            "text": self.names[idx],
+        }
+
+    def get_item_lengths(self):
+        """Return every item's length."""
+        return np.asarray(self.lengths)
+
+    def shard(self, idx):
+        """Return the items whose index is ``idx`` modulo ``total_shards``."""
+        keep = range(idx, len(self.lengths), self.total_shards)
+        return LengthShardedDataset(
+            [self.lengths[i] for i in keep],
+            [self.names[i] for i in keep],
+            self.total_shards,
+            self.dist_world_size,
+        )
+
+
+def collate_texts(batch):
+    """Collate ``(uid, item)`` pairs to the items' texts."""
+    return [item["text"] for _, item in batch]
+
+
+def _fake_world(monkeypatch, rank, world_size=2, other_count=None):
+    """Pretend to run as ``rank`` of ``world_size``; other ranks have N batches."""
+    import espnet3.components.data.dataloader as dl
+
+    monkeypatch.setattr(dl.torch.distributed, "is_initialized", lambda: True)
+    monkeypatch.setattr(dl.torch.distributed, "get_world_size", lambda: world_size)
+    monkeypatch.setattr(dl.torch.distributed, "get_rank", lambda: rank)
+    monkeypatch.setattr(dl.torch.distributed, "get_backend", lambda: "gloo")
+
+    def all_reduce(tensor, op=None):
+        # Batch-count equalization reduces [count, -count]: take the MIN
+        # with another rank's [n, -n]. Other reductions (e.g. the epoch
+        # iterator's step count) see every rank agree.
+        if other_count is None or tensor.numel() != 2:
+            return
+        tensor[0] = min(int(tensor[0]), other_count)
+        tensor[1] = min(int(tensor[1]), -other_count)
+
+    monkeypatch.setattr(dl.torch.distributed, "all_reduce", all_reduce)
+
+
+def _build_sharded(rank, num_device=2):
+    """Build the train loader of six items sharded two ways, one per batch."""
+    builder = build_builder(
+        _length_combined(LengthShardedDataset([5] * 6)),
+        _lengths_iter_config(1, collate="collate_texts"),
+        collate_fn=None,
+        num_device=num_device,
+        epoch=0,
+    )
+    return builder, list(builder.build("train"))
+
+
+@pytest.mark.parametrize("rank", [0, 1])
+def test_rank_shards_are_not_strided(monkeypatch, rank):
+    """Each rank batches its own shard and keeps the other ranks' count."""
+    _fake_world(monkeypatch, rank, other_count=2)
+    builder, batches = _build_sharded(rank)
+    assert builder._rank_sharded
+    texts = [text for batch in batches for text in batch]
+    # The shard has 3 one-item batches; 2 are kept, all from this shard.
+    assert len(batches) == 2
+    assert set(texts) <= {f"item{i}" for i in range(rank, 6, 2)}
+
+
+def test_rank_shards_warn_when_many_batches_dropped(monkeypatch, caplog):
+    """Dropping more than 10% of a rank's batches is logged as a warning."""
+    _fake_world(monkeypatch, 0, other_count=1)
+    with caplog.at_level("WARNING"):
+        _, batches = _build_sharded(0)
+    assert len(batches) == 1
+    assert "66.7% dropped" in caplog.text
+
+
+def test_rank_shards_empty_rank_raises(monkeypatch):
+    """A rank with no batches while others have some fails on every rank."""
+    _fake_world(monkeypatch, 0, other_count=0)
+    with pytest.raises(RuntimeError, match="a rank has no batches"):
+        _build_sharded(0)
+
+
+@pytest.mark.parametrize("rank", [0, 1])
+def test_one_device_per_node_strides_batches(monkeypatch, rank):
+    """num_device: 1 on several nodes still splits batches across ranks."""
+    _fake_world(monkeypatch, rank)
+    builder = build_builder(
+        _length_combined(LengthDataset([5] * 6)),
+        _lengths_iter_config(1),
+        collate_fn=None,
+        num_device=1,
+        epoch=0,
+    )
+    assert builder._get_world_info() == (rank, 2)
+    uids = [int(u) for batch in builder.build("train") for u in batch]
+    assert len(uids) == 3 and all(u % 2 == rank for u in uids)
+
+
+def test_lengths_from_dataset_rejects_category_batches():
+    """lengths_from_dataset cannot be combined with a category batch type."""
+    from espnet3.components.data.dataloader import CATEGORY_BATCH_TYPES
+
+    config = _lengths_iter_config(100)
+    config.dataloader.train.iter_factory.batches.type = sorted(CATEGORY_BATCH_TYPES)[0]
+    builder = build_builder(
+        _length_combined(LengthDataset([1, 2])),
+        config,
+        collate_fn=None,
+        num_device=1,
+        epoch=0,
+    )
+    with pytest.raises(ValueError, match="category batch type"):
+        builder.build("train")
