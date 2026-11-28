@@ -6,8 +6,8 @@ on:
       - master
       - espnet3
   pull_request:
-    # ready_for_review is required: jobs are skipped on draft PRs, so the
-    # gate below must get a fresh run once the PR leaves draft.
+    # ready_for_review is required: jobs and the gate are skipped on draft
+    # PRs, so the gate below must get a fresh run once the PR leaves draft.
     types: [opened, synchronize, reopened, ready_for_review]
     branches:
       - master
@@ -114,7 +114,10 @@ jobs:
           key: ${{ runner.os }}-pip-${{ matrix.python-version }}-${{ matrix.pytorch-version }}-${{ hashFiles('**/pyproject.toml') }}-${{ hashFiles('**/Makefile') }}
 
   ci_gate_macos:
-    if: always()
+    # Skipped on a draft PR, like the jobs it gates: failing there would send
+    # a "Run failed" notification on every push while nothing was tested. A
+    # draft cannot be merged, and ready_for_review runs the gate again.
+    if: always() && github.event.pull_request.draft == false
     needs:
       - check_installable_on_macos
     runs-on: ubuntu-latest
