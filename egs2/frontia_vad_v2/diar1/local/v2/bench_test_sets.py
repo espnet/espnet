@@ -195,6 +195,18 @@ def lag_seconds(ref, rec, seconds=120.0):
     return (int(np.argmax(np.abs(c))) - (len(a) - 1)) / FS
 
 
+def write_categories(out: Path, recordings):
+    """Write only the categories file of recordings, as write_set() does."""
+    out.mkdir(parents=True, exist_ok=True)
+    lines = []
+    for rid, _, _, *extra in recordings:
+        for a, b, c, t, layer in sorted(extra[0] if extra else []):
+            if b > a:
+                lines.append(f"{rid} {a:.3f} {b:.3f} {c} {format_tags(t)} {layer}\n")
+    (out / "categories").write_text("".join(lines))
+    print(f"{out}/categories: {len(lines)} segments", flush=True)
+
+
 def mfa_spn(archive: Path, subset: str):
     """{utterance id: [(start, end)]} of the "spn" (unknown word) intervals of MFA."""
     z = zipfile.ZipFile(archive)
@@ -357,8 +369,22 @@ def main():
         default=None,
         help="dev_rttm, eval_rttm, uem_file (local/v2/downloads/chime6_track2.tsv)",
     )
+    ap.add_argument(
+        "--categories_only",
+        action="store_true",
+        help="write only <out>/<set>/categories (the labels for category_ref.py) "
+        "of libricss_eval or aishell5_eval, no audio",
+    )
     a = ap.parse_args()
     out = a.out / a.set
+    if a.categories_only:
+        recs = (
+            libricss(a.root, a.mfa, a.bridge)
+            if a.set == "libricss_eval"
+            else aishell5(a.root)
+        )
+        write_categories(out, recs)
+        return
     if (out / ".done").exists():
         print(f"{out} is done; left as is")
         return
