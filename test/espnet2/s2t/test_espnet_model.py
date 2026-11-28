@@ -127,3 +127,48 @@ def test_espnet_model_forced_align(encoder_arch, decoder_arch):
 
     assert aligns.shape == (1, T // 4 - 1)
     assert scores.shape == (1, T // 4 - 1)
+
+
+def test_validation_cer_scores_the_target_after_a_previous_text():
+    # With a previous text, the decoder target starts with ignore_id over
+    # "<sop> prev". A perfect hypothesis must score CER 0, not 1.
+    token_list = ["<blank>", "<unk>", "<na>", "a", "i", "▁", "<sos>", "<eos>", "<sop>"]
+    encoder = TransformerEncoder(
+        20, output_size=4, linear_units=4, num_blocks=1, use_flash_attn=False
+    )
+    decoder = TransformerDecoder(
+        len(token_list), 4, linear_units=4, num_blocks=1, use_flash_attn=False
+    )
+    model = ESPnetS2TModel(
+        len(token_list),
+        token_list=token_list,
+        frontend=None,
+        specaug=None,
+        normalize=None,
+        preencoder=None,
+        encoder=encoder,
+        postencoder=None,
+        decoder=decoder,
+        ctc=CTC(odim=len(token_list), encoder_output_size=4),
+        sym_na="<na>",
+        sym_space="▁",
+    )
+    ignore = model.ignore_id
+    eos = model.eos
+    # row 0: prev of 2 tokens -> 3 ignored positions; row 1: no prev
+    ys_out_pad = torch.tensor(
+        [
+            [ignore, ignore, ignore, 3, 5, 4, eos],
+            [3, 4, eos, ignore, ignore, ignore, ignore],
+        ]
+    )
+    perfect = ys_out_pad.clamp(min=0)
+
+    hats, refs = model._scored_positions(perfect, ys_out_pad)
+    cer, wer = model.error_calculator(hats, refs)
+
+    assert refs.tolist() == [[3, 5, 4, eos], [3, 4, eos, ignore]]
+    assert cer == 0.0 and wer == 0.0
+    # What the unfiltered tensors give: the first row counted as empty.
+    cer_before, _ = model.error_calculator(perfect, ys_out_pad)
+    assert cer_before > 0.0
