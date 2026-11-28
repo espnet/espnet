@@ -31,8 +31,6 @@ from pathlib import Path
 from typing import Dict, Iterable, List, Optional, Sequence, Tuple, Union
 
 import numpy as np
-from scipy.signal import resample_poly
-
 from categories import (
     ALL,
     DETAIL,
@@ -42,6 +40,7 @@ from categories import (
     negative_type_category,
     write_categories,
 )
+from scipy.signal import resample_poly
 
 from espnet2.fileio.omniio_audio import OmniIOAudioWriter
 
