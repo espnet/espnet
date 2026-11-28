@@ -481,3 +481,29 @@ def test_arguments_override_the_online_vad(monkeypatch):
     calls = _capture_load(monkeypatch)
     FrontiaVADModel(tag="some/vad", threshold=0.3, median=1, device="cpu")
     assert calls == [dict(tag="some/vad", device="cpu", threshold=0.3, median=1)]
+
+
+@pytest.mark.parametrize("rate", [8000, 22050, 44100, 48000])
+@pytest.mark.parametrize("chunk_s", [0.01, 0.1, 0.5])
+def test_tiny_model_scores_other_rates_as_their_16k_resampling(tmp_path, rate, chunk_s):
+    """Audio at another rate is resampled as one stream before the model.
+
+    The frame scores equal those of the whole recording resampled to 16 kHz
+    at once, whatever the chunk length.
+    """
+    import soxr
+
+    from espnet2.sds.vad.frontia_vad import FrontiaFrameVAD
+
+    detector = _tiny_detector(tmp_path)
+    x = (np.random.default_rng(1).normal(size=3 * rate) * 0.1).astype(np.float32)
+    frame_vad = FrontiaFrameVAD(detector)
+    step = int(chunk_s * rate)
+    streamed = np.concatenate(
+        [frame_vad.accept(x[i : i + step], rate) for i in range(0, len(x), step)]
+    )
+    whole = detector.probabilities(soxr.resample(x, rate, FS), FS)
+    # The stream resampler (soxr HQ) holds back up to ~120 ms at these rates
+    # (measured), so the stream has up to 15 frames fewer.
+    assert len(whole) - 15 <= len(streamed) <= len(whole)
+    np.testing.assert_allclose(streamed, whole[: len(streamed)], atol=1e-4)

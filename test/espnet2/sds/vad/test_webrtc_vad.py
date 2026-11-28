@@ -25,11 +25,11 @@ class _LoudIsSpeech:
         return any(frame)
 
 
-def _vad(monkeypatch, **kwargs):
+def _vad(monkeypatch, *args, **kwargs):
     from espnet2.sds.vad import webrtc_vad
 
     monkeypatch.setattr(webrtc_vad.webrtcvad, "Vad", _LoudIsSpeech)
-    return WebrtcVADModel(**kwargs)
+    return WebrtcVADModel(*args, **kwargs)
 
 
 def _feed(vad, signal, chunk_s, rate=16000, binary=True):
@@ -122,3 +122,21 @@ def test_memory_bounded_over_many_turns(monkeypatch):
         chunk[0] += 1
 
     assert_memory_bounded(vad, step, steps=6000)  # 10 minutes in 0.1 s chunks
+
+
+def test_old_positional_arguments_keep_their_meaning(monkeypatch):
+    """WebrtcVADModel(speakup, continue, min_speech, max_speech, target_sr)."""
+    with pytest.warns(DeprecationWarning):
+        vad = _vad(monkeypatch, 3, 3, 500, 4000.0, 8000)
+    assert vad.min_speech_frames == 25  # 500 ms of 20 ms frames
+    assert vad.max_turn_frames == 200  # max_speech_ms 4000 -> max_turn_ms
+    assert vad.target_sr == 8000
+
+
+def test_new_controls_are_keyword_only(monkeypatch):
+    from espnet2.sds.vad import webrtc_vad
+
+    monkeypatch.setattr(webrtc_vad.webrtcvad, "Vad", _LoudIsSpeech)
+    with pytest.raises(TypeError):
+        WebrtcVADModel(None, None, 500.0, None, 16000, 2)
+    assert WebrtcVADModel(mode=2, median=3).median == 3

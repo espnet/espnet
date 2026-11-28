@@ -96,19 +96,25 @@ class WebrtcVADModel(TurnDetector):
     @typechecked
     def __init__(
         self,
+        # The five positional parameters of the old per-chunk class, in their
+        # order, so that existing positional calls still mean the same.
+        speakup_threshold: Optional[int] = None,
+        continue_threshold: Optional[int] = None,
+        min_speech_ms: float = 500.0,
+        max_speech_ms: Optional[float] = None,
+        target_sr: int = 16000,
+        *,
         mode: int = 3,
         median: int = 11,
         hangover_ms: float = 500.0,
         pad_start_ms: float = 300.0,
         pad_end_ms: float = 300.0,
-        min_speech_ms: float = 500.0,
         max_turn_ms: float = 30000.0,
-        target_sr: int = 16000,
-        speakup_threshold: Optional[int] = None,
-        continue_threshold: Optional[int] = None,
-        max_speech_ms: Optional[float] = None,
     ):
         """Set up WebRTC VAD and the end-of-turn rule.
+
+        The first five arguments keep the old class's positions; the others
+        are keyword-only.
 
         Args:
             mode (int, optional): webrtcvad's aggressiveness, 0 to 3.
