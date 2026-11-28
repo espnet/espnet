@@ -463,10 +463,29 @@ class ESPnetS2TModel(AbsESPnetModel):
         if self.training or self.error_calculator is None:
             cer_att, wer_att = None, None
         else:
-            ys_hat = decoder_out.argmax(dim=-1)
-            cer_att, wer_att = self.error_calculator(ys_hat.cpu(), ys_out_pad.cpu())
+            ys_hat, ys_ref = self._scored_positions(
+                decoder_out.argmax(dim=-1), ys_out_pad
+            )
+            cer_att, wer_att = self.error_calculator(ys_hat.cpu(), ys_ref.cpu())
 
         return loss_att, acc_att, cer_att, wer_att
+
+    def _scored_positions(self, ys_hat: torch.Tensor, ys_out_pad: torch.Tensor):
+        """Keep, per utterance, only the positions the loss is computed on.
+
+        With a previous text, ``ys_out_pad`` starts with ``ignore_id`` over
+        ``<sop> prev``. ``ErrorCalculator`` cuts each hypothesis at the first
+        ``ignore_id`` of its reference, so those utterances were scored as
+        empty hypotheses (CER 1.0). Here each row keeps its non-ignored
+        positions -- the target and ``<eos>`` -- and is padded with
+        ``ignore_id`` again.
+        """
+        hats, refs = [], []
+        for hat, ref in zip(ys_hat, ys_out_pad):
+            keep = ref != self.ignore_id
+            hats.append(hat[keep])
+            refs.append(ref[keep])
+        return pad_list(hats, self.ignore_id), pad_list(refs, self.ignore_id)
 
     def _calc_ctc_loss(
         self,
