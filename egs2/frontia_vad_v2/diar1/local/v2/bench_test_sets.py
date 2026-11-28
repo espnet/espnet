@@ -45,6 +45,13 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from align_label_check import merge, textgrid_words  # noqa: E402
 
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+from vad_data_utils import (  # noqa: E402
+    format_tags,
+    tag_only_categories,
+    transcript_info,
+)
+
 FS = 16000
 INTERVAL_RE = re.compile(r'xmin = ([0-9.]+)\s*xmax = ([0-9.]+)\s*text = "([^"]*)"')
 MARKER_RE = re.compile(r"^(\s*([<\[][^>\]]*[>\]])\s*)*$")
@@ -64,18 +71,23 @@ def is_speech(text: str) -> bool:
 
 
 def write_set(out: Path, recordings, reference: str, uem=None):
-    """Write recordings [(rec_id, mono float32 at FS, segments)] as a set.
+    """Write recordings [(rec_id, mono float32 at FS, segments[, categories])] as a set.
 
     segments: [(start, end)] s, written as one pseudo speaker "speech", or
     [(start, end, speaker)], written per speaker (for md-eval -1). uem: {rec_id:
     [(start, end)]}, written as the file uem (score_vad.py score --uem).
+    categories: [(start, end, category, tags, layer)] s of a recording, written
+    to the file categories (local/v2/category_ref.py), as vad_data_utils does.
     """
     from espnet2.fileio.omniio_audio import OmniIOAudioWriter
 
     out.mkdir(parents=True, exist_ok=True)
-    nums, rttm = {}, []
+    nums, rttm, cats = {}, [], []
     with OmniIOAudioWriter(out / "audio", out / "wav.scp") as w:
-        for rid, x, segs in recordings:
+        for rid, x, segs, *extra in recordings:
+            for a, b, c, t, layer in sorted(extra[0] if extra else []):
+                if b > a:
+                    cats.append(f"{rid} {a:.3f} {b:.3f} {c} {format_tags(t)} {layer}\n")
             w[rid] = FS, x
             nums[rid] = len(x)
             dur = len(x) / FS
@@ -102,6 +114,8 @@ def write_set(out: Path, recordings, reference: str, uem=None):
                 for s, e in uem[r]
             )
         )
+    if cats:
+        (out / "categories").write_text("".join(cats))
     (out / "feats_type").write_text("raw\n")
     (out / "audio_format").write_text("omniio\n")
     (out / "reference.txt").write_text(reference.strip() + "\n")
@@ -181,6 +195,22 @@ def lag_seconds(ref, rec, seconds=120.0):
     return (int(np.argmax(np.abs(c))) - (len(a) - 1)) / FS
 
 
+def mfa_spn(archive: Path, subset: str):
+    """{utterance id: [(start, end)]} of the "spn" (unknown word) intervals of MFA."""
+    z = zipfile.ZipFile(archive)
+    out = {}
+    for n in z.namelist():
+        if n.endswith(".TextGrid") and f"/{subset}/" in f"/{n}":
+            uid = n.rsplit("/", 1)[-1][: -len(".TextGrid")]
+            text = z.read(n).decode("utf-8", "replace")
+            out[uid] = [
+                (float(a), float(b))
+                for a, b, w in INTERVAL_RE.findall(text)
+                if w.strip().lower() == "spn"
+            ]
+    return out
+
+
 def mfa_words(archive: Path, subset: str):
     """{utterance id: [(start, end)]} of the MFA words of a LibriSpeech subset."""
     z = zipfile.ZipFile(archive)
@@ -194,6 +224,9 @@ def mfa_words(archive: Path, subset: str):
 
 def libricss(root: Path, mfa: Path, bridge: float):
     words = mfa_words(mfa, "test-clean") if mfa else {}
+    # unknown words (MFA "spn") are not in the reference, which leaves them
+    # non-speech; they are speech/words details for the category references
+    spn = mfa_spn(mfa, "test-clean") if mfa else {}
     print(f"MFA: {len(words)} test-clean utterances", flush=True)
     z = zipfile.ZipFile(root / "libricss/ARCHIVES/for_release.zip")
     sessions = sorted(
@@ -213,20 +246,24 @@ def libricss(root: Path, mfa: Path, bridge: float):
         x = to_mono(rec, rate, 0)
         mix, rate = soundfile.read(io.BytesIO(z.read(f"{s}/clean/mix.wav")))
         lag = lag_seconds(to_mono(mix, rate), x)
-        segs = []
+        segs, cats = [], []
         info = z.read(f"{s}/transcription/meeting_info.txt").decode()
         for line in info.splitlines()[1:]:
             f = line.split("\t")
             start, end, uid = float(f[0]), float(f[1]), f[3]
             if uid in words:
                 segs += [(start + lag + a, start + lag + b) for a, b in words[uid]]
+                cats += [
+                    (start + lag + a, start + lag + b, "speech/words", ["spn"], 2)
+                    for a, b in spn.get(uid, [])
+                ]
                 stats["utterances_mfa"] += 1
             else:
                 segs.append((start + lag, end + lag))
                 stats["utterances_no_mfa"] += 1
         rid = f"libricss_{cond}_session{m.group(1)}"
         print(f"{rid}: offset {lag * 1000:+.0f} ms, {len(x) / FS:.0f} s", flush=True)
-        yield rid, x, merge(segs, bridge)
+        yield rid, x, merge(segs, bridge), cats
     print(f"LibriCSS: {dict(stats)}", flush=True)
 
 
@@ -235,6 +272,9 @@ def aishell5(root: Path):
     for part in ("Eval1", "Eval2"):
         path = root / "aishell5/ARCHIVES" / f"{part}.tar.gz"
         speech = collections.defaultdict(list)  # session -> [(start, end)]
+        # session -> marker-only intervals: speech/blank details (and a vocal
+        # segment for a sound marker) for the category references
+        cats = collections.defaultdict(list)
         with tarfile.open(path, "r|gz") as t:  # pass 1: the near-field TextGrids
             for m in t:
                 name = m.name.split("/")
@@ -245,6 +285,9 @@ def aishell5(root: Path):
                             speech[name[-2]].append((s, e))
                         elif w.strip():
                             markers[w.strip()] += 1
+                            _, tags = transcript_info(w)
+                            cats[name[-2]].append((s, e, "speech/blank", tags, 2))
+                            cats[name[-2]] += tag_only_categories(s, e, tags)
         with tarfile.open(path, "r|gz") as t:  # pass 2: the far-field channels
             for m in t:
                 name = m.name.split("/")
@@ -256,9 +299,12 @@ def aishell5(root: Path):
                     continue
                 x, rate = soundfile.read(io.BytesIO(t.extractfile(m).read()))
                 stats["recordings"] += 1
-                yield f"aishell5_{part}_{name[-2]}_{mm.group(1)}", to_mono(
-                    x, rate
-                ), speech[name[-2]]
+                yield (
+                    f"aishell5_{part}_{name[-2]}_{mm.group(1)}",
+                    to_mono(x, rate),
+                    speech[name[-2]],
+                    cats[name[-2]],
+                )
     print(
         f"AISHELL-5: {dict(stats)}; non-speech marker intervals (top 10): "
         f"{markers.most_common(10)}",

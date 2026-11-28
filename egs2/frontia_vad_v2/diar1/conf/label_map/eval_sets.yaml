@@ -1,0 +1,8 @@
+# Map of each test set for its category-aware reference (local/v2/category_ref.py);
+# sets not listed use default.
+default: conf/label_map/eval_vocal_ignore.yaml
+sets:
+  ami_dev: conf/label_map/eval_words.yaml
+  ami_eval: conf/label_map/eval_words.yaml
+  icsi_dev: conf/label_map/eval_words.yaml
+  icsi_eval: conf/label_map/eval_words.yaml
