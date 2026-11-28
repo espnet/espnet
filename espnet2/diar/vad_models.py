@@ -1,8 +1,8 @@
 """The published VAD model of each mode and its decision rule.
 
-Changing the VAD model of ESPnet means editing this file: `espnet detect`, the
-MCP tool, the Space (egs2/frontia_vad_v1/diar1/demo), espnet2.sds.vad and the
-notebooks read their defaults from here. The Space's model card lists the
+Changing the VAD model of ESPnet means editing this file: espnet2.bin.diar_inference,
+`espnet detect`, the MCP tool and the Space (egs2/frontia_vad_v1/diar1/demo) read
+their defaults from here. The Space's model card lists the
 tags as well, because Hugging Face reads them from its front matter;
 test/espnet2/bin/test_demo_apps.py checks that it agrees.
 

@@ -2,7 +2,7 @@
 
 The source of a Hugging Face Space, kept in espnet at
 egs2/frontia_vad_v1/diar1/demo. It loads the models of
-espnet2.bin.vad_models (VAD_MODELS), so the Space shows the models of the
+espnet2.diar.vad_models (VAD_MODELS), so the Space shows the models of the
 espnet release it installs. The detection itself is
 espnet2.bin.diar_inference (VoiceActivityDetector) and diar_inference_streaming
 (StreamingVAD), which `espnet detect` and the MCP tool `detect` call too, so
@@ -54,7 +54,7 @@ from espnet2.bin.diar_inference import (  # noqa: E402
 # a CPU; the cap keeps a shared Space responsive, not the models.
 MAX_SECS = 120
 GPU_SECONDS = 120
-# The offline model and the online one, from espnet2.bin.vad_models unless the
+# The offline model and the online one, from espnet2.diar.vad_models unless the
 # Space's variables name others. Each takes a packed .zip from stage 8 as well
 # as a tag.
 MODEL_TAG = os.environ.get("VAD_MODEL_TAG", VAD_MODELS["offline"])

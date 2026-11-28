@@ -362,7 +362,7 @@ def detect(
             the mode's model's value, tuned on AMI MH dev.
         median: Centred median filter over this many frames (odd; 1 for
             none), which removes short blips. Default: the mode's rule in
-            espnet2.bin.vad_models. It delays every decision by
+            espnet2.diar.vad_models. It delays every decision by
             (median - 1) / 2 frames of 8 ms, 96 ms at 25, so online detection
             with a median above 1 is not strictly causal; 1 makes it so.
 

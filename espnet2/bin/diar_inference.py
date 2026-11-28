@@ -621,9 +621,9 @@ class DiarizeSpeech:
 #     for seg in vad.detect_file("meeting.wav"):
 #         print(f"{seg.start:.2f}\t{seg.end:.2f}")
 
-# The published model of each mode and its decision rule: espnet2.bin.vad_models
+# The published model of each mode and its decision rule: espnet2.diar.vad_models
 # (imported here so that existing callers keep working).
-from espnet2.bin.vad_models import VAD_MODELS, VAD_RULES  # noqa: E402,F401
+from espnet2.diar.vad_models import VAD_MODELS, VAD_RULES  # noqa: E402,F401
 
 VAD_THRESHOLD, VAD_MEDIAN = VAD_RULES["offline"]
 

@@ -47,7 +47,7 @@ from typing import List, Optional
 
 # stdlib-only at import time, so the constant costs nothing here
 from espnet2.bin.speechlm_inference import UNDERSTAND_PROMPT
-from espnet2.bin.vad_models import VAD_MODELS, VAD_RULES
+from espnet2.diar.vad_models import VAD_MODELS, VAD_RULES
 from espnet2.utils.pretrained import ModelTagError, build_pretrained
 
 # One flagship per task, so that `espnet transcribe x.wav` works with no
@@ -65,7 +65,7 @@ DEFAULT_MODELS = {
     "synthesize": "espnet/kan-bayashi_ljspeech_vits",
     "enhance": "espnet/Wangyou_Zhang_universal_train_enh_uses_refch0_2mem_raw",
     # the offline VAD model; --online, --stream and --live load the online
-    # one, --online-model. Both come from espnet2.bin.vad_models, and either
+    # one, --online-model. Both come from espnet2.diar.vad_models, and either
     # takes a packed .zip from stage 8.
     "detect": VAD_MODELS["offline"],
     # Bagpiper, which answers about audio and renders it. The general SFT

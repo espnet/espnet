@@ -34,7 +34,7 @@ It runs in two modes:
 | offline | the model at its largest look-ahead | 124 frames (0.99 s) | whole files, cleaning a corpus |
 
 `app.py` loads the model of each mode from `VAD_MODELS` in
-`espnet2.bin.vad_models`, so the Space follows the espnet release it
+`espnet2.diar.vad_models`, so the Space follows the espnet release it
 installs. The card above lists the same tags, because Hugging Face reads
 them from its front matter; `test_demo_apps.py` checks that the two agree.
 
@@ -56,7 +56,7 @@ The detection is `espnet2.bin.diar_inference` (offline, batches) and
 ## The decision rules
 
 Each mode has a threshold and a centred median filter, kept as
-`VAD_RULES` in `espnet2.bin.vad_models` and tuned on AMI MH dev. The rule is stage 7's (`pyscripts/utils/make_rttm.py`): a
+`VAD_RULES` in `espnet2.diar.vad_models` and tuned on AMI MH dev. The rule is stage 7's (`pyscripts/utils/make_rttm.py`): a
 frame is speech when its probability is above the threshold, and the 0/1
 sequence is then median-filtered. All four are sliders here, starting at those
 values, and `espnet detect` takes `--threshold` and `--median`.

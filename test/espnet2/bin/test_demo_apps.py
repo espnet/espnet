@@ -227,8 +227,8 @@ def test_the_card_names_the_app_and_the_model_the_app_loads(name):
     if m.group(1):
         tag = m.group(1)
     else:
-        # the VAD Space reads its default from espnet2.bin.vad_models
-        from espnet2.bin.vad_models import VAD_MODELS
+        # the VAD Space reads its default from espnet2.diar.vad_models
+        from espnet2.diar.vad_models import VAD_MODELS
 
         tag = VAD_MODELS[m.group(2)]
     assert tag in (front.get("models") or []), f"{name}: the card does not list {tag}"
@@ -343,9 +343,9 @@ def test_the_vad_space_loads_the_models_espnet_vad_loads():
     """The Space reads VAD_MODELS, and its card lists every model it loads.
 
     The card's front matter is what Hugging Face reads, so it names the tags
-    itself; this keeps it in step with espnet2.bin.vad_models.
+    itself; this keeps it in step with espnet2.diar.vad_models.
     """
-    from espnet2.bin.vad_models import VAD_MODELS
+    from espnet2.diar.vad_models import VAD_MODELS
 
     source = _source("vad")
     for env, mode in (("VAD_MODEL_TAG", "offline"), ("VAD_ONLINE_MODEL_TAG", "online")):
