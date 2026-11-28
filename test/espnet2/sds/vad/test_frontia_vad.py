@@ -206,20 +206,44 @@ def test_buffers_stay_bounded_in_silence():
     assert len(vad.probs) <= 2 * 25 + FS // 10 // HOP + 2
 
 
-def test_two_turns_in_one_chunk():
+def test_two_turns_in_one_chunk_come_back_as_one():
     # speech in frames 50..150 and 250..350, both ended within a 5 s chunk
     def level(i):
         return 0.9 if 50 <= i < 150 or 250 <= i < 350 else 0.1
 
     vad = FrontiaVADModel.from_detector(_detector(level))
-    first = vad.forward(np.zeros(5 * FS, dtype=np.int16), FS, binary=True)
-    assert first is not None
-    assert vad.last_turn["speech_start_s"] == pytest.approx(50 * HOP / FS)
-    second = vad.forward(np.zeros(0, dtype=np.int16), FS, binary=True)
-    assert second is not None
-    assert vad.last_turn["speech_start_s"] == pytest.approx(250 * HOP / FS)
-    assert vad.last_turn["endpoint_s"] == pytest.approx(350 * HOP / FS)
+    chunk = (np.arange(5 * FS) % 1000).astype(np.int16)
+    turn = vad.forward(chunk, FS, binary=True)
+    info = vad.last_turn
+    # one turn, from the first one's start to the second one's end
+    assert [t["speech_start_s"] for t in info["turns"]] == pytest.approx(
+        [50 * HOP / FS, 250 * HOP / FS]
+    )
+    assert info["speech_start_s"] == pytest.approx(50 * HOP / FS)
+    assert info["endpoint_s"] == pytest.approx(350 * HOP / FS)
+    a, b = int(round(info["start_s"] * FS)), int(round(info["end_s"] * FS))
+    np.testing.assert_array_equal(turn, chunk[a:b])
+    # nothing is left for a later call
     assert vad.forward(np.zeros(0, dtype=np.int16), FS) is None
+
+
+def test_memory_bounded_with_several_turns_in_every_chunk():
+    """5 s chunks, each ending two turns: what is held does not grow."""
+    from test.memory_growth import assert_memory_bounded
+
+    period = FS // HOP  # a turn every second: 0.5 s speech, 0.5 s silence
+    vad = FrontiaVADModel.from_detector(
+        _detector(lambda i: 0.9 if i % (2 * period) < period // 2 else 0.1)
+    )
+    chunk = np.zeros(5 * FS, dtype=np.int16)
+    returned = []
+
+    def step():
+        if vad.forward(chunk, FS) is not None:
+            returned.append(len(vad.last_turn["turns"]))
+
+    assert_memory_bounded(vad, step, steps=240)  # 20 minutes
+    assert max(returned) >= 2 and len(returned) >= 239
 
 
 def test_turn_after_a_short_one_in_the_same_chunk():
