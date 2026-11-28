@@ -7,6 +7,8 @@ The audio goes straight from the corpus archives into an Omni-IO archive at
     utt2num_samples   <rec-id> <samples>
     espnet_rttm       speech of each recording as one speaker (samples), and an
                       END line for every recording, also those without speech
+    categories_rttm   the same speech segments with their category, the annotated
+                      non-speech classes, and details (local/v2/categories.py)
     utt2category      <rec-id> <domain>, for --chunk_upsampling_factor
     manifest.tsv      one row per recording: corpus, domain, label source,
                       negative type, microphone, language, licence, source
@@ -30,6 +32,16 @@ from typing import Dict, Iterable, List, Optional, Sequence, Tuple, Union
 
 import numpy as np
 from scipy.signal import resample_poly
+
+from categories import (
+    ALL,
+    DETAIL,
+    PRIMARY,
+    Segment,
+    format_tags,
+    negative_type_category,
+    write_categories,
+)
 
 from espnet2.fileio.omniio_audio import OmniIOAudioWriter
 
@@ -60,6 +72,52 @@ def merge_intervals(intervals: Iterable[Interval]) -> List[Interval]:
         else:
             merged.append((start, end))
     return merged
+
+
+def merge_tagged(
+    speech: Iterable[tuple], category: str
+) -> Tuple[List[Interval], List[Tuple[str, str]]]:
+    """(merge_intervals of the speech, (category, tags) of each merged interval).
+
+    An item is (start, end) or (start, end, tags); the tags of the intervals
+    that merge into one are joined.
+    """
+    items = sorted(
+        (float(i[0]), float(i[1]), i[2] if len(i) > 2 else "") for i in speech
+    )
+    merged = merge_intervals((a, b) for a, b, _ in items)
+    out = []
+    for a, b in merged:
+        tags = []
+        for s, e, t in items:
+            if e > s and s >= a and e <= b and t and t != "<NA>":
+                tags += [x for x in t.split(",") if x not in tags]
+        out.append((category, format_tags(tags)))
+    return merged, out
+
+
+def _check_categories(
+    rec_id, speech_category, categories, details, clip, negative_type
+):
+    """The categories of add(), checked: known names, speech only where allowed."""
+    if speech_category not in ALL or not speech_category.startswith("speech/"):
+        raise ValueError(f"{rec_id}: speech_category {speech_category}")
+    for _, _, c, _ in list(categories) + list(details):
+        if c not in ALL:
+            raise ValueError(f"{rec_id}: unknown category {c}")
+    for _, _, c, _ in categories:
+        if c.startswith("speech/"):
+            raise ValueError(
+                f"{rec_id}: speech goes in `speech` (primary) or `details`, not {c}"
+            )
+    if clip is None and negative_type:
+        clip = (negative_type_category(negative_type), format_tags([negative_type]))
+    if clip is not None and (clip[0] not in ALL or clip[0].startswith("speech/")):
+        raise ValueError(f"{rec_id}: clip_category {clip}")
+    tagged = [(a, b, c, format_tags(t.split(","))) for a, b, c, t in categories]
+    if clip is not None:
+        clip = (clip[0], format_tags(clip[1].split(",")))
+    return dict(categories=tagged, clip=clip)
 
 
 def resample(signal: np.ndarray, rate: int, fs: int) -> np.ndarray:
@@ -138,6 +196,7 @@ class VadDumpWriter:
         # every pack: its members (member id, first sample, end sample, negative
         # type), in order, for the category labels (categories.py)
         self.pack_members: Dict[str, List[tuple]] = {}
+        self.categories: List[Segment] = []  # categories_rttm (categories.py)
 
     def skip(self, source: str, reason: str):
         """Record a source that could not be read (listed in skipped.txt)."""
@@ -158,6 +217,10 @@ class VadDumpWriter:
         text: Optional[str] = None,
         lang_sym: Optional[str] = None,
         group: str = "",
+        speech_category: str = "speech/utterance",
+        categories: Sequence[Tuple[float, float, str, str]] = (),
+        details: Sequence[Tuple[float, float, str, str]] = (),
+        clip_category: Optional[Tuple[str, str]] = None,
     ) -> int:
         """Add a recording; return the number of recordings written.
 
@@ -167,7 +230,9 @@ class VadDumpWriter:
                 channel, "<rec_id>_ch<k>", all with the same labels.
             signal: Samples first, (samples,) or (samples, channels).
             rate: Sampling rate of `signal` in Hz.
-            speech: Speech intervals in seconds; empty for non-speech audio.
+            speech: Speech intervals in seconds, (start, end) or (start, end,
+                tags) with the source labels of the interval (comma separated);
+                empty for non-speech audio.
             channels: Channels to keep (default all).
             negative_type: What the non-speech is (e.g. "music", "keyboard").
             mic: "close", "far", "device", ... for the manifest.
@@ -177,6 +242,16 @@ class VadDumpWriter:
             lang_sym: OWSM language token of the transcript, e.g. "<eng>".
             group: The group of a recording whose split is decided by group
                 (registry.split_by_hash); empty for an official split.
+            speech_category: Category of the speech intervals in
+                categories_rttm (categories.py), e.g. "speech/utterance" for
+                human segments, "speech/singing".
+            categories: Annotated non-speech segments, (start, end, category,
+                tags) in seconds, e.g. (3.1, 3.6, "vocal/laughter", "ami:laugh").
+            details: Segments of the detail layer (categories.py), e.g. a
+                filler inside an utterance.
+            clip_category: (category, tags) of the whole recording, e.g.
+                ("vocal/cough", "coughvid"); without it, a negative_type gives
+                the category (categories.negative_type_category).
         """
         if self.label_source == "A":
             if not text or not lang_sym or speech:
@@ -205,7 +280,14 @@ class VadDumpWriter:
         signal = resample(signal, rate, self.fs)
         keep = range(signal.shape[1]) if channels is None else channels
         multi = signal.shape[1] > 1 and (channels is None or len(channels) > 1)
-        intervals = merge_intervals(speech)
+        intervals, speech_cats = merge_tagged(speech, speech_category)
+        cats = _check_categories(
+            rec_id, speech_category, categories, details, clip_category, negative_type
+        )
+        segs = [(a, b, c, t, PRIMARY) for a, b, c, t in cats["categories"]]
+        segs += [(a, b, c, format_tags(t.split(",")), DETAIL) for a, b, c, t in details]
+        if cats["clip"] is not None:
+            segs.append((0.0, len(signal) / rate, *cats["clip"], PRIMARY))
         written = 0
         for k in keep:
             rid = f"{self.corpus}-{rec_id}" + (f"_ch{k}" if multi else "")
@@ -220,13 +302,17 @@ class VadDumpWriter:
                 group=group,
             )
             if self.pack_seconds and len(x) < self.pack_seconds * self.fs:
-                written += self._buffer(rid, x, intervals, meta, text, lang_sym)
+                written += self._buffer(
+                    rid, x, intervals, meta, text, lang_sym, (speech_cats, segs)
+                )
             else:
-                self._write(rid, x, intervals, meta, text, lang_sym)
+                self._write(
+                    rid, x, intervals, meta, text, lang_sym, cats=(speech_cats, segs)
+                )
                 written += 1
         return written
 
-    def _buffer(self, rid, x, intervals, meta, text, lang_sym) -> int:
+    def _buffer(self, rid, x, intervals, meta, text, lang_sym, cats) -> int:
         """Queue a short recording for packing; write a pack once it is long enough.
 
         Recordings are packed in the order they come, separately per language
@@ -236,7 +322,7 @@ class VadDumpWriter:
         if self.pack_by_group:
             key += (meta["group"],)
         pack = self._packs.setdefault(key, [])
-        pack.append((rid, x, intervals, meta, text))
+        pack.append((rid, x, intervals, meta, text, cats))
         self._buffered.add(rid)
         if sum(len(p[1]) for p in pack) >= self.pack_seconds * self.fs:
             self._flush(key)
@@ -249,10 +335,12 @@ class VadDumpWriter:
         if not pack:
             return
         offset, xs, intervals, texts, sources, clips = 0, [], [], [], [], []
-        members = []
-        for rid, x, ivs, meta, text in pack:
+        members, speech_cats, segs = [], [], []
+        for rid, x, ivs, meta, text, (scats, csegs) in pack:
             t0 = offset / self.fs
             intervals += [(t0 + s, t0 + e) for s, e in ivs]
+            speech_cats += scats
+            segs += [(t0 + a, t0 + b, c, t, layer) for a, b, c, t, layer in csegs]
             xs.append(x)
             members.append((rid, offset, offset + len(x), meta["negative_type"]))
             if text is not None:
@@ -277,9 +365,10 @@ class VadDumpWriter:
             text,
             key[0],
             clips=clips,
+            cats=(speech_cats, segs),
         )
 
-    def _write(self, rid, x, intervals, meta, text, lang_sym, clips=None):
+    def _write(self, rid, x, intervals, meta, text, lang_sym, clips=None, cats=None):
         """Write one mono recording with its speech intervals (seconds).
 
         clips: the transcript clips of a pack (_flush); a recording with a
@@ -291,13 +380,21 @@ class VadDumpWriter:
         self.audio[rid] = self.fs, x
         self.num_samples[rid] = n
         speech_samples = 0
-        for start, end in intervals:
+        cats = cats or ([("speech/utterance", "<NA>")] * len(intervals), [])
+        for k, (start, end) in enumerate(intervals):
             s = max(0, int(round(start * self.fs)))
             e = min(n, int(round(end * self.fs)))
             if e > s:
                 # espnet RTTM: start and end in samples (convert_rttm.py)
                 self.rttm.append(f"SPEAKER {rid} 1 {s} {e} <NA> <NA> {rid} <NA>\n")
                 speech_samples += e - s
+                category, tags = cats[0][k]
+                self.categories.append(Segment(rid, s, e, category, tags, PRIMARY))
+        for start, end, category, tags, layer in cats[1]:
+            s = max(0, int(round(start * self.fs)))
+            e = min(n, int(round(end * self.fs)))
+            if e > s:
+                self.categories.append(Segment(rid, s, e, category, tags, layer))
         self.rttm.append(f"END {rid} <NA> <NA> {n} <NA> <NA> <NA> <NA>\n")
         if text is not None:
             self.text[rid] = " ".join(text.split())
@@ -329,6 +426,11 @@ class VadDumpWriter:
             "".join(f"{r} {self.domain}\n" for r in ids)
         )
         (self.dir / "espnet_rttm").write_text("".join(sorted(self.rttm)))
+        write_categories(
+            self.dir / "categories_rttm",
+            self.categories,
+            {r: self.num_samples[r] for r in ids},
+        )
         (self.dir / "feats_type").write_text("raw\n")
         if self.label_source == "A":
             (self.dir / "text").write_text(

@@ -59,6 +59,11 @@ def a_dump(tmp_path):
 def test_default_map_gives_espnet_rttm_byte_for_byte(tmp_path, make):
     d = make(tmp_path)
     v2x = str(MAPS / "v2x.yaml")
+    if make is h_dump:  # the writer's own categories_rttm (an A dump's is refreshed
+        # by align.py, which a_dump does not run)
+        assert cat.main(["check", "--map", v2x, str(d)]) == 0
+    # a dump written before categories_rttm existed: backfill
+    (d / "categories_rttm").unlink()
     assert cat.main(["selfcheck", "--map", v2x, str(d)]) == 0
     assert not (d / "categories_rttm").exists()  # selfcheck writes nothing
     assert cat.main(["backfill", str(d)]) == 0
@@ -150,3 +155,86 @@ def test_unknown_category_in_a_file_is_refused(tmp_path):
 )
 def test_negative_type_categories(nt, category):
     assert cat.negative_type_category(nt) == category
+
+
+def test_writer_categories_layers_and_packs(tmp_path):
+    d = tmp_path / "w"
+    w = VadDumpWriter(d, "toy", "meeting", "H", "CC0", pack_seconds=30)
+    w.add(
+        "talk",
+        noise(40),
+        FS,
+        speech=[(1.0, 3.0, "laughs"), (2.5, 4.0), (10.0, 12.0)],
+        categories=[(3.2, 3.6, "vocal/laughter", "ami:laugh")],
+        details=[(10.5, 11.0, "speech/filler", "uh")],
+    )
+    w.add("song", noise(8), FS, clip_category=("music/music", "openmic"))
+    w.add("cough", noise(8, 1), FS, negative_type="cough")
+    w.close()
+    segs, lengths = cat.read_categories(d / "categories_rttm")
+    talk = sorted(
+        (s.layer, s.start, s.end, s.category, s.tags)
+        for s in segs
+        if s.rec == "toy-talk"
+    )
+    assert talk == [
+        (1, 1 * FS, 4 * FS, "speech/utterance", "laughs"),
+        (1, int(3.2 * FS), int(3.6 * FS), "vocal/laughter", "ami:laugh"),
+        (1, 10 * FS, 12 * FS, "speech/utterance", "<NA>"),
+        (2, int(10.5 * FS), 11 * FS, "speech/filler", "uh"),
+    ]
+    # the two short clips share a pack, each with its class at its offset
+    pack = sorted((s.start, s.category) for s in segs if s.rec == "toy-song+2")
+    assert pack == [(0, "music/music"), (8 * FS, "vocal/cough")]
+    v2x = cat.load_map(MAPS / "v2x.yaml")
+    assert cat.apply_map(segs, lengths, v2x)[0] == (d / "espnet_rttm").read_text()
+    # the detail layer counts only for a map that asks for it
+    p = tmp_path / "details.yaml"
+    p.write_text(
+        "classes: [speech, filler]\ndetails: true\nmap:\n"
+        '  - "speech/filler": filler\n  - "speech/*": speech\n  - "*": nonspeech\n'
+    )
+    text, _ = cat.apply_map(segs, lengths, cat.load_map(p))
+    assert "toy-talk 1 168000 176000 <NA> <NA> filler" in text
+
+
+def test_writer_refuses_speech_in_non_speech_slots(tmp_path):
+    w = VadDumpWriter(tmp_path / "x", "toy", "meeting", "H", "CC0")
+    with pytest.raises(ValueError, match="speech goes in"):
+        w.add("a", noise(2), FS, categories=[(0, 1, "speech/words", "")])
+    with pytest.raises(ValueError, match="unknown category"):
+        w.add("b", noise(2), FS, details=[(0, 1, "vocal/yodel", "")])
+    with pytest.raises(ValueError, match="clip_category"):
+        w.add("c", noise(2), FS, clip_category=("speech/singing", ""))
+
+
+def test_alignment_refresh_keeps_classes_and_drops_recordings(tmp_path):
+    d = tmp_path / "a"
+    w = VadDumpWriter(d, "toya", "read", "A", "CC0")
+    for k in range(3):
+        w.add(
+            f"u{k}",
+            noise(12, k),
+            FS,
+            text="a b",
+            lang_sym="<eng>",
+            categories=[(5.0, 6.0, "vocal/breath", "")],
+        )
+    w.close()
+    # what align.py writes for the recordings it keeps
+    (d / "espnet_rttm").write_text(
+        "END toya-u0 <NA> <NA> 192000 <NA> <NA> <NA> <NA>\n"
+        "END toya-u1 <NA> <NA> 192000 <NA> <NA> <NA> <NA>\n"
+        "SPEAKER toya-u0 1 1600 64000 <NA> <NA> toya-u0 <NA>\n"
+        "SPEAKER toya-u1 1 3200 48000 <NA> <NA> toya-u1 <NA>\n"
+    )
+    cat.refresh_speech(d, "speech/words", keep={"toya-u0", "toya-u1"})
+    segs, lengths = cat.read_categories(d / "categories_rttm")
+    assert set(lengths) == {"toya-u0", "toya-u1"}
+    assert sorted((s.rec, s.category) for s in segs) == [
+        ("toya-u0", "speech/words"),
+        ("toya-u0", "vocal/breath"),
+        ("toya-u1", "speech/words"),
+        ("toya-u1", "vocal/breath"),
+    ]
+    assert cat.check(d, cat.load_map(MAPS / "v2x.yaml"))

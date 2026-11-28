@@ -42,6 +42,7 @@ import numpy as np
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
+from categories import refresh_speech  # noqa: E402
 from vad_dump import MANIFEST_FIELDS, merge_intervals  # noqa: E402
 
 
@@ -263,6 +264,10 @@ def main():
     names += ("manifest.tsv", "text", "utt2lang")
     if (d / "clips").exists() or (d / "before_align" / "clips").exists():
         names += ("clips",)
+    if (d / "categories_rttm").exists() or (
+        d / "before_align" / "categories_rttm"
+    ).exists():
+        names += ("categories_rttm",)
     backup = d / "before_align"
     if (d / ".aligned").exists():
         logging.info("%s is already aligned", d)
@@ -455,6 +460,7 @@ def main():
             "".join(x for x in lines if x.split(maxsplit=1)[0] in keep)
         )
     (d / "espnet_rttm").write_text("".join(sorted(rttm)))
+    refresh_speech(d, "speech/words", keep)  # categories_rttm, if the dump has one
     with (backup / "manifest.tsv").open() as f, (d / "manifest.tsv").open("w") as g:
         cols = f.readline().rstrip("\n").split("\t")
         g.write("\t".join(MANIFEST_FIELDS) + "\n")

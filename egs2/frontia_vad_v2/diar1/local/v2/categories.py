@@ -78,6 +78,12 @@ CATEGORIES = {
     ),
 }
 ALL = {f"{g}/{n}" for g, names in CATEGORIES.items() for n in names}
+# The RTTM channel column holds the layer of a segment. The primary layer has
+# the speech segments of espnet_rttm, exactly (one per SPEAKER line), and the
+# annotated non-speech classes; the detail layer refines speech (a filler,
+# backchannel, whispered or sung stretch inside an utterance, an utterance's
+# tags at their times) and is read by a map only if it asks (details: true).
+PRIMARY, DETAIL = 1, 2
 
 
 class Segment(NamedTuple):
@@ -86,6 +92,7 @@ class Segment(NamedTuple):
     end: int
     category: str
     tags: str  # comma separated source labels, or "<NA>"
+    layer: int = PRIMARY  # RTTM channel column: PRIMARY or DETAIL
 
 
 # ------------------------------------------------------------------ files
@@ -115,7 +122,9 @@ def read_categories(path: Path) -> Tuple[List[Segment], Dict[str, int]]:
             raise ValueError(f"{path}:{k}: not a categories_rttm line")
         if f[7] not in ALL:
             raise ValueError(f"{path}:{k}: unknown category {f[7]}")
-        segs.append(Segment(f[1], int(f[3]), int(f[4]), f[7], f[8]))
+        if f[2] not in ("1", "2"):
+            raise ValueError(f"{path}:{k}: layer {f[2]} is not 1 or 2")
+        segs.append(Segment(f[1], int(f[3]), int(f[4]), f[7], f[8], int(f[2])))
     return segs, lengths
 
 
@@ -132,7 +141,8 @@ def write_categories(path: Path, segs: Iterable[Segment], lengths: Dict[str, int
         if s.category not in ALL:
             raise ValueError(f"unknown category {s.category}")
         lines.append(
-            f"SPEAKER {s.rec} 1 {s.start} {s.end} <NA> <NA> {s.category} {s.tags}\n"
+            f"SPEAKER {s.rec} {s.layer} {s.start} {s.end} <NA> <NA> {s.category} "
+            f"{s.tags}\n"
         )
     lines += [
         f"END {r} <NA> <NA> {n} <NA> <NA> <NA> <NA>\n" for r, n in lengths.items()
@@ -148,6 +158,7 @@ class LabelMap(NamedTuple):
 
     classes: Tuple[str, ...]  # output classes; ("speech",) for a binary map
     rules: Tuple[Tuple[str, str], ...]  # (fnmatch pattern over group/name, target)
+    details: bool = False  # also map the detail layer
 
 
 def load_map(path: Path) -> LabelMap:
@@ -172,7 +183,7 @@ def load_map(path: Path) -> LabelMap:
         if target not in targets:
             raise ValueError(f"{path}: {pattern}: {target} not in {sorted(targets)}")
         rules.append((str(pattern), target))
-    m = LabelMap(classes, tuple(rules))
+    m = LabelMap(classes, tuple(rules), bool(conf.get("details", False)))
     missing = [c for c in sorted(ALL) if lookup(m, c) is None]
     if missing:
         raise ValueError(f"{path}: no rule for {missing}")
@@ -195,11 +206,14 @@ def apply_map(
     speaker column is the recording id, as vad_dump.py writes espnet_rttm
     (several speech segments may overlap; the diar task takes their union); for
     a map of several classes it is the class name, one track per class. Lines
-    are sorted as text, like espnet_rttm.
+    are sorted as text, like espnet_rttm. The detail layer counts only for a
+    map with details: true.
     """
     binary = m.classes == ("speech",)
     lines, ignore = [], []
     for s in segs:
+        if s.layer == DETAIL and not m.details:
+            continue
         target = lookup(m, s.category)
         if target == "ignore":
             ignore.append(s)
@@ -366,6 +380,40 @@ def backfill_segments(dump: Path) -> Tuple[List[Segment], Dict[str, int]]:
             category = cats.pop() if len(cats) == 1 else "sound/other_sound"
             segs.append(Segment(rec, 0, n, category, format_tags(types)))
     return segs, lengths
+
+
+def speech_segments(espnet_rttm: Path, category: str) -> List[Segment]:
+    """One primary segment of `category` per SPEAKER line of an espnet_rttm."""
+    out = []
+    for line in Path(espnet_rttm).read_text().splitlines():
+        f = line.split()
+        if f and f[0] == "SPEAKER":
+            out.append(Segment(f[1], int(f[3]), int(f[4]), category, "<NA>"))
+    return out
+
+
+def refresh_speech(dump: Path, category: str = "speech/words", keep=None):
+    """Put the speech of espnet_rttm into categories_rttm after alignment.
+
+    align.py and relabel.py rewrite espnet_rttm; the primary speech segments of
+    categories_rttm are replaced by its lines (as `category`); the other
+    segments are kept. keep: the recordings left (align.py drops some); None:
+    all. No categories_rttm: nothing to do.
+    """
+    path = Path(dump) / "categories_rttm"
+    if not path.exists():
+        return
+    segs, lengths = read_categories(path)
+    if keep is not None:
+        lengths = {r: n for r, n in lengths.items() if r in keep}
+    segs = [
+        s
+        for s in segs
+        if s.rec in lengths
+        and not (s.layer == PRIMARY and s.category.startswith("speech/"))
+    ]
+    speech = speech_segments(Path(dump) / "espnet_rttm", category)
+    write_categories(path, segs + speech, lengths)
 
 
 def check(dump: Path, m: LabelMap, categories: Optional[Path] = None) -> bool:

@@ -21,6 +21,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from align import pack_speech, read_clips, read_table  # noqa: E402
+from categories import refresh_speech  # noqa: E402
 from vad_dump import MANIFEST_FIELDS  # noqa: E402
 
 COLUMNS = {"segmentation": (5, 6), "tokens": (7, 8)}
@@ -76,6 +77,7 @@ def relabel(d: Path, timing, min_pause, pad_start, pad_end, fs=16000):
         rttm += lines
         seconds[rid] = total / fs
     (d / "espnet_rttm").write_text("".join(sorted(rttm)))
+    refresh_speech(d, "speech/words")  # categories_rttm, if the dump has one
     with (d / "manifest.tsv").open() as f:
         cols = f.readline().rstrip("\n").split("\t")
         rows = [dict(zip(cols, x.rstrip("\n").split("\t"))) for x in f]
