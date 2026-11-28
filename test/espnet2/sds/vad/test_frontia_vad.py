@@ -173,11 +173,11 @@ def test_tiny_model_end_to_end(tmp_path):
         vad.forward(audio[i : i + 320], FS)
     # The stream the wrapper runs keeps no probability history and only the
     # samples of the next frame, however long it runs.
-    assert vad.stream.cached is not None
-    assert vad.stream.probs == []
-    assert len(vad.stream.buffer) < N_FFT + 320
+    assert vad.frame_vad.stream.cached is not None
+    assert vad.frame_vad.stream.probs == []
+    assert len(vad.frame_vad.stream.buffer) < N_FFT + 320
     with pytest.raises(ValueError, match="keeps no probabilities"):
-        vad.stream.all_probabilities()
+        vad.frame_vad.stream.all_probabilities()
 
 
 def test_forward_copies_the_chunk():
@@ -337,14 +337,14 @@ def test_idle_memory_bounded(tmp_path, stream_keeps_history):
     # threshold 1.0: no frame is speech
     vad = FrontiaVADModel.from_detector(_tiny_detector(tmp_path, threshold=1.0))
     if stream_keeps_history:
-        vad.stream = vad.detector.stream(keep_probabilities=True)
+        vad.frame_vad.stream = vad.frame_vad.detector.stream(keep_probabilities=True)
     chunk = (np.random.default_rng(0).normal(size=FS) * 3000).astype(np.int16)
 
     def run():
         assert_memory_bounded(vad, lambda: vad.forward(chunk, FS), steps=600)
 
     if stream_keeps_history:
-        with pytest.raises(AssertionError, match=r"grown most: stream"):
+        with pytest.raises(AssertionError, match=r"grown most: frame_vad.stream"):
             run()
     else:
         run()
