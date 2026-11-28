@@ -533,11 +533,11 @@ def test_for_mode_loads_the_model_of_the_mode_with_its_rule(monkeypatch, mode):
 
     def load(tag, device="cpu", threshold=None, median=None):
         loaded.update(tag=tag, threshold=threshold, median=median)
-        return "detector"
+        return SimpleNamespace()
 
     monkeypatch.setattr(VoiceActivityDetector, "load", staticmethod(load))
     monkeypatch.setitem(vad_module.VAD_RULES, mode, (0.35, 7))
-    assert VoiceActivityDetector.for_mode(mode) == "detector"
+    assert VoiceActivityDetector.for_mode(mode).mode == mode
     assert loaded == {
         "tag": vad_module.VAD_MODELS[mode],
         "threshold": 0.35,
@@ -547,6 +547,41 @@ def test_for_mode_loads_the_model_of_the_mode_with_its_rule(monkeypatch, mode):
     assert loaded["tag"] == "local.zip"
     with pytest.raises(ValueError):
         VoiceActivityDetector.for_mode("sideways")
+
+
+@pytest.mark.parametrize(
+    "mode, offline, look_ahead",
+    [
+        (None, None, 6),
+        ("offline", None, 6),
+        ("online", None, 0),
+        ("online", True, 6),
+        ("offline", False, 0),
+    ],
+)
+def test_detect_runs_in_the_mode_of_the_detector(mode, offline, look_ahead):
+    """for_mode("online").detect(x) reads no look-ahead; offline= overrides."""
+    vad, encoder = _stub_detector()
+    vad.mode = mode
+    vad.detect(_speech(0.5), FS, offline=offline)
+    assert encoder.set[-1] == look_ahead
+
+
+def test_detect_files_runs_in_the_mode_of_the_detector(tmp_path):
+    vad, encoder = _stub_detector()
+    vad.diarize.diarize_batch = lambda batch, lengths, fs: [
+        np.full(((n - 512) // 128 + 1, 1), 0.9, dtype=np.float32) for n in lengths
+    ]
+    path = tmp_path / "a.wav"
+    soundfile.write(path, _speech(0.5), FS)
+    vad.mode = "online"
+    vad.detect_files([path])
+    assert encoder.set[-1] == 0
+    vad.detect_file(path)
+    assert encoder.set[-1] == 0
+    vad.mode = "offline"
+    vad.detect_files([path])
+    assert encoder.set[-1] == 6
 
 
 def test_format_segments_is_tab_separated():

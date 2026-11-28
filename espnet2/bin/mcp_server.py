@@ -355,14 +355,16 @@ def detect(
     Args:
         audio_path: Local audio file. Any common format, sample rate or
             length; the first channel of a multi-channel file is used.
-        mode: "offline" uses the offline model, which reads up to about a
-            second of future audio and places the boundaries best; "online"
-            uses the causal model, which reads no future audio, as a live
-            stream does.
+        mode: "offline" runs the model with about a second of look-ahead,
+            which places the boundaries best; "online" runs it with none, as
+            a live stream does.
         threshold: Speech probability above which a frame is speech. Default:
             the mode's model's value, tuned on AMI MH dev.
-        median: Median filter over this many frames (odd; 1 for none), which
-            removes short blips. Default: tuned with the threshold.
+        median: Centred median filter over this many frames (odd; 1 for
+            none), which removes short blips. Default: the mode's rule in
+            espnet2.diar.vad_models. It delays every decision by
+            (median - 1) / 2 frames of 8 ms, 96 ms at 25, so online detection
+            with a median above 1 is not strictly causal; 1 makes it so.
 
     Returns:
         One line a speech segment: start and end in seconds, tab-separated.

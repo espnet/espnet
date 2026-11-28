@@ -621,28 +621,10 @@ class DiarizeSpeech:
 #     for seg in vad.detect_file("meeting.wav"):
 #         print(f"{seg.start:.2f}\t{seg.end:.2f}")
 
-# The two published models, one place to edit when they are named:
-# - online: the causal TCN (v1), which reads no future frame and so streams;
-# - offline: the dual-mode TCN, run with its largest look-ahead (124 frames,
-#   0.99 s), which places the boundaries better when the whole file is there.
-# Each of `espnet detect`, the MCP tool, the Space and the notebook takes these
-# as defaults and lets a local .zip from stage 8 stand in for either.
-VAD_MODELS = {
-    "online": "espnet/frontia_vad_v1_online",
-    "offline": "espnet/frontia_vad_v1_offline",
-}
+# The published model of each mode and its decision rule: espnet2.diar.vad_models
+# (imported here so that existing callers keep working).
+from espnet2.diar.vad_models import VAD_MODELS, VAD_RULES  # noqa: E402,F401
 
-# Each model's decision rule, make_rttm.py's as stage 7 scores it: a frame is
-# speech when its probability exceeds the threshold, then a median filter of
-# that many frames smooths the 0/1 sequence. The values are each model's
-# setting with the lowest detection error on AMI MH dev
-# (egs2/frontia_vad_v1/diar1/local/show_vad_result.py), as (threshold, median).
-VAD_RULES = {
-    # v1, scored on 21 sets with a UEM: RESULTS_vad.md of the recipe's run
-    "online": (0.7, 11),
-    # the dual-mode model at look-ahead 124, scored on the same 21 sets
-    "offline": (0.8, 11),
-}
 VAD_THRESHOLD, VAD_MEDIAN = VAD_RULES["offline"]
 
 
@@ -786,6 +768,9 @@ class VoiceActivityDetector:
         # Input frames each output frame depends on; None when the encoder
         # does not say, and then streaming keeps the whole history.
         self.receptive_field = getattr(encoder, "receptive_field", None)
+        # "online" or "offline" when for_mode() made this detector; detect()
+        # then runs in that mode unless told otherwise. None runs offline.
+        self.mode: Optional[str] = None
 
     @classmethod
     def load(
@@ -811,17 +796,21 @@ class VoiceActivityDetector:
         """The published model of a mode ("online" or "offline"), with its rule.
 
         ``model_tag`` replaces the model (a tag or a local .zip) and keeps the
-        mode's rule.
+        mode's rule. detect(), detect_file() and detect_files() of the result
+        run in this mode by default: no look-ahead online, the encoder's
+        largest offline.
         """
         if mode not in VAD_MODELS:
             raise ValueError(f'mode is "online" or "offline", not {mode!r}')
         threshold, median = VAD_RULES[mode]
-        return cls.load(
+        vad = cls.load(
             model_tag or VAD_MODELS[mode],
             device=device,
             threshold=threshold,
             median=median,
         )
+        vad.mode = mode
+        return vad
 
     @property
     def frame_shift(self) -> float:
@@ -862,6 +851,16 @@ class VoiceActivityDetector:
     def offline_look_ahead(self) -> int:
         """The look-ahead offline detection uses: the largest the encoder offers."""
         return self.max_look_ahead
+
+    def _look_ahead_of(self, offline: Optional[bool]) -> int:
+        """The look-ahead of offline (True) or online (False) detection.
+
+        None takes the detector's mode: online when for_mode("online") made
+        it, offline otherwise.
+        """
+        if offline is None:
+            offline = self.mode != "online"
+        return self.offline_look_ahead if offline else 0
 
     def _set_look_ahead(self, look_ahead: int):
         encoder = self.diarize.diar_model.encoder
@@ -919,24 +918,28 @@ class VoiceActivityDetector:
         return results
 
     def detect(
-        self, speech: np.ndarray, fs: Optional[int] = None, offline: bool = True
+        self,
+        speech: np.ndarray,
+        fs: Optional[int] = None,
+        offline: Optional[bool] = None,
     ) -> List[Segment]:
         """Speech segments of one recording.
 
         offline=True reads the largest look-ahead the encoder offers; False
-        reads none, as the online stream does.
+        reads none, as the online stream does. None (the default) takes the
+        detector's mode: online for for_mode("online"), offline otherwise.
         """
-        look_ahead = self.offline_look_ahead if offline else 0
+        look_ahead = self._look_ahead_of(offline)
         return self.segments(self.probabilities(speech, fs, look_ahead))
 
-    def detect_file(self, path: Union[str, Path], offline: bool = True):
-        """Speech segments of an audio file."""
+    def detect_file(self, path: Union[str, Path], offline: Optional[bool] = None):
+        """Speech segments of an audio file; ``offline`` as in detect()."""
         return self.detect(read_audio(path, self.fs), self.fs, offline)
 
     def detect_files(
         self,
         paths: Sequence[Union[str, Path]],
-        offline: bool = True,
+        offline: Optional[bool] = None,
         batch_size: int = 8,
     ) -> List[List[Segment]]:
         """Speech segments of many files, ``batch_size`` recordings at a time.
@@ -944,11 +947,12 @@ class VoiceActivityDetector:
         The files are batched in order of length (read from their headers), so
         a batch holds recordings of similar length and little padding; each
         batch is decoded when it runs, so only one batch of audio is in memory.
-        The results come back in the order of ``paths``.
+        The results come back in the order of ``paths``. ``offline`` is as in
+        detect().
         """
         if batch_size < 1:
             raise ValueError(f"batch_size must be positive: {batch_size}")
-        look_ahead = self.offline_look_ahead if offline else 0
+        look_ahead = self._look_ahead_of(offline)
         order = sorted(range(len(paths)), key=lambda i: audio_seconds(paths[i]))
         results: List[List[Segment]] = [[] for _ in paths]
         for k in range(0, len(order), batch_size):

@@ -16,30 +16,31 @@ tags:
   - vad
   - diarization
 models:
-  - espnet/frontia_vad_v1_offline
-  - espnet/frontia_vad_v1_online
+  - espnet/frontia_vad_v2_3
 ---
 
 # Voice activity detection
 
-The source of a Hugging Face Space for the VAD models of the recipe in the
-directory above this one, kept in this repository like the other demos. Two
-temporal convolutional networks, each trained as one-speaker diarization
-(`num_spk 1`), give every 8 ms frame the probability that someone is
+The source of a Hugging Face Space for frontia-vad, kept in this repository
+like the other demos. One dual-mode temporal convolutional network (the
+model listed in `models:` above, trained as one-speaker diarization,
+`num_spk 1`) gives every 8 ms frame the probability that someone is
 speaking; a threshold and a median filter turn those into speech segments.
+It runs in two modes:
 
 | | model | reads ahead | used for |
 |---|---|---|---|
-| online | causal TCN (v1) | nothing | live streams, the microphone |
-| offline | dual-mode TCN, at its largest look-ahead | 124 frames (0.99 s) | whole files, cleaning a corpus |
+| online | the model at look-ahead 0 | nothing | live streams, the microphone |
+| offline | the model at its largest look-ahead | 124 frames (0.99 s) | whole files, cleaning a corpus |
 
-Their tags are `espnet2.bin.diar_inference.VAD_MODELS`, repeated in `app.py` and in the card
-above because a Space is one directory (`test_demo_apps.py` checks that the
-three agree).
+`app.py` loads the model of each mode from `VAD_MODELS` in
+`espnet2.diar.vad_models`, so the Space follows the espnet release it
+installs. The card above lists the same tags, because Hugging Face reads
+them from its front matter; `test_demo_apps.py` checks that the two agree.
 
 The app has three tabs:
 
-- **Recording**: one file, detected by both models, both drawn on the
+- **Recording**: one file, detected in both modes, both drawn on the
   waveform, with the offline segments as a table.
 - **Live**: the microphone, each frame decided by the online model as soon
   as its audio arrives. `espnet2.bin.diar_inference_streaming.StreamingVAD` keeps the causal
@@ -54,12 +55,16 @@ The detection is `espnet2.bin.diar_inference` (offline, batches) and
 
 ## The decision rules
 
-Each model has its own threshold and median filter: the setting with the
-lowest detection error on AMI MH dev (`../local/show_vad_result.py`), kept as
-`espnet2.bin.diar_inference.VAD_RULES`. The rule is stage 7's
-(`pyscripts/utils/make_rttm.py`): a frame is speech when its probability is
-above the threshold, and the 0/1 sequence is then median-filtered. All four
-are sliders here, starting at the tuned values.
+Each mode has a threshold and a centred median filter, kept as
+`VAD_RULES` in `espnet2.diar.vad_models` and tuned on AMI MH dev. The rule is stage 7's (`pyscripts/utils/make_rttm.py`): a
+frame is speech when its probability is above the threshold, and the 0/1
+sequence is then median-filtered. All four are sliders here, starting at those
+values, and `espnet detect` takes `--threshold` and `--median`.
+
+**The default online detection is not strictly causal.** The model reads no
+future audio, but a centred median of M frames waits for the (M - 1) / 2
+frames after each frame: 96 ms at 25. Offline adds the look-ahead to that.
+A median of 1 gives a strictly causal online decision, with no delay.
 
 ## Running and publishing
 
@@ -82,7 +87,7 @@ warning saying so; `espnet detect` has no such limit.
 `requirements.txt` asks for the first espnet release with the VAD classes
 and both TCN encoders; until that release is out the Space cannot be built.
 
-To publish, from the ESPnet checkout, once both models are on the Hub:
+To publish, from the ESPnet checkout, once the model is on the Hub:
 
 ```sh
 hf auth login

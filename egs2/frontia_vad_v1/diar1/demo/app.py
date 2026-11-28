@@ -1,11 +1,13 @@
-"""Voice activity detection with two TCNs, an online one and an offline one.
+"""Voice activity detection with one dual-mode TCN, run online and offline.
 
 The source of a Hugging Face Space, kept in espnet at
-egs2/frontia_vad_v1/diar1/demo. The recipe that trained the two checkpoints is the
-directory above this one. The detection itself is espnet2.bin.diar_inference
-(VoiceActivityDetector) and diar_inference_streaming (StreamingVAD), which
-`espnet detect` and the MCP tool `detect` call too, so the Space, the
-command line and the agent give the same segments for the same file.
+egs2/frontia_vad_v1/diar1/demo. It loads the models of
+espnet2.diar.vad_models (VAD_MODELS), so the Space shows the models of the
+espnet release it installs. The detection itself is
+espnet2.bin.diar_inference (VoiceActivityDetector) and diar_inference_streaming
+(StreamingVAD), which `espnet detect` and the MCP tool `detect` call too, so
+the Space, the command line and the agent give the same segments for the same
+file.
 
 Three tabs:
 - Recording: one file, detected by the online model and by the offline one
@@ -39,6 +41,7 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt  # noqa: E402
 
 from espnet2.bin.diar_inference import (  # noqa: E402
+    VAD_MODELS,
     VAD_RULES,
     VoiceActivityDetector,
     audio_seconds,
@@ -51,13 +54,11 @@ from espnet2.bin.diar_inference import (  # noqa: E402
 # a CPU; the cap keeps a shared Space responsive, not the models.
 MAX_SECS = 120
 GPU_SECONDS = 120
-# The offline model and the online one: diar_inference.VAD_MODELS, repeated here
-# because a Space is one directory (test_demo_apps.py checks they agree). Each
-# takes a packed .zip from stage 8 as well as a tag.
-MODEL_TAG = os.environ.get("VAD_MODEL_TAG", "espnet/frontia_vad_v1_offline")
-ONLINE_MODEL_TAG = os.environ.get(
-    "VAD_ONLINE_MODEL_TAG", "espnet/frontia_vad_v1_online"
-)
+# The offline model and the online one, from espnet2.diar.vad_models unless the
+# Space's variables name others. Each takes a packed .zip from stage 8 as well
+# as a tag.
+MODEL_TAG = os.environ.get("VAD_MODEL_TAG", VAD_MODELS["offline"])
+ONLINE_MODEL_TAG = os.environ.get("VAD_ONLINE_MODEL_TAG", VAD_MODELS["online"])
 # ZeroGPU attaches the GPU only while a @spaces.GPU function runs, so
 # torch.cuda.is_available() is False here and asking it would pin the models to
 # the CPU on the very hardware bought to run them. SPACES_ZERO_GPU is the
@@ -77,20 +78,26 @@ EXAMPLE_WAV = (
 )
 
 TITLE = "Voice activity detection"
-DESCRIPTION = """# Voice activity detection
+DESCRIPTION = f"""# Voice activity detection
 
-Two small temporal convolutional networks mark, frame by frame (8 ms), where
-someone is speaking. Both were trained with
-[ESPnet](https://github.com/espnet/espnet) as one-speaker diarization on
-meeting, far-field and broadcast speech, by the recipe at
-[`egs2/frontia_vad_v1/diar1`](https://github.com/espnet/espnet/tree/master/egs2/frontia_vad_v1/diar1).
+A small temporal convolutional network,
+[`{MODEL_TAG}`](https://huggingface.co/{MODEL_TAG}),
+marks frame by frame (8 ms) where someone is speaking. It was trained with
+[ESPnet](https://github.com/espnet/espnet) as one-speaker diarization, by the
+successor of the recipe at
+[`egs2/frontia_vad_v1/diar1`](https://github.com/espnet/espnet/tree/master/egs2/frontia_vad_v1/diar1),
+and runs in two modes.
 
-**Online** is a causal model: it reads no future audio, so it runs on a live
-stream. **Offline** reads up to about a second ahead, and places the
+**Online** runs with no look-ahead: it reads no future audio, so it runs on a
+live stream. **Offline** reads up to about a second ahead, and places the
 boundaries better for it when the whole recording is there. A frame is speech
-when its probability is above the threshold, and a median filter then removes
-blips shorter than half its length; each model has its own, tuned on AMI MH
-dev.
+when its probability is above the threshold, and a centred median filter then
+removes blips shorter than half its length.
+
+The median filter reads ahead: one of M frames delays each decision by
+(M - 1) / 2 frames of 8 ms, 96 ms at 25. So online detection with a median
+above 1 is **not strictly causal**, although the model reads no future
+audio. Set the median to 1 for a strictly causal decision.
 """
 ARTICLE = """Source of this Space:
 [`egs2/frontia_vad_v1/diar1/demo`](https://github.com/espnet/espnet/tree/master/egs2/frontia_vad_v1/diar1/demo).
@@ -334,6 +341,8 @@ def _rule(mode):
         value=tuned_median,
         step=2,
         label=f"{mode.capitalize()} median filter (frames of 8 ms)",
+        info="centred: delays each decision by (median - 1) / 2 frames, "
+        "96 ms at 25; 1 for a strictly causal decision",
     )
     return threshold, median
 
