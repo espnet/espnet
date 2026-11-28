@@ -103,23 +103,28 @@ restriction costs (0.3 dB SI-SDR).
 ## SNOAR self-adaptation
 
 This model is meant as a seed: `espnet snoar adapt` fine-tunes it on a folder
-of your own noisy recordings, with no clean references. How much that helps
-was measured in the ESPnet3 WHAM! recipe (`egs3/wham/snoar`), with seeds
-trained with supervision on Fisher (FastMSS) mixtures, so out of domain for
-WHAM!. SNOAR adapted them on the unlabeled WHAM! `tr` recordings; scores are
-on the separate `tt` split (3000 utterances, 16 kHz, `last.ckpt`, no
-checkpoint selection on labels):
+of your own noisy recordings, with no clean references. It was adapted this
+way in the ESPnet3 WHAM! recipe (`egs3/wham/snoar`,
+`conf/training_snoar_urgent_commercial_bsrnn.yaml`) on the unlabeled WHAM!
+`tr` recordings. WHAM! noise is not in its training data. Scores are on the
+separate `tt` split (3000 utterances, 16 kHz, `last.ckpt`, no checkpoint
+selection on labels):
+
+| Model | SI-SDR (dB) | PESQ-WB | STOI |
+|---|---|---|---|
+| This model | 9.85 | 1.62 | 0.875 |
+| SNOAR from it | **11.57** | 1.55 | **0.909** |
+
+PESQ-WB is 0.07 lower after adaptation. For comparison, seeds trained with
+supervision on Fisher (FastMSS) mixtures, which are not published (Fisher is
+LDC data), give on the same split:
 
 | Model | SI-SDR (dB) | PESQ-WB | STOI |
 |---|---|---|---|
 | TF-GridNet Fisher seed | 6.87 | 1.49 | 0.847 |
-| SNOAR from it | **12.61** | **1.95** | **0.931** |
+| SNOAR from it | 12.61 | 1.95 | 0.931 |
 | BSRNN Fisher seed | 7.92 | 1.53 | 0.850 |
-| SNOAR from it | **11.81** | **1.67** | **0.916** |
-
-These are other seeds, not this model, and they are not published (Fisher is
-LDC data). SNOAR adaptation starting from this model has not been measured
-yet.
+| SNOAR from it | 11.81 | 1.67 | 0.916 |
 
 ## Citation
 

@@ -139,6 +139,21 @@ implementation of the SNOAR paper (bDNF, commit 2b1e186).
 | BSRNN-64 seed (50k steps) | `training_supervised_fisher_bsrnn.yaml` | 7.92 | 1.53 | 0.850 |
 | SNOAR from it, one view | `training_snoar_supervised_fisher_bsrnn.yaml` | 11.81 | 1.67 | 0.916 |
 
+### URGENT 2025 commercial-use seed and SNOAR self-training
+
+The seed is the BSRNN-64 denoiser of `egs3/urgent25/snoar`
+(`espnet/urgent25_snoar_supervised_commercial_bsrnn`), trained on commercial-use
+URGENT 2025 data without WHAM! noise. SNOAR uses the same schedule as the
+Fisher BSRNN run.
+
+| Model | Config | SI-SDR (dB) | PESQ-WB | STOI |
+|---|---|---|---|---|
+| URGENT 2025 commercial-use seed | (`egs3/urgent25/snoar`) | 9.85 | 1.62 | 0.875 |
+| SNOAR from it, one view | `training_snoar_urgent_commercial_bsrnn.yaml` | 11.57 | 1.55 | 0.909 |
+
+SI-SDR is 1.72 dB higher and STOI 0.034 higher after adaptation, while
+PESQ-WB is 0.07 lower.
+
 The 4x longer BSRNN SNOAR schedule
 (`training_snoar_supervised_fisher_bsrnn_long.yaml`) was stopped at
 generation 13 with validation SI-SDR flat at the level of the short one.
