@@ -8,6 +8,9 @@ The v1 preparation writes wav.scp (a path, or a command ending in "|" such as
 sph2pipe or sox remix), segments and utt2spk with one pseudo speaker per
 recording. Each recording is read once and written to the Omni-IO archive of
 the dump; its speech is the union of its segments (label source "H").
+The optional segment_tags (speech category and tags of each segment) and
+categories (timed sounds and speech details) of the data directory
+(local/vad_data_utils.py) go into categories_rttm.
 """
 
 import argparse
@@ -54,10 +57,21 @@ def main():
         for line in (args.data_dir / "wav.scp").open()
         if line.strip()
     )
+    seg_tags = {}
+    if (args.data_dir / "segment_tags").exists():
+        for line in (args.data_dir / "segment_tags").open():
+            utt, cat, tags = line.split()
+            seg_tags[utt] = (tags, cat)
     speech = defaultdict(list)
     for line in (args.data_dir / "segments").open():
-        _, rec, start, end = line.split()
-        speech[rec].append((float(start), float(end)))
+        utt, rec, start, end = line.split()
+        speech[rec].append((float(start), float(end), *seg_tags.get(utt, ())))
+    cats, details = defaultdict(list), defaultdict(list)
+    if (args.data_dir / "categories").exists():
+        for line in (args.data_dir / "categories").open():
+            rec, start, end, cat, tags, layer = line.split()
+            item = (float(start), float(end), cat, "" if tags == "<NA>" else tags)
+            (details if layer == "2" else cats)[rec].append(item)
     out = args.out / f"shard{args.shard}" if args.nshards > 1 else args.out
     with VadDumpWriter(out, args.corpus, args.domain, "H", args.licence) as w:
         for i, rec in enumerate(sorted(wavs)):
@@ -75,6 +89,8 @@ def main():
                 speech=speech.get(rec, []),
                 mic=args.mic,
                 source=wavs[rec],
+                categories=cats.get(rec, []),
+                details=details.get(rec, []),
             )
 
 
