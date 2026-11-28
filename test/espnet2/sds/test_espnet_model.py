@@ -120,3 +120,19 @@ def test_VAD_option_defaults_to_webrtc(monkeypatch):
         access_token="",
     )
     assert isinstance(dialogue_model.vad_model, FakeWebrtcVAD)
+
+
+def test_an_AbsVAD_without_reset_still_instantiates():
+    """reset() is not abstract: VADs written before it existed still load."""
+    from espnet2.sds.vad.abs_vad import AbsVAD
+
+    class OldVAD(AbsVAD):
+        def warmup(self):
+            pass
+
+        def forward(self, speech, sample_rate, binary=False):
+            return None
+
+    vad = OldVAD()
+    with pytest.raises(NotImplementedError, match="OldVAD"):
+        vad.reset()

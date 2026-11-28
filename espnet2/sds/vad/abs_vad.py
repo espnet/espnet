@@ -37,10 +37,14 @@ class AbsVAD(torch.nn.Module, ABC):
         """Prepare the VAD (e.g. run the model once), then reset it."""
         raise NotImplementedError
 
-    @abstractmethod
     def reset(self) -> None:
-        """Forget all audio and state, and start a new stream."""
-        raise NotImplementedError
+        """Forget all audio and state, and start a new stream.
+
+        Not abstract, so that a subclass written before reset() was added
+        still instantiates; such a subclass raises here until it implements
+        it.
+        """
+        raise NotImplementedError(f"{type(self).__name__} does not implement reset()")
 
     @abstractmethod
     def forward(

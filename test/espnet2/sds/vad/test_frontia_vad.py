@@ -109,7 +109,7 @@ def test_forward_waits_while_speech_goes_on():
     assert turn is None
 
 
-def test_pad_end_must_not_exceed_the_hangover():
+def test_pad_end_must_not_exceed_the_endpoint_delay():
     with pytest.raises(ValueError, match="pad_end_ms"):
         FrontiaVADModel.from_detector(
             _detector(lambda i: 0.1), hangover_ms=200, pad_end_ms=300
@@ -120,7 +120,40 @@ def test_algorithmic_delay():
     vad = FrontiaVADModel.from_detector(_detector(lambda i: 0.1, median=25))
     # 512 samples of window and 12 frames of median look-ahead: 32 + 96 ms
     assert vad.algorithmic_delay_s == pytest.approx(0.128)
-    assert vad.endpoint_delay_s == pytest.approx(0.128 + 62 * HOP / FS)
+    # 62 frames of hangover: the last one is the 61st after the endpoint
+    assert vad.endpoint_delay_s == pytest.approx(0.128 + 61 * HOP / FS)
+
+
+@pytest.mark.parametrize("median", [1, 25])
+def test_endpoint_delay_is_when_the_turn_comes_back(median):
+    """Fed one sample at a time, the turn returns endpoint_delay_s after it."""
+    vad = FrontiaVADModel.from_detector(
+        _detector(_speech_between(50, 150), median=median)
+    )
+    n = 0
+    while vad.forward(np.zeros(1, dtype=np.int16), FS) is None:
+        n += 1
+    returned_s = (n + 1) / FS
+    assert returned_s - vad.last_turn["endpoint_s"] == pytest.approx(
+        vad.endpoint_delay_s
+    )
+
+
+def test_end_padding_up_to_the_endpoint_delay_is_all_there():
+    """500 ms of end padding is all there although hangover rounds to 496 ms.
+
+    The turn returns 520 ms after the endpoint: 61 frames, plus the window.
+    """
+    vad = FrontiaVADModel.from_detector(
+        _detector(_speech_between(50, 150)), hangover_ms=500, pad_end_ms=500
+    )
+    _feed(vad, 3.0, binary=True)
+    info = vad.last_turn
+    assert info["end_s"] - info["endpoint_s"] == pytest.approx(0.5)
+    with pytest.raises(ValueError, match="endpoint_delay_s"):
+        FrontiaVADModel.from_detector(
+            _detector(lambda i: 0.1), hangover_ms=500, pad_end_ms=530
+        )
 
 
 def test_tiny_model_end_to_end(tmp_path):

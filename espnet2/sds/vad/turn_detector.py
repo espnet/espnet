@@ -24,7 +24,7 @@ class TurnDetector(AbsVAD):
        several turns, they are returned as one (AbsVAD).
 
     algorithmic_delay_s is the delay of a frame's decision, and
-    endpoint_delay_s the time from the end of speech to the end of the turn,
+    endpoint_delay_s the time from a turn's endpoint to its return,
     both without compute time. last_turn holds the frame scores and times of
     the turn last returned, for a caller that plots them.
     """
@@ -60,8 +60,8 @@ class TurnDetector(AbsVAD):
                 Defaults to 300 ms.
             pad_end_ms (float, optional):
                 The audio kept after the end of speech. It must not exceed
-                hangover_ms, so that this audio is already in when the turn
-                ends. Defaults to 300 ms.
+                endpoint_delay_s, so that this audio is already in when the
+                turn is returned. Defaults to 300 ms.
             min_speech_ms (float, optional):
                 A turn with less speech than this is dropped.
                 Defaults to 200 ms.
@@ -81,11 +81,6 @@ class TurnDetector(AbsVAD):
                 f"max_turn_ms ({max_turn_ms}) is below min_speech_ms "
                 f"({min_speech_ms})"
             )
-        if pad_end_ms > hangover_ms:
-            raise ValueError(
-                f"pad_end_ms ({pad_end_ms}) must not exceed hangover_ms "
-                f"({hangover_ms}): the turn ends before that audio is in"
-            )
         if median < 1 or median % 2 == 0:
             raise ValueError(f"median must be a positive odd number: {median}")
         super().__init__()
@@ -102,6 +97,15 @@ class TurnDetector(AbsVAD):
         self.min_speech_frames = max(1, round(min_speech_ms / 1000 / shift))
         self.max_turn_frames = max(1, round(max_turn_ms / 1000 / shift))
         self.target_sr = target_sr
+        # The audio after the endpoint that is in when the turn is returned;
+        # hangover_ms rounds to whole frames, so compare with the frames.
+        if self.pad_end_s > self.endpoint_delay_s + 1e-9:
+            raise ValueError(
+                f"pad_end_ms ({pad_end_ms}) must not exceed the "
+                f"{self.endpoint_delay_s * 1000:.0f} ms of audio after the "
+                "endpoint that is in when the turn is returned "
+                "(endpoint_delay_s)"
+            )
         self.last_turn: Optional[dict] = None
         self.reset()
 
@@ -139,9 +143,15 @@ class TurnDetector(AbsVAD):
 
     @property
     def endpoint_delay_s(self) -> float:
-        """The time from the end of speech to the end of the turn."""
+        """The time from a turn's endpoint to forward() returning the turn.
+
+        The endpoint is the start of the first silent frame. The turn is
+        returned once the last of its hangover_frames silent frames, the
+        (hangover_frames - 1)-th after it, has its decision.
+        """
         return (
-            self.algorithmic_delay_s + self.hangover_frames * self.frame_vad.frame_shift
+            self.algorithmic_delay_s
+            + (self.hangover_frames - 1) * self.frame_vad.frame_shift
         )
 
     def _decisions(self, probs: np.ndarray) -> np.ndarray:
