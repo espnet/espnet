@@ -1384,16 +1384,25 @@ def collate_texts(batch):
     return [item["text"] for _, item in batch]
 
 
-def _fake_world(monkeypatch, rank, world_size=2):
-    """Pretend to run as ``rank`` of ``world_size`` initialized ranks."""
+def _fake_world(monkeypatch, rank, world_size=2, other_count=None):
+    """Pretend to run as ``rank`` of ``world_size``; other ranks have N batches."""
     import espnet3.components.data.dataloader as dl
 
     monkeypatch.setattr(dl.torch.distributed, "is_initialized", lambda: True)
     monkeypatch.setattr(dl.torch.distributed, "get_world_size", lambda: world_size)
     monkeypatch.setattr(dl.torch.distributed, "get_rank", lambda: rank)
     monkeypatch.setattr(dl.torch.distributed, "get_backend", lambda: "gloo")
-    # EpochSyncIterator's per-batch has-next all_reduce: every rank agrees.
-    monkeypatch.setattr(dl.torch.distributed, "all_reduce", lambda *a, **k: None)
+
+    def all_reduce(tensor, op=None):
+        # Batch-count equalization reduces [count, -count]: take the MIN
+        # with another rank's [n, -n]. Other reductions (e.g. the epoch
+        # iterator's step count) see every rank agree.
+        if other_count is None or tensor.numel() != 2:
+            return
+        tensor[0] = min(int(tensor[0]), other_count)
+        tensor[1] = min(int(tensor[1]), -other_count)
+
+    monkeypatch.setattr(dl.torch.distributed, "all_reduce", all_reduce)
 
 
 def _build_sharded(rank, num_device=2):
@@ -1410,13 +1419,30 @@ def _build_sharded(rank, num_device=2):
 
 @pytest.mark.parametrize("rank", [0, 1])
 def test_rank_shards_are_not_strided(monkeypatch, rank):
-    """Each rank batches all of its own shard; batches are not strided."""
-    _fake_world(monkeypatch, rank)
+    """Each rank batches its own shard and keeps the other ranks' count."""
+    _fake_world(monkeypatch, rank, other_count=2)
     builder, batches = _build_sharded(rank)
     assert builder._rank_sharded
-    texts = sorted(text for batch in batches for text in batch)
-    # Without striding, the rank's 3 one-item batches are all its own.
-    assert texts == [f"item{i}" for i in range(rank, 6, 2)]
+    texts = [text for batch in batches for text in batch]
+    # The shard has 3 one-item batches; 2 are kept, all from this shard.
+    assert len(batches) == 2
+    assert set(texts) <= {f"item{i}" for i in range(rank, 6, 2)}
+
+
+def test_rank_shards_warn_when_many_batches_dropped(monkeypatch, caplog):
+    """Dropping more than 10% of a rank's batches is logged as a warning."""
+    _fake_world(monkeypatch, 0, other_count=1)
+    with caplog.at_level("WARNING"):
+        _, batches = _build_sharded(0)
+    assert len(batches) == 1
+    assert "66.7% dropped" in caplog.text
+
+
+def test_rank_shards_empty_rank_raises(monkeypatch):
+    """A rank with no batches while others have some fails on every rank."""
+    _fake_world(monkeypatch, 0, other_count=0)
+    with pytest.raises(RuntimeError, match="a rank has no batches"):
+        _build_sharded(0)
 
 
 @pytest.mark.parametrize("rank", [0, 1])

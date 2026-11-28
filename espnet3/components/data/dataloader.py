@@ -230,6 +230,60 @@ class DataLoaderBuilder:
         self._rank_sharded = True
         return dataset.shard(shard_idx)
 
+    def _equalize_rank_batches(self, batches, mode):
+        """Keep the same number of batches on every rank, dropping at random.
+
+        Used when every rank batches its own shard of the data: shards differ
+        in size, and DDP hangs when ranks run different numbers of steps. The
+        dropped batches change every epoch, so no item is always left out,
+        but each epoch covers less data the more the shards differ: sharding
+        by a coarse column (e.g. speaker) drops far more than sharding by ID.
+        A warning is logged when a rank drops more than 10% of its batches.
+
+        Raises:
+            RuntimeError: On every rank, if some rank has no batches while
+                others do; training would otherwise run no steps silently.
+        """
+        if not torch.distributed.is_initialized():
+            return batches
+        # One all_reduce gives the min and (negated) max batch count.
+        counts = torch.tensor(
+            [len(batches), -len(batches)], device=self._get_collective_device()
+        )
+        torch.distributed.all_reduce(counts, op=torch.distributed.ReduceOp.MIN)
+        keep, most = int(counts[0].item()), -int(counts[1].item())
+        if keep == 0 and most > 0:
+            raise RuntimeError(
+                f"[{mode}] a rank has no batches in its shard while another has "
+                f"{most}, so every rank would run no steps. Use fewer shards "
+                "or GPUs, or shard by a finer column (shard_by)."
+            )
+        if keep == len(batches):
+            return batches
+        dropped = 1 - keep / len(batches)
+        log = logger.warning if dropped > 0.1 else logger.info
+        log(
+            "[%s] rank-local batches: keeping %d of %d (%.1f%% dropped) to "
+            "match other ranks",
+            mode,
+            keep,
+            len(batches),
+            100 * dropped,
+        )
+        rng = np.random.default_rng(
+            [self.epoch, torch.distributed.get_rank(), len(batches)]
+        )
+        kept = np.sort(rng.choice(len(batches), size=keep, replace=False))
+        return [batches[i] for i in kept]
+
+    @staticmethod
+    def _get_collective_device():
+        """Return the device collectives must use for the current backend."""
+        backend = torch.distributed.get_backend()
+        if backend == "nccl" and torch.cuda.is_available():
+            return torch.device("cuda", torch.cuda.current_device())
+        return torch.device("cpu")
+
     def build(self, mode: str):
         """Build and return a DataLoader for the specified mode ("train" or "valid").
 
@@ -429,10 +483,12 @@ class DataLoaderBuilder:
 
         if lengths_from_dataset and self._rank_sharded:
             # Each rank already holds a disjoint shard, so its batches are its
-            # own: do not stride them across ranks. Ranks may get different
-            # batch counts; EpochSyncIterator ends the epoch on every rank at
-            # the shortest rank's count.
-            pass
+            # own: do not stride them across ranks. Shards give different
+            # batch counts, so agree on one here. EpochSyncIterator cannot do
+            # it: it reports this rank's own count as its length, and
+            # Lightning stops fetching at that length on the shortest rank
+            # while the others wait in the has-next all_reduce.
+            batches = self._equalize_rank_batches(list(batches), mode)
         elif batch_distribution == "global":
             rank, world_size = (
                 (torch.distributed.get_rank(), torch.distributed.get_world_size())
