@@ -223,19 +223,34 @@ class Speech2TextStreaming:
     def apply_frontend(
         self, speech: torch.Tensor, prev_states=None, is_final: bool = False
     ):
+        # A buffer can contain startup samples without any processed frames.
+        is_first = prev_states is None or prev_states.get("is_first", False)
         if prev_states is not None:
             buf = prev_states["waveform_buffer"]
             speech = torch.cat([buf, speech], dim=0)
 
-        has_enough_samples = False if speech.size(0) <= self.win_length else True
+        n_trim = math.ceil(math.ceil(self.win_length / self.hop_length) / 2)
+        # Keep the overlap and enough left context for final STFT reflection padding.
+        n_overlap = max(
+            (n_trim * 2 - 1) * self.hop_length,
+            (self.n_fft // 2 // self.hop_length + 1) * self.hop_length,
+        )
+        n_trim_start = n_overlap // self.hop_length + 1 - n_trim
+        has_enough_samples = speech.size(0) > max(self.win_length, n_overlap)
         if not has_enough_samples:
             if is_final:
-                pad = torch.zeros(self.win_length - speech.size(0), dtype=speech.dtype)
-                speech = torch.cat([speech, pad], dim=0)
+                # Preserve the true final length once extraction has started.
+                if is_first and speech.size(0) <= self.win_length:
+                    pad = torch.zeros(
+                        self.win_length - speech.size(0),
+                        dtype=speech.dtype,
+                        device=speech.device,
+                    )
+                    speech = torch.cat([speech, pad], dim=0)
             else:
                 feats = None
                 feats_lengths = None
-                next_states = {"waveform_buffer": speech.clone()}
+                next_states = {"waveform_buffer": speech.clone(), "is_first": is_first}
                 return feats, feats_lengths, next_states
 
         if is_final:
@@ -246,14 +261,7 @@ class Speech2TextStreaming:
             n_residual = speech.size(0) % self.hop_length
             speech_to_process = speech.narrow(0, 0, n_frames * self.hop_length)
             waveform_buffer = speech.narrow(
-                0,
-                speech.size(0)
-                - (math.ceil(math.ceil(self.win_length / self.hop_length) / 2) * 2 - 1)
-                * self.hop_length
-                - n_residual,
-                (math.ceil(math.ceil(self.win_length / self.hop_length) / 2) * 2 - 1)
-                * self.hop_length
-                + n_residual,
+                0, speech.size(0) - n_overlap - n_residual, n_overlap + n_residual
             ).clone()
 
         # data: (Nsamples,) -> (1, Nsamples)
@@ -275,29 +283,26 @@ class Speech2TextStreaming:
 
         # Trimming
         if is_final:
-            if prev_states is None:
+            if is_first:
                 pass
             else:
                 feats = feats.narrow(
                     1,
-                    math.ceil(math.ceil(self.win_length / self.hop_length) / 2),
-                    feats.size(1)
-                    - math.ceil(math.ceil(self.win_length / self.hop_length) / 2),
+                    n_trim_start,
+                    feats.size(1) - n_trim_start,
                 )
         else:
-            if prev_states is None:
+            if is_first:
                 feats = feats.narrow(
                     1,
                     0,
-                    feats.size(1)
-                    - math.ceil(math.ceil(self.win_length / self.hop_length) / 2),
+                    feats.size(1) - n_trim,
                 )
             else:
                 feats = feats.narrow(
                     1,
-                    math.ceil(math.ceil(self.win_length / self.hop_length) / 2),
-                    feats.size(1)
-                    - 2 * math.ceil(math.ceil(self.win_length / self.hop_length) / 2),
+                    n_trim_start,
+                    feats.size(1) - n_trim_start - n_trim,
                 )
 
         feats_lengths = feats.new_full([1], dtype=torch.long, fill_value=feats.size(1))
