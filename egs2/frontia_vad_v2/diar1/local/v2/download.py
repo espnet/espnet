@@ -30,6 +30,8 @@ from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
 MANIFESTS = Path(__file__).resolve().parent / "downloads"
+# Wikimedia and some hosts refuse clients without a descriptive User-Agent
+USER_AGENT = "ESPnet-FRONTIA-VAD-dataprep/0.1 (https://github.com/espnet/espnet)"
 
 
 def log(*a):
@@ -52,7 +54,9 @@ def complete(dest: Path, size: str) -> bool:
 def served_size(url: str) -> str:
     """The Content-Length of the final response to a HEAD request, or "" if none."""
     r = subprocess.run(
-        ["curl", "-sIL", "--max-time", "120", url], capture_output=True, text=True
+        ["curl", "-sIL", "--max-time", "120", "-A", USER_AGENT, url],
+        capture_output=True,
+        text=True,
     )
     sizes = [
         line.split(":", 1)[1].strip()
@@ -75,7 +79,17 @@ def fetch(row, root: Path) -> str:
         if complete(dest, size):
             break
         r = subprocess.run(
-            ["wget", "-q", "-c", "--tries=10", "--waitretry=30", "-O", str(dest), url],
+            [
+                "wget",
+                "-q",
+                "-c",
+                "--tries=10",
+                "--waitretry=30",
+                f"--user-agent={USER_AGENT}",
+                "-O",
+                str(dest),
+                url,
+            ],
             capture_output=True,
             text=True,
         )
@@ -119,8 +133,10 @@ def fetch(row, root: Path) -> str:
 
 
 def safe_fetch(row, root: Path) -> str:
-    """fetch(), with an error (e.g. a corpus directory owned by another user)
-    reported as BAD for that file instead of stopping every download."""
+    """fetch(), reporting an error as BAD for that file instead of stopping.
+
+    E.g. a corpus directory in the shared root that is owned by another user.
+    """
     try:
         return fetch(row, root)
     except Exception as e:  # noqa: BLE001
@@ -136,7 +152,7 @@ def main():
     only = set(filter(None, a.corpora.split(",")))
     rows = []
     for m in sorted(MANIFESTS.glob("*.tsv")):
-        # <corpus>.licences.tsv: per-file licences for the list-building gate, not downloads
+        # <corpus>.licences.tsv: per-file licences for the licence gate, not downloads
         if m.name.endswith(".licences.tsv") or (only and m.stem not in only):
             continue
         for line in m.read_text().splitlines():

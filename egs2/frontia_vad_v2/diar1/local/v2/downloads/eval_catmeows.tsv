@@ -1,0 +1,5 @@
+# corpus_dir	relative_path	url	size_bytes	checksum	unpack
+# Zenodo record 4008297 (cc-by-nc-4.0): https://zenodo.org/api/records/4008297
+# EVALUATION ONLY (decided 2026-11-27): CC BY-NC 4.0; never in a training list. See data_survey/eval_only_catalogue_20261127.md
+eval_catmeows	ARCHIVES/dataset.zip	https://zenodo.org/api/records/4008297/files/dataset.zip/content	8861099	md5:b5fa911bcd6514e39dfef6876f747df4
+eval_catmeows	ARCHIVES/extras.zip	https://zenodo.org/api/records/4008297/files/extras.zip/content	4142654	md5:7663bb5e1de2c808beeb202a52dc99ab

@@ -1,0 +1,4 @@
+# corpus_dir	relative_path	url	size_bytes	checksum	unpack
+# MagicData-RAMC, OpenSLR 123 (https://www.openslr.org/123/)
+# EVALUATION ONLY (decided 2026-11-27): CC BY-NC-ND 4.0; never in a training list. See data_survey/eval_only_catalogue_20261127.md
+eval_magicdata_ramc	ARCHIVES/MagicData-RAMC.tar.gz	https://openslr.elda.org/resources/123/MagicData-RAMC.tar.gz	15470673657	

@@ -1,0 +1,8 @@
+# corpus_dir	relative_path	url	size_bytes	checksum	unpack
+# Kazakh Speech Dataset (KSD, al-Farabi KazNU), OpenSLR 140 (https://www.openslr.org/140/); checksum.md5 lists the zips' md5
+# EVALUATION ONLY (decided 2026-11-27): CC BY-SA 3.0 US; never in a training list. See data_survey/eval_only_catalogue_20261127.md
+eval_ksd	ARCHIVES/audio2.zip	https://openslr.elda.org/resources/140/audio2.zip	12120210195	
+eval_ksd	ARCHIVES/audio3.zip	https://openslr.elda.org/resources/140/audio3.zip	13429366519	
+eval_ksd	ARCHIVES/audio4.zip	https://openslr.elda.org/resources/140/audio4.zip	15086014645	
+eval_ksd	ARCHIVES/audio5.zip	https://openslr.elda.org/resources/140/audio5.zip	16642797777	
+eval_ksd	ARCHIVES/checksum.md5	https://openslr.elda.org/resources/140/checksum.md5	176	

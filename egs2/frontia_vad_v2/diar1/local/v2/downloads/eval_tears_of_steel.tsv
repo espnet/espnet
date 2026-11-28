@@ -1,0 +1,13 @@
+# corpus_dir	relative_path	url	size_bytes	checksum	unpack
+# Tears of Steel (Blender Foundation, mango.blender.org) final mix: stereo + 5.1 channels (C carries the dialogue) and English subtitles; sha1 in SHA1SUMS.txt
+# EVALUATION ONLY (decided 2026-11-27): film CC BY 3.0, score BY-ND; never in a training list. See data_survey/eval_only_catalogue_20261127.md
+eval_tears_of_steel	ARCHIVES/TOS_DVDSTEREOMIX.aif	https://media.xiph.org/tearsofsteel/TOS_DVDSTEREOMIX.aif	211392550	
+eval_tears_of_steel	ARCHIVES/TOS_DVDSURROUND.C.aif	https://media.xiph.org/tearsofsteel/TOS_DVDSURROUND.C.aif	105696550	
+eval_tears_of_steel	ARCHIVES/TOS_DVDSURROUND.L.aif	https://media.xiph.org/tearsofsteel/TOS_DVDSURROUND.L.aif	105696550	
+eval_tears_of_steel	ARCHIVES/TOS_DVDSURROUND.R.aif	https://media.xiph.org/tearsofsteel/TOS_DVDSURROUND.R.aif	105696550	
+eval_tears_of_steel	ARCHIVES/TOS_DVDSURROUND.Ls.aif	https://media.xiph.org/tearsofsteel/TOS_DVDSURROUND.Ls.aif	105696550	
+eval_tears_of_steel	ARCHIVES/TOS_DVDSURROUND.Rs.aif	https://media.xiph.org/tearsofsteel/TOS_DVDSURROUND.Rs.aif	105696550	
+eval_tears_of_steel	ARCHIVES/TOS_DVDSURROUND.LFE.aif	https://media.xiph.org/tearsofsteel/TOS_DVDSURROUND.LFE.aif	105696550	
+eval_tears_of_steel	ARCHIVES/README.txt	https://media.xiph.org/tearsofsteel/README.txt		
+eval_tears_of_steel	ARCHIVES/SHA1SUMS.txt	https://media.xiph.org/tearsofsteel/SHA1SUMS.txt		
+eval_tears_of_steel	ARCHIVES/subtitles/TOS-en.srt	https://media.xiph.org/tearsofsteel/subtitles/TOS-en.srt		

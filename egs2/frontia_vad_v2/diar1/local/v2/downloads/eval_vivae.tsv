@@ -1,0 +1,4 @@
+# corpus_dir	relative_path	url	size_bytes	checksum	unpack
+# Zenodo record 4066235 (cc-by-nc-4.0): https://zenodo.org/api/records/4066235
+# EVALUATION ONLY (decided 2026-11-27): CC BY-NC 4.0; never in a training list. See data_survey/eval_only_catalogue_20261127.md
+eval_vivae	ARCHIVES/VIVAE.zip	https://zenodo.org/api/records/4066235/files/VIVAE.zip/content	93460357	md5:62383077641fa90f5545e38d7f268e02

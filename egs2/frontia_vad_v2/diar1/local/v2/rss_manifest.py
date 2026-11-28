@@ -12,7 +12,8 @@ ignored) and be accepted (CC0, PD or CC BY without NC/SA/ND); otherwise nothing 
 written and the exit status is 1.
 
 One line per episode with an audio enclosure: corpus, ARCHIVES/<name>, the
-enclosure URL, the enclosure length as size (empty when absent or 0), no
+enclosure URL, no size (enclosure lengths in feeds often differ from the served
+file, so download.py takes the served Content-Length), no
 checksum. <name> is the enclosure file name when those are unique in the feed,
 otherwise the episode guid with characters other than [A-Za-z0-9._-] replaced by
 "_" plus the enclosure's extension. Episodes are left out when their title
@@ -122,12 +123,9 @@ def main():
         elif own and own != {want}:
             dropped[f"episode licence {sorted(own)}"] += 1
         else:
-            length = enc.get("length", "").strip()
             dur = seconds(item.findtext("itunes:duration", "", NS))
             guid = (item.findtext("guid") or url).strip()
-            episodes.append(
-                (url, length if length.isdigit() and int(length) else "", dur, guid)
-            )
+            episodes.append((url, "", dur, guid))
     names = [urllib.parse.urlparse(u).path.rsplit("/", 1)[-1] for u, *_ in episodes]
     if len(set(names)) < len(names):
         names = [

@@ -1,0 +1,4 @@
+# corpus_dir	relative_path	url	size_bytes	checksum	unpack
+# Zenodo record 7068130 (cc-by-nc-sa-4.0): https://zenodo.org/api/records/7068130
+# EVALUATION ONLY (decided 2026-11-27): CC BY-NC-SA 4.0; never in a training list. See data_survey/eval_only_catalogue_20261127.md
+eval_vivos	ARCHIVES/vivos.tar.gz	https://zenodo.org/api/records/7068130/files/vivos.tar.gz/content	1474408300	md5:72972a8b14050f3f11ea7c3debabd7af

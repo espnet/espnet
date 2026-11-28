@@ -1,0 +1,10 @@
+# corpus_dir	relative_path	url	size_bytes	checksum	unpack
+# Zenodo record 7882613 (cc-by-4.0): https://zenodo.org/api/records/7882613
+# EVALUATION ONLY (decided 2026-11-27): Zenodo CC BY 4.0 but built from ToyADMOS2/MIMII DG (NC/SA), treated as NC (survey round 2); never in a training list. See data_survey/eval_only_catalogue_20261127.md
+eval_dcase2023_t2	ARCHIVES/dev_valve.zip	https://zenodo.org/api/records/7882613/files/dev_valve.zip/content	269868303	md5:b2051a2022eadb53cd97581120811cae
+eval_dcase2023_t2	ARCHIVES/dev_bearing.zip	https://zenodo.org/api/records/7882613/files/dev_bearing.zip/content	282592788	md5:8a813bc8d8f156b5395bfccdfac7673c
+eval_dcase2023_t2	ARCHIVES/dev_gearbox.zip	https://zenodo.org/api/records/7882613/files/dev_gearbox.zip/content	310645905	md5:b6e55f6a31faa0fc8569ec0afdd53ccf
+eval_dcase2023_t2	ARCHIVES/dev_fan.zip	https://zenodo.org/api/records/7882613/files/dev_fan.zip/content	292684010	md5:9348591e96fb0ad499a1e33b082562fc
+eval_dcase2023_t2	ARCHIVES/dev_ToyCar.zip	https://zenodo.org/api/records/7882613/files/dev_ToyCar.zip/content	390284140	md5:4e3bf15f4101ed4ed4f1fecde2e2b2a3
+eval_dcase2023_t2	ARCHIVES/dev_slider.zip	https://zenodo.org/api/records/7882613/files/dev_slider.zip/content	293270182	md5:b3f8dee36b4718c36d659a4fd1c4afe0
+eval_dcase2023_t2	ARCHIVES/dev_ToyTrain.zip	https://zenodo.org/api/records/7882613/files/dev_ToyTrain.zip/content	323426307	md5:6b02a6c65eebb3b8b1ae59a6b25bb897

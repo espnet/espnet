@@ -1,0 +1,5 @@
+# corpus_dir	relative_path	url	size_bytes	checksum	unpack
+# Zenodo record 1252143 (cc-by-nc-sa-4.0): https://zenodo.org/api/records/1252143
+# EVALUATION ONLY (decided 2026-11-27): CC BY-NC-SA 4.0; never in a training list. See data_survey/eval_only_catalogue_20261127.md
+eval_voicehome2	ARCHIVES/voiceHome-2_corpus_v1.0.zip	https://zenodo.org/api/records/1252143/files/voiceHome-2_corpus_v1.0.zip/content	2621330536	md5:03ed09f10942b050706fdf990744eae0
+eval_voicehome2	ARCHIVES/voiceHome-2_corpus_v1.0_documentation.pdf	https://zenodo.org/api/records/1252143/files/voiceHome-2_corpus_v1.0_documentation.pdf/content	1343359	md5:91850ea18303eae9b2cb0d5df46f552c

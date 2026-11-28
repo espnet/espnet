@@ -1,0 +1,6 @@
+# corpus_dir	relative_path	url	size_bytes	checksum	unpack
+# Korean Corpus of Spontaneous Speech (Seoul Corpus), OpenSLR 113 (https://www.openslr.org/113/)
+# EVALUATION ONLY (decided 2026-11-27): CC BY-NC 2.0; never in a training list. See data_survey/eval_only_catalogue_20261127.md
+eval_seoul_corpus	ARCHIVES/label.tgz	https://openslr.elda.org/resources/113/label.tgz	57779067	
+eval_seoul_corpus	ARCHIVES/readme.tgz	https://openslr.elda.org/resources/113/readme.tgz	27530017	
+eval_seoul_corpus	ARCHIVES/sound.tgz	https://openslr.elda.org/resources/113/sound.tgz	2589900202	

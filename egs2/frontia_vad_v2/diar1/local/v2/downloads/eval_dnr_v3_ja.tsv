@@ -1,0 +1,5 @@
+# corpus_dir	relative_path	url	size_bytes	checksum	unpack
+# Zenodo record 12702446 (cc-by-sa-4.0): https://zenodo.org/api/records/12702446
+# EVALUATION ONLY (decided 2026-11-27): CC BY-SA 4.0; Japanese test set only (Dravidian, Indo-Aryan, Bantu, Basque, Yoruba sets are records 12659906, 12702448, 12659569, 12659875, 12659887); never in a training list. See data_survey/eval_only_catalogue_20261127.md
+eval_dnr_v3_ja	ARCHIVES/dnr-v3-jpn-metadata.tar.gz	https://zenodo.org/api/records/12702446/files/dnr-v3-jpn-metadata.tar.gz/content	2122485	md5:d3a3723b6d37f0bceba2d65c8e3f6028
+eval_dnr_v3_ja	ARCHIVES/dnr-v3-jpn-audio.test.tar.gz	https://zenodo.org/api/records/12702446/files/dnr-v3-jpn-audio.test.tar.gz/content	32640676531	md5:eedae1e3c351bd229120bba4674068ce

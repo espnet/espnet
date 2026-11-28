@@ -1,0 +1,9 @@
+# corpus_dir	relative_path	url	size_bytes	checksum	unpack
+# licence CC-BY-4.0: https://www.kielipankki.fi/download/SKN/README.txt: Licensed under CC BY 4.0 (licence page urn:nbn:fi:lb-2023012602; rightholder Institute for the Languages of Finland); directory listing marks each zip CC BY; anonymous HTTP
+# 6 files
+kielipankki_skn	ARCHIVES/README.txt	https://www.kielipankki.fi/download/SKN/README.txt	1953	
+kielipankki_skn	ARCHIVES/skn_01-10.zip	https://www.kielipankki.fi/download/SKN/skn_01-10.zip	4805080344	md5:bb2201b5c9f68e9a34ca6c475ec5c156
+kielipankki_skn	ARCHIVES/skn_11-20.zip	https://www.kielipankki.fi/download/SKN/skn_11-20.zip	5004093255	md5:7c3aa64d67c5312e2a8cb9994a8c8188
+kielipankki_skn	ARCHIVES/skn_21-30.zip	https://www.kielipankki.fi/download/SKN/skn_21-30.zip	5125225164	md5:554b52153e6674abba2338087d1c6682
+kielipankki_skn	ARCHIVES/skn_31-40.zip	https://www.kielipankki.fi/download/SKN/skn_31-40.zip	5445117187	md5:5f9a6f6359b05a46f1c82efec942ff1a
+kielipankki_skn	ARCHIVES/skn_41-50.zip	https://www.kielipankki.fi/download/SKN/skn_41-50.zip	4815503289	md5:946d5d8768aa5fd680c00e7455708a8e

@@ -1,0 +1,8 @@
+# corpus_dir	relative_path	url	size_bytes	checksum	unpack
+# Hugging Face dataset myleslinder/crema-d @ 8a11ae8cb89df0d49a85ab0a64410a9f354c11e4 (odbl)
+# EVALUATION ONLY (decided 2026-11-27): ODbL 1.0 + DbCL; third-party HF mirror of github.com/CheyneyComputerScience/CREMA-D; never in a training list. See data_survey/eval_only_catalogue_20261127.md
+eval_crema_d	ARCHIVES/.gitattributes	https://huggingface.co/datasets/myleslinder/crema-d/resolve/8a11ae8cb89df0d49a85ab0a64410a9f354c11e4/.gitattributes	2307	
+eval_crema_d	ARCHIVES/.gitignore	https://huggingface.co/datasets/myleslinder/crema-d/resolve/8a11ae8cb89df0d49a85ab0a64410a9f354c11e4/.gitignore	41	
+eval_crema_d	ARCHIVES/README.md	https://huggingface.co/datasets/myleslinder/crema-d/resolve/8a11ae8cb89df0d49a85ab0a64410a9f354c11e4/README.md	2804	
+eval_crema_d	ARCHIVES/crema-d.py	https://huggingface.co/datasets/myleslinder/crema-d/resolve/8a11ae8cb89df0d49a85ab0a64410a9f354c11e4/crema-d.py	5618	
+eval_crema_d	ARCHIVES/data/crema_d.tar.gz	https://huggingface.co/datasets/myleslinder/crema-d/resolve/8a11ae8cb89df0d49a85ab0a64410a9f354c11e4/data/crema_d.tar.gz	470756748	sha256:87b9dcce1fdcad68f8769201e047b505ff31cb38c782a6757aa2fb59c31e5590

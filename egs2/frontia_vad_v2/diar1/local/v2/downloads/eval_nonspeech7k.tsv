@@ -1,0 +1,8 @@
+# corpus_dir	relative_path	url	size_bytes	checksum	unpack
+# Zenodo record 6967442 (cc-by-4.0): https://zenodo.org/api/records/6967442
+# EVALUATION ONLY (decided 2026-11-27): Zenodo metadata says CC BY 4.0 but the record text says CC BY-NC-SA 4.0, sources Freesound/YouTube/Aigei; never in a training list. See data_survey/eval_only_catalogue_20261127.md
+eval_nonspeech7k	ARCHIVES/train.zip	https://zenodo.org/api/records/6967442/files/train.zip/content	2317217784	md5:6841287789e0cddb60174eb7bbde8d64
+eval_nonspeech7k	ARCHIVES/youtube ID vs link .TXT	https://zenodo.org/api/records/6967442/files/youtube%20ID%20vs%20link%20.TXT/content	1363	md5:16fe64c4bcc270cb211762d22602eaaf
+eval_nonspeech7k	ARCHIVES/test.zip	https://zenodo.org/api/records/6967442/files/test.zip/content	221775350	md5:791585589019d07e01ef427675f75eca
+eval_nonspeech7k	ARCHIVES/metadata of train set .csv	https://zenodo.org/api/records/6967442/files/metadata%20of%20train%20set%20.csv/content	478461	md5:cf8f7a57d49c43dd4e5c05c3707291d3
+eval_nonspeech7k	ARCHIVES/metadata of test set.csv	https://zenodo.org/api/records/6967442/files/metadata%20of%20test%20set.csv/content	51845	md5:872465ca83b24dc80f1483ff50dbeef3

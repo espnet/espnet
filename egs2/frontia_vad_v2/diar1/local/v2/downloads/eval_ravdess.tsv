@@ -1,0 +1,5 @@
+# corpus_dir	relative_path	url	size_bytes	checksum	unpack
+# Zenodo record 1188976 (cc-by-nc-sa-4.0): https://zenodo.org/api/records/1188976
+# EVALUATION ONLY (decided 2026-11-27): CC BY-NC-SA 4.0; audio-only zips (speech and song); never in a training list. See data_survey/eval_only_catalogue_20261127.md
+eval_ravdess	ARCHIVES/Audio_Song_Actors_01-24.zip	https://zenodo.org/api/records/1188976/files/Audio_Song_Actors_01-24.zip/content	225505317	md5:5411230427d67a21e18aa4d466e6d1b9
+eval_ravdess	ARCHIVES/Audio_Speech_Actors_01-24.zip	https://zenodo.org/api/records/1188976/files/Audio_Speech_Actors_01-24.zip/content	208468073	md5:bc696df654c87fed845eb13823edef8a
