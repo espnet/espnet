@@ -140,3 +140,39 @@ def test_categories_through_from_kaldi_keep_espnet_rttm(tmp_path):
     ev = cat.load_map(HERE.parents[1] / "conf" / "label_map" / "eval_vocal_ignore.yaml")
     _, ignore = cat.apply_map(segs, {}, ev)
     assert sorted(s.category for s in ignore) == ["speech/blank", "vocal/laughter"]
+
+
+def test_conversation_sound_events():
+    from adapters_conversation import (
+        maptask_sounds,
+        openyap_sounds,
+        trs_sounds,
+        trs_speech,
+    )
+
+    trs = (
+        b"<Trans><Episode><Section type='report' startTime='0' endTime='9'>"
+        b"<Turn speaker='spk1' startTime='0' endTime='9'>"
+        b"bonjour <Event desc='rire' type='noise'/>"
+        b"<Sync time='3'/><Event desc='rire' type='noise'/>"
+        b"<Sync time='4'/><Event desc='b' type='noise'/>"
+        b"<Sync time='5'/>merci"
+        b"</Turn></Section></Episode></Trans>"
+    )
+    assert trs_speech(trs) == [(0.0, 3.0), (5.0, 9.0)]
+    assert trs_sounds(trs) == [
+        (3.0, 4.0, "vocal/laughter", "rire"),
+        (4.0, 5.0, "vocal/breath", "b"),
+    ]
+    xml = (
+        b'<x xmlns:nite="n"><tu start="0.5" end="1.0">ok</tu>'
+        b'<noi start="1.2" end="1.5" type="laugh"/><sil start="1.5" end="2"/></x>'
+    )
+    assert maptask_sounds(xml) == [(1.2, 1.5, "vocal/laughter", "laugh")]
+    t = {
+        "words": [
+            {"word": "hi", "start": 0, "end": 0.4, "type": "word"},
+            {"word": "[laughter]", "start": 0.5, "end": 1.0, "type": "event"},
+        ]
+    }
+    assert openyap_sounds(t) == [(0.5, 1.0, "vocal/laughter", "event:[laughter]")]

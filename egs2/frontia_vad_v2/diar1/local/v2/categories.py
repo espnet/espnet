@@ -382,6 +382,53 @@ def negative_type_category(negative_type: str) -> str:
     return "sound/other_sound"
 
 
+# Words that name a vocal sound in annotations (AMI/ICSI vocalsound types and
+# descriptions, Map Task <noi> types, OpenYAP word types, Transcriber events of
+# French-language tools: "rire" laugh, "tx" cough, "b" breath, ...)
+VOCAL_LABELS = (
+    ("laugh", "vocal/laughter"),
+    ("rire", "vocal/laughter"),
+    ("giggle", "vocal/laughter"),
+    ("cough", "vocal/cough"),
+    ("toux", "vocal/cough"),
+    ("breath", "vocal/breath"),
+    ("inhale", "vocal/breath"),
+    ("exhale", "vocal/breath"),
+    ("sniff", "vocal/breath"),
+    ("sigh", "vocal/sigh"),
+    ("sneeze", "vocal/sneeze"),
+    ("throat", "vocal/throat_clear"),
+    ("cry", "vocal/cry"),
+    ("scream", "vocal/scream"),
+    ("lip", "vocal/speaker_noise"),
+    ("smack", "vocal/speaker_noise"),
+    ("click", "vocal/speaker_noise"),
+    ("mouth", "vocal/speaker_noise"),
+)
+# Transcriber's short event codes
+TRANSCRIBER_EVENTS = {
+    "b": "vocal/breath",
+    "bb": "vocal/speaker_noise",
+    "pf": "vocal/breath",
+    "i": "vocal/breath",
+    "e": "vocal/other_vocal",
+    "tx": "vocal/cough",
+    "n": "vocal/speaker_noise",
+    "sif": "vocal/other_vocal",
+}
+
+
+def vocal_label_category(label: str) -> str:
+    """Category of an annotation's vocal-sound label (else vocal/other_vocal)."""
+    t = label.strip().lower()
+    if t in TRANSCRIBER_EVENTS:
+        return TRANSCRIBER_EVENTS[t]
+    for key, category in VOCAL_LABELS:
+        if key in t:
+            return category
+    return "vocal/other_vocal"
+
+
 # The class of a clip with several labels: the first group in this order that
 # one of its labels falls in (a laugh over traffic is a laugh).
 LABEL_PRIORITY = (

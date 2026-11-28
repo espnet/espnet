@@ -16,6 +16,7 @@ from typing import Dict, Iterable, Iterator, List, Tuple
 
 import numpy as np
 import soundfile
+from categories import vocal_label_category
 from registry import corpus, mine, split_by_hash
 from sources import (
     decode,
@@ -136,6 +137,30 @@ def trs_speech(data: bytes) -> list:
     such as "%hum" are). Turns without a speaker and sections of type
     "nontrans" are non-speech.
     """
+    return [(a, b) for a, b, words, _ in trs_pieces(data) if words]
+
+
+def trs_sounds(data: bytes) -> list:
+    """(start, end, category, tags) of the pieces of a .trs with events but no words.
+
+    The category is that of the Event descriptions (categories.vocal_label_category,
+    e.g. "rire" laughter, "b" breath); a piece's events stand for the whole piece.
+    """
+    out = []
+    for a, b, words, events in trs_pieces(data):
+        if not words:
+            for c in sorted({vocal_label_category(e) for e in events}):
+                tags = [e for e in events if vocal_label_category(e) == c]
+                out.append((a, b, c, ",".join(tags)))
+    return out
+
+
+def trs_pieces(data: bytes) -> list:
+    """(start, end, has words, event descriptions) of the pieces of a .trs file.
+
+    The pieces of trs_speech(), including those without words; events are the
+    desc of the Event elements inside a piece.
+    """
     root = ET.fromstring(data)
     out = []
     for section in root.iter("Section"):
@@ -147,15 +172,19 @@ def trs_speech(data: bytes) -> list:
             end = float(turn.get("endTime"))
             times = [float(turn.get("startTime"))]
             texts = [turn.text or ""]
+            events = [[]]
             for child in turn:
                 if child.tag == "Sync":
                     times.append(float(child.get("time")))
                     texts.append("")
+                    events.append([])
+                elif child.tag == "Event" and (child.get("desc") or "").strip():
+                    events[-1].append(child.get("desc").strip())
                 texts[-1] += child.tail or ""
             times.append(end)
             for k, text in enumerate(texts):
-                if _has_words(text) and times[k + 1] > times[k]:
-                    out.append((times[k], times[k + 1]))
+                if times[k + 1] > times[k] and (_has_words(text) or events[k]):
+                    out.append((times[k], times[k + 1], _has_words(text), events[k]))
     return out
 
 
@@ -482,10 +511,23 @@ def primock57(root, writers, shard: int, nshards: int):
 MAPTASK_TU = re.compile(r"(?:^|/)(q\d[en]c\d+)\.([gf])\.timed-units\.xml$")
 
 
+def maptask_sounds(data: bytes) -> list:
+    """(start, end, category, tags) of the <noi> elements of a timed-units file."""
+    out = []
+    for el in ET.fromstring(data).iter():
+        if el.tag.rsplit("}", 1)[-1] == "noi" and el.get("start") and el.get("end"):
+            label = el.get("type") or (el.text or "").strip() or "noise"
+            a, b = float(el.get("start")), float(el.get("end"))
+            if b > a:
+                out.append((a, b, vocal_label_category(label), label))
+    return out
+
+
 def maptask_speech(data: bytes) -> list:
     """Spans of the <tu> elements of a Map Task NXT timed-units file.
 
-    Silence (<sil>) and noise (<noi>) elements are non-speech.
+    Silence (<sil>) and noise (<noi>) elements are non-speech; the noises are
+    categories (maptask_sounds).
     """
     out = []
     for el in ET.fromstring(data).iter():
@@ -515,10 +557,12 @@ def maptask(root, writers, shard: int, nshards: int):
     root = Path(root, "ARCHIVES")
     zpath = root / "hcrcmaptask.nxtformatv2-1.zip"
     units: Dict[str, list] = {}
+    sounds: Dict[str, list] = {}
     for name, data in iter_zip(zpath, (".timed-units.xml",)):
         m = MAPTASK_TU.search(name)
         if m:
             units.setdefault(m.group(1), []).extend(maptask_speech(data))
+            sounds.setdefault(m.group(1), []).extend(maptask_sounds(data))
     for i, wav in enumerate(sorted(root.glob("*.mix.wav"))):
         if not mine(i, shard, nshards):
             continue
@@ -537,6 +581,7 @@ def maptask(root, writers, shard: int, nshards: int):
             mic="close",
             lang="eng",
             source=wav.name,
+            categories=sounds.get(dlg, []),
         )
 
 
@@ -663,12 +708,34 @@ def _kallaama_add(writers, stem, name, wav, trs):
     split = split_by_hash(stem[:-1])
     lang = stem[:3]  # wol, fuc (Pulaar), srr (Sereer)
     try:
-        speech = trs_speech(trs)
+        speech, sounds = trs_speech(trs), trs_sounds(trs)
     except ET.ParseError as e:
         writers[split].skip(name, f"trs: {e}")
         return
     x, rate = decode(wav)
-    add(writers[split], stem, x, rate, speech=speech, lang=lang, source=name)
+    add(
+        writers[split],
+        stem,
+        x,
+        rate,
+        speech=speech,
+        lang=lang,
+        source=name,
+        categories=sounds,
+    )
+
+
+def openyap_sounds(transcript: dict) -> list:
+    """(start, end, category, tags) of the non-word items of an OpenYAP transcript."""
+    out = []
+    for w in transcript.get("words", []):
+        kind = w.get("type", "word")
+        if kind != "word" and w.get("start") is not None and w.get("end") is not None:
+            a, b = float(w["start"]), float(w["end"])
+            label = f"{kind}:{w.get('word', '')}".rstrip(":")
+            if b > a:
+                out.append((a, b, vocal_label_category(label), label))
+    return out
 
 
 def openyap_speech(transcript: dict) -> list:
@@ -733,9 +800,11 @@ def openyap(root, writers, shard: int, nshards: int):
 
 def _openyap_add(writers, cid, data, source):
     split = split_by_hash(cid)
-    speech = []
+    speech, sounds = [], []
     for s in "ab":
-        speech += openyap_speech(json.loads(data[f"speaker_{s}_transcript.json"]))
+        t = json.loads(data[f"speaker_{s}_transcript.json"])
+        speech += openyap_speech(t)
+        sounds += openyap_sounds(t)
     speech = bridge(speech)
     for s in "ab":
         x, rate = decode(data[f"speaker_{s}.flac"])
@@ -748,6 +817,7 @@ def _openyap_add(writers, cid, data, source):
             mic="device",
             lang="eng",
             source=f"{source}/speaker_{s}.flac",
+            categories=sounds,
         )
 
 
