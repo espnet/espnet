@@ -19,17 +19,35 @@ min() {
 
 
 stage=1
-stop_stage=100
+stop_stage=4
 nj=4000
 
 file_list= # Paths to the json files to be processed
 yodas2_data_path= # Path to the YODAS2 dataset directory
 save_dir= # Directory to save the intermediate data
 
+# Open ASR Leaderboard options (opt-in via --stage 5 or --prepare_openasr true)
+prepare_openasr=false
+openasr_subset=full
+openasr_sets=
+openasr_revision=b6bdcd0beb34f8975dc659796176d88f43aff502
+openasr_seed=0
+
 . utils/parse_options.sh
+
+if "${prepare_openasr}"; then
+    [ "${stop_stage}" -lt 5 ] && stop_stage=5
+fi
 
 . ./path.sh
 . ./cmd.sh
+
+if [ -n "${openasr_sets}" ]; then
+    :
+elif [ "${openasr_subset}" != "full" ] && [ "${openasr_subset}" != "small" ]; then
+    echo "Error: --openasr_subset must be either 'full' or 'small', got: ${openasr_subset}"
+    exit 1
+fi
 
 longform_data_file="${save_dir}/all_data.jsonl"
 
@@ -114,4 +132,37 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
         --out_dir data/yodas0.10
     echo "Data conversion completed. Output saved to data/yodas0.10."
     echo "You can now use the data in Kaldi format for further processing."
+fi
+
+
+if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ] && { [ ${stage} -ge 5 ] || "${prepare_openasr}"; }; then
+    echo "Stage 5: Prepare Open ASR Leaderboard test sets"
+
+    if [ -n "${openasr_sets}" ]; then
+        _sets="${openasr_sets}"
+    elif [ "${openasr_subset}" = "small" ]; then
+        _sets="librispeech:test.clean librispeech:test.other ami_cleaned:test voxpopuli_cleaned_aa:test earnings22:test common_voice:test"
+    else
+        _sets="librispeech:test.clean librispeech:test.other ami_cleaned:test voxpopuli_cleaned_aa:test common_voice:test tedlium:test gigaspeech_cleaned:test spgispeech:test earnings22:test"
+    fi
+
+    for pair in ${_sets}; do
+        dataset=${pair%%:*}
+        split=${pair#*:}
+        prefix=$(echo "${dataset}_${split}" | tr -c 'A-Za-z0-9_\n' '_')
+
+        # 1. Full split: data/openasr_<set>
+        if [ "${openasr_subset}" != "small" ]; then
+            data_full="data/openasr_${prefix}"
+            python3 local/prepare_hf_asr_leaderboard.py \
+                --dataset "${dataset}" --split "${split}" --all \
+                --revision "${openasr_revision}" --out "${data_full}"
+        fi
+
+        # 2. Seeded 100-sample: data/openasr_<set>_100
+        data_100="data/openasr_${prefix}_100"
+        python3 local/prepare_hf_asr_leaderboard.py \
+            --dataset "${dataset}" --split "${split}" --n 100 --seed "${openasr_seed}" \
+            --max_dur 30.0 --revision "${openasr_revision}" --out "${data_100}"
+    done
 fi

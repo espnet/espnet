@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 import argparse
+import copy
 import logging
 import sys
 from itertools import groupby
@@ -1794,6 +1795,18 @@ def inference(
         **speech2text_kwargs,
     )
 
+    # Speech2Text pads or trims each utterance to the model's window itself, so
+    # the loader keeps the audio whole and the longer ones can go to decode_long
+    max_speech_samples = int(
+        speech2text.preprocessor_conf["fs"]
+        * speech2text.preprocessor_conf["speech_length"]
+    )
+    train_args = copy.copy(speech2text.s2t_train_args)
+    train_args.preprocessor_conf = {
+        **train_args.preprocessor_conf,
+        "speech_length": None,
+    }
+
     # 3. Build data-iterator
     loader = S2TTask.build_streaming_iterator(
         data_path_and_name_and_type,
@@ -1801,7 +1814,7 @@ def inference(
         batch_size=batch_size,
         key_file=key_file,
         num_workers=num_workers,
-        preprocess_fn=S2TTask.build_preprocess_fn(speech2text.s2t_train_args, False),
+        preprocess_fn=S2TTask.build_preprocess_fn(train_args, False),
         collate_fn=S2TTask.build_collate_fn(speech2text.s2t_train_args, False),
         allow_variable_data_keys=allow_variable_data_keys,
         inference=True,
@@ -1816,10 +1829,36 @@ def inference(
             _bs = len(next(iter(batch.values())))
             assert len(keys) == _bs, f"{len(keys)} != {_bs}"
 
+            # Decode the utterances longer than the window one by one with
+            # decode_long, and the others below as one batch, cut to the window
+            # (the collate pads them to the longest utterance of the batch)
+            lengths = batch["speech_lengths"]
+            is_long = lengths > max_speech_samples
+            long_results = {}
+            for b in is_long.nonzero().flatten().tolist():
+                segs = speech2text.decode_long(
+                    batch["speech"][b, : lengths[b]],
+                    lang_sym=lang_sym,
+                    task_sym=task_sym,
+                )
+                text = " ".join(t for _, _, t in segs)
+                hyp = Hypothesis(score=0.0, scores={}, states={}, yseq=[])
+                long_results[b] = [(text, [], [], text, hyp)]
+            all_keys = keys
+            short = (~is_long).nonzero().flatten()
+            keys = [all_keys[b] for b in short.tolist()]
+            batch = {
+                k: v[short, :max_speech_samples] if k == "speech" else v[short]
+                for k, v in batch.items()
+            }
+            _bs = len(keys)
+
             # One n-best list of
             # (text, token, token_int, text_nospecial, hyp_object) per key
             try:
-                if batch_size > 1:
+                if _bs == 0:
+                    batch_results = []
+                elif batch_size > 1:
                     batch_results = speech2text.batch_decode(**batch)
                 else:
                     batch_results = [
@@ -1851,8 +1890,10 @@ def inference(
                         except TooShortUttError as one_e:
                             logging.warning(f"Utterance {key} {one_e}")
                             batch_results.append(placeholder)
+            for b, results in long_results.items():
+                batch_results.insert(b, results)
 
-            for key, results in zip(keys, batch_results):
+            for key, results in zip(all_keys, batch_results):
                 encoder_interctc_res = None
                 if isinstance(results, tuple):
                     results, encoder_interctc_res = results

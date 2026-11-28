@@ -232,3 +232,26 @@ def test_rir_delay_of_a_multichannel_rir(tmp_path, per_channel, expected):
         corr = [np.dot(out[k:, ch], speech[: 1600 - k]) for k in range(64)]
         shifts.append(int(np.argmax(corr)))
     assert shifts == expected
+
+
+@pytest.mark.parametrize(
+    "speech_length, n_in, n_out",
+    [(1, 8000, 16000), (1, 40000, 16000), (None, 8000, 8000), (None, 40000, 40000)],
+)
+def test_s2t_preprocessor_speech_length_none_keeps_the_length(
+    speech_length, n_in, n_out
+):
+    # validation (train=False) still pads or trims to speech_length by default;
+    # None is what s2t_inference uses so that long audio can go to decode_long
+    preprocessor = S2TPreprocessor(
+        train=False,
+        token_type="word",
+        token_list=["<unk>", "hello", "<notimestamps>", "<0.00>", "<30.00>"],
+        speech_length=speech_length,
+    )
+    speech = np.random.default_rng(0).standard_normal(n_in).astype(np.float32)
+    out = preprocessor("utt", {"speech": speech})
+    assert out["speech"].shape[0] == n_out
+    np.testing.assert_array_equal(
+        out["speech"].reshape(-1)[: min(n_in, n_out)], speech[:n_out]
+    )
