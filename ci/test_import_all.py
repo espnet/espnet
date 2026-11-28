@@ -21,7 +21,8 @@ else:
 failed_imports = []
 for dirname in ["espnet2", "espnet3", "egs3"]:
     for f in glob.glob(f"{dirname}/**/*.py"):
-        module_name = f.replace("/", ".")[:-3]
+        # A package initializer is imported under the package's own name.
+        module_name = f.removesuffix(".py").replace("/", ".").removesuffix(".__init__")
 
         if (
             (

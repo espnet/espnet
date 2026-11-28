@@ -40,7 +40,7 @@ Their inputs are already prepared, so the data-preparation and cluster-launch
 files are unnecessary:
 
 - **Environment:** there is no `path.sh` to activate `tools/venv`. Activate the
-  environment from the [SpeechLM installation guide](../../../espnet2/speechlm/INSTALL.md)
+  environment from the [SpeechLM installation guide](../../../espnet3/systems/speechlm/src/INSTALL.md)
   first, or pass `--python /path/to/env/bin/python`. `train.sh` adds the repository
   root to `PYTHONPATH` and uses that Python interpreter.
 - **Launch:** there is no `cmd.sh`, `${cuda_cmd}`, `run.pl`, or `slurm.pl` dispatch.

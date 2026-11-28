@@ -114,7 +114,7 @@ or conversion for vLLM.
 
 For a first look, [listen to the demos](https://bagpiper-web.github.io/).
 To run the model locally, activate the environment from the
-[SpeechLM installation guide](../../../espnet2/speechlm/INSTALL.md).
+[SpeechLM installation guide](../../../espnet3/systems/speechlm/src/INSTALL.md).
 
 ### Native ESPnet
 
@@ -178,7 +178,7 @@ speech-generation support for the TTS-SFT checkpoint; see the
 
 ## Setup and inputs
 
-Activate the [SpeechLM environment](../../../espnet2/speechlm/INSTALL.md)
+Activate the [SpeechLM environment](../../../espnet3/systems/speechlm/src/INSTALL.md)
 before launching training. `run.sh` uses the active Python environment and
 invokes `torchrun` directly. See the
 [template's training-only layout](../../TEMPLATE/speechlm1/README.md#training-only-recipes)

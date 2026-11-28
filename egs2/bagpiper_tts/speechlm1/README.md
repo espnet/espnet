@@ -111,7 +111,7 @@ audio input encoder; both encoder and codec stay frozen during fine-tuning.
 ### Native ESPnet
 
 Activate the environment from the
-[SpeechLM installation guide](../../../espnet2/speechlm/INSTALL.md), then run
+[SpeechLM installation guide](../../../espnet3/systems/speechlm/src/INSTALL.md), then run
 from the **ESPnet repository root**:
 
 ```bash

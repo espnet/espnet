@@ -261,7 +261,7 @@ egs2 = [
   "scikit-learn>=1.0.0",
 ]
 
-# Dependencies for SpeechLM training (espnet2/speechlm).
+# Dependencies for the native SpeechLM training engine.
 # Shared packages are supplied by the base dependencies above.
 speechlm = [
   "lhotse",
