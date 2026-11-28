@@ -1,0 +1,9 @@
+# corpus_dir	relative_path	url	size_bytes	checksum	unpack
+# S3 https://s3.amazonaws.com/download.opencontent.netflix.com/ prefixes Meridian/, keys ~ '_EN_20_B\\.mxf$|/audio/atmos/.*\\.wav$|/subtitles/.*\\.stl$|licen'; licence CC-BY-4.0 per the licence file of each folder (Meridian/creative-commons-attribution-4-intl-public-license.txt); per-file licence: netflix_meridian.licences.tsv
+# 6 files, 6.56 GB
+netflix_meridian	ARCHIVES/Meridian/MER_SHR_C_EN-XX_US-NR_51_LTRT_UHD_20160913_OV/MER_SHR_C_EN-XX_US-NR_51_LTRT_UHD_20160913_OV/MER_SHR_C_EN-XX_US-NR_51_LTRT_UHD_20160913_OV_01_EN_20_B.mxf	https://s3.amazonaws.com/download.opencontent.netflix.com/Meridian/MER_SHR_C_EN-XX_US-NR_51_LTRT_UHD_20160913_OV/MER_SHR_C_EN-XX_US-NR_51_LTRT_UHD_20160913_OV/MER_SHR_C_EN-XX_US-NR_51_LTRT_UHD_20160913_OV_01_EN_20_B.mxf	207071490	
+netflix_meridian	ARCHIVES/Meridian/audio/atmos/Meridian_ADMFromDAMF_JAN2021.wav	https://s3.amazonaws.com/download.opencontent.netflix.com/Meridian/audio/atmos/Meridian_ADMFromDAMF_JAN2021.wav	6351523402	
+netflix_meridian	ARCHIVES/Meridian/creative-commons-attribution-4-intl-public-license.txt	https://s3.amazonaws.com/download.opencontent.netflix.com/Meridian/creative-commons-attribution-4-intl-public-license.txt	105020	md5:118a301e5fe5ab37cbd71189c1befcbb
+netflix_meridian	ARCHIVES/Meridian/subtitles/STL/Meridian_da_SUBS.stl	https://s3.amazonaws.com/download.opencontent.netflix.com/Meridian/subtitles/STL/Meridian_da_SUBS.stl	9856	md5:dd2f2c1feb97738fc3078862317325f9
+netflix_meridian	ARCHIVES/Meridian/subtitles/STL/Meridian_en_CC.stl	https://s3.amazonaws.com/download.opencontent.netflix.com/Meridian/subtitles/STL/Meridian_en_CC.stl	14592	md5:d5b44fc4a679ef5ffb4b15fb56138e6e
+netflix_meridian	ARCHIVES/Meridian/subtitles/STL/Meridian_sv_SUBS.stl	https://s3.amazonaws.com/download.opencontent.netflix.com/Meridian/subtitles/STL/Meridian_sv_SUBS.stl	13312	md5:5d4d3fda6b4c38bb7c4c95f513e79daf

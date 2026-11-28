@@ -66,18 +66,24 @@ def served_size(url: str) -> str:
     return sizes[-1] if sizes and sizes[-1].isdigit() and int(sizes[-1]) > 0 else ""
 
 
+# seconds to wait before each request (--delay), for hosts serving many small files
+DELAY = 0.0
+
+
 def fetch(row, root: Path) -> str:
     corpus, rel, url, size, check, unpack = row
     dest = root / corpus / rel
     dest.parent.mkdir(parents=True, exist_ok=True)
     # Without a listed size, the server's Content-Length is the size to reach. A failed
     # wget -O leaves an empty file behind, which must not count as downloaded.
+    time.sleep(DELAY)
     size = size or served_size(url)
     present = complete(dest, size)
     fetched = False
     for attempt in range(3):
         if complete(dest, size):
             break
+        time.sleep(DELAY)
         r = subprocess.run(
             [
                 "wget",
@@ -151,14 +157,19 @@ def main():
         "--all", action="store_true", help="fetch every manifest (incl. eval_*)"
     )
     ap.add_argument("--jobs", type=int, default=8)
+    ap.add_argument(
+        "--delay", type=float, default=0.0, help="seconds to wait before each request"
+    )
     a = ap.parse_args()
     only = set(filter(None, a.corpora.split(",")))
     if not only and not a.all:
         ap.error("no --corpora given; pass --all to fetch every manifest")
     rows = []
     for m in sorted(MANIFESTS.glob("*.tsv")):
-        # <corpus>.licences.tsv: per-file licences for the licence gate, not downloads
-        if m.name.endswith(".licences.tsv") or (only and m.stem not in only):
+        # <corpus>.licences.tsv (per-file licences for the licence gate) and other
+        # <corpus>.<table>.tsv side tables (e.g. tatoeba_audio.text.tsv) are not
+        # downloads
+        if "." in m.stem or (only and m.stem not in only):
             continue
         for line in m.read_text().splitlines():
             if line.strip() and not line.startswith("#"):
@@ -166,6 +177,8 @@ def main():
     rows.sort(key=lambda r: -int(r[3] or 0))  # biggest first
     log(f"{len(rows)} files, {sum(int(r[3] or 0) for r in rows) / 1e9:.1f} GB")
     bad = 0
+    global DELAY
+    DELAY = a.delay
     with ThreadPoolExecutor(a.jobs) as ex:
         for res in ex.map(lambda r: safe_fetch(r, a.root), rows):
             log(res)

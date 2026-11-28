@@ -1,0 +1,8 @@
+# corpus_dir	relative_path	url	size_bytes	checksum	unpack
+# S3 https://s3.amazonaws.com/download.opencontent.netflix.com/ prefixes Nocturne/, sparks-mxf-tracks/, keys ~ 'Nocture_ADM\\.wav$|LtRt_Mixdown\\.mxf$|final_mix.*\\.mxf$|licen'; licence CC-BY-4.0 per the licence file of each folder (Nocturne/creative-commons-attribution-4-intl-public-license.txt, sparks-mxf-tracks/creative-commons-attribution-4-intl-public-license.txt); per-file licence: netflix_open_misc.licences.tsv
+# 5 files, 7.06 GB
+netflix_open_misc	ARCHIVES/Nocturne/atmos/Nocture_ADM.wav	https://s3.amazonaws.com/download.opencontent.netflix.com/Nocturne/atmos/Nocture_ADM.wav	6797388766	
+netflix_open_misc	ARCHIVES/Nocturne/creative-commons-attribution-4-intl-public-license.txt	https://s3.amazonaws.com/download.opencontent.netflix.com/Nocturne/creative-commons-attribution-4-intl-public-license.txt	105020	md5:118a301e5fe5ab37cbd71189c1befcbb
+netflix_open_misc	ARCHIVES/Nocturne/nocturne_60fps/imf/nocturne_60fps_s01e03_vdm_hdr_p3d65_pq_20180307_02_3840x2160_dovi_4000nit_imf_ml8_3200Mbps_LtRt_Mixdown.mxf	https://s3.amazonaws.com/download.opencontent.netflix.com/Nocturne/nocturne_60fps/imf/nocturne_60fps_s01e03_vdm_hdr_p3d65_pq_20180307_02_3840x2160_dovi_4000nit_imf_ml8_3200Mbps_LtRt_Mixdown.mxf	191393565	
+netflix_open_misc	ARCHIVES/sparks-mxf-tracks/Welder_final_mix_2017-02-14.mxf	https://s3.amazonaws.com/download.opencontent.netflix.com/sparks-mxf-tracks/Welder_final_mix_2017-02-14.mxf	68969160	
+netflix_open_misc	ARCHIVES/sparks-mxf-tracks/creative-commons-attribution-4-intl-public-license.txt	https://s3.amazonaws.com/download.opencontent.netflix.com/sparks-mxf-tracks/creative-commons-attribution-4-intl-public-license.txt	105020	md5:118a301e5fe5ab37cbd71189c1befcbb

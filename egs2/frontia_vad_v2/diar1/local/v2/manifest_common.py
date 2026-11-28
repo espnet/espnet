@@ -2,7 +2,7 @@
 
 - Fetcher: sequential HTTP GET with a minimum interval between requests, a
   User-Agent that names the project and no person, retries with back-off, and
-  Retry-After honoured on 429/503.
+  Retry-After honoured on 429/503; size() gives a URL's Content-Length (HEAD).
 - licence_id: the SPDX-like id of a licence statement (URL or text).
 - licence_accepted: whether an id may go into a manifest (CC0-1.0, PD, PDM-1.0,
   CC-BY-x.y; never NC, SA or ND).
@@ -64,6 +64,27 @@ class Fetcher:
     def json(self, url: str, data: bytes = None):
         """Return url's body (POST of data when given) parsed as JSON."""
         return json.loads(self.raw(url, data))
+
+    def size(self, url: str) -> str:
+        """Content-Length of a HEAD request to url (redirects followed), or "".
+
+        Waits `interval` seconds between requests like raw(); one try only, so
+        a failing URL gives "" instead of an exception.
+        """
+        wait = self.interval - (time.time() - self.last)
+        if wait > 0:
+            time.sleep(wait)
+        self.last = time.time()
+        self.count += 1
+        req = urllib.request.Request(
+            url, method="HEAD", headers={"User-Agent": self.ua}
+        )
+        try:
+            with urllib.request.urlopen(req, timeout=120) as r:
+                n = r.headers.get("Content-Length", "")
+        except Exception:  # noqa: BLE001 - reported as an unknown size
+            return ""
+        return n if n.isdigit() and int(n) > 0 else ""
 
 
 def licence_id(text: str) -> str:
