@@ -42,7 +42,7 @@ import numpy as np
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
-from categories import refresh_speech  # noqa: E402
+from categories import add_alignment_tags, refresh_speech  # noqa: E402
 from vad_dump import MANIFEST_FIELDS, merge_intervals  # noqa: E402
 
 
@@ -473,6 +473,7 @@ def main():
         "rec_id\tword\tstart\tend\tscore\tseg_start\tseg_end\ttok_start\ttok_end"
         "\tclip\n" + "".join(word_rows)
     )
+    add_alignment_tags(d)  # fillers and sound tags of the transcripts as categories
     (d / "align_dropped.tsv").write_text(
         "".join(f"{r}\t{why}\n" for r, why in sorted(dropped))
     )

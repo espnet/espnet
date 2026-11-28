@@ -507,6 +507,7 @@ def backfill_segments(dump: Path) -> Tuple[List[Segment], Dict[str, int]]:
             # its class only if all members share it
             category = cats.pop() if len(cats) == 1 else "sound/other_sound"
             segs.append(Segment(rec, 0, n, category, format_tags(types)))
+    segs += [s for s in alignment_tag_segments(dump) if s.rec in lengths]
     return segs, lengths
 
 
@@ -542,6 +543,64 @@ def refresh_speech(dump: Path, category: str = "speech/words", keep=None):
     ]
     speech = speech_segments(Path(dump) / "espnet_rttm", category)
     write_categories(path, segs + speech, lengths)
+
+
+# Tokens of aligned transcripts that are not words: fillers written as tags
+# (NB Samtale "%eee", "%emm"), laughter ("%heh"), and bracketed sound tags.
+FILLER_TOKEN = re.compile(r"^%(?:e+[hm]*|m+|h?m+|a+h*|e*h+m*|uh+|um+)$", re.IGNORECASE)
+LAUGH_TOKEN = re.compile(r"^%(?:he+h|ha+h?|haha)$", re.IGNORECASE)
+SOUND_TOKEN = re.compile(r"^[\[<](?P<label>[^\]>]+)[\]>]$")
+
+
+def token_category(token: str) -> Optional[Tuple[str, int]]:
+    """(category, layer) of a token that is a filler or a sound; else None."""
+    if FILLER_TOKEN.match(token):
+        return "speech/filler", DETAIL
+    if LAUGH_TOKEN.match(token):
+        return "vocal/laughter", PRIMARY
+    m = SOUND_TOKEN.match(token)
+    if m:
+        label = m.group("label").strip("/ ").lower()
+        if label in ("noise", "laugh", "laughs", "laughter", "cough", "breath", "sigh"):
+            return (
+                vocal_label_category(label)
+                if label != "noise"
+                else "vocal/speaker_noise"
+            ), PRIMARY
+    return None
+
+
+def alignment_tag_segments(dump: Path, fs: int = 16000) -> List[Segment]:
+    """Segments of the filler and sound tokens of align.tsv (tags "word:<token>")."""
+    path = Path(dump) / "align.tsv"
+    if not path.exists():
+        return []
+    out = []
+    with open(path, newline="") as f:
+        for r in csv.DictReader(f, delimiter="\t", quoting=csv.QUOTE_NONE):
+            hit = token_category(r["word"])
+            if hit is None:
+                continue
+            a, b = int(round(float(r["start"]) * fs)), int(round(float(r["end"]) * fs))
+            if b > a:
+                tag = format_tags([f"word:{r['word']}"])
+                out.append(Segment(r["rec_id"], a, b, hit[0], tag, hit[1]))
+    return out
+
+
+def add_alignment_tags(dump: Path):
+    """Put the filler and sound tokens of align.tsv into categories_rttm.
+
+    Earlier segments of this kind (tags "word:...") are replaced, so the step
+    can run again after a new alignment. No categories_rttm: nothing to do.
+    """
+    path = Path(dump) / "categories_rttm"
+    if not path.exists():
+        return
+    segs, lengths = read_categories(path)
+    segs = [s for s in segs if not s.tags.startswith("word:")]
+    new = [s for s in alignment_tag_segments(dump) if s.rec in lengths]
+    write_categories(path, segs + new, lengths)
 
 
 def check(dump: Path, m: LabelMap, categories: Optional[Path] = None) -> bool:

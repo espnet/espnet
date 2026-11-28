@@ -322,3 +322,45 @@ def test_merged_speech_takes_the_strongest_category():
     assert cats == [("speech/utterance", "ba,laughs"), ("speech/blank", "ba")]
     with pytest.raises(ValueError):
         merge_tagged([(0, 1, "", "vocal/laughter")], "speech/utterance")
+
+
+@pytest.mark.parametrize(
+    "token, hit",
+    [
+        ("%eee", ("speech/filler", cat.DETAIL)),
+        ("%emm", ("speech/filler", cat.DETAIL)),
+        ("%mmm", ("speech/filler", cat.DETAIL)),
+        ("%ehh", ("speech/filler", cat.DETAIL)),
+        ("%heh", ("vocal/laughter", cat.PRIMARY)),
+        ("[noise]", ("vocal/speaker_noise", cat.PRIMARY)),
+        ("<laugh>", ("vocal/laughter", cat.PRIMARY)),
+        ("%unint", None),
+        ("%overlapping", None),
+        ("hello", None),
+        ("(?)", None),
+    ],
+)
+def test_token_category(token, hit):
+    assert cat.token_category(token) == hit
+
+
+def test_alignment_tags_go_into_categories(tmp_path):
+    d = a_dump(tmp_path)  # espnet_rttm as align.py leaves it
+    rec = sorted(cat.read_rttm_lengths(d / "espnet_rttm"))[0]
+    head = "rec_id\tword\tstart\tend\tscore\tseg_start\tseg_end\ttok_start\ttok_end"
+    rows = [("%eee", 0.1, 0.5), ("ja", 0.6, 0.9), ("%heh", 1.0, 1.4)]
+    (d / "align.tsv").write_text(
+        head
+        + "\tclip\n"
+        + "".join(f"{rec}\t{w}\t{a}\t{b}\t-1\t0\t0\t0\t0\tc\n" for w, a, b in rows)
+    )
+    cat.refresh_speech(d)
+    cat.add_alignment_tags(d)
+    cat.add_alignment_tags(d)  # again: no duplicates
+    segs, _ = cat.read_categories(d / "categories_rttm")
+    tagged = sorted((s.category, s.layer, s.start) for s in segs if s.tags != "<NA>")
+    assert tagged == [
+        ("speech/filler", 2, 1600),
+        ("vocal/laughter", 1, 16000),
+    ]
+    assert cat.check(d, cat.load_map(MAPS / "v2x.yaml"))
