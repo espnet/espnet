@@ -34,6 +34,7 @@ from sources import (
     read_zip_member,
     zip_names,
 )
+from vad_dump import merge_intervals
 
 # ---------------------------------------------------------------------------
 # Shared helpers
@@ -577,6 +578,20 @@ def locata(root, writers, shard: int, nshards: int):
 
 
 STARSS23_SPEECH_CLASSES = (0, 1)  # female speech, male speech (13 classes)
+# the other classes (DCASE 2023 task 3) as categories (categories.py)
+STARSS23_CATEGORIES = {
+    2: ("sound/environment", "clapping"),
+    3: ("sound/machine", "telephone"),
+    4: ("vocal/laughter", "laughter"),
+    5: ("sound/household", "domestic_sounds"),
+    6: ("sound/environment", "footsteps"),
+    7: ("sound/household", "door"),
+    8: ("music/music", "music"),
+    9: ("music/music", "musical_instrument"),
+    10: ("sound/household", "water_tap"),
+    11: ("sound/machine", "bell"),
+    12: ("sound/household", "knock"),
+}
 
 # STARSS23 class 8 "music" is pop and background music played from a loudspeaker;
 # the dataset names neither the tracks nor their licences.
@@ -600,7 +615,8 @@ def starss23(root, writers, shard: int, nshards: int):
     format), events annotated at 100 ms frames.
     The speech is the frames of the classes "female speech, woman speaking" and
     "male speech, man speaking"; laughter and the other 10 classes are
-    non-speech. Clips with any class 8 "music" frame are left out: that music is
+    non-speech, kept as categories at their frames (STARSS23_CATEGORIES).
+    Clips with any class 8 "music" frame are left out: that music is
     played from a loudspeaker, of unknown origin and licence (and can hold
     singing that is not labelled). The FOA (Ambisonics) version repeats the
     same scenes and is not read.
@@ -644,16 +660,25 @@ def starss23(root, writers, shard: int, nshards: int):
             w.skip(source, "loudspeaker music (class 8) of unknown licence")
             continue
         frames = set()
+        other = {}  # class -> frames
         for row in csv.reader(io.StringIO(labels)):
             if len(row) >= 2 and row[0].strip().isdigit():
-                if int(row[1]) in STARSS23_SPEECH_CLASSES:
+                c = int(row[1])
+                if c in STARSS23_SPEECH_CLASSES:
                     frames.add(int(row[0]))
+                elif c in STARSS23_CATEGORIES:
+                    other.setdefault(c, set()).add(int(row[0]))
         x, rate = _decode(w, source, read_zip_member(audio_zip, n))
         if x is None:
             continue
         speech = [(f * 0.1, (f + 1) * 0.1) for f in sorted(frames)]
         rec = Path(n).stem if "eval" not in audio_zip.name else f"eval_{Path(n).stem}"
-        w.add(rec, x, rate, speech=speech, mic="far", source=source)
+        cats = [
+            (a, b, *STARSS23_CATEGORIES[c])
+            for c, fs in sorted(other.items())
+            for a, b in merge_intervals((f * 0.1, (f + 1) * 0.1) for f in fs)
+        ]
+        w.add(rec, x, rate, speech=speech, mic="far", source=source, categories=cats)
 
 
 def _holo_videos(obj) -> Iterator[Tuple[str, list]]:

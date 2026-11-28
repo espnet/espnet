@@ -257,6 +257,49 @@ NEGATIVE_TYPES = [
     ("marmoset", "sound/animal"),
     ("noise_*", "sound/other_sound"),
     ("sound_mixture", "sound/other_sound"),
+    # Broad Sound Taxonomy codes (bsd10k, bsd35k_cs): music, instrument samples,
+    # sound effects, soundscapes
+    ("m-*", "music/music"),
+    ("is-*", "music/music"),
+    ("fx-a", "sound/animal"),
+    ("fx-v", "sound/machine"),
+    ("fx-m", "sound/machine"),
+    ("fx-o", "sound/household"),
+    ("fx-n", "sound/environment"),
+    ("fx-ex", "sound/environment"),
+    ("ss-n", "sound/environment"),
+    ("ss-u", "sound/environment"),
+    ("ss-i", "sound/household"),
+    ("ss-other", "sound/environment"),
+    # ADL ambient (home activities) and REaLISED (household events)
+    ("no-activity", "sound/room_tone"),
+    ("washing_machine", "sound/household"),
+    ("vacuum_cleaner", "sound/household"),
+    ("dishwasher", "sound/household"),
+    ("smoke_extractor", "sound/household"),
+    ("cooking", "sound/household"),
+    ("beater", "sound/household"),
+    ("furniture", "sound/household"),
+    ("switch", "sound/household"),
+    ("object_falling", "sound/household"),
+    ("*-stove", "sound/household"),
+    ("*-fridge", "sound/household"),
+    ("*-dishwasher", "sound/household"),
+    ("*-toaster", "sound/household"),
+    ("*-coffee", "sound/household"),
+    ("light-*", "sound/household"),
+    ("place-*", "sound/household"),
+    ("vacuum-*", "sound/household"),
+    ("sweep", "sound/household"),
+    ("stand-up", "sound/household"),
+    ("sit-down", "sound/household"),
+    # Speech Commands background noise files
+    ("white_noise", "sound/synthetic_noise"),
+    ("pink_noise", "sound/synthetic_noise"),
+    ("exercise_bike", "sound/machine"),
+    ("dude_miaowing", "sound/animal"),
+    ("running_tap", "sound/household"),
+    ("doing_the_dishes", "sound/household"),
 ]
 
 # FSD50K / AudioSet class names (fsd50k, fsd50k_vocal labels[0]) -> category
@@ -277,6 +320,13 @@ FSD_CLASSES = {
     "Hiccup": "vocal/other_vocal",
     "Whistling": "vocal/other_vocal",
     "Human_voice": "vocal/other_vocal",
+    "Respiratory_sounds": "vocal/breath",
+    "Snoring": "vocal/breath",
+    "Wheeze": "vocal/breath",
+    "Sniff": "vocal/breath",
+    "Yawn": "vocal/other_vocal",
+    "Groan": "vocal/other_vocal",
+    "Grunt": "vocal/other_vocal",
 }
 FSD_ANIMAL = re.compile(
     r"Animal|Dog|Bark|Cat|Meow|Purr|Bird|Chirp|Crow|Gull|Insect|Cricket|Frog|"
@@ -287,17 +337,22 @@ FSD_ANIMAL = re.compile(
 FSD_MACHINE = re.compile(
     r"Vehicle|Engine|Car|Truck|Bus|Motorcycle|Train|Aircraft|Airplane|Boat|"
     r"Mechanism|Tools|Drill|Power_tool|Printer|Typing|Computer_keyboard|Motor|"
-    r"Fan|Air_conditioning|Clock|Alarm|Bell|Siren|Buzzer|Telephone|Ringtone",
+    r"Fan|Air_conditioning|Clock|Alarm|Bell|Siren|Buzzer|Telephone|Ringtone|"
+    r"Typewriter|Tick|Camera|Sawing|Ratchet|Subway|Skateboard|Hiss|Buzz",
     re.IGNORECASE,
 )
 FSD_HOUSEHOLD = re.compile(
     r"Domestic|Dishes|Cutlery|Kitchen|Door|Cupboard|Drawer|Microwave|Toilet|"
-    r"Water_tap|Sink|Bathtub|Frying|Chopping|Keys|Zipper|Packing|Writing|Scissors",
+    r"Water_tap|Sink|Bathtub|Frying|Chopping|Keys|Zipper|Packing|Writing|Scissors|"
+    r"Crumpling|Tearing|Coin|Glass|Shatter|Slam|Squeak|Drip|Pour|Trickle|Tap|"
+    r"Wood|Thump|Rattle|Fill_|Crack|Hands|Screech",
     re.IGNORECASE,
 )
 FSD_MUSIC = re.compile(
     r"Music|Musical_instrument|Guitar|Piano|Drum|Percussion|Bass|Violin|Cello|"
-    r"Trumpet|Saxophone|Flute|Organ|Harp|Cymbal|Snare|Tabla|Marimba|Glockenspiel",
+    r"Trumpet|Saxophone|Flute|Organ|Harp|Cymbal|Snare|Tabla|Marimba|Glockenspiel|"
+    r"Tambourine|Strum|Gong|string_instrument|Scratching_|Rattle_\(instrument|"
+    r"Harmonica|Hi-hat|Accordion|Mallet|Brass|Bowed",
     re.IGNORECASE,
 )
 FSD_ENVIRONMENT = re.compile(
@@ -325,6 +380,32 @@ def negative_type_category(negative_type: str) -> str:
         if rx.search(t):
             return category
     return "sound/other_sound"
+
+
+# The class of a clip with several labels: the first group in this order that
+# one of its labels falls in (a laugh over traffic is a laugh).
+LABEL_PRIORITY = (
+    "vocal/",
+    "music/",
+    "sound/animal",
+    "sound/babble",
+    "sound/machine",
+    "sound/household",
+    "sound/environment",
+    "sound/room_tone",
+    "sound/synthetic_noise",
+)
+
+
+def labels_category(labels: Iterable[str]) -> Tuple[str, str]:
+    """(category, tags) of a clip from all its source labels (e.g. FSD50K's)."""
+    labels = [lab for lab in labels if lab]
+    cats = [negative_type_category(lab) for lab in labels]
+    for prefix in LABEL_PRIORITY:
+        for c in cats:
+            if c.startswith(prefix):
+                return c, format_tags(labels)
+    return "sound/other_sound", format_tags(labels)
 
 
 # ------------------------------------------------------------------ backfill

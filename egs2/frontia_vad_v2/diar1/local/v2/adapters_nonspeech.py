@@ -33,6 +33,7 @@ from typing import Callable, Dict, Iterable, Iterator, List, Optional, Tuple
 
 import numpy as np
 import soundfile
+from categories import labels_category
 from registry import corpus, mine, split_by_hash
 from sources import (
     AUDIO_SUFFIXES,
@@ -408,12 +409,16 @@ def _add_clips(
     channels=(0,),
     mic: str = "",
 ):
-    """writer.add() of every clip (rec_id, member, split, negative_type) of a shard.
+    """writer.add() of every clip (rec_id, member, split, negative_type[, labels]).
 
     Clips are decoded from read(member); only the channels in `channels` are
     kept (None: all), and with level_db each clip is scaled by set_level().
+    labels, when an item has them, are all the source's labels of the clip: they
+    give its category (categories.labels_category); else negative_type does.
     """
-    for i, (rec_id, member, split, negative_type) in enumerate(items):
+    for i, item in enumerate(items):
+        rec_id, member, split, negative_type = item[:4]
+        clip = labels_category(item[4]) if len(item) > 4 else None
         if not mine(i, shard, nshards):
             continue
         try:
@@ -429,7 +434,13 @@ def _add_clips(
                 writers[split].skip(member, "digital silence")
                 continue
         writers[split].add(
-            rec_id, x, rate, negative_type=negative_type, mic=mic, source=member
+            rec_id,
+            x,
+            rate,
+            negative_type=negative_type,
+            mic=mic,
+            source=member,
+            clip_category=clip,
         )
 
 
@@ -741,7 +752,7 @@ def fsd_kind(labels: List[str], tags: str = "") -> Optional[str]:
 
 
 def _fsd50k_items(root, select: Callable[[List[str], str], bool]):
-    """(rec_id, member, split, negative_type) of the FSD50K clips with select()."""
+    """(rec_id, member, split, negative_type, labels) of the selected FSD50K clips."""
     gt = archive(root, "FSD50K.ground_truth.zip")
     md = archive(root, "FSD50K.metadata.zip")
     items = []
@@ -760,7 +771,7 @@ def _fsd50k_items(root, select: Callable[[List[str], str], bool]):
                 continue
             split = "dev" if r.get("split") == "val" else "train"
             member = f"FSD50K.{part}_audio/{fname}.wav"
-            items.append((f"{part}_{fname}", member, split, labels[0]))
+            items.append((f"{part}_{fname}", member, split, labels[0], labels))
     return items
 
 
@@ -967,13 +978,40 @@ def _fsd50k_labels(fsd50k_dir) -> Dict[str, List[str]]:
     return out
 
 
+def fuss_sources(jams: bytes, labels: Dict[str, List[str]]) -> List[tuple]:
+    """(start, end, category, tags) in seconds of each source of a FUSS mixture.
+
+    The .jams lists the sources (value.source_file) with their time and
+    duration; a source's category comes from its FSD50K labels.
+    """
+    out = []
+    for ann in json.loads(jams).get("annotations", []):
+        data = ann.get("data", [])
+        if isinstance(data, dict):  # column layout: {"time": [...], "value": [...]}
+            data = [dict(zip(data, v)) for v in zip(*data.values())]
+        for obs in data:
+            value = obs.get("value") or {}
+            f = value.get("source_file") if isinstance(value, dict) else None
+            if not f:
+                continue
+            i = f.rsplit("/", 1)[-1].rsplit(".", 1)[0]
+            start = float(obs.get("time") or 0.0)
+            end = start + float(obs.get("duration") or 0.0)
+            if end > start and i in labels:
+                out.append((start, end, *labels_category(labels[i])))
+    return out
+
+
 @corpus("fuss", "fuss", "environment", "D", "CC BY 4.0 (sources CC0)")
 def fuss(root, writers, shard: int, nshards: int, fsd50k_dir=None):
     """FUSS reverberant 10-s mixtures whose sources are all clean FSD50K clips.
 
     FUSS ships no labels; a mixture is kept only if every source file named in
     its .jams is an FSD50K clip (by Freesound id, from <corpora>/fsd50k by
-    default) that fsd_kind() keeps. validation is the dev split.
+    default) that fsd_kind() keeps. Each source is a category segment at its
+    time in the mixture, with the class of its FSD50K labels (fuss_sources);
+    the whole mixture has the class of all of them. validation is the dev
+    split.
     """
     labels = _fsd50k_labels(fsd50k_dir or Path(root).parent / "fsd50k")
     path = archive(root, "FUSS_ssdata_reverb.tar.gz")
@@ -1002,6 +1040,7 @@ def fuss(root, writers, shard: int, nshards: int, fsd50k_dir=None):
         part = stem.split("/")[-2]
         split = "dev" if part == "validation" else "train"
         x, rate = decode(entry["wav"])
+        segs = fuss_sources(entry["jams"], labels)
         writers[split].add(
             f"{part}_{stem.rsplit('/', 1)[-1]}",
             x,
@@ -1009,6 +1048,8 @@ def fuss(root, writers, shard: int, nshards: int, fsd50k_dir=None):
             negative_type="sound_mixture",
             mic="synthetic",
             source=name,
+            categories=[(a, b, c, t) for a, b, c, t in segs],
+            clip_category=labels_category(sum((labels[i] for i in ids), [])),
         )
 
 

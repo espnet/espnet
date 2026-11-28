@@ -238,3 +238,70 @@ def test_alignment_refresh_keeps_classes_and_drops_recordings(tmp_path):
         ("toya-u1", "vocal/breath"),
     ]
     assert cat.check(d, cat.load_map(MAPS / "v2x.yaml"))
+
+
+@pytest.mark.parametrize(
+    "nt, category",
+    [
+        ("ss-n", "sound/environment"),
+        ("fx-o", "sound/household"),
+        ("m-m", "music/music"),
+        ("is-p", "music/music"),
+        ("fx-v", "sound/machine"),
+        ("no-activity", "sound/room_tone"),
+        ("open-fridge", "sound/household"),
+        ("vacuum_cleaner", "sound/household"),
+        ("white_noise", "sound/synthetic_noise"),
+        ("Rattle_(instrument)", "music/music"),
+        ("Rattle", "sound/household"),
+        ("Typewriter", "sound/machine"),
+        ("Respiratory_sounds", "vocal/breath"),
+    ],
+)
+def test_measured_negative_types(nt, category):
+    """negative types that fell to other_sound in clean6 (job 3089883)."""
+    assert cat.negative_type_category(nt) == category
+
+
+def test_labels_category_takes_the_first_group_in_priority():
+    assert cat.labels_category(["Traffic", "Laughter"]) == (
+        "vocal/laughter",
+        "Traffic,Laughter",
+    )
+    assert cat.labels_category(["Dog", "Rain"])[0] == "sound/animal"
+    assert cat.labels_category(["Whoosh"])[0] == "sound/other_sound"
+
+
+def test_fuss_sources_from_jams():
+    import json
+
+    from adapters_nonspeech import fuss_sources
+
+    jams = {
+        "annotations": [
+            {
+                "data": [
+                    {
+                        "time": 0.0,
+                        "duration": 10.0,
+                        "value": {"source_file": "bg/123.wav"},
+                    },
+                    {
+                        "time": 2.5,
+                        "duration": 1.5,
+                        "value": {"source_file": "fg/456.wav"},
+                    },
+                    {
+                        "time": 1.0,
+                        "duration": 1.0,
+                        "value": {"source_file": "fg/999.wav"},
+                    },
+                ]
+            }
+        ]
+    }
+    labels = {"123": ["Rain"], "456": ["Laughter", "Giggle"]}
+    assert fuss_sources(json.dumps(jams).encode(), labels) == [
+        (0.0, 10.0, "sound/environment", "Rain"),
+        (2.5, 4.0, "vocal/laughter", "Laughter,Giggle"),
+    ]
