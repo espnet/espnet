@@ -365,6 +365,8 @@ FSD_ENVIRONMENT = re.compile(
 def negative_type_category(negative_type: str) -> str:
     """The category of a non-speech clip from its reader's negative_type."""
     t = negative_type.strip()
+    if t.startswith("designed_vocalization:"):  # :<source type>[:<preset>]
+        return vocal_label_category(t.split(":")[1])
     for pattern, category in NEGATIVE_TYPES:
         if fnmatch.fnmatchcase(t, pattern):
             return category

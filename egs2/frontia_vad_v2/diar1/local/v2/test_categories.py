@@ -140,7 +140,9 @@ def test_unknown_category_in_a_file_is_refused(tmp_path):
     "nt, category",
     [
         ("vocal_imitation:Animal", "vocal/vocal_imitation"),
-        ("designed_vocalization:breath", "vocal/other_vocal"),
+        ("designed_vocalization:breath", "vocal/breath"),
+        ("designed_vocalization:laugh:soft", "vocal/laughter"),
+        ("designed_vocalization:grunt", "vocal/other_vocal"),
         ("caf", "sound/babble"),
         ("synthetic_silence", "sound/room_tone"),
         ("synthetic_pink", "sound/synthetic_noise"),
