@@ -38,7 +38,7 @@ def _detector(level, median=1, threshold=0.5):
         frame_shift=HOP / FS,
         threshold=threshold,
         median=median,
-        stream=lambda keep_probabilities=True: _Stream(level),
+        stream=lambda keep_probabilities=True, look_ahead=0: _Stream(level),
     )
 
 
@@ -304,7 +304,7 @@ def test_int16_then_float_chunks_keep_their_scale():
 
 def test_refuses_a_stream_that_keeps_all_audio():
     detector = _detector(lambda i: 0.1)
-    detector.stream = lambda keep_probabilities=True: SimpleNamespace(
+    detector.stream = lambda keep_probabilities=True, look_ahead=0: SimpleNamespace(
         cached=None, context=None
     )
     with pytest.raises(ValueError, match="bounded audio"):
@@ -507,3 +507,79 @@ def test_tiny_model_scores_other_rates_as_their_16k_resampling(tmp_path, rate, c
     # (measured), so the stream has up to 15 frames fewer.
     assert len(whole) - 15 <= len(streamed) <= len(whole)
     np.testing.assert_allclose(streamed, whole[: len(streamed)], atol=1e-4)
+
+
+def _dual_mode_detector(tmp_path, threshold=0.5, median=1, seed=0):
+    import torch
+
+    from espnet2.bin.diar_inference import DiarizeSpeech, VoiceActivityDetector
+    from espnet2.tasks.diar import DiarizationTask
+
+    conf = dict(fs=FS, n_fft=N_FFT, hop_length=HOP, center="false")
+    cmd = ["--dry_run", "true", "--output_dir", str(tmp_path), "--num_spk", "1"]
+    for k, v in conf.items():
+        cmd += ["--frontend_conf", f"{k}={v}"]
+    cmd += ["--normalize", "none", "--encoder", "tcn"]
+    for kv in ("future_taps=2", "num_blocks=2", "num_repeats=1", "output_size=8"):
+        cmd += ["--encoder_conf", kv]
+    if not (tmp_path / "config.yaml").exists():
+        DiarizationTask.main(cmd=cmd)
+    torch.manual_seed(seed)
+    return VoiceActivityDetector(
+        DiarizeSpeech(train_config=tmp_path / "config.yaml", num_spk=1),
+        threshold=threshold,
+        median=median,
+    )
+
+
+@pytest.mark.parametrize("look_ahead", [0, 3, 6])
+def test_look_ahead_turns_equal_the_whole_recording_rule(tmp_path, look_ahead):
+    """Streamed with look-ahead, the frames are those of the whole recording.
+
+    Each turn's probabilities and decisions equal the whole recording's,
+    scored once at the same look-ahead through the same rule, and each turn
+    returns endpoint_delay_s after its endpoint, which includes the
+    look-ahead.
+    """
+    rng = np.random.default_rng(3)
+    # loud bursts in silence; the threshold sits between the two levels the
+    # random model gives them, so that the bursts make turns
+    audio = np.zeros(12 * FS, dtype=np.float32)
+    burst = np.zeros(len(audio), dtype=bool)
+    for a in (1.0, 4.0, 8.0):
+        n = int(1.5 * FS)
+        audio[int(a * FS) : int(a * FS) + n] = rng.normal(size=n) * 0.5
+        burst[int(a * FS) : int(a * FS) + n] = True
+    # the first of these random models that scores the bursts higher
+    for seed in range(20):
+        detector = _dual_mode_detector(tmp_path, median=3, seed=seed)
+        whole = detector.probabilities(audio, FS, look_ahead)
+        frame_burst = burst[np.arange(len(whole)) * HOP + N_FFT // 2]
+        hi, lo = np.median(whole[frame_burst]), np.median(whole[~frame_burst])
+        if hi - lo > 1e-3:
+            break
+    assert hi - lo > 1e-3
+    vad = FrontiaVADModel.from_detector(
+        detector,
+        look_ahead=look_ahead,
+        threshold=float((hi + lo) / 2),
+        min_speech_ms=8.0,
+        hangover_ms=300.0,
+    )
+    assert vad.frame_vad.window_s == pytest.approx((N_FFT + look_ahead * HOP) / FS)
+    decisions = vad._decisions(whole)
+    turns = []
+    for i in range(0, len(audio), 160):
+        if vad.forward(audio[i : i + 160], FS) is not None:
+            turns.append((dict(vad.last_turn), (i + 160) / FS))
+    assert len(turns) == 3
+    for t, returned_s in turns:
+        k = int(round(t["probs_start_s"] / (HOP / FS)))
+        np.testing.assert_allclose(
+            t["probs"], whole[k : k + len(t["probs"])], atol=1e-5
+        )
+        np.testing.assert_array_equal(
+            t["decisions"], decisions[k : k + len(t["decisions"])]
+        )
+        late = returned_s - t["endpoint_s"] - vad.endpoint_delay_s
+        assert -1e-9 <= late < 0.01 + 1e-9  # within the 10 ms chunk

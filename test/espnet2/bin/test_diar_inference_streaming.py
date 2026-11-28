@@ -411,3 +411,39 @@ def test_stream_memory_over_ten_minutes(tmp_path, keep):
             run()
     else:
         run()
+
+
+@pytest.mark.parametrize("look_ahead", [1, 3, 6])
+@pytest.mark.parametrize("chunk", [1, 128, 777, 8000])
+def test_a_stream_that_reads_ahead_equals_the_whole_recording(
+    tmp_path, look_ahead, chunk
+):
+    """look_ahead > 0: each frame is returned once look_ahead frames are in.
+
+    Its probability equals the whole recording's at that look-ahead; only the
+    last look_ahead frames, which have no future yet, are held back.
+    """
+    vad = _dual_mode_model(tmp_path)
+    speech = _speech(2.0)
+    whole = vad.probabilities(speech, FS, look_ahead)
+    stream = vad.stream(look_ahead=look_ahead)
+    assert stream.cached is None  # forward_streaming is look-ahead 0 only
+    got, held = [], []
+    for i in range(0, len(speech), chunk):
+        got.append(stream.accept(speech[i : i + chunk]))
+        available = vad.num_frames(min(i + chunk, len(speech)))
+        emitted = sum(len(g) for g in got)
+        assert emitted == max(0, available - look_ahead)
+        held.append(len(stream.buffer))
+    got = np.concatenate(got)
+    assert len(got) == len(whole) - look_ahead
+    np.testing.assert_allclose(got, whole[: len(got)], atol=1e-5)
+    # the buffer holds the receptive field, the look-ahead and one chunk
+    rf = vad.receptive_field
+    assert max(held) <= (rf + look_ahead + 1) * 128 + 512 + chunk
+
+
+def test_a_stream_refuses_more_look_ahead_than_the_encoder_has(tmp_path):
+    vad = _dual_mode_model(tmp_path)
+    with pytest.raises(ValueError, match="look_ahead"):
+        vad.stream(look_ahead=vad.max_look_ahead + 1)

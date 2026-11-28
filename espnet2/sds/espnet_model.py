@@ -62,7 +62,8 @@ class ESPnetSDSModelInterface(AbsESPnetModel):
             VAD_option (str, optional):
                 The VAD that ends the user's turn: "webrtc" for
                 WebrtcVADModel, "frontia" for FrontiaVADModel with ESPnet's
-                online VAD model, or a frontia-vad model tag for
+                online VAD model, "frontia_offline" for it in its offline
+                mode (look-ahead 0.99 s), or a frontia-vad model tag for
                 FrontiaVADModel with that model. Defaults to "webrtc".
         """
         if not is_gradio_available:
@@ -103,7 +104,8 @@ class ESPnetSDSModelInterface(AbsESPnetModel):
 
         Args:
             option (str):
-                "webrtc", "frontia", or a frontia-vad model tag.
+                "webrtc", "frontia", "frontia_offline", or a frontia-vad
+                model tag.
         """
         if option == "webrtc":
             return WebrtcVADModel()
@@ -112,6 +114,8 @@ class ESPnetSDSModelInterface(AbsESPnetModel):
 
         if option == "frontia":
             return FrontiaVADModel()
+        if option == "frontia_offline":
+            return FrontiaVADModel(look_ahead="max")
         return FrontiaVADModel(tag=option)
 
     def handle_TTS_selection(self, option: str):

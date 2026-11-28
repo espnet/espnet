@@ -88,7 +88,11 @@ def test_handle_E2E_selection():
 
 @pytest.mark.parametrize(
     "option, tag",
-    [("frontia", None), ("espnet/frontia_vad_v2_3", "espnet/frontia_vad_v2_3")],
+    [
+        ("frontia", (None, 0)),
+        ("frontia_offline", (None, "max")),
+        ("espnet/frontia_vad_v2_3", ("espnet/frontia_vad_v2_3", 0)),
+    ],
 )
 def test_VAD_option_selects_frontia_vad(monkeypatch, option, tag):
     from espnet2.sds.vad import frontia_vad
@@ -96,8 +100,8 @@ def test_VAD_option_selects_frontia_vad(monkeypatch, option, tag):
     calls = []
 
     class FakeFrontiaVAD:
-        def __init__(self, tag=None):
-            calls.append(tag)
+        def __init__(self, tag=None, look_ahead=0):
+            calls.append((tag, look_ahead))
 
     monkeypatch.setattr(frontia_vad, "FrontiaVADModel", FakeFrontiaVAD)
     vad = ESPnetSDSModelInterface.load_VAD(option)
