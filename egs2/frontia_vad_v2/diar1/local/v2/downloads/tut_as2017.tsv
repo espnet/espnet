@@ -1,0 +1,16 @@
+# corpus_dir	relative_path	url	size_bytes	checksum	unpack
+# TUT Acoustic scenes 2017, Development dataset (Zenodo 400515, version None); licence on the record: other-nc; files as published
+tut_as2017	ARCHIVES/TUT-acoustic-scenes-2017-development.meta.zip	https://zenodo.org/api/records/400515/files/TUT-acoustic-scenes-2017-development.meta.zip/content	104321	md5:9007fd4772d816590c5db5f5e9568f5d
+tut_as2017	ARCHIVES/TUT-acoustic-scenes-2017-development.error.zip	https://zenodo.org/api/records/400515/files/TUT-acoustic-scenes-2017-development.error.zip/content	1432	md5:802c700b021769e52a2c1e3b9c117a1b
+tut_as2017	ARCHIVES/TUT-acoustic-scenes-2017-development.audio.6.zip	https://zenodo.org/api/records/400515/files/TUT-acoustic-scenes-2017-development.audio.6.zip/content	1072667888	md5:165a201db800d3ea76fce5a9c2bd97d7
+tut_as2017	ARCHIVES/TUT-acoustic-scenes-2017-development.audio.9.zip	https://zenodo.org/api/records/400515/files/TUT-acoustic-scenes-2017-development.audio.9.zip/content	1072087738	md5:0805dcf5d8e6871dc9610182b2efb93a
+tut_as2017	ARCHIVES/TUT-acoustic-scenes-2017-development.audio.8.zip	https://zenodo.org/api/records/400515/files/TUT-acoustic-scenes-2017-development.audio.8.zip/content	1072381222	md5:35043f25123439392338c790494c7a19
+tut_as2017	ARCHIVES/TUT-acoustic-scenes-2017-development.audio.7.zip	https://zenodo.org/api/records/400515/files/TUT-acoustic-scenes-2017-development.audio.7.zip/content	1073417661	md5:c7d79db84264401c0f8680dcc36013ad
+tut_as2017	ARCHIVES/TUT-acoustic-scenes-2017-development.doc.zip	https://zenodo.org/api/records/400515/files/TUT-acoustic-scenes-2017-development.doc.zip/content	54796	md5:2065495aaf3f1103e795c9899e2af1df
+tut_as2017	ARCHIVES/TUT-acoustic-scenes-2017-development.audio.2.zip	https://zenodo.org/api/records/400515/files/TUT-acoustic-scenes-2017-development.audio.2.zip/content	1073453613	md5:c26861e05147dc319b4250eb103d9d99
+tut_as2017	ARCHIVES/TUT-acoustic-scenes-2017-development.audio.4.zip	https://zenodo.org/api/records/400515/files/TUT-acoustic-scenes-2017-development.audio.4.zip/content	1072822038	md5:1732b03afe8c53ef8bba80ba14766e57
+tut_as2017	ARCHIVES/TUT-acoustic-scenes-2017-development.audio.3.zip	https://zenodo.org/api/records/400515/files/TUT-acoustic-scenes-2017-development.audio.3.zip/content	1073077819	md5:a4815775f8a5e629179726ee4cd4f55a
+tut_as2017	ARCHIVES/TUT-acoustic-scenes-2017-development.audio.5.zip	https://zenodo.org/api/records/400515/files/TUT-acoustic-scenes-2017-development.audio.5.zip/content	1072644652	md5:611be754a0c951185c6ae4b7643c19a0
+tut_as2017	ARCHIVES/TUT-acoustic-scenes-2017-development.audio.1.zip	https://zenodo.org/api/records/400515/files/TUT-acoustic-scenes-2017-development.audio.1.zip/content	1071445248	md5:251325a9afaaad0326ad1c57f57d514a
+tut_as2017	ARCHIVES/TUT-acoustic-scenes-2017-development.audio.10.zip	https://zenodo.org/api/records/400515/files/TUT-acoustic-scenes-2017-development.audio.10.zip/content	1046262120	md5:5df83a191295a04e290b125c634e13e7
+tut_as2017	ARCHIVES/zenodo_record_400515.json	https://zenodo.org/api/records/400515

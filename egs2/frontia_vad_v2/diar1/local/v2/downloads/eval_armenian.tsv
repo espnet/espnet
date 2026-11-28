@@ -1,0 +1,4 @@
+# corpus_dir	relative_path	url	size_bytes	checksum	unpack
+# Armenian Speech Crowdsourcing Data, OpenSLR 160 (https://www.openslr.org/160/); audio CC BY 4.0, prompts from Yerevan City Magazine (text corpus OpenSLR 153 is CC BY-SA 4.0)
+# EVALUATION ONLY (decided 2026-11-27): CC BY 4.0 audio, CC BY-SA prompt chain; never in a training list. See data_survey/eval_only_catalogue_20261127.md
+eval_armenian	ARCHIVES/armenian_speech_crowdsourcing_data.tar.gz	https://openslr.elda.org/resources/160/armenian_speech_crowdsourcing_data.tar.gz	5658531229

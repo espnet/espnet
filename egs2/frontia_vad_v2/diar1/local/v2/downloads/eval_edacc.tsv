@@ -1,0 +1,6 @@
+# corpus_dir	relative_path	url	size_bytes	checksum	unpack
+# EdAcc v1.0, Edinburgh DataShare https://doi.org/10.7488/ds/7914 (replaces ds/3832 and ds/7848)
+# EVALUATION ONLY (decided 2026-11-27): CC BY-SA 4.0; never in a training list. See data_survey/eval_only_catalogue_20261127.md
+eval_edacc	ARCHIVES/edacc_v1.0.tar.gz	https://datashare.ed.ac.uk/server/api/core/bitstreams/819f726e-1a65-4b3c-88d2-efdf0a7021ce/content	5916732170	md5:146b4b8026b5d0ce9611667c708456b3
+eval_edacc	ARCHIVES/README.txt	https://datashare.ed.ac.uk/server/api/core/bitstreams/23371402-f1d6-46f3-b5d8-9104f207f83a/content	3517	md5:e7ed3377d7e109c3008694bbbd670cf0
+eval_edacc	ARCHIVES/CC_BY_SA_license_text.txt	https://datashare.ed.ac.uk/server/api/core/bitstreams/bc7c247e-ae85-41cc-91a8-a1af06f4da29/content	18088	md5:a6f49a4e6517690c4f11599d75bb5959

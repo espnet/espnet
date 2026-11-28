@@ -1,0 +1,12 @@
+# corpus_dir	relative_path	url	size_bytes	checksum	unpack
+ruv	ARCHIVES/license.txt	https://repository.clarin.is/repository/rest/bitstreams/686/retrieve	1728	md5:124eccb5721bf7de41f85cc40afb941f
+ruv	ARCHIVES/README.txt	https://repository.clarin.is/repository/rest/bitstreams/683/retrieve	3919	md5:bee3bc2439355fee77156ab87078562a
+ruv	ARCHIVES/cut_audio_RELEASE.z01	https://repository.clarin.is/repository/rest/bitstreams/676/retrieve	4194304000	md5:6b3ab042fa8ad276fced07352676f406
+ruv	ARCHIVES/cut_audio_RELEASE.z02	https://repository.clarin.is/repository/rest/bitstreams/677/retrieve	4194304000	md5:459be745d78ac230ed815eb5f00d3e06
+ruv	ARCHIVES/cut_audio_RELEASE.z03	https://repository.clarin.is/repository/rest/bitstreams/678/retrieve	4194304000	md5:aa5de9a1fef84ae23f3782584d124c9b
+ruv	ARCHIVES/cut_audio_RELEASE.z04	https://repository.clarin.is/repository/rest/bitstreams/679/retrieve	4194304000	md5:436e5ccac3187b72d021888739979eac
+ruv	ARCHIVES/cut_audio_RELEASE.z05	https://repository.clarin.is/repository/rest/bitstreams/680/retrieve	4194304000	md5:141bdc0612d9d9cfcae1aafb553a507f
+ruv	ARCHIVES/cut_audio_RELEASE.z06	https://repository.clarin.is/repository/rest/bitstreams/681/retrieve	4194304000	md5:420de02e960b61d27b7045a8a1c1c45c
+ruv	ARCHIVES/cut_audio_RELEASE.zip	https://repository.clarin.is/repository/rest/bitstreams/682/retrieve	2482936017	md5:096ae66512323726f3b3ecaffd9673af
+ruv	ARCHIVES/metadata.tsv	https://repository.clarin.is/repository/rest/bitstreams/684/retrieve	15000282	md5:43c1705145d20497f3bad1560502206a
+ruv	ARCHIVES/speaker_information.tsv	https://repository.clarin.is/repository/rest/bitstreams/685/retrieve	50694	md5:512657b60add3e71843b85ab0d7ce0c7

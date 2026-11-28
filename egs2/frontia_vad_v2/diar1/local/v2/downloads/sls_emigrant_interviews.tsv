@@ -1,0 +1,33 @@
+# corpus_dir	relative_path	url	size_bytes	checksum	unpack
+# Europeana dataset 2021007 dump (https://download.europeana.eu/dataset/XML/2021007.zip), audio records with id ~ '^_SLS_1859_1971_' or description ~ 'Emigrerade|Vistades i (USA|Kanada|Amerika)', edm:rights CC0/PDM/CC BY only; per-file licence: sls_emigrant_interviews.licences.tsv
+# 30 files, 7.8 h
+sls_emigrant_interviews	ARCHIVES/_SLS_1859_1971_3A240/c557c6a0-d932-45b6-bdab-c2f66b1d09fb.mp3	https://yksa.disec.fi/Yksa4/download/168146178437900/file/c557c6a0-d932-45b6-bdab-c2f66b1d09fb	24433196
+sls_emigrant_interviews	ARCHIVES/_SLS_1859_1971_3A241/3bd280cd-c7f0-40fb-8e28-55d827a903bd.mp3	https://yksa.disec.fi/Yksa4/download/168146178448900/file/3bd280cd-c7f0-40fb-8e28-55d827a903bd	21842685
+sls_emigrant_interviews	ARCHIVES/_SLS_1859_1971_3A273/98e6b46b-09c9-4248-9f62-688c93a4c210.mp3	https://yksa.disec.fi/Yksa4/download/168146178773000/file/98e6b46b-09c9-4248-9f62-688c93a4c210	4943341
+sls_emigrant_interviews	ARCHIVES/_SLS_1859_1971_3A275/25ab11d3-d3a0-4560-b9da-bc309ba299ae.mp3	https://yksa.disec.fi/Yksa4/download/168146178801700/file/25ab11d3-d3a0-4560-b9da-bc309ba299ae	24671014
+sls_emigrant_interviews	ARCHIVES/_SLS_1859_1971_3A322/d1009792-2778-4d82-a945-63ef95361ebd.mp3	https://yksa.disec.fi/Yksa4/download/168146179270800/file/d1009792-2778-4d82-a945-63ef95361ebd	12996160
+sls_emigrant_interviews	ARCHIVES/_SLS_1859_1971_3A355/f9489726-dba5-449a-9ced-538f13ae9b21.mp3	https://yksa.disec.fi/Yksa4/download/168146179585000/file/f9489726-dba5-449a-9ced-538f13ae9b21	25814133
+sls_emigrant_interviews	ARCHIVES/_SLS_1859_1971_3A369/619fd9ff-7009-4b32-950f-635dd96b7724.mp3	https://yksa.disec.fi/Yksa4/download/168146179731900/file/619fd9ff-7009-4b32-950f-635dd96b7724	17667272
+sls_emigrant_interviews	ARCHIVES/_SLS_1859_1971_3A369/a2065c3a-ef05-4a76-a934-559060ceccc3.mp3	https://yksa.disec.fi/Yksa4/download/168146179731900/file/a2065c3a-ef05-4a76-a934-559060ceccc3	20233542
+sls_emigrant_interviews	ARCHIVES/_SLS_1859_1971_3A381/a14535b4-9982-4fa6-99f6-982dec1f5683.mp3	https://yksa.disec.fi/Yksa4/download/168146179854600/file/a14535b4-9982-4fa6-99f6-982dec1f5683	14028427
+sls_emigrant_interviews	ARCHIVES/_SLS_1859_1971_3A437/1c876acb-093a-4d73-8881-f8c94df5b22b.mp3	https://yksa.disec.fi/Yksa4/download/168146180397100/file/1c876acb-093a-4d73-8881-f8c94df5b22b	8511876
+sls_emigrant_interviews	ARCHIVES/_SLS_1859_1971_3A440/a2153068-c7ef-40c9-a027-5814ca1fe7af.mp3	https://yksa.disec.fi/Yksa4/download/168146180426200/file/a2153068-c7ef-40c9-a027-5814ca1fe7af	9148939
+sls_emigrant_interviews	ARCHIVES/_SLS_1859_1971_3A445/3505e6e3-5185-4053-8312-97e1543f45d5.mp3	https://yksa.disec.fi/Yksa4/download/168146180478000/file/3505e6e3-5185-4053-8312-97e1543f45d5	17861623
+sls_emigrant_interviews	ARCHIVES/_SLS_1859_1971_3A450/6abd5809-7d4b-459a-a2a8-32728078f08a.mp3	https://yksa.disec.fi/Yksa4/download/168146180513900/file/6abd5809-7d4b-459a-a2a8-32728078f08a	9833045
+sls_emigrant_interviews	ARCHIVES/_SLS_1859_1971_3A479/8e6095ff-6cf6-44a0-9257-77eaa1a326a1.mp3	https://yksa.disec.fi/Yksa4/download/168146180798400/file/8e6095ff-6cf6-44a0-9257-77eaa1a326a1	20653195
+sls_emigrant_interviews	ARCHIVES/_SLS_1859_1971_3A504/8c3af361-93b5-4994-85b9-2466110107ce.mp3	https://yksa.disec.fi/Yksa4/download/168146181048700/file/8c3af361-93b5-4994-85b9-2466110107ce	26229584
+sls_emigrant_interviews	ARCHIVES/_SLS_1859_1971_3A513/c3882f3b-d578-4ce2-90ec-9f9332b9041e.mp3	https://yksa.disec.fi/Yksa4/download/168146181137200/file/c3882f3b-d578-4ce2-90ec-9f9332b9041e	22018315
+sls_emigrant_interviews	ARCHIVES/_SLS_1859_1971_3A553/a2219297-1736-425d-8844-b1d41c3ce8cd.mp3	https://yksa.disec.fi/Yksa4/download/168146181532700/file/a2219297-1736-425d-8844-b1d41c3ce8cd	17259403
+sls_emigrant_interviews	ARCHIVES/_SLS_1859_1971_3A590/cec83840-82aa-4a0d-b2ac-461c23ea3000.mp3	https://yksa.disec.fi/Yksa4/download/168146181896200/file/cec83840-82aa-4a0d-b2ac-461c23ea3000	11680651
+sls_emigrant_interviews	ARCHIVES/_SLS_1859_1971_3A595/c358bb67-e97b-4bc3-bdac-97062b122553.mp3	https://yksa.disec.fi/Yksa4/download/168146181950100/file/c358bb67-e97b-4bc3-bdac-97062b122553	19060747
+sls_emigrant_interviews	ARCHIVES/_SLS_1859_1971_3A608/a0eca656-4b7b-4da2-baa9-74715e005e16.mp3	https://yksa.disec.fi/Yksa4/download/168146182082500/file/a0eca656-4b7b-4da2-baa9-74715e005e16	12625013
+sls_emigrant_interviews	ARCHIVES/_SLS_2269_1967_3A22/85d59f81-7e04-4e2c-bd98-e9af8fdfc604.mp3	https://yksa.disec.fi/Yksa4/download/168146320793300/file/85d59f81-7e04-4e2c-bd98-e9af8fdfc604	5576967
+sls_emigrant_interviews	ARCHIVES/_SLS_2269_1970_3A56/abfa67fb-e909-4617-a725-746b4307ac05.wav	https://yksa.disec.fi/Yksa4/download/168146320961200/file/abfa67fb-e909-4617-a725-746b4307ac05	352638262
+sls_emigrant_interviews	ARCHIVES/_SLS_2269_1970_3A61/3769e25c-87ec-4b00-bd45-f4eccf8912da.wav	https://yksa.disec.fi/Yksa4/download/168146321870200/file/3769e25c-87ec-4b00-bd45-f4eccf8912da	56263006
+sls_emigrant_interviews	ARCHIVES/_SLS_2269_1970_3A69/384346d2-2ab9-4ec9-98d9-2d4814a6b7bd.wav	https://yksa.disec.fi/Yksa4/download/168146321951200/file/384346d2-2ab9-4ec9-98d9-2d4814a6b7bd	942393618
+sls_emigrant_interviews	ARCHIVES/_SLS_2269_1970_3A71/40f53f56-2598-4d54-9d53-f0a4e4775ea1.wav	https://yksa.disec.fi/Yksa4/download/168146321972300/file/40f53f56-2598-4d54-9d53-f0a4e4775ea1	478137618
+sls_emigrant_interviews	ARCHIVES/_SLS_2269_1972_3A54/3b23977f-047e-419c-91fa-10a57a509018.wav	https://yksa.disec.fi/Yksa4/download/168146321103400/file/3b23977f-047e-419c-91fa-10a57a509018	322686268
+sls_emigrant_interviews	ARCHIVES/_SLS_2269_1972_3A55/4eb75ab7-7dec-49e1-8617-d386111f0de3.mp3	https://yksa.disec.fi/Yksa4/download/168146321115800/file/4eb75ab7-7dec-49e1-8617-d386111f0de3	7550347
+sls_emigrant_interviews	ARCHIVES/_SLS_2269_1975_3A92/25f2d702-a3ed-4a00-8f1b-f804c6c753cf.wav	https://yksa.disec.fi/Yksa4/download/168146322114000/file/25f2d702-a3ed-4a00-8f1b-f804c6c753cf	124250806
+sls_emigrant_interviews	ARCHIVES/_SLS_2269_1980_3A82/fdb0d990-70a1-4cbc-8d00-188fffe3374e.wav	https://yksa.disec.fi/Yksa4/download/168146322232500/file/fdb0d990-70a1-4cbc-8d00-188fffe3374e	496453946
+sls_emigrant_interviews	ARCHIVES/_SLS_983_1969_3A48/1c29d4bf-29e9-4171-a579-e215a8b897c7.wav	https://yksa.disec.fi/Yksa4/download/168146543739100/file/1c29d4bf-29e9-4171-a579-e215a8b897c7	237300028

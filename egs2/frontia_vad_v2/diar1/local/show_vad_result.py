@@ -1,0 +1,1 @@
+../../../frontia_vad_v1/diar1/local/show_vad_result.py

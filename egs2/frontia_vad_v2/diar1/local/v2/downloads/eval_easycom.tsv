@@ -1,0 +1,36 @@
+# corpus_dir	relative_path	url	size_bytes	checksum	unpack
+# EasyCom v1.0.0, https://github.com/facebookresearch/EasyComDataset (release assets; split archive with video: cat parts | tar xz)
+# EVALUATION ONLY (decided 2026-11-27): CC BY-NC 4.0; never in a training list. See data_survey/eval_only_catalogue_20261127.md
+eval_easycom	ARCHIVES/EasyComDataset.tar.gz.001	https://github.com/facebookresearch/EasyComDataset/releases/download/v1.0.0/EasyComDataset.tar.gz.001	2146435072
+eval_easycom	ARCHIVES/EasyComDataset.tar.gz.002	https://github.com/facebookresearch/EasyComDataset/releases/download/v1.0.0/EasyComDataset.tar.gz.002	2146435072
+eval_easycom	ARCHIVES/EasyComDataset.tar.gz.003	https://github.com/facebookresearch/EasyComDataset/releases/download/v1.0.0/EasyComDataset.tar.gz.003	2146435072
+eval_easycom	ARCHIVES/EasyComDataset.tar.gz.004	https://github.com/facebookresearch/EasyComDataset/releases/download/v1.0.0/EasyComDataset.tar.gz.004	2146435072
+eval_easycom	ARCHIVES/EasyComDataset.tar.gz.005	https://github.com/facebookresearch/EasyComDataset/releases/download/v1.0.0/EasyComDataset.tar.gz.005	2146435072
+eval_easycom	ARCHIVES/EasyComDataset.tar.gz.006	https://github.com/facebookresearch/EasyComDataset/releases/download/v1.0.0/EasyComDataset.tar.gz.006	2146435072
+eval_easycom	ARCHIVES/EasyComDataset.tar.gz.007	https://github.com/facebookresearch/EasyComDataset/releases/download/v1.0.0/EasyComDataset.tar.gz.007	2146435072
+eval_easycom	ARCHIVES/EasyComDataset.tar.gz.008	https://github.com/facebookresearch/EasyComDataset/releases/download/v1.0.0/EasyComDataset.tar.gz.008	2146435072
+eval_easycom	ARCHIVES/EasyComDataset.tar.gz.009	https://github.com/facebookresearch/EasyComDataset/releases/download/v1.0.0/EasyComDataset.tar.gz.009	2146435072
+eval_easycom	ARCHIVES/EasyComDataset.tar.gz.010	https://github.com/facebookresearch/EasyComDataset/releases/download/v1.0.0/EasyComDataset.tar.gz.010	2146435072
+eval_easycom	ARCHIVES/EasyComDataset.tar.gz.011	https://github.com/facebookresearch/EasyComDataset/releases/download/v1.0.0/EasyComDataset.tar.gz.011	2146435072
+eval_easycom	ARCHIVES/EasyComDataset.tar.gz.012	https://github.com/facebookresearch/EasyComDataset/releases/download/v1.0.0/EasyComDataset.tar.gz.012	2146435072
+eval_easycom	ARCHIVES/EasyComDataset.tar.gz.013	https://github.com/facebookresearch/EasyComDataset/releases/download/v1.0.0/EasyComDataset.tar.gz.013	2146435072
+eval_easycom	ARCHIVES/EasyComDataset.tar.gz.014	https://github.com/facebookresearch/EasyComDataset/releases/download/v1.0.0/EasyComDataset.tar.gz.014	2146435072
+eval_easycom	ARCHIVES/EasyComDataset.tar.gz.015	https://github.com/facebookresearch/EasyComDataset/releases/download/v1.0.0/EasyComDataset.tar.gz.015	2146435072
+eval_easycom	ARCHIVES/EasyComDataset.tar.gz.016	https://github.com/facebookresearch/EasyComDataset/releases/download/v1.0.0/EasyComDataset.tar.gz.016	2146435072
+eval_easycom	ARCHIVES/EasyComDataset.tar.gz.017	https://github.com/facebookresearch/EasyComDataset/releases/download/v1.0.0/EasyComDataset.tar.gz.017	2146435072
+eval_easycom	ARCHIVES/EasyComDataset.tar.gz.018	https://github.com/facebookresearch/EasyComDataset/releases/download/v1.0.0/EasyComDataset.tar.gz.018	2146435072
+eval_easycom	ARCHIVES/EasyComDataset.tar.gz.019	https://github.com/facebookresearch/EasyComDataset/releases/download/v1.0.0/EasyComDataset.tar.gz.019	2146435072
+eval_easycom	ARCHIVES/EasyComDataset.tar.gz.020	https://github.com/facebookresearch/EasyComDataset/releases/download/v1.0.0/EasyComDataset.tar.gz.020	2146435072
+eval_easycom	ARCHIVES/EasyComDataset.tar.gz.021	https://github.com/facebookresearch/EasyComDataset/releases/download/v1.0.0/EasyComDataset.tar.gz.021	2146435072
+eval_easycom	ARCHIVES/EasyComDataset.tar.gz.022	https://github.com/facebookresearch/EasyComDataset/releases/download/v1.0.0/EasyComDataset.tar.gz.022	2146435072
+eval_easycom	ARCHIVES/EasyComDataset.tar.gz.023	https://github.com/facebookresearch/EasyComDataset/releases/download/v1.0.0/EasyComDataset.tar.gz.023	2146435072
+eval_easycom	ARCHIVES/EasyComDataset.tar.gz.024	https://github.com/facebookresearch/EasyComDataset/releases/download/v1.0.0/EasyComDataset.tar.gz.024	2146435072
+eval_easycom	ARCHIVES/EasyComDataset.tar.gz.025	https://github.com/facebookresearch/EasyComDataset/releases/download/v1.0.0/EasyComDataset.tar.gz.025	2146435072
+eval_easycom	ARCHIVES/EasyComDataset.tar.gz.026	https://github.com/facebookresearch/EasyComDataset/releases/download/v1.0.0/EasyComDataset.tar.gz.026	2146435072
+eval_easycom	ARCHIVES/EasyComDataset.tar.gz.027	https://github.com/facebookresearch/EasyComDataset/releases/download/v1.0.0/EasyComDataset.tar.gz.027	2146435072
+eval_easycom	ARCHIVES/EasyComDataset.tar.gz.028	https://github.com/facebookresearch/EasyComDataset/releases/download/v1.0.0/EasyComDataset.tar.gz.028	2146435072
+eval_easycom	ARCHIVES/EasyComDataset.tar.gz.029	https://github.com/facebookresearch/EasyComDataset/releases/download/v1.0.0/EasyComDataset.tar.gz.029	2146435072
+eval_easycom	ARCHIVES/EasyComDataset.tar.gz.030	https://github.com/facebookresearch/EasyComDataset/releases/download/v1.0.0/EasyComDataset.tar.gz.030	2146435072
+eval_easycom	ARCHIVES/EasyComDataset.tar.gz.031	https://github.com/facebookresearch/EasyComDataset/releases/download/v1.0.0/EasyComDataset.tar.gz.031	2146435072
+eval_easycom	ARCHIVES/EasyComDataset.tar.gz.032	https://github.com/facebookresearch/EasyComDataset/releases/download/v1.0.0/EasyComDataset.tar.gz.032	2146435072
+eval_easycom	ARCHIVES/EasyComDataset.tar.gz.033	https://github.com/facebookresearch/EasyComDataset/releases/download/v1.0.0/EasyComDataset.tar.gz.033	2118690005

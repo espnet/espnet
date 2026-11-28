@@ -1,0 +1,4 @@
+# corpus_dir	relative_path	url	size_bytes	checksum	unpack
+# Zenodo record 7551553 (cc-by-nc-nd-4.0): https://zenodo.org/api/records/7551553
+# EVALUATION ONLY (decided 2026-11-27): CC BY-NC-ND 4.0; never in a training list. See data_survey/eval_only_catalogue_20261127.md
+eval_idmt_traffic	ARCHIVES/IDMT_Traffic.zip	https://zenodo.org/api/records/7551553/files/IDMT_Traffic.zip/content	9663672447	md5:7ca2311ca32203aec5074a5fe933e343

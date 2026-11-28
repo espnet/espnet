@@ -1,0 +1,195 @@
+# frontia_vad_v1: voice activity detection as single-output diarization
+
+Voice activity detection trained with `diar.sh --num_spk 1`: the model has one
+sigmoid output (speech / non-speech) per 8 ms frame, and the label of a frame is
+speech when anyone in the recording speaks. Two models:
+
+- **Causal** (`conf/train.yaml`): every block is causal (no STFT centring, global
+  mean/variance normalisation, a causal TCN encoder, labels aggregated over the
+  same frames). The look-ahead is one STFT window (32 ms); about 1 s of past
+  context. 184k parameters.
+- **Dual-mode** (`conf/tuning/train_dualmode.yaml`): the same encoder with a
+  look-ahead chosen at run time, one set of weights. Online: look-ahead 0
+  (`conf/decode.yaml`); offline: 124 frames = 0.99 s (`conf/tuning/decode_offline.yaml`).
+
+Training reads 10 s chunks straight from the Omni-IO archives that stage 2 dumps:
+the chunk iterator with `chunk_random_access` reads only each chunk's part of the
+archive entry. The feature statistics of stage 4 are collected over whole
+recordings, one at a time with two loader workers (`--stats_args "--batch_size 1 --num_workers 2"`: each worker holds whole recordings); inference runs on
+whole recordings.
+Scoring is md-eval with no collar. `local/show_vad_result.py` picks one threshold
+and median filter on AMI Mix-Headset dev and reports every set at that setting,
+next to each set's own best (`RESULTS_vad.md` in the experiment directory).
+
+## Data
+
+Set the corpus paths in `db.sh`. `local/data.sh --corpora <list>` selects the
+corpora; run.sh passes all of them. Labels are the union of all speakers'
+segments of a recording, written as one pseudo speaker.
+
+Training (and validation: `data/train`, `data/dev`):
+
+| corpus | `db.sh` | licence | microphones | splits |
+|---|---|---|---|---|
+| AMI | `AMI` | CC BY 4.0 | every wav: Headset-*, Lapel-*, Array1-0*, Array2-0*, Mix-Headset | full-corpus-ASR partition (`../../ami/asr1/local/split_*.orig`) |
+| CHiME-6 (OpenSLR SLR150) | `CHIME6` | CC BY-SA 4.0 | every channel of the six arrays and of the binaural in-ear microphones | train / dev / eval |
+| NOTSOFAR-1 (240825.1) | `NOTSOFAR1` | CC BY 4.0 | close-talk, every channel of the 7-channel arrays, single-channel devices | train / dev / eval |
+| ICSI | `ICSI` | CC BY 4.0 | every chan*.sph and Mix-Headset | lhotse partition (`local/icsi_split_*.txt`) |
+
+CHiME-6 is released under CC BY-SA 4.0 (`LICENSE.txt` of the corpus). The
+ShareAlike (SA) term of this licence is planned to be removed.
+
+Noise for on-the-fly augmentation (`data/noise.scp`, SNR -5 to 20 dB):
+
+| corpus | `db.sh` | licence | part used |
+|---|---|---|---|
+| MUSAN | `MUSAN` | CC / public domain (per-file LICENSE) | `noise/`, `music/` (`speech/` is left out: babble added to a non-speech region would be labelled non-speech) |
+| CHiME-3 background noise | `CHIME3_BACKGROUND` | CC BY 4.0 | all channels |
+
+Evaluation only (test sets; the dev/eval splits of the training corpora are test
+sets too). Multi-channel recordings are scored on their first channel.
+
+| corpus | `db.sh` | licence | sets | reference |
+|---|---|---|---|---|
+| DiPCo | `DIPCO` | CDLA-Permissive-1.0 | dev, eval | every array channel and close-talk |
+| AMI Mix-Headset, BUT setup | `AMI`, `AMI_DIAR_SETUP` | AMI: CC BY 4.0; setup: Apache-2.0 | dev, eval (BUT dev, test) | `only_words` RTTMs, as in Bredin and Laurent, Interspeech 2021 |
+| AliMeeting (OpenSLR SLR119) | `ALIMEETING` | CC BY-SA 4.0 | dev (Eval_Ali), eval (Test_Ali) | far-field TextGrids |
+| AISHELL-4 (OpenSLR SLR111) | `AISHELL4` | CC BY-SA 4.0 | eval (test) | RTTMs of the release |
+| VoxConverse | `VOXCONVERSE` | CC BY 4.0 | dev, eval (test) | RTTMs of `joonson/voxconverse` |
+| Earnings-21 | `EARNINGS21` | CC BY-SA 4.0 | eval | RTTMs of `revdotcom/speech-datasets` |
+| AVA-Speech | `AVA_SPEECH` | labels CC BY 4.0; audio of YouTube movies | eval (15:00-30:00 of each movie) | every label except NO_SPEECH is speech |
+| TEN VAD testset | `TEN_VAD` | Apache-2.0 with the additional conditions of the ten-vad repository | eval | frame labels (`.scv`) |
+
+Archives that unpack into many small files (AliMeeting, AISHELL-4) can stay
+packed: `local/data.sh` extracts only the members it needs into `downloads/`.
+
+## Running
+
+```bash
+./run.sh                                        # causal model, stages 1-7
+./run.sh --diar_config conf/tuning/train_dualmode.yaml --diar_tag train_dualmode
+python3 local/show_vad_result.py exp/diar_train --tune_set ami_mh_dev
+```
+
+Offline scores of the dual-mode model: see the comment at the top of `run.sh`.
+Inference of a set runs in `--inference_nj` jobs. With `--gpu_inference true`,
+`run.pl` runs one job per GPU; `--inference_max_jobs_run 8` runs 8 at once (one
+2.5 h recording needs about 2 GB of GPU memory with this model).
+
+The dual-mode model needs the TCN encoder with a run-time look-ahead and the
+batch augmentation in the model (`wav_augment`).
+
+<!-- Generated by local/show_vad_result.py (scripts/utils/show_diar_result.sh gives the per-setting DER) -->
+# RESULTS
+## Environments
+- date: `Sun Nov  8 08:25:06 JST 2026`
+- python version: `3.12.8 | Intel Corporation | (main, Mar 31 2025, 23:28:18) [GCC 14.2.0]`
+- espnet2 version: `espnet2 202611`
+- pytorch version: `pytorch 2.13.0+cu129`
+- Git hash: `1f262689446598ec0b8ac5db41602ea30556c949`
+  - Commit date: `Fri Nov 6 16:16:52 2026 +0900`
+- scoring: md-eval with a UEM of each whole recording, rescored on Sun Nov 8 2026
+
+Detection error (%) = (missed + false alarm speech) / reference speech, md-eval,
+collar 0, over each whole recording (`local/score.sh`: a UEM from
+0 to the end of the recording, so false alarms before the first and after the
+last speech count). With one pseudo speaker there is no speaker confusion, so
+the diarization error rate is the detection error. Stage 7 scores every set at
+thresholds 0.3-0.9 and median filters of 1 and 11 frames; `local/show_vad_result.py`
+picks the setting on AMI Mix-Headset dev and reports every set at it ("tuned"),
+next to each set's own best setting, which is tuned on that set.
+
+## Causal model: `conf/train.yaml`
+
+- config: `conf/train.yaml`, 10 s windows, batch 64, learning rate 5e-4, seed 1
+- inference model: `valid.acc.best.pth` (epoch 11), whole recordings, `conf/decode.yaml`
+- pretrained model: https://huggingface.co/espnet/frontia_vad_v1_online (upload pending)
+- tuned on ami_mh_dev: threshold 0.7, median filter 11
+
+| set | speech h | DetER (tuned) | FA | Miss | DetER (set's own best) | its threshold, median |
+|---|---|---|---|---|---|---|
+| aishell4_eval | 11.5 | 8.16 | 3.79 | 4.37 | 7.88 | 0.6, 11 |
+| alimeeting_dev | 3.9 | 7.40 | 5.16 | 2.23 | 7.40 | 0.7, 11 |
+| alimeeting_eval | 9.9 | 7.09 | 4.79 | 2.29 | 7.09 | 0.7, 11 |
+| ami_dev | 75.1 | 10.03 | 4.71 | 5.33 | 9.66 | 0.6, 11 |
+| ami_eval | 90.1 | 10.01 | 2.89 | 7.12 | 8.66 | 0.5, 11 |
+| ami_mh_dev | 7.6 | 10.93 | 7.64 | 3.28 | 10.93 | 0.7, 11 |
+| ami_mh_eval | 7.3 | 11.31 | 6.31 | 5.00 | 11.31 | 0.7, 11 |
+| ava_speech_eval | 19.9 | 50.01 | 44.13 | 5.88 | 32.67 | 0.9, 11 |
+| chime6_dev | 117.9 | 9.60 | 1.92 | 7.69 | 4.62 | 0.3, 11 |
+| chime6_eval | 122.7 | 14.65 | 5.35 | 9.30 | 14.59 | 0.6, 11 |
+| dev | 329.2 | 7.81 | 2.66 | 5.15 | 6.52 | 0.4, 11 |
+| dipco_dev | 98.1 | 10.46 | 4.13 | 6.33 | 8.50 | 0.5, 11 |
+| dipco_eval | 92.0 | 10.01 | 5.35 | 4.66 | 9.37 | 0.6, 11 |
+| earnings21_eval | 32.8 | 14.60 | 10.37 | 4.23 | 14.60 | 0.7, 11 |
+| icsi_dev | 12.5 | 11.74 | 5.31 | 6.44 | 11.74 | 0.7, 11 |
+| icsi_eval | 11.9 | 14.53 | 3.83 | 10.70 | 13.47 | 0.5, 11 |
+| notsofar_dev | 123.7 | 4.35 | 1.85 | 2.50 | 4.23 | 0.6, 11 |
+| notsofar_eval | 398.5 | 4.34 | 2.80 | 1.55 | 4.34 | 0.7, 11 |
+| ten_vad_eval | 0.1 | 22.64 | 21.30 | 1.34 | 16.20 | 0.9, 11 |
+| voxconverse_dev | 18.9 | 4.93 | 3.88 | 1.05 | 4.93 | 0.7, 11 |
+| voxconverse_eval | 39.0 | 8.24 | 7.31 | 0.93 | 8.06 | 0.8, 11 |
+# VAD results: diar_dualmode_la0
+
+The false alarm on AVA-Speech (movies with music and effects) is far above every
+other set; its own best threshold is the highest tried.
+
+## Dual-mode model: `conf/tuning/train_dualmode.yaml`
+
+- config: `conf/tuning/train_dualmode.yaml`, 10 s windows, batch 64, learning rate 5e-4, seed 1
+- inference model: `valid.acc.best.pth` (epoch 11), whole recordings
+- pretrained model (offline use): https://huggingface.co/espnet/frontia_vad_v1_offline (upload pending)
+- tuned on ami_mh_dev: online threshold 0.7, offline threshold 0.8, median filter 11
+
+### Online (look-ahead 0, `conf/decode.yaml`)
+
+| set | speech h | DetER (tuned) | FA | Miss | DetER (set's own best) | its threshold, median |
+|---|---|---|---|---|---|---|
+| aishell4_eval | 11.5 | 8.46 | 3.84 | 4.62 | 8.05 | 0.6, 11 |
+| alimeeting_dev | 3.9 | 7.36 | 5.12 | 2.24 | 7.33 | 0.6, 11 |
+| alimeeting_eval | 9.9 | 7.10 | 4.88 | 2.22 | 7.10 | 0.7, 11 |
+| ami_dev | 75.1 | 10.19 | 4.66 | 5.53 | 9.75 | 0.6, 11 |
+| ami_eval | 90.1 | 10.32 | 2.82 | 7.49 | 8.76 | 0.5, 11 |
+| ami_mh_dev | 7.6 | 11.11 | 7.72 | 3.40 | 11.11 | 0.7, 11 |
+| ami_mh_eval | 7.3 | 11.58 | 6.28 | 5.30 | 11.58 | 0.7, 11 |
+| ava_speech_eval | 19.9 | 50.48 | 44.52 | 5.96 | 32.45 | 0.9, 11 |
+| chime6_dev | 117.9 | 9.84 | 1.97 | 7.87 | 4.70 | 0.3, 11 |
+| chime6_eval | 122.7 | 14.77 | 5.42 | 9.35 | 14.73 | 0.6, 11 |
+| dev | 329.2 | 7.96 | 2.61 | 5.35 | 6.58 | 0.5, 11 |
+| dipco_dev | 98.1 | 10.75 | 4.00 | 6.76 | 8.38 | 0.5, 11 |
+| dipco_eval | 92.0 | 9.93 | 5.12 | 4.81 | 9.17 | 0.6, 11 |
+| earnings21_eval | 32.8 | 17.34 | 11.07 | 6.27 | 17.34 | 0.7, 11 |
+| icsi_dev | 12.5 | 11.83 | 5.23 | 6.60 | 11.83 | 0.7, 11 |
+| icsi_eval | 11.9 | 14.75 | 3.76 | 11.00 | 13.54 | 0.5, 11 |
+| notsofar_dev | 123.7 | 4.43 | 1.73 | 2.70 | 4.24 | 0.6, 11 |
+| notsofar_eval | 398.5 | 4.43 | 2.84 | 1.59 | 4.43 | 0.7, 11 |
+| ten_vad_eval | 0.1 | 23.42 | 21.72 | 1.70 | 17.99 | 0.9, 11 |
+| voxconverse_dev | 18.9 | 4.99 | 3.74 | 1.25 | 4.99 | 0.7, 11 |
+| voxconverse_eval | 39.0 | 8.36 | 7.19 | 1.17 | 8.28 | 0.8, 11 |
+# VAD results: diar_dualmode_la124
+
+### Offline (look-ahead 124 frames = 0.99 s, `conf/tuning/decode_offline.yaml`)
+
+| set | speech h | DetER (tuned) | FA | Miss | DetER (set's own best) | its threshold, median |
+|---|---|---|---|---|---|---|
+| aishell4_eval | 11.5 | 7.63 | 2.15 | 5.48 | 5.87 | 0.5, 11 |
+| alimeeting_dev | 3.9 | 6.34 | 3.54 | 2.80 | 6.09 | 0.7, 11 |
+| alimeeting_eval | 9.9 | 5.72 | 2.81 | 2.91 | 5.53 | 0.7, 11 |
+| ami_dev | 75.1 | 8.62 | 3.35 | 5.27 | 7.74 | 0.6, 11 |
+| ami_eval | 90.1 | 9.09 | 1.64 | 7.45 | 6.65 | 0.6, 11 |
+| ami_mh_dev | 7.6 | 9.07 | 5.07 | 4.01 | 9.07 | 0.8, 11 |
+| ami_mh_eval | 7.3 | 10.21 | 3.85 | 6.37 | 9.50 | 0.7, 11 |
+| ava_speech_eval | 19.9 | 31.59 | 21.31 | 10.28 | 28.39 | 0.9, 11 |
+| chime6_dev | 117.9 | 10.00 | 1.62 | 8.38 | 4.31 | 0.3, 11 |
+| chime6_eval | 122.7 | 14.16 | 3.66 | 10.50 | 12.80 | 0.6, 11 |
+| dev | 329.2 | 7.32 | 1.73 | 5.59 | 5.25 | 0.5, 11 |
+| dipco_dev | 98.1 | 12.56 | 2.39 | 10.17 | 7.74 | 0.5, 11 |
+| dipco_eval | 92.0 | 10.26 | 3.25 | 7.01 | 8.48 | 0.6, 11 |
+| earnings21_eval | 32.8 | 10.13 | 6.37 | 3.76 | 10.13 | 0.8, 11 |
+| icsi_dev | 12.5 | 11.25 | 2.74 | 8.52 | 10.45 | 0.7, 11 |
+| icsi_eval | 11.9 | 15.38 | 2.29 | 13.10 | 12.78 | 0.5, 11 |
+| notsofar_dev | 123.7 | 3.57 | 0.74 | 2.82 | 2.83 | 0.6, 11 |
+| notsofar_eval | 398.5 | 3.34 | 1.34 | 2.00 | 3.08 | 0.7, 11 |
+| ten_vad_eval | 0.1 | 19.53 | 16.72 | 2.81 | 17.52 | 0.9, 11 |
+| voxconverse_dev | 18.9 | 4.78 | 2.50 | 2.28 | 4.55 | 0.7, 11 |
+| voxconverse_eval | 39.0 | 7.52 | 5.55 | 1.97 | 7.52 | 0.8, 11 |

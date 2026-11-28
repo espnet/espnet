@@ -1,0 +1,17 @@
+# corpus_dir	relative_path	url	size_bytes	checksum	unpack
+birdvox	ARCHIVES/BirdVox-DCASE-20k.zip	https://zenodo.org/api/records/1208080/files/BirdVox-DCASE-20k.zip/content	16517893694	md5:3bdde2b472f42ec619d2d665cb40dd2c
+birdvox	ARCHIVES/BirdVox-full-night_csv-annotations_unit01.csv	https://zenodo.org/api/records/1205569/files/BirdVox-full-night_csv-annotations_unit01.csv/content	46835	md5:a8955d08b24a41496be7b91499f18f97
+birdvox	ARCHIVES/BirdVox-full-night_csv-annotations_unit02.csv	https://zenodo.org/api/records/1205569/files/BirdVox-full-night_csv-annotations_unit02.csv/content	75699	md5:831f62043b2c404cedb7004032905408
+birdvox	ARCHIVES/BirdVox-full-night_csv-annotations_unit03.csv	https://zenodo.org/api/records/1205569/files/BirdVox-full-night_csv-annotations_unit03.csv/content	145827	md5:1369f241442550601280eec013add2cd
+birdvox	ARCHIVES/BirdVox-full-night_csv-annotations_unit05.csv	https://zenodo.org/api/records/1205569/files/BirdVox-full-night_csv-annotations_unit05.csv/content	84243	md5:b1aeb87763990856d92d6db162a8c5a0
+birdvox	ARCHIVES/BirdVox-full-night_csv-annotations_unit07.csv	https://zenodo.org/api/records/1205569/files/BirdVox-full-night_csv-annotations_unit07.csv/content	104499	md5:b14c409077c86ada07a7c22a4f7749bb
+birdvox	ARCHIVES/BirdVox-full-night_csv-annotations_unit10.csv	https://zenodo.org/api/records/1205569/files/BirdVox-full-night_csv-annotations_unit10.csv/content	109443	md5:bfe4a6e45731f468cc6dbea0a7968c1c
+birdvox	ARCHIVES/BirdVox-full-night_flac-audio_unit01.flac	https://zenodo.org/api/records/1205569/files/BirdVox-full-night_flac-audio_unit01.flac/content	1174959620	md5:453ea014550936dec2af285f21df131c
+birdvox	ARCHIVES/BirdVox-full-night_flac-audio_unit02.flac	https://zenodo.org/api/records/1205569/files/BirdVox-full-night_flac-audio_unit02.flac/content	999540824	md5:70ba6b785a0a8dfaf06da67c58b5660b
+birdvox	ARCHIVES/BirdVox-full-night_flac-audio_unit03.flac	https://zenodo.org/api/records/1205569/files/BirdVox-full-night_flac-audio_unit03.flac/content	868993719	md5:e58a005aa5000fdb962df3db83b6e211
+birdvox	ARCHIVES/BirdVox-full-night_flac-audio_unit05.flac	https://zenodo.org/api/records/1205569/files/BirdVox-full-night_flac-audio_unit05.flac/content	986947205	md5:9d924ec80c75ea15f58406b32b1bfc5f
+birdvox	ARCHIVES/BirdVox-full-night_flac-audio_unit07.flac	https://zenodo.org/api/records/1205569/files/BirdVox-full-night_flac-audio_unit07.flac/content	949445508	md5:ad3afa20f7fd873bdd775a44af51dfea
+birdvox	ARCHIVES/BirdVox-full-night_flac-audio_unit10.flac	https://zenodo.org/api/records/1205569/files/BirdVox-full-night_flac-audio_unit10.flac/content	665318090	md5:da23c632bcc466f88d7eb7ab6ad152f3
+birdvox	ARCHIVES/BirdVox-full-night_gps-coordinates.csv	https://zenodo.org/api/records/1205569/files/BirdVox-full-night_gps-coordinates.csv/content	144	md5:bb99f1148bc90232cffc42b42d8606aa
+birdvox	ARCHIVES/BirdVox-full-night_utc-start-times.csv	https://zenodo.org/api/records/1205569/files/BirdVox-full-night_utc-start-times.csv/content	123	md5:a1847e7f6e095496b3d81ebbe9266e51
+birdvox	ARCHIVES/README.md	https://zenodo.org/api/records/1205569/files/README.md/content	5210	md5:ce5007f87d152fde74da970340f0ee92

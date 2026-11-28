@@ -1,0 +1,10 @@
+# corpus_dir	relative_path	url	size_bytes	checksum	unpack
+# Zenodo record 10902294 (cc-by-nc-sa-4.0): https://zenodo.org/api/records/10902294
+# EVALUATION ONLY (decided 2026-11-27): CC BY-NC-SA 4.0; never in a training list. See data_survey/eval_only_catalogue_20261127.md
+eval_dcase2024_t2	ARCHIVES/dev_bearing.zip	https://zenodo.org/api/records/10902294/files/dev_bearing.zip/content	295518281	md5:b4b750604c096d50586520a2fe6359a7
+eval_dcase2024_t2	ARCHIVES/dev_ToyTrain.zip	https://zenodo.org/api/records/10902294/files/dev_ToyTrain.zip/content	339862504	md5:7a27477369497ba3e027b530fc40ef09
+eval_dcase2024_t2	ARCHIVES/dev_slider.zip	https://zenodo.org/api/records/10902294/files/dev_slider.zip/content	294123868	md5:55aca264168ab94d7bd2bc50542e8a3d
+eval_dcase2024_t2	ARCHIVES/dev_fan.zip	https://zenodo.org/api/records/10902294/files/dev_fan.zip/content	318407089	md5:636a17ea9a130683f3a413724b8f5493
+eval_dcase2024_t2	ARCHIVES/dev_gearbox.zip	https://zenodo.org/api/records/10902294/files/dev_gearbox.zip/content	317127027	md5:cf146c49d78ced7532206ca0a83a1444
+eval_dcase2024_t2	ARCHIVES/dev_ToyCar.zip	https://zenodo.org/api/records/10902294/files/dev_ToyCar.zip/content	383062517	md5:1ada4ccd2fa5b07020f25fa017321593
+eval_dcase2024_t2	ARCHIVES/dev_valve.zip	https://zenodo.org/api/records/10902294/files/dev_valve.zip/content	293487521	md5:d03786b9502275226c6879f37a6cfe31

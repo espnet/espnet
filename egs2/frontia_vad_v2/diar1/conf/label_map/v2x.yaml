@@ -1,0 +1,9 @@
+# Label map of v2.x (default): the binary labels of the v2.x dumps (clean6), byte for byte.
+# Speech, singing and every annotated utterance (whatever it holds) are speech;
+# vocalisations (laughter, cough, breath, cry, imitation, ...), music and sounds are not
+# (Shinji, 2026-11-08). See local/v2/categories.py.
+map:
+  - "speech/*": speech
+  - "vocal/*": nonspeech
+  - "music/*": nonspeech
+  - "sound/*": nonspeech

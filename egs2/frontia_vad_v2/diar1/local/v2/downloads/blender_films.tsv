@@ -1,0 +1,44 @@
+# corpus_dir	relative_path	url	size_bytes	checksum	unpack
+# Blender open movies: Tears of Steel and Sintel from the dotsrc.org mirror of download.blender.org/demo/movies, Elephants Dream from archive.org/details/ElephantsDream, Blender Studio films from video.blender.org; CC BY parts only (TOS music+FX marked CC-BY-ND-3.0); per-file licence: blender_films.licences.tsv
+# 41 files, 1.97 GB; 1.27 h of films excluding Tears of Steel and Sintel
+blender_films	ARCHIVES/big_buck_bunny/6402b77c-b61f-4a06-96ca-c8420a2becf4-240.mp4	https://video.blender.org/object-storage/web_videos/6402b77c-b61f-4a06-96ca-c8420a2becf4-240.mp4	52991998
+blender_films	ARCHIVES/caminandes_2/fb70d459-48d2-4db5-adba-813c84f9200a-240.mp4	https://video.blender.org/object-storage/web_videos/fb70d459-48d2-4db5-adba-813c84f9200a-240.mp4	6784103
+blender_films	ARCHIVES/caminandes_3/23f3ef79-15dc-44c5-aa45-cf92e78a4509-240.mp4	https://video.blender.org/object-storage/web_videos/23f3ef79-15dc-44c5-aa45-cf92e78a4509-240.mp4	7498263
+blender_films	ARCHIVES/charge/70528f27-fd51-479f-8146-abb5a7a81fff-720.mp4	https://video.blender.org/object-storage/web_videos/70528f27-fd51-479f-8146-abb5a7a81fff-720.mp4	54603117
+blender_films	ARCHIVES/coffee_run/ff8fe61b-026f-4f07-b66b-2a790d6f6ab1-240.mp4	https://video.blender.org/object-storage/web_videos/ff8fe61b-026f-4f07-b66b-2a790d6f6ab1-240.mp4	10422402
+blender_films	ARCHIVES/cosmos_laundromat/f507dfdc-e73e-45a4-9778-d758cbe1ce96-240.mp4	https://video.blender.org/object-storage/web_videos/f507dfdc-e73e-45a4-9778-d758cbe1ce96-240.mp4	43111784
+blender_films	ARCHIVES/daily_dweebs/7b2eff2a-35f2-4403-9d88-d0dd6e4b5ba1-240.mp4	https://video.blender.org/object-storage/web_videos/7b2eff2a-35f2-4403-9d88-d0dd6e4b5ba1-240.mp4	1905684
+blender_films	ARCHIVES/elephants_dream/ED-CM-St-16bit.flac	https://archive.org/download/ElephantsDream/ED-CM-St-16bit.flac	59166432	md5:90f3ed5b44465bd1ec867221b2420e4f
+blender_films	ARCHIVES/glass_half/64222c8a-c4c7-4b3b-9850-7fb2078edcf6-240.mp4	https://video.blender.org/object-storage/web_videos/64222c8a-c4c7-4b3b-9850-7fb2078edcf6-240.mp4	8952140
+blender_films	ARCHIVES/hero/2d1fda83-0ccf-4bd3-b435-9b2011f6d991-0.mp4	https://video.blender.org/object-storage/web_videos/2d1fda83-0ccf-4bd3-b435-9b2011f6d991-0.mp4	3828157
+blender_films	ARCHIVES/sintel/Sintel.2010.1080p.mkv	https://mirrors.dotsrc.org/blender/demo/movies/Sintel.2010.1080p.mkv	1172428172	md5:377aa3357df96a9ae085169a74d2a3bf
+blender_films	ARCHIVES/spring/3d95fb3d-c866-42c8-9db1-fe82f48ccb95-240.mp4	https://video.blender.org/object-storage/web_videos/3d95fb3d-c866-42c8-9db1-fe82f48ccb95-240.mp4	22813737
+blender_films	ARCHIVES/sprite_fright/a69d68a5-a0e0-4a80-9d66-49f093c97aaf-720.mp4	https://video.blender.org/object-storage/web_videos/a69d68a5-a0e0-4a80-9d66-49f093c97aaf-720.mp4	102392846
+blender_films	ARCHIVES/tears_of_steel/TOS_DVDSTEREOMIX.aif	https://mirrors.dotsrc.org/blender/demo/movies/ToS/TOS_DVDSTEREOMIX.aif	211392550
+blender_films	ARCHIVES/tears_of_steel/TOS_MUSIC+FX_NO_DIALOGUE.aif	https://mirrors.dotsrc.org/blender/demo/movies/ToS/TOS_MUSIC%2BFX_NO_DIALOGUE.aif	211392550
+blender_films	ARCHIVES/tears_of_steel/copyright.txt	https://mirrors.dotsrc.org/blender/demo/movies/ToS/copyright.txt	610
+blender_films	ARCHIVES/tears_of_steel/subtitles/TOS-CH-traditional.srt	https://mirrors.dotsrc.org/blender/demo/movies/ToS/subtitles/TOS-CH-traditional.srt	4708
+blender_films	ARCHIVES/tears_of_steel/subtitles/TOS-CH.srt	https://mirrors.dotsrc.org/blender/demo/movies/ToS/subtitles/TOS-CH.srt	4945
+blender_films	ARCHIVES/tears_of_steel/subtitles/TOS-CZ.srt	https://mirrors.dotsrc.org/blender/demo/movies/ToS/subtitles/TOS-CZ.srt	5626
+blender_films	ARCHIVES/tears_of_steel/subtitles/TOS-Croatian.srt	https://mirrors.dotsrc.org/blender/demo/movies/ToS/subtitles/TOS-Croatian.srt	4473
+blender_films	ARCHIVES/tears_of_steel/subtitles/TOS-Dansk.srt	https://mirrors.dotsrc.org/blender/demo/movies/ToS/subtitles/TOS-Dansk.srt	4489
+blender_films	ARCHIVES/tears_of_steel/subtitles/TOS-GK.srt	https://mirrors.dotsrc.org/blender/demo/movies/ToS/subtitles/TOS-GK.srt	6185
+blender_films	ARCHIVES/tears_of_steel/subtitles/TOS-HE.srt	https://mirrors.dotsrc.org/blender/demo/movies/ToS/subtitles/TOS-HE.srt	6412
+blender_films	ARCHIVES/tears_of_steel/subtitles/TOS-HU.srt	https://mirrors.dotsrc.org/blender/demo/movies/ToS/subtitles/TOS-HU.srt	4907
+blender_films	ARCHIVES/tears_of_steel/subtitles/TOS-Indonesian.srt	https://mirrors.dotsrc.org/blender/demo/movies/ToS/subtitles/TOS-Indonesian.srt	4500
+blender_films	ARCHIVES/tears_of_steel/subtitles/TOS-JP.srt	https://mirrors.dotsrc.org/blender/demo/movies/ToS/subtitles/TOS-JP.srt	4965
+blender_films	ARCHIVES/tears_of_steel/subtitles/TOS-PL-please-review.srt	https://mirrors.dotsrc.org/blender/demo/movies/ToS/subtitles/TOS-PL-please-review.srt	4770
+blender_films	ARCHIVES/tears_of_steel/subtitles/TOS-PT-BR.srt	https://mirrors.dotsrc.org/blender/demo/movies/ToS/subtitles/TOS-PT-BR.srt	4686
+blender_films	ARCHIVES/tears_of_steel/subtitles/TOS-PT-PT.srt	https://mirrors.dotsrc.org/blender/demo/movies/ToS/subtitles/TOS-PT-PT.srt	4686
+blender_films	ARCHIVES/tears_of_steel/subtitles/TOS-Persian.srt	https://mirrors.dotsrc.org/blender/demo/movies/ToS/subtitles/TOS-Persian.srt	5286
+blender_films	ARCHIVES/tears_of_steel/subtitles/TOS-de.srt	https://mirrors.dotsrc.org/blender/demo/movies/ToS/subtitles/TOS-de.srt	4851
+blender_films	ARCHIVES/tears_of_steel/subtitles/TOS-en.srt	https://mirrors.dotsrc.org/blender/demo/movies/ToS/subtitles/TOS-en.srt	4764
+blender_films	ARCHIVES/tears_of_steel/subtitles/TOS-es.srt	https://mirrors.dotsrc.org/blender/demo/movies/ToS/subtitles/TOS-es.srt	4948
+blender_films	ARCHIVES/tears_of_steel/subtitles/TOS-fr-Goofy.srt	https://mirrors.dotsrc.org/blender/demo/movies/ToS/subtitles/TOS-fr-Goofy.srt	4622
+blender_films	ARCHIVES/tears_of_steel/subtitles/TOS-fr-OMenor.srt	https://mirrors.dotsrc.org/blender/demo/movies/ToS/subtitles/TOS-fr-OMenor.srt	4968
+blender_films	ARCHIVES/tears_of_steel/subtitles/TOS-fr-orig.srt	https://mirrors.dotsrc.org/blender/demo/movies/ToS/subtitles/TOS-fr-orig.srt	4908
+blender_films	ARCHIVES/tears_of_steel/subtitles/TOS-it.srt	https://mirrors.dotsrc.org/blender/demo/movies/ToS/subtitles/TOS-it.srt	4744
+blender_films	ARCHIVES/tears_of_steel/subtitles/TOS-nl.srt	https://mirrors.dotsrc.org/blender/demo/movies/ToS/subtitles/TOS-nl.srt	4534
+blender_films	ARCHIVES/tears_of_steel/subtitles/TOS-no.srt	https://mirrors.dotsrc.org/blender/demo/movies/ToS/subtitles/TOS-no.srt	9854
+blender_films	ARCHIVES/tears_of_steel/subtitles/TOS-ru.srt	https://mirrors.dotsrc.org/blender/demo/movies/ToS/subtitles/TOS-ru.srt	5929
+blender_films	ARCHIVES/wing_it/c55de64d-896d-447d-b331-f99c81055da7-0.mp4	https://video.blender.org/object-storage/web_videos/c55de64d-896d-447d-b331-f99c81055da7-0.mp4	3876842

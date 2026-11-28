@@ -1,0 +1,6 @@
+# corpus_dir	relative_path	url	size_bytes	checksum	unpack
+# Zenodo record 4656848 (cc-zero): https://zenodo.org/api/records/4656848
+powdermill	ARCHIVES/wav_Files.zip	https://zenodo.org/api/records/4656848/files/wav_Files.zip/content	1428295296	md5:2876c0cfc6ace1845ac04814ea9180f1
+powdermill	ARCHIVES/mp3_Files.zip	https://zenodo.org/api/records/4656848/files/mp3_Files.zip/content	182276751	md5:c654bd85f43ad6259977940536350fba
+powdermill	ARCHIVES/README.txt	https://zenodo.org/api/records/4656848/files/README.txt/content	7943	md5:a1b4cbf97261285f9363d555d5b01259
+powdermill	ARCHIVES/annotation_Files.zip	https://zenodo.org/api/records/4656848/files/annotation_Files.zip/content	434265	md5:8f78ba7cf9fc5d25656f7747ed3406d1

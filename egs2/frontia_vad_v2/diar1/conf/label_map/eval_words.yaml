@@ -1,0 +1,13 @@
+# Label map for references with word timing (AMI and ICSI all-microphone sets, whose
+# utterance segments carry guideline padding): the timed words are speech, the rest
+# of an utterance (padding, pauses) and vocalisations are left out of scoring.
+details: true
+map:
+  - "speech/words": speech
+  - "speech/filler": speech
+  - "speech/utterance": ignore
+  - "speech/blank": ignore
+  - "speech/*": speech
+  - "vocal/*": ignore
+  - "music/*": nonspeech
+  - "sound/*": nonspeech

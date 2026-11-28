@@ -1,0 +1,12 @@
+# Label map for scoring the category-aware references (local/v2/category_ref.py):
+# vocalisations and wordless (blank) utterances are left out of scoring (ignore -> UEM);
+# utterances, words (also detail words such as LibriCSS unknown words) and fillers are
+# speech; music and sounds are non-speech. Speech wins where an ignored segment
+# overlaps it.
+details: true
+map:
+  - "speech/blank": ignore
+  - "speech/*": speech
+  - "vocal/*": ignore
+  - "music/*": nonspeech
+  - "sound/*": nonspeech

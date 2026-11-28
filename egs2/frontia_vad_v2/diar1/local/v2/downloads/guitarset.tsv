@@ -1,0 +1,7 @@
+# corpus_dir	relative_path	url	size_bytes	checksum	unpack
+guitarset	ARCHIVES/zenodo_record_3371780.json	https://zenodo.org/api/records/3371780
+guitarset	ARCHIVES/annotation.zip	https://zenodo.org/records/3371780/files/annotation.zip?download=1	39132574	md5:b39b78e63d3446f2e54ddb7a54df9b10
+guitarset	ARCHIVES/audio_mono-pickup_mix.zip	https://zenodo.org/records/3371780/files/audio_mono-pickup_mix.zip?download=1	683145360	md5:aecce79f425a44e2055e46f680e10f6a
+guitarset	ARCHIVES/audio_mono-mic.zip	https://zenodo.org/records/3371780/files/audio_mono-mic.zip?download=1	656927981	md5:275966d6610ac34999b58426beb119c3
+guitarset	ARCHIVES/audio_hex-pickup_original.zip	https://zenodo.org/records/3371780/files/audio_hex-pickup_original.zip?download=1	3210735945	md5:f9911bf217cb40e9e68edf3726ef86cc
+guitarset	ARCHIVES/audio_hex-pickup_debleeded.zip	https://zenodo.org/records/3371780/files/audio_hex-pickup_debleeded.zip?download=1	3607349578	md5:c31d97279464c9a67e640cb9061fb0c6

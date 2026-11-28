@@ -1,0 +1,12 @@
+# corpus_dir	relative_path	url	size_bytes	checksum	unpack
+# Zenodo record 3338727 (cc-by-4.0): https://zenodo.org/api/records/3338727
+mavd_traffic	ARCHIVES/video_validate.zip	https://zenodo.org/api/records/3338727/files/video_validate.zip/content	38053696	md5:3fcf748f10432dff1a75442ee82ccf7c
+mavd_traffic	ARCHIVES/video_train.zip	https://zenodo.org/api/records/3338727/files/video_train.zip/content	136878070	md5:df0a1eef1dd89be72ae805e815c0380c
+mavd_traffic	ARCHIVES/annotations_test.zip	https://zenodo.org/api/records/3338727/files/annotations_test.zip/content	12751	md5:94e609cad8702f5fb6afe52815547b67
+mavd_traffic	ARCHIVES/annotations_train.zip	https://zenodo.org/api/records/3338727/files/annotations_train.zip/content	19829	md5:ea67a330ab695873a12a07ed494eae42
+mavd_traffic	ARCHIVES/annotations_validate.zip	https://zenodo.org/api/records/3338727/files/annotations_validate.zip/content	6150	md5:30edae5c398dffe52a2ee1373e89fd96
+mavd_traffic	ARCHIVES/audio_test.zip	https://zenodo.org/api/records/3338727/files/audio_test.zip/content	402161331	md5:824b035fa76dc83919e312105db4214f
+mavd_traffic	ARCHIVES/audio_train.zip	https://zenodo.org/api/records/3338727/files/audio_train.zip/content	525513188	md5:c7a897623364f80c8ff3775d8dd601a2
+mavd_traffic	ARCHIVES/audio_validate.zip	https://zenodo.org/api/records/3338727/files/audio_validate.zip/content	152341476	md5:d220cef03f99b2d108d708421240f86d
+mavd_traffic	ARCHIVES/README	https://zenodo.org/api/records/3338727/files/README/content	2492	md5:f71d547c558d007593e8ec5b70aa696c
+mavd_traffic	ARCHIVES/video_test.zip	https://zenodo.org/api/records/3338727/files/video_test.zip/content	72328942	md5:85413e8505f1f26672eb43802ba1c465

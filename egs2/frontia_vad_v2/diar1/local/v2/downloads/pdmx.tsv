@@ -1,0 +1,4 @@
+# corpus_dir	relative_path	url	size_bytes	checksum	unpack
+# Zenodo record 15571083 (cc-by-4.0): https://zenodo.org/api/records/15571083
+pdmx	ARCHIVES/mxl.tar.gz	https://zenodo.org/api/records/15571083/files/mxl.tar.gz/content	1894335797	md5:49ffd75ecf5489c0be6d41182eb11ff7
+pdmx	ARCHIVES/PDMX.csv	https://zenodo.org/api/records/15571083/files/PDMX.csv/content	225399738	md5:30392ccf38bb63ce70e7afae70f9c88c

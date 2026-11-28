@@ -1,0 +1,11 @@
+# Label map with four target classes (one output track each; a frame may have several):
+# speech (words, utterances, singing, fillers, backchannels, whisper), vocal (non-word
+# vocalisations), music, sound. Scoring then decides per evaluation set how the class
+# outputs become speech / non-speech / don't-care.
+classes: [speech, vocal, music, sound]
+map:
+  - "speech/blank": ignore
+  - "speech/*": speech
+  - "vocal/*": vocal
+  - "music/*": music
+  - "sound/*": sound

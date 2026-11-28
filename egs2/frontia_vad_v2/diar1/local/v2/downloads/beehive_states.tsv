@@ -1,0 +1,8 @@
+# corpus_dir	relative_path	url	size_bytes	checksum	unpack
+# Zenodo record 2667806 (cc-by-4.0): https://zenodo.org/api/records/2667806
+beehive_states	ARCHIVES/state_labels.csv	https://zenodo.org/api/records/2667806/files/state_labels.csv/content	29227	md5:b9ae1a438fe92f2d59a6f6df2613c560
+beehive_states	ARCHIVES/Hive3_14_07_2017.rar	https://zenodo.org/api/records/2667806/files/Hive3_14_07_2017.rar/content	6509896224	md5:c1fc5c4d2e110aa2bc8687393db7d55d
+beehive_states	ARCHIVES/Hive1_31_05_2018.rar	https://zenodo.org/api/records/2667806/files/Hive1_31_05_2018.rar/content	5084524271	md5:834c58cb1e4c9a15a332a16e106bfa11
+beehive_states	ARCHIVES/Hive3_28_07_2017.rar	https://zenodo.org/api/records/2667806/files/Hive3_28_07_2017.rar/content	6146667593	md5:3fe9c0488a2207379f410a81d17c5d18
+beehive_states	ARCHIVES/Hive1_12_06_2018.rar	https://zenodo.org/api/records/2667806/files/Hive1_12_06_2018.rar/content	5360463389	md5:c04cd7fd310a84f327eb7121e026b40a
+beehive_states	ARCHIVES/Documentation.pdf	https://zenodo.org/api/records/2667806/files/Documentation.pdf/content	95811	md5:b7845d57cf3da6c9bcccf78f44f9dc12

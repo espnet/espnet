@@ -1,0 +1,10 @@
+# External VAD baselines (local/baselines), Python 3.12. Model revisions are pinned in
+# local/baselines/models.py (MarbleNet) or come with the package (Silero).
+torch==2.15.0
+numpy==2.5.4
+scipy==1.18.1
+soundfile==0.14.0
+huggingface_hub==2.4.0
+silero-vad==6.2.3
+webrtcvad==2.0.10
+nemo_toolkit[asr]==3.0.0
