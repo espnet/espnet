@@ -3,7 +3,6 @@
 
 """Task configuration definitions for multimodal SpeechLM data loading."""
 
-
 import math
 
 
