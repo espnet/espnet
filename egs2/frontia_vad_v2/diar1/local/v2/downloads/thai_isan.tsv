@@ -1,6 +1,6 @@
 # corpus_dir	relative_path	url	size_bytes	checksum	unpack
 # Hugging Face dataset typhoon-ai/thai-dialect-isan-dataset @ dfc7e495b3069940880d184f0acfcc6b3cd4f364 (apache-2.0)
-thai_isan	ARCHIVES/README.md	https://huggingface.co/datasets/typhoon-ai/thai-dialect-isan-dataset/resolve/dfc7e495b3069940880d184f0acfcc6b3cd4f364/README.md	5119	
+thai_isan	ARCHIVES/README.md	https://huggingface.co/datasets/typhoon-ai/thai-dialect-isan-dataset/resolve/dfc7e495b3069940880d184f0acfcc6b3cd4f364/README.md	5119
 thai_isan	ARCHIVES/data/test-00000-of-00002.parquet	https://huggingface.co/datasets/typhoon-ai/thai-dialect-isan-dataset/resolve/dfc7e495b3069940880d184f0acfcc6b3cd4f364/data/test-00000-of-00002.parquet	199147135	sha256:35165249ef52d1ec6faa9b2dd74443e41b456484979c3bb4d24a8c2236ab8a26
 thai_isan	ARCHIVES/data/test-00001-of-00002.parquet	https://huggingface.co/datasets/typhoon-ai/thai-dialect-isan-dataset/resolve/dfc7e495b3069940880d184f0acfcc6b3cd4f364/data/test-00001-of-00002.parquet	194376198	sha256:0208b48bc751048f3bda47bad9882295f7b35f3e6c71710f53e597e389905115
 thai_isan	ARCHIVES/data/train-00000-of-00039.parquet	https://huggingface.co/datasets/typhoon-ai/thai-dialect-isan-dataset/resolve/dfc7e495b3069940880d184f0acfcc6b3cd4f364/data/train-00000-of-00039.parquet	233158403	sha256:a0e4374f6aaa2270b99fd49709f090f7ce9288c26b22b36319ada23a77e3a02c

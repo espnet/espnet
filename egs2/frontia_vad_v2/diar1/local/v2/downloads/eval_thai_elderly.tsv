@@ -1,6 +1,6 @@
 # corpus_dir	relative_path	url	size_bytes	checksum	unpack
 # Thai Elderly Speech v1.0.0 (Data Wow, VISAI), https://github.com/VISAI-DATAWOW/Thai-Elderly-Speech-dataset; split zip
 # EVALUATION ONLY (decided 2026-11-27): CC BY-SA 4.0 (SEACrowd card; repository states none); never in a training list. See data_survey/eval_only_catalogue_20261127.md
-eval_thai_elderly	ARCHIVES/Dataset.zip.001	https://github.com/VISAI-DATAWOW/Thai-Elderly-Speech-dataset/releases/download/v1.0.0/Dataset.zip.001	2013265920	
-eval_thai_elderly	ARCHIVES/Dataset.zip.002	https://github.com/VISAI-DATAWOW/Thai-Elderly-Speech-dataset/releases/download/v1.0.0/Dataset.zip.002	2013265920	
-eval_thai_elderly	ARCHIVES/Dataset.zip.003	https://github.com/VISAI-DATAWOW/Thai-Elderly-Speech-dataset/releases/download/v1.0.0/Dataset.zip.003	1045483359	
+eval_thai_elderly	ARCHIVES/Dataset.zip.001	https://github.com/VISAI-DATAWOW/Thai-Elderly-Speech-dataset/releases/download/v1.0.0/Dataset.zip.001	2013265920
+eval_thai_elderly	ARCHIVES/Dataset.zip.002	https://github.com/VISAI-DATAWOW/Thai-Elderly-Speech-dataset/releases/download/v1.0.0/Dataset.zip.002	2013265920
+eval_thai_elderly	ARCHIVES/Dataset.zip.003	https://github.com/VISAI-DATAWOW/Thai-Elderly-Speech-dataset/releases/download/v1.0.0/Dataset.zip.003	1045483359

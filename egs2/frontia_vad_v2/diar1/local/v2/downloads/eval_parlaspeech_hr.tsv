@@ -1,6 +1,6 @@
 # corpus_dir	relative_path	url	size_bytes	checksum	unpack
 # Hugging Face dataset classla/ParlaSpeech-HR @ b443217d8267a989e9b29febdcddc79c1c44fc62 ()
 # EVALUATION ONLY (decided 2026-11-27): CC BY-SA 4.0 (CLARIN.SI hdl 11356/1914); sample of 2 of 326 shards; audio from the parliament's YouTube channel; never in a training list. See data_survey/eval_only_catalogue_20261127.md
-eval_parlaspeech_hr	ARCHIVES/README.md	https://huggingface.co/datasets/classla/ParlaSpeech-HR/resolve/b443217d8267a989e9b29febdcddc79c1c44fc62/README.md	4247	
+eval_parlaspeech_hr	ARCHIVES/README.md	https://huggingface.co/datasets/classla/ParlaSpeech-HR/resolve/b443217d8267a989e9b29febdcddc79c1c44fc62/README.md	4247
 eval_parlaspeech_hr	ARCHIVES/data/train-00000-of-00326.parquet	https://huggingface.co/datasets/classla/ParlaSpeech-HR/resolve/b443217d8267a989e9b29febdcddc79c1c44fc62/data/train-00000-of-00326.parquet	447476021	sha256:647c1df09e79fa0e247d2c0137d0a431e9adac7aeaf5357159ba7d5024eac4c2
 eval_parlaspeech_hr	ARCHIVES/data/train-00001-of-00326.parquet	https://huggingface.co/datasets/classla/ParlaSpeech-HR/resolve/b443217d8267a989e9b29febdcddc79c1c44fc62/data/train-00001-of-00326.parquet	445779749	sha256:23fc0efcba2b4ab195e9961b10f4cd9f15e0549b85c3a8812e3fb35f9ffeca4f

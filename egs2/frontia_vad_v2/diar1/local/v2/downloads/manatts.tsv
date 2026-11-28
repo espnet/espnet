@@ -1,7 +1,7 @@
 # corpus_dir	relative_path	url	size_bytes	checksum	unpack
 # Hugging Face dataset MahtaFetrat/Mana-TTS @ 698f7f7bfe7a8fc665e9c4c0ca9eea7e0d49f64f (cc0-1.0)
-manatts	ARCHIVES/.gitattributes	https://huggingface.co/datasets/MahtaFetrat/Mana-TTS/resolve/698f7f7bfe7a8fc665e9c4c0ca9eea7e0d49f64f/.gitattributes	46	
-manatts	ARCHIVES/README.md	https://huggingface.co/datasets/MahtaFetrat/Mana-TTS/resolve/698f7f7bfe7a8fc665e9c4c0ca9eea7e0d49f64f/README.md	5624	
+manatts	ARCHIVES/.gitattributes	https://huggingface.co/datasets/MahtaFetrat/Mana-TTS/resolve/698f7f7bfe7a8fc665e9c4c0ca9eea7e0d49f64f/.gitattributes	46
+manatts	ARCHIVES/README.md	https://huggingface.co/datasets/MahtaFetrat/Mana-TTS/resolve/698f7f7bfe7a8fc665e9c4c0ca9eea7e0d49f64f/README.md	5624
 manatts	ARCHIVES/dataset/dataset_part_001.parquet	https://huggingface.co/datasets/MahtaFetrat/Mana-TTS/resolve/698f7f7bfe7a8fc665e9c4c0ca9eea7e0d49f64f/dataset/dataset_part_001.parquet	463625469	sha256:23303f424e4b4b49b5643a2b2e3c4f81667230e8c2d5b8cee7685bd4e537c363
 manatts	ARCHIVES/dataset/dataset_part_002.parquet	https://huggingface.co/datasets/MahtaFetrat/Mana-TTS/resolve/698f7f7bfe7a8fc665e9c4c0ca9eea7e0d49f64f/dataset/dataset_part_002.parquet	460469705	sha256:7478dac58cf0a38def4b4547e2ebf10fb5cb76292830df627c282523183d6b96
 manatts	ARCHIVES/dataset/dataset_part_003.parquet	https://huggingface.co/datasets/MahtaFetrat/Mana-TTS/resolve/698f7f7bfe7a8fc665e9c4c0ca9eea7e0d49f64f/dataset/dataset_part_003.parquet	461385468	sha256:4f8bfde0461a3b0b3185c7154fe98c6c29d22fd8becb637e8905c700c6c5be8a
