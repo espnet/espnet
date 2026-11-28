@@ -214,5 +214,25 @@ These are deliberate; each is marked `[DEVIATION]` in the training config.
 - Metrics config: `conf/metrics.yaml`
 
 The same model, tokenizer and decoding as the E-Branchformer above, with the
-data read from the omniio dump (see [omniio dump](#omniio-dump)). No results
-have been produced with these configs yet.
+data read from the omniio dump (see [omniio dump](#omniio-dump)).
+
+| dataset | WER | CER |
+| --- | --- | --- |
+| dev-clean | 6.10 | 2.39 |
+| dev-other | 16.75 | 8.30 |
+| test-clean | 6.45 | 2.45 |
+| test-other | 17.01 | 8.28 |
+
+Trained for all 200 configured epochs on 8 NVIDIA H200 GPUs (one node) in
+bf16, at about 50 s per epoch (38.49 M parameters). For 8 GPUs the config was
+run with `num_device: 8`, `batch_bins: 3800000` and
+`accumulate_grad_batches: 1`, the same effective batch size as the 1-GPU
+default (see the note at the top of the config). Each GPU loaded one of 8
+shards and kept 181 batches per epoch, dropping 1.6-5.2% of its shard's
+batches. Decoded with `conf/inference_omniio.yaml` from the
+`valid.acc.ave_10best` average of epochs 179-199 (0-based). The results match
+the published E-Branchformer results above within run-to-run variation.
+
+#### Pretrained model
+
+No pretrained model has been published for this configuration.
