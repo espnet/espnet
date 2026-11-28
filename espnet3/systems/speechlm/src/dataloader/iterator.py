@@ -7,6 +7,7 @@ import json
 import logging
 import random
 from pathlib import Path
+from tempfile import TemporaryDirectory
 from typing import Callable, Dict, List, Optional, Sequence, Tuple, TypeVar, Union
 
 from torch.utils.data import DataLoader
@@ -310,8 +311,12 @@ class DataIteratorFactory:
         # Save as JSON (nested tuples will be converted to lists)
         state = {"batched_examples": self.batched_examples}
 
-        with open(loader_state, "w") as f:
-            json.dump(state, f)
+        destination = Path(loader_state)
+        with TemporaryDirectory(dir=destination.parent) as staging:
+            pending = Path(staging) / destination.name
+            with pending.open("w", encoding="utf-8") as f:
+                json.dump(state, f)
+            pending.replace(destination)
 
         logging.info(
             f"Saved iterator state to {loader_state} "

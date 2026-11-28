@@ -34,7 +34,7 @@ class AbsJobTemplate(ABC):
         self.is_train = is_train
 
     @abstractmethod
-    def build_preprocessor(self) -> Callable:
+    def build_preprocessor(self, *, augment: bool = True) -> Callable:
         """Build and return the preprocessor object.
 
         The preprocessor object should implement three key methods:
@@ -58,6 +58,10 @@ class AbsJobTemplate(ABC):
         Note: When using PyTorch DataLoader with num_workers > 0, the collate_fn
         executes in worker subprocesses. Ensure the preprocessor object is
         picklable and avoid CUDA operations as workers don't have GPU access.
+
+        Args:
+            augment: Enable configured training augmentation. Set to False
+                to retain the original conditioning inputs for validation.
 
         Returns:
             A preprocessor object with preprocessing(), collate_fn(), and

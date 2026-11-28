@@ -217,8 +217,16 @@ def main():
         if preprocessor is None:
             with args.train_config.open(encoding="utf-8") as f:
                 config = yaml.safe_load(f)
-            job_template = _all_job_types[config["job_type"]](config, is_train=True)
-            preprocessor = job_template.build_preprocessor()
+            # Lengths use tokenizer IDs and audio frame rates. The encoder
+            # weights are discarded by build_preprocessor's worker copies.
+            audio_config = config.get("multimodal_io", {}).get("continuous_audio")
+            if audio_config is not None:
+                # Transformers checks the training kernel even at construction.
+                # No attention is evaluated during CPU length collection.
+                audio_config["attn_implementation"] = "eager"
+            preprocessor = _all_job_types[config["job_type"]](
+                config, is_train=True, load_pretrained=False
+            ).build_preprocessor()
 
         logger.info(f"Processing {spec_type} specifier: {specifier}")
         stats = collect_length_stats(

@@ -392,3 +392,22 @@ class TestDataIteratorFactory:
         factory = DataIteratorFactory.__new__(DataIteratorFactory)
         with pytest.raises(KeyError, match="batched_examples"):
             factory.load_iterator_state(str(state_file))
+
+    def test_interrupted_save_preserves_reusable_state(self, tmp_path, monkeypatch):
+        """A failed write must leave the previous batch order usable."""
+        state_file = tmp_path / "state.json"
+        factory = DataIteratorFactory.__new__(DataIteratorFactory)
+        original = [[("text_only", "corpus", "first")]]
+        factory.batched_examples = original
+        factory.save_iterator_state(state_file)
+
+        def fail_dump(state, stream):
+            stream.write('{"batched_examples":')
+            raise OSError("disk full")
+
+        factory.batched_examples = [[("text_only", "corpus", "second")]]
+        monkeypatch.setattr(json, "dump", fail_dump)
+        with pytest.raises(OSError, match="disk full"):
+            factory.save_iterator_state(state_file)
+        assert factory.load_iterator_state(state_file) == original
+        assert list(tmp_path.iterdir()) == [state_file]

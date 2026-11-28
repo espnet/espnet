@@ -162,6 +162,44 @@ def test_weights_loaded_over_the_inference_build_compute_the_same(
     torch.testing.assert_close(actual, expected)
 
 
+def test_export_trained_lora_loads_in_native_inference(
+    tiny_qwen3, monkeypatch, tmp_path
+):
+    """Reproduce adapted decoder logits with a strict, dense inference load."""
+    import torch.distributed.checkpoint as dcp
+
+    from espnet2.speechlm.bin.export_checkpoint import export_checkpoint
+    from espnet2.speechlm.bin.inference import load_checkpoint
+    from espnet2.speechlm.model.speechlm.lora import apply_lora
+
+    model = _build(tiny_qwen3, True, monkeypatch)
+    apply_lora(model, rank=3, alpha=7, dropout=0.0, target_modules=["q_proj", "v_proj"])
+    optimizer = torch.optim.AdamW([p for p in model.parameters() if p.requires_grad])
+    tokens = torch.tensor([[[256], [257], [258]]])
+    before, _ = model._step(input_ids=tokens)
+    loss = nn.functional.cross_entropy(
+        before[:, :-1, 0].flatten(0, 1), tokens[0, 1:, 0]
+    )
+    loss.backward()
+    optimizer.step()
+    with torch.no_grad():
+        expected, _ = model.eval()._step(input_ids=tokens)
+    assert not torch.allclose(expected, before)
+
+    directory = tmp_path / "step_1"
+    dcp.save(
+        {"model": model.state_dict(), "optimizer": optimizer.state_dict()},
+        checkpoint_id=directory,
+    )
+    output = tmp_path / "model.pt"
+    export_checkpoint(directory, output)
+    plain = _build(tiny_qwen3, False, monkeypatch).eval()
+    load_checkpoint(plain, output)
+    with torch.no_grad():
+        actual, _ = plain._step(input_ids=tokens)
+    torch.testing.assert_close(actual, expected)
+
+
 # ---------------------------------------------------------------------------
 # The options a model_conf can carry, which from_pretrained accepts
 # ---------------------------------------------------------------------------
