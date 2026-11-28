@@ -106,3 +106,14 @@ def test_alimeeting_marker_only_intervals():
     utts, cats = text_labels([(0, 1, "你好"), (1, 2, "[laugh]"), (2, 3, "<sil>")])
     assert [u[2] for u in utts] == [True, False, False]
     assert cats == [(1, 2, "vocal/laughter", ["laugh"], 1)]
+
+
+def test_no_empty_uem_region(tmp_path):
+    s, lab = make_set(tmp_path)
+    # a vocal sound ending 0.0004 s before a blank utterance: the scored gap
+    # between them is empty at millisecond resolution
+    (lab / "categories").write_text("r1 3.500 3.9996 vocal/laughter laughs 1\n")
+    out = run(tmp_path, s, lab, "eval_vocal_ignore.yaml")
+    for line in read(out / "uem"):
+        _, _, a, b = line.split()
+        assert float(b) > float(a)

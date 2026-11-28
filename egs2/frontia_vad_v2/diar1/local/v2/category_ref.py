@@ -149,12 +149,19 @@ def main(argv=None):
             a.speech_category,
         )
         sp = [(max(0.0, s), min(dur, e)) for s, e in sp if min(dur, e) > max(0.0, s)]
+        sp = [(s, e) for s, e in sp if round(e, 3) > round(s, 3)]
         for s, e in sp:
             rttm.append(
                 f"SPEAKER {rec} 1 {s:.3f} {e - s:.3f} <NA> <NA> speech <NA> <NA>\n"
             )
         scored = subtract(merge_intervals(set_uem.get(rec) or [(0.0, dur)]), ig)
-        uem += [f"{rec} 1 {s:.3f} {min(e, dur):.3f}\n" for s, e in scored if e > s]
+        # md-eval rejects an empty region: keep those that are not empty at the
+        # millisecond resolution of the file
+        uem += [
+            f"{rec} 1 {s:.3f} {min(e, dur):.3f}\n"
+            for s, e in scored
+            if round(min(e, dur), 3) > round(s, 3)
+        ]
         hours["speech_old"] += sum(e - s for s, e in speech.get(rec, []))
         hours["speech_new"] += sum(e - s for s, e in sp)
         hours["ignored"] += sum(min(e, dur) - s for s, e in ig if min(e, dur) > s)
