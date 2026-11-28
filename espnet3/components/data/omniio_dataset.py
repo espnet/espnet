@@ -453,9 +453,8 @@ class OmniIODataset(BaseDataset):
         """
         import pyarrow as pa
 
-        index: dict[str, Any] = {
-            "id": np.asarray(table.column("id").to_pylist(), dtype=str)
-        }
+        # A fixed-width NumPy string array would pad every id to the longest.
+        index: dict[str, Any] = {"id": table.column("id").combine_chunks()}
         for name, kind in self._layout.items():
             if kind == "inline":
                 index[name] = table.column(name).combine_chunks()
@@ -517,7 +516,7 @@ class OmniIODataset(BaseDataset):
             ... ).keys()
             ['b', 'a']
         """
-        return self._ensure_index()["id"].tolist()
+        return self._ensure_index()["id"].to_pylist()
 
     def get_item_lengths(self) -> np.ndarray:
         """Return every item's ``length`` column value, in row order.

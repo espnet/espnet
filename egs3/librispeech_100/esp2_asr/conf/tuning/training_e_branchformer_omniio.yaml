@@ -51,8 +51,14 @@ dataset:
       data_src_args:
         split: train-clean-100
         dump_root: ${omniio_dump_root}
-        total_shards: ${dataloader.train.total_shards}
-        dist_world_size: ${dataloader.train.dist_world_size}
+        # One index shard per GPU. dist_world_size must equal the total
+        # number of GPUs (num_device * num_nodes for multi-node); total_shards
+        # must be a positive multiple of it. Shards differ a little in size
+        # and every rank keeps as many batches as the smallest shard gives,
+        # so each epoch drops some batches (about 3% with 8 shards by id
+        # here); sharding by a coarse column such as speaker drops far more.
+        total_shards: ${num_device}
+        dist_world_size: ${num_device}
   valid:
     - data_src: egs3.librispeech_100.esp2_asr.dataset.omniio
       data_src_args:
@@ -201,14 +207,6 @@ parallel:
 
 dataloader:
   train:
-    # One index shard per GPU (see DATASET DEFINITION). dist_world_size must
-    # equal the total number of GPUs (num_device * num_nodes for multi-node);
-    # total_shards must be a positive multiple of it. Shards differ a little
-    # in size and every rank keeps as many batches as the smallest shard
-    # gives, so each epoch drops some batches (about 3% with 8 shards by id
-    # here); sharding by a coarse column such as speaker drops far more.
-    total_shards: ${num_device}
-    dist_world_size: ${num_device}
     iter_factory:
       num_workers: 4
       batches:
