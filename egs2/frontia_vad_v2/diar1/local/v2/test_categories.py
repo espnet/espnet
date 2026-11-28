@@ -305,3 +305,20 @@ def test_fuss_sources_from_jams():
         (0.0, 10.0, "sound/environment", "Rain"),
         (2.5, 4.0, "vocal/laughter", "Laughter,Giggle"),
     ]
+
+
+def test_merged_speech_takes_the_strongest_category():
+    from vad_dump import merge_tagged
+
+    merged, cats = merge_tagged(
+        [
+            (0, 1, "ba", "speech/blank"),
+            (0.5, 2, "laughs"),
+            (5, 6, "ba", "speech/blank"),
+        ],
+        "speech/utterance",
+    )
+    assert merged == [(0.0, 2.0), (5.0, 6.0)]
+    assert cats == [("speech/utterance", "ba,laughs"), ("speech/blank", "ba")]
+    with pytest.raises(ValueError):
+        merge_tagged([(0, 1, "", "vocal/laughter")], "speech/utterance")

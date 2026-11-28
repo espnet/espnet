@@ -73,25 +73,52 @@ def merge_intervals(intervals: Iterable[Interval]) -> List[Interval]:
     return merged
 
 
+# The category of speech intervals that merge into one: the first in this order
+# that one of them has (an utterance with words beats a blank one).
+SPEECH_PRIORITY = (
+    "speech/words",
+    "speech/utterance",
+    "speech/singing",
+    "speech/whisper",
+    "speech/filler",
+    "speech/backchannel",
+    "speech/blank",
+)
+
+
 def merge_tagged(
     speech: Iterable[tuple], category: str
 ) -> Tuple[List[Interval], List[Tuple[str, str]]]:
     """(merge_intervals of the speech, (category, tags) of each merged interval).
 
-    An item is (start, end) or (start, end, tags); the tags of the intervals
-    that merge into one are joined.
+    An item is (start, end), (start, end, tags) or (start, end, tags, category)
+    (default `category`); the tags of the intervals that merge into one are
+    joined, and the merged interval takes the first category of
+    SPEECH_PRIORITY among them.
     """
     items = sorted(
-        (float(i[0]), float(i[1]), i[2] if len(i) > 2 else "") for i in speech
+        (
+            float(i[0]),
+            float(i[1]),
+            i[2] if len(i) > 2 else "",
+            i[3] if len(i) > 3 else category,
+        )
+        for i in speech
     )
-    merged = merge_intervals((a, b) for a, b, _ in items)
+    for *_, c in items:
+        if c not in SPEECH_PRIORITY:
+            raise ValueError(f"speech interval of category {c}")
+    merged = merge_intervals((a, b) for a, b, _, _ in items)
     out = []
     for a, b in merged:
-        tags = []
-        for s, e, t in items:
-            if e > s and s >= a and e <= b and t and t != "<NA>":
-                tags += [x for x in t.split(",") if x not in tags]
-        out.append((category, format_tags(tags)))
+        tags, cats = [], set()
+        for s, e, t, c in items:
+            if e > s and s >= a and e <= b:
+                cats.add(c)
+                if t and t != "<NA>":
+                    tags += [x for x in t.split(",") if x not in tags]
+        best = next((c for c in SPEECH_PRIORITY if c in cats), category)
+        out.append((best, format_tags(tags)))
     return merged, out
 
 
@@ -229,8 +256,10 @@ class VadDumpWriter:
                 channel, "<rec_id>_ch<k>", all with the same labels.
             signal: Samples first, (samples,) or (samples, channels).
             rate: Sampling rate of `signal` in Hz.
-            speech: Speech intervals in seconds, (start, end) or (start, end,
-                tags) with the source labels of the interval (comma separated);
+            speech: Speech intervals in seconds, (start, end), (start, end,
+                tags) with the source labels of the interval (comma separated),
+                or (start, end, tags, category) for an interval of another
+                speech category than speech_category (e.g. "speech/blank");
                 empty for non-speech audio.
             channels: Channels to keep (default all).
             negative_type: What the non-speech is (e.g. "music", "keyboard").
