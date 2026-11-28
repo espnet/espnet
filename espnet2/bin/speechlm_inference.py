@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Run a SpeechLM checkpoint on one request, served or loaded.
 
-This is the single-sample sibling of `espnet2/speechlm/bin/inference.py`,
+This is the single-sample sibling of `espnet2.speechlm.bin.inference`,
 which runs the same models over a dataset: same job template, same
 checkpoints, same decoding configs, one dialogue at a time and no
 manifests. Use that one to evaluate a test set, and this one to answer a
@@ -40,10 +40,9 @@ checkpoint with this package's own `espnet2.speechlm` and calls the model
 in process. Every release ships exactly what that path takes - a train
 config, `model.pt` as `{"module": state_dict}`, and the decoding configs
 this module uses as its defaults - and each model card names
-`espnet2/speechlm/bin/inference.py`, the batch script this is the
-single-sample sibling of, as its runtime. These are 8B models with an
-audio encoder and a codec attached: expect an 18 GB download and a large
-GPU.
+the native `espnet2.speechlm.bin.inference` batch command as its runtime.
+These 8B models include an audio encoder and a codec. Expect an 18 GB
+download and a large GPU.
 
 There are three of them, and `RELEASES` holds what a caller cannot guess:
 
@@ -104,13 +103,14 @@ import base64
 import io
 import json
 import logging
+import math
 import os
 import urllib.error
 import urllib.request
 import wave
-from dataclasses import dataclass
+from dataclasses import asdict, dataclass
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Sequence, Tuple, Union
+from typing import Any, Dict, List, Mapping, Optional, Sequence, Tuple, Union
 
 DEFAULT_URL = os.environ.get("ESPNET_BAGPIPER_URL", "http://127.0.0.1:9811/v1")
 DEFAULT_MODEL = os.environ.get("ESPNET_BAGPIPER_MODEL", "bagpiper")
@@ -236,6 +236,33 @@ class Decoding:
         if self.max_tokens is not None:
             return self.max_tokens
         return 12000 if audio else 4096
+
+
+def local_decoding_options(
+    options: Optional[Union[Decoding, Mapping[str, Any]]],
+) -> Dict[str, Any]:
+    """Validate explicit native options while preserving checkpoint defaults."""
+    if isinstance(options, Decoding):
+        overrides = asdict(options)
+        overrides.pop("max_tokens")  # Legacy options share the served token cap.
+    else:
+        overrides = dict(options or {})
+    if "max_tokens" in overrides:
+        raise ValueError("Use max_steps for local Bagpiper decoding")
+    checked = Decoding(**overrides)
+    if type(checked.topk) is not int or checked.topk < 1:
+        raise ValueError("topk must be a positive integer")
+    if checked.max_steps is not None and (
+        type(checked.max_steps) is not int or checked.max_steps < 1
+    ):
+        raise ValueError("max_steps must be a positive integer")
+    for name in ("text_temperature", "audio_temperature", "cfg"):
+        value = getattr(checked, name)
+        if value is None and name == "cfg":
+            continue
+        if type(value) not in (int, float) or not math.isfinite(value) or value < 0:
+            raise ValueError(f"{name} must be a finite nonnegative number")
+    return overrides
 
 
 class Bagpiper:
@@ -444,7 +471,7 @@ class ServedBagpiper(Bagpiper):
 class LocalBagpiper(Bagpiper):
     """A Bagpiper checkpoint, loaded here.
 
-    This is the single-sample sibling of `espnet2/speechlm/bin/inference.py`:
+    This is the single-sample sibling of `espnet2.speechlm.bin.inference`:
     same job template, same checkpoint, same decoding configs, one dialogue
     at a time and no manifests. Build it with `from_pretrained()`.
 
@@ -568,20 +595,57 @@ class LocalBagpiper(Bagpiper):
         )
 
     def _chat(self, messages, audio_out, decoding):
+        dialogue = [_dialogue_turn(message) for message in messages]
+        text, audio = self.infer_dialogue(
+            dialogue, audio_out=audio_out, decoding=decoding
+        )
+        if audio is None:
+            return text, None
+
+        import soundfile as sf
+
+        waveform, rate = audio
+        buffer = io.BytesIO()
+        sf.write(buffer, waveform.T, rate, format="WAV")
+        return text, _checked_wav(buffer.getvalue())
+
+    def infer_dialogue(
+        self,
+        dialogue: Sequence[Tuple[str, str, Any]],
+        *,
+        audio_out: bool,
+        decoding: Optional[Union[Decoding, Mapping[str, Any]]] = None,
+    ) -> Tuple[str, Optional[Tuple[Any, int]]]:
+        """Run a prepared dialogue using in-memory audio.
+
+        Args:
+            dialogue: Ordered (role, modality, content) turns from the native
+                dialogue reader. Text content is a string. Audio content is
+                a (channels-first float32 waveform, sample rate) pair.
+            audio_out: Request the checkpoint's text-then-audio decoding mode.
+            decoding: Native sampling options or a mapping of explicit
+                overrides for the selected decoding YAML. Use ``max_steps``
+                to limit the length of each segment.
+
+        Returns:
+            The assistant text and, when emitted, a (waveform, sample rate)
+            pair. The waveform is a float32 NumPy array.
+        """
         from espnet2.speechlm.utils.data import to_device
 
-        dialogue = [_dialogue_turn(message) for message in messages]
+        config = self._config(audio_out, decoding)
         batch = self.preprocessor.collate_fn(
             [(("dialogue", "local", "bagpiper"), {"dialogue": dialogue})]
         )
         batch = to_device(batch, self.device, dtype=self.dtype)
         batch.pop("keys")
 
-        config = self._config(audio_out, decoding)
         answer, _ = self.model.inference(config, **batch)
         return _decoded(answer)
 
-    def _config(self, audio_out: bool, decoding: Decoding) -> Dict[str, Any]:
+    def _config(
+        self, audio_out: bool, decoding: Optional[Union[Decoding, Mapping[str, Any]]]
+    ) -> Dict[str, Any]:
         """The published config, with anything the caller asked for on top."""
         base = self.audio_config if audio_out else self.text_config
         config = {
@@ -589,15 +653,17 @@ class LocalBagpiper(Bagpiper):
             for key, value in base.items()
         }
         config["enforce_modality"] = ["text", "audio"] if audio_out else ["text"]
-        config["text"]["temperature"] = decoding.text_temperature
-        config["text"]["topk"] = decoding.topk
-        config["audio"]["temperature"] = decoding.audio_temperature
-        config["audio"]["topk"] = decoding.topk
-        if decoding.cfg is not None:
-            config["audio"]["cfg"] = decoding.cfg
-        if decoding.max_steps is not None:
-            config["text"]["max_step"] = decoding.max_steps
-            config["audio"]["max_step"] = decoding.max_steps
+        options = local_decoding_options(decoding)
+        for modality in ("text", "audio"):
+            for name, key in (
+                (f"{modality}_temperature", "temperature"),
+                ("topk", "topk"),
+                ("max_steps", "max_step"),
+            ):
+                if options.get(name) is not None:
+                    config[modality][key] = options[name]
+        if options.get("cfg") is not None:
+            config["audio"]["cfg"] = options["cfg"]
         return config
 
 
@@ -661,7 +727,7 @@ def _dialogue_turn(message: Message) -> Tuple[str, str, Any]:
     """One turn as the model takes it: audio read into (array, rate).
 
     This is what `validate_and_process_messages` in
-    `espnet2/speechlm/dataloader/multimodal_loader/dialogue_loader.py` does
+    `espnet2.speechlm.dataloader.multimodal_loader.dialogue_loader` does
     to a manifest's dialogue, for the one turn at a time this module has.
     It is repeated rather than imported because that package pulls the data
     stack - pyarrow, lhotse - which a single file does not need;
@@ -683,16 +749,14 @@ def _dialogue_turn(message: Message) -> Tuple[str, str, Any]:
     return (role, modality, (audio, rate))
 
 
-def _decoded(answer: Sequence[Sequence[Any]]) -> Tuple[str, Optional[bytes]]:
-    """Assistant messages as the served path returns them: text, then audio.
+def _decoded(answer: Sequence[Sequence[Any]]) -> Tuple[str, Optional[Tuple[Any, int]]]:
+    """Collect the assistant text and the first emitted waveform.
 
     `model.inference` hands back `[role, modality, content]` per segment,
     text as a batch of strings and audio as `(wav, length, sample_rate)`.
     """
-    import soundfile as sf
-
     texts: List[str] = []
-    audio: Optional[bytes] = None
+    audio = None
     for _, modality, content in answer:
         if modality == "text":
             texts.append(content[0] if not isinstance(content, str) else content)
@@ -703,10 +767,7 @@ def _decoded(answer: Sequence[Sequence[Any]]) -> Tuple[str, Optional[bytes]]:
             logger.warning("keeping the first of several audio segments")
             continue
         wav, length, rate = content
-        wav = wav[0][:, : length[0]] if wav[0].ndim == 2 else wav[0]
-        buffer = io.BytesIO()
-        sf.write(buffer, wav.cpu().float().numpy().T, int(rate), format="WAV")
-        audio = _checked_wav(buffer.getvalue())
+        audio = wav[0][..., : length[0]].cpu().float().numpy(), int(rate)
     return "\n".join(t for t in texts if t), audio
 
 

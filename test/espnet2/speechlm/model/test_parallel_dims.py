@@ -61,3 +61,12 @@ class TestInitParallelDims:
 
         with pytest.raises(ValueError, match="does not support expert parallelism"):
             init_parallel_dims({"ep": 4})
+
+    def test_rejects_replicas_without_gradient_sync(self, monkeypatch):
+        from espnet2.speechlm.model.speechlm.parallel_utils import parallel_dims
+
+        monkeypatch.setattr(parallel_dims.dist, "get_world_size", lambda: 2)
+        monkeypatch.setattr(parallel_dims.dist, "get_rank", lambda: 0)
+        monkeypatch.setattr(parallel_dims.torch.cuda, "current_device", lambda: 0)
+        with pytest.raises(ValueError, match="synchronize replicated gradients"):
+            parallel_dims.init_parallel_dims({"dp_replicate": 2, "dp_shard": 1})

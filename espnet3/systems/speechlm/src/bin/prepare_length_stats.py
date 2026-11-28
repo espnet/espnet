@@ -9,11 +9,13 @@ import json
 import logging
 from multiprocessing import Pool
 from pathlib import Path
+from tempfile import TemporaryDirectory
 from typing import Dict, Tuple
 
 import yaml
 
 from espnet2.speechlm.dataloader.iterator import DataIteratorFactory
+from espnet2.speechlm.dataloader.task_conf import parse_data_specifier
 from espnet2.speechlm.model import _all_job_types
 
 
@@ -89,27 +91,22 @@ def worker(
     registered_spec: str = "",
 ):
     """Worker function to collect length statistics for a data shard."""
-    # Create iterator with appropriate specifier
-    try:
-        iterator = DataIteratorFactory(
-            unregistered_specifier=[unregistered_spec] if unregistered_spec else [],
-            registered_specifier=[registered_spec] if registered_spec else [],
-            rank=rank,
-            world_size=world_size,
-            shuffle=False,
-            sequential_load=True,
-            num_workers=0,
-            collate_fn=lambda x: x[0],
-        ).build_iter()
-    except ValueError as e:
-        logging.getLogger(__name__).warning(
-            f"Worker {rank}: Error building iterator, skipping shard: {e}"
-        )
+    factory = DataIteratorFactory(
+        unregistered_specifier=[unregistered_spec] if unregistered_spec else [],
+        registered_specifier=[registered_spec] if registered_spec else [],
+        rank=rank,
+        world_size=world_size,
+        shuffle=False,
+        sequential_load=True,
+        num_workers=0,
+        collate_fn=lambda x: x[0],
+    )
+    if not factory.batched_examples:
+        # A small dataset can have fewer examples than workers.
         return {}
 
-    # Collect statistics for this shard
     stats = {}
-    for key, data_dict in iterator:
+    for key, data_dict in factory.build_iter():
         key = tuple(key)
         stats[key] = preprocessor.find_length(key, data_dict)
 
@@ -162,21 +159,23 @@ def save_stats(stats: Dict[Tuple[str, ...], int], output_file: Path) -> None:
     """Save statistics dictionary to JSONL file."""
     logger = logging.getLogger(__name__)
 
-    # Save to JSONL format
-    with open(output_file, "w") as f:
-        for key_tuple, value in stats.items():
-            # Only keep the example_id, and discard the task and data_name
-            json_obj = {key_tuple[2]: value}
-            f.write(json.dumps(json_obj) + "\n")
+    if not stats:
+        raise ValueError(f"No examples found while collecting {output_file}")
 
-    # Log summary
-    if stats:
-        total_frames = sum(stats.values())
-        logger.info(
-            f"Saved {len(stats)} entries to {output_file} | "
-            f"Total: {total_frames} frames | "
-            f"Avg: {total_frames / len(stats):.1f} frames/entry"
-        )
+    # A later invocation reuses existing files. Only publish a complete JSONL.
+    with TemporaryDirectory(dir=output_file.parent, prefix=".speechlm-stats-") as tmp:
+        pending = Path(tmp) / output_file.name
+        with pending.open("w", encoding="utf-8") as f:
+            for (_, _, example_id), length in stats.items():
+                f.write(json.dumps({example_id: length}) + "\n")
+        pending.replace(output_file)
+
+    total_frames = sum(stats.values())
+    logger.info(
+        f"Saved {len(stats)} entries to {output_file} | "
+        f"Total: {total_frames} frames | "
+        f"Avg: {total_frames / len(stats):.1f} frames/entry"
+    )
 
 
 def main():
@@ -195,13 +194,6 @@ def main():
     # Create output directory
     args.output_dir.mkdir(parents=True, exist_ok=True)
 
-    # Build preprocessor from config
-    with open(args.train_config) as f:
-        config = yaml.safe_load(f)
-
-    job_template = _all_job_types[config["job_type"]](config, is_train=True)
-    preprocessor = job_template.build_preprocessor()
-
     # Collect all specifiers to process
     specifiers = []
     for split in ["train", "valid"]:
@@ -209,19 +201,25 @@ def main():
             for spec in getattr(args, f"{split}_{spec_type}_specifier"):
                 specifiers.append((spec_type, spec))
 
-    # Process each specifier
+    preprocessor = None
     for spec_type, specifier in specifiers:
         # Parse specifier and generate output filename
-        parts = specifier.split(":")
-        task, data_name = parts[0], parts[1]
+        task, data_name, *_ = parse_data_specifier(
+            specifier, registered=spec_type == "registered"
+        )
         output_file = args.output_dir / f"stats_{task}_{data_name}.jsonl"
 
         # Skip if already exists
-        if output_file.exists():
+        if output_file.is_file() and output_file.stat().st_size:
             logger.info(f"Skipping {specifier} - stats already exist")
             continue
 
-        # Collect and save statistics
+        if preprocessor is None:
+            with args.train_config.open(encoding="utf-8") as f:
+                config = yaml.safe_load(f)
+            job_template = _all_job_types[config["job_type"]](config, is_train=True)
+            preprocessor = job_template.build_preprocessor()
+
         logger.info(f"Processing {spec_type} specifier: {specifier}")
         stats = collect_length_stats(
             preprocessor, args.num_workers, spec_type, specifier

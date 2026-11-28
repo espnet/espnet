@@ -3,6 +3,27 @@
 
 """Task configuration definitions for multimodal SpeechLM data loading."""
 
+import math
+
+
+def parse_data_specifier(specifier: str, *, registered: bool) -> tuple:
+    """Return task, dataset name, optional manifest, and sampling factor."""
+    parts = specifier.split(":")
+    required = 2 if registered else 3
+    if len(parts) not in (required, required + 1):
+        kind = "registered" if registered else "unregistered"
+        syntax = "task:name[:factor]" if registered else "task:name:data_json[:factor]"
+        raise ValueError(
+            f"Invalid {kind} specifier '{specifier}'. Expected format: '{syntax}'"
+        )
+    if any(not name or "/" in name for name in parts[:2]):
+        raise ValueError(f"Invalid task or dataset name in {specifier!r}")
+    factor = float(parts[-1]) if len(parts) > required else 1.0
+    if not math.isfinite(factor) or factor <= 0:
+        raise ValueError(f"Expected a finite positive factor in {specifier!r}")
+    return (*parts[:required], factor)
+
+
 # List of supported entries for task configurations
 SUPPORTED_ENTRIES = (
     [f"audio{i}" for i in range(1, 11)]  # audio1 to audio10

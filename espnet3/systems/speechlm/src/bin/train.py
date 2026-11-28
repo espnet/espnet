@@ -289,9 +289,10 @@ def main():
         titan_config = train_config.get("trainer", {}).get("titan_config", {})
         parallel_dims, _, _ = init_parallel_dims(titan_config)
 
-        dp_mesh = parallel_dims.get_mesh("batch")
-        data_rank = dp_mesh.get_local_rank()
-        data_world_size = dp_mesh.size()
+        # TorchTitan omits the batch mesh when its size is one.
+        dp_mesh = parallel_dims.get_optional_mesh("batch")
+        data_rank = dp_mesh.get_local_rank() if dp_mesh is not None else 0
+        data_world_size = dp_mesh.size() if dp_mesh is not None else 1
         logger.info(
             f"Titan data loading: data_rank={data_rank}, "
             f"data_world_size={data_world_size} "

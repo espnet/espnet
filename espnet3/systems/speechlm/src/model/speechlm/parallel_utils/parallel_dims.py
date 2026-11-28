@@ -64,7 +64,11 @@ def init_parallel_dims(
         etp=1,
         world_size=world_size,
     )
-
+    if parallel_dims.dp_replicate_enabled and not parallel_dims.fsdp_enabled:
+        raise ValueError(
+            "SpeechLM cannot synchronize replicated gradients without sharding. "
+            "Use dp_replicate=1 and dp_shard=-1 for data-parallel training."
+        )
     parallel_dims.build_mesh()
 
     logger.info(

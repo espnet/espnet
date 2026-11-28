@@ -6,7 +6,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 import yaml
 
-from espnet2.speechlm.bin.prepare_length_stats import worker
+from espnet2.speechlm.bin.prepare_length_stats import save_stats, worker
 
 
 @pytest.mark.parametrize("registered", [False, True])
@@ -73,6 +73,8 @@ def test_main_collects_real_data_from_literal_arguments(
         patch.object(module, "collect_length_stats", side_effect=collect),
     ):
         module.main()
+        module.main()
+        assert job.build_preprocessor.call_count == 1
     assert preprocessor.find_length.call_count == 3
     for name in names:
         assert json.loads((output / f"stats_text_only_{name}.jsonl").read_text()) == {
@@ -81,12 +83,12 @@ def test_main_collects_real_data_from_literal_arguments(
 
 
 class TestWorker:
-    def test_returns_empty_on_value_error(self):
+    def test_skips_only_empty_shards(self):
         preprocessor = MagicMock()
         with patch(
             "espnet2.speechlm.bin.prepare_length_stats.DataIteratorFactory"
         ) as MockFactory:
-            MockFactory.return_value.build_iter.side_effect = ValueError("bad shard")
+            MockFactory.return_value.batched_examples = []
             result = worker(
                 preprocessor=preprocessor,
                 rank=0,
@@ -96,16 +98,32 @@ class TestWorker:
         assert result == {}
         preprocessor.find_length.assert_not_called()
 
-    def test_propagates_non_value_error(self):
+    @pytest.mark.parametrize("error_type", [ValueError, RuntimeError])
+    def test_propagates_invalid_data(self, error_type):
         preprocessor = MagicMock()
         with patch(
             "espnet2.speechlm.bin.prepare_length_stats.DataIteratorFactory"
         ) as MockFactory:
-            MockFactory.return_value.build_iter.side_effect = RuntimeError("fatal")
-            with pytest.raises(RuntimeError, match="fatal"):
+            MockFactory.side_effect = error_type("fatal")
+            with pytest.raises(error_type, match="fatal"):
                 worker(
                     preprocessor=preprocessor,
                     rank=0,
                     world_size=1,
                     unregistered_spec="asr:dummy:path.json",
                 )
+
+
+def test_failed_write_does_not_publish_partial_stats(tmp_path):
+    output = tmp_path / "stats.jsonl"
+    with pytest.raises(ValueError, match="No examples"):
+        save_stats({}, output)
+    data = {("text_only", "train", "one"): 4, ("text_only", "train", "two"): object()}
+    with pytest.raises(TypeError):
+        save_stats(data, output)
+    assert list(tmp_path.iterdir()) == []
+    save_stats({("text_only", "train", "one"): 4}, output)
+    assert json.loads(output.read_text()) == {"one": 4}
+    with pytest.raises(TypeError):
+        save_stats(data, output)
+    assert json.loads(output.read_text()) == {"one": 4}

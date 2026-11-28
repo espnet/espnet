@@ -1,0 +1,13 @@
+exp_dir: exp/bagpiper_sft
+stats_dir: exp/sft_stats
+speechlm_config: ${oc.env:BAGPIPER_TRAIN_CONFIG,conf/train_sft.yaml}
+prepared_dir: ${oc.env:BAGPIPER_PREPARED,data/sft/prepared}
+num_device: ${oc.decode:${oc.env:BAGPIPER_NGPU,2}}
+require_checkpoint: true
+resume_path: ${oc.env:BAGPIPER_INIT,null}
+train_unregistered_specifier:
+  - dialogue:generation_train:${prepared_dir}/generation/train.json
+  - dialogue:understanding_train:${prepared_dir}/understanding/train.json
+valid_unregistered_specifier:
+  - dialogue:generation_valid:${prepared_dir}/generation/valid.json
+  - dialogue:understanding_valid:${prepared_dir}/understanding/valid.json

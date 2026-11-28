@@ -31,7 +31,7 @@ echo "::group::=== Run pytest ==="
 # test/ci holds the tests of ci/ scripts, such as the integration checker;
 # test/doc those of doc/ scripts, such as make_release.py
 pytest -q --execution-timeout 10.0 --timeouts-order moi \
-    test/espnet3/ test/ci/ test/doc/ test/splet/
+    test/espnet3/ test/egs3/bagpiper/ test/ci/ test/doc/ test/splet/
 echo "::endgroup::"
 
 echo "::group::=== Report ==="

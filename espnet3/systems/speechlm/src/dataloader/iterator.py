@@ -13,7 +13,7 @@ from torch.utils.data import DataLoader
 
 from espnet2.speechlm.dataloader.batch import batchfy
 from espnet2.speechlm.dataloader.dataset import CombinedDataset
-from espnet2.speechlm.dataloader.task_conf import TASK_CONFIGS
+from espnet2.speechlm.dataloader.task_conf import TASK_CONFIGS, parse_data_specifier
 
 T = TypeVar("T")
 
@@ -380,41 +380,16 @@ def _parse_data_specifier(
     if isinstance(task_registered_data_factors, str):
         task_registered_data_factors = task_registered_data_factors.split()
 
-    cache_unregistered = []
-    if task_data_factors:
-        for entry in task_data_factors:
-            parts = entry.split(":")
-            if len(parts) == 4:
-                task, name, data_json, factor = parts
-                factor = float(factor)
-            elif len(parts) == 3:
-                task, name, data_json = parts
-                factor = 1.0
-            else:
-                raise ValueError(
-                    f"Invalid unregistered specifier '{entry}'. "
-                    f"Expected format: 'task:name:data_json[:factor]'"
-                )
-            cache_unregistered.append((task, name, data_json, factor))
-
-    cache_registered = []
-    if task_registered_data_factors:
-        for entry in task_registered_data_factors:
-            parts = entry.split(":")
-            if len(parts) == 3:
-                task, name, factor = parts
-                factor = float(factor)
-            elif len(parts) == 2:
-                task, name = parts
-                factor = 1.0
-            else:
-                raise ValueError(
-                    f"Invalid registered specifier '{entry}'. "
-                    f"Expected format: 'task:name[:factor]'"
-                )
-            cache_registered.append((task, name, factor))
-
-    return cache_unregistered, cache_registered
+    return (
+        [
+            parse_data_specifier(entry, registered=False)
+            for entry in (task_data_factors or ())
+        ],
+        [
+            parse_data_specifier(entry, registered=True)
+            for entry in (task_registered_data_factors or ())
+        ],
+    )
 
 
 def _load_stats(

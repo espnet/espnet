@@ -1,0 +1,14 @@
+recipe_dir: .
+exp_dir: ${recipe_dir}/exp/speechlm
+stats_dir: ${recipe_dir}/exp/stats
+speechlm_config: null
+num_device: 1
+stats_num_workers: 1
+train_registered_specifier: []
+train_unregistered_specifier: []
+valid_registered_specifier: []
+valid_unregistered_specifier: []
+require_checkpoint: false
+resume_path: null
+save_loader_state: true
+wandb_mode: disabled
