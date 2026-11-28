@@ -184,7 +184,7 @@ class DiarizeSpeech:
             lengths = torch.as_tensor(speech_lengths).long().cpu()
 
         segmenting = self.segmenting_diar and bool(
-            (lengths > self.segment_size * fs).any()
+            (lengths > round(self.segment_size * fs)).any()
         )
         stft = getattr(getattr(self.diar_model, "frontend", None), "stft", None)
         centred = stft is not None and getattr(stft, "center", False)
@@ -304,17 +304,18 @@ class DiarizeSpeech:
         speech = to_device(speech, device=self.device)
         lengths = to_device(lengths, device=self.device)
 
-        if self.segmenting_diar and lengths[0] > self.segment_size * fs:
+        T = round(self.segment_size * fs) if self.segment_size is not None else None
+        if self.segmenting_diar and lengths[0] > T:
             # Segment-wise speaker diarization
             # Note that the segments are processed independently for now
             # i.e., no speaker tracing is performed
-            num_segments = int(np.ceil(speech.size(1) / (self.segment_size * fs)))
-            t = T = int(self.segment_size * fs)
+            num_segments = (speech.size(1) + T - 1) // T
+            t = T
             pad_shape = speech[:, :T].shape
             diarized_wavs = []
             range_ = trange if self.show_progressbar else range
             for i in range_(num_segments):
-                st = int(i * self.segment_size * fs)
+                st = i * T
                 en = st + T
                 if en >= lengths[0]:
                     # en - st < T (last segment)
@@ -355,21 +356,16 @@ class DiarizeSpeech:
             if self.enh_s2t_task:
                 # Segment-wise speech separation
                 # Note that this is done after diarization using the whole sequence
-                if self.segmenting_enh_diar and lengths[0] > self.segment_size * fs:
-                    overlap_length = int(
-                        np.round(fs * (self.segment_size - self.hop_size))
-                    )
-                    num_segments = int(
-                        np.ceil(
-                            (speech.size(1) - overlap_length) / (self.hop_size * fs)
-                        )
-                    )
-                    t = T = int(self.segment_size * fs)
+                if self.segmenting_enh_diar and lengths[0] > T:
+                    H = round(self.hop_size * fs)
+                    overlap_length = T - H
+                    num_segments = (speech.size(1) - overlap_length + H - 1) // H
+                    t = T
                     pad_shape = speech[:, :T].shape
                     enh_waves = []
                     range_ = trange if self.show_progressbar else range
                     for i in range_(num_segments):
-                        st = int(i * self.hop_size * fs)
+                        st = i * H
                         en = st + T
                         if en >= lengths[0]:
                             # en - st < T (last segment)

@@ -49,7 +49,13 @@ def config_file(tmp_path: Path):
 @pytest.mark.parametrize("batch_size", [1, 2])
 @pytest.mark.parametrize(
     "input_size, segment_size, hop_size, normalize_segment_scale",
-    [(16000, None, None, False), (35000, 2.4, 0.8, False), (35000, 2.4, 0.8, True)],
+    [
+        (16000, None, None, False),
+        (35000, 2.4, 0.8, False),
+        (35000, 2.4, 0.8, True),
+        (20001, 1.0, 0.7, False),
+        (12345, 0.9, 0.3, False),
+    ],
 )
 def test_SeparateSpeech(
     config_file, batch_size, input_size, segment_size, hop_size, normalize_segment_scale
